@@ -19,6 +19,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -30,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.system.measureTimeMillis
+import kotlin.time.Duration.Companion.seconds
 
 class ImageEncoderPreparerTest {
     @Test
@@ -363,6 +365,38 @@ class ImageEncoderPreparerTest {
     }
 
     @Test
+    fun closeIfIdleRefusesWhileProviderWorkIsPendingAndSucceedsAfterCleanup() = runBlocking {
+        val providerContext = ProviderPreparationContext()
+        val releaseProvider = CountDownLatch(1)
+        val encoder = CloseTrackingImageEncoder()
+        val provider = BlockingImageEncoderProvider(
+            releaseProvider = releaseProvider,
+            result = BlockingProviderResult.Success(encoder),
+        )
+
+        val pending = async(Dispatchers.Default) {
+            ImageEncoderPreparer(providerContext, timeoutMs = 5_000L).prepare(
+                token = providerContext.newToken(),
+                provider = provider,
+                request = testEncoderRequest(),
+            )
+        }
+        assertTrue(provider.awaitStarted())
+
+        assertFalse(providerContext.isIdleForShutdown)
+        assertFalse(providerContext.closeIfIdle())
+
+        releaseProvider.countDown()
+        val result = withTimeout(1.seconds) { pending.await() }
+        assertTrue(result is ImageEncoderPreparationResult.Success)
+        (result as ImageEncoderPreparationResult.Success).preparedEncoder.close()
+        assertTrue(encoder.awaitClose())
+
+        assertTrue(providerContext.isIdleForShutdown)
+        assertTrue(providerContext.closeIfIdle())
+    }
+
+    @Test
     fun contextCloseFencesCompletedSuccessBeforeCallerClaimAndClosesOnce() = runBlocking {
         val beforeClaimEntered = CountDownLatch(1)
         val allowClaimToContinue = CountDownLatch(1)
@@ -419,7 +453,7 @@ class ImageEncoderPreparerTest {
             token.cancelForRaceTest()
             releaseProvider.countDown()
 
-            val result = withTimeout(1_000L) { pending.await() }
+            val result = withTimeout(1.seconds) { pending.await() }
 
             assertTrue(result is ImageEncoderPreparationResult.Failure)
             val failure = result as ImageEncoderPreparationResult.Failure
@@ -464,7 +498,7 @@ class ImageEncoderPreparerTest {
             token.cancelForRaceTest()
             releaseProvider.countDown()
 
-            val result = withTimeout(1_000L) { pending.await() }
+            val result = withTimeout(1.seconds) { pending.await() }
 
             assertTrue(result is ImageEncoderPreparationResult.Failure)
             val failure = result as ImageEncoderPreparationResult.Failure
@@ -510,7 +544,7 @@ class ImageEncoderPreparerTest {
             token.cancelForRaceTest()
             releaseProvider.countDown()
 
-            val result = withTimeout(1_000L) { pending.await() }
+            val result = withTimeout(1.seconds) { pending.await() }
 
             assertTrue(result is ImageEncoderPreparationResult.Failure)
             val failure = result as ImageEncoderPreparationResult.Failure
@@ -558,7 +592,7 @@ class ImageEncoderPreparerTest {
             token.cancelForRaceTest()
             releaseProvider.countDown()
 
-            val staleResult = withTimeout(1_000L) { first.await() }
+            val staleResult = withTimeout(1.seconds) { first.await() }
             assertTrue(staleResult is ImageEncoderPreparationResult.Failure)
             assertTrue(diagnosticEntered.await(1, TimeUnit.SECONDS))
             val providerThread = firstProvider.createThread.get()
@@ -567,7 +601,7 @@ class ImageEncoderPreparerTest {
             assertTrue(providerThread?.isAlive == false)
             assertNotEquals(providerThread, diagnosticThread.get())
 
-            val secondResult = withTimeout(1_000L) {
+            val secondResult = withTimeout(1.seconds) {
                 ImageEncoderPreparer(providerContext, timeoutMs = 1_000L).prepare(
                     token = providerContext.newToken(),
                     provider = SimpleImageEncoderProvider(),
@@ -614,7 +648,7 @@ class ImageEncoderPreparerTest {
             token.cancelForRaceTest()
             releaseProvider.countDown()
 
-            val result = withTimeout(1_000L) { pending.await() }
+            val result = withTimeout(1.seconds) { pending.await() }
 
             assertTrue(result is ImageEncoderPreparationResult.Failure)
             val failure = result as ImageEncoderPreparationResult.Failure
@@ -661,7 +695,7 @@ class ImageEncoderPreparerTest {
             token.cancelForRaceTest()
             releaseProvider.countDown()
 
-            val result = withTimeout(1_000L) { pending.await() }
+            val result = withTimeout(1.seconds) { pending.await() }
 
             assertTrue(result is ImageEncoderPreparationResult.Failure)
             val failure = result as ImageEncoderPreparationResult.Failure

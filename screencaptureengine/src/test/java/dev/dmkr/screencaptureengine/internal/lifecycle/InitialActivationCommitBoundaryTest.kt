@@ -4,8 +4,13 @@ import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import dev.dmkr.screencaptureengine.CaptureMetrics
 import dev.dmkr.screencaptureengine.ColorMode
+import dev.dmkr.screencaptureengine.EncodedImageFormats
+import dev.dmkr.screencaptureengine.EncodedImageSink
 import dev.dmkr.screencaptureengine.FrameRate
 import dev.dmkr.screencaptureengine.ImageEncodeResult
+import dev.dmkr.screencaptureengine.ImageEncoder
+import dev.dmkr.screencaptureengine.ImageEncoderInfo
+import dev.dmkr.screencaptureengine.ImageEncoderInput
 import dev.dmkr.screencaptureengine.ImageEncoderInputFormat
 import dev.dmkr.screencaptureengine.ReadbackMode
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
@@ -19,9 +24,12 @@ import dev.dmkr.screencaptureengine.ScreenCaptureSessionState
 import dev.dmkr.screencaptureengine.ScreenCaptureStopReason
 import dev.dmkr.screencaptureengine.Size
 import dev.dmkr.screencaptureengine.internal.encoding.provider.FakeImageEncoder
+import dev.dmkr.screencaptureengine.internal.encoding.provider.FakeImageEncoderProvider
+import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPreparationResult
+import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPreparer
 import dev.dmkr.screencaptureengine.internal.encoding.provider.ImmediateProviderEncoderCleanup
 import dev.dmkr.screencaptureengine.internal.encoding.provider.PreparedImageEncoderResources
-import dev.dmkr.screencaptureengine.internal.gl.GlResourceRetirementLane
+import dev.dmkr.screencaptureengine.internal.encoding.provider.ProviderPreparationContext
 import dev.dmkr.screencaptureengine.internal.gl.RuntimeGles20Api
 import dev.dmkr.screencaptureengine.internal.rendering.es2.Es2DynamicOesMatrixUniformSlot
 import dev.dmkr.screencaptureengine.internal.rendering.es2.Es2OesMatrixCompositionRule
@@ -56,6 +64,7 @@ import dev.dmkr.screencaptureengine.internal.startup.expectStartException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -77,6 +86,7 @@ import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.CoroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -126,7 +136,7 @@ class InitialActivationCommitBoundaryTest {
 
         assertEquals(false, running.capturedContentVisible)
         assertEquals(fixture.preparedPlan.outputPlan.toEffectiveParameters(fixture.encoder.info), active.effectiveParameters)
-        assertEquals(ScreenCaptureProblemKind.OutputPlanInvalid, rejected.problem.kind)
+        assertEquals(ScreenCaptureProblemKind.ParameterUpdateUnavailable, rejected.problem.kind)
         assertSame(session, activeOwner.sessionForTesting)
     }
 
@@ -978,6 +988,57 @@ class InitialActivationCommitBoundaryTest {
     }
 
     @Test
+    fun terminalCleanupFenceSurvivesUntilDeferredProviderBackedCleanupIsScheduled() = runTest {
+        val terminalCleanupFences = AtomicInteger(0)
+        val encoder = CloseTrackingImageEncoder()
+        val fixture = prepareProviderBackedInitialRuntimeOwnerForProduction(
+            encoder = encoder,
+            terminalCleanupFenceFactory = {
+                terminalCleanupFences.incrementAndGet()
+                AutoCloseable { terminalCleanupFences.decrementAndGet() }
+            },
+        )
+        val readPixelsEntered = CountDownLatch(1)
+        val releaseReadPixels = CountDownLatch(1)
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(
+            RuntimeEs2FrameRenderer(
+                BlockingReadPixelsRuntimeGles20Api(
+                    readPixelsEntered = readPixelsEntered,
+                    releaseReadPixels = releaseReadPixels,
+                ),
+            ),
+        )
+        val session = activeOwner.commitInitialActiveSession()
+
+        fixture.runtime.targetOwner.emitRuntimeFrameAvailable()
+        assertTrue("readPixels entered", readPixelsEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+        session.stop()
+        session.close()
+        fixture.runtime.runScheduledCleanup()
+
+        assertEquals(1, terminalCleanupFences.get())
+        assertEquals(0, encoder.closeCount.get())
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+
+        releaseReadPixels.countDown()
+
+        eventually("terminal cleanup fence released after deferred cleanup was scheduled") {
+            terminalCleanupFences.get() == 0
+        }
+        assertEquals(0, encoder.closeCount.get())
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+
+        fixture.runtime.runScheduledCleanup()
+
+        encoder.awaitClose("provider-backed deferred encoder cleanup")
+        assertEquals(1, fixture.runtime.targetOwner.closeCount)
+        eventually("provider context idle after provider-backed deferred cleanup") {
+            fixture.providerContext.closeIfIdle()
+        }
+    }
+
+    @Test
     fun projectionStopDuringReadbackFencesPublicationAndCaptureEndedWins() = runTest {
         val fixture = prepareInitialRuntimeOwnerForProduction()
         val readPixelsEntered = CountDownLatch(1)
@@ -1558,7 +1619,10 @@ class InitialActivationCommitBoundaryTest {
         val preActiveOwner = startupResources.transferToPreActiveRuntimeOwner()
         val preparedPlan = preActiveOwner.prepareInitialActivePlan(config)
         val preparer = TestRenderingPipelinePreparer()
-        val preparedResources = preActiveOwner.prepareInitialRenderingPipeline(preparedPlan = preparedPlan, preparer = preparer)
+        val preparedResources = preActiveOwner.prepareInitialRenderingPipeline(
+            preparedPlan = preparedPlan,
+            preparer = preparer,
+        )
         val initialOwner = preActiveOwner.transferToInitialRuntimeResourceOwner(
             preparedPlan = preparedPlan,
             preparedResources = preparedResources,
@@ -1573,12 +1637,13 @@ class InitialActivationCommitBoundaryTest {
         )
     }
 
-    private suspend fun TestScope.prepareInitialRuntimeOwnerForProduction(
+    private suspend fun prepareInitialRuntimeOwnerForProduction(
         configMaxEncodedBytes: Int = 4_194_304,
         initialParameters: ScreenCaptureParameters = ScreenCaptureParameters.defaults(),
         beforeCommitBoundary: (TestRuntime) -> Unit = {},
         runCleanupSynchronously: Boolean = true,
         elapsedRealtimeNanos: () -> Long = { 1_000L },
+        terminalCleanupFenceFactory: () -> AutoCloseable = { AutoCloseable {} },
     ): ProductionActivationFixture {
         val runtime = TestRuntime(apiLevel = 33, runCleanupSynchronously = runCleanupSynchronously)
         val config = ScreenCaptureConfig(metricsProvider = runtime.metricsProvider, maxEncodedBytes = configMaxEncodedBytes)
@@ -1597,12 +1662,74 @@ class InitialActivationCommitBoundaryTest {
                 beforeCommitBoundary(runtime)
             },
             elapsedRealtimeNanos = elapsedRealtimeNanos,
+            terminalCleanupFenceFactory = terminalCleanupFenceFactory,
         )
         return ProductionActivationFixture(
             runtime = runtime,
             activeOwner = activeOwner,
             encoder = preparer.encoders.single(),
         )
+    }
+
+    private suspend fun prepareProviderBackedInitialRuntimeOwnerForProduction(
+        encoder: CloseTrackingImageEncoder,
+        terminalCleanupFenceFactory: () -> AutoCloseable = { AutoCloseable {} },
+    ): ProviderBackedProductionActivationFixture {
+        val runtime = TestRuntime(apiLevel = 33, runCleanupSynchronously = false)
+        val config = ScreenCaptureConfig(metricsProvider = runtime.metricsProvider)
+        val startupResources = runtime.start()
+        val preActiveOwner = startupResources.transferToPreActiveRuntimeOwner()
+        val preparedPlan = preActiveOwner.prepareInitialActivePlan(config)
+        val providerContext = ProviderPreparationContext()
+        val preparer = RuntimeProductionRenderingPipelinePreparer(
+            providerEncoderResources = { request ->
+                prepareProviderBackedEncoderResources(
+                    providerContext = providerContext,
+                    request = request,
+                    encoder = encoder,
+                )
+            },
+        )
+        val preparedResources = withContext(Dispatchers.Default) {
+            preActiveOwner.prepareInitialRenderingPipeline(preparedPlan = preparedPlan, preparer = preparer)
+        }
+        val initialOwner = preActiveOwner.transferToInitialRuntimeResourceOwner(
+            preparedPlan = preparedPlan,
+            preparedResources = preparedResources,
+        )
+        val activeOwner = initialOwner.transferToActiveRuntimeOwner(
+            config = config,
+            elapsedRealtimeNanos = { 1_000L },
+            terminalCleanupFenceFactory = terminalCleanupFenceFactory,
+        )
+        return ProviderBackedProductionActivationFixture(
+            runtime = runtime,
+            activeOwner = activeOwner,
+            providerContext = providerContext,
+        )
+    }
+
+    private suspend fun prepareProviderBackedEncoderResources(
+        providerContext: ProviderPreparationContext,
+        request: RenderingPipelinePrepareRequest,
+        encoder: CloseTrackingImageEncoder,
+    ): PreparedImageEncoderResources {
+        val provider = FakeImageEncoderProvider().apply {
+            encoderFactory = { encoder }
+        }
+        return when (
+            val encoderResult = ImageEncoderPreparer(providerContext).prepare(
+                token = request.planPreparationToken,
+                provider = provider,
+                request = request.outputPlan.encoderRequest,
+            )
+        ) {
+            is ImageEncoderPreparationResult.Success -> encoderResult.preparedEncoder
+            is ImageEncoderPreparationResult.Failure -> throw AssertionError(
+                "Provider-backed encoder preparation failed: ${encoderResult.message}",
+                encoderResult.cause,
+            )
+        }
     }
 
     private suspend fun TestScope.produceOneFrame(fixture: ProductionActivationFixture): RuntimeFrameProductionTickResult {
@@ -1642,7 +1769,7 @@ class InitialActivationCommitBoundaryTest {
         }
     }
 
-    private data class DeliveredFrame(
+    private class DeliveredFrame(
         val sequence: Long,
         val timestampElapsedRealtimeNanos: Long,
         val bytes: ByteArray,
@@ -1675,13 +1802,45 @@ class InitialActivationCommitBoundaryTest {
         lateinit var session: ScreenCaptureSession
     }
 
-    private inner class RuntimeProductionRenderingPipelinePreparer : RenderingPipelinePreparer {
+    private class ProviderBackedProductionActivationFixture(
+        val runtime: TestRuntime,
+        val activeOwner: ActiveRuntimeOwner,
+        val providerContext: ProviderPreparationContext,
+    )
+
+    private class CloseTrackingImageEncoder(
+        override val info: ImageEncoderInfo = ImageEncoderInfo(
+            providerId = "fake-provider",
+            outputFormat = EncodedImageFormats.Jpeg,
+            backendName = "close-tracking",
+        ),
+    ) : ImageEncoder {
+        val closeCount = AtomicInteger(0)
+        private val closed = CountDownLatch(1)
+
+        override fun encode(input: ImageEncoderInput, output: EncodedImageSink): ImageEncodeResult =
+            ImageEncodeResult.Success
+
+        override fun close() {
+            closeCount.incrementAndGet()
+            closed.countDown()
+        }
+
+        fun awaitClose(description: String) {
+            assertTrue(description, closed.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+            assertEquals(description, 1, closeCount.get())
+        }
+    }
+
+    private inner class RuntimeProductionRenderingPipelinePreparer(
+        private val providerEncoderResources: (suspend (RenderingPipelinePrepareRequest) -> PreparedImageEncoderResources)? = null,
+    ) : RenderingPipelinePreparer {
         val encoders = mutableListOf<FakeImageEncoder>()
 
         override suspend fun prepareInitialRenderingPipeline(request: RenderingPipelinePrepareRequest): RenderingPipelinePreparationResult {
             val outputPlan = request.outputPlan
             val readback = PreparedEs2RenderingReadbackResources(
-                retirementLane = GlResourceRetirementLane { _, _ -> true },
+                retirementLane = { _, _ -> true },
                 glObjects = PreparedEs2RenderingReadbackGlObjects(
                     outputTextureId = 1,
                     outputFramebufferId = 2,
@@ -1707,18 +1866,21 @@ class InitialActivationCommitBoundaryTest {
                 rowStrideBytes = outputPlan.rowStrideBytes,
                 readbackBuffer = ByteBuffer.allocateDirect(outputPlan.rgbaByteCount.toInt()),
             )
-            val encoder = FakeImageEncoder()
-            encoders += encoder
+            val encoderResources = providerEncoderResources?.invoke(request) ?: run {
+                val encoder = FakeImageEncoder()
+                encoders += encoder
+                PreparedImageEncoderResources(
+                    encoder = encoder,
+                    info = encoder.info,
+                    request = outputPlan.encoderRequest,
+                    cleanup = ImmediateProviderEncoderCleanup,
+                )
+            }
             return RenderingPipelinePreparationResult.Success(
                 PreparedRenderingPipelineComponents(
                     readbackResources = readback,
                     renderTransformPackage = runtimeProductionTransformPackage(request),
-                    encoderResources = PreparedImageEncoderResources(
-                        encoder = encoder,
-                        info = encoder.info,
-                        request = outputPlan.encoderRequest,
-                        cleanup = ImmediateProviderEncoderCleanup,
-                    ),
+                    encoderResources = encoderResources,
                 ),
             )
         }

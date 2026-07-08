@@ -4,7 +4,9 @@ package dev.dmkr.screencaptureengine
  * User-requested capture/render/encode parameters.
  *
  * These values describe desired behavior. [ScreenCaptureEffectiveParameters] reports what was actually planned for the current geometry and device/runtime
- * capabilities. The values are applied atomically by [ScreenCaptureSession.setParameters].
+ * capabilities after startup. Under this engine/session contract, sessions returned by [ScreenCaptureEngines.create] reject runtime
+ * [ScreenCaptureSession.setParameters] requests with [ScreenCaptureProblemKind.ParameterUpdateUnavailable], so choose the desired initial values before
+ * [ScreenCaptureEngine.startSession].
  */
 public class ScreenCaptureParameters public constructor(
     /** Logical source region selected before crop. */

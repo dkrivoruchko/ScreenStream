@@ -253,7 +253,7 @@ class GlLaneAbandonmentTest {
             }.apply { start() }
             try {
                 assertTrue(
-                    waitUntilRetirementWorkIsRejected(owner, "test close drain started probe"),
+                    waitUntilRetirementWorkIsRejected(owner),
                 )
                 assertFalse(closeReturned.await(100, TimeUnit.MILLISECONDS))
 
@@ -670,11 +670,10 @@ class GlLaneAbandonmentTest {
 
     private fun waitUntilRetirementWorkIsRejected(
         owner: GlResourceRetirementLane,
-        label: String,
     ): Boolean {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
         while (System.nanoTime() < deadline) {
-            if (!owner.retireGlResources(label) { }) return true
+            if (!owner.retireGlResources("test close drain started probe") { }) return true
             Thread.sleep(10)
         }
         return false

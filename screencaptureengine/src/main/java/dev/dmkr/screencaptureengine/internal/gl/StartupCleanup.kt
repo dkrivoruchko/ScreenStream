@@ -11,6 +11,10 @@ internal fun interface StartupCleanupFailureSink {
     fun onCleanupFailure(failure: Throwable)
 }
 
+internal fun interface StartupCleanupFallbackCompletion {
+    fun onStartupCleanupFallbackComplete()
+}
+
 internal object DefaultStartupCleanupScheduler : StartupCleanupScheduler {
     private val executor: Executor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "ScreenCaptureStartupCleanup").apply { isDaemon = true }
@@ -68,6 +72,8 @@ internal fun scheduleStartupCleanup(
             } else {
                 existingReportingFailure.addSuppressed(cleanupReportFailure)
             }
+        } finally {
+            (cleanupScheduler as? StartupCleanupFallbackCompletion)?.onStartupCleanupFallbackComplete()
         }
         reportingFailure?.let { throw it }
     }

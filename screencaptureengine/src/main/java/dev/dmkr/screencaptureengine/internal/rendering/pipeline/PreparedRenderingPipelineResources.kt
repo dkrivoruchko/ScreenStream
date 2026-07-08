@@ -35,7 +35,7 @@ internal class RenderingPipelinePrepareRequest internal constructor(
 internal interface PreparedRenderingReadbackResources : AutoCloseable
 
 /**
- * Closeable resource pair returned by a preparer before ownership is accepted by [PreActiveRuntimeOwner].
+ * Closeable resource pair returned by a preparer before ownership is accepted by PreActiveRuntimeOwner.
  */
 internal class PreparedRenderingPipelineComponents internal constructor(
     internal val readbackResources: PreparedRenderingReadbackResources,
@@ -93,7 +93,7 @@ internal class PreparedRenderingPipelineComponents internal constructor(
 }
 
 /**
- * Move-only prepared resources accepted by [PreActiveRuntimeOwner] and fenced for initial runtime handoff.
+ * Move-only prepared resources accepted by PreActiveRuntimeOwner and fenced for initial runtime handoff.
  */
 internal class PreparedRenderingPipelineResources internal constructor(
     internal val planPreparationToken: PlanPreparationToken,
@@ -146,7 +146,7 @@ internal class PreparedRenderingPipelineResources internal constructor(
 }
 
 /**
- * Prepared rendering resources after ownership has moved into [InitialRuntimeResourceOwner].
+ * Prepared rendering resources after ownership has moved into InitialRuntimeResourceOwner.
  */
 internal class InitialRuntimePreparedRenderingPipelineResources internal constructor(
     private val readbackResources: PreparedRenderingReadbackResources,

@@ -27,6 +27,13 @@ public interface ScreenCaptureEngine {
      * the retry signal. Calls from engine-owned callbacks or internal execution contexts fail fast
      * with [IllegalStateException] to avoid deadlocks.
      *
+     * The default engine returned by [ScreenCaptureEngines.create] has one startup/session slot. A
+     * second call while that engine owns a non-terminal session fails before projection attachment
+     * or consumption with [ScreenCaptureStartException] where
+     * [ScreenCaptureStartException.requiresFreshProjection] is false and
+     * the exception [ScreenCaptureStartException.problem] has kind
+     * [ScreenCaptureProblemKind.EngineSessionAlreadyActive].
+     *
      * A returned active session owns the projection lifecycle. Owner [ScreenCaptureSession.stop] or
      * [ScreenCaptureSession.close] requests [MediaProjection.stop] best-effort for that session.
      */

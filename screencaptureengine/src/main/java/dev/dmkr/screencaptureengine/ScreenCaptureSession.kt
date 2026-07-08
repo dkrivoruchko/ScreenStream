@@ -12,12 +12,15 @@ import kotlinx.coroutines.flow.StateFlow
  */
 public interface ScreenCaptureSession {
     /**
-     * Atomically applies new capture parameters, or rejects them while keeping the old plan.
+     * Requests new capture parameters for this session.
      *
-     * Calls are serialized, thread-safe, and main-safe. A successful result is returned only after
-     * validation, resource preparation, and public state publication for the new plan complete.
-     * Caller cancellation does not expose a partially applied public plan. Calls from engine-owned
-     * execution contexts fail fast with [IllegalStateException].
+     * For non-terminal sessions returned by [ScreenCaptureEngines.create], runtime parameter
+     * updates are unavailable: the call returns [ScreenCaptureParameterUpdateResult.Rejected] with
+     * [ScreenCaptureProblemKind.ParameterUpdateUnavailable], keeps the current plan unchanged, and
+     * does not prepare or publish a partial plan.
+     *
+     * Calls are serialized, thread-safe, and main-safe. Calls from engine-owned execution contexts
+     * fail fast with [IllegalStateException].
      */
     public suspend fun setParameters(parameters: ScreenCaptureParameters): ScreenCaptureParameterUpdateResult
 

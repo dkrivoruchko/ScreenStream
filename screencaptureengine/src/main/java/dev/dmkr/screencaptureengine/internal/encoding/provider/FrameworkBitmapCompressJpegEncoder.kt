@@ -65,8 +65,6 @@ private fun validateRequestForFrameworkBackend(request: ImageEncoderRequest) {
 }
 
 private const val RGBA_8888_BYTES_PER_PIXEL: Long = 4L
-private val JPEG_QUALITY_RANGE: IntRange = 0..100
-private val MAX_ENCODED_BYTES_RANGE: IntRange = 1_024..268_435_456
 
 private class FrameworkBitmapCompressJpegEncoder(
     request: ImageEncoderRequest,
@@ -192,8 +190,8 @@ private class EncodedImageSinkOutputStream(
                 throw EncodedImageSinkWriteException("Encoded sink rejected framework JPEG bytes.", null)
             }
         } catch (throwable: Throwable) {
-            val failureToRecord = if (throwable is EncodedImageSinkWriteException) throwable else
-                EncodedImageSinkWriteException("Encoded sink threw while writing framework JPEG bytes.", throwable)
+            val failureToRecord = throwable as? EncodedImageSinkWriteException
+                ?: EncodedImageSinkWriteException("Encoded sink threw while writing framework JPEG bytes.", throwable)
             failure = failureToRecord
             throw failureToRecord
         }

@@ -41,7 +41,6 @@ internal object FirstPlanRenderTransformPackageBuilder {
             appliedSourceRect = plan.appliedSourceRect,
             rotation = plan.rotation,
             mirror = plan.mirror,
-            normalizationStrategy = FirstPlanEncoderInputNormalizationStrategy.RenderSpaceVerticalInversion,
         ) ?: return failure(
             kind = ScreenCaptureProblemKind.GlResourceFailure,
             message = "First-plan static render transform matrix is not representable.",
@@ -110,7 +109,7 @@ internal object FirstPlanRenderTransformPackageBuilder {
         outputPlan: ScreenCaptureOutputPlan,
         readbackSpec: Es2ReadbackSpec,
     ): FirstPlanRenderTransformPackageBuildResult.Failure? {
-        val tightRowStrideBytes = checkedMultiplyInt(outputPlan.finalImageSize.width, RGBA_8888_BYTES_PER_PIXEL)
+        val tightRowStrideBytes = checkedRgba8888RowStrideBytes(outputPlan.finalImageSize.width)
             ?: return failure(
                 kind = ScreenCaptureProblemKind.ReadbackUnavailable,
                 message = "First-plan readback row stride overflowed.",
@@ -217,7 +216,6 @@ internal object FirstPlanRenderTransformPackageBuilder {
         appliedSourceRect: ImageRect,
         rotation: Rotation,
         mirror: Mirror,
-        normalizationStrategy: FirstPlanEncoderInputNormalizationStrategy,
     ): FirstPlanRenderMatrix4? {
         val sourceLeft = appliedSourceRect.left.toDouble() / logicalContentSize.width.toDouble()
         val sourceTop = appliedSourceRect.top.toDouble() / logicalContentSize.height.toDouble()
@@ -226,7 +224,7 @@ internal object FirstPlanRenderTransformPackageBuilder {
         if (sourceWidth <= 0.0 || sourceHeight <= 0.0) return null
 
         val matrix = Matrix3.identity()
-            .then(normalizationStrategy.toFramebufferToLogicalOutputMatrix())
+            .then(framebufferToLogicalOutputMatrix())
             .then(mirror.toInverseOutputMatrix())
             .then(rotation.toInverseSourceMatrix())
             .then(Matrix3.scale(sourceWidth, sourceHeight))
@@ -480,10 +478,8 @@ private class Matrix3 private constructor(private val values: DoubleArray) {
     }
 }
 
-private fun FirstPlanEncoderInputNormalizationStrategy.toFramebufferToLogicalOutputMatrix(): Matrix3 =
-    when (this) {
-        FirstPlanEncoderInputNormalizationStrategy.RenderSpaceVerticalInversion -> Matrix3.translate(0.0, 1.0).multiply(Matrix3.scale(1.0, -1.0))
-    }
+private fun framebufferToLogicalOutputMatrix(): Matrix3 =
+    Matrix3.translate(0.0, 1.0).multiply(Matrix3.scale(1.0, -1.0))
 
 private fun Mirror.toInverseOutputMatrix(): Matrix3 =
     when (this) {
@@ -513,9 +509,9 @@ private fun Rotation.toInverseSourceMatrix(): Matrix3 =
         )
     }
 
-private fun checkedMultiplyInt(left: Int, right: Int): Int? =
+private fun checkedRgba8888RowStrideBytes(width: Int): Int? =
     try {
-        Math.multiplyExact(left, right)
+        Math.multiplyExact(width, RGBA_8888_BYTES_PER_PIXEL)
     } catch (_: ArithmeticException) {
         null
     }

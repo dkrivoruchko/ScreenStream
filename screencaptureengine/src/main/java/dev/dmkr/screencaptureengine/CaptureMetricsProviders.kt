@@ -5,31 +5,41 @@ import android.content.Context
 import android.view.Display
 
 /**
- * Metric-provider factory API for common Android integration points.
+ * Factory methods for metric providers tied to Android UI surfaces.
  *
- * These public factory slots are reserved for built-in Android metrics providers. The current
- * production implementation does not provide those built-in providers, so each factory throws
- * [UnsupportedOperationException]. Caller-supplied [CaptureMetricsProvider] implementations remain
- * supported and are observed per session.
+ * Caller-supplied [CaptureMetricsProvider] implementations can also be passed through
+ * [ScreenCaptureConfig] and are observed per session.
  */
 @Suppress("UNUSED_PARAMETER")
 public object CaptureMetricsProviders {
-    /** Placeholder for an activity/window-owned provider; currently throws [UnsupportedOperationException]. */
+    /**
+     * Returns an activity/window-owned provider, or throws [UnsupportedOperationException] if
+     * unavailable.
+     */
     public fun fromActivity(activity: Activity): CaptureMetricsProvider {
         throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is unavailable")
     }
 
-    /** Placeholder for a UI-context provider; currently throws [UnsupportedOperationException]. */
+    /**
+     * Returns a provider for metrics derived from a UI [Context], or throws
+     * [UnsupportedOperationException] if unavailable.
+     */
     public fun fromUiContext(context: Context): CaptureMetricsProvider {
         throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is unavailable")
     }
 
-    /** Placeholder for a display-specific provider; currently throws [UnsupportedOperationException]. */
+    /**
+     * Returns a provider for the given [Display], or throws [UnsupportedOperationException] if
+     * unavailable.
+     */
     public fun fromDisplay(baseContext: Context, display: Display): CaptureMetricsProvider {
         throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is unavailable")
     }
 
-    /** Placeholder for a best-effort provider; currently throws [UnsupportedOperationException]. */
+    /**
+     * Returns the best provider available for [context], or throws [UnsupportedOperationException] if
+     * unavailable.
+     */
     public fun bestEffort(context: Context): CaptureMetricsProvider {
         throw UnsupportedOperationException("CaptureMetricsProviders runtime behavior is unavailable")
     }

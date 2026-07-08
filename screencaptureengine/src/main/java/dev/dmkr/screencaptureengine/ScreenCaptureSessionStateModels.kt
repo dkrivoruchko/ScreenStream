@@ -118,6 +118,10 @@ public enum class ScreenCaptureProblemKind {
     ProjectionInvalidOrStopped,
     ProjectionPermissionDenied,
     ProjectionSessionReused,
+
+    /** The same engine instance already owns a non-terminal startup or session slot. */
+    EngineSessionAlreadyActive,
+
     VirtualDisplayCreateFailed,
     StartupGeometryUnavailable,
 
@@ -137,6 +141,10 @@ public enum class ScreenCaptureProblemKind {
     EncoderUnavailable,
     EncoderValidationFailed,
     EncodeRepeatedFailure,
+
+    /** Parameter updates are not available; the request is rejected without mutating active parameters. */
+    ParameterUpdateUnavailable,
+
     EncodedSizeLimitExceeded,
 
     AllocationFailed,

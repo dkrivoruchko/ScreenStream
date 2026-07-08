@@ -22,6 +22,7 @@ import java.util.concurrent.ThreadFactory
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.milliseconds
 
 internal const val ENCODER_CREATE_TIMEOUT_MS: Long = 3_000L
 internal const val MAX_QUARANTINED_PROVIDER_WORKERS: Int = 2
@@ -41,19 +42,21 @@ internal class ProviderPreparationContext internal constructor(
     private val maxProviderWorkers: Int = MAX_QUARANTINED_PROVIDER_WORKERS,
     private val threadNamePrefix: String = "screen-capture-provider-prep",
     private val cleanupThreadNamePrefix: String = "screen-capture-provider-cleanup",
-    private val lateFailureThreadNamePrefix: String = "screen-capture-provider-diagnostics",
+    lateFailureThreadNamePrefix: String = "screen-capture-provider-diagnostics",
     private val lateFailureDiagnostics: (Throwable) -> Unit = {},
     private val cleanupFailureDiagnostics: (Throwable) -> Unit = {},
     private val beforeClaim: (() -> Unit)? = null,
     private val beforeProviderWorkerStart: (() -> Unit)? = null,
     private val workerThreadFactory: ThreadFactory? = null,
     private val beforeExecutorExecute: (() -> Unit)? = null,
+    private val idleStateChanged: (() -> Unit)? = null,
 ) : ProviderEncoderCleanup, AutoCloseable {
     private val admissionLock = Any()
     private val reservedProviderWorkers = AtomicInteger(0)
     private val workerThreadIds = AtomicInteger(0)
     private val cleanupThreadIds = AtomicInteger(0)
     private val lateFailureThreadIds = AtomicInteger(0)
+    private val cleanupTasks = AtomicInteger(0)
     private val closed = AtomicBoolean(false)
     private val lateFailureDiagnosticInFlight = AtomicBoolean(false)
     private val records = Collections.synchronizedSet(mutableSetOf<ProviderPrepareRecord>())
@@ -128,7 +131,7 @@ internal class ProviderPreparationContext internal constructor(
             admittedRecord
         }
         return try {
-            val result = withTimeoutOrNull(timeoutMs) {
+            val result = withTimeoutOrNull(timeoutMs.milliseconds) {
                 record.awaitResult()
             }
             if (result == null) {
@@ -155,17 +158,26 @@ internal class ProviderPreparationContext internal constructor(
         } finally {
             token.detach(record)
             records -= record
+            notifyIdleStateChanged()
         }
     }
 
     override fun closeEncoderAsync(encoder: ImageEncoder) {
+        cleanupTasks.incrementAndGet()
         val cleanup = Runnable {
-            closeEncoderCatching(encoder)
+            try {
+                closeEncoderCatching(encoder)
+            } finally {
+                finishCleanupTask()
+            }
         }
         try {
             cleanupExecutor.execute(cleanup)
         } catch (_: RejectedExecutionException) {
             namedThreadFactory(cleanupThreadNamePrefix, cleanupThreadIds).newThread(cleanup).start()
+        } catch (throwable: Throwable) {
+            finishCleanupTask()
+            throw throwable
         }
     }
 
@@ -175,9 +187,22 @@ internal class ProviderPreparationContext internal constructor(
             synchronized(records) { records.toList() }
         }
         snapshot.forEach { it.abandon() }
-        shutdownCleanupIfIdle()
+        shutdownCleanupIfClosedAndIdle()
         lateFailureExecutor.shutdownNow()
     }
+
+    internal fun closeIfIdle(): Boolean {
+        synchronized(admissionLock) {
+            if (!isIdleForShutdownLocked()) return false
+            closed.set(true)
+        }
+        cleanupExecutor.shutdown()
+        lateFailureExecutor.shutdownNow()
+        return true
+    }
+
+    internal val isIdleForShutdown: Boolean
+        get() = synchronized(admissionLock) { isIdleForShutdownLocked() }
 
     private fun reserveProviderWorker(): Boolean {
         while (true) {
@@ -191,10 +216,26 @@ internal class ProviderPreparationContext internal constructor(
         reservedProviderWorkers.decrementAndGet()
     }
 
-    private fun shutdownCleanupIfIdle() {
-        if (closed.get() && reservedProviderWorkers.get() == 0) {
+    private fun isIdleForShutdownLocked(): Boolean =
+        reservedProviderWorkers.get() == 0 &&
+                cleanupTasks.get() == 0 &&
+                !lateFailureDiagnosticInFlight.get() &&
+                synchronized(records) { records.isEmpty() }
+
+    private fun finishCleanupTask() {
+        cleanupTasks.decrementAndGet()
+        shutdownCleanupIfClosedAndIdle()
+        notifyIdleStateChanged()
+    }
+
+    private fun shutdownCleanupIfClosedAndIdle() {
+        if (closed.get() && reservedProviderWorkers.get() == 0 && cleanupTasks.get() == 0) {
             cleanupExecutor.shutdown()
         }
+    }
+
+    private fun notifyIdleStateChanged() {
+        idleStateChanged?.invoke()
     }
 
     private fun closeEncoderCatching(encoder: ImageEncoder) {
@@ -226,10 +267,12 @@ internal class ProviderPreparationContext internal constructor(
                     runCatching { lateFailureDiagnostics(throwable) }
                 } finally {
                     lateFailureDiagnosticInFlight.set(false)
+                    notifyIdleStateChanged()
                 }
             }
         } catch (_: RejectedExecutionException) {
             lateFailureDiagnosticInFlight.set(false)
+            notifyIdleStateChanged()
         }
     }
 
@@ -474,7 +517,8 @@ internal class ProviderPreparationContext internal constructor(
                 executor.shutdown()
                 if (released.compareAndSet(false, true)) {
                     releaseProviderWorker()
-                    shutdownCleanupIfIdle()
+                    shutdownCleanupIfClosedAndIdle()
+                    notifyIdleStateChanged()
                 }
             }
         }

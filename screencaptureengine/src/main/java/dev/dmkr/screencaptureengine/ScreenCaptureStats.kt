@@ -33,7 +33,7 @@ public class ScreenCaptureStats public constructor(
     /** Average encoded byte count for successfully encoded frames. */
     public val averageEncodedByteCount: Int = 0,
 
-    /** Currently registered frame subscriptions. */
+    /** Registered frame subscriptions. */
     public val activeFrameSubscriptions: Int = 0,
 
     /** Active subscriptions classified as slow or failing by consecutive direct delivery problems. */

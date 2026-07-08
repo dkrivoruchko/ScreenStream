@@ -2,7 +2,6 @@ package dev.dmkr.screencaptureengine.internal.lifecycle
 
 import android.os.SystemClock
 import dev.dmkr.screencaptureengine.CaptureGeometry
-import dev.dmkr.screencaptureengine.CaptureMetrics
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
 import dev.dmkr.screencaptureengine.internal.gl.CleanupFailureCollector
 import dev.dmkr.screencaptureengine.internal.gl.StartupCleanupFailureSink
@@ -21,10 +20,10 @@ import dev.dmkr.screencaptureengine.internal.platform.projection.StartupProjecti
 import dev.dmkr.screencaptureengine.internal.rendering.es2.FirstPlanRenderTransformPackage
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.ActiveRuntimePreparedRenderingPipelineResources
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.InitialRuntimePreparedRenderingPipelineResources
+import dev.dmkr.screencaptureengine.internal.session.core.ScreenCaptureSessionTerminalCommit
 import dev.dmkr.screencaptureengine.internal.startup.ScreenCaptureStartupMilestone
 import dev.dmkr.screencaptureengine.internal.startup.StartupRuntimePendingSignals
 import dev.dmkr.screencaptureengine.internal.startup.StartupToRuntimeSignalMailbox
-import dev.dmkr.screencaptureengine.internal.target.snapshot
 
 /**
  * Move-only owner for resources handed off after pre-active plan preparation.
@@ -59,23 +58,14 @@ internal class InitialRuntimeResourceOwner internal constructor(
     private var state = InitialRuntimeResourceOwnerState.Open
 
     internal val startupGeometry: CaptureGeometry = transfer.startupGeometry
-    internal val milestones: List<ScreenCaptureStartupMilestone> = transfer.milestones
     internal val initialOutputPlan: ScreenCaptureOutputPlan = transfer.initialOutputPlan
-    internal val initialProjectionTarget: ProjectionTargetSnapshot = transfer.initialProjectionTarget
+
+    @Suppress("unused") // Read by lifecycle tests to verify initial rendering handoff identity.
     internal val initialRenderTransformPackage: FirstPlanRenderTransformPackage =
         preparedRenderingPipelineResources.renderTransformPackage
     internal val initialPendingSignals: StartupRuntimePendingSignals = transfer.pendingSignals
-    internal val currentProjectionTargetSnapshot: ProjectionTargetSnapshot
-        get() = currentProjectionTarget.snapshot()
 
-    internal val latestCaptureMetrics: CaptureMetrics
-        get() {
-            synchronized(lock) {
-                checkOpenLocked()
-                return metricsObservation.latestMetrics
-            }
-        }
-
+    @Suppress("unused") // Read by lifecycle tests to inspect pending startup-to-runtime signals.
     internal fun pendingSignalsSnapshot(): StartupRuntimePendingSignals =
         synchronized(lock) {
             checkOpenLocked()
@@ -118,6 +108,8 @@ internal class InitialRuntimeResourceOwner internal constructor(
         config: ScreenCaptureConfig,
         commitBoundary: InitialActivationCommitBoundary = InitialActivationCommitBoundary(),
         elapsedRealtimeNanos: () -> Long = SystemClock::elapsedRealtimeNanos,
+        terminalCommitHandler: (ScreenCaptureSessionTerminalCommit) -> Unit = {},
+        terminalCleanupFenceFactory: () -> AutoCloseable = { AutoCloseable {} },
     ): ActiveRuntimeOwner {
         var movedPreparedResourcesToRetire: ActiveRuntimePreparedRenderingPipelineResources? = null
         return try {
@@ -152,6 +144,8 @@ internal class InitialRuntimeResourceOwner internal constructor(
                     ),
                     commitBoundary = commitBoundary,
                     elapsedRealtimeNanos = elapsedRealtimeNanos,
+                    terminalCommitHandler = terminalCommitHandler,
+                    terminalCleanupFenceFactory = terminalCleanupFenceFactory,
                 )
                 state = InitialRuntimeResourceOwnerState.Transferred
                 movedPreparedResourcesToRetire = null
@@ -219,7 +213,8 @@ internal class InitialRuntimeResourceTransfer internal constructor(
     val virtualDisplayOwner: ProjectionVirtualDisplayOwner,
     val currentProjectionTarget: ProjectionTargetHandle,
     val startupGeometry: CaptureGeometry,
-    val milestones: List<ScreenCaptureStartupMilestone>,
+    @Suppress("UNUSED_PARAMETER") // Kept for current handoff construction shape; no owner accessor remains.
+    milestones: List<ScreenCaptureStartupMilestone>,
     val metricsObservation: CaptureMetricsObservation,
     val cleanupScheduler: StartupCleanupScheduler,
     val cleanupFailureSink: StartupCleanupFailureSink,
@@ -227,6 +222,7 @@ internal class InitialRuntimeResourceTransfer internal constructor(
     val stopProjectionIfRequired: () -> Unit,
     val preparedRenderingPipelineResources: InitialRuntimePreparedRenderingPipelineResources,
     val initialOutputPlan: ScreenCaptureOutputPlan,
-    val initialProjectionTarget: ProjectionTargetSnapshot,
+    @Suppress("UNUSED_PARAMETER") // Kept for current handoff construction shape; no owner accessor remains.
+    initialProjectionTarget: ProjectionTargetSnapshot,
     val pendingSignals: StartupRuntimePendingSignals,
 )

@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 /**
- * Owns the single VirtualDisplay and its currently bound projection target surface.
+ * Owns the single VirtualDisplay and its bound projection target surface.
  *
  * Retargeting is transactional from the caller's perspective: resize is attempted before
  * `setSurface`. If resize succeeds but `setSurface` fails, the display target state is no longer

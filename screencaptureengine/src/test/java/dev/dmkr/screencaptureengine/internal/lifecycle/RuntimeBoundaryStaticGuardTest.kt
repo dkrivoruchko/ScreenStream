@@ -10,7 +10,7 @@ import java.nio.file.Path
 class RuntimeBoundaryStaticGuardTest {
     @Test
     fun allRuntimeSourceFilesAreExplicitlyClassifiedForBoundaryGuards() {
-        val discoveredPaths = runtimeSourceFiles()
+        val discoveredPaths = discoveredRuntimeSourceFiles()
             .map { sourceFile -> sourceFile.runtimeRelativePath }
             .toSet()
 
@@ -31,7 +31,7 @@ class RuntimeBoundaryStaticGuardTest {
         assertTrue("No startup/preparation runtime files were classified.", sourceFiles.isNotEmpty())
 
         sourceFiles.forEach { sourceFile ->
-            val executableContent = Files.readString(sourceFile.path).withoutKotlinCommentsAndStrings()
+            val executableContent = sourceFile.startupPreparationExecutableContent()
 
             startupPreparationForbiddenPatterns.forEach { pattern ->
                 assertFalse(
@@ -41,6 +41,32 @@ class RuntimeBoundaryStaticGuardTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun defaultEnginePrePublicCommitWiringStaysBeforeRuntimeConsumptionEncodeAndPublication() {
+        val sourceFile = runtimeSourceFiles().single { sourceFile ->
+            sourceFile.runtimeRelativePath == "DefaultScreenCaptureEngine.kt"
+        }
+        val executableContent = Files.readString(sourceFile.path).withoutKotlinCommentsAndStrings()
+        val matches = defaultEnginePrePublicCommitForbiddenPatterns.flatMap { pattern ->
+            pattern.regex.findAll(executableContent).map { match -> "${pattern.description}: ${match.value}" }
+        }
+
+        assertTrue(
+            "${sourceFile.displayPath} crosses default-engine pre-public-commit boundary: " +
+                    matches.joinToString(),
+            matches.isEmpty(),
+        )
+    }
+
+    private fun RuntimeSourceFile.startupPreparationExecutableContent(): String {
+        val executableContent = Files.readString(path).withoutKotlinCommentsAndStrings()
+        if (runtimeRelativePath != "lifecycle/InitialRuntimeResourceOwner.kt") return executableContent
+        return executableContent.replace(
+            "import dev.dmkr.screencaptureengine.internal.session.core.ScreenCaptureSessionTerminalCommit",
+            "",
+        )
     }
 
     @Test
@@ -126,11 +152,12 @@ class RuntimeBoundaryStaticGuardTest {
             val matches = publicStateOwnershipPatterns.flatMap { pattern ->
                 pattern.regex.findAll(executableContent).map { match -> "${pattern.description}: ${match.value}" }
             }
+            val forbiddenMatches = sourceFile.forbiddenPublicStateOwnershipMatches(matches)
 
             assertFalse(
                 "${sourceFile.displayPath} owns public state/stats/events/counters outside ScreenCaptureSessionCore: " +
-                        matches.joinToString(),
-                matches.isNotEmpty(),
+                        forbiddenMatches.joinToString(),
+                forbiddenMatches.isNotEmpty(),
             )
         }
     }
@@ -145,6 +172,23 @@ class RuntimeBoundaryStaticGuardTest {
                 "${sourceFile.displayPath} uses startup-only StartupRenderingGlAccess outside preparation/handoff code: " +
                         matches.joinToString { it.value },
                 matches.isEmpty() || sourceFile.runtimeRelativePath in startupRenderingGlAccessAllowlistPaths,
+            )
+        }
+    }
+
+    @Test
+    fun defaultEngineAndRuntimeInternalsDoNotDependOnPublicBuiltInMetricsPlaceholders() {
+        runtimeSourceFiles().forEach { sourceFile ->
+            val executableContent = Files.readString(sourceFile.path).withoutKotlinCommentsAndStrings()
+            val matches = publicBuiltInMetricsProviderPatterns.flatMap { pattern ->
+                pattern.regex.findAll(executableContent).map { match -> "${pattern.description}: ${match.value}" }
+            }
+
+            assertTrue(
+                "${sourceFile.displayPath} depends on public CaptureMetricsProviders placeholders. " +
+                        "Default-engine/runtime internals must use caller-supplied CaptureMetricsProvider only: " +
+                        matches.joinToString(),
+                matches.isEmpty(),
             )
         }
     }
@@ -490,14 +534,84 @@ class RuntimeBoundaryStaticGuardTest {
         assertTrue(startupRenderingGlAccessRegex.containsMatchIn(executableContent))
     }
 
+    @Test
+    fun publicBuiltInMetricsProviderGuardCatchesExecutableDependencies() {
+        val executableContent = listOf(
+            "package synthetic",
+            "import dev.dmkr.screencaptureengine.CaptureMetricsProviders",
+            "import dev.dmkr.screencaptureengine.CaptureMetricsProviders as Providers",
+            "import dev.dmkr.screencaptureengine.CaptureMetricsProviders.bestEffort",
+            "import dev.dmkr.screencaptureengine.CaptureMetricsProviders.fromActivity as metricsFromActivity",
+            "import dev.dmkr.screencaptureengine.CaptureMetricsProviders.*",
+            "internal fun forbidden(context: android.content.Context, activity: android.app.Activity) {",
+            "    CaptureMetricsProviders.bestEffort(context)",
+            "    Providers.fromUiContext(context)",
+            "    bestEffort(context)",
+            "    metricsFromActivity(activity)",
+            "    val callable = CaptureMetricsProviders::fromDisplay",
+            "    dev.dmkr.screencaptureengine.CaptureMetricsProviders.fromDisplay(context, display)",
+            "}",
+        ).joinToString(separator = "\n").withoutKotlinCommentsAndStrings()
+
+        publicBuiltInMetricsProviderPatterns.forEach { pattern ->
+            assertTrue(
+                "Executable CaptureMetricsProviders dependency should match ${pattern.description}",
+                pattern.regex.containsMatchIn(executableContent),
+            )
+        }
+    }
+
+    @Test
+    fun publicBuiltInMetricsProviderGuardAllowsCallerSuppliedProviderType() {
+        val executableContent = listOf(
+            "package synthetic",
+            "import dev.dmkr.screencaptureengine.CaptureMetricsProvider",
+            "internal fun allowed(provider: CaptureMetricsProvider) = provider",
+        ).joinToString(separator = "\n").withoutKotlinCommentsAndStrings()
+
+        val matches = publicBuiltInMetricsProviderPatterns.flatMap { pattern ->
+            pattern.regex.findAll(executableContent).map { match -> "${pattern.description}: ${match.value}" }
+        }
+
+        assertTrue(
+            "Caller-supplied CaptureMetricsProvider type must remain allowed: ${matches.joinToString()}",
+            matches.isEmpty(),
+        )
+    }
+
     private fun runtimeSourceFiles(): List<RuntimeSourceFile> {
+        val sourceFiles = discoveredRuntimeSourceFiles()
+        val unclassifiedPaths = sourceFiles
+            .map { sourceFile -> sourceFile.runtimeRelativePath }
+            .filterNot { relativePath -> relativePath in runtimeFileClassifications }
+
+        assertTrue(
+            "Runtime boundary guard classifications must cover discovered runtime files: " +
+                    unclassifiedPaths.sorted().joinToString(),
+            unclassifiedPaths.isEmpty(),
+        )
+
+        return sourceFiles
+    }
+
+    private fun discoveredRuntimeSourceFiles(): List<RuntimeSourceFile> {
         val sourceRoot = resolveSourceRoot()
         val runtimeRoot = sourceRoot.resolve(runtimePackagePath)
         assertTrue("Runtime source package is missing: $runtimeRoot", Files.isDirectory(runtimeRoot))
 
-        return runtimeFileClassifications.keys.sorted().map { relativePath ->
-            val path = runtimeRoot.resolve(relativePath)
-            assertTrue("Classified runtime source file is missing: $path", Files.isRegularFile(path))
+        val paths = mutableListOf<Path>()
+        val stream = Files.walk(runtimeRoot)
+        try {
+            stream
+                .filter { path -> Files.isRegularFile(path) }
+                .filter { path -> path.fileName.toString().endsWith(".kt") }
+                .forEach { path -> paths.add(path) }
+        } finally {
+            stream.close()
+        }
+
+        return paths.sorted().map { path ->
+            val relativePath = runtimeRoot.relativize(path).toDisplayPath()
             RuntimeSourceFile(
                 path = path,
                 runtimeRelativePath = relativePath,
@@ -530,6 +644,16 @@ class RuntimeBoundaryStaticGuardTest {
             in broadDirectGlesAdapterPaths -> true
             "target/ProjectionTargetOwner.kt" -> usage.callName in projectionTargetOwnerDirectGlesCallNames
             else -> false
+        }
+
+    private fun RuntimeSourceFile.forbiddenPublicStateOwnershipMatches(matches: List<String>): List<String> =
+        when (runtimeRelativePath) {
+            in publicStateOwnershipOwnerPaths -> emptyList()
+            "session/delivery/ScreenCaptureFrameDeliveryCoordinator.kt" -> matches.filterNot { match ->
+                deliveryCoordinatorInternalSubscriptionStatsRegex.containsMatchIn(match)
+            }
+
+            else -> matches
         }
 
     private fun directGlesUsagesIn(executableContent: String): List<DirectGlesUsage> =
@@ -944,6 +1068,9 @@ class RuntimeBoundaryStaticGuardTest {
         )
 
         private val runtimeFileClassifications = mapOf(
+            "DefaultScreenCaptureEngine.kt" to RuntimeFileRole.ActiveSessionIntegration,
+            "encoding/provider/FrameworkBitmapCompressJpegEncoder.kt" to RuntimeFileRole.RuntimeProduction,
+            "encoding/runtime/EncodedAttemptScratch.kt" to RuntimeFileRole.RuntimeProduction,
             "lifecycle/ActiveRuntimeOwner.kt" to RuntimeFileRole.ActiveSessionIntegration,
             "platform/metrics/CaptureMetricsObservation.kt" to RuntimeFileRole.StartupPreparation,
             "gl/CleanupFailure.kt" to RuntimeFileRole.PlatformLifecycleSupport,
@@ -980,6 +1107,10 @@ class RuntimeBoundaryStaticGuardTest {
             "platform/projection/StartupResourceFacades.kt" to RuntimeFileRole.StartupPreparation,
             "startup/StartupRuntimeSignalMailbox.kt" to RuntimeFileRole.StartupPreparation,
             "platform/projection/VirtualDisplayOwner.kt" to RuntimeFileRole.StartupPreparation,
+            "planning/ScreenCaptureOutputPlanner.kt" to RuntimeFileRole.StartupPreparation,
+            "session/core/ScreenCaptureSessionCore.kt" to RuntimeFileRole.ActiveSessionIntegration,
+            "session/delivery/ScreenCaptureFrameDeliveryCoordinator.kt" to RuntimeFileRole.ActiveSessionIntegration,
+            "session/delivery/ScreenCaptureFrameDeliveryDispatcher.kt" to RuntimeFileRole.ActiveSessionIntegration,
         )
 
         private val broadDirectGlesAdapterPaths = setOf(
@@ -1004,11 +1135,20 @@ class RuntimeBoundaryStaticGuardTest {
 
         private val sessionCoreIntegrationOwnerPaths = setOf(
             "lifecycle/ActiveRuntimeOwner.kt",
+            "session/core/ScreenCaptureSessionCore.kt",
             "InitialActiveSessionOwner.kt",
             "InitialActiveSessionCommitter.kt",
             "InitialActivationCommitter.kt",
             "RuntimeSessionOwner.kt",
             "RuntimeSessionIntegration.kt",
+        )
+
+        private val publicStateOwnershipOwnerPaths = setOf(
+            "session/core/ScreenCaptureSessionCore.kt",
+        )
+
+        private val deliveryCoordinatorInternalSubscriptionStatsRegex = Regex(
+            """: (?:val )?(?:activeFrameSubscriptions|slowConsumers)(?:\s*=|:)""",
         )
 
         private val startupRenderingGlAccessAllowlistPaths = setOf(
@@ -1084,6 +1224,28 @@ class RuntimeBoundaryStaticGuardTest {
             ),
             regexPattern("internal session production type/use", simpleNamePattern(internalSessionProductionTypeNames)),
             literalPattern("session core", "ScreenCaptureSessionCore"),
+            regexPattern("encoded frame publication", Regex("""\bpublishEncodedFrame\s*\(""")),
+            regexPattern("frame publication", Regex("""\bpublishFrame\s*\(""")),
+            regexPattern("conservative generic publication call", Regex("""\.\s*publish\s*\(""")),
+        )
+
+        private val defaultEnginePrePublicCommitForbiddenPatterns = listOf(
+            regexPattern("SurfaceTexture frame update", methodCallPattern("updateTexImage")),
+            regexPattern("SurfaceTexture frame update callable reference", callableReferencePattern("updateTexImage")),
+            regexPattern("SurfaceTexture matrix acquisition", methodCallPattern("getTransformMatrix")),
+            regexPattern(
+                "SurfaceTexture matrix acquisition callable reference",
+                callableReferencePattern("getTransformMatrix"),
+            ),
+            literalPattern("direct runtime readback", "glReadPixels"),
+            regexPattern(
+                "runtime readback seam call",
+                Regex("""(?:^|[^\w])(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)?readPixels\s*\("""),
+            ),
+            literalPattern("ImageEncoder direct encode", "ImageEncoder.encode"),
+            literalPattern("ImageEncoder callable reference encode", "ImageEncoder::encode"),
+            regexPattern("conservative encode callable reference", Regex("""::\s*encode\b""")),
+            regexPattern("conservative direct encode call", Regex("""\.\s*encode\s*\(""")),
             regexPattern("encoded frame publication", Regex("""\bpublishEncodedFrame\s*\(""")),
             regexPattern("frame publication", Regex("""\bpublishFrame\s*\(""")),
             regexPattern("conservative generic publication call", Regex("""\.\s*publish\s*\(""")),
@@ -1172,6 +1334,21 @@ class RuntimeBoundaryStaticGuardTest {
         )
 
         private val startupRenderingGlAccessRegex = Regex("""\bStartupRenderingGlAccess\b""")
+
+        private val publicBuiltInMetricsProviderPatterns = listOf(
+            regexPattern(
+                "CaptureMetricsProviders import",
+                Regex("""\bimport\s+dev\.dmkr\.screencaptureengine\.CaptureMetricsProviders(?:\b|\.)"""),
+            ),
+            regexPattern(
+                "CaptureMetricsProviders fully-qualified use",
+                Regex("""\bdev\.dmkr\.screencaptureengine\.CaptureMetricsProviders\b"""),
+            ),
+            regexPattern(
+                "CaptureMetricsProviders simple-name use",
+                Regex("""\bCaptureMetricsProviders\b"""),
+            ),
+        )
 
         private val bareDirectGlCallRegex = Regex(
             "(?<![.\\w])(gl(?:ActiveTexture|AttachShader|Bind|Blend|Buffer|Check|Clear|ClientWait|" +

@@ -6,7 +6,6 @@ import dev.dmkr.screencaptureengine.ImageEncoderRequest
 import dev.dmkr.screencaptureengine.ReadbackMode
 import dev.dmkr.screencaptureengine.ScreenCaptureProblemKind
 import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPreparationResult
-import dev.dmkr.screencaptureengine.internal.encoding.provider.PreparedImageEncoderResources
 import dev.dmkr.screencaptureengine.internal.lifecycle.PlanPreparationToken
 import dev.dmkr.screencaptureengine.internal.planning.ScreenCaptureOutputPlan
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionTargetSnapshot
@@ -21,6 +20,7 @@ import dev.dmkr.screencaptureengine.internal.target.StartupRenderingGlAccessFail
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Prepares the initial ES2 rendering pipeline up to readiness for runtime handoff.
@@ -117,8 +117,7 @@ internal class Es2RenderingPipelinePreparer internal constructor(
             return RenderingPipelinePreparationResult.LifecycleStale
         }
 
-        var encoderResources: PreparedImageEncoderResources? = null
-        try {
+        val preparedEncoderResources = try {
             when (
                 val encoderResult = prepareEncoder(
                     token = token,
@@ -136,25 +135,20 @@ internal class Es2RenderingPipelinePreparer internal constructor(
                 }
 
                 is ImageEncoderPreparationResult.Success -> {
-                    encoderResources = encoderResult.preparedEncoder
+                    encoderResult.preparedEncoder
                 }
             }
         } catch (cancellation: CancellationException) {
             closeIgnoringFailure(es2Resources)
-            encoderResources?.let(::closeIgnoringFailure)
             throw cancellation
         } catch (cause: Throwable) {
             closeIgnoringFailure(es2Resources)
-            encoderResources?.let(::closeIgnoringFailure)
             if (!token.isCurrent) {
                 return RenderingPipelinePreparationResult.LifecycleStale
             }
             throw cause
         }
 
-        val preparedEncoderResources = checkNotNull(encoderResources) {
-            "Encoder preparation completed without prepared resources."
-        }
         if (!token.isCurrent) {
             closeIgnoringFailure(es2Resources)
             closeIgnoringFailure(preparedEncoderResources)
@@ -176,7 +170,7 @@ internal class Es2RenderingPipelinePreparer internal constructor(
     ): Es2PipelineReadbackResult {
         val stage = AtomicReference(StartupGlPreparationStage.AcquiringCurrentTarget)
         return try {
-            val result = withTimeoutOrNull(startupGlPrepareTimeoutMs) {
+            val result = withTimeoutOrNull(startupGlPrepareTimeoutMs.milliseconds) {
                 request.startupRenderingGlAccess.withCurrentStartupRenderingTarget(
                     target = request.projectionTargetHandle,
                     generation = request.planPreparationToken.projectionTargetGeneration,
@@ -417,7 +411,7 @@ private fun hasFinitePositiveStaticScale(plan: ScreenCaptureOutputPlan): Boolean
 }
 
 private fun validateStaticReadbackShape(plan: ScreenCaptureOutputPlan): RenderingPipelinePreparationFailure? {
-    val expectedRowStrideBytes = checkedMultiplyInt(plan.finalImageSize.width, RGBA_8888_BYTES_PER_PIXEL)
+    val expectedRowStrideBytes = checkedRgba8888RowStrideBytes(plan.finalImageSize.width)
         ?: return RenderingPipelinePreparationFailure(
             kind = ScreenCaptureProblemKind.ReadbackUnavailable,
             message = "Initial ES2 readback row stride overflowed.",
@@ -517,9 +511,9 @@ private fun Throwable.sanitizedStartupGlAccessCause(): Throwable =
         this
     }
 
-private fun checkedMultiplyInt(left: Int, right: Int): Int? =
+private fun checkedRgba8888RowStrideBytes(width: Int): Int? =
     try {
-        Math.multiplyExact(left, right)
+        Math.multiplyExact(width, RGBA_8888_BYTES_PER_PIXEL)
     } catch (_: ArithmeticException) {
         null
     }

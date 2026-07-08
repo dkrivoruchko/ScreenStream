@@ -213,8 +213,7 @@ private class RuntimeEs2SavedGlState {
     private var textureCoordinateAttributeIndex: Int = 0
 
     fun restore(gl: GlLaneScope, gles: RuntimeGles20Api): Throwable? {
-        var failure: Throwable? = null
-        failure = collectRestoreFailure(failure) { gles.activeTexture(RUNTIME_ES2_TEXTURE_UNIT) }
+        var failure = collectRestoreFailure(null) { gles.activeTexture(RUNTIME_ES2_TEXTURE_UNIT) }
         failure = collectRestoreFailure(failure) { gles.bindTexture(GLES20.GL_TEXTURE_2D, texture2dBinding) }
         failure = collectRestoreFailure(failure) { gles.bindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, externalOesBinding) }
         failure = collectRestoreFailure(failure) { gles.disableVertexAttribArray(positionAttributeIndex) }

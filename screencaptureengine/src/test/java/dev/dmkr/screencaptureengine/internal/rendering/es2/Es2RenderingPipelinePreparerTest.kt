@@ -55,6 +55,7 @@ import java.nio.ByteBuffer
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration
 
 class Es2RenderingPipelinePreparerTest {
     @Test
@@ -518,7 +519,7 @@ class Es2RenderingPipelinePreparerTest {
                 },
                 encoderPrepare = { _, _, _ ->
                     encoderStarted.complete(Unit)
-                    delay(Long.MAX_VALUE)
+                    delay(Duration.INFINITE)
                     ImageEncoderPreparationResult.Success(preparedEncoder(request = plan.encoderRequest))
                 },
             ).prepareInitialRenderingPipeline(request(plan = plan))
@@ -665,7 +666,7 @@ class Es2RenderingPipelinePreparerTest {
             },
     ): Es2RenderingPipelinePreparer =
         Es2RenderingPipelinePreparer(
-            encoderPrepare = ImageEncoderPrepareOperation { token, provider, request ->
+            encoderPrepare = { token, provider, request ->
                 @Suppress("UNCHECKED_CAST")
                 encoderPrepare(token, provider as FakeImageEncoderProvider, request)
             },
@@ -913,11 +914,11 @@ class Es2RenderingPipelinePreparerTest {
                     "Worker did not enter ES2 preparation."
                 }
                 workerFailure.get()?.let { throw it }
-                delay(Long.MAX_VALUE)
+                delay(Duration.INFINITE)
             }
             if (completeSuccessfulBlockAfterCancellation) {
                 try {
-                    delay(Long.MAX_VALUE)
+                    delay(Duration.INFINITE)
                 } catch (cancellation: CancellationException) {
                     val testTarget = target as TestProjectionTargetHandle
                     val result = block(
@@ -930,7 +931,7 @@ class Es2RenderingPipelinePreparerTest {
                     throw cancellation
                 }
             }
-            if (suspendBeforeBlock) delay(Long.MAX_VALUE)
+            if (suspendBeforeBlock) delay(Duration.INFINITE)
             failure?.let { throw it }
             val testTarget = target as TestProjectionTargetHandle
             return block(
@@ -961,7 +962,7 @@ class Es2RenderingPipelinePreparerTest {
     }
 
     private class TestProjectionTargetGlScope(
-        private val target: TestProjectionTargetHandle,
+        target: TestProjectionTargetHandle,
     ) : ProjectionTargetGlScope {
         override val generation: Long = target.generation
         override val width: Int = target.width

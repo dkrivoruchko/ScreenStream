@@ -42,6 +42,7 @@ import dev.dmkr.screencaptureengine.internal.rendering.es2.RuntimeEs2RenderReadb
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.ActiveRuntimePreparedRenderingPipelineResources
 import dev.dmkr.screencaptureengine.internal.session.core.ProductionFrameDropKind
 import dev.dmkr.screencaptureengine.internal.session.core.ScreenCaptureSessionCore
+import dev.dmkr.screencaptureengine.internal.session.core.ScreenCaptureSessionTerminalCommit
 import dev.dmkr.screencaptureengine.internal.startup.StartupRuntimePendingSignals
 import dev.dmkr.screencaptureengine.internal.target.ProjectionTargetOwnerAbandonment
 import dev.dmkr.screencaptureengine.internal.target.RuntimeProjectionTargetGlAccess
@@ -63,7 +64,9 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Non-public active runtime owner prepared after rendering pipeline readiness.
@@ -78,6 +81,8 @@ internal class ActiveRuntimeOwner internal constructor(
     private val commitBoundary: InitialActivationCommitBoundary = InitialActivationCommitBoundary(),
     private var frameRenderer: RuntimeEs2FrameRenderer = RuntimeEs2FrameRenderer(),
     private val elapsedRealtimeNanos: () -> Long = SystemClock::elapsedRealtimeNanos,
+    private val terminalCommitHandler: (ScreenCaptureSessionTerminalCommit) -> Unit = {},
+    private val terminalCleanupFenceFactory: () -> AutoCloseable = { NoopCloseable },
 ) : AutoCloseable, StartupProjectionCallbackRouter.SelectedRuntimeListener {
     private val lock = Any()
     private val runtimeFrameLoop = RuntimeFrameLoop(
@@ -94,6 +99,7 @@ internal class ActiveRuntimeOwner internal constructor(
     private val periodicRefreshScheduled = AtomicBoolean()
     private val readbackInFlight = AtomicBoolean()
     private val encoderInFlight = AtomicBoolean()
+    private val terminalCleanupFence = AtomicReference<AutoCloseable?>(null)
     private var materializedRuntimeWorkInFlight = false
     private val oesMatrixScratch = FloatArray(RUNTIME_MATRIX_ELEMENT_COUNT)
     private val composedTextureMatrixScratch = FloatArray(RUNTIME_MATRIX_ELEMENT_COUNT)
@@ -306,14 +312,18 @@ internal class ActiveRuntimeOwner internal constructor(
             parameterUpdater = { _, _ ->
                 ScreenCaptureParameterUpdateResult.Rejected(
                     problem = core.newProblem(
-                        kind = ScreenCaptureProblemKind.OutputPlanInvalid,
-                        message = "Runtime parameter updates are not available for this session.",
+                        kind = ScreenCaptureProblemKind.ParameterUpdateUnavailable,
+                        message = "Runtime parameter updates are not available for this engine session.",
                         cause = null,
                     ),
                 )
             },
             trimMemoryHandler = { trimEncodedScratch(scratch) },
-            terminalCommitHandler = { runtimeFrameLoop.fenceTerminal() },
+            terminalCommitHandler = { terminalCommit ->
+                reserveTerminalCleanupFence()
+                runtimeFrameLoop.fenceTerminal()
+                terminalCommitHandler(terminalCommit)
+            },
             elapsedRealtimeNanos = elapsedRealtimeNanos,
         )
         val session = ActiveRuntimeSession(owner = this, core = core)
@@ -486,7 +496,7 @@ internal class ActiveRuntimeOwner internal constructor(
     private suspend fun renderReadbackWithWatchdog(
         resources: ActiveRuntimePreparedRenderingPipelineResources,
     ): TimedRuntimeRenderReadbackResult =
-        withTimeout(glOperationTimeoutMillis) {
+        withTimeout(glOperationTimeoutMillis.milliseconds) {
             val access = transfer.projectionTargetOwner as? RuntimeProjectionTargetGlAccess
                 ?: error("ProjectionTargetOwner does not provide runtime projection target access.")
             val readbackResources = resources.es2ReadbackResourcesForRuntime()
@@ -548,10 +558,10 @@ internal class ActiveRuntimeOwner internal constructor(
                 if (projectionStopped) {
                     finishProjectionStopped()
                 } else {
-                    failRuntimeEncoderProduction(production.core, "Runtime image encoding timed out.", timeout)
+                    failRuntimeEncoderProduction(production.core, timeout)
                 }
                 return RuntimeFrameProductionTickResult.EncodeTimedOutDrop
-            } catch (cause: Throwable) {
+            } catch (_: Throwable) {
                 scratch.finishDiscard()
                 if (completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.TransientFailure)) {
                     finishProjectionStopped()
@@ -671,7 +681,7 @@ internal class ActiveRuntimeOwner internal constructor(
         }
         return try {
             encodeFuture.get(encoderOperationTimeoutMillis, TimeUnit.MILLISECONDS)
-        } catch (timeout: TimeoutException) {
+        } catch (_: TimeoutException) {
             timedOut.set(true)
             val cancelled = encodeFuture.cancel(true)
             if (cancelled && !started.get() && cleanupClaimed.compareAndSet(false, true)) {
@@ -816,11 +826,11 @@ internal class ActiveRuntimeOwner internal constructor(
         closeRuntimeResources(stopProjection = !projectionStopped)
     }
 
-    private fun failRuntimeEncoderProduction(core: ScreenCaptureSessionCore, message: String, cause: Throwable) {
+    private fun failRuntimeEncoderProduction(core: ScreenCaptureSessionCore, cause: Throwable) {
         val projectionStopped = finishRuntimeFailureWithProjectionFence(
             core = core,
             kind = ScreenCaptureProblemKind.EncodeRepeatedFailure,
-            message = message,
+            message = "Runtime image encoding timed out.",
             cause = cause,
         )
         closeRuntimeResources(stopProjection = !projectionStopped)
@@ -1098,39 +1108,61 @@ internal class ActiveRuntimeOwner internal constructor(
             .onFailure(primary::addSuppressed)
     }
 
+    private fun reserveTerminalCleanupFence() {
+        if (terminalCleanupFence.get() != null) return
+        val fence = terminalCleanupFenceFactory()
+        if (!terminalCleanupFence.compareAndSet(null, fence)) {
+            fence.close()
+        }
+    }
+
+    private fun releaseTerminalCleanupFence() {
+        terminalCleanupFence.getAndSet(null)?.close()
+    }
+
     private fun closeRuntimeResources(stopProjection: Boolean) {
-        val resourcesToClose: ActiveRuntimePreparedRenderingPipelineResources?
-        val scratchToRelease: EncodedAttemptScratch?
-        val closeHeavyRuntimeResourcesNow: Boolean
-        val closeVirtualDisplayNow: Boolean
-        val closeProjectionTargetOwnerNow: Boolean
+        var resourcesToClose: ActiveRuntimePreparedRenderingPipelineResources? = null
+        var scratchToRelease: EncodedAttemptScratch? = null
+        var closeVirtualDisplayNow = false
+        var closeProjectionTargetOwnerNow = false
+        var releaseTerminalCleanupFenceAfterScheduling = false
+        var alreadyClosed = false
         synchronized(lock) {
-            if (state == ActiveRuntimeOwnerState.Closed) return
-            state = ActiveRuntimeOwnerState.Closed
-            clearRetainedPeriodicRefreshStateLocked()
-            val runtimeWorkInFlight = isRuntimeWorkInFlightLocked()
-            scratchToRelease = if (runtimeWorkInFlight) {
-                releaseEncodedScratchOnRuntimeClose = true
-                null
+            if (state == ActiveRuntimeOwnerState.Closed) {
+                alreadyClosed = true
             } else {
-                val scratch = encodedScratch
-                encodedScratch = null
-                pendingEncodedScratchTrim = false
-                scratch
+                state = ActiveRuntimeOwnerState.Closed
+                clearRetainedPeriodicRefreshStateLocked()
+                val runtimeWorkInFlight = isRuntimeWorkInFlightLocked()
+                val resources = activeResources
+                val deferRuntimeResourcesClose = runtimeWorkInFlight && resources != null
+                scratchToRelease = if (runtimeWorkInFlight) {
+                    releaseEncodedScratchOnRuntimeClose = true
+                    null
+                } else {
+                    val scratch = encodedScratch
+                    encodedScratch = null
+                    pendingEncodedScratchTrim = false
+                    scratch
+                }
+                resourcesToClose = if (deferRuntimeResourcesClose) {
+                    // Stop/close is a lifecycle fence, not permission to close GL/readback/encoder
+                    // resources still borrowed by a materialized production attempt.
+                    deferredActiveResourcesClose = resources
+                    deferredHeavyRuntimeClose = true
+                    null
+                } else {
+                    resources
+                }
+                val closeHeavyRuntimeResourcesNow = !runtimeWorkInFlight
+                closeVirtualDisplayNow = closeHeavyRuntimeResourcesNow && markVirtualDisplayOwnerCloseScheduledLocked()
+                closeProjectionTargetOwnerNow = closeHeavyRuntimeResourcesNow && markProjectionTargetOwnerCloseScheduledLocked()
+                releaseTerminalCleanupFenceAfterScheduling = !deferRuntimeResourcesClose
+                activeResources = null
             }
-            resourcesToClose = if (runtimeWorkInFlight) {
-                // Stop/close is a lifecycle fence, not permission to close GL/readback/encoder
-                // resources still borrowed by a materialized production attempt.
-                deferredActiveResourcesClose = activeResources
-                deferredHeavyRuntimeClose = true
-                null
-            } else {
-                activeResources
-            }
-            closeHeavyRuntimeResourcesNow = !runtimeWorkInFlight
-            closeVirtualDisplayNow = closeHeavyRuntimeResourcesNow && markVirtualDisplayOwnerCloseScheduledLocked()
-            closeProjectionTargetOwnerNow = closeHeavyRuntimeResourcesNow && markProjectionTargetOwnerCloseScheduledLocked()
-            activeResources = null
+        }
+        if (alreadyClosed) {
+            return
         }
         runtimeScheduler.shutdown()
         encoderLane.shutdown()
@@ -1142,21 +1174,27 @@ internal class ActiveRuntimeOwner internal constructor(
         if (stopProjection) {
             transfer.stopProjectionIfRequired()
         }
-        scheduleStartupCleanup(
-            cleanupScheduler = transfer.cleanupScheduler,
-            cleanupFailureSink = transfer.cleanupFailureSink,
-        ) {
-            val cleanupFailures = CleanupFailureCollector()
-            resourcesToClose?.let { resources ->
-                cleanupFailures.collect { resources.close() }
+        try {
+            scheduleStartupCleanup(
+                cleanupScheduler = transfer.cleanupScheduler,
+                cleanupFailureSink = transfer.cleanupFailureSink,
+            ) {
+                val cleanupFailures = CleanupFailureCollector()
+                resourcesToClose?.let { resources ->
+                    cleanupFailures.collect { resources.close() }
+                }
+                if (closeVirtualDisplayNow) {
+                    cleanupFailures.collect { transfer.virtualDisplayOwner.close() }
+                }
+                if (closeProjectionTargetOwnerNow) {
+                    cleanupFailures.collect { transfer.projectionTargetOwner.close() }
+                }
+                cleanupFailures.throwIfAny()
             }
-            if (closeVirtualDisplayNow) {
-                cleanupFailures.collect { transfer.virtualDisplayOwner.close() }
+        } finally {
+            if (releaseTerminalCleanupFenceAfterScheduling) {
+                releaseTerminalCleanupFence()
             }
-            if (closeProjectionTargetOwnerNow) {
-                cleanupFailures.collect { transfer.projectionTargetOwner.close() }
-            }
-            cleanupFailures.throwIfAny()
         }
     }
 
@@ -1186,21 +1224,25 @@ internal class ActiveRuntimeOwner internal constructor(
             closeProjectionTargetOwner = closeHeavyRuntimeResources && markProjectionTargetOwnerCloseScheduledLocked()
         }
         scratchToRelease?.let(::releaseEncodedScratch)
-        scheduleStartupCleanup(
-            cleanupScheduler = transfer.cleanupScheduler,
-            cleanupFailureSink = transfer.cleanupFailureSink,
-        ) {
-            val cleanupFailures = CleanupFailureCollector()
-            resourcesToClose?.let { resources ->
-                cleanupFailures.collect { resources.close() }
+        try {
+            scheduleStartupCleanup(
+                cleanupScheduler = transfer.cleanupScheduler,
+                cleanupFailureSink = transfer.cleanupFailureSink,
+            ) {
+                val cleanupFailures = CleanupFailureCollector()
+                resourcesToClose?.let { resources ->
+                    cleanupFailures.collect { resources.close() }
+                }
+                if (closeVirtualDisplay) {
+                    cleanupFailures.collect { transfer.virtualDisplayOwner.close() }
+                }
+                if (closeProjectionTargetOwner) {
+                    cleanupFailures.collect { transfer.projectionTargetOwner.close() }
+                }
+                cleanupFailures.throwIfAny()
             }
-            if (closeVirtualDisplay) {
-                cleanupFailures.collect { transfer.virtualDisplayOwner.close() }
-            }
-            if (closeProjectionTargetOwner) {
-                cleanupFailures.collect { transfer.projectionTargetOwner.close() }
-            }
-            cleanupFailures.throwIfAny()
+        } finally {
+            releaseTerminalCleanupFence()
         }
     }
 
@@ -1625,6 +1667,10 @@ private class TimedRuntimeRenderReadbackResult(
 )
 
 private class RuntimeEncoderTimeoutException(message: String) : RuntimeException(message)
+
+private object NoopCloseable : AutoCloseable {
+    override fun close() = Unit
+}
 
 private class LeasedRgbaImageEncoderInput(
     lease: RgbaReadbackLease,
