@@ -27,6 +27,7 @@ internal class RuntimeFrameLoop internal constructor(
     private var committed = false
     private var sourceFrameSignalPending = false
     private var periodicRefreshWakePending = false
+    private var metricsObservationPending = false
     private var latestSourceFrameGeneration: Long? = null
     private var admittedProductionAttempts = 0L
     private var metricsDrainedAtCommit: CaptureMetrics? = null
@@ -66,6 +67,16 @@ internal class RuntimeFrameLoop internal constructor(
             if (closed) return
             periodicRefreshWakePending = true
             shouldNotify = committed && notifyRuntimeWhenCommitted
+        }
+        if (shouldNotify) onRuntimeSignalRecorded()
+    }
+
+    internal fun recordMetricsObservationChanged() {
+        var shouldNotify = false
+        synchronized(lock) {
+            if (closed) return
+            metricsObservationPending = true
+            shouldNotify = committed
         }
         if (shouldNotify) onRuntimeSignalRecorded()
     }
@@ -118,7 +129,9 @@ internal class RuntimeFrameLoop internal constructor(
         synchronized(lock) {
             committed = true
             metricsDrainedAtCommit = latestMetrics
-            signalMailbox.drain(latestMetrics = latestMetrics, projectionStopObserved = projectionStopObserved)
+            signalMailbox
+                .drain(latestMetrics = latestMetrics, projectionStopObserved = projectionStopObserved)
+                .withMetricsObservationChanged(drainMetricsObservationPendingLocked())
         }
 
     internal fun drainPendingSignalsForRuntime(
@@ -133,10 +146,13 @@ internal class RuntimeFrameLoop internal constructor(
                     latestCaptureMetrics = latestMetrics,
                     pendingCaptureGeometry = null,
                     latestCapturedContentVisible = null,
+                    metricsObservationChanged = false,
                 )
             } else {
                 metricsDrainedAtCommit = latestMetrics
-                signalMailbox.drain(latestMetrics = latestMetrics, projectionStopObserved = projectionStopObserved)
+                signalMailbox
+                    .drain(latestMetrics = latestMetrics, projectionStopObserved = projectionStopObserved)
+                    .withMetricsObservationChanged(drainMetricsObservationPendingLocked())
             }
         }
 
@@ -148,6 +164,7 @@ internal class RuntimeFrameLoop internal constructor(
             if (closed || !committed) return@synchronized false
             if (sourceFrameSignalPending) return@synchronized true
             if (periodicRefreshWakePending) return@synchronized true
+            if (metricsObservationPending) return@synchronized true
             val signals = signalMailbox
                 .snapshot(latestMetrics = latestMetrics, projectionStopObserved = projectionStopObserved)
                 .withoutAlreadyDrainedMetricsGeometry(latestMetrics)
@@ -178,6 +195,7 @@ internal class RuntimeFrameLoop internal constructor(
             closed = true
             sourceFrameSignalPending = false
             periodicRefreshWakePending = false
+            metricsObservationPending = false
             latestSourceFrameGeneration = null
             frameSignalSource.drainLatestFrameSignal()
         }
@@ -209,8 +227,26 @@ internal class RuntimeFrameLoop internal constructor(
             latestCaptureMetrics = latestCaptureMetrics,
             pendingCaptureGeometry = null,
             latestCapturedContentVisible = latestCapturedContentVisible,
+            metricsObservationChanged = metricsObservationChanged,
         )
     }
+
+    private fun StartupRuntimePendingSignals.withMetricsObservationChanged(
+        metricsObservationChanged: Boolean,
+    ): StartupRuntimePendingSignals =
+        StartupRuntimePendingSignals(
+            projectionStopObserved = projectionStopObserved,
+            pendingCapturedContentResize = pendingCapturedContentResize,
+            latestCaptureMetrics = latestCaptureMetrics,
+            pendingCaptureGeometry = pendingCaptureGeometry,
+            latestCapturedContentVisible = latestCapturedContentVisible,
+            metricsObservationChanged = metricsObservationChanged,
+        )
+
+    private fun drainMetricsObservationPendingLocked(): Boolean =
+        metricsObservationPending.also {
+            metricsObservationPending = false
+        }
 }
 
 internal class RuntimeFrameLoopSnapshot internal constructor(

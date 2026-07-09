@@ -67,6 +67,7 @@ internal class ScreenCaptureStartupTransaction(
     },
     private val cleanupScheduler: StartupCleanupScheduler = DefaultStartupCleanupScheduler,
     private val cleanupFailureSink: StartupCleanupFailureSink = DefaultStartupCleanupFailureSink,
+    private val beforeInputValidationForTesting: (CaptureMetricsObservation) -> Unit = {},
 ) {
     private val problemSequence = AtomicLong()
 
@@ -75,12 +76,14 @@ internal class ScreenCaptureStartupTransaction(
         mediaProjection: MediaProjection,
         initialParameters: ScreenCaptureParameters = ScreenCaptureParameters.defaults(),
         virtualDisplayName: String = DEFAULT_VIRTUAL_DISPLAY_NAME,
+        onMetricsChanged: () -> Unit = {},
     ): ScreenCaptureStartupResources =
         startThroughAuthoritativeStartupGeometry(
             config = config,
             projection = MediaProjectionHandle(mediaProjection),
             initialParameters = initialParameters,
             virtualDisplayName = virtualDisplayName,
+            onMetricsChanged = onMetricsChanged,
         )
 
     internal suspend fun startThroughAuthoritativeStartupGeometry(
@@ -88,6 +91,7 @@ internal class ScreenCaptureStartupTransaction(
         projection: ProjectionHandle,
         initialParameters: ScreenCaptureParameters = ScreenCaptureParameters.defaults(),
         virtualDisplayName: String = DEFAULT_VIRTUAL_DISPLAY_NAME,
+        onMetricsChanged: () -> Unit = {},
     ): ScreenCaptureStartupResources {
         val coroutineContext = currentCoroutineContext()
         val projectionLifecycle = StartupProjectionLifecycle(projection = projection, cleanupFailureSink = cleanupFailureSink)
@@ -174,7 +178,11 @@ internal class ScreenCaptureStartupTransaction(
 
         try {
             val createdMetricsObservation = try {
-                CaptureMetricsObservation.start(provider = config.metricsProvider, coroutineContext = coroutineContext)
+                CaptureMetricsObservation.start(
+                    provider = config.metricsProvider,
+                    coroutineContext = coroutineContext,
+                    onMetricsChanged = onMetricsChanged,
+                )
             } catch (cause: Throwable) {
                 coroutineContext.ensureActive()
                 throw startException(
@@ -184,10 +192,12 @@ internal class ScreenCaptureStartupTransaction(
                 )
             }
             metricsObservation = createdMetricsObservation
+            beforeInputValidationForTesting(createdMetricsObservation)
+            createdMetricsObservation.refreshLatestProviderState(config.metricsProvider.metrics.value)
 
             val startupMetrics = try {
                 coroutineContext.ensureActive()
-                validateInputs(initialParameters = initialParameters, latestMetrics = createdMetricsObservation.latestMetrics)
+                validateInputs(initialParameters = initialParameters, latestMetrics = createdMetricsObservation.latestAvailableMetricsOrNull)
             } catch (cause: ScreenCaptureStartException) {
                 throwIfPreAuthoritativeSignalWins()
                 throw cause

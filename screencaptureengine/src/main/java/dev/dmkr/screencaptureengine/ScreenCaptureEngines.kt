@@ -12,10 +12,12 @@ public object ScreenCaptureEngines {
      * projection consumption, GL allocation, encoder allocation, and virtual-display creation only
      * happen when [ScreenCaptureEngine.startSession] is called.
      *
-     * Session startup uses the caller-supplied [ScreenCaptureConfig.metricsProvider]. The built-in
-     * [CaptureMetricsProviders] factory methods may throw when the requested metrics source is not
-     * available. The returned engine has no public close API; lifecycle is controlled through
-     * returned [ScreenCaptureSession] instances.
+     * Session startup uses the caller-supplied [ScreenCaptureConfig.metricsProvider]. Built-in
+     * [CaptureMetricsProviders] are lazy, non-throwing convenience sources for bootstrap size,
+     * density, and explicit metrics availability through [CaptureMetricsState]. During a running
+     * session, unavailable provider states are ignored while the last valid metrics remain in use.
+     * The returned engine has no public close API; lifecycle is controlled through returned
+     * [ScreenCaptureSession] instances.
      */
     public fun create(context: Context): ScreenCaptureEngine {
         val applicationContext = requireNotNull(context.applicationContext) {

@@ -204,6 +204,7 @@ private fun StartupRuntimePendingSignals.mergeWith(
         latestCaptureMetrics = later.latestCaptureMetrics,
         pendingCaptureGeometry = later.pendingCaptureGeometry ?: pendingCaptureGeometry,
         latestCapturedContentVisible = later.latestCapturedContentVisible ?: latestCapturedContentVisible,
+        metricsObservationChanged = metricsObservationChanged || later.metricsObservationChanged,
     )
 
 internal class InitialRuntimeResourceTransfer internal constructor(

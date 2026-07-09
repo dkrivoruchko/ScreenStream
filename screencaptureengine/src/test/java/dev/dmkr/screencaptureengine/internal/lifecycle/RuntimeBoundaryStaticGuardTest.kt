@@ -177,7 +177,7 @@ class RuntimeBoundaryStaticGuardTest {
     }
 
     @Test
-    fun defaultEngineAndRuntimeInternalsDoNotDependOnPublicBuiltInMetricsPlaceholders() {
+    fun defaultEngineAndRuntimeInternalsDoNotDependOnPublicBuiltInMetricsProviderFactories() {
         runtimeSourceFiles().forEach { sourceFile ->
             val executableContent = Files.readString(sourceFile.path).withoutKotlinCommentsAndStrings()
             val matches = publicBuiltInMetricsProviderPatterns.flatMap { pattern ->
@@ -185,8 +185,39 @@ class RuntimeBoundaryStaticGuardTest {
             }
 
             assertTrue(
-                "${sourceFile.displayPath} depends on public CaptureMetricsProviders placeholders. " +
+                "${sourceFile.displayPath} depends on public built-in CaptureMetricsProviders convenience factories. " +
                         "Default-engine/runtime internals must use caller-supplied CaptureMetricsProvider only: " +
+                        matches.joinToString(),
+                matches.isEmpty(),
+            )
+        }
+    }
+
+    @Test
+    fun mainAndTestSourcesDoNotUseReflectionApis() {
+        moduleKotlinSourceFiles().forEach { sourceFile ->
+            val executableContent = Files.readString(sourceFile.path).withoutKotlinCommentsAndStrings()
+            val matches = reflectionApiUsagePatterns.flatMap { pattern ->
+                pattern.regex.findAll(executableContent).map { match -> "${pattern.description}: ${match.value}" }
+            }
+
+            assertTrue(
+                "${sourceFile.displayPath} uses prohibited reflection APIs: ${matches.joinToString()}",
+                matches.isEmpty(),
+            )
+        }
+    }
+
+    @Test
+    fun mainAndTestSourcesDoNotRegressToRawCaptureMetricsStateFlowContract() {
+        moduleKotlinSourceFiles().forEach { sourceFile ->
+            val executableContent = Files.readString(sourceFile.path).withoutKotlinCommentsAndStrings()
+            val matches = rawCaptureMetricsStateFlowPatterns.flatMap { pattern ->
+                pattern.regex.findAll(executableContent).map { match -> "${pattern.description}: ${match.value}" }
+            }
+
+            assertTrue(
+                "${sourceFile.displayPath} uses raw StateFlow<CaptureMetrics> provider contract: " +
                         matches.joinToString(),
                 matches.isEmpty(),
             )
@@ -579,6 +610,96 @@ class RuntimeBoundaryStaticGuardTest {
         )
     }
 
+    @Test
+    fun reflectionGuardCatchesActualReflectionApisButAllowsClassLiterals() {
+        val executableContent = listOf(
+            "package synthetic",
+            "import java.lang.reflect.Method",
+            "import kotlin.reflect.full.declaredMemberProperties",
+            "internal fun forbidden(value: Any) {",
+            "    val type = Class.forName(\"ignored.literal\")",
+            "    value.javaClass.getDeclaredMethod(\"ignored\")",
+            "    value.javaClass.methods",
+            "    value.javaClass.declaredMethods",
+            "    value.javaClass.declaredConstructors",
+            "    value::class.members",
+            "    String::class.java.getDeclaredField(\"ignored\")",
+            "    String::class.java.fields",
+            "    String::class.java.declaredFields",
+            "    String::class.java.constructors",
+            "    val method: Method? = null",
+            "    declaredMemberProperties",
+            "}",
+        ).joinToString(separator = "\n").withoutKotlinCommentsAndStrings()
+
+        reflectionApiUsagePatterns.forEach { pattern ->
+            assertTrue(
+                "Executable reflection API usage should match ${pattern.description}",
+                pattern.regex.containsMatchIn(executableContent),
+            )
+        }
+
+        val allowedContent = listOf(
+            "package synthetic",
+            "@RunWith(RobolectricTestRunner::class)",
+            "@OptIn(ExperimentalCoroutinesApi::class)",
+            "internal fun classLiteralsAreAllowed() {",
+            "    assertThrows(IllegalStateException::class.java) {}",
+            "    val token = Activity::class.java",
+            "}",
+        ).joinToString(separator = "\n").withoutKotlinCommentsAndStrings()
+        val allowedMatches = reflectionApiUsagePatterns.flatMap { pattern ->
+            pattern.regex.findAll(allowedContent).map { match -> "${pattern.description}: ${match.value}" }
+        }
+
+        assertTrue(
+            "Class literals and test annotations must remain allowed: ${allowedMatches.joinToString()}",
+            allowedMatches.isEmpty(),
+        )
+    }
+
+    @Test
+    fun rawCaptureMetricsStateFlowGuardCatchesOldProviderContractOnly() {
+        val executableContent = listOf(
+            "package synthetic",
+            "import dev.dmkr.screencaptureengine.CaptureMetrics",
+            "import kotlinx.coroutines.flow.StateFlow",
+            "import kotlinx.coroutines.flow.StateFlow as MetricsFlow",
+            "internal interface OldProvider {",
+            "    val metrics: StateFlow<CaptureMetrics>",
+            "    val spaced: StateFlow < CaptureMetrics >",
+            "    val aliased: MetricsFlow<CaptureMetrics>",
+            "    val fqn: kotlinx.coroutines.flow.StateFlow<dev.dmkr.screencaptureengine.CaptureMetrics>",
+            "}",
+        ).joinToString(separator = "\n").withoutKotlinCommentsAndStrings()
+
+        rawCaptureMetricsStateFlowPatterns.forEach { pattern ->
+            assertTrue(
+                "Executable raw StateFlow<CaptureMetrics> contract should match ${pattern.description}",
+                pattern.regex.containsMatchIn(executableContent),
+            )
+        }
+
+        val allowedContent = listOf(
+            "package synthetic",
+            "import dev.dmkr.screencaptureengine.CaptureMetricsState",
+            "import kotlinx.coroutines.flow.StateFlow",
+            "import kotlinx.coroutines.flow.StateFlow as MetricsFlow",
+            "internal interface CurrentProvider {",
+            "    val metrics: StateFlow<CaptureMetricsState>",
+            "    val aliased: MetricsFlow<CaptureMetricsState>",
+            "}",
+        ).joinToString(separator = "\n").withoutKotlinCommentsAndStrings()
+        val allowedMatches = rawCaptureMetricsStateFlowPatterns.flatMap { pattern ->
+            pattern.regex.findAll(allowedContent).map { match -> "${pattern.description}: ${match.value}" }
+        }
+
+        assertTrue(
+            "StateFlow<CaptureMetricsState> must remain allowed: ${allowedMatches.joinToString()}",
+            allowedMatches.isEmpty(),
+        )
+    }
+
     private fun runtimeSourceFiles(): List<RuntimeSourceFile> {
         val sourceFiles = discoveredRuntimeSourceFiles()
         val unclassifiedPaths = sourceFiles
@@ -592,6 +713,35 @@ class RuntimeBoundaryStaticGuardTest {
         )
 
         return sourceFiles
+    }
+
+    private fun moduleKotlinSourceFiles(): List<ModuleSourceFile> =
+        listOf("src/main/java", "src/test/java").flatMap { sourceRootRelativePath ->
+            kotlinSourceFilesUnder(sourceRootRelativePath)
+        }
+
+    private fun kotlinSourceFilesUnder(sourceRootRelativePath: String): List<ModuleSourceFile> {
+        val moduleRoot = resolveModuleRoot()
+        val sourceRoot = moduleRoot.resolve(sourceRootRelativePath)
+        assertTrue("Source root is missing: $sourceRoot", Files.isDirectory(sourceRoot))
+
+        val paths = mutableListOf<Path>()
+        val stream = Files.walk(sourceRoot)
+        try {
+            stream
+                .filter { path -> Files.isRegularFile(path) }
+                .filter { path -> path.fileName.toString().endsWith(".kt") }
+                .forEach { path -> paths.add(path) }
+        } finally {
+            stream.close()
+        }
+
+        return paths.sorted().map { path ->
+            ModuleSourceFile(
+                path = path,
+                displayPath = moduleRoot.relativize(path).toDisplayPath(),
+            )
+        }
     }
 
     private fun discoveredRuntimeSourceFiles(): List<RuntimeSourceFile> {
@@ -636,6 +786,23 @@ class RuntimeBoundaryStaticGuardTest {
             ?: error("Could not resolve screencaptureengine source root from $start.")
     }
 
+    private fun resolveModuleRoot(): Path {
+        val start = Path.of(System.getProperty("user.dir")).toAbsolutePath()
+        return generateSequence(start) { path -> path.parent }
+            .firstOrNull { root ->
+                Files.isDirectory(root.resolve("screencaptureengine/src/main/java")) ||
+                        Files.isDirectory(root.resolve("src/main/java"))
+            }
+            ?.let { root ->
+                if (Files.isDirectory(root.resolve("screencaptureengine/src/main/java"))) {
+                    root.resolve("screencaptureengine")
+                } else {
+                    root
+                }
+            }
+            ?: error("Could not resolve screencaptureengine module root from $start.")
+    }
+
     private fun Path.toDisplayPath(): String =
         joinToString(separator = "/") { path -> path.toString() }
 
@@ -649,12 +816,23 @@ class RuntimeBoundaryStaticGuardTest {
     private fun RuntimeSourceFile.forbiddenPublicStateOwnershipMatches(matches: List<String>): List<String> =
         when (runtimeRelativePath) {
             in publicStateOwnershipOwnerPaths -> emptyList()
+            "platform/metrics/AndroidCaptureMetricsProvider.kt" ->
+                matches.withSingleProviderMetricsStateFlowAllowed()
+
             "session/delivery/ScreenCaptureFrameDeliveryCoordinator.kt" -> matches.filterNot { match ->
                 deliveryCoordinatorInternalSubscriptionStatsRegex.containsMatchIn(match)
             }
 
             else -> matches
         }
+
+    private fun List<String>.withSingleProviderMetricsStateFlowAllowed(): List<String> {
+        val providerMetricsStateFlowMatches = filter { match ->
+            providerMetricsStateFlowRegex.matches(match)
+        }
+        if (providerMetricsStateFlowMatches.size != 1) return this
+        return this - providerMetricsStateFlowMatches.toSet()
+    }
 
     private fun directGlesUsagesIn(executableContent: String): List<DirectGlesUsage> =
         buildList {
@@ -1044,6 +1222,11 @@ class RuntimeBoundaryStaticGuardTest {
             get() = runtimeFileClassifications.getValue(runtimeRelativePath)
     }
 
+    private data class ModuleSourceFile(
+        val path: Path,
+        val displayPath: String,
+    )
+
     private data class DirectGlesUsage(
         val callName: String,
         val expression: String,
@@ -1072,6 +1255,7 @@ class RuntimeBoundaryStaticGuardTest {
             "encoding/provider/FrameworkBitmapCompressJpegEncoder.kt" to RuntimeFileRole.RuntimeProduction,
             "encoding/runtime/EncodedAttemptScratch.kt" to RuntimeFileRole.RuntimeProduction,
             "lifecycle/ActiveRuntimeOwner.kt" to RuntimeFileRole.ActiveSessionIntegration,
+            "platform/metrics/AndroidCaptureMetricsProvider.kt" to RuntimeFileRole.PlatformLifecycleSupport,
             "platform/metrics/CaptureMetricsObservation.kt" to RuntimeFileRole.StartupPreparation,
             "gl/CleanupFailure.kt" to RuntimeFileRole.PlatformLifecycleSupport,
             "rendering/es2/Es2RenderingPipelinePreparer.kt" to RuntimeFileRole.StartupPreparation,
@@ -1150,6 +1334,8 @@ class RuntimeBoundaryStaticGuardTest {
         private val deliveryCoordinatorInternalSubscriptionStatsRegex = Regex(
             """: (?:val )?(?:activeFrameSubscriptions|slowConsumers)(?:\s*=|:)""",
         )
+
+        private val providerMetricsStateFlowRegex = Regex("""^mutable public state flow: .*: MutableStateFlow\($""")
 
         private val startupRenderingGlAccessAllowlistPaths = setOf(
             "rendering/es2/Es2RenderingPipelinePreparer.kt",
@@ -1349,6 +1535,50 @@ class RuntimeBoundaryStaticGuardTest {
                 Regex("""\bCaptureMetricsProviders\b"""),
             ),
         )
+
+        private val reflectionApiUsagePatterns = listOf(
+            regexPattern("java reflection package import", Regex("""\bimport\s+java\.lang\.reflect(?:\.|\b)""")),
+            regexPattern("kotlin reflection package import", Regex("""\bimport\s+kotlin\.reflect(?:\.|\b)""")),
+            regexPattern("Class.forName reflection lookup", Regex("""\bClass\s*\.\s*forName\s*\(""")),
+            regexPattern("javaClass reflective member lookup", Regex("""\bjavaClass\s*\.\s*get(?:Declared)?(?:Method|Field|Constructor)s?\s*\(""")),
+            regexPattern(
+                "javaClass reflective member property",
+                Regex("""\bjavaClass\s*\.\s*(?:${reflectionMemberPropertyPattern})\b"""),
+            ),
+            regexPattern(
+                "class-literal reflective member lookup",
+                Regex("""::\s*class\s*\.\s*java\s*\.\s*get(?:Declared)?(?:Method|Field|Constructor)s?\s*\("""),
+            ),
+            regexPattern(
+                "class-literal reflective member property",
+                Regex("""::\s*class\s*\.\s*java\s*\.\s*(?:${reflectionMemberPropertyPattern})\b"""),
+            ),
+            regexPattern(
+                "KClass reflective member access",
+                Regex("""::\s*class\s*\.\s*(?:members|declaredMembers|memberProperties|declaredMemberProperties)\b"""),
+            ),
+        )
+
+        private val rawCaptureMetricsStateFlowPatterns = listOf(
+            regexPattern("raw StateFlow<CaptureMetrics>", Regex("""\bStateFlow\s*<\s*CaptureMetrics\s*>""")),
+            regexPattern(
+                "raw aliased StateFlow<CaptureMetrics>",
+                Regex(
+                    """\bimport\s+kotlinx\.coroutines\.flow\.StateFlow\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\b""" +
+                            """[\s\S]*\b\1\s*<\s*(?:dev\.dmkr\.screencaptureengine\.)?CaptureMetrics\s*>""",
+                ),
+            ),
+            regexPattern(
+                "raw fully-qualified StateFlow<CaptureMetrics>",
+                Regex(
+                    """\bkotlinx\.coroutines\.flow\.StateFlow\s*<\s*""" +
+                            """(?:dev\.dmkr\.screencaptureengine\.)?CaptureMetrics\s*>""",
+                ),
+            ),
+        )
+
+        private const val reflectionMemberPropertyPattern =
+            "methods|declaredMethods|fields|declaredFields|constructors|declaredConstructors"
 
         private val bareDirectGlCallRegex = Regex(
             "(?<![.\\w])(gl(?:ActiveTexture|AttachShader|Bind|Blend|Buffer|Check|Clear|ClientWait|" +

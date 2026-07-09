@@ -2,6 +2,7 @@ package dev.dmkr.screencaptureengine.internal.platform.metrics
 
 import dev.dmkr.screencaptureengine.CaptureMetrics
 import dev.dmkr.screencaptureengine.CaptureMetricsProvider
+import dev.dmkr.screencaptureengine.CaptureMetricsState
 import dev.dmkr.screencaptureengine.EngineAttachableCaptureMetricsProvider
 import dev.dmkr.screencaptureengine.internal.gl.CleanupFailureCollector
 import kotlinx.coroutines.CoroutineScope
@@ -23,22 +24,57 @@ import kotlin.coroutines.CoroutineContext
 internal class CaptureMetricsObservation private constructor(
     private val metricsAttachment: DisposableHandle?,
     private val observationJob: Job,
-    initialMetrics: CaptureMetrics,
+    initialState: CaptureMetricsState,
+    private val externalMetricsChangedListener: () -> Unit,
 ) : AutoCloseable {
     private val lock = Any()
     private var closed = false
-    private var latest = initialMetrics
+    private var latestState = initialState
+    private var latestValidMetrics = initialState.availableMetricsOrNull()
     private var metricsCollector: Job? = null
+    private var runtimeMetricsChangedListener: (() -> Unit)? = null
 
     internal val latestMetrics: CaptureMetrics
-        get() = synchronized(lock) { latest }
+        get() = synchronized(lock) {
+            latestValidMetrics ?: error("No valid capture metrics are available.")
+        }
 
-    private fun update(metrics: CaptureMetrics) {
+    internal val latestMetricsOrNull: CaptureMetrics?
+        get() = synchronized(lock) { latestValidMetrics }
+
+    internal val latestAvailableMetricsOrNull: CaptureMetrics?
+        get() = synchronized(lock) { latestState.availableMetricsOrNull() }
+
+    internal val latestProviderState: CaptureMetricsState
+        get() = synchronized(lock) { latestState }
+
+    internal fun installRuntimeMetricsChangedListener(listener: (() -> Unit)?) {
         synchronized(lock) {
             if (!closed) {
-                latest = metrics
+                runtimeMetricsChangedListener = listener
             }
         }
+    }
+
+    internal fun refreshLatestProviderState(state: CaptureMetricsState) {
+        update(state, notifyExternal = false)
+    }
+
+    private fun update(state: CaptureMetricsState, notifyExternal: Boolean = true): Boolean {
+        val runtimeListener: (() -> Unit)?
+        synchronized(lock) {
+            if (closed || latestState == state) {
+                return false
+            }
+            latestState = state
+            state.availableMetricsOrNull()?.let { latestValidMetrics = it }
+            runtimeListener = runtimeMetricsChangedListener
+        }
+        if (notifyExternal) {
+            externalMetricsChangedListener()
+        }
+        runtimeListener?.invoke()
+        return true
     }
 
     private fun attachCollector(collector: Job) {
@@ -69,18 +105,29 @@ internal class CaptureMetricsObservation private constructor(
     }
 
     internal companion object {
-        internal fun start(provider: CaptureMetricsProvider, coroutineContext: CoroutineContext): CaptureMetricsObservation {
+        internal fun start(
+            provider: CaptureMetricsProvider,
+            coroutineContext: CoroutineContext,
+            onMetricsChanged: () -> Unit = {},
+        ): CaptureMetricsObservation {
             val observationJob = SupervisorJob()
             var attachment: DisposableHandle? = null
             var observation: CaptureMetricsObservation? = null
             var collector: Job? = null
+            var latestAttachedState: CaptureMetricsState? = null
             try {
                 attachment = (provider as? EngineAttachableCaptureMetricsProvider)
-                    ?.attachSessionAttachment {}
+                    ?.attachSessionAttachment {
+                        val state = provider.metrics.value
+                        latestAttachedState = state
+                        observation?.update(state, notifyExternal = false)
+                        onMetricsChanged()
+                    }
                 observation = CaptureMetricsObservation(
                     metricsAttachment = attachment,
                     observationJob = observationJob,
-                    initialMetrics = provider.metrics.value,
+                    initialState = latestAttachedState ?: provider.metrics.value,
+                    externalMetricsChangedListener = onMetricsChanged,
                 )
                 collector = CoroutineScope(coroutineContext.minusKey(Job) + observationJob).launch {
                     provider.metrics.collect(observation::update)
@@ -104,6 +151,12 @@ internal class CaptureMetricsObservation private constructor(
             }
         }
     }
+
+    private fun CaptureMetricsState.availableMetricsOrNull(): CaptureMetrics? =
+        when (this) {
+            is CaptureMetricsState.Available -> metrics
+            is CaptureMetricsState.Unavailable -> null
+        }
 
     private class MetricsObservationCloseState(
         val attachment: DisposableHandle?,

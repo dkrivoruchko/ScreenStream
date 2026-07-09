@@ -19,6 +19,7 @@ internal class StartupRuntimePendingSignals internal constructor(
     internal val latestCaptureMetrics: CaptureMetrics,
     internal val pendingCaptureGeometry: CaptureGeometry?,
     internal val latestCapturedContentVisible: Boolean?,
+    internal val metricsObservationChanged: Boolean = false,
 )
 
 /**

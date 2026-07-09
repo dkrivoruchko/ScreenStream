@@ -2,6 +2,7 @@ package dev.dmkr.screencaptureengine.internal.lifecycle
 
 import android.os.SystemClock
 import dev.dmkr.screencaptureengine.CaptureGeometry
+import dev.dmkr.screencaptureengine.CaptureMetricsState
 import dev.dmkr.screencaptureengine.EncodedImageFormat
 import dev.dmkr.screencaptureengine.EncodedImageFrame
 import dev.dmkr.screencaptureengine.FrameRate
@@ -117,6 +118,7 @@ internal class ActiveRuntimeOwner internal constructor(
     private var releaseEncodedScratchOnRuntimeClose = false
     private var frameLoopInstalled = false
     private var queuedPostCommitRuntimeSignalDrain: PostCommitRuntimeSignalDrain? = null
+    private var returnedSessionRuntimeSignalsArmed = false
     private var latestCapturedContentVisibleForInitialCommit: Boolean? = transfer.pendingSignals.latestCapturedContentVisible
     private var lastFrameRateAdmitNanos: Long? = null
     private var hasSuccessfulRuntimeSourceFrame = false
@@ -144,6 +146,10 @@ internal class ActiveRuntimeOwner internal constructor(
     init {
         runtimeScheduler.removeOnCancelPolicy = true
         transfer.callbackRouter.replaceRuntimeListener(expectedCurrent = transfer.expectedCurrentListener, replacement = this)
+        transfer.metricsObservation.installRuntimeMetricsChangedListener(runtimeFrameLoop::recordMetricsObservationChanged)
+        if (transfer.metricsObservation.latestProviderState is CaptureMetricsState.Unavailable) {
+            runtimeFrameLoop.recordMetricsObservationChanged()
+        }
     }
 
     internal val sessionForTesting: ScreenCaptureSession?
@@ -256,14 +262,14 @@ internal class ActiveRuntimeOwner internal constructor(
             }
         }
 
-    internal suspend fun commitInitialActiveSession(): ScreenCaptureSession =
+    internal suspend fun commitInitialActiveSession(armRuntimeSignals: Boolean = true): ScreenCaptureSession =
         try {
             throwIfProjectionStoppedBeforeCommit()
             currentCoroutineContext().ensureActive()
             installRuntimeFrameLoopBeforeCommit()
             currentCoroutineContext().ensureActive()
             commitBoundary.afterLastCancellableCheckpoint()
-            commitInitialActivePlanCommitted()
+            commitInitialActivePlanCommitted(armRuntimeSignals = armRuntimeSignals)
         } catch (cause: CancellationException) {
             closeAfterStartupFailure(cause)
             throw cause
@@ -287,7 +293,7 @@ internal class ActiveRuntimeOwner internal constructor(
      * without GL/readback/encode work or blocking cleanup. Runtime terminal and geometry signals
      * observed during the handoff are queued for the runtime turn after the session is visible.
      */
-    private fun commitInitialActivePlanCommitted(): ScreenCaptureSession {
+    private fun commitInitialActivePlanCommitted(armRuntimeSignals: Boolean): ScreenCaptureSession {
         val resources = synchronized(lock) {
             check(state == ActiveRuntimeOwnerState.Prepared) { "ActiveRuntimeOwner is $state." }
             activeResources ?: error("Active runtime resources are missing.")
@@ -339,11 +345,22 @@ internal class ActiveRuntimeOwner internal constructor(
             previousEffectiveParameters = effectiveParameters,
             core = core,
         )
-        scheduleNextPeriodicRefreshIfNeeded(core)
-        if (hasPendingRuntimeWorkForScheduling()) {
-            scheduleRuntimeTurn(delayMillis = POST_COMMIT_RUNTIME_SIGNAL_DRAIN_DELAY_MS)
+        if (armRuntimeSignals) {
+            armReturnedSessionRuntimeSignals()
         }
         return session
+    }
+
+    internal fun armReturnedSessionRuntimeSignals() {
+        val core = synchronized(lock) {
+            if (state != ActiveRuntimeOwnerState.Committed || returnedSessionRuntimeSignalsArmed) return
+            returnedSessionRuntimeSignalsArmed = true
+            sessionCore
+        }
+        core?.let(::scheduleNextPeriodicRefreshIfNeeded)
+        if (hasPendingRuntimeWorkForScheduling()) {
+            scheduleRuntimeTurn()
+        }
     }
 
     internal suspend fun drainRuntimeProductionTick(): RuntimeFrameProductionTickResult {
@@ -919,6 +936,7 @@ internal class ActiveRuntimeOwner internal constructor(
 
     internal fun drainQueuedRuntimeTerminalSignals() {
         val queuedTerminalDrain = synchronized(lock) {
+            if (!returnedSessionRuntimeSignalsArmed) return
             val drain = queuedPostCommitRuntimeSignalDrain
             if (drain?.pendingSignals?.projectionStopObserved == true) {
                 queuedPostCommitRuntimeSignalDrain = null
@@ -945,6 +963,7 @@ internal class ActiveRuntimeOwner internal constructor(
 
     internal fun drainQueuedPostCommitRuntimeSignals() {
         val pendingDrain = synchronized(lock) {
+            if (!returnedSessionRuntimeSignalsArmed) return
             val drain = queuedPostCommitRuntimeSignalDrain ?: return
             queuedPostCommitRuntimeSignalDrain = null
             drain
@@ -971,6 +990,9 @@ internal class ActiveRuntimeOwner internal constructor(
             finishProjectionStopped()
             return
         }
+        if (pendingSignals.metricsObservationChanged) {
+            emitInvalidMetricsIgnoredIfUnavailable(core)
+        }
         pendingSignals.latestCapturedContentVisible?.let(core::updateCapturedContentVisibility)
         val pendingCaptureGeometry = pendingSignals.pendingCaptureGeometry ?: return
         val previousEffectiveParameters = currentEffectiveParameters(core) ?: return
@@ -991,7 +1013,7 @@ internal class ActiveRuntimeOwner internal constructor(
         previousEffectiveParameters: ScreenCaptureEffectiveParameters,
         core: ScreenCaptureSessionCore,
     ) {
-        if (!pendingSignals.projectionStopObserved && pendingSignals.pendingCaptureGeometry == null) return
+        if (!pendingSignals.projectionStopObserved && pendingSignals.pendingCaptureGeometry == null && !pendingSignals.metricsObservationChanged) return
         synchronized(lock) {
             if (state == ActiveRuntimeOwnerState.Committed) {
                 queuedPostCommitRuntimeSignalDrain = PostCommitRuntimeSignalDrain(
@@ -1001,7 +1023,9 @@ internal class ActiveRuntimeOwner internal constructor(
                 )
             }
         }
-        scheduleRuntimeTurn(delayMillis = POST_COMMIT_RUNTIME_SIGNAL_DRAIN_DELAY_MS)
+        if (synchronized(lock) { returnedSessionRuntimeSignalsArmed }) {
+            scheduleRuntimeTurn()
+        }
     }
 
     private fun drainPostCommitRuntimeSignals(
@@ -1012,6 +1036,9 @@ internal class ActiveRuntimeOwner internal constructor(
         if (pendingSignals.projectionStopObserved || isProjectionStopped()) {
             finishProjectionStopped()
             return
+        }
+        if (pendingSignals.metricsObservationChanged) {
+            emitInvalidMetricsIgnoredIfUnavailable(core)
         }
         val pendingCaptureGeometry = pendingSignals.pendingCaptureGeometry ?: return
         clearRetainedPeriodicRefreshState()
@@ -1024,6 +1051,11 @@ internal class ActiveRuntimeOwner internal constructor(
             previousEffectiveParameters = previousEffectiveParameters,
             currentCaptureGeometry = pendingCaptureGeometry,
         )
+    }
+
+    private fun emitInvalidMetricsIgnoredIfUnavailable(core: ScreenCaptureSessionCore) {
+        if (transfer.metricsObservation.latestProviderState !is CaptureMetricsState.Unavailable) return
+        core.recordInvalidMetricsIgnored("Runtime capture metrics are unavailable; keeping the last valid metrics.")
     }
 
     private fun throwIfProjectionStoppedBeforeCommit() {
@@ -1472,12 +1504,12 @@ internal class ActiveRuntimeOwner internal constructor(
     }
 
     private fun shouldAcceptRuntimeTurn(): Boolean =
-        synchronized(lock) { state == ActiveRuntimeOwnerState.Committed }
+        synchronized(lock) { state == ActiveRuntimeOwnerState.Committed && returnedSessionRuntimeSignalsArmed }
 
     private fun hasPendingRuntimeWorkForScheduling(): Boolean {
         synchronized(lock) {
             if (state != ActiveRuntimeOwnerState.Committed) return false
-            if (queuedPostCommitRuntimeSignalDrain != null) return true
+            if (queuedPostCommitRuntimeSignalDrain != null) return returnedSessionRuntimeSignalsArmed
         }
         return runtimeFrameLoop.hasPendingRuntimeWork(
             latestMetrics = transfer.metricsObservation.latestMetrics,
@@ -1692,6 +1724,7 @@ private fun StartupRuntimePendingSignals.mergeForCommit(
         latestCaptureMetrics = later.latestCaptureMetrics,
         pendingCaptureGeometry = if (projectionStopped) null else later.pendingCaptureGeometry ?: pendingCaptureGeometry,
         latestCapturedContentVisible = later.latestCapturedContentVisible ?: latestCapturedContentVisible,
+        metricsObservationChanged = if (projectionStopped) false else metricsObservationChanged || later.metricsObservationChanged,
     )
 }
 
@@ -1700,4 +1733,3 @@ private const val RUNTIME_ENCODER_OPERATION_TIMEOUT_MS: Long = 5_000L
 private const val NANOS_PER_SECOND: Long = 1_000_000_000L
 private const val NANOS_PER_MILLISECOND: Long = 1_000_000L
 private const val RUNTIME_MATRIX_ELEMENT_COUNT: Int = 16
-private const val POST_COMMIT_RUNTIME_SIGNAL_DRAIN_DELAY_MS: Long = 1L

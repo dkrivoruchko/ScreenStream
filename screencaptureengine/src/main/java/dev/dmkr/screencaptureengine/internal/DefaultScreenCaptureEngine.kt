@@ -3,13 +3,19 @@ package dev.dmkr.screencaptureengine.internal
 import android.content.Context
 import android.media.projection.MediaProjection
 import android.os.SystemClock
+import dev.dmkr.screencaptureengine.EncodedImageFrame
+import dev.dmkr.screencaptureengine.FrameSubscription
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
 import dev.dmkr.screencaptureengine.ScreenCaptureEngine
+import dev.dmkr.screencaptureengine.ScreenCaptureEvent
+import dev.dmkr.screencaptureengine.ScreenCaptureParameterUpdateResult
 import dev.dmkr.screencaptureengine.ScreenCaptureParameters
 import dev.dmkr.screencaptureengine.ScreenCaptureProblem
 import dev.dmkr.screencaptureengine.ScreenCaptureProblemKind
 import dev.dmkr.screencaptureengine.ScreenCaptureSession
+import dev.dmkr.screencaptureengine.ScreenCaptureSessionState
 import dev.dmkr.screencaptureengine.ScreenCaptureStartException
+import dev.dmkr.screencaptureengine.ScreenCaptureStats
 import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPreparer
 import dev.dmkr.screencaptureengine.internal.encoding.provider.ProviderPreparationContext
 import dev.dmkr.screencaptureengine.internal.gl.DefaultStartupCleanupScheduler
@@ -23,6 +29,11 @@ import dev.dmkr.screencaptureengine.internal.rendering.es2.ImageEncoderPrepareOp
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparer
 import dev.dmkr.screencaptureengine.internal.session.delivery.ScreenCaptureEngineOwnedContext
 import dev.dmkr.screencaptureengine.internal.startup.ScreenCaptureStartupTransaction
+import kotlinx.coroutines.ExperimentalForInheritanceCoroutinesApi
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.onSubscription
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -110,9 +121,13 @@ internal class DefaultScreenCaptureEngine internal constructor(
                 terminalCleanupFenceFactory = cleanupTracker::openTerminalCleanupFence,
             )
             ownerToClose = activeOwner
-            val session = activeOwner.commitInitialActiveSession()
+            val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+            val returnedSession = ReturnArmingScreenCaptureSession(
+                delegate = session,
+                armReturnedSessionRuntimeSignals = activeOwner::armReturnedSessionRuntimeSignals,
+            )
             ownerToClose = null
-            return session
+            return returnedSession
         } catch (cause: Throwable) {
             ownerToClose?.let { owner ->
                 runCatching { owner.close() }.onFailure(cause::addSuppressed)
@@ -209,6 +224,106 @@ private fun defaultRenderingPipelinePreparer(providerContext: ProviderPreparatio
     Es2RenderingPipelinePreparer(
         encoderPrepare = ImageEncoderPrepareOperation(ImageEncoderPreparer(providerContext)::prepare),
     )
+
+internal class ReturnArmingScreenCaptureSession(
+    private val delegate: ScreenCaptureSession,
+    armReturnedSessionRuntimeSignals: () -> Unit,
+) : ScreenCaptureSession {
+    private val armed = AtomicBoolean(false)
+    private val armOnce: () -> Unit = {
+        if (armed.compareAndSet(false, true)) {
+            armReturnedSessionRuntimeSignals()
+        }
+    }
+
+    override val state: StateFlow<ScreenCaptureSessionState> = ReturnArmingStateFlow(delegate.state, armOnce)
+    override val stats: StateFlow<ScreenCaptureStats> = ReturnArmingStateFlow(delegate.stats, armOnce)
+    override val events: SharedFlow<ScreenCaptureEvent> = ReturnArmingSharedFlow(delegate.events, armOnce)
+
+    override suspend fun setParameters(parameters: ScreenCaptureParameters): ScreenCaptureParameterUpdateResult {
+        armOnce()
+        return delegate.setParameters(parameters)
+    }
+
+    override fun trimMemory(level: Int) {
+        armOnce()
+        delegate.trimMemory(level)
+    }
+
+    override fun stop() {
+        armOnce()
+        delegate.stop()
+    }
+
+    override fun close() {
+        armOnce()
+        delegate.close()
+    }
+
+    override fun onFrame(callback: (EncodedImageFrame) -> Unit): FrameSubscription {
+        return try {
+            delegate.onFrame(callback)
+        } finally {
+            armOnce()
+        }
+    }
+}
+
+@OptIn(ExperimentalForInheritanceCoroutinesApi::class)
+private class ReturnArmingStateFlow<T>(
+    private val delegate: StateFlow<T>,
+    private val armReturnedSessionRuntimeSignals: () -> Unit,
+) : StateFlow<T> {
+    override val replayCache: List<T>
+        get() {
+            val cache = delegate.replayCache
+            armReturnedSessionRuntimeSignals()
+            return cache
+        }
+
+    override val value: T
+        get() {
+            val current = delegate.value
+            armReturnedSessionRuntimeSignals()
+            return current
+        }
+
+    override suspend fun collect(collector: FlowCollector<T>): Nothing {
+        val initial = delegate.value
+        try {
+            collector.emit(initial)
+        } finally {
+            armReturnedSessionRuntimeSignals()
+        }
+        var skipInitialReplay = true
+        delegate.collect { value ->
+            if (skipInitialReplay && value == initial) {
+                skipInitialReplay = false
+            } else {
+                skipInitialReplay = false
+                collector.emit(value)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalForInheritanceCoroutinesApi::class)
+private class ReturnArmingSharedFlow<T>(
+    private val delegate: SharedFlow<T>,
+    private val armReturnedSessionRuntimeSignals: () -> Unit,
+) : SharedFlow<T> {
+    override val replayCache: List<T>
+        get() {
+            val cache = delegate.replayCache
+            armReturnedSessionRuntimeSignals()
+            return cache
+        }
+
+    override suspend fun collect(collector: FlowCollector<T>): Nothing =
+        delegate
+            .onSubscription { armReturnedSessionRuntimeSignals() }
+            .collect(collector)
+}
 
 private class EngineSessionSlot(
     val id: Long,

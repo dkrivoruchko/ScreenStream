@@ -2,6 +2,7 @@ package dev.dmkr.screencaptureengine.internal.session.delivery
 
 import dev.dmkr.screencaptureengine.CaptureMetrics
 import dev.dmkr.screencaptureengine.CaptureMetricsProvider
+import dev.dmkr.screencaptureengine.CaptureMetricsState
 import dev.dmkr.screencaptureengine.EncodedImageFormats
 import dev.dmkr.screencaptureengine.EncodedImageFrame
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
@@ -661,7 +662,9 @@ class ScreenCaptureFrameDeliveryCoordinatorTest {
     }
 
     private class FakeMetricsProvider : CaptureMetricsProvider {
-        override val metrics: StateFlow<CaptureMetrics> = MutableStateFlow(CaptureMetrics(widthPx = 100, heightPx = 100, densityDpi = 320))
+        override val metrics: StateFlow<CaptureMetricsState> = MutableStateFlow(
+            CaptureMetricsState.Available(CaptureMetrics(widthPx = 100, heightPx = 100, densityDpi = 320)),
+        )
     }
 
     private class StatsSnapshot(

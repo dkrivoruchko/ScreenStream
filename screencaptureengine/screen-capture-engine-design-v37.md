@@ -1,8 +1,10 @@
-# Screen Capture Engine Design v34
+# Screen Capture Engine Design v37
 
 > Public working name: `ScreenCaptureEngine`. The name is product-facing: the engine captures user-approved screen or app-window content through Android `MediaProjection`, renders a selected view, encodes it through an `ImageEncoderProvider`, and publishes latest-only encoded image frames. `MediaProjectionEngine` is intentionally not used as the public root name because it sounds like a thin platform wrapper rather than the complete capture/render/readback/encode/publication pipeline. MJPEG is an integration/transport pattern built on top of frame callbacks, not the core engine identity.
 >
-> Revision v34 keeps the Kotlin-only API, atomic startup boundary, projection attachment/consumption split, generation-owned projection target model, startup arbiter, final commit-return handoff, provider-preparation isolation, delivery/admission semantics, first-plan render transform package, byte-exact encoder SPI, transactional encoded-sink discard semantics, correctness-first framework JPEG baseline, and first ES2/framework-JPEG runtime path from earlier revisions. It clarifies the next implementation boundary: `ScreenCaptureEngines.create(context)` may be wired as an internal caller-supplied-metrics factory milestone before built-in metrics providers and full `setParameters(...)` transactions are complete; a single `ScreenCaptureEngine` instance admits at most one non-terminal session; provider-preparation and cleanup services are engine-scoped with session-scoped records; deterministic parameter-update rejection is allowed only for gated internal milestones; real-device validation gates integration/release promotion; and built-in metrics providers remain a separate convenience/runtime-observation slice required before design-complete public release.
+> Revision v37 keeps the Kotlin-only API, atomic startup boundary, projection attachment/consumption split, generation-owned projection target model, startup arbiter, final commit-return handoff, provider-preparation isolation, delivery/admission semantics, byte-exact encoder SPI, transactional encoded-sink discard semantics, correctness-first framework JPEG baseline, first ES2/framework-JPEG runtime path, internal factory milestone boundary, built-in metrics-provider source semantics, and runtime hard-failure policy from earlier revisions.
+>
+> Revision v37 adds the first supported runtime `setParameters(...)` slice: same-target updates for an already running `Running(Active)` session. Same-target means the candidate plan can reuse the current generation-owned projection target and current `VirtualDisplay` target assignment without `VirtualDisplay.resize(...)`, `VirtualDisplay.setSurface(...)`, target `Surface` replacement, or live geometry replan. v37 explicitly supports normalized no-op updates, frame-rate-only lightweight transactions, provider-only same-target transactions, and same-target output-plan replacements. Valid requests that require retargeting, target replacement, live resize/replan, or suspended-output recovery are rejected with `ParameterUpdateUnavailable` in this revision rather than being mislabeled as invalid output plans. v37 also generalizes startup-shaped preparation terminology into neutral output-plan preparation concepts, makes parameter-update rejection diagnostics result-first, and hardens runtime commit ordering, lock ordering, commit-wins semantics, and old-generation stale-work accounting.
 
 ## Table of Contents
 
@@ -56,20 +58,28 @@ Non-goals:
 
 This document defines the design-complete public behavior. Implementation slices may be narrower only when they are explicitly gated as internal milestones and are not represented as release-ready behavior.
 
-The next factory-wiring milestone may be labeled:
+The factory-wiring milestone may be labeled:
 
 ```text
 Internal default-engine factory wiring: caller-supplied metrics only.
 ```
 
-That milestone may expose `ScreenCaptureEngines.create(context)` inside internal builds and may start a real session when the caller supplies a conformant `CaptureMetricsProvider`. It must not be documented as the complete default engine, because it intentionally excludes built-in `CaptureMetricsProviders.*`, full runtime `setParameters(...)` transactions, ES3/PBO, native JPEG, transport integration, and real-device validation.
+That milestone may expose `ScreenCaptureEngines.create(context)` inside internal builds and may start a real session when the caller supplies a conformant `CaptureMetricsProvider`. It must not be documented as the complete default engine, because it intentionally excludes built-in `CaptureMetricsProviders.*`, `Running(Active)` same-target `setParameters(...)` transactions, live resize/replan, ES3/PBO, native JPEG, transport integration, and real-device validation.
+
+The built-in metrics milestone may be labeled:
+
+```text
+Built-in metrics-provider MVP: convenience metrics sources, not default-engine release completeness.
+```
+
+That milestone makes `CaptureMetricsProviders.*` usable as non-throwing, lazy, latest-value providers. It still does not imply that `Running(Active)` same-target runtime reconfiguration, backend fallback, real-device validation, or release-complete default-engine behavior is finished.
 
 Design-complete public release requires:
 
 - `ScreenCaptureEngines.create(context)` to be usable through the documented public API without internal feature gates;
 - `ScreenCaptureParameters.defaults()` to work with the built-in framework JPEG path;
-- built-in `CaptureMetricsProviders.*` factories to be non-throwing, lazy, and lifecycle-safe;
-- returned-session APIs, including `setParameters(...)`, to follow the transaction/lifecycle contract;
+- built-in `CaptureMetricsProviders.*` factories to be non-throwing, lazy, lifecycle-safe, and not placeholder stubs;
+- returned-session APIs, including the v37 `Running(Active)` same-target `setParameters(...)` MVP, to follow the transaction/lifecycle contract;
 - real-device validation for the MediaProjection, VirtualDisplay, SurfaceTexture/OES, EGL/GL, readback, encoder, resize, and stop-race paths relevant to the release target.
 
 Internal milestones must not use throwing public stubs or misleading documentation to make incomplete behavior appear design-complete.
@@ -103,7 +113,24 @@ class ScreenCaptureConfig {
 }
 
 interface CaptureMetricsProvider {
-    val metrics: StateFlow<CaptureMetrics>
+    val metrics: StateFlow<CaptureMetricsState>
+}
+
+sealed interface CaptureMetricsState {
+    class Available(
+        val metrics: CaptureMetrics
+    ) : CaptureMetricsState
+
+    class Unavailable(
+        val reason: CaptureMetricsUnavailableReason,
+        val message: String? = null
+    ) : CaptureMetricsState
+}
+
+enum class CaptureMetricsUnavailableReason {
+    SourceNotReady,
+    SourceInvalid,
+    SourceNoLongerAvailable
 }
 
 class CaptureMetrics {
@@ -397,6 +424,7 @@ class ScreenCaptureEvent {
 enum class ScreenCaptureEventType {
     SessionStarted,
     SessionStopped,
+    SessionFailed,
     CaptureGeometryChanged,
     CaptureTargetChanged,
     InvalidMetricsIgnored,
@@ -654,10 +682,10 @@ The required built-in implementation scope includes only JPEG. App-provided prov
 - `ProjectionCallbackAttached` is platform notification/cleanup attachment. It is required before `createVirtualDisplay(...)`, but it is not projection consumption for `requiresFreshProjection` purposes.
 - Projection consumption starts when `createVirtualDisplay(...)` is entered, `MediaProjection.stop()` is invoked by the engine, or `MediaProjection.Callback.onStop()` is observed.
 - `AuthoritativeStartupGeometryReady` freezes an immutable `StartupGeometrySnapshot`. The first public `Running(Active)` effective parameters, initial output plan, and authoritative pre-active target rebind are derived from that snapshot. Later pre-active metrics, density, resize, or geometry inputs are retained as pending runtime signals and are not folded into the initial Active plan.
-- `RenderingPipelineReady` means GL/render/readback/encoder resources for the first Active plan are prepared and validated by mandatory resource/config checks under the owning rendering-preparation token. It also means the engine has built and retained a first-plan render transform package derived from the frozen startup geometry snapshot and verified that the static crop, rotation, mirror, scale, color, and top-to-bottom encoder-input normalization strategy is representable by the selected GL/readback path. Encoder readiness includes successful provider preparation through the isolated provider-preparation context, within the bounded startup timeout, followed by `ImageEncoderInfo`/request/cap validation. It does not require a first real projected frame, `SurfaceTexture.updateTexImage()`, a concrete runtime OES transform matrix value, real render, `glReadPixels`, encode, publication, or public delivery probe.
+- `RenderingPipelineReady` means GL/render/readback/encoder resources for the first Active plan are prepared and validated by mandatory resource/config checks under the owning rendering-preparation token. It also means the engine has built and retained a startup `RenderTransformPackage(initialOutputPlanGeneration)` derived from the frozen startup geometry snapshot and verified that the static crop, rotation, mirror, scale, color, and top-to-bottom encoder-input normalization strategy is representable by the selected GL/readback path. Encoder readiness includes successful provider preparation through the isolated provider-preparation context, within the bounded startup timeout, followed by `ImageEncoderInfo`/request/cap validation. It does not require a first real projected frame, `SurfaceTexture.updateTexImage()`, a concrete runtime OES transform matrix value, real render, `glReadPixels`, encode, publication, or public delivery probe.
 - `RuntimeFrameLoopInstalled` means the returned session has a runtime frame scheduling/publication loop that can make progress after commit, observe stop/projection-stop gates, drain detached pending geometry/density before the first normal render scheduling tick, accept real frame-available signals, apply frame-rate policy, schedule render/readback/encode/publication attempts for the committed resources, and report zero produced frames honestly through stats. Public `startSession(...)` must not be exposed for a release path that returns `Running(Active)` while only a zero-frame shell exists and no real frame scheduling/publication path can run. The first actual frame may still be produced later.
 - `InitialActivePlanCommitted` is the first public success boundary. It publishes initial `Running(output = Active(...))`, creates public session identity, transfers pending runtime signals exactly once, converts startup-owned resources into returned-session resources, and makes state/stats/events/subscription surfaces visible.
-- A design-complete public release that returns a `ScreenCaptureSession` must keep all returned-session APIs conformant to this document. An internal factory-wiring milestone may temporarily make `setParameters(...)` deterministically reject changes until parameter transactions are implemented, but that is an internal milestone constraint, not a weakened public contract. Such a milestone rejection uses `ScreenCaptureParameterUpdateResult.Rejected` with `problem.kind = ParameterUpdateUnavailable`, diagnostic text that clearly says parameter updates are disabled in the internal milestone, and no state mutation. Public release builds must not use “not implemented” behavior as normal `setParameters(...)` semantics.
+- A design-complete public release that returns a `ScreenCaptureSession` must keep all returned-session APIs conformant to this document. v37 no longer allows a release build to expose “all runtime parameter updates are disabled” behavior. At minimum, it must implement the `Running(Active)` same-target `setParameters(...)` MVP defined in [Parameter Update Transactions](#parameter-update-transactions). An internal factory-wiring milestone may still temporarily make `setParameters(...)` deterministically reject all changes before that slice is implemented, but that milestone must remain internal and must use `ScreenCaptureParameterUpdateResult.Rejected` with `problem.kind = ParameterUpdateUnavailable`, diagnostic text that clearly says parameter updates are disabled in the internal milestone, and no state mutation. v37 release behavior may still reject valid retargeting, target replacement, live resize/replan, or suspended-output recovery with `ParameterUpdateUnavailable` because those are outside the first runtime-update slice.
 - After `InitialActivePlanCommitted` begins, caller cancellation no longer rolls back startup. The implementation must return the committed `ScreenCaptureSession` without any cancellable suspension, dispatcher hop, blocking platform call, GL/readback/encoder work, or event emission that can suspend.
 - If projection stop is observed after `InitialActivePlanCommitted` begins but before `startSession(...)` physically returns, the committed session still returns. The terminal signal is queued for immediate runtime processing after the commit-return handoff; it is not converted back into startup failure and the engine must not intentionally return a session whose first public state skipped the initial `Running(Active)` commit.
 - Initial `Running.output` is always `Active`; the engine does not start an initially suspended session. It is acceptable for pending runtime geometry/density to cause zero frames to be produced from the frozen first Active plan before the runtime transitions to an updated `Active` or `Suspended` state.
@@ -669,8 +697,8 @@ The required built-in implementation scope includes only JPEG. App-provided prov
 - A returned active session owns the projection lifecycle for this engine. Owner `stop()` or `close()` commits `Stopped(OwnerStop, ...)`, closes the session gate, invalidates plan-preparation tokens and runtime work, and invokes `MediaProjection.stop()` best-effort. A later `MediaProjection.Callback.onStop()` caused by that call is a cleanup echo, not a second public terminal reason.
 - External/system/user `MediaProjection.Callback.onStop()` that wins before owner stop commits `Stopped(CaptureEnded, ProjectionInvalidOrStopped)` and triggers cleanup. The engine does not classify this as `Failed`.
 - A stopped or failed session cannot be restarted. Fresh user consent/projection creates a new session.
-- `setParameters(...)` is thread-safe, suspending, serialized, and atomic in design-complete public behavior. It is implemented as a prepare/validate/commit/rollback transaction and uses the same plan-preparation token model as startup. It returns `Applied` only when the transaction commits before any terminal transition wins.
-- `setParameters(...)` returns `Rejected(problem)` when requested parameters cannot produce a valid plan for current geometry or configured caps, or when a terminal transition wins before commit. The previous active plan remains in use unless the session has become terminal.
+- `setParameters(...)` is thread-safe, suspending, serialized, and atomic in v37 public behavior for the supported `Running(Active)` same-target slice. It is implemented as a prepare/validate/commit/rollback transaction, or as a lightweight token-checked transaction for explicitly defined no-op and frame-rate-only cases, and it uses the same plan-preparation token model as startup. It returns `Applied` only when the transaction commits before any terminal transition wins.
+- `setParameters(...)` returns `Rejected(problem)` when requested parameters cannot produce a valid plan for current geometry or configured caps, when the request is valid but outside the v37 same-target slice, when the session output is `Running(Suspended)`, or when a terminal transition wins before commit. The previous active plan remains in use unless the session has become terminal.
 - If a later geometry change makes active parameters impossible, the session enters `Running(output = Suspended(...))`, stops new frame publication, retires old latest output for new deliveries, keeps the single `VirtualDisplay` alive when safe, and resumes automatically when a later geometry or parameter update produces a valid plan.
 - `onCapturedContentVisibilityChanged(false)` does not suspend output by itself. It updates `Running.capturedContentVisible` while frame production remains governed by lifecycle, geometry, output plan validity, frame pacing, GL/readback, and encoder health.
 - `stop()` and `close()` are fast, thread-safe, idempotent, and terminal. They close the session gate synchronously, invalidate subscriptions, logically retire reachable not-admitted delivery records and pre-delivery public-snapshot records, commit owner-stop state if they win the terminal gate, request projection stop for a returned active session, and schedule heavy resource cleanup on engine-owned contexts.
@@ -730,32 +758,166 @@ Rules:
 - Token invalidation must happen before engine-initiated `MediaProjection.stop()` during startup rollback or returned-session owner stop. This prevents late provider/GL/readback results from claiming runtime ownership while platform stop callbacks are being delivered.
 - GL preparation is engine-owned but can still hang in platform/driver code. Startup GL/readback preparation has a bounded watchdog. On timeout, the token becomes stale, startup rolls back with `GlInitializationFailed` or `GlResourceFailure`, and the GL lane/resource bag is abandoned for this engine instance. An abandoned GL lane is never reused for session work; a new engine instance may create a fresh GL lane.
 
+### Output Plan Preparation Concepts
+
+v37 uses neutral output-plan preparation terminology for startup and runtime replacement transactions. Earlier startup-shaped names remain useful as implementation milestones, but they are instances of the same preparation contract rather than separate semantic models.
+
+Neutral concepts:
+
+```text
+OutputPlanPreparation
+  Cheap logical plan preflight, checked arithmetic, transform representability,
+  GL/readback resource preparation, encoder request construction, provider/encoder
+  preparation, timeout handling, and token-fenced validation for one candidate plan.
+
+PlanRenderingAccess
+  Token-checked access to the GL lane, current EGL context, generation-owned
+  projection target, OES texture ownership, framebuffer/readback resources, and
+  render-transform package needed by the candidate plan.
+
+RenderTransformPackage(planGeneration)
+  Immutable static transform package for one output-plan generation plus the
+  runtime slot/composition rule for each per-frame OES transform matrix.
+
+OutputPlanPrepared
+  The candidate plan, render/readback resources, encoder resources, and validation
+  results are ready to commit if the lifecycle/session/target/output gates still match.
+```
+
+Startup names map onto these concepts:
+
+```text
+RenderingPipelineReady = startup OutputPlanPrepared for the first Active plan
+Startup GL access      = startup PlanRenderingAccess
+First-plan transform   = startup RenderTransformPackage(initialOutputPlanGeneration)
+```
+
+Runtime `setParameters(...)` uses the same lower-level preparation contract for candidate replacement plans, but it has a different transaction owner. Startup may roll back the whole not-yet-public session; runtime must keep the previous committed active plan usable until commit, fence old in-flight work after commit, and retire old resources asynchronously.
+
+
 ### Parameter Update Transactions
 
-Runtime parameter changes are explicit transactions because later implementation phases create and reconfigure resources such as `VirtualDisplay` size, generation-owned projection target `Surface` assignments, GL-backed `SurfaceTexture` generations, GL framebuffers/PBOs, encoder instances, and snapshot buffers.
+Runtime parameter changes are explicit transactions because later implementation phases create and reconfigure resources such as generation-owned projection target `Surface` assignments, GL-backed `SurfaceTexture` generations, GL framebuffers/PBOs, encoder instances, and snapshot buffers. v37 deliberately limits the first supported runtime slice to changes that can reuse the current projection target and the current `VirtualDisplay` target assignment. Retargeting and live geometry replan remain future slices.
 
 A parameter update has four conceptual phases:
 
 ```text
 prepare   -> create candidate plan/resources in a transaction-owned resource bag
-validate  -> check geometry, caps, generations, backend availability, and terminal gate
-commit    -> atomically swap public effective plan/resources and publish state
+validate  -> check geometry, caps, same-target boundary, generations, backend availability, and terminal gate
+commit    -> atomically swap runtime resources/generation or lightweight policy and publish public state
 rollback  -> retire candidate resources without changing the public effective plan
 ```
 
-Normative transaction rules:
+Runtime updates reuse lower-level resource builders from startup where possible, such as output planning, render-transform building, GL/readback resource builders, and provider/encoder preparation. Startup and runtime update transactions remain distinct owners because runtime updates must preserve the previous public plan until commit, fence in-flight producer work, and account stale completions. The shared component is `OutputPlanPreparation`; the transaction owner is not shared.
+
+#### Same-Target Boundary
+
+A candidate output plan is same-target only when it can reuse the currently installed generation-owned projection target and current `VirtualDisplay` target assignment.
+
+Same-target requires all of the following:
+
+- planned capture-target `width`, `height`, and `densityDpi` equal the current projection target values;
+- the candidate was planned from the current capture geometry/density generation;
+- the candidate uses the current target generation and projection-target backing semantics;
+- the candidate requires no `VirtualDisplay.resize(...)` call;
+- the candidate requires no `VirtualDisplay.setSurface(...)` call;
+- the candidate requires no `SurfaceTexture.setDefaultBufferSize(...)` change;
+- the candidate requires no new projection `Surface`, no new `SurfaceTexture`, no new OES target, and no target-generation replacement;
+- the candidate requires no live geometry/density replan and no suspended-output recovery.
+
+Same-target does not require the final output plan to be resource-identical. A same-target transaction may still replace output-framebuffer/readback resources, readback CPU buffers, render-transform packages, encoder instances, provider instances, immutable snapshot sizing policy, or frame pacing policy, provided the projection target and `VirtualDisplay` assignment remain unchanged.
+
+A valid request that fails only because it requires unsupported retargeting is rejected with `ParameterUpdateUnavailable`. It is not `OutputPlanInvalid`, because the request may be logically valid; it is not `SurfaceCreateOrResizeFailed`, because v37 does not attempt the retargeting operation for runtime `setParameters(...)`.
+
+#### v37 Supported Update Classes
+
+The v37 `setParameters(...)` MVP is accepted only from `Running(output = Active(...))`.
+
+Supported same-target classes:
+
+1. **Normalized no-op**. If requested parameters normalize to the current effective plan and the same provider identity/configuration, `setParameters(...)` returns `Applied` without output-generation bump, state mutation, event emission, counter reset, resource preparation, provider preparation, or scheduling pause. Comparison is against the normalized/effective plan, not raw requested object identity; `FrameRate.Auto` compares after resolution to the effective concrete policy.
+2. **Frame-rate-only update**. If only effective `frameRate` changes and effective output geometry, render-transform package, readback resources, encoder provider, encoder instance, encoder request, and public snapshot shape are identical, the engine may run a lightweight token-checked transaction. It validates the new pacing policy, commits through the serialized generation gate, updates effective parameters, bumps output-plan generation, fences old materialized producer work as stale, and enables scheduling for the new generation. It does not prepare GL/readback/provider/encoder resources.
+3. **Provider-only same-target update**. If projection target, final output dimensions, readback shape, row stride, `maxEncodedBytes`, and `ImageEncoderInputFormat` are unchanged, a provider/encoder change may be prepared under the transaction token. The candidate provider/encoder must be fully created and validated before commit. If preparation, timeout, or validation fails, the update is rejected with `EncoderUnavailable` or `EncoderValidationFailed`, stale late results are closed/discarded asynchronously, and the previous active plan remains in use. The provider family does not need to be the same if the engine input request shape is unchanged and the candidate provider validates successfully.
+4. **Same-target output-plan replacement**. Geometry, crop, rotation, mirror, color mode, output size, readback resources, render-transform package, snapshot shape, or encoder request may change when the resulting capture target remains same-target. Candidate resources are prepared in a transaction-owned resource bag and become public only after token-checked commit.
+
+#### v37 Excluded Update Classes
+
+The following valid requests are outside the first runtime slice and return `Rejected(problem.kind = ParameterUpdateUnavailable)` with no public state mutation:
+
+- any update while output is `Running(Suspended)`;
+- any update requiring capture-target width, height, or density change;
+- any update requiring `VirtualDisplay.resize(...)`;
+- any update requiring `VirtualDisplay.setSurface(...)`;
+- any update requiring `SurfaceTexture.setDefaultBufferSize(...)`;
+- any update requiring new projection `Surface`, new `SurfaceTexture`, new OES target, or target-generation replacement;
+- any update requiring live geometry/density replan;
+- any update that attempts to use parameter change as suspended-output recovery.
+
+`Running(Suspended)` recovery is deliberately not part of v37. A future slice may allow same-target parameter updates from suspended output only after it defines coherent recovery validation for `previousEffectiveParameters`, `currentCaptureGeometry`, the suspension problem, target/resource ownership, and public `OutputPlanResumed` semantics. Until then, rejecting from `Running(Suspended)` is required; applying “simple” suspended cases ad hoc is not allowed.
+
+Invalid logical requests still use the precise validation problem even in v37. Examples include empty crop, checked arithmetic overflow, output pixel cap violation, deterministic encoded-size impossibility, unsupported provider declaration, or impossible final output geometry. These use `OutputPlanInvalid`, `OutputLimitsExceeded`, `EncodedSizeLimitExceeded`, `EncoderValidationFailed`, or the more specific planning problem instead of `ParameterUpdateUnavailable`.
+
+#### Rejection Diagnostics
+
+`ScreenCaptureParameterUpdateResult.Rejected(problem)` is the only mandatory public acknowledgement for a rejected update. Diagnostic events are best-effort only.
+
+Rules:
+
+- Cheap validation rejection and v37 feature-boundary rejection do not require an event.
+- The engine should `tryEmit(OutputPlanRejected)` when rejection happens after non-trivial resource/provider preparation, timeout, candidate rollback, runtime/system failure, or stale candidate cleanup that is useful for diagnostics.
+- Event loss, coalescing, or rate limiting must not change the caller-visible result, lifecycle state, stats, cleanup, or previous-plan preservation.
+
+#### Normative Transaction Rules
 
 - Candidate resources created during `prepare` are owned by the transaction plan-preparation token and are not visible through `state`, `stats`, frame callbacks, or effective parameters until token-checked `commit` succeeds.
 - Candidate resources never publish frames before commit.
-- `commit` runs on the serialized control context and rechecks terminal state immediately before swapping the effective plan.
-- If commit wins before `stop()`, `close()`, projection stop, or fatal failure, `setParameters(...)` returns `Applied`, even if a terminal transition happens immediately after commit.
-- If a terminal transition wins before commit, `setParameters(...)` returns `Rejected(problem)` when the caller is still active. Owner `stop()`/`close()` maps to a stopped-session problem; projection stop maps to the projection-stop problem; fatal failure maps to the terminal failure problem.
-- If validation fails before commit, `setParameters(...)` returns `Rejected(problem)` and the previous active plan remains in use.
-- The transaction owns every resource it prepares until commit. After commit, the session owns the new active resources and retires old resources. If rollback or terminal transition wins before commit, the transaction resource bag is retired by rollback or terminal cleanup.
+- No-op normalized updates return `Applied` without creating a new output generation.
+- Every non-noop applied update creates a new output-plan generation, even when it reuses all GL/readback/encoder resources except frame pacing.
 - Encoder creation during `prepare` uses the isolated provider-preparation context with the same timeout, plan-preparation-token fencing, late-result discard, and quarantine policy used by startup. GL/readback preparation uses the same token model and the startup/runtime GL preparation watchdog policy.
-- `stop()` and `close()` may briefly synchronize with the control context to close the terminal gate and steal active transaction bags, but they do not wait for heavy GL/encoder/provider/platform resource destruction.
+- If provider-only or full same-target preparation fails before commit, the previous active plan remains in use. Candidate resources move to rollback or stale cleanup; they must not replace active resources, mutate public effective parameters, or publish frames.
+- If caller cancellation happens while `setParameters(...)` is in flight, the suspending call may throw cancellation, but public state remains authoritative. A committed update stays committed; an uncommitted update is rolled back, retired as stale, or overtaken by terminal cleanup.
 
-This transaction model is normative even if an early implementation phase prepares only pure plans and no platform resources.
+Commit is one serialized generation gate. The runtime commit bridge is a non-suspending atomic section with this ordering:
+
+```text
+1. pause/admit no new producer scheduling for the old output generation;
+2. recheck terminal/session/target/output generation gates;
+3. install the candidate runtime resource owner or lightweight pacing policy;
+4. bump output generation for every non-noop Applied update;
+5. fence old runtime resources and old output generation work;
+6. publish public state/effective parameters for the new plan;
+7. tryEmit non-blocking diagnostic events such as OutputPlanApplied, CaptureTargetChanged, ReadbackModeChanged, EncoderChanged, or OutputPlanRejected;
+8. enable scheduling for the new generation;
+9. retire old resources asynchronously after active leases complete or become stale.
+```
+
+The public state must not advertise a plan whose runtime resources or lightweight policy have not been installed. Conversely, no frame from the new generation may be published before the state/effective-parameters update for that generation is visible.
+
+The commit bridge must not perform provider code, GL work, readback allocation, `VirtualDisplay.resize(...)`, `VirtualDisplay.setSurface(...)`, `SurfaceTexture.setDefaultBufferSize(...)`, encoder creation, encoder close, provider cleanup, heavy resource cleanup, dispatcher hops, blocking platform calls, cancellable suspension, or event emission that can suspend after commit wins and before the caller-visible result is determined. Best-effort diagnostic emission inside the bridge must be non-blocking `tryEmit`-style work only.
+
+Lock and ownership ordering:
+
+- Public `setParameters(...)` serialization must not be held while executing provider code, GL work, platform retargeting calls, encoder close, provider cleanup, or heavy asynchronous cleanup.
+- Terminal paths such as owner `stop()`, owner `close()`, projection stop, and fatal failure must be able to close the terminal gate and invalidate or steal active candidate transaction bags without waiting for provider preparation, GL preparation, active encode, or cleanup locks.
+- Terminal cleanup must not call provider cleanup, GL cleanup, `VirtualDisplay.release()`, encoder close, or other heavy/platform cleanup while holding the commit/generation gate.
+- The commit/generation gate must not call back into public API or user/provider code.
+- Token invalidation precedes cleanup work, so late candidate results are stale even if physical cleanup finishes later.
+
+If commit wins before `stop()`, `close()`, projection stop, or fatal failure, `setParameters(...)` returns `Applied`, even if a terminal transition happens immediately after commit and before the caller observes the returned value. If a terminal transition wins before commit, `setParameters(...)` returns `Rejected(problem)` when the caller is still active. Owner `stop()`/`close()` maps to a stopped-session problem; projection stop maps to the projection-stop problem; fatal failure maps to the terminal failure problem. Projection stop, owner stop, and fatal failure do not rewrite a completed commit into rejection.
+
+The transaction owns every resource it prepares until commit. After commit, the session owns the new active resources and retires old resources. If rollback or terminal transition wins before commit, the transaction resource bag is retired by rollback or terminal cleanup.
+
+Old-generation in-flight work is generation-fenced:
+
+- If render/readback/encode work was materialized under output generation `N` and a non-noop `setParameters(...)` commits output generation `N + 1` before that work publishes, the late completion is stale-generation work.
+- Stale old-generation completion must not publish a frame, create a public snapshot, deliver to callbacks, mutate effective parameters, or count as a transient/backend/readback/encode hard failure.
+- If the production opportunity had already materialized, account exactly one production drop, normally `droppedFrames.byStaleGeneration`.
+- If scheduling was merely paused before materialization, no production drop is counted.
+- Commit pause is not public output suspension, so stale work caused by parameter commit does not count as `byOutputSuspended`.
+
+`stop()` and `close()` may briefly synchronize with the control context to close the terminal gate and steal active transaction bags, but they do not wait for heavy GL/encoder/provider/platform resource destruction.
+
+This transaction model is normative for v37 even when a concrete implementation supports only no-op, frame-rate-only, provider-only, and same-target replacement transactions.
 
 ### Stop/Close Boundary and Asynchronous Cleanup
 
@@ -1021,16 +1183,16 @@ ValidatedInputs
 
 `VirtualDisplayOwned` means `createVirtualDisplay(...)` returned a non-null `VirtualDisplay` and the startup transaction owns it.
 
-`AuthoritativeStartupGeometryReady` means startup has committed an immutable `StartupGeometrySnapshot` for the initial Active plan. For API 34+, captured width and height come from the first valid `onCapturedContentResize(width, height)` that won the startup arbiter. Density comes from the latest valid metrics snapshot observed on the control context at the moment this milestone commits. For API 24-33, width, height, and density come from the latest valid metrics snapshot used to commit the milestone.
+`AuthoritativeStartupGeometryReady` means startup has committed an immutable `StartupGeometrySnapshot` for the initial Active plan. For API 34+, captured width and height come from the first valid `onCapturedContentResize(width, height)` that won the startup arbiter. Density comes from the latest available metrics snapshot observed on the control context at the moment this milestone commits. For API 24-33, width, height, and density come from the latest available metrics snapshot used to commit the milestone.
 
-`RenderingPipelineReady` means the current generation has the GL rendering path, selected readback path, encoder instance, output plan, first-plan render transform package, and internal buffers prepared and validated for `Running(output = Active(...))`, all derived from the frozen startup geometry snapshot and fenced by the startup `PlanPreparationToken`. This milestone is reached through resource/config validation and transform representability validation, not by consuming a real projected frame. It does not require `SurfaceTexture.updateTexImage()` on projection content, a concrete runtime OES transform matrix value, first real render, first `glReadPixels`, first encoder `encode(...)`, first publication, or public frame-delivery probe.
+`RenderingPipelineReady` means the current generation has the GL rendering path, selected readback path, encoder instance, output plan, startup `RenderTransformPackage(initialOutputPlanGeneration)`, and internal buffers prepared and validated for `Running(output = Active(...))`, all derived from the frozen startup geometry snapshot and fenced by the startup `PlanPreparationToken`. This milestone is reached through resource/config validation and transform representability validation, not by consuming a real projected frame. It does not require `SurfaceTexture.updateTexImage()` on projection content, a concrete runtime OES transform matrix value, first real render, first `glReadPixels`, first encoder `encode(...)`, first publication, or public frame-delivery probe.
 
 Mandatory `RenderingPipelineReady` validation includes:
 
 - EGL context exists and is current on the GL thread;
 - generation-owned projection target `SurfaceTexture` and OES texture ownership are valid;
 - shaders compile, programs link, and required uniforms/attributes are resolved for the configured initial plan;
-- dynamic OES transform handling is configured for the render path, including a per-frame runtime slot for the matrix obtained after `updateTexImage()` and a validated composition path with the static first-plan transform package;
+- dynamic OES transform handling is configured for the render path, including a per-frame runtime slot for the matrix obtained after `updateTexImage()` and a validated composition path with the static startup `RenderTransformPackage(initialOutputPlanGeneration)`;
 - output textures/renderbuffers/framebuffers match the frozen first Active plan and framebuffer completeness checks pass;
 - a render/readback path that can produce top-to-bottom `Rgba8888SrgbOpaque` encoder input is validated;
 - checked pixel/byte arithmetic and GL size limits have been applied before allocation;
@@ -1215,7 +1377,7 @@ Runtime behavior:
 
 - every valid captured-content resize updates logical capture geometry after the initial Active commit;
 - invalid sizes are ignored or fail according to lifecycle stage;
-- density continues to come from the latest valid metrics-provider emission;
+- density continues to come from the latest available metrics-provider emission;
 - geometry events are conflated and sequenced;
 - if current parameters can no longer produce a valid output plan after resize or density change, the session enters `Running(output = Suspended(...))`, retires old latest output for new deliveries, keeps the same `VirtualDisplay` alive when safe, and attempts to keep the generation-owned projection target aligned with the new captured geometry;
 - target resize failure suspends output when the projection and `VirtualDisplay` can safely remain alive; it fails terminally only when no safe target/rendering invariant remains.
@@ -1236,6 +1398,8 @@ Runtime target resize sequence is equivalent to:
 6. retire the old `Surface` only after the virtual display no longer targets it and no GL/encoder/readback work references resources from the old generation;
 7. resume scheduling only for the new current generation.
 
+The v37 runtime `setParameters(...)` MVP does not execute this target-resize sequence. If a parameter update candidate requires any step in this sequence, the update is rejected with `ParameterUpdateUnavailable`. The sequence remains normative for startup authoritative target rebind, runtime geometry changes handled outside `setParameters(...)`, and future live retargeting/replan slices.
+
 Pre-active authoritative target rebind uses the same ordering but with startup-specific rules:
 
 - it is performed inside the startup transaction after `StartupGeometrySnapshot` has been frozen;
@@ -1252,36 +1416,70 @@ Every generation-owned projection target, `SurfaceTexture`, projection `Surface`
 
 `CaptureMetricsProvider` is mandatory even on API 34+, because density and bootstrap geometry need an owner-context source. The public provider object is owner-owned and reusable. A session owns only its attachment to the provider.
 
+`CaptureMetricsProvider.metrics` is a latest-state `StateFlow<CaptureMetricsState>`. This is intentional: `StateFlow` always has a current value, while built-in metrics sources can be temporarily unavailable before an Activity window, UI context, or display source can produce valid positive metrics. The design therefore makes availability explicit instead of using fake dimensions, hidden sentinel values, nullable metrics, throwing factories, or unrelated fallback sources.
+
+`CaptureMetricsState.Available` carries a `CaptureMetrics` whose width, height, and density are all positive. `CaptureMetricsState.Unavailable` is a public provider-state value, not a valid capture geometry. The engine never plans output from an unavailable state.
+
 Provider ownership rules:
 
 - `CaptureMetricsProvider` does not expose public `close()` in this revision.
 - The engine must not close or permanently invalidate a provider object supplied through `ScreenCaptureConfig`.
 - A provider may be created before a session, reused across sessions, and outlive a session.
-- Built-in providers may use an internal attach/detach contract so a session can observe metrics without owning the provider object.
-- Built-in factory calls must be usable before `startSession(...)` and should not register long-lived platform listeners at construction time. Long-lived listeners/callbacks are registered lazily when a session attaches and are unregistered when that session stops, closes, fails startup, or otherwise detaches.
+- Built-in providers use an internal attach/detach contract so a session can observe metrics without owning the provider object.
+- Built-in factory calls are non-throwing convenience constructors. They must not register long-lived platform listeners at construction time. Long-lived listeners/callbacks are registered lazily when a session attaches and are unregistered when that session stops, closes, fails startup, or otherwise detaches.
 - If one built-in provider is attached by multiple sessions, listener registration is implementation-owned and ref-counted or otherwise shared safely.
-- Custom providers expose only `StateFlow<CaptureMetrics>` to the engine. Any lifecycle cleanup for custom providers belongs to the provider owner, not the session.
+- Custom providers expose only `StateFlow<CaptureMetricsState>` to the engine. Any lifecycle cleanup for custom providers belongs to the provider owner, not the session.
 
 Built-in provider factories are part of the design-complete runtime API. An internal bring-up milestone may implement caller-supplied providers first, but a shippable design-complete implementation must not expose built-in factory stubs that throw `NotImplementedError`, `UnsupportedOperationException`, or equivalent placeholder failures.
 
-Provider factory intent:
+Built-in provider availability rules:
 
-- `fromActivity(activity)`: preferred for activity/window-owned capture. The provider is Activity/window-scoped; the owner must not treat it as an application-lifetime object.
-- `fromUiContext(context)`: for UI-bound contexts where activity is not directly available. It has the same lifetime caution as other UI-context objects.
-- `fromDisplay(baseContext, display)`: for explicit display-bound integrations. If the display disappears or becomes invalid, the provider may stop producing new valid metric changes; sessions use the last valid metrics until projection geometry or lifecycle says otherwise.
-- `bestEffort(context)`: fallback for service/application contexts. It is the preferred built-in choice for long-lived foreground-service capture when no stable Activity/window owner is available, but it may be less accurate on old APIs, external displays, desktop/freeform modes, or non-standard launch flows.
+- A factory attempts to create an initial `CaptureMetricsState.Available` from its intended source or from an allowed same-semantics fallback for that factory.
+- If no valid positive same-semantics snapshot is available, the initial state is `CaptureMetricsState.Unavailable`; the factory still returns normally.
+- A built-in provider may transition from `Unavailable` to `Available` when its intended source later produces valid metrics.
+- A built-in provider may transition from `Available` to `Unavailable` when its intended source is destroyed, removed, or no longer capable of producing valid same-semantics metrics.
+- Built-in providers must not emit `0x0`, `1x1`, negative, zero-density, nullable, or otherwise fake metrics.
+- Built-in providers must not silently fall back to unrelated application/default-display metrics when that would change the factory's intended ownership semantics.
+- A provider emits only positive metrics in `Available` states.
+- Invalid running observations that are not meaningful ownership changes may be suppressed and the last `Available` state retained.
+- If a session attaches for startup and, after the provider's attach-time immediate refresh, the latest state is `Unavailable`, startup fails before projection callback attachment and projection consumption whenever possible with `MetricsUnavailableOrInvalid`.
+
+Factory-specific intent and bounds source:
+
+| Factory | Intended owner/scope | Startup width/height preference | Fallback and invalidity behavior |
+| --- | --- | --- | --- |
+| `fromActivity(activity)` | Activity/window-scoped provider for capture owned by that Activity/window. The provider may strongly retain the `Activity`; callers must not keep it as an application-lifetime object. Lifecycle-safe means listener attach/detach is safe and bounded, not that the provider is immune to caller-retained Activity leaks. | Current Activity window bounds when available. This preserves split-screen, freeform, desktop, foldable partition, and app-window semantics. | Allowed fallback is only another same-Activity/window source that preserves Activity-window semantics, such as a valid current window metrics snapshot or valid attached window/decor bounds. If no such positive snapshot exists at construction, initial state is `Unavailable(SourceNotReady)`. If the Activity/window is no longer valid, active sessions keep the last valid metrics until projection geometry/lifecycle says otherwise; future startups fail with `MetricsUnavailableOrInvalid` unless a valid Activity/window metrics source is again available. It does not silently fall back to unrelated application/default-display metrics. |
+| `fromUiContext(context)` | UI-context provider when an Activity is not directly available. | Current window/UI-context bounds when the context is visual or window-associated. | If the supplied context is not UI/window-associated, the provider delegates to `bestEffort(context)` and documents lower precision rather than failing the factory. If it is UI/window-associated but not yet ready, initial state may be `Unavailable(SourceNotReady)` until a valid UI-context snapshot exists. |
+| `fromDisplay(baseContext, display)` | Explicit display-bound provider for integrations that intentionally target a display. | Maximum/display-area bounds for that display when available, otherwise display-context resource metrics for that display. | Display-context resource metrics are an acceptable best-effort fallback only when they remain display-bound to the requested display. If the display is removed or becomes invalid, active sessions keep the last valid metrics and the provider may report `Unavailable(SourceNoLongerAvailable)`; future startups for that display fail with `MetricsUnavailableOrInvalid` rather than falling back to the default display. |
+| `bestEffort(context)` | Service/application/default integration fallback. | Maximum window/display bounds from the safest available application/default-display context, because this factory is the closest built-in approximation for full-display MediaProjection bootstrap when no stable UI/window owner is available. | Falls back to application/resource display metrics when no better window/display metrics source is available. If even that cannot produce positive metrics, initial state is `Unavailable(SourceNotReady)`. It may be less accurate on old APIs, external displays, desktop/freeform modes, or non-standard launch flows. |
 
 Metric validity rules:
 
-- width, height, and density must be positive;
-- invalid startup metrics fail startup before callback attachment and projection consumption when possible;
-- invalid running metrics are ignored, keep the last valid geometry, and emit `InvalidMetricsIgnored`;
+- width, height, and density must be positive in every `Available` state;
+- unavailable startup state fails startup before callback attachment and projection consumption when possible;
+- invalid running metrics are ignored or represented as `Unavailable` according to the source semantics; active sessions keep the last valid geometry and emit `InvalidMetricsIgnored` when a public session exists;
 - Activity destruction, display invalidation, or context lifetime end does not automatically stop a session. The owner remains responsible for app lifecycle policy;
 - geometry events are conflated; no fixed debounce window is public contract;
-- built-in provider buffering is latest-value only and bounded. A `StateFlow`-style latest metrics snapshot is sufficient; no unbounded listener/event buffer is allowed or required;
-- geometry sequence increments only when effective width, height, density, or source changes.
+- built-in provider buffering is latest-state only and bounded. A `StateFlow`-style latest availability/metrics snapshot is sufficient; no unbounded listener/event buffer is allowed or required;
+- geometry sequence increments only when effective width, height, density, or source changes while `Available`.
 
-On API 34+, `onCapturedContentResize(width, height)` is authoritative for captured-content width/height after projection startup. The metrics provider still supplies density and bootstrap validity. Invalid startup metrics fail before callback attachment and projection consumption whenever possible; the engine must not consume the projection while hoping that a later captured-content resize will repair missing or invalid bootstrap metrics.
+Runtime metrics emission rules:
+
+- Built-in providers should emit every authoritative effective metric change from their selected source as soon as it is observed and validated.
+- Providers must not suppress authoritative changes merely because the current engine slice cannot yet perform live runtime resize/replan. If the engine cannot safely replan yet, it transitions output to `Running(output = Suspended(...))` before publishing known-stale frames.
+- Providers may suppress invalid, duplicate, stale, or non-authoritative fallback observations. They may conflate resize storms to latest effective state; they must not invent synthetic changes to avoid suspension.
+- When a provider emits `Unavailable` during an active session, the engine keeps the last valid runtime geometry and treats the unavailable state as an ignored runtime metrics observation unless a separate projection/session terminal condition is present. A future startup using that provider fails while the latest state remains `Unavailable`.
+
+Acceptable documentation wording for the metrics-provider MVP:
+
+```text
+Built-in CaptureMetricsProviders are available as lazy convenience sources for bootstrap size,
+density, and explicit metrics availability. They do not by themselves make the default engine
+release-complete. `Running(Active)` same-target setParameters transactions, live resize/replan, backend fallback policy,
+transport integration, and real-device validation remain separate completion gates.
+```
+
+On API 34+, `onCapturedContentResize(width, height)` is authoritative for captured-content width/height after projection startup. The metrics provider still supplies density and bootstrap validity. Unavailable or invalid startup metrics fail before callback attachment and projection consumption whenever possible; the engine must not consume the projection while hoping that a later captured-content resize will repair missing or invalid bootstrap metrics.
 
 ### Startup Geometry Snapshot and Pending Runtime Signals
 
@@ -1302,8 +1500,8 @@ StartupGeometrySnapshot {
 
 Snapshot rules:
 
-- For API 34+, `widthPx` and `heightPx` come from the first valid captured-content resize that wins the startup arbiter. `densityDpi` comes from the latest valid metrics snapshot observed on the control context when the snapshot commits.
-- For API 24-33, width, height, and density come from the latest valid metrics snapshot used to commit authoritative startup geometry.
+- For API 34+, `widthPx` and `heightPx` come from the first valid captured-content resize that wins the startup arbiter. `densityDpi` comes from the latest available metrics snapshot observed on the control context when the snapshot commits.
+- For API 24-33, width, height, and density come from the latest available metrics snapshot used to commit authoritative startup geometry.
 - The first public `ScreenCaptureEffectiveParameters.captureGeometry`, capture target, output plan, and authoritative pre-active target rebind are derived from this frozen snapshot.
 - Metrics, density, or resize inputs observed after the snapshot commits but before `InitialActivePlanCommitted` are not folded into the initial Active plan. They are detached at commit and processed as runtime geometry signals before the first normal render scheduling tick after startup success, unless terminal cleanup overtakes the session before runtime scheduling begins. If a first implementation cannot yet perform runtime target resize/replan for such a signal, the conformant safe behavior is to drain the pending signal and transition output to `Running(output = Suspended(...))` before the first normal render tick rather than render a known-stale frame from the frozen first plan.
 - Projection stop and caller cancellation can still abort startup before the final commit-return handoff.
@@ -1667,9 +1865,9 @@ The engine must classify failures by what failed, not by the fact that they occu
 
 `STARTUP_GL_PREPARE_TIMEOUT_MS` uses best-known in-flight stage classification. Timeout during EGL/current-context/target-access acquisition maps to `GlInitializationFailed`. Timeout after the context is current and ES2 resource/FBO/shader/readback preparation has begun maps to `GlResourceFailure`, unless a more specific already-committed projection stop or caller cancellation wins arbitration. Generic unknown-stage timeout falls back to `GlResourceFailure`.
 
-#### First-Plan Render Transform Package
+#### Plan Render Transform Package
 
-`RenderingPipelineReady` must build and retain a first-plan render transform package for the frozen first Active plan. This package is immutable for that plan generation and is transferred to the runtime owner only through the same token-checked handoff as the GL/readback/encoder resources.
+`RenderingPipelineReady` must build and retain `RenderTransformPackage(initialOutputPlanGeneration)` for the frozen first Active plan. Runtime `setParameters(...)` replacement transactions build an equivalent `RenderTransformPackage(candidateOutputPlanGeneration)` whenever the same-target candidate changes static render geometry, color transform, output size, readback shape, or shader/program requirements. Each package is immutable for its output-plan generation and is transferred to the runtime owner only through the same token-checked handoff as the GL/readback/encoder resources.
 
 The package includes at least:
 
@@ -1686,7 +1884,7 @@ The dynamic OES transform matrix value itself is not frozen at `RenderingPipelin
 
 Before expensive ES2 allocation, readback-buffer allocation, or provider preparation, the transaction must run a cheap static-transform preflight subset against the frozen `StartupGeometrySnapshot` and requested parameters. This preflight rejects obviously impossible cases such as empty source/crop, non-finite scale or matrix components, invalid output dimensions, checked arithmetic overflow, and impossible row-stride or cap calculations. Full shader/program-specific transform validation may still complete later after ES2 metadata, program identity, and uniform/attribute locations exist. Performing ES2 readiness first and then discovering an impossible logical transform is allowed only for failures that could not be known without GL/program metadata; it must still roll back without public state.
 
-Transform representability validation must check that the static first-plan transform package can be represented without executing the pipeline:
+Transform representability validation must check that the static startup `RenderTransformPackage(initialOutputPlanGeneration)` can be represented without executing the pipeline:
 
 - source/crop/output geometry is non-empty and already accepted by output planning;
 - all coordinates, scales, matrix entries, viewport values, and row-stride calculations are finite and within checked `Int`/`Float`/GL limits used by the implementation;
@@ -1704,7 +1902,7 @@ Failure mapping:
 
 Synthetic GL self-tests are not required for startup readiness. Debug/internal diagnostics may perform bounded clear/render checks that do not become a public dependency. Pre-public startup must not consume MediaProjection content, call `SurfaceTexture.updateTexImage()`, call `glReadPixels`, invoke app-provided `ImageEncoder.encode(...)`, publish frames, or expose public state.
 
-Only the shader/program variant required by the configured initial plan must be compiled and validated during startup. Initial `ColorMode.Original` validates the original-color path. Initial `ColorMode.Grayscale` is a supported public color mode in this revision and must validate a grayscale-capable ES2 shader/program path before `RenderingPipelineReady`; it must not be treated as `OutputPlanInvalid` merely because the implementation has not added the shader. If a design-complete implementation cannot compile/link/validate the grayscale path on a device, that is a GL resource failure for that startup. During an internal milestone that has not yet implemented grayscale, the public grayscale scenario must remain gated as incomplete rather than shipped as a misleading public rejection. Crop, rotation, mirror, and scale normally remain uniforms/math in the selected program rather than separate mandatory startup variants, but their concrete first-plan values must still be computed, validated for finite representability, and retained in the first-plan render transform package before `RenderingPipelineReady`. Future `setParameters(...)` prepares additional variants and transform packages transactionally when needed.
+Only the shader/program variant required by the configured initial plan must be compiled and validated during startup. Initial `ColorMode.Original` validates the original-color path. Initial `ColorMode.Grayscale` is a supported public color mode in this revision and must validate a grayscale-capable ES2 shader/program path before `RenderingPipelineReady`; it must not be treated as `OutputPlanInvalid` merely because the implementation has not added the shader. If a design-complete implementation cannot compile/link/validate the grayscale path on a device, that is a GL resource failure for that startup. During an internal milestone that has not yet implemented grayscale, the public grayscale scenario must remain gated as incomplete rather than shipped as a misleading public rejection. Crop, rotation, mirror, and scale normally remain uniforms/math in the selected program rather than separate mandatory startup variants, but their concrete initial-plan values must still be computed, validated for finite representability, and retained in `RenderTransformPackage(initialOutputPlanGeneration)` before `RenderingPipelineReady`. Future `setParameters(...)` prepares additional variants and transform packages transactionally when needed.
 
 Startup GL/readback preparation is fenced by the plan-preparation token and guarded by `STARTUP_GL_PREPARE_TIMEOUT_MS`. If GL preparation times out before public commit, rollback invalidates the token, reports the best-known in-flight GL startup problem, abandons the GL lane/resource bag for this engine instance, and proceeds without waiting for the stuck GL lane.
 
@@ -1857,26 +2055,10 @@ The engine must:
 
 ## Failure, Fallback, and Diagnostics
 
-Failures are classified by lifecycle context, not by problem kind alone. The same low-level problem may reject startup, reject a parameter update, suspend running output, emit diagnostics, or terminate the session depending on when it happens and whether a safe fallback exists.
-
-Recoverable examples:
-
-- invalid running metrics ignored while last valid geometry remains;
-- rejected parameter update keeps current active plan;
-- ES3/PBO validation failure before public commit or hard runtime invariant failure degrades to ES2 when ES2 is valid;
-- native JPEG unavailable/invalid degrades to framework JPEG;
-- stale or late provider-preparation result is closed/discarded without changing public outcome;
-- callback-dispatcher saturation drops delivery for affected subscriptions only;
-- callback throw drops one delivery and keeps the subscription active;
-- first real and single transient readback/encode failure after public commit drops one production opportunity and remains runtime behavior;
-- runtime encoded-size-cap exceed drops one production opportunity and keeps output Active by default;
-- repeated runtime readback/encode hard failures suspend output after fallback policy is exhausted when projection and session invariants remain valid;
-- active stuck encoder work is fenced/retired so lifecycle can complete; late return is discarded or closed without changing the primary terminal/rollback outcome.
+Failure classification is based on lifecycle context, attribution, and recoverability. Problem kinds are stable technical categories; public severity comes from the surface where the problem appears: startup exception, parameter-update rejection, output suspension, terminal failed state, delivery stats, or diagnostic events.
 
 Startup failure examples:
 
-- projection invalid, stopped, reused, or permission flow invalid;
-- `createVirtualDisplay(...)` failure or null return;
 - first API 34+ captured-content resize missing after the `3_000 ms` startup deadline;
 - invalid startup metrics before projection callback attachment and projection consumption;
 - projection target `Surface` preparation failure before startup commit, including API 24-25 minimal EGL/OES texture target creation failure;
@@ -1892,45 +2074,68 @@ Running output suspension examples:
 
 - active parameters become impossible after captured-content geometry change;
 - projection target `Surface` resize/replacement cannot currently support output but the existing projection/`VirtualDisplay` can remain safely owned;
-- repeated readback hard failures after fallback policy is exhausted while the projection remains valid;
-- repeated encode hard failures after fallback policy is exhausted while the projection remains valid;
+- repeated readback hard failures after fallback policy is exhausted while GL/projection/session invariants remain safe;
+- repeated encode hard failures after fallback policy is exhausted while the projection/session/runtime ownership remains safe;
 - recoverable allocation/memory pressure where keeping the projection alive is safe but new frames cannot be published.
 
 Terminal examples:
 
 - user/system projection stop;
 - projection becomes invalid for platform/security reasons;
-- unrecoverable GL context, surface invariant, or runtime GL watchdog failure where safe rendering cannot continue;
+- runtime GL watchdog timeout, GL lane abandonment, or GL/OES ownership loss in this revision;
+- unrecoverable GL context, surface invariant, or target ownership violation where safe rendering cannot continue;
 - internal invariant violation;
 - cleanup/resource ownership violation that prevents maintaining safe session boundaries.
+
+Repeated hard-failure policy:
+
+- Readback hard failures count only real materialized readback attempts that fail because the readback path cannot produce valid raw input for the current generation/backend. Examples include GL/readback errors after the attempt begins, readback exceptions, row-normalization failure, or backend-specific hard readback failure. They exclude `byReadbackBusy`, frame-rate skips, output-suspended opportunities, stale-generation completions, terminal cleanup, and producer opportunities that were never materialized.
+- Encode hard failures count only active runtime `ImageEncoder.encode(...)` attempts that indicate provider/backend health failure. Examples include provider throwing during `encode(...)`, provider returning `Failed(...)` for a non-cap, non-stale backend/provider reason, encode timeout/stuck encode, or provider protocol violation. They exclude provider-preparation timeout during startup or `setParameters(...)`, encoded-size cap rejection, cancellation, stale generation, output suspension, and terminal cleanup.
+- Encoded-size cap failures are always excluded from repeated readback/encode hard-failure counters. They use `droppedFrames.byEncodedSizeLimit` and `EncodedSizeLimitExceeded` diagnostics because encoded size is content-dependent and a later frame may fit the cap without a parameter or backend change.
+- Provider-preparation failures during `setParameters(...)` reject the transaction and keep the previous plan. They may mark a candidate provider/backend unhealthy for that transaction, but they do not increment the active plan's runtime encode hard-failure counter unless an active `encode(...)` attempt also fails.
+
+Failure-counter reset rules:
+
+- A readback hard-failure counter resets on a successful readback that produces valid raw input for the same current output generation/backend, and also resets on output generation change, readback backend change, or one-way fallback.
+- An encode hard-failure counter resets on a successful `ImageEncoder.encode(...)` result that produces a valid encoded attempt within the sink cap for the same current output generation/provider/backend, even if that result later becomes stale before publication. It also resets on output generation change, encoder/provider/backend change, or one-way fallback.
+- Successful publication resets both by consequence, but publication is not the only reset boundary.
+- Non-hard production ticks, busy drops, frame-rate skips, stale completions, and encoded-size cap drops do not reset hard-failure counters.
+
+Failure-exhaustion lifecycle:
+
+- If repeated readback or encode hard failures exhaust fallback policy and the projection/session invariants remain safe, the session transitions to `Running(output = Suspended(...))` with `ReadbackRepeatedFailure` or `EncodeRepeatedFailure`. This is true even if the current implementation has no user-visible recovery path yet; suspension is the correct state when capture ownership remains safe but output is unavailable.
+- If the failure implies unsafe GL/OES ownership, a stuck/abandoned runtime GL lane, projection invalidity, security invalidity, or internal invariant breach, the session transitions to terminal `Failed(problem)` instead of suspension.
+- Runtime GL watchdog timeout is terminal in this revision. It is not counted as a readback hard failure because the GL lane has failed to make bounded lifecycle progress and cannot be safely reused by the current session. A future revision may introduce validated GL-lane replacement, but this revision fails the session with `GlResourceFailure` or a more specific GL problem.
 
 Problem kind guidance:
 
 - `ProjectionSessionReused`: fresh user consent/projection is required.
 - `EngineSessionAlreadyActive`: the same engine instance already owns a non-terminal session; stop/close it or create a separate engine instance before retrying.
-- `ParameterUpdateUnavailable`: internal milestone rejection for unimplemented parameter transactions; not normal design-complete public behavior.
+- `ParameterUpdateUnavailable`: v37 feature-boundary rejection for valid updates outside the supported `Running(Active)` same-target slice, including retargeting, target replacement, live geometry/replan, or suspended-output recovery. It is also the internal milestone rejection for all parameter updates disabled before the v37 slice is implemented. It means the request may be valid, but this revision did not apply it; previous active plan remains in use unless terminal cleanup won.
 - `StartupGeometryUnavailable`: startup geometry was not available in time. On API 34+ first-resize timeout is post-`VirtualDisplay` creation and therefore requires fresh projection. Pre-geometry arbiter priority is projection stop, caller cancellation, first valid resize, timeout, then ordinary resource failure.
+- `MetricsUnavailableOrInvalid`: no valid positive metrics were available from the configured provider for startup, or a built-in provider's intended source became unavailable before startup and had no allowed valid fallback.
 - `SurfaceCreateOrResizeFailed`: startup fails when no safe pre-active authoritative target exists after bounded retry/fallback; running output suspends only when the projection, `VirtualDisplay`, and existing generation can remain safely owned.
 - `OutputPlanInvalid` / `OutputLimitsExceeded`: change parameters or caps. Use these for invalid logical geometry, crop, final size, output planning, or cap violations before GL representation is considered.
 - `GlInitializationFailed`: use this when startup cannot establish a usable EGL/current-context or projection-target GL access environment.
-- `GlResourceFailure`: use this when a logically valid first-plan transform cannot be represented by the selected GL resources, shader program, uniforms, framebuffer, or static transform package, or when a known-unhealthy GL lane/resource bag is unavailable.
+- `GlResourceFailure`: use this when a logically valid startup render transform cannot be represented by the selected GL resources, shader program, uniforms, framebuffer, or static transform package, or when a known-unhealthy GL lane/resource bag is unavailable.
 - `GlInvariantViolation`: use this for impossible GL/OES/current-context/projection-target ownership or generation violations while the plan-preparation token is current. Do not use it for ordinary lifecycle-stale outcomes after rollback/cancellation/terminal invalidation.
 - `ReadbackUnavailable`: use this when a logically valid render path cannot produce the required top-to-bottom `Rgba8888SrgbOpaque` encoder input or row-normalization contract.
-- `ReadbackRepeatedFailure`: startup fails only if no required initial readback path can run. The first complete implementation may select ES2 and skip PBO entirely. Optional PBO validation failure degrades to ES2 when ES2 is valid. A first real readback failure after public commit is runtime behavior; running output suspends if projection remains alive and a later parameter/backend change may recover after fallback exhaustion.
-- `EncodeRepeatedFailure`: startup fails if no initial encoder can be created and validated. First real encode failure after public commit is runtime behavior; running output suspends if projection remains alive and a later parameter/provider change may recover after fallback exhaustion.
+- `ReadbackRepeatedFailure`: startup fails only if no required initial readback path can run. The first complete implementation may select ES2 and skip PBO entirely. Optional PBO validation failure degrades to ES2 when ES2 is valid. Runtime hard-failure exhaustion suspends output when the session remains safe, and terminally fails only when GL/projection/session invariants are unsafe.
+- `EncodeRepeatedFailure`: startup fails if no initial encoder can be created and validated. Runtime hard-failure exhaustion suspends output when the session remains safe. Encoded-size cap drops and stale/cancelled attempts do not count toward this problem.
 - `FrameDeliveryFailed`: dispatcher/admission failure before callback admission; delivery problem only; session remains active unless another terminal problem occurs.
-- `FrameCallbackThrew`: admitted callback invocation called user code and the callback threw; this is not dispatch failure; delivery problem only; session remains active unless another terminal problem occurs.
+- `FrameCallbackThrew`: admitted callback invocation called user code and the callback threw; this is not dispatch failure; delivery problem only; session remains active unless the owner cancels it or the session becomes terminal.
 - `EncodedSizeLimitExceeded`: during runtime, provider output exceeded `maxEncodedBytes` for a real frame and the production opportunity is dropped without publication or automatic suspension. Reduce output size/quality or raise cap if this repeats. During startup, this problem kind is used only when cap impossibility is deterministic from request/provider validation before real encode.
 - `EncoderUnavailable`: encoder provider could not produce a usable encoder, including creation timeout, provider-preparation admission failure, declared unavailability, or no returned encoder.
 - `EncoderValidationFailed`: encoder was returned but request, info, output-format, or cap compatibility checks failed.
-- `InternalInvariantViolation`: includes failure to establish the fast logical rollback barrier before throwing a startup exception, allowing a stale preparation result to commit, double commit/rollback breach, or an impossible non-GL inconsistency such as a missing first-plan transform package after successful `RenderingPipelineReady`. Heavy cleanup failure after the barrier is not enough by itself to rewrite the primary startup problem.
+- `InternalInvariantViolation`: includes failure to establish the fast logical rollback barrier before throwing a startup exception, allowing a stale preparation result to commit, double commit/rollback breach, or an impossible non-GL inconsistency such as a missing startup render-transform package after successful `RenderingPipelineReady`. Heavy cleanup failure after the barrier is not enough by itself to rewrite the primary startup problem.
 
 Diagnostic policy:
 
 - `state` and `stats` are authoritative.
 - `events` are best-effort, bounded, and rate-limited.
 - Diagnostic event loss must not change lifecycle, parameter update results, frame publication, or delivery accounting.
-- Repeated recoverable failures are coalesced so a broken device/backend/consumer does not flood the event flow.
+- Repeated recoverable events are coalesced so a broken device/backend/consumer does not flood the event flow.
+- Failure-exhaustion observability requires a public state transition and a best-effort diagnostic event. For suspension, publish `Running(output = Suspended(...))` and tryEmit `OutputPlanSuspended` with the repeated-failure problem. For terminal engine failure, publish `Failed(problem)` and tryEmit `SessionFailed` with the terminal problem. If the event is dropped, `state` remains authoritative.
 - For failed startup, there is no public session event stream. Heavy cleanup failures are internal logging/test diagnostics; if they are observed before the exception is thrown, implementations may attach them as suppressed causes in debug/test builds, but the public problem kind remains the original startup failure unless the logical rollback barrier itself failed.
 
 ## Test Matrix
@@ -1940,6 +2145,12 @@ Diagnostic policy:
 JVM/Robolectric/unit tests are sufficient for internal factory wiring milestones that exercise state-machine logic, fake metrics providers, fake or framework JPEG providers, and zero-frame runtime behavior. They are not sufficient to declare the MediaProjection runtime path design-complete, because projection consent/session behavior, `VirtualDisplay` creation, `SurfaceTexture` frame delivery, EGL/OES ownership, `glReadPixels`, resize callbacks, stop races, and device/driver behavior are platform-dependent.
 
 Real-device or equivalent instrumented validation gates promotion beyond the caller-supplied-metrics factory milestone. It must be completed before app/transport integration treats the default engine as stable and before any design-complete public release. Device validation does not have to block landing the internal factory wiring slice, but the slice must remain labeled as internal and incomplete until that validation is done.
+
+Built-in metrics-provider MVP tests must cover non-throwing construction, lazy attach/detach, Activity current-window metrics, UI-context fallback to `bestEffort`, display-bound invalidation, last-valid active-session behavior, future-startup `MetricsUnavailableOrInvalid`, latest-value conflation, and runtime metric updates that suspend output when live replan is not yet available.
+
+Parameter-update tests must cover the v37 same-target MVP: normalized no-op, frame-rate-only lightweight transaction, provider-only same-target replacement, full same-target output-plan replacement, valid-but-unavailable retargeting (`ParameterUpdateUnavailable`), invalid plans (`OutputPlanInvalid`/`OutputLimitsExceeded`), `Running(Suspended)` rejection, commit-before-terminal returning `Applied`, terminal-before-commit returning `Rejected`, non-suspending commit bridge ordering, lock-inversion safety, previous-plan preservation after failed preparation, and old-generation stale-work accounting.
+
+Repeated-failure tests must verify hard-failure inclusion/exclusion, counter resets, encoded-size-cap exclusion, suspension vs terminal classification, runtime GL watchdog terminal behavior, and best-effort `OutputPlanSuspended`/`SessionFailed` diagnostics.
 
 Platform coverage:
 
@@ -1960,14 +2171,14 @@ Scenario coverage:
 | Metrics provider ownership | built-in factory construction does not leak long-lived listeners; session attach/detach on success, stop, close, startup failure; provider reuse across sessions; Activity destroyed/display invalid/running invalid metrics ignored; shippable design-complete runtime does not expose unimplemented built-in factory stubs. |
 | Startup | valid start; no public partially started session; no public session identity before `InitialActivePlanCommitted`; last cancellable checkpoint before commit-return handoff; cancellation before commit rolls back; cancellation after `InitialActivePlanCommitted` does not roll back and the session is returned; no suspend/dispatcher hop between commit and return; invalid metrics fail before projection callback attachment/consumption; `ProjectionTargetReady` before `createVirtualDisplay(...)`; API 24-25 no fake/zero `SurfaceTexture` texture name; optional API 26+ detached `SurfaceTexture` path; ImageReader/non-GL target not shipped as normative runtime path; missing API34 first resize timeout; timeout and valid resize same startup arbiter turn; timeout and projection stop same startup arbiter turn; caller cancellation priority in startup arbiter; additional pre-active resize/metrics/density signals after `AuthoritativeStartupGeometryReady` become exactly-once pending runtime updates; latest pre-commit visibility initializes initial state without a standalone diagnostic event; `createVirtualDisplay(...)` returns null or throws; callback registration is not projection consumption; atomic pre-VD arbitration between raw `onStop()` and createVD entry; pre-VD failure after callback registration unregisters callback and reports `requiresFreshProjection = false`; platform `onStop()` before VD reports `ProjectionInvalidOrStopped` and `requiresFreshProjection = true`; post-`createVirtualDisplay(...)` GL/readback/encoder/target failure maps `requiresFreshProjection = true`; startup rollback invokes `MediaProjection.stop()` only after projection consumption; reused token/session. |
 | Resize/generation | startup `StartupGeometrySnapshot` freeze; pending pre-active geometry/density does not mutate first Active plan; pending effective-state handoff not lost and not applied twice; runtime drains pending geometry/density before the first normal render scheduling tick, so zero frames may be produced from the frozen first plan; pre-active authoritative target rebind retry once with fresh generation target; provisional target fallback only when authoritative semantics are satisfied; resize while rendering/encoding; stale frame-available; stale readback; stale encode completion; projection target detach/release ordering; captured-content resize or density change that invalidates current output enters `Running(Suspended)` while keeping/re-targeting the same `VirtualDisplay` when safe; old latest retired on suspension. |
-| Coordinates | Full/LeftHalf/RightHalf, odd widths, crop invalidation, AspectFit rounding, early downscale mapping, frozen logical `appliedSourceRect` to capture-target mapping used by the first-plan render transform package. |
+| Coordinates | Full/LeftHalf/RightHalf, odd widths, crop invalidation, AspectFit rounding, early downscale mapping, frozen logical `appliedSourceRect` to capture-target mapping used by `RenderTransformPackage(initialOutputPlanGeneration)`. |
 | Frame rate | `MaxFps`; `PeriodicRefresh`; requested `Auto` resolves to effective `MaxFps(30)` and effective parameters never expose `Auto`. |
-| Parameter transactions | prepare/validate/commit/rollback; commit-before-stop returns `Applied`; stop-before-commit returns `Rejected`; transaction resource bag cleanup; caller cancellation during update leaves no partial public plan. |
-| GL/readback | minimal EGL/OES projection target; GL-backed `SurfaceTexture` ownership; startup GL access classification; `GlInvariantViolation` for current target/OES ownership or generation violations; stale token first-check returns lifecycle-stale; plan-preparation token invalidation; GL preparation watchdog timeout and GL-lane abandonment; `RenderingPipelineReady` resource/config validation without first real frame/readback probe; cheap static-transform preflight before expensive ES2/provider work; first-plan render transform package built and retained before runtime; dynamic OES matrix value deferred until per-frame `updateTexImage`; initial grayscale shader validation; no mandatory synthetic GL self-test; no pre-public `updateTexImage`/`glReadPixels`; ES2-only initial implementation path; 8-bit RGBA render/FBO validation or compatible conversion to top-to-bottom `Rgba8888SrgbOpaque`; ES3/PBO optional validation; PBO validation failure before public commit degrades to ES2 when valid; no public event for pre-public PBO fallback; fence timeout counts busy not hard failure; PBO fallback; PBO lease during stop/resize; repeated hard failure suspends running output after fallback exhaustion. |
-| Encoder | built-in framework JPEG works for `ScreenCaptureParameters.defaults()`; framework JPEG supports padded rows; native backend may be deferred and `Auto` resolves to framework until implemented; engine-scoped provider-preparation service survives successful startup and handles late cleanup; startup encoder readiness uses isolated `createEncoder(request)` plus `ImageEncoderInfo`/request/cap validation; no synthetic encode for app-provided providers before public commit; startup create timeout; caller cancellation/projection stop while provider creation is running; late encoder return after rollback is closed/discarded; per-engine quarantined stuck provider-preparation worker limit; provider unavailable; provider throws; provider exceeds sink cap; pre-publication encoded-attempt drop entrypoint; encoded-size cap drops keep output Active by default; stuck active `encode(...)` does not block stop/close; provider change via `setParameters`; repeated hard failure suspends running output after fallback exhaustion. |
+| Parameter transactions | v37 same-target predicate; no-op returns `Applied` without generation/state/event/resource mutation; frame-rate-only transaction skips GL/readback/provider/encoder preparation while generation-fencing old work; provider-only same-target success and failure; same-target output-plan replacement; `Running(Suspended)` returns `ParameterUpdateUnavailable`; retargeting/live replan returns `ParameterUpdateUnavailable`; invalid crop/caps still use precise planning problems; rejected result is mandatory while `OutputPlanRejected` is best-effort; commit-before-stop/projection-stop returns `Applied`; stop/projection-stop-before-commit returns `Rejected`; commit bridge performs no suspending/heavy work and avoids lock inversion; transaction resource bag cleanup; caller cancellation during update leaves no partial public plan; old materialized generation completions count stale, not hard failures. |
+| GL/readback | minimal EGL/OES projection target; GL-backed `SurfaceTexture` ownership; startup GL access classification; `GlInvariantViolation` for current target/OES ownership or generation violations; stale token first-check returns lifecycle-stale; plan-preparation token invalidation; GL preparation watchdog timeout and GL-lane abandonment; `RenderingPipelineReady` resource/config validation without first real frame/readback probe; cheap static-transform preflight before expensive ES2/provider work; `RenderTransformPackage(initialOutputPlanGeneration)` built and retained before runtime; dynamic OES matrix value deferred until per-frame `updateTexImage`; initial grayscale shader validation; no mandatory synthetic GL self-test; no pre-public `updateTexImage`/`glReadPixels`; ES2-only initial implementation path; 8-bit RGBA render/FBO validation or compatible conversion to top-to-bottom `Rgba8888SrgbOpaque`; ES3/PBO optional validation; PBO validation failure before public commit degrades to ES2 when valid; no public event for pre-public PBO fallback; fence timeout counts busy not hard failure; PBO fallback; PBO lease during stop/resize; repeated hard failure suspends running output after fallback exhaustion. |
+| Encoder | built-in framework JPEG works for `ScreenCaptureParameters.defaults()`; framework JPEG supports padded rows; native backend may be deferred and `Auto` resolves to framework until implemented; engine-scoped provider-preparation service survives successful startup and handles late cleanup; startup encoder readiness uses isolated `createEncoder(request)` plus `ImageEncoderInfo`/request/cap validation; no synthetic encode for app-provided providers before public commit; startup create timeout; caller cancellation/projection stop while provider creation is running; late encoder return after rollback is closed/discarded; per-engine quarantined stuck provider-preparation worker limit; provider unavailable; provider throws; provider exceeds sink cap; pre-publication encoded-attempt drop entrypoint; encoded-size cap drops keep output Active by default; stuck active `encode(...)` does not block stop/close; provider-only same-target change via `setParameters` with candidate validation and previous-plan preservation on failure; repeated hard failure suspends running output after fallback exhaustion. |
 | Delivery | engine-owned default callback dispatcher; configured caller-owned callback dispatcher; engine-owned dispatcher saturation; caller-owned dispatcher pre-admission cancellation/rejection best-effort classification; no per-subscription dispatcher override; dispatch return not success; `AdmittedRunning` is the formal callback-start boundary; callback throws and increments `byCallbackThrew`; subscription cancelled inside callback; snapshot-slot exhaustion; slow-consumer consecutive problem/reset policy; slow subscription isolation. |
 | Stop/close delivery cleanup | pending public-snapshot copy record registered before copy; pending copy invalidated by stop; in-progress copy finishes only as stale cleanup; not-admitted delivery lease retired before return; handed-off task token invalidated; late task exits without admission; admitted callback may finish; admitted callback throw after stop updates stats but suppresses new post-terminal diagnostic event. |
-| Lifecycle races | `setParameters`, `stop`, `close`, `trimMemory`, subscription cancel, owner `MediaProjection.stop()`, external/system `onStop()`, platform `onStop()` echo after owner stop, raw `onStop()` racing `createVirtualDisplay(...)` entry, startup arbiter signal ordering, token invalidation before projection stop, projection stop vs caller cancellation vs resource failure priority, final commit-return handoff, post-commit stop before return becomes runtime terminal, exactly-once pending runtime signal transfer, startup rollback, frame publication, public snapshot preparation, callback admission, and callback dispatcher handoff racing. |
+| Lifecycle races | `setParameters` commit bridge, lock ordering against `stop`, `close`, `trimMemory`, subscription cancel, owner `MediaProjection.stop()`, external/system `onStop()`, platform `onStop()` echo after owner stop, raw `onStop()` racing `createVirtualDisplay(...)` entry, startup arbiter signal ordering, token invalidation before projection stop, projection stop vs caller cancellation vs resource failure priority, final commit-return handoff, post-commit stop before return becomes runtime terminal, exactly-once pending runtime signal transfer, startup rollback, frame publication, public snapshot preparation, callback admission, and callback dispatcher handoff racing. |
 | Diagnostics/tunables | startup cleanup failure does not rewrite primary startup problem after logical rollback barrier; event buffer overflow drops diagnostics without changing state/stats; event rate limiting; pre-admission delivery watchdog; admitted callback stuck diagnostic; max active subscriptions. |
 | Privacy/memory | stop/suspension invalidates latest for new delivery; stale public snapshot preparation cannot create public leases; trim under active leases; no raw RGBA to normal consumers; admitted callback lease not forcibly revoked. |
 | Transport bridge | one engine subscription copies quickly into app-owned latest holder; slow transport clients do not block engine. |
@@ -1990,17 +2201,19 @@ The engine-owned delivery coordinator queue is deliberately tied to the maximum 
 | Commit-return handoff | The last cancellable startup checkpoint precedes `InitialActivePlanCommitted`. After commit begins, no cancellable suspension, dispatcher hop, or blocking startup work is allowed before returning `ScreenCaptureSession`; later caller cancellation is normal session lifecycle, not startup rollback. |
 | Runtime frame loop boundary | Public `startSession(...)` requires `RuntimeFrameLoopInstalled` before `InitialActivePlanCommitted`: the loop can accept real frame signals, drain pending geometry/density, apply frame-rate policy, schedule render/readback/encode/publication attempts, and report zero frames honestly. No first frame is required. Projection stop after commit begins is queued as runtime terminal work, not converted to startup failure. Pre-first-frame periodic refresh does not count drops; coalesced source callbacks before materialized scheduling are not drops; pending geometry can produce zero frames from the frozen first plan. |
 | API 34+ bootstrap, geometry snapshot, and pending handoff | Valid metrics-provider width/height/density create only a positive bootstrap projection target. No Active output is planned from provisional dimensions. `AuthoritativeStartupGeometryReady` freezes `StartupGeometrySnapshot`; later pre-active geometry/density inputs become exactly-once pending runtime signals and must be drained before the first normal render scheduling tick after commit. Latest pre-commit visibility initializes the first public state. |
-| RenderingPipelineReady validation | Mandatory readiness is resource/config validation under a valid plan-preparation token: EGL/current GL context, projection target/OES ownership, startup GL access boundary checks, shader/program validity for the initial plan, initial grayscale shader path when requested, cheap static-transform preflight, first-plan transform package representability, output framebuffer completeness, top-to-bottom RGBA encoder-input capability, readback resource shape/allocation, and encoder request/info compatibility. No first real frame, concrete OES matrix value, `updateTexImage`, `glReadPixels`, encode, or publication is required. Optional synthetic GL diagnostics must not become startup dependency and must not consume projection content, call `glReadPixels`, or invoke app-provided `encode(...)`. |
+| RenderingPipelineReady validation | Mandatory readiness is resource/config validation under a valid plan-preparation token: EGL/current GL context, projection target/OES ownership, startup GL access boundary checks, shader/program validity for the initial plan, initial grayscale shader path when requested, cheap static-transform preflight, `RenderTransformPackage(initialOutputPlanGeneration)` representability, output framebuffer completeness, top-to-bottom RGBA encoder-input capability, readback resource shape/allocation, and encoder request/info compatibility. No first real frame, concrete OES matrix value, `updateTexImage`, `glReadPixels`, encode, or publication is required. Optional synthetic GL diagnostics must not become startup dependency and must not consume projection content, call `glReadPixels`, or invoke app-provided `encode(...)`. |
 | Initial readback implementation | ES2-only is a valid first implementation. Effective parameters show `readbackMode = Es2`. ES2 must validate a path that can provide top-to-bottom `Rgba8888SrgbOpaque` input. A single CPU RGBA readback buffer/lease is acceptable; busy buffer/encoder ownership drops materialized opportunities as `byReadbackBusy` or `byEncoderBusy`. ES3/PBO is optional and may be added later without changing public API. |
 | Pre-public PBO fallback | If ES3/PBO validation is attempted and fails before public commit while ES2 is valid, startup degrades one-way to ES2 and continues. No public event is emitted for that pre-public fallback; the initial effective parameters expose ES2. |
 | Encoder readiness | Startup readiness calls `createEncoder(request)` on the isolated provider-preparation context and validates returned encoder info/request/cap compatibility. App-provided `encode(...)` is first called only after public Active commit and first real readback. |
 | Encoder create timeout | `ENCODER_CREATE_TIMEOUT_MS = 3_000`. Timeout maps to `EncoderUnavailable`. Startup after projection consumption reports `requiresFreshProjection = true`; `setParameters(...)` rejects and keeps the previous committed plan. |
 | Startup GL preparation timeout | `STARTUP_GL_PREPARE_TIMEOUT_MS = 5_000`. Timeout uses best-known in-flight stage classification: `GlInitializationFailed` during EGL/current-context/target-access acquisition, `GlResourceFailure` after ES2 resource/FBO/shader/readback preparation has begun, and `GlResourceFailure` as generic fallback. Startup after projection consumption reports `requiresFreshProjection = true`; the GL lane/resource bag is abandoned for the engine instance and not reused. |
-| Runtime GL operation watchdog | `RUNTIME_GL_OPERATION_TIMEOUT_MS = 5_000`. A stuck public runtime GL/render/readback operation fails the session with `GlResourceFailure` or a more specific GL problem when non-terminal, abandons the GL lane/resource bag for that session, and does not block stop/close. If terminal cleanup already won, the timeout is internal cleanup diagnostic only. |
+| Runtime GL operation watchdog | `RUNTIME_GL_OPERATION_TIMEOUT_MS = 5_000`. A stuck public runtime GL/render/readback operation fails the session with `GlResourceFailure` or a more specific GL problem when non-terminal, abandons the GL lane/resource bag for that session, and does not block stop/close. It is terminal in this revision and is not counted as readback hard-failure exhaustion. If terminal cleanup already won, the timeout is internal cleanup diagnostic only. |
 | Plan-preparation token priority | At an uncommitted arbitration point, projection stop wins over caller cancellation, and caller cancellation wins over resource validation failure. A token already stale at the first pre-allocation check returns lifecycle-stale rather than a GL/resource problem. Token invalidation occurs before engine-initiated `MediaProjection.stop()` during rollback/owner stop. |
 | Quarantined provider-preparation workers | `MAX_QUARANTINED_PROVIDER_WORKERS = 2` per `ScreenCaptureEngine` instance. Stuck provider creation workers may be abandoned and never reused; late results are fenced and discarded. Admission fails fast with `EncoderUnavailable` for that engine if the guardrail is exhausted. The provider-preparation/cleanup service is engine-scoped with session-scoped records and may idle-shutdown internally only when no active session, pending provider work, cleanup task, or quarantined worker remains. |
 | Encoded-size cap lifecycle | Runtime real-encode cap exceed uses the pre-publication encoded-attempt drop entrypoint, increments `byEncodedSizeLimit`, leaves `framesPublished` unchanged, creates no public frame/snapshot/delivery, and keeps output Active by default. Partial sink bytes from failed attempts are transactionally discarded. Startup fails only when validation deterministically proves the cap impossible before first real encode; built-in JPEG must not reject legal caps by heuristic. Attempt scratch retention up to the high-water below `maxEncodedBytes` is implementation-defined and releasable on trim/cleanup. |
 | FrameRate.Auto resolution | Requested `Auto` resolves to effective `MaxFps(30)` in this revision. Effective parameters never expose `Auto`. |
+| Runtime same-target `setParameters(...)` MVP | Supported only from `Running(Active)`. No-op, frame-rate-only, provider-only same-target, and full same-target output-plan replacements are supported. Valid retargeting, target replacement, live resize/replan, and `Running(Suspended)` recovery return `ParameterUpdateUnavailable` with no state mutation. |
+| Runtime parameter commit bridge | Non-suspending atomic bridge: install candidate resources or lightweight policy, bump output generation for every non-noop Applied update, publish public state, enable scheduling, and retire old resources asynchronously. No provider code, GL work, platform retargeting, heavy cleanup, dispatcher hop, or cancellable suspension is allowed after commit wins and before the caller-visible result is determined. |
 | Maximum active frame subscriptions | `16` per session. `onFrame(...)` over this limit throws `IllegalStateException`. Direct engine subscriptions are intended for a small number of in-process consumers; transport fan-out should be implemented outside the engine. |
 | Engine-owned callback dispatcher workers | `2` fixed workers for public callback bodies. |
 | Engine-owned delivery coordinator queue | Capacity `16`, matching max active subscriptions. This is not a frame queue; it holds at most one not-admitted delivery task per subscription. Each subscription still has at most one queued/handed-off/`AdmittedRunning` delivery. |
@@ -2035,7 +2248,7 @@ The implementation may tune these internal values between library versions only 
 
 ### Factory Milestone Labeling
 
-The first concrete factory slice should be described as an internal caller-supplied-metrics default-engine wiring milestone. It is not the complete default engine and must not be marketed or documented as release-ready until built-in metrics providers, full parameter transactions, and required device validation are complete.
+The first concrete factory slice should be described as an internal caller-supplied-metrics default-engine wiring milestone. It is not the complete default engine and must not be marketed or documented as release-ready until built-in metrics providers, the v37 same-target parameter transaction slice, and required device validation are complete.
 
 ### MJPEG Transport Bridge
 
@@ -2062,6 +2275,8 @@ The default native JPEG backend should prefer packaged libraries loaded via `Sys
 - Foreground service type `mediaProjection`: https://developer.android.com/develop/background-work/services/fgs/service-types
 - Android 15 foreground service type changes: https://developer.android.com/about/versions/15/changes/foreground-service-types
 - VirtualDisplay API reference: https://developer.android.com/reference/android/hardware/display/VirtualDisplay
+- Android Open Source Project `MediaProjection.Callback.onCapturedContentResize(...)` source note: https://android.googlesource.com/platform/frameworks/base/+/master/media/java/android/media/projection/MediaProjection.java
+- Android Open Source Project `VirtualDisplay.setSurface(...)` / `resize(...)` source note: https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/hardware/display/VirtualDisplay.java
 - VirtualDisplay.Callback API reference: https://developer.android.com/reference/android/hardware/display/VirtualDisplay.Callback
 - SurfaceTexture API reference: https://developer.android.com/reference/android/graphics/SurfaceTexture
 - ImageReader API reference: https://developer.android.com/reference/android/media/ImageReader

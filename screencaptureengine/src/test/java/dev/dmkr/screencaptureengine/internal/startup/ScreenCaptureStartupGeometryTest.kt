@@ -131,6 +131,68 @@ class ScreenCaptureStartupGeometryTest {
 
 
     @Test
+    fun startupPassesMetricsChangeCallbackToProviderAttachment() = runTest {
+        val runtime = TestRuntime(apiLevel = 33)
+        var callbackCount = 0
+        val resources = runtime.start(onMetricsChanged = { callbackCount++ })
+
+        try {
+            runtime.metricsProvider.attachmentChangedCallback?.invoke()
+
+            assertEquals(1, callbackCount)
+        } finally {
+            resources.close()
+            runCurrent()
+        }
+    }
+
+
+    @Test
+    fun unavailableInitialMetricsFailsBeforeProjectionConsumption() = runTest {
+        val runtime = TestRuntime(apiLevel = 33)
+        runtime.metricsProvider.updateUnavailable()
+
+        val exception = expectStartException { runtime.start() }
+        runCurrent()
+
+        assertFalse(exception.requiresFreshProjection)
+        assertEquals(ScreenCaptureProblemKind.MetricsUnavailableOrInvalid, exception.problem.kind)
+        assertEquals(0, runtime.targetOwner.createCount)
+        assertEquals(0, runtime.virtualDisplayCreateCount)
+        assertEquals(0, runtime.projection.stopCount)
+        assertEquals(0, runtime.callbackRegistration.closeCount)
+        assertEquals(0, runtime.metricsProvider.activeCollectorCount)
+        assertEquals(1, runtime.metricsProvider.attachmentDisposeCount)
+    }
+
+
+    @Test
+    fun unavailableMetricsAfterObservationStartsFailsBeforeProjectionConsumption() = runTest {
+        val initialMetrics = CaptureMetrics(widthPx = 1080, heightPx = 1920, densityDpi = 440)
+        lateinit var runtime: TestRuntime
+        runtime = TestRuntime(
+            apiLevel = 33,
+            beforeInputValidationForTesting = { observation ->
+                assertEquals(initialMetrics, observation.latestMetricsOrNull)
+                runtime.metricsProvider.updateUnavailable()
+            },
+        )
+
+        val exception = expectStartException { runtime.start() }
+        runCurrent()
+
+        assertFalse(exception.requiresFreshProjection)
+        assertEquals(ScreenCaptureProblemKind.MetricsUnavailableOrInvalid, exception.problem.kind)
+        assertEquals(0, runtime.targetOwner.createCount)
+        assertEquals(0, runtime.virtualDisplayCreateCount)
+        assertEquals(0, runtime.projection.stopCount)
+        assertEquals(0, runtime.callbackRegistration.closeCount)
+        assertEquals(0, runtime.metricsProvider.activeCollectorCount)
+        assertEquals(1, runtime.metricsProvider.attachmentDisposeCount)
+    }
+
+
+    @Test
     fun callbackRegistrationFailureBeforeConsumptionDoesNotRequireFreshProjection() = runTest {
         val runtime = TestRuntime(apiLevel = 33)
         val failure = IllegalStateException("register failed")

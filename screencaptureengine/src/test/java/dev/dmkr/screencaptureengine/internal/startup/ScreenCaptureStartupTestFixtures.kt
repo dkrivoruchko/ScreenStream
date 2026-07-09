@@ -3,6 +3,8 @@ package dev.dmkr.screencaptureengine.internal.startup
 import android.hardware.display.VirtualDisplay
 import android.media.projection.MediaProjection
 import dev.dmkr.screencaptureengine.CaptureMetrics
+import dev.dmkr.screencaptureengine.CaptureMetricsState
+import dev.dmkr.screencaptureengine.CaptureMetricsUnavailableReason
 import dev.dmkr.screencaptureengine.EngineAttachableCaptureMetricsProvider
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
 import dev.dmkr.screencaptureengine.ScreenCaptureStartException
@@ -10,6 +12,7 @@ import dev.dmkr.screencaptureengine.internal.gl.GlLaneAbandonment
 import dev.dmkr.screencaptureengine.internal.gl.GlLaneScope
 import dev.dmkr.screencaptureengine.internal.gl.GlResourceRetirementLane
 import dev.dmkr.screencaptureengine.internal.lifecycle.RuntimeFrameSignalSink
+import dev.dmkr.screencaptureengine.internal.platform.metrics.CaptureMetricsObservation
 import dev.dmkr.screencaptureengine.internal.platform.projection.MediaProjectionCallbackAdapter
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionCallbackHandlerHandle
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionCallbackRawEvent
@@ -71,6 +74,7 @@ internal class TestRuntime(
     apiLevel: Int,
     startupResizeTimeoutMillis: Long = 3_000L,
     private val runCleanupSynchronously: Boolean = true,
+    beforeInputValidationForTesting: (CaptureMetricsObservation) -> Unit = {},
 ) {
     val events = mutableListOf<String>()
     val metricsProvider = TestMetricsProvider(CaptureMetrics(widthPx = 1080, heightPx = 1920, densityDpi = 440))
@@ -115,12 +119,14 @@ internal class TestRuntime(
             cleanupFailures += it
             if (failOnCleanupFailure) throw AssertionError("Unexpected cleanup failure", it)
         },
+        beforeInputValidationForTesting = beforeInputValidationForTesting,
     )
 
-    suspend fun start(): ScreenCaptureStartupResources =
+    suspend fun start(onMetricsChanged: () -> Unit = {}): ScreenCaptureStartupResources =
         transaction.startThroughAuthoritativeStartupGeometry(
             config = ScreenCaptureConfig(metricsProvider = metricsProvider),
             projection = projection,
+            onMetricsChanged = onMetricsChanged,
         )
 
     fun runScheduledCleanup() {
@@ -131,22 +137,33 @@ internal class TestRuntime(
 }
 
 internal class TestMetricsProvider(initialMetrics: CaptureMetrics) : EngineAttachableCaptureMetricsProvider {
-    private val mutableMetrics = MutableStateFlow(initialMetrics)
+    private val mutableMetrics = MutableStateFlow<CaptureMetricsState>(CaptureMetricsState.Available(initialMetrics))
 
-    override val metrics: StateFlow<CaptureMetrics> = mutableMetrics
+    override val metrics: StateFlow<CaptureMetricsState> = mutableMetrics
 
     var attachmentDisposeCount = 0
+    var attachmentChangedCallback: (() -> Unit)? = null
 
     val activeCollectorCount: Int
         get() = mutableMetrics.subscriptionCount.value
 
-    override fun attachSessionAttachment(onMetricsChanged: () -> Unit): DisposableHandle =
-        DisposableHandle {
+    override fun attachSessionAttachment(onMetricsChanged: () -> Unit): DisposableHandle {
+        attachmentChangedCallback = onMetricsChanged
+        return DisposableHandle {
+            attachmentChangedCallback = null
             attachmentDisposeCount++
         }
+    }
 
     fun update(metrics: CaptureMetrics) {
-        mutableMetrics.value = metrics
+        mutableMetrics.value = CaptureMetricsState.Available(metrics)
+    }
+
+    fun updateUnavailable(
+        reason: CaptureMetricsUnavailableReason = CaptureMetricsUnavailableReason.SourceNotReady,
+        message: String? = null,
+    ) {
+        mutableMetrics.value = CaptureMetricsState.Unavailable(reason = reason, message = message)
     }
 }
 

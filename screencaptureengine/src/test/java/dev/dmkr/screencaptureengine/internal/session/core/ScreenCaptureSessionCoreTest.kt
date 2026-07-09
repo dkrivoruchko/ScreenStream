@@ -4,6 +4,7 @@ import dev.dmkr.screencaptureengine.CaptureGeometry
 import dev.dmkr.screencaptureengine.CaptureGeometrySource
 import dev.dmkr.screencaptureengine.CaptureMetrics
 import dev.dmkr.screencaptureengine.CaptureMetricsProvider
+import dev.dmkr.screencaptureengine.CaptureMetricsState
 import dev.dmkr.screencaptureengine.CaptureTarget
 import dev.dmkr.screencaptureengine.ColorMode
 import dev.dmkr.screencaptureengine.ContentMode
@@ -521,8 +522,8 @@ class ScreenCaptureSessionCoreTest {
     }
 
     private class TestMetricsProvider : CaptureMetricsProvider {
-        override val metrics: StateFlow<CaptureMetrics> = MutableStateFlow(
-            CaptureMetrics(widthPx = 640, heightPx = 480, densityDpi = 320),
+        override val metrics: StateFlow<CaptureMetricsState> = MutableStateFlow(
+            CaptureMetricsState.Available(CaptureMetrics(widthPx = 640, heightPx = 480, densityDpi = 320)),
         )
     }
 

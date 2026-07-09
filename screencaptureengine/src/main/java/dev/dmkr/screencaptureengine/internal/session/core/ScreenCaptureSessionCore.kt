@@ -243,6 +243,11 @@ internal class ScreenCaptureSessionCore internal constructor(
             }
         }
 
+    internal fun recordInvalidMetricsIgnored(message: String) {
+        val problem = newProblem(kind = ScreenCaptureProblemKind.MetricsUnavailableOrInvalid, message = message, cause = null)
+        emitEvent(type = ScreenCaptureEventType.InvalidMetricsIgnored, problem = problem, message = message, rateLimitDiagnostic = true)
+    }
+
     /**
      * Records a current-session production drop only when no generation-scoped attempt was materialized.
      *

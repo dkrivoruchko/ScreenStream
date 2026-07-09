@@ -2,209 +2,223 @@
 
 ## Source Of Truth
 
-- Design: `screen-capture-engine-design-v35.md`.
-- Earlier design versions are superseded and must not be used for new implementation decisions.
-- The design file controls implementation unless an approved deviation is recorded here.
+- Design: `screen-capture-engine-design-v37.md`.
+- Earlier design versions are superseded and must not be used for implementation decisions.
+- Design files are read-only unless the user explicitly says to edit them.
+- Current planned implementation scope is strictly `screencaptureengine`.
 - User-facing coordination is in Russian. Code, KDoc, comments, tests, commit text, and project documentation are in English.
-- Code documentation describes the current contract directly; it must not reference design document versions, implementation phases, tracker phases, roadmap, or process.
+- Public code documentation describes the current API contract directly and must not mention design versions, tracker phases, roadmap, or process.
 
 ## Standing Rules
 
-- Work for this slice is restricted to `screencaptureengine`. Do not inspect, edit, validate, or delegate work in `app`, `common`, `mjpeg`, `rtsp`, `webrtc`, or other modules unless the user explicitly changes scope.
-- Main agent acts as facilitator/coordinator only: it owns this tracker, decomposes and reviews work, delegates implementation/review/validation to fresh sub-agents, maximizes safe parallelism, and does not directly edit production or test code unless the user explicitly overrides this rule. Direct tracker updates remain the main agent's responsibility.
+- Main agent is facilitator/coordinator only: owns this tracker, delegates implementation/review/validation, records material results, and does not edit production/test code unless explicitly overridden by the user.
+- Direct main-agent edits are limited to this tracker.
 - Sub-agents do bounded work only, start fresh without forked parent conversation context, do not spawn sub-agents, and complete at least two explicit self-review passes.
-- Default sub-agent policy: start fresh independent sub-agents for every reasonable implementation, review, and validation lane. Reuse an existing sub-agent only when that agent's already-loaded local context is directly useful for a follow-up fix or refinement in the same owned area. All rechecks and validation lanes must use fresh independent sub-agents.
-- Use the available sub-agent slots aggressively but sensibly; up to six parallel sub-agents may be active when the work can be split into independent scopes.
-- Every sub-agent must read the relevant current official or primary guides/best-practice sources for its domain before changing, reviewing, or validating code.
+- Reuse an existing sub-agent only when its current context is directly useful for a small follow-up fix in the same owned area. Fresh agents are mandatory for independent review and validation.
+- Use up to six sub-agent slots when there is independent useful work.
+- Sub-agents must read current official/primary docs before implementation/review/validation. Reports must list exact official/primary URLs opened, sections/APIs used, and what decision each source supported.
 - Material sub-agent results must be recorded here before closing the sub-agent.
-- Do not touch git staging/index. The user controls staging before commits.
+- Do not touch git staging/index. The user controls staging.
 - Runtime code must not publish parallel public state/flows/counters. Public state, stats, diagnostic events, frame drops, visibility changes, geometry transitions, and output-plan transitions go through `ScreenCaptureSessionCore`.
-- Reflection is prohibited in production implementation and tests for this slice. If reflection appears necessary, stop and report it as a design/testability problem.
-- Current approved JVM test setup in `screencaptureengine/build.gradle.kts`: JUnit `4.13.2`, `kotlinx-coroutines-test` `1.11.0`, and Robolectric `4.16.1`, approved as latest stable on 2026-07-06. Do not add MockK/Mockito, JUnit 5, coverage tooling, instrumentation tests, Android runner, `returnDefaultValues`, or Android resources by default.
-- Validate with sequential Gradle tasks for this module; avoid concurrent Gradle/Kotlin compile runs. When final validation matters, force actual targeted test execution instead of accepting only `UP-TO-DATE` output.
-- If a sub-agent or fix loop hits the same blocker or failure repeatedly, do not allow more than two or three blind retries. Step back, reassess architecture/approach, and if that does not resolve the issue, stop that path and escalate the decision to the user with the blocker and options.
+- Reflection is prohibited in production implementation and tests for this slice.
+- Approved JVM test setup remains JUnit `4.13.2`, `kotlinx-coroutines-test` `1.11.0`, and Robolectric `4.16.1`.
+- Gradle/Kotlin validation must run sequentially, never concurrently.
 
-## Current Slice
+## Current Baseline
 
-- Label: internal caller-supplied-metrics default-engine factory wiring.
-- Status: implemented, reviewed, and validated for JVM/Robolectric/module scope.
-- Scope: `screencaptureengine` only.
-- No active sub-agents remain.
+- Last closed slice: built-in `CaptureMetricsProviders.*` MVP.
+- Status: **closed**.
+- Completion level: implementation, reviews, and JVM/Robolectric module validation are complete.
+- Code/test blockers: none known.
+- Active sub-agents: none.
 
-### Implemented Contract
+## Next Slice
 
-- Added `ScreenCaptureEngines.create(context): ScreenCaptureEngine`.
-- The factory is lazy: it does not start capture, attach metrics, consume projection consent, create `MediaProjection`, allocate GL/encoder resources, create a virtual display, or register listeners at factory creation.
-- The default engine stores application-safe context state and does not retain an Activity-lifetime context.
-- The default engine supports caller-supplied `CaptureMetricsProvider` through `ScreenCaptureConfig.metricsProvider` only. Built-in `CaptureMetricsProviders.*` remain deferred to a later slice.
-- `DefaultScreenCaptureEngine.startSession(...)` wires the existing startup transaction, pre-active owner, ES2 rendering/readback preparation, framework JPEG provider path, initial runtime resource owner, `RuntimeFrameLoopInstalled`, and `InitialActivePlanCommitted` return path.
-- A single engine instance admits at most one startup/active session slot. Concurrent second `startSession(...)` is rejected before projection callback attachment or projection consumption with `ScreenCaptureStartException(requiresFreshProjection = false, problem.kind = EngineSessionAlreadyActive)`.
-- The engine session slot is reserved before projection callback attachment/consumption, released on startup failure/caller cancellation before public commit, and released after a returned session reaches any logical terminal outcome, including external projection stop/failure.
-- Sequential sessions on the same engine are allowed after the previous session reaches a logical terminal boundary while old heavy cleanup remains fenced from new startup.
-- `ProviderPreparationContext` is engine-scoped, lazy, bounded-admission, and survives successful startup for late provider-result cleanup and late `ImageEncoder.close()`. It is not closed by a local successful `startSession(...) finally`.
-- Provider-context idle shutdown is fenced by active/startup slot state, tracked provider work, tracked cleanup tasks, terminal cleanup fences, and quarantined/reserved workers.
-- No public session is returned before `InitialActivePlanCommitted`; the commit-return path performs no GL/readback/encode work and no blocking cleanup.
-- The returned public session is owner-backed through `ActiveRuntimeOwner`; public state/stats/events/accounting continue through `ScreenCaptureSessionCore`.
-- Added problem kinds `EngineSessionAlreadyActive` and `ParameterUpdateUnavailable`.
-- `ScreenCaptureSession.setParameters(...)` deterministically rejects with `ParameterUpdateUnavailable`, no state mutation, no partial plan, and neutral public diagnostic wording.
-- Public and internal documentation was updated for the current contract: factory/session slot, caller-supplied metrics, problem kinds, provider-context lifetime, and forbidden temporal/process wording cleanup.
+- Title: `Runtime setParameters same-target transaction MVP`.
+- Size: large.
+- Status: **planned and ready for implementation handoff against v37**.
+- Design basis: v37 normatively defines this slice as release-facing behavior.
 
-### Important Fixes
+## Next Slice Scope
 
-- Fixed provider cleanup and terminal cleanup fence lifetime so sequential sessions are admitted after logical terminal while old cleanup remains fenced.
-- Fixed repeated public `stop()`/`close()` while runtime cleanup is deferred: repeated close no longer releases the terminal cleanup fence before deferred cleanup is scheduled/handed off.
-- Strengthened `InitialActivationCommitBoundaryTest.terminalCleanupFenceSurvivesUntilDeferredProviderBackedCleanupIsScheduled` to repeat `session.close()` in the deferred-cleanup window.
-- Removed stale `InitialRuntimeResourceOwner` internal observability accessors that had no current module-local read sites.
-- Cleaned JetBrains MCP actionable warnings within `screencaptureengine`, while retaining intentional internal test seams such as `ActiveRuntimeOwner` testing hooks.
-- Updated tests using real dispatchers where provider-backed preparation/cleanup must not race `runTest` virtual time.
+- Must implement all v37 `Running(Active)` same-target update classes:
+  - normalized no-op;
+  - frame-rate-only lightweight transaction;
+  - provider-only same-target update;
+  - full same-target output-plan replacement.
+- Same-target means the candidate plan reuses the current generation-owned projection target and current `VirtualDisplay` target assignment:
+  - same target width, height, density, and generation semantics;
+  - no `VirtualDisplay.resize(...)`;
+  - no `VirtualDisplay.setSurface(...)`;
+  - no `SurfaceTexture.setDefaultBufferSize(...)`;
+  - no new target `Surface`, `SurfaceTexture`, OES target, or target generation replacement;
+  - no live geometry replan.
+- Out of scope:
+  - runtime retarget/live resize/replan;
+  - `Running(Suspended)` recovery;
+  - repeated hard-failure policy expansion;
+  - ES3/PBO;
+  - native JPEG;
+  - app/transport/flavor integration;
+  - real-device/instrumented validation.
+- Optional/stretch only:
+  - extra best-effort diagnostic events beyond required result/state correctness;
+  - resource reuse optimizations for full same-target replacement when shapes match.
 
-## Final Validation
+## Required Semantics
 
-Final validation completed clean after all runtime, cleanup, and documentation updates:
+- Normalized no-op:
+  - returns `Applied`;
+  - no output generation bump;
+  - no state/event/resource/counter/scheduler mutation;
+  - comparison is against normalized/effective plan and provider identity/configuration, not raw requested object identity.
+- Frame-rate-only:
+  - uses a lightweight token-checked transaction;
+  - skips GL/readback/provider/encoder preparation;
+  - bumps output generation for non-noop update;
+  - fences old materialized work as stale;
+  - resets frame pacing state.
+- Provider-only same-target:
+  - allowed when projection target, final output dimensions, readback shape, row stride, `maxEncodedBytes`, and `ImageEncoderInputFormat` are unchanged;
+  - candidate provider/encoder is fully prepared and validated under the transaction token before commit;
+  - previous active plan remains in use on preparation/validation failure, timeout, stale late result, or terminal-before-commit.
+- Full same-target output-plan replacement:
+  - prepares candidate GL/readback/render-transform/encoder resources before commit;
+  - does not consume frames, call `updateTexImage`, encode, publish frames, mutate public state, or replace active resources before commit.
+- Valid retarget/live-replan/suspended-recovery requests return `Rejected(ParameterUpdateUnavailable)`.
+- Invalid logical requests return precise planning/validation problems such as `OutputPlanInvalid`, `OutputLimitsExceeded`, `EncodedSizeLimitExceeded`, or `EncoderValidationFailed`.
+- `Running(Suspended)` updates return `ParameterUpdateUnavailable`; no ad hoc suspended recovery in this slice.
+- `ScreenCaptureParameterUpdateResult.Rejected(problem)` is the mandatory public rejection signal. `OutputPlanRejected` is best-effort only for useful non-trivial preparation/rollback/runtime diagnostics.
+- If commit wins and public active state is published, caller receives `Applied` even if stop/projection-stop/fatal terminal transition arrives immediately afterward.
+- Old work materialized under the previous output generation and completing after a non-noop commit is stale-generation work, normally `droppedFrames.byStaleGeneration`; it is not `byOutputSuspended`, transient failure, readback failure, encode failure, or hard failure.
 
-- `./gradlew :screencaptureengine:testDebugUnitTest --tests 'dev.dmkr.screencaptureengine.internal.lifecycle.InitialActivationCommitBoundaryTest.terminalCleanupFenceSurvivesUntilDeferredProviderBackedCleanupIsScheduled' --rerun-tasks`: 1 test, 0 failures.
-- `./gradlew :screencaptureengine:testDebugUnitTest --tests 'dev.dmkr.screencaptureengine.internal.lifecycle.*' --rerun-tasks`: 130 tests, 0 failures.
-- `./gradlew :screencaptureengine:testDebugUnitTest --tests 'dev.dmkr.screencaptureengine.internal.DefaultScreenCaptureEngineTest' --rerun-tasks`: 17 tests, 0 failures.
-- `./gradlew :screencaptureengine:testDebugUnitTest --rerun-tasks`: 407 tests, 0 failures.
-- `./gradlew :screencaptureengine:compileDebugKotlin --rerun-tasks`: passed.
-- `git diff --check --cached -- screencaptureengine`: passed.
-- `git diff --check -- screencaptureengine`: passed.
-- JetBrains MCP `get_file_problems(errorsOnly=false)` on recently changed files: no errors. Remaining warnings are `ActiveRuntimeOwner.kt` unused testing hook warnings retained as intentional internal test seams.
-- Strict reflection scan under `screencaptureengine/src/main/java` and `screencaptureengine/src/test/java`: no prohibited reflection; remaining class literals are ordinary test assertions.
-- Public wording scan under public `screencaptureengine` sources: no forbidden wording hits for `milestone`, `tracker`, `phase`, `currently`, `production-ready`, `release-ready`, `placeholder`, or `disabled`.
+## Implementation Handoff
 
-## New Files
+- First task for the next implementation agent:
+  - perform lock-order audit/refactor and add focused race/deadlock tests around `setParameters` commit vs `stop()`/`close()`/projection stop;
+  - do this before enabling any real parameter-update behavior.
+- Commit/lock ordering:
+  - public `setParameters` serialization must become a short transaction-slot reservation, not a lock held across preparation;
+  - heavy work runs outside `parameterMutex`, `ScreenCaptureSessionCore.sessionGate`, and `ActiveRuntimeOwner.lock`;
+  - canonical commit order is `ActiveRuntimeOwner.lock -> ScreenCaptureSessionCore` gate;
+  - no code path should acquire owner lock from inside a core-held gate;
+  - commit bridge is runtime-specific, non-suspending, and performs no provider code, GL work, platform retarget calls, encoder close, cleanup, dispatcher hop, blocking call, or cancellable suspension after commit wins.
+- Runtime transaction ownership:
+  - active committed owner: current requested/effective parameters, current `ScreenCaptureOutputPlan`, output generation, active prepared resources, encoded scratch, retained periodic-frame state;
+  - candidate transaction owner: `PlanPreparationToken`, base target/output generations, candidate plan, candidate resources or lightweight pacing policy, candidate scratch if shape/cap changes;
+  - retired owner: old active resources closed asynchronously after materialized render/readback/encode leases drain or are fenced stale.
+- Provider-only resource ownership:
+  - provider-only transactions must have a first-class encoder-only candidate/retired owner;
+  - provider-only updates must not allocate, replace, or close GL/readback/transform resources;
+  - render/readback/transform ownership stays installed while candidate encoder/provider is prepared and validated;
+  - old encoder resources retire only after active encode ownership is fenced/drained or safely abandoned.
+- Preparation/refactor:
+  - introduce or expose neutral v37 concepts: `OutputPlanPreparation`, `PlanRenderingAccess`, `RenderTransformPackage(planGeneration)`, and `OutputPlanPrepared`-style resource bag;
+  - keep startup wrappers/adapters so startup flow is not rewritten broadly;
+  - do not build a parallel runtime ES2 stack.
+- Classification:
+  - plan requested parameters against current active capture geometry;
+  - planner failure returns the precise planning problem;
+  - successful plan that violates same-target predicate returns `ParameterUpdateUnavailable`.
+- Commit bridge:
+  - prepare outside locks;
+  - acquire owner lock;
+  - pause producer admission before new old-generation work can materialize;
+  - enter core commit gate;
+  - recheck terminal/current generation/current target;
+  - install candidate resources or lightweight policy;
+  - bump output generation for non-noop;
+  - update stored requested/effective parameters and output plan;
+  - clear retained periodic/latest assumptions for non-noop;
+  - reset frame-rate admit state for non-noop;
+  - publish `Running(Active)` through `ScreenCaptureSessionCore`;
+  - emit only non-blocking best-effort diagnostics;
+  - release gates;
+  - enable scheduling for the new generation;
+  - retire old resources asynchronously.
+- Rollback:
+  - candidate token invalidates before rollback/terminal cleanup;
+  - candidate resources are closed/discarded without mutating public state;
+  - late provider/resource successes are routed to stale cleanup;
+  - previous active plan remains usable unless terminal cleanup wins.
+- Production pause/admission:
+  - checked before draining/admitting latest frame signals; pause must block `admitLatestFrameSignal()` so conflated source signals are not consumed and lost during a transaction;
+  - checked before consuming retained periodic-refresh frames or publishing retained periodic frames;
+  - checked before admitting latest source frame into materialized production;
+  - checked in scheduler/admission paths;
+  - terminal, geometry, and visibility signals must still be drained/observed while production is paused.
+- Old in-flight work vs new generation:
+  - implementation must either make readback/encode in-flight leases generation-scoped, or keep new producer admission paused until old global `readbackInFlight` / `encoderInFlight` work clears;
+  - a new-generation tick must not be counted as `byReadbackBusy` or `byEncoderBusy` solely because old-generation work is still in flight;
+  - old-generation completion after commit is exactly stale-generation work.
+- Core transaction API:
+  - replace whole-updater `parameterMutex` holding with explicit reservation/commit API;
+  - reserve a single-flight transaction slot briefly;
+  - release public serializer for planning/preparation;
+  - commit through the non-suspending bridge after rechecking token, terminal, current generation, and target.
+- No-op identity:
+  - normalized no-op requires same normalized/effective plan and same provider identity/configuration;
+  - same effective plan with a different provider instance or config is not no-op and must take the provider-only path or reject.
+- Public docs:
+  - update `ScreenCaptureSession` and `ScreenCaptureParameters` KDoc; they must no longer describe all runtime updates as unavailable.
 
-- New module files in this slice:
-  - `screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/ScreenCaptureEngines.kt`
-  - `screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/internal/DefaultScreenCaptureEngine.kt`
-  - `screencaptureengine/src/test/java/dev/dmkr/screencaptureengine/internal/DefaultScreenCaptureEngineTest.kt`
+## Likely File Owners
 
-## Deferred Risks
+- Runtime transaction/commit/resource retirement:
+  - `internal/lifecycle/ActiveRuntimeOwner.kt`
+- Public serialization/gates/state/stats:
+  - `internal/session/core/ScreenCaptureSessionCore.kt`
+- Planning/classification:
+  - `internal/planning/ScreenCaptureOutputPlanner.kt`
+- Plan-preparation/resource ownership:
+  - `internal/rendering/pipeline/*`
+  - `internal/rendering/es2/Es2RenderingPipelinePreparer.kt`
+  - `internal/lifecycle/PlanPreparationToken.kt`
+- Provider/encoder preparation and stale late cleanup:
+  - `internal/encoding/provider/ImageEncoderPreparer.kt`
+  - `internal/encoding/provider/ProviderPreparationContext.kt`
+- Public KDoc:
+  - `ScreenCaptureSession.kt`
+  - `ScreenCaptureParameters.kt`
+- Tests:
+  - `DefaultScreenCaptureEngineTest.kt`
+  - `InitialActivationCommitBoundaryTest.kt`
+  - `ScreenCaptureSessionCoreTest.kt`
+  - `Es2RenderingPipelinePreparerTest.kt`
+  - static guard tests.
 
-- JVM/Robolectric/unit validation does not prove real-device GLES/OES driver behavior, actual `SurfaceTexture` runtime behavior, real `MediaProjection` resize/stop behavior, real readback/encode/frame publication, release variants, instrumentation tests, lint, app flavor builds, or memory pressure under realistic dimensions.
-- Built-in non-throwing `CaptureMetricsProviders.*` remain deferred and are required before design-complete public release.
-- Full runtime `setParameters(...)` prepare/validate/commit/rollback transactions remain deferred.
-- Runtime geometry/density re-plan, `VirtualDisplay.resize(...)` replacement transactions, provider/backend fallback policy beyond the current first path, ES3/PBO, native JPEG, transport/app/flavor integration, and real-device validation remain out of scope for this slice.
-- Provider reservation before ES2/direct-buffer allocation remains deferred. A true reservation needs an internal reservation contract with release semantics across ES2 failure, transform failure, timeout, cancellation, and stale token cases.
-- Cleanup executors currently rely on single-thread executor queues if cleanup itself blocks. This is off caller-critical paths and acceptable for this slice, but high-churn runtime integration needs an ownership/backpressure policy.
-- Retained framework JPEG memory is high by design for the correctness-first baseline: retained `Bitmap` ARGB_8888 plus retained `IntArray` scratch, about 8 bytes/pixel before overhead.
+## Required Validation For Next Slice
 
-## Later Slices
-
-- Built-in `CaptureMetricsProviders.*`: non-throwing, lazy, lifecycle-safe, Activity/window/display-aware where appropriate, latest-value/conflated rather than event-queue based.
-- Full runtime `setParameters(...)` transactions.
-- Provider/backend fallback policy after repeated runtime failures and fallback exhaustion behavior beyond the first ES2/JPEG path.
-- Native JPEG provider path.
-- PBO/ES3 readback path.
-- Real-device smoke validation before app/transport integration treats the default engine as stable.
-- Full real-device/instrumented validation matrix before design-complete public release.
-
-## Next Slice Planning
-
-### Selected Next Slice
-
-- Slice: built-in `CaptureMetricsProviders.*` MVP.
-- Size: medium.
-- Status: planned after design v35 update and two independent read-only technical checks.
-- Rationale: this is the direct next API gap after the caller-supplied-metrics factory slice. The default engine can start only when callers provide their own metrics provider; the built-in factory methods still need real non-throwing, lazy, latest-valid implementations.
-- Design boundary: this slice makes built-in metrics-provider factories usable. It does not make the default engine release-complete.
-
-### V35 Decisions For This Slice
-
-- Built-in factory calls are non-throwing convenience constructors and must not register long-lived listeners at construction.
-- `CaptureMetrics` has no unavailable state. Built-ins must not emit fake `0x0`, `1x1`, hidden sentinel, or invalid metrics.
-- Providers emit only positive valid metrics, suppress invalid or unavailable runtime observations, and keep the last valid metrics.
-- Session startup fails with `MetricsUnavailableOrInvalid` before projection consumption when no valid current or allowed fallback metrics exists.
-- `fromActivity(activity)` uses current Activity window bounds. It is Activity/window scoped, may strongly retain the Activity, and must be documented as not safe to keep as an app-lifetime object.
-- `fromUiContext(context)` uses current UI/window-context bounds when the context is visual/window-associated; non-UI contexts delegate to `bestEffort(context)` and document lower precision.
-- `fromDisplay(baseContext, display)` uses maximum/display-area bounds for that display, may fallback to display-context resource metrics for that display, and must not fallback to an unrelated default display.
-- If a `fromDisplay(...)` target display is removed or invalid during an active session, the provider keeps the last valid metrics and suppresses invalid changes. Future startup for the removed/invalid display fails with `MetricsUnavailableOrInvalid`.
-- `bestEffort(context)` uses maximum/default-display bounds when available and falls back to application/resource metrics with documented lower precision.
-- Valid runtime geometry/density changes are authoritative and should be emitted immediately. If live runtime replan is unavailable, the engine may transition to `Running(output = Suspended(...))`.
-- Required public documentation wording:
-  `Built-in CaptureMetricsProviders are available as lazy convenience sources for bootstrap size and density. They do not by themselves make the default engine release-complete. Runtime setParameters transactions, live resize/replan, backend fallback policy, transport integration, and real-device validation remain separate completion gates.`
-
-### Recommended Scope
-
-In scope:
-
-- Replace throwing built-in `CaptureMetricsProviders.*` stubs with non-throwing providers for:
-  - `fromActivity(activity)`
-  - `fromUiContext(context)`
-  - `fromDisplay(baseContext, display)`
-  - `bestEffort(context)`
-- Provider construction stays lazy and listener-free.
-- Platform listeners attach only through the existing engine/provider attachment hook and detach when the last session attachment is disposed.
-- Providers expose latest-value/conflated `StateFlow<CaptureMetrics>`, publish only valid positive metrics, and suppress invalid platform snapshots while keeping the last valid value.
-- Add source-specific attach-time validation so stale Activity/display cases cannot reuse an old `metrics.value` for a future startup.
-- Add a metrics-change wake bridge so built-in provider changes schedule runtime processing even when no frame, resize, or periodic signal arrives.
-- Update KDoc to describe factory source, lifetime, fallback, and release-completion boundaries.
-- Add focused JVM/Robolectric tests for construction, initial metrics, attach/detach, listener ref-counting, latest-value updates, invalid snapshot handling, observation wakeup, startup failure, runtime suspension, static guards, and public wording.
-
-Out of scope:
-
-- Runtime `setParameters(...)` transactions.
-- `VirtualDisplay.resize(...)`, `setSurface(...)`, runtime target replacement, output resume/replan, or geometry-suspension recovery.
-- Runtime hard-failure/fallback counters.
-- Native JPEG, ES3/PBO, backend selection.
-- App/transport/flavor integration.
-- Instrumented/real-device validation beyond a documented later validation need.
-
-### Proposed Technical Shape
-
-- Add internal provider implementation under `internal/platform/metrics`, likely:
-  - `AndroidCaptureMetricsProvider : EngineAttachableCaptureMetricsProvider`
-  - `MetricsSource` with `readCurrent(): CaptureMetrics?` and `attach(onChanged: () -> Unit): DisposableHandle`
-  - source implementations for Activity/window, UI context, display context, best-effort context, and resource fallback.
-- Use AndroidX WindowManager already available in the module for `WindowMetricsCalculator` where possible, to avoid a broad API 24-37 platform branch matrix.
-- Use application context strongly where possible. `fromActivity(activity)` is intentionally Activity/window scoped and may strongly retain the Activity.
-- Use `DisplayManager.DisplayListener` and `ComponentCallbacks` only while attached. Prefer main-looper callback delivery and fast, non-blocking recomputation.
-- Data flow: platform callback -> metrics source read -> positive-metrics validation -> provider `MutableStateFlow` update -> `CaptureMetricsObservation` latest snapshot -> runtime wake callback -> current runtime geometry handling.
-- Runtime behavior for changed metrics remains the current no-replan behavior: it may suspend output when geometry/density changes require reconfiguration.
-- `CaptureMetricsObservation` must pass a real metrics-change callback to built-in attachment; the current empty callback shape is insufficient.
-- Static boundary guards must classify any new internal metrics files without allowing runtime/default-engine internals to depend on public convenience factories.
-- `InvalidMetricsIgnored` emission for suppressed invalid source snapshots needs an internal diagnostic route when a public session exists; it must not require invalid public `CaptureMetrics` values.
-
-### Validation Plan
-
-- New/updated provider tests for all factories.
-- `CaptureMetricsObservationTest` for attachment disposal, update callback/wakeup, collection cancellation, and late-update ignore.
-- Startup tests for `MetricsUnavailableOrInvalid` before projection consumption when no valid current or allowed fallback metrics exists.
-- Lifecycle tests around stale Activity/display validation and runtime pending metrics suspension.
-- Default-engine smoke tests using built-in provider factories.
-- Static guard tests for new internal metrics files.
-- Full `:screencaptureengine:testDebugUnitTest`.
-- `:screencaptureengine:compileDebugKotlin`.
-- `git diff --check -- screencaptureengine`.
-- Public KDoc/wording scan for stale unavailable wording.
-
-### Risks, Blockers, And Follow-Up
-
-- No known design blocker remains for the selected slice except the `StateFlow<CaptureMetrics>` initial-value edge below.
-- `CaptureMetricsProvider.metrics` is `StateFlow<CaptureMetrics>`, while factory construction is non-throwing and fake metrics are forbidden. Implementation must either obtain a valid positive initial snapshot from the factory-specific source or an allowed fallback, or this exact edge must be clarified before code changes.
-- Follow-up question for design if initial snapshot cannot be guaranteed: for `fromActivity(activity)`, what should the initial `StateFlow<CaptureMetrics>` contain when current Activity/window metrics are unavailable at construction, the factory must be non-throwing, fake metrics are forbidden, and fallback to unrelated app/default-display metrics is not allowed?
-- Robolectric can validate construction, lifecycle, source policy, and conflation behavior, but not real multi-window, foldable, external-display, Android 14+ app-window projection, or real-device display invalidation behavior.
-- `SessionFailed` was added by v35 as a diagnostic event type for runtime hard-failure exhaustion. It is a separate later-slice design drift and must not be bundled into the metrics-provider MVP unless implementation touches that diagnostics surface.
-
-### Independent Read-Only Planning Checks
-
-- Two fresh sub-agents independently checked v35, the designer answers, and current `screencaptureengine` code. Neither edited files or git state.
-- Both confirmed the selected next slice remains built-in `CaptureMetricsProviders.*` MVP, with a wider scope than just replacing throwing stubs: source policy, attach-time current-source validation, runtime metrics wakeup, KDoc cleanup, static guard updates, and focused tests are required.
-- Both found the same primary technical integration gap: current built-in attachment callback handling does not wake runtime on metrics changes.
-- Both identified the same public-contract edge: `StateFlow<CaptureMetrics>` always requires an initial valid value, but v35 forbids throwing, fake metrics, and invalid/unavailable `CaptureMetrics`.
-
-## Durable Decisions
-
-- Runtime not-yet-implemented public APIs fail with ordinary exceptions, not `Error` types.
-- Public immutable value/state models use manual `equals`/`hashCode`; do not convert them to `data class` by default.
-- Keep validation constants private/local unless actual drift or repeated update burden justifies a shared abstraction.
-- Kotlin has no standard checked integer arithmetic equivalent to JVM `Math.addExact` / `Math.multiplyExact`; keep those APIs where checked overflow is required unless a clearer project-local abstraction becomes justified.
-- Configured caller-owned dispatchers are reached through an engine-owned callback bridge so custom direct/immediate dispatchers cannot run callbacks on the single delivery coordinator worker or producer-critical callers.
-- Subscription stats snapshots from the delivery coordinator are versioned; the session core ignores older snapshots so races cannot roll public counters backward.
-- `ImageEncoder` remains an internal/pre-public contract until a later public activation slice exposes a stable runtime surface.
-- `JpegImageEncoderProvider` built-in framework implementation is the correctness-first baseline; native JPEG is not active yet.
-
-## Design Deviations
-
-- None.
+- Unit/Robolectric tests for:
+  - normalized no-op returns `Applied` and performs no generation/state/event/resource mutation;
+  - frame-rate-only lightweight transaction bumps generation and does no GL/readback/provider work;
+  - provider-only same-target success;
+  - provider-only failure/timeout/stale late success preserving previous plan;
+  - full same-target output-plan replacement;
+  - valid retarget/live-replan request rejected as `ParameterUpdateUnavailable`;
+  - invalid crop/caps request rejected with precise planner problem;
+  - `Running(Suspended)` update rejected as `ParameterUpdateUnavailable`;
+  - caller cancellation during preparation and late candidate cleanup;
+  - terminal-before-commit rejected;
+  - commit-before-terminal returns `Applied`;
+  - lock-order/deadlock race between `setParameters` commit and `stop()`/`close()`/projection stop;
+  - old encode/readback blocked, non-noop commit completes, new frame arrives, no new-generation `byEncoderBusy`/`byReadbackBusy` drop due only to old work, and old completion counts exactly one stale-generation drop;
+  - paused transaction with pending source frame and pending periodic refresh does not consume/drop conflated signals and still drains terminal/geometry/visibility work;
+  - serialized multiple updates;
+  - in-flight old-generation render/readback/encode completion counted stale;
+  - no new-generation frame before public state exposes matching effective parameters;
+  - no `VirtualDisplay.resize`, `setSurface`, target replacement, or `SurfaceTexture.setDefaultBufferSize` from v37 parameter path;
+  - old universal-rejection tests updated.
+- Race tests that cross real executor, scheduled executor, encoder executor, or provider-worker boundaries must use deterministic latches, test hooks, or fake schedulers. Do not rely on `runTest` virtual time alone for those paths.
+- Static guards should enforce:
+  - `ScreenCaptureSessionCore` remains sole public state/stats/events owner;
+  - no retarget platform calls from v37 parameter path;
+  - no provider/GL/cleanup/suspending calls inside commit bridge;
+  - commit bridge body allowlist: no suspend calls, provider preparation/cleanup, encoder close, GL access, `VirtualDisplayOwner.bindTarget`, `VirtualDisplay.resize/setSurface`, `SurfaceTexture.setDefaultBufferSize`, dispatcher hops, blocking waits, or heavy cleanup;
+  - startup-only GL access is not used directly by active runtime replacement except through neutral plan-preparation facade;
+  - no reflection.
+- Required independent review passes after implementation:
+  - concurrency/lifecycle/lock-order review;
+  - resource ownership/cleanup/performance review;
+  - tests/static/KDoc review;
+  - full sequential JVM/Robolectric module validation.

@@ -3,8 +3,11 @@ package dev.dmkr.screencaptureengine.internal
 import android.content.Context
 import android.content.ContextWrapper
 import dev.dmkr.screencaptureengine.CaptureMetrics
+import dev.dmkr.screencaptureengine.CaptureMetricsUnavailableReason
 import dev.dmkr.screencaptureengine.EncodedImageFormats
+import dev.dmkr.screencaptureengine.EncodedImageFrame
 import dev.dmkr.screencaptureengine.EncodedImageSink
+import dev.dmkr.screencaptureengine.FrameSubscription
 import dev.dmkr.screencaptureengine.ImageEncodeResult
 import dev.dmkr.screencaptureengine.ImageEncoder
 import dev.dmkr.screencaptureengine.ImageEncoderInfo
@@ -12,12 +15,15 @@ import dev.dmkr.screencaptureengine.ImageEncoderInput
 import dev.dmkr.screencaptureengine.OutputSize
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
 import dev.dmkr.screencaptureengine.ScreenCaptureEngines
+import dev.dmkr.screencaptureengine.ScreenCaptureEvent
+import dev.dmkr.screencaptureengine.ScreenCaptureEventType
 import dev.dmkr.screencaptureengine.ScreenCaptureOutputState
 import dev.dmkr.screencaptureengine.ScreenCaptureParameterUpdateResult
 import dev.dmkr.screencaptureengine.ScreenCaptureParameters
 import dev.dmkr.screencaptureengine.ScreenCaptureProblemKind
 import dev.dmkr.screencaptureengine.ScreenCaptureSession
 import dev.dmkr.screencaptureengine.ScreenCaptureSessionState
+import dev.dmkr.screencaptureengine.ScreenCaptureStats
 import dev.dmkr.screencaptureengine.ScreenCaptureStopReason
 import dev.dmkr.screencaptureengine.internal.encoding.provider.FakeImageEncoderProvider
 import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPreparationResult
@@ -25,6 +31,7 @@ import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPrepa
 import dev.dmkr.screencaptureengine.internal.encoding.provider.ProviderPreparationContext
 import dev.dmkr.screencaptureengine.internal.gl.StartupCleanupFallbackCompletion
 import dev.dmkr.screencaptureengine.internal.gl.StartupCleanupScheduler
+import dev.dmkr.screencaptureengine.internal.lifecycle.InitialActivationCommitBoundary
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionCallbackRegistration
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionHandle
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.PreparedRenderingPipelineComponents
@@ -46,6 +53,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
@@ -58,10 +71,12 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.locks.LockSupport
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -98,6 +113,387 @@ class DefaultScreenCaptureEngineTest {
         session.close()
         runCurrent()
         harness.engine.closeProviderPreparationContextIfNoSessionSlotForTesting()
+    }
+
+    @Test
+    fun startSessionReturnsInitialActiveBeforeQueuedProjectionStopDrainCanRun() = runTest {
+        lateinit var harness: DefaultEngineHarness
+        harness = DefaultEngineHarness(
+            commitBoundaryFactory = {
+                InitialActivationCommitBoundary {
+                    harness.runtimes.single().callbackRegistration.emitStop()
+                }
+            },
+        )
+
+        val session = harness.startSession()
+        val runtime = harness.runtimes.single()
+        val terminalObserved = CountDownLatch(1)
+
+        assertEquals(0, runtime.callbackRegistration.closeCount)
+        assertEquals(0, runtime.targetOwner.runtimeUpdateTexImageCount)
+        assertEquals(0, harness.preparers.single().preparedResources.single().closeCount)
+        val stateAtReturn = session.state.value
+
+        assertTrue(stateAtReturn is ScreenCaptureSessionState.Running)
+        assertTrue((stateAtReturn as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        val stateCollector = launch(Dispatchers.Default) {
+            session.state.collect { state ->
+                if (state is ScreenCaptureSessionState.Stopped) {
+                    terminalObserved.countDown()
+                }
+            }
+        }
+        assertTrue("queued projection stop drains after returned session is armed", terminalObserved.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+        val terminal = session.state.value as ScreenCaptureSessionState.Stopped
+
+        stateCollector.cancel()
+        assertEquals(ScreenCaptureStopReason.CaptureEnded, terminal.reason)
+        session.close()
+        runCurrent()
+        harness.engine.closeProviderPreparationContextIfNoSessionSlotForTesting()
+    }
+
+    @Test
+    fun startSessionReturnsInitialActiveBeforeQueuedGeometrySuspensionCanDrain() = runTest {
+        lateinit var harness: DefaultEngineHarness
+        harness = DefaultEngineHarness(
+            apiLevel = 34,
+            commitBoundaryFactory = {
+                InitialActivationCommitBoundary {
+                    harness.runtimes.single().callbackRegistration.emitResize(width = 640, height = 360)
+                }
+            },
+        )
+        harness.afterVirtualDisplayCreate = {
+            harness.runtimes.single().callbackRegistration.emitResize(width = 1080, height = 1920)
+        }
+
+        val session = harness.startSession()
+        val suspensionObserved = CountDownLatch(1)
+        val stateAtReturn = session.state.value
+
+        assertTrue(stateAtReturn is ScreenCaptureSessionState.Running)
+        assertTrue((stateAtReturn as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        val stateCollector = launch(Dispatchers.Default) {
+            session.state.collect { state ->
+                if ((state as? ScreenCaptureSessionState.Running)?.output is ScreenCaptureOutputState.Suspended) {
+                    suspensionObserved.countDown()
+                }
+            }
+        }
+        assertTrue(
+            "queued geometry suspension drains after returned session is armed",
+            suspensionObserved.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS),
+        )
+        val suspendedState = session.state.value as ScreenCaptureSessionState.Running
+        val suspended = suspendedState.output as ScreenCaptureOutputState.Suspended
+
+        stateCollector.cancel()
+        assertEquals(ScreenCaptureProblemKind.OutputPlanInvalid, suspended.problem.kind)
+        assertEquals(640, suspended.currentCaptureGeometry.widthPx)
+        assertEquals(360, suspended.currentCaptureGeometry.heightPx)
+        session.close()
+        runCurrent()
+        harness.engine.closeProviderPreparationContextIfNoSessionSlotForTesting()
+    }
+
+    @Test
+    fun eventsCollectFirstTouchReceivesQueuedUnavailableMetricsDiagnostic() = runTest {
+        val metricsProvider = TestMetricsProvider(CaptureMetrics(widthPx = 1080, heightPx = 1920, densityDpi = 440))
+        val events = Collections.synchronizedList(mutableListOf<ScreenCaptureEventType>())
+        val invalidMetricsIgnoredObserved = CountDownLatch(1)
+        lateinit var harness: DefaultEngineHarness
+        harness = DefaultEngineHarness(
+            commitBoundaryFactory = {
+                InitialActivationCommitBoundary {
+                    metricsProvider.updateUnavailable(
+                        reason = CaptureMetricsUnavailableReason.SourceNoLongerAvailable,
+                        message = "source removed before default-engine return",
+                    )
+                    metricsProvider.attachmentChangedCallback?.invoke()
+                }
+            },
+        )
+
+        val session = harness.startSession(metricsProvider = metricsProvider)
+        val eventCollector = launch(UnconfinedTestDispatcher(testScheduler)) {
+            session.events.collect { event ->
+                events += event.type
+                if (event.type == ScreenCaptureEventType.InvalidMetricsIgnored) {
+                    invalidMetricsIgnoredObserved.countDown()
+                }
+            }
+        }
+
+        assertTrue(
+            "queued unavailable-metrics diagnostic drains to event-only consumer",
+            invalidMetricsIgnoredObserved.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS),
+        )
+        val stateAfterDrain = session.state.value as ScreenCaptureSessionState.Running
+        eventCollector.cancel()
+        session.close()
+        runCurrent()
+
+        assertTrue(stateAfterDrain.output is ScreenCaptureOutputState.Active)
+        assertEquals(0L, session.stats.value.framesPublished)
+        assertEquals(0L, session.stats.value.droppedFrames.total)
+        assertEquals(1, events.count { it == ScreenCaptureEventType.InvalidMetricsIgnored })
+    }
+
+    @Test
+    fun eventsCollectFirstTouchArmsEvenWhenNoEventIsAvailable() = runTest {
+        val delegate = FakeReturnedSessionDelegate()
+        val armCount = AtomicInteger(0)
+        val session = ReturnArmingScreenCaptureSession(
+            delegate = delegate,
+            armReturnedSessionRuntimeSignals = { armCount.incrementAndGet() },
+        )
+
+        val collector = launch(UnconfinedTestDispatcher(testScheduler)) {
+            session.events.collect { }
+        }
+        runCurrent()
+
+        collector.cancel()
+        assertEquals(1, armCount.get())
+    }
+
+    @Test
+    fun onFrameFirstTouchRegistersBeforeArmingQueuedFrame() {
+        val delegate = FakeReturnedSessionDelegate()
+        val queuedFrame = TestEncodedImageFrame(sequence = 42L)
+        val deliveredSequences = mutableListOf<Long>()
+        val session = ReturnArmingScreenCaptureSession(
+            delegate = delegate,
+            armReturnedSessionRuntimeSignals = { delegate.deliverFrame(queuedFrame) },
+        )
+
+        val subscription = session.onFrame { frame -> deliveredSequences += frame.sequence }
+
+        subscription.cancel()
+        assertEquals(1, delegate.onFrameRegisterCount)
+        assertEquals(listOf(42L), deliveredSequences)
+    }
+
+    @Test
+    fun stateCollectFirstTouchArmsWhenCollectorCancelsAfterInitialEmission() = runTest {
+        val (harness, session) = startSessionWithQueuedProjectionStop()
+        val runtime = harness.runtimes.single()
+        val abortCollection = RuntimeException("Abort after first public state emission.")
+
+        val failure = try {
+            session.state.collect { state ->
+                assertRunningActiveState(state)
+                throw abortCollection
+            }
+        } catch (throwable: Throwable) {
+            throwable
+        }
+
+        assertSame(abortCollection, failure)
+        eventually("queued projection stop drains after cancelled state collector first touch") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+        session.close()
+        runCurrent()
+        assertEquals(1, runtime.callbackRegistration.closeCount)
+    }
+
+    @Test
+    fun stateFirstTouchArmsWhenFirstCancelsAfterInitialEmission() = runTest {
+        val (harness, session) = startSessionWithQueuedProjectionStop()
+        val runtime = harness.runtimes.single()
+
+        val stateAtReturn = session.state.first()
+
+        assertRunningActiveState(stateAtReturn)
+        eventually("queued projection stop drains after state first touch") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+        session.close()
+        runCurrent()
+        assertEquals(1, runtime.callbackRegistration.closeCount)
+    }
+
+    @Test
+    fun statsValueReturnsInitialSnapshotBeforeArmingQueuedProjectionStop() = runTest {
+        val (harness, session) = startSessionWithQueuedProjectionStop()
+        val runtime = harness.runtimes.single()
+
+        val statsAtReturn = session.stats.value
+
+        assertEquals(0L, statsAtReturn.framesPublished)
+        assertEquals(0L, statsAtReturn.droppedFrames.total)
+        eventually("queued projection stop drains after stats value first touch") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+        session.close()
+        runCurrent()
+        assertEquals(1, runtime.callbackRegistration.closeCount)
+    }
+
+    @Test
+    fun statsFirstTouchArmsWhenFirstCancelsAfterInitialEmission() = runTest {
+        val (harness, session) = startSessionWithQueuedProjectionStop()
+        val runtime = harness.runtimes.single()
+
+        val statsAtReturn = session.stats.first()
+
+        assertEquals(0L, statsAtReturn.framesPublished)
+        assertEquals(0L, statsAtReturn.droppedFrames.total)
+        eventually("queued projection stop drains after stats first touch") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+        session.close()
+        runCurrent()
+        assertEquals(1, runtime.callbackRegistration.closeCount)
+    }
+
+    @Test
+    fun statsCollectFirstTouchArmsWhenCollectorCancelsAfterInitialEmission() = runTest {
+        val (harness, session) = startSessionWithQueuedProjectionStop()
+        val runtime = harness.runtimes.single()
+        val abortCollection = RuntimeException("Abort after first public stats emission.")
+
+        val failure = try {
+            session.stats.collect { stats ->
+                assertEquals(0L, stats.framesPublished)
+                assertEquals(0L, stats.droppedFrames.total)
+                throw abortCollection
+            }
+        } catch (throwable: Throwable) {
+            throwable
+        }
+
+        assertSame(abortCollection, failure)
+        eventually("queued projection stop drains after cancelled stats collector first touch") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+        session.close()
+        runCurrent()
+        assertEquals(1, runtime.callbackRegistration.closeCount)
+    }
+
+    @Test
+    fun stateReplayCacheFirstTouchArmsQueuedProjectionStop() = runTest {
+        val (harness, session) = startSessionWithQueuedProjectionStop()
+        val runtime = harness.runtimes.single()
+
+        val replayCache = session.state.replayCache
+
+        assertEquals(1, replayCache.size)
+        assertRunningActiveState(replayCache.single())
+        eventually("queued projection stop drains after state replayCache first touch") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+        session.close()
+        runCurrent()
+        assertEquals(1, runtime.callbackRegistration.closeCount)
+    }
+
+    @Test
+    fun statsReplayCacheFirstTouchArmsQueuedProjectionStop() = runTest {
+        val (harness, session) = startSessionWithQueuedProjectionStop()
+        val runtime = harness.runtimes.single()
+
+        val replayCache = session.stats.replayCache
+
+        assertEquals(1, replayCache.size)
+        assertEquals(0L, replayCache.single().framesPublished)
+        assertEquals(0L, replayCache.single().droppedFrames.total)
+        eventually("queued projection stop drains after stats replayCache first touch") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+        session.close()
+        runCurrent()
+        assertEquals(1, runtime.callbackRegistration.closeCount)
+    }
+
+    @Test
+    fun eventsReplayCacheFirstTouchArmsQueuedProjectionStop() = runTest {
+        val (harness, session) = startSessionWithQueuedProjectionStop()
+        val runtime = harness.runtimes.single()
+
+        val replayCache = session.events.replayCache
+
+        assertTrue(replayCache.isEmpty())
+        eventually("queued projection stop drains after events replayCache first touch") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+        session.close()
+        runCurrent()
+        assertEquals(1, runtime.callbackRegistration.closeCount)
+    }
+
+    @Test
+    fun setParametersFirstTouchArmsQueuedProjectionStopOnce() = runTest {
+        assertQueuedProjectionStopDrainsAfterFirstTouch("setParameters") { session ->
+            val rejected = session.setParameters(
+                ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.5)),
+            ) as ScreenCaptureParameterUpdateResult.Rejected
+            assertEquals(ScreenCaptureProblemKind.ParameterUpdateUnavailable, rejected.problem.kind)
+        }
+    }
+
+    @Test
+    fun trimMemoryFirstTouchArmsQueuedProjectionStopOnce() = runTest {
+        assertQueuedProjectionStopDrainsAfterFirstTouch("trimMemory") { session ->
+            session.trimMemory(level = 20)
+        }
+    }
+
+    @Test
+    fun stopFirstTouchArmsQueuedProjectionStopOnce() = runTest {
+        assertQueuedProjectionStopDrainsAfterFirstTouch("stop") { session ->
+            session.stop()
+        }
+    }
+
+    @Test
+    fun closeFirstTouchArmsQueuedProjectionStopOnce() = runTest {
+        assertQueuedProjectionStopDrainsAfterFirstTouch("close") { session ->
+            session.close()
+        }
+    }
+
+    @Test
+    fun onFrameFirstTouchArmsQueuedProjectionStopOnce() = runTest {
+        assertQueuedProjectionStopDrainsAfterFirstTouch("onFrame") { session ->
+            val subscription = session.onFrame { }
+            subscription.cancel()
+        }
+    }
+
+    @Test
+    fun commandArmingIsOneShotAcrossLaterCommandBoundaries() = runTest {
+        lateinit var harness: DefaultEngineHarness
+        harness = DefaultEngineHarness(
+            commitBoundaryFactory = {
+                InitialActivationCommitBoundary {
+                    harness.runtimes.single().callbackRegistration.emitStop()
+                }
+            },
+        )
+        val session = harness.startSession()
+        val runtime = harness.runtimes.single()
+
+        val rejected = session.setParameters(
+            ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.5)),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+        assertEquals(ScreenCaptureProblemKind.ParameterUpdateUnavailable, rejected.problem.kind)
+        eventually("queued projection stop drains after first command boundary") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+
+        session.trimMemory(level = 20)
+        val subscription = session.onFrame { }
+        subscription.cancel()
+        session.stop()
+        session.close()
+        runCurrent()
+
+        assertEquals(1, runtime.callbackRegistration.closeCount)
     }
 
     @Test
@@ -566,16 +962,109 @@ class DefaultScreenCaptureEngineTest {
         assertTrue(running.output is ScreenCaptureOutputState.Active)
     }
 
+    private fun assertRunningActiveState(state: ScreenCaptureSessionState) {
+        val running = state as ScreenCaptureSessionState.Running
+        assertTrue(running.output is ScreenCaptureOutputState.Active)
+    }
+
+    private suspend fun startSessionWithQueuedProjectionStop(): Pair<DefaultEngineHarness, ScreenCaptureSession> {
+        lateinit var harness: DefaultEngineHarness
+        harness = DefaultEngineHarness(
+            commitBoundaryFactory = {
+                InitialActivationCommitBoundary {
+                    harness.runtimes.single().callbackRegistration.emitStop()
+                }
+            },
+        )
+        return harness to harness.startSession()
+    }
+
+    private suspend fun TestScope.assertQueuedProjectionStopDrainsAfterFirstTouch(
+        description: String,
+        firstTouch: suspend (ScreenCaptureSession) -> Unit,
+    ) {
+        lateinit var harness: DefaultEngineHarness
+        harness = DefaultEngineHarness(
+            commitBoundaryFactory = {
+                InitialActivationCommitBoundary {
+                    harness.runtimes.single().callbackRegistration.emitStop()
+                }
+            },
+        )
+        val session = harness.startSession()
+        val runtime = harness.runtimes.single()
+
+        assertEquals(0, runtime.callbackRegistration.closeCount)
+        firstTouch(session)
+        eventually("queued projection stop drains after $description first touch") {
+            runtime.callbackRegistration.closeCount == 1
+        }
+
+        session.close()
+        runCurrent()
+        assertEquals(1, runtime.callbackRegistration.closeCount)
+    }
+
     private fun eventually(description: String, timeoutMillis: Long = TIMEOUT_MILLIS, condition: () -> Boolean) {
         val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
         while (System.nanoTime() < deadlineNanos) {
             if (condition()) return
-            Thread.sleep(10L)
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10L))
         }
         if (!condition()) {
             throw AssertionError("$description was not observed within ${timeoutMillis}ms")
         }
     }
+}
+
+private class FakeReturnedSessionDelegate : ScreenCaptureSession {
+    override val state = MutableStateFlow<ScreenCaptureSessionState>(
+        ScreenCaptureSessionState.Stopped(reason = ScreenCaptureStopReason.OwnerStop, problem = null),
+    )
+    override val stats = MutableStateFlow(ScreenCaptureStats())
+    override val events = MutableSharedFlow<ScreenCaptureEvent>()
+    var onFrameRegisterCount = 0
+        private set
+    private var frameCallback: ((EncodedImageFrame) -> Unit)? = null
+
+    override suspend fun setParameters(parameters: ScreenCaptureParameters): ScreenCaptureParameterUpdateResult =
+        ScreenCaptureParameterUpdateResult.Applied
+
+    override fun trimMemory(level: Int) = Unit
+
+    override fun stop() = Unit
+
+    override fun close() = Unit
+
+    override fun onFrame(callback: (EncodedImageFrame) -> Unit): FrameSubscription {
+        onFrameRegisterCount++
+        frameCallback = callback
+        return object : FrameSubscription {
+            override fun cancel() {
+                frameCallback = null
+            }
+        }
+    }
+
+    fun deliverFrame(frame: EncodedImageFrame) {
+        checkNotNull(frameCallback) { "Frame callback must be registered before arming." }.invoke(frame)
+    }
+}
+
+private class TestEncodedImageFrame(
+    override val sequence: Long,
+) : EncodedImageFrame {
+    private val bytes = byteArrayOf(1, 2, 3)
+    override val format = EncodedImageFormats.Jpeg
+    override val byteCount: Int = bytes.size
+    override val timestampElapsedRealtimeNanos: Long = 123_000L
+
+    override fun copyTo(destination: ByteArray, destinationOffset: Int): Int {
+        bytes.copyInto(destination, destinationOffset = destinationOffset)
+        return bytes.size
+    }
+
+    override fun copyBytes(): ByteArray = bytes.copyOf()
 }
 
 private class DefaultEngineHarness(
@@ -584,11 +1073,13 @@ private class DefaultEngineHarness(
     private val cleanupSchedulerFailure: Throwable? = null,
     context: Context = RuntimeEnvironment.getApplication(),
     private val renderingPipelinePreparerFactory: ((ProviderPreparationContext) -> RenderingPipelinePreparer)? = null,
+    private val commitBoundaryFactory: () -> InitialActivationCommitBoundary = { InitialActivationCommitBoundary() },
 ) {
     val runtimes = mutableListOf<TestRuntime>()
     val preparers = mutableListOf<TestRenderingPipelinePreparer>()
     val providerContexts = mutableListOf<ProviderPreparationContext>()
     var beforeCallbackRegister: (() -> Unit)? = null
+    var afterVirtualDisplayCreate: (() -> Unit)? = null
     private val preparerConfigurations = ArrayDeque<TestRenderingPipelinePreparer.() -> Unit>()
     private val cleanupLock = ReentrantLock()
     private val cleanupScheduled = cleanupLock.newCondition()
@@ -612,6 +1103,7 @@ private class DefaultEngineHarness(
             TestRuntime(apiLevel = apiLevel).also(runtimes::add).toStartupTransaction(
                 apiLevel = apiLevel,
                 beforeCallbackRegister = { beforeCallbackRegister?.invoke() },
+                afterVirtualDisplayCreate = { afterVirtualDisplayCreate?.invoke() },
                 cleanupScheduler = it,
             )
         },
@@ -627,6 +1119,7 @@ private class DefaultEngineHarness(
             elapsedRealtimeNanos += 1_000_000L
             elapsedRealtimeNanos
         },
+        commitBoundaryFactory = commitBoundaryFactory,
     )
 
     fun enqueuePreparerConfiguration(configuration: TestRenderingPipelinePreparer.() -> Unit) {
@@ -739,6 +1232,7 @@ private class CloseTrackingImageEncoder(
 private fun TestRuntime.toStartupTransaction(
     apiLevel: Int,
     beforeCallbackRegister: (() -> Unit)? = null,
+    afterVirtualDisplayCreate: (() -> Unit)? = null,
     cleanupScheduler: StartupCleanupScheduler = StartupCleanupScheduler { block -> block() },
 ): ScreenCaptureStartupTransaction {
     val delegatedFallbackCompletions = AtomicInteger(0)
@@ -782,6 +1276,7 @@ private fun TestRuntime.toStartupTransaction(
             virtualDisplayCreateCount++
             virtualDisplayCreateFailure?.let { throw it }
             virtualDisplayOwner.bindTarget(target)
+            afterVirtualDisplayCreate?.invoke()
             virtualDisplayOwner
         },
         cleanupScheduler = forwardingCleanupScheduler,

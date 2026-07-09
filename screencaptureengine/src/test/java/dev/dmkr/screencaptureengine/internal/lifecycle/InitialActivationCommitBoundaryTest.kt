@@ -3,6 +3,7 @@ package dev.dmkr.screencaptureengine.internal.lifecycle
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import dev.dmkr.screencaptureengine.CaptureMetrics
+import dev.dmkr.screencaptureengine.CaptureMetricsUnavailableReason
 import dev.dmkr.screencaptureengine.ColorMode
 import dev.dmkr.screencaptureengine.EncodedImageFormats
 import dev.dmkr.screencaptureengine.EncodedImageSink
@@ -87,6 +88,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.locks.LockSupport
 import kotlin.coroutines.CoroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -210,6 +212,33 @@ class InitialActivationCommitBoundaryTest {
     }
 
     @Test
+    fun prePublicProjectionStopDoesNotDrainBeforeReturnedSessionIsArmed() = runTest {
+        val fixture = prepareInitialRuntimeOwner()
+        val activeOwner = fixture.transferToActiveRuntimeOwner(
+            config = fixture.config,
+            commitBoundary = InitialActivationCommitBoundary {
+                fixture.runtime.callbackRegistration.emitStop()
+            },
+        )
+
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        val initialState = session.state.value
+        activeOwner.drainQueuedPostCommitRuntimeSignals()
+        val beforeArmState = session.state.value
+        activeOwner.armReturnedSessionRuntimeSignals()
+        activeOwner.drainQueuedPostCommitRuntimeSignals()
+        val afterArmState = session.state.value
+        session.close()
+        runCurrent()
+
+        assertTrue(initialState is ScreenCaptureSessionState.Running)
+        assertTrue((initialState as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        assertEquals(initialState, beforeArmState)
+        assertTrue(afterArmState is ScreenCaptureSessionState.Stopped)
+        assertEquals(ScreenCaptureStopReason.CaptureEnded, (afterArmState as ScreenCaptureSessionState.Stopped).reason)
+    }
+
+    @Test
     fun projectionStopAfterCommitCheckpointDoesNotRunInlineOnDirectDispatcherAndPreservesVisibility() = runTest {
         val fixture = prepareInitialRuntimeOwner()
         val activeOwner = fixture.transferToActiveRuntimeOwner(
@@ -323,6 +352,32 @@ class InitialActivationCommitBoundaryTest {
     }
 
     @Test
+    fun prePublicGeometryChangeDoesNotSuspendBeforeReturnedSessionIsArmed() = runTest {
+        val fixture = prepareInitialRuntimeOwner(apiLevel = 34)
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        fixture.runtime.callbackRegistration.emitResize(width = 640, height = 360)
+
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        val initialState = session.state.value
+        activeOwner.drainQueuedPostCommitRuntimeSignals()
+        val beforeArmState = session.state.value
+        activeOwner.armReturnedSessionRuntimeSignals()
+        activeOwner.drainQueuedPostCommitRuntimeSignals()
+        val afterArmState = session.state.value
+        session.close()
+        runCurrent()
+
+        assertTrue(initialState is ScreenCaptureSessionState.Running)
+        assertTrue((initialState as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        assertEquals(initialState, beforeArmState)
+        assertTrue(afterArmState is ScreenCaptureSessionState.Running)
+        val suspended = (afterArmState as ScreenCaptureSessionState.Running).output as ScreenCaptureOutputState.Suspended
+        assertEquals(ScreenCaptureProblemKind.OutputPlanInvalid, suspended.problem.kind)
+        assertEquals(640, suspended.currentCaptureGeometry.widthPx)
+        assertEquals(360, suspended.currentCaptureGeometry.heightPx)
+    }
+
+    @Test
     fun pendingResizeDoesNotSuspendInlineOnUnconfinedDispatcher() = runTest {
         val fixture = prepareInitialRuntimeOwner(apiLevel = 34)
         val activeOwner = fixture.transferToActiveRuntimeOwner()
@@ -359,7 +414,10 @@ class InitialActivationCommitBoundaryTest {
 
         assertTrue(initialState is ScreenCaptureSessionState.Running)
         assertTrue((initialState as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
-        assertTrue(terminalState is ScreenCaptureSessionState.Stopped)
+        assertTrue(
+            "Expected terminalState to be Stopped, was ${terminalState.describeForAssertion()}",
+            terminalState is ScreenCaptureSessionState.Stopped,
+        )
         assertEquals(ScreenCaptureStopReason.CaptureEnded, (terminalState as ScreenCaptureSessionState.Stopped).reason)
     }
 
@@ -552,6 +610,160 @@ class InitialActivationCommitBoundaryTest {
         runCurrent()
 
         assertTrue(running.output is ScreenCaptureOutputState.Active)
+    }
+
+    @Test
+    fun postCommitMetricsProviderUpdateAutomaticallySuspendsWithoutOtherRuntimeSignals() = runTest {
+        val fixture = prepareInitialRuntimeOwner()
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession()
+
+        fixture.runtime.metricsProvider.update(CaptureMetrics(widthPx = 1440, heightPx = 2560, densityDpi = 560))
+        runCurrent()
+
+        eventually("automatic runtime metrics suspension") {
+            (session.state.value as? ScreenCaptureSessionState.Running)?.output is ScreenCaptureOutputState.Suspended
+        }
+        val running = session.state.value as ScreenCaptureSessionState.Running
+        val suspended = running.output as ScreenCaptureOutputState.Suspended
+        session.close()
+        runCurrent()
+
+        assertEquals(ScreenCaptureProblemKind.OutputPlanInvalid, suspended.problem.kind)
+        assertEquals(1440, suspended.currentCaptureGeometry.widthPx)
+        assertEquals(2560, suspended.currentCaptureGeometry.heightPx)
+        assertEquals(560, suspended.currentCaptureGeometry.densityDpi)
+        assertEquals(0L, session.stats.value.framesPublished)
+    }
+
+    @Test
+    fun postCommitUnavailableMetricsAreIgnoredAndDiagnosticIsEmitted() = runTest {
+        val fixture = prepareInitialRuntimeOwner()
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession()
+        val initialState = session.state.value as ScreenCaptureSessionState.Running
+        val events = Collections.synchronizedList(mutableListOf<ScreenCaptureEventType>())
+        val eventCollector = launch(UnconfinedTestDispatcher(testScheduler)) {
+            session.events.collect { event -> events += event.type }
+        }
+
+        fixture.runtime.metricsProvider.updateUnavailable(
+            reason = CaptureMetricsUnavailableReason.SourceNoLongerAvailable,
+            message = "source removed",
+        )
+        runCurrent()
+
+        eventually("invalid runtime metrics diagnostic") {
+            events.contains(ScreenCaptureEventType.InvalidMetricsIgnored)
+        }
+        val afterState = session.state.value as ScreenCaptureSessionState.Running
+        eventCollector.cancel()
+        session.close()
+        runCurrent()
+
+        assertEquals(initialState.output, afterState.output)
+        assertEquals(initialState.capturedContentVisible, afterState.capturedContentVisible)
+        assertEquals(0L, session.stats.value.framesPublished)
+        assertEquals(0L, session.stats.value.droppedFrames.total)
+    }
+
+    @Test
+    fun prePublicUnavailableMetricsAreReportedAfterCommitWithoutSuspendingOutput() = runTest {
+        val fixture = prepareInitialRuntimeOwner()
+        fixture.runtime.metricsProvider.updateUnavailable(
+            reason = CaptureMetricsUnavailableReason.SourceNoLongerAvailable,
+            message = "source removed before public commit",
+        )
+        runCurrent()
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        val initialState = session.state.value as ScreenCaptureSessionState.Running
+        val events = Collections.synchronizedList(mutableListOf<ScreenCaptureEventType>())
+        val eventCollector = launch(UnconfinedTestDispatcher(testScheduler)) {
+            session.events.collect { event -> events += event.type }
+        }
+
+        activeOwner.armReturnedSessionRuntimeSignals()
+        activeOwner.drainQueuedPostCommitRuntimeSignals()
+        val afterDrainState = session.state.value as ScreenCaptureSessionState.Running
+        eventCollector.cancel()
+        session.close()
+        runCurrent()
+
+        assertTrue(events.contains(ScreenCaptureEventType.InvalidMetricsIgnored))
+        assertEquals(initialState.output, afterDrainState.output)
+        assertTrue(afterDrainState.output is ScreenCaptureOutputState.Active)
+        assertEquals(0L, session.stats.value.framesPublished)
+        assertEquals(0L, session.stats.value.droppedFrames.total)
+    }
+
+    @Test
+    fun prePublicUnavailableMetricsDiagnosticDoesNotEmitBeforeReturnedSessionIsArmed() = runTest {
+        val fixture = prepareInitialRuntimeOwner()
+        fixture.runtime.metricsProvider.updateUnavailable(
+            reason = CaptureMetricsUnavailableReason.SourceNoLongerAvailable,
+            message = "source removed before public commit",
+        )
+        runCurrent()
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        val initialState = session.state.value as ScreenCaptureSessionState.Running
+        val events = Collections.synchronizedList(mutableListOf<ScreenCaptureEventType>())
+        val eventCollector = launch(UnconfinedTestDispatcher(testScheduler)) {
+            session.events.collect { event -> events += event.type }
+        }
+
+        activeOwner.drainQueuedPostCommitRuntimeSignals()
+        val beforeArmEvents = events.toList()
+        val beforeArmState = session.state.value as ScreenCaptureSessionState.Running
+        activeOwner.armReturnedSessionRuntimeSignals()
+        activeOwner.drainQueuedPostCommitRuntimeSignals()
+        val afterArmState = session.state.value as ScreenCaptureSessionState.Running
+        eventCollector.cancel()
+        session.close()
+        runCurrent()
+
+        assertFalse(beforeArmEvents.contains(ScreenCaptureEventType.InvalidMetricsIgnored))
+        assertTrue(events.contains(ScreenCaptureEventType.InvalidMetricsIgnored))
+        assertEquals(initialState.output, beforeArmState.output)
+        assertEquals(initialState.output, afterArmState.output)
+        assertTrue(afterArmState.output is ScreenCaptureOutputState.Active)
+        assertEquals(0L, session.stats.value.framesPublished)
+        assertEquals(0L, session.stats.value.droppedFrames.total)
+    }
+
+    @Test
+    fun metricsUpdateDuringScheduledRuntimeTurnIsNotLost() = runTest {
+        val fixture = prepareInitialRuntimeOwnerForProduction()
+        val activeOwner = fixture.activeOwner
+        val readPixelsEntered = CountDownLatch(1)
+        val releaseReadPixels = CountDownLatch(1)
+        activeOwner.replaceRuntimeFrameRendererForTesting(
+            RuntimeEs2FrameRenderer(
+                BlockingReadPixelsRuntimeGles20Api(
+                    readPixelsEntered = readPixelsEntered,
+                    releaseReadPixels = releaseReadPixels,
+                ),
+            ),
+        )
+        val session = activeOwner.commitInitialActiveSession()
+
+        fixture.runtime.targetOwner.emitRuntimeFrameAvailable()
+        assertTrue("readPixels entered", readPixelsEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+        fixture.runtime.metricsProvider.update(CaptureMetrics(widthPx = 1080, heightPx = 1920, densityDpi = 560))
+        runCurrent()
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+
+        releaseReadPixels.countDown()
+        eventually("runtime metrics update after in-flight turn") {
+            (session.state.value as? ScreenCaptureSessionState.Running)?.output is ScreenCaptureOutputState.Suspended
+        }
+        val suspended = (session.state.value as ScreenCaptureSessionState.Running).output as ScreenCaptureOutputState.Suspended
+        session.close()
+        runCurrent()
+
+        assertEquals(ScreenCaptureProblemKind.OutputPlanInvalid, suspended.problem.kind)
+        assertEquals(560, suspended.currentCaptureGeometry.densityDpi)
     }
 
     @Test
@@ -1762,12 +1974,25 @@ class InitialActivationCommitBoundaryTest {
         val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
         while (System.nanoTime() < deadlineNanos) {
             if (condition()) return
-            Thread.sleep(10L)
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10L))
         }
         if (!condition()) {
             throw AssertionError("$description was not observed within ${timeoutMillis}ms")
         }
     }
+
+    private fun ScreenCaptureSessionState.describeForAssertion(): String =
+        when (this) {
+            is ScreenCaptureSessionState.Failed -> "Failed(kind=${problem.kind}, message=${problem.message})"
+            is ScreenCaptureSessionState.Running -> "Running(output=${output.describeForAssertion()}, capturedContentVisible=$capturedContentVisible)"
+            is ScreenCaptureSessionState.Stopped -> "Stopped(reason=$reason, problemKind=${problem?.kind}, message=${problem?.message})"
+        }
+
+    private fun ScreenCaptureOutputState.describeForAssertion(): String =
+        when (this) {
+            is ScreenCaptureOutputState.Active -> "Active"
+            is ScreenCaptureOutputState.Suspended -> "Suspended(kind=${problem.kind}, geometry=${currentCaptureGeometry.widthPx}x${currentCaptureGeometry.heightPx}@${currentCaptureGeometry.densityDpi})"
+        }
 
     private class DeliveredFrame(
         val sequence: Long,
