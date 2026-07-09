@@ -8,6 +8,7 @@ koin-android = "4.2.2"
 kotlinx-coroutines = "1.11.0"
 
 androidx-core-ktx = "1.19.0"
+androidx-annotation = "1.10.0"
 androidx-core-splashscreen = "1.2.0"
 androidx-activity-compose = "1.13.0"
 androidx-fragment = "1.8.9"
@@ -49,6 +50,7 @@ koin-android-compose = { module = "io.insert-koin:koin-androidx-compose", versio
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core-ktx" }
+androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "androidx-annotation" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
 androidx-fragment = { module = "androidx.fragment:fragment-ktx", version.ref = "androidx-fragment" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }

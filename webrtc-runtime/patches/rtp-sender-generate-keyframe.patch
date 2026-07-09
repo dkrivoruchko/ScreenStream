@@ -1,0 +1,44 @@
+diff --git a/sdk/android/api/org/webrtc/RtpSender.java b/sdk/android/api/org/webrtc/RtpSender.java
+index de0781e..e307560 100644
+--- a/sdk/android/api/org/webrtc/RtpSender.java
++++ b/sdk/android/api/org/webrtc/RtpSender.java
+@@ -13,2 +13,3 @@ package org.webrtc;
+ import androidx.annotation.Nullable;
++import java.util.Collections;
+ import java.util.List;
+@@ -106,1 +107,11 @@ public class RtpSender {
++  public boolean generateKeyFrame() {
++    return generateKeyFrame(Collections.emptyList());
++  }
++
++  public boolean generateKeyFrame(List<String> rids) {
++    checkRtpSenderExists();
++    return nativeGenerateKeyFrame(nativeRtpSender,
++        rids == null ? Collections.emptyList() : rids);
++  }
++
+   public void dispose() {
+@@ -150,1 +162,3 @@ public class RtpSender {
++  private static native boolean nativeGenerateKeyFrame(long rtpSender, List<String> rids);
++
+   private static native void nativeSetFrameEncryptor(long rtpSender, long nativeFrameEncryptor);
+diff --git a/sdk/android/src/jni/pc/rtp_sender.cc b/sdk/android/src/jni/pc/rtp_sender.cc
+index c294d9e..aee0e15 100644
+--- a/sdk/android/src/jni/pc/rtp_sender.cc
++++ b/sdk/android/src/jni/pc/rtp_sender.cc
+@@ -114,1 +114,15 @@ ScopedJavaLocalRef<jstring> JNI_RtpSender_GetId(JNIEnv* jni,
++jboolean JNI_RtpSender_GenerateKeyFrame(
++    JNIEnv* jni,
++    jlong j_rtp_sender_pointer,
++    const jni_zero::JavaRef<jobject>& j_rids) {
++  std::vector<std::string> rids;
++  if (!IsNull(jni, j_rids)) {
++    rids = JavaListToNativeVector<std::string, jstring>(
++        jni, j_rids, &JavaToNativeString);
++  }
++  return reinterpret_cast<RtpSenderInterface*>(j_rtp_sender_pointer)
++      ->GenerateKeyFrame(rids)
++      .ok();
++}
++
+ static void JNI_RtpSender_SetFrameEncryptor(JNIEnv* jni,

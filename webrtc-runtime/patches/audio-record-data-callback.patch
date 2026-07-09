@@ -1,0 +1,76 @@
+diff --git a/sdk/android/api/org/webrtc/audio/AudioRecordDataCallback.java b/sdk/android/api/org/webrtc/audio/AudioRecordDataCallback.java
+new file mode 100644
+index 0000000..3684ec5
+--- /dev/null
++++ b/sdk/android/api/org/webrtc/audio/AudioRecordDataCallback.java
+@@ -0,0 +1,17 @@
++package org.webrtc.audio;
++
++import androidx.annotation.NonNull;
++
++import java.nio.ByteBuffer;
++
++public interface AudioRecordDataCallback {
++  /**
++   * Invoked after an audio sample is recorded. Can be used to manipulate the ByteBuffer before
++   * it is fed into WebRTC. Currently the audio in the ByteBuffer is always PCM 16-bit and the
++   * buffer sample size is about 10 ms.
++   *
++   * @param audioFormat format in android.media.AudioFormat
++   */
++  void onAudioDataRecorded(
++      int audioFormat, int channelCount, int sampleRate, @NonNull ByteBuffer audioBuffer);
++}
+diff --git a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java b/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
+index bbf1c3a..9f6d329 100644
+--- a/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
++++ b/sdk/android/api/org/webrtc/audio/JavaAudioDeviceModule.java
+@@ -44,2 +44,3 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
+     private SamplesReadyCallback samplesReadyCallback;
++    private AudioRecordDataCallback audioRecordDataCallback;
+     private AudioTrackStateCallback audioTrackStateCallback;
+@@ -143,1 +144,9 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
++    /**
++     * Set a callback to manipulate the raw audio input before it is passed to native WebRTC.
++     */
++    public Builder setAudioRecordDataCallback(AudioRecordDataCallback audioRecordDataCallback) {
++      this.audioRecordDataCallback = audioRecordDataCallback;
++      return this;
++    }
++
+     /**
+@@ -257,3 +266,4 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
+           audioSource, audioFormat, audioRecordErrorCallback, audioRecordStateCallback,
+-          samplesReadyCallback, useHardwareAcousticEchoCanceler, useHardwareNoiseSuppressor);
++          samplesReadyCallback, audioRecordDataCallback, useHardwareAcousticEchoCanceler,
++          useHardwareNoiseSuppressor);
+       final WebRtcAudioTrack audioOutput =
+diff --git a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
+index ac62308..86aa70d 100644
+--- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
++++ b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
+@@ -107,2 +107,3 @@ class WebRtcAudioRecord {
+   private final @Nullable SamplesReadyCallback audioSamplesReadyCallback;
++  private final @Nullable AudioRecordDataCallback audioRecordDataCallback;
+   private final boolean isAcousticEchoCancelerSupported;
+@@ -155,2 +156,6 @@ class WebRtcAudioRecord {
+             }
++            if (audioRecordDataCallback != null) {
++              audioRecordDataCallback.onAudioDataRecorded(audioRecord.getAudioFormat(),
++                  audioRecord.getChannelCount(), audioRecord.getSampleRate(), byteBuffer);
++            }
+             nativeDataIsRecorded(nativeAudioRecord, bytesRead, captureTimeNs);
+@@ -198,3 +203,4 @@ class WebRtcAudioRecord {
+         DEFAULT_AUDIO_FORMAT, null /* errorCallback */, null /* stateCallback */,
+-        null /* audioSamplesReadyCallback */, WebRtcAudioEffects.isAcousticEchoCancelerSupported(),
++        null /* audioSamplesReadyCallback */, null /* audioRecordDataCallback */,
++        WebRtcAudioEffects.isAcousticEchoCancelerSupported(),
+         WebRtcAudioEffects.isNoiseSuppressorSupported());
+@@ -207,2 +213,3 @@ class WebRtcAudioRecord {
+       @Nullable SamplesReadyCallback audioSamplesReadyCallback,
++      @Nullable AudioRecordDataCallback audioRecordDataCallback,
+       boolean isAcousticEchoCancelerSupported, boolean isNoiseSuppressorSupported) {
+@@ -222,2 +229,3 @@ class WebRtcAudioRecord {
+     this.audioSamplesReadyCallback = audioSamplesReadyCallback;
++    this.audioRecordDataCallback = audioRecordDataCallback;
+     this.isAcousticEchoCancelerSupported = isAcousticEchoCancelerSupported;
