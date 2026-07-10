@@ -26,6 +26,7 @@ import dev.dmkr.screencaptureengine.internal.platform.projection.MediaProjection
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionHandle
 import dev.dmkr.screencaptureengine.internal.rendering.es2.Es2RenderingPipelinePreparer
 import dev.dmkr.screencaptureengine.internal.rendering.es2.ImageEncoderPrepareOperation
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPreparer
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparer
 import dev.dmkr.screencaptureengine.internal.session.delivery.ScreenCaptureEngineOwnedContext
 import dev.dmkr.screencaptureengine.internal.startup.ScreenCaptureStartupTransaction
@@ -45,6 +46,7 @@ internal class DefaultScreenCaptureEngine internal constructor(
         ScreenCaptureStartupTransaction(cleanupScheduler = cleanupScheduler)
     },
     private val renderingPipelinePreparerFactory: (ProviderPreparationContext) -> RenderingPipelinePreparer = ::defaultRenderingPipelinePreparer,
+    private val encoderPrepareFactory: (ProviderPreparationContext) -> ImageEncoderPrepareOperation = ::defaultImageEncoderPrepareOperation,
     private val commitBoundaryFactory: () -> InitialActivationCommitBoundary = { InitialActivationCommitBoundary() },
     private val elapsedRealtimeNanos: () -> Long = SystemClock::elapsedRealtimeNanos,
 ) : ScreenCaptureEngine {
@@ -104,9 +106,11 @@ internal class DefaultScreenCaptureEngine internal constructor(
                 config = config,
                 initialParameters = initialParameters,
             )
+            val providerContext = providerPreparationContext()
+            val renderingPipelinePreparer = renderingPipelinePreparerFactory(providerContext)
             val preparedResources = preActiveOwner.prepareInitialRenderingPipeline(
                 preparedPlan = preparedPlan,
-                preparer = renderingPipelinePreparerFactory(providerPreparationContext()),
+                preparer = renderingPipelinePreparer,
             )
             val initialOwner = preActiveOwner.transferToInitialRuntimeResourceOwner(
                 preparedPlan = preparedPlan,
@@ -115,6 +119,8 @@ internal class DefaultScreenCaptureEngine internal constructor(
             ownerToClose = initialOwner
             val activeOwner = initialOwner.transferToActiveRuntimeOwner(
                 config = config,
+                encoderPrepare = encoderPrepareFactory(providerContext),
+                outputPlanPreparer = renderingPipelinePreparer as? OutputPlanPreparer,
                 commitBoundary = commitBoundaryFactory(),
                 elapsedRealtimeNanos = elapsedRealtimeNanos,
                 terminalCommitHandler = { releaseSessionSlot(slot) },
@@ -222,8 +228,11 @@ internal class DefaultScreenCaptureEngine internal constructor(
 
 private fun defaultRenderingPipelinePreparer(providerContext: ProviderPreparationContext): RenderingPipelinePreparer =
     Es2RenderingPipelinePreparer(
-        encoderPrepare = ImageEncoderPrepareOperation(ImageEncoderPreparer(providerContext)::prepare),
+        encoderPrepare = defaultImageEncoderPrepareOperation(providerContext),
     )
+
+private fun defaultImageEncoderPrepareOperation(providerContext: ProviderPreparationContext): ImageEncoderPrepareOperation =
+    ImageEncoderPrepareOperation(ImageEncoderPreparer(providerContext)::prepare)
 
 internal class ReturnArmingScreenCaptureSession(
     private val delegate: ScreenCaptureSession,
@@ -240,10 +249,12 @@ internal class ReturnArmingScreenCaptureSession(
     override val stats: StateFlow<ScreenCaptureStats> = ReturnArmingStateFlow(delegate.stats, armOnce)
     override val events: SharedFlow<ScreenCaptureEvent> = ReturnArmingSharedFlow(delegate.events, armOnce)
 
-    override suspend fun setParameters(parameters: ScreenCaptureParameters): ScreenCaptureParameterUpdateResult {
-        armOnce()
-        return delegate.setParameters(parameters)
-    }
+    override suspend fun setParameters(parameters: ScreenCaptureParameters): ScreenCaptureParameterUpdateResult =
+        try {
+            delegate.setParameters(parameters)
+        } finally {
+            armOnce()
+        }
 
     override fun trimMemory(level: Int) {
         armOnce()

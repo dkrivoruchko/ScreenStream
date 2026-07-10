@@ -23,6 +23,292 @@ class RuntimeBoundaryStaticGuardTest {
     }
 
     @Test
+    fun dormantFoundationRemainsIsolatedFromOldAndPublicAuthority() {
+        val sourceFiles = runtimeSourceFiles()
+        val foundationFiles = sourceFiles.filter { sourceFile ->
+            sourceFile.role == RuntimeFileRole.DormantFoundation
+        }
+
+        assertEquals(
+            "The dormant-foundation role must cover exactly the permanent mechanical foundation.",
+            dormantFoundationPaths.sorted(),
+            foundationFiles.map { sourceFile -> sourceFile.runtimeRelativePath }.sorted(),
+        )
+
+        foundationFiles.forEach { sourceFile ->
+            val executableContent = sourceFile.dormantFoundationExecutableContent()
+            val applicablePatterns = dormantFoundationForbiddenAuthorityPatterns +
+                    if (sourceFile.runtimeRelativePath in controllerProtocolPaths) {
+                        controllerProtocolForbiddenDependencyPatterns
+                    } else {
+                        emptyList()
+                    }
+            val forbiddenReferences = applicablePatterns.flatMap { pattern ->
+                pattern.regex.findAll(executableContent).map { match ->
+                    "${pattern.description}: ${match.value}"
+                }
+            }
+
+            assertTrue(
+                "${sourceFile.displayPath} imports or references old/public authority: " +
+                        forbiddenReferences.joinToString(),
+                forbiddenReferences.isEmpty(),
+            )
+        }
+
+        sourceFiles
+            .filter { sourceFile -> sourceFile.isOldAuthoritySource() }
+            .forEach { sourceFile ->
+                val executableContent = Files.readString(sourceFile.path).withoutKotlinCommentsAndStrings()
+                val references = dormantFoundationReferencePattern.findAll(executableContent)
+                    .map { match -> match.value }
+                    .toList()
+
+                assertTrue(
+                    "${sourceFile.displayPath} depends on the dormant foundation before cutover: " +
+                            references.joinToString(),
+                    references.isEmpty(),
+                )
+            }
+    }
+
+    @Test
+    fun dormantPlanningAndStorageRemainPureIndependentAndBaselineOnly() {
+        val sourceFiles = runtimeSourceFiles()
+        val leafFiles = sourceFiles.filter { sourceFile ->
+            sourceFile.runtimeRelativePath in dormantPlanningStoragePaths
+        }
+
+        assertEquals(
+            "Planning/storage leaf coverage must remain exact.",
+            dormantPlanningStoragePaths.sorted(),
+            leafFiles.map { sourceFile -> sourceFile.runtimeRelativePath }.sorted(),
+        )
+        leafFiles.forEach { sourceFile ->
+            val executableContent = sourceFile.dormantFoundationExecutableContent()
+            val couplingPattern = if (sourceFile.runtimeRelativePath.startsWith("planning/")) {
+                dormantPlanningToStoragePattern
+            } else {
+                dormantStorageToPlanningPattern
+            }
+            val forbiddenDependencies = (dormantPlanningStorageForbiddenPatterns + couplingPattern).flatMap { pattern ->
+                pattern.regex.findAll(executableContent).map { match ->
+                    "${pattern.description}: ${match.value}"
+                }
+            }
+            val optionalMechanisms = dormantBaselineOptionalMechanismPattern.findAll(executableContent)
+                .map { match -> match.value }
+                .toList()
+
+            assertTrue(
+                "${sourceFile.displayPath} crosses the pure planning/storage leaf boundary: " +
+                        forbiddenDependencies.joinToString(),
+                forbiddenDependencies.isEmpty(),
+            )
+            assertTrue(
+                "${sourceFile.displayPath} introduces optional native/PBO/downscale behavior: " +
+                        optionalMechanisms.joinToString(),
+                optionalMechanisms.isEmpty(),
+            )
+        }
+    }
+
+    private fun RuntimeSourceFile.dormantFoundationExecutableContent(): String {
+        val executableContent = Files.readString(path).withoutKotlinCommentsAndStrings()
+        val allowedImports = dormantFoundationAllowedPublicImports[runtimeRelativePath].orEmpty()
+        val actualImports = publicRootImportPattern.findAll(executableContent)
+            .map { match -> match.value.trim() }
+            .toSet()
+        assertEquals(
+            "$displayPath changed its exact allowed public value/SPI imports.",
+            allowedImports,
+            actualImports,
+        )
+        return allowedImports.fold(executableContent) { content, allowedImport ->
+            content.replace(allowedImport, "")
+        }
+    }
+
+    @Test
+    fun dormantFoundationDependencyPatternsCoverSessionAndPublicWildcards() {
+        val sourceRoot = resolveSourceRoot().resolve(runtimePackagePath)
+        assertEquals(
+            dormantSnapshotBoundaryNames,
+            declaredInternalNames(
+                sourceRoot,
+                setOf(
+                    "control/ControllerSnapshot.kt",
+                    "control/ControllerSnapshotStore.kt",
+                    "control/ControllerTargetSnapshot.kt",
+                ),
+            ),
+        )
+        assertEquals(
+            dormantTypedLedgerNames,
+            declaredInternalNames(sourceRoot, setOf("encoding/LiveProviderDescriptorLedger.kt")),
+        )
+        val foundationForbiddenSamples = listOf(
+            "import dev.dmkr.screencaptureengine.internal.session.delivery.LegacyDeliveryOwner",
+            "import dev.dmkr.screencaptureengine.*",
+            "dev.dmkr.screencaptureengine.ScreenCaptureSession",
+        )
+        foundationForbiddenSamples.forEach { sample ->
+            assertTrue(
+                "Dormant-foundation dependency guard missed: $sample",
+                dormantFoundationForbiddenAuthorityPatterns.any { pattern ->
+                    pattern.regex.containsMatchIn(sample)
+                },
+            )
+        }
+        assertTrue(
+            "Dormant-foundation dependency guard rejected a foundation-internal dependency.",
+            dormantFoundationForbiddenAuthorityPatterns.none { pattern ->
+                pattern.regex.containsMatchIn(
+                    "import dev.dmkr.screencaptureengine.internal.policy.ScreenCaptureEnginePolicyDefaults",
+                )
+            },
+        )
+
+        listOf(
+            "import dev.dmkr.screencaptureengine.internal.encoding.*",
+            "import dev.dmkr.screencaptureengine.internal.planning.*",
+            "import dev.dmkr.screencaptureengine.internal.planning.BaselineOutputPlanner",
+            "import dev.dmkr.screencaptureengine.internal.encoding.storage.SegmentedEncodedSink",
+            "import dev.dmkr.screencaptureengine.internal.encoding.ProviderDescriptorRetentionRole",
+            "import dev.dmkr.screencaptureengine.internal.encoding.ProviderDescriptorRetentionToken",
+            "import dev.dmkr.screencaptureengine.internal.encoding.ProviderDescriptorForkResult",
+            "dev.dmkr.screencaptureengine.internal.operation.OperationRecord",
+        ).forEach { sample ->
+            assertTrue(
+                "Old-authority dependency guard missed: $sample",
+                dormantFoundationReferencePattern.containsMatchIn(sample),
+            )
+        }
+        (dormantSnapshotBoundaryNames.map { name ->
+            "dev.dmkr.screencaptureengine.internal.control.$name"
+        } + dormantTypedLedgerNames.map { name ->
+            "dev.dmkr.screencaptureengine.internal.encoding.$name"
+        } + listOf(
+            "dev.dmkr.screencaptureengine.internal.control.ControllerDirectFact",
+            "dev.dmkr.screencaptureengine.internal.control.ControllerGeometryAccumulator",
+        )).forEach { sample ->
+            assertTrue(
+                "Old-authority dependency guard missed exact dormant symbol: $sample",
+                dormantFoundationReferencePattern.containsMatchIn(sample),
+            )
+        }
+    }
+
+    private fun declaredInternalNames(root: Path, relativeFiles: Set<String>): Set<String> {
+        val declaration = Regex(
+            "(?m)^internal (?:data class|enum class|sealed interface|class|object) ([A-Za-z][A-Za-z0-9_]*)",
+        )
+        return relativeFiles.flatMapTo(mutableSetOf()) { relativeFile ->
+            declaration.findAll(Files.readString(root.resolve(relativeFile)))
+                .map { match -> match.groupValues[1] }
+                .toList()
+        }
+    }
+
+    @Test
+    fun dormantPlanningStorageDependencyPatternsCoverBothDirectionsAndOptionalMechanisms() {
+        listOf(
+            "import dev.dmkr.screencaptureengine.internal.platform.MemorySampler",
+            "import dev.dmkr.screencaptureengine.internal.control.SessionController",
+            "import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPreparer",
+        ).forEach { sample ->
+            assertTrue(
+                "Planning/storage authority guard missed: $sample",
+                dormantPlanningStorageForbiddenPatterns.any { pattern -> pattern.regex.containsMatchIn(sample) },
+            )
+        }
+        assertTrue(
+            dormantPlanningToStoragePattern.regex.containsMatchIn(
+                "import dev.dmkr.screencaptureengine.internal.encoding.storage.ImmutableEncodedPayload",
+            ),
+        )
+        assertTrue(
+            dormantStorageToPlanningPattern.regex.containsMatchIn(
+                "import dev.dmkr.screencaptureengine.internal.planning.MemoryPlanning",
+            ),
+        )
+        assertFalse(
+            dormantStorageToPlanningPattern.regex.containsMatchIn(
+                "import dev.dmkr.screencaptureengine.internal.planning.CheckedArithmetic",
+            ),
+        )
+        listOf("PBO", "NativeJpegBackend", "EarlyDownscalePlan").forEach { sample ->
+            assertTrue(
+                "Baseline-only mechanism guard missed: $sample",
+                dormantBaselineOptionalMechanismPattern.containsMatchIn(sample),
+            )
+        }
+    }
+
+    @Test
+    fun oldAndNewPlanningRemainIsolatedDespiteSharingOnePackage() {
+        val sourceFiles = runtimeSourceFiles()
+        sourceFiles
+            .filter { sourceFile -> sourceFile.runtimeRelativePath in legacyPlanningPaths }
+            .forEach { sourceFile ->
+                val executableContent = Files.readString(sourceFile.path).withoutKotlinCommentsAndStrings()
+                val references = newPlanningSimpleNamePattern.findAll(executableContent)
+                    .map { match -> match.value }
+                    .toList()
+
+                assertTrue(
+                    "${sourceFile.displayPath} uses dormant planning through an unqualified same-package symbol: " +
+                            references.joinToString(),
+                    references.isEmpty(),
+                )
+            }
+        sourceFiles
+            .filter { sourceFile -> sourceFile.runtimeRelativePath in dormantNewPlanningPaths }
+            .forEach { sourceFile ->
+                val executableContent = Files.readString(sourceFile.path).withoutKotlinCommentsAndStrings()
+                val references = legacyPlanningSimpleNamePattern.findAll(executableContent)
+                    .map { match -> match.value }
+                    .toList()
+
+                assertTrue(
+                    "${sourceFile.displayPath} uses legacy planning through an unqualified same-package symbol: " +
+                            references.joinToString(),
+                    references.isEmpty(),
+                )
+            }
+    }
+
+    @Test
+    fun samePackagePlanningPatternsCoverDirectUnqualifiedReferences() {
+        listOf(
+            "BaselineOutputPlanner.planScaleFactor(size)",
+            "MemoryPlanning.admit(allocation, evidence)",
+            "ShaderPrecisionBounds.evaluate(evidence)",
+            "CheckedArithmetic.addNonNegative(a, b)",
+        ).forEach { sample ->
+            assertTrue(
+                "New-planning same-package guard missed: $sample",
+                newPlanningSimpleNamePattern.containsMatchIn(sample),
+            )
+        }
+        listOf(
+            "ScreenCaptureOutputPlanner.plan(parameters)",
+            "RuntimeParameterUpdateClassifier.classify(current, requested)",
+        ).forEach { sample ->
+            assertTrue(
+                "Legacy-planning same-package guard missed: $sample",
+                legacyPlanningSimpleNamePattern.containsMatchIn(sample),
+            )
+        }
+    }
+
+    private fun RuntimeSourceFile.isOldAuthoritySource(): Boolean =
+        runtimeRelativePath == "DefaultScreenCaptureEngine.kt" ||
+                runtimeRelativePath.startsWith("lifecycle/") ||
+                runtimeRelativePath.startsWith("startup/") ||
+                runtimeRelativePath.startsWith("session/")
+
+    @Test
     fun startupAndPreparationFilesConservativelyStayBeforeRuntimeConsumptionEncodeAndPublication() {
         val sourceFiles = runtimeSourceFiles().filter { sourceFile ->
             sourceFile.role in startupPreparationRoles
@@ -143,6 +429,201 @@ class RuntimeBoundaryStaticGuardTest {
             "Frame-rate policy drops must arbitrate raw projection stop before recording a public counter.",
             frameRatePolicy.contains("arbitrateProjectionStopPublicOutcome"),
         )
+    }
+
+    @Test
+    fun runtimeParameterCommitBridgeStaysNonSuspendingAndAtomicOnly() {
+        val activeRuntimeOwner = runtimeSourceFiles().single { sourceFile ->
+            sourceFile.runtimeRelativePath == "lifecycle/ActiveRuntimeOwner.kt"
+        }
+        val executableContent = Files.readString(activeRuntimeOwner.path).withoutKotlinCommentsAndStrings()
+        val bridgeBody = executableContent.functionBody("commitRuntimeParameterUpdate")
+        val bridgeIsSuspending = Regex("""\bsuspend\s+fun\s+commitRuntimeParameterUpdate\s*\(""").containsMatchIn(executableContent)
+        val ownerLockEntries = Regex("""\bsynchronized\s*\(\s*lock\s*\)""").findAll(bridgeBody).count()
+        val coreCommitEntries = Regex("""\bcommitGate\s*\.\s*commit\s*\{""").findAll(bridgeBody).count()
+        val ownerLockIndex = bridgeBody.indexOf("synchronized(lock)")
+        val coreCommitIndex = bridgeBody.indexOf("commitGate.commit")
+        val violations = runtimeParameterCommitBridgeBoundaryViolations(bridgeBody)
+
+        assertFalse("Runtime parameter bridge must remain a non-suspending function.", bridgeIsSuspending)
+        assertEquals("Runtime parameter bridge must enter ActiveRuntimeOwner.lock exactly once.", 1, ownerLockEntries)
+        assertEquals("Runtime parameter bridge must enter the core commit gate exactly once.", 1, coreCommitEntries)
+        assertTrue(
+            "Runtime parameter bridge body may run only its deterministic test seam before owner-lock classification/commit work.",
+            Regex(
+                """^\s*\{\s*var\s+resumeProductionAdmissionAfterCommit\s*=\s*false\s*""" +
+                        """beforeRuntimeParameterCommitOwnerLockForTesting\?\.invoke\s*\(\s*\)\s*""" +
+                        """val\s+result\s*=\s*synchronized\s*\(\s*lock\s*\)\s*\{""",
+            )
+                .containsMatchIn(bridgeBody),
+        )
+        assertTrue(
+            "Runtime parameter bridge must enter ActiveRuntimeOwner.lock before the core commit gate.",
+            coreCommitIndex > ownerLockIndex,
+        )
+        assertTrue(
+            "${activeRuntimeOwner.displayPath} runtime parameter bridge crosses the commit boundary: " +
+                    violations.joinToString(),
+            violations.isEmpty(),
+        )
+    }
+
+    @Test
+    fun runtimeParameterAtomicApplyHelpersStayBoundedAndHeavyWorkFree() {
+        val activeRuntimeOwner = runtimeSourceFiles().single { sourceFile ->
+            sourceFile.runtimeRelativePath == "lifecycle/ActiveRuntimeOwner.kt"
+        }
+        val executableContent = Files.readString(activeRuntimeOwner.path).withoutKotlinCommentsAndStrings()
+
+        runtimeParameterAtomicApplyHelperNames.forEach { helperName ->
+            val helperBody = executableContent.functionBody(helperName)
+            val helperIsSuspending = Regex("""\bsuspend\s+fun\s+$helperName\s*\(""")
+                .containsMatchIn(executableContent)
+            val violations = runtimeParameterAtomicApplyHelperBoundaryViolations(helperBody)
+
+            assertFalse("Runtime parameter atomic helper $helperName must remain non-suspending.", helperIsSuspending)
+            assertTrue(
+                "${activeRuntimeOwner.displayPath} runtime parameter atomic helper $helperName crosses the " +
+                        "bounded commit boundary: ${violations.joinToString()}",
+                violations.isEmpty(),
+            )
+        }
+    }
+
+    @Test
+    fun materializedRuntimeEncodeUsesCapturedEncoderResourcesNotLiveAccessor() {
+        val activeRuntimeOwner = runtimeSourceFiles().single { sourceFile ->
+            sourceFile.runtimeRelativePath == "lifecycle/ActiveRuntimeOwner.kt"
+        }
+        val executableContent = Files.readString(activeRuntimeOwner.path).withoutKotlinCommentsAndStrings()
+        val drainTick = executableContent.functionBody("drainRuntimeProductionTick")
+        val encodeReadback = executableContent.functionBody("encodeReadback")
+        val encodeWithTimeout = executableContent.functionBody("encodeWithTimeout")
+
+        assertTrue(
+            "Runtime production admission must capture encoder resources with the output generation.",
+            drainTick.contains("encoderResources = resources.encoderResourcesForRuntime"),
+        )
+        assertTrue(
+            "RuntimeProductionState must carry attempt-scoped encoder resources.",
+            executableContent.contains("val encoderResources: PreparedImageEncoderResources"),
+        )
+        assertFalse(
+            "Materialized encode must not resolve the live current encoder accessor after admission.",
+            encodeReadback.contains("encoderResourcesForRuntime") || encodeWithTimeout.contains("encoderResourcesForRuntime"),
+        )
+    }
+
+    @Test
+    fun runtimeEncodeHealthAccountingStaysEncodeOnlyGenerationFencedAndTimeoutIndependent() {
+        val activeRuntimeOwner = runtimeSourceFiles().single { sourceFile ->
+            sourceFile.runtimeRelativePath == "lifecycle/ActiveRuntimeOwner.kt"
+        }
+        val executableContent = Files.readString(activeRuntimeOwner.path).withoutKotlinCommentsAndStrings()
+        val hardFailure = executableContent.functionBody("completeRuntimeEncodeHardFailure")
+        val success = executableContent.functionBody("recordRuntimeEncodeSuccessIfCurrent")
+        val timeout = executableContent.functionBody("encodeWithTimeout")
+        val encodeReadback = executableContent.functionBody("encodeReadback")
+        val throwableCatchStart = encodeReadback.indexOf("catch (cause: Throwable)")
+        val throwableCatchEnd = encodeReadback.indexOf(
+            "if (isRuntimeTerminalOrClosed()",
+            startIndex = throwableCatchStart.coerceAtLeast(0),
+        )
+
+        assertTrue(throwableCatchStart >= 0)
+        assertTrue(throwableCatchEnd > throwableCatchStart)
+        val throwableCatch = encodeReadback.substring(throwableCatchStart, throwableCatchEnd)
+        assertTrue(throwableCatch.indexOf("val rejected = scratch.wasRejected") < throwableCatch.indexOf("scratch.finishDiscard()"))
+        assertTrue(throwableCatch.indexOf("ProductionFrameDropKind.EncodedSizeLimit") < throwableCatch.indexOf("completeRuntimeEncodeHardFailure"))
+        assertEquals(3, Regex("""\bcompleteRuntimeEncodeHardFailure\s*\(""").findAll(encodeReadback).count())
+        assertEquals(4, Regex("""\bcompleteRuntimeEncodeHardFailure\s*\(""").findAll(executableContent).count())
+        assertTrue(hardFailure.contains("attempt.completeDropAndResolve"))
+        assertTrue(hardFailure.contains("isCurrentRuntimeProductionLocked(production)"))
+        assertTrue(hardFailure.contains("encodeHardFailureTracker.recordHardFailure"))
+        assertTrue(hardFailure.contains("runtimeFrameLoop.pauseProductionAdmission"))
+        assertTrue(hardFailure.contains("production.core.updateOutputSuspended"))
+        assertTrue(success.contains("encodeHardFailureTracker.recordSuccess"))
+        assertTrue(
+            encodeReadback.indexOf("recordRuntimeEncodeSuccessIfCurrent(production)") <
+                    encodeReadback.indexOf("completeEncodedSuccessWithProjectionFence"),
+        )
+        assertTrue(executableContent.contains("encoderResources === other.encoderResources"))
+        assertFalse(hardFailure.contains("ReadbackRepeatedFailure"))
+        assertFalse(timeout.contains("encodeHardFailureTracker"))
+    }
+
+    @Test
+    fun periodicRetentionAndSchedulingRemainGenerationFencedAtClosedCallSites() {
+        val activeRuntimeOwner = runtimeSourceFiles().single { sourceFile ->
+            sourceFile.runtimeRelativePath == "lifecycle/ActiveRuntimeOwner.kt"
+        }
+        val executableContent = Files.readString(activeRuntimeOwner.path).withoutKotlinCommentsAndStrings()
+        val sourceRetention = executableContent.functionBody("rememberPeriodicRefreshFrameIfCurrent")
+        val scheduler = executableContent.functionBody("scheduleNextPeriodicRefreshIfNeeded")
+
+        assertEquals(
+            2,
+            Regex("""\blatestPeriodicRefreshFrame\s*=\s*PeriodicRefreshEncodedFrame\s*\(""")
+                .findAll(executableContent)
+                .count(),
+        )
+        assertTrue(sourceRetention.contains("isCurrentRuntimeProductionLocked(production)"))
+        assertTrue(executableContent.contains("activeOutputGeneration != frame.generation"))
+        assertTrue(executableContent.contains("core.currentOutputGeneration() != frame.generation"))
+        assertTrue(executableContent.contains("!isProjectionStoppedLocked()"))
+        assertEquals(
+            4,
+            Regex("""\bscheduleNextPeriodicRefreshIfNeeded\s*\(""").findAll(executableContent).count(),
+        )
+        assertEquals(1, Regex("""::scheduleNextPeriodicRefreshIfNeeded\b""").findAll(executableContent).count())
+        assertFalse(executableContent.contains("scheduleNextPeriodicRefreshIfNeeded(core"))
+        assertTrue(scheduler.contains("expectedOutputGeneration"))
+        assertTrue(scheduler.contains("isCurrentPeriodicRefreshGenerationLocked(expectedOutputGeneration)"))
+        assertTrue(scheduler.contains("periodicRefreshScheduleToken == scheduleToken"))
+        assertTrue(scheduler.contains("periodicRefreshScheduleToken == expectedWakeFenceToken"))
+        assertTrue(
+            scheduler.indexOf("periodicRefreshScheduleToken == expectedWakeFenceToken") <
+                    scheduler.indexOf("runtimeFrameLoop.recordPeriodicRefreshWake()"),
+        )
+    }
+
+    @Test
+    fun fullRuntimeOutputPlanPreparationUsesNeutralFrameFreeNoRetargetBoundary() {
+        val activeRuntimeOwner = runtimeSourceFiles().single { sourceFile ->
+            sourceFile.runtimeRelativePath == "lifecycle/ActiveRuntimeOwner.kt"
+        }
+        val executableContent = Files.readString(activeRuntimeOwner.path).withoutKotlinCommentsAndStrings()
+        val prepare = executableContent.functionBody("prepareFullRuntimeParameterUpdate")
+        val begin = executableContent.functionBody("beginFullRuntimeParameterPreparation")
+        val commitInstall = executableContent.functionBody("applyRuntimeFullOutputPlanUpdateLocked")
+        val preparationPath = prepare + begin + commitInstall
+
+        assertTrue(
+            "Full runtime replacement must enter the neutral OutputPlanPreparer facade.",
+            prepare.contains("outputPlanPreparer.prepareOutputPlan"),
+        )
+        assertTrue(
+            "Runtime full replacement must preserve the live GL lane on candidate timeout.",
+            prepare.contains("abandonGlLaneOnTimeout = false"),
+        )
+        listOf(
+            "updateTexImage",
+            "getTransformMatrix",
+            "glReadPixels",
+            ".encode(",
+            "publishEncodedFrame",
+            "createTarget(",
+            "bindTarget(",
+            "createVirtualDisplay(",
+            "setDefaultBufferSize(",
+            ".resize(",
+            ".setSurface(",
+        ).forEach { forbidden ->
+            assertFalse(
+                "Full runtime output-plan preparation must not perform frame/publication/retarget work: $forbidden",
+                preparationPath.contains(forbidden),
+            )
+        }
     }
 
     @Test
@@ -607,6 +1088,77 @@ class RuntimeBoundaryStaticGuardTest {
         assertTrue(
             "Caller-supplied CaptureMetricsProvider type must remain allowed: ${matches.joinToString()}",
             matches.isEmpty(),
+        )
+    }
+
+    @Test
+    fun runtimeParameterCommitBridgeGuardCatchesForbiddenTokens() {
+        val executableContent = listOf(
+            "package synthetic",
+            "internal fun forbidden() {",
+            "    withContext(Dispatchers.Default) {}",
+            "    currentCoroutineContext().ensureActive()",
+            "    latch.await()",
+            "    thread.join()",
+            "    future.get()",
+            "    LockSupport.parkNanos(1L)",
+            "    provider.prepareEncoder()",
+            "    ImageEncoderPreparer(context)",
+            "    GLES20.glFinish()",
+            "    gl.readPixels(0, 0, 1, 1, 0, 0, buffer)",
+            "    target.updateTexImage()",
+            "    virtualDisplay.resize(1, 1, 1)",
+            "    surfaceTexture.setDefaultBufferSize(1, 1)",
+            "    resource.close()",
+            "    closeRuntimeResources(true)",
+            "    harmlessLookingHelper()",
+            "    commit()",
+            "}",
+        ).joinToString(separator = "\n").withoutKotlinCommentsAndStrings()
+
+        runtimeParameterCommitBridgeForbiddenPatterns.forEach { pattern ->
+            assertTrue(
+                "Runtime parameter bridge guard did not catch ${pattern.description}.",
+                pattern.regex.containsMatchIn(executableContent),
+            )
+        }
+        val violations = runtimeParameterCommitBridgeBoundaryViolations(executableContent)
+        assertTrue(
+            "Runtime parameter bridge guard did not catch unallowlisted helper calls.",
+            violations.any { violation -> violation.contains("unallowlisted call: harmlessLookingHelper(") },
+        )
+        assertTrue(
+            "Runtime parameter bridge guard allowed a helper named like an allowed receiver call.",
+            violations.any { violation -> violation.contains("unallowlisted call: commit(") },
+        )
+    }
+
+    @Test
+    fun runtimeParameterAtomicApplyHelperGuardCatchesHiddenHeavyWork() {
+        val executableContent = listOf(
+            "package synthetic",
+            "internal fun forbidden() {",
+            "    outputPlanPreparer.prepareOutputPlan(request)",
+            "    encoderPrepare.prepare(token, provider, request)",
+            "    frameRenderer.renderReadback(request)",
+            "    target.updateTexImage()",
+            "    virtualDisplay.setSurface(surface)",
+            "    candidate.close()",
+            "    scheduleStartupCleanup(scheduler, sink) {}",
+            "    harmlessLookingHelper()",
+            "}",
+        ).joinToString(separator = "\n").withoutKotlinCommentsAndStrings()
+
+        val violations = runtimeParameterAtomicApplyHelperBoundaryViolations(executableContent)
+
+        assertTrue(violations.any { violation -> violation.contains("output-plan preparation") })
+        assertTrue(violations.any { violation -> violation.contains("encoder preparation") })
+        assertTrue(violations.any { violation -> violation.contains("render/readback work") })
+        assertTrue(violations.any { violation -> violation.contains("frame consumption") })
+        assertTrue(violations.any { violation -> violation.contains("retarget platform call") })
+        assertTrue(violations.any { violation -> violation.contains("cleanup or close") })
+        assertTrue(
+            violations.any { violation -> violation.contains("unallowlisted call: harmlessLookingHelper(") },
         )
     }
 
@@ -1208,6 +1760,35 @@ class RuntimeBoundaryStaticGuardTest {
         error("Function $functionName body is not closed.")
     }
 
+    private fun runtimeParameterCommitBridgeBoundaryViolations(bridgeBody: String): List<String> {
+        val forbiddenMatches = runtimeParameterCommitBridgeForbiddenPatterns.flatMap { pattern ->
+            pattern.regex.findAll(bridgeBody).map { match -> "${pattern.description}: ${match.value}" }
+        }
+        val unallowlistedCalls = executableCallsIn(bridgeBody)
+            .filterNot { call -> call in runtimeParameterCommitBridgeAllowedCalls }
+            .map { call -> "unallowlisted call: $call(" }
+
+        return forbiddenMatches + unallowlistedCalls
+    }
+
+    private fun runtimeParameterAtomicApplyHelperBoundaryViolations(helperBody: String): List<String> {
+        val forbiddenMatches = runtimeParameterAtomicApplyHelperForbiddenPatterns.flatMap { pattern ->
+            pattern.regex.findAll(helperBody).map { match -> "${pattern.description}: ${match.value}" }
+        }
+        val unallowlistedCalls = executableCallsIn(helperBody)
+            .filterNot { call -> call in runtimeParameterAtomicApplyHelperAllowedCalls }
+            .map { call -> "unallowlisted call: $call(" }
+
+        return forbiddenMatches + unallowlistedCalls
+    }
+
+    private fun executableCallsIn(executableContent: String): List<String> =
+        Regex("""(?<![\w.])((?:[A-Za-z_][A-Za-z0-9_]*\s*(?:\?\.|\.)\s*)?[A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|\{)""")
+            .findAll(executableContent)
+            .map { match -> match.groupValues[1].replace(Regex("""\s+"""), "") }
+            .filterNot { call -> call in kotlinControlCallNames }
+            .toList()
+
     private data class BoundaryPattern(
         val description: String,
         val regex: Regex,
@@ -1232,8 +1813,11 @@ class RuntimeBoundaryStaticGuardTest {
         val expression: String,
     )
 
+    @Suppress("unused") // Entries are consumed as classification values in the guards above.
     private enum class RuntimeFileRole {
         ActiveSessionIntegration,
+        DormantFoundation,
+        DormantMechanicalPlatformLeaf,
         PlatformLifecycleSupport,
         ProjectionTargetOwner,
         RuntimeProduction,
@@ -1250,11 +1834,271 @@ class RuntimeBoundaryStaticGuardTest {
             RuntimeFileRole.StartupRuntimeHandoff,
         )
 
+        private val dormantFoundationPaths = setOf(
+            "control/ControllerEvidence.kt",
+            "control/ControllerIdentity.kt",
+            "control/ControllerIngress.kt",
+            "control/CommittedRevisions.kt",
+            "control/ControlSequenceAllocator.kt",
+            "control/PacingState.kt",
+            "control/ParameterTransaction.kt",
+            "control/ProductionAttemptOutcomeSlot.kt",
+            "control/ReconfigurationArbiter.kt",
+            "control/TargetRetrySchedule.kt",
+            "control/ControllerSnapshot.kt",
+            "control/ControllerSnapshotStore.kt",
+            "control/ControllerTargetSnapshot.kt",
+            "control/ControllerDirectFact.kt",
+            "control/ControllerGeometryAccumulator.kt",
+            "control/ControllerState.kt",
+            "control/ControllerPreparedTurn.kt",
+            "diagnostics/DiagnosticMessageSanitizer.kt",
+            "encoding/DescriptorSyntax.kt",
+            "encoding/LiveProviderDescriptorLedger.kt",
+            "encoding/storage/ImmutableEncodedPayload.kt",
+            "encoding/storage/LatestEncodedPayloadSlot.kt",
+            "encoding/storage/SegmentedEncodedSink.kt",
+            "operation/OperationRecord.kt",
+            "operation/UnresolvedPredecessorLedger.kt",
+            "operation/WorkIdentity.kt",
+            "planning/BaselineOutputPlan.kt",
+            "planning/BaselineOutputPlanner.kt",
+            "planning/CheckedArithmetic.kt",
+            "planning/MemoryPlanning.kt",
+            "planning/ShaderPrecisionBounds.kt",
+            "policy/ScreenCaptureEnginePolicyDefaults.kt",
+        )
+
+        private val dormantMechanicalPlatformLeafPaths = setOf(
+            "EngineAdmission.kt",
+            "platform/metrics/SessionMetricsCollector.kt",
+            "platform/metrics/SessionMetricsFact.kt",
+        )
+
+        private val dormantSnapshotBoundaryNames = setOf(
+            "NormalizedOutputValues",
+            "NormalizedSourceRegion",
+            "NormalizedCrop",
+            "NormalizedOutputSize",
+            "NormalizedContentMode",
+            "NormalizedRotation",
+            "NormalizedMirror",
+            "NormalizedColorMode",
+            "NormalizedFrameRate",
+            "ControllerProviderReference",
+            "ControllerDesiredSnapshot",
+            "ControllerCandidateSnapshot",
+            "ControllerEffectiveSnapshot",
+            "ControllerParameterClassification",
+            "ControllerParameterClassifier",
+            "ControllerTargetSnapshot",
+            "TargetAssignmentEvidence",
+            "TargetHealthEvidence",
+            "TargetRetention",
+            "TargetReplacementReason",
+            "ControllerCandidateOwnership",
+            "ControllerCandidatePrevalidation",
+            "ControllerCurrentCandidatePrevalidation",
+            "CandidateDispositionTrigger",
+            "CandidateDispositionAction",
+            "ControllerCandidateDispositionPrevalidation",
+            "ControllerTerminalCandidateDispositionPrevalidation",
+            "ControllerCandidateCommitPrevalidation",
+            "ControllerCleanupOwnership",
+            "ControllerPreparationQuarantineOwnership",
+            "CandidateOwnershipAdmission",
+            "CandidateCommitDisposition",
+            "QuarantineReturnDisposition",
+            "CleanupTransitionDisposition",
+            "ActiveOwnerReturnDisposition",
+            "TerminalOwnershipDisposition",
+            "CandidateDispositionOutcome",
+            "ControllerTargetAcknowledgementPrevalidation",
+            "TargetAcknowledgementDisposition",
+            "ControllerSnapshotOwnershipView",
+            "ControllerSnapshotStore",
+        )
+
+        private val dormantTypedLedgerNames = setOf(
+            "ProviderDescriptorRetentionRole",
+            "ProviderDescriptorRetentionToken",
+            "ProviderDescriptorReserveResult",
+            "ProviderDescriptorForkResult",
+            "ProviderDescriptorRecordResult",
+            "LiveProviderDescriptorSnapshot",
+            "LiveProviderDescriptorLedger",
+        )
+
+        private val controllerProtocolPaths = setOf(
+            "control/ControllerEvidence.kt",
+            "control/ControllerIdentity.kt",
+            "control/ControllerIngress.kt",
+            "control/ParameterTransaction.kt",
+            "control/ReconfigurationArbiter.kt",
+            "control/ControllerDirectFact.kt",
+            "control/ControllerGeometryAccumulator.kt",
+            "control/ControllerState.kt",
+            "control/ControllerPreparedTurn.kt",
+        )
+
+        private val dormantPlanningStoragePaths = setOf(
+            "encoding/storage/ImmutableEncodedPayload.kt",
+            "encoding/storage/LatestEncodedPayloadSlot.kt",
+            "encoding/storage/SegmentedEncodedSink.kt",
+            "planning/BaselineOutputPlan.kt",
+            "planning/BaselineOutputPlanner.kt",
+            "planning/MemoryPlanning.kt",
+            "planning/ShaderPrecisionBounds.kt",
+        )
+
+        private val dormantNewPlanningPaths = setOf(
+            "planning/BaselineOutputPlan.kt",
+            "planning/BaselineOutputPlanner.kt",
+            "planning/CheckedArithmetic.kt",
+            "planning/MemoryPlanning.kt",
+            "planning/ShaderPrecisionBounds.kt",
+        )
+
+        private val legacyPlanningPaths = setOf(
+            "planning/RuntimeParameterUpdateClassifier.kt",
+            "planning/ScreenCaptureOutputPlanner.kt",
+        )
+
+        private val dormantFoundationAllowedPublicImports = mapOf(
+            "control/ControllerSnapshot.kt" to setOf(
+                "import dev.dmkr.screencaptureengine.ColorMode",
+                "import dev.dmkr.screencaptureengine.ContentMode",
+                "import dev.dmkr.screencaptureengine.CropInsetsPx",
+                "import dev.dmkr.screencaptureengine.FrameRate",
+                "import dev.dmkr.screencaptureengine.ImageEncoderProvider",
+                "import dev.dmkr.screencaptureengine.Mirror",
+                "import dev.dmkr.screencaptureengine.OutputSize",
+                "import dev.dmkr.screencaptureengine.Rotation",
+                "import dev.dmkr.screencaptureengine.ScreenCaptureParameters",
+                "import dev.dmkr.screencaptureengine.SourceRegion",
+            ),
+            "control/ControllerTargetSnapshot.kt" to setOf(
+                "import dev.dmkr.screencaptureengine.Size",
+            ),
+            "encoding/storage/SegmentedEncodedSink.kt" to setOf(
+                "import dev.dmkr.screencaptureengine.EncodedImageSink",
+            ),
+            "planning/BaselineOutputPlan.kt" to setOf(
+                "import dev.dmkr.screencaptureengine.ImageRect",
+                "import dev.dmkr.screencaptureengine.Size",
+            ),
+            "planning/BaselineOutputPlanner.kt" to setOf(
+                "import dev.dmkr.screencaptureengine.ContentMode",
+                "import dev.dmkr.screencaptureengine.CropInsetsPx",
+                "import dev.dmkr.screencaptureengine.ImageRect",
+                "import dev.dmkr.screencaptureengine.Rotation",
+                "import dev.dmkr.screencaptureengine.Size",
+                "import dev.dmkr.screencaptureengine.SourceRegion",
+            ),
+        )
+
+        private val newPlanningSimpleNamePattern = Regex(
+            """\b(?:BaselineOutputPlan|SamplingDemand|PositiveRatio|BaselineOutputPlanFact|""" +
+                    """RequestNonrepresentability|BaselineDeviceLimits|BaselineCapabilityFact|""" +
+                    """BaselineDeviceLimit|BaselineOutputPlanner|CheckedArithmetic|CheckedLongFact|""" +
+                    """CheckedIntFact|MemoryFootprint|ReplacementMemoryEstimate|MemoryRuntimeEvidence|""" +
+                    """MemoryHeadroom|MemoryFootprintFact|ReplacementMemoryFact|MemoryHeadroomFact|""" +
+                    """MemoryAdmissionFact|MemoryAdmissionDenial|MemoryPlanning|CoordinatePrecisionEvidence|""" +
+                    """ShaderPrecisionEvidence|ShaderPrecisionErrorBounds|ShaderPrecisionFact|""" +
+                    """ShaderPrecisionBounds)\b""",
+        )
+
+        private val legacyPlanningSimpleNamePattern = Regex(
+            """\b(?:ScreenCaptureOutputPlanner|RuntimeParameterUpdateClassifier)\b""",
+        )
+
+        private val publicRootImportPattern = Regex(
+            """(?m)^\s*import\s+dev\.dmkr\.screencaptureengine\.(?!internal(?:\.|\b))[^\r\n]+""",
+        )
+
+        private val dormantPlanningStorageForbiddenPatterns = listOf(
+            BoundaryPattern(
+                description = "old or future active authority",
+                regex = Regex(
+                    """\bdev\.dmkr\.screencaptureengine\.internal\.""" +
+                            """(?:lifecycle|startup|session|target|gl|rendering|platform|runtime|control|""" +
+                            """encoding\.(?:provider|runtime))(?:\.|\b)""",
+                ),
+            ),
+        )
+
+        private val dormantPlanningToStoragePattern = BoundaryPattern(
+            description = "planning-to-storage coupling",
+            regex = Regex(
+                """\bdev\.dmkr\.screencaptureengine\.internal\.encoding\.storage(?:\.|\b)""",
+            ),
+        )
+
+        private val dormantStorageToPlanningPattern = BoundaryPattern(
+            description = "storage-to-planning coupling other than checked arithmetic",
+            regex = Regex(
+                """\bdev\.dmkr\.screencaptureengine\.internal\.planning\.(?!""" +
+                        """CheckedArithmetic|CheckedLongFact|CheckedIntFact\b)""",
+            ),
+        )
+
+        private val dormantBaselineOptionalMechanismPattern = Regex(
+            """\b(?:PBO|Pbo|NativeJpeg|EarlyDownscale|DownscaledTarget|PreferredTarget)\w*\b""",
+        )
+
+        private val dormantFoundationForbiddenAuthorityPatterns = listOf(
+            BoundaryPattern(
+                description = "old lifecycle/startup/session authority",
+                regex = Regex(
+                    """\bdev\.dmkr\.screencaptureengine\.internal\.""" +
+                            """(?:lifecycle|startup|session)(?:\.|\b)""",
+                ),
+            ),
+            BoundaryPattern(
+                description = "public engine authority",
+                regex = Regex(
+                    """\bdev\.dmkr\.screencaptureengine\.(?!internal(?:\.|\b))(?:[A-Za-z_]|\*)""",
+                ),
+            ),
+        )
+
+        private val controllerProtocolForbiddenDependencyPatterns = listOf(
+            BoundaryPattern(
+                description = "controller protocol to facility or non-control implementation",
+                regex = Regex(
+                    """\bdev\.dmkr\.screencaptureengine\.internal\.""" +
+                            """(?:diagnostics|encoding|gl|lifecycle|operation|planning|platform|policy|""" +
+                            """rendering|runtime|session|startup|target)(?:\.|\b)""",
+                ),
+            ),
+            BoundaryPattern(
+                description = "controller protocol to Android, coroutine/Flow, or byte storage",
+                regex = Regex(
+                    """\b(?:android(?:\.|\b)|kotlinx\.coroutines(?:\.|\b)|java\.nio(?:\.|\b)|""" +
+                            """ByteArray\b|ByteBuffer\b|StateFlow\b|SharedFlow\b)""",
+                ),
+            ),
+        )
+
+        private val dormantFoundationReferencePattern = Regex(
+            """\bdev\.dmkr\.screencaptureengine\.internal\.(?:""" +
+                    """control(?:\.|\b)|diagnostics(?:\.|\b)|operation(?:\.|\b)|policy(?:\.|\b)|""" +
+                    """encoding\.(?:\*|DescriptorSyntax|EncodedFormatDescriptorSnapshot|""" +
+                    """ProviderDescriptorSnapshot|LiveProviderDescriptor(?:Ledger|Snapshot)|""" +
+                    """ProviderDescriptor(?:RetentionRole|RetentionToken|ReserveResult|ForkResult|RecordResult))|""" +
+                    """planning\.(?:\*|CheckedArithmetic|CheckedLongFact|CheckedIntFact|""" +
+                    """Baseline\w+|SamplingDemand|PositiveRatio|RequestNonrepresentability|""" +
+                    """Memory\w+|ReplacementMemory\w+|ShaderPrecision\w+|""" +
+                    """CoordinatePrecisionEvidence)|""" +
+                    """encoding\.storage(?:\.|\b))""",
+        )
+
         private val runtimeFileClassifications = mapOf(
             "DefaultScreenCaptureEngine.kt" to RuntimeFileRole.ActiveSessionIntegration,
-            "encoding/provider/FrameworkBitmapCompressJpegEncoder.kt" to RuntimeFileRole.RuntimeProduction,
+            "encoding/jpeg/FrameworkJpegEncoder.kt" to RuntimeFileRole.RuntimeProduction,
             "encoding/runtime/EncodedAttemptScratch.kt" to RuntimeFileRole.RuntimeProduction,
             "lifecycle/ActiveRuntimeOwner.kt" to RuntimeFileRole.ActiveSessionIntegration,
+            "lifecycle/RuntimeEncodeHardFailureTracker.kt" to RuntimeFileRole.RuntimeProduction,
             "platform/metrics/AndroidCaptureMetricsProvider.kt" to RuntimeFileRole.PlatformLifecycleSupport,
             "platform/metrics/CaptureMetricsObservation.kt" to RuntimeFileRole.StartupPreparation,
             "gl/CleanupFailure.kt" to RuntimeFileRole.PlatformLifecycleSupport,
@@ -1270,6 +2114,7 @@ class RuntimeBoundaryStaticGuardTest {
             "lifecycle/PlanPreparationToken.kt" to RuntimeFileRole.StartupPreparation,
             "lifecycle/PreActiveRuntimeOwner.kt" to RuntimeFileRole.StartupPreparation,
             "rendering/es2/PreparedEs2RenderingReadbackResources.kt" to RuntimeFileRole.StartupPreparation,
+            "rendering/pipeline/OutputPlanPreparation.kt" to RuntimeFileRole.StartupPreparation,
             "rendering/pipeline/PreparedRenderingPipelineResources.kt" to RuntimeFileRole.StartupPreparation,
             "platform/projection/ProjectionStopArbiter.kt" to RuntimeFileRole.ActiveSessionIntegration,
             "target/ProjectionTargetOwner.kt" to RuntimeFileRole.ProjectionTargetOwner,
@@ -1291,11 +2136,13 @@ class RuntimeBoundaryStaticGuardTest {
             "platform/projection/StartupResourceFacades.kt" to RuntimeFileRole.StartupPreparation,
             "startup/StartupRuntimeSignalMailbox.kt" to RuntimeFileRole.StartupPreparation,
             "platform/projection/VirtualDisplayOwner.kt" to RuntimeFileRole.StartupPreparation,
+            "planning/RuntimeParameterUpdateClassifier.kt" to RuntimeFileRole.StartupPreparation,
             "planning/ScreenCaptureOutputPlanner.kt" to RuntimeFileRole.StartupPreparation,
             "session/core/ScreenCaptureSessionCore.kt" to RuntimeFileRole.ActiveSessionIntegration,
             "session/delivery/ScreenCaptureFrameDeliveryCoordinator.kt" to RuntimeFileRole.ActiveSessionIntegration,
             "session/delivery/ScreenCaptureFrameDeliveryDispatcher.kt" to RuntimeFileRole.ActiveSessionIntegration,
-        )
+        ) + dormantFoundationPaths.associateWith { RuntimeFileRole.DormantFoundation } +
+                dormantMechanicalPlatformLeafPaths.associateWith { RuntimeFileRole.DormantMechanicalPlatformLeaf }
 
         private val broadDirectGlesAdapterPaths = setOf(
             "gl/Gles20Api.kt",
@@ -1341,6 +2188,7 @@ class RuntimeBoundaryStaticGuardTest {
             "rendering/es2/Es2RenderingPipelinePreparer.kt",
             "lifecycle/InitialRuntimeHandoffGate.kt",
             "lifecycle/PreActiveRuntimeOwner.kt",
+            "rendering/pipeline/OutputPlanPreparation.kt",
             "rendering/pipeline/PreparedRenderingPipelineResources.kt",
             "target/ProjectionTargetOwner.kt",
             "target/StartupRenderingGlAccess.kt",
@@ -1435,6 +2283,135 @@ class RuntimeBoundaryStaticGuardTest {
             regexPattern("encoded frame publication", Regex("""\bpublishEncodedFrame\s*\(""")),
             regexPattern("frame publication", Regex("""\bpublishFrame\s*\(""")),
             regexPattern("conservative generic publication call", Regex("""\.\s*publish\s*\(""")),
+        )
+
+        private val runtimeParameterCommitBridgeForbiddenPatterns = listOf(
+            regexPattern(
+                "cancellable suspension or coroutine context check",
+                Regex(
+                    """\b(?:currentCoroutineContext|ensureActive|yield|delay|withTimeout|""" +
+                            """suspendCancellableCoroutine|suspendCoroutine)\s*\(""",
+                ),
+            ),
+            regexPattern(
+                "dispatcher hop or coroutine launch",
+                Regex("""\b(?:withContext|async|launch|runBlocking)\s*\("""),
+            ),
+            regexPattern("coroutine or latch await", Regex("""\.\s*await\s*\(""")),
+            regexPattern("thread join", Regex("""\.\s*join\s*\(""")),
+            regexPattern(
+                "blocking wait, sleep, park, or future get",
+                Regex(
+                    """\b(?:CountDownLatch|CyclicBarrier|Semaphore|Future)\b|""" +
+                            """\bThread\s*\.\s*sleep\s*\(|\bLockSupport\s*\.\s*park\w*\s*\(|\.\s*get\s*\(""",
+                ),
+            ),
+            regexPattern(
+                "provider, encoder, GL, or readback work",
+                Regex(
+                    """\b(?:ImageEncoderPreparer|ProviderPreparationContext|RenderingPipelinePreparer|""" +
+                            """prepare[A-Za-z0-9_]*|provider|Provider|encoder|Encoder|readback|Readback|""" +
+                            """GLES|gl[A-Z]\w*|RuntimeEs2FrameRenderer|updateTexImage|""" +
+                            """getTransformMatrix|readPixels)\b""",
+                ),
+            ),
+            regexPattern(
+                "retarget platform call",
+                Regex("""\b(?:resize|setSurface|setDefaultBufferSize|createVirtualDisplay|release)\s*\("""),
+            ),
+            regexPattern(
+                "cleanup, close, or resource retirement",
+                Regex(
+                    """\.\s*close\s*\(|\bclose[A-Za-z0-9_]*\s*\(|""" +
+                            """\b(?:cleanup|Cleanup)\b|\b(?:release|retire)[A-Za-z0-9_]*\s*\(""",
+                ),
+            ),
+        )
+
+        private val runtimeParameterCommitBridgeAllowedCalls = setOf(
+            "synchronized",
+            "beforeRuntimeParameterCommitOwnerLockForTesting?.invoke",
+            "beforeRuntimeParameterCommitBridgeForTesting?.invoke",
+            "checkNotNull",
+            "classifyRuntimeParameterUpdateLocked",
+            "runtimeFrameLoop.pauseProductionAdmission",
+            "commitGate.commit",
+            "runtimeTerminalRejectionLocked",
+            "applyRuntimeParameterUpdateClassificationLocked",
+            "also",
+            "runtimeFrameLoop.resumeProductionAdmission",
+        )
+
+        private val runtimeParameterAtomicApplyHelperNames = setOf(
+            "applyRuntimeParameterUpdateClassificationLocked",
+            "applyRuntimeFullOutputPlanUpdateLocked",
+            "applyRuntimeProviderOnlyUpdateLocked",
+            "applyRuntimeFrameRateOnlyUpdateLocked",
+        )
+
+        private val runtimeParameterAtomicApplyHelperForbiddenPatterns = listOf(
+            regexPattern(
+                "cancellable suspension or dispatcher hop",
+                Regex(
+                    """\b(?:currentCoroutineContext|ensureActive|yield|delay|withTimeout|withContext|""" +
+                            """async|launch|runBlocking|suspendCancellableCoroutine|suspendCoroutine)\s*\(""",
+                ),
+            ),
+            regexPattern(
+                "blocking wait",
+                Regex(
+                    """\.\s*(?:await|join|get)\s*\(|\bThread\s*\.\s*sleep\s*\(|""" +
+                            """\bLockSupport\s*\.\s*park\w*\s*\(""",
+                ),
+            ),
+            regexPattern("output-plan preparation", Regex("""\bprepareOutputPlan\s*\(""")),
+            regexPattern("encoder preparation", Regex("""\b(?:encoderPrepare|ImageEncoderPreparer)\b|\.\s*prepare\s*\(""")),
+            regexPattern("render/readback work", Regex("""\b(?:renderReadback|readPixels|glReadPixels)\s*\(""")),
+            regexPattern("frame consumption", Regex("""\b(?:updateTexImage|getTransformMatrix|consumeLatestFrame)\s*\(""")),
+            regexPattern(
+                "retarget platform call",
+                Regex("""\b(?:resize|setSurface|setDefaultBufferSize|createVirtualDisplay|createTarget|bindTarget)\s*\("""),
+            ),
+            regexPattern(
+                "cleanup or close",
+                Regex("""\.\s*close\s*\(|\b(?:scheduleStartupCleanup|closeRuntimeResources|retireGlResources)\s*\("""),
+            ),
+        )
+
+        private val runtimeParameterAtomicApplyHelperAllowedCalls = setOf(
+            "RuntimeParameterCommitBridgeOutcome",
+            "ScreenCaptureParameterUpdateResult.Rejected",
+            "applyRuntimeFrameRateOnlyUpdateLocked",
+            "applyRuntimeProviderOnlyUpdateLocked",
+            "applyRuntimeFullOutputPlanUpdateLocked",
+            "unavailableRuntimeParameterUpdate",
+            "core.newProblem",
+            "runtimeFrameLoop.pauseProductionAdmission",
+            "checkNotNull",
+            "core.currentOutputGeneration",
+            "candidate.planPreparationToken.consumeForHandoff",
+            "Math.addExact",
+            "classification.candidatePlan.toEffectiveParameters",
+            "candidate.moveToActiveRuntimeOwner",
+            "clearRetainedPeriodicRefreshStateLocked",
+            "core.updateOutputActive",
+            "check",
+            "isRuntimeWorkInFlightLocked",
+            "resources.replaceEncoderResourcesOnly",
+            "candidate.markCommitted",
+            "encodeHardFailureTracker.reset",
+        )
+
+        private val kotlinControlCallNames = setOf(
+            "catch",
+            "do",
+            "else",
+            "finally",
+            "for",
+            "if",
+            "try",
+            "when",
+            "while",
         )
 
         private val sessionCoreUsePatterns = listOf(

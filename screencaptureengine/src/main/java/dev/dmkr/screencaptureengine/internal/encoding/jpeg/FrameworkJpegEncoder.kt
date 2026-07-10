@@ -1,4 +1,4 @@
-package dev.dmkr.screencaptureengine.internal.encoding.provider
+package dev.dmkr.screencaptureengine.internal.encoding.jpeg
 
 import android.graphics.Bitmap
 import dev.dmkr.screencaptureengine.EncodedImageFormats
@@ -14,8 +14,13 @@ import dev.dmkr.screencaptureengine.JpegEncoderBackend
 import java.io.OutputStream
 import java.nio.ByteBuffer
 
-internal fun createFrameworkBitmapCompressEncoder(request: ImageEncoderRequest, quality: Int): ImageEncoder {
-    validateRequestForFrameworkBackend(request)
+@Suppress("UseKtx") // This module intentionally has no core-ktx dependency for one Bitmap allocation.
+internal fun createFrameworkJpegEncoder(
+    request: ImageEncoderRequest,
+    quality: Int,
+    compress: (bitmap: Bitmap, quality: Int, output: OutputStream) -> Boolean = ::compressFrameworkJpeg,
+): ImageEncoder {
+    validateFrameworkJpegRequest(request)
     val requiredByteCount = checkedRequiredByteCount(
         height = request.height,
         rowStrideBytes = request.rowStrideBytes,
@@ -24,38 +29,35 @@ internal fun createFrameworkBitmapCompressEncoder(request: ImageEncoderRequest, 
     if (requiredByteCount > Int.MAX_VALUE) {
         throw ImageEncoderUnavailableException("Framework JPEG raw input byte span exceeds ByteBuffer limits.", null)
     }
-    val pixelCount = checkedMultiplyLong(request.width.toLong(), request.height.toLong())
-        ?: throw ImageEncoderUnavailableException("Framework JPEG pixel count overflowed.", null)
-    if (pixelCount > Int.MAX_VALUE) {
-        throw ImageEncoderUnavailableException("Framework JPEG pixel count exceeds supported retained scratch size.", null)
-    }
 
     var bitmap: Bitmap? = null
-    return try {
-        val argbPixels = allocateFrameworkJpegResource("Framework JPEG ARGB scratch allocation failed.") {
-            IntArray(pixelCount.toInt())
-        }
-        val createdBitmap = allocateFrameworkJpegResource("Framework JPEG bitmap allocation failed.") {
-            Bitmap.createBitmap(request.width, request.height, Bitmap.Config.ARGB_8888)
-        }
+    var prepared = false
+    try {
+        val rowPixels = IntArray(request.width)
+        val createdBitmap = Bitmap.createBitmap(request.width, request.height, Bitmap.Config.ARGB_8888)
         bitmap = createdBitmap
         createdBitmap.setHasAlpha(false)
-        FrameworkBitmapCompressJpegEncoder(
+        val encoder = FrameworkJpegEncoder(
             request = request,
             quality = quality,
             bitmap = createdBitmap,
-            argbPixels = argbPixels,
+            rowPixels = rowPixels,
+            compress = compress,
         )
-    } catch (throwable: Throwable) {
-        bitmap?.recycle()
-        if (throwable is ImageEncoderUnavailableException) {
-            throw throwable
+        prepared = true
+        return encoder
+    } catch (exception: ImageEncoderUnavailableException) {
+        throw exception
+    } catch (exception: Exception) {
+        throw ImageEncoderUnavailableException("Framework JPEG backend preparation failed.", exception)
+    } finally {
+        if (!prepared) {
+            bitmap?.recycle()
         }
-        throw ImageEncoderUnavailableException("Framework JPEG backend preparation failed.", throwable)
     }
 }
 
-private fun validateRequestForFrameworkBackend(request: ImageEncoderRequest) {
+private fun validateFrameworkJpegRequest(request: ImageEncoderRequest) {
     if (request.inputFormat != ImageEncoderInputFormat.Rgba8888SrgbOpaque) {
         throw ImageEncoderUnavailableException("Framework JPEG requires RGBA8888 sRGB opaque input.", null)
     }
@@ -64,13 +66,12 @@ private fun validateRequestForFrameworkBackend(request: ImageEncoderRequest) {
     }
 }
 
-private const val RGBA_8888_BYTES_PER_PIXEL: Long = 4L
-
-private class FrameworkBitmapCompressJpegEncoder(
+private class FrameworkJpegEncoder(
     request: ImageEncoderRequest,
     private val quality: Int,
     private val bitmap: Bitmap,
-    private val argbPixels: IntArray,
+    private val rowPixels: IntArray,
+    private val compress: (bitmap: Bitmap, quality: Int, output: OutputStream) -> Boolean,
 ) : ImageEncoder {
     private val lock = Any()
     private var closed = false
@@ -99,27 +100,20 @@ private class FrameworkBitmapCompressJpegEncoder(
                 return@synchronized ImageEncodeResult.Failed(message, null)
             }
 
-            try {
-                copyRgbaToOpaqueArgb(input.buffer)
-                bitmap.setPixels(argbPixels, 0, width, 0, 0, width, height)
-                val stream = EncodedImageSinkOutputStream(output)
-                val compressed = try {
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
-                } catch (throwable: Throwable) {
-                    val sinkFailure = stream.failure
-                    if (sinkFailure != null) {
-                        return@synchronized ImageEncodeResult.Failed("Framework JPEG sink write failed.", sinkFailure)
-                    }
-                    throw throwable
-                }
-                val streamFailure = stream.failure
-                when {
-                    streamFailure != null -> ImageEncodeResult.Failed("Framework JPEG sink write failed.", streamFailure)
-                    compressed -> ImageEncodeResult.Success
-                    else -> ImageEncodeResult.Failed("Framework JPEG compression failed.", null)
-                }
+            copyRowsToBitmap(input.buffer)
+            val stream = EncodedImageSinkOutputStream(output)
+            val compressed = try {
+                compress(bitmap, quality, stream)
             } catch (throwable: Throwable) {
-                ImageEncodeResult.Failed("Framework JPEG compression failed.", throwable)
+                stream.resultForSinkOutcome()?.let { result ->
+                    return@synchronized result
+                }
+                throw throwable
+            }
+
+            stream.resultForSinkOutcome() ?: when {
+                compressed -> ImageEncodeResult.Success
+                else -> ImageEncodeResult.Failed("Framework JPEG compression failed.", null)
             }
         }
 
@@ -151,18 +145,17 @@ private class FrameworkBitmapCompressJpegEncoder(
         return null
     }
 
-    private fun copyRgbaToOpaqueArgb(buffer: ByteBuffer) {
-        var destinationIndex = 0
+    private fun copyRowsToBitmap(buffer: ByteBuffer) {
         repeat(height) { y ->
             var sourceIndex = y * rowStrideBytes
-            repeat(width) {
-                val r = buffer.get(sourceIndex).toInt() and 0xFF
-                val g = buffer.get(sourceIndex + 1).toInt() and 0xFF
-                val b = buffer.get(sourceIndex + 2).toInt() and 0xFF
-                argbPixels[destinationIndex] = OPAQUE_ALPHA_MASK or (r shl 16) or (g shl 8) or b
-                destinationIndex += 1
+            repeat(width) { x ->
+                val red = buffer.get(sourceIndex).toInt() and 0xFF
+                val green = buffer.get(sourceIndex + 1).toInt() and 0xFF
+                val blue = buffer.get(sourceIndex + 2).toInt() and 0xFF
+                rowPixels[x] = OPAQUE_ALPHA_MASK or (red shl 16) or (green shl 8) or blue
                 sourceIndex += RGBA_8888_BYTES_PER_PIXEL_INT
             }
+            bitmap.setPixels(rowPixels, 0, width, 0, y, width, 1)
         }
     }
 }
@@ -171,8 +164,8 @@ private class EncodedImageSinkOutputStream(
     private val sink: EncodedImageSink,
 ) : OutputStream() {
     private val singleByte = ByteArray(1)
-    var failure: Throwable? = null
-        private set
+    private var rejected = false
+    private var failure: Throwable? = null
 
     override fun write(oneByte: Int) {
         singleByte[0] = oneByte.toByte()
@@ -180,35 +173,48 @@ private class EncodedImageSinkOutputStream(
     }
 
     override fun write(buffer: ByteArray, offset: Int, count: Int) {
-        val existingFailure = failure
-        if (existingFailure != null) {
-            throw EncodedImageSinkWriteException("Encoded sink was already rejected.", existingFailure)
+        if (failure != null) {
+            throw EncodedImageSinkWriteException("Encoded sink had already thrown.")
+        }
+        if (rejected) {
+            throw EncodedImageSinkWriteException("Encoded sink was already rejected.")
         }
 
-        try {
-            if (!sink.write(buffer, offset, count)) {
-                throw EncodedImageSinkWriteException("Encoded sink rejected framework JPEG bytes.", null)
-            }
+        val accepted = try {
+            sink.write(buffer, offset, count)
         } catch (throwable: Throwable) {
-            val failureToRecord = throwable as? EncodedImageSinkWriteException
-                ?: EncodedImageSinkWriteException("Encoded sink threw while writing framework JPEG bytes.", throwable)
-            failure = failureToRecord
-            throw failureToRecord
+            failure = throwable
+            throw EncodedImageSinkWriteException("Encoded sink threw while writing framework JPEG bytes.")
+        }
+        if (!accepted) {
+            rejected = true
+            throw EncodedImageSinkWriteException("Encoded sink rejected framework JPEG bytes.")
+        }
+    }
+
+    fun resultForSinkOutcome(): ImageEncodeResult? {
+        val sinkFailure = failure
+        if (sinkFailure != null) {
+            return if (sinkFailure is Exception) {
+                ImageEncodeResult.Failed("Framework JPEG sink write failed.", sinkFailure)
+            } else {
+                throw sinkFailure
+            }
+        }
+        return if (rejected) {
+            ImageEncodeResult.Failed("Framework JPEG sink write failed.", null)
+        } else {
+            null
         }
     }
 }
 
 private class EncodedImageSinkWriteException(
     message: String,
-    cause: Throwable?,
-) : RuntimeException(message, cause)
+) : RuntimeException(message)
 
-private inline fun <T> allocateFrameworkJpegResource(message: String, allocate: () -> T): T =
-    try {
-        allocate()
-    } catch (error: OutOfMemoryError) {
-        throw ImageEncoderUnavailableException(message, error)
-    }
+private fun compressFrameworkJpeg(bitmap: Bitmap, quality: Int, output: OutputStream): Boolean =
+    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)
 
 private fun checkedRequiredByteCount(height: Int, rowStrideBytes: Int, width: Int): Long? {
     val lastRowOffset = checkedMultiplyLong((height - 1).toLong(), rowStrideBytes.toLong()) ?: return null
@@ -230,5 +236,6 @@ private fun checkedAddLong(left: Long, right: Long): Long? =
         null
     }
 
+private const val RGBA_8888_BYTES_PER_PIXEL: Long = 4L
 private const val RGBA_8888_BYTES_PER_PIXEL_INT: Int = 4
 private const val OPAQUE_ALPHA_MASK: Int = -0x1000000

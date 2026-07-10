@@ -8,6 +8,7 @@ import dev.dmkr.screencaptureengine.EncodedImageFrame
 import dev.dmkr.screencaptureengine.FrameRate
 import dev.dmkr.screencaptureengine.FrameSubscription
 import dev.dmkr.screencaptureengine.ImageEncodeResult
+import dev.dmkr.screencaptureengine.ImageEncoderInfo
 import dev.dmkr.screencaptureengine.ImageEncoderInput
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
 import dev.dmkr.screencaptureengine.ScreenCaptureEffectiveParameters
@@ -22,32 +23,54 @@ import dev.dmkr.screencaptureengine.ScreenCaptureSessionState
 import dev.dmkr.screencaptureengine.ScreenCaptureStartException
 import dev.dmkr.screencaptureengine.ScreenCaptureStats
 import dev.dmkr.screencaptureengine.ScreenCaptureStopReason
+import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPreparationResult
+import dev.dmkr.screencaptureengine.internal.encoding.provider.PreparedImageEncoderResources
 import dev.dmkr.screencaptureengine.internal.encoding.runtime.EncodedAttemptScratch
 import dev.dmkr.screencaptureengine.internal.gl.CleanupFailureCollector
 import dev.dmkr.screencaptureengine.internal.gl.StartupCleanupFailureSink
 import dev.dmkr.screencaptureengine.internal.gl.StartupCleanupScheduler
 import dev.dmkr.screencaptureengine.internal.gl.scheduleStartupCleanup
+import dev.dmkr.screencaptureengine.internal.planning.OutputPlanningLimits
+import dev.dmkr.screencaptureengine.internal.planning.RuntimeParameterActiveSnapshot
+import dev.dmkr.screencaptureengine.internal.planning.RuntimeParameterOutputState
+import dev.dmkr.screencaptureengine.internal.planning.RuntimeParameterUpdateClassification
+import dev.dmkr.screencaptureengine.internal.planning.RuntimeParameterUpdateClassifier
+import dev.dmkr.screencaptureengine.internal.planning.RuntimeProjectionTargetIdentity
+import dev.dmkr.screencaptureengine.internal.planning.RuntimeProjectionTargetSemantics
 import dev.dmkr.screencaptureengine.internal.planning.ScreenCaptureOutputPlan
+import dev.dmkr.screencaptureengine.internal.planning.ScreenCaptureOutputPlanner
 import dev.dmkr.screencaptureengine.internal.platform.metrics.CaptureMetricsObservation
 import dev.dmkr.screencaptureengine.internal.platform.projection.MediaProjectionCallbackAdapter
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionCallbackRegistration
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionCapturedContentResize
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionTargetHandle
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionTargetOwnerHandle
+import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionTargetSnapshot
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionVirtualDisplayOwner
 import dev.dmkr.screencaptureengine.internal.platform.projection.StartupProjectionCallbackRouter
+import dev.dmkr.screencaptureengine.internal.rendering.es2.ImageEncoderPrepareOperation
 import dev.dmkr.screencaptureengine.internal.rendering.es2.RgbaReadbackLease
 import dev.dmkr.screencaptureengine.internal.rendering.es2.RuntimeEs2FrameRenderer
 import dev.dmkr.screencaptureengine.internal.rendering.es2.RuntimeEs2RenderReadbackRequest
 import dev.dmkr.screencaptureengine.internal.rendering.es2.RuntimeEs2RenderReadbackResult
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.ActiveRuntimeEncoderResourcesCandidate
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.ActiveRuntimePreparedRenderingPipelineResources
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.ActiveRuntimePreparedRenderingPipelineResourcesCandidate
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPrepareRequest
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPreparer
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.PlanRenderingAccess
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.PreparedRenderingPipelineComponents
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparationResult
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RetiredActiveRuntimeEncoderResources
 import dev.dmkr.screencaptureengine.internal.session.core.ProductionFrameDropKind
+import dev.dmkr.screencaptureengine.internal.session.core.ScreenCaptureParameterCommitGate
 import dev.dmkr.screencaptureengine.internal.session.core.ScreenCaptureSessionCore
 import dev.dmkr.screencaptureengine.internal.session.core.ScreenCaptureSessionTerminalCommit
 import dev.dmkr.screencaptureengine.internal.startup.StartupRuntimePendingSignals
 import dev.dmkr.screencaptureengine.internal.target.ProjectionTargetOwnerAbandonment
 import dev.dmkr.screencaptureengine.internal.target.RuntimeProjectionTargetGlAccess
 import dev.dmkr.screencaptureengine.internal.target.consumeLatestFrame
+import dev.dmkr.screencaptureengine.internal.target.snapshot
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -101,13 +124,30 @@ internal class ActiveRuntimeOwner internal constructor(
     private val readbackInFlight = AtomicBoolean()
     private val encoderInFlight = AtomicBoolean()
     private val terminalCleanupFence = AtomicReference<AutoCloseable?>(null)
+    private val parameterUpdateClassifier = RuntimeParameterUpdateClassifier(
+        ScreenCaptureOutputPlanner(
+            OutputPlanningLimits(
+                maxOutputPixels = transfer.config.maxOutputPixels,
+                maxEncodedBytes = transfer.config.maxEncodedBytes,
+            ),
+        ),
+    )
     private var materializedRuntimeWorkInFlight = false
     private val oesMatrixScratch = FloatArray(RUNTIME_MATRIX_ELEMENT_COUNT)
     private val composedTextureMatrixScratch = FloatArray(RUNTIME_MATRIX_ELEMENT_COUNT)
     private val startupPendingSignals = transfer.pendingSignals
     private var state = ActiveRuntimeOwnerState.Prepared
     private var activeResources: ActiveRuntimePreparedRenderingPipelineResources? = transfer.preparedRenderingPipelineResources
+    private var activeRequestedParameters: ScreenCaptureParameters? = null
+    private var activeOutputPlan: ScreenCaptureOutputPlan? = null
+    private var activeEffectiveParameters: ScreenCaptureEffectiveParameters? = null
+    private var activeOutputGeneration: Long? = null
+    private var runtimeParameterPlanToken = 0L
+    private var activeRuntimeParameterPreparationToken: PlanPreparationToken? = null
+    private var pendingRuntimeParameterProductionResume = false
     private var deferredActiveResourcesClose: ActiveRuntimePreparedRenderingPipelineResources? = null
+    private val deferredRetiredActiveResourcesClose = mutableListOf<ActiveRuntimePreparedRenderingPipelineResources>()
+    private val deferredRetiredEncoderResourcesClose = mutableListOf<RetiredActiveRuntimeEncoderResources>()
     private var deferredHeavyRuntimeClose = false
     private var virtualDisplayOwnerCloseScheduled = false
     private var projectionTargetOwnerCloseScheduled = false
@@ -122,8 +162,12 @@ internal class ActiveRuntimeOwner internal constructor(
     private var latestCapturedContentVisibleForInitialCommit: Boolean? = transfer.pendingSignals.latestCapturedContentVisible
     private var lastFrameRateAdmitNanos: Long? = null
     private var hasSuccessfulRuntimeSourceFrame = false
+    private val encodeHardFailureTracker = RuntimeEncodeHardFailureTracker<RuntimeEncodeHealthKey>(
+        threshold = RUNTIME_ENCODE_HARD_FAILURE_THRESHOLD,
+    )
     private var latestPeriodicRefreshFrame: PeriodicRefreshEncodedFrame? = null
     private var periodicRefreshFuture: ScheduledFuture<*>? = null
+    private var periodicRefreshScheduleToken = 0L
     private var periodicRefreshNoSourceWakeCount = 0L
     private var glOperationTimeoutMillis = RUNTIME_GL_OPERATION_TIMEOUT_MS
     private var encoderOperationTimeoutMillis = RUNTIME_ENCODER_OPERATION_TIMEOUT_MS
@@ -133,9 +177,15 @@ internal class ActiveRuntimeOwner internal constructor(
     private var beforeOwnerStopTerminalCommitForTesting: (() -> Unit)? = null
     private var beforeFinalEncodedPublicationForTesting: (() -> Unit)? = null
     private var beforeFinalPeriodicRefreshPublicationForTesting: (() -> Unit)? = null
+    private var beforePeriodicRefreshRetentionForTesting: (() -> Unit)? = null
+    private var beforePeriodicRefreshWakeEnqueueForTesting: (() -> Unit)? = null
+    private var afterPeriodicRefreshWakeEnqueueAttemptForTesting: (() -> Unit)? = null
+    private var beforeFrameRatePolicyAdmissionForTesting: (() -> Unit)? = null
     private var beforeFrameRatePolicyDropForTesting: (() -> Unit)? = null
     private var beforeRuntimeFailureTerminalCommitForTesting: (() -> Unit)? = null
     private var beforeEncodeNonSuccessDropForTesting: (() -> Unit)? = null
+    private var beforeRuntimeParameterCommitOwnerLockForTesting: (() -> Unit)? = null
+    private var beforeRuntimeParameterCommitBridgeForTesting: (() -> Unit)? = null
     private var ownerStopTerminalCommitted = false
     private var lateRenderReadbackLeaseReleaseCountForTesting = 0
     private var readbackBorrowedByEncoderObserverForTesting: ((Boolean) -> Unit)? = null
@@ -201,6 +251,9 @@ internal class ActiveRuntimeOwner internal constructor(
     internal fun lateRenderReadbackLeaseReleaseCountForTesting(): Int =
         synchronized(lock) { lateRenderReadbackLeaseReleaseCountForTesting }
 
+    internal fun currentOutputGenerationForTesting(): Long? =
+        synchronized(lock) { sessionCore?.currentOutputGeneration() }
+
     internal fun overrideEncoderOperationTimeoutForTesting(timeoutMillis: Long) {
         require(timeoutMillis > 0L) { "timeoutMillis must be positive, was $timeoutMillis" }
         encoderOperationTimeoutMillis = timeoutMillis
@@ -236,6 +289,22 @@ internal class ActiveRuntimeOwner internal constructor(
         beforeFinalPeriodicRefreshPublicationForTesting = callback
     }
 
+    internal fun setBeforePeriodicRefreshRetentionForTesting(callback: (() -> Unit)?) {
+        beforePeriodicRefreshRetentionForTesting = callback
+    }
+
+    internal fun setBeforePeriodicRefreshWakeEnqueueForTesting(callback: (() -> Unit)?) {
+        beforePeriodicRefreshWakeEnqueueForTesting = callback
+    }
+
+    internal fun setAfterPeriodicRefreshWakeEnqueueAttemptForTesting(callback: (() -> Unit)?) {
+        afterPeriodicRefreshWakeEnqueueAttemptForTesting = callback
+    }
+
+    internal fun setBeforeFrameRatePolicyAdmissionForTesting(callback: (() -> Unit)?) {
+        beforeFrameRatePolicyAdmissionForTesting = callback
+    }
+
     internal fun setBeforeFrameRatePolicyDropForTesting(callback: (() -> Unit)?) {
         beforeFrameRatePolicyDropForTesting = callback
     }
@@ -246,6 +315,14 @@ internal class ActiveRuntimeOwner internal constructor(
 
     internal fun setBeforeEncodeNonSuccessDropForTesting(callback: (() -> Unit)?) {
         beforeEncodeNonSuccessDropForTesting = callback
+    }
+
+    internal fun setBeforeRuntimeParameterCommitOwnerLockForTesting(callback: (() -> Unit)?) {
+        beforeRuntimeParameterCommitOwnerLockForTesting = callback
+    }
+
+    internal fun setBeforeRuntimeParameterCommitBridgeForTesting(callback: (() -> Unit)?) {
+        beforeRuntimeParameterCommitBridgeForTesting = callback
     }
 
     internal fun pendingSignalsSnapshot(): StartupRuntimePendingSignals =
@@ -315,15 +392,7 @@ internal class ActiveRuntimeOwner internal constructor(
                 output = ScreenCaptureOutputState.Active(effectiveParameters),
                 capturedContentVisible = initialCapturedContentVisible,
             ),
-            parameterUpdater = { _, _ ->
-                ScreenCaptureParameterUpdateResult.Rejected(
-                    problem = core.newProblem(
-                        kind = ScreenCaptureProblemKind.ParameterUpdateUnavailable,
-                        message = "Runtime parameter updates are not available for this engine session.",
-                        cause = null,
-                    ),
-                )
-            },
+            parameterUpdater = { parameters, commitGate -> updateRuntimeParameters(parameters, commitGate) },
             trimMemoryHandler = { trimEncodedScratch(scratch) },
             terminalCommitHandler = { terminalCommit ->
                 reserveTerminalCleanupFence()
@@ -338,6 +407,10 @@ internal class ActiveRuntimeOwner internal constructor(
             sessionCore = core
             publicSession = session
             encodedScratch = scratch
+            activeRequestedParameters = transfer.initialParameters
+            activeOutputPlan = transfer.initialOutputPlan
+            activeEffectiveParameters = effectiveParameters
+            activeOutputGeneration = core.currentOutputGeneration()
             state = ActiveRuntimeOwnerState.Committed
         }
         schedulePostCommitRuntimeSignalDrain(
@@ -351,13 +424,648 @@ internal class ActiveRuntimeOwner internal constructor(
         return session
     }
 
+    private suspend fun updateRuntimeParameters(
+        parameters: ScreenCaptureParameters,
+        commitGate: ScreenCaptureParameterCommitGate,
+    ): ScreenCaptureParameterUpdateResult {
+        val fullCandidate = when (val preparation = prepareFullRuntimeParameterUpdate(parameters)) {
+            RuntimeFullPreparation.NotNeeded -> null
+            is RuntimeFullPreparation.Rejected -> {
+                return commitRuntimeParameterPreparationRejection(
+                    rejection = preparation.result,
+                    commitGate = commitGate,
+                )
+            }
+
+            is RuntimeFullPreparation.Prepared -> preparation.candidate
+        }
+        val candidate = if (fullCandidate != null) {
+            null
+        } else {
+            when (val preparation = prepareProviderOnlyRuntimeParameterUpdate(parameters)) {
+                RuntimeProviderOnlyPreparation.NotNeeded -> null
+                is RuntimeProviderOnlyPreparation.Rejected -> {
+                    return commitRuntimeParameterPreparationRejection(
+                        rejection = preparation.result,
+                        commitGate = commitGate,
+                    )
+                }
+
+                is RuntimeProviderOnlyPreparation.Prepared -> preparation.candidate
+            }
+        }
+        return try {
+            commitRuntimeParameterUpdate(
+                parameters = parameters,
+                commitGate = commitGate,
+                candidate = candidate,
+                fullCandidate = fullCandidate,
+            )
+        } finally {
+            candidate?.let { rollbackCandidate ->
+                runCatching { rollbackCandidate.close() }
+                    .onFailure(::reportCleanupFailure)
+                clearRuntimeParameterPreparationToken(rollbackCandidate.planPreparationToken)
+            }
+            fullCandidate?.let { rollbackCandidate ->
+                runCatching { rollbackCandidate.close() }
+                    .onFailure(::reportCleanupFailure)
+                clearRuntimeParameterPreparationToken(rollbackCandidate.planPreparationToken)
+            }
+            closeDeferredRuntimeResourcesIfReady()
+        }
+    }
+
+    private suspend fun prepareFullRuntimeParameterUpdate(
+        parameters: ScreenCaptureParameters,
+    ): RuntimeFullPreparation {
+        val start = beginFullRuntimeParameterPreparation(parameters)
+            ?: return RuntimeFullPreparation.NotNeeded
+        val token = start.planPreparationToken
+        var preparedComponents: PreparedRenderingPipelineComponents? = null
+        return try {
+            currentCoroutineContext().ensureActive()
+            val result = start.outputPlanPreparer.prepareOutputPlan(
+                OutputPlanPrepareRequest(
+                    planPreparationToken = token,
+                    outputPlan = start.candidatePlan,
+                    projectionTarget = start.projectionTarget,
+                    projectionTargetHandle = transfer.currentProjectionTarget,
+                    planRenderingAccess = transfer.planRenderingAccess,
+                    encoderProvider = parameters.encoderProvider,
+                    abandonGlLaneOnTimeout = false,
+                ),
+            )
+            if (result is RenderingPipelinePreparationResult.Success) {
+                preparedComponents = result.components
+            }
+            currentCoroutineContext().ensureActive()
+            when (result) {
+                is RenderingPipelinePreparationResult.Failure -> {
+                    token.invalidate()
+                    clearRuntimeParameterPreparationToken(token)
+                    RuntimeFullPreparation.Rejected(
+                        ScreenCaptureParameterUpdateResult.Rejected(
+                            problem = start.core.newProblem(
+                                kind = result.failure.kind,
+                                message = result.failure.message,
+                                cause = result.failure.cause,
+                            ),
+                        ),
+                    )
+                }
+
+                RenderingPipelinePreparationResult.LifecycleStale -> {
+                    token.invalidate()
+                    clearRuntimeParameterPreparationToken(token)
+                    RuntimeFullPreparation.Rejected(unavailableRuntimeParameterUpdate(start.core))
+                }
+
+                is RenderingPipelinePreparationResult.Success -> RuntimeFullPreparation.Prepared(
+                    RuntimeFullOutputPlanCandidate(
+                        planPreparationToken = token,
+                        baseOutputGeneration = start.baseOutputGeneration,
+                        projectionTargetGeneration = start.projectionTarget.generation,
+                        candidatePlan = start.candidatePlan,
+                        resourcesCandidate = result.components.moveToActiveRuntimeCandidate(
+                            outputPlan = start.candidatePlan,
+                            projectionTarget = start.projectionTarget,
+                        ),
+                    ).also {
+                        preparedComponents = null
+                    },
+                )
+            }
+        } catch (cancellation: CancellationException) {
+            token.invalidate()
+            clearRuntimeParameterPreparationToken(token)
+            preparedComponents?.let { components ->
+                runCatching { components.close() }
+                    .onFailure(::reportCleanupFailure)
+            }
+            throw cancellation
+        } catch (cause: Throwable) {
+            token.invalidate()
+            clearRuntimeParameterPreparationToken(token)
+            preparedComponents?.let { components ->
+                runCatching { components.close() }
+                    .onFailure(::reportCleanupFailure)
+            }
+            throw cause
+        }
+    }
+
+    private fun beginFullRuntimeParameterPreparation(
+        parameters: ScreenCaptureParameters,
+    ): RuntimeFullPreparationStart? =
+        synchronized(lock) {
+            val core = sessionCore ?: return@synchronized null
+            if (runtimeTerminalRejectionLocked(core) != null) return@synchronized null
+            val classification = classifyRuntimeParameterUpdateLocked(parameters = parameters, core = core)
+            if (classification !is RuntimeParameterUpdateClassification.FullSameTargetReplacement) {
+                return@synchronized null
+            }
+            val outputPlanPreparer = transfer.outputPlanPreparer ?: return@synchronized null
+            val baseGeneration = activeOutputGeneration ?: return@synchronized null
+            runtimeParameterPlanToken = Math.addExact(runtimeParameterPlanToken, 1L)
+            check(activeRuntimeParameterPreparationToken == null) {
+                "A runtime parameter preparation token is already active."
+            }
+            val planPreparationToken = PlanPreparationToken(
+                ownerToken = this,
+                planToken = runtimeParameterPlanToken,
+                projectionTargetGeneration = transfer.currentProjectionTarget.generation,
+            )
+            activeRuntimeParameterPreparationToken = planPreparationToken
+            RuntimeFullPreparationStart(
+                core = core,
+                outputPlanPreparer = outputPlanPreparer,
+                planPreparationToken = planPreparationToken,
+                baseOutputGeneration = baseGeneration,
+                projectionTarget = transfer.currentProjectionTarget.snapshot(),
+                candidatePlan = classification.candidatePlan,
+            )
+        }
+
+    private suspend fun prepareProviderOnlyRuntimeParameterUpdate(
+        parameters: ScreenCaptureParameters,
+    ): RuntimeProviderOnlyPreparation {
+        val start = beginProviderOnlyRuntimeParameterPreparation(parameters)
+            ?: return RuntimeProviderOnlyPreparation.NotNeeded
+        val token = start.planPreparationToken
+        var preparedEncoderResources: PreparedImageEncoderResources? = null
+        return try {
+            currentCoroutineContext().ensureActive()
+            val result = transfer.encoderPrepare.prepare(
+                token = token,
+                provider = parameters.encoderProvider,
+                request = start.candidatePlan.encoderRequest,
+            )
+            if (result is ImageEncoderPreparationResult.Success) {
+                preparedEncoderResources = result.preparedEncoder
+            }
+            currentCoroutineContext().ensureActive()
+            when (result) {
+                is ImageEncoderPreparationResult.Failure -> {
+                    token.invalidate()
+                    clearRuntimeParameterPreparationToken(token)
+                    RuntimeProviderOnlyPreparation.Rejected(
+                        ScreenCaptureParameterUpdateResult.Rejected(
+                            problem = start.core.newProblem(
+                                kind = result.kind,
+                                message = result.message,
+                                cause = result.cause,
+                            ),
+                        ),
+                    )
+                }
+
+                is ImageEncoderPreparationResult.Success -> RuntimeProviderOnlyPreparation.Prepared(
+                    RuntimeProviderOnlyEncoderCandidate(
+                        planPreparationToken = token,
+                        baseOutputGeneration = start.baseOutputGeneration,
+                        projectionTargetGeneration = start.projectionTargetGeneration,
+                        candidatePlan = start.candidatePlan,
+                        encoderResourcesCandidate = ActiveRuntimeEncoderResourcesCandidate(result.preparedEncoder),
+                    ).also {
+                        preparedEncoderResources = null
+                    },
+                )
+            }
+        } catch (cancellation: CancellationException) {
+            token.invalidate()
+            clearRuntimeParameterPreparationToken(token)
+            preparedEncoderResources?.let { resources ->
+                runCatching { resources.close() }
+                    .onFailure(::reportCleanupFailure)
+            }
+            throw cancellation
+        } catch (cause: Throwable) {
+            token.invalidate()
+            clearRuntimeParameterPreparationToken(token)
+            preparedEncoderResources?.let { resources ->
+                runCatching { resources.close() }
+                    .onFailure(::reportCleanupFailure)
+            }
+            throw cause
+        }
+    }
+
+    private fun beginProviderOnlyRuntimeParameterPreparation(
+        parameters: ScreenCaptureParameters,
+    ): RuntimeProviderOnlyPreparationStart? =
+        synchronized(lock) {
+            val core = sessionCore ?: return@synchronized null
+            if (runtimeTerminalRejectionLocked(core) != null) return@synchronized null
+            val classification = classifyRuntimeParameterUpdateLocked(parameters = parameters, core = core)
+            if (classification !is RuntimeParameterUpdateClassification.ProviderOnlySameTarget) {
+                return@synchronized null
+            }
+            val baseGeneration = activeOutputGeneration ?: return@synchronized null
+            runtimeParameterPlanToken = Math.addExact(runtimeParameterPlanToken, 1L)
+            check(activeRuntimeParameterPreparationToken == null) {
+                "A runtime parameter preparation token is already active."
+            }
+            val planPreparationToken = PlanPreparationToken(
+                ownerToken = this,
+                planToken = runtimeParameterPlanToken,
+                projectionTargetGeneration = transfer.currentProjectionTarget.generation,
+            )
+            activeRuntimeParameterPreparationToken = planPreparationToken
+            RuntimeProviderOnlyPreparationStart(
+                core = core,
+                planPreparationToken = planPreparationToken,
+                baseOutputGeneration = baseGeneration,
+                projectionTargetGeneration = transfer.currentProjectionTarget.generation,
+                candidatePlan = classification.candidatePlan,
+            )
+        }
+
+    private fun clearRuntimeParameterPreparationToken(token: PlanPreparationToken) {
+        synchronized(lock) {
+            if (activeRuntimeParameterPreparationToken === token) {
+                activeRuntimeParameterPreparationToken = null
+            }
+        }
+    }
+
+    private fun commitRuntimeParameterPreparationRejection(
+        rejection: ScreenCaptureParameterUpdateResult.Rejected,
+        commitGate: ScreenCaptureParameterCommitGate,
+    ): ScreenCaptureParameterUpdateResult =
+        synchronized(lock) {
+            val core = sessionCore ?: return@synchronized rejection
+            commitGate.commit {
+                runtimeTerminalRejectionLocked(core) ?: rejection
+            }
+        }
+
+    private fun commitRuntimeParameterUpdate(
+        parameters: ScreenCaptureParameters,
+        commitGate: ScreenCaptureParameterCommitGate,
+        candidate: RuntimeProviderOnlyEncoderCandidate? = null,
+        fullCandidate: RuntimeFullOutputPlanCandidate? = null,
+    ): ScreenCaptureParameterUpdateResult {
+        var resumeProductionAdmissionAfterCommit = false
+        beforeRuntimeParameterCommitOwnerLockForTesting?.invoke()
+        val result = synchronized(lock) {
+            beforeRuntimeParameterCommitBridgeForTesting?.invoke()
+            val core = checkNotNull(sessionCore) { "Runtime parameter update has no committed session core." }
+            val initialClassification = classifyRuntimeParameterUpdateLocked(parameters = parameters, core = core)
+            var productionAdmissionPaused =
+                initialClassification is RuntimeParameterUpdateClassification.FrameRateOnly ||
+                        candidate != null || fullCandidate != null
+            if (productionAdmissionPaused) {
+                runtimeFrameLoop.pauseProductionAdmission()
+            }
+            try {
+                commitGate.commit {
+                    runtimeTerminalRejectionLocked(core)?.let { rejection -> return@commit rejection }
+                    applyRuntimeParameterUpdateClassificationLocked(
+                        parameters = parameters,
+                        core = core,
+                        classification = classifyRuntimeParameterUpdateLocked(parameters = parameters, core = core),
+                        productionAdmissionPaused = productionAdmissionPaused,
+                        candidate = candidate,
+                        fullCandidate = fullCandidate,
+                    ).also { outcome ->
+                        productionAdmissionPaused = outcome.productionAdmissionStillPaused
+                        resumeProductionAdmissionAfterCommit = outcome.resumeProductionAdmissionAfterCommit
+                    }.result
+                }
+            } finally {
+                if (productionAdmissionPaused) {
+                    resumeProductionAdmissionAfterCommit = true
+                }
+            }
+        }
+        if (resumeProductionAdmissionAfterCommit) {
+            runtimeFrameLoop.resumeProductionAdmission()
+        }
+        return result
+    }
+
+    private fun runtimeTerminalRejectionLocked(core: ScreenCaptureSessionCore): ScreenCaptureParameterUpdateResult.Rejected? {
+        if (state != ActiveRuntimeOwnerState.Committed || ownerStopTerminalCommitted) {
+            return ScreenCaptureParameterUpdateResult.Rejected(
+                problem = core.newProblem(
+                    kind = ScreenCaptureProblemKind.ProjectionInvalidOrStopped,
+                    message = "Session was stopped by its owner.",
+                    cause = null,
+                ),
+            )
+        }
+        val queuedPrePublicProjectionStop =
+            queuedPostCommitRuntimeSignalDrain?.pendingSignals?.projectionStopObserved == true
+        if (!queuedPrePublicProjectionStop && isProjectionStoppedLocked()) {
+            return ScreenCaptureParameterUpdateResult.Rejected(
+                problem = core.newProblem(
+                    kind = ScreenCaptureProblemKind.ProjectionInvalidOrStopped,
+                    message = "Screen capture projection stopped.",
+                    cause = null,
+                ),
+            )
+        }
+        return null
+    }
+
+    private fun classifyRuntimeParameterUpdateLocked(
+        parameters: ScreenCaptureParameters,
+        core: ScreenCaptureSessionCore,
+    ): RuntimeParameterUpdateClassification =
+        parameterUpdateClassifier.classify(
+            activeSnapshot = activeRuntimeParameterSnapshotLocked(core),
+            requestedParameters = parameters,
+        )
+
+    private fun activeRuntimeParameterSnapshotLocked(core: ScreenCaptureSessionCore): RuntimeParameterActiveSnapshot {
+        val requestedParameters = checkNotNull(activeRequestedParameters) { "Active requested parameters are missing." }
+        val outputPlan = checkNotNull(activeOutputPlan) { "Active output plan is missing." }
+        val effectiveParameters = checkNotNull(activeEffectiveParameters) { "Active effective parameters are missing." }
+        val running = core.state.value as? ScreenCaptureSessionState.Running
+        val outputState = when (running?.output) {
+            is ScreenCaptureOutputState.Active -> RuntimeParameterOutputState.Active
+            is ScreenCaptureOutputState.Suspended -> RuntimeParameterOutputState.Suspended
+            null -> RuntimeParameterOutputState.Suspended
+        }
+        val currentGeometry = when (val output = running?.output) {
+            is ScreenCaptureOutputState.Suspended -> output.currentCaptureGeometry
+            else -> outputPlan.captureGeometry
+        }
+        return RuntimeParameterActiveSnapshot(
+            outputState = outputState,
+            currentRequestedParameters = requestedParameters,
+            currentOutputPlan = outputPlan,
+            currentEffectiveParameters = effectiveParameters,
+            currentCaptureGeometry = currentGeometry,
+            currentCaptureGeometryGeneration = transfer.currentProjectionTarget.generation,
+            currentProjectionTarget = RuntimeProjectionTargetIdentity(
+                width = transfer.currentProjectionTarget.width,
+                height = transfer.currentProjectionTarget.height,
+                densityDpi = transfer.currentProjectionTarget.densityDpi,
+                captureGeometryGeneration = transfer.currentProjectionTarget.generation,
+                targetGeneration = transfer.currentProjectionTarget.generation,
+                semantics = RuntimeProjectionTargetSemantics.SurfaceTextureOes,
+            ),
+        )
+    }
+
+    private fun applyRuntimeParameterUpdateClassificationLocked(
+        parameters: ScreenCaptureParameters,
+        core: ScreenCaptureSessionCore,
+        classification: RuntimeParameterUpdateClassification,
+        productionAdmissionPaused: Boolean,
+        candidate: RuntimeProviderOnlyEncoderCandidate?,
+        fullCandidate: RuntimeFullOutputPlanCandidate?,
+    ): RuntimeParameterCommitBridgeOutcome =
+        when (classification) {
+            is RuntimeParameterUpdateClassification.NormalizedNoOp ->
+                RuntimeParameterCommitBridgeOutcome(
+                    result = ScreenCaptureParameterUpdateResult.Applied,
+                    productionAdmissionStillPaused = productionAdmissionPaused,
+                    resumeProductionAdmissionAfterCommit = false,
+                )
+
+            is RuntimeParameterUpdateClassification.FrameRateOnly ->
+                applyRuntimeFrameRateOnlyUpdateLocked(
+                    parameters = parameters,
+                    core = core,
+                    classification = classification,
+                    productionAdmissionPaused = productionAdmissionPaused,
+                )
+
+            is RuntimeParameterUpdateClassification.ProviderOnlySameTarget ->
+                applyRuntimeProviderOnlyUpdateLocked(
+                    parameters = parameters,
+                    core = core,
+                    classification = classification,
+                    productionAdmissionPaused = productionAdmissionPaused,
+                    candidate = candidate,
+                )
+
+            is RuntimeParameterUpdateClassification.FullSameTargetReplacement ->
+                applyRuntimeFullOutputPlanUpdateLocked(
+                    parameters = parameters,
+                    core = core,
+                    classification = classification,
+                    productionAdmissionPaused = productionAdmissionPaused,
+                    candidate = fullCandidate,
+                )
+
+            is RuntimeParameterUpdateClassification.Unavailable ->
+                RuntimeParameterCommitBridgeOutcome(
+                    result = unavailableRuntimeParameterUpdate(core),
+                    productionAdmissionStillPaused = productionAdmissionPaused,
+                    resumeProductionAdmissionAfterCommit = false,
+                )
+
+            is RuntimeParameterUpdateClassification.Rejected ->
+                RuntimeParameterCommitBridgeOutcome(
+                    result = ScreenCaptureParameterUpdateResult.Rejected(
+                        problem = core.newProblem(
+                            kind = classification.problem.kind,
+                            message = classification.problem.message,
+                            cause = null,
+                        ),
+                    ),
+                    productionAdmissionStillPaused = productionAdmissionPaused,
+                    resumeProductionAdmissionAfterCommit = false,
+                )
+        }
+
+    private fun applyRuntimeFullOutputPlanUpdateLocked(
+        parameters: ScreenCaptureParameters,
+        core: ScreenCaptureSessionCore,
+        classification: RuntimeParameterUpdateClassification.FullSameTargetReplacement,
+        productionAdmissionPaused: Boolean,
+        candidate: RuntimeFullOutputPlanCandidate?,
+    ): RuntimeParameterCommitBridgeOutcome {
+        if (candidate == null) {
+            return RuntimeParameterCommitBridgeOutcome(
+                result = unavailableRuntimeParameterUpdate(core),
+                productionAdmissionStillPaused = productionAdmissionPaused,
+                resumeProductionAdmissionAfterCommit = false,
+            )
+        }
+        if (!productionAdmissionPaused) {
+            runtimeFrameLoop.pauseProductionAdmission()
+        }
+        val previousGeneration = checkNotNull(activeOutputGeneration) { "Active output generation is missing." }
+        if (candidate.baseOutputGeneration != previousGeneration ||
+            core.currentOutputGeneration() != previousGeneration ||
+            candidate.projectionTargetGeneration != transfer.currentProjectionTarget.generation ||
+            !candidate.planPreparationToken.consumeForHandoff()
+        ) {
+            return RuntimeParameterCommitBridgeOutcome(
+                result = unavailableRuntimeParameterUpdate(core),
+                productionAdmissionStillPaused = true,
+                resumeProductionAdmissionAfterCommit = false,
+            )
+        }
+        val previousResources = activeResources ?: return RuntimeParameterCommitBridgeOutcome(
+            result = unavailableRuntimeParameterUpdate(core),
+            productionAdmissionStillPaused = true,
+            resumeProductionAdmissionAfterCommit = false,
+        )
+        val nextGeneration = Math.addExact(previousGeneration, 1L)
+        val effectiveParameters = classification.candidatePlan.toEffectiveParameters(candidate.encoderInfo)
+        val replacementResources = candidate.moveToActiveRuntimeOwner()
+        activeResources = replacementResources
+        deferredRetiredActiveResourcesClose += previousResources
+        activeRequestedParameters = parameters
+        activeOutputPlan = classification.candidatePlan
+        activeEffectiveParameters = effectiveParameters
+        activeOutputGeneration = nextGeneration
+        lastFrameRateAdmitNanos = null
+        hasSuccessfulRuntimeSourceFrame = false
+        encodeHardFailureTracker.reset()
+        clearRetainedPeriodicRefreshStateLocked()
+        val applied = core.updateOutputActive(effectiveParameters = effectiveParameters, generation = nextGeneration)
+        check(applied) { "Full runtime output-plan update could not publish active output." }
+        return if (isRuntimeWorkInFlightLocked()) {
+            pendingRuntimeParameterProductionResume = true
+            RuntimeParameterCommitBridgeOutcome(
+                result = ScreenCaptureParameterUpdateResult.Applied,
+                productionAdmissionStillPaused = false,
+                resumeProductionAdmissionAfterCommit = false,
+            )
+        } else {
+            RuntimeParameterCommitBridgeOutcome(
+                result = ScreenCaptureParameterUpdateResult.Applied,
+                productionAdmissionStillPaused = false,
+                resumeProductionAdmissionAfterCommit = true,
+            )
+        }
+    }
+
+    private fun applyRuntimeProviderOnlyUpdateLocked(
+        parameters: ScreenCaptureParameters,
+        core: ScreenCaptureSessionCore,
+        classification: RuntimeParameterUpdateClassification.ProviderOnlySameTarget,
+        productionAdmissionPaused: Boolean,
+        candidate: RuntimeProviderOnlyEncoderCandidate?,
+    ): RuntimeParameterCommitBridgeOutcome {
+        if (candidate == null) {
+            return RuntimeParameterCommitBridgeOutcome(
+                result = unavailableRuntimeParameterUpdate(core),
+                productionAdmissionStillPaused = productionAdmissionPaused,
+                resumeProductionAdmissionAfterCommit = false,
+            )
+        }
+        if (!productionAdmissionPaused) {
+            runtimeFrameLoop.pauseProductionAdmission()
+        }
+        val previousGeneration = checkNotNull(activeOutputGeneration) { "Active output generation is missing." }
+        if (candidate.baseOutputGeneration != previousGeneration ||
+            core.currentOutputGeneration() != previousGeneration ||
+            candidate.projectionTargetGeneration != transfer.currentProjectionTarget.generation ||
+            !candidate.planPreparationToken.consumeForHandoff()
+        ) {
+            return RuntimeParameterCommitBridgeOutcome(
+                result = unavailableRuntimeParameterUpdate(core),
+                productionAdmissionStillPaused = true,
+                resumeProductionAdmissionAfterCommit = false,
+            )
+        }
+        val resources = activeResources ?: return RuntimeParameterCommitBridgeOutcome(
+            result = unavailableRuntimeParameterUpdate(core),
+            productionAdmissionStillPaused = true,
+            resumeProductionAdmissionAfterCommit = false,
+        )
+        val nextGeneration = Math.addExact(previousGeneration, 1L)
+        val candidateEncoderInfo = candidate.encoderInfo
+        val effectiveParameters = classification.candidatePlan.toEffectiveParameters(candidateEncoderInfo)
+        val retiredResources = resources.replaceEncoderResourcesOnly(candidate.encoderResourcesCandidate)
+        candidate.markCommitted()
+        deferredRetiredEncoderResourcesClose += retiredResources
+        activeRequestedParameters = parameters
+        activeOutputPlan = classification.candidatePlan
+        activeEffectiveParameters = effectiveParameters
+        activeOutputGeneration = nextGeneration
+        lastFrameRateAdmitNanos = null
+        hasSuccessfulRuntimeSourceFrame = false
+        encodeHardFailureTracker.reset()
+        clearRetainedPeriodicRefreshStateLocked()
+        val applied = core.updateOutputActive(effectiveParameters = effectiveParameters, generation = nextGeneration)
+        check(applied) { "Provider-only runtime parameter update could not publish active output." }
+        return if (isRuntimeWorkInFlightLocked()) {
+            pendingRuntimeParameterProductionResume = true
+            RuntimeParameterCommitBridgeOutcome(
+                result = ScreenCaptureParameterUpdateResult.Applied,
+                productionAdmissionStillPaused = false,
+                resumeProductionAdmissionAfterCommit = false,
+            )
+        } else {
+            RuntimeParameterCommitBridgeOutcome(
+                result = ScreenCaptureParameterUpdateResult.Applied,
+                productionAdmissionStillPaused = false,
+                resumeProductionAdmissionAfterCommit = true,
+            )
+        }
+    }
+
+    private fun applyRuntimeFrameRateOnlyUpdateLocked(
+        parameters: ScreenCaptureParameters,
+        core: ScreenCaptureSessionCore,
+        classification: RuntimeParameterUpdateClassification.FrameRateOnly,
+        productionAdmissionPaused: Boolean,
+    ): RuntimeParameterCommitBridgeOutcome {
+        if (!productionAdmissionPaused) {
+            runtimeFrameLoop.pauseProductionAdmission()
+        }
+        val previousGeneration = checkNotNull(activeOutputGeneration) { "Active output generation is missing." }
+        check(core.currentOutputGeneration() == previousGeneration) {
+            "Active output generation snapshot is stale."
+        }
+        val resources = activeResources ?: return RuntimeParameterCommitBridgeOutcome(
+            result = unavailableRuntimeParameterUpdate(core),
+            productionAdmissionStillPaused = true,
+            resumeProductionAdmissionAfterCommit = false,
+        )
+        val nextGeneration = Math.addExact(previousGeneration, 1L)
+        val effectiveParameters = classification.candidatePlan.toEffectiveParameters(resources.encoderInfo)
+        activeRequestedParameters = parameters
+        activeOutputPlan = classification.candidatePlan
+        activeEffectiveParameters = effectiveParameters
+        activeOutputGeneration = nextGeneration
+        lastFrameRateAdmitNanos = null
+        hasSuccessfulRuntimeSourceFrame = false
+        encodeHardFailureTracker.reset()
+        clearRetainedPeriodicRefreshStateLocked()
+        val applied = core.updateOutputActive(effectiveParameters = effectiveParameters, generation = nextGeneration)
+        check(applied) { "Frame-rate-only runtime parameter update could not publish active output." }
+        return if (isRuntimeWorkInFlightLocked()) {
+            pendingRuntimeParameterProductionResume = true
+            RuntimeParameterCommitBridgeOutcome(
+                result = ScreenCaptureParameterUpdateResult.Applied,
+                productionAdmissionStillPaused = false,
+                resumeProductionAdmissionAfterCommit = false,
+            )
+        } else {
+            RuntimeParameterCommitBridgeOutcome(
+                result = ScreenCaptureParameterUpdateResult.Applied,
+                productionAdmissionStillPaused = false,
+                resumeProductionAdmissionAfterCommit = true,
+            )
+        }
+    }
+
+    private fun unavailableRuntimeParameterUpdate(core: ScreenCaptureSessionCore): ScreenCaptureParameterUpdateResult.Rejected =
+        ScreenCaptureParameterUpdateResult.Rejected(
+            problem = core.newProblem(
+                kind = ScreenCaptureProblemKind.ParameterUpdateUnavailable,
+                message = "Parameter update is outside the active same-target boundary or became stale before commit.",
+                cause = null,
+            ),
+        )
+
     internal fun armReturnedSessionRuntimeSignals() {
-        val core = synchronized(lock) {
+        val outputGeneration = synchronized(lock) {
             if (state != ActiveRuntimeOwnerState.Committed || returnedSessionRuntimeSignalsArmed) return
             returnedSessionRuntimeSignalsArmed = true
-            sessionCore
+            activeOutputGeneration
         }
-        core?.let(::scheduleNextPeriodicRefreshIfNeeded)
+        outputGeneration?.let(::scheduleNextPeriodicRefreshIfNeeded)
         if (hasPendingRuntimeWorkForScheduling()) {
             scheduleRuntimeTurn()
         }
@@ -369,7 +1077,7 @@ internal class ActiveRuntimeOwner internal constructor(
         val periodicRefreshWake = runtimeFrameLoop.consumePeriodicRefreshWake()
         val signal = runtimeFrameLoop.admitLatestFrameSignal() ?: run {
             return when {
-                periodicRefreshWake && !hasSuccessfulRuntimeSourceFrame -> {
+                periodicRefreshWake && !synchronized(lock) { hasSuccessfulRuntimeSourceFrame } -> {
                     recordPeriodicRefreshNoSourceWake()
                     RuntimeFrameProductionTickResult.PeriodicRefreshNoSourceFrame
                 }
@@ -383,15 +1091,34 @@ internal class ActiveRuntimeOwner internal constructor(
             val core = sessionCore ?: return RuntimeFrameProductionTickResult.NoCommittedSession
             val resources = activeResources ?: return RuntimeFrameProductionTickResult.NoCommittedSession
             val scratch = encodedScratch ?: return RuntimeFrameProductionTickResult.NoCommittedSession
+            val outputGeneration = core.currentOutputGeneration()
+            val encoderResources = resources.encoderResourcesForRuntime
             materializedRuntimeWorkInFlight = true
-            RuntimeProductionState(core = core, resources = resources, scratch = scratch)
+            RuntimeProductionState(
+                core = core,
+                resources = resources,
+                scratch = scratch,
+                outputGeneration = outputGeneration,
+                encoderResources = encoderResources,
+                effectiveParameters = checkNotNull(activeEffectiveParameters) {
+                    "Active effective parameters are missing."
+                },
+                captureGeometry = checkNotNull(activeOutputPlan) {
+                    "Active output plan is missing."
+                }.captureGeometry,
+                encodeHealthKey = RuntimeEncodeHealthKey(
+                    outputGeneration = outputGeneration,
+                    encoderResources = encoderResources,
+                ),
+            )
         }
         if (signal.generation != transfer.currentProjectionTarget.generation) {
             finishRuntimeProductionWork()
             closeDeferredRuntimeResourcesIfReady()
             return RuntimeFrameProductionTickResult.StaleProjectionTargetSignal
         }
-        when (admitFrameRatePolicy(production.core)) {
+        beforeFrameRatePolicyAdmissionForTesting?.invoke()
+        when (admitFrameRatePolicy(production)) {
             FrameRatePolicyAdmission.Admitted -> Unit
             FrameRatePolicyAdmission.DroppedByPolicy -> {
                 finishRuntimeProductionWork()
@@ -406,7 +1133,7 @@ internal class ActiveRuntimeOwner internal constructor(
                 return RuntimeFrameProductionTickResult.StaleDrop
             }
         }
-        val outputGeneration = production.core.currentOutputGeneration()
+        val outputGeneration = production.outputGeneration
         beforeProductionAttemptMaterializationForTesting?.invoke()
         if (isProjectionStopped()) {
             finishRuntimeProductionWork()
@@ -421,25 +1148,33 @@ internal class ActiveRuntimeOwner internal constructor(
         }
         afterProductionAttemptMaterializedForTesting?.invoke()
         if (!encoderInFlight.compareAndSet(false, true)) {
-            val projectionStopped = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.EncoderBusy)
+            val dropCompletion = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.EncoderBusy)
             finishRuntimeProductionWork()
-            if (projectionStopped) finishProjectionStopped()
-            return if (projectionStopped) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncoderBusyDrop
+            if (dropCompletion.projectionStopped) finishProjectionStopped()
+            return if (dropCompletion.isStaleGeneration) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncoderBusyDrop
         }
         if (!readbackInFlight.compareAndSet(false, true)) {
             encoderInFlight.set(false)
             finishRuntimeProductionWork()
             closeDeferredRuntimeResourcesIfReady()
-            val projectionStopped = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.ReadbackBusy)
-            if (projectionStopped) finishProjectionStopped()
-            return if (projectionStopped) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.ReadbackBusyDrop
+            val dropCompletion = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.ReadbackBusy)
+            if (dropCompletion.projectionStopped) finishProjectionStopped()
+            return if (dropCompletion.isStaleGeneration) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.ReadbackBusyDrop
         }
         val renderResult = try {
             renderReadbackWithWatchdog(production.resources)
         } catch (timeout: TimeoutCancellationException) {
-            val projectionStopped = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.TransientFailure)
+            val dropCompletion = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.TransientFailure)
+            if (dropCompletion.isStaleGeneration) {
+                readbackInFlight.set(false)
+                encoderInFlight.set(false)
+                finishRuntimeProductionWork()
+                if (dropCompletion.projectionStopped) finishProjectionStopped()
+                closeDeferredRuntimeResourcesIfReady()
+                return RuntimeFrameProductionTickResult.StaleDrop
+            }
             quarantineNonGlResourcesAfterGlTimeout(production.resources)
-            if (projectionStopped) {
+            if (dropCompletion.projectionStopped) {
                 finishProjectionStopped()
             } else {
                 failRuntimeGlProduction(production.core, "Runtime GL frame production timed out.", timeout)
@@ -449,14 +1184,18 @@ internal class ActiveRuntimeOwner internal constructor(
             readbackInFlight.set(false)
             encoderInFlight.set(false)
             finishRuntimeProductionWork()
-            val projectionStopped = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.TransientFailure)
-            if (projectionStopped) {
+            val dropCompletion = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.TransientFailure)
+            if (dropCompletion.projectionStopped) {
                 finishProjectionStopped()
+            }
+            if (dropCompletion.isStaleGeneration) {
+                closeDeferredRuntimeResourcesIfReady()
+                return RuntimeFrameProductionTickResult.StaleDrop
             } else {
                 failRuntimeGlProduction(production.core, "Runtime GL frame production failed.", cause)
+                closeDeferredRuntimeResourcesIfReady()
+                return RuntimeFrameProductionTickResult.GlFailed
             }
-            closeDeferredRuntimeResourcesIfReady()
-            return RuntimeFrameProductionTickResult.GlFailed
         }
         readbackInFlight.set(false)
         return when (renderResult.result) {
@@ -464,9 +1203,9 @@ internal class ActiveRuntimeOwner internal constructor(
                 encoderInFlight.set(false)
                 finishRuntimeProductionWork()
                 closeDeferredRuntimeResourcesIfReady()
-                val projectionStopped = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.ReadbackBusy)
-                if (projectionStopped) finishProjectionStopped()
-                if (projectionStopped) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.ReadbackBusyDrop
+                val dropCompletion = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.ReadbackBusy)
+                if (dropCompletion.projectionStopped) finishProjectionStopped()
+                if (dropCompletion.isStaleGeneration) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.ReadbackBusyDrop
             }
 
             is RuntimeEs2RenderReadbackResult.Success -> {
@@ -479,7 +1218,7 @@ internal class ActiveRuntimeOwner internal constructor(
                     closeDeferredRuntimeResourcesIfReady()
                     return RuntimeFrameProductionTickResult.StaleDrop
                 }
-                hasSuccessfulRuntimeSourceFrame = true
+                markSuccessfulRuntimeSourceFrameIfCurrent(production)
                 attempt.recordReadbackSuccess(durationNanos = renderResult.durationNanos)
                 readbackBorrowedByEncoderObserverForTesting?.invoke(true)
                 encodeReadback(
@@ -549,7 +1288,7 @@ internal class ActiveRuntimeOwner internal constructor(
         outputGeneration: Long,
         readback: RuntimeEs2RenderReadbackResult.Success,
     ): RuntimeFrameProductionTickResult {
-        val encoderResources = production.resources.encoderResourcesForRuntime
+        val encoderResources = production.encoderResources
         val scratch = production.scratch
         val encodeStartedNanos = elapsedRealtimeNanos()
         var quarantinedEncoderWork = false
@@ -563,28 +1302,49 @@ internal class ActiveRuntimeOwner internal constructor(
             val sink = scratch.begin()
             val encodeResult = try {
                 encodeWithTimeout(
-                    production = production,
+                    encoderResources = encoderResources,
+                    scratch = scratch,
                     input = input,
                     sink = sink,
                     lease = readback.lease,
                 )
             } catch (timeout: RuntimeEncoderTimeoutException) {
                 quarantinedEncoderWork = true
-                val projectionStopped = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.TransientFailure)
+                val dropCompletion = completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.TransientFailure)
+                if (dropCompletion.isStaleGeneration) {
+                    if (dropCompletion.projectionStopped) finishProjectionStopped()
+                    return RuntimeFrameProductionTickResult.StaleDrop
+                }
                 quarantineNonEncoderResourcesAfterEncodeTimeout()
-                if (projectionStopped) {
+                if (dropCompletion.projectionStopped) {
                     finishProjectionStopped()
                 } else {
                     failRuntimeEncoderProduction(production.core, timeout)
                 }
                 return RuntimeFrameProductionTickResult.EncodeTimedOutDrop
-            } catch (_: Throwable) {
+            } catch (cause: Throwable) {
+                val rejected = scratch.wasRejected
                 scratch.finishDiscard()
-                if (completeProductionDropWithProjectionFence(attempt, ProductionFrameDropKind.TransientFailure)) {
-                    finishProjectionStopped()
-                    return RuntimeFrameProductionTickResult.StaleDrop
+                val dropCompletion = when {
+                    rejected -> completeEncodeNonSuccessDropWithProjectionFence(
+                        attempt = attempt,
+                        kind = ProductionFrameDropKind.EncodedSizeLimit,
+                    )
+
+                    cause is CancellationException || cause is InterruptedException ->
+                        completeEncodeNonSuccessDropWithProjectionFence(
+                            attempt = attempt,
+                            kind = ProductionFrameDropKind.TransientFailure,
+                        )
+
+                    else -> completeRuntimeEncodeHardFailure(production = production, attempt = attempt, cause = cause)
+                }
+                return if (dropCompletion.isStaleGeneration) {
+                    RuntimeFrameProductionTickResult.StaleDrop
+                } else if (rejected) {
+                    RuntimeFrameProductionTickResult.EncodedSizeLimitDrop
                 } else {
-                    return RuntimeFrameProductionTickResult.EncodeThrewDrop
+                    RuntimeFrameProductionTickResult.EncodeThrewDrop
                 }
             }
             if (isRuntimeTerminalOrClosed() || isProjectionStopped()) {
@@ -599,6 +1359,7 @@ internal class ActiveRuntimeOwner internal constructor(
                     val bytes = scratch.finishSuccess()
                     when {
                         bytes != null -> {
+                            recordRuntimeEncodeSuccessIfCurrent(production)
                             val encodeDurationNanos = (elapsedRealtimeNanos() - encodeStartedNanos).coerceAtLeast(0L)
                             val publicationNanos = elapsedRealtimeNanos()
                             val published = completeEncodedSuccessWithProjectionFence(
@@ -609,13 +1370,16 @@ internal class ActiveRuntimeOwner internal constructor(
                                 timestampElapsedRealtimeNanos = publicationNanos,
                             )
                             if (published) {
-                                rememberPeriodicRefreshFrame(
-                                    generation = outputGeneration,
+                                beforePeriodicRefreshRetentionForTesting?.invoke()
+                                val retained = rememberPeriodicRefreshFrameIfCurrent(
+                                    production = production,
                                     format = encoderResources.info.outputFormat,
                                     bytes = bytes,
                                     publicationElapsedRealtimeNanos = publicationNanos,
                                 )
-                                scheduleNextPeriodicRefreshIfNeeded(production.core)
+                                if (retained) {
+                                    scheduleNextPeriodicRefreshIfNeeded(outputGeneration)
+                                }
                                 RuntimeFrameProductionTickResult.Published
                             } else {
                                 RuntimeFrameProductionTickResult.StaleDrop
@@ -623,19 +1387,20 @@ internal class ActiveRuntimeOwner internal constructor(
                         }
 
                         rejected -> {
-                            val projectionStopped = completeEncodeNonSuccessDropWithProjectionFence(
+                            val dropCompletion = completeEncodeNonSuccessDropWithProjectionFence(
                                 attempt,
                                 ProductionFrameDropKind.EncodedSizeLimit,
                             )
-                            if (projectionStopped) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncodedSizeLimitDrop
+                            if (dropCompletion.isStaleGeneration) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncodedSizeLimitDrop
                         }
 
                         else -> {
-                            val projectionStopped = completeEncodeNonSuccessDropWithProjectionFence(
-                                attempt,
-                                ProductionFrameDropKind.TransientFailure,
+                            val dropCompletion = completeRuntimeEncodeHardFailure(
+                                production = production,
+                                attempt = attempt,
+                                cause = null,
                             )
-                            if (projectionStopped) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncodeFailedDrop
+                            if (dropCompletion.isStaleGeneration) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncodeFailedDrop
                         }
                     }
                 }
@@ -644,17 +1409,18 @@ internal class ActiveRuntimeOwner internal constructor(
                     val rejected = scratch.wasRejected
                     scratch.finishDiscard()
                     if (rejected) {
-                        val projectionStopped = completeEncodeNonSuccessDropWithProjectionFence(
+                        val dropCompletion = completeEncodeNonSuccessDropWithProjectionFence(
                             attempt,
                             ProductionFrameDropKind.EncodedSizeLimit,
                         )
-                        if (projectionStopped) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncodedSizeLimitDrop
+                        if (dropCompletion.isStaleGeneration) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncodedSizeLimitDrop
                     } else {
-                        val projectionStopped = completeEncodeNonSuccessDropWithProjectionFence(
-                            attempt,
-                            ProductionFrameDropKind.TransientFailure,
+                        val dropCompletion = completeRuntimeEncodeHardFailure(
+                            production = production,
+                            attempt = attempt,
+                            cause = encodeResult.cause,
                         )
-                        if (projectionStopped) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncodeFailedDrop
+                        if (dropCompletion.isStaleGeneration) RuntimeFrameProductionTickResult.StaleDrop else RuntimeFrameProductionTickResult.EncodeFailedDrop
                     }
                 }
             }
@@ -674,7 +1440,8 @@ internal class ActiveRuntimeOwner internal constructor(
     }
 
     private fun encodeWithTimeout(
-        production: RuntimeProductionState,
+        encoderResources: PreparedImageEncoderResources,
+        scratch: EncodedAttemptScratch,
         input: ImageEncoderInput,
         sink: dev.dmkr.screencaptureengine.EncodedImageSink,
         lease: RgbaReadbackLease,
@@ -686,10 +1453,10 @@ internal class ActiveRuntimeOwner internal constructor(
             encoderLane.submit<ImageEncodeResult> {
                 started.set(true)
                 try {
-                    production.resources.encoderResourcesForRuntime.encoder.encode(input, sink)
+                    encoderResources.encoder.encode(input, sink)
                 } finally {
                     if (timedOut.get() && cleanupClaimed.compareAndSet(false, true)) {
-                        cleanupTimedOutEncoderWork(production = production, lease = lease)
+                        cleanupTimedOutEncoderWork(scratch = scratch, lease = lease)
                     }
                 }
             }
@@ -702,7 +1469,7 @@ internal class ActiveRuntimeOwner internal constructor(
             timedOut.set(true)
             val cancelled = encodeFuture.cancel(true)
             if (cancelled && !started.get() && cleanupClaimed.compareAndSet(false, true)) {
-                cleanupTimedOutEncoderWork(production = production, lease = lease)
+                cleanupTimedOutEncoderWork(scratch = scratch, lease = lease)
             }
             // Timed-out provider code may still be inside encode. The runtime fences publication and
             // keeps the borrowed raw buffer/encoder out of reuse until the worker returns.
@@ -717,8 +1484,8 @@ internal class ActiveRuntimeOwner internal constructor(
         }
     }
 
-    private fun cleanupTimedOutEncoderWork(production: RuntimeProductionState, lease: RgbaReadbackLease) {
-        runCatching { production.scratch.finishDiscard() }.onFailure(::reportCleanupFailure)
+    private fun cleanupTimedOutEncoderWork(scratch: EncodedAttemptScratch, lease: RgbaReadbackLease) {
+        runCatching { scratch.finishDiscard() }.onFailure(::reportCleanupFailure)
         runCatching { lease.close() }.onFailure(::reportCleanupFailure)
         readbackBorrowedByEncoderObserverForTesting?.invoke(false)
         encoderInFlight.set(false)
@@ -763,26 +1530,105 @@ internal class ActiveRuntimeOwner internal constructor(
     private fun completeProductionDropWithProjectionFence(
         attempt: dev.dmkr.screencaptureengine.internal.session.core.ProductionAttemptToken,
         kind: ProductionFrameDropKind,
-    ): Boolean {
+    ): RuntimeProductionDropCompletion {
         var projectionStopped = false
+        var resolvedKind: ProductionFrameDropKind? = null
         arbitrateProjectionStopPublicOutcome { rawStopObserved ->
             synchronized(lock) {
                 projectionStopped = isProjectionStoppedLocked(rawStopObserved)
-                attempt.completeDrop(if (projectionStopped) ProductionFrameDropKind.StaleGeneration else kind)
+                resolvedKind = attempt.completeDropAndResolve(if (projectionStopped) ProductionFrameDropKind.StaleGeneration else kind)
             }
         }
-        return projectionStopped
+        return RuntimeProductionDropCompletion(
+            projectionStopped = projectionStopped,
+            resolvedKind = resolvedKind,
+        )
     }
 
     private fun completeEncodeNonSuccessDropWithProjectionFence(
         attempt: dev.dmkr.screencaptureengine.internal.session.core.ProductionAttemptToken,
         kind: ProductionFrameDropKind,
-    ): Boolean {
+    ): RuntimeProductionDropCompletion {
         beforeEncodeNonSuccessDropForTesting?.invoke()
-        val projectionStopped = completeProductionDropWithProjectionFence(attempt, kind)
-        if (projectionStopped) finishProjectionStopped()
-        return projectionStopped
+        val dropCompletion = completeProductionDropWithProjectionFence(attempt, kind)
+        if (dropCompletion.projectionStopped) finishProjectionStopped()
+        return dropCompletion
     }
+
+    private fun completeRuntimeEncodeHardFailure(
+        production: RuntimeProductionState,
+        attempt: dev.dmkr.screencaptureengine.internal.session.core.ProductionAttemptToken,
+        cause: Throwable?,
+    ): RuntimeProductionDropCompletion {
+        beforeEncodeNonSuccessDropForTesting?.invoke()
+        var projectionStopped = false
+        var resolvedKind: ProductionFrameDropKind? = null
+        arbitrateProjectionStopPublicOutcome { rawStopObserved ->
+            synchronized(lock) {
+                projectionStopped = isProjectionStoppedLocked(rawStopObserved)
+                resolvedKind = attempt.completeDropAndResolve(
+                    if (projectionStopped) ProductionFrameDropKind.StaleGeneration else ProductionFrameDropKind.TransientFailure,
+                )
+                if (!projectionStopped &&
+                    resolvedKind == ProductionFrameDropKind.TransientFailure &&
+                    isCurrentRuntimeProductionLocked(production)
+                ) {
+                    when (encodeHardFailureTracker.recordHardFailure(production.encodeHealthKey)) {
+                        RuntimeEncodeHardFailureResult.BelowThreshold -> Unit
+                        RuntimeEncodeHardFailureResult.ThresholdReached -> {
+                            runtimeFrameLoop.pauseProductionAdmission()
+                            val nextGeneration = Math.addExact(production.outputGeneration, 1L)
+                            val problem = production.core.newProblem(
+                                kind = ScreenCaptureProblemKind.EncodeRepeatedFailure,
+                                message = "Runtime image encoding failed repeatedly.",
+                                cause = cause,
+                            )
+                            val suspended = production.core.updateOutputSuspended(
+                                problem = problem,
+                                previousEffectiveParameters = production.effectiveParameters,
+                                currentCaptureGeometry = production.captureGeometry,
+                                generation = nextGeneration,
+                            )
+                            if (suspended) {
+                                activeOutputGeneration = nextGeneration
+                                lastFrameRateAdmitNanos = null
+                                hasSuccessfulRuntimeSourceFrame = false
+                                clearRetainedPeriodicRefreshStateLocked()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (projectionStopped) finishProjectionStopped()
+        return RuntimeProductionDropCompletion(
+            projectionStopped = projectionStopped,
+            resolvedKind = resolvedKind,
+        )
+    }
+
+    private fun recordRuntimeEncodeSuccessIfCurrent(production: RuntimeProductionState) {
+        synchronized(lock) {
+            if (isCurrentRuntimeProductionLocked(production)) {
+                encodeHardFailureTracker.recordSuccess(production.encodeHealthKey)
+            }
+        }
+    }
+
+    private fun markSuccessfulRuntimeSourceFrameIfCurrent(production: RuntimeProductionState) {
+        synchronized(lock) {
+            if (isCurrentRuntimeProductionLocked(production)) {
+                hasSuccessfulRuntimeSourceFrame = true
+            }
+        }
+    }
+
+    private fun isCurrentRuntimeProductionLocked(production: RuntimeProductionState): Boolean =
+        state == ActiveRuntimeOwnerState.Committed &&
+                !isProjectionStoppedLocked() &&
+                activeOutputGeneration == production.outputGeneration &&
+                activeResources === production.resources &&
+                production.core.currentOutputGeneration() == production.outputGeneration
 
     private fun <T> arbitrateProjectionStopPublicOutcome(block: (rawStopObserved: Boolean) -> T): T =
         transfer.callbackAdapter.projectionStopArbiter.arbitratePublicOutcome(block)
@@ -1154,16 +2000,22 @@ internal class ActiveRuntimeOwner internal constructor(
 
     private fun closeRuntimeResources(stopProjection: Boolean) {
         var resourcesToClose: ActiveRuntimePreparedRenderingPipelineResources? = null
+        var retiredActiveResourcesToClose: List<ActiveRuntimePreparedRenderingPipelineResources> = emptyList()
+        var retiredEncoderResourcesToClose: List<RetiredActiveRuntimeEncoderResources> = emptyList()
         var scratchToRelease: EncodedAttemptScratch? = null
         var closeVirtualDisplayNow = false
         var closeProjectionTargetOwnerNow = false
         var releaseTerminalCleanupFenceAfterScheduling = false
         var alreadyClosed = false
+        var parameterPreparationTokenToInvalidate: PlanPreparationToken? = null
         synchronized(lock) {
             if (state == ActiveRuntimeOwnerState.Closed) {
                 alreadyClosed = true
             } else {
                 state = ActiveRuntimeOwnerState.Closed
+                parameterPreparationTokenToInvalidate = activeRuntimeParameterPreparationToken
+                activeRuntimeParameterPreparationToken = null
+                pendingRuntimeParameterProductionResume = false
                 clearRetainedPeriodicRefreshStateLocked()
                 val runtimeWorkInFlight = isRuntimeWorkInFlightLocked()
                 val resources = activeResources
@@ -1186,6 +2038,12 @@ internal class ActiveRuntimeOwner internal constructor(
                 } else {
                     resources
                 }
+                if (!runtimeWorkInFlight) {
+                    retiredActiveResourcesToClose = deferredRetiredActiveResourcesClose.toList()
+                    deferredRetiredActiveResourcesClose.clear()
+                    retiredEncoderResourcesToClose = deferredRetiredEncoderResourcesClose.toList()
+                    deferredRetiredEncoderResourcesClose.clear()
+                }
                 val closeHeavyRuntimeResourcesNow = !runtimeWorkInFlight
                 closeVirtualDisplayNow = closeHeavyRuntimeResourcesNow && markVirtualDisplayOwnerCloseScheduledLocked()
                 closeProjectionTargetOwnerNow = closeHeavyRuntimeResourcesNow && markProjectionTargetOwnerCloseScheduledLocked()
@@ -1196,6 +2054,7 @@ internal class ActiveRuntimeOwner internal constructor(
         if (alreadyClosed) {
             return
         }
+        parameterPreparationTokenToInvalidate?.invalidate()
         runtimeScheduler.shutdown()
         encoderLane.shutdown()
         runtimeFrameLoop.close()
@@ -1215,6 +2074,12 @@ internal class ActiveRuntimeOwner internal constructor(
                 resourcesToClose?.let { resources ->
                     cleanupFailures.collect { resources.close() }
                 }
+                retiredActiveResourcesToClose.forEach { resources ->
+                    cleanupFailures.collect { resources.close() }
+                }
+                retiredEncoderResourcesToClose.forEach { resources ->
+                    cleanupFailures.collect { resources.close() }
+                }
                 if (closeVirtualDisplayNow) {
                     cleanupFailures.collect { transfer.virtualDisplayOwner.close() }
                 }
@@ -1232,15 +2097,25 @@ internal class ActiveRuntimeOwner internal constructor(
 
     private fun closeDeferredRuntimeResourcesIfReady() {
         val resourcesToClose: ActiveRuntimePreparedRenderingPipelineResources?
+        val retiredActiveResourcesToClose: List<ActiveRuntimePreparedRenderingPipelineResources>
+        val retiredEncoderResourcesToClose: List<RetiredActiveRuntimeEncoderResources>
         val scratchToRelease: EncodedAttemptScratch?
         val closeHeavyRuntimeResources: Boolean
         val closeVirtualDisplay: Boolean
         val closeProjectionTargetOwner: Boolean
         synchronized(lock) {
             if (isRuntimeWorkInFlightLocked()) return
-            val resources = deferredActiveResourcesClose ?: return
+            if (deferredActiveResourcesClose == null &&
+                deferredRetiredActiveResourcesClose.isEmpty() &&
+                deferredRetiredEncoderResourcesClose.isEmpty()
+            ) return
+            val resources = deferredActiveResourcesClose
             deferredActiveResourcesClose = null
             resourcesToClose = resources
+            retiredActiveResourcesToClose = deferredRetiredActiveResourcesClose.toList()
+            deferredRetiredActiveResourcesClose.clear()
+            retiredEncoderResourcesToClose = deferredRetiredEncoderResourcesClose.toList()
+            deferredRetiredEncoderResourcesClose.clear()
             scratchToRelease = if (releaseEncodedScratchOnRuntimeClose) {
                 releaseEncodedScratchOnRuntimeClose = false
                 val scratch = encodedScratch
@@ -1263,6 +2138,12 @@ internal class ActiveRuntimeOwner internal constructor(
             ) {
                 val cleanupFailures = CleanupFailureCollector()
                 resourcesToClose?.let { resources ->
+                    cleanupFailures.collect { resources.close() }
+                }
+                retiredActiveResourcesToClose.forEach { resources ->
+                    cleanupFailures.collect { resources.close() }
+                }
+                retiredEncoderResourcesToClose.forEach { resources ->
                     cleanupFailures.collect { resources.close() }
                 }
                 if (closeVirtualDisplay) {
@@ -1299,14 +2180,21 @@ internal class ActiveRuntimeOwner internal constructor(
         materializedRuntimeWorkInFlight || readbackInFlight.get() || encoderInFlight.get()
 
     private fun finishRuntimeProductionWork() {
+        var resumeProductionAdmission = false
         synchronized(lock) {
             materializedRuntimeWorkInFlight = false
+            if (pendingRuntimeParameterProductionResume && !isRuntimeWorkInFlightLocked()) {
+                pendingRuntimeParameterProductionResume = false
+                resumeProductionAdmission = state == ActiveRuntimeOwnerState.Committed
+            }
+        }
+        if (resumeProductionAdmission) {
+            runtimeFrameLoop.resumeProductionAdmission()
         }
     }
 
-    private fun admitFrameRatePolicy(core: ScreenCaptureSessionCore): FrameRatePolicyAdmission {
-        val effectiveParameters = currentActiveEffectiveParameters(core) ?: return FrameRatePolicyAdmission.Admitted
-        return when (val frameRate = effectiveParameters.frameRate) {
+    private fun admitFrameRatePolicy(production: RuntimeProductionState): FrameRatePolicyAdmission {
+        return when (val frameRate = production.effectiveParameters.frameRate) {
             FrameRate.Auto,
             is FrameRate.PeriodicRefresh -> FrameRatePolicyAdmission.Admitted
 
@@ -1314,6 +2202,7 @@ internal class ActiveRuntimeOwner internal constructor(
                 val nowNanos = elapsedRealtimeNanos()
                 val minimumIntervalNanos = NANOS_PER_SECOND / frameRate.fps
                 val admitted = synchronized(lock) {
+                    if (!isCurrentRuntimeProductionLocked(production)) return@synchronized true
                     val lastAdmitNanos = lastFrameRateAdmitNanos
                     if (lastAdmitNanos != null && nowNanos - lastAdmitNanos < minimumIntervalNanos) {
                         false
@@ -1328,8 +2217,8 @@ internal class ActiveRuntimeOwner internal constructor(
                     arbitrateProjectionStopPublicOutcome { rawStopObserved ->
                         synchronized(lock) {
                             projectionStopped = isProjectionStoppedLocked(rawStopObserved)
-                            if (!projectionStopped) {
-                                core.recordCurrentUnmaterializedProductionFrameDrop(ProductionFrameDropKind.FrameRatePolicy)
+                            if (!projectionStopped && isCurrentRuntimeProductionLocked(production)) {
+                                production.core.recordCurrentUnmaterializedProductionFrameDrop(ProductionFrameDropKind.FrameRatePolicy)
                             }
                         }
                     }
@@ -1344,21 +2233,42 @@ internal class ActiveRuntimeOwner internal constructor(
         }
     }
 
-    private fun rememberPeriodicRefreshFrame(
-        generation: Long,
+    private fun rememberPeriodicRefreshFrameIfCurrent(
+        production: RuntimeProductionState,
         format: EncodedImageFormat,
         bytes: ByteArray,
         publicationElapsedRealtimeNanos: Long,
-    ) {
+    ): Boolean =
         synchronized(lock) {
+            if (!isCurrentRuntimeProductionLocked(production)) return@synchronized false
             latestPeriodicRefreshFrame = PeriodicRefreshEncodedFrame(
-                generation = generation,
+                generation = production.outputGeneration,
                 format = format,
                 bytes = bytes,
                 publicationElapsedRealtimeNanos = publicationElapsedRealtimeNanos,
             )
+            true
         }
-    }
+
+    private fun rememberPeriodicRefreshFrameIfCurrent(
+        core: ScreenCaptureSessionCore,
+        frame: PeriodicRefreshEncodedFrame,
+        publicationElapsedRealtimeNanos: Long,
+    ): Boolean =
+        synchronized(lock) {
+            if (state != ActiveRuntimeOwnerState.Committed ||
+                isProjectionStoppedLocked() ||
+                activeOutputGeneration != frame.generation ||
+                core.currentOutputGeneration() != frame.generation
+            ) return@synchronized false
+            latestPeriodicRefreshFrame = PeriodicRefreshEncodedFrame(
+                generation = frame.generation,
+                format = frame.format,
+                bytes = frame.bytes,
+                publicationElapsedRealtimeNanos = publicationElapsedRealtimeNanos,
+            )
+            true
+        }
 
     private fun recordPeriodicRefreshNoSourceWake() {
         synchronized(lock) {
@@ -1377,6 +2287,7 @@ internal class ActiveRuntimeOwner internal constructor(
         periodicRefreshFuture?.cancel(false)
         periodicRefreshFuture = null
         periodicRefreshScheduled.set(false)
+        periodicRefreshScheduleToken = Math.addExact(periodicRefreshScheduleToken, 1L)
     }
 
     private fun publishPeriodicRefreshFrame(): RuntimeFrameProductionTickResult {
@@ -1394,12 +2305,12 @@ internal class ActiveRuntimeOwner internal constructor(
             return RuntimeFrameProductionTickResult.StaleDrop
         }
         val nowNanos = elapsedRealtimeNanos()
-        val delayMillis = periodicRefreshDelayMillis(core) ?: return RuntimeFrameProductionTickResult.NoFrameSignal
+        val delayMillis = periodicRefreshDelayMillis(frame.generation) ?: return RuntimeFrameProductionTickResult.NoFrameSignal
         val minimumIntervalNanos = delayMillis * NANOS_PER_MILLISECOND
         val elapsedSinceLastPublication = nowNanos - frame.publicationElapsedRealtimeNanos
         if (elapsedSinceLastPublication < minimumIntervalNanos) {
             val remainingMillis = ((minimumIntervalNanos - elapsedSinceLastPublication) / NANOS_PER_MILLISECOND).coerceAtLeast(1L)
-            scheduleNextPeriodicRefreshIfNeeded(core, delayMillis = remainingMillis)
+            scheduleNextPeriodicRefreshIfNeeded(frame.generation, delayMillis = remainingMillis)
             return RuntimeFrameProductionTickResult.NoFrameSignal
         }
         var finishProjectionStopped = false
@@ -1426,38 +2337,60 @@ internal class ActiveRuntimeOwner internal constructor(
             finishProjectionStopped()
         }
         if (!published) return RuntimeFrameProductionTickResult.StaleDrop
-        rememberPeriodicRefreshFrame(
-            generation = frame.generation,
-            format = frame.format,
-            bytes = frame.bytes,
+        beforePeriodicRefreshRetentionForTesting?.invoke()
+        val retained = rememberPeriodicRefreshFrameIfCurrent(
+            core = core,
+            frame = frame,
             publicationElapsedRealtimeNanos = nowNanos,
         )
-        scheduleNextPeriodicRefreshIfNeeded(core)
+        if (retained) {
+            scheduleNextPeriodicRefreshIfNeeded(frame.generation)
+        }
         return RuntimeFrameProductionTickResult.Published
     }
 
-    private fun scheduleNextPeriodicRefreshIfNeeded(core: ScreenCaptureSessionCore, delayMillis: Long? = null) {
-        val effectiveDelayMillis = delayMillis ?: periodicRefreshDelayMillis(core) ?: return
-        if (!periodicRefreshScheduled.compareAndSet(false, true)) return
-        var future: ScheduledFuture<*>? = null
+    private fun scheduleNextPeriodicRefreshIfNeeded(expectedOutputGeneration: Long, delayMillis: Long? = null) {
+        val effectiveDelayMillis = delayMillis ?: periodicRefreshDelayMillis(expectedOutputGeneration) ?: return
+        val scheduleToken = synchronized(lock) {
+            if (!isCurrentPeriodicRefreshGenerationLocked(expectedOutputGeneration)) return
+            if (!periodicRefreshScheduled.compareAndSet(false, true)) return
+            periodicRefreshScheduleToken = Math.addExact(periodicRefreshScheduleToken, 1L)
+            periodicRefreshScheduleToken
+        }
         try {
-            future = runtimeScheduler.schedule(
+            val future = runtimeScheduler.schedule(
                 {
+                    var wakeFenceToken: Long? = null
                     synchronized(lock) {
-                        if (periodicRefreshFuture === future) {
+                        if (periodicRefreshScheduleToken == scheduleToken && periodicRefreshScheduled.get()) {
                             periodicRefreshFuture = null
+                            periodicRefreshScheduleToken = Math.addExact(periodicRefreshScheduleToken, 1L)
+                            periodicRefreshScheduled.set(false)
+                            if (isCurrentPeriodicRefreshGenerationLocked(expectedOutputGeneration)) {
+                                wakeFenceToken = periodicRefreshScheduleToken
+                            }
                         }
-                        periodicRefreshScheduled.set(false)
                     }
-                    if (shouldAcceptRuntimeTurn()) {
-                        runtimeFrameLoop.recordPeriodicRefreshWake()
+                    wakeFenceToken?.let { expectedWakeFenceToken ->
+                        beforePeriodicRefreshWakeEnqueueForTesting?.invoke()
+                        synchronized(lock) {
+                            if (periodicRefreshScheduleToken == expectedWakeFenceToken &&
+                                isCurrentPeriodicRefreshGenerationLocked(expectedOutputGeneration)
+                            ) {
+                                runtimeFrameLoop.recordPeriodicRefreshWake()
+                            }
+                        }
                     }
+                    afterPeriodicRefreshWakeEnqueueAttemptForTesting?.invoke()
                 },
                 effectiveDelayMillis,
                 TimeUnit.MILLISECONDS,
             )
             synchronized(lock) {
-                if (state == ActiveRuntimeOwnerState.Committed && periodicRefreshScheduled.get()) {
+                if (periodicRefreshScheduleToken == scheduleToken &&
+                    isCurrentPeriodicRefreshGenerationLocked(expectedOutputGeneration) &&
+                    periodicRefreshScheduled.get()
+                ) {
                     periodicRefreshFuture = future
                 } else {
                     future.cancel(false)
@@ -1465,17 +2398,28 @@ internal class ActiveRuntimeOwner internal constructor(
             }
         } catch (cause: RejectedExecutionException) {
             synchronized(lock) {
-                periodicRefreshFuture = null
-                periodicRefreshScheduled.set(false)
+                if (periodicRefreshScheduleToken == scheduleToken) {
+                    periodicRefreshFuture = null
+                    periodicRefreshScheduleToken = Math.addExact(periodicRefreshScheduleToken, 1L)
+                    periodicRefreshScheduled.set(false)
+                }
             }
             if (shouldAcceptRuntimeTurn()) reportCleanupFailure(cause)
         }
     }
 
-    private fun periodicRefreshDelayMillis(core: ScreenCaptureSessionCore): Long? {
-        val frameRate = currentEffectiveParameters(core)?.frameRate as? FrameRate.PeriodicRefresh ?: return null
-        return periodicRefreshDelayOverrideMillis ?: frameRate.intervalMillis
-    }
+    private fun periodicRefreshDelayMillis(expectedOutputGeneration: Long): Long? =
+        synchronized(lock) {
+            if (!isCurrentPeriodicRefreshGenerationLocked(expectedOutputGeneration)) return@synchronized null
+            val frameRate = activeEffectiveParameters?.frameRate as? FrameRate.PeriodicRefresh ?: return@synchronized null
+            periodicRefreshDelayOverrideMillis ?: frameRate.intervalMillis
+        }
+
+    private fun isCurrentPeriodicRefreshGenerationLocked(expectedOutputGeneration: Long): Boolean =
+        state == ActiveRuntimeOwnerState.Committed &&
+                !isProjectionStoppedLocked() &&
+                activeOutputGeneration == expectedOutputGeneration &&
+                activeEffectiveParameters?.frameRate is FrameRate.PeriodicRefresh
 
     private fun scheduleRuntimeTurn(delayMillis: Long = 0L) {
         if (!shouldAcceptRuntimeTurn()) return
@@ -1526,11 +2470,6 @@ internal class ActiveRuntimeOwner internal constructor(
             is ScreenCaptureOutputState.Active -> output.effectiveParameters
             is ScreenCaptureOutputState.Suspended -> output.previousEffectiveParameters
         }
-    }
-
-    private fun currentActiveEffectiveParameters(core: ScreenCaptureSessionCore): ScreenCaptureEffectiveParameters? {
-        val running = core.state.value as? ScreenCaptureSessionState.Running ?: return null
-        return (running.output as? ScreenCaptureOutputState.Active)?.effectiveParameters
     }
 
     private fun reportCleanupFailure(failure: Throwable) {
@@ -1638,8 +2577,12 @@ internal class ActiveRuntimeTransfer internal constructor(
     val cleanupFailureSink: StartupCleanupFailureSink,
     val projectionStopObserved: () -> Boolean,
     val stopProjectionIfRequired: () -> Unit,
+    val encoderPrepare: ImageEncoderPrepareOperation,
+    val outputPlanPreparer: OutputPlanPreparer?,
+    val planRenderingAccess: PlanRenderingAccess,
     val preparedRenderingPipelineResources: ActiveRuntimePreparedRenderingPipelineResources,
     val initialOutputPlan: ScreenCaptureOutputPlan,
+    val initialParameters: ScreenCaptureParameters,
     val pendingSignals: StartupRuntimePendingSignals,
     val expectedCurrentListener: MediaProjectionCallbackAdapter.Listener,
 )
@@ -1678,6 +2621,130 @@ private class RuntimeProductionState(
     val core: ScreenCaptureSessionCore,
     val resources: ActiveRuntimePreparedRenderingPipelineResources,
     val scratch: EncodedAttemptScratch,
+    val outputGeneration: Long,
+    val encoderResources: PreparedImageEncoderResources,
+    val effectiveParameters: ScreenCaptureEffectiveParameters,
+    val captureGeometry: CaptureGeometry,
+    val encodeHealthKey: RuntimeEncodeHealthKey,
+)
+
+private class RuntimeEncodeHealthKey(
+    val outputGeneration: Long,
+    private val encoderResources: PreparedImageEncoderResources,
+) {
+    private val encoderInfo: ImageEncoderInfo = encoderResources.info
+
+    override fun equals(other: Any?): Boolean =
+        other is RuntimeEncodeHealthKey &&
+                outputGeneration == other.outputGeneration &&
+                encoderResources === other.encoderResources &&
+                encoderInfo == other.encoderInfo
+
+    override fun hashCode(): Int =
+        31 * (31 * outputGeneration.hashCode() + encoderInfo.hashCode()) + System.identityHashCode(encoderResources)
+}
+
+private class RuntimeProductionDropCompletion(
+    val projectionStopped: Boolean,
+    val resolvedKind: ProductionFrameDropKind?,
+) {
+    val isStaleGeneration: Boolean =
+        projectionStopped || resolvedKind == ProductionFrameDropKind.StaleGeneration
+}
+
+private class RuntimeProviderOnlyPreparationStart(
+    val core: ScreenCaptureSessionCore,
+    val planPreparationToken: PlanPreparationToken,
+    val baseOutputGeneration: Long,
+    val projectionTargetGeneration: Long,
+    val candidatePlan: ScreenCaptureOutputPlan,
+)
+
+private class RuntimeFullPreparationStart(
+    val core: ScreenCaptureSessionCore,
+    val outputPlanPreparer: OutputPlanPreparer,
+    val planPreparationToken: PlanPreparationToken,
+    val baseOutputGeneration: Long,
+    val projectionTarget: ProjectionTargetSnapshot,
+    val candidatePlan: ScreenCaptureOutputPlan,
+)
+
+private sealed class RuntimeFullPreparation {
+    data object NotNeeded : RuntimeFullPreparation()
+
+    class Prepared(
+        val candidate: RuntimeFullOutputPlanCandidate,
+    ) : RuntimeFullPreparation()
+
+    class Rejected(
+        val result: ScreenCaptureParameterUpdateResult.Rejected,
+    ) : RuntimeFullPreparation()
+}
+
+private class RuntimeFullOutputPlanCandidate(
+    val planPreparationToken: PlanPreparationToken,
+    val baseOutputGeneration: Long,
+    val projectionTargetGeneration: Long,
+    val candidatePlan: ScreenCaptureOutputPlan,
+    private val resourcesCandidate: ActiveRuntimePreparedRenderingPipelineResourcesCandidate,
+) : AutoCloseable {
+    private var committed = false
+
+    val encoderInfo: ImageEncoderInfo
+        get() = resourcesCandidate.encoderInfo
+
+    fun moveToActiveRuntimeOwner(): ActiveRuntimePreparedRenderingPipelineResources {
+        val resources = resourcesCandidate.moveToActiveRuntimeOwner()
+        committed = true
+        return resources
+    }
+
+    override fun close() {
+        if (committed) return
+        planPreparationToken.invalidate()
+        resourcesCandidate.close()
+    }
+}
+
+private sealed class RuntimeProviderOnlyPreparation {
+    data object NotNeeded : RuntimeProviderOnlyPreparation()
+
+    class Prepared(
+        val candidate: RuntimeProviderOnlyEncoderCandidate,
+    ) : RuntimeProviderOnlyPreparation()
+
+    class Rejected(
+        val result: ScreenCaptureParameterUpdateResult.Rejected,
+    ) : RuntimeProviderOnlyPreparation()
+}
+
+private class RuntimeProviderOnlyEncoderCandidate(
+    val planPreparationToken: PlanPreparationToken,
+    val baseOutputGeneration: Long,
+    val projectionTargetGeneration: Long,
+    val candidatePlan: ScreenCaptureOutputPlan,
+    val encoderResourcesCandidate: ActiveRuntimeEncoderResourcesCandidate,
+) : AutoCloseable {
+    private var committed = false
+
+    val encoderInfo: ImageEncoderInfo
+        get() = encoderResourcesCandidate.encoderInfo
+
+    fun markCommitted() {
+        committed = true
+    }
+
+    override fun close() {
+        if (committed) return
+        planPreparationToken.invalidate()
+        encoderResourcesCandidate.close()
+    }
+}
+
+private class RuntimeParameterCommitBridgeOutcome(
+    val result: ScreenCaptureParameterUpdateResult,
+    val productionAdmissionStillPaused: Boolean,
+    val resumeProductionAdmissionAfterCommit: Boolean,
 )
 
 private enum class FrameRatePolicyAdmission {
@@ -1730,6 +2797,7 @@ private fun StartupRuntimePendingSignals.mergeForCommit(
 
 private const val RUNTIME_GL_OPERATION_TIMEOUT_MS: Long = 5_000L
 private const val RUNTIME_ENCODER_OPERATION_TIMEOUT_MS: Long = 5_000L
+private const val RUNTIME_ENCODE_HARD_FAILURE_THRESHOLD: Int = 3
 private const val NANOS_PER_SECOND: Long = 1_000_000_000L
 private const val NANOS_PER_MILLISECOND: Long = 1_000_000L
 private const val RUNTIME_MATRIX_ELEMENT_COUNT: Int = 16

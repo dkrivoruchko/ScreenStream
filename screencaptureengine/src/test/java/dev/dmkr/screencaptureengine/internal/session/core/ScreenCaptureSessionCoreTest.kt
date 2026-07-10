@@ -19,6 +19,8 @@ import dev.dmkr.screencaptureengine.ReadbackMode
 import dev.dmkr.screencaptureengine.Rotation
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
 import dev.dmkr.screencaptureengine.ScreenCaptureEffectiveParameters
+import dev.dmkr.screencaptureengine.ScreenCaptureEvent
+import dev.dmkr.screencaptureengine.ScreenCaptureEventType
 import dev.dmkr.screencaptureengine.ScreenCaptureOutputState
 import dev.dmkr.screencaptureengine.ScreenCaptureParameterUpdateResult
 import dev.dmkr.screencaptureengine.ScreenCaptureParameters
@@ -28,10 +30,15 @@ import dev.dmkr.screencaptureengine.ScreenCaptureSessionState
 import dev.dmkr.screencaptureengine.ScreenCaptureStopReason
 import dev.dmkr.screencaptureengine.Size
 import dev.dmkr.screencaptureengine.SourceRegion
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -259,6 +266,66 @@ class ScreenCaptureSessionCoreTest {
     }
 
     @Test
+    fun finishFailed_publishesAuthoritativeStateBeforeExactlyOneMatchingEvent() = runTest {
+        val session = sessionCore()
+        val observations = mutableListOf<Pair<ScreenCaptureSessionState, ScreenCaptureEvent>>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            session.events.collect { event -> observations += session.state.value to event }
+        }
+        val winningProblem = session.newProblem(ScreenCaptureProblemKind.GlResourceFailure, "GL failed.", null)
+        val losingProblem = session.newProblem(ScreenCaptureProblemKind.InternalInvariantViolation, "Late failure.", null)
+
+        session.finishFailed(winningProblem)
+        session.finishFailed(losingProblem)
+        yield()
+        collector.cancel()
+
+        val failedState = session.state.value as ScreenCaptureSessionState.Failed
+        assertSame(winningProblem, failedState.problem)
+        val (stateAtEvent, event) = observations.single()
+        assertEquals(ScreenCaptureEventType.SessionFailed, event.type)
+        assertSame(winningProblem, event.problem)
+        assertSame(winningProblem, (stateAtEvent as ScreenCaptureSessionState.Failed).problem)
+    }
+
+    @Test
+    fun finishStopped_preservesExactlyOnceStoppedEventAndSuppressesLaterFailure() = runTest {
+        val session = sessionCore()
+        val events = mutableListOf<ScreenCaptureEvent>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            session.events.collect { event -> events += event }
+        }
+        val lateFailure = session.newProblem(ScreenCaptureProblemKind.GlResourceFailure, "Late failure.", null)
+
+        session.stop()
+        session.stop()
+        session.finishFailed(lateFailure)
+        yield()
+        collector.cancel()
+
+        val stoppedState = session.state.value as ScreenCaptureSessionState.Stopped
+        assertEquals(ScreenCaptureStopReason.OwnerStop, stoppedState.reason)
+        assertEquals(listOf(ScreenCaptureEventType.SessionStopped), events.map { event -> event.type })
+        assertNull(events.single().problem)
+    }
+
+    @Test
+    fun finishFailed_withoutEventCollectorStillPublishesStateAndClosesDelivery() {
+        val session = sessionCore(terminalCommitHandler = {
+            throw IllegalStateException("terminal hook failed")
+        })
+        val subscription = session.onFrame { }
+        val problem = session.newProblem(ScreenCaptureProblemKind.GlResourceFailure, "GL failed.", null)
+
+        session.finishFailed(problem)
+
+        val failedState = session.state.value as ScreenCaptureSessionState.Failed
+        assertSame(problem, failedState.problem)
+        assertEquals(0, session.stats.value.activeFrameSubscriptions)
+        subscription.cancel()
+    }
+
+    @Test
     fun terminalCommitHandlerThrowDoesNotBlockCoordinatorCloseOrTerminalStatePublication() {
         val session = sessionCore(terminalCommitHandler = {
             throw IllegalStateException("terminal hook failed")
@@ -407,6 +474,93 @@ class ScreenCaptureSessionCoreTest {
     }
 
     @Test
+    fun setParameters_secondUpdateWaitsForActiveTransactionSlotWithoutEnteringUpdater() = runTest {
+        val firstUpdaterEntered = CompletableDeferred<Unit>()
+        val allowFirstUpdaterToComplete = CompletableDeferred<Unit>()
+        val secondUpdaterEntered = CompletableDeferred<Unit>()
+        val updaterCalls = AtomicInteger()
+        lateinit var session: ScreenCaptureSessionCore
+        session = sessionCore { _, commitGate ->
+            when (updaterCalls.incrementAndGet()) {
+                1 -> {
+                    firstUpdaterEntered.complete(Unit)
+                    allowFirstUpdaterToComplete.await()
+                    commitGate.commit { ScreenCaptureParameterUpdateResult.Applied }
+                }
+
+                2 -> {
+                    secondUpdaterEntered.complete(Unit)
+                    commitGate.commit { ScreenCaptureParameterUpdateResult.Applied }
+                }
+
+                else -> throw AssertionError("Unexpected parameter updater call.")
+            }
+        }
+
+        val firstUpdate = async { session.setParameters(ScreenCaptureParameters.defaults()) }
+        firstUpdaterEntered.await()
+        val secondUpdate = async { session.setParameters(ScreenCaptureParameters.defaults()) }
+        yield()
+
+        assertEquals(1, updaterCalls.get())
+        assertEquals(false, secondUpdaterEntered.isCompleted)
+        assertEquals(false, secondUpdate.isCompleted)
+
+        allowFirstUpdaterToComplete.complete(Unit)
+
+        assertSame(ScreenCaptureParameterUpdateResult.Applied, firstUpdate.await())
+        secondUpdaterEntered.await()
+        assertSame(ScreenCaptureParameterUpdateResult.Applied, secondUpdate.await())
+        assertEquals(2, updaterCalls.get())
+    }
+
+    @Test
+    fun setParameters_terminalWhilePreparationActiveRejectsWaitingUpdateWithoutPreparation() = runTest {
+        val firstUpdaterEntered = CompletableDeferred<Unit>()
+        val allowFirstUpdaterToComplete = CompletableDeferred<Unit>()
+        val updaterCalls = AtomicInteger()
+        var visibleCommitRan = false
+        lateinit var session: ScreenCaptureSessionCore
+        session = sessionCore { _, commitGate ->
+            when (updaterCalls.incrementAndGet()) {
+                1 -> {
+                    firstUpdaterEntered.complete(Unit)
+                    allowFirstUpdaterToComplete.await()
+                    commitGate.commit {
+                        visibleCommitRan = true
+                        ScreenCaptureParameterUpdateResult.Applied
+                    }
+                }
+
+                else -> throw AssertionError("Waiting update must not enter preparation after terminal.")
+            }
+        }
+
+        val firstUpdate = async { session.setParameters(ScreenCaptureParameters.defaults()) }
+        firstUpdaterEntered.await()
+        val secondUpdate = async { session.setParameters(ScreenCaptureParameters.defaults()) }
+        yield()
+
+        session.stop()
+        yield()
+
+        assertEquals(true, secondUpdate.isCompleted)
+        val secondRejection = secondUpdate.await() as ScreenCaptureParameterUpdateResult.Rejected
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, secondRejection.problem.kind)
+        val stoppedState = session.state.value as ScreenCaptureSessionState.Stopped
+        assertEquals(ScreenCaptureStopReason.OwnerStop, stoppedState.reason)
+        assertEquals(false, firstUpdate.isCompleted)
+        assertEquals(false, visibleCommitRan)
+        assertEquals(1, updaterCalls.get())
+
+        allowFirstUpdaterToComplete.complete(Unit)
+
+        val firstRejection = firstUpdate.await() as ScreenCaptureParameterUpdateResult.Rejected
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, firstRejection.problem.kind)
+        assertEquals(false, visibleCommitRan)
+    }
+
+    @Test
     fun setParameters_stopBeforeCommitGateRejectsAndDoesNotRunVisibleCommit() = runTest {
         var visibleCommitRan = false
         lateinit var session: ScreenCaptureSessionCore
@@ -429,6 +583,56 @@ class ScreenCaptureSessionCoreTest {
     }
 
     @Test
+    fun setParameters_closeBeforeCommitGateRejectsAndDoesNotRunVisibleCommit() = runTest {
+        var visibleCommitRan = false
+        lateinit var session: ScreenCaptureSessionCore
+        session = sessionCore { _, commitGate ->
+            session.close()
+            commitGate.commit {
+                visibleCommitRan = true
+                ScreenCaptureParameterUpdateResult.Applied
+            }
+        }
+
+        val result = session.setParameters(ScreenCaptureParameters.defaults())
+
+        assertFalse(visibleCommitRan)
+        val rejection = result as ScreenCaptureParameterUpdateResult.Rejected
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, rejection.problem.kind)
+        val state = session.state.value as ScreenCaptureSessionState.Stopped
+        assertEquals(ScreenCaptureStopReason.OwnerStop, state.reason)
+        assertSame(null, state.problem)
+    }
+
+    @Test
+    fun setParameters_projectionStopBeforeCommitGateRejectsWithProjectionProblem() = runTest {
+        var visibleCommitRan = false
+        lateinit var session: ScreenCaptureSessionCore
+        session = sessionCore { _, commitGate ->
+            val projectionProblem = session.newProblem(
+                kind = ScreenCaptureProblemKind.ProjectionInvalidOrStopped,
+                message = "Projection stopped.",
+                cause = null,
+            )
+            session.finishStopped(ScreenCaptureStopReason.CaptureEnded, projectionProblem)
+            commitGate.commit {
+                visibleCommitRan = true
+                ScreenCaptureParameterUpdateResult.Applied
+            }
+        }
+
+        val result = session.setParameters(ScreenCaptureParameters.defaults())
+
+        assertFalse(visibleCommitRan)
+        val rejection = result as ScreenCaptureParameterUpdateResult.Rejected
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, rejection.problem.kind)
+        assertEquals("Projection stopped.", rejection.problem.message)
+        val state = session.state.value as ScreenCaptureSessionState.Stopped
+        assertEquals(ScreenCaptureStopReason.CaptureEnded, state.reason)
+        assertSame(rejection.problem, state.problem)
+    }
+
+    @Test
     fun setParameters_stopAfterCommitGateReturnsApplied() = runTest {
         var visibleCommitRan = false
         lateinit var session: ScreenCaptureSessionCore
@@ -448,6 +652,34 @@ class ScreenCaptureSessionCoreTest {
         val state = session.state.value as ScreenCaptureSessionState.Stopped
         assertEquals(ScreenCaptureStopReason.OwnerStop, state.reason)
         assertSame(null, state.problem)
+    }
+
+    @Test
+    fun setParameters_projectionStopAfterCommitGateReturnsApplied() = runTest {
+        var visibleCommitRan = false
+        lateinit var session: ScreenCaptureSessionCore
+        lateinit var projectionProblem: ScreenCaptureProblem
+        session = sessionCore { _, commitGate ->
+            val result = commitGate.commit {
+                visibleCommitRan = true
+                ScreenCaptureParameterUpdateResult.Applied
+            }
+            projectionProblem = session.newProblem(
+                kind = ScreenCaptureProblemKind.ProjectionInvalidOrStopped,
+                message = "Projection stopped.",
+                cause = null,
+            )
+            session.finishStopped(ScreenCaptureStopReason.CaptureEnded, projectionProblem)
+            result
+        }
+
+        val result = session.setParameters(ScreenCaptureParameters.defaults())
+
+        assertSame(ScreenCaptureParameterUpdateResult.Applied, result)
+        assertEquals(true, visibleCommitRan)
+        val state = session.state.value as ScreenCaptureSessionState.Stopped
+        assertEquals(ScreenCaptureStopReason.CaptureEnded, state.reason)
+        assertSame(projectionProblem, state.problem)
     }
 
     @Test

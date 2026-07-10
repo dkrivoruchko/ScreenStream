@@ -1,6 +1,6 @@
 package dev.dmkr.screencaptureengine
 
-import dev.dmkr.screencaptureengine.internal.encoding.provider.createFrameworkBitmapCompressEncoder
+import dev.dmkr.screencaptureengine.internal.encoding.jpeg.createFrameworkJpegEncoder
 
 /**
  * JPEG encoder provider API.
@@ -35,7 +35,7 @@ public class JpegImageEncoderProvider : ImageEncoderProvider {
                 -> JpegEncoderBackend.FrameworkBitmapCompress
         }
         return when (backend) {
-            JpegEncoderBackend.FrameworkBitmapCompress -> createFrameworkBitmapCompressEncoder(request, quality)
+            JpegEncoderBackend.FrameworkBitmapCompress -> createFrameworkJpegEncoder(request, quality)
             JpegEncoderBackend.NdkAndroidBitmapCompress -> throw ImageEncoderUnavailableException(
                 "Native Android Bitmap JPEG backend is unavailable.",
                 null,

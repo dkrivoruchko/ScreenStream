@@ -12,15 +12,28 @@ import kotlinx.coroutines.flow.StateFlow
  */
 public interface ScreenCaptureSession {
     /**
-     * Requests new capture parameters for this session.
+     * Atomically requests new capture parameters for this session.
      *
-     * For non-terminal sessions returned by [ScreenCaptureEngines.create], runtime parameter
-     * updates are unavailable: the call returns [ScreenCaptureParameterUpdateResult.Rejected] with
-     * [ScreenCaptureProblemKind.ParameterUpdateUnavailable], keeps the current plan unchanged, and
-     * does not prepare or publish a partial plan.
+     * Updates are supported while [state] is [ScreenCaptureSessionState.Running] with
+     * [ScreenCaptureOutputState.Active] output and the candidate can reuse the current projection
+     * target and virtual-display target assignment. Supported updates include normalized no-ops,
+     * frame-rate-only changes, provider-only changes with an unchanged encoder input shape, and
+     * complete same-target output-plan replacements. A normalized no-op can return
+     * [ScreenCaptureParameterUpdateResult.Applied] without changing state or resources; every other
+     * applied update atomically installs a new output generation after required resources are
+     * prepared.
+     *
+     * A request that requires retargeting, target replacement, live geometry replan, or suspended
+     * output recovery is rejected with [ScreenCaptureProblemKind.ParameterUpdateUnavailable].
+     * Invalid plans and preparation failures are rejected with their more specific problem. Before
+     * commit, rejection keeps the previous active plan in use unless terminal cleanup wins; terminal
+     * [state] is then authoritative. No candidate plan or frame becomes public before commit. If
+     * commit wins, this call returns [ScreenCaptureParameterUpdateResult.Applied] even when a terminal
+     * transition follows immediately.
      *
      * Calls are serialized, thread-safe, and main-safe. Calls from engine-owned execution contexts
-     * fail fast with [IllegalStateException].
+     * fail fast with [IllegalStateException]. Caller cancellation may cancel an uncommitted update;
+     * [state] remains authoritative when cancellation races with commit.
      */
     public suspend fun setParameters(parameters: ScreenCaptureParameters): ScreenCaptureParameterUpdateResult
 

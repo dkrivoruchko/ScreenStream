@@ -25,6 +25,7 @@ internal class RuntimeFrameLoop internal constructor(
     internal val frameSignalSink: RuntimeFrameSignalSink = RuntimeFrameSignalSink(::recordSourceFrameAvailable)
     private var closed = false
     private var committed = false
+    private var productionAdmissionPauseCount = 0
     private var sourceFrameSignalPending = false
     private var periodicRefreshWakePending = false
     private var metricsObservationPending = false
@@ -48,7 +49,7 @@ internal class RuntimeFrameLoop internal constructor(
             sourceFrameSignalPending = true
             latestSourceFrameGeneration = generation
             frameSignalSource.enqueueFrameAvailable(generation)
-            shouldNotify = committed && notifyRuntimeWhenCommitted
+            shouldNotify = committed && notifyRuntimeWhenCommitted && !isProductionAdmissionPausedLocked()
         }
         if (shouldNotify) onRuntimeSignalRecorded()
     }
@@ -66,7 +67,27 @@ internal class RuntimeFrameLoop internal constructor(
         synchronized(lock) {
             if (closed) return
             periodicRefreshWakePending = true
-            shouldNotify = committed && notifyRuntimeWhenCommitted
+            shouldNotify = committed && notifyRuntimeWhenCommitted && !isProductionAdmissionPausedLocked()
+        }
+        if (shouldNotify) onRuntimeSignalRecorded()
+    }
+
+    internal fun pauseProductionAdmission() {
+        synchronized(lock) {
+            if (closed) return
+            productionAdmissionPauseCount = Math.addExact(productionAdmissionPauseCount, 1)
+        }
+    }
+
+    internal fun resumeProductionAdmission() {
+        var shouldNotify = false
+        synchronized(lock) {
+            if (closed) return
+            check(productionAdmissionPauseCount > 0) { "Production admission is not paused." }
+            productionAdmissionPauseCount -= 1
+            shouldNotify = committed &&
+                    !isProductionAdmissionPausedLocked() &&
+                    (sourceFrameSignalPending || periodicRefreshWakePending)
         }
         if (shouldNotify) onRuntimeSignalRecorded()
     }
@@ -162,8 +183,10 @@ internal class RuntimeFrameLoop internal constructor(
     ): Boolean =
         synchronized(lock) {
             if (closed || !committed) return@synchronized false
-            if (sourceFrameSignalPending) return@synchronized true
-            if (periodicRefreshWakePending) return@synchronized true
+            if (!isProductionAdmissionPausedLocked()) {
+                if (sourceFrameSignalPending) return@synchronized true
+                if (periodicRefreshWakePending) return@synchronized true
+            }
             if (metricsObservationPending) return@synchronized true
             val signals = signalMailbox
                 .snapshot(latestMetrics = latestMetrics, projectionStopObserved = projectionStopObserved)
@@ -175,7 +198,7 @@ internal class RuntimeFrameLoop internal constructor(
 
     internal fun admitLatestFrameSignal(): RuntimeFrameSignal? =
         synchronized(lock) {
-            if (closed || !committed) return null
+            if (closed || !committed || isProductionAdmissionPausedLocked()) return null
             val signal = frameSignalSource.drainLatestFrameSignal() ?: return null
             sourceFrameSignalPending = false
             latestSourceFrameGeneration = null
@@ -185,7 +208,7 @@ internal class RuntimeFrameLoop internal constructor(
 
     internal fun consumePeriodicRefreshWake(): Boolean =
         synchronized(lock) {
-            if (closed || !committed || !periodicRefreshWakePending) return false
+            if (closed || !committed || isProductionAdmissionPausedLocked() || !periodicRefreshWakePending) return false
             periodicRefreshWakePending = false
             true
         }
@@ -193,6 +216,7 @@ internal class RuntimeFrameLoop internal constructor(
     internal fun fenceTerminal() {
         synchronized(lock) {
             closed = true
+            productionAdmissionPauseCount = 0
             sourceFrameSignalPending = false
             periodicRefreshWakePending = false
             metricsObservationPending = false
@@ -205,11 +229,16 @@ internal class RuntimeFrameLoop internal constructor(
         synchronized(lock) {
             RuntimeFrameLoopSnapshot(
                 committed = committed,
+                productionAdmissionPaused = isProductionAdmissionPausedLocked(),
                 sourceFrameSignalPending = sourceFrameSignalPending,
+                periodicRefreshWakePending = periodicRefreshWakePending,
                 latestSourceFrameGeneration = latestSourceFrameGeneration,
                 admittedProductionAttempts = admittedProductionAttempts,
             )
         }
+
+    private fun isProductionAdmissionPausedLocked(): Boolean =
+        productionAdmissionPauseCount > 0
 
     override fun close() {
         fenceTerminal()
@@ -251,7 +280,9 @@ internal class RuntimeFrameLoop internal constructor(
 
 internal class RuntimeFrameLoopSnapshot internal constructor(
     internal val committed: Boolean,
+    internal val productionAdmissionPaused: Boolean,
     internal val sourceFrameSignalPending: Boolean,
+    internal val periodicRefreshWakePending: Boolean,
     internal val latestSourceFrameGeneration: Long?,
     internal val admittedProductionAttempts: Long,
 )

@@ -24,6 +24,7 @@ import dev.dmkr.screencaptureengine.internal.session.delivery.DeliveryDropKind
 import dev.dmkr.screencaptureengine.internal.session.delivery.LatestEncodedFrame
 import dev.dmkr.screencaptureengine.internal.session.delivery.ScreenCaptureEngineOwnedContext
 import dev.dmkr.screencaptureengine.internal.session.delivery.ScreenCaptureFrameDeliveryCoordinator
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,8 +32,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
@@ -66,7 +65,7 @@ internal class ScreenCaptureSessionCore internal constructor(
     private val sessionGate = Any()
     private val statsLock = Any()
     private val diagnosticEventLock = Any()
-    private val parameterMutex = Mutex()
+    private val activeParameterTransactionSlot = AtomicReference<ParameterTransactionSlot?>(null)
     private val lastDiagnosticEventNanos = LinkedHashMap<DiagnosticEventKey, Long>()
     private var latestFrame: LatestEncodedFrame? = null
     private var currentOutputGeneration = INITIAL_OUTPUT_GENERATION
@@ -102,15 +101,15 @@ internal class ScreenCaptureSessionCore internal constructor(
         check(!ScreenCaptureEngineOwnedContext.isCurrent) {
             "setParameters must not be called from engine-owned execution contexts."
         }
-        return parameterMutex.withLock {
+        val slot = reserveParameterTransactionSlot()
+            ?: return ScreenCaptureParameterUpdateResult.Rejected(problem = currentTerminalProblem())
+        try {
             if (isTerminal()) {
-                return@withLock ScreenCaptureParameterUpdateResult.Rejected(problem = currentTerminalProblem())
+                return ScreenCaptureParameterUpdateResult.Rejected(problem = currentTerminalProblem())
             }
-            parameterUpdater(parameters) { commit ->
-                synchronized(sessionGate) {
-                    terminalProblem.get()?.let { problem -> ScreenCaptureParameterUpdateResult.Rejected(problem) } ?: commit()
-                }
-            }
+            return parameterUpdater(parameters, ::commitParameterUpdate)
+        } finally {
+            releaseParameterTransactionSlot(slot)
         }
     }
 
@@ -269,6 +268,7 @@ internal class ScreenCaptureSessionCore internal constructor(
             latestFrame = null
             terminalCommit = ScreenCaptureSessionTerminalCommit.Stopped(reason = reason, problem = problem)
         }
+        signalParameterTransactionsTerminal()
         invokeTerminalCommitHandler(terminalCommit)
         frameDeliveryCoordinator.closeFromSession()
         mutableState.value = ScreenCaptureSessionState.Stopped(reason = reason, problem = problem)
@@ -282,9 +282,11 @@ internal class ScreenCaptureSessionCore internal constructor(
             latestFrame = null
             terminalCommit = ScreenCaptureSessionTerminalCommit.Failed(problem)
         }
+        signalParameterTransactionsTerminal()
         invokeTerminalCommitHandler(terminalCommit)
         frameDeliveryCoordinator.closeFromSession()
         mutableState.value = ScreenCaptureSessionState.Failed(problem)
+        emitEvent(ScreenCaptureEventType.SessionFailed, problem = problem, message = "Session failed.")
     }
 
     internal fun newProblem(kind: ScreenCaptureProblemKind, message: String?, cause: Throwable?): ScreenCaptureProblem =
@@ -294,6 +296,35 @@ internal class ScreenCaptureSessionCore internal constructor(
 
     private fun currentTerminalProblem(): ScreenCaptureProblem =
         terminalProblem.get() ?: newProblem(kind = ScreenCaptureProblemKind.ProjectionInvalidOrStopped, message = "Session is terminal.", cause = null)
+
+    private suspend fun reserveParameterTransactionSlot(): ParameterTransactionSlot? {
+        while (true) {
+            if (isTerminal()) return null
+            val slot = ParameterTransactionSlot()
+            if (activeParameterTransactionSlot.compareAndSet(null, slot)) {
+                if (isTerminal()) {
+                    releaseParameterTransactionSlot(slot)
+                    return null
+                }
+                return slot
+            }
+            activeParameterTransactionSlot.get()?.completed?.await()
+        }
+    }
+
+    private fun releaseParameterTransactionSlot(slot: ParameterTransactionSlot) {
+        activeParameterTransactionSlot.compareAndSet(slot, null)
+        slot.completed.complete(Unit)
+    }
+
+    private fun signalParameterTransactionsTerminal() {
+        activeParameterTransactionSlot.get()?.completed?.complete(Unit)
+    }
+
+    private fun commitParameterUpdate(commit: () -> ScreenCaptureParameterUpdateResult): ScreenCaptureParameterUpdateResult =
+        synchronized(sessionGate) {
+            terminalProblem.get()?.let { problem -> ScreenCaptureParameterUpdateResult.Rejected(problem) } ?: commit()
+        }
 
     private fun latestFrameBySequence(sequence: Long): LatestEncodedFrame? =
         synchronized(sessionGate) {
@@ -370,7 +401,7 @@ internal class ScreenCaptureSessionCore internal constructor(
         }
     }
 
-    internal fun completeProductionDrop(generation: Long, kind: ProductionFrameDropKind) {
+    internal fun completeProductionDrop(generation: Long, kind: ProductionFrameDropKind): ProductionFrameDropKind {
         val resolvedKind = synchronized(sessionGate) {
             when {
                 isTerminal() || generation != currentOutputGeneration -> ProductionFrameDropKind.StaleGeneration
@@ -385,6 +416,7 @@ internal class ScreenCaptureSessionCore internal constructor(
             publishStatsLocked()
         }
         emitEvent(type = ScreenCaptureEventType.EncodedFrameDropped, problem = null, message = "Encoded frame dropped.", rateLimitDiagnostic = true)
+        return resolvedKind
     }
 
     internal fun completeEncodedSuccess(
@@ -464,7 +496,7 @@ internal class ScreenCaptureSessionCore internal constructor(
     }
 
     private fun emitEvent(type: ScreenCaptureEventType, problem: ScreenCaptureProblem?, message: String?, rateLimitDiagnostic: Boolean = false) {
-        if (type != ScreenCaptureEventType.SessionStopped && isTerminal()) return
+        if (isTerminal() && type != ScreenCaptureEventType.SessionStopped && type != ScreenCaptureEventType.SessionFailed) return
         if (rateLimitDiagnostic && !shouldEmitDiagnosticEvent(type, problem?.kind)) return
         mutableEvents.tryEmit(
             ScreenCaptureEvent(
@@ -508,6 +540,10 @@ internal fun interface ScreenCaptureParameterCommitGate {
 
 private data object CancelledFrameSubscription : FrameSubscription {
     override fun cancel() = Unit
+}
+
+private class ParameterTransactionSlot {
+    val completed = CompletableDeferred<Unit>()
 }
 
 internal sealed class ScreenCaptureSessionTerminalCommit private constructor() {
@@ -578,9 +614,12 @@ internal class ProductionAttemptToken internal constructor(
         completeDrop(ProductionFrameDropKind.TransientFailure)
 
     internal fun completeDrop(kind: ProductionFrameDropKind): Boolean {
-        if (!completed.compareAndSet(false, true)) return false
-        session.completeProductionDrop(generation = generation, kind = kind)
-        return true
+        return completeDropAndResolve(kind) != null
+    }
+
+    internal fun completeDropAndResolve(kind: ProductionFrameDropKind): ProductionFrameDropKind? {
+        if (!completed.compareAndSet(false, true)) return null
+        return session.completeProductionDrop(generation = generation, kind = kind)
     }
 }
 

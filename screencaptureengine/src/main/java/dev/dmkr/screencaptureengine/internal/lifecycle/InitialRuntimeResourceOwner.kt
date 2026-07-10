@@ -3,6 +3,8 @@ package dev.dmkr.screencaptureengine.internal.lifecycle
 import android.os.SystemClock
 import dev.dmkr.screencaptureengine.CaptureGeometry
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
+import dev.dmkr.screencaptureengine.ScreenCaptureParameters
+import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPreparationResult
 import dev.dmkr.screencaptureengine.internal.gl.CleanupFailureCollector
 import dev.dmkr.screencaptureengine.internal.gl.StartupCleanupFailureSink
 import dev.dmkr.screencaptureengine.internal.gl.StartupCleanupScheduler
@@ -18,8 +20,11 @@ import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionTarge
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionVirtualDisplayOwner
 import dev.dmkr.screencaptureengine.internal.platform.projection.StartupProjectionCallbackRouter
 import dev.dmkr.screencaptureengine.internal.rendering.es2.FirstPlanRenderTransformPackage
+import dev.dmkr.screencaptureengine.internal.rendering.es2.ImageEncoderPrepareOperation
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.ActiveRuntimePreparedRenderingPipelineResources
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.InitialRuntimePreparedRenderingPipelineResources
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPreparer
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.asPlanRenderingAccess
 import dev.dmkr.screencaptureengine.internal.session.core.ScreenCaptureSessionTerminalCommit
 import dev.dmkr.screencaptureengine.internal.startup.ScreenCaptureStartupMilestone
 import dev.dmkr.screencaptureengine.internal.startup.StartupRuntimePendingSignals
@@ -59,6 +64,7 @@ internal class InitialRuntimeResourceOwner internal constructor(
 
     internal val startupGeometry: CaptureGeometry = transfer.startupGeometry
     internal val initialOutputPlan: ScreenCaptureOutputPlan = transfer.initialOutputPlan
+    private val initialParameters: ScreenCaptureParameters = transfer.initialParameters
 
     @Suppress("unused") // Read by lifecycle tests to verify initial rendering handoff identity.
     internal val initialRenderTransformPackage: FirstPlanRenderTransformPackage =
@@ -106,6 +112,8 @@ internal class InitialRuntimeResourceOwner internal constructor(
 
     internal fun transferToActiveRuntimeOwner(
         config: ScreenCaptureConfig,
+        encoderPrepare: ImageEncoderPrepareOperation = RuntimeProviderPreparationNotConfigured,
+        outputPlanPreparer: OutputPlanPreparer? = null,
         commitBoundary: InitialActivationCommitBoundary = InitialActivationCommitBoundary(),
         elapsedRealtimeNanos: () -> Long = SystemClock::elapsedRealtimeNanos,
         terminalCommitHandler: (ScreenCaptureSessionTerminalCommit) -> Unit = {},
@@ -137,8 +145,12 @@ internal class InitialRuntimeResourceOwner internal constructor(
                         cleanupFailureSink = cleanupFailureSink,
                         projectionStopObserved = projectionStopObserved,
                         stopProjectionIfRequired = stopProjectionIfRequired,
+                        encoderPrepare = encoderPrepare,
+                        outputPlanPreparer = outputPlanPreparer,
+                        planRenderingAccess = projectionTargetOwner.startupRenderingGlAccess().asPlanRenderingAccess(),
                         preparedRenderingPipelineResources = movedResources,
                         initialOutputPlan = initialOutputPlan,
+                        initialParameters = initialParameters,
                         pendingSignals = pendingSignals,
                         expectedCurrentListener = this,
                     ),
@@ -195,6 +207,14 @@ private enum class InitialRuntimeResourceOwnerState {
     Closed,
 }
 
+private val RuntimeProviderPreparationNotConfigured = ImageEncoderPrepareOperation { _, _, _ ->
+    ImageEncoderPreparationResult.Failure(
+        kind = dev.dmkr.screencaptureengine.ScreenCaptureProblemKind.ParameterUpdateUnavailable,
+        message = "Runtime provider preparation is not configured for this owner.",
+        cause = null,
+    )
+}
+
 private fun StartupRuntimePendingSignals.mergeWith(
     later: StartupRuntimePendingSignals,
 ): StartupRuntimePendingSignals =
@@ -223,6 +243,7 @@ internal class InitialRuntimeResourceTransfer internal constructor(
     val stopProjectionIfRequired: () -> Unit,
     val preparedRenderingPipelineResources: InitialRuntimePreparedRenderingPipelineResources,
     val initialOutputPlan: ScreenCaptureOutputPlan,
+    val initialParameters: ScreenCaptureParameters,
     @Suppress("UNUSED_PARAMETER") // Kept for current handoff construction shape; no owner accessor remains.
     initialProjectionTarget: ProjectionTargetSnapshot,
     val pendingSignals: StartupRuntimePendingSignals,

@@ -3,17 +3,17 @@ package dev.dmkr.screencaptureengine
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import dev.dmkr.screencaptureengine.internal.encoding.jpeg.createFrameworkJpegEncoder
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.OutputStream
 import java.nio.ByteBuffer
-import java.nio.file.Files
-import java.nio.file.Path
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -60,40 +60,6 @@ class JpegImageEncoderProviderRobolectricTest {
         } catch (exception: ImageEncoderUnavailableException) {
             assertTrue(exception.message.orEmpty().contains("raw input byte span"))
         }
-    }
-
-    @Test
-    fun jpegProviderDoesNotExposeRemovedJvmTestSeams() {
-        val removedSeamNames = listOf(
-            "FrameworkBitmapCompressor",
-            "AndroidFrameworkBitmapCompressor",
-            "BuiltInImageEncoderAllocationCause",
-            "FrameworkJpegAllocationFailureCause",
-            "isBuiltInImageEncoderAllocationFailure",
-        )
-        val defaultProvider = JpegImageEncoderProvider()
-        val configuredProvider = JpegImageEncoderProvider(
-            quality = 75,
-            backendPolicy = JpegEncoderBackendPolicy.FrameworkOnly,
-        )
-        val publicSource = jpegProviderSource()
-        val backendSource = frameworkJpegBackendSource()
-
-        assertEquals(80, defaultProvider.quality)
-        assertEquals(JpegEncoderBackendPolicy.Auto, defaultProvider.backendPolicy)
-        assertEquals(75, configuredProvider.quality)
-        assertEquals(JpegEncoderBackendPolicy.FrameworkOnly, configuredProvider.backendPolicy)
-        removedSeamNames.forEach { seamName ->
-            assertFalse("$seamName leaked through JpegImageEncoderProvider.kt", publicSource.contains(seamName))
-            assertFalse("$seamName leaked through FrameworkBitmapCompressJpegEncoder.kt", backendSource.contains(seamName))
-        }
-        assertTrue(publicSource.contains("public class JpegImageEncoderProvider"))
-        assertTrue(backendSource.contains("private class FrameworkBitmapCompressJpegEncoder"))
-        assertTrue(backendSource.contains("private class EncodedImageSinkOutputStream"))
-        assertFalse(publicSource.contains("FrameworkBitmapCompressJpegEncoder"))
-        assertFalse(publicSource.contains("EncodedImageSinkOutputStream"))
-        assertFalse(backendSource.contains("public class FrameworkBitmapCompressJpegEncoder"))
-        assertFalse(backendSource.contains("public class EncodedImageSinkOutputStream"))
     }
 
     @Test
@@ -155,6 +121,31 @@ class JpegImageEncoderProviderRobolectricTest {
         assertDominantGreenAt(decoded, 24, 8)
         assertDominantBlueAt(decoded, 8, 24)
         assertDominantYellowAt(decoded, 24, 24)
+    }
+
+    @Test
+    fun encodeUploadsEveryLogicalRowBandToTheBitmap() {
+        val width = 48
+        val height = 64
+        val encoder = JpegImageEncoderProvider(quality = 100).createEncoder(request(width, height))
+        val sink = RecordingEncodedImageSink()
+        val pixels = List(width * height) { index ->
+            when ((index / width) * 4 / height) {
+                0 -> Rgba(230, 20, 20)
+                1 -> Rgba(20, 220, 20)
+                2 -> Rgba(20, 20, 230)
+                else -> Rgba(230, 220, 20)
+            }
+        }
+
+        val result = encoder.encode(input(width, height, pixels = pixels), sink)
+
+        assertEquals(ImageEncodeResult.Success, result)
+        val decoded = decodeJpeg(sink.bytes())
+        assertDominantRedAt(decoded, width / 2, 8)
+        assertDominantGreenAt(decoded, width / 2, 24)
+        assertDominantBlueAt(decoded, width / 2, 40)
+        assertDominantYellowAt(decoded, width / 2, 56)
     }
 
     @Test
@@ -261,6 +252,112 @@ class JpegImageEncoderProviderRobolectricTest {
         val result = encodeWithSink(ThrowingEncodedImageSink)
 
         assertTrue(result is ImageEncodeResult.Failed)
+    }
+
+    @Test
+    fun encodeDoesNotSwallowSinkOutOfMemoryError() {
+        try {
+            encodeWithSink(OutOfMemoryEncodedImageSink)
+            fail("Expected OutOfMemoryError")
+        } catch (error: OutOfMemoryError) {
+            assertEquals("sink allocation failed", error.message)
+        }
+    }
+
+    @Test
+    fun encodeRestoresSinkOutOfMemoryErrorWhenPlatformCompressionSwallowsIt() {
+        val expected = OutOfMemoryError("sink allocation failed")
+        val encoder = createFrameworkJpegEncoder(
+            request = request(width = 16, height = 16),
+            quality = 80,
+            compress = swallowingCompressor,
+        )
+
+        try {
+            encoder.encode(
+                input(16, 16, pixels = solidPixels(16, 16, Rgba(20, 220, 20))),
+                ThrowingInstanceEncodedImageSink(expected),
+            )
+            fail("Expected OutOfMemoryError")
+        } catch (error: OutOfMemoryError) {
+            assertSame(expected, error)
+        }
+    }
+
+    @Test
+    fun encodeRetainsOrdinarySinkFailureWhenPlatformCompressionSwallowsIt() {
+        val expected = IllegalStateException("sink failed")
+        val encoder = createFrameworkJpegEncoder(
+            request = request(width = 16, height = 16),
+            quality = 80,
+            compress = swallowingCompressor,
+        )
+
+        val result = encoder.encode(
+            input(16, 16, pixels = solidPixels(16, 16, Rgba(20, 220, 20))),
+            ThrowingInstanceEncodedImageSink(expected),
+        )
+
+        assertTrue(result is ImageEncodeResult.Failed)
+        assertSame(expected, (result as ImageEncodeResult.Failed).cause)
+    }
+
+    @Test
+    fun encodeRetainsSinkRejectionWhenPlatformCompressionSwallowsIt() {
+        val encoder = createFrameworkJpegEncoder(
+            request = request(width = 16, height = 16),
+            quality = 80,
+            compress = swallowingCompressor,
+        )
+
+        val result = encoder.encode(
+            input(16, 16, pixels = solidPixels(16, 16, Rgba(20, 220, 20))),
+            RejectingEncodedImageSink,
+        )
+
+        assertTrue(result is ImageEncodeResult.Failed)
+        result as ImageEncodeResult.Failed
+        assertEquals("Framework JPEG sink write failed.", result.message)
+        assertEquals(null, result.cause)
+    }
+
+    @Test
+    fun encodeCompressionFalseWithoutSinkFailureReturnsCompressionFailure() {
+        val encoder = createFrameworkJpegEncoder(
+            request = request(width = 16, height = 16),
+            quality = 80,
+            compress = { _, _, _ -> false },
+        )
+
+        val result = encoder.encode(
+            input(16, 16, pixels = solidPixels(16, 16, Rgba(20, 220, 20))),
+            RecordingEncodedImageSink(),
+        )
+
+        assertTrue(result is ImageEncodeResult.Failed)
+        result as ImageEncodeResult.Failed
+        assertEquals("Framework JPEG compression failed.", result.message)
+        assertEquals(null, result.cause)
+    }
+
+    @Test
+    fun encodePropagatesUnexpectedCompressorError() {
+        val expected = AssertionError("compressor failed")
+        val encoder = createFrameworkJpegEncoder(
+            request = request(width = 16, height = 16),
+            quality = 80,
+            compress = { _, _, _ -> throw expected },
+        )
+
+        try {
+            encoder.encode(
+                input(16, 16, pixels = solidPixels(16, 16, Rgba(20, 220, 20))),
+                RecordingEncodedImageSink(),
+            )
+            fail("Expected AssertionError")
+        } catch (error: AssertionError) {
+            assertSame(expected, error)
+        }
     }
 
     @Test
@@ -430,31 +527,6 @@ class JpegImageEncoderProviderRobolectricTest {
         assertEquals(height, bitmap.height)
     }
 
-    private fun jpegProviderSource(): String =
-        Files.readString(
-            resolveSourcePath(
-                rootRelativePath = "screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/JpegImageEncoderProvider.kt",
-                moduleRelativePath = "src/main/java/dev/dmkr/screencaptureengine/JpegImageEncoderProvider.kt",
-            ),
-        )
-
-    private fun frameworkJpegBackendSource(): String =
-        Files.readString(
-            resolveSourcePath(
-                rootRelativePath = "screencaptureengine/src/main/java/dev/dmkr/screencaptureengine/internal/encoding/provider/FrameworkBitmapCompressJpegEncoder.kt",
-                moduleRelativePath = "src/main/java/dev/dmkr/screencaptureengine/internal/encoding/provider/FrameworkBitmapCompressJpegEncoder.kt",
-            ),
-        )
-
-    private fun resolveSourcePath(rootRelativePath: String, moduleRelativePath: String): Path {
-        val start = Path.of(System.getProperty("user.dir")).toAbsolutePath()
-        val roots = generateSequence(start) { path -> path.parent }.toList()
-        return roots
-            .flatMap { root -> listOf(root.resolve(rootRelativePath), root.resolve(moduleRelativePath)) }
-            .firstOrNull(Files::isRegularFile)
-            ?: error("Unable to resolve source path $rootRelativePath or $moduleRelativePath from $start")
-    }
-
     private fun assertDominantRedAt(bitmap: Bitmap, x: Int, y: Int) {
         assertDominantRed(averageColor(bitmap, x, y))
     }
@@ -573,6 +645,28 @@ class JpegImageEncoderProviderRobolectricTest {
             throw IllegalStateException("sink failed")
     }
 
+    private data object OutOfMemoryEncodedImageSink : EncodedImageSink {
+        override val byteCount: Int = 0
+        override val maxByteCount: Int = Int.MAX_VALUE
+
+        override fun write(source: ByteArray, offset: Int, byteCount: Int): Boolean =
+            throw OutOfMemoryError("sink allocation failed")
+
+        override fun write(source: ByteBuffer, byteCount: Int): Boolean =
+            throw OutOfMemoryError("sink allocation failed")
+    }
+
+    private class ThrowingInstanceEncodedImageSink(
+        private val throwable: Throwable,
+    ) : EncodedImageSink {
+        override val byteCount: Int = 0
+        override val maxByteCount: Int = Int.MAX_VALUE
+
+        override fun write(source: ByteArray, offset: Int, byteCount: Int): Boolean = throw throwable
+
+        override fun write(source: ByteBuffer, byteCount: Int): Boolean = throw throwable
+    }
+
     private class RejectOnceThenAcceptSink : EncodedImageSink {
         private var rejected = false
         override var byteCount: Int = 0
@@ -600,6 +694,17 @@ class JpegImageEncoderProviderRobolectricTest {
             source.position(source.position() + byteCount)
             this.byteCount += byteCount
             return true
+        }
+    }
+
+    private companion object {
+        val swallowingCompressor: (Bitmap, Int, OutputStream) -> Boolean = { _, _, output ->
+            try {
+                output.write(byteArrayOf(1, 2, 3))
+            } catch (_: Throwable) {
+                // Android's native Bitmap compressor clears OutputStream throwables and returns false.
+            }
+            false
         }
     }
 }

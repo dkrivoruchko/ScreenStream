@@ -3,10 +3,15 @@ package dev.dmkr.screencaptureengine
 /**
  * User-requested capture/render/encode parameters.
  *
- * These values describe desired behavior. [ScreenCaptureEffectiveParameters] reports what was actually planned for the current geometry and device/runtime
- * capabilities after startup. Under this engine/session contract, sessions returned by [ScreenCaptureEngines.create] reject runtime
- * [ScreenCaptureSession.setParameters] requests with [ScreenCaptureProblemKind.ParameterUpdateUnavailable], so choose the desired initial values before
- * [ScreenCaptureEngine.startSession].
+ * These values select the initial plan passed to [ScreenCaptureEngine.startSession] and candidate
+ * plans requested through [ScreenCaptureSession.setParameters]. [ScreenCaptureEffectiveParameters]
+ * reports the normalized plan that is active for the current geometry and runtime capabilities.
+ *
+ * Runtime updates support normalized no-ops, frame-rate-only changes, provider-only changes with an
+ * unchanged encoder input shape, and complete output-plan replacements that reuse the current
+ * projection target and virtual-display target assignment. Requests that require retargeting, target
+ * replacement, live geometry replan, or recovery from [ScreenCaptureOutputState.Suspended] are
+ * rejected with [ScreenCaptureProblemKind.ParameterUpdateUnavailable].
  */
 public class ScreenCaptureParameters public constructor(
     /** Logical source region selected before crop. */

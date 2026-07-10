@@ -5,6 +5,7 @@ import android.opengl.GLES20
 import dev.dmkr.screencaptureengine.CaptureMetrics
 import dev.dmkr.screencaptureengine.CaptureMetricsUnavailableReason
 import dev.dmkr.screencaptureengine.ColorMode
+import dev.dmkr.screencaptureengine.CropInsetsPx
 import dev.dmkr.screencaptureengine.EncodedImageFormats
 import dev.dmkr.screencaptureengine.EncodedImageSink
 import dev.dmkr.screencaptureengine.FrameRate
@@ -13,6 +14,10 @@ import dev.dmkr.screencaptureengine.ImageEncoder
 import dev.dmkr.screencaptureengine.ImageEncoderInfo
 import dev.dmkr.screencaptureengine.ImageEncoderInput
 import dev.dmkr.screencaptureengine.ImageEncoderInputFormat
+import dev.dmkr.screencaptureengine.ImageEncoderProvider
+import dev.dmkr.screencaptureengine.ImageEncoderRequest
+import dev.dmkr.screencaptureengine.Mirror
+import dev.dmkr.screencaptureengine.OutputSize
 import dev.dmkr.screencaptureengine.ReadbackMode
 import dev.dmkr.screencaptureengine.ScreenCaptureConfig
 import dev.dmkr.screencaptureengine.ScreenCaptureEventType
@@ -51,10 +56,14 @@ import dev.dmkr.screencaptureengine.internal.rendering.es2.FirstPlanReadbackShap
 import dev.dmkr.screencaptureengine.internal.rendering.es2.FirstPlanRenderMatrix4
 import dev.dmkr.screencaptureengine.internal.rendering.es2.FirstPlanRenderTransformPackage
 import dev.dmkr.screencaptureengine.internal.rendering.es2.FirstPlanRenderViewport
+import dev.dmkr.screencaptureengine.internal.rendering.es2.ImageEncoderPrepareOperation
 import dev.dmkr.screencaptureengine.internal.rendering.es2.PreparedEs2RenderingReadbackGlObjects
 import dev.dmkr.screencaptureengine.internal.rendering.es2.PreparedEs2RenderingReadbackResources
 import dev.dmkr.screencaptureengine.internal.rendering.es2.RuntimeEs2FrameRenderer
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPrepareRequest
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPreparer
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.PreparedRenderingPipelineComponents
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparationFailure
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparationResult
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePrepareRequest
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparer
@@ -78,6 +87,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -88,6 +98,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.LockSupport
 import kotlin.coroutines.CoroutineContext
 
@@ -124,22 +135,1284 @@ class InitialActivationCommitBoundaryTest {
     }
 
     @Test
-    fun initialActiveCommitCreatesSessionCoreWithRunningActiveStateAndRejectingSetParameters() = runTest {
-        val fixture = prepareInitialRuntimeOwner()
+    fun initialActiveCommitCreatesSessionCoreWithRunningActiveStateAndAppliesNormalizedNoOp() = runTest {
+        val initialParameters = ScreenCaptureParameters(encoderProvider = FakeImageEncoderProvider())
+        val fixture = prepareInitialRuntimeOwner(initialParameters = initialParameters)
         val activeOwner = fixture.transferToActiveRuntimeOwner()
         fixture.runtime.callbackRegistration.emitVisibility(false)
 
         val session = activeOwner.commitInitialActiveSession()
         val running = session.state.value as ScreenCaptureSessionState.Running
         val active = running.output as ScreenCaptureOutputState.Active
-        val rejected = session.setParameters(ScreenCaptureParameters.defaults()) as ScreenCaptureParameterUpdateResult.Rejected
-        session.close()
-        runCurrent()
+        val stateBeforeUpdate = session.state.value
+        val statsBeforeUpdate = session.stats.value
+        val generationBeforeUpdate = checkNotNull(activeOwner.currentOutputGenerationForTesting())
+        val result = session.setParameters(initialParameters)
+        val stateAfterUpdate = session.state.value
+        val statsAfterUpdate = session.stats.value
+        val generationAfterUpdate = checkNotNull(activeOwner.currentOutputGenerationForTesting())
 
         assertEquals(false, running.capturedContentVisible)
         assertEquals(fixture.preparedPlan.outputPlan.toEffectiveParameters(fixture.encoder.info), active.effectiveParameters)
-        assertEquals(ScreenCaptureProblemKind.ParameterUpdateUnavailable, rejected.problem.kind)
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, result)
+        assertEquals(stateBeforeUpdate, stateAfterUpdate)
+        assertEquals(statsBeforeUpdate, statsAfterUpdate)
+        assertEquals(generationBeforeUpdate, generationAfterUpdate)
+        assertEquals(0, fixture.runtime.virtualDisplayOwner.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+        assertEquals(0, fixture.readbackResources.closeCount)
+        assertEquals(0, fixture.encoder.closeCount)
         assertSame(session, activeOwner.sessionForTesting)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun normalizedNoOpWithSameProviderInstanceAppliesWithoutMutatingRuntimeState() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val initialParameters = ScreenCaptureParameters(encoderProvider = provider)
+        val fixture = prepareInitialRuntimeOwner(initialParameters = initialParameters)
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession()
+        val events = Collections.synchronizedList(mutableListOf<ScreenCaptureEventType>())
+        val eventCollector = launch(UnconfinedTestDispatcher(testScheduler)) {
+            session.events.collect { event -> events += event.type }
+        }
+        val stateBeforeUpdate = session.state.value
+        val statsBeforeUpdate = session.stats.value
+        val loopBeforeUpdate = activeOwner.runtimeFrameLoopSnapshot()
+        val generationBeforeUpdate = checkNotNull(activeOwner.currentOutputGenerationForTesting())
+
+        val result = session.setParameters(initialParameters)
+        runCurrent()
+
+        eventCollector.cancel()
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, result)
+        assertEquals(stateBeforeUpdate, session.state.value)
+        assertEquals(statsBeforeUpdate, session.stats.value)
+        assertRuntimeFrameLoopSnapshotEquals(loopBeforeUpdate, activeOwner.runtimeFrameLoopSnapshot())
+        assertEquals(generationBeforeUpdate, activeOwner.currentOutputGenerationForTesting())
+        assertEquals(emptyList<ScreenCaptureEventType>(), events.toList())
+        assertEquals(0, fixture.runtime.virtualDisplayOwner.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+        assertEquals(0, fixture.readbackResources.closeCount)
+        assertEquals(0, fixture.encoder.closeCount)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun normalizedNoOpComparesFrameRateAutoAfterEffectiveResolution() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(
+                frameRate = FrameRate.MaxFps(30),
+                encoderProvider = provider,
+            ),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession()
+        val generationBeforeUpdate = checkNotNull(activeOwner.currentOutputGenerationForTesting())
+
+        val result = session.setParameters(
+            ScreenCaptureParameters(
+                frameRate = FrameRate.Auto,
+                encoderProvider = provider,
+            ),
+        )
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, result)
+        assertEquals(generationBeforeUpdate, activeOwner.currentOutputGenerationForTesting())
+        assertEquals(
+            FrameRate.MaxFps(30),
+            ((session.state.value as ScreenCaptureSessionState.Running).output as ScreenCaptureOutputState.Active).effectiveParameters.frameRate
+        )
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun equalButDistinctProviderInstanceIsProviderOnlyAndAppliesWithRuntimeEncoderPreparation() = runTest {
+        val initialProvider = EqualFakeImageEncoderProvider(equalityKey = "same")
+        val requestedProvider = EqualFakeImageEncoderProvider(equalityKey = "same")
+        val preparedRuntimeEncoder = FakeImageEncoder()
+        assertEquals(initialProvider, requestedProvider)
+        assertNotSame(initialProvider, requestedProvider)
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(encoderProvider = initialProvider),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner(
+            encoderPrepare = runtimeEncoderPrepareOperation { preparedRuntimeEncoder },
+        )
+        val session = activeOwner.commitInitialActiveSession()
+        val generationBeforeUpdate = activeOwner.currentOutputGenerationForTesting()
+
+        val result = session.setParameters(
+            ScreenCaptureParameters(encoderProvider = requestedProvider),
+        )
+        val active = (session.state.value as ScreenCaptureSessionState.Running).output as ScreenCaptureOutputState.Active
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, result)
+        assertEquals(Math.addExact(checkNotNull(generationBeforeUpdate), 1L), activeOwner.currentOutputGenerationForTesting())
+        assertEquals(requestedProvider.id, active.effectiveParameters.encoderInfo.providerId)
+        assertEquals(0, fixture.runtime.virtualDisplayOwner.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+        assertEquals(0, fixture.readbackResources.closeCount)
+        assertEquals(1, fixture.encoder.closeCount)
+        assertEquals(0, preparedRuntimeEncoder.closeCount)
+        session.close()
+        runCurrent()
+        assertEquals(1, preparedRuntimeEncoder.closeCount)
+    }
+
+    @Test
+    fun providerOnlyPreparationFailurePreservesPreviousRuntimePlanAndResources() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner(
+            encoderPrepare = ImageEncoderPrepareOperation { _, _, _ ->
+                ImageEncoderPreparationResult.Failure(
+                    kind = ScreenCaptureProblemKind.EncoderValidationFailed,
+                    message = "candidate rejected",
+                    cause = null,
+                )
+            },
+        )
+        val session = activeOwner.commitInitialActiveSession()
+        val stateBeforeUpdate = session.state.value
+        val generationBeforeUpdate = activeOwner.currentOutputGenerationForTesting()
+
+        val rejected = session.setParameters(
+            ScreenCaptureParameters(encoderProvider = FakeImageEncoderProvider()),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.EncoderValidationFailed, rejected.problem.kind)
+        assertEquals(stateBeforeUpdate, session.state.value)
+        assertEquals(generationBeforeUpdate, activeOwner.currentOutputGenerationForTesting())
+        assertEquals(0, fixture.runtime.virtualDisplayOwner.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+        assertEquals(0, fixture.readbackResources.closeCount)
+        assertEquals(0, fixture.encoder.closeCount)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun providerOnlyStalePreparedCandidateIsClosedAndPreviousPlanRemainsActive() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val staleCandidateEncoder = FakeImageEncoder()
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner(
+            encoderPrepare = ImageEncoderPrepareOperation { token, requestedProvider, request ->
+                token.invalidate()
+                ImageEncoderPreparationResult.Success(
+                    PreparedImageEncoderResources(
+                        encoder = staleCandidateEncoder,
+                        info = ImageEncoderInfo(
+                            providerId = requestedProvider.id,
+                            outputFormat = requestedProvider.outputFormat,
+                            backendName = "stale",
+                        ),
+                        request = request,
+                        cleanup = ImmediateProviderEncoderCleanup,
+                    ),
+                )
+            },
+        )
+        val session = activeOwner.commitInitialActiveSession()
+        val stateBeforeUpdate = session.state.value
+        val generationBeforeUpdate = activeOwner.currentOutputGenerationForTesting()
+
+        val rejected = session.setParameters(
+            ScreenCaptureParameters(encoderProvider = FakeImageEncoderProvider()),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.ParameterUpdateUnavailable, rejected.problem.kind)
+        assertEquals(stateBeforeUpdate, session.state.value)
+        assertEquals(generationBeforeUpdate, activeOwner.currentOutputGenerationForTesting())
+        assertEquals(1, staleCandidateEncoder.closeCount)
+        assertEquals(0, fixture.encoder.closeCount)
+        assertEquals(0, fixture.readbackResources.closeCount)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun providerOnlyTerminalBeforeCommitRejectsAndClosesCandidateWithoutPublicMutation() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val candidateEncoder = FakeImageEncoder()
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner(
+            encoderPrepare = runtimeEncoderPrepareOperation { candidateEncoder },
+        )
+        val session = activeOwner.commitInitialActiveSession()
+        val stateBeforeUpdate = session.state.value
+        val generationBeforeUpdate = activeOwner.currentOutputGenerationForTesting()
+        activeOwner.setBeforeRuntimeParameterCommitBridgeForTesting {
+            fixture.runtime.callbackRegistration.emitStop()
+        }
+
+        val rejected = session.setParameters(
+            ScreenCaptureParameters(encoderProvider = FakeImageEncoderProvider()),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, rejected.problem.kind)
+        assertEquals(stateBeforeUpdate, session.state.value)
+        assertEquals(generationBeforeUpdate, activeOwner.currentOutputGenerationForTesting())
+        assertEquals(1, candidateEncoder.closeCount)
+        assertEquals(0, fixture.encoder.closeCount)
+        eventually("projection-stop terminal state") {
+            session.state.value is ScreenCaptureSessionState.Stopped
+        }
+        runCurrent()
+    }
+
+    @Test
+    fun providerOnlyTerminalDuringPreparationInvalidatesWorkerAndClosesLateCandidate() = runTest {
+        val initialProvider = FakeImageEncoderProvider()
+        val requestedProvider = FakeImageEncoderProvider(id = "replacement-provider")
+        val candidateEncoder = FakeImageEncoder(
+            info = ImageEncoderInfo(
+                providerId = requestedProvider.id,
+                outputFormat = requestedProvider.outputFormat,
+                backendName = "late-terminal-candidate",
+            ),
+        )
+        val providerCreateEntered = CountDownLatch(1)
+        val releaseProviderCreate = CountDownLatch(1)
+        requestedProvider.encoderFactory = { candidateEncoder }
+        requestedProvider.beforeCreate = {
+            providerCreateEntered.countDown()
+            var released = false
+            while (!released) {
+                try {
+                    released = releaseProviderCreate.await(10L, TimeUnit.MILLISECONDS)
+                } catch (_: InterruptedException) {
+                    // Simulate provider code that ignores interruption and returns late.
+                }
+            }
+        }
+        val providerContext = ProviderPreparationContext()
+        val encoderPreparer = ImageEncoderPreparer(providerContext)
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(encoderProvider = initialProvider),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner(
+            encoderPrepare = ImageEncoderPrepareOperation { token, provider, request ->
+                encoderPreparer.prepare(token = token, provider = provider, request = request)
+            },
+        )
+        val session = activeOwner.commitInitialActiveSession()
+        val update = async(Dispatchers.Default) {
+            session.setParameters(
+                ScreenCaptureParameters(encoderProvider = requestedProvider),
+            )
+        }
+        assertTrue("provider creation entered", providerCreateEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        session.stop()
+        try {
+            eventually("terminal update rejection without waiting for provider return") {
+                update.isCompleted
+            }
+        } finally {
+            releaseProviderCreate.countDown()
+        }
+        val rejected = update.await() as ScreenCaptureParameterUpdateResult.Rejected
+        eventually("late terminal candidate cleanup") {
+            candidateEncoder.closeCount == 1
+        }
+
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, rejected.problem.kind)
+        assertTrue(session.state.value is ScreenCaptureSessionState.Stopped)
+        assertEquals(1, candidateEncoder.closeCount)
+        assertEquals(1, fixture.encoder.closeCount)
+        assertEquals(1, fixture.readbackResources.closeCount)
+        providerContext.close()
+        runCurrent()
+    }
+
+    @Test
+    fun providerOnlyCancellationAfterSuccessfulPreparationClosesCandidateWithoutPublicMutation() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val candidateEncoder = FakeImageEncoder()
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner(
+            encoderPrepare = ImageEncoderPrepareOperation { _, requestedProvider, request ->
+                currentCoroutineContext()[Job]?.cancel(CancellationException("cancel after successful provider preparation"))
+                ImageEncoderPreparationResult.Success(
+                    PreparedImageEncoderResources(
+                        encoder = candidateEncoder,
+                        info = ImageEncoderInfo(
+                            providerId = requestedProvider.id,
+                            outputFormat = requestedProvider.outputFormat,
+                            backendName = "cancelled-candidate",
+                        ),
+                        request = request,
+                        cleanup = ImmediateProviderEncoderCleanup,
+                    ),
+                )
+            },
+        )
+        val session = activeOwner.commitInitialActiveSession()
+        val stateBeforeUpdate = session.state.value
+        val generationBeforeUpdate = activeOwner.currentOutputGenerationForTesting()
+
+        val update = async {
+            session.setParameters(
+                ScreenCaptureParameters(encoderProvider = FakeImageEncoderProvider()),
+            )
+        }
+        val cancellation = runCatching { update.await() }.exceptionOrNull()
+
+        assertTrue(cancellation is CancellationException)
+        assertEquals(stateBeforeUpdate, session.state.value)
+        assertEquals(generationBeforeUpdate, activeOwner.currentOutputGenerationForTesting())
+        assertEquals(1, candidateEncoder.closeCount)
+        assertEquals(0, fixture.encoder.closeCount)
+        assertEquals(0, fixture.readbackResources.closeCount)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun fullSameTargetReplacementPreparesAndAtomicallyInstallsCompleteResources() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val activeOwner = fixture.activeOwner
+        val session = activeOwner.commitInitialActiveSession()
+        val generationBeforeUpdate = checkNotNull(activeOwner.currentOutputGenerationForTesting())
+
+        val result = session.setParameters(
+            ScreenCaptureParameters(
+                mirror = Mirror.Horizontal,
+                encoderProvider = provider,
+            ),
+        )
+        val active = (session.state.value as ScreenCaptureSessionState.Running).output as ScreenCaptureOutputState.Active
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, result)
+        assertEquals(Math.addExact(generationBeforeUpdate, 1L), activeOwner.currentOutputGenerationForTesting())
+        assertEquals(Mirror.Horizontal, active.effectiveParameters.mirror)
+        assertEquals(2, fixture.createdEncoderCountForTesting())
+        assertEquals(2, fixture.readbackPreparationCountForTesting())
+        assertEquals(1, fixture.encoder.closeCount)
+        assertEquals(1, fixture.retiredReadbackCountForTesting())
+        assertEquals(0, fixture.runtime.virtualDisplayOwner.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun fullSameTargetPreparationFailurePreservesPreviousPlanAndResources() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+            runtimeOutputPlanPrepareOverride = {
+                RenderingPipelinePreparationResult.Failure(
+                    RenderingPipelinePreparationFailure(
+                        kind = ScreenCaptureProblemKind.GlResourceFailure,
+                        message = "candidate GL resources unavailable",
+                    ),
+                )
+            },
+        )
+        val session = fixture.activeOwner.commitInitialActiveSession()
+        val stateBeforeUpdate = session.state.value
+        val generationBeforeUpdate = fixture.activeOwner.currentOutputGenerationForTesting()
+
+        val rejected = session.setParameters(
+            ScreenCaptureParameters(mirror = Mirror.Horizontal, encoderProvider = provider),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.GlResourceFailure, rejected.problem.kind)
+        assertEquals(stateBeforeUpdate, session.state.value)
+        assertEquals(generationBeforeUpdate, fixture.activeOwner.currentOutputGenerationForTesting())
+        assertEquals(1, fixture.createdEncoderCountForTesting())
+        assertEquals(1, fixture.readbackPreparationCountForTesting())
+        assertEquals(0, fixture.encoder.closeCount)
+        assertEquals(0, fixture.retiredReadbackCountForTesting())
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun fullSameTargetPreparationDoesNotPublishOrMutateActivePlanBeforeCommit() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val candidatePrepared = CountDownLatch(1)
+        val releaseCandidate = CountDownLatch(1)
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+            afterRuntimeOutputPlanResourcesPrepared = {
+                candidatePrepared.countDown()
+                check(releaseCandidate.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                    "Timed out waiting to release full-plan candidate."
+                }
+            },
+        )
+        val session = fixture.activeOwner.commitInitialActiveSession()
+        val stateBeforeUpdate = session.state.value
+        val statsBeforeUpdate = session.stats.value
+        val generationBeforeUpdate = fixture.activeOwner.currentOutputGenerationForTesting()
+        val update = async(Dispatchers.Default) {
+            session.setParameters(
+                ScreenCaptureParameters(mirror = Mirror.Horizontal, encoderProvider = provider),
+            )
+        }
+        assertTrue("full-plan candidate prepared", candidatePrepared.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        assertEquals(stateBeforeUpdate, session.state.value)
+        assertEquals(statsBeforeUpdate, session.stats.value)
+        assertEquals(generationBeforeUpdate, fixture.activeOwner.currentOutputGenerationForTesting())
+        assertEquals(0, fixture.closedEncoderCountForTesting())
+        assertEquals(0, fixture.retiredReadbackCountForTesting())
+
+        releaseCandidate.countDown()
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, update.await())
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun fullSameTargetStaleLateSuccessClosesCandidateAndPreservesPreviousPlan() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+            afterRuntimeOutputPlanResourcesPrepared = { request -> request.planPreparationToken.invalidate() },
+        )
+        val session = fixture.activeOwner.commitInitialActiveSession()
+        val stateBeforeUpdate = session.state.value
+        val generationBeforeUpdate = fixture.activeOwner.currentOutputGenerationForTesting()
+
+        val rejected = session.setParameters(
+            ScreenCaptureParameters(mirror = Mirror.Horizontal, encoderProvider = provider),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.ParameterUpdateUnavailable, rejected.problem.kind)
+        assertEquals(stateBeforeUpdate, session.state.value)
+        assertEquals(generationBeforeUpdate, fixture.activeOwner.currentOutputGenerationForTesting())
+        assertEquals(2, fixture.createdEncoderCountForTesting())
+        assertEquals(1, fixture.closedEncoderCountForTesting())
+        assertEquals(1, fixture.retiredReadbackCountForTesting())
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun fullSameTargetCancellationAfterSuccessfulPreparationClosesCandidateWithoutPublicMutation() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+            afterRuntimeOutputPlanResourcesPrepared = {
+                currentCoroutineContext()[Job]?.cancel(CancellationException("cancel full candidate"))
+            },
+        )
+        val session = fixture.activeOwner.commitInitialActiveSession()
+        val stateBeforeUpdate = session.state.value
+        val generationBeforeUpdate = fixture.activeOwner.currentOutputGenerationForTesting()
+
+        val update = async {
+            session.setParameters(
+                ScreenCaptureParameters(mirror = Mirror.Horizontal, encoderProvider = provider),
+            )
+        }
+        val cancellation = runCatching { update.await() }.exceptionOrNull()
+
+        assertTrue(cancellation is CancellationException)
+        assertEquals(stateBeforeUpdate, session.state.value)
+        assertEquals(generationBeforeUpdate, fixture.activeOwner.currentOutputGenerationForTesting())
+        assertEquals(2, fixture.createdEncoderCountForTesting())
+        assertEquals(1, fixture.closedEncoderCountForTesting())
+        assertEquals(1, fixture.retiredReadbackCountForTesting())
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun fullSameTargetTerminalBeforeCommitRejectsAndRollsBackCandidate() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val activeOwner = fixture.activeOwner
+        val session = activeOwner.commitInitialActiveSession()
+        val generationBeforeUpdate = activeOwner.currentOutputGenerationForTesting()
+        activeOwner.setBeforeRuntimeParameterCommitBridgeForTesting {
+            fixture.runtime.callbackRegistration.emitStop()
+        }
+
+        val rejected = session.setParameters(
+            ScreenCaptureParameters(mirror = Mirror.Horizontal, encoderProvider = provider),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, rejected.problem.kind)
+        assertEquals(generationBeforeUpdate, activeOwner.currentOutputGenerationForTesting())
+        assertEquals(2, fixture.createdEncoderCountForTesting())
+        assertEquals(1, fixture.closedEncoderCountForTesting())
+        assertEquals(1, fixture.retiredReadbackCountForTesting())
+        eventually("projection-stop terminal state") {
+            session.state.value is ScreenCaptureSessionState.Stopped
+        }
+        runCurrent()
+    }
+
+    @Test
+    fun fullSameTargetTerminalDuringPreparationInvalidatesTokenAndClosesLateCandidate() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val candidatePrepared = CountDownLatch(1)
+        val releaseCandidate = CountDownLatch(1)
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+            afterRuntimeOutputPlanResourcesPrepared = {
+                candidatePrepared.countDown()
+                check(releaseCandidate.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                    "Timed out waiting to release terminal full-plan candidate."
+                }
+            },
+        )
+        val session = fixture.activeOwner.commitInitialActiveSession()
+        val update = async(Dispatchers.Default) {
+            session.setParameters(
+                ScreenCaptureParameters(mirror = Mirror.Horizontal, encoderProvider = provider),
+            )
+        }
+        assertTrue("terminal full-plan candidate prepared", candidatePrepared.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        session.stop()
+        assertTrue(session.state.value is ScreenCaptureSessionState.Stopped)
+        releaseCandidate.countDown()
+        val rejected = update.await() as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, rejected.problem.kind)
+        assertEquals(2, fixture.closedEncoderCountForTesting())
+        assertEquals(2, fixture.retiredReadbackCountForTesting())
+        runCurrent()
+    }
+
+    @Test
+    fun invalidRuntimeParametersReturnPrecisePlannerProblem() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession()
+
+        val invalidCrop = session.setParameters(
+            ScreenCaptureParameters(
+                crop = CropInsetsPx(left = 10_000, right = 10_000),
+                encoderProvider = provider,
+            ),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+        val invalidCaps = session.setParameters(
+            ScreenCaptureParameters(
+                outputSize = OutputSize.ScaleFactor(2.0),
+                encoderProvider = provider,
+            ),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.OutputPlanInvalid, invalidCrop.problem.kind)
+        assertEquals(ScreenCaptureProblemKind.OutputLimitsExceeded, invalidCaps.problem.kind)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun runningSuspendedRuntimeParameterUpdateRemainsUnavailable() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession()
+        fixture.runtime.metricsProvider.update(CaptureMetrics(widthPx = 1080, heightPx = 1920, densityDpi = 560))
+        runCurrent()
+        activeOwner.drainRuntimeProductionTick()
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Suspended)
+
+        val rejected = session.setParameters(
+            ScreenCaptureParameters(
+                frameRate = FrameRate.MaxFps(15),
+                encoderProvider = provider,
+            ),
+        ) as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.ParameterUpdateUnavailable, rejected.problem.kind)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun frameRateOnlyUpdateBumpsGenerationResetsPacingAndDoesNotPrepareOrCloseResources() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val nowNanos = 1_000L
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                frameRate = FrameRate.MaxFps(1),
+                encoderProvider = provider,
+            ),
+            elapsedRealtimeNanos = { nowNanos },
+        )
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession()
+
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val firstTick = activeOwner.drainRuntimeProductionTick()
+        val generationBeforeUpdate = checkNotNull(activeOwner.currentOutputGenerationForTesting())
+        val encoderPreparationCountBeforeUpdate = fixture.createdEncoderCountForTesting()
+        val readbackPreparationCountBeforeUpdate = fixture.readbackPreparationCountForTesting()
+        val updateResult = session.setParameters(
+            ScreenCaptureParameters(
+                frameRate = FrameRate.MaxFps(2),
+                encoderProvider = provider,
+            ),
+        )
+        val generationAfterUpdate = checkNotNull(activeOwner.currentOutputGenerationForTesting())
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val secondTick = activeOwner.drainRuntimeProductionTick()
+        val active = (session.state.value as ScreenCaptureSessionState.Running).output as ScreenCaptureOutputState.Active
+
+        assertEquals(RuntimeFrameProductionTickResult.Published, firstTick)
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, updateResult)
+        assertEquals(Math.addExact(generationBeforeUpdate, 1L), generationAfterUpdate)
+        assertEquals(FrameRate.MaxFps(2), active.effectiveParameters.frameRate)
+        assertEquals(RuntimeFrameProductionTickResult.Published, secondTick)
+        assertEquals(2, fixture.encoder.encodeCount)
+        assertEquals(0L, session.stats.value.droppedFrames.byFrameRatePolicy)
+        assertEquals(encoderPreparationCountBeforeUpdate, fixture.createdEncoderCountForTesting())
+        assertEquals(readbackPreparationCountBeforeUpdate, fixture.readbackPreparationCountForTesting())
+        assertEquals(0, fixture.encoder.closeCount)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun frameRateOnlyUpdateClearsRetainedPeriodicRefreshFrame() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                frameRate = FrameRate.PeriodicRefresh(intervalMillis = 300_000L),
+                encoderProvider = provider,
+            ),
+        )
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.Published, activeOwner.drainRuntimeProductionTick())
+        assertTrue(activeOwner.hasPeriodicRefreshFrameForTesting())
+        assertTrue(activeOwner.hasScheduledPeriodicRefreshForTesting())
+
+        val result = session.setParameters(
+            ScreenCaptureParameters(
+                frameRate = FrameRate.MaxFps(30),
+                encoderProvider = provider,
+            ),
+        )
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, result)
+        assertFalse(activeOwner.hasPeriodicRefreshFrameForTesting())
+        assertFalse(activeOwner.hasScheduledPeriodicRefreshForTesting())
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun frameRateOnlyUpdateKeepsProductionPausedUntilOldReadbackWorkFinishesStale() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                frameRate = FrameRate.MaxFps(1),
+                encoderProvider = provider,
+            ),
+        )
+        val readPixelsEntered = CountDownLatch(1)
+        val releaseReadPixels = CountDownLatch(1)
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(
+            RuntimeEs2FrameRenderer(
+                BlockingReadPixelsRuntimeGles20Api(
+                    readPixelsEntered = readPixelsEntered,
+                    releaseReadPixels = releaseReadPixels,
+                ),
+            ),
+        )
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) {
+            activeOwner.drainRuntimeProductionTick()
+        }
+        assertTrue("old readback entered", readPixelsEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val updateResult = session.setParameters(
+            ScreenCaptureParameters(
+                frameRate = FrameRate.MaxFps(2),
+                encoderProvider = provider,
+            ),
+        )
+        val pausedAfterCommit = activeOwner.runtimeFrameLoopSnapshot()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val tickWhileOldWorkInFlight = activeOwner.drainRuntimeProductionTick()
+        releaseReadPixels.countDown()
+        val oldTickResult = oldTick.await()
+        val resumedAfterOldWork = activeOwner.runtimeFrameLoopSnapshot()
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val newTick = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, updateResult)
+        assertTrue(pausedAfterCommit.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.NoFrameSignal, tickWhileOldWorkInFlight)
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, oldTickResult)
+        assertFalse(resumedAfterOldWork.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.Published, newTick)
+        assertEquals(1L, session.stats.value.droppedFrames.byStaleGeneration)
+        assertEquals(0L, session.stats.value.droppedFrames.byReadbackBusy)
+        assertEquals(0L, session.stats.value.droppedFrames.byEncoderBusy)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun providerOnlyUpdateKeepsOldMaterializedEncodeOnOldEncoderAndNewAdmissionPausedUntilStale() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val replacementEncoder = FakeImageEncoder()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                encoderProvider = provider,
+            ),
+            encoderPrepare = runtimeEncoderPrepareOperation { replacementEncoder },
+        )
+        val oldEncodeEntered = CountDownLatch(1)
+        val releaseOldEncode = CountDownLatch(1)
+        fixture.encoder.onEncodeEntered = { oldEncodeEntered.countDown() }
+        fixture.encoder.awaitEncodeRelease = {
+            check(releaseOldEncode.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                "Timed out waiting to release old encode."
+            }
+        }
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) {
+            activeOwner.drainRuntimeProductionTick()
+        }
+        assertTrue("old encode entered", oldEncodeEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val generationBeforeUpdate = checkNotNull(activeOwner.currentOutputGenerationForTesting())
+        val updateResult = session.setParameters(
+            ScreenCaptureParameters(
+                encoderProvider = FakeImageEncoderProvider(),
+            ),
+        )
+        val pausedAfterCommit = activeOwner.runtimeFrameLoopSnapshot()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val tickWhileOldEncodeInFlight = activeOwner.drainRuntimeProductionTick()
+        releaseOldEncode.countDown()
+        val oldTickResult = oldTick.await()
+        val resumedAfterOldWork = activeOwner.runtimeFrameLoopSnapshot()
+        val newTick = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, updateResult)
+        assertEquals(Math.addExact(generationBeforeUpdate, 1L), activeOwner.currentOutputGenerationForTesting())
+        assertTrue(pausedAfterCommit.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.NoFrameSignal, tickWhileOldEncodeInFlight)
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, oldTickResult)
+        assertFalse(resumedAfterOldWork.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.Published, newTick)
+        assertEquals(1, fixture.encoder.encodeCount)
+        assertEquals(1, replacementEncoder.encodeCount)
+        assertEquals(1, fixture.encoder.closeCount)
+        assertEquals(0, replacementEncoder.closeCount)
+        assertEquals(1L, session.stats.value.droppedFrames.byStaleGeneration)
+        assertEquals(0L, session.stats.value.droppedFrames.byReadbackBusy)
+        assertEquals(0L, session.stats.value.droppedFrames.byEncoderBusy)
+        session.close()
+        runCurrent()
+        assertEquals(1, replacementEncoder.closeCount)
+    }
+
+    @Test
+    fun fullSameTargetUpdateDefersOldPipelineCloseAndAvoidsNewGenerationBusyDrops() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val oldEncodeEntered = CountDownLatch(1)
+        val releaseOldEncode = CountDownLatch(1)
+        fixture.encoder.onEncodeEntered = { oldEncodeEntered.countDown() }
+        fixture.encoder.awaitEncodeRelease = {
+            check(releaseOldEncode.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                "Timed out waiting to release old full-plan encode."
+            }
+        }
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) {
+            activeOwner.drainRuntimeProductionTick()
+        }
+        assertTrue("old full-plan encode entered", oldEncodeEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val updateResult = session.setParameters(
+            ScreenCaptureParameters(mirror = Mirror.Horizontal, encoderProvider = provider),
+        )
+        val pausedAfterCommit = activeOwner.runtimeFrameLoopSnapshot()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val tickWhileOldEncodeInFlight = activeOwner.drainRuntimeProductionTick()
+        releaseOldEncode.countDown()
+        val oldTickResult = oldTick.await()
+        val resumedAfterOldWork = activeOwner.runtimeFrameLoopSnapshot()
+        val newTick = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, updateResult)
+        assertTrue(pausedAfterCommit.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.NoFrameSignal, tickWhileOldEncodeInFlight)
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, oldTickResult)
+        assertFalse(resumedAfterOldWork.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.Published, newTick)
+        assertEquals(1, fixture.encoder.encodeCount)
+        assertEquals(1, fixture.encoder.closeCount)
+        assertEquals(1, fixture.retiredReadbackCountForTesting())
+        assertEquals(1L, session.stats.value.droppedFrames.byStaleGeneration)
+        assertEquals(0L, session.stats.value.droppedFrames.byReadbackBusy)
+        assertEquals(0L, session.stats.value.droppedFrames.byEncoderBusy)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun providerOnlyUpdateTurnsOldMaterializedReadbackExceptionIntoStaleDropWithoutFailingCurrentSession() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val replacementEncoder = FakeImageEncoder()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                encoderProvider = provider,
+            ),
+            encoderPrepare = runtimeEncoderPrepareOperation { replacementEncoder },
+        )
+        val readPixelsEntered = CountDownLatch(1)
+        val releaseReadPixels = CountDownLatch(1)
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(
+            RuntimeEs2FrameRenderer(
+                BlockingReadPixelsRuntimeGles20Api(
+                    readPixelsEntered = readPixelsEntered,
+                    releaseReadPixels = releaseReadPixels,
+                    throwAfterRelease = true,
+                ),
+            ),
+        )
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) {
+            activeOwner.drainRuntimeProductionTick()
+        }
+        assertTrue("old readback entered", readPixelsEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val updateResult = session.setParameters(
+            ScreenCaptureParameters(
+                encoderProvider = FakeImageEncoderProvider(),
+            ),
+        )
+        val pausedAfterCommit = activeOwner.runtimeFrameLoopSnapshot()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val tickWhileOldWorkInFlight = activeOwner.drainRuntimeProductionTick()
+        releaseReadPixels.countDown()
+        val oldTickResult = oldTick.await()
+        val resumedAfterOldWork = activeOwner.runtimeFrameLoopSnapshot()
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val newTick = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, updateResult)
+        assertTrue(pausedAfterCommit.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.NoFrameSignal, tickWhileOldWorkInFlight)
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, oldTickResult)
+        assertFalse(resumedAfterOldWork.productionAdmissionPaused)
+        assertTrue(session.state.value is ScreenCaptureSessionState.Running)
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        assertEquals(RuntimeFrameProductionTickResult.Published, newTick)
+        assertEquals(1, fixture.encoder.closeCount)
+        assertEquals(0, replacementEncoder.closeCount)
+        assertEquals(0, fixture.runtime.virtualDisplayOwner.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+        assertEquals(1L, session.stats.value.droppedFrames.byStaleGeneration)
+        assertEquals(0L, session.stats.value.droppedFrames.byTransientFailure)
+        session.close()
+        runCurrent()
+        assertEquals(1, replacementEncoder.closeCount)
+    }
+
+    @Test
+    fun providerOnlyUpdateTurnsOldMaterializedGlTimeoutIntoStaleDropWithoutFailingCurrentSession() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val replacementEncoder = FakeImageEncoder()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                encoderProvider = provider,
+            ),
+            encoderPrepare = runtimeEncoderPrepareOperation { replacementEncoder },
+        )
+        fixture.runtime.targetOwner.suspendRuntimeAccessUntilCancelledWithoutLateResult = true
+        val attemptMaterialized = CountDownLatch(1)
+        val activeOwner = fixture.activeOwner
+        activeOwner.overrideGlOperationTimeoutForTesting(timeoutMillis = 200L)
+        activeOwner.setAfterProductionAttemptMaterializedForTesting {
+            attemptMaterialized.countDown()
+        }
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) {
+            activeOwner.drainRuntimeProductionTick()
+        }
+        assertTrue("old production attempt materialized", attemptMaterialized.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val updateResult = session.setParameters(
+            ScreenCaptureParameters(
+                encoderProvider = FakeImageEncoderProvider(),
+            ),
+        )
+        val pausedAfterCommit = activeOwner.runtimeFrameLoopSnapshot()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val tickWhileOldWorkInFlight = activeOwner.drainRuntimeProductionTick()
+        val oldTickResult = oldTick.await()
+        val resumedAfterOldWork = activeOwner.runtimeFrameLoopSnapshot()
+        fixture.runtime.targetOwner.suspendRuntimeAccessUntilCancelledWithoutLateResult = false
+        val newTick = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, updateResult)
+        assertTrue(pausedAfterCommit.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.NoFrameSignal, tickWhileOldWorkInFlight)
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, oldTickResult)
+        assertFalse(resumedAfterOldWork.productionAdmissionPaused)
+        assertTrue(session.state.value is ScreenCaptureSessionState.Running)
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        assertEquals(RuntimeFrameProductionTickResult.Published, newTick)
+        assertEquals(1, fixture.encoder.closeCount)
+        assertEquals(0, replacementEncoder.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.abandonGlLaneCount)
+        assertEquals(0, fixture.runtime.virtualDisplayOwner.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+        assertEquals(1L, session.stats.value.droppedFrames.byStaleGeneration)
+        assertEquals(0L, session.stats.value.droppedFrames.byTransientFailure)
+        session.close()
+        runCurrent()
+        assertEquals(1, replacementEncoder.closeCount)
+    }
+
+    @Test
+    fun providerOnlyUpdateTurnsOldMaterializedEncodeTimeoutIntoStaleDropWithoutFailingCurrentSession() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val replacementEncoder = FakeImageEncoder()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                encoderProvider = provider,
+            ),
+            encoderPrepare = runtimeEncoderPrepareOperation { replacementEncoder },
+        )
+        val encodeEntered = CountDownLatch(1)
+        val releaseEncode = CountDownLatch(1)
+        fixture.encoder.onEncodeEntered = { encodeEntered.countDown() }
+        fixture.encoder.awaitEncodeRelease = {
+            var released = false
+            while (!released) {
+                try {
+                    released = releaseEncode.await(10L, TimeUnit.MILLISECONDS)
+                } catch (_: InterruptedException) {
+                    // Keep simulating an encoder that ignores interruption until the test releases it.
+                }
+            }
+        }
+        val activeOwner = fixture.activeOwner
+        activeOwner.overrideEncoderOperationTimeoutForTesting(timeoutMillis = 50L)
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) {
+            activeOwner.drainRuntimeProductionTick()
+        }
+        assertTrue("old encode entered", encodeEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val updateResult = session.setParameters(
+            ScreenCaptureParameters(
+                encoderProvider = FakeImageEncoderProvider(),
+            ),
+        )
+        val pausedAfterCommit = activeOwner.runtimeFrameLoopSnapshot()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val tickWhileOldEncodeInFlight = activeOwner.drainRuntimeProductionTick()
+        val oldTickResult = oldTick.await()
+        val pausedAfterOldTimeout = activeOwner.runtimeFrameLoopSnapshot()
+        releaseEncode.countDown()
+        eventually("old timed-out encoder returned and retired") {
+            fixture.encoder.closeCount == 1 && !activeOwner.runtimeFrameLoopSnapshot().productionAdmissionPaused
+        }
+        val newTick = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, updateResult)
+        assertTrue(pausedAfterCommit.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.NoFrameSignal, tickWhileOldEncodeInFlight)
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, oldTickResult)
+        assertTrue(pausedAfterOldTimeout.productionAdmissionPaused)
+        assertTrue(session.state.value is ScreenCaptureSessionState.Running)
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        assertEquals(RuntimeFrameProductionTickResult.Published, newTick)
+        assertEquals(1, fixture.encoder.encodeCount)
+        assertEquals(1, replacementEncoder.encodeCount)
+        assertEquals(0, replacementEncoder.closeCount)
+        assertEquals(0, fixture.runtime.virtualDisplayOwner.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+        assertEquals(1L, session.stats.value.droppedFrames.byStaleGeneration)
+        assertEquals(0L, session.stats.value.droppedFrames.byTransientFailure)
+        session.close()
+        runCurrent()
+        assertEquals(1, replacementEncoder.closeCount)
+    }
+
+    @Test
+    fun providerOnlyUpdateTurnsOldMaterializedEncodeExceptionIntoStaleDropWithoutFailingCurrentSession() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val replacementEncoder = FakeImageEncoder()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                encoderProvider = provider,
+            ),
+            encoderPrepare = runtimeEncoderPrepareOperation { replacementEncoder },
+        )
+        val encodeEntered = CountDownLatch(1)
+        val releaseEncode = CountDownLatch(1)
+        fixture.encoder.onEncodeEntered = { encodeEntered.countDown() }
+        fixture.encoder.awaitEncodeRelease = {
+            check(releaseEncode.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                "Timed out waiting to release old encode."
+            }
+        }
+        fixture.encoder.encodeFailure = IllegalStateException("old encoder failed")
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) {
+            activeOwner.drainRuntimeProductionTick()
+        }
+        assertTrue("old encode entered", encodeEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val updateResult = session.setParameters(
+            ScreenCaptureParameters(
+                encoderProvider = FakeImageEncoderProvider(),
+            ),
+        )
+        val pausedAfterCommit = activeOwner.runtimeFrameLoopSnapshot()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val tickWhileOldEncodeInFlight = activeOwner.drainRuntimeProductionTick()
+        releaseEncode.countDown()
+        val oldTickResult = oldTick.await()
+        val resumedAfterOldWork = activeOwner.runtimeFrameLoopSnapshot()
+        val newTick = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, updateResult)
+        assertTrue(pausedAfterCommit.productionAdmissionPaused)
+        assertEquals(RuntimeFrameProductionTickResult.NoFrameSignal, tickWhileOldEncodeInFlight)
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, oldTickResult)
+        assertFalse(resumedAfterOldWork.productionAdmissionPaused)
+        assertTrue(session.state.value is ScreenCaptureSessionState.Running)
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        assertEquals(RuntimeFrameProductionTickResult.Published, newTick)
+        assertEquals(1, fixture.encoder.encodeCount)
+        assertEquals(1, replacementEncoder.encodeCount)
+        assertEquals(1, fixture.encoder.closeCount)
+        assertEquals(0, replacementEncoder.closeCount)
+        assertEquals(0, fixture.runtime.virtualDisplayOwner.closeCount)
+        assertEquals(0, fixture.runtime.targetOwner.closeCount)
+        assertEquals(1L, session.stats.value.droppedFrames.byStaleGeneration)
+        assertEquals(0L, session.stats.value.droppedFrames.byTransientFailure)
+        session.close()
+        runCurrent()
+        assertEquals(1, replacementEncoder.closeCount)
+    }
+
+    @Test
+    fun setParametersAfterOwnerStopRejectsWithOwnerStopTerminalProblem() = runTest {
+        val fixture = prepareInitialRuntimeOwner()
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession()
+
+        session.stop()
+        val rejected = session.setParameters(ScreenCaptureParameters.defaults()) as ScreenCaptureParameterUpdateResult.Rejected
+        runCurrent()
+
+        val stopped = session.state.value as ScreenCaptureSessionState.Stopped
+        assertEquals(ScreenCaptureStopReason.OwnerStop, stopped.reason)
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, rejected.problem.kind)
+        assertEquals("Session was stopped by its owner.", rejected.problem.message)
+    }
+
+    @Test
+    fun ownerStopRacingWhileRuntimeParameterBridgeHoldsOwnerLockCompletesWithoutDeadlock() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val initialParameters = ScreenCaptureParameters(
+            frameRate = FrameRate.MaxFps(30),
+            encoderProvider = provider,
+        )
+        val fixture = prepareInitialRuntimeOwner(initialParameters = initialParameters)
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession()
+        val bridgeEntered = CountDownLatch(1)
+        val releaseBridge = CountDownLatch(1)
+        val stopStarted = CountDownLatch(1)
+        val stopReachedOwnerLockCheckpoint = CountDownLatch(1)
+        val stopReturned = CountDownLatch(1)
+        val updateResult = AtomicReference<ScreenCaptureParameterUpdateResult?>()
+        activeOwner.setBeforeRuntimeParameterCommitBridgeForTesting {
+            bridgeEntered.countDown()
+            check(releaseBridge.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                "Timed out waiting to release runtime parameter bridge."
+            }
+        }
+        activeOwner.setBeforeOwnerStopTerminalCommitForTesting {
+            stopReachedOwnerLockCheckpoint.countDown()
+        }
+
+        val updateJob = launch(Dispatchers.Default) {
+            updateResult.set(
+                session.setParameters(
+                    ScreenCaptureParameters(
+                        frameRate = FrameRate.MaxFps(15),
+                        encoderProvider = provider,
+                    ),
+                ),
+            )
+        }
+        assertTrue("runtime parameter bridge entered", bridgeEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+        val stopThread = Thread {
+            stopStarted.countDown()
+            session.stop()
+            stopReturned.countDown()
+        }
+        stopThread.start()
+        assertTrue("owner stop started", stopStarted.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+        try {
+            eventually("owner stop blocked on runtime owner lock") {
+                stopThread.state == Thread.State.BLOCKED
+            }
+        } finally {
+            releaseBridge.countDown()
+        }
+
+        updateJob.join()
+        stopThread.join(TIMEOUT_MILLIS)
+        assertFalse("owner stop thread remained alive", stopThread.isAlive)
+        assertTrue(
+            "owner stop reached terminal commit checkpoint after runtime bridge released",
+            stopReachedOwnerLockCheckpoint.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS),
+        )
+        assertTrue("owner stop returned", stopReturned.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+        runCurrent()
+
+        val stopped = session.state.value as ScreenCaptureSessionState.Stopped
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, updateResult.get())
+        assertEquals(ScreenCaptureStopReason.OwnerStop, stopped.reason)
+    }
+
+    @Test
+    fun projectionStopBeforeRuntimeParameterBridgeCommitRejectsWithProjectionTerminalProblem() = runTest {
+        val fixture = prepareInitialRuntimeOwner()
+        val activeOwner = fixture.transferToActiveRuntimeOwner()
+        val session = activeOwner.commitInitialActiveSession()
+
+        fixture.runtime.callbackRegistration.emitStop()
+        val rejected = session.setParameters(ScreenCaptureParameters.defaults()) as ScreenCaptureParameterUpdateResult.Rejected
+
+        eventually("projection-stop terminal state") {
+            session.state.value is ScreenCaptureSessionState.Stopped
+        }
+        val stopped = session.state.value as ScreenCaptureSessionState.Stopped
+        runCurrent()
+
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, rejected.problem.kind)
+        assertEquals(ScreenCaptureStopReason.CaptureEnded, stopped.reason)
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, stopped.problem?.kind)
+    }
+
+    @Test
+    fun projectionStopRacingWhileRuntimeParameterBridgeHoldsOwnerLockCompletesWithoutDeadlock() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val candidateEncoder = FakeImageEncoder()
+        val fixture = prepareInitialRuntimeOwner(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val activeOwner = fixture.transferToActiveRuntimeOwner(
+            encoderPrepare = runtimeEncoderPrepareOperation { candidateEncoder },
+        )
+        val session = activeOwner.commitInitialActiveSession()
+        val generationBeforeUpdate = activeOwner.currentOutputGenerationForTesting()
+        val bridgeEntered = CountDownLatch(1)
+        val releaseBridge = CountDownLatch(1)
+        val projectionStopStarted = CountDownLatch(1)
+        val projectionStopReturned = CountDownLatch(1)
+        val updateResult = AtomicReference<ScreenCaptureParameterUpdateResult?>()
+        activeOwner.setBeforeRuntimeParameterCommitBridgeForTesting {
+            bridgeEntered.countDown()
+            check(releaseBridge.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                "Timed out waiting to release runtime parameter bridge."
+            }
+        }
+
+        val updateJob = launch(Dispatchers.Default) {
+            updateResult.set(
+                session.setParameters(
+                    ScreenCaptureParameters(
+                        encoderProvider = FakeImageEncoderProvider(),
+                    ),
+                ),
+            )
+        }
+        assertTrue("runtime parameter bridge entered", bridgeEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+        val projectionStopThread = Thread {
+            projectionStopStarted.countDown()
+            fixture.runtime.callbackRegistration.emitStop()
+            projectionStopReturned.countDown()
+        }
+        projectionStopThread.start()
+        assertTrue("projection stop started", projectionStopStarted.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+        try {
+            eventually("projection stop blocked on runtime owner lock") {
+                projectionStopThread.state == Thread.State.BLOCKED
+            }
+        } finally {
+            releaseBridge.countDown()
+        }
+
+        updateJob.join()
+        projectionStopThread.join(TIMEOUT_MILLIS)
+        assertFalse("projection stop thread remained alive", projectionStopThread.isAlive)
+        assertTrue("projection stop returned", projectionStopReturned.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+        eventually("projection-stop terminal state") {
+            session.state.value is ScreenCaptureSessionState.Stopped
+        }
+        val stopped = session.state.value as ScreenCaptureSessionState.Stopped
+        runCurrent()
+        val rejected = updateResult.get() as ScreenCaptureParameterUpdateResult.Rejected
+
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, rejected.problem.kind)
+        assertEquals(generationBeforeUpdate, activeOwner.currentOutputGenerationForTesting())
+        assertEquals(1, candidateEncoder.closeCount)
+        assertEquals(ScreenCaptureStopReason.CaptureEnded, stopped.reason)
+        assertEquals(ScreenCaptureProblemKind.ProjectionInvalidOrStopped, stopped.problem?.kind)
     }
 
     @Test
@@ -1548,6 +2821,677 @@ class InitialActivationCommitBoundaryTest {
     }
 
     @Test
+    fun thirdCurrentProviderFailureSuspendsPersistentlyWithOneGenerationBumpAndEvent() = runTest {
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(300_000L)),
+        )
+        fixture.encoder.encodeResult = ImageEncodeResult.Failed("provider failed")
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        val events = mutableListOf<ScreenCaptureEventType>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            session.events.collect { event -> events += event.type }
+        }
+        val initialGeneration = checkNotNull(activeOwner.currentOutputGenerationForTesting())
+
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val first = activeOwner.drainRuntimeProductionTick()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val second = activeOwner.drainRuntimeProductionTick()
+        val stateAfterTwo = session.state.value
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val third = activeOwner.drainRuntimeProductionTick()
+        runCurrent()
+
+        val running = session.state.value as ScreenCaptureSessionState.Running
+        val suspended = running.output as ScreenCaptureOutputState.Suspended
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, first)
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, second)
+        assertTrue((stateAfterTwo as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, third)
+        assertEquals(ScreenCaptureProblemKind.EncodeRepeatedFailure, suspended.problem.kind)
+        assertEquals(Math.addExact(initialGeneration, 1L), activeOwner.currentOutputGenerationForTesting())
+        assertEquals(3L, session.stats.value.droppedFrames.byTransientFailure)
+        assertEquals(1, events.count { event -> event == ScreenCaptureEventType.OutputPlanSuspended })
+        assertTrue(activeOwner.runtimeFrameLoopSnapshot().productionAdmissionPaused)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        activeOwner.recordPeriodicRefreshWakeForTesting()
+        fixture.runtime.callbackRegistration.emitVisibility(false)
+        assertEquals(RuntimeFrameProductionTickResult.NoFrameSignal, activeOwner.drainRuntimeProductionTick())
+        val paused = activeOwner.runtimeFrameLoopSnapshot()
+        assertTrue(paused.sourceFrameSignalPending)
+        assertTrue(paused.periodicRefreshWakePending)
+        assertEquals(false, (session.state.value as ScreenCaptureSessionState.Running).capturedContentVisible)
+        assertEquals(3, fixture.encoder.encodeCount)
+
+        collector.cancel()
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun providerThrowAndProtocolSuccessWithoutBytesAreCountedHardFailures() = runTest {
+        val threwFixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(300_000L)),
+        )
+        threwFixture.encoder.encodeFailure = IllegalStateException("provider threw")
+        val threwOwner = threwFixture.activeOwner
+        threwOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val threwSession = threwOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        repeat(3) {
+            threwFixture.recordRuntimeFrameAvailableWithoutWake()
+            assertEquals(RuntimeFrameProductionTickResult.EncodeThrewDrop, threwOwner.drainRuntimeProductionTick())
+        }
+        val threwSuspended = (threwSession.state.value as ScreenCaptureSessionState.Running).output
+        assertTrue(threwSuspended is ScreenCaptureOutputState.Suspended)
+
+        val protocolFixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(300_000L)),
+        )
+        protocolFixture.encoder.encodedBytes = byteArrayOf()
+        val protocolOwner = protocolFixture.activeOwner
+        protocolOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val protocolSession = protocolOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        repeat(3) {
+            protocolFixture.recordRuntimeFrameAvailableWithoutWake()
+            assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, protocolOwner.drainRuntimeProductionTick())
+        }
+        val protocolSuspended = (protocolSession.state.value as ScreenCaptureSessionState.Running).output
+        assertTrue(protocolSuspended is ScreenCaptureOutputState.Suspended)
+
+        threwSession.close()
+        protocolSession.close()
+        runCurrent()
+    }
+
+    @Test
+    fun validEncodeSuccessResetsHardFailureStreakBeforeLaterFailures() = runTest {
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(300_000L)),
+        )
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+
+        fixture.encoder.encodeResult = ImageEncodeResult.Failed("provider failed")
+        repeat(2) {
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+        }
+        fixture.encoder.encodeResult = ImageEncodeResult.Success
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.Published, activeOwner.drainRuntimeProductionTick())
+        fixture.encoder.encodeResult = ImageEncodeResult.Failed("provider failed again")
+        repeat(2) {
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+        }
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Suspended)
+
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun capDropsDoNotIncrementOrResetCurrentHardFailureStreak() = runTest {
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            configMaxEncodedBytes = 1_024,
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(300_000L)),
+        )
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+
+        repeat(2) {
+            fixture.encoder.encodeResult = ImageEncodeResult.Failed("provider failed")
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+            fixture.encoder.encodeResult = ImageEncodeResult.Success
+            fixture.encoder.encodedBytes = ByteArray(1_025)
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            assertEquals(RuntimeFrameProductionTickResult.EncodedSizeLimitDrop, activeOwner.drainRuntimeProductionTick())
+        }
+        fixture.encoder.encodeResult = ImageEncodeResult.Failed("third provider failure")
+        fixture.encoder.encodedBytes = byteArrayOf(1)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Suspended)
+        assertEquals(3L, session.stats.value.droppedFrames.byTransientFailure)
+        assertEquals(2L, session.stats.value.droppedFrames.byEncodedSizeLimit)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun capRejectedThenProviderThrowRemainsEncodedSizeDropAndDoesNotPoisonHealth() = runTest {
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            configMaxEncodedBytes = 1_024,
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(300_000L)),
+        )
+        fixture.encoder.encodedBytes = ByteArray(1_025)
+        fixture.encoder.encodeFailureAfterWrite = IllegalStateException("provider surfaced sink rejection")
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+
+        repeat(3) {
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            assertEquals(RuntimeFrameProductionTickResult.EncodedSizeLimitDrop, activeOwner.drainRuntimeProductionTick())
+        }
+
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+        assertEquals(3L, session.stats.value.droppedFrames.byEncodedSizeLimit)
+        assertEquals(0L, session.stats.value.droppedFrames.byTransientFailure)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun normalizedNoOpPreservesButFrameRateCommitResetsHardFailureStreak() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val initialParameters = ScreenCaptureParameters(
+            frameRate = FrameRate.PeriodicRefresh(300_000L),
+            encoderProvider = provider,
+        )
+        val noOpFixture = prepareInitialRuntimeOwnerForProduction(initialParameters = initialParameters)
+        noOpFixture.encoder.encodeResult = ImageEncodeResult.Failed("provider failed")
+        val noOpOwner = noOpFixture.activeOwner
+        noOpOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val noOpSession = noOpOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        repeat(2) {
+            noOpFixture.recordRuntimeFrameAvailableWithoutWake()
+            noOpOwner.drainRuntimeProductionTick()
+        }
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, noOpSession.setParameters(initialParameters))
+        noOpFixture.recordRuntimeFrameAvailableWithoutWake()
+        noOpOwner.drainRuntimeProductionTick()
+        assertTrue((noOpSession.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Suspended)
+
+        val resetFixture = prepareInitialRuntimeOwnerForProduction(initialParameters = initialParameters)
+        resetFixture.encoder.encodeResult = ImageEncodeResult.Failed("provider failed")
+        val resetOwner = resetFixture.activeOwner
+        resetOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val resetSession = resetOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        repeat(2) {
+            resetFixture.recordRuntimeFrameAvailableWithoutWake()
+            resetOwner.drainRuntimeProductionTick()
+        }
+        assertEquals(
+            ScreenCaptureParameterUpdateResult.Applied,
+            resetSession.setParameters(ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(200_000L), encoderProvider = provider)),
+        )
+        resetFixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, resetOwner.drainRuntimeProductionTick())
+        assertTrue((resetSession.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+
+        noOpSession.close()
+        resetSession.close()
+        runCurrent()
+    }
+
+    @Test
+    fun ownerStopWinningBeforeThirdHardFailureMakesAttemptStaleWithoutSuspension() = runTest {
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(300_000L)),
+        )
+        fixture.encoder.encodeResult = ImageEncodeResult.Failed("provider failed")
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        repeat(2) {
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            activeOwner.drainRuntimeProductionTick()
+        }
+        activeOwner.setBeforeEncodeNonSuccessDropForTesting { session.stop() }
+
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val third = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, third)
+        assertEquals(ScreenCaptureStopReason.OwnerStop, (session.state.value as ScreenCaptureSessionState.Stopped).reason)
+        assertEquals(2L, session.stats.value.droppedFrames.byTransientFailure)
+        assertEquals(1L, session.stats.value.droppedFrames.byStaleGeneration)
+        runCurrent()
+    }
+
+    @Test
+    fun projectionStopWinningBeforeThirdHardFailureStopsWithoutSuspension() = runTest {
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(300_000L)),
+        )
+        fixture.encoder.encodeResult = ImageEncodeResult.Failed("provider failed")
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        repeat(2) {
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            activeOwner.drainRuntimeProductionTick()
+        }
+        activeOwner.setBeforeEncodeNonSuccessDropForTesting {
+            fixture.runtime.callbackRegistration.emitStopRawOnly()
+        }
+
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val third = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, third)
+        val stopped = session.state.value as ScreenCaptureSessionState.Stopped
+        assertEquals(ScreenCaptureStopReason.CaptureEnded, stopped.reason)
+        assertEquals(2L, session.stats.value.droppedFrames.byTransientFailure)
+        assertEquals(1L, session.stats.value.droppedFrames.byStaleGeneration)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun busyCapAndCancellationOutcomesNeitherIncrementNorResetHardFailureStreak() = runTest {
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            configMaxEncodedBytes = 1_024,
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.PeriodicRefresh(300_000L)),
+        )
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+
+        fixture.encoder.encodeResult = ImageEncodeResult.Failed("first hard failure")
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+        activeOwner.forceEncoderBusyForTesting(true)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncoderBusyDrop, activeOwner.drainRuntimeProductionTick())
+        activeOwner.forceEncoderBusyForTesting(false)
+        activeOwner.forceReadbackBusyForTesting(true)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.ReadbackBusyDrop, activeOwner.drainRuntimeProductionTick())
+        activeOwner.forceReadbackBusyForTesting(false)
+        fixture.encoder.encodeResult = ImageEncodeResult.Success
+        fixture.encoder.encodedBytes = ByteArray(1_025)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodedSizeLimitDrop, activeOwner.drainRuntimeProductionTick())
+        fixture.encoder.encodeFailure = CancellationException("provider cancellation")
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodeThrewDrop, activeOwner.drainRuntimeProductionTick())
+        fixture.encoder.encodeFailure = null
+        fixture.encoder.encodeResult = ImageEncodeResult.Failed("second hard failure")
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+
+        assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Suspended)
+        assertEquals(4L, session.stats.value.droppedFrames.byTransientFailure)
+        assertEquals(1L, session.stats.value.droppedFrames.byEncoderBusy)
+        assertEquals(1L, session.stats.value.droppedFrames.byReadbackBusy)
+        assertEquals(1L, session.stats.value.droppedFrames.byEncodedSizeLimit)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun providerOnlyAndFullPlanCommitsStartFreshEncodeHealth() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val providerReplacement = FakeImageEncoder().apply {
+            encodeResult = ImageEncodeResult.Failed("replacement failed")
+        }
+        val providerFixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                frameRate = FrameRate.PeriodicRefresh(300_000L),
+                encoderProvider = provider,
+            ),
+            encoderPrepare = runtimeEncoderPrepareOperation { providerReplacement },
+        )
+        providerFixture.encoder.encodeResult = ImageEncodeResult.Failed("initial failed")
+        val providerOwner = providerFixture.activeOwner
+        providerOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val providerSession = providerOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        repeat(2) {
+            providerFixture.recordRuntimeFrameAvailableWithoutWake()
+            providerOwner.drainRuntimeProductionTick()
+        }
+        assertEquals(
+            ScreenCaptureParameterUpdateResult.Applied,
+            providerSession.setParameters(
+                ScreenCaptureParameters(
+                    frameRate = FrameRate.PeriodicRefresh(300_000L),
+                    encoderProvider = FakeImageEncoderProvider(),
+                ),
+            ),
+        )
+        providerFixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, providerOwner.drainRuntimeProductionTick())
+        assertTrue((providerSession.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+
+        val fullFixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                frameRate = FrameRate.PeriodicRefresh(300_000L),
+                encoderProvider = provider,
+            ),
+        )
+        fullFixture.encoder.encodeResult = ImageEncodeResult.Failed("initial failed")
+        val fullOwner = fullFixture.activeOwner
+        fullOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val fullSession = fullOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        repeat(2) {
+            fullFixture.recordRuntimeFrameAvailableWithoutWake()
+            fullOwner.drainRuntimeProductionTick()
+        }
+        assertEquals(
+            ScreenCaptureParameterUpdateResult.Applied,
+            fullSession.setParameters(
+                ScreenCaptureParameters(
+                    mirror = Mirror.Horizontal,
+                    frameRate = FrameRate.PeriodicRefresh(300_000L),
+                    encoderProvider = provider,
+                ),
+            ),
+        )
+        fullFixture.latestEncoderForTesting().encodeResult = ImageEncodeResult.Failed("full replacement failed")
+        fullFixture.recordRuntimeFrameAvailableWithoutWake()
+        assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, fullOwner.drainRuntimeProductionTick())
+        assertTrue((fullSession.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+
+        providerSession.close()
+        fullSession.close()
+        runCurrent()
+    }
+
+    @Test
+    fun thresholdWinningBeforePreparedRuntimeUpdatesRejectsAndKeepsPersistentPause() = runTest {
+        RuntimeHealthRaceUpdateKind.entries.forEach { updateKind ->
+            val provider = FakeImageEncoderProvider()
+            val replacementEncoder = FakeImageEncoder()
+            val initialParameters = ScreenCaptureParameters(
+                frameRate = FrameRate.PeriodicRefresh(300_000L),
+                encoderProvider = provider,
+            )
+            val fixture = prepareInitialRuntimeOwnerForProduction(
+                initialParameters = initialParameters,
+                encoderPrepare = if (updateKind == RuntimeHealthRaceUpdateKind.ProviderOnly) {
+                    runtimeEncoderPrepareOperation { replacementEncoder }
+                } else {
+                    RuntimeProviderPreparationNotConfiguredForTesting
+                },
+            )
+            fixture.encoder.encodeResult = ImageEncodeResult.Failed("initial provider failed")
+            val activeOwner = fixture.activeOwner
+            activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+            val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+            repeat(2) {
+                fixture.recordRuntimeFrameAvailableWithoutWake()
+                assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+            }
+            val generationBeforeRace = checkNotNull(activeOwner.currentOutputGenerationForTesting())
+            val updateReadyForCommit = CountDownLatch(1)
+            val releaseUpdateCommit = CountDownLatch(1)
+            activeOwner.setBeforeRuntimeParameterCommitOwnerLockForTesting {
+                updateReadyForCommit.countDown()
+                check(releaseUpdateCommit.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                    "Timed out waiting to release $updateKind update commit."
+                }
+            }
+            val updateJob = async(Dispatchers.Default) {
+                session.setParameters(runtimeHealthRaceUpdateParameters(updateKind, provider))
+            }
+            assertTrue("$updateKind update prepared", updateReadyForCommit.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+            releaseUpdateCommit.countDown()
+            val rejected = updateJob.await() as ScreenCaptureParameterUpdateResult.Rejected
+
+            assertEquals(ScreenCaptureProblemKind.ParameterUpdateUnavailable, rejected.problem.kind)
+            assertEquals(Math.addExact(generationBeforeRace, 1L), activeOwner.currentOutputGenerationForTesting())
+            assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Suspended)
+            assertTrue(activeOwner.runtimeFrameLoopSnapshot().productionAdmissionPaused)
+            when (updateKind) {
+                RuntimeHealthRaceUpdateKind.FrameRateOnly -> assertEquals(0, fixture.closedEncoderCountForTesting())
+                RuntimeHealthRaceUpdateKind.ProviderOnly -> assertEquals(1, replacementEncoder.closeCount)
+                RuntimeHealthRaceUpdateKind.FullPlan -> assertEquals(1, fixture.latestEncoderForTesting().closeCount)
+            }
+            session.close()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun runtimeUpdateWinningBeforeThirdFailureMakesOldAttemptStaleAndStartsFreshHealth() = runTest {
+        RuntimeHealthRaceUpdateKind.entries.forEach { updateKind ->
+            val provider = FakeImageEncoderProvider()
+            val replacementEncoder = FakeImageEncoder()
+            val initialParameters = ScreenCaptureParameters(
+                frameRate = FrameRate.PeriodicRefresh(300_000L),
+                encoderProvider = provider,
+            )
+            val fixture = prepareInitialRuntimeOwnerForProduction(
+                initialParameters = initialParameters,
+                encoderPrepare = if (updateKind == RuntimeHealthRaceUpdateKind.ProviderOnly) {
+                    runtimeEncoderPrepareOperation { replacementEncoder }
+                } else {
+                    RuntimeProviderPreparationNotConfiguredForTesting
+                },
+            )
+            fixture.encoder.encodeResult = ImageEncodeResult.Failed("initial provider failed")
+            val activeOwner = fixture.activeOwner
+            activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+            val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+            repeat(2) {
+                fixture.recordRuntimeFrameAvailableWithoutWake()
+                assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+            }
+            val thirdFailureReady = CountDownLatch(1)
+            val releaseThirdFailure = CountDownLatch(1)
+            activeOwner.setBeforeEncodeNonSuccessDropForTesting {
+                thirdFailureReady.countDown()
+                check(releaseThirdFailure.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                    "Timed out waiting to release old $updateKind failure."
+                }
+            }
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            val oldFailure = async(Dispatchers.Default) { activeOwner.drainRuntimeProductionTick() }
+            assertTrue("$updateKind old failure ready", thirdFailureReady.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+            val update = session.setParameters(runtimeHealthRaceUpdateParameters(updateKind, provider))
+            releaseThirdFailure.countDown()
+            val oldResult = oldFailure.await()
+            activeOwner.setBeforeEncodeNonSuccessDropForTesting(null)
+            val currentEncoder = when (updateKind) {
+                RuntimeHealthRaceUpdateKind.FrameRateOnly -> fixture.encoder
+                RuntimeHealthRaceUpdateKind.ProviderOnly -> replacementEncoder
+                RuntimeHealthRaceUpdateKind.FullPlan -> fixture.latestEncoderForTesting()
+            }
+            currentEncoder.encodeResult = ImageEncodeResult.Failed("replacement provider failed")
+            repeat(2) {
+                fixture.recordRuntimeFrameAvailableWithoutWake()
+                assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+            }
+
+            assertEquals(ScreenCaptureParameterUpdateResult.Applied, update)
+            assertEquals(RuntimeFrameProductionTickResult.StaleDrop, oldResult)
+            assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Active)
+            assertFalse(activeOwner.runtimeFrameLoopSnapshot().productionAdmissionPaused)
+            assertEquals(0, currentEncoder.closeCount)
+            fixture.recordRuntimeFrameAvailableWithoutWake()
+            assertEquals(RuntimeFrameProductionTickResult.EncodeFailedDrop, activeOwner.drainRuntimeProductionTick())
+            assertTrue((session.state.value as ScreenCaptureSessionState.Running).output is ScreenCaptureOutputState.Suspended)
+            session.close()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun oldGenerationCannotRepopulatePacingAfterFrameRateCommitReset() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(frameRate = FrameRate.MaxFps(1), encoderProvider = provider),
+            elapsedRealtimeNanos = { 1_000L },
+        )
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        val admissionEntered = CountDownLatch(1)
+        val releaseAdmission = CountDownLatch(1)
+        activeOwner.setBeforeFrameRatePolicyAdmissionForTesting {
+            admissionEntered.countDown()
+            check(releaseAdmission.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                "Timed out waiting to release old pacing admission."
+            }
+        }
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) { activeOwner.drainRuntimeProductionTick() }
+        assertTrue("old pacing admission entered", admissionEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val update = session.setParameters(
+            ScreenCaptureParameters(frameRate = FrameRate.MaxFps(2), encoderProvider = provider),
+        )
+        activeOwner.setBeforeFrameRatePolicyAdmissionForTesting(null)
+        releaseAdmission.countDown()
+        val oldResult = oldTick.await()
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val newResult = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, update)
+        assertEquals(RuntimeFrameProductionTickResult.NotMaterialized, oldResult)
+        assertEquals(RuntimeFrameProductionTickResult.Published, newResult)
+        assertEquals(0L, session.stats.value.droppedFrames.byFrameRatePolicy)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun oldGenerationSuccessfulReadbackCannotRepopulateNewGenerationSourceSuccess() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(encoderProvider = provider),
+        )
+        val readPixelsEntered = CountDownLatch(1)
+        val releaseReadPixels = CountDownLatch(1)
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(
+            RuntimeEs2FrameRenderer(
+                BlockingReadPixelsRuntimeGles20Api(
+                    readPixelsEntered = readPixelsEntered,
+                    releaseReadPixels = releaseReadPixels,
+                ),
+            ),
+        )
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) { activeOwner.drainRuntimeProductionTick() }
+        assertTrue("old readback entered", readPixelsEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val update = session.setParameters(
+            ScreenCaptureParameters(
+                frameRate = FrameRate.PeriodicRefresh(intervalMillis = 1_000L),
+                encoderProvider = provider,
+            ),
+        )
+        releaseReadPixels.countDown()
+        val oldResult = oldTick.await()
+        activeOwner.recordPeriodicRefreshWakeForTesting()
+        val refreshResult = activeOwner.drainRuntimeProductionTick()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, update)
+        assertEquals(RuntimeFrameProductionTickResult.StaleDrop, oldResult)
+        assertEquals(RuntimeFrameProductionTickResult.PeriodicRefreshNoSourceFrame, refreshResult)
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun frameRateCommitAfterOldPublicationCannotRepopulatePeriodicRetentionOrScheduling() = runTest {
+        val provider = FakeImageEncoderProvider()
+        val fixture = prepareInitialRuntimeOwnerForProduction(
+            initialParameters = ScreenCaptureParameters(
+                frameRate = FrameRate.PeriodicRefresh(300_000L),
+                encoderProvider = provider,
+            ),
+        )
+        val activeOwner = fixture.activeOwner
+        activeOwner.replaceRuntimeFrameRendererForTesting(RuntimeEs2FrameRenderer(RuntimeProductionGles20Api()))
+        val session = activeOwner.commitInitialActiveSession(armRuntimeSignals = false)
+        val retentionEntered = CountDownLatch(1)
+        val releaseRetention = CountDownLatch(1)
+        activeOwner.setBeforePeriodicRefreshRetentionForTesting {
+            retentionEntered.countDown()
+            check(releaseRetention.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                "Timed out waiting to release old periodic retention."
+            }
+        }
+        fixture.recordRuntimeFrameAvailableWithoutWake()
+        val oldTick = async(Dispatchers.Default) { activeOwner.drainRuntimeProductionTick() }
+        assertTrue("old periodic retention entered", retentionEntered.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+
+        val update = session.setParameters(
+            ScreenCaptureParameters(frameRate = FrameRate.MaxFps(30), encoderProvider = provider),
+        )
+        releaseRetention.countDown()
+        val oldResult = oldTick.await()
+
+        assertEquals(ScreenCaptureParameterUpdateResult.Applied, update)
+        assertEquals(RuntimeFrameProductionTickResult.Published, oldResult)
+        assertFalse(activeOwner.hasPeriodicRefreshFrameForTesting())
+        assertFalse(activeOwner.hasScheduledPeriodicRefreshForTesting())
+        session.close()
+        runCurrent()
+    }
+
+    @Test
+    fun runtimeUpdatesFenceOldPeriodicWakeAfterTimerValidationBeforeEnqueue() = runTest {
+        RuntimeHealthRaceUpdateKind.entries.forEach { updateKind ->
+            val provider = FakeImageEncoderProvider()
+            val replacementEncoder = FakeImageEncoder()
+            val fixture = prepareInitialRuntimeOwnerForProduction(
+                initialParameters = ScreenCaptureParameters(
+                    frameRate = FrameRate.PeriodicRefresh(300_000L),
+                    encoderProvider = provider,
+                ),
+                encoderPrepare = if (updateKind == RuntimeHealthRaceUpdateKind.ProviderOnly) {
+                    runtimeEncoderPrepareOperation { replacementEncoder }
+                } else {
+                    RuntimeProviderPreparationNotConfiguredForTesting
+                },
+            )
+            val activeOwner = fixture.activeOwner
+            activeOwner.overridePeriodicRefreshDelayForTesting(delayMillis = 50L)
+            val wakeReadyForEnqueue = CountDownLatch(1)
+            val releaseWakeEnqueue = CountDownLatch(1)
+            val wakeEnqueueAttemptFinished = CountDownLatch(1)
+            activeOwner.setBeforePeriodicRefreshWakeEnqueueForTesting {
+                wakeReadyForEnqueue.countDown()
+                check(releaseWakeEnqueue.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                    "Timed out waiting to release the old $updateKind periodic wake."
+                }
+            }
+            activeOwner.setAfterPeriodicRefreshWakeEnqueueAttemptForTesting {
+                wakeEnqueueAttemptFinished.countDown()
+            }
+            val session = activeOwner.commitInitialActiveSession()
+            assertTrue(
+                "$updateKind periodic wake validated",
+                wakeReadyForEnqueue.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS),
+            )
+
+            val update = session.setParameters(runtimeHealthRaceUpdateParameters(updateKind, provider))
+            releaseWakeEnqueue.countDown()
+            assertTrue(
+                "$updateKind stale periodic wake retired",
+                wakeEnqueueAttemptFinished.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS),
+            )
+
+            assertEquals(ScreenCaptureParameterUpdateResult.Applied, update)
+            assertFalse(activeOwner.runtimeFrameLoopSnapshot().periodicRefreshWakePending)
+            assertEquals(0L, activeOwner.periodicRefreshNoSourceWakeCountForTesting())
+            session.close()
+            runCurrent()
+        }
+    }
+
+    @Test
     fun rawProjectionStopBeforeRuntimeGlFailureTerminalCommitStopsInsteadOfFailing() = runTest {
         val fixture = prepareInitialRuntimeOwnerForProduction()
         val activeOwner = fixture.activeOwner
@@ -1817,7 +3761,10 @@ class InitialActivationCommitBoundaryTest {
         assertEquals(1L, session.stats.value.framesPublished)
     }
 
-    private suspend fun TestScope.prepareInitialRuntimeOwner(apiLevel: Int = 33): InitialActivationFixture {
+    private suspend fun TestScope.prepareInitialRuntimeOwner(
+        apiLevel: Int = 33,
+        initialParameters: ScreenCaptureParameters = ScreenCaptureParameters.defaults(),
+    ): InitialActivationFixture {
         val runtime = TestRuntime(apiLevel = apiLevel)
         val config = ScreenCaptureConfig(metricsProvider = runtime.metricsProvider)
         val startupResources = if (apiLevel >= 34) {
@@ -1829,7 +3776,7 @@ class InitialActivationCommitBoundaryTest {
             runtime.start()
         }
         val preActiveOwner = startupResources.transferToPreActiveRuntimeOwner()
-        val preparedPlan = preActiveOwner.prepareInitialActivePlan(config)
+        val preparedPlan = preActiveOwner.prepareInitialActivePlan(config, initialParameters = initialParameters)
         val preparer = TestRenderingPipelinePreparer()
         val preparedResources = preActiveOwner.prepareInitialRenderingPipeline(
             preparedPlan = preparedPlan,
@@ -1852,17 +3799,23 @@ class InitialActivationCommitBoundaryTest {
     private suspend fun prepareInitialRuntimeOwnerForProduction(
         configMaxEncodedBytes: Int = 4_194_304,
         initialParameters: ScreenCaptureParameters = ScreenCaptureParameters.defaults(),
+        encoderPrepare: ImageEncoderPrepareOperation = RuntimeProviderPreparationNotConfiguredForTesting,
         beforeCommitBoundary: (TestRuntime) -> Unit = {},
         runCleanupSynchronously: Boolean = true,
         elapsedRealtimeNanos: () -> Long = { 1_000L },
         terminalCleanupFenceFactory: () -> AutoCloseable = { AutoCloseable {} },
+        runtimeOutputPlanPrepareOverride: (suspend (OutputPlanPrepareRequest) -> RenderingPipelinePreparationResult?)? = null,
+        afterRuntimeOutputPlanResourcesPrepared: (suspend (OutputPlanPrepareRequest) -> Unit)? = null,
     ): ProductionActivationFixture {
         val runtime = TestRuntime(apiLevel = 33, runCleanupSynchronously = runCleanupSynchronously)
         val config = ScreenCaptureConfig(metricsProvider = runtime.metricsProvider, maxEncodedBytes = configMaxEncodedBytes)
         val startupResources = runtime.start()
         val preActiveOwner = startupResources.transferToPreActiveRuntimeOwner()
         val preparedPlan = preActiveOwner.prepareInitialActivePlan(config, initialParameters = initialParameters)
-        val preparer = RuntimeProductionRenderingPipelinePreparer()
+        val preparer = RuntimeProductionRenderingPipelinePreparer(
+            runtimeOutputPlanPrepareOverride = runtimeOutputPlanPrepareOverride,
+            afterRuntimeOutputPlanResourcesPrepared = afterRuntimeOutputPlanResourcesPrepared,
+        )
         val preparedResources = preActiveOwner.prepareInitialRenderingPipeline(preparedPlan = preparedPlan, preparer = preparer)
         val initialOwner = preActiveOwner.transferToInitialRuntimeResourceOwner(
             preparedPlan = preparedPlan,
@@ -1870,6 +3823,8 @@ class InitialActivationCommitBoundaryTest {
         )
         val activeOwner = initialOwner.transferToActiveRuntimeOwner(
             config = config,
+            encoderPrepare = encoderPrepare,
+            outputPlanPreparer = preparer,
             commitBoundary = InitialActivationCommitBoundary {
                 beforeCommitBoundary(runtime)
             },
@@ -1880,6 +3835,11 @@ class InitialActivationCommitBoundaryTest {
             runtime = runtime,
             activeOwner = activeOwner,
             encoder = preparer.encoders.single(),
+            createdEncoderCountForTesting = { preparer.encoders.size },
+            closedEncoderCountForTesting = { preparer.encoders.sumOf(FakeImageEncoder::closeCount) },
+            readbackPreparationCountForTesting = { preparer.readbackPreparationCount },
+            retiredReadbackCountForTesting = { preparer.retiredReadbackCount.get() },
+            latestEncoderForTesting = { preparer.encoders.last() },
         )
     }
 
@@ -1911,6 +3871,7 @@ class InitialActivationCommitBoundaryTest {
         )
         val activeOwner = initialOwner.transferToActiveRuntimeOwner(
             config = config,
+            encoderPrepare = ImageEncoderPrepareOperation(ImageEncoderPreparer(providerContext)::prepare),
             elapsedRealtimeNanos = { 1_000L },
             terminalCleanupFenceFactory = terminalCleanupFenceFactory,
         )
@@ -1994,6 +3955,37 @@ class InitialActivationCommitBoundaryTest {
             is ScreenCaptureOutputState.Suspended -> "Suspended(kind=${problem.kind}, geometry=${currentCaptureGeometry.widthPx}x${currentCaptureGeometry.heightPx}@${currentCaptureGeometry.densityDpi})"
         }
 
+    private fun assertRuntimeFrameLoopSnapshotEquals(
+        expected: RuntimeFrameLoopSnapshot,
+        actual: RuntimeFrameLoopSnapshot,
+    ) {
+        assertEquals(expected.committed, actual.committed)
+        assertEquals(expected.productionAdmissionPaused, actual.productionAdmissionPaused)
+        assertEquals(expected.sourceFrameSignalPending, actual.sourceFrameSignalPending)
+        assertEquals(expected.periodicRefreshWakePending, actual.periodicRefreshWakePending)
+        assertEquals(expected.latestSourceFrameGeneration, actual.latestSourceFrameGeneration)
+        assertEquals(expected.admittedProductionAttempts, actual.admittedProductionAttempts)
+    }
+
+    private fun runtimeEncoderPrepareOperation(
+        encoderFactory: () -> FakeImageEncoder,
+    ): ImageEncoderPrepareOperation =
+        ImageEncoderPrepareOperation { _, provider, request ->
+            val encoder = encoderFactory()
+            ImageEncoderPreparationResult.Success(
+                PreparedImageEncoderResources(
+                    encoder = encoder,
+                    info = ImageEncoderInfo(
+                        providerId = provider.id,
+                        outputFormat = provider.outputFormat,
+                        backendName = encoder.info.backendName,
+                    ),
+                    request = request,
+                    cleanup = ImmediateProviderEncoderCleanup,
+                ),
+            )
+        }
+
     private class DeliveredFrame(
         val sequence: Long,
         val timestampElapsedRealtimeNanos: Long,
@@ -2011,9 +4003,11 @@ class InitialActivationCommitBoundaryTest {
         fun transferToActiveRuntimeOwner(
             config: ScreenCaptureConfig = this.config,
             commitBoundary: InitialActivationCommitBoundary = InitialActivationCommitBoundary(),
+            encoderPrepare: ImageEncoderPrepareOperation = RuntimeProviderPreparationNotConfiguredForTesting,
         ): ActiveRuntimeOwner =
             initialOwner.transferToActiveRuntimeOwner(
                 config = config,
+                encoderPrepare = encoderPrepare,
                 commitBoundary = commitBoundary,
                 elapsedRealtimeNanos = { 1_000L },
             )
@@ -2023,15 +4017,64 @@ class InitialActivationCommitBoundaryTest {
         val runtime: TestRuntime,
         val activeOwner: ActiveRuntimeOwner,
         val encoder: FakeImageEncoder,
+        val createdEncoderCountForTesting: () -> Int,
+        val closedEncoderCountForTesting: () -> Int,
+        val readbackPreparationCountForTesting: () -> Int,
+        val retiredReadbackCountForTesting: () -> Int,
+        val latestEncoderForTesting: () -> FakeImageEncoder,
     ) {
         lateinit var session: ScreenCaptureSession
     }
+
+    private enum class RuntimeHealthRaceUpdateKind {
+        FrameRateOnly,
+        ProviderOnly,
+        FullPlan,
+    }
+
+    private fun runtimeHealthRaceUpdateParameters(
+        updateKind: RuntimeHealthRaceUpdateKind,
+        provider: FakeImageEncoderProvider,
+    ): ScreenCaptureParameters =
+        when (updateKind) {
+            RuntimeHealthRaceUpdateKind.FrameRateOnly -> ScreenCaptureParameters(
+                frameRate = FrameRate.PeriodicRefresh(200_000L),
+                encoderProvider = provider,
+            )
+
+            RuntimeHealthRaceUpdateKind.ProviderOnly -> ScreenCaptureParameters(
+                frameRate = FrameRate.PeriodicRefresh(300_000L),
+                encoderProvider = FakeImageEncoderProvider(),
+            )
+
+            RuntimeHealthRaceUpdateKind.FullPlan -> ScreenCaptureParameters(
+                mirror = Mirror.Horizontal,
+                frameRate = FrameRate.PeriodicRefresh(300_000L),
+                encoderProvider = provider,
+            )
+        }
 
     private class ProviderBackedProductionActivationFixture(
         val runtime: TestRuntime,
         val activeOwner: ActiveRuntimeOwner,
         val providerContext: ProviderPreparationContext,
     )
+
+    private class EqualFakeImageEncoderProvider(
+        private val equalityKey: String,
+    ) : ImageEncoderProvider {
+        override val id: String = "fake-provider"
+        override val outputFormat = EncodedImageFormats.Jpeg
+
+        override fun createEncoder(request: ImageEncoderRequest): ImageEncoder =
+            error("Runtime no-op identity tests must not call providers.")
+
+        override fun equals(other: Any?): Boolean =
+            other is EqualFakeImageEncoderProvider && equalityKey == other.equalityKey
+
+        override fun hashCode(): Int =
+            equalityKey.hashCode()
+    }
 
     private class CloseTrackingImageEncoder(
         override val info: ImageEncoderInfo = ImageEncoderInfo(
@@ -2059,13 +4102,31 @@ class InitialActivationCommitBoundaryTest {
 
     private inner class RuntimeProductionRenderingPipelinePreparer(
         private val providerEncoderResources: (suspend (RenderingPipelinePrepareRequest) -> PreparedImageEncoderResources)? = null,
-    ) : RenderingPipelinePreparer {
+        private val runtimeOutputPlanPrepareOverride: (suspend (OutputPlanPrepareRequest) -> RenderingPipelinePreparationResult?)? = null,
+        private val afterRuntimeOutputPlanResourcesPrepared: (suspend (OutputPlanPrepareRequest) -> Unit)? = null,
+    ) : RenderingPipelinePreparer, OutputPlanPreparer {
         val encoders = mutableListOf<FakeImageEncoder>()
+        var readbackPreparationCount = 0
+        val retiredReadbackCount = AtomicInteger(0)
 
-        override suspend fun prepareInitialRenderingPipeline(request: RenderingPipelinePrepareRequest): RenderingPipelinePreparationResult {
+        override suspend fun prepareInitialRenderingPipeline(request: RenderingPipelinePrepareRequest): RenderingPipelinePreparationResult =
+            prepare(request)
+
+        override suspend fun prepareOutputPlan(request: OutputPlanPrepareRequest): RenderingPipelinePreparationResult {
+            runtimeOutputPlanPrepareOverride?.invoke(request)?.let { return it }
+            return prepare(request).also {
+                afterRuntimeOutputPlanResourcesPrepared?.invoke(request)
+            }
+        }
+
+        private suspend fun prepare(request: OutputPlanPrepareRequest): RenderingPipelinePreparationResult {
             val outputPlan = request.outputPlan
+            readbackPreparationCount++
             val readback = PreparedEs2RenderingReadbackResources(
-                retirementLane = { _, _ -> true },
+                retirementLane = { _, _ ->
+                    retiredReadbackCount.incrementAndGet()
+                    true
+                },
                 glObjects = PreparedEs2RenderingReadbackGlObjects(
                     outputTextureId = 1,
                     outputFramebufferId = 2,
@@ -2091,7 +4152,9 @@ class InitialActivationCommitBoundaryTest {
                 rowStrideBytes = outputPlan.rowStrideBytes,
                 readbackBuffer = ByteBuffer.allocateDirect(outputPlan.rgbaByteCount.toInt()),
             )
-            val encoderResources = providerEncoderResources?.invoke(request) ?: run {
+            val encoderResources = (request as? RenderingPipelinePrepareRequest)?.let { startupRequest ->
+                providerEncoderResources?.invoke(startupRequest)
+            } ?: run {
                 val encoder = FakeImageEncoder()
                 encoders += encoder
                 PreparedImageEncoderResources(
@@ -2111,7 +4174,7 @@ class InitialActivationCommitBoundaryTest {
         }
     }
 
-    private fun runtimeProductionTransformPackage(request: RenderingPipelinePrepareRequest): FirstPlanRenderTransformPackage {
+    private fun runtimeProductionTransformPackage(request: OutputPlanPrepareRequest): FirstPlanRenderTransformPackage {
         val outputPlan = request.outputPlan
         return FirstPlanRenderTransformPackage(
             projectionTargetGeneration = request.projectionTarget.generation,
@@ -2200,11 +4263,15 @@ class InitialActivationCommitBoundaryTest {
     private class BlockingReadPixelsRuntimeGles20Api(
         private val readPixelsEntered: CountDownLatch,
         private val releaseReadPixels: CountDownLatch,
+        private val throwAfterRelease: Boolean = false,
     ) : RuntimeGles20Api by RuntimeProductionGles20Api() {
         override fun readPixels(x: Int, y: Int, width: Int, height: Int, format: Int, type: Int, pixels: Buffer) {
             readPixelsEntered.countDown()
             check(releaseReadPixels.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 "Timed out waiting to release fake readPixels."
+            }
+            if (throwAfterRelease) {
+                throw IllegalStateException("synthetic readPixels failure after release")
             }
             (pixels as ByteBuffer).put(0, 24)
         }
@@ -2226,6 +4293,14 @@ class InitialActivationCommitBoundaryTest {
 
     private companion object {
         const val TIMEOUT_MILLIS: Long = 2_000L
+
+        val RuntimeProviderPreparationNotConfiguredForTesting = ImageEncoderPrepareOperation { _, _, _ ->
+            ImageEncoderPreparationResult.Failure(
+                kind = ScreenCaptureProblemKind.ParameterUpdateUnavailable,
+                message = "Runtime provider preparation is not configured in this fixture.",
+                cause = null,
+            )
+        }
     }
 
     private object DirectCoroutineDispatcher : CoroutineDispatcher() {

@@ -1,11 +1,21 @@
 package dev.dmkr.screencaptureengine
 
-/** Result of an atomic parameter update request. */
+/** Result of a serialized atomic parameter update request. */
 public sealed interface ScreenCaptureParameterUpdateResult {
-    /** New parameters were fully applied. */
+    /**
+     * The request committed, or normalized to a no-op against the current effective plan.
+     *
+     * A terminal transition that follows a successful commit does not rewrite this result.
+     */
     public data object Applied : ScreenCaptureParameterUpdateResult
 
-    /** New parameters were rejected; previous active parameters remain in use. */
+    /**
+     * The request did not commit.
+     *
+     * The previous active parameters remain in use when the session is still active. If terminal
+     * cleanup won before commit, [ScreenCaptureSession.state] is authoritative and the previous plan
+     * may already be retired.
+     */
     public class Rejected public constructor(public val problem: ScreenCaptureProblem) : ScreenCaptureParameterUpdateResult {
         public override fun equals(other: Any?): Boolean = other is Rejected && problem == other.problem
 
@@ -142,7 +152,13 @@ public enum class ScreenCaptureProblemKind {
     EncoderValidationFailed,
     EncodeRepeatedFailure,
 
-    /** Parameter updates are not available; the request is rejected without mutating active parameters. */
+    /**
+     * The request cannot use the supported active same-target update transaction.
+     *
+     * This includes valid requests that require retargeting, target replacement, live geometry
+     * replan, or suspended-output recovery, and candidates that become stale before commit. The
+     * active plan is not replaced by the rejected candidate.
+     */
     ParameterUpdateUnavailable,
 
     EncodedSizeLimitExceeded,

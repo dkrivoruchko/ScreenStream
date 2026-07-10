@@ -32,9 +32,12 @@ import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionSurfa
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionTargetHandle
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionTargetSizeLimits
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionTargetSnapshot
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPrepareRequest
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPreparer
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparationFailure
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparationResult
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePrepareRequest
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.asPlanRenderingAccess
 import dev.dmkr.screencaptureengine.internal.startup.FakeProjectionSurfaceHandle
 import dev.dmkr.screencaptureengine.internal.target.ProjectionTargetGlScope
 import dev.dmkr.screencaptureengine.internal.target.StartupRenderingGlAccess
@@ -101,6 +104,25 @@ class Es2RenderingPipelinePreparerTest {
         assertEquals(1, encoderPrepareCount)
         val success = result as RenderingPipelinePreparationResult.Success
         assertSame(plan.encoderRequest, success.components.encoderResources.request)
+        success.components.close()
+    }
+
+    @Test
+    fun prepareOutputPlanUsesNeutralPlanRenderingAccess() = runTest {
+        val events = mutableListOf<String>()
+        val glAccess = RecordingStartupRenderingGlAccess(events = events)
+        val request = outputPlanRequest(
+            startupRenderingGlAccess = glAccess,
+        )
+        val outputPlanPreparer: OutputPlanPreparer = preparer(events = events)
+
+        val result = outputPlanPreparer.prepareOutputPlan(request)
+
+        assertTrue(result is RenderingPipelinePreparationResult.Success)
+        assertEquals(listOf("preflight", "glAccess", "es2", "transform", "encoder"), events)
+        assertEquals(1, glAccess.accessCount)
+        val success = result as RenderingPipelinePreparationResult.Success
+        assertSame(request.outputPlan.encoderRequest, success.components.encoderResources.request)
         success.components.close()
     }
 
@@ -577,6 +599,26 @@ class Es2RenderingPipelinePreparerTest {
     }
 
     @Test
+    fun runtimeOutputPlanGlTimeoutInvalidatesCandidateWithoutAbandoningLiveLane() = runTest {
+        val events = mutableListOf<String>()
+        val glAccess = RecordingStartupRenderingGlAccess(suspendBeforeBlock = true)
+        val request = outputPlanRequest(
+            startupRenderingGlAccess = glAccess,
+            abandonGlLaneOnTimeout = false,
+        )
+
+        val result = preparer(
+            startupGlPrepareTimeoutMs = 10L,
+            events = events,
+        ).prepareOutputPlan(request)
+
+        assertEquals(ScreenCaptureProblemKind.GlInitializationFailed, result.failure().kind)
+        assertEquals(0, glAccess.abandonCount)
+        assertTrue(!request.planPreparationToken.isCurrent)
+        assertEquals(listOf("preflight"), events)
+    }
+
+    @Test
     fun startupGlTimeoutCleansLateEs2SuccessThroughAccessOnCancellation() = runTest {
         val events = mutableListOf<String>()
         val plan = nonTrivialOutputPlan()
@@ -640,7 +682,7 @@ class Es2RenderingPipelinePreparerTest {
     private fun preparer(
         startupGlPrepareTimeoutMs: Long = 5_000L,
         events: MutableList<String> = mutableListOf(),
-        preflight: (RenderingPipelinePrepareRequest) -> RenderingPipelinePreparationFailure? = {
+        preflight: (OutputPlanPrepareRequest) -> RenderingPipelinePreparationFailure? = {
             events += "preflight"
             null
         },
@@ -715,6 +757,36 @@ class Es2RenderingPipelinePreparerTest {
             ),
             startupRenderingGlAccess = startupRenderingGlAccess,
             encoderProvider = FakeImageEncoderProvider(),
+        )
+
+    private fun outputPlanRequest(
+        plan: ScreenCaptureOutputPlan = nonTrivialOutputPlan(),
+        startupRenderingGlAccess: StartupRenderingGlAccess = RecordingStartupRenderingGlAccess(),
+        abandonGlLaneOnTimeout: Boolean = true,
+    ): OutputPlanPrepareRequest =
+        OutputPlanPrepareRequest(
+            planPreparationToken = PlanPreparationToken(
+                ownerToken = Any(),
+                planToken = 1L,
+                projectionTargetGeneration = 1L,
+            ),
+            outputPlan = plan,
+            projectionTarget = ProjectionTargetSnapshot(
+                generation = 1L,
+                width = plan.captureTarget.width,
+                height = plan.captureTarget.height,
+                densityDpi = plan.captureGeometry.densityDpi,
+                surface = FakeProjectionSurfaceHandle,
+            ),
+            projectionTargetHandle = TestProjectionTargetHandle(
+                generation = 1L,
+                width = plan.captureTarget.width,
+                height = plan.captureTarget.height,
+                densityDpi = plan.captureGeometry.densityDpi,
+            ),
+            planRenderingAccess = startupRenderingGlAccess.asPlanRenderingAccess(),
+            encoderProvider = FakeImageEncoderProvider(),
+            abandonGlLaneOnTimeout = abandonGlLaneOnTimeout,
         )
 
     private fun nonTrivialOutputPlan(

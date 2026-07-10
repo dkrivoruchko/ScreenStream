@@ -49,6 +49,7 @@ internal class FakeImageEncoder(
     var encodeResult: ImageEncodeResult = ImageEncodeResult.Success
     var encodedBytes: ByteArray = byteArrayOf(1, 2, 3)
     var encodeFailure: Throwable? = null
+    var encodeFailureAfterWrite: Throwable? = null
     var lastInputBufferPosition: Int? = null
     var lastInputBufferLimit: Int? = null
     var mutateInputBufferPositionTo: Int? = null
@@ -71,6 +72,7 @@ internal class FakeImageEncoder(
         if (encodeResult == ImageEncodeResult.Success) {
             output.write(encodedBytes, 0, encodedBytes.size)
             onEncodeAfterWrite?.invoke()
+            encodeFailureAfterWrite?.let { throw it }
         }
         return encodeResult
     }

@@ -427,7 +427,7 @@ class DefaultScreenCaptureEngineTest {
     }
 
     @Test
-    fun setParametersFirstTouchArmsQueuedProjectionStopOnce() = runTest {
+    fun setParametersRetargetFirstTouchArmsQueuedProjectionStopOnce() = runTest {
         assertQueuedProjectionStopDrainsAfterFirstTouch("setParameters") { session ->
             val rejected = session.setParameters(
                 ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.5)),
@@ -937,7 +937,7 @@ class DefaultScreenCaptureEngineTest {
     }
 
     @Test
-    fun setParametersRejectsWithUnavailableProblemAndDoesNotMutateState() = runTest {
+    fun setParametersRetargetRequestRejectsWithUnavailableProblemAndDoesNotMutateState() = runTest {
         val harness = DefaultEngineHarness()
         val session = harness.startSession()
         val stateBeforeUpdate = session.state.value
@@ -948,7 +948,10 @@ class DefaultScreenCaptureEngineTest {
         ) as ScreenCaptureParameterUpdateResult.Rejected
 
         assertEquals(ScreenCaptureProblemKind.ParameterUpdateUnavailable, rejected.problem.kind)
-        assertEquals("Runtime parameter updates are not available for this engine session.", rejected.problem.message)
+        assertEquals(
+            "Parameter update is outside the active same-target boundary or became stale before commit.",
+            rejected.problem.message,
+        )
         assertEquals(stateBeforeUpdate, session.state.value)
         assertEquals(prepareCountBeforeUpdate, harness.preparers.single().requests.size)
 

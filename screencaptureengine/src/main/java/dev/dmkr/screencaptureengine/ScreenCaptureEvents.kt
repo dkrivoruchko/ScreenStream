@@ -41,6 +41,7 @@ public class ScreenCaptureEvent public constructor(
 public enum class ScreenCaptureEventType {
     SessionStarted,
     SessionStopped,
+    SessionFailed,
     CaptureGeometryChanged,
     CaptureTargetChanged,
     InvalidMetricsIgnored,

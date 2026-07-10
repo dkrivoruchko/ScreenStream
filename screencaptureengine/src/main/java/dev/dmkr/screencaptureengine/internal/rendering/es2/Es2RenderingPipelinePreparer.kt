@@ -9,12 +9,15 @@ import dev.dmkr.screencaptureengine.internal.encoding.provider.ImageEncoderPrepa
 import dev.dmkr.screencaptureengine.internal.lifecycle.PlanPreparationToken
 import dev.dmkr.screencaptureengine.internal.planning.ScreenCaptureOutputPlan
 import dev.dmkr.screencaptureengine.internal.platform.projection.ProjectionTargetSnapshot
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPreparationResult
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPrepareRequest
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.OutputPlanPreparer
+import dev.dmkr.screencaptureengine.internal.rendering.pipeline.PlanRenderingAccess
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.PreparedRenderingPipelineComponents
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparationFailure
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparationResult
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePrepareRequest
 import dev.dmkr.screencaptureengine.internal.rendering.pipeline.RenderingPipelinePreparer
-import dev.dmkr.screencaptureengine.internal.target.StartupRenderingGlAccess
 import dev.dmkr.screencaptureengine.internal.target.StartupRenderingGlAccessException
 import dev.dmkr.screencaptureengine.internal.target.StartupRenderingGlAccessFailureReason
 import kotlinx.coroutines.withTimeoutOrNull
@@ -33,8 +36,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * A stale token observed before allocation returns [RenderingPipelinePreparationResult.LifecycleStale]
  * instead of a resource failure. Startup GL access failures are classified from typed access failures
  * and the current preparation stage; projection-target ownership/generation failures map to
- * [ScreenCaptureProblemKind.GlInvariantViolation]. Timeout invalidates the token, abandons the
- * startup GL lane, and lets the GL access cancellation hook close any late ES2 success.
+ * [ScreenCaptureProblemKind.GlInvariantViolation]. Timeout invalidates the token and lets the GL
+ * access cancellation hook close any late ES2 success. Startup requests abandon their failed GL
+ * lane; runtime replacement requests preserve the live lane so the previous plan remains usable.
  *
  * This boundary does not install a frame loop, call `SurfaceTexture.updateTexImage()`,
  * call `glReadPixels`, invoke encoder `encode`, publish frames, or expose public session state.
@@ -49,7 +53,7 @@ internal class Es2RenderingPipelinePreparer internal constructor(
         Es2ReadbackPrepareOperation(es2ReadbackPreparer::prepare),
     private val transformBuild: FirstPlanTransformBuildOperation =
         FirstPlanTransformBuildOperation(FirstPlanRenderTransformPackageBuilder::build),
-) : RenderingPipelinePreparer {
+) : RenderingPipelinePreparer, OutputPlanPreparer {
     init {
         require(startupGlPrepareTimeoutMs > 0L) {
             "startupGlPrepareTimeoutMs must be positive, was $startupGlPrepareTimeoutMs"
@@ -58,7 +62,12 @@ internal class Es2RenderingPipelinePreparer internal constructor(
 
     override suspend fun prepareInitialRenderingPipeline(
         request: RenderingPipelinePrepareRequest,
-    ): RenderingPipelinePreparationResult {
+    ): RenderingPipelinePreparationResult =
+        prepareOutputPlan(request)
+
+    override suspend fun prepareOutputPlan(
+        request: OutputPlanPrepareRequest,
+    ): OutputPlanPreparationResult {
         val token = request.planPreparationToken
         if (!token.isCurrent) return RenderingPipelinePreparationResult.LifecycleStale
 
@@ -165,13 +174,13 @@ internal class Es2RenderingPipelinePreparer internal constructor(
     }
 
     private suspend fun prepareEs2Resources(
-        request: RenderingPipelinePrepareRequest,
+        request: OutputPlanPrepareRequest,
         readbackSpec: Es2ReadbackSpec,
     ): Es2PipelineReadbackResult {
         val stage = AtomicReference(StartupGlPreparationStage.AcquiringCurrentTarget)
         return try {
             val result = withTimeoutOrNull(startupGlPrepareTimeoutMs.milliseconds) {
-                request.startupRenderingGlAccess.withCurrentStartupRenderingTarget(
+                request.planRenderingAccess.withCurrentPlanRenderingTarget(
                     target = request.projectionTargetHandle,
                     generation = request.planPreparationToken.projectionTargetGeneration,
                     onCancellation = ::closeSuccessfulEs2Preparation,
@@ -212,8 +221,8 @@ internal class Es2RenderingPipelinePreparer internal constructor(
                 Es2PipelineReadbackResult.LifecycleStale
             } else {
                 Es2PipelineReadbackResult.Failure(
-                    classifyStartupGlAccessFailure(
-                        access = request.startupRenderingGlAccess,
+                    classifyPlanRenderingAccessFailure(
+                        access = request.planRenderingAccess,
                         stage = stage.get(),
                         cause = cause,
                     ),
@@ -223,11 +232,13 @@ internal class Es2RenderingPipelinePreparer internal constructor(
     }
 
     private fun glPreparationTimedOut(
-        request: RenderingPipelinePrepareRequest,
+        request: OutputPlanPrepareRequest,
         stage: StartupGlPreparationStage,
     ): Es2PipelineReadbackResult.Failure {
         request.planPreparationToken.invalidate()
-        request.startupRenderingGlAccess.abandonGlLane()
+        if (request.abandonGlLaneOnTimeout) {
+            request.planRenderingAccess.abandonGlLane()
+        }
         val kind = when (stage) {
             StartupGlPreparationStage.AcquiringCurrentTarget -> ScreenCaptureProblemKind.GlInitializationFailed
             StartupGlPreparationStage.PreparingEs2Resources -> ScreenCaptureProblemKind.GlResourceFailure
@@ -235,7 +246,7 @@ internal class Es2RenderingPipelinePreparer internal constructor(
         return Es2PipelineReadbackResult.Failure(
             failure = RenderingPipelinePreparationFailure(
                 kind = kind,
-                message = "Startup ES2 rendering preparation timed out after $startupGlPrepareTimeoutMs ms.",
+                message = "ES2 output-plan preparation timed out after $startupGlPrepareTimeoutMs ms.",
                 cause = null,
             ),
             staleTokenDominates = false,
@@ -287,7 +298,7 @@ internal class Es2RenderingPipelinePreparer internal constructor(
  * Cheap static validation that runs before GL allocation, direct readback storage, or provider work.
  */
 internal fun interface Es2StaticTransformPreflightOperation {
-    fun preflight(request: RenderingPipelinePrepareRequest): RenderingPipelinePreparationFailure?
+    fun preflight(request: OutputPlanPrepareRequest): RenderingPipelinePreparationFailure?
 }
 
 /**
@@ -348,7 +359,7 @@ private enum class StartupGlPreparationStage {
 private const val STARTUP_GL_PREPARE_TIMEOUT_MS: Long = 5_000L
 private const val RGBA_8888_BYTES_PER_PIXEL: Int = 4
 
-private fun defaultStaticTransformPreflight(request: RenderingPipelinePrepareRequest): RenderingPipelinePreparationFailure? {
+private fun defaultStaticTransformPreflight(request: OutputPlanPrepareRequest): RenderingPipelinePreparationFailure? {
     val plan = request.outputPlan
     return when {
         plan.captureGeometry.widthPx <= 0 || plan.captureGeometry.heightPx <= 0 -> RenderingPipelinePreparationFailure(
@@ -463,8 +474,8 @@ private fun buildReadbackSpec(outputPlan: ScreenCaptureOutputPlan): ReadbackSpec
         )
     }
 
-private fun classifyStartupGlAccessFailure(
-    access: StartupRenderingGlAccess,
+private fun classifyPlanRenderingAccessFailure(
+    access: PlanRenderingAccess,
     stage: StartupGlPreparationStage,
     cause: Throwable,
 ): RenderingPipelinePreparationFailure {

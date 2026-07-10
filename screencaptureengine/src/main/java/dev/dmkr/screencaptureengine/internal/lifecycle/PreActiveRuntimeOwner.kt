@@ -156,7 +156,7 @@ internal class PreActiveRuntimeOwner internal constructor(
         throwIfProjectionStopped()
         coroutineContext.ensureActive()
 
-        return buildInitialRuntimePlan(plan = plan, encoderProvider = initialParameters.encoderProvider)
+        return buildInitialRuntimePlan(plan = plan, initialParameters = initialParameters)
     }
 
     private fun beginInitialPlanPreparation() {
@@ -171,7 +171,7 @@ internal class PreActiveRuntimeOwner internal constructor(
 
     private fun buildInitialRuntimePlan(
         plan: ScreenCaptureOutputPlan,
-        encoderProvider: ImageEncoderProvider,
+        initialParameters: ScreenCaptureParameters,
     ): PreActiveInitialRuntimePlan =
         synchronized(lock) {
             check(state == PreActiveRuntimeOwnerState.Open) { "PreActiveRuntimeOwner is $state." }
@@ -183,7 +183,8 @@ internal class PreActiveRuntimeOwner internal constructor(
                 projectionTarget = currentProjectionTarget.snapshot(),
                 projectionTargetHandle = currentProjectionTarget,
                 startupRenderingGlAccess = projectionTargetOwner.startupRenderingGlAccess(),
-                encoderProvider = encoderProvider,
+                encoderProvider = initialParameters.encoderProvider,
+                initialParameters = initialParameters,
             )
         }
 
@@ -447,6 +448,7 @@ internal class PreActiveRuntimeOwner internal constructor(
                         stopProjectionIfRequired = stopProjectionIfRequired,
                         preparedRenderingPipelineResources = movedResources,
                         initialOutputPlan = preparedPlan.outputPlan,
+                        initialParameters = preparedPlan.initialParameters,
                         initialProjectionTarget = preparedPlan.projectionTarget,
                         pendingSignals = pendingSignals,
                     ),
@@ -1061,6 +1063,7 @@ internal class PreActiveInitialRuntimePlan internal constructor(
     internal val projectionTargetHandle: ProjectionTargetHandle,
     internal val startupRenderingGlAccess: StartupRenderingGlAccess,
     internal val encoderProvider: ImageEncoderProvider,
+    internal val initialParameters: ScreenCaptureParameters = ScreenCaptureParameters(encoderProvider = encoderProvider),
 )
 
 private class InitialRenderingPipelinePreparationStart(
