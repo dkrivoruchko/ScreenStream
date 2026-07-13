@@ -10,23 +10,23 @@
     <string name="webrtc_stream_mode">全局模式 · WebRTC</string>
     <string name="webrtc_stream_mode_description">使用 WebRTC 通过互联网串流</string>
     <string name="webrtc_stream_mode_details">
-- 由 WebRTC 技术驱动.\n
-- 端到端加密的通信.\n
-- 用密码保护流.\n
-- 可发送视频和音频.\n
-- 使用独有的流 ID 和密码进行连接.\n
-- 需要互联网连接才能进行传输.\n
+- 基于 WebRTC 技术。\n
+- 端到端加密通信。\n
+- 使用密码保护串流。\n
+- 可发送视频和音频。\n
+- 使用唯一的串流 ID 和密码进行连接。\n
+- 需要互联网连接才能进行传输。\n
 - 每个客户端使用独立互联网带宽。
 </string>
 
     <string name="webrtc_stream_network_recovery">连接已断开。正在重连…</string>
     <string name="webrtc_stream_server_address">在此访问串流：\n%1$s</string>
-    <string name="webrtc_stream_stream_id_getting">正在获取流 ID…</string>
-    <string name="webrtc_stream_stream_id">流 ID：%1$s</string>
-    <string name="webrtc_stream_stream_password">流密码： %1$s</string>
-    <string name="webrtc_stream_description_show_password">显示流密码</string>
-    <string name="webrtc_stream_description_get_new_id">获取新的流 ID</string>
-    <string name="webrtc_stream_description_create_password">创建新的流密码</string>
+    <string name="webrtc_stream_stream_id_getting">正在获取串流 ID…</string>
+    <string name="webrtc_stream_stream_id">串流 ID：%1$s</string>
+    <string name="webrtc_stream_stream_password">串流密码：%1$s</string>
+    <string name="webrtc_stream_description_show_password">显示串流密码</string>
+    <string name="webrtc_stream_description_get_new_id">获取新的串流 ID</string>
+    <string name="webrtc_stream_description_create_password">创建新的串流密码</string>
     <string name="webrtc_stream_description_open_address">打开地址</string>
     <string name="webrtc_stream_description_copy_address">复制地址</string>
     <string name="webrtc_stream_description_share_address">分享地址</string>
@@ -39,12 +39,12 @@
     <string name="webrtc_stream_audio_device">内部音频</string>
     <string name="webrtc_stream_audio_device_summary">传输此设备的媒体音频</string>
     <string name="webrtc_stream_audio_capture_unavailable">音频采集不可用</string>
-    <string name="webrtc_stream_connected_clients">已连接的客户端： %1$d</string>
+    <string name="webrtc_stream_connected_clients">已连接的客户端：%1$d</string>
     <string name="webrtc_stream_no_web_browser_found">未找到网络浏览器</string>
-    <string name="webrtc_stream_external_app_error">外部程序错误</string>
+    <string name="webrtc_stream_external_app_error">外部应用错误</string>
     <string name="webrtc_stream_share_address">分享设备地址</string>
-    <string name="webrtc_stream_start">开始流</string>
-    <string name="webrtc_stream_stop">停止流</string>
+    <string name="webrtc_stream_start">开始串流</string>
+    <string name="webrtc_stream_stop">停止串流</string>
 
     <string name="webrtc_stream_other_parameters">其他设置</string>
     <string name="webrtc_stream_keep_awake">保持设备唤醒状态</string>

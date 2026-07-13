@@ -84,7 +84,7 @@
     <string name="mjpeg_pref_crop_right">Cortar borde derecho:</string>
     <string name="mjpeg_pref_crop_pixels">píxeles</string>
     <string name="mjpeg_pref_crop_warning">Cortar se ignora si el resultado es una imagen vacía</string>
-    <string name="mjpeg_pref_crop_error">Introduzca un valor válido para el corte</string>
+    <string name="mjpeg_pref_crop_error">Introduce un valor de recorte válido</string>
     <string name="mjpeg_pref_grayscale">Modo de escala de grises</string>
     <string name="mjpeg_pref_grayscale_summary">Convertir imagen a escala de grises antes de enviar</string>
     <string name="mjpeg_pref_resize">Redimensionar la imagen</string>
@@ -94,7 +94,7 @@
     <string name="mjpeg_pref_resize_width">Ancho:</string>
     <string name="mjpeg_pref_resize_height">Alto:</string>
     <string name="mjpeg_pref_resize_stretch">Estirar para ajustar</string>
-    <string name="mjpeg_pref_resize_text">Defina el factor de redimensionamiento de la imagen en porcentaje.\nValores: 10–150\nPredeterminado: 50\nTamaño de pantalla: %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_text">Define el factor de redimensionamiento de la imagen en porcentaje.\nValores: 10–150\nPredeterminado: 50\nTamaño de pantalla: %1$dx%2$d</string>
     <string name="mjpeg_pref_resize_result">Tamaño de imagen: %1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">Rotar imagen en sentido del reloj</string>
     <string name="mjpeg_pref_rotate_summary">Rotar imagen antes de enviar al cliente</string>
@@ -107,11 +107,11 @@
     </string-array>
     <string name="mjpeg_pref_fps">Limitar cuadros por segundo</string>
     <string name="mjpeg_pref_fps_summary">Establecer el máximo de cuadros por segundo</string>
-    <string name="mjpeg_pref_fps_text">Defina el máximo de cuadros por segundo.\nValores: 1/10–120\nPredeterminado: 30</string>
+    <string name="mjpeg_pref_fps_text">Define el máximo de cuadros por segundo.\nValores: 1/10–120\nPredeterminado: 30</string>
     <string name="mjpeg_pref_fps_low_mode_text">Limitar la tasa de fotogramas a un fotograma cada %d segundos, ideal para pantallas de tinta electrónica.</string>
     <string name="mjpeg_pref_jpeg_quality">Calidad de compresión JPEG</string>
-    <string name="mjpeg_pref_jpeg_quality_summary">Ajuste la calidad de compresión JPEG</string>
-    <string name="mjpeg_pref_jpeg_quality_text">Defina la calidad de compresión JPEG.\nValores: 10–100\nPredeterminado: 80</string>
+    <string name="mjpeg_pref_jpeg_quality_summary">Ajustar la calidad de compresión JPEG</string>
+    <string name="mjpeg_pref_jpeg_quality_text">Define la calidad de compresión JPEG.\nValores: 10–100\nPredeterminado: 80</string>
 
     <string name="mjpeg_pref_settings_security">Ajustes de seguridad</string>
     <string name="mjpeg_pref_enable_pin">Habilitar PIN</string>
@@ -123,8 +123,8 @@
     <string name="mjpeg_pref_auto_change_pin">Auto cambiar PIN</string>
     <string name="mjpeg_pref_auto_change_pin_summary">Generar un PIN nuevo por cada transmisión</string>
     <string name="mjpeg_pref_set_pin">Establecer PIN</string>
-    <string name="mjpeg_pref_set_pin_summary">Introduzca el PIN manualmente</string>
-    <string name="mjpeg_pref_set_pin_text">Introduzca el PIN.\nPor defecto: 000000</string>
+    <string name="mjpeg_pref_set_pin_summary">Introducir el PIN manualmente</string>
+    <string name="mjpeg_pref_set_pin_text">Introduce el PIN.\nPor defecto: 000000</string>
     <string name="mjpeg_pref_block_address">Bloquear dirección IP</string>
     <string name="mjpeg_pref_block_address_summary">Bloquear la dirección IP del cliente después de 5 intentos de PIN incorrectos durante 5 minutos</string>
 
@@ -153,7 +153,7 @@
     <string name="mjpeg_label_loopback">Loopback</string>
     <string name="mjpeg_pref_server_port">Puerto del Servidor</string>
     <string name="mjpeg_pref_server_port_summary">Puerto para conexiones entrantes</string>
-    <string name="mjpeg_pref_server_port_text">Defina el puerto del servidor para conexiones entrantes.\nValores: 1025–65535\nPredeterminado: 8080</string>
+    <string name="mjpeg_pref_server_port_text">Define el puerto del servidor para conexiones entrantes.\nValores: 1025–65535\nPredeterminado: 8080</string>
 
     <string name="mjpeg_error_port_in_use">Puerto en uso. Escoja otro por favor.</string>
     <string name="mjpeg_error_invalid_media_projection">Error de seguridad: permiso de captura de pantalla no válido. Inténtalo de nuevo.</string>
@@ -169,7 +169,7 @@
     <string name="mjpeg_html_stream_connecting">Intentando conectar</string>
     <string name="mjpeg_html_stream_reconnecting">Reconectando…</string>
     <string name="mjpeg_html_stream_require_pin">Necesitas un PIN para acceder</string>
-    <string name="mjpeg_html_enter_pin">Introduzca el PIN:\u0020</string>
+    <string name="mjpeg_html_enter_pin">Introduce el PIN:\u0020</string>
     <string name="mjpeg_html_submit_pin">Enviar</string>
     <string name="mjpeg_html_wrong_pin">¡PIN incorrecto!</string>
     <string name="mjpeg_html_address_blocked">Dirección del cliente bloqueada</string>

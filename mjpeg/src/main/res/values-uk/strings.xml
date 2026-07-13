@@ -24,7 +24,7 @@
     <string name="mjpeg_stream_interface">Інтерфейс:\n%1$s</string>
     <string name="mjpeg_stream_copied">Скопійовано</string>
     <string name="mjpeg_stream_no_web_browser_found">Не знайдено веб-браузер</string>
-    <string name="mjpeg_stream_external_app_error">Помилка зовнішнього додатку</string>
+    <string name="mjpeg_stream_external_app_error">Помилка зовнішнього застосунку</string>
     <string name="mjpeg_stream_share_address">Поділитись адресою пристрою</string>
     <string name="mjpeg_item_address_description_open_address">Відкрити адресу</string>
     <string name="mjpeg_item_address_description_copy_address">Скопіювати адресу</string>

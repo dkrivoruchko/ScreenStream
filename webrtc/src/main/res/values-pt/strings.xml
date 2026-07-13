@@ -12,21 +12,21 @@
     <string name="webrtc_stream_mode_details">
 - Usa a tecnologia WebRTC.\n
 - Comunicação criptografada de ponta a ponta.\n
-- Proteção do stream com senha.\n
+- Proteção da transmissão com senha.\n
 - Pode enviar vídeo e áudio.\n
-- Conecte-se usando um ID de stream exclusivo e senha.\n
+- Conecte-se usando um ID de transmissão exclusivo e uma senha.\n
 - Requer conexão com a Internet para transmitir.\n
-- Cada cliente usa largura de banda de internet separada.
+- Cada cliente consome largura de banda de internet separadamente.
 </string>
 
     <string name="webrtc_stream_network_recovery">Conexão perdida. Reconectando…</string>
     <string name="webrtc_stream_server_address">Acesse a transmissão em:\n%1$s</string>
-    <string name="webrtc_stream_stream_id_getting">Obtendo ID do stream…</string>
-    <string name="webrtc_stream_stream_id">ID do stream: %1$s</string>
-    <string name="webrtc_stream_stream_password">Senha do stream: %1$s</string>
-    <string name="webrtc_stream_description_show_password">Mostrar senha do stream</string>
-    <string name="webrtc_stream_description_get_new_id">Obter novo ID do stream</string>
-    <string name="webrtc_stream_description_create_password">Criar nova senha do stream</string>
+    <string name="webrtc_stream_stream_id_getting">Obtendo ID da transmissão…</string>
+    <string name="webrtc_stream_stream_id">ID da transmissão: %1$s</string>
+    <string name="webrtc_stream_stream_password">Senha da transmissão: %1$s</string>
+    <string name="webrtc_stream_description_show_password">Mostrar senha da transmissão</string>
+    <string name="webrtc_stream_description_get_new_id">Obter novo ID da transmissão</string>
+    <string name="webrtc_stream_description_create_password">Criar nova senha da transmissão</string>
     <string name="webrtc_stream_description_open_address">Abrir endereço</string>
     <string name="webrtc_stream_description_copy_address">Copiar endereço</string>
     <string name="webrtc_stream_description_share_address">Compartilhar endereço</string>

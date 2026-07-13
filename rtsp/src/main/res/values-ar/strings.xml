@@ -48,10 +48,10 @@
     <string name="rtsp_stream_stop">إيقاف البث</string>
 
     <string name="rtsp_error_notification_permission_required">يحتاج هذا التطبيق إلى تفعيل الإشعارات لبدء خدمة البث.\nفعّل الإشعارات من إعدادات التطبيق.</string>
-    <string name="rtsp_error_screen_capture_start_blocked">حظر Android بدء مشاركة الشاشة. أبقِ ScreenStream مفتوحًا وابدأ مرة أخرى.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">منع Android بدء مشاركة الشاشة. أبقِ ScreenStream مفتوحًا وحاول مرة أخرى.</string>
     <string name="rtsp_error_projection_acquire_rejected">لم يعد إذن التقاط الشاشة صالحًا. ابدأ مشاركة الشاشة مرة أخرى.</string>
     <string name="rtsp_error_audio_permission_required">إذن الميكروفون مطلوب لبدء البث مع الصوت.</string>
-    <string name="rtsp_error_audio_start_blocked">حظر Android بدء مشاركة الصوت. أبقِ ScreenStream مفتوحًا وابدأ مع الصوت مرة أخرى.</string>
+    <string name="rtsp_error_audio_start_blocked">منع Android بدء مشاركة الصوت. أبقِ ScreenStream مفتوحًا وحاول البدء بالصوت مرة أخرى.</string>
     <string name="rtsp_error_ip_address_not_found">لم يتم العثور على عنوان. تحقق من الاتصال أو اضبط إعدادات الخادم (تصفية الواجهة، تصفية العناوين).</string>
     <string name="rtsp_error_unspecified">حدث خطأ ما.</string>
 

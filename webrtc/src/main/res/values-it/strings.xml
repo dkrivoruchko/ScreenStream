@@ -10,7 +10,7 @@
     <string name="webrtc_stream_mode">Modalità globale · WebRTC</string>
     <string name="webrtc_stream_mode_description">Trasmetti via internet con WebRTC</string>
     <string name="webrtc_stream_mode_details">
-- Alimentato dalla tecnologia WebRTC.\n
+- Basato sulla tecnologia WebRTC.\n
 - Comunicazione crittografata end-to-end.\n
 - Protezione dello stream con password.\n
 - Possibilità di inviare video e audio.\n

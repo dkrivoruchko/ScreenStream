@@ -19,13 +19,13 @@
 - Chaque client utilise une bande passante distincte.
 </string>
 
-    <string name="mjpeg_item_address">Adresse du périphérique :</string>
+    <string name="mjpeg_item_address">Adresse de l\'appareil :</string>
     <string name="mjpeg_stream_no_address">Aucune adresse trouvée</string>
     <string name="mjpeg_stream_interface">Interface :\n%1$s</string>
     <string name="mjpeg_stream_copied">Copié</string>
     <string name="mjpeg_stream_no_web_browser_found">Aucun navigateur Web trouvé</string>
-    <string name="mjpeg_stream_external_app_error">Erreur de l\'application externe</string>
-    <string name="mjpeg_stream_share_address">Partager l\'adresse du périphérique</string>
+    <string name="mjpeg_stream_external_app_error">Erreur dans l\'application externe</string>
+    <string name="mjpeg_stream_share_address">Partager l\'adresse de l\'appareil</string>
     <string name="mjpeg_item_address_description_open_address">Ouvrir l\'adresse</string>
     <string name="mjpeg_item_address_description_copy_address">Copier l\'adresse</string>
     <string name="mjpeg_item_address_description_share_address">Partager l\'adresse</string>
@@ -48,8 +48,8 @@
 
     <string name="mjpeg_pref_header">Paramètres du mode local · MJPEG</string>
     <string name="mjpeg_pref_settings_general">Paramètres généraux</string>
-    <string name="mjpeg_pref_keep_awake">Maintenir l\'éveil du dispositif</string>
-    <string name="mjpeg_pref_keep_awake_summary">Maintenir l\'éveil du dispositif et de l\'écran pendant la diffusion</string>
+    <string name="mjpeg_pref_keep_awake">Maintenir l\'appareil actif</string>
+    <string name="mjpeg_pref_keep_awake_summary">Maintenir l\'appareil et l\'écran actifs pendant la diffusion</string>
     <string name="mjpeg_pref_stop_on_sleep">Arrêter la diffusion en veille</string>
     <string name="mjpeg_pref_stop_on_sleep_summary">Arrêter la diffusion lorsque l\'écran s\'éteint</string>
     <string name="mjpeg_pref_stop_on_configuration">Arrêter la diffusion si la configuration change</string>
@@ -135,7 +135,7 @@
     <string name="mjpeg_pref_filter_mobile">Mobile</string>
     <string name="mjpeg_pref_filter_ethernet">Ethernet</string>
     <string name="mjpeg_pref_filter_vpn">VPN</string>
-    <string name="mjpeg_pref_filter_unknown">inconnu</string>
+    <string name="mjpeg_pref_filter_unknown">Inconnu</string>
     <string name="mjpeg_pref_filter_no_restriction">Sans restriction</string>
     <string name="mjpeg_pref_address_filter">Filtre d\'adresse</string>
     <string name="mjpeg_pref_address_filter_summary">Sélectionner les types d\'adresses IP pour le serveur</string>

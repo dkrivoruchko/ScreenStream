@@ -5,12 +5,12 @@
     <string name="webrtc_error_start_screen_sharing">Démarrer le partage d’écran</string>
     <string name="webrtc_error_start_with_audio">Démarrer avec l’audio</string>
     <string name="webrtc_error_allow_microphone">Autoriser le micro</string>
-    <string name="webrtc_error_signaling_server_unavailable">Impossible de joindre le serveur. Les spectateurs peuvent ne pas pouvoir rejoindre.</string>
+    <string name="webrtc_error_signaling_server_unavailable">Impossible de joindre le serveur. Il se peut que les spectateurs ne puissent pas se connecter.</string>
 
     <string name="webrtc_stream_mode">Mode global · WebRTC</string>
     <string name="webrtc_stream_mode_description">Diffuser sur Internet avec WebRTC</string>
     <string name="webrtc_stream_mode_details">
-- Alimenté par la technologie WebRTC.\n
+- Basé sur la technologie WebRTC.\n
 - Communication chiffrée de bout en bout.\n
 - Diffusion protégée par mot de passe.\n
 - Peut envoyer de la vidéo et de l\'audio.\n
@@ -41,8 +41,8 @@
     <string name="webrtc_stream_audio_capture_unavailable">Capture audio indisponible</string>
     <string name="webrtc_stream_connected_clients">Clients connectés : %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">Aucun navigateur web trouvé</string>
-    <string name="webrtc_stream_external_app_error">Erreur d\'application externe</string>
-    <string name="webrtc_stream_share_address">Partager l\'adresse du dispositif</string>
+    <string name="webrtc_stream_external_app_error">Erreur dans l\'application externe</string>
+    <string name="webrtc_stream_share_address">Partager l\'adresse de l\'appareil</string>
     <string name="webrtc_stream_start">Démarrer la diffusion</string>
     <string name="webrtc_stream_stop">Arrêter la diffusion</string>
 

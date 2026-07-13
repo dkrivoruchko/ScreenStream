@@ -24,7 +24,7 @@
     <string name="mjpeg_stream_interface">接口：\n%1$s</string>
     <string name="mjpeg_stream_copied">已复制</string>
     <string name="mjpeg_stream_no_web_browser_found">没找到网络浏览器</string>
-    <string name="mjpeg_stream_external_app_error">外部程序错误</string>
+    <string name="mjpeg_stream_external_app_error">外部应用错误</string>
     <string name="mjpeg_stream_share_address">分享设备地址</string>
     <string name="mjpeg_item_address_description_open_address">打开地址</string>
     <string name="mjpeg_item_address_description_copy_address">复制地址</string>
@@ -35,15 +35,15 @@
     <string name="mjpeg_stream_pin_disabled">停用了 PIN 码</string>
     <string name="mjpeg_stream_description_show_pin">显示 PIN 码</string>
     <string name="mjpeg_stream_description_create_pin">新建 PIN 码</string>
-    <string name="mjpeg_stream_current_traffic">网速： %1$,.2f Mbit/s</string>
+    <string name="mjpeg_stream_current_traffic">网速：%1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_traffic_graph">流量图</string>
     <string name="mjpeg_stream_connected_clients">已连接的客户端：%1$d</string>
     <string name="mjpeg_stream_client_disconnected">连接已断开</string>
     <string name="mjpeg_stream_client_slow_network">慢速连接</string>
     <string name="mjpeg_stream_client_connected">已连接</string>
     <string name="mjpeg_stream_client_blocked">已拦截</string>
-    <string name="mjpeg_stream_start">开始流</string>
-    <string name="mjpeg_stream_stop">停止流</string>
+    <string name="mjpeg_stream_start">开始串流</string>
+    <string name="mjpeg_stream_stop">停止串流</string>
     <string name="mjpeg_slow_client_connection">检测到慢速客户端连接</string>
 
     <string name="mjpeg_pref_header">本地模式 · MJPEG 设置</string>
@@ -95,7 +95,7 @@
     <string name="mjpeg_pref_resize_height">高度：</string>
     <string name="mjpeg_pref_resize_stretch">拉伸适应</string>
     <string name="mjpeg_pref_resize_text">设置图片尺寸调整的百分比率\n值：10–150\n默认：50\n屏幕尺寸：%1$dx%2$d</string>
-    <string name="mjpeg_pref_resize_result">图片尺寸： %1$dx%2$d</string>
+    <string name="mjpeg_pref_resize_result">图片尺寸：%1$dx%2$d</string>
     <string name="mjpeg_pref_rotate">顺时针旋转图片</string>
     <string name="mjpeg_pref_rotate_summary">发送到客户端前先旋转图片</string>
     <string name="mjpeg_pref_flip">翻转图片</string>
@@ -119,7 +119,7 @@
     <string name="mjpeg_pref_hide_pin">串流开始时自动隐藏 PIN</string>
     <string name="mjpeg_pref_hide_pin_summary">传输时显示星号而非 PIN 码</string>
     <string name="mjpeg_pref_new_pin_on_start">启动时生成新的 PIN 码</string>
-    <string name="mjpeg_pref_new_pin_on_start_summary">程序启动时生成新 PIN 码</string>
+    <string name="mjpeg_pref_new_pin_on_start_summary">应用启动时生成新 PIN 码</string>
     <string name="mjpeg_pref_auto_change_pin">自动更改 PIN 码</string>
     <string name="mjpeg_pref_auto_change_pin_summary">为每个新流生成新的 PIN 码</string>
     <string name="mjpeg_pref_set_pin">设置 PIN 码</string>

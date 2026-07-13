@@ -52,7 +52,7 @@
     <string name="rtsp_error_projection_acquire_rejected">El permiso de captura de pantalla ya no es válido. Inicia de nuevo el uso compartido de pantalla.</string>
     <string name="rtsp_error_audio_permission_required">Se requiere permiso de micrófono para iniciar la transmisión con audio.</string>
     <string name="rtsp_error_audio_start_blocked">Android bloqueó el inicio del uso compartido de audio. Mantén ScreenStream abierto e inicia de nuevo con audio.</string>
-    <string name="rtsp_error_ip_address_not_found">No se encontró ninguna dirección. Compruebe la conexión o modifique los ajustes del servidor (Filtro de interfaz, Filtro de dirección).</string>
+    <string name="rtsp_error_ip_address_not_found">No se encontró ninguna dirección. Comprueba la conexión o modifica los ajustes del servidor (filtro de interfaz, filtro de dirección).</string>
     <string name="rtsp_error_unspecified">Algo salió mal.</string>
 
     <string name="rtsp_media_server">Servidor multimedia</string>
@@ -123,7 +123,7 @@
     <string name="rtsp_pref_enable_ipv6_summary">Ejecutar servidor en direcciones IPv6</string>
     <string name="rtsp_pref_server_port">Puerto del Servidor</string>
     <string name="rtsp_pref_server_port_summary">Puerto para conexiones entrantes</string>
-    <string name="rtsp_pref_server_port_text">Defina el puerto del servidor para conexiones entrantes.\nValores: 1025–65535\nPredeterminado: 8554</string>
+    <string name="rtsp_pref_server_port_text">Define el puerto del servidor para conexiones entrantes.\nValores: 1025–65535\nPredeterminado: 8554</string>
     <string name="rtsp_pref_onvif_discovery">Detección ONVIF</string>
     <string name="rtsp_pref_onvif_discovery_summary">Permitir que clientes ONVIF encuentren esta transmisión. Solo admite H.264</string>
 </resources>

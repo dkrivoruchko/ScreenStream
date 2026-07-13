@@ -24,7 +24,7 @@
     <string name="mjpeg_stream_interface">Interfazea:\n%1$s</string>
     <string name="mjpeg_stream_copied">Kopiatuta</string>
     <string name="mjpeg_stream_no_web_browser_found">Ez da aurkitu web nabigatzailea</string>
-    <string name="mjpeg_stream_external_app_error">Kanpoko errorea aplikazioan</string>
+    <string name="mjpeg_stream_external_app_error">Kanpoko aplikazioaren errorea</string>
     <string name="mjpeg_stream_share_address">Partekatu helbidea</string>
     <string name="mjpeg_item_address_description_open_address">Ireki helbidea</string>
     <string name="mjpeg_item_address_description_copy_address">Kopiatu helbidea</string>

@@ -41,7 +41,7 @@
     <string name="webrtc_stream_audio_capture_unavailable">აუდიოს ჩაწერა მიუწვდომელია</string>
     <string name="webrtc_stream_connected_clients">დაკავშირებული კლიენტები: %1$d</string>
     <string name="webrtc_stream_no_web_browser_found">ვებ ბრაუზერი ვერ მოიძებნა</string>
-    <string name="webrtc_stream_external_app_error">გარე განაცხადის შეცდომა</string>
+    <string name="webrtc_stream_external_app_error">გარე აპლიკაციის შეცდომა</string>
     <string name="webrtc_stream_share_address">მოწყობილობის მისამართის გაზიარება</string>
     <string name="webrtc_stream_start">სტრიმინგის დაწყება</string>
     <string name="webrtc_stream_stop">შეაჩერე ნაკადი</string>

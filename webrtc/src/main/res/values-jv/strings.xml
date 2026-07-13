@@ -10,7 +10,7 @@
     <string name="webrtc_stream_mode">Mode Global · WebRTC</string>
     <string name="webrtc_stream_mode_description">Streaming liwat internet nganggo WebRTC</string>
     <string name="webrtc_stream_mode_details">
-- Powered by teknologi WebRTC.\n
+- Didhukung dening teknologi WebRTC.\n
 - Komunikasi enkripsi end-to-end.\n
 - Perlindhungan stream nganggo sandhi.\n
 - Bisa ngirim video lan audio.\n

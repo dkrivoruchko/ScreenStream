@@ -24,7 +24,7 @@
     <string name="mjpeg_stream_interface">ინტერფეისი:\n%1$s</string>
     <string name="mjpeg_stream_copied">კოპირებულია</string>
     <string name="mjpeg_stream_no_web_browser_found">ვებ ბრაუზერი ვერ მოიძებნა</string>
-    <string name="mjpeg_stream_external_app_error">გარე განაცხადის შეცდომა</string>
+    <string name="mjpeg_stream_external_app_error">გარე აპლიკაციის შეცდომა</string>
     <string name="mjpeg_stream_share_address">მოწყობილობის მისამართის გაზიარება</string>
     <string name="mjpeg_item_address_description_open_address">გახსენი მისამართი</string>
     <string name="mjpeg_item_address_description_copy_address">დააკოპირეთ მისამართი</string>

@@ -42,7 +42,7 @@
     <string name="app_pref_night_mode">Tema escuro</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Sempre</item>
-        <item>Definido pelo Economizador de bateria</item>
+        <item>Definido pela Economia de bateria</item>
         <item>Nunca</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">

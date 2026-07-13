@@ -10,7 +10,7 @@
     <string name="webrtc_stream_mode">Wereldwijde modus · WebRTC</string>
     <string name="webrtc_stream_mode_description">Streamen via internet met WebRTC</string>
     <string name="webrtc_stream_mode_details">
-- Aangedreven door WebRTC-technologie.\n
+- Gebaseerd op WebRTC-technologie.\n
 - Eind-tot-eind versleutelde communicatie.\n
 - Streambeveiliging met wachtwoord.\n
 - Kan video en audio verzenden.\n
@@ -19,7 +19,7 @@
 - Elke client gebruikt aparte internetbandbreedte.
 </string>
 
-    <string name="webrtc_stream_network_recovery">Verbinding verbroken. Opnieuw verbinden…</string>
+    <string name="webrtc_stream_network_recovery">Verbinding verbroken. Opnieuw verbinding maken…</string>
     <string name="webrtc_stream_server_address">Open de stream op:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Stream-ID ophalen…</string>
     <string name="webrtc_stream_stream_id">Stream-ID: %1$s</string>

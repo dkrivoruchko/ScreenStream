@@ -10,17 +10,17 @@
     <string name="webrtc_stream_mode">Globaler Modus · WebRTC</string>
     <string name="webrtc_stream_mode_description">Über das Internet mit WebRTC streamen</string>
     <string name="webrtc_stream_mode_details">
-- Unterstützt von WebRTC-Technologie.\n
+- Basiert auf der WebRTC-Technologie.\n
 - Ende-zu-Ende-verschlüsselte Kommunikation.\n
 - Stream-Schutz mit Passwort.\n
 - Kann Video und Audio senden.\n
 - Verbindung über eindeutige Stream-ID und Passwort.\n
 - Erfordert eine Internetverbindung für das Streaming.\n
-- Jeder Client nutzt eigene Internetbandbreite.
+- Jeder Client nutzt eine separate Internetbandbreite.
 </string>
 
-    <string name="webrtc_stream_network_recovery">Verbindung verloren. Verbinde erneut…</string>
-    <string name="webrtc_stream_server_address">Stream abrufen unter:\n%1$s</string>
+    <string name="webrtc_stream_network_recovery">Verbindung verloren. Verbindung wird wiederhergestellt…</string>
+    <string name="webrtc_stream_server_address">Stream verfügbar unter:\n%1$s</string>
     <string name="webrtc_stream_stream_id_getting">Stream-ID wird abgerufen…</string>
     <string name="webrtc_stream_stream_id">Stream-ID: %1$s</string>
     <string name="webrtc_stream_stream_password">Stream-Passwort: %1$s</string>
@@ -54,7 +54,7 @@
 
     <string name="webrtc_stream_audio_permission_title">Audiozugriff erlauben</string>
     <string name="webrtc_stream_audio_permission_message">Die Mikrofonberechtigung ist erforderlich, um Mikrofon- oder internen Ton zu streamen.\n\nOhne sie hat der Stream keinen Ton.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Aktiviere die Mikrofonberechtigung in den App-Einstellungen, um Mikrofon- oder internen Ton zu streamen.\n\nOhne sie hat der Stream keinen Ton.</string>
+    <string name="webrtc_stream_audio_permission_message_settings">Aktivieren Sie die Mikrofonberechtigung in den App-Einstellungen, um Mikrofon- oder internen Ton zu streamen.\n\nOhne sie hat der Stream keinen Ton.</string>
     <string name="webrtc_stream_audio_permission_open_settings">Einstellungen öffnen</string>
     <string name="webrtc_item_client_disconnect">Trennen</string>
 

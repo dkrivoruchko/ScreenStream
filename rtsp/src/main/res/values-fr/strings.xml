@@ -10,7 +10,7 @@
     <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
     <string name="rtsp_stream_mode_description">Diffuser avec un client ou serveur RTSP</string>
     <string name="rtsp_stream_mode_details">
-- Alimenté par le protocole RTSP.\n
+- Basé sur le protocole RTSP.\n
 - Le mode serveur (par défaut) héberge cet appareil en tant que serveur RTSP.\n
 - Le mode client se connecte à un serveur RTSP distant.\n
 - Prend en charge la vidéo et l\'audio avec configuration des codecs.\n
@@ -26,7 +26,7 @@
     <string name="rtsp_mode_client_hint">Se connecter à un serveur RTSP distant</string>
 
     <string name="rtsp_interfaces_title">Adresse du serveur RTSP</string>
-    <string name="rtsp_interfaces_no_address">Aucune adresse trouvée.\nVérifiez la connexion ou ajustez les paramètres du serveur (Filtre d\'interface, Filtre d\'adresse).</string>
+    <string name="rtsp_interfaces_no_address">Aucune adresse trouvée.\nVérifiez la connexion ou ajustez les paramètres du serveur (filtre d\'interface, filtre d\'adresse).</string>
     <string name="rtsp_interfaces_discovering">Recherche des adresses…</string>
     <string name="rtsp_interfaces_interface_label">Interface :\n%1$s</string>
     <string name="rtsp_interfaces_description_copy">Copier l\'adresse</string>
@@ -52,16 +52,16 @@
     <string name="rtsp_error_projection_acquire_rejected">L’autorisation de capture d’écran n’est plus valide. Démarrez à nouveau le partage d’écran.</string>
     <string name="rtsp_error_audio_permission_required">L’autorisation du micro est requise pour démarrer la diffusion avec l’audio.</string>
     <string name="rtsp_error_audio_start_blocked">Android a bloqué le démarrage du partage audio. Gardez ScreenStream ouvert et redémarrez avec l’audio.</string>
-    <string name="rtsp_error_ip_address_not_found">Aucune adresse trouvée. Vérifiez la connexion ou ajustez les paramètres du serveur (Filtre d\'interface, Filtre d\'adresse).</string>
+    <string name="rtsp_error_ip_address_not_found">Aucune adresse trouvée. Vérifiez la connexion ou ajustez les paramètres du serveur (filtre d\'interface, filtre d\'adresse).</string>
     <string name="rtsp_error_unspecified">Un problème est survenu.</string>
 
     <string name="rtsp_media_server">Serveur média</string>
     <string name="rtsp_server_address">Adresse du serveur RTSP</string>
     <string name="rtsp_protocol">Protocole RTSP</string>
 
-    <string name="rtsp_connection_connected">Serveur connecté</string>
+    <string name="rtsp_connection_connected">Connecté au serveur</string>
     <string name="rtsp_connection_connecting">Connexion au serveur…</string>
-    <string name="rtsp_connection_disconnected">Serveur déconnecté</string>
+    <string name="rtsp_connection_disconnected">Déconnecté du serveur</string>
     <string name="rtsp_connection_error">Erreur de connexion</string>
 
     <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
@@ -110,7 +110,7 @@
     <string name="rtsp_pref_interface_filter_mobile">Mobile</string>
     <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
     <string name="rtsp_pref_interface_filter_vpn">VPN</string>
-    <string name="rtsp_pref_interface_filter_unknown">inconnu</string>
+    <string name="rtsp_pref_interface_filter_unknown">Inconnu</string>
     <string name="rtsp_pref_filter_no_restriction">Sans restriction</string>
     <string name="rtsp_pref_address_filter">Filtre d\'adresse</string>
     <string name="rtsp_pref_address_filter_summary">Sélectionner les types d\'adresses IP pour le serveur</string>
@@ -125,5 +125,5 @@
     <string name="rtsp_pref_server_port_summary">Définir le port pour les connexions entrantes</string>
     <string name="rtsp_pref_server_port_text">Définir le port du serveur pour les connexions entrantes.\nValeurs : 1025–65535\nPar défaut : 8554</string>
     <string name="rtsp_pref_onvif_discovery">Découverte ONVIF</string>
-    <string name="rtsp_pref_onvif_discovery_summary">Permettre aux clients ONVIF de trouver ce flux. Prend uniquement en charge H.264</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Permettre aux clients ONVIF de trouver cette diffusion. Prend uniquement en charge H.264</string>
 </resources>

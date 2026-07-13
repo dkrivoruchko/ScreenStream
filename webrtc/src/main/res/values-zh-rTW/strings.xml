@@ -7,14 +7,14 @@
     <string name="webrtc_error_allow_microphone">允許麥克風</string>
     <string name="webrtc_error_signaling_server_unavailable">無法連上伺服器。觀看者可能無法加入。</string>
 
-    <string name="webrtc_stream_mode">全球模式 · WebRTC</string>
+    <string name="webrtc_stream_mode">全域模式 · WebRTC</string>
     <string name="webrtc_stream_mode_description">使用 WebRTC 透過網際網路串流</string>
     <string name="webrtc_stream_mode_details">
 - 基於 WebRTC 技術。\n
-- 點對點加密通訊。\n
+- 端對端加密通訊。\n
 - 使用密碼保護串流。\n
 - 可以傳送視訊和音訊。\n
-- 使用獨特的串流 ID 和密碼連接。\n
+- 使用唯一的串流 ID 和密碼連線。\n
 - 需要網際網路連接進行串流。\n
 - 每個用戶端使用獨立網際網路頻寬。
 </string>
@@ -26,12 +26,12 @@
     <string name="webrtc_stream_stream_password">串流密碼：%1$s</string>
     <string name="webrtc_stream_description_show_password">顯示串流密碼</string>
     <string name="webrtc_stream_description_get_new_id">獲取新的串流 ID</string>
-    <string name="webrtc_stream_description_create_password">創建新的串流密碼</string>
+    <string name="webrtc_stream_description_create_password">建立新的串流密碼</string>
     <string name="webrtc_stream_description_open_address">開啟位址</string>
     <string name="webrtc_stream_description_copy_address">複製位址</string>
     <string name="webrtc_stream_description_share_address">分享位址</string>
     <string name="webrtc_stream_description_qr_address">以 QR 碼形式顯示位址</string>
-    <string name="webrtc_stream_description_qr">QR碼</string>
+    <string name="webrtc_stream_description_qr">QR 碼</string>
     <string name="webrtc_stream_copied">已複製</string>
     <string name="webrtc_stream_audio_parameters">音訊設定</string>
     <string name="webrtc_stream_audio_mic">麥克風</string>
@@ -39,7 +39,7 @@
     <string name="webrtc_stream_audio_device">內部音訊</string>
     <string name="webrtc_stream_audio_device_summary">串流此裝置的媒體音訊</string>
     <string name="webrtc_stream_audio_capture_unavailable">音訊擷取無法使用</string>
-    <string name="webrtc_stream_connected_clients">已連接的客戶端：%1$d</string>
+    <string name="webrtc_stream_connected_clients">已連線的用戶端：%1$d</string>
     <string name="webrtc_stream_no_web_browser_found">找不到網頁瀏覽器</string>
     <string name="webrtc_stream_external_app_error">外部應用程式錯誤</string>
     <string name="webrtc_stream_share_address">分享裝置位址</string>
@@ -56,7 +56,7 @@
     <string name="webrtc_stream_audio_permission_message">串流麥克風或內部音訊需要麥克風權限。\n\n沒有此權限，串流將沒有聲音。</string>
     <string name="webrtc_stream_audio_permission_message_settings">請在應用程式設定中啟用麥克風權限，以串流麥克風或內部音訊。\n\n沒有此權限，串流將沒有聲音。</string>
     <string name="webrtc_stream_audio_permission_open_settings">開啟設定</string>
-    <string name="webrtc_item_client_disconnect">斷開連接</string>
+    <string name="webrtc_item_client_disconnect">中斷連線</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">請更新 Google Play 商店</string>
     <string name="webrtc_error_play_integrity_install_play_store">請安裝或啟用官方的 Google Play 商店</string>

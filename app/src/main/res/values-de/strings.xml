@@ -47,11 +47,11 @@
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Immer</item>
-        <item>Automatisch (System folgen)</item>
+        <item>Automatisch (Systemeinstellung)</item>
         <item>Nie</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Dynamische Farbe</string>
-    <string name="app_pref_dynamic_theme_summary">Passen Sie das Aussehen basierend auf den Farben Ihres Hintergrundbilds an</string>
+    <string name="app_pref_dynamic_theme_summary">Darstellung an die Farben des Hintergrundbilds anpassen</string>
     <string name="app_pref_notification">Einstellungen für Benachrichtigungen</string>
     <string name="app_pref_notification_summary">Systemeinstellungen für Benachrichtigungen öffnen</string>
     <string name="app_pref_tile">Anwendungskachel hinzufügen</string>

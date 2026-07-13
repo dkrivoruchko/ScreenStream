@@ -39,7 +39,7 @@
     <string name="app_pref_locale">Applicatietaal</string>
     <string name="app_pref_locale_summary">Open applicatietaalinstellingen</string>
     <string name="app_pref_locale_default">Standaard systeemtaal</string>
-    <string name="app_pref_night_mode">Donker modus</string>
+    <string name="app_pref_night_mode">Donkere modus</string>
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Altijd</item>
         <item>Automatisch via batterij</item>
@@ -51,17 +51,17 @@
         <item>Nooit</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Dynamische kleur</string>
-    <string name="app_pref_dynamic_theme_summary">Pas het uiterlijk aan op basis van de kleuren van uw achtergrond</string>
-    <string name="app_pref_notification">Toestel notificatie instellingen</string>
-    <string name="app_pref_notification_summary">Open notificatie instellingen</string>
+    <string name="app_pref_dynamic_theme_summary">Pas het uiterlijk aan op basis van de kleuren van uw achtergrondafbeelding</string>
+    <string name="app_pref_notification">Meldingsinstellingen van het apparaat</string>
+    <string name="app_pref_notification_summary">Systeeminstellingen voor meldingen openen</string>
     <string name="app_pref_tile">Applicatietegel toevoegen</string>
     <string name="app_pref_tile_summary">Applicatietegel toevoegen aan Snelle instellingen</string>
 
     <string name="app_tab_about_app_version">Versie: %1$s</string>
     <string name="app_tab_about_developer_name">Gemaakt door Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Beoordeel de app</string>
-    <string name="app_tab_about_app_sources">Applicatie bronnen</string>
-    <string name="app_tab_about_terms_conditions">Algemene Voorwaarden</string>
+    <string name="app_tab_about_app_sources">Broncode van de app</string>
+    <string name="app_tab_about_terms_conditions">Algemene voorwaarden</string>
     <string name="app_tab_about_privacy_policy">Privacybeleid</string>
     <string name="app_tab_about_privacy_options">Privacyopties</string>
     <string name="app_tab_about_license">Licentie</string>

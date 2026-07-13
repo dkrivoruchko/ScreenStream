@@ -8,7 +8,7 @@
     <string name="app_activity_update_dialog_restart">Redémarrer</string>
 
     <string name="app_tab_stream">Diffusion</string>
-    <string name="app_tab_settings">Réglages</string>
+    <string name="app_tab_settings">Paramètres</string>
     <string name="app_tab_about">À propos</string>
     <string name="app_tab_exit">Quitter</string>
 
@@ -35,7 +35,7 @@
     <string name="app_tile_stop">Arrêter</string>
 
     <string name="app_pref_back">Retour</string>
-    <string name="app_pref_settings">Réglages</string>
+    <string name="app_pref_settings">Paramètres</string>
     <string name="app_pref_locale">Langue de l\'application</string>
     <string name="app_pref_locale_summary">Ouvrir les paramètres de langue de l\'application</string>
     <string name="app_pref_locale_default">Langue du système</string>

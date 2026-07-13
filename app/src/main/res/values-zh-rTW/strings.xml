@@ -4,8 +4,8 @@
     <string name="app_error_recover">復原</string>
 
     <string name="app_activity_update_dialog_title">有新版本可用</string>
-    <string name="app_activity_update_dialog_message">更新已下載完畢，是否想現在重啓應用？</string>
-    <string name="app_activity_update_dialog_restart">重啓應用</string>
+    <string name="app_activity_update_dialog_message">更新已下載完畢，是否要立即重新啟動應用程式？</string>
+    <string name="app_activity_update_dialog_restart">重新啟動應用程式</string>
 
     <string name="app_tab_stream">串流</string>
     <string name="app_tab_settings">設定</string>
@@ -46,7 +46,7 @@
         <item>永不</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
-        <item>始終</item>
+        <item>總是</item>
         <item>自動 (跟隨系統設定)</item>
         <item>永不</item>
     </string-array>
@@ -54,11 +54,11 @@
     <string name="app_pref_dynamic_theme_summary">根據您的桌布顏色調整外觀</string>
     <string name="app_pref_notification">裝置通知設定</string>
     <string name="app_pref_notification_summary">開啟系統通知設定</string>
-    <string name="app_pref_tile">新增應用程式磚</string>
-    <string name="app_pref_tile_summary">新增應用程式磚到快速設定</string>
+    <string name="app_pref_tile">新增應用程式快速設定方塊</string>
+    <string name="app_pref_tile_summary">將應用程式快速設定方塊新增至快速設定</string>
 
     <string name="app_tab_about_app_version">版本：%1$s</string>
-    <string name="app_tab_about_developer_name">由Dmytro Kryvoruchko開發</string>
+    <string name="app_tab_about_developer_name">由 Dmytro Kryvoruchko 開發</string>
     <string name="app_tab_about_rate_app">給評分</string>
     <string name="app_tab_about_app_sources">應用程式原始碼</string>
     <string name="app_tab_about_terms_conditions">使用條款和條件</string>

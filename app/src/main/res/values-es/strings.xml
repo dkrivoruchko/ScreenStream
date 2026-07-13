@@ -51,7 +51,7 @@
         <item>Nunca</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Color dinámico</string>
-    <string name="app_pref_dynamic_theme_summary">Ajustar la apariencia según los colores de su fondo de pantalla</string>
+    <string name="app_pref_dynamic_theme_summary">Ajustar la apariencia según los colores de tu fondo de pantalla</string>
     <string name="app_pref_notification">Ajustes de notificaciones del dispositivo</string>
     <string name="app_pref_notification_summary">Abrir ajustes de notificaciones del sistema</string>
     <string name="app_pref_tile">Agregar mosaico de la aplicación</string>

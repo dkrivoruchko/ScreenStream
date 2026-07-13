@@ -4,8 +4,8 @@
     <string name="app_error_recover">恢复</string>
 
     <string name="app_activity_update_dialog_title">有新版本</string>
-    <string name="app_activity_update_dialog_message">更新已下载完毕，是否想现在重启程序？</string>
-    <string name="app_activity_update_dialog_restart">重启程序</string>
+    <string name="app_activity_update_dialog_message">更新已下载完毕，是否现在重启应用？</string>
+    <string name="app_activity_update_dialog_restart">重启应用</string>
 
     <string name="app_tab_stream">串流</string>
     <string name="app_tab_settings">设置</string>
@@ -36,8 +36,8 @@
 
     <string name="app_pref_back">返回</string>
     <string name="app_pref_settings">设置</string>
-    <string name="app_pref_locale">程序语言</string>
-    <string name="app_pref_locale_summary">打开程序语言设置</string>
+    <string name="app_pref_locale">应用语言</string>
+    <string name="app_pref_locale_summary">打开应用语言设置</string>
     <string name="app_pref_locale_default">系统默认</string>
     <string name="app_pref_night_mode">深色主题</string>
     <string-array name="app_pref_night_mode_options_api21_28">
@@ -59,8 +59,8 @@
 
     <string name="app_tab_about_app_version">版本：%1$s</string>
     <string name="app_tab_about_developer_name">开发者：Dmytro Kryvoruchko</string>
-    <string name="app_tab_about_rate_app">评价程序</string>
-    <string name="app_tab_about_app_sources">程序源码</string>
+    <string name="app_tab_about_rate_app">评价应用</string>
+    <string name="app_tab_about_app_sources">应用源代码</string>
     <string name="app_tab_about_terms_conditions">条款和条件</string>
     <string name="app_tab_about_privacy_policy">隐私政策</string>
     <string name="app_tab_about_privacy_options">隐私选项</string>

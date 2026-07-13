@@ -24,7 +24,7 @@
     <string name="mjpeg_stream_interface">Interface:\n%1$s</string>
     <string name="mjpeg_stream_copied">Copiado</string>
     <string name="mjpeg_stream_no_web_browser_found">Nenhum navegador da web encontrado</string>
-    <string name="mjpeg_stream_external_app_error">Erro na aplicação externa</string>
+    <string name="mjpeg_stream_external_app_error">Erro no aplicativo externo</string>
     <string name="mjpeg_stream_share_address">Compartilhar endereço do dispositivo</string>
     <string name="mjpeg_item_address_description_open_address">Abrir endereço</string>
     <string name="mjpeg_item_address_description_copy_address">Copiar endereço</string>

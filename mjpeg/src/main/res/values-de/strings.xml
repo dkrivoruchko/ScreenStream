@@ -16,15 +16,15 @@
 - Unterstützt Wi-Fi, Mobilfunknetze, IPv4 und IPv6.\n
 - Clients verbinden sich im Browser über die App-Adresse.\n
 - Umfangreich konfigurierbar.\n
-- Jeder Client nutzt eigene Bandbreite.
+- Jeder Client nutzt eine separate Bandbreite.
 </string>
 
-    <string name="mjpeg_item_address">Adresse des Gerätes:</string>
+    <string name="mjpeg_item_address">Adresse des Geräts:</string>
     <string name="mjpeg_stream_no_address">Keine Adresse gefunden</string>
     <string name="mjpeg_stream_interface">Schnittstelle:\n%1$s</string>
     <string name="mjpeg_stream_copied">Kopiert</string>
     <string name="mjpeg_stream_no_web_browser_found">Kein Browser gefunden</string>
-    <string name="mjpeg_stream_external_app_error">Fehler einer externen Applikation</string>
+    <string name="mjpeg_stream_external_app_error">Fehler in externer App</string>
     <string name="mjpeg_stream_share_address">Adresse teilen</string>
     <string name="mjpeg_item_address_description_open_address">Adresse öffnen</string>
     <string name="mjpeg_item_address_description_copy_address">Adresse kopieren</string>
@@ -37,7 +37,7 @@
     <string name="mjpeg_stream_description_create_pin">Neuen Stream-PIN erstellen</string>
     <string name="mjpeg_stream_current_traffic">Netzwerkverkehr: %1$,.2f Mbit/s</string>
     <string name="mjpeg_stream_traffic_graph">Verkehrsgrafik</string>
-    <string name="mjpeg_stream_connected_clients">Verbundene Geräte: %1$d</string>
+    <string name="mjpeg_stream_connected_clients">Verbundene Clients: %1$d</string>
     <string name="mjpeg_stream_client_disconnected">Verbindung getrennt</string>
     <string name="mjpeg_stream_client_slow_network">Langsame Verbindung</string>
     <string name="mjpeg_stream_client_connected">Verbunden</string>
@@ -57,7 +57,7 @@
     <string name="mjpeg_pref_detect_slow_connections">Benachrichtigung bei schlechter Verbindung</string>
     <string name="mjpeg_pref_detect_slow_connections_summary">Schlechte Verbindung von Geräten erkennen und diese benachrichtigen</string>
     <string name="mjpeg_pref_html_buttons">Schaltflächen auf Webseite anzeigen</string>
-    <string name="mjpeg_pref_html_buttons_summary">Kontoll-Schaltflächen auf der Webseite anzeigen/verstecken</string>
+    <string name="mjpeg_pref_html_buttons_summary">Kontrollschaltflächen auf der Webseite anzeigen oder ausblenden</string>
     <string name="mjpeg_pref_html_show_press_start">\"Stream auf Gerät starten\" anzeigen</string>
     <string name="mjpeg_pref_html_show_press_start_summary">\"Stream auf Gerät starten\" auf der Webseite anzeigen</string>
     <string name="mjpeg_pref_html_keep_image_on_reconnect">Bild bei Neuverbindung beibehalten</string>
@@ -70,11 +70,11 @@
 
     <string name="mjpeg_pref_settings_image">Bildeinstellungen</string>
     <string name="mjpeg_pref_vr_mode">Modus für virtuelle Realität</string>
-    <string name="mjpeg_pref_vr_mode_summary">Erfassen von Inhalten vom halben Bildschirm</string>
+    <string name="mjpeg_pref_vr_mode_summary">Inhalt einer Bildschirmhälfte erfassen</string>
     <string-array name="mjpeg_pref_vr_mode_options">
         <item>Deaktivieren</item>
-        <item>Verwendung des linken Teils</item>
-        <item>Verwendung des rechten Teils</item>
+        <item>Linke Hälfte verwenden</item>
+        <item>Rechte Hälfte verwenden</item>
     </string-array>
     <string name="mjpeg_pref_crop">Bild zuschneiden</string>
     <string name="mjpeg_pref_crop_summary">Bild vor dem Senden zuschneiden</string>
@@ -166,8 +166,8 @@
     <string name="mjpeg_start_image_text">Stream auf Gerät starten</string>
 
     <!--HTML text-->
-    <string name="mjpeg_html_stream_connecting">Versuche zu verbinden</string>
-    <string name="mjpeg_html_stream_reconnecting">Wird neu verbunden…</string>
+    <string name="mjpeg_html_stream_connecting">Verbindung wird hergestellt…</string>
+    <string name="mjpeg_html_stream_reconnecting">Verbindung wird wiederhergestellt…</string>
     <string name="mjpeg_html_stream_require_pin">Dieser Stream erfordert eine PIN</string>
     <string name="mjpeg_html_enter_pin">PIN eingeben:\u0020</string>
     <string name="mjpeg_html_submit_pin">Senden</string>

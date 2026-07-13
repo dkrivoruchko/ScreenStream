@@ -25,7 +25,7 @@
     <string name="mjpeg_stream_copied">تم نسخه</string>
     <string name="mjpeg_stream_no_web_browser_found">لم يتم العثور على متصفح ويب</string>
     <string name="mjpeg_stream_external_app_error">خطأ في التطبيق الخارجي</string>
-    <string name="mjpeg_stream_share_address">شارك عنوان الجهاز</string>
+    <string name="mjpeg_stream_share_address">مشاركة عنوان الجهاز</string>
     <string name="mjpeg_item_address_description_open_address">فتح العنوان</string>
     <string name="mjpeg_item_address_description_copy_address">نسخ العنوان</string>
     <string name="mjpeg_item_address_description_share_address">مشاركة العنوان</string>
@@ -37,7 +37,7 @@
     <string name="mjpeg_stream_description_create_pin">إنشاء PIN جديد للبث</string>
     <string name="mjpeg_stream_current_traffic">حركة البيانات: %1$,.2f ميغابت/ثانية</string>
     <string name="mjpeg_stream_traffic_graph">رسم بياني لحركة المرور</string>
-    <string name="mjpeg_stream_connected_clients">عملاء متصلون: %1$d</string>
+    <string name="mjpeg_stream_connected_clients">العملاء المتصلون: %1$d</string>
     <string name="mjpeg_stream_client_disconnected">انقطع الاتصال</string>
     <string name="mjpeg_stream_client_slow_network">اتصال بطيء</string>
     <string name="mjpeg_stream_client_connected">متصل</string>
@@ -157,7 +157,7 @@
 
     <string name="mjpeg_error_port_in_use">المنفذ قيد الاستخدام. اختر منفذًا آخر.</string>
     <string name="mjpeg_error_invalid_media_projection">خطأ أمني: إذن التقاط الشاشة غير صالح. حاول مرة أخرى.</string>
-    <string name="mjpeg_error_screen_capture_start_blocked">حظر Android بدء مشاركة الشاشة. أبقِ ScreenStream مفتوحًا وابدأ مرة أخرى.</string>
+    <string name="mjpeg_error_screen_capture_start_blocked">منع Android بدء مشاركة الشاشة. أبقِ ScreenStream مفتوحًا وحاول مرة أخرى.</string>
     <string name="mjpeg_error_projection_acquire_rejected">لم يعد إذن التقاط الشاشة صالحًا. ابدأ مشاركة الشاشة مرة أخرى.</string>
     <string name="mjpeg_error_ip_address_not_found">لم يتم العثور على عنوان IP.\nحاول تعديل فلاتر الشبكة في إعدادات البث.</string>
     <string name="mjpeg_error_notification_permission_required">يحتاج هذا التطبيق إلى تفعيل الإشعارات لبدء خدمة البث.\nفعّل الإشعارات من إعدادات التطبيق.</string>

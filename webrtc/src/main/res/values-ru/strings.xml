@@ -5,7 +5,7 @@
     <string name="webrtc_error_start_screen_sharing">Начать демонстрацию экрана</string>
     <string name="webrtc_error_start_with_audio">Запустить со звуком</string>
     <string name="webrtc_error_allow_microphone">Разрешить микрофон</string>
-    <string name="webrtc_error_signaling_server_unavailable">Не удаётся подключиться к серверу. Зрители могут не суметь присоединиться.</string>
+    <string name="webrtc_error_signaling_server_unavailable">Не удаётся подключиться к серверу. Возможно, зрители не смогут присоединиться.</string>
 
     <string name="webrtc_stream_mode">Глобальный режим · WebRTC</string>
     <string name="webrtc_stream_mode_description">Трансляция через интернет с WebRTC</string>

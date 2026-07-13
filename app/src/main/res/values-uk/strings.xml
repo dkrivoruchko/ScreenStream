@@ -51,7 +51,7 @@
         <item>Ніколи</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Динамічний колір</string>
-    <string name="app_pref_dynamic_theme_summary">Налаштовує вигляд на основі кольорів ваших шпалер</string>
+    <string name="app_pref_dynamic_theme_summary">Налаштувати вигляд на основі кольорів шпалер</string>
     <string name="app_pref_notification">Налаштування повідомлень пристрою</string>
     <string name="app_pref_notification_summary">Перейти в системні налаштування повідомлень</string>
     <string name="app_pref_tile">Додати плитку додатка</string>
