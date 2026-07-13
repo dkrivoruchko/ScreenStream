@@ -15,7 +15,7 @@ The verification approach is deliberately small:
 - deterministic unit tests for public values, controller decisions, pacing, geometry, accounting, and
   failure classification;
 - controlled interleaving tests for the few races that can change a public result or resource owner;
-- component tests for Android, EGL/GL, JPEG, dispatcher, memory, and cleanup boundaries;
+- component tests for Android, EGL/GL, JPEG, dispatcher, allocation/ownership, and cleanup boundaries;
 - integration tests for representative end-to-end capture paths;
 - one short post-implementation manual smoke pass on available physical devices.
 
@@ -35,26 +35,26 @@ tests; it does not imply one large end-to-end test.
 | 4. Startup outcome | Successful `start` returns only after a visible `Running` state. Startup failure or caller cancellation produces the documented terminal state and exception. |
 | 5. Stop | `stop()` synchronously fixes the terminal winner and closes new admission, then State publication and cleanup may finish asynchronously. Repeated calls are harmless. |
 | 6. Latest-wins update | In any nonterminal `Running` state, an unequal `updateParameters` replaces the desired parameters and returns immediately. Equal desire is a no-op. Concurrent updates have one order; only the latest accepted desire must converge after input changes stop. |
-| 7. Update reconciliation | Policy-only and density-only changes preserve eligible resources. A destructive change pauses output, drains and retires the old scope, builds one replacement, and resumes. Current pre-retirement denial suspends; current clean failure after retirement is terminal; stale safe results cannot publish. |
+| 7. Update reconciliation | Policy-only and density-only changes preserve eligible resources. Active requires an actually owned healthy compatible live topology; a historical effective plan cannot substitute for retired resources. A destructive change pauses output, drains and retires the old scope, builds one replacement, and resumes. A deterministic geometry/API/backend limit discovered before retirement suspends without allocating; a current required allocation failure after retirement is terminal; stale safe results cannot publish. |
 | 8. Metrics authority | The selected provider supplies positive density and the documented display association. API 24–33 use provider dimensions; API 34–37 wait for authoritative projection resize dimensions. |
 | 9. Metrics loss and recovery | A missing runtime authority suspends with `CaptureUnavailable`; a later valid fact resumes. A provider failure is classified as documented, and stale geometry cannot replace the current generation. |
 | 10. VirtualDisplay result | `createVirtualDisplay` null or `SecurityException` becomes `CaptureUnavailable`; a directly thrown `OutOfMemoryError` becomes `ResourceExhausted`; `IllegalStateException` and any other unexpected throwable become `InternalFailure`. Exactly one creation attempt is made for the Session. |
 | 11. Geometry and pixels | Region, crop, rotation, mirror, output size, OES transform, orientation, color, and grayscale produce the documented image dimensions, orientation, and semantic transform through Full and every eligible Early Surface Downscale path. Downscaled output may contain ordinary filtering, rounding, and minor platform differences. |
 | 12. Color handling | sRGB remains nominal sRGB; exact Display-P3 takes the documented conversion path; wide/HDR input follows the documented best-effort behavior and emits the required diagnostic observation. |
-| 13. Fresh-frame pacing | `Auto`, `MaxFps(1..120)`, and `SampleEvery(1_001..3_600_000ms)` admit fresh work according to their separate contracts using elapsed realtime. A late wake causes at most one action and no catch-up burst. |
+| 13. Fresh-frame pacing | `Auto`, `MaxFps(1..120)`, and `SampleEvery(1_001..3_600_000ms)` admit fresh work according to their separate contracts using elapsed realtime. An early signal remains the sole latest-pending source until eligible and is not counted as dropped. At most one pacing/repeat submission is queued, with at most one already-dequeued stale callback during replacement; a current wake causes at most one action and one successor, with no catch-up burst or stranded pending work. |
 | 14. Static repeat | A configured repeat interval of `1_000..3_600_000ms` republishes only a valid cached JPEG, with new sequence and timestamp, without GL or JPEG work. Fresh output wins ties and `MaxFps` remains the output cap. |
-| 15. Cache and Stats | A fresh encode, repeat, cached-first offer, rejected delivery, and terminal transition update cache and counters exactly as documented. Stats publish no more than once per second plus important transitions. |
+| 15. Cache and Stats | A fresh encode, repeat, cached-first offer, rejected delivery, and terminal transition update cache and counters exactly as documented. A callback result committed before terminal arbitration is included in final Stats; one committed only after whole-occurrence transfer is cleanup-only. Stats publish no more than once per second plus important transitions. |
 | 16. Baseline output | The Full GLES2 Direct-readback plus Framework-JPEG baseline on API 24–37 produces a decodable JPEG of the exact documented dimensions and orientation and does not expose raw or partial pixels. |
-| 17. Independent optimized paths | Early Surface Downscale, PBO, Native JPEG, and Display-P3 are selected only by their documented static/runtime capability checks. Eligible Downscale is automatic on API 32–37. PBO health is independent of JPEG backend health; a safe failure disables only the affected optimized path for later frames. |
+| 17. Independent optimized paths | Early Surface Downscale, Native JPEG, and Display-P3 are selected only by their documented static/runtime capability checks. Eligible Downscale is automatic on API 32–37. Target and JPEG health remain independent; a safe failure disables only the affected optimized path for later frames. |
 | 18. Safe and unsafe fallback | A safely returned optional-path failure may drop the affected frame and at most one switchover frame, then uses the documented fallback without double encoding. Ambiguous ownership, nonreturn after possible transfer, or unsafe cleanup is terminal and quarantined. |
 | 19. Consumer registration | The Session has zero or one current-or-draining frame consumer. A second registration fails synchronously until the previous subscription has successfully unsubscribed. |
 | 20. Cached-first delivery | A new registration receives the current valid cached JPEG immediately when one exists, preserving its original bytes, sequence, timestamp, and `ImageSize`. This does not encode, increment `framesProduced`, or alter pacing. |
-| 21. Delivery outcomes | Callback success, callback throw, and synchronous dispatcher rejection each settle the exact handoff once. Throw or rejection drops that delivery but keeps the registration usable for a later output. |
-| 22. Unsubscribe | `unsubscribe()` immediately closes new delivery, is idempotent, and waits for its queued or entered callback to settle. Successful return permits replacement registration; self-unsubscribe fails fast; waiter cancellation does not fabricate settlement. |
+| 21. Delivery outcomes | Callback return settles and releases only the callback/frame side; the handoff is reusable only after its separate dispatch-call side also settles. Caller rejection records `byDispatchFailure` only when it commits before entry. If inline callback return precedes dispatch resolution, the occupied gap records new opportunities as `byConsumerBusy`. Active engine delivery-worker scheduling rejection is terminal `InternalFailure` without `byDispatchFailure`; rejection after detachment or terminal is cleanup-only. |
+| 22. Unsubscribe | `unsubscribe()` immediately closes new delivery, is idempotent, and waits for the full handoff, including an unresolved in-call dispatch side after callback return. Callback return releases its frame/lease but cannot permit replacement before dispatch returns or throws. Successful return permits replacement registration; self-unsubscribe fails fast; waiter cancellation does not fabricate settlement. |
 | 23. Five-second entry deadline | An accepted callback task that has not entered within 5 seconds terminally fails the Session. A late trampoline invokes no user code but may provide its exact resolution. An entered callback has no execution watchdog. |
-| 24. Memory and privacy | Checked planning admits only owned target, GL/readback, encoder, JPEG, cache, callback lease, rebuild, and quarantine storage. Allocation denial does not mutate uncommitted authority. Raw, partial, stale, or unleased data never publishes. |
+| 24. Resource bounds and privacy | Checked sizes and narrowing, hard API/backend limits, one active resource topology, exact-compatible owner reuse, smallest-scope replacement, and exact ownership bound engine work. Actual carrier, Bitmap, sink, and platform allocation outcomes decide feasibility. Raw, partial, stale, or unleased data never publishes. |
 | 25. Terminal cleanup | Only one terminal winner is published. Independent cleanup continues in dependency order; an unresolved resource remains rooted once in the Session quarantine instead of being treated as released or reusable. |
-| 26. Diagnostics | Diagnostic events carry monotonically increasing Session-local `sequence`, `timestampEpochMillis`, `source`, `label`, short `message`, and raw nullable `cause`. Required modes, transitions, fallback, abnormal delivery, memory decisions, visibility, and terminal outcomes are attempted; diagnostics never decide lifecycle or business behavior. |
+| 26. Diagnostics | Diagnostic events carry monotonically increasing Session-local `sequence`, `timestampEpochMillis`, `source`, `label`, short semantic `message`, and raw nullable `cause`. The eight required categories cover capability decisions, runtime profile/mode changes, delivery problems, Stats protection, color action, quarantine changes, and terminal outcomes; diagnostics never decide lifecycle or business behavior. |
 | 27. Session isolation | Multiple Sessions share no lifecycle, projection, desired parameters, cache, callback registration, counters, failure, or quarantine authority. Aggregate process pressure remains the application's responsibility. |
 
 ## 3. Common Test Rules
@@ -84,6 +84,69 @@ presents their exact values for explicit user agreement before implementation au
 SLA or additional product timing semantics; tests use an agreed value only to verify the existing timely and
 timeout dispositions.
 
+Every entered opaque, system, or ownership-sensitive operation test uses the operation's unique `settlementGate`, precreated typed
+one-shot `OperationReturnCell`, and owner bag. An operation designated as finite deadline-governed additionally
+binds its `DeadlineOccurrence`. Before opaque entry, the occurrence has its fixed discriminator and fields for
+returned references, scalar values, throwable, and receipt. After opaque return, the worker fills those fields
+from already-owned evidence, enters `settlementGate`, and commits the complete slot. A finite deadline-governed
+operation samples the engine clock as `T` immediately before that commit; `T` is its settlement linearization
+sample. A nondeadline operation applies its named completion rule. The return path
+creates no objects, strings, wrappers, or
+diagnostic payloads until the complete slot is committed and the gate is released.
+
+For a finite deadline-governed occurrence, the controller acquires `sessionGate` and then that occurrence's
+`settlementGate` and verifies this complete transition table under the gate:
+
+| Slot/deadline observation | Required transition |
+| --- | --- |
+| Complete slot with `T < D` | Apply the timely typed outcome and receipt. |
+| Complete slot with `T >= D` and uncommitted expiry | Commit expiry and retain the real returned fact and receipt for its exact cleanup disposition. |
+| Empty slot with sampled `now >= D` | Commit expiry while preserving the writable slot and owner bag for a mechanically late return. |
+| Expired or retired deadline followed by return commit | Preserve the committed disposition; use the late fact and receipt only to reduce exact cleanup or quarantine residue. |
+
+Equality belongs to expiry. A complete slot with `T < D` is timely even when the worker is preempted after the
+sample and before committing the slot, because the worker still owns `settlementGate` throughout that interval.
+
+The common finite-deadline race suite covers these exact orders:
+
+| Interleaving | Required result |
+| --- | --- |
+| Worker commits with `T = D - 1`, then controller handles the wake | The committed timely return wins. |
+| Worker commits with `T = D` | Expiry wins; the return remains available for its exact late-cleanup disposition. |
+| Controller commits expiry from an empty slot, then the worker returns | Expiry remains final; the worker commits one late result into the same slot for exact cleanup. |
+| The system call returns and the worker is preempted before entering `settlementGate` | Controller may commit expiry; physical return alone is not settlement. |
+| Worker samples `T = D - 1` and is preempted before committing the complete slot | The worker retains `settlementGate`; after commit, the published timely return wins. |
+| Worker commits a timely return and is preempted before signalling the controller | Controller observes the slot under the gate and applies the timely return. |
+| Terminal selection races a safely cancellable unentered occurrence with empty entry and return cells | Terminal resolution closes that occurrence directly. |
+| Terminal selection races an entered, in-call, or accepted unresolved occurrence | A return already committed under the gate is applied first; otherwise the intact occurrence, gate, writable slot, owner bag, and deadline state transfer together to cleanup, with only unresolved unsafe residue retained by quarantine. |
+
+The lock-order assertion is `sessionGate -> settlementGate`. Worker settlement acquires only
+`settlementGate`. Its critical section contains identity/disposition access, writes of precreated scalar and
+reference fields, the finite-deadline linearization sample when applicable, and complete slot commit. Android, JNI, GL, callback, scheduling,
+cleanup, diagnostics, Flow, and other owner-transition work executes after the applicable gates are released.
+Instrumented gate hooks verify the order, allocation-free settlement, and bounded contents of both critical
+sections. Diagnostic construction and publication execute after the mechanical result and receipt are durable.
+
+The generic expiry table is exercised only for occurrences governed by a finite deadline. Every entered opaque,
+system, or ownership-sensitive occurrence still binds its own occurrence, `settlementGate`, precreated return
+slot, and owner bag. Readiness occurrences, long-lived metrics collection, caller-dispatch call duration, entered application callbacks, and post-terminal or
+terminal-converted no-watchdog Surface-release occurrences apply their named lifecycle and
+ownership completion rules. A safely cancellable unentered occurrence with empty entry and return cells resolves
+directly. A mandatory cleanup occurrence retains its exact owner and specialized one-shot obligation. An
+unresolved entered, in-call, or externally accepted occurrence transfers intact to cleanup; quarantine retains
+the exact residue whose safe resolution remains unknown.
+
+Engine-scheduler tests race synchronous submission rejection with entry, cancellation, terminal conversion,
+and cleanup transfer. Rejection settles only the current unresolved scheduler submission while the operation is
+unentered and its entry and return cells are empty. An existing disposition remains authoritative; rejection of
+a mandatory cleanup submission preserves the exact owner and specialized cleanup obligation. Scheduler
+acceptance retains the occurrence for later entry and mechanical return. External dispatcher return, throw, or
+synchronous rejection commits its actual dispatch fact. Trampoline entry commits a separate entry fact. Tests assert that an
+actual recorded dispatcher fact is the sole dispatcher-result authority for delivery arbitration.
+For the active delivery-worker submission specifically, a rejection that wins before detachment or terminal supplies `Failed(InternalFailure)` under
+`sessionGate -> settlementGate`, resolves the safely unentered delivery lease during terminal cleanup, and records no `byDispatchFailure`; when detachment or a
+terminal disposition wins first, the rejection is cleanup-only.
+
 ### 3.2 Fault injection
 
 Each external boundary is exercised with the small set of outcomes that can change disposition:
@@ -97,10 +160,24 @@ Safe returned faults use the documented rejection, suspension, fallback, or term
 nonreturn is never treated as implicit cancellation or release. A late safe result can clean up only its own
 resources; it cannot publish output, revive the Session, or replace a current decision.
 
+Key staleness and operation lateness are tested separately. A Native encode failure committed through its
+`settlementGate` with `T < D` may still monotonically disable the matching current Session Native-health
+occurrence when its frame/reconciliation key became stale; it publishes neither that stale frame nor a stale
+lifecycle failure and records `byFailure`. A result settled at `T >= D`, after expiry has committed, or after that health occurrence was retired
+is cleanup-only and cannot change Native health.
+
+Fault preparation uses the precreated return slot, discriminator, reference/scalar/throwable/receipt fields,
+and already-owned evidence so the return path remains settleable under allocation pressure. An instrumented
+allocator verifies that preparation and commit request no allocation, while diagnostic construction begins
+only after complete mechanical settlement. Tests inject combined returned evidence and verify the common
+precedence: unsafe or ambiguous ownership, malformed boundary evidence, or a non-OOM boundary exception is `InternalFailure`;
+otherwise an exact boundary/allocation OOM is `ResourceExhausted`; only then may a documented returned result
+select its ordinary disposition. The complete chosen outcome is committed once under `settlementGate`.
+
 ### 3.3 Resource observation
 
-Test doubles expose acquisition, ownership transfer, detach, release return, and outstanding owners. A
-reservation is not a release receipt. Tests assert that each admitted object is either:
+Test doubles expose acquisition, ownership transfer, detach, release return, and outstanding owners. A checked
+size or successful earlier allocation is not a later resource's release receipt. Tests assert that each owned object is either:
 
 - still owned by the active current scope;
 - released after the matching operation returned;
@@ -158,10 +235,9 @@ crop as a local validation error.
 A startup-metrics invalidation case first supplies a valid tuple, then supplies nonpositive geometry or density
 before initial `Running(Active)` commits. The Session becomes `Failed(CaptureUnavailable)` and `start` throws
 `ScreenCaptureException(CaptureUnavailable)`. The invalid fact attempts source `MetricsProvider`, label
-`CapabilityCheck`, message `Required capture metrics became unavailable during startup`, and the raw nullable
-boundary cause. The cause-free injected invalid-value case expects null `cause`. Terminal commit also attempts
-source `Session`, label `SessionTerminal`, message
-`Session failed: CaptureUnavailable; last active modes: none`, and null `cause`.
+`CapabilityCheck`, a short message semantically identifying startup metrics loss, and the raw nullable boundary cause. The cause-free injected invalid-value
+case expects null `cause`. Terminal commit also attempts source `Session`, label `SessionTerminal`, a short message identifying
+`CaptureUnavailable` and the absence of prior active modes, and null `cause`. Tests do not require literal message wording.
 
 Update tests begin in every nonterminal `Running` variant. They cover:
 
@@ -176,7 +252,13 @@ Update tests begin in every nonterminal `Running` variant. They cover:
 - stale safe completion and stale ownership ambiguity;
 - desired-revision exhaustion, which terminally fails with `InternalFailure`;
 - a JPEG-quality-only change, which invalidates the old cache/repeat source without changing unrelated
-  pacing or healthy backend selection;
+  pacing, a healthy exact-compatible Bitmap/carrier, or healthy backend selection;
+- image-affecting changes that drain and fence prior work, invalidate cache/repeat, retain each healthy exact-compatible target/FBO/texture/carrier/Bitmap/
+  scratch/JPEG owner, and rebuild only the smallest incompatible scope without a registry, alternate planner, or rollback topology;
+- a target replacement whose output shape and requirements remain compatible: the target and physical dependents change, while the healthy exact-compatible
+  FBO/texture, carrier, Bitmap/scratch, and JPEG owners remain the same objects;
+- an A-to-B destructive rebuild that crosses retirement, followed by desire A again before B commits: equality with A's historical effective parameters is
+  not a no-op, the missing required scope is rebuilt once, and Active is assigned only after a healthy compatible A topology is actually owned;
 - quiescence after a burst of updates.
 
 The final assertion is simple: after desired parameters, geometry, lifecycle, and relevant availability stop
@@ -210,7 +292,7 @@ matching-Full retention, conditional retarget, and resize after Running.
 An API-surface check confirms that every call introduced after API 24 is guarded by its documented runtime
 branch. It covers MediaProjection callback registration/order, resize and visibility availability, foreground-
 service owner obligations exposed to the caller, current projection-reuse restrictions, native 16-KiB page
-compatibility, and the documented Android 17 process-memory limitation. These checks validate the supported
+compatibility. These checks validate the supported
 API 24–37 contract without requiring a separate device for every API level.
 
 The default provider test verifies that the documented `Display.DEFAULT_DISPLAY` choice and its public caveat
@@ -238,7 +320,42 @@ cleanup calls. They verify:
 - after resume, the first available producer buffer may be used; target generations still reject stale
   engine work and results;
 - SurfaceTexture-listener generation fencing, listener detachment, `setSurface(null)`, Surface return, SurfaceTexture release,
-  and GL destruction occur in the documented dependency order.
+  and GL destruction occur in the documented dependency order;
+- `CurrentTarget` remains the owner of the Surface, SurfaceTexture, target GL objects, release occurrence, and carriers while the existing
+  Session-private serial GL lane is only the `Surface.release()` execution site;
+- each member of the closed prerequisite set is withheld in turn: fresh/repeat/delivery admission is closed; all entered target work is drained;
+  `targetGeneration` is fenced; the target listener is removed and its same-Handler sentinel is recorded; exact target detachment is proved by the current
+  `VirtualDisplay.setSurface(null)` normal return or the applicable current `VirtualDisplay.release` normal-return receipt; and target leases are zero.
+  `Surface.release()` does not enter until all are present;
+- retired-generation target-listener facts and late returns from other Android target-operation occurrences are cleanup-only and cannot satisfy a current
+  prerequisite; no additional callback-drain prerequisite exists;
+- startup provisional-target replacement and runtime destructive replacement each cover normal return, returned throw, nonreturn, and late return. Timely
+  normal return alone permits dependent teardown and a current replacement; throw or timeout is `InternalFailure` while nonterminal, quarantines the exact
+  residue, and admits no replacement;
+- each Surface-release occurrence precreates its `settlementGate`, typed `OperationReturnCell`, fixed
+  normal/throw fields, owner bag, and applicable `DeadlineOccurrence` before GL-lane submission. For a finite
+  deadline-governed occurrence, normal return committed with `T < D` is timely and supplies the Surface
+  receipt; a returned throw committed with `T < D` supplies the current `InternalFailure` disposition and leaves
+  Surface ownership unresolved. A complete normal-return slot with `T >= D`, or a normal return committed after
+  expiry won from an empty slot, supplies the real Surface receipt only for late dependent cleanup; expiry
+  supplies the terminal timeout disposition. A late throw supplies no receipt. The suite covers worker commit
+  at `D - 1` and `D`, expiry-before-return, worker preemption before gate entry, after the `T` sample but before
+  complete slot commit, and after commit but before controller signalling;
+- `OwnerStop` and `CaptureEnded` are raced before release entry, after entry, and in the same controller turn as deadline expiry. Tests assert one occurrence,
+  no duplicate call, post-terminal or terminal-converted no-watchdog execution, deadline retirement after a terminal winner, the fixed
+  `CaptureEnded -> OwnerStop -> Failed` priority, and the existing startup exception mapping. Return-versus-terminal cases apply a return already committed
+  under the occurrence gate before transferring the intact occurrence to cleanup or quarantine;
+- a newer desired/geometry key while release is entered builds no stale replacement after a timely normal return and remains terminally unsafe after
+  throw/nonreturn. A Downscaled-to-Full fallback likewise proceeds only after a timely normal Surface receipt;
+- returned GL-lane submission rejection settles only the current unresolved scheduler submission under the
+  same precreated occurrence's `settlementGate`, while the release is unentered and its entry and return cells
+  are empty. An existing disposition remains authoritative. The Surface owner and mandatory one-shot cleanup
+  obligation survive rejection. Submission acceptance retains that occurrence for later entry and the actual
+  release return or throw. Scheduler rejection, entry, mechanical return, and terminal selection are raced
+  without substituting a scheduling fact for an operation-return fact. Scheduler nonprogress keeps the general
+  no-start-timer exclusion;
+- a blocked release in one Session does not occupy another Session's private GL lane, while the Android Handler of the affected Session can still process
+  projection callbacks and its independent cleanup subchain.
 
 Platform failure classification is asserted directly:
 
@@ -273,13 +390,14 @@ expected bars or absence of bars, opaque output, and diagnostic color action whe
 selection checks highp first and mediump fallback, and records the selected result diagnostically.
 
 Baseline GL tests check texture/FBO completeness, FBO-only readback, tight RGBA layout, row direction, alpha,
-and cleanup. Framework Bitmap tests exercise both direct tight-row copy and the reusable row-conversion path.
+and cleanup. Framework Bitmap tests exercise both direct tight-row copy and the reusable row-conversion path, same-shape Bitmap/scratch reuse, and
+incompatible-shape retirement before replacement.
 
 ### 6.2 JPEG and encoded ownership
 
 The Framework baseline and every enabled Native product use the image oracle in Section 3.4. The test checks
 quality forwarding, transactional output, immutable published bytes, exact dimensions/orientation, and
-recognizable content. Partial, stale, failed, or over-budget output is discarded and never replaces the
+recognizable content. Partial, stale, or failed output is discarded and never replaces the
 valid cache.
 
 Framework outcome tests keep the result partition small: `Bitmap.compress` false is one frame `byFailure` and
@@ -287,42 +405,105 @@ later frames continue; Bitmap/sink memory exhaustion is terminal `ResourceExhaus
 or malformed sink result is terminal `InternalFailure`; and ambiguous ownership takes the terminal quarantine
 path. No failure publishes partial bytes or retries the same frame.
 
-Native capability tests verify only the documented API/ABI/page-size/symbol/probe inputs. A safe native
-failure drops the affected frame, disables Native for later frames, and leaves Direct/PBO selection
-unchanged. Native nonreturn or ambiguous output ownership is terminal.
+Bitmap-lifetime tests hold copy/compress use open and prove that recycle cannot enter. Once every use and lease settles, incompatible preterminal replacement
+consumes the owner into one generic occurrence, calls `Bitmap.recycle()` exactly once on the Framework-encoder execution lane, and requires normal return before
+dropping the reference or allocating the replacement. It uses `jpegEnteredOperationSafetyNanos`; timely normal return permits replacement, while rejection,
+throw, expiry, or nonreturn retains the exact owner/occurrence, admits no replacement, and never retries recycle. Same-shape reuse creates no recycle call.
+Terminal retirement uses the same generic occurrence without a watchdog: normal return drops the reference, while rejection, throw, or nonreturn retains the
+exact residue. Races cover return versus terminal transfer without a Bitmap-specific state graph or constant.
+
+Native capability and fallback tests cover exactly three legal carrier/health combinations: native carrier with
+Native enabled, native carrier with Native disabled, and managed carrier with Native disabled. Managed carrier
+with Native enabled is impossible. Both carrier kinds expose the same exact tight `ByteBuffer` view to one
+Framework adapter; only native-carrier ownership exposes a stable address to Native JPEG.
+
+Engine-library loading is ownership-free until the native bridge is successfully published: loading and
+`JNI_OnLoad` create no Session, carrier, sink, or other session-owned native resource. Only a synchronous
+`UnsatisfiedLinkError` or `SecurityException` before bridge publication and before any engine JNI operation
+entry, with zero native ownership, selects the managed carrier and Framework JPEG. A load-time
+`OutOfMemoryError` is terminal `ResourceExhausted`; partial initialization, any failure after bridge publication
+or engine JNI operation entry, any other throwable, and ambiguous ownership are terminal `InternalFailure` and
+cannot select that fallback. Tests inject every branch and assert both the chosen carrier/backend combination
+and the absence or exact retention of native ownership.
+
+Native eligibility uses exactly the documented static API, ABI, library, and symbol checks; 16-KiB page-size
+compatibility is a packaging requirement. The first real frame is the first compression call. Tests apply the complete
+normal/safe/unsafe/timeout result partition to that call and verify that a safely returned Native failure drops
+that frame, disables Native for later frames, and never retries the same frame through Framework.
+
+A safely returned Native failure records `byFailure`, drops the affected frame, disables Native monotonically for later frames, and
+leaves Direct readback and target selection unchanged. This includes
+`ANDROID_BITMAP_RESULT_ALLOCATION_FAILED` only when the Native call returned and the exact carrier and
+transactional-sink ownership are settled; it is a local optional-compressor failure, not evidence that the
+carrier or sink allocator failed. Carrier allocation OOM and sink allocation OOM are terminal
+`ResourceExhausted`. A current safe failure commits the disabled health result. A key-stale but timely safe
+failure records `byFailure` and publishes no stale frame or lifecycle failure, but still disables the matching current Session Native-health
+occurrence and reconciles the latest key. A result committed with `T >= D`, after expiry committed, or for a
+retired health occurrence is cleanup-only and cannot disable Native. The affected frame is never retried through Framework. Native nonreturn,
+ambiguous carrier/sink ownership, or malformed writer evidence is terminal and cannot enable Framework fallback.
+
+Native race tests use the precreated encode occurrence, `settlementGate`, typed `OperationReturnCell`, fixed
+result/writer/JNI evidence fields, carrier/sink owner bag, and active health occurrence. After native return,
+the worker records only already-owned references, scalar values, throwable, and receipt before the
+allocation-free gate commit; diagnostic construction follows settlement. Tests cross a safe returned failure
+with a current key, a stale frame or reconciliation key, a retired health occurrence, `T = D - 1`, `T = D`,
+and expiry-before-return. They also preempt the worker before gate entry, after the `T` sample but before
+complete slot commit, and after commit but before signalling. Current timely failure disables Native;
+key-stale timely failure records `byFailure`, disables the matching current health occurrence, and publishes no stale output or lifecycle failure; late or
+retired-health settlement changes only exact cleanup ownership.
+
+Tests accumulate all writer and JNI evidence before classifying a returned call. Unsafe or ambiguous ownership,
+a malformed writer call or writer-contract violation, and any non-OOM JNI exception take precedence as terminal
+`InternalFailure`. Otherwise an exact writer, sink, or JNI OOM is terminal `ResourceExhausted`. Only when neither
+class of fault exists may the compressor integer determine success or a safe optional-axis failure. A
+combined-fault case records both an exact OOM and malformed writer evidence and verifies that `InternalFailure`
+wins.
 
 ### 6.3 Pacing, repeat, cache, and Stats
 
 A fake source and fake clock exercise fresh signals just before, at, and after each selected pacing boundary.
 `Auto`, `MaxFps`, and `SampleEvery` are tested separately. Bursts collapse to the documented latest-pending
-work; PBO may overlap the documented GPU work with the prior encode but never creates a second stable CPU
-pixel carrier or a third materialized attempt.
+work. An early signal remains pending through the eligibility boundary and is then processed even when no later signal arrives; its deferral increments neither
+`byRateLimit` nor another drop counter. The sole production slot remains occupied from materialization through final disposition, including while a completed
+JPEG is waiting for output pacing; a pending source bit may coexist, but no second attempt materializes and no `byPipelineBusy` is invented for that
+pre-materialization coalescing.
 Static or blank source content does not create a fabricated first-frame timeout.
 
-Repeat tests cover absent cache, valid cache, cache invalidated by pause/rebuild, a fresh-frame tie, a delayed
-wake, and `MaxFps` interaction. A repeat reuses immutable JPEG bytes while producing new frame metadata.
+One-wake tests combine pending fresh work, completed-unpublished JPEG, repeat eligibility, and rapid policy/candidate churn. They directly observe at most one
+queued pacing/repeat scheduler submission plus at most one already-dequeued stale callback in a cancel-versus-dequeue race. Replacement cancels/removes or
+coalesces the queued predecessor before posting the current submission; dequeue consumes identity before clock resampling; stale callbacks perform no action
+and install no successor; and only the current carrier may perform at most one action and install at most one successor. Current-submission rejection is
+terminal `InternalFailure` without a drop, while stale/detached/terminal rejection is cleanup-only. After churn stops, retained pending work eventually receives
+one action or the Session has the exact terminal rejection outcome; no stale burst or silent stranding occurs. Stats cadence remains separately owned. Repeat
+tests also cover absent cache, valid cache, cache invalidated by pause/rebuild, a fresh-frame tie, a delayed wake, and `MaxFps` interaction. A repeat reuses
+immutable JPEG bytes while producing new frame metadata.
 
 Stats assertions distinguish successful encodes, produced outputs including repeats, and every documented
-frame- and delivery-drop reason. Counter saturation is safe. Periodic dirty Stats are published at most once
+frame- and delivery-drop reason, including retained `byRateLimit == 0` across early paced signals. They explicitly race stale identity with mechanically
+returned production failure: safe failure is `byFailure`, otherwise
+successful stale suppression is `byStaleWork`, and unsafe failure remains terminal. Counter saturation is safe. Periodic dirty Stats are published at most once
 per second, while lifecycle, fallback, rebuild, and terminal facts request immediate publication.
+
+A production-terminal cutoff test pauses the production worker immediately before and after complete return-cell commit and races each pause with terminal
+arbitration under `sessionGate -> settlementGate`. A return or already-selected classified disposition that wins is folded through normal accounting before
+final Stats; this includes exactly one `byFailure` when that classified failure causes terminal. When terminal wins first, an otherwise unclassified
+materialized attempt, a completed-unpublished JPEG retired without output commit, and an unresolved occurrence transferred whole to cleanup each add no
+dropped-frame counter. A return committed after transfer performs cleanup only and leaves final Stats unchanged. The test also proves that an existing
+cache/output commit and the existing `byPipelineBusy`, `byStaleWork`, and `byFailure` dispositions are neither lost nor counted twice.
 
 ## 7. Optional Paths And Fallback Tests
 
-The optional-path suite is organized by four independent axes:
+The optional-path suite is organized by three independent axes:
 
 | Axis | Enabled observation | Safe failure | Unsafe failure |
 | --- | --- | --- | --- |
 | Early Surface Downscale | Closed eligibility, exact-aspect target, and automatic API 32–37 selection | Disable Downscaled and rebuild once to Full | Terminal and quarantine |
-| PBO readback | Documented ES3/config/call capability checks | Destroy fence/PBO, disable PBO, use Direct later | Terminal and quarantine |
-| Native JPEG | Documented API/ABI/page-size/symbol/probe checks | Disable Native, use Framework later | Terminal and quarantine |
+| Native JPEG | Closed API/ABI/library/symbol eligibility, separate 16-KiB-compatible packaging, and the first real frame as the first compression call | Disable Native, use Framework later | Terminal and quarantine |
 | Display-P3 color | Exact dataspace classification | Use the documented best-effort color action | Terminal only when the ordinary pipeline itself is unsafe |
 
 Each axis is tested once enabled, once ineligible, once with a safe returned runtime fault, and once with an
-ownership-ambiguous fault. A small integration set crosses the four reachable readback/JPEG products:
-Direct+Framework, Direct+Native, PBO+Framework, and PBO+Native. It verifies decodable output and independence:
-a PBO fallback does not disable Native, and a Native fallback does not disable PBO.
-The PBO component cases cover every documented fence-wait result plus map, unmap, context-loss, and destruction
-outcomes; they preserve the same small public safe/unsafe classification rather than creating product modes.
+ownership-ambiguous fault. A small integration set crosses the two reachable readback/JPEG products,
+Direct+Framework and Direct+Native. It verifies decodable output and independence: a Native fallback does not change Direct readback or target health.
 
 Downscaled integration checks the public output dimensions and orientation, the expected semantic transform,
 active-content coverage, and the single Full fallback after a detected runtime target-path failure. Ordinary
@@ -338,10 +519,11 @@ handoff and lease.
 
 Dispatcher/callback tests independently exercise:
 
-- synchronous dispatch rejection;
-- dispatch call nonreturn;
-- trampoline entry followed by a late dispatch throw, where entry owns settlement and no
+- synchronous dispatcher throw or rejection;
+- caller dispatcher call nonreturn as the documented unsupported-progress case;
+- trampoline entry followed by a late dispatch return or throw, where entry owns settlement and no
   `byDispatchFailure` is recorded;
+- inline callback return while the dispatch invocation is deliberately held unresolved;
 - accepted task entering before 5 seconds;
 - accepted task still queued at 5 seconds;
 - late trampoline after terminal timeout;
@@ -349,38 +531,86 @@ Dispatcher/callback tests independently exercise:
 - callback throw;
 - entered callback nonreturn.
 
-Detachment is also raced while `dispatcher.dispatch` is still in-call. If unsubscribe or stop detaches the
-record and dispatch later returns normally, that return arms the same existing five-second
-entry/self-rejection deadline. A later trampoline entry resolves the detached record without invoking user
-code. No second timer or deadline occurrence is created.
+Each delivery record precreates its `settlementGate`, typed `OperationReturnCell`, fixed dispatch-result and
+entry fields, owner bag, and optional five-second task-entry deadline link. An
+external dispatcher normal return, throw, or synchronous rejection commits its actual dispatch fact through
+that record gate. Trampoline entry or detached self-rejection commits its separate entry fact. Callback return,
+unsubscribe, and terminal contenders use the same record gate for their own exact transitions. An empty cell
+represents an unresolved dispatcher call; the actual external-call fact resolves it.
 
-Only the accepted-but-not-entered deadline is fixed at five seconds. Synchronous rejection and callback throw
-settle one delivery and permit a later output. Dispatch nonreturn and entered callback nonreturn retain their
-exact record/lease when resolution is unknown. A late trampoline after the five-second terminal failure is
-fenced from user code and may resolve only its own record.
+Tests cover dispatcher return, throw, or rejection immediately before and after trampoline entry, unsubscribe, and terminal selection. Trampoline entry acquires
+`sessionGate -> settlementGate`, commits either admissible `Entered` or detached self-rejection for the exact record, and releases both gates before user code or
+cleanup. A normal dispatch return before entry samples the return time and arms the task-entry deadline from it. When trampoline entry commits first, a later dispatch return or throw settles the worker
+side without changing the entry-owned delivery outcome or recording `byDispatchFailure`. When synchronous rejection commits first, the delivery settles once
+as `byDispatchFailure` and the registration remains eligible for a later output.
+
+The inline-return case proves the two already-distinct sides of one record. Callback return immediately releases borrowed-frame authority and the encoded
+lease, but the record and sole delivery worker remain occupied until actual dispatch return/throw. A new output in that gap records `byConsumerBusy`, creates no
+record or worker, and cannot produce scheduler rejection or `InternalFailure`; the eventual dispatch outcome only retires its side. If terminal wins during
+the gap, final Stats folds the callback result and cleanup receives only the remaining worker/dispatch residue, not the already-released lease.
+
+Engine scheduling of the delivery worker is tested separately. Synchronous scheduler rejection settles only
+the current unresolved scheduler submission while the delivery occurrence is unentered and its entry and return
+cells are empty. When it wins for an active current delivery, it supplies terminal `InternalFailure`, safely resolves the unentered delivery record and lease
+through terminal cleanup, and does not increment `byDispatchFailure`. Cancellation, detachment, terminal transfer, entry, return, or another settled disposition
+that wins first remains authoritative, making the later rejection cleanup-only. Scheduler acceptance retains the occurrence for the later external-dispatch
+entry and actual dispatcher fact.
+
+The delivery race harness preempts both the dispatch worker and the trampoline immediately before their
+respective gate entry and after commit but before controller signalling. For accepted-task entry it also pauses after the deadline sample but before complete
+fact commit, preserving the sampled timely/late classification under `settlementGate`. Controller observation of the committed slot determines settlement in
+the final order. A safely cancellable unentered delivery occurrence resolves directly. Terminal transfer
+preserves an unresolved in-call or accepted delivery occurrence, `settlementGate`, writable slot, encoded
+lease, and callback-resolution owner bag so a late dispatcher or trampoline fact can resolve only that record;
+quarantine retains only residue whose resolution remains unsafe or unknown.
+
+Detachment is also raced while `dispatcher.dispatch` is still in-call. A later normal dispatch return arms the same sole five-second
+entry/self-rejection deadline from the return sample, which remains attached to the occurrence through terminal detachment. A later trampoline entry resolves
+the detached record without invoking user code.
+
+Only the accepted-but-not-entered deadline is fixed at five seconds. Synchronous rejection and callback throw settle one delivery and permit a later output.
+Entry-deadline expiry while the Session is nonterminal commits `Failed(InternalFailure)`. Expiry after `Stopped` or another terminal State roots the exact
+unresolved delivery residue without rewriting State. A caller dispatcher that never returns violates the supported-dispatcher progress condition: no watchdog
+changes State, the sole record remains occupied, unsubscribe waits, and terminal transfer roots that exact residue. Entered callback nonreturn behaves the same
+for its entered record. Late dispatcher and trampoline facts reduce only their exact residue; a late trampoline remains fenced from user code.
+
+Callback-return tests pause immediately before and after complete return-cell commit. Terminal arbitration folds a cell already complete under
+`settlementGate` before final Stats, so a throw complete before whole-occurrence transfer contributes exactly one `byCallbackFailure`. If terminal transfers the
+whole unresolved occurrence first, a later normal return or throw only releases its borrowed-frame authority and encoded lease and reduces that exact cleanup/quarantine root; it contributes
+no counter or `DeliveryProblem` and cannot change State. Two branches assert diagnostics precisely: if consuming the late receipt actually changes
+`SessionQuarantineRoot`, the ordinary mandatory `QuarantineChanged` attempt occurs; if cleanup consumes it before quarantine, no diagnostic is emitted.
 
 Unsubscribe tests start from idle, prepared, dispatching, accepted-queued, entered, resolved, failed, and
 stopped conditions. They assert immediate closure, idempotent waiters, waiter cancellation, self-call
 rejection, terminal exception mapping, and the requirement that replacement registration begins only after
-successful unsubscribe. Old and replacement callbacks never overlap.
+successful unsubscribe. The inline-return/dispatch-unresolved case releases the frame lease, calls `unsubscribe()`, and proves that both unsubscribe and
+replacement registration remain blocked until the actual dispatch return/throw settles the full handoff. Old and replacement callbacks never overlap.
 
 Frame-lease tests verify successful property access, `copyTo`, and `copyBytes` during the callback on its
 callback thread. An invalid `copyTo` destination range throws `IndexOutOfBoundsException` without modifying
 the destination. Wrong-thread and post-return property or copy access throws `IllegalStateException`.
 
-## 9. Memory, Diagnostics, Cleanup, And Privacy Tests
+## 9. Resource Bounds, Diagnostics, Cleanup, And Privacy Tests
 
-### 9.1 Memory admission
+### 9.1 Resource bounds and allocation
 
-Memory tests use small synthetic budgets and checked arithmetic. They separately account for the selected
-target, RenderTarget, sole CPU carrier, optional PBO, Framework Bitmap/row storage, transactional JPEG,
-immutable cache, single callback lease, rebuilding overlap, and already-known quarantine.
+Resource tests use checked arithmetic and injected allocator/platform outcomes. They prove one active
+target/pipeline topology, one stable CPU RGBA carrier, one shape-compatible reusable Framework Bitmap and row
+scratch only while Framework is selected, the closed encoded-storage roles,
+one callback lease, and exact already-owned quarantine residue. They also prove that a Framework Bitmap is an
+encoder-owned pixel store rather than a second stable CPU carrier.
 
-Each allocation boundary is tested for admission denial, successful allocation, directly returned OOM,
-partial construction with safe return, and nonreturn after possible ownership transfer. A clean denial before
-retirement leaves the old pipeline parked and suspends. A clean current failure after retirement is terminal.
-Physical charge falls only after the corresponding release operation returns; a planner permit or refund is
-not physical-release evidence.
+A compatibility matrix changes one plan dimension at a time and verifies direct reuse of every healthy exact-compatible target, FBO/texture, carrier,
+Bitmap/scratch, and JPEG owner, with retirement and allocation limited to the smallest incompatible scope. The test observes the existing desired revision and
+current topology only; it finds no resource registry, alternate planner, replacement generation, rollback pipeline, or second healthy topology.
+
+Every checked size, multiplication, addition, narrowing, buffer range, row stride, and segment cumulative length
+is tested at valid and overflow/invalid boundaries. Each real allocation boundary covers success, directly
+thrown OOM, partial construction with safe return, and nonreturn after possible ownership transfer. A
+deterministic geometry/API/backend limit before retirement allocates nothing and leaves the old pipeline
+recoverable. After retirement, a current required carrier, Bitmap, sink, or platform allocation failure is
+terminal `ResourceExhausted`. Tests treat loss of a managed-buffer reference only as logical ownership
+retirement and never as proof of immediate physical reclamation.
 
 Privacy assertions verify that raw pixel storage, mutable encoder input, partial JPEG bytes, stale results,
 and borrowed frame wrappers never outlive their owner or cross the callback lease. Caller-copied JPEG bytes
@@ -396,11 +626,10 @@ The first attempted event has sequence 1, and every later attempt advances seque
 overflow remains visible as gaps. `timestampEpochMillis` samples wall clock when the event is created; repeated,
 forward, or backward wall-clock values do not affect sequence ordering or engine control.
 
-The single diagnostics table in 01 Design is the required source/label coverage list. Tests trigger each
-material mode, capability result, geometry/visibility change, memory decision, rebuild, fallback,
-consumer change/problem, color action, quarantine change, Stats abnormality, and terminal outcome, then
-check `source`, `label`, a short useful `message`, and the original nullable `cause`. They do not parse
-messages as a business protocol, require compound event IDs, or require routine per-frame diagnostics.
+The single diagnostics table in 01 Design is the required source/label coverage list. Tests trigger each of its eight categories through representative
+capability selection/failure, initial runtime profile, actual mode fallback, delivery problem, Stats protection, color action, quarantine change, and terminal
+outcome. They check `source`, `label`, a short semantically useful `message`, and the original nullable `cause`, without requiring literal message wording.
+They do not require geometry, visibility, rebuild, consumer-lifecycle, or routine per-frame events.
 
 ### 9.3 Cleanup and quarantine
 
@@ -409,12 +638,31 @@ resource failure, and unsafe ownership. Exactly one terminal winner closes all a
 assigned before terminal State; diagnostic delivery remains best effort.
 
 Cleanup component tests hold one dependency indefinitely while allowing unrelated cleanup roots to finish.
-The Android subchain remains serial; target, GL, JPEG, callback, memory, and diagnostics roots follow their
+The Android subchain remains serial; target, GL, JPEG/storage, callback, and diagnostics roots follow their
 documented local order. An unresolved owner is recorded once in `SessionQuarantineRoot`; late return may
 release only that exact owner and cannot change terminal outcome or make the Session reusable.
+The quarantined unit is the exact operation occurrence together with its `settlementGate`, still-writable typed
+`OperationReturnCell`, owner bag, entered/deadline facts, and transitive resources. A late worker publishes through that
+same gate and slot; cleanup consumes the resulting receipt for that occurrence alone. Race tests inspect the
+quarantine root's exact object identities and assert that the whole unit survives terminal transfer until
+either exact late settlement reduces it or Session quarantine remains the owner.
 For `Surface.release`, normal return supplies the Surface-return receipt and permits dependent target cleanup;
 a returned throw is recorded and leaves the Surface unresolved while unrelated roots continue; nonreturn
-roots the call and blocks only its physical dependents.
+roots the call and blocks only its physical dependents. Tests assert that the rooted residue is exact: the release worker/occurrence, Surface,
+SurfaceTexture, target OES/GL objects, their live carriers, and transitively dependent EGL context, pbuffer, and GL-lane records that cannot yet
+be destroyed. Provably independent GL resources retire before release entry, and Android capture, JPEG/storage, frame-consumer, metrics, unrelated deadlines,
+allocator-owned carrier/storage and diagnostics roots continue.
+
+Cleanup tests use the same closed entry prerequisite set as target replacement: fresh/repeat/delivery admission is closed; all entered target work is drained;
+`targetGeneration` is fenced; the target listener is removed and its same-Handler sentinel is recorded; exact target detachment is proved by the current
+`VirtualDisplay.setSurface(null)` normal return or the applicable current `VirtualDisplay.release` normal-return receipt; and target leases are zero. A
+retired-generation listener fact or a return from another Android target-operation occurrence remains cleanup-only and cannot stand in for the sentinel or
+current detach receipt.
+
+Terminal Surface tests distinguish an occurrence created after terminal from a preterminal occurrence converted before entry and an occurrence already entered
+when terminal wins. All three use one call, one `settlementGate`, and one `OperationReturnCell`; the first two have no watchdog, while the third retires its deadline. A late normal return
+reduces only the exact target root after subsequent SurfaceTexture/GL receipts; a late throw leaves Surface ownership unresolved. Neither result rewrites the
+terminal winner, reopens admission, enables fallback, allocates a replacement, or releases an unproved owner.
 
 ## 10. High-Risk Paper Traces
 
@@ -439,6 +687,9 @@ Reversing steps 2–3 changes only which caller wins.
 
 If A returns with ambiguous ownership, safety wins and the Session fails even though A is stale.
 
+The destructive A-to-B-to-A variant crosses retirement before the second A desire. Although A equals the historical effective parameters, its live scope is
+gone; reconciliation rebuilds the required A scope and assigns Active only after that compatible healthy topology is owned.
+
 ### 10.3 Geometry change during startup
 
 1. API 34+ starts with provisional target geometry but frame admission is closed.
@@ -448,14 +699,14 @@ If A returns with ambiguous ownership, safety wins and the Session fails even th
 
 If the readiness deadline wins first, startup fails with `CaptureUnavailable`; a later resize cannot revive it.
 
-### 10.4 Safe PBO failure while Native remains healthy
+### 10.4 Safe Native failure while target mode remains healthy
 
-1. PBO readback for one frame returns a safely classified error.
-2. That frame is discarded; fresh admission pauses for the PBO scope.
-3. Fence and PBO destruction return, then PBO becomes disabled.
-4. Later frames use Direct readback and still use Native JPEG.
+1. Native JPEG for one frame returns a safely classified optional-backend error with exact carrier and sink ownership.
+2. That frame is discarded once and Native health becomes disabled.
+3. Later frames use Framework JPEG through the same carrier adapter.
+4. Direct readback and the current Full or Downscaled target remain unchanged.
 
-A nonreturn or uncertain fence/buffer ownership takes the unsafe terminal path instead.
+A nonreturn or uncertain carrier/sink/writer ownership takes the unsafe terminal path instead.
 
 ### 10.5 Unsubscribe versus queued callback
 
@@ -476,24 +727,25 @@ trace.
 ### 10.6 Stop versus callback entry
 
 1. A dispatched trampoline and `stop()` race for their respective commit points.
-2. If callback entry commits first, user code may run and return after `stop()` returns.
+2. If callback entry commits first under `sessionGate -> settlementGate`, user code may run and return after `stop()` returns.
 3. If stop commits first, the trampoline is fenced and invokes no user code.
-4. In both orders, no later frame delivery is admitted and the callback lease settles or remains quarantined.
+4. In both orders, no later frame delivery is admitted and the callback lease settles or remains quarantined. A return cell complete before terminal arbitration
+   is folded into final Stats; a return committed only after whole-occurrence transfer is cleanup-only.
 
-### 10.7 Memory denial around retirement
+### 10.7 Resource limit and allocation around retirement
 
-1. Reconciliation calculates the complete replacement admission requirement.
-2. If clean admission is denied before old-pipeline retirement, the old scope is parked and State becomes
+1. Reconciliation checks dimensions, arithmetic, and deterministic API/backend limits without allocating a replacement.
+2. A current deterministic limit found before retirement leaves the old scope parked and publishes
    `Suspended(ResourceExhausted)` with latest desire retained.
-3. If preflight succeeded, the old scope retires before replacement ownership is admitted.
-4. A current clean replacement allocation failure after that point is terminal `ResourceExhausted`.
+3. Otherwise the old scope retires before one replacement allocation begins.
+4. A current required replacement allocation failure after that point is terminal `ResourceExhausted`.
 
 No branch silently restores a resource already destroyed or keeps two healthy complete pipelines.
 
 ## 11. Coverage Map
 
-This map is used to check that simplification did not remove a material behavior. It is not a second test
-taxonomy.
+This map provides the single traceability from each material behavior to its acceptance scenarios, executable
+sections, and paper traces.
 
 | Concern | Acceptance scenarios | Primary executable sections | Paper trace |
 | --- | --- | --- | --- |
@@ -504,7 +756,7 @@ taxonomy.
 | Pacing, repeat, cache, Stats | 13–15 | 6.3 | — |
 | Optional paths and fallback | 17–18 | 7 | 10.4 |
 | Consumer, frame lease, and callback deadline | 19–24 | 8, 9.1 | 10.5, 10.6 |
-| Memory, cleanup, privacy | 24–25 | 9.1, 9.3 | 10.7 |
+| Resource bounds, allocation, cleanup, privacy | 24–25 | 9.1, 9.3 | 10.7 |
 | Diagnostics | 26 | 9.2 | — |
 | Independent Sessions | 27 | 4.2, 9 | — |
 

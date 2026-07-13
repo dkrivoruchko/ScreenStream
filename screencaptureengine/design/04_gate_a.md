@@ -51,3 +51,21 @@ implementation correctness, release correctness, or successful device behavior.
 
 Gate B remains `NOT_STARTED`. Kotlin implementation is frozen and is not authorized until Gate B is
 completed and implementation authorization is explicitly granted.
+
+## 5. Revalidation record
+
+**Status: READY_FOR_GATE_B.**
+
+The current corrected set incorporates the authorized integrated simplifications: one GLES2 Direct-readback
+path without PBO; caller-owned dispatcher option A; eight required diagnostic categories with nonliteral
+message semantics; the unchanged Stats API and guarantees with the approved pacing, delivery, and terminal
+counter cutoffs; `Surface.release()` through generic typed operation settlement; and bounded pacing, compatible-
+owner reuse, and exactly-once Framework Bitmap recycle.
+
+Three fresh independent concurrency reviewers closed with P0: 0 and P1: 0. Three fresh independent CPU/GPU/
+memory-efficiency reviewers closed with P0: 0 and P1: 0. The final correctness wave found P0: 0 and one P1 in
+the production-terminal Stats cutoff. That finding was separately adjudicated and corrected, then two fresh
+finding-specific reviewers closed with P0: 0 and P1: 0. The corrected set has no open P0 or P1 findings.
+
+The Gate-A verdict remains `READY_FOR_GATE_B`. Gate B remains `IN_PROGRESS`; Kotlin, C/C++, Gradle, build,
+executable-test, IDE, emulator, and device implementation work remains frozen and is not authorized.

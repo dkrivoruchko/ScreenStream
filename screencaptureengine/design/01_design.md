@@ -25,7 +25,7 @@ consumer replacement does not stop or recreate the Session or consume new projec
 
 The default output selects the full source, scales it to half size, preserves orientation and color, emits frames as the source allows, and encodes framework or
 capable native JPEG at quality 80. Applications can select a source half, crop, size, rotate, mirror, grayscale, pace, repeat, and change JPEG quality. V1 always
-keeps a mandatory full-size capture path and may transparently use capable downscaled-target, PBO-readback, or native-JPEG paths without changing the public
+keeps a mandatory full-size capture path with Direct readback and may transparently use capable downscaled-target or native-JPEG paths without changing the public
 image contract.
 
 ```mermaid
@@ -122,7 +122,7 @@ handle that terminal result as applicable rather than delaying owner `stop()` be
 | `start(mediaProjection, initialParameters)` | Starts exactly once with fresh projection authority. Success returns after `Running(Active)` is visible; the first JPEG is not required. Repeated/concurrent calls throw `IllegalStateException` and do not touch their losing projection. Cancellation remains `CancellationException`. |
 | `updateParameters(parameters)` | Synchronous latest-wins setter, legal in every nonterminal `Running` variant. It returns after the desired parameters are accepted, not after output changes. Equal desire is a no-op; unequal calls are totally ordered and intermediate desires may be conflated. |
 | `onFrame(callback)` | Registers the one current consumer path and returns its subscription. Registration while another subscription has not successfully unsubscribed, or after terminal, throws `IllegalStateException`. |
-| `FrameSubscription.unsubscribe()` | Idempotently closes new delivery for that subscription immediately, then suspends until its queued handoff is dismissed or its entered callback returns. Only successful return permits replacement registration. Failed/normal terminal results are defined below. It does not stop capture. |
+| `FrameSubscription.unsubscribe()` | Idempotently closes new delivery for that subscription immediately, then suspends until the complete handoff settles, including any unresolved in-call dispatcher side after callback return. Callback return releases its frame authority and lease but does not permit replacement until `dispatch` returns or throws. Only successful unsubscribe return permits replacement registration. Failed/normal terminal results are defined below. It does not stop capture. |
 | `stop()` | Idempotently commits owner stop and closes all new work before returning. Terminal State and physical cleanup may complete later; a callback that already entered may finish. |
 | `state`, `stats`, `diagnosticEvents` | Hot observation surfaces described below. Flow access does not start capture. |
 
@@ -157,18 +157,28 @@ operations; `updateParameters`, `onFrame`, and `stop` are thread-safe, synchrono
 thread. Calling `unsubscribe` from that
 subscription's own entered callback fails fast with `IllegalStateException` because it would wait on itself. Cancelling an unsubscribe waiter does not reopen
 delivery or fabricate resolution; a later idempotent `unsubscribe` call on the same handle may await and successfully observe the real resolution. Failed and
-normal terminal winners use the exact table mapping above. The engine retains unresolved callback bytes/resources until real completion or process death, and
-no replacement can register.
+normal terminal winners use the exact table mapping above. The engine retains each unresolved handoff and exactly the resources its unsettled sides still own
+until real completion or process death, and no replacement can register.
 
 A successful new subscription immediately admits delivery of the current valid cached JPEG when one exists; callback execution still follows the configured
 dispatcher. Otherwise it waits for a future produced output. Cached-first delivery preserves the JPEG's original sequence, timestamp, image size, and bytes,
 performs no encode, is not delayed by `MaxFps` or repeat pacing, and does not increment `framesProduced`. It uses the same single handoff slot and unsubscribe
-rules as every other delivery. A synchronous dispatcher throw/rejection drops only that delivery, increments `byDispatchFailure`, fully settles its handoff,
-and leaves the subscription active for the next produced or cached opportunity; it creates no retry queue. A dispatch call or accepted pre-entry task that
-stalls past its safety boundary remains a terminal Session failure.
+rules as every other delivery. A synchronous caller-dispatcher throw/rejection drops only that delivery and increments `byDispatchFailure` when its disposition
+commits before trampoline entry. If entry commits first, a later dispatcher return or throw cannot reclassify that delivery or change its counters. An inline
+callback may return while the dispatch invocation itself remains unresolved: its borrowed-frame authority and encoded lease are released, but the sole handoff
+and delivery-worker capacity remain occupied until that invocation actually returns or throws. A new delivery opportunity in that gap records
+`byConsumerBusy`; it creates no record or worker. A pre-entry rejection leaves the subscription active for the next produced or cached opportunity and creates
+no retry queue. A normally accepted pre-entry task that does not
+enter within five seconds remains a terminal Session failure. A supported dispatcher eventually returns or throws from each `dispatch` invocation and
+eventually executes an accepted task; a dispatcher that violates those caller-owned progress conditions may leave the sole handoff record unresolved, with no
+second delivery admitted behind it.
 
-If an entered frame callback throws, the engine catches that one return at the callback boundary, records exactly one `byCallbackFailure`, resolves the
-borrowed frame and delivery exactly once, and keeps the subscription active. A later eligible produced or cached output may invoke that subscription again.
+If an entered frame callback throws and its return commits before terminal arbitration, the engine catches it at the callback boundary, records exactly one
+`byCallbackFailure`, and resolves the borrowed-frame/callback side exactly once. The delivery record becomes reusable only after its dispatch-call side has
+also settled, and then keeps the subscription active. A later eligible produced or cached output may
+invoke that subscription again while the Session remains nonterminal. If terminal arbitration already transferred the unresolved callback occurrence to
+cleanup, the same caught late throw changes no Stats, State, or `DeliveryProblem`. It may still cause the ordinary mandatory `QuarantineChanged` attempt when
+consuming its receipt actually changes `SessionQuarantineRoot`; resolution completed before quarantine emits none.
 
 Structural equality compares the full deeply immutable `ScreenCaptureParameters` graph with the current requested parameters, not merely today's resolved
 pixels. A structurally different request receives a new revision even if it currently resolves to identical output, so a later geometry change still follows
@@ -177,14 +187,19 @@ follow the return and conflate intermediate requested snapshots. Applications ob
 Running snapshot.
 
 The latest desired value remains visible while reconciliation selects one of these outcomes. “After retirement” means the old output can no longer be resumed.
+Capacity checks use only checked arithmetic and representation plus deterministic device/backend limits. Actual allocation and creation results are authoritative;
+the engine does not sample available memory or predict whether a later allocation will succeed.
 
-| Reconciliation outcome | Visible result |
+| Allocation/reconciliation outcome | Visible result |
 | --- | --- |
+| Startup cannot satisfy a deterministic device/backend capacity limit, or a required startup allocation/creation fails | Terminal `Failed(ResourceExhausted)`; `start` receives the matching `ScreenCaptureException` through the ordinary terminal mapping. |
 | Current desire is invalid for current geometry | `Running(Suspended(InvalidRequest))`; retain the desire and retry after a new desire or geometry fact. |
 | Capture or required metrics are unavailable | `Running(Suspended(CaptureUnavailable))`; retain the desire and retry after a new desire or availability/geometry fact. |
-| Clean resource preflight denial before retirement | `Running(Suspended(ResourceExhausted))`; retain the desire, park the old pipeline without output, and retry after a new desire or memory/environment fact. |
-| Current-key clean fatal failure after retirement | Terminal `Failed` with the classified problem; clean replacement allocation/resource failure is `Failed(ResourceExhausted)`. |
-| Stale safe success or stale safe/clean failure | Commit no stale output or failure; safely retire/settle that work and reconcile the latest desire. |
+| Deterministic current mandatory capacity denial before retirement | `Running(Suspended(ResourceExhausted))`; retain the desire, park the old pipeline without output, and retry after a new desire, geometry, capture-availability, or relevant backend-health fact. |
+| Current required allocation or creation failure after retirement | Terminal `Failed(ResourceExhausted)` with no rollback. |
+| Current required pixel-storage or encoded-storage allocation failure during Running | Terminal `Failed(ResourceExhausted)`; this is not an optional-backend fallback. |
+| Current safely returned optional-path failure | Disable only that optional acceleration monotonically and use its mandatory fallback for later work; do not retry the same frame. |
+| Stale safe success or stale safe/clean failure | Commit no stale output or lifecycle failure; safely retire/settle that work and reconcile the latest desire. A materialized production attempt that mechanically returned a failure records `byFailure` even when its key is stale; `byStaleWork` is reserved for otherwise successful work suppressed solely by stale identity. A safely returned failure of a still-current Session-monotone optional-health occurrence may also disable that path so it cannot be reused. |
 | Unsafe or ownership-ambiguous failure, including stale work | Terminal `Failed(InternalFailure)`. |
 
 `Stopped` or `Failed` means the Session is terminal: the engine's capture authority for that Session, capture/delivery admission, and all new public work have
@@ -220,8 +235,8 @@ public object CaptureMetricsProviders {
 | Config field | Meaning | Default | Domain and interaction |
 | --- | --- | --- | --- |
 | `captureMetricsProvider` | Supplies capture width, height, and density changes. | `null` | Null creates a Session-private provider for `Display.DEFAULT_DISPLAY` through the application `DisplayManager`. This does **not** follow an Activity to another display. Use a built-in provider when Activity/window or explicit-display association matters. On API 34–37 projection resize callbacks become width/height authority after startup; provider density remains live. |
-| `frameCallbackDispatcher` | Dispatcher used only to enter the application frame callback. | `Dispatchers.Default` | Nonnull and caller-owned; the engine never closes it. Deliberately undispatched/Unconfined callback execution is unsupported. An ordinary dispatcher may still enter inline according to its contract, which the handoff handles. |
-| `jpegBackendPolicy` | Chooses whether native JPEG may be used. | `Auto` | `Auto` selects native JPEG whenever its API/runtime checks pass and otherwise uses Framework. `FrameworkOnly` never attempts native JPEG. Readback and target selection remain independent. |
+| `frameCallbackDispatcher` | Dispatcher used only to enter the application frame callback. | `Dispatchers.Default` | Nonnull and caller-owned; the engine never closes it. Deliberately undispatched/Unconfined callback execution is unsupported. A supported dispatcher eventually returns or throws from each `dispatch` invocation and eventually executes an accepted task. An ordinary dispatcher may still enter inline according to its contract, which the handoff handles. |
+| `jpegBackendPolicy` | Chooses whether native JPEG may be used. | `Auto` | `Auto` selects native JPEG whenever its API/runtime checks pass and otherwise uses Framework. `FrameworkOnly` never attempts native JPEG. Native health is Session-monotone: a safely returned Native runtime failure disables Native for the remainder of the Session when its health occurrence is still current, whether the work key is current or stale. The attempt records `byFailure`; a current-key failure drops that frame without retry and uses Framework for later frames, while a stale-key failure publishes no stale frame or lifecycle failure. Unsafe ownership remains terminal. JPEG backend and target selection remain independent. |
 
 `CaptureMetrics(widthPx, heightPx, densityDpi)` requires all three values to be positive. A custom provider returns a cold `Flow<CaptureMetrics?>`; null means
 the currently associated geometry is unavailable. `fromActivityDisplay(activity)` snapshots the Activity's associated Display without retaining the Activity.
@@ -236,8 +251,8 @@ One provider Flow is collected for the accepted Session lifetime. Its visible ou
 | --- | --- |
 | Completion before a valid value or first-valid-value timeout | `start` throws `ScreenCaptureException(CaptureUnavailable)` and the Session becomes `Failed(CaptureUnavailable)`. |
 | Getter throw, unusable Flow, or collection throw before the first valid value | `start` throws `ScreenCaptureException(InternalFailure)` and the Session becomes `Failed(InternalFailure)`. |
-| Required metrics become null or otherwise unusable after a first valid value but before `Running(Active)` | `start` throws `ScreenCaptureException(CaptureUnavailable)` and the Session becomes `Failed(CaptureUnavailable)`. Attempt source `MetricsProvider`, label `CapabilityCheck`, exact message `Required capture metrics became unavailable during startup`, with the raw boundary cause when one exists and otherwise null, followed by `SessionTerminal`. |
-| Normal completion after a valid value | The last valid metrics remain active and exactly one `CapabilityCheck` attempt uses source `MetricsProvider` and `axis=metrics result=pass detail=completed`. |
+| Required metrics become null or otherwise unusable after a first valid value but before `Running(Active)` | `start` throws `ScreenCaptureException(CaptureUnavailable)` and the Session becomes `Failed(CaptureUnavailable)`. One source-`MetricsProvider` `CapabilityCheck` attempt identifies startup metrics loss and carries the raw boundary cause when one exists and otherwise null; `SessionTerminal` follows. |
+| Normal completion after a valid value | The last valid metrics remain active and one source-`MetricsProvider` `CapabilityCheck` attempt identifies successful metrics completion. |
 | Collection throw after a valid value | The Session becomes `Failed(InternalFailure)`. |
 | Null runtime value, or no usable positive provider/source geometry, after `Running(Active)` | Output becomes `Running(Suspended(CaptureUnavailable, ..., lastKnownCaptureGeometry))`; the last valid committed capture geometry is retained. |
 | Later valid runtime value | The Session may recover and publish `Running(Active)` after any required resize/rebuild. |
@@ -441,7 +456,7 @@ public class ScreenCaptureException internal constructor(
 | --- | --- |
 | `NotStarted` | Fresh Session; no projection has been accepted. |
 | `Starting` | The one start request has been accepted and startup is in progress. |
-| `Running(Active)` | Output is active; `requestedParameters` is the latest accepted desire and `effectiveParameters` is the last committed output, so they may differ while reconciliation is pending. |
+| `Running(Active)` | Output is active through an actually owned, healthy live topology compatible with `effectiveParameters`; `requestedParameters` is the latest accepted desire, so the two may differ while reconciliation is pending. A historical effective value alone cannot make the Session Active after its resources were retired. |
 | `Running(Suspended)` | The Session is alive but output is unavailable/reconfiguring. The enclosing Running still carries latest `requestedParameters`; Suspended reports the problem, last committed effective parameters, and nullable last-known geometry. |
 | `Stopped(OwnerStop)` | The application stopped the Session or cancelled accepted startup; terminal retains final requested and nullable last-effective parameters. |
 | `Stopped(CaptureEnded)` | Android ended projection authority; terminal retains final requested and nullable last-effective parameters. |
@@ -506,7 +521,7 @@ public class ScreenCaptureDiagnosticEvent internal constructor(
 | --- | --- |
 | `framesEncoded` | Successful fresh JPEG encodes; repeat does not increment it. |
 | `framesProduced` | Fresh plus repeat output commits, whether or not a frame consumer is registered. Cached-first delivery does not increment it. |
-| `droppedFrames` | Fresh attempt outcomes before a JPEG is produced. |
+| `droppedFrames` | Classified materialized fresh-attempt outcomes that do not commit a produced output. Terminal retirement of unclassified or unpublished work is not a frame drop. |
 | `droppedDeliveries` | Classified handoff/callback losses while a frame registration is active; output produced with no registration is not a delivery drop. |
 | `averageProducedFps` | Produced-output rate over the exact elapsed window from the first production commit through the latest production commit, including repeats. It is `0.0` until at least two outputs exist or when that elapsed window is nonpositive. |
 | `averageEncodeMs`, `averageReadbackMs` | Finite running means over mechanically successful real operations; repeats add no samples. |
@@ -518,21 +533,34 @@ is `(framesProduced - 1) * 1e9 / (lastProductionTime - firstProductionTime)`, in
 Counters and aggregate totals saturate at `Long.MAX_VALUE` rather than wrap. Public Doubles are always finite: a nonfinite mean update retains its last finite
 value, a nonfinite exposed FPS clamps to the greatest finite Double, and a saturated contributing count freezes its derived mean/FPS at the last finite value.
 
-Frame-drop fields distinguish rate limiting, occupied pipeline capacity, stale work, and returned production failure. Delivery-drop fields distinguish a busy
-consumer slot, dispatcher rejection/failure, and a callback that threw. Each `total` is the saturating sum of its fields. Counters saturate rather than wrap.
+Frame-drop fields expose the retained `byRateLimit` field, occupied pipeline capacity, otherwise successful work suppressed solely by stale identity, and
+mechanically returned production failure. A fresh source signal received before its pacing boundary remains the sole unmaterialized latest-pending source and
+is processed when eligible; V1 pacing therefore creates no rate-limit drop and `byRateLimit` remains zero. Deferral increments no other dropped-frame field. A
+returned failure records
+`byFailure` even if its work identity is stale; safe staleness prevents output and lifecycle failure, while unsafe failure retains the terminal rule.
+Delivery-drop fields distinguish a busy consumer slot, caller-dispatcher rejection/failure, and a callback that
+threw. Engine delivery-worker scheduling rejection is an internal Session failure, not `byDispatchFailure`. Each `total` is the saturating sum of its fields.
+Counters saturate rather than wrap.
 
-Diagnostics are best-effort operational detail. The closed labels cover capability selection, runtime profile, geometry, visibility, memory admission,
-rebuild, actual mode changes and fallbacks, consumer changes, delivery faults, Stats finite-value protection, color action, quarantine, and terminal state.
-`message` is short engine-generated text that makes the applicable mode, transition, decision, or fallback visible. Raw `cause` remains separate. Diagnostics
-are not a parser or business API and cannot change lifecycle or fallback behavior.
+Diagnostics are best-effort operational detail. The closed labels cover capability decisions, runtime profile, actual mode changes and fallbacks, delivery
+faults, Stats finite-value protection, color action, quarantine, and terminal state. `message` is short engine-generated semantic text that makes the
+applicable mode, transition, decision, failure, or fallback visible; exact wording is not contractual. Raw `cause` remains separate. Diagnostics are not a
+parser or business API and cannot change lifecycle or fallback behavior.
 
 `source` and `label` are plain Strings with the closed exact values in the single table in [Diagnostics contract](#5-diagnostics-contract); they are not enums. `source` is one of these exact
 engine strings: `Session`, `MetricsProvider`, `MediaProjection`, `VirtualDisplay`, `SurfaceTarget`, `GlPipeline`,
-`PboReadback`, `FrameworkJpeg`, `NativeJpeg`, `FrameConsumer`, `MemoryPlanner`, `Controller`, `ColorPipeline`, or `Cleanup`. Provider/callback faults retain the
+`FrameworkJpeg`, `NativeJpeg`, `FrameConsumer`, `Controller`, `ColorPipeline`, or `Cleanup`. Provider/callback faults retain the
 boundary source that observed them. Both Strings are descriptive text, never control input.
 
 At creation, State is `NotStarted` and every numeric Stats/drop field is zero. Final Stats is assigned immediately before terminal State, but State and Stats
-are separate Flows rather than one atomic snapshot. Ordinary dirty Stats snapshots publish at most once per second of engine elapsed
+are separate Flows rather than one atomic snapshot. Before that final snapshot, terminal arbitration folds every already-complete production return and every
+already-selected classified production disposition through ordinary accounting. An already-classified production failure remains counted, including the
+`byFailure` that causes the terminal transition. If terminal wins while a materialized attempt has neither committed output/cache nor selected a classified
+drop, or retires a completed but unpublished JPEG, no dropped-frame field increments. A production return committed only after its unresolved occurrence
+transfers to cleanup releases only its exact residue and changes no Stats. A callback return or throw committed before terminal arbitration is folded into final Stats. Once terminal
+arbitration transfers an unresolved callback occurrence whole to cleanup, its later return or throw only resolves that occurrence and lease; it changes no
+counter, State, or `DeliveryProblem`. An actual resulting change to `SessionQuarantineRoot` still attempts `QuarantineChanged`; cleanup resolution before
+quarantine emits none. Ordinary dirty Stats snapshots publish at most once per second of engine elapsed
 time; start/run, suspension/resume, rebuild/fallback, and terminal changes publish immediately, with final Stats immediately before terminal State. Scheduler or
 collector delay can make observation slower and creates no catch-up burst.
 
@@ -575,16 +603,27 @@ supported APIs, or runtime-path selection.
 ## 4. Visible behavior and limits
 
 Capture and delivery are best effort rather than realtime. Source activity, device capacity, requested pacing, callback availability, and suspension all affect
-when output appears. Static content may never produce a first frame, and absence of a frame is not itself a failure timeout.
+when output appears. An early paced source signal is retained as the one latest-pending source until it becomes eligible, so a source that then becomes static
+can still produce that pending frame. Static content with no source signal may never produce a first frame, and absence of a frame is not itself a failure
+timeout.
 
-V1 emits SDR JPEG and has no fixed product-level image or encoded-byte cap. Checked arithmetic, requested geometry, device/backend limits, memory admission, and
-actual allocation determine feasibility. Concurrent Sessions are allowed without a process-wide aggregate guarantee. The application owns copied-JPEG
-transport, access control, retention, and aggregate cross-Session pressure.
+V1 emits SDR JPEG and has no fixed product-level image or encoded-byte cap. Feasibility is determined by checked arithmetic and representation, requested
+geometry, deterministic device/backend limits, and actual allocation or creation outcomes. The engine does not sample available memory or predict future
+allocation success. Concurrent Sessions are allowed without a process-wide aggregate guarantee. The application owns copied-JPEG transport, access control,
+retention, and aggregate cross-Session pressure.
 
-Optional Downscaled, PBO, and Native paths preserve the public output dimensions, orientation, and requested semantic transform. Early Downscale remains
+Optional Downscaled and Native paths preserve the public output dimensions, orientation, and requested semantic transform. Early Downscale remains
 conforming when its filtering, rounding, or platform scaling produces minor decoded-pixel differences from the Full path. A safely classified failure disables
 only the affected acceleration and uses its mandatory fallback; uncertain ownership is terminal. Reconciliation that crosses retirement may create the visible
 Suspended gap specified above.
+
+Native JPEG uses the mandatory Framework JPEG backend when Native is cleanly ineligible. A mechanically returned
+`ANDROID_BITMAP_RESULT_ALLOCATION_FAILED` is also a safe Native-backend failure when its input and writer/sink transaction remain exact and the sink itself did
+not fail allocation. A current- or stale-key occurrence whose Native-health occurrence is still current disables Native monotonically and permits Framework
+only for later frames: both outcomes record `byFailure`; a current-key occurrence consumes that attempt once, while a stale-key occurrence publishes no stale
+frame or lifecycle failure. A required
+input-storage or sink allocation failure remains `ResourceExhausted`. Native nonreturn or ambiguous input/output ownership is terminal. Readback and target
+selection remain independent.
 
 Suspension and resume invalidate cached JPEG/repeat state. A healthy retained Surface target is not replaced solely to establish freshness. On resume, the
 first available producer buffer may have been queued before or during the pause; producer timestamps have no freshness authority. This is accepted best-effort
@@ -600,29 +639,24 @@ for each emission attempt. Drop-oldest overflow can therefore appear to a collec
 `System.currentTimeMillis()` when the event is created so applications can correlate it with system and application logs. The system clock may jump forward or
 backward; this timestamp is not ordering or deadline authority.
 
-Every event has one of the fixed source/label pairs below. Its message is short engine-generated text for that observation and directly names the applicable
-mode, transition, decision, or fallback. The same observation uses the same message wording. A boundary throwable is retained only in `cause`; Throwable text is
-not copied into `message`.
+Every event has one of the fixed source/label pairs below. Its message is short engine-generated text for that observation and semantically identifies the
+applicable mode, transition, decision, failure, or fallback. Tests do not require literal wording. A boundary throwable is retained only in `cause`;
+Throwable text is not copied into `message`.
 
 | Label | Fixed source | Required observation |
 | --- | --- | --- |
-| `CapabilityCheck` | boundary source: `MetricsProvider`, `MediaProjection`, `VirtualDisplay`, `SurfaceTarget`, `GlPipeline`, `PboReadback`, `FrameworkJpeg`, `NativeJpeg`, or `Controller` | Capability selection and its outcome. |
-| `RuntimeProfile` | `Session` | Initial Running mode and every later change to target, GLES, precision, readback, JPEG, Framework transfer, or color mode. |
-| `GeometryChanged` | `MetricsProvider` or `MediaProjection` matching the fact | Accepted geometry change, loss, or recovery. |
-| `MemoryPlan` | `MemoryPlanner` | Every start, reconciliation, rebuild, or fallback admission decision, including denial. |
-| `PipelineRebuild` | `Controller` | Rebuild start and result, including suspension and resume. |
-| `RuntimeModeChanged` | changed-axis source: `SurfaceTarget`, `PboReadback`, `FrameworkJpeg`, or `NativeJpeg` | Every actual mode change and every safe fallback, naming the previous mode, new mode, and fallback action. |
-| `ConsumerChanged` | `FrameConsumer` | Consumer registration, unsubscribe, and replacement. |
-| `VisibilityChanged` | `MediaProjection` | Every actual transition among unknown, visible, and hidden; duplicate values emit nothing. |
+| `CapabilityCheck` | boundary source: `MetricsProvider`, `MediaProjection`, `VirtualDisplay`, `SurfaceTarget`, `GlPipeline`, `FrameworkJpeg`, `NativeJpeg`, or `Controller` | Each top-level capability-axis selection or failure and its outcome; individual predicates within one axis do not require separate events. |
+| `RuntimeProfile` | `Session` | Initial Running target, GLES2 Direct readback, precision, JPEG, Framework transfer, and color modes. |
+| `RuntimeModeChanged` | changed-axis source: `SurfaceTarget`, `FrameworkJpeg`, or `NativeJpeg` | Every actual mode change and safe fallback, identifying the previous mode, new mode, and fallback action. |
 | `DeliveryProblem` | `FrameConsumer` | Dispatch or delivery failure and its action. |
 | `StatsProblem` | `Controller` | Finite-value protection and its action. |
 | `ColorAction` | `ColorPipeline` | Observed color classification and applied color action. |
 | `QuarantineChanged` | `Cleanup` | Quarantine ownership change and cleanup action. |
 | `SessionTerminal` | `Session` | Terminal state, stop reason or failure problem, and the last active modes. |
 
-`RuntimeProfile`, `PipelineRebuild`, and `RuntimeModeChanged` make the selected modes, lifecycle transitions, and fallbacks observable without participating in
-their control. `VisibilityChanged` always has a null `cause`. `StatsProblem` also has a null `cause`. Routine frame production emits no diagnostic event; Stats
-aggregate per-frame outcomes.
+`RuntimeProfile` and `RuntimeModeChanged` make selected modes and fallbacks observable without participating in their control. `StatsProblem` has a null
+`cause`. Routine geometry, visibility, rebuild, consumer lifecycle, and frame production do not require diagnostic events; State and Stats expose the relevant
+public observations and aggregate outcomes.
 
 ## 6. Future evolution
 
