@@ -59,8 +59,8 @@ internal fun StreamTabContent( //TODO Add foldable support
     }
 
     Column(modifier = modifier) {
-        val with = with(LocalDensity.current) { boundsInWindow.width.toDp() }
-        if (with >= 800.dp) {
+        val width = with(LocalDensity.current) { boundsInWindow.width.toDp() }
+        if (width >= 800.dp) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1F), verticalArrangement = Arrangement.Center) {
                     StreamingModuleSelector(
@@ -76,13 +76,13 @@ internal fun StreamTabContent( //TODO Add foldable support
             }
         } else {
             Column(modifier = Modifier.fillMaxWidth()) {
+                AnchoredAdaptiveBanner(modifier = Modifier.fillMaxWidth())
                 StreamingModuleSelector(
                     streamingModulesManager = streamingModulesManager,
                     modifier = Modifier
                         .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
                         .fillMaxWidth()
                 )
-                AnchoredAdaptiveBanner(modifier = Modifier.fillMaxWidth())
             }
         }
         activeModule.value?.StreamUIContent(

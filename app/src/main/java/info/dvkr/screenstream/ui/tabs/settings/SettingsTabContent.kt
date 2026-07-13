@@ -174,11 +174,7 @@ internal fun SettingsTabContent(
                         }
 
                         item(key = "AD_BANNER", contentType = "AD") {
-                            InlineAdaptiveBanner(
-                                modifier = Modifier
-                                    .padding(top = 8.dp)
-                                    .fillMaxWidth()
-                            )
+                            InlineAdaptiveBanner(modifier = Modifier.fillMaxWidth())
                         }
                     }
                 }
