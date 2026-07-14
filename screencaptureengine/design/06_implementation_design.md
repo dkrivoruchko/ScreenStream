@@ -16,10 +16,8 @@ the approved compact decomposition of exactly five public Kotlin files and fourt
 production Kotlin files. Small records, cells, receipts, adapters, and helpers stay private beside
 their owner instead of creating utility files.
 
-The design deliberately has one active topology, direct owner-to-owner transitions, bounded
-latest-value cells, one production slot, and exact cleanup records. It has no resource registry,
-rollback topology, replacement generation, predictive memory accounting, device allowlist,
-performance-based runtime selection, or additional public/runtime axis.
+The implementation uses one active topology, direct owner transitions, bounded latest-value cells,
+one production slot, and exact cleanup records.
 
 The private deadline and GL-error-bound names are bound here only to their uses. Their numeric values
 belong to [07_private_constants.md](07_private_constants.md). Test colors, semantic JPEG quality,
@@ -49,7 +47,7 @@ no entry is relative to another entry and no undeclared source root is implied.
 | Path | Declarations and owner role | Dependencies, contracts, and test slices |
 | --- | --- | --- |
 | `PUB:ScreenCaptureEngine.kt` | `ScreenCaptureEngine`, `ScreenCaptureSession`, `FrameSubscription`, and the identity-based Session/subscription facades. | Delegates only to `SessionController`; implements 01 §3.1–3.2 and §3.8. Lifecycle, wrong-state, cancellation, one-shot start, registration, and unsubscribe tests. |
-| `PUB:ScreenCaptureConfig.kt` | `ScreenCaptureConfig`, `JpegBackendPolicy`, `CaptureMetricsProvider`, `CaptureMetrics`, and `CaptureMetricsProviders`. | Built-in factories delegate to `CaptureMetricsOwner`; implements 01 §3.3 and 02 §1.2. Validation, context/display association, API-specific metrics, and provider-failure tests. |
+| `PUB:ScreenCaptureConfig.kt` | `ScreenCaptureConfig`, `JpegBackendPolicy`, `CaptureMetricsProvider`, `CaptureMetrics`, `CaptureMetricsProviders`, and module-internal immutable `BuiltInCaptureMetricsDefinition` implementing the public provider interface. | Owns the built-in display/window reads and the one engine-private Main-Looper callback Handler. The sole public factory `fromDisplay(context, display)` returns a reusable fixed-display instance; null config uses the equivalent internal default-display construction path, while specialized policies use a custom provider. Implements 01 §3.3 and 02 §1.2. Validation, fixed-display association, API-specific metrics, collection independence, and provider-failure tests. |
 | `PUB:ScreenCaptureParameters.kt` | `ScreenCaptureParameters` and all caller-constructed region, crop, size, content, rotation, mirror, color, and frame-rate values. | Pure checked validation and manual value semantics; implements 01 §3.4 and §3.8 and 02 §5. Constructor, equality, hashing, formatting, geometry, and overflow tests. |
 | `PUB:ScreenCaptureOutput.kt` | Engine-produced geometry/effective-parameter values and `EncodedImageFrame`. | Instances are constructed by the controller/delivery boundary and expose no backing buffer; implements 01 §3.5 and §3.8. Value-semantics, borrowed-lifetime, range-copy, and lease tests. |
 | `PUB:ScreenCaptureObservations.kt` | State/running-state hierarchy, stop reasons, problems, exception, Stats/drop values, and diagnostic event. | Built and published through the controller-confined `ObservationOwner` adapter from controller-committed values; implements 01 §3.6–3.8 and §5. State snapshot, exception mapping, saturation, finite-value, and diagnostic-field tests. |
@@ -62,11 +60,11 @@ no entry is relative to another entry and no undeclared source root is implied.
 | `INT:OperationSettlement.kt` | `OperationOccurrence<R>`, typed `OperationReturnCell<R>`, `DeadlineOccurrence`, `DeadlineWakeLink`, owner bag, operation identity, settlement gate, entry/disposition/domain, and generic receipts. | Used by every opaque/system/ownership-sensitive operation. Implements 02 §6.3 and §7.2. Deadline/wake boundary, rejection, retirement, late-return, lock-order, and allocation-free publication tests. |
 | `INT:ReconciliationOwner.kt` | Controller-confined synchronous pure resolver for geometry, plan, compatibility, and smallest-scope transition calculations. | Receives one immutable controller snapshot and returns a calculation only; it owns no desired/revision cell, topology, reconciliation occurrence, command admission, or commit authority. Implements 02 §2 and §5. Latest-wins, A-to-B-to-A, stale key, capacity, reuse, and smallest-scope replacement tests. |
 | `INT:AndroidCaptureOwner.kt` | Session Android `HandlerThread`/`Handler`, projection callback adapter, VirtualDisplay owner/operations, Android receipts, and ordered Android cleanup chain. | The only caller of `MediaProjection` and `VirtualDisplay` mutation APIs. Implements 02 §1.1, §2.3, and §7.3. Startup ordering, sole creation, callback authority, resize/attach/detach, failure mapping, and cleanup tests. |
-| `INT:CaptureMetricsOwner.kt` | Provider collector owner, built-in metrics adapters, authoritative metrics accumulator, geometry facts, cancellation request, and collector-return receipt. | Uses Android display/window APIs and Flow collection; never mutates capture objects. Implements 02 §1.2 and §7.3. API-band authority, startup loss, storms, cancellation/nonreturn, and association tests. |
-| `INT:TargetOwner.kt` | `CurrentTarget`, its one generation-owned `java.util.concurrent.atomic.AtomicBoolean` latest-pending source bit, Full/Downscaled plan, `SurfaceTexture`, `Surface`, target generation, listener adapter/sentinel, target leases, and Surface-release occurrence. | Android attachment is commanded through `AndroidCaptureOwner`; target GL work executes through `GlPipelineOwner` without transferring ownership. A current-generation listener may only set this target-owned bit; only the controller may consume it through the bounded atomic-exchange protocol in Section 9. Implements 02 §1.3, §2.3, §4.1, and §7.3. Planning, pending-bit races, generation fences, prerequisites, fallback, Surface races, and reuse tests. |
-| `INT:GlPipelineOwner.kt` | Session EGL owner, serial GL lane, shaders/color classification, target-OES execution adapter, render target, Direct readback, GL receipts, and typed RGBA-carrier lease use. | Owns non-target EGL/GLES resources and all GL calls; borrows CurrentTarget-owned OES objects and carrier only through exact occurrences. Implements 02 §3.1 and §5. EGL, shader, transform, error partition, Direct readback, color, destruction, and image-vector tests. |
-| `INT:JpegRuntimeOwner.kt` | Combined `JpegRuntimeOwner`, `NativeJpegHealth`, Kotlin `NativeMallocCarrier`/managed-direct carrier owners, native bridge state, guarded weak-compressor capability, native descriptor, `NativeWriterOwnerBlock`, `NativeResultBlock`, and carrier-free occurrence. | Selects only the closed carrier/backend combinations and invokes the private JNI bridge. It stores no raw function pointer or compressor owner. Implements 02 §3.2 and §7.1. Own-loader/bootstrap, weak eligibility, carrier/writer ownership, native result precedence, fallback, preterminal incompatible-carrier-free timeout/terminal conversion, and receipt tests. |
-| `INT:FrameworkJpegOwner.kt` | Common Framework adapter, Bitmap owner, optional row scratch, transfer decision, Framework encoder occurrence, and one-shot recycle occurrence. | Accepts a leased exact-range view from either carrier and writes only to `EncodedStorageOwner`. Implements 02 §3.2 and §7.3. Fast/portable transfer, Bitmap outcomes, reuse, recycle, and Framework image tests. |
+| `INT:CaptureMetricsOwner.kt` | Provider collector owner, authoritative metrics accumulator, geometry facts, Session-owned metrics scope, parent-Job cancellation request, and parent-completion receipt. | Selects the exact configured provider or creates one Session-private internal default-display built-in, then uses the same direct attachment path and single Flow collection for either. Implements 02 §1.2 and §7.3. Startup loss, cancellation/nonreturn, exact-provider identity, and completion-receipt tests. |
+| `INT:TargetOwner.kt` | Occurrence-local `PreparedTarget`, installable `CurrentTarget`, their reserved generation and shared release/destruction obligations, generation-owned `java.util.concurrent.atomic.AtomicBoolean` latest-pending source bit, plan, listener/sentinel, and leases. | Android attachment is commanded through `AndroidCaptureOwner`; target GL work executes through `GlPipelineOwner` without transferring ownership. Only installed `CurrentTarget` crosses platform/listener/frame boundaries. Implements 02 §1.3, §2.3, §4.1, and §7.3. Planning, preparation/install/cleanup claims, pending-bit races, generation fences, prerequisites, fallback, Surface races, and reuse tests. |
+| `INT:GlPipelineOwner.kt` | Session EGL owner, serial GL lane, shaders/color classification, target-OES execution adapter, render target, Direct readback, GL receipts, and typed RGBA-carrier lease use. | Owns non-target EGL/GLES resources and all GL calls; target preparation takes no carrier lease, while frames borrow only installed CurrentTarget OES objects and the JPEG-owned carrier. Implements 02 §3.1 and §5. EGL, shader, transform, error partition, Direct readback, color, destruction, and image-vector tests. |
+| `INT:JpegRuntimeOwner.kt` | Combined `JpegRuntimeOwner`, `NativeJpegHealth`, Kotlin `NativeMallocCarrier`/managed-direct carrier owners, process loader state, guarded weak-compressor capability, native descriptor/result blocks, and distinct typed native/managed replacement-allocation occurrences. | Selects only the closed carrier/backend combinations and invokes the private JNI bridge. It stores no raw function pointer or compressor owner. Implements 02 §3.2 and §7.1. Own-loader/bootstrap, weak eligibility, carrier/writer ownership, native result precedence, fallback, incompatible-carrier replacement, and receipt/drop tests. |
+| `INT:FrameworkJpegOwner.kt` | Bitmap owner, optional row scratch, combined `FrameworkResourceCreationOccurrence`, private synchronous carrier-transfer method, Framework encoder occurrence, and one-shot recycle occurrence. | Accepts a leased exact-range view from either carrier and writes only to `EncodedStorageOwner`; transfer introduces no separate adapter owner or lifecycle. Implements 02 §3.2 and §7.3. Resource creation, fast/portable transfer, Bitmap outcomes, reuse, recycle, and Framework image tests. |
 | `INT:EncodedStorageOwner.kt` | Checked segmented transaction/`OutputStream`, immutable managed segmented payload, latest/unpublished/displaced roles, frame metadata, and encoded leases. | Receives Framework writes or post-compressor native-segment copies; delivery borrows leases only. Implements 02 §3.2 and §4.2–4.3. Transaction, malformed writes, OOM, cache/repeat, displacement, and lease tests. |
 | `INT:DeliveryOwner.kt` | Registration generation, subscription resolution, sole handoff/worker, borrowed frame, dispatch-return cell, trampoline-entry cell, callback-return cell, and accepted-task deadline link. | The sole caller of the configured dispatcher and application callback; leases payloads from storage. Implements 02 §4.4 and §6.3. Dispatch/entry/callback races, busy accounting, terminal cutoff, unsubscribe, and replacement tests. |
 | `INT:PacingOwner.kt` | Controller-confined synchronous calculation adapter for fresh/repeat eligibility, rational cadence, next-wake selection, and monotonic clock reads. | Reads the target-owned pending bit, storage occupancy, and immutable controller policy/wake snapshot; returns a calculation only. The controller owns policy, grant phases, attempt/final-outcome occurrences, and current wake identities and commits every action. Implements 02 §4.1–4.2 and §6.6. Pacing/repeat, one-wake cardinality, churn, rejection, pending coexistence, and no-burst tests. |
@@ -103,12 +101,14 @@ Each Session constructs these execution resources after accepted start and roots
   target-listener Android work;
 - one Session-private single-thread executor for EGL/GL, including target GL work and Surface release;
 - one non-owned per-Session `Dispatchers.IO.limitedParallelism(1)` view for non-suspending Native preparation,
-  Framework/native JPEG, Bitmap recycle, and `NativeMallocCarrier`-free owner Runnables;
+  `FrameworkResourceCreationOccurrence`, Framework/native JPEG, Bitmap recycle, native carrier free/allocation,
+  and managed-direct replacement-allocation owner Runnables;
 - a distinct non-owned per-Session `Dispatchers.IO.limitedParallelism(1)` view for the one non-suspending
   delivery-owner Runnable at a time;
 - one Session-private scheduled executor for deadline and wake callbacks;
-- one standalone retained metrics collector `Job` on a non-owned per-Session
-  `Dispatchers.IO.limitedParallelism(1)` view, with no parent supervisor receipt;
+- one Session-owned metrics scope on a non-owned per-Session
+  `Dispatchers.IO.limitedParallelism(1)` view, with its exact structured-concurrency construction bound in
+  Section 7.2;
 - the controller drainer submitted directly to `Dispatchers.Default` through its lossless atomic wake state.
 
 Every owned executor/thread creation is an owned startup operation. Rejection or partial construction is
@@ -128,12 +128,12 @@ Execution-resource ownership and retirement are exact:
 
 | Resource | Owner and active lifetime | Shutdown request and dependency | Mechanical completion evidence and unresolved residue |
 | --- | --- | --- | --- |
-| Android `HandlerThread` and `Handler` | `AndroidCaptureOwner`; created during accepted startup and owns projection callbacks, VirtualDisplay mutations, target-listener callbacks, and callback delivery for built-in exact-display listeners. Metrics registration, reads, and unregister never run on this lane. | After terminal fences metrics authority and closes its signal, projection callback unregister, VirtualDisplay release, projection stop, target cleanup, and all other Android-owned work settle independently; then `quitSafely` may proceed without waiting for DisplayListener unregister. No other owner may quit the thread. | The thread's `finally` publishes a precreated lane-return cell. Unresolved metrics unregister separately retains its listener, DisplayManager, and Handler reference but no lease on the Android thread. A failed or late listener callback has no authority, and no Handler return fabricates an unregister receipt. |
+| Android `HandlerThread` and `Handler` | `AndroidCaptureOwner`; created during accepted startup only for projection/VirtualDisplay and target callbacks and mutations. | After projection callback unregister, VirtualDisplay release, projection stop, target cleanup, and all other Android-owned work settle, call `quitSafely`; metrics collection creates no dependency on this lane. No other owner may quit the thread. | The thread `finally` publishes its lane-return cell. Nonreturn retains only the Android-owned operation and its physical dependents; metrics unregister never delays this receipt. |
 | GL one-worker `ThreadPoolExecutor` | `GlPipelineOwner`; Session-private from EGL construction through target/non-target GL teardown and Surface-release execution. | After the Surface occurrence and every dependent GL/EGL operation settle, call `shutdown`; never use `shutdownNow` to invent cancellation of entered work. | A private `terminated()` hook publishes the executor-return receipt. Nontermination retains the executor/thread, queued exact occurrences, and dependent target/EGL owners under the GL root without blocking other roots or Sessions. |
-| JPEG IO view | `JpegRuntimeOwner` retains one distinct non-owned per-Session `Dispatchers.IO.limitedParallelism(1)` view and submits only non-suspending owner Runnables for Native preparation, Framework/native encode, Bitmap recycle, and `NativeMallocCarrier` free. | Each submission preserves its precreated operation, submission, entry, return, deadline, and owner cells. Terminal closes admission and settles or transfers exact occurrences; it never closes, cancels, or quarantines the view and has no executor-shutdown step. | There is no termination receipt. A nonreturn retains the exact Session-owned Runnable occurrence and its attached carrier/Bitmap/transaction/writer residue, but not the shared dispatcher or view. Weak compressor capability adds no resource dependency. |
+| JPEG IO view | `JpegRuntimeOwner` retains one distinct non-owned per-Session `Dispatchers.IO.limitedParallelism(1)` view and submits only non-suspending owner Runnables for Native preparation, `FrameworkResourceCreationOccurrence`, Framework/native encode, Bitmap recycle, native carrier free/allocation, and managed-direct replacement allocation. | Each submission preserves its precreated operation, submission, entry, return, deadline, and owner cells. Terminal closes admission and settles or transfers exact occurrences; it never closes, cancels, or quarantines the view and has no executor-shutdown step. | There is no termination receipt. A nonreturn retains the exact Session-owned Runnable occurrence and its attached carrier/Bitmap/scratch/transaction/writer residue, but not the shared dispatcher or view. Weak compressor capability adds no resource dependency. |
 | Delivery IO view | `DeliveryOwner` retains a second distinct non-owned per-Session `Dispatchers.IO.limitedParallelism(1)` view and submits only its non-suspending owner Runnable, preserving the sole worker-capacity rule. | Each submission preserves its separate operation, submission, entry, dispatch-return, trampoline-entry, callback-return, and owner cells. Terminal closes admission and settles or transfers exact handoff sides; it never closes, cancels, or quarantines the view and has no executor-shutdown step. | There is no termination receipt. A nonreturn retains the exact Session-owned Runnable occurrence and unresolved dispatch residue, but not the shared dispatcher or view; a lease already released by callback return remains released. |
 | Scheduled one-worker `ScheduledThreadPoolExecutor` | `SessionController` owns the executor and identity-fenced deadline, pacing/repeat, and separate Stats-wake submissions; `PacingOwner` only calculates synchronous next-wake actions. It is configured with remove-on-cancel enabled and both continue-existing-periodic and execute-existing-delayed-after-shutdown policies disabled; no periodic task is used. | Cancel outside gates every current Future, disable successor authority, and wait for caller dispatch still in call, every `Submitting` outcome, and every retained/later-armable accepted-callback wake before `shutdown`. An already-dequeued callback may publish only its generation-tagged fact. | `terminated()` publishes the scheduler receipt. Nontermination retains the scheduler/thread and only the exact queued/dequeued wake, `Submitting` record, retained callback-deadline link, or deadline record. Scheduler progress and post-terminal completion have no watchdog. |
-| Standalone metrics collector `Job` and IO view | `CaptureMetricsOwner`; exactly one retained collector Job owns the provider, returned Flow, and collection from accepted attachment through its mechanical return. For built-ins the same per-Session `Dispatchers.IO.limitedParallelism(1)` view serializes registration, all platform reads, emission, and unregister; blocking metrics work cannot occupy the Android lane. The view is structural serialization, not a tunable pool size. | Request cancellation on that Job at terminal; built-in cleanup closes its signal and performs exact unregister on this IO view. Never close or quarantine the non-owned IO view. Cancellation intent is never a return receipt, and there is no parent scope or supervisor completion to await. | Registration, unregister, the collector Job's single `finally`-published completion cell, and Android Handler return are distinct evidence. That completion cell is the sole mechanical collector-return receipt. Read/unregister nonreturn retains the exact metrics Job and adapter dependencies, but not the IO dispatcher or caller-owned upstream threads, under the metrics root. |
+| Metrics scope, parent Job, collector child, and IO view | `CaptureMetricsOwner`; the Section-7.2 scope owns one collector child on a distinct per-Session metrics IO view, which serializes built-in registration, reads, emission, and unregister. The process Main-Looper Handler routes built-in callbacks only. | Terminal cancels the parent outside gates. Built-in cleanup closes its signal and unregisters on metrics IO. The IO view and Main Looper/Handler are non-owned and have no shutdown step. | Final parent completion is the metrics-lifecycle receipt. An entered nonreturn retains the exact metrics branch and built-in collection dependencies; the shared IO runtime, process Main Looper/Handler, and Session Android HandlerThread remain outside cleanup ownership. |
 | `Dispatchers.Default` | Non-owned Kotlin runtime service used only for controller-drainer dispatch. | Never close, cancel, or quarantine the dispatcher itself. Session records own only controller submissions and their cells. | A Session controller-submission return/rejection and drainer return are the evidence. The global dispatcher never enters `SessionQuarantineRoot`. |
 
 All owned-resource shutdown calls and completion publication occur outside controller/settlement gates. A
@@ -172,9 +172,9 @@ depend solely on the rejected signal.
 
 ### 4.2 Public commands
 
-- `create` performs bounded config validation, constructs the controller's all-zero observation cells and
-  publication adapter, the empty quarantine root, and the one-shot Session facade. It retains the application context except for the documented UI metrics
-  association.
+- `create` performs bounded config validation, constructs the all-zero observation cells, publication adapter,
+  empty quarantine root, and one-shot Session facade, and retains the normalized application Context and
+  configured provider value. Metrics ownership begins only after accepted startup under Section 7.2.
 - `start` validates input parameters before attempting acceptance. Under `sessionGate`, exactly one call changes
   `NotStarted` to `Starting`, assigns the first nonzero desired revision, and transfers only its projection.
   Losers throw without inspecting or retaining their projections. The accepted caller waits on a Session-owned
@@ -280,7 +280,7 @@ The seven private names and their numeric literals are owned exclusively by
 | `initialCapturedResizeReadinessNanos` | API 34–37 only, from complete normal nonnull VirtualDisplay-owner publication to the first authoritative resize. The Android worker fixes `S`/`D` with that publication; an earlier resize retains its own `T`. Timely resize wins; missing/late resize is startup `CaptureUnavailable`. |
 | `androidEnteredOperationSafetyNanos` | One deadline per nonterminal projection registration, VirtualDisplay create/resize/setSurface, preterminal target-listener installation/removal call, or preterminal Surface release logical call. Timely typed return applies; expiry/late return selects existing `InternalFailure`, and a late normal release/removal is cleanup receipt only. Post-terminal listener removal and Surface release use the same occurrences without watchdogs. |
 | `glEnteredOperationSafetyNanos` | One deadline per finite EGL/GL construction-validation, materialized-frame GL, or preterminal incompatible-scope destruction occurrence. Expiry/late result is unsafe `InternalFailure`; late pixels/receipts cannot authorize fallback or reuse. |
-| `jpegEnteredOperationSafetyNanos` | One deadline for the complete preterminal Native preparation operation, one per complete Framework encode transaction or Native encode, one per preterminal Bitmap recycle, and one per preterminal incompatible-`NativeMallocCarrier` free occurrence. Expiry/late result is `InternalFailure`; late preparation cannot select carrier/backend or publish owners, late bytes cannot publish or alter health, and a late normal carrier-free return is cleanup-only. Terminal-origin or terminal-converted carrier free uses the same occurrence without a watchdog. |
+| `jpegEnteredOperationSafetyNanos` | One deadline for complete Native preparation; combined `FrameworkResourceCreationOccurrence`; each Framework/Native encode; each preterminal Bitmap recycle or incompatible-native free; and each distinct native or managed replacement-allocation occurrence. Expiry/late result is `InternalFailure`; late preparation/resources/bytes cannot install, publish, or alter health, and late free/allocation evidence is cleanup-only. Terminal-origin or converted recycle/free uses the same occurrence without a watchdog. |
 | `maxOldGlErrorsPerFrame`, `maxFinalGlErrorsPerFrame` | Bound the respective preserved nonzero-error drain followed by one sentinel probe. A nonzero sentinel proves uncleared state and uses existing unsafe GL `InternalFailure`. |
 
 Every deadline uses checked `D = Math.addExact(S, C)` after requiring positive `C`, nonnegative `S`, and a
@@ -294,51 +294,63 @@ caller-dispatch duration; entered application callbacks; blocking or Unconfined 
 scheduler progress; public Flow/diagnostic publication; every post-terminal cleanup call/completion; and terminal
 or terminal-converted listener removal, Surface release, Bitmap recycle, and `NativeMallocCarrier` free. Queued
 engine work has no queue-start deadline.
-Terminal-before-entry converts the same occurrence to no-watchdog cleanup; terminal-after-entry retires its active
-deadline and transfers the unresolved record intact. The public callback-entry and Stats-cadence values remain
-exactly those in Documents 01–02.
+Terminal-before-entry normally converts the same occurrence to no-watchdog cleanup; terminal-after-entry retires
+its active deadline and transfers the unresolved record intact. The public callback-entry and Stats-cadence
+values remain exactly those in Documents 01–02.
+
+`FrameworkResourceCreationOccurrence` is the allocator-only exception: terminal cancels it before entry, when
+its empty partial-owner bag has no release work, so the allocator does not run. After entry, terminal transfers
+the intact occurrence, worker, evidence, and bag; an acquired Bitmap follows its exactly-once recycle occurrence.
+
+Finite JPEG operations may occur consecutively, but each arms a fresh occurrence-specific window; Document 07
+is the sole authority for its value and for the absence of any compound deadline or product timing guarantee.
 
 ## 6. Reconciliation, allocation decisions, and owner reuse
 
-`SessionController` owns the one latest desired/revision cell, latest combined geometry cell, current topology and
-plan, capture availability, lifecycle epoch, target/native health facts, and the sole reconciliation occurrence.
-For that occurrence it passes one immutable snapshot to the controller-confined `ReconciliationOwner`; the
-helper synchronously returns a pure resolution/compatibility/transition calculation. The exact frozen key plus a
-private nonreused occurrence identity remains controller-owned. Only the controller validates currentness,
-commits a decision, and emits owner commands after unlocking; the helper never stores authority or redirects
-entered work.
+`SessionController` owns the latest desired/revision and geometry cells, topology/plan, availability, lifecycle
+epoch, target/native health, frozen nonreused key, and sole reconciliation occurrence. Its immutable snapshot
+lets controller-confined `ReconciliationOwner` synchronously calculate checked geometry, target planning,
+compatibility, and the smallest transition; only the controller validates currentness, commits, and emits
+unlocked owner commands. Calculations use checked `Long` intermediates, explicit narrowing, and actual owner
+identity/health/generation/leases/shape—not historical effective values—as topology evidence.
 
-The pure resolver performs checked geometry and target planning exactly in 02 §§1.3 and 5, using checked `Long`
-intermediates and explicit narrowing. It then inspects actual owner identity, health, generation, leases, and
-shape compatibility. A historical effective value is not topology evidence.
+After initial EGL bind, `GlPipelineOwner` retains one immutable capability fact containing positive
+`GL_MAX_TEXTURE_SIZE`, both positive `GL_MAX_VIEWPORT_DIMS` components, and Section-8 fragment precision. With
+`maxW = min(GL_MAX_TEXTURE_SIZE, GL_MAX_VIEWPORT_DIMS[0])` and
+`maxH = min(GL_MAX_TEXTURE_SIZE, GL_MAX_VIEWPORT_DIMS[1])`, reconciliation requires target and output dimensions
+within those per-axis bounds before irreversible retirement. Failure takes existing startup `ResourceExhausted`
+or pre-retirement `Suspended(ResourceExhausted)` without doomed allocation.
 
-After the initial valid EGL bind, `GlPipelineOwner` queries and retains one immutable Session capability fact:
-positive `GL_MAX_TEXTURE_SIZE`, positive width and height components of `GL_MAX_VIEWPORT_DIMS`, and the fragment-
-precision selection from Section 8. Let `maxW = min(GL_MAX_TEXTURE_SIZE, GL_MAX_VIEWPORT_DIMS[0])` and
-`maxH = min(GL_MAX_TEXTURE_SIZE, GL_MAX_VIEWPORT_DIMS[1])`. Before any irreversible retirement,
-reconciliation requires both `Tw <= maxW` and `Th <= maxH`, and both `Ow <= maxW` and `Oh <= maxH`. A plan that
-deterministically fails this preflight allocates no doomed target or output resource and takes the existing
-startup `ResourceExhausted` or Running pre-retirement `Suspended(ResourceExhausted)` path. It creates no
-Downscaled compatibility fallback or runtime-selection axis.
+`FrameworkResourceCreationOccurrence` is eligible only for a nonterminal, current nonreused topology key after
+Framework selection and Native `Disabled`, with fixed checked output shape, no healthy exact-compatible
+Framework resources, and no existing creation occurrence. `FrameworkOnly` and clean Native ineligibility reach
+this gate after carrier/backend selection and before first `Active`.
 
-The transition order is:
+A completely published timely safe Native failure with a current health occurrence is settled once as
+`byFailure`. The same `sessionGate -> settlementGate` commit disables Native, advances lifecycle epoch, closes
+affected fresh/repeat/new-delivery admission, fences obsolete backend/frame identities, invalidates cache/repeat,
+and commits authoritative `Running(Suspended(Reconfiguring))`; end-of-turn State/Stats publish that snapshot and
+entered delivery continues. Current- and stale-key failures use this health commit; stale work publishes no
+output or lifecycle failure and reconciliation uses the latest key. Late/expired/retired-health evidence is
+cleanup-only, while terminal retains priority.
 
-1. keep the old healthy output active before the irreversible boundary when allowed;
-2. close only affected admission and drain entered affected work;
-3. fence the old work identity and invalidate cache/repeat for image-affecting changes;
-4. retain every healthy exact-compatible target, render target, carrier, Bitmap/scratch, and JPEG owner;
-5. logically retire only the smallest incompatible scope, then physically settle its releases;
-6. allocate the required replacement only after the required retirement receipts;
-7. commit Active only for a still-current key and complete healthy live topology.
+Reconciliation holds `Suspended(Reconfiguring)` through later Framework creation and installation; the switching
+frame receives no Framework allocation or retry. `Active` and affected admission reopen only after gated install
+of a complete healthy `FrameworkJpegOwner` for the still-current key.
 
-No normal replacement owns two healthy pipelines. Target replacement retires target physical dependents but does
-not by itself retire shape-compatible output texture/FBO, carrier, Bitmap/scratch, or JPEG owners. Same-shape
-reuse preserves object identity.
+Transitions retain exact-compatible owners and old healthy output until the smallest irreversible boundary,
+close/drain only affected work, fence obsolete identities, invalidate image-dependent cache/repeat, retire only
+incompatible scope, await physical receipts, then allocate. Same-shape owners preserve identity; target
+replacement alone leaves compatible output texture/FBO, carrier, Bitmap/scratch, and JPEG owners intact, and
+normal replacement never owns two healthy pipelines.
 
-All feasibility decisions use checked representation, documented API/backend limits, and actual allocation or
-creation results. The implementation does not query available-memory headroom or estimate opaque GPU/gralloc
-storage. The startup, pre-retirement suspension, post-retirement terminal, safe-stale, and ambiguity partitions
-are applied exactly as specified. Every allocation transfers immediately into a typed partial-construction owner.
+An incompatible Bitmap shape closes its uses and leases and enters the one-shot recycle occurrence. Only a timely
+normal receipt followed by a fresh gated nonterminal/current-key recheck may create the replacement; historical
+A-to-B-to-A equality or an intervening target replacement cannot make stale creation current.
+
+Feasibility uses checked representation, documented API/backend limits, and actual allocation/creation results,
+not predicted opaque memory headroom. Every allocation transfers immediately into a typed partial owner; existing
+startup, pre-retirement suspension, post-retirement terminal, safe-stale, and ambiguity partitions apply.
 
 ## 7. Android capture, metrics, and target
 
@@ -360,11 +372,11 @@ The Android/target binding is exact:
 | Boundary and lane | Exact calls/arguments | Result, order, and late rule |
 | --- | --- | --- |
 | projection callback, Android Handler | `projection.registerCallback(callback, androidHandler)` once before VirtualDisplay creation; cleanup calls `projection.unregisterCallback(callback)` once. The adapter implements resize, visibility, and `onStop` only for its captured Session epoch. | Normal registration return is required startup receipt. A timely throw uses the Android operation classification. Unregister normal return is the callback-release receipt; late return is cleanup-only. |
-| VirtualDisplay creation, Android Handler | `projection.createVirtualDisplay("ScreenCaptureEngine", W, H, densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, null)` exactly once. `W/H/densityDpi` use the API-band authority above. | Nonnull normal return publishes the sole display owner. Null or `SecurityException` is `CaptureUnavailable`; direct `OutOfMemoryError` is `ResourceExhausted`; `IllegalStateException` or any other throwable is `InternalFailure`. A late nonnull owner is cleanup-only and must still be released. |
+| VirtualDisplay creation, Android Handler | Its operation signature accepts the installed `CurrentTarget` and calls `projection.createVirtualDisplay("ScreenCaptureEngine", W, H, densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, target.surface, null, null)` exactly once; its owner bag retains that target. | Nonnull normal return publishes the sole display owner. Null or `SecurityException` is `CaptureUnavailable`; direct `OutOfMemoryError` is `ResourceExhausted`; `IllegalStateException` or any other throwable is `InternalFailure`. A late nonnull owner is cleanup-only and must still be released. Safely unentered/inapplicable or returned-no-owner evidence proves no producer; a possibly mutating throw does not. |
 | VirtualDisplay mutation, Android Handler | Density/size reconciliation calls `virtualDisplay.resize(W, H, densityDpi)`; target attach calls `virtualDisplay.setSurface(surface)`; detach calls `virtualDisplay.setSurface(null)`. Terminal cleanup calls `virtualDisplay.release()`, then after its receipt calls `projection.stop()`. | Each call owns its typed normal/throw cell. Only timely current normal resize/attach/detach may authorize reconciliation. Normal detach or applicable display-release return is the producer-detach receipt; late normal returns advance cleanup only. Projection stop has no authority to fabricate `CaptureEnded`. |
-| target construction, GL lane then Android Handler | With the exact context current and the Section-6 per-axis texture/viewport preflight satisfied, create OES, call `SurfaceTexture(oes, false)`, `setDefaultBufferSize(Tw, Th)`, and `Surface(surfaceTexture)`. Before producer attach, the Android Handler enters one `androidEnteredOperationSafetyNanos` occurrence and calls `setOnFrameAvailableListener(listener, androidHandler)`. | Every returned object immediately enters `CurrentTarget`; partial construction keeps exact reverse cleanup. A direct `Surface.OutOfResourcesException` from either `SurfaceTexture` or `Surface` construction is an actual mandatory allocation `ResourceExhausted` under the existing startup/after-retirement rules. Any other unexpected constructor failure is `InternalFailure`. Only timely normal listener-install return permits attach; throw/expiry is existing `InternalFailure`, and late return is cleanup-only. A current-generation listener callback performs `pendingSource.set(true)` and then uses the lossless controller-drainer signal; it has no consume or materialization authority. |
+| target construction, GL lane then Android Handler | With exact context current and Section-6 preflight satisfied, create OES, call `SurfaceTexture(oes, false)`, `setDefaultBufferSize(Tw, Th)`, and `Surface(surfaceTexture)`. Only after installation does the Handler install the listener before producer attach. | Each return is adopted immediately by the occurrence-local `PreparedTarget`; partial construction keeps exact cleanup. Direct `Surface.OutOfResourcesException` is mandatory-allocation `ResourceExhausted`; other unexpected failure is `InternalFailure`. Timely current completion installs its precreated `CurrentTarget` allocation-free; only that target may install/listen/attach/acquire leases. |
 | target acquisition, GL lane | For one materialized current frame call `updateTexImage()`, then `getTransformMatrix(precreatedFloat16)` using the one precreated 16-element array, and on API 33+ `getDataSpace()`. | All three calls remain inside the one GL frame occurrence. No callback timestamp controls pacing; a throw/error/late result follows the existing GL partition and publishes no pixels. |
-| target retirement, Android Handler then GL lane | Handler enters one listener-removal occurrence, calls `setOnFrameAvailableListener(null, androidHandler)`, and after normal return posts the same-Handler sentinel. It uses `androidEnteredOperationSafetyNanos` only preterminal; post-terminal/converted cleanup has no watchdog. After sentinel, detach/release receipt, closed admission/drained work, and zero leases, GL calls `surface.release()`. Only its normal receipt permits `surfaceTexture.release()`, then OES unbind/delete. | Each normal return is distinct. Timely preterminal removal may advance retirement; expiry/late return is existing `InternalFailure` with late normal receipt cleanup-only. Throw/nonreturn preserves residue. No later receipt substitutes for listener removal, Surface, or SurfaceTexture receipt. |
+| target retirement, Android Handler then GL lane | Installed targets remove listener and post the same-Handler sentinel. Shared readiness then admits `surface.release()` for either the installed prerequisite set (including detach/release or typed safe no-producer proof) or a construction-settled, cleanup-claimed uninstalled target structurally lacking listener, producer, and lease. | Applicable Surface normal return under the Android deadline, or structural Surface absence in a partial bag, permits one distinct GL-deadline destruction occurrence spanning `surfaceTexture.release()` normal receipt then OES unbind/delete. Terminal conversion removes its watchdog. Missing partial resources are skipped without fabricated receipt; throw/nonreturn roots only exact remaining obligations. |
 
 Every Android outward call has a generic typed occurrence. Section 13 owns the cleanup root; locally, the fixed
 subchain is callback unregister -> VirtualDisplay release -> projection stop. Throw records failure and advances;
@@ -372,50 +384,95 @@ nonreturn blocks only its suffix.
 
 ### 7.2 Metrics
 
-Accepted start first creates the metrics readiness occurrence, observe-return cell, collection-entry cell,
-first-tuple cell, collector-return cell, owner bag, and exactly one standalone retained collector `Job`. Under
-`sessionGate -> settlementGate` it attaches the provider and atomically fixes first-readiness `S` and `D` with
-accepted attachment ownership before any metrics fact publication; the same gated commit samples `S` and
-calculates checked `D`. Only then does exactly one collector coroutine on the Session's non-owned
-`Dispatchers.IO.limitedParallelism(1)` view call `CaptureMetricsProvider.observe()` once and, if still allowed,
-`collect` the returned Flow. The structural parallelism value means one engine collector, not a configuration or
-tunable runtime pool. The retained Job has no supervisor parent or separate scope receipt.
+`ScreenCaptureConfig.kt` owns module-`internal` immutable `BuiltInCaptureMetricsDefinition`, implementing the
+public provider interface directly. `fromDisplay` returns its fixed-display instance; null configuration creates
+one Session-private internal default-display instance. Both expose a cold Flow and use the one engine-private
+`Handler(Looper.getMainLooper())` for `DisplayListener` callback delivery on API 24–37. The Handler and Looper are
+non-owned process-lifetime routing outside Session dispatch and cleanup ownership.
 
-A normal late getter return first publishes the returned Flow into its precreated cell, then rechecks the exact
-metrics occurrence/domain under `settlementGate`. If terminal or active-to-cleanup transfer already won, it never
-starts `collect`; the same coroutine exits through its `finally`, and the Flow/provider/job settle only through
-that cleanup record. Otherwise the same sole job
-commits collection entry and collects. A caller-supplied `flowOn` or private upstream thread remains caller/Flow
-owned; the engine owns only its collector job and references, and never closes or quarantines that executor.
-Collection `finally` is the sole mechanical collector-return receipt. Cancellation is intent only. A valid first
-tuple satisfies readiness but does not release the Flow/provider/job.
+Every collection independently owns its listener, conflated signal, epoch bit, cache, and cleanup state.
+Registration, reads, emission, signal close, and unregister run in its upstream context—the Session metrics IO
+view for engine collection. The Main callback performs only the O(1) identity/fence check, applicable sticky-bit
+update, and conflated signal. Accepted startup attaches the exact configured provider, or creates and attaches
+the internal default-display built-in from the retained application Context. All provider kinds use this direct
+path; reused built-ins have independent collection state and custom providers retain exact identity.
 
-Each built-in owns one local `Channel<Unit>(Channel.CONFLATED)`. On the metrics IO view it registers before
-seeding the first signal, then for each received token performs one fresh complete platform read and emits one
-immutable result. A callback during a read leaves one later token; storms remain one token. Callbacks only
-`trySend(Unit)` and never read metrics or touch owner/controller state; closed-signal failure is cleanup-only.
-There is no adapter mutex, reread state machine, Handler post, or metrics sentinel.
+The metrics owner creates the readiness occurrence, precreated Flow/outcome/completion cells, and owner bag. It
+uses one explicit plain `parentJob = Job()`, one
+`metricsScope = CoroutineScope(parentJob + metricsIoView)`, and exactly one precreated
+`metricsScope.launch(start = CoroutineStart.LAZY)` collector child. Parent and child completion handlers are
+installed before attachment. Under
+`sessionGate -> settlementGate`, attachment transfers the effective provider, still-empty Flow cell, scope,
+parent, unstarted child, other cells, and readiness `S/D`; `child.start()` runs only after unlock.
 
-Except for API-30+ `fromUiContext`, every built-in uses one exact-display `DisplayListener`: on the IO view it
-calls `registerDisplayListener(listener, androidHandler)`; the Handler is callback-delivery only. The listener
-captures selected ID, signal, and immutable token, filters that ID, and signals. Cleanup fences authority, closes
-the signal, and calls exact-identity `unregisterDisplayListener(listener)` on the IO view. Unregister normal return
-is still its sole receipt; throw or nonreturn retains the listener, DisplayManager, and Handler reference in the
-metrics residue and never fabricates that receipt.
+The child calls `observe()` exactly once and publishes its raw return into the precreated cell. A null interop
+result publishes unusable-Flow failure. A nonnull Flow is thereby adopted before the child rechecks the occurrence
+domain: cleanup wins prevent collection entry; otherwise that same child records entry and collects until normal
+completion, classified failure, or terminal cancellation. First readiness does not end ownership; provider and
+returned Flow remain rooted until final parent completion.
 
-| Factory | Retained association | API 24–29 fresh read | API 30–37 fresh read |
-| --- | --- | --- | --- |
-| null config | Application Context; each read reselects `Display.DEFAULT_DISPLAY` through `DisplayManager` and rejects null. | Fresh `createDisplayContext(display)`; `display.getRealSize(Point)` and that Context's Configuration density. | Fresh display Context then `createWindowContext(TYPE_APPLICATION, null)`; that window Context's `maximumWindowMetrics.bounds` and display Context Configuration density. |
-| `fromActivityDisplay` | Snapshot `defaultDisplay` on API 24–29 or nonnull `activity.display` on API 30–37, create and retain one application-safe display Context, and on API 30–37 create and retain one window Context from it; then drop Activity. Later moves are irrelevant. | On every read use the fixed Display's `getRealSize(Point)` and the retained display Context's current Configuration density. | On every read use the retained window Context's current `maximumWindowMetrics.bounds` and the retained display Context's current Configuration density. |
-| `fromDisplay` | From the Application Context and exact explicit Display, create and retain one application-safe display Context and, on API 30–37, one window Context from it; never switches Display. | On every read use the fixed Display's `getRealSize(Point)` and the retained display Context's current Configuration density. | On every read use the retained window Context's current `maximumWindowMetrics.bounds` and the retained display Context's current Configuration density. |
-| `fromUiContext` | API 24–29 unwraps Activity or throws documented `IllegalArgumentException`, snapshots `defaultDisplay`, then drops UI objects. API 30–37 validates and retains the exact real UI Context. | Each read creates a fresh application-safe display Context for the snapshotted Display, uses `display.getRealSize(Point)`, and reads that Context's current Configuration density. | On every read require `context.display`, and on API 31+ `context.isUiContext`; use that retained Context's own `WindowManager.maximumWindowMetrics.bounds` and `context.resources.configuration.densityDpi`. API-30 association/read failure is a metrics boundary failure; never substitute an application-derived Context chain. |
+`observe()` and `collect` have separate `catch (Throwable)` boundaries. A caught `CancellationException` first
+calls `currentCoroutineContext().ensureActive()`: Job cancellation propagates, while an active Job classifies the
+original provider exception as `InternalFailure` with its raw cause. Other provider boundary throws receive that
+same classification. Normal upstream completion and classified failures publish exact facts and let the child
+exit normally; results after active-to-cleanup transfer are cleanup-only.
 
-API-30+ `fromUiContext` instead registers exact `ComponentCallbacks` on the retained Context from the IO view.
-Arbitrary-thread `onConfigurationChanged` only signals; `onLowMemory` is a no-op and not a memory-policy input.
-Cleanup closes the signal and unregisters exact identity on the IO view. Contexts used
-by the null/default and API-24–29 `fromUiContext` paths are transient read helpers. The retained safe display and
-window Contexts for `fromActivityDisplay` and `fromDisplay` preserve their fixed association without retaining an
-Activity; the API-30+ `fromUiContext` path retains the exact real UI Context as required.
+The child completion handler only and unconditionally calls `parentJob.complete()`. Terminal cancels only the
+parent, outside every gate. The parent completion handler only fills its precreated cell and makes the lossless
+nonblocking drainer wake; both handlers are fast, nonblocking, nonthrowing, thread-safe, allocation-free, take no
+engine gate, and cross no application/platform/owner boundary. Final parent completion is the sole metrics-
+lifecycle receipt, including cancel-before-entry. A nonreturn roots the exact metrics branch; caller Flow threads
+and the non-owned IO dispatcher remain caller/runtime owned.
+
+Each built-in collection registers one exact-display listener with the engine-private Main-Looper Handler, seeds
+a local `Channel<Unit>(Channel.CONFLATED)`, then serially performs one complete read and immutable emission per token.
+Session work uses metrics IO; direct collection uses its upstream context. Callbacks are O(1): for the selected
+ID, change queues `trySend(Unit)`; add/remove first sets the sticky epoch bit and then signals. A callback during a
+read leaves at most one pending token.
+
+The built-in associations are:
+
+| Factory | Retained association and epoch selection |
+| --- | --- |
+| null config, internal | Application Context and `DisplayManager`; seed/recovery resolves the current nonnull `Display.DEFAULT_DISPLAY`. |
+| `fromDisplay(context, display)` | Normalized nonnull Application Context, its `DisplayManager`, and the exact Display/ID; another Display is never substituted. |
+
+For API 24–29, every complete read creates a transient `createDisplayContext(epochDisplay)`, calls
+`epochDisplay.getRealSize(Point)`, and reads density from that Context. API 30–37 caches one window Context and
+its `WindowManager` per continuous valid-display epoch, reads `maximumWindowMetrics.bounds`, and still creates a
+transient display Context for every density read. API 30 derives the cached window Context with
+`displayContext.createWindowContext(TYPE_APPLICATION, null)`; API 31–37 uses
+`applicationContext.createWindowContext(epochDisplay, TYPE_APPLICATION, null)`.
+
+The explicit Display is metrics authority only; the caller matches it to the MediaProjection source. API 34–37
+projection resize supersedes provider width/height, while provider density remains authoritative. Specialized
+window, Activity-recreation, or dynamic policies use a custom provider.
+
+Each token begins with the single atomic exchange
+`boundary = epochInvalidated.getAndSet(false)`. When `boundary` is true, that token is a separate boundary pass:
+it retires the current epoch and cached window objects if present, publishes the selected Display as unavailable
+once in the latest-value state, queues one conflated recovery token, and does not resolve or install a new epoch.
+Epoch installation occurs only in a later recovery/read pass and never clears `epochInvalidated`. Therefore a
+remove/add callback that sets the bit after the opening exchange survives for the next token rather than being
+erased by installation.
+
+A read/recovery pass starts an epoch only after resolving the selected nonnull Display, requiring
+`display.isValid`, and, on API 30+, successfully constructing its one cached window Context/`WindowManager`.
+Every complete read checks the same selection and `epochDisplay.isValid` before and after all field reads, then
+checks the sticky boundary bit without consuming it. If final validity, selection, or boundary validation fails,
+the collection suppresses the candidate, retires that epoch, publishes unavailable once, and ensures one conflated
+recovery wake; the sticky bit remains for the next token's opening exchange. A null lookup similarly publishes
+the boundary loss and retains one recovery path, while a later selected-ID add supplies a wake. These retirement
+and unavailable actions are idempotent when the next boundary pass observes an epoch already retired. A
+successful final sticky-bit check is the candidate's epoch-validation linearization point: a boundary set after
+that check is later than the candidate, remains sticky, and drives the separate boundary pass.
+
+An ordinary selected-ID `onDisplayChanged` only adds a complete-reread token. If it races a read, the current
+candidate may publish when both validity checks and the sticky-boundary check pass, and the queued token then
+performs the required complete reread. The current epoch/window objects remain intact. Consequently window
+Context creation is once per continuous valid-display epoch, while the lightweight display Context is transient
+on every complete density read.
+
 On API 34–37 provider bounds remain provisional while provider density stays live; the first timely valid
 projection resize makes projection width/height authoritative. The projection resize, visibility, and stop
 adapters are registered once on the Android Handler by `AndroidCaptureOwner`; their bodies post occurrence-tagged
@@ -423,32 +480,39 @@ immutable facts on that Handler.
 
 Each provider or projection geometry fact updates only its API-table fields. A valid combined tuple gets a new
 geometry revision before replacing the latest cell; overwritten unclaimed values are superseded rather than
-queued. Display removal, null display lookup, invalid tuple, observe/collect throw, and unexpected Flow completion
-publish the exact boundary cause into the metrics cells.
+queued. Display removal, null display lookup, invalid tuple, observe/collect throw, and Flow normal completion
+publish the exact boundary outcome and its raw cause when one exists into the metrics cells.
 
-Built-in cleanup closes the signal before exact IO-view unregister. Registration return, unregister return,
-collector `finally`, and Handler-thread return are distinct receipts. Registration failure maps to pre-first-value
-`InternalFailure` and still attempts exact unregister. Because unregister is inside Flow cleanup, its nonreturn
-prevents collector return; its throw permits collector return but leaves the exact listener/DisplayManager/Handler
-reference residue. Unexpected Flow completion publishes its boundary fact and separate `finally`.
+Terminal fences metrics authority and closes the signal before exact metrics-IO
+`unregisterDisplayListener(listener)`; normal return is its receipt. Registration failure is pre-first-value
+`InternalFailure` and still attempts unregister. Unregister nonreturn prevents child/parent completion; throw
+permits settlement. Either residue is limited to the exact listener, `DisplayManager`, Main callback Handler
+reference, and collection dependencies, while Session Android shutdown and independent cleanup progress.
 
-Cancellation remains intent only. A blocking read is domain-fenced; late return can only enter cleanup, while
-nonreturn does not block projection/controller/other Sessions. Once terminal fencing, signal close, and all
-Android-owned work settle, `quitSafely` may proceed regardless of unresolved metrics unregister. A callback that
-runs after fencing or after quit was requested can only fail to signal or publish a stale token; it has no
-authority. Section 13 owns the exact metrics residue. First validity retains collection ownership. Pre-Active
-loss uses the frozen terminal mapping; later loss suspends. Resize/visibility facts remain epoch-fenced and
-visibility observation-only.
+A framework post from a listener snapshot captured before unregister may reach the Main queue afterward; the
+collection fence makes its callback inert. Direct collection uses the same close-before-unregister order and
+ordinary Flow completion. A blocking read is domain-fenced and its late return is cleanup-only. First validity
+does not end collection ownership. Pre-Active loss uses the frozen terminal mapping; later loss suspends;
+resize/visibility facts remain epoch-fenced and visibility remains observation-only.
 
 ### 7.3 Current target and Surface release
 
-The table above is canonical for target construction/retirement and the two listener occurrences. `CurrentTarget`
-retains logical ownership while GL borrows it. Surface-release entry requires closed admission, drained work,
-fenced generation, timely-preterminal or no-watchdog-cleanup listener removal and sentinel, exact producer
-detach/release, and zero leases; retired facts cannot satisfy these. Its sole typed
-`Surface.release()` occurrence uses the Android deadline only preterminal. Only normal return permits dependent
-SurfaceTexture/OES destruction; late normal return is cleanup-only, and throw supplies no receipt. Downscaled-to-
-Full fallback requires safe returned incompatibility, never timeout or ambiguity. Section 13 owns residue.
+Before construction, `TargetOwner` reserves a checked nonreused generation and precreates one occurrence-local
+`PreparedTarget` bag containing partial resource slots, a private `CurrentTarget` candidate, and their shared
+Surface-release/destruction obligations. Each constructor return is adopted immediately. Settlement atomically
+makes exactly one claim, `Installed` xor `CleanupClaimed`; timely current `Installed` transfers the candidate
+allocation-free, while every non-installing result takes `CleanupClaimed`. These are private ownership facts, not
+public lifecycle/state axes. Generation gaps are legal, and no later candidate is created until cleanup finishes or its
+exact nonreturn residue is rooted.
+
+Only `CurrentTarget` crosses Android/listener/producer/lease/frame boundaries; `acquireLease` requires `Installed`,
+and `PreparedTarget` never acquires a carrier lease. Installed Surface readiness uses the existing closed
+prerequisites, allowing exact producer detach/release or typed safe no-producer evidence from an inapplicable,
+safely unentered, or returned-no-owner create/attach operation; a possibly mutating throw remains unsafe.
+Uninstalled readiness instead requires construction settlement, `CleanupClaimed`, and structural absence of
+listener, producer, and target leases. Both routes use the same typed Surface occurrence and dependent destruction
+obligations in the table; stale/late/terminal construction publishes nothing. Downscaled fallback still requires
+safe returned incompatibility, never timeout or ambiguity. Section 13 owns residue.
 
 ## 8. EGL, GLES2, Direct readback, and color
 
@@ -563,7 +627,7 @@ and a lease transition, and performs no readback or encode. Suspending/image-aff
 cache and repeat eligibility exactly as frozen. Cached-first delivery reserves the normal handoff, preserves
 metadata and bytes, and does not update production or pacing phase.
 
-## 10. JPEG runtime, Framework adapter, native bridge, and storage
+## 10. JPEG runtime, Framework path, native bridge, and storage
 
 ### 10.1 Combined runtime owner and carriers
 
@@ -572,8 +636,8 @@ stable products are:
 
 - `NativeMallocCarrier` with Native enabled by guarded AndroidBitmap capability and no Framework Bitmap or row
   scratch;
-- `NativeMallocCarrier` with Native disabled and the common Framework adapter;
-- managed direct carrier with Native disabled and the common Framework adapter.
+- `NativeMallocCarrier` with Native disabled and Framework JPEG;
+- managed direct carrier with Native disabled and Framework JPEG.
 
 The Kotlin `NativeMallocCarrier` owner holds one checked `malloc` allocation, address, exact-range direct
 ByteBuffer view, leases, and one typed one-shot free occurrence. The managed direct carrier owns one checked
@@ -586,19 +650,39 @@ optional row scratch only after Framework has actually been selected: by `Framew
 ineligibility, or a safely completed Native disablement for a subsequent frame. The Native failure/switching
 frame performs no Framework allocation or work and receives no same-frame Framework retry.
 
-`JpegRuntimeOwner` submits each preparation, encode, recycle, or carrier-free operation as one non-suspending
-owner Runnable on its JPEG IO view. The view serializes those Runnables but owns none of their operation,
-submission, entry, return, deadline, carrier, Bitmap, transaction, or native-residue state.
+`JpegRuntimeOwner` submits each preparation, `FrameworkResourceCreationOccurrence`, encode, recycle,
+carrier-free, or concrete replacement-allocation wrapper as one non-suspending owner Runnable on its JPEG IO view. The
+view serializes those Runnables but owns none of their operation, submission, entry, return, deadline, carrier,
+Bitmap, transaction, or native-residue state.
 
 After every lease and entered use has settled, retirement of an exact-incompatible `NativeMallocCarrier` before
 terminal consumes that carrier into a one-shot free occurrence and submits its existing owner Runnable. Entry
 while nonterminal uses `jpegEnteredOperationSafetyNanos`. A timely normal `nativeFreeCarrier` return is the sole
-free receipt and permits the old owner to be dropped before replacement allocation. A winning submission
+free receipt and permits the old owner to be dropped. A winning submission
 rejection, returned throw, expiry, or nonreturn selects the existing `InternalFailure`, retains the exact
 carrier/ByteBuffer/occurrence residue, authorizes no replacement, and never retries the free call. A normal return
 settled at or after the deadline, or after expiry, is usable only as cleanup evidence.
 
-If terminal wins before that same occurrence enters, it converts to the existing no-watchdog cleanup domain
+Two distinct concrete wrappers, `NativeCarrierReplacementAllocationOccurrence` and
+`ManagedDirectCarrierReplacementAllocationOccurrence`, each back exactly one generic `OperationOccurrence` with
+`NativeCarrierReplacementAllocationEvidence`/`NativeCarrierReplacementAllocationOwnerBag` or
+`ManagedDirectCarrierReplacementAllocationEvidence`/`ManagedDirectCarrierReplacementAllocationOwnerBag`, and
+are constructible only by their sole private factory; there is no combined wrapper or cast. After the separate
+native free receipt, the native factory performs the fresh nonterminal/current/no-extant recheck and submits
+`nativeAllocateCarrier(B)` on JPEG IO with a fresh JPEG deadline. Timely current success transfers the bag's
+carrier; stale/late/terminal success enters its one-shot free.
+
+After all managed-carrier leases and entered uses drain, the controller logically detaches the incompatible old
+carrier, then performs the same fresh recheck and submits `ByteBuffer.allocateDirect(B)` through the managed
+wrapper on JPEG IO, arming the existing JPEG deadline immediately before allocation. The bag immediately owns the
+returned writable direct buffer as a `ManagedDirectCarrier`, and complete publication allocates nothing. Timely
+current success transfers it; direct `OutOfMemoryError` is `ResourceExhausted`; active rejection, other throw,
+malformed evidence, expiry, nonreturn, or uncertain ownership is `InternalFailure`. Stale, late, or terminal
+ownership is logically dropped only after occurrence settlement, with no physical receipt, manual free, or
+preparation rerun. Terminal-before-entry invokes no allocator. An exact-`B`, direct, writable compatible carrier
+is reused by identity and creates no replacement occurrence.
+
+For the carrier-free occurrence, terminal-before-entry converts it to the existing no-watchdog cleanup domain
 rather than creating another occurrence. If terminal wins after entry, arbitration first folds an already-
 complete return; otherwise it retires and cancels the active deadline wake and transfers the intact occurrence
 and carrier owner to cleanup, where mechanical return is awaited without a terminal watchdog. A carrier free
@@ -617,7 +701,7 @@ compiled runtime object code.
 
 Pipeline preparation owns one finite preterminal `OperationOccurrence` on the JPEG IO view, governed by
 `jpegEnteredOperationSafetyNanos`. Its one entered interval starts immediately before `System.loadLibrary` and
-spans own-loader serialization, `JNI_OnLoad`, bootstrap/registration, the `Auto` SDK/ABI checks, the native
+spans own-loader serialization, `JNI_OnLoad`, bootstrap/registration, the `Auto` native availability guard, the
 same-function guarded weak-address query, carrier/backend selection, and complete preparation-result publication.
 These steps never receive separate deadlines. `FrameworkOnly` does not call the weak-address query. A complete
 result at `T < D` uses the ordinary clean own-library unavailability, OOM, poison, weak-address ineligibility, and
@@ -626,7 +710,9 @@ clean-unavailability evidence is cleanup-only, cannot publish a carrier/backend 
 remain in the occurrence bag for Section 13. Terminal conversion after entry retires the deadline and keeps the
 same writable occurrence under no-watchdog cleanup.
 
-Own-library loading is serialized by one process-private synchronized loader state. It calls
+Own-library loading is serialized by one process-private synchronized loader coordinator. Before any load entry,
+the coordinator owns its state tag, first-cause field, and allocation-free publication slots; each preparation
+likewise owns its typed return/fact holder before submission. It calls
 `System.loadLibrary("screencaptureengine")` directly. `JNI_OnLoad` is version-only: it verifies
 `JNI_VERSION_1_6`, returns that version, and performs no class lookup, registration, global-reference creation,
 Session/carrier/sink/capsule ownership, or thread creation. After the load call returns normally, the private
@@ -635,8 +721,16 @@ uses `GetObjectClass(receiver)` and one fixed `RegisterNatives` table; successfu
 pending exception publishes the bridge.
 
 Only `UnsatisfiedLinkError` or `SecurityException` thrown directly by `System.loadLibrary` before bootstrap and
-with zero native owner selects the managed carrier. A direct load `OutOfMemoryError` is `ResourceExhausted`; any
-other load throwable is `InternalFailure`. Once load returns, any bootstrap/`GetObjectClass`/registration failure,
+with zero native owner selects the managed carrier. The first direct load `OutOfMemoryError` atomically stores
+`LoadOome(firstCause)` with that exact throwable in the precreated coordinator and publishes the precreated
+occurrence holder; the catch path requires no fresh allocation. `LoadOome(firstCause)` is sticky until process
+death and proves only the observed
+OOM and absence of bridge publication, not any ART, linker, or DSO state. No later preparation attempts load,
+bootstrap, carrier allocation, or managed fallback. Concurrent and future preparations that timely observe this
+state return `ResourceExhausted` with the identical first cause. A load OOM observed after the originating Session's
+deadline or terminal commit still publishes `LoadOome(firstCause)` process-wide, while that Session keeps its
+existing winner.
+Any other load throwable is `InternalFailure`. Once load returns, any bootstrap/`GetObjectClass`/registration failure,
 pending exception, or unexpected bootstrap result poisons the process loader state as terminal
 `InternalFailure`; it is never retried and never becomes clean unavailability. After successful publication,
 registered runtime operations use their own frozen result partitions and cannot retroactively change loader
@@ -707,7 +801,11 @@ The capsule owns only writer mutex/state, segments, and cleanup state. There is 
 fields in this order: writer status discriminator, total encoded bytes, managed adopted bytes, native remaining
 bytes, and native remaining segment count. Native accesses these fields explicitly rather than casting the block
 to a struct. Writer residue identity remains solely in `NativeWriterOwnerBlock`; no raw residue handle appears in
-the result block or crosses JNI.
+the result block or crosses JNI. The first word uses the Document-07 wire constants exactly: `0` = `Safe`, `1` =
+`OutOfMemory`, and `2` = `InternalFailure`; native and Kotlin use named constants, never enum ordinal, range, or
+maximum arithmetic. Native initializes all five words on every normal evidence-return path. Kotlin decodes the
+first `uint64_t` through its raw `Long` bits by exact equality. Every other bit pattern is malformed
+`InternalFailure`: no bytes publish, no Framework fallback occurs, and Native health remains unchanged.
 
 For compression, positive Kotlin width/height/stride narrow to native `uint32_t`; format/dataspace/compress-format/
 quality narrow to their signed native enum/integer fields; flags narrow from nonnegative `jlong` to `uint32_t`;
@@ -733,8 +831,9 @@ not weak, the production DSO has a direct `DT_NEEDED` dependency that may map sy
 engine DSO loads even on API 24–29 or under `FrameworkOnly`. The exact incremental resident cost of that mapping
 is unknown, disclosed, and excluded from predictive memory accounting.
 
-`FrameworkOnly` never calls the helper and never invokes the compressor. For `Auto`, Kotlin first checks the
-closed shipped-ABI rule and then calls `nativeHasWeakCompressor()` during the one preparation occurrence. Both
+`FrameworkOnly` never calls the helper and never invokes the compressor. For `Auto`, Kotlin calls
+`nativeHasWeakCompressor()` during the one preparation occurrence after the own DSO loaded and its bootstrap/
+`RegisterNatives` publication succeeded. Both
 that registered entry and `nativeCompress` use the same native helper and same function inside the nested guard:
 
 ```cpp
@@ -754,29 +853,49 @@ non-owning function value directly into the JNI-free runtime for the call; an in
 `InternalFailure` before compressor invocation. No raw pointer crosses JNI, and no writable global or Session
 native state stores it.
 
+Runtime eligibility contains no executing-ABI predicate and defines no ABI query, field, string, enum,
+`Build.SUPPORTED_ABIS`, or `Process.is64Bit()` decision. Successful own-DSO load and bridge publication are the
+structural runtime proof for the current process. Section 14's artifact inspection separately proves that the
+production DSO is packaged for exactly the four supported ABIs.
+
 The weak function is only a non-owning call target: it creates no native compressor state, handle, token, lease,
 cleanup obligation, or receipt. Native disablement therefore changes only controller health and future backend
 selection and creates no native cleanup action.
 
 ### 10.4 Framework JPEG
 
-Only after Framework selection, `FrameworkJpegOwner` may create one mutable non-HARDWARE sRGB `ARGB_8888` Bitmap
-of the exact output shape and, only when needed, one row scratch array. Native-enabled state never precreates
-either resource. `FrameworkOnly` or clean Native ineligibility permits creation after that selection; a timely
-safe Native failure first completes disablement, drops that switching frame without Framework allocation or work,
-and permits creation only for a later frame. With the carrier lease held, the adapter resets an exact-range
-ByteBuffer view. It uses the single-call buffer copy only when row bytes, byte count, position, limit, and remaining
-satisfy the frozen tight guard. Otherwise it converts one row at a time to logical opaque ARGB integers and calls
-`setPixels` for that row; it never allocates a full-frame conversion array.
+After the Section-6 eligibility check, `FrameworkJpegOwner` creates both pixel resources through one finite
+combined generic `FrameworkResourceCreationOccurrence`, separate from Native preparation, Framework encode, and
+Bitmap recycle, and governed by `jpegEnteredOperationSafetyNanos`.
 
-It calls `Bitmap.compress` into the common checked transaction `OutputStream`. True plus successful transaction
-commit is success. False discards and counts the one failed attempt without retry. Exact OOM/unrepresentable sink
-length is the specified terminal resource failure; malformed sink state, unexpected runtime failure, nonreturn,
-or ambiguous ownership is the specified terminal internal failure. Partial bytes never publish.
+Before submission, the occurrence, deadline link, submission/entry/return and evidence cells, immutable
+nonreused topology key, Framework/backend identity, and partial-owner bag are precreated. The bag has nullable
+Bitmap/scratch references, fixed actual-metadata/transfer-mode fields, and exactly-once recycle authority. The
+worker enters once and calls exactly
+`Bitmap.createBitmap(Ow, Oh, ARGB_8888)`; the occurrence owns the returned Bitmap even before the worker stores it
+in the precreated bag. All APIs inspect available actual width, height, `rowBytes`, `byteCount`, config, and
+mutability. API 24–25 code does not invoke `getColorSpace` or read/compare `Config.HARDWARE`; the exact factory
+contract supplies legacy sRGB/software proof with actual config and mutability. All API-26-only member accesses
+are dominated by the production `SDK_INT >= 26` guard; that band also checks actual color space and hardware
+eligibility. Invalid applicable evidence publishes malformed/invariant failure.
 
-Same-shape Bitmap/scratch are reused. After uses/leases settle, incompatible replacement or retirement enters one
-JPEG-IO-view recycle occurrence: bounded only preterminal, one `recycle()` call, no retry. Only normal return
-permits drop/replacement; every other outcome follows Section 13 residue rules.
+Actual metadata plus the fixed carrier range selects fast copy or portable transfer. When the real fast guard
+fails, this occurrence constructs exactly one `IntArray(Ow)` row scratch; request shape alone never predicts it.
+Complete result publication writes only precreated fields/references and allocates no wrapper or action node.
+
+On timely current success, one gated commit transfers Bitmap, optional scratch, actual metadata, and transfer mode
+from the bag into the complete healthy `FrameworkJpegOwner`, clears those bag slots, and only then permits
+`Active`. A non-install waits for creation work and occurrence settlement before dropping the final scratch
+reference; after worker ownership and Bitmap uses settle, any returned Bitmap enters exactly one recycle
+occurrence. Scratch has no physical receipt; normal `recycle()` return is the Bitmap receipt. Sections 5, 6, and
+13 own terminal conversion, result/replacement disposition, and residue.
+
+With the carrier lease held, one private synchronous method resets the exact-range ByteBuffer view. It uses a
+single-call copy only when installed actual-metadata mode and current buffer bounds satisfy the tight guard;
+otherwise it converts one row at a time through installed scratch to opaque ARGB integers and `setPixels`, never
+a full-frame array. `Bitmap.compress` writes the common checked transaction `OutputStream`; only true plus
+transaction commit publishes bytes, while false aborts and counts the attempt without retry. Section 6 owns
+same-shape reuse and recycle-to-recheck replacement; Section 13 owns residue.
 
 ### 10.5 Native descriptor, native-only callback writer, and managed adoption
 
@@ -832,9 +951,9 @@ overhead is callback-proportional, disclosed but uncapped/unpredicted; allocatio
 The precreated result cell contains present/absent compressor result, writer/JNI/transaction status, and typed
 carrier/compress/segment/adoption receipts. Precedence is ambiguity/contract/non-OOM JNI fault, then exact OOM/
 unrepresentable length, then present compressor result; adoption evidence can exist only for safe-writer SUCCESS.
-Only timely safe optional allocation failure disables
-Native for later frames, never retries the frame; stale timely safe failure may still disable current health.
-Late/expired/retired-health result is cleanup-only.
+Only a timely safe optional allocation failure for the current Native-health occurrence enters the Section-6
+atomic disable sequence, whether its topology key is current or stale; it never retries the frame. A late,
+expired, or retired-health result is cleanup-only, and a terminal winner prevents suspension.
 
 ### 10.6 Managed segmented storage
 
@@ -1020,7 +1139,7 @@ The five private timeout families bind diagnostics without new telemetry:
 | initial captured resize readiness | `MediaProjection` at the API 34–37 readiness occurrence | Semantic missing initial capture geometry action, raw timeout cause, `CaptureUnavailable`; following `SessionTerminal` reuses it. |
 | Android entered operation | `MediaProjection` for projection-callback registration or `createVirtualDisplay`, `VirtualDisplay` for `resize` or `setSurface`, and `SurfaceTarget` for preterminal listener installation/removal or Surface release | Semantic timed operation and cleanup/failure action, raw timeout cause, existing `InternalFailure`; following `SessionTerminal` reuses it. |
 | GL entered operation | `GlPipeline` at EGL/GL/readback construction, frame, or destruction occurrence | Semantic timed GL boundary/action, raw timeout cause, existing `InternalFailure`; following `SessionTerminal` reuses it. |
-| JPEG entered operation | `FrameworkJpeg` for Framework encode/recycle or `NativeJpeg` for Native preparation, JNI/native encode, or preterminal incompatible-`NativeMallocCarrier` free | Semantic timed backend or carrier-free boundary/action, raw timeout cause, existing `InternalFailure`; following `SessionTerminal` reuses it. |
+| JPEG entered operation | `FrameworkJpeg` for `FrameworkResourceCreationOccurrence`, Framework encode, Bitmap recycle, or `ManagedDirectCarrierReplacementAllocationOccurrence`; or `NativeJpeg` for Native preparation, JNI/native encode, preterminal incompatible-`NativeMallocCarrier` free, or `NativeCarrierReplacementAllocationOccurrence` | Semantic timed backend, resource, or carrier boundary/action, raw timeout cause, existing `InternalFailure`; following `SessionTerminal` reuses it. |
 
 Higher-priority terminal makes expiry cleanup-only with no timeout event. Timeout creates no mode change,
 fallback, retry, duration telemetry, parser field, or aggregate; the public six-field schema is unchanged.
@@ -1039,15 +1158,20 @@ The Android root follows its fixed subchain. The target root enforces all Surfac
 GL/EGL order. JPEG/storage separately settles encoder, transaction, carriers, Bitmap recycle, payload roles, and
 leases. Delivery retains only its unresolved cells/worker/lease residue. JPEG and delivery never shut down, await,
 or root their non-owned IO views and have no executor-termination receipt; a nonreturn roots only the exact
-Session-owned Runnable occurrence and resources it still owns. Metrics distinguishes registration, unregister,
-cancellation request, and collector return, and likewise never roots its IO dispatcher view. Unresolved
-DisplayListener unregister retains its listener, DisplayManager, and Handler reference only; it neither blocks
-Android `quitSafely` after Android-owned work settles nor gains a fabricated unregister receipt from Handler
-termination. Deadline/wake links remain children of their parent records and retire by identity.
-`NativeMallocCarrier` free, writer-owner-block token clear, writer-capsule/segment release, and managed adoption
-have typed receipts. Preterminal incompatible-carrier free uses the JPEG entered-operation boundary; terminal-
-origin or terminal-converted free uses the same one-shot occurrence without a watchdog. Only its normal return
-drops the native owner, while rejection, throw, or nonreturn retains exact residue without retry. The weak
+Session-owned Runnable occurrence and resources it still owns. Cleanup does not own or shut down the metrics IO
+view or process Main Looper/Handler. Unregister residue is limited to its exact listener, `DisplayManager`, Main
+Handler reference, collection occurrence, and dependencies; the Session Android HandlerThread progresses
+independently. Cancel-before-entry parent completion is valid metrics evidence, while an entered nonreturn
+retains the exact scope, parent, child, provider, returned Flow if any, and collection dependencies.
+Deadline/wake links remain children of their parent records and retire by identity.
+An entered `FrameworkResourceCreationOccurrence` is one cleanup root containing its worker, fixed cells,
+key/backend identity, partial bag, metadata/mode, and recycle authority; Section 10.4 defines its non-installing
+scratch drop and exactly-once Bitmap recycle.
+`NativeMallocCarrier` allocation/free, writer-owner-block token clear, writer-capsule/segment release, and managed adoption
+have typed receipts. Native free and its typed replacement allocation use distinct JPEG boundaries; only normal
+free drops the native owner, and noninstalled allocation enters one-shot free. Managed replacement has its own
+typed JPEG occurrence but no physical-free receipt: after settlement, noninstalled ownership is logically dropped.
+Rejection, throw, or nonreturn retains only its exact occurrence/owners without retry. The weak
 compressor function owns nothing and has no cleanup record.
 
 One empty `SessionQuarantineRoot` is created with the Session. Under the controller's sole nested
@@ -1127,6 +1251,10 @@ The binding relies on current official contracts, including:
 - Android capture and target APIs: [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection),
   [VirtualDisplay](https://developer.android.com/reference/android/hardware/display/VirtualDisplay), and
   [SurfaceTexture](https://developer.android.com/reference/android/graphics/SurfaceTexture);
+- Android metrics APIs: [Context](https://developer.android.com/reference/android/content/Context),
+  [Display](https://developer.android.com/reference/android/view/Display),
+  [DisplayManager](https://developer.android.com/reference/android/hardware/display/DisplayManager), and
+  [WindowManager](https://developer.android.com/reference/android/view/WindowManager);
 - EGL/GLES: [EGL14](https://developer.android.com/reference/android/opengl/EGL14),
   [GLES20](https://developer.android.com/reference/android/opengl/GLES20), and the
   [OpenGL ES 2.0 specification](https://registry.khronos.org/OpenGL/specs/es/2.0/es_full_spec_2.0.pdf);
@@ -1137,7 +1265,10 @@ The binding relies on current official contracts, including:
   [Android ABIs](https://developer.android.com/ndk/guides/abis),
   [newer NDK APIs](https://developer.android.com/ndk/guides/using-newer-apis), and
   [page-size compatibility](https://developer.android.com/guide/practices/page-sizes);
-- Kotlin concurrency/observation: [coroutine dispatchers](https://kotlinlang.org/docs/coroutine-context-and-dispatchers.html),
+- Kotlin concurrency/observation: [CoroutineScope](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-scope/),
+  [Job](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-job/),
+  [CoroutineStart](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-start/),
+  [coroutine dispatchers](https://kotlinlang.org/docs/coroutine-context-and-dispatchers.html),
   [StateFlow](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-state-flow/),
   and [SharedFlow](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-shared-flow/).
 

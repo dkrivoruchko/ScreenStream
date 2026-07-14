@@ -88,10 +88,8 @@ public interface FrameSubscription {
 ```
 
 ```kotlin
-val metrics = CaptureMetricsProviders.fromUiContext(activity)
 val session = ScreenCaptureEngine.create(
     context = activity,
-    config = ScreenCaptureConfig(captureMetricsProvider = metrics),
 )
 
 session.onFrame { borrowedFrame ->
@@ -226,26 +224,28 @@ public class CaptureMetrics(
 )
 
 public object CaptureMetricsProviders {
-    public fun fromActivityDisplay(activity: Activity): CaptureMetricsProvider
-    public fun fromUiContext(context: Context): CaptureMetricsProvider
     public fun fromDisplay(context: Context, display: Display): CaptureMetricsProvider
 }
 ```
 
 | Config field | Meaning | Default | Domain and interaction |
 | --- | --- | --- | --- |
-| `captureMetricsProvider` | Supplies capture width, height, and density changes. | `null` | Null creates a Session-private provider for `Display.DEFAULT_DISPLAY` through the application `DisplayManager`. This does **not** follow an Activity to another display. Use a built-in provider when Activity/window or explicit-display association matters. On API 34–37 projection resize callbacks become width/height authority after startup; provider density remains live. |
+| `captureMetricsProvider` | Supplies capture width, height, and density changes. | `null` | Null creates a Session-private provider bound to `Display.DEFAULT_DISPLAY` through the application `DisplayManager`. `fromDisplay` returns an immutable reusable built-in definition for one explicitly selected logical Display; a custom provider supplies Activity-, window-, or caller-lifecycle-following policy. On API 24–33 provider width, height, and density are authoritative. On API 34–37 provider width/height are provisional until the first valid projection-resize callback, after which that callback is authoritative for width/height; provider density remains live and authoritative throughout. |
 | `frameCallbackDispatcher` | Dispatcher used only to enter the application frame callback. | `Dispatchers.Default` | Nonnull and caller-owned; the engine never closes it. Deliberately undispatched/Unconfined callback execution is unsupported. A supported dispatcher eventually returns or throws from each `dispatch` invocation and eventually executes an accepted task. An ordinary dispatcher may still enter inline according to its contract, which the handoff handles. |
 | `jpegBackendPolicy` | Chooses whether native JPEG may be used. | `Auto` | `Auto` selects native JPEG whenever its API/runtime checks pass and otherwise uses Framework. `FrameworkOnly` never attempts native JPEG. Native health is Session-monotone: a safely returned Native runtime failure disables Native for the remainder of the Session when its health occurrence is still current, whether the work key is current or stale. The attempt records `byFailure`; a current-key failure drops that frame without retry and uses Framework for later frames, while a stale-key failure publishes no stale frame or lifecycle failure. Unsafe ownership remains terminal. JPEG backend and target selection remain independent. |
 
 `CaptureMetrics(widthPx, heightPx, densityDpi)` requires all three values to be positive. A custom provider returns a cold `Flow<CaptureMetrics?>`; null means
-the currently associated geometry is unavailable. `fromActivityDisplay(activity)` snapshots the Activity's associated Display without retaining the Activity.
-On API 24–29, `fromUiContext(context)` requires an Activity-backed context that can be unwrapped to an Activity and uses that Activity's display; otherwise its
-construction throws `IllegalArgumentException` directing the caller to `fromDisplay` or `fromActivityDisplay`. On API 30+, it retains the UI Context needed for
-associated maximum WindowMetrics. `fromDisplay(context, display)` retains an application-safe display context and never switches away from that exact Display.
-Other missing UI/display association also throws `IllegalArgumentException`.
+the currently associated geometry is unavailable. `fromDisplay(context, display)` returns an immutable reusable definition fixed to the supplied exact
+logical Display as metrics authority. A missing or invalid association at construction throws `IllegalArgumentException`; later unavailability emits null and
+the same association may recover. The caller remains responsible for matching that Display to the source selected by projection consent. A custom provider
+expresses Activity-, window-, dynamic-display-, or caller-lifecycle-following policy.
 
-One provider Flow is collected for the accepted Session lifetime. Its visible outcomes are:
+The built-in definition's `observe()` returns a cold Flow whose direct, repeated, concurrent, and cross-Session collections are independent. Each collection
+owns its listener and state, delivers `DisplayListener` callbacks through an engine-private Handler backed by the process Main Looper, and performs
+registration, reads, emission, and unregister in its upstream context. Callback work is limited to a fenced constant-time refresh signal; a late callback is
+inert after collection closure. The engine invokes `observe()` once on the exact configured provider object; null configuration creates one Session-private
+internal default-display provider and invokes that exact object. It collects the returned Flow until completion, classified provider failure, or terminal
+cancellation. Visible outcomes are:
 
 | Provider outcome | Visible Session behavior |
 | --- | --- |
@@ -258,12 +258,15 @@ One provider Flow is collected for the accepted Session lifetime. Its visible ou
 | Later valid runtime value | The Session may recover and publish `Running(Active)` after any required resize/rebuild. |
 
 `Unusable Flow` means exactly a null Flow reference returned through Java/platform interop. A throw from `observe()` is a getter throw; every nonnull Flow is
-collected, and any later throw is classified before/after first valid value as above. The engine performs no separate runtime coldness probe.
+collected, and any later throw is classified before/after first valid value as above. A `CancellationException` from provider code while metrics collection
+remains active is classified as that provider's throw. Cancellation caused by the terminal metrics-cancellation intent remains mechanics cancellation. The
+engine performs no separate runtime coldness probe.
 
-On API 34–37, projection resize callbacks replace provider width/height after startup; provider density remains live. These rules do not change that authority
-split. Requesting metrics-collection cancellation during shutdown does not mean that the collector has already returned; the
-[cleanup forest](02_architecture.md#73-cleanup-forest) defines the cleanup
-consequence. A positive geometry that is incompatible with the requested half/crop is an `InvalidRequest`, not `CaptureUnavailable`.
+On API 34–37, the first valid projection-resize callback replaces provisional provider width/height; provider density remains live. These rules do not change
+that authority split. Requesting metrics-collection cancellation during shutdown records cancellation intent; it is not proof that collection mechanics have
+returned. The sole metrics-lifecycle completion receipt proves that lifecycle has completed, including cancellation before collection entry, and the
+[cleanup forest](02_architecture.md#73-cleanup-forest) defines the cleanup consequence. A positive geometry that is incompatible with the requested half/crop
+is an `InvalidRequest`, not `CaptureUnavailable`.
 
 ### 3.4 Capture parameters
 

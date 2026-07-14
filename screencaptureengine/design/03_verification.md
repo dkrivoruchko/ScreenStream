@@ -36,8 +36,8 @@ tests; it does not imply one large end-to-end test.
 | 5. Stop | `stop()` synchronously fixes the terminal winner and closes new admission, then State publication and cleanup may finish asynchronously. Repeated calls are harmless. |
 | 6. Latest-wins update | In any nonterminal `Running` state, an unequal `updateParameters` replaces the desired parameters and returns immediately. Equal desire is a no-op. Concurrent updates have one order; only the latest accepted desire must converge after input changes stop. |
 | 7. Update reconciliation | Policy-only and density-only changes preserve eligible resources. Active requires an actually owned healthy compatible live topology; a historical effective plan cannot substitute for retired resources. A destructive change pauses output, drains and retires the old scope, builds one replacement, and resumes. A deterministic geometry/API/backend limit discovered before retirement suspends without allocating; a current required allocation failure after retirement is terminal; stale safe results cannot publish. |
-| 8. Metrics authority | The selected provider supplies positive density and the documented display association. API 24–33 use provider dimensions; API 34–37 wait for authoritative projection resize dimensions. |
-| 9. Metrics loss and recovery | A missing runtime authority suspends with `CaptureUnavailable`; a later valid fact resumes. A provider failure is classified as documented, and stale geometry cannot replace the current generation. |
+| 8. Metrics authority | The selected provider supplies positive density and the documented display association. The sole public built-in is an immutable reusable provider fixed to its exact `Display`; the engine observes the configured provider itself, a null configuration creates a Session-private default-display provider, and specialized policies use a custom provider unchanged. API 24–33 use provider dimensions; API 34–37 wait for authoritative projection resize dimensions. |
+| 9. Metrics loss and recovery | A missing runtime authority, including an invalid exact Display, suspends with `CaptureUnavailable`; a later valid fact resumes. A provider failure is classified as documented, and stale geometry cannot replace the current generation. |
 | 10. VirtualDisplay result | `createVirtualDisplay` null or `SecurityException` becomes `CaptureUnavailable`; a directly thrown `OutOfMemoryError` becomes `ResourceExhausted`; `IllegalStateException` and any other unexpected throwable become `InternalFailure`. Exactly one creation attempt is made for the Session. |
 | 11. Geometry and pixels | Region, crop, rotation, mirror, output size, OES transform, orientation, color, and grayscale produce the documented image dimensions, orientation, and semantic transform through Full and every eligible Early Surface Downscale path. Downscaled output may contain ordinary filtering, rounding, and minor platform differences. |
 | 12. Color handling | sRGB remains nominal sRGB; exact Display-P3 takes the documented conversion path; wide/HDR input follows the documented best-effort behavior and emits the required diagnostic observation. |
@@ -55,7 +55,7 @@ tests; it does not imply one large end-to-end test.
 | 24. Resource bounds and privacy | Checked sizes and narrowing, hard API/backend limits, one active resource topology, exact-compatible owner reuse, smallest-scope replacement, and exact ownership bound engine work. Actual carrier, Bitmap, sink, and platform allocation outcomes decide feasibility. Raw, partial, stale, or unleased data never publishes. |
 | 25. Terminal cleanup | Only one terminal winner is published. Independent cleanup continues in dependency order; an unresolved resource remains rooted once in the Session quarantine instead of being treated as released or reusable. |
 | 26. Diagnostics | Diagnostic events carry monotonically increasing Session-local `sequence`, `timestampEpochMillis`, `source`, `label`, short semantic `message`, and raw nullable `cause`. The eight required categories cover capability decisions, runtime profile/mode changes, delivery problems, Stats protection, color action, quarantine changes, and terminal outcomes; diagnostics never decide lifecycle or business behavior. |
-| 27. Session isolation | Multiple Sessions share no lifecycle, projection, desired parameters, cache, callback registration, counters, failure, or quarantine authority. Aggregate process pressure remains the application's responsibility. |
+| 27. Session isolation | Multiple Sessions share no lifecycle, projection, desired parameters, cache, callback registration, metrics runtime state, counters, failure, or quarantine authority, including when they reuse one built-in metrics provider. Aggregate process pressure remains the application's responsibility. |
 
 ## 3. Common Test Rules
 
@@ -211,6 +211,8 @@ checks these architectural surface rules:
   cannot be constructed by callers;
 - public models are ordinary classes, with manual equality/hash/text only where 01 Design promises it;
 - public signatures expose no implementation types or unintended data-class `copy`/`componentN` surface;
+- packaged ABI inspection plus Kotlin-metadata compilation confirms the documented external Kotlin
+  visibility; Java interoperability remains the existing public contract;
 - `EncodedImageFrame` exposes `ImageSize`, not `android.util.Size`;
 - `updateParameters` is synchronous and returns `Unit`;
 - `FrameSubscription` exposes suspending `unsubscribe()` and no cancellation alias.
@@ -280,9 +282,9 @@ Branch tests cover the actual API splits:
 
 | API range | Geometry and display observation |
 | --- | --- |
-| 24–29 | `fromUiContext` requires an Activity-backed/unwrappable context; explicit display helpers remain available. The provider supplies width, height, and density. |
-| 30–33 | Window/display association follows the documented provider helper. The provider supplies authoritative width, height, and density. |
-| 34–37 | Provider density remains required. Projection `onCapturedContentResize` supplies authoritative width and height; no frame is admitted before the first valid resize. Visibility is informational only. |
+| 24–29 | The selected provider supplies authoritative width, height, and density. The public built-in remains fixed to its exact `Display` and uses a fresh transient display Context for every complete density read. |
+| 30–33 | The selected provider supplies authoritative width, height, and density. The public built-in retains one WindowContext per continuous valid-display epoch for maximum-window bounds and uses a fresh transient display Context for every complete density read. |
+| 34–37 | Provider density remains live and required. Projection `onCapturedContentResize` supplies authoritative width and height after the first valid resize; no frame is admitted before that fact. Provider dimensions may support only the documented provisional startup target. Visibility is informational only. |
 
 For each branch, tests supply valid values, null/invalid values, provider completion before first valid value,
 provider failure before and after readiness, density-only change, dimension change, display change, and stale
@@ -295,16 +297,78 @@ service owner obligations exposed to the caller, current projection-reuse restri
 compatibility. These checks validate the supported
 API 24–37 contract without requiring a separate device for every API level.
 
-The default provider test verifies that the documented `Display.DEFAULT_DISPLAY` choice and its public caveat
-are honored. Explicit `fromDisplay`, `fromUiContext`, and `fromActivityDisplay` helpers are checked against
-their documented association and rejection rules.
+The canonical executable provider matrix is Document 08 Section 4.2. It proves that null configuration uses
+one Session-private default-display provider; `fromDisplay(context, exactDisplay)` is an immutable reusable
+exact-Display provider; the Session calls `observe()` once on the exact configured provider when nonnull; custom
+providers retain exact identity; and the metrics Display neither selects nor verifies the MediaProjection source.
+Direct, repeated, parallel, and concurrent-Session built-in collections remain independent cold-Flow
+collections. Every built-in `DisplayListener` callback on API 24–37 is routed through an explicit process
+Main-Looper Handler, while registration, reads, emission, and unregister remain in the collection's controlled
+upstream context or the Session metrics-IO view.
 
-### 5.2 MediaProjection, VirtualDisplay, and target lifetime
+The same matrix verifies each complete API-band read, one WindowContext per continuous valid-display epoch on
+API 30–37, a fresh transient display Context for each density read, exact-Display validity, and complete-tuple
+publication. Selected add/remove boundaries use the sticky-bit exchange and a separate unavailable pass;
+ordinary changes request a later complete reread. Barriers around the exchange, reads, final validation, and
+installation prove that no boundary is erased, no fields from different reads are combined, and retired or
+unrelated Display facts cannot publish.
+
+For a Session built-in listener, terminal cleanup first fences metrics authority and closes its signal, then
+attempts exact unregister on the metrics-IO view. Unregister throw or nonreturn retains the exact listener,
+`DisplayManager`, Main-Looper Handler dependency, and collection occurrence as applicable, but never the Session
+Android Handler or HandlerThread. Other cleanup roots, Android HandlerThread shutdown, and another Session
+therefore progress independently. Tests model a platform callback snapshot already captured before unregister:
+both after the authority fence and a normal unregister return and, independently, after Session HandlerThread
+shutdown, its late Main-queued callback enters only the O(1) fenced path and cannot publish, wake current state,
+or make a lifecycle decision.
+
+### 5.2 Metrics collection lifetime
+
+Each Session's metrics owner is exercised as the one structured lifetime detailed by Document 08 Section 4.2:
+the attached provider, plain parent `Job`, Session scope on the metrics dispatcher view, empty preattached
+Flow-return cell, exactly one lazy collector child, and parent completion observer are attached before unlocked
+start. Positive evidence establishes the exact parent-child relation, one collection, terminal propagation,
+and one final-parent-completion receipt.
+
+The collector lifecycle suite covers these outcomes and races:
+
+- cancellation before child entry executes no provider observation, registration, collector body, or body
+  `finally`; cancellation of the parent still reaches final parent completion exactly once;
+- after child entry, `observe()` alone may fill the already-owned Flow-return cell. The cell is empty before
+  attachment, is filled once only after `observe()` returns, and remains rooted with the provider and
+  collection lifetime until final parent completion;
+- child start versus terminal parent cancellation has only two legal results: the child never enters, or it
+  enters once and performs its exact finally/cleanup before parent completion. It cannot enter provider code
+  after cancellation has already won;
+- normal provider completion before Session terminal is legal: before a valid value it produces startup
+  `CaptureUnavailable`; after a valid value it preserves the last valid metrics and emits the documented
+  completion diagnostic. After the child and its cleanup finish, child completion explicitly completes the
+  plain parent and the sole parent-completion receipt is observed;
+- a `CancellationException` thrown by `observe()` or collection while the parent remains active is a provider
+  failure, classified as `InternalFailure` with that raw exception as cause. A cancellation observed after
+  terminal parent cancellation follows the terminal-cancellation path instead. Barriers select both orders
+  of the provider-origin exception versus terminal cancellation and verify one classification, one cleanup
+  path, and one parent receipt;
+- every other provider failure uses the documented `InternalFailure` classification. Child completion still
+  completes the ordinary parent after its cleanup, and final parent completion remains the sole mechanical
+  receipt;
+- terminal cancellation is an intent, not a fabricated mechanical return. For an entered collector that does
+  not return, the parent stays incomplete and the exact parent/scope/child/provider ownership unit transfers
+  intact to cleanup or quarantine;
+- a late collector return after terminal selection can complete only that same parent and reduce only its
+  exact cleanup residue. It cannot publish metrics, change the terminal winner, or produce another receipt.
+
+Barriers cover lazy start, entry, observe/collect return or failure, cleanup, and parent completion. Handler
+tests trigger child and parent completion while engine gates are held: the child handler only completes the
+plain parent, and the parent handler only fills the precreated completion cell and issues the nonblocking wake.
+Both return without waiting, outward calls, cleanup, lifecycle decisions, or a second receipt.
+
+### 5.3 MediaProjection, VirtualDisplay, and target lifetime
 
 Component tests record all callback registration, VirtualDisplay creation/mutation, Surface attachment, and
 cleanup calls. They verify:
 
-- projection callback registration precedes the sole `createVirtualDisplay` call;
+- projection callback registration precedes the sole `createVirtualDisplay` call, whose owner boundary receives the installed `CurrentTarget`;
 - the sole `createVirtualDisplay` call passes a null `VirtualDisplay.Callback` and null callback Handler;
   `MediaProjection.Callback.onStop` is the sole platform callback authority for `CaptureEnded`, while explicit
   `VirtualDisplay.release` remains part of cleanup;
@@ -319,19 +383,16 @@ cleanup calls. They verify:
 - dimension or target-health change uses the destructive rebuild order;
 - after resume, the first available producer buffer may be used; target generations still reject stale
   engine work and results;
-- SurfaceTexture-listener generation fencing, listener detachment, `setSurface(null)`, Surface return, SurfaceTexture release,
-  and GL destruction occur in the documented dependency order;
-- `CurrentTarget` remains the owner of the Surface, SurfaceTexture, target GL objects, release occurrence, and carriers while the existing
-  Session-private serial GL lane is only the `Surface.release()` execution site;
-- each member of the closed prerequisite set is withheld in turn: fresh/repeat/delivery admission is closed; all entered target work is drained;
-  `targetGeneration` is fenced; the target listener is removed and its same-Handler sentinel is recorded; exact target detachment is proved by the current
-  `VirtualDisplay.setSurface(null)` normal return or the applicable current `VirtualDisplay.release` normal-return receipt; and target leases are zero.
-  `Surface.release()` does not enter until all are present;
-- retired-generation target-listener facts and late returns from other Android target-operation occurrences are cleanup-only and cannot satisfy a current
-  prerequisite; no additional callback-drain prerequisite exists;
-- startup provisional-target replacement and runtime destructive replacement each cover normal return, returned throw, nonreturn, and late return. Timely
-  normal return alone permits dependent teardown and a current replacement; throw or timeout is `InternalFailure` while nonterminal, quarantines the exact
-  residue, and admits no replacement;
+
+Prepared/installed target races use this observable matrix:
+
+| Boundary | Required observations |
+| --- | --- |
+| Preparation | Before construction, one typed `PreparedTarget` has its reserved nonreused generation, empty partial slots, precreated candidate/promotion, and shared release obligation; each returned OES/SurfaceTexture/Surface enters its slot immediately. |
+| Arbitration | Timely current completeness transfers allocation-free to `TargetOwner.currentTarget`; partial, stale, late, terminal, and every other noninstall result is cleanup-owned and never current. Generation gaps occur without reuse, and no next candidate starts before cleanup/rooting disposition. |
+| Structural API | Only `CurrentTarget` crosses listener, VirtualDisplay create/attach, lease, and frame seams; uninstalled fixtures record zero such calls. |
+| Release | Installed fixtures withhold each ordinary prerequisite and separately accept exact no-producer evidence only for safely inapplicable/unentered create/attach or return without producer ownership. Uninstalled fixtures require settled construction, cleanup claim, and structural zero listener/producer/lease use. Neither branch fabricates detach/release; both require Surface normal receipt, then SurfaceTexture normal receipt, then OES destruction. |
+| Time and residue | Preterminal construction/destruction uses the existing GL boundary and listener/Surface work the existing Android boundary; terminal conversion has no watchdog. Partial/nonreturn roots only exact dependents, while retired-generation and other-occurrence facts remain cleanup-only. |
 - each Surface-release occurrence precreates its `settlementGate`, typed `OperationReturnCell`, fixed
   normal/throw fields, owner bag, and applicable `DeadlineOccurrence` before GL-lane submission. For a finite
   deadline-governed occurrence, normal return committed with `T < D` is timely and supplies the Surface
@@ -405,6 +466,14 @@ later frames continue; Bitmap/sink memory exhaustion is terminal `ResourceExhaus
 or malformed sink result is terminal `InternalFailure`; and ambiguous ownership takes the terminal quarantine
 path. No failure publishes partial bytes or retries the same frame.
 
+Framework-resource verification uses this compact matrix:
+
+| Axis | Required observations |
+| --- | --- |
+| Settlement | One combined occurrence and deadline span Bitmap creation/adoption, actual-metadata mode selection, optional scratch creation, and complete allocation-free publication. Cross `D - 1`, `D`, `D + 1`, empty-at-`D`, pre-gate/post-sample pauses, commit-before-signal, rejection, inline entry, cancellation, and terminal before/after entry. |
+| Outcome | Inject Bitmap success, OOM, unexpected failure, and nonreturn; after Bitmap success, inject scratch success, OOM, unexpected/malformed evidence, and nonreturn for current, stale, expired, late, and terminal results. Timely current OOM is `ResourceExhausted` with no drop; other unsafe current outcomes are `InternalFailure`; timely stale success does not install, safe stale failure/OOM does not change lifecycle, and ambiguity remains terminal. A noninstalled Bitmap is recycled exactly once after settlement, scratch is logically dropped, and timeout diagnostics preserve the existing `FrameworkJpeg` `CapabilityCheck`/`SessionTerminal` cause identity. |
+| Topology | Complete owner installation precedes first/resumed Active. `FrameworkOnly` and clean Native ineligibility create only after backend/carrier selection; Native `Enabled` and the safely failed switching frame own no Framework resources, and that frame settles once as `byFailure` without retry. Later creation remains `Reconfiguring`; compatible identity is reused, while incompatible replacement requires settled use, one timely recycle receipt, and a fresh current/nonterminal eligibility check. A-to-B-to-A and target-replacement races fence stale creation. |
+
 Bitmap-lifetime tests hold copy/compress use open and prove that recycle cannot enter. Once every use and lease settles, incompatible preterminal replacement
 consumes the owner into one generic occurrence, calls `Bitmap.recycle()` exactly once on the Framework-encoder execution lane, and requires normal return before
 dropping the reference or allocating the replacement. It uses `jpegEnteredOperationSafetyNanos`; timely normal return permits replacement, while rejection,
@@ -414,50 +483,60 @@ exact residue. Races cover return versus terminal transfer without a Bitmap-spec
 
 Native capability and fallback tests cover exactly three legal carrier/health combinations: native carrier with
 Native enabled, native carrier with Native disabled, and managed carrier with Native disabled. Managed carrier
-with Native enabled is impossible. Both carrier kinds expose the same exact tight `ByteBuffer` view to one
-Framework adapter; only native-carrier ownership exposes a stable address to Native JPEG.
+with Native enabled is impossible. Both carrier leases traverse the same private synchronous transfer path in
+`FrameworkJpegOwner`; only native-carrier ownership exposes a stable address to Native JPEG. Ownership,
+allocation, and cleanup ledgers contain no separate transfer-adapter owner or lifecycle.
 
 Engine-library loading is ownership-free until the native bridge is successfully published: loading and
 `JNI_OnLoad` create no Session, carrier, sink, or other session-owned native resource. Only a synchronous
 `UnsatisfiedLinkError` or `SecurityException` before bridge publication and before any engine JNI operation
 entry, with zero native ownership, selects the managed carrier and Framework JPEG. A load-time
-`OutOfMemoryError` is terminal `ResourceExhausted`; partial initialization, any failure after bridge publication
-or engine JNI operation entry, any other throwable, and ambiguous ownership are terminal `InternalFailure` and
-cannot select that fallback. Tests inject every branch and assert both the chosen carrier/backend combination
-and the absence or exact retention of native ownership.
+`OutOfMemoryError` publishes the first-cause process-lifetime `LoadOome` result: the current timely preparation
+and every future preparation fail with `ResourceExhausted`, and no load retry, bootstrap, carrier allocation, or
+Framework fallback occurs. A late OOM does not revise the Session outcome that already won, but it fixes that
+same result for future Sessions. Partial initialization, any failure after bridge publication or engine JNI
+operation entry, any other throwable, and ambiguous ownership are terminal `InternalFailure` poison and cannot
+select fallback. Tests distinguish all three process results—clean load unavailability, `LoadOome`, and bootstrap
+poison—and race concurrent preparation against the one load attempt.
 
-Native eligibility uses exactly the documented static API, ABI, library, and symbol checks; 16-KiB page-size
-compatibility is a packaging requirement. The first real frame is the first compression call. Tests apply the complete
+Native eligibility uses the documented API, successful own-DSO load/bootstrap/registration, and guarded weak
+capability checks. Runtime code neither derives nor asserts an ABI string: package inspection proves the exact
+production DSO for each of the four shipped ABIs, while installed runtime evidence proves the loaded bridge on
+that process. The first real frame is the first compression call. Tests apply the complete
 normal/safe/unsafe/timeout result partition to that call and verify that a safely returned Native failure drops
 that frame, disables Native for later frames, and never retries the same frame through Framework.
 
-A safely returned Native failure records `byFailure`, drops the affected frame, disables Native monotonically for later frames, and
-leaves Direct readback and target selection unchanged. This includes
-`ANDROID_BITMAP_RESULT_ALLOCATION_FAILED` only when the Native call returned and the exact carrier and
-transactional-sink ownership are settled; it is a local optional-compressor failure, not evidence that the
-carrier or sink allocator failed. Carrier allocation OOM and sink allocation OOM are terminal
-`ResourceExhausted`. A current safe failure commits the disabled health result. A key-stale but timely safe
-failure records `byFailure` and publishes no stale frame or lifecycle failure, but still disables the matching current Session Native-health
-occurrence and reconciles the latest key. A result committed with `T >= D`, after expiry committed, or for a
-retired health occurrence is cleanup-only and cannot disable Native. The affected frame is never retried through Framework. Native nonreturn,
-ambiguous carrier/sink ownership, or malformed writer evidence is terminal and cannot enable Framework fallback.
+Carrier-replacement races use this matrix:
 
-Native race tests use the precreated encode occurrence, `settlementGate`, typed `OperationReturnCell`, fixed
-result/writer/JNI evidence fields, carrier/sink owner bag, and active health occurrence. After native return,
-the worker records only already-owned references, scalar values, throwable, and receipt before the
-allocation-free gate commit; diagnostic construction follows settlement. Tests cross a safe returned failure
-with a current key, a stale frame or reconciliation key, a retired health occurrence, `T = D - 1`, `T = D`,
-and expiry-before-return. They also preempt the worker before gate entry, after the `T` sample but before
-complete slot commit, and after commit but before signalling. Current timely failure disables Native;
-key-stale timely failure records `byFailure`, disables the matching current health occurrence, and publishes no stale output or lifecycle failure; late or
-retired-health settlement changes only exact cleanup ownership.
+| Carrier | Required observations |
+| --- | --- |
+| `NativeMallocCarrier` | Timely normal free receipt precedes a fresh current/nonterminal-key recheck and its distinct `NativeCarrierReplacementAllocationOccurrence`. Current success installs; current OOM is `ResourceExhausted`; unsafe/rejection/expiry/nonreturn is `InternalFailure`; stale/late/terminal return is freed once for cleanup. |
+| `ManagedDirectCarrier` | Settled old uses precede logical detach without a receipt, then a fresh current/nonterminal-key and no-extant-occurrence recheck starts exactly one `ManagedDirectCarrierReplacementAllocationOccurrence`, separate from Native free/allocation. Its JPEG-IO `allocateDirect(B)` return is immediately occurrence-owned; current success installs, current OOM is `ResourceExhausted`, unsafe/rejection/expiry/nonreturn is `InternalFailure`, safe stale success/OOM changes no lifecycle result, and late/terminal return is logically dropped only after mechanical settlement. |
+| Common races | Cross `D - 1`, `D`, `D + 1`, pre-entry terminal, staleness after recheck, terminal transfer, and late return under the existing JPEG deadline. Native timeout diagnostics use `NativeJpeg`; managed replacement uses `FrameworkJpeg`. Compatible direct writable `B`-byte identity is reused; managed replacement performs no preparation rerun, manual free, or GC-receipt claim. |
+
+Atomic-disable tests require one `sessionGate -> settlementGate` commit for a timely safe result whose Native-health occurrence is current. It records
+`byFailure`, disables Native, advances the lifecycle epoch, closes affected fresh/repeat/new-delivery admission, fences obsolete backend/frame identities,
+invalidates cache/repeat, and selects `Running(Suspended(Reconfiguring))`; entered delivery is not revoked, and State/Stats publish coherently after gate
+release. A current key discards its attempt once; a key-stale attempt with current health does the same without stale output or lifecycle failure. Neither
+allocates Framework resources or retries the frame, and only later complete current Framework-owner installation reopens admission and permits Active.
+
+`ANDROID_BITMAP_RESULT_ALLOCATION_FAILED` enters that commit only after safe return with exact carrier/sink settlement; carrier or sink allocator OOM remains terminal
+`ResourceExhausted`, and nonreturn or ambiguous/malformed ownership remains terminal `InternalFailure`. A terminal winner keeps fixed priority over suspension.
+Results at `T >= D`, after expiry, or for retired health are cleanup-only and cannot disable Native.
+
+Native race tests cross current-key/current-health, key-stale/current-health, expired or late, retired-health, and terminal contenders at `D - 1`/`D`, with
+pauses before gate entry, after sampling, and before signalling. They verify allocation-free complete evidence publication before classification: the first two
+receive the atomic commit above, expired/late/retired cases change only exact cleanup ownership, and terminal arbitration retains its fixed priority.
 
 Tests accumulate all writer and JNI evidence before classifying a returned call. Unsafe or ambiguous ownership,
 a malformed writer call or writer-contract violation, and any non-OOM JNI exception take precedence as terminal
 `InternalFailure`. Otherwise an exact writer, sink, or JNI OOM is terminal `ResourceExhausted`. Only when neither
 class of fault exists may the compressor integer determine success or a safe optional-axis failure. A
 combined-fault case records both an exact OOM and malformed writer evidence and verifies that `InternalFailure`
-wins.
+wins. Every normal native evidence return initializes all five `NativeResultBlock` words. Its unsigned writer
+status is exactly `0` (`Safe`), `1` (`OutOfMemory`), or `2` (`InternalFailure`); every other 64-bit pattern,
+including one observed as a negative Kotlin `Long`, is malformed `InternalFailure` and authorizes no bytes,
+fallback, or Native-health change.
 
 ### 6.3 Pacing, repeat, cache, and Stats
 
@@ -498,7 +577,7 @@ The optional-path suite is organized by three independent axes:
 | Axis | Enabled observation | Safe failure | Unsafe failure |
 | --- | --- | --- | --- |
 | Early Surface Downscale | Closed eligibility, exact-aspect target, and automatic API 32–37 selection | Disable Downscaled and rebuild once to Full | Terminal and quarantine |
-| Native JPEG | Closed API/ABI/library/symbol eligibility, separate 16-KiB-compatible packaging, and the first real frame as the first compression call | Disable Native, use Framework later | Terminal and quarantine |
+| Native JPEG | Closed API/own-bridge/guarded-symbol eligibility, separate four-ABI and 16-KiB-compatible packaging, and the first real frame as the first compression call | Disable Native, use Framework later | Terminal and quarantine |
 | Display-P3 color | Exact dataspace classification | Use the documented best-effort color action | Terminal only when the ordinary pipeline itself is unsafe |
 
 Each axis is tested once enabled, once ineligible, once with a safe returned runtime fault, and once with an
@@ -595,8 +674,8 @@ the destination. Wrong-thread and post-return property or copy access throws `Il
 ### 9.1 Resource bounds and allocation
 
 Resource tests use checked arithmetic and injected allocator/platform outcomes. They prove one active
-target/pipeline topology, one stable CPU RGBA carrier, one shape-compatible reusable Framework Bitmap and row
-scratch only while Framework is selected, the closed encoded-storage roles,
+target/pipeline topology, one stable CPU RGBA carrier, one installed or creation-occurrence-owned shape-compatible Framework Bitmap and row
+scratch only while Framework is selected and Native is disabled, the closed encoded-storage roles,
 one callback lease, and exact already-owned quarantine residue. They also prove that a Framework Bitmap is an
 encoder-owned pixel store rather than a second stable CPU carrier.
 
@@ -637,15 +716,11 @@ Terminal tests trigger owner stop, capture end, startup failure, callback-entry 
 resource failure, and unsafe ownership. Exactly one terminal winner closes all admission. Final Stats is
 assigned before terminal State; diagnostic delivery remains best effort.
 
-Cleanup component tests hold one dependency indefinitely while allowing unrelated cleanup roots to finish.
-The Android subchain remains serial; target, GL, JPEG/storage, callback, and diagnostics roots follow their
-documented local order. An unresolved owner is recorded once in `SessionQuarantineRoot`; late return may
-release only that exact owner and cannot change terminal outcome or make the Session reusable.
-The quarantined unit is the exact operation occurrence together with its `settlementGate`, still-writable typed
-`OperationReturnCell`, owner bag, entered/deadline facts, and transitive resources. A late worker publishes through that
-same gate and slot; cleanup consumes the resulting receipt for that occurrence alone. Race tests inspect the
-quarantine root's exact object identities and assert that the whole unit survives terminal transfer until
-either exact late settlement reduces it or Session quarantine remains the owner.
+Cleanup component tests hold one dependency indefinitely while unrelated roots and another Session continue. Each unresolved unit is recorded once in
+`SessionQuarantineRoot` as its exact occurrence, gate, writable return cell, owner bag, entered/deadline facts, worker, and transitive resources; late settlement
+can reduce only that unit and cannot change terminal outcome or make the Session reusable. This generic assertion includes Framework creation's partial bag:
+after worker/use settlement any returned Bitmap is recycled exactly once and scratch is logically dropped. The Android subchain remains serial, and each
+target, GL, JPEG/storage, callback, or diagnostics root retains its documented local order.
 For `Surface.release`, normal return supplies the Surface-return receipt and permits dependent target cleanup;
 a returned throw is recorded and leaves the Surface unresolved while unrelated roots continue; nonreturn
 roots the call and blocks only its physical dependents. Tests assert that the rooted residue is exact: the release worker/occurrence, Surface,
@@ -653,11 +728,8 @@ SurfaceTexture, target OES/GL objects, their live carriers, and transitively dep
 be destroyed. Provably independent GL resources retire before release entry, and Android capture, JPEG/storage, frame-consumer, metrics, unrelated deadlines,
 allocator-owned carrier/storage and diagnostics roots continue.
 
-Cleanup tests use the same closed entry prerequisite set as target replacement: fresh/repeat/delivery admission is closed; all entered target work is drained;
-`targetGeneration` is fenced; the target listener is removed and its same-Handler sentinel is recorded; exact target detachment is proved by the current
-`VirtualDisplay.setSurface(null)` normal return or the applicable current `VirtualDisplay.release` normal-return receipt; and target leases are zero. A
-retired-generation listener fact or a return from another Android target-operation occurrence remains cleanup-only and cannot stand in for the sentinel or
-current detach receipt.
+Cleanup tests instantiate both mutually exclusive release branches in Section 5.3 and prove that installed prerequisites, typed no-producer evidence, and
+uninstalled structural evidence cannot satisfy one another. Retired-generation or other-occurrence facts remain cleanup-only.
 
 Terminal Surface tests distinguish an occurrence created after terminal from a preterminal occurrence converted before entry and an occurrence already entered
 when terminal wins. All three use one call, one `settlementGate`, and one `OperationReturnCell`; the first two have no watchdog, while the third retires its deadline. A late normal return
@@ -702,9 +774,11 @@ If the readiness deadline wins first, startup fails with `CaptureUnavailable`; a
 ### 10.4 Safe Native failure while target mode remains healthy
 
 1. Native JPEG for one frame returns a safely classified optional-backend error with exact carrier and sink ownership.
-2. That frame is discarded once and Native health becomes disabled.
-3. Later frames use Framework JPEG through the same carrier adapter.
-4. Direct readback and the current Full or Downscaled target remain unchanged.
+2. One authoritative commit records `byFailure`, disables Native, advances the lifecycle epoch, closes affected admission, fences obsolete identities,
+   invalidates cache/repeat, and selects `Running(Suspended(Reconfiguring))`; it neither allocates/retries Framework nor revokes entered delivery, and coherent
+   State/Stats publication follows gate release.
+3. Later reconciliation stays suspended until complete healthy `FrameworkJpegOwner` installation, which alone reopens admission and permits Active.
+4. A later frame uses that owner with the same carrier; Direct readback and the current Full or Downscaled target remain unchanged throughout.
 
 A nonreturn or uncertain carrier/sink/writer ownership takes the unsafe terminal path instead.
 
