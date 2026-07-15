@@ -8,6 +8,22 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.view.Surface
+import io.screenstream.engine.internal.settlement.EngineClock
+import io.screenstream.engine.internal.settlement.OperationDisposition
+import io.screenstream.engine.internal.settlement.OperationEntryDisposition
+import io.screenstream.engine.internal.settlement.OperationEntryResult
+import io.screenstream.engine.internal.settlement.OperationEvidence
+import io.screenstream.engine.internal.settlement.OperationOccurrence
+import io.screenstream.engine.internal.settlement.OperationOwnerBag
+import io.screenstream.engine.internal.settlement.OperationReceipt
+import io.screenstream.engine.internal.settlement.OperationReturnCell
+import io.screenstream.engine.internal.settlement.OperationReturnDisposition
+import io.screenstream.engine.internal.settlement.OperationReturnedOwner
+import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
+import io.screenstream.engine.internal.settlement.OperationTerminalArbitration
+import io.screenstream.engine.internal.settlement.SettlementSignal
+import io.screenstream.engine.internal.settlement.androidEnteredOperationSafetyNanos
+import io.screenstream.engine.internal.settlement.initialCapturedResizeReadinessNanos
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -582,7 +598,7 @@ internal class AndroidCaptureOwner(
             operation = operation,
             postRejectionMessage = "Android VirtualDisplay attach rejected",
         ) {
-            ownerBag.virtualDisplay.setSurface(ownerBag.target.surface)
+            ownerBag.virtualDisplay.surface = ownerBag.target.surface
         }
     }
 
@@ -608,7 +624,7 @@ internal class AndroidCaptureOwner(
             operation = operation,
             postRejectionMessage = "Android VirtualDisplay detach rejected",
         ) {
-            ownerBag.virtualDisplay.setSurface(null)
+            ownerBag.virtualDisplay.surface = null
             operation.returnCell.evidence.recordTargetReceiptApplied(
                 ownerBag.target.recordSetSurfaceDetachReceipt(operation.identity),
             )

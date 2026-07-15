@@ -186,13 +186,20 @@ internal class EncodedStorageOwner {
         private var tail: ByteArray? = null
         private var tailByteCount: Int = 0
 
+        internal var firstFatalWriteError: Error? = null
+            private set
+
         internal val outputStream: OutputStream = object : OutputStream() {
             override fun write(value: Int) {
-                writeSingleByte(value)
+                writeRetainingFatalError {
+                    writeSingleByte(value)
+                }
             }
 
             override fun write(source: ByteArray, offset: Int, byteCount: Int) {
-                writeByteRange(source, offset, byteCount)
+                writeRetainingFatalError {
+                    writeByteRange(source, offset, byteCount)
+                }
             }
 
             override fun flush() {
@@ -201,6 +208,20 @@ internal class EncodedStorageOwner {
 
             override fun close() {
                 closeProducer()
+            }
+        }
+
+        private inline fun writeRetainingFatalError(writeAction: () -> Unit) {
+            val retainedFatalWriteError = firstFatalWriteError
+            if (retainedFatalWriteError != null) throw retainedFatalWriteError
+
+            try {
+                writeAction()
+            } catch (writeError: Error) {
+                if (writeError !is OutOfMemoryError && firstFatalWriteError == null) {
+                    firstFatalWriteError = writeError
+                }
+                throw writeError
             }
         }
 

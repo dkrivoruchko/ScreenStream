@@ -10,11 +10,18 @@ required Gate-B coverage. If this document is less specific than Documents 01–
 remain authoritative.
 
 The implementation is one Android library module named `screencaptureengine`. Its public package is
-`io.screenstream.engine`. All production-private Kotlin declarations are in the one flat package
-`io.screenstream.engine.internal`; there are no internal owner subpackages. The implementation uses
-the approved compact decomposition of exactly five public Kotlin files and fourteen internal
-production Kotlin files. Small records, cells, receipts, adapters, and helpers stay private beside
-their owner instead of creating utility files.
+`io.screenstream.engine`. Production-private Kotlin starts at `io.screenstream.engine.internal`.
+Most owners remain in that package; a small cohesive subpackage is allowed when it keeps one technical
+mechanism together without changing ownership or creating a parallel authority. The approved layout uses
+`io.screenstream.engine.internal.settlement` for generic operation/deadline mechanics. JPEG declarations
+remain in `io.screenstream.engine.internal` because the frozen JNI binary names are anchored there.
+
+Physical source files and accepted behavior slices are separate concerns. Final passive declarations may
+be introduced before the behavior that consumes them, while behavior is implemented and verified as one
+bounded slice that may span several files. A file is not an acceptance boundary by itself. Source cohesion,
+ownership, dependency direction, and discoverability decide placement; roughly 800 lines is a soft review
+prompt rather than a limit. The design avoids both giant mixed-responsibility files and package/file-per-type
+fragmentation.
 
 The implementation uses one active topology, direct owner transitions, bounded latest-value cells,
 one production slot, and exact cleanup records.
@@ -33,6 +40,7 @@ All paths are repository-relative. The aliases below expand relative to the repo
 | `MODULE` | `screencaptureengine/` |
 | `PUB` | `screencaptureengine/src/main/kotlin/io/screenstream/engine/` |
 | `INT` | `screencaptureengine/src/main/kotlin/io/screenstream/engine/internal/` |
+| `SETTLEMENT` | `screencaptureengine/src/main/kotlin/io/screenstream/engine/internal/settlement/` |
 | `CPP` | `screencaptureengine/src/main/cpp/` |
 | `HOST` | `screencaptureengine/src/test/kotlin/io/screenstream/engine/internal/` |
 | `ANDROID_API` | `screencaptureengine/src/androidTest/kotlin/io/screenstream/engine/` |
@@ -52,18 +60,23 @@ no entry is relative to another entry and no undeclared source root is implied.
 | `PUB:ScreenCaptureOutput.kt` | Engine-produced geometry/effective-parameter values and `EncodedImageFrame`. | Instances are constructed by the controller/delivery boundary and expose no backing buffer; implements 01 §3.5 and §3.8. Value-semantics, borrowed-lifetime, range-copy, and lease tests. |
 | `PUB:ScreenCaptureObservations.kt` | State/running-state hierarchy, stop reasons, problems, exception, Stats/drop values, and diagnostic event. | Built and published through the controller-confined `ObservationOwner` adapter from controller-committed values; implements 01 §3.6–3.8 and §5. State snapshot, exception mapping, saturation, finite-value, and diagnostic-field tests. |
 
-### 2.2 Flat internal Kotlin files
+### 2.2 Internal Kotlin files
 
 | Path | Single owner and material declarations | Allowed dependencies, contract links, and test slices |
 | --- | --- | --- |
 | `INT:SessionController.kt` | Sole Session lifecycle, desired/revision, current-topology/plan, reconciliation-occurrence, pacing/repeat-policy, counter, public-observation-value, and result authority; command cells; immutable facts; non-reentrant drainer. | May coordinate every owner through facts and typed commands but owns no platform/GL/JPEG call. `ReconciliationOwner`, `PacingOwner`, and `ObservationOwner` are controller-confined synchronous helpers, never peer authorities. Implements 02 §6.1–6.4. Lifecycle, terminal priority, command races, drainer losslessness, and production cutoff tests. |
-| `INT:OperationSettlement.kt` | `OperationOccurrence<R>`, typed `OperationReturnCell<R>`, `DeadlineOccurrence`, `DeadlineWakeLink`, owner bag, operation identity, settlement gate, entry/disposition/domain, and generic receipts. | Used by every opaque/system/ownership-sensitive operation. Implements 02 §6.3 and §7.2. Deadline/wake boundary, rejection, retirement, late-return, lock-order, and allocation-free publication tests. |
+| `SETTLEMENT:OperationDeadline.kt` | Final deadline declaration slice: `DeadlineOccurrence`, `DeadlineWakeLink`, wake/submission phases, identity, checked deadline fields, and timeout-cause link. | Depends only on Kotlin/JDK primitives; `OperationSettlement.kt` depends on this file, never the reverse. Implements the deadline representation in 02 §6.3 and §7.2. Boundary, wake, rejection, retirement, and late-fire tests join the settlement behavior slice below. |
+| `SETTLEMENT:OperationSettlement.kt` | `OperationOccurrence<R>`, typed `OperationReturnCell<R>`, owner bag, operation identity, settlement gate, entry/disposition/domain, and generic receipts. | Depends on `OperationDeadline.kt`; used by every opaque/system/ownership-sensitive operation. Implements 02 §6.3 and §7.2. Lock-order, allocation-free publication, rejection, transfer, deadline arbitration, and late-return tests form one multi-file settlement slice. |
 | `INT:ReconciliationOwner.kt` | Controller-confined synchronous pure resolver for geometry, plan, compatibility, and smallest-scope transition calculations. | Receives one immutable controller snapshot and returns a calculation only; it owns no desired/revision cell, topology, reconciliation occurrence, command admission, or commit authority. Implements 02 §2 and §5. Latest-wins, A-to-B-to-A, stale key, capacity, reuse, and smallest-scope replacement tests. |
 | `INT:AndroidCaptureOwner.kt` | Session Android `HandlerThread`/`Handler`, projection callback adapter, VirtualDisplay owner/operations, Android receipts, and ordered Android cleanup chain. | The only caller of `MediaProjection` and `VirtualDisplay` mutation APIs. Implements 02 §1.1, §2.3, and §7.3. Startup ordering, sole creation, callback authority, resize/attach/detach, failure mapping, and cleanup tests. |
 | `INT:CaptureMetricsOwner.kt` | Provider collector owner, authoritative metrics accumulator, geometry facts, Session-owned metrics scope, parent-Job cancellation request, and parent-completion receipt. | Selects the exact configured provider or creates one Session-private internal default-display built-in, then uses the same direct attachment path and single Flow collection for either. Implements 02 §1.2 and §7.3. Startup loss, cancellation/nonreturn, exact-provider identity, and completion-receipt tests. |
+| `INT:TargetContracts.kt` | Final passive Target declarations shared across slices: closed tags, immutable facts, and typed operation identities/evidence/receipts. | May depend on public immutable values and generic settlement declarations, but owns no live target, mutable slot, outward call, controller decision, or placeholder seam. It may be accepted in the prior passive declaration slice without accepting or closing Target behavior. |
 | `INT:TargetOwner.kt` | Occurrence-local `PreparedTarget`, installable `CurrentTarget`, their reserved generation and shared release/destruction obligations, generation-owned `java.util.concurrent.atomic.AtomicBoolean` latest-pending source bit, plan, listener/sentinel, and leases. | Android attachment is commanded through `AndroidCaptureOwner`; target GL work executes through `GlPipelineOwner` without transferring ownership. Only installed `CurrentTarget` crosses platform/listener/frame boundaries. Implements 02 §1.3, §2.3, §4.1, and §7.3. Planning, preparation/install/cleanup claims, pending-bit races, generation fences, prerequisites, fallback, Surface races, and reuse tests. |
-| `INT:GlPipelineOwner.kt` | Session EGL owner, serial GL lane, shaders/color classification, target-OES execution adapter, render target, Direct readback, GL receipts, and typed RGBA-carrier lease use. | Owns non-target EGL/GLES resources and all GL calls; target preparation takes no carrier lease, while frames borrow only installed CurrentTarget OES objects and the JPEG-owned carrier. Implements 02 §3.1 and §5. EGL, shader, transform, error partition, Direct readback, color, destruction, and image-vector tests. |
-| `INT:JpegRuntimeOwner.kt` | Combined `JpegRuntimeOwner`, `NativeJpegHealth`, Kotlin `NativeMallocCarrier`/managed-direct carrier owners, process loader state, guarded weak-compressor capability, native descriptor/result blocks, and distinct typed native/managed replacement-allocation occurrences. | Selects only the closed carrier/backend combinations and invokes the private JNI bridge. It stores no raw function pointer or compressor owner. Implements 02 §3.2 and §7.1. Own-loader/bootstrap, weak eligibility, carrier/writer ownership, native result precedence, fallback, incompatible-carrier replacement, and receipt/drop tests. |
+| `INT:GlPipelineContracts.kt` | Final passive GL declarations shared with Target and reconciliation: closed operation/destruction tags, immutable capability/compatibility facts, and typed finite identities/evidence/receipts. | May depend on public immutable values and generic settlement declarations. It contains no blank owner, raw-handle ownership proof, temporary interface, fake health flag, wrapper identity, or incomplete live topology. It may be accepted in the prior passive declaration slice without accepting live GL behavior; live ownership is implemented only by `GlPipelineOwner.kt`. |
+| `INT:GlPipelineOwner.kt` | Session EGL owner, serial GL lane, shaders/color classification, target-OES execution adapter, concrete `GlRenderTargetOwner`, Direct readback, GL receipts, and typed RGBA-carrier lease use. | Owns non-target EGL/GLES resources and all GL calls; target preparation takes no carrier lease, while frames borrow only installed CurrentTarget OES objects and the JPEG-owned carrier. Implements 02 §3.1 and §5. EGL, shader, transform, error partition, Direct readback, color, destruction, and image-vector tests. |
+| `INT:JpegRuntimeCore.kt` | Final JPEG runtime products, `NativeJpegHealth`, typed native/managed carrier owners and leases, shared finite identities, and the carrier-bound native-free occurrence/evidence/owner-bag/receipt family. | Runtime-core declarations for the one JPEG owner; stores no raw compressor pointer or separate Session health authority. Remains in the root internal package so frozen JNI descriptors are unchanged. |
+| `INT:JpegRuntimeOperations.kt` | Final typed preparation, native/managed replacement-allocation, and Native-encode occurrence/evidence/owner-bag declarations; native frame/result descriptors and writer-block loan records. | Depends on `JpegRuntimeCore.kt` and generic settlement declarations. It owns no competing mutable runtime state and adds no alternate operation machine. Its tests join the JPEG runtime behavior slice. |
+| `INT:JpegRuntimeOwner.kt` | Sole mutable Session `JpegRuntimeOwner`, process-loader coordinator behavior, carrier/backend selection, guarded weak-compressor capability, operation execution, and private nested `NativeBridge`. | Selects only the closed carrier/backend combinations and invokes the private JNI bridge. The nested bridge and every JNI binary name remain here unchanged. Implements 02 §3.2 and §7.1. Own-loader/bootstrap, weak eligibility, carrier/writer ownership, native result precedence, fallback, incompatible-carrier replacement, and receipt/drop tests span all three JPEG runtime files. |
 | `INT:FrameworkJpegOwner.kt` | Bitmap owner, optional row scratch, combined `FrameworkResourceCreationOccurrence`, private synchronous carrier-transfer method, Framework encoder occurrence, and one-shot recycle occurrence. | Accepts a leased exact-range view from either carrier and writes only to `EncodedStorageOwner`; transfer introduces no separate adapter owner or lifecycle. Implements 02 §3.2 and §7.3. Resource creation, fast/portable transfer, Bitmap outcomes, reuse, recycle, and Framework image tests. |
 | `INT:EncodedStorageOwner.kt` | Checked segmented transaction/`OutputStream`, immutable managed segmented payload, latest/unpublished/displaced roles, frame metadata, and encoded leases. | Receives Framework writes or post-compressor native-segment copies; delivery borrows leases only. Implements 02 §3.2 and §4.2–4.3. Transaction, malformed writes, OOM, cache/repeat, displacement, and lease tests. |
 | `INT:DeliveryOwner.kt` | Registration generation, subscription resolution, sole handoff/worker, borrowed frame, dispatch-return cell, trampoline-entry cell, callback-return cell, and accepted-task deadline link. | The sole caller of the configured dispatcher and application callback; leases payloads from storage. Implements 02 §4.4 and §6.3. Dispatch/entry/callback races, busy accounting, terminal cutoff, unsubscribe, and replacement tests. |
@@ -71,10 +84,43 @@ no entry is relative to another entry and no undeclared source root is implied.
 | `INT:ObservationOwner.kt` | Controller-confined synchronous build/publication adapter for State, Stats, finite means/FPS, and exactly eight diagnostic category constructors. | Builds only from one controller-committed immutable snapshot and assigns/tries emission only outside gates; it owns no counter, result, diagnostic sequence, or public-value authority. Implements 02 §6.4–6.6. Ordering, cadence, saturation, finite protection, Flow configuration, and diagnostic semantics tests. |
 | `INT:CleanupOwner.kt` | Cleanup forest, root records, dependency edges, `SessionQuarantineRoot`, cleanup-domain reducers, and logical/physical retirement commands. | Consumes owners transferred by the controller and sends late receipts back to the exact record. Implements 02 §7.3–7.4. Independent roots, blocked subchains, quarantine changes/reductions, and no-revival tests. |
 
-These nineteen files are the complete production Kotlin manifest. No additional production Kotlin file or
-package is implied by later test decomposition.
+The approved implementation manifest defines five public and nineteen internal production Kotlin files. It is
+the destination source layout, not an architectural cardinality or acceptance rule. The implementation tracker
+records which destination files currently exist and which slices are accepted. A later cohesive split or merge
+updates this manifest but does not by itself reopen product behavior, owner authority, JNI ABI, or an already
+accepted behavior slice.
 
-### 2.3 Native, build, packaging, and test-support boundaries
+`OperationDeadline.kt` and `OperationSettlement.kt` declare
+`package io.screenstream.engine.internal.settlement`. Every other internal manifest row declares
+`package io.screenstream.engine.internal`. Moving a declaration across that boundary requires an actual cohesive
+mechanism reason and corresponding manifest update; JNI-anchored `JpegRuntimeOwner.NativeBridge`
+and `EncodedStorageOwner.NativeSegmentSink` never move or change binary name through source decomposition.
+
+### 2.3 Declaration and behavior slices
+
+A declaration slice may land early only when each declaration is final for its intended role, passive, and
+independently reviewable. It may contain closed enums/tags, immutable facts, typed identities, evidence, receipts,
+and fixed scalar/reference result shapes. It cannot contain a provisional interface, `Any`, a duplicate topology wrapper, a fake
+presence/health Boolean, a raw-handle identity substitute, or a live owner whose behavior will be filled in later.
+
+A behavior slice is accepted only as a complete bounded unit across every production file it uses. Its review
+covers owner authority, state transitions, outward calls, settlement, cleanup, and matching tests together.
+Compiling an early declaration does not accept later behavior, and completing a physical file does not accept an
+incomplete slice. Conversely, one coherent slice may legitimately modify several files.
+
+The approved dependency sequence for the Target/GL/reconciliation chain is:
+
+1. final passive Target and GL contract declarations;
+2. complete `PreparedTarget`/`CurrentTarget` behavior in `TargetOwner`;
+3. the typed `CurrentTarget` Android boundary in `AndroidCaptureOwner`;
+4. complete `GlPipelineOwner`, including the real installed render-owner identity and its lifecycle;
+5. `ReconciliationOwner` against those actual live Target, render, carrier, Framework, and JPEG owner identities.
+
+The sequence is about compile-safe declaration availability and complete behavior slices. Runtime construction,
+retirement, and cleanup order remain those in Documents 01–05. Reconciliation never substitutes passive facts,
+handles, or declaration identity for the exact installed live owner reference.
+
+### 2.4 Native, build, packaging, and test-support boundaries
 
 | Path | Owner, declarations, and role | Dependencies and contracts | Assigned test slice |
 | --- | --- | --- | --- |
@@ -94,6 +140,14 @@ Exact test classes, runners, generated inputs, vector values, and task-to-slice 
 Document 08. Programmatic image vectors are generated in test code; production contains no test image asset.
 
 ## 3. Runtime topology, lanes, and dependency direction
+
+The source dependency DAG is one-way: generic settlement declarations depend on no owner; passive Target/GL
+contracts depend only on public immutable values and settlement; `TargetOwner` depends on those contracts;
+`AndroidCaptureOwner` depends on the typed installed Target boundary; and `GlPipelineOwner` depends on Target,
+GL contracts, and the typed JPEG carrier seam, but never on `ReconciliationOwner`. Only after those owners are
+complete may `ReconciliationOwner` inspect their immutable facts and exact live references. `SessionController`
+composes the completed owners and pure resolver. This permits GL implementation and verification before
+reconciliation without creating a circular authority or a temporary compile seam.
 
 Each Session constructs these execution resources after accepted start and roots them immediately:
 
@@ -314,6 +368,13 @@ compatibility, and the smallest transition; only the controller validates curren
 unlocked owner commands. Calculations use checked `Long` intermediates, explicit narrowing, and actual owner
 identity/health/generation/leases/shape—not historical effective values—as topology evidence.
 
+The snapshot carries the concrete installed owner references produced by the completed owner slices, including
+the exact `CurrentTarget` and `GlRenderTargetOwner`. Reuse compares those live references by Kotlin referential
+identity (`===`) together with their immutable generation/shape/capability facts and private health/lifetime
+evidence. Passive contract declarations, raw texture/FBO names, copied facts, or wrapper identity cannot replace
+the installed owner reference. Consequently `ReconciliationOwner` is implemented only after the complete GL
+slice; no later reopen is needed to make live output reuse real.
+
 After initial EGL bind, `GlPipelineOwner` retains one immutable capability fact containing positive
 `GL_MAX_TEXTURE_SIZE`, both positive `GL_MAX_VIEWPORT_DIMS` components, and Section-8 fragment precision. With
 `maxW = min(GL_MAX_TEXTURE_SIZE, GL_MAX_VIEWPORT_DIMS[0])` and
@@ -516,6 +577,13 @@ safe returned incompatibility, never timeout or ambiguity. Section 13 owns resid
 
 ## 8. EGL, GLES2, Direct readback, and color
 
+`GlPipelineOwner.kt` declares the final concrete non-data `GlRenderTargetOwner` with inaccessible construction
+and ordinary referential identity. A complete instance owns the output texture/FBO lifetime and retains immutable
+facts for its exact parent pipeline, nonreused render generation, `ImageSize`, checked tight RGBA byte count, and
+fixed RGBA/UNSIGNED_BYTE binding. Partial construction, installation, frame use, retirement, and deletion remain
+private owner state. The instance becomes live only after complete construction and exact installation as the
+pipeline's current render target; a copied fact or raw GL name never acts as that identity.
+
 `GlPipelineOwner` performs the complete EGL occurrence on its GL lane with these exact calls and arguments:
 
 | Step | Binding and validation |
@@ -586,7 +654,7 @@ The GLES2 binding is exact and adds no owner or state machine:
 | --- | --- | --- |
 | target OES texture | After the Section-6 target-size preflight, call `glGenTextures(1, ids, 0)`; `glBindTexture(GL_TEXTURE_EXTERNAL_OES, oes)`; `glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR)`, `glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR)`, `glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)`, and `glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)`. That exact `oes` name is passed to `SurfaceTexture(oes, false)`. | A nonzero name plus the isolated construction probe publishes the target-texture receipt. Failure retains only the partial target owner and uses the GL-error classification above. |
 | shaders and program | For `GL_VERTEX_SHADER` and the selected highp/mediump `GL_FRAGMENT_SHADER`: `glCreateShader(type)`, require nonzero, `glShaderSource(shader, source)`, `glCompileShader(shader)`, then `glGetShaderiv(shader, GL_COMPILE_STATUS, status, 0)` and require true. Create a nonzero program with `glCreateProgram()`, call `glAttachShader(program, shader)` for both shaders, `glBindAttribLocation(program, 0, "aPosition")`, `glBindAttribLocation(program, 1, "aTexCoord")`, `glLinkProgram(program)`, and require `glGetProgramiv(program, GL_LINK_STATUS, status, 0)` true and every used uniform location nonnegative. After successful validation, `glDetachShader` and `glDeleteShader` each shader. | Required status plus the isolated construction probe is the receipt. Absent a sole confirmed OOM, a zero name, compile/link failure, missing used location, or any GL error is `InternalFailure`. Shader/program ownership remains in the partial-construction record until its clean deletion receipt. |
-| output texture and framebuffer | After the Section-6 output-size preflight, call `glGenTextures(1, ids, 0)`; `glBindTexture(GL_TEXTURE_2D, output)`; `glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)`, `glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)`, `glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)`, and `glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)`; then `glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Ow, Oh, 0, GL_RGBA, GL_UNSIGNED_BYTE, null)`. Call `glGenFramebuffers(1, ids, 0)`, `glBindFramebuffer(GL_FRAMEBUFFER, fbo)`, `glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, output, 0)`, and `glCheckFramebufferStatus(GL_FRAMEBUFFER)`. | Nonzero names, `GL_FRAMEBUFFER_COMPLETE`, and the isolated construction probe publish the RenderTarget receipt. A sole confirmed `GL_OUT_OF_MEMORY` is `ResourceExhausted`; incomplete framebuffer without that exact evidence, another error, or ambiguity is `InternalFailure`. |
+| output texture and framebuffer | After the Section-6 output-size preflight, call `glGenTextures(1, ids, 0)`; `glBindTexture(GL_TEXTURE_2D, output)`; `glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)`, `glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)`, `glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)`, and `glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)`; then `glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Ow, Oh, 0, GL_RGBA, GL_UNSIGNED_BYTE, null)`. Call `glGenFramebuffers(1, ids, 0)`, `glBindFramebuffer(GL_FRAMEBUFFER, fbo)`, `glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, output, 0)`, and `glCheckFramebufferStatus(GL_FRAMEBUFFER)`. | Nonzero names, `GL_FRAMEBUFFER_COMPLETE`, and the isolated construction probe publish the `GlRenderTargetOwner` receipt. A sole confirmed `GL_OUT_OF_MEMORY` is `ResourceExhausted`; incomplete framebuffer without that exact evidence, another error, or ambiguity is `InternalFailure`. |
 | canonical per-frame state | `glBindFramebuffer(GL_FRAMEBUFFER, fbo)`, `glUseProgram(program)`, `glViewport(0, 0, Ow, Oh)`, `glActiveTexture(GL_TEXTURE0)`, `glBindTexture(GL_TEXTURE_EXTERNAL_OES, oes)`, and `glUniform1i(oesSamplerLocation, 0)`. Upload the frozen transform/color scalars and arrays at their validated locations; each matrix call uses count one, `transpose = false`, and array offset zero. Bind client arrays with `glBindBuffer(GL_ARRAY_BUFFER, 0)`, restore the required position on each of the two owner-retained buffers, call `glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, positionBuffer)` and `glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, textureCoordinateBuffer)`, then call `glEnableVertexAttribArray(0)` and `glEnableVertexAttribArray(1)`. Call `glColorMask(true, true, true, true)`, `glPixelStorei(GL_PACK_ALIGNMENT, 1)`, and `glDisable` for `GL_BLEND`, `GL_DEPTH_TEST`, `GL_STENCIL_TEST`, `GL_SCISSOR_TEST`, `GL_CULL_FACE`, and `GL_DITHER`. | These calls occur after the bounded old-error drain and before drawing. Any preserved current-phase GL error uses the classification row below; canonical state is reinstalled for every materialized frame without creating client buffers. |
 | draw and Direct readback | `glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)`, then `glReadPixels(0, 0, Ow, Oh, GL_RGBA, GL_UNSIGNED_BYTE, carrier)` where `carrier` is the exact leased direct range with position zero and limit `B = 4 * Ow * Oh`. | Only the clean final bounded drain publishes the draw/readback receipt. Bytes remain tentative until the enclosing current frame occurrence settles timely; no PBO or second raw-frame-sized copy exists. |
 | GL errors | The old and final frame drains use exactly the Document-07 bounds and preserve every code. Construction uses only the isolated probe protocol above. | For the current frame after a clean old drain, a sole attributable `GL_OUT_OF_MEMORY` with safe ownership is the existing `ResourceExhausted` storage result. Any other code, mixed evidence, unattributable old error, uncleared sentinel, or ownership ambiguity is `InternalFailure`. `GL_NO_ERROR` after earlier errors does not erase them. |
