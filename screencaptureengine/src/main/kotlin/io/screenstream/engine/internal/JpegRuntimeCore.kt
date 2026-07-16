@@ -187,7 +187,7 @@ internal sealed class RgbaCarrier(
             buffer.position(0)
             buffer.isDirect && !buffer.isReadOnly && buffer.capacity() == byteCount && buffer.position() == 0 &&
                     buffer.limit() == byteCount && buffer.remaining() == byteCount
-        } catch (_: Throwable) {
+        } catch (_: Exception) {
             false
         }
         if (exactRange) return buffer

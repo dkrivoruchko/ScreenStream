@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
-import android.view.Surface
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationDisposition
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
@@ -24,6 +23,13 @@ import io.screenstream.engine.internal.settlement.OperationTerminalArbitration
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import io.screenstream.engine.internal.settlement.androidEnteredOperationSafetyNanos
 import io.screenstream.engine.internal.settlement.initialCapturedResizeReadinessNanos
+import io.screenstream.engine.internal.target.CurrentTarget
+import io.screenstream.engine.internal.target.TargetNoProducerEvidence
+import io.screenstream.engine.internal.target.TargetNoProducerReason
+import io.screenstream.engine.internal.target.TargetPorts
+import io.screenstream.engine.internal.target.TargetProducerDetachReceipt
+import io.screenstream.engine.internal.target.TargetProducerEvidence
+import io.screenstream.engine.internal.target.TargetProducerOperationKind
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -133,17 +139,11 @@ internal object AndroidTargetListenerInstallationReceipt : OperationReceipt
 internal class AndroidTargetListenerInstallationEvidence : OperationEvidence {
     override val receipt: AndroidTargetListenerInstallationReceipt = AndroidTargetListenerInstallationReceipt
     override val returnedOwner: OperationReturnedOwner? = null
-
-    internal var targetReceiptApplied: Boolean = false
-        private set
-
-    internal fun recordTargetReceiptApplied(applied: Boolean) {
-        targetReceiptApplied = applied
-    }
 }
 
 internal class AndroidTargetListenerInstallationOwnerBag(
     internal val target: CurrentTarget,
+    internal val port: TargetPorts.AndroidListenerInstallationPort,
 ) : OperationOwnerBag
 
 internal object AndroidVirtualDisplayCreationReceipt : OperationReceipt
@@ -165,6 +165,21 @@ internal class AndroidVirtualDisplayCreationEvidence : OperationEvidence, Operat
     internal var initialResizeDeadlineGuardFailed: Boolean = false
         private set
 
+    private val producerEvidence = AtomicReference<TargetProducerEvidence?>(null)
+    private val noProducerEvidence = AtomicReference<TargetNoProducerEvidence?>(null)
+
+    internal val publishedProducerEvidence: TargetProducerEvidence?
+        get() = producerEvidence.get()
+
+    internal val publishedNoProducerEvidence: TargetNoProducerEvidence?
+        get() = noProducerEvidence.get()
+
+    internal fun publishProducerEvidence(evidence: TargetProducerEvidence): Boolean =
+        noProducerEvidence.get() == null && producerEvidence.compareAndSet(null, evidence)
+
+    internal fun publishNoProducerEvidence(evidence: TargetNoProducerEvidence): Boolean =
+        producerEvidence.get() == null && noProducerEvidence.compareAndSet(null, evidence)
+
     internal fun recordReturnLocked(virtualDisplay: VirtualDisplay?, sdkInt: Int, sampleNanos: Long) {
         this.virtualDisplay = virtualDisplay
         if (virtualDisplay == null || sdkInt < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
@@ -185,7 +200,8 @@ internal class AndroidVirtualDisplayCreationEvidence : OperationEvidence, Operat
 
 internal class AndroidVirtualDisplayCreationOwnerBag(
     internal val projection: MediaProjection,
-    internal val surface: Surface,
+    internal val target: CurrentTarget,
+    internal val port: TargetPorts.AndroidSurfacePort,
     internal val widthPx: Int,
     internal val heightPx: Int,
     internal val densityDpi: Int,
@@ -222,11 +238,27 @@ internal object AndroidVirtualDisplayAttachReceipt : OperationReceipt
 internal class AndroidVirtualDisplayAttachEvidence : OperationEvidence {
     override val receipt: AndroidVirtualDisplayAttachReceipt = AndroidVirtualDisplayAttachReceipt
     override val returnedOwner: OperationReturnedOwner? = null
+
+    private val producerEvidence = AtomicReference<TargetProducerEvidence?>(null)
+    private val noProducerEvidence = AtomicReference<TargetNoProducerEvidence?>(null)
+
+    internal val publishedProducerEvidence: TargetProducerEvidence?
+        get() = producerEvidence.get()
+
+    internal val publishedNoProducerEvidence: TargetNoProducerEvidence?
+        get() = noProducerEvidence.get()
+
+    internal fun publishProducerEvidence(evidence: TargetProducerEvidence): Boolean =
+        noProducerEvidence.get() == null && producerEvidence.compareAndSet(null, evidence)
+
+    internal fun publishNoProducerEvidence(evidence: TargetNoProducerEvidence): Boolean =
+        producerEvidence.get() == null && noProducerEvidence.compareAndSet(null, evidence)
 }
 
 internal class AndroidVirtualDisplayAttachOwnerBag(
     internal val virtualDisplay: VirtualDisplay,
     internal val target: CurrentTarget,
+    internal val port: TargetPorts.AndroidSurfacePort,
 ) : OperationOwnerBag
 
 internal object AndroidVirtualDisplayDetachReceipt : OperationReceipt
@@ -235,17 +267,19 @@ internal class AndroidVirtualDisplayDetachEvidence : OperationEvidence {
     override val receipt: AndroidVirtualDisplayDetachReceipt = AndroidVirtualDisplayDetachReceipt
     override val returnedOwner: OperationReturnedOwner? = null
 
-    internal var targetReceiptApplied: Boolean = false
-        private set
+    private val targetReceipt = AtomicReference<TargetProducerDetachReceipt?>(null)
 
-    internal fun recordTargetReceiptApplied(applied: Boolean) {
-        targetReceiptApplied = applied
-    }
+    internal val publishedTargetReceipt: TargetProducerDetachReceipt?
+        get() = targetReceipt.get()
+
+    internal fun publishTargetReceipt(receipt: TargetProducerDetachReceipt): Boolean =
+        targetReceipt.compareAndSet(null, receipt)
 }
 
 internal class AndroidVirtualDisplayDetachOwnerBag(
     internal val virtualDisplay: VirtualDisplay,
     internal val target: CurrentTarget,
+    internal val port: TargetPorts.AndroidDetachPort,
 ) : OperationOwnerBag
 
 internal object AndroidTargetListenerRemovalReceipt : OperationReceipt
@@ -263,15 +297,8 @@ internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {
     internal var sentinelSubmissionRejection: Throwable? = null
         private set
 
-    internal var targetReceiptApplied: Boolean = false
-        private set
-
     internal fun recordListenerRemovalReturn() {
         listenerRemovalReturned = true
-    }
-
-    internal fun recordTargetReceiptApplied(applied: Boolean) {
-        targetReceiptApplied = applied
     }
 
     internal fun recordSentinelSubmissionAccepted() {
@@ -285,6 +312,7 @@ internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {
 
 internal class AndroidTargetListenerRemovalOwnerBag(
     internal val target: CurrentTarget,
+    internal val port: TargetPorts.AndroidListenerRemovalPort,
 ) : OperationOwnerBag
 
 internal object AndroidProjectionCallbackUnregistrationReceipt : OperationReceipt
@@ -306,17 +334,19 @@ internal class AndroidVirtualDisplayReleaseEvidence : OperationEvidence {
     override val receipt: AndroidVirtualDisplayReleaseReceipt = AndroidVirtualDisplayReleaseReceipt
     override val returnedOwner: OperationReturnedOwner? = null
 
-    internal var targetReceiptApplied: Boolean = false
-        private set
+    private val targetReceipt = AtomicReference<TargetProducerDetachReceipt?>(null)
 
-    internal fun recordTargetReceiptApplied(applied: Boolean) {
-        targetReceiptApplied = applied
-    }
+    internal val publishedTargetReceipt: TargetProducerDetachReceipt?
+        get() = targetReceipt.get()
+
+    internal fun publishTargetReceipt(receipt: TargetProducerDetachReceipt): Boolean =
+        targetReceipt.compareAndSet(null, receipt)
 }
 
 internal class AndroidVirtualDisplayReleaseOwnerBag(
     internal val virtualDisplay: VirtualDisplay,
     internal val target: CurrentTarget?,
+    internal val targetPort: TargetPorts.AndroidDetachPort?,
 ) : OperationOwnerBag
 
 internal object AndroidProjectionStopReceipt : OperationReceipt
@@ -474,11 +504,14 @@ internal class AndroidCaptureOwner(
     internal fun createTargetListenerInstallationOperation(
         target: CurrentTarget,
         identity: AndroidFiniteOperationIdentity,
-    ): OperationOccurrence<AndroidTargetListenerInstallationEvidence> = finiteOccurrence(
-        identity = identity,
-        evidence = AndroidTargetListenerInstallationEvidence(),
-        ownerBag = AndroidTargetListenerInstallationOwnerBag(target),
-    )
+    ): OperationOccurrence<AndroidTargetListenerInstallationEvidence>? {
+        val port = target.registerListenerInstallationPort(identity.operationIdentity) ?: return null
+        return finiteOccurrence(
+            identity = identity,
+            evidence = AndroidTargetListenerInstallationEvidence(),
+            ownerBag = AndroidTargetListenerInstallationOwnerBag(target, port),
+        )
+    }
 
     internal fun submitTargetListenerInstallation(
         operation: OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
@@ -488,18 +521,16 @@ internal class AndroidCaptureOwner(
             operation = operation,
             postRejectionMessage = "Android target-listener installation rejected",
         ) { handler ->
-            ownerBag.target.surfaceTexture.setOnFrameAvailableListener(
-                ownerBag.target.frameAvailableListener,
-                handler,
-            )
-            operation.returnCell.evidence.recordTargetReceiptApplied(
-                ownerBag.target.recordListenerInstallationReceipt(operation.identity),
+            check(
+                ownerBag.port.withListener { surfaceTexture, listener ->
+                    surfaceTexture.setOnFrameAvailableListener(listener, handler)
+                },
             )
         }
     }
 
     internal fun createVirtualDisplayCreationOperation(
-        surface: Surface,
+        target: CurrentTarget,
         widthPx: Int,
         heightPx: Int,
         densityDpi: Int,
@@ -508,13 +539,17 @@ internal class AndroidCaptureOwner(
         require(widthPx > 0)
         require(heightPx > 0)
         require(densityDpi > 0)
-        if (!callbackRegistered.get() || !callbackAuthorityOpen.get()) return null
+        if (!callbackRegistered.get() || !callbackAuthorityOpen.get() || virtualDisplayCreationOperation.get() != null) {
+            return null
+        }
+        val port = target.registerProducerPort(identity.operationIdentity, TargetProducerOperationKind.VirtualDisplayCreation) ?: return null
         val operation = finiteOccurrence(
             identity = identity,
             evidence = AndroidVirtualDisplayCreationEvidence(),
             ownerBag = AndroidVirtualDisplayCreationOwnerBag(
                 projection = projection,
-                surface = surface,
+                target = target,
+                port = port,
                 widthPx = widthPx,
                 heightPx = heightPx,
                 densityDpi = densityDpi,
@@ -533,21 +568,52 @@ internal class AndroidCaptureOwner(
             publishNormalReturn = false,
             onReturnedThrow = { virtualDisplayCreationReturned.set(true) },
         ) {
-            val returnedDisplay = projection.createVirtualDisplay(
-                "ScreenCaptureEngine",
-                ownerBag.widthPx,
-                ownerBag.heightPx,
-                ownerBag.densityDpi,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                ownerBag.surface,
-                null,
-                null,
-            )
-            if (returnedDisplay != null && !virtualDisplayOwner.compareAndSet(null, returnedDisplay)) {
+            var returnedDisplay: VirtualDisplay? = null
+            val rawCallEntered = ownerBag.port.withSurface { surface ->
+                returnedDisplay = projection.createVirtualDisplay(
+                    "ScreenCaptureEngine",
+                    ownerBag.widthPx,
+                    ownerBag.heightPx,
+                    ownerBag.densityDpi,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                    surface,
+                    null,
+                    null,
+                )
+            }
+            check(rawCallEntered)
+            val returnedDisplaySnapshot = returnedDisplay
+            if (returnedDisplaySnapshot != null && !virtualDisplayOwner.compareAndSet(null, returnedDisplaySnapshot)) {
                 throw IllegalStateException("VirtualDisplay owner already present")
             }
-            publishVirtualDisplayCreationReturn(operation, returnedDisplay)
+            val settled = publishVirtualDisplayCreationReturn(operation, returnedDisplaySnapshot)
+            if (settled) {
+                val evidencePublished = if (returnedDisplaySnapshot == null) {
+                    ownerBag.target.noProducerEvidenceAfterSettlement(
+                        ownerBag.port,
+                        operation,
+                        TargetNoProducerReason.ReturnedWithoutProducer,
+                    )
+                        ?.let(operation.returnCell.evidence::publishNoProducerEvidence)
+                } else {
+                    ownerBag.target.producerEvidenceAfterSettlement(ownerBag.port, operation)
+                        ?.let(operation.returnCell.evidence::publishProducerEvidence)
+                }
+                check(evidencePublished == true)
+            }
             virtualDisplayCreationReturned.set(true)
+        }
+    }
+
+    internal fun publishVirtualDisplayCreationNoProducerEvidence(
+        operation: OperationOccurrence<AndroidVirtualDisplayCreationEvidence>,
+        reason: TargetNoProducerReason,
+    ): Boolean {
+        if (reason == TargetNoProducerReason.ReturnedWithoutProducer) return false
+        val ownerBag = operation.ownerBag as? AndroidVirtualDisplayCreationOwnerBag ?: return false
+        val evidence = ownerBag.target.noProducerEvidenceAfterSettlement(ownerBag.port, operation, reason) ?: return false
+        return operation.returnCell.evidence.publishNoProducerEvidence(evidence).also { published ->
+            if (published) settlementSignal.signal()
         }
     }
 
@@ -583,10 +649,11 @@ internal class AndroidCaptureOwner(
     ): OperationOccurrence<AndroidVirtualDisplayAttachEvidence>? {
         if (!target.isProducerAttachmentPermitted) return null
         val display = virtualDisplayOwner.get() ?: return null
+        val port = target.registerProducerPort(identity.operationIdentity, TargetProducerOperationKind.VirtualDisplayAttachment) ?: return null
         return finiteOccurrence(
             identity = identity,
             evidence = AndroidVirtualDisplayAttachEvidence(),
-            ownerBag = AndroidVirtualDisplayAttachOwnerBag(display, target),
+            ownerBag = AndroidVirtualDisplayAttachOwnerBag(display, target, port),
         )
     }
 
@@ -597,8 +664,31 @@ internal class AndroidCaptureOwner(
         return submitToLane(
             operation = operation,
             postRejectionMessage = "Android VirtualDisplay attach rejected",
+            afterNormalSettlement = {
+                checkNotNull(
+                    ownerBag.target.producerEvidenceAfterSettlement(ownerBag.port, operation),
+                ).also { evidence ->
+                    check(operation.returnCell.evidence.publishProducerEvidence(evidence))
+                }
+            },
         ) {
-            ownerBag.virtualDisplay.surface = ownerBag.target.surface
+            check(
+                ownerBag.port.withSurface { surface ->
+                    ownerBag.virtualDisplay.surface = surface
+                },
+            )
+        }
+    }
+
+    internal fun publishVirtualDisplayAttachNoProducerEvidence(
+        operation: OperationOccurrence<AndroidVirtualDisplayAttachEvidence>,
+        reason: TargetNoProducerReason,
+    ): Boolean {
+        if (reason == TargetNoProducerReason.ReturnedWithoutProducer) return false
+        val ownerBag = operation.ownerBag as? AndroidVirtualDisplayAttachOwnerBag ?: return false
+        val evidence = ownerBag.target.noProducerEvidenceAfterSettlement(ownerBag.port, operation, reason) ?: return false
+        return operation.returnCell.evidence.publishNoProducerEvidence(evidence).also { published ->
+            if (published) settlementSignal.signal()
         }
     }
 
@@ -610,9 +700,8 @@ internal class AndroidCaptureOwner(
         val operation = finiteOccurrence(
             identity = identity,
             evidence = AndroidVirtualDisplayDetachEvidence(),
-            ownerBag = AndroidVirtualDisplayDetachOwnerBag(display, target),
+            ownerBag = AndroidVirtualDisplayDetachOwnerBag(display, target, target.registerSetSurfaceDetachPort(identity.operationIdentity) ?: return null),
         )
-        if (!target.bindSetSurfaceDetachOperationIdentity(identity.operationIdentity)) return null
         return operation
     }
 
@@ -623,11 +712,15 @@ internal class AndroidCaptureOwner(
         return submitToLane(
             operation = operation,
             postRejectionMessage = "Android VirtualDisplay detach rejected",
+            afterNormalSettlement = {
+                checkNotNull(
+                    ownerBag.target.producerDetachReceiptAfterSettlement(ownerBag.port, operation),
+                ).also { receipt ->
+                    check(operation.returnCell.evidence.publishTargetReceipt(receipt))
+                }
+            },
         ) {
             ownerBag.virtualDisplay.surface = null
-            operation.returnCell.evidence.recordTargetReceiptApplied(
-                ownerBag.target.recordSetSurfaceDetachReceipt(operation.identity),
-            )
         }
     }
 
@@ -639,13 +732,13 @@ internal class AndroidCaptureOwner(
         require(operationIdentity > 0L)
         require(finiteIdentity == null || finiteIdentity.operationIdentity == operationIdentity)
         val evidence = AndroidTargetListenerRemovalEvidence()
-        val ownerBag = AndroidTargetListenerRemovalOwnerBag(target)
+        val port = target.registerListenerRemovalPort(operationIdentity) ?: return null
+        val ownerBag = AndroidTargetListenerRemovalOwnerBag(target, port)
         val operation = if (finiteIdentity == null) {
             cleanupOccurrence(operationIdentity, evidence, ownerBag)
         } else {
             finiteOccurrence(finiteIdentity, evidence, ownerBag)
         }
-        if (!target.bindListenerRemovalOperationIdentity(operationIdentity)) return null
         return operation
     }
 
@@ -660,12 +753,14 @@ internal class AndroidCaptureOwner(
             postRejectionMessage = "Android target-listener removal rejected",
             publishNormalReturn = false,
         ) { handler ->
-            ownerBag.target.surfaceTexture.setOnFrameAvailableListener(null, handler)
-            operation.returnCell.evidence.recordListenerRemovalReturn()
-            operation.returnCell.evidence.recordTargetReceiptApplied(
-                ownerBag.target.recordListenerRemovalReceipt(operation.identity),
+            check(
+                ownerBag.port.withSurfaceTexture { surfaceTexture ->
+                    surfaceTexture.setOnFrameAvailableListener(null, handler)
+                },
             )
-            val sentinel = ownerBag.target.armListenerSentinelAfterPublishedNormalRemoval(operation.identity)
+            operation.returnCell.evidence.recordListenerRemovalReturn()
+            check(ownerBag.target.recordListenerRemovalReturn(ownerBag.port))
+            val sentinel = ownerBag.target.armListenerSentinelAfterRemovalReturn(operation.identity)
             if (sentinel == null) {
                 operation.returnCell.evidence.recordSentinelSubmissionRejected(sentinelArmFailure)
                 operation.publishThrownReturn(sentinelArmFailure)
@@ -738,12 +833,14 @@ internal class AndroidCaptureOwner(
         )
         if (virtualDisplayCreationNoPlatformEntryProven.get() || !virtualDisplayCreationReturned.get()) return null
         val display = virtualDisplayOwner.get() ?: return null
+        val targetPort = target?.registerVirtualDisplayReleasePort(operationIdentity) ?: if (target == null) null else {
+            return null
+        }
         val operation = cleanupOccurrence(
             identity = operationIdentity,
             evidence = AndroidVirtualDisplayReleaseEvidence(),
-            ownerBag = AndroidVirtualDisplayReleaseOwnerBag(display, target),
+            ownerBag = AndroidVirtualDisplayReleaseOwnerBag(display, target, targetPort),
         )
-        if (target != null && !target.bindVirtualDisplayReleaseOperationIdentity(operationIdentity)) return null
         return if (virtualDisplayReleaseOperation.compareAndSet(null, operation)) operation else null
     }
 
@@ -753,12 +850,18 @@ internal class AndroidCaptureOwner(
             operation = operation,
             postRejectionMessage = "Android VirtualDisplay release rejected",
             onReturnedThrow = { virtualDisplayReleaseReturned.set(true) },
+            afterNormalSettlement = {
+                val target = ownerBag.target
+                val targetPort = ownerBag.targetPort
+                if (target != null && targetPort != null) {
+                    target.producerDetachReceiptAfterSettlement(targetPort, operation)?.also { receipt ->
+                        check(operation.returnCell.evidence.publishTargetReceipt(receipt))
+                    }
+                }
+            },
         ) {
             ownerBag.virtualDisplay.release()
             virtualDisplayOwner.compareAndSet(ownerBag.virtualDisplay, null)
-            operation.returnCell.evidence.recordTargetReceiptApplied(
-                ownerBag.target?.recordVirtualDisplayReleaseReceipt(operation.identity) ?: false,
-            )
             virtualDisplayReleaseReturned.set(true)
         }
     }
@@ -900,6 +1003,7 @@ internal class AndroidCaptureOwner(
         postRejectionMessage: String,
         publishNormalReturn: Boolean = true,
         onReturnedThrow: (Throwable) -> Unit = {},
+        afterNormalSettlement: () -> Unit = {},
         call: (Handler) -> Unit,
     ): Boolean {
         val ready = startupCell.current
@@ -912,13 +1016,15 @@ internal class AndroidCaptureOwner(
                 settlementSignal.signal()
                 if (entryResult != OperationEntryResult.Entered) return@Runnable
 
+                var normalSettlementPublished = false
                 try {
                     call(readyHandler)
-                    if (publishNormalReturn) operation.publishNormalReturn()
+                    normalSettlementPublished = publishNormalReturn && operation.publishNormalReturn()
                 } catch (thrown: Throwable) {
                     onReturnedThrow(thrown)
                     operation.publishThrownReturn(thrown)
                 }
+                if (normalSettlementPublished) afterNormalSettlement()
                 settlementSignal.signal()
             }
         }

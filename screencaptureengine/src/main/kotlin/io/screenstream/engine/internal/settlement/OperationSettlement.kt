@@ -140,6 +140,7 @@ internal class OperationReturnCell<R : OperationEvidence>(
         private const val NO_SETTLEMENT_SAMPLE: Long = Long.MIN_VALUE
     }
 }
+
 internal class OperationOccurrence<R : OperationEvidence>(
     internal val identity: Long,
     private val clock: EngineClock,

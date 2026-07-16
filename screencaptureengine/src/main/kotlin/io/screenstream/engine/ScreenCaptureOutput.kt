@@ -51,6 +51,11 @@ public class ImageSize internal constructor(
     public val widthPx: Int,
     public val heightPx: Int,
 ) {
+    init {
+        require(widthPx > 0) { "widthPx must be positive" }
+        require(heightPx > 0) { "heightPx must be positive" }
+    }
+
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ImageSize) return false
