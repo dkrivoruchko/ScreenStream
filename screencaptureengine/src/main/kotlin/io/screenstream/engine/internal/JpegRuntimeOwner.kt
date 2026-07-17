@@ -1,6 +1,40 @@
 package io.screenstream.engine.internal
 
 import io.screenstream.engine.JpegBackendPolicy
+import io.screenstream.engine.internal.jpeg.CarrierValidation
+import io.screenstream.engine.internal.jpeg.JpegFiniteOperationIdentity
+import io.screenstream.engine.internal.jpeg.JpegIoOperation
+import io.screenstream.engine.internal.jpeg.JpegPreparationEvidence
+import io.screenstream.engine.internal.jpeg.JpegPreparationOccurrence
+import io.screenstream.engine.internal.jpeg.JpegRuntimeFailure
+import io.screenstream.engine.internal.jpeg.JpegRuntimeProduct
+import io.screenstream.engine.internal.jpeg.ManagedDirectCarrier
+import io.screenstream.engine.internal.jpeg.ManagedDirectCarrierReplacementAllocationOccurrence
+import io.screenstream.engine.internal.jpeg.NATIVE_ENCODE_ADMISSION_FAILED
+import io.screenstream.engine.internal.jpeg.NativeCallBlockLoan
+import io.screenstream.engine.internal.jpeg.NativeCallBlocks
+import io.screenstream.engine.internal.jpeg.NativeCarrierFreeOccurrence
+import io.screenstream.engine.internal.jpeg.NativeCarrierFreeOrigin
+import io.screenstream.engine.internal.jpeg.NativeCarrierFreeSettlement
+import io.screenstream.engine.internal.jpeg.NativeCarrierReplacementAllocationOccurrence
+import io.screenstream.engine.internal.jpeg.NativeDisableResult
+import io.screenstream.engine.internal.jpeg.NativeDisableStage
+import io.screenstream.engine.internal.jpeg.NativeEncodeAdmissionDisposition
+import io.screenstream.engine.internal.jpeg.NativeEncodeOccurrence
+import io.screenstream.engine.internal.jpeg.NativeEncodeOwnerBag
+import io.screenstream.engine.internal.jpeg.NativeEncodeSettlement
+import io.screenstream.engine.internal.jpeg.NativeFrameDescriptor
+import io.screenstream.engine.internal.jpeg.NativeJpegHealth
+import io.screenstream.engine.internal.jpeg.NativeMallocCarrier
+import io.screenstream.engine.internal.jpeg.NativeMallocCarrierLease
+import io.screenstream.engine.internal.jpeg.NativeWriterResidueDisposition
+import io.screenstream.engine.internal.jpeg.NoReturnedCarrierSettlement
+import io.screenstream.engine.internal.jpeg.RgbaCarrier
+import io.screenstream.engine.internal.jpeg.RgbaCarrierLease
+import io.screenstream.engine.internal.jpeg.cancelledNativeEncodeWithoutReturnLocked
+import io.screenstream.engine.internal.jpeg.executeCoordinatedNativeEncode
+import io.screenstream.engine.internal.jpeg.nativeEncodeMechanicsSettledLocked
+import io.screenstream.engine.internal.jpeg.terminalizedUnenteredEncodeFailureLocked
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationArbitration
 import io.screenstream.engine.internal.settlement.OperationDisposition
@@ -970,39 +1004,6 @@ internal class JpegRuntimeOwner internal constructor(
         }
     }
 
-    private fun cancelledNativeEncodeWithoutReturnLocked(occurrence: NativeEncodeOccurrence): Boolean {
-        val operation = occurrence.operation
-        check(operation.settlementGate.isHeldByCurrentThread)
-        val submissionResolved = operation.submissionDisposition == OperationSubmissionDisposition.Cancelled ||
-                operation.submissionDisposition == OperationSubmissionDisposition.Accepted ||
-                operation.submissionDisposition == OperationSubmissionDisposition.Rejected
-        return operation.domain == OperationDomain.Cleanup &&
-                operation.entryDisposition == OperationEntryDisposition.Cancelled &&
-                submissionResolved &&
-                operation.disposition == OperationDisposition.Cancelled &&
-                operation.returnCell.disposition == OperationReturnDisposition.Empty &&
-                operation.returnCell.use == OperationReturnUse.Unclaimed &&
-                occurrence.ownerBag.callBlockLoan?.writerResidueDisposition == NativeWriterResidueDisposition.NoNativeEntry
-    }
-
-    private fun terminalizedUnenteredEncodeFailureLocked(occurrence: NativeEncodeOccurrence): Boolean {
-        val operation = occurrence.operation
-        check(operation.settlementGate.isHeldByCurrentThread)
-        val terminalizedFailure = operation.disposition == OperationDisposition.SchedulerRejected ||
-                operation.disposition == OperationDisposition.DeadlineGuardFailed
-        return operation.domain == OperationDomain.Cleanup && terminalizedFailure &&
-                operation.entryDisposition == OperationEntryDisposition.Cancelled &&
-                operation.submissionDisposition == OperationSubmissionDisposition.Cancelled &&
-                operation.returnCell.disposition == OperationReturnDisposition.Empty &&
-                operation.returnCell.use == OperationReturnUse.Unclaimed &&
-                occurrence.ownerBag.callBlockLoan?.writerResidueDisposition == NativeWriterResidueDisposition.NoNativeEntry
-    }
-
-    private fun nativeEncodeMechanicsSettledLocked(bag: NativeEncodeOwnerBag): Boolean =
-        bag.retainedOperationLease == null && bag.callBlocksOwner == null && bag.callBlockLoan == null &&
-                bag.storageOwner == null && bag.transaction == null && bag.segmentSink == null &&
-                bag.unpublishedToRetire == null
-
     private fun clearNativeEncodeOccurrenceIfSettledLocked(occurrence: NativeEncodeOccurrence) {
         check(occurrence.operation.settlementGate.isHeldByCurrentThread)
         val bag = occurrence.ownerBag
@@ -1284,6 +1285,34 @@ internal class JpegRuntimeOwner internal constructor(
         }
     }
 
+    internal fun compressNativeFrame(
+        loan: NativeCallBlockLoan,
+        pixels: ByteBuffer,
+        bag: NativeEncodeOwnerBag,
+        sink: EncodedStorageOwner.NativeSegmentSink,
+    ): Int = NativeBridge.nativeCompress(
+        writerBlock = loan.writerBlock,
+        pixels = pixels,
+        pixelByteCount = bag.descriptor.pixelByteCount,
+        width = bag.descriptor.width,
+        height = bag.descriptor.height,
+        stride = bag.descriptor.stride,
+        format = ANDROID_BITMAP_FORMAT_RGBA_8888,
+        flags = ANDROID_BITMAP_FLAGS_ALPHA_OPAQUE,
+        dataspace = ANDROID_DATASPACE_SRGB,
+        compressFormat = ANDROID_BITMAP_COMPRESS_FORMAT_JPEG,
+        quality = bag.descriptor.quality,
+        sink = sink,
+        resultBlock = loan.resultBlock,
+    )
+
+    internal fun releaseNativeWriterResidue(writerBlock: ByteBuffer): Int =
+        NativeBridge.nativeReleaseWriterResidue(writerBlock)
+
+    internal fun signalJpegIoSettlement() {
+        settlementSignal.signal()
+    }
+
     internal fun <E : OperationEvidence> submitJpegIoOperation(operation: JpegIoOperation<E>): Boolean {
         if (!operation.occurrence.beginSubmission()) return false
 
@@ -1523,315 +1552,7 @@ internal class JpegRuntimeOwner internal constructor(
         if (published) settlementSignal.signal()
     }
 
-    private fun executeNativeEncode(occurrence: NativeEncodeOccurrence) {
-        val entryResult = occurrence.operation.tryEnter()
-        if (entryResult != OperationEntryResult.Entered) {
-            if (entryResult == OperationEntryResult.InvalidDeadline) settlementSignal.signal()
-            return
-        }
-
-        val bag = occurrence.ownerBag
-        val lease = checkNotNull(bag.retainedOperationLease)
-        val loan = checkNotNull(bag.callBlockLoan)
-        val transaction = checkNotNull(bag.transaction)
-        val evidence = occurrence.operation.returnCell.evidence
-        val pixels = lease.enterExactRange()
-        if (pixels == null) {
-            evidence.carrierUseResolved = true
-            evidence.writerResidueDisposition = loan.writerResidueDisposition
-            transaction.abort()
-            if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, LEASE_NOT_OPERATIONAL)) {
-                settlementSignal.signal()
-            }
-            return
-        }
-
-        try {
-            loan.reset()
-        } catch (failure: Throwable) {
-            evidence.carrierUseResolved = lease.exitExactRange()
-            evidence.writerResidueDisposition = loan.writerResidueDisposition
-            transaction.abort()
-            if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, failure)) {
-                settlementSignal.signal()
-            }
-            return
-        }
-        val sink = bag.segmentSink
-        if (sink == null || !loan.markNativeEntryAttempted()) {
-            evidence.carrierUseResolved = lease.exitExactRange()
-            evidence.writerResidueDisposition = loan.writerResidueDisposition
-            transaction.abort()
-            if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, NATIVE_ENCODE_ADMISSION_FAILED)) {
-                settlementSignal.signal()
-            }
-            return
-        }
-
-        var compressorResult = Int.MIN_VALUE
-        var thrown: Throwable? = null
-        try {
-            compressorResult = NativeBridge.nativeCompress(
-                writerBlock = loan.writerBlock,
-                pixels = pixels,
-                pixelByteCount = bag.descriptor.pixelByteCount,
-                width = bag.descriptor.width,
-                height = bag.descriptor.height,
-                stride = bag.descriptor.stride,
-                format = ANDROID_BITMAP_FORMAT_RGBA_8888,
-                flags = ANDROID_BITMAP_FLAGS_ALPHA_OPAQUE,
-                dataspace = ANDROID_DATASPACE_SRGB,
-                compressFormat = ANDROID_BITMAP_COMPRESS_FORMAT_JPEG,
-                quality = bag.descriptor.quality,
-                sink = sink,
-                resultBlock = loan.resultBlock,
-            )
-        } catch (failure: Throwable) {
-            thrown = failure
-        } finally {
-            evidence.carrierUseResolved = lease.exitExactRange()
-        }
-
-        if (decodeNativeEncodeReturn(occurrence, compressorResult, thrown)) settlementSignal.signal()
-    }
-
-    private fun decodeNativeEncodeReturn(
-        occurrence: NativeEncodeOccurrence,
-        compressorResult: Int,
-        thrown: Throwable?,
-    ): Boolean {
-        val bag = occurrence.ownerBag
-        val evidence = occurrence.operation.returnCell.evidence
-        val loan = checkNotNull(bag.callBlockLoan)
-        val transaction = checkNotNull(bag.transaction)
-
-        var blockFailure: Throwable? = null
-        try {
-            evidence.compressorResult = compressorResult
-            evidence.writerStatus = loan.resultBlock.getLong(WRITER_STATUS_OFFSET)
-            evidence.totalBytes = loan.resultBlock.getLong(TOTAL_BYTES_OFFSET)
-            evidence.adoptedBytes = loan.resultBlock.getLong(ADOPTED_BYTES_OFFSET)
-            evidence.remainingBytes = loan.resultBlock.getLong(REMAINING_BYTES_OFFSET)
-            evidence.remainingSegmentCount = loan.resultBlock.getLong(REMAINING_SEGMENTS_OFFSET)
-        } catch (failure: Throwable) {
-            blockFailure = failure
-        }
-
-        var tokenRead = false
-        val tokenClearOnReturn = try {
-            val clear = loan.writerBlock.getLong(WRITER_TOKEN_OFFSET) == 0L
-            tokenRead = true
-            clear
-        } catch (failure: Throwable) {
-            if (blockFailure == null) blockFailure = failure
-            false
-        }
-        var residueFailure: Throwable? = null
-        if (tokenClearOnReturn) {
-            if (!loan.markClearOnReturn()) residueFailure = MALFORMED_NATIVE_RESULT
-        } else if (tokenRead) {
-            try {
-                if (NativeBridge.nativeReleaseWriterResidue(loan.writerBlock) == NATIVE_RESIDUE_RELEASE_SUCCESS) {
-                    val tokenClearedAfterRelease = loan.writerBlock.getLong(WRITER_TOKEN_OFFSET) == 0L
-                    if (tokenClearedAfterRelease && !loan.markReleasedAndCleared()) {
-                        residueFailure = MALFORMED_NATIVE_RESULT
-                    }
-                }
-            } catch (failure: Throwable) {
-                residueFailure = failure
-            }
-        }
-        evidence.writerResidueDisposition = loan.writerResidueDisposition
-
-        val writerMalformed = evidence.writerStatus != WRITER_STATUS_SAFE &&
-                evidence.writerStatus != WRITER_STATUS_OUT_OF_MEMORY &&
-                evidence.writerStatus != WRITER_STATUS_INTERNAL
-        val countsNonnegative = evidence.totalBytes >= 0L && evidence.adoptedBytes >= 0L &&
-                evidence.remainingBytes >= 0L && evidence.remainingSegmentCount >= 0L
-        val sumRepresentable = countsNonnegative && evidence.adoptedBytes <= Long.MAX_VALUE - evidence.remainingBytes
-        val countsMalformed = !countsNonnegative || evidence.adoptedBytes > evidence.totalBytes ||
-                evidence.remainingBytes > evidence.totalBytes || !sumRepresentable ||
-                evidence.totalBytes != evidence.adoptedBytes + evidence.remainingBytes ||
-                (evidence.remainingBytes == 0L) != (evidence.remainingSegmentCount == 0L) ||
-                evidence.remainingSegmentCount > evidence.remainingBytes ||
-                evidence.adoptedBytes != transaction.byteCount.toLong()
-        val transactionFailure = transaction.failure
-        val nonOomBlockFailure = blockFailure != null && blockFailure !is OutOfMemoryError
-        val nonOomResidueFailure = residueFailure != null && residueFailure !is OutOfMemoryError
-        val nonOomThrown = thrown != null && thrown !is OutOfMemoryError
-        val residueResolved = evidence.writerResidueDisposition == NativeWriterResidueDisposition.ClearOnReturn ||
-                evidence.writerResidueDisposition == NativeWriterResidueDisposition.ReleasedAndCleared
-        val internalFault = !evidence.carrierUseResolved || !residueResolved || nonOomBlockFailure ||
-                nonOomResidueFailure || nonOomThrown || writerMalformed || countsMalformed ||
-                evidence.writerStatus == WRITER_STATUS_INTERNAL ||
-                transactionFailure == EncodedStorageOwner.TransactionFailure.InternalFailure
-        val outOfMemory = blockFailure is OutOfMemoryError || residueFailure is OutOfMemoryError ||
-                thrown is OutOfMemoryError || evidence.writerStatus == WRITER_STATUS_OUT_OF_MEMORY ||
-                transactionFailure == EncodedStorageOwner.TransactionFailure.ResourceExhausted
-
-        if (internalFault) {
-            if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-            return publishNativeEncodeFailure(
-                occurrence,
-                NativeEncodeSettlement.InternalFailure,
-                selectInternalFailureCause(
-                    blockFailure = blockFailure,
-                    residueFailure = residueFailure,
-                    thrown = thrown,
-                    transactionFailure = transactionFailure,
-                    transactionCause = transaction.failureCause,
-                ),
-            )
-        }
-        if (outOfMemory) {
-            if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-            return publishNativeEncodeFailure(
-                occurrence,
-                NativeEncodeSettlement.ResourceExhausted,
-                selectResourceExhaustedCause(
-                    blockFailure = blockFailure,
-                    residueFailure = residueFailure,
-                    thrown = thrown,
-                    transactionFailure = transactionFailure,
-                    transactionCause = transaction.failureCause,
-                ),
-            )
-        }
-
-        val nativeRemainderEmpty = evidence.remainingBytes == 0L && evidence.remainingSegmentCount == 0L
-        when (compressorResult) {
-            ANDROID_BITMAP_RESULT_SUCCESS -> {
-                val successful = evidence.writerStatus == WRITER_STATUS_SAFE && nativeRemainderEmpty &&
-                        evidence.totalBytes > 0L && evidence.totalBytes == evidence.adoptedBytes &&
-                        transaction.commit(bag.descriptor.imageSize)
-                if (successful) {
-                    evidence.result = NativeEncodeSettlement.Success
-                    return occurrence.operation.publishNormalReturn()
-                } else {
-                    if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-                    val transactionResult = classifyTransactionFailure(transaction)
-                    return publishNativeEncodeFailure(
-                        occurrence,
-                        transactionResult,
-                        selectTransactionFailureCause(transaction, transactionResult),
-                    )
-                }
-            }
-
-            ANDROID_BITMAP_RESULT_ALLOCATION_FAILED -> {
-                val safeAllocationFailure = evidence.writerStatus == WRITER_STATUS_SAFE && evidence.totalBytes == 0L &&
-                        evidence.adoptedBytes == 0L && nativeRemainderEmpty &&
-                        transaction.byteCount == 0 && transaction.failure == null
-                if (safeAllocationFailure) {
-                    transaction.abort()
-                    evidence.result = NativeEncodeSettlement.SafeNativeAllocationFailure
-                    return occurrence.operation.publishNormalReturn()
-                } else {
-                    if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-                    return publishNativeEncodeFailure(
-                        occurrence,
-                        NativeEncodeSettlement.InternalFailure,
-                        MALFORMED_NATIVE_RESULT,
-                    )
-                }
-            }
-
-            ANDROID_BITMAP_RESULT_BAD_PARAMETER,
-            ANDROID_BITMAP_RESULT_JNI_EXCEPTION,
-                -> {
-                if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-                return publishNativeEncodeFailure(
-                    occurrence,
-                    NativeEncodeSettlement.InternalFailure,
-                    NATIVE_COMPRESSOR_FAILURE,
-                )
-            }
-
-            else -> {
-                if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-                return publishNativeEncodeFailure(
-                    occurrence,
-                    NativeEncodeSettlement.InternalFailure,
-                    UNKNOWN_NATIVE_COMPRESSOR_RESULT,
-                )
-            }
-        }
-    }
-
-    private fun classifyTransactionFailure(transaction: EncodedStorageOwner.NativeTransaction): NativeEncodeSettlement =
-        if (transaction.failure == EncodedStorageOwner.TransactionFailure.ResourceExhausted) {
-            NativeEncodeSettlement.ResourceExhausted
-        } else {
-            NativeEncodeSettlement.InternalFailure
-        }
-
-    private fun selectTransactionFailureCause(
-        transaction: EncodedStorageOwner.NativeTransaction,
-        result: NativeEncodeSettlement,
-    ): Throwable = when (result) {
-        NativeEncodeSettlement.ResourceExhausted -> selectResourceExhaustedCause(
-            blockFailure = null,
-            residueFailure = null,
-            thrown = null,
-            transactionFailure = transaction.failure,
-            transactionCause = transaction.failureCause,
-        )
-
-        NativeEncodeSettlement.InternalFailure -> selectInternalFailureCause(
-            blockFailure = null,
-            residueFailure = null,
-            thrown = null,
-            transactionFailure = transaction.failure,
-            transactionCause = transaction.failureCause,
-        )
-
-        else -> MALFORMED_NATIVE_RESULT
-    }
-
-    private fun publishNativeEncodeFailure(
-        occurrence: NativeEncodeOccurrence,
-        result: NativeEncodeSettlement,
-        failure: Throwable,
-    ): Boolean {
-        val evidence = occurrence.operation.returnCell.evidence
-        evidence.result = result
-        evidence.failureCause = failure
-        return occurrence.operation.publishThrownReturn(failure)
-    }
-
-    private fun selectInternalFailureCause(
-        blockFailure: Throwable?,
-        residueFailure: Throwable?,
-        thrown: Throwable?,
-        transactionFailure: EncodedStorageOwner.TransactionFailure?,
-        transactionCause: Throwable?,
-    ): Throwable {
-        if (blockFailure != null && blockFailure !is OutOfMemoryError) return blockFailure
-        if (residueFailure != null && residueFailure !is OutOfMemoryError) return residueFailure
-        if (thrown != null && thrown !is OutOfMemoryError) return thrown
-        if (transactionFailure == EncodedStorageOwner.TransactionFailure.InternalFailure &&
-            transactionCause != null && transactionCause !is OutOfMemoryError
-        ) {
-            return transactionCause
-        }
-        return MALFORMED_NATIVE_RESULT
-    }
-
-    private fun selectResourceExhaustedCause(
-        blockFailure: Throwable?,
-        residueFailure: Throwable?,
-        thrown: Throwable?,
-        transactionFailure: EncodedStorageOwner.TransactionFailure?,
-        transactionCause: Throwable?,
-    ): Throwable {
-        if (blockFailure is OutOfMemoryError) return blockFailure
-        if (residueFailure is OutOfMemoryError) return residueFailure
-        if (thrown is OutOfMemoryError) return thrown
-        if (transactionFailure == EncodedStorageOwner.TransactionFailure.ResourceExhausted && transactionCause != null) {
-            return transactionCause
-        }
-        return NATIVE_WRITER_OUT_OF_MEMORY
-    }
+    private fun executeNativeEncode(occurrence: NativeEncodeOccurrence) = executeCoordinatedNativeEncode(this, occurrence)
 
     private fun publishFailure(operation: OperationOccurrence<JpegPreparationEvidence>, failure: JpegRuntimeFailure, cause: Throwable) {
         operation.returnCell.evidence.failure = failure
@@ -1940,7 +1661,6 @@ internal class JpegRuntimeOwner internal constructor(
 
     private companion object {
         private const val NATIVE_BOOTSTRAP_SUCCESS: Int = 0
-        private const val NATIVE_RESIDUE_RELEASE_SUCCESS: Int = 0
         private const val RGBA_PIXEL_BYTE_COUNT: Long = 4L
         private const val MIN_JPEG_QUALITY: Int = 0
         private const val MAX_JPEG_QUALITY: Int = 100
@@ -1950,38 +1670,10 @@ internal class JpegRuntimeOwner internal constructor(
         private const val ANDROID_DATASPACE_SRGB: Int = 142_671_872
         private const val ANDROID_BITMAP_COMPRESS_FORMAT_JPEG: Int = 0
 
-        private const val ANDROID_BITMAP_RESULT_SUCCESS: Int = 0
-        private const val ANDROID_BITMAP_RESULT_BAD_PARAMETER: Int = -1
-        private const val ANDROID_BITMAP_RESULT_JNI_EXCEPTION: Int = -2
-        private const val ANDROID_BITMAP_RESULT_ALLOCATION_FAILED: Int = -3
-
-        private const val WRITER_STATUS_SAFE: Long = 0L
-        private const val WRITER_STATUS_OUT_OF_MEMORY: Long = 1L
-        private const val WRITER_STATUS_INTERNAL: Long = 2L
-
-        private const val WRITER_TOKEN_OFFSET: Int = 0
-        private const val WRITER_STATUS_OFFSET: Int = 0
-        private const val TOTAL_BYTES_OFFSET: Int = Long.SIZE_BYTES
-        private const val ADOPTED_BYTES_OFFSET: Int = Long.SIZE_BYTES * 2
-        private const val REMAINING_BYTES_OFFSET: Int = Long.SIZE_BYTES * 3
-        private const val REMAINING_SEGMENTS_OFFSET: Int = Long.SIZE_BYTES * 4
-
         private val BOOTSTRAP_REJECTED: IllegalStateException =
             IllegalStateException("native JPEG bootstrap rejected its protocol")
         private val INVALID_CARRIER_BUFFER: IllegalStateException =
             IllegalStateException("carrier allocator returned a malformed direct buffer")
-        private val MALFORMED_NATIVE_RESULT: IllegalStateException =
-            IllegalStateException("native JPEG returned malformed writer evidence")
-        private val NATIVE_WRITER_OUT_OF_MEMORY: OutOfMemoryError =
-            OutOfMemoryError("native JPEG writer exhausted storage")
-        private val NATIVE_COMPRESSOR_FAILURE: IllegalStateException =
-            IllegalStateException("native JPEG compressor rejected the frame")
-        private val UNKNOWN_NATIVE_COMPRESSOR_RESULT: IllegalStateException =
-            IllegalStateException("native JPEG compressor returned an unknown result")
-        private val LEASE_NOT_OPERATIONAL: IllegalStateException =
-            IllegalStateException("native carrier lease is not operational")
-        private val NATIVE_ENCODE_ADMISSION_FAILED: IllegalStateException =
-            IllegalStateException("native JPEG encode admission could not preserve its owners")
         private val MISSING_LOADER_FAILURE: IllegalStateException =
             IllegalStateException("native JPEG loader failed without a cause")
         private val ATTACHMENT_STATE_VIOLATION: IllegalStateException =

@@ -1,4 +1,4 @@
-package io.screenstream.engine.internal
+package io.screenstream.engine.internal.android
 
 import android.content.Context
 import io.screenstream.engine.BuiltInCaptureMetricsDefinition
@@ -11,7 +11,6 @@ import io.screenstream.engine.internal.settlement.DeadlineWakeSubmissionDisposit
 import io.screenstream.engine.internal.settlement.DeadlineWakeSuccessorResult
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.SettlementSignal
-import io.screenstream.engine.internal.settlement.firstMetricsReadinessNanos
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
@@ -23,124 +22,10 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-internal enum class CaptureMetricsReadinessArbitration {
-    None,
-    Timely,
-    Expired,
-    SchedulerRejected,
-    DeadlineGuardFailed,
-}
-
-internal enum class CaptureMetricsLatestArbitration {
-    None,
-    Claimed,
-}
-
-internal enum class CaptureMetricsProviderArbitration {
-    None,
-    Completed,
-    ObserveFailed,
-    UnusableFlow,
-    CollectionFailed,
-}
-
-internal class CaptureMetricsEntryCell {
-    internal var entered: Boolean = false
-        private set
-
-    internal fun enterLocked(): Boolean {
-        if (entered) return false
-        entered = true
-        return true
-    }
-}
-
-internal class CaptureMetricsFlowReturnCell {
-    internal var returned: Boolean = false
-        private set
-
-    internal var flow: Flow<CaptureMetrics?>? = null
-        private set
-
-    internal fun publishLocked(returnedFlow: Flow<CaptureMetrics?>?): Boolean {
-        if (returned) return false
-        flow = returnedFlow
-        returned = true
-        return true
-    }
-}
-
-internal class CaptureMetricsLatestCell {
-    internal var metrics: CaptureMetrics? = null
-        private set
-
-    internal var available: Boolean = false
-        private set
-
-    internal var claimed: Boolean = false
-        private set
-
-    internal var claimedMetrics: CaptureMetrics? = null
-        private set
-
-    internal fun publishLocked(publishedMetrics: CaptureMetrics?) {
-        metrics = publishedMetrics
-        available = true
-        claimed = false
-    }
-
-    internal fun claimLocked(): Boolean {
-        if (!available || claimed) return false
-        claimedMetrics = metrics
-        claimed = true
-        return true
-    }
-}
-
-internal class CaptureMetricsProviderOutcomeCell {
-    internal var outcome: CaptureMetricsProviderArbitration = CaptureMetricsProviderArbitration.None
-        private set
-
-    internal var cause: Throwable? = null
-        private set
-
-    internal var claimed: Boolean = false
-        private set
-
-    internal fun publishLocked(
-        providerOutcome: CaptureMetricsProviderArbitration,
-        providerCause: Throwable?,
-    ): Boolean {
-        if (outcome != CaptureMetricsProviderArbitration.None) return false
-        outcome = providerOutcome
-        cause = providerCause
-        return true
-    }
-
-    internal fun claimLocked(): CaptureMetricsProviderArbitration {
-        if (claimed) {
-            return CaptureMetricsProviderArbitration.None
-        }
-        if (outcome == CaptureMetricsProviderArbitration.None) {
-            return CaptureMetricsProviderArbitration.None
-        }
-        claimed = true
-        return outcome
-    }
-}
-
-internal class CaptureMetricsParentCompletionCell {
-    private val completed = AtomicBoolean(false)
-
-    internal val isComplete: Boolean
-        get() = completed.get()
-
-    internal fun publish(): Boolean = completed.compareAndSet(false, true)
-}
+private const val firstMetricsReadinessNanos: Long = 5_000_000_000L
 
 internal class CaptureMetricsReadinessOccurrence(
     internal val identity: Long,
@@ -284,10 +169,7 @@ internal class CaptureMetricsReadinessOccurrence(
         if (published) settlementSignal.signal()
     }
 
-    internal fun publishProviderOutcome(
-        outcome: CaptureMetricsProviderArbitration,
-        cause: Throwable?,
-    ) {
+    internal fun publishProviderOutcome(outcome: CaptureMetricsProviderArbitration, cause: Throwable?) {
         val published = settlementGate.withLock {
             if (cleanupDomain) return@withLock false
             providerOutcomeCell.publishLocked(outcome, cause)
@@ -453,10 +335,7 @@ internal class CaptureMetricsOwner(
     internal val readinessCause: Throwable?
         get() = lifecycleOwners?.readinessOccurrence?.readinessCause
 
-    internal fun attach(
-        sessionGate: ReentrantLock,
-        scheduler: ScheduledExecutorService,
-    ): Boolean {
+    internal fun attach(sessionGate: ReentrantLock, scheduler: ScheduledExecutorService): Boolean {
         val owners = lifecycleOwners ?: return false
         val attached = sessionGate.withLock {
             owners.readinessOccurrence.settlementGate.withLock {
@@ -514,10 +393,7 @@ internal class CaptureMetricsOwner(
     }
 }
 
-private suspend fun collectCaptureMetrics(
-    provider: CaptureMetricsProvider,
-    readinessOccurrence: CaptureMetricsReadinessOccurrence,
-) {
+private suspend fun collectCaptureMetrics(provider: CaptureMetricsProvider, readinessOccurrence: CaptureMetricsReadinessOccurrence) {
     if (!readinessOccurrence.recordObserveEntry()) return
 
     val observedFlow: Flow<CaptureMetrics?>? = try {

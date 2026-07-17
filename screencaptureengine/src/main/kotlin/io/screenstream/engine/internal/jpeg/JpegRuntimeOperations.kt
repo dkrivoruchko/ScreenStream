@@ -1,6 +1,7 @@
-package io.screenstream.engine.internal
+package io.screenstream.engine.internal.jpeg
 
 import io.screenstream.engine.ImageSize
+import io.screenstream.engine.internal.EncodedStorageOwner
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationOccurrence
@@ -9,7 +10,6 @@ import io.screenstream.engine.internal.settlement.OperationReceipt
 import io.screenstream.engine.internal.settlement.OperationReturnCell
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
 import io.screenstream.engine.internal.settlement.SettlementSignal
-import io.screenstream.engine.internal.settlement.jpegEnteredOperationSafetyNanos
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.locks.ReentrantLock

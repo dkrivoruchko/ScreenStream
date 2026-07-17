@@ -1,4 +1,4 @@
-package io.screenstream.engine.internal
+package io.screenstream.engine.internal.android
 
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -14,351 +14,18 @@ import io.screenstream.engine.internal.settlement.OperationEntryResult
 import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationOwnerBag
-import io.screenstream.engine.internal.settlement.OperationReceipt
 import io.screenstream.engine.internal.settlement.OperationReturnCell
 import io.screenstream.engine.internal.settlement.OperationReturnDisposition
-import io.screenstream.engine.internal.settlement.OperationReturnedOwner
 import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
 import io.screenstream.engine.internal.settlement.OperationTerminalArbitration
 import io.screenstream.engine.internal.settlement.SettlementSignal
-import io.screenstream.engine.internal.settlement.androidEnteredOperationSafetyNanos
-import io.screenstream.engine.internal.settlement.initialCapturedResizeReadinessNanos
 import io.screenstream.engine.internal.target.CurrentTarget
-import io.screenstream.engine.internal.target.TargetNoProducerEvidence
 import io.screenstream.engine.internal.target.TargetNoProducerReason
-import io.screenstream.engine.internal.target.TargetPorts
-import io.screenstream.engine.internal.target.TargetProducerDetachReceipt
-import io.screenstream.engine.internal.target.TargetProducerEvidence
 import io.screenstream.engine.internal.target.TargetProducerOperationKind
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.withLock
-
-internal sealed class AndroidCaptureFact(
-    internal val sessionEpoch: Long,
-    internal val callbackIdentity: Long,
-    internal val sampleNanos: Long,
-) {
-    init {
-        require(sessionEpoch > 0L)
-        require(callbackIdentity > 0L)
-    }
-
-    internal class CapturedContentResized(
-        sessionEpoch: Long,
-        callbackIdentity: Long,
-        sampleNanos: Long,
-        internal val widthPx: Int,
-        internal val heightPx: Int,
-    ) : AndroidCaptureFact(sessionEpoch, callbackIdentity, sampleNanos)
-
-    internal class CapturedContentVisibilityChanged(
-        sessionEpoch: Long,
-        callbackIdentity: Long,
-        sampleNanos: Long,
-        internal val isVisible: Boolean,
-    ) : AndroidCaptureFact(sessionEpoch, callbackIdentity, sampleNanos)
-
-    internal class CaptureEnded(
-        sessionEpoch: Long,
-        callbackIdentity: Long,
-        sampleNanos: Long,
-    ) : AndroidCaptureFact(sessionEpoch, callbackIdentity, sampleNanos)
-}
-
-internal fun interface AndroidCaptureFactSink {
-    fun publish(fact: AndroidCaptureFact)
-}
-
-internal sealed class AndroidLaneStartupResult {
-    internal class Ready(internal val handler: Handler) : AndroidLaneStartupResult()
-
-    internal class Failed(internal val cause: Throwable) : AndroidLaneStartupResult()
-}
-
-internal class AndroidLaneStartupCell {
-    private val result = AtomicReference<AndroidLaneStartupResult?>(null)
-
-    internal val current: AndroidLaneStartupResult?
-        get() = result.get()
-
-    internal fun publishReady(handler: Handler): Boolean =
-        result.compareAndSet(null, AndroidLaneStartupResult.Ready(handler))
-
-    internal fun publishFailure(cause: Throwable): Boolean =
-        result.compareAndSet(null, AndroidLaneStartupResult.Failed(cause))
-}
-
-internal class AndroidLaneQuitRequestCell {
-    private val requested = AtomicBoolean(false)
-
-    internal val isRequested: Boolean
-        get() = requested.get()
-
-    internal fun request(): Boolean = requested.compareAndSet(false, true)
-}
-
-internal class AndroidLaneTerminationCell {
-    private val returned = AtomicBoolean(false)
-
-    internal val hasReturned: Boolean
-        get() = returned.get()
-
-    internal fun publishThreadReturn(): Boolean = returned.compareAndSet(false, true)
-}
-
-internal class AndroidFiniteOperationIdentity(
-    internal val operationIdentity: Long,
-    internal val deadlineIdentity: Long,
-    internal val deadlineWakeGeneration: Long,
-    internal val timeoutCause: Throwable,
-) {
-    init {
-        require(operationIdentity > 0L)
-        require(deadlineIdentity > 0L)
-        require(deadlineWakeGeneration > 0L)
-    }
-}
-
-internal object AndroidProjectionCallbackRegistrationReceipt : OperationReceipt
-
-internal class AndroidProjectionCallbackRegistrationEvidence : OperationEvidence {
-    override val receipt: AndroidProjectionCallbackRegistrationReceipt =
-        AndroidProjectionCallbackRegistrationReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-}
-
-internal class AndroidProjectionCallbackRegistrationOwnerBag(
-    internal val projection: MediaProjection,
-    internal val callback: MediaProjection.Callback,
-) : OperationOwnerBag
-
-internal object AndroidTargetListenerInstallationReceipt : OperationReceipt
-
-internal class AndroidTargetListenerInstallationEvidence : OperationEvidence {
-    override val receipt: AndroidTargetListenerInstallationReceipt = AndroidTargetListenerInstallationReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-}
-
-internal class AndroidTargetListenerInstallationOwnerBag(
-    internal val target: CurrentTarget,
-    internal val port: TargetPorts.AndroidListenerInstallationPort,
-) : OperationOwnerBag
-
-internal object AndroidVirtualDisplayCreationReceipt : OperationReceipt
-
-internal class AndroidVirtualDisplayCreationEvidence : OperationEvidence, OperationReturnedOwner {
-    internal var virtualDisplay: VirtualDisplay? = null
-        private set
-
-    override val receipt: AndroidVirtualDisplayCreationReceipt = AndroidVirtualDisplayCreationReceipt
-    override val returnedOwner: OperationReturnedOwner?
-        get() = if (virtualDisplay == null) null else this
-
-    internal var initialResizeStartNanos: Long? = null
-        private set
-
-    internal var initialResizeDeadlineNanos: Long? = null
-        private set
-
-    internal var initialResizeDeadlineGuardFailed: Boolean = false
-        private set
-
-    private val producerEvidence = AtomicReference<TargetProducerEvidence?>(null)
-    private val noProducerEvidence = AtomicReference<TargetNoProducerEvidence?>(null)
-
-    internal val publishedProducerEvidence: TargetProducerEvidence?
-        get() = producerEvidence.get()
-
-    internal val publishedNoProducerEvidence: TargetNoProducerEvidence?
-        get() = noProducerEvidence.get()
-
-    internal fun publishProducerEvidence(evidence: TargetProducerEvidence): Boolean =
-        noProducerEvidence.get() == null && producerEvidence.compareAndSet(null, evidence)
-
-    internal fun publishNoProducerEvidence(evidence: TargetNoProducerEvidence): Boolean =
-        producerEvidence.get() == null && noProducerEvidence.compareAndSet(null, evidence)
-
-    internal fun recordReturnLocked(virtualDisplay: VirtualDisplay?, sdkInt: Int, sampleNanos: Long) {
-        this.virtualDisplay = virtualDisplay
-        if (virtualDisplay == null || sdkInt < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
-
-        initialResizeStartNanos = sampleNanos
-        if (sampleNanos < 0L || sampleNanos > Long.MAX_VALUE - initialCapturedResizeReadinessNanos) {
-            initialResizeDeadlineGuardFailed = true
-            return
-        }
-        initialResizeDeadlineNanos = Math.addExact(sampleNanos, initialCapturedResizeReadinessNanos)
-    }
-
-    internal fun isTimelyInitialResize(fact: AndroidCaptureFact.CapturedContentResized): Boolean {
-        val deadlineNanos = initialResizeDeadlineNanos ?: return false
-        return fact.widthPx > 0 && fact.heightPx > 0 && fact.sampleNanos < deadlineNanos
-    }
-}
-
-internal class AndroidVirtualDisplayCreationOwnerBag(
-    internal val projection: MediaProjection,
-    internal val target: CurrentTarget,
-    internal val port: TargetPorts.AndroidSurfacePort,
-    internal val widthPx: Int,
-    internal val heightPx: Int,
-    internal val densityDpi: Int,
-) : OperationOwnerBag {
-    init {
-        require(widthPx > 0)
-        require(heightPx > 0)
-        require(densityDpi > 0)
-    }
-}
-
-internal object AndroidVirtualDisplayResizeReceipt : OperationReceipt
-
-internal class AndroidVirtualDisplayResizeEvidence : OperationEvidence {
-    override val receipt: AndroidVirtualDisplayResizeReceipt = AndroidVirtualDisplayResizeReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-}
-
-internal class AndroidVirtualDisplayResizeOwnerBag(
-    internal val virtualDisplay: VirtualDisplay,
-    internal val widthPx: Int,
-    internal val heightPx: Int,
-    internal val densityDpi: Int,
-) : OperationOwnerBag {
-    init {
-        require(widthPx > 0)
-        require(heightPx > 0)
-        require(densityDpi > 0)
-    }
-}
-
-internal object AndroidVirtualDisplayAttachReceipt : OperationReceipt
-
-internal class AndroidVirtualDisplayAttachEvidence : OperationEvidence {
-    override val receipt: AndroidVirtualDisplayAttachReceipt = AndroidVirtualDisplayAttachReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-
-    private val producerEvidence = AtomicReference<TargetProducerEvidence?>(null)
-    private val noProducerEvidence = AtomicReference<TargetNoProducerEvidence?>(null)
-
-    internal val publishedProducerEvidence: TargetProducerEvidence?
-        get() = producerEvidence.get()
-
-    internal val publishedNoProducerEvidence: TargetNoProducerEvidence?
-        get() = noProducerEvidence.get()
-
-    internal fun publishProducerEvidence(evidence: TargetProducerEvidence): Boolean =
-        noProducerEvidence.get() == null && producerEvidence.compareAndSet(null, evidence)
-
-    internal fun publishNoProducerEvidence(evidence: TargetNoProducerEvidence): Boolean =
-        producerEvidence.get() == null && noProducerEvidence.compareAndSet(null, evidence)
-}
-
-internal class AndroidVirtualDisplayAttachOwnerBag(
-    internal val virtualDisplay: VirtualDisplay,
-    internal val target: CurrentTarget,
-    internal val port: TargetPorts.AndroidSurfacePort,
-) : OperationOwnerBag
-
-internal object AndroidVirtualDisplayDetachReceipt : OperationReceipt
-
-internal class AndroidVirtualDisplayDetachEvidence : OperationEvidence {
-    override val receipt: AndroidVirtualDisplayDetachReceipt = AndroidVirtualDisplayDetachReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-
-    private val targetReceipt = AtomicReference<TargetProducerDetachReceipt?>(null)
-
-    internal val publishedTargetReceipt: TargetProducerDetachReceipt?
-        get() = targetReceipt.get()
-
-    internal fun publishTargetReceipt(receipt: TargetProducerDetachReceipt): Boolean =
-        targetReceipt.compareAndSet(null, receipt)
-}
-
-internal class AndroidVirtualDisplayDetachOwnerBag(
-    internal val virtualDisplay: VirtualDisplay,
-    internal val target: CurrentTarget,
-    internal val port: TargetPorts.AndroidDetachPort,
-) : OperationOwnerBag
-
-internal object AndroidTargetListenerRemovalReceipt : OperationReceipt
-
-internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {
-    override val receipt: AndroidTargetListenerRemovalReceipt = AndroidTargetListenerRemovalReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-
-    internal var listenerRemovalReturned: Boolean = false
-        private set
-
-    internal var sentinelSubmissionAccepted: Boolean = false
-        private set
-
-    internal var sentinelSubmissionRejection: Throwable? = null
-        private set
-
-    internal fun recordListenerRemovalReturn() {
-        listenerRemovalReturned = true
-    }
-
-    internal fun recordSentinelSubmissionAccepted() {
-        sentinelSubmissionAccepted = true
-    }
-
-    internal fun recordSentinelSubmissionRejected(cause: Throwable) {
-        sentinelSubmissionRejection = cause
-    }
-}
-
-internal class AndroidTargetListenerRemovalOwnerBag(
-    internal val target: CurrentTarget,
-    internal val port: TargetPorts.AndroidListenerRemovalPort,
-) : OperationOwnerBag
-
-internal object AndroidProjectionCallbackUnregistrationReceipt : OperationReceipt
-
-internal class AndroidProjectionCallbackUnregistrationEvidence : OperationEvidence {
-    override val receipt: AndroidProjectionCallbackUnregistrationReceipt =
-        AndroidProjectionCallbackUnregistrationReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-}
-
-internal class AndroidProjectionCallbackUnregistrationOwnerBag(
-    internal val projection: MediaProjection,
-    internal val callback: MediaProjection.Callback,
-) : OperationOwnerBag
-
-internal object AndroidVirtualDisplayReleaseReceipt : OperationReceipt
-
-internal class AndroidVirtualDisplayReleaseEvidence : OperationEvidence {
-    override val receipt: AndroidVirtualDisplayReleaseReceipt = AndroidVirtualDisplayReleaseReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-
-    private val targetReceipt = AtomicReference<TargetProducerDetachReceipt?>(null)
-
-    internal val publishedTargetReceipt: TargetProducerDetachReceipt?
-        get() = targetReceipt.get()
-
-    internal fun publishTargetReceipt(receipt: TargetProducerDetachReceipt): Boolean =
-        targetReceipt.compareAndSet(null, receipt)
-}
-
-internal class AndroidVirtualDisplayReleaseOwnerBag(
-    internal val virtualDisplay: VirtualDisplay,
-    internal val target: CurrentTarget?,
-    internal val targetPort: TargetPorts.AndroidDetachPort?,
-) : OperationOwnerBag
-
-internal object AndroidProjectionStopReceipt : OperationReceipt
-
-internal class AndroidProjectionStopEvidence : OperationEvidence {
-    override val receipt: AndroidProjectionStopReceipt = AndroidProjectionStopReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-}
-
-internal class AndroidProjectionStopOwnerBag(
-    internal val projection: MediaProjection,
-) : OperationOwnerBag
 
 internal class AndroidCaptureOwner(
     private val projection: MediaProjection,
@@ -589,11 +256,7 @@ internal class AndroidCaptureOwner(
             val settled = publishVirtualDisplayCreationReturn(operation, returnedDisplaySnapshot)
             if (settled) {
                 val evidencePublished = if (returnedDisplaySnapshot == null) {
-                    ownerBag.target.noProducerEvidenceAfterSettlement(
-                        ownerBag.port,
-                        operation,
-                        TargetNoProducerReason.ReturnedWithoutProducer,
-                    )
+                    ownerBag.target.noProducerEvidenceAfterSettlement(ownerBag.port, operation, TargetNoProducerReason.ReturnedWithoutProducer)
                         ?.let(operation.returnCell.evidence::publishNoProducerEvidence)
                 } else {
                     ownerBag.target.producerEvidenceAfterSettlement(ownerBag.port, operation)
@@ -672,11 +335,7 @@ internal class AndroidCaptureOwner(
                 }
             },
         ) {
-            check(
-                ownerBag.port.withSurface { surface ->
-                    ownerBag.virtualDisplay.surface = surface
-                },
-            )
+            check(ownerBag.port.withSurface { surface -> ownerBag.virtualDisplay.surface = surface })
         }
     }
 
@@ -742,9 +401,7 @@ internal class AndroidCaptureOwner(
         return operation
     }
 
-    internal fun submitTargetListenerRemoval(
-        operation: OperationOccurrence<AndroidTargetListenerRemovalEvidence>,
-    ): Boolean {
+    internal fun submitTargetListenerRemoval(operation: OperationOccurrence<AndroidTargetListenerRemovalEvidence>): Boolean {
         val ownerBag = operation.ownerBag as AndroidTargetListenerRemovalOwnerBag
         val sentinelArmFailure = IllegalStateException("Android target-listener sentinel could not be armed")
         val sentinelPostRejection = RejectedExecutionException("Android target-listener sentinel rejected")
@@ -753,11 +410,7 @@ internal class AndroidCaptureOwner(
             postRejectionMessage = "Android target-listener removal rejected",
             publishNormalReturn = false,
         ) { handler ->
-            check(
-                ownerBag.port.withSurfaceTexture { surfaceTexture ->
-                    surfaceTexture.setOnFrameAvailableListener(null, handler)
-                },
-            )
+            check(ownerBag.port.withSurfaceTexture { surfaceTexture -> surfaceTexture.setOnFrameAvailableListener(null, handler) })
             operation.returnCell.evidence.recordListenerRemovalReturn()
             check(ownerBag.target.recordListenerRemovalReturn(ownerBag.port))
             val sentinel = ownerBag.target.armListenerSentinelAfterRemovalReturn(operation.identity)
@@ -783,8 +436,7 @@ internal class AndroidCaptureOwner(
         }
     }
 
-    internal fun closeProjectionCallbackAuthority(): Boolean =
-        callbackAuthorityOpen.compareAndSet(true, false)
+    internal fun closeProjectionCallbackAuthority(): Boolean = callbackAuthorityOpen.compareAndSet(true, false)
 
     internal fun createProjectionCallbackUnregistrationOperation(
         operationIdentity: Long,
@@ -961,24 +613,21 @@ internal class AndroidCaptureOwner(
     private fun <R : OperationEvidence> finiteOccurrence(
         identity: AndroidFiniteOperationIdentity,
         evidence: R,
-        ownerBag: OperationOwnerBag,
-    ): OperationOccurrence<R> = OperationOccurrence(
-        identity = identity.operationIdentity,
-        clock = clock,
-        returnCell = OperationReturnCell(evidence),
-        ownerBag = ownerBag,
-        deadlineIdentity = identity.deadlineIdentity,
-        deadlineDurationNanos = androidEnteredOperationSafetyNanos,
-        initialWakeGeneration = identity.deadlineWakeGeneration,
-        timeoutCause = identity.timeoutCause,
-        wakeSignal = settlementSignal,
-    )
-
-    private fun <R : OperationEvidence> cleanupOccurrence(
-        identity: Long,
-        evidence: R,
-        ownerBag: OperationOwnerBag,
+        ownerBag: OperationOwnerBag
     ): OperationOccurrence<R> =
+        OperationOccurrence(
+            identity = identity.operationIdentity,
+            clock = clock,
+            returnCell = OperationReturnCell(evidence),
+            ownerBag = ownerBag,
+            deadlineIdentity = identity.deadlineIdentity,
+            deadlineDurationNanos = androidEnteredOperationSafetyNanos,
+            initialWakeGeneration = identity.deadlineWakeGeneration,
+            timeoutCause = identity.timeoutCause,
+            wakeSignal = settlementSignal,
+        )
+
+    private fun <R : OperationEvidence> cleanupOccurrence(identity: Long, evidence: R, ownerBag: OperationOwnerBag): OperationOccurrence<R> =
         OperationOccurrence(
             identity = identity,
             clock = clock,

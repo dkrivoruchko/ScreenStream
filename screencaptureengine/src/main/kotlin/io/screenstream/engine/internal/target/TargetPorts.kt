@@ -2,8 +2,8 @@ package io.screenstream.engine.internal.target
 
 import android.graphics.SurfaceTexture
 import android.view.Surface
-import io.screenstream.engine.internal.AndroidVirtualDisplayAttachEvidence
-import io.screenstream.engine.internal.AndroidVirtualDisplayCreationEvidence
+import io.screenstream.engine.internal.android.AndroidVirtualDisplayAttachEvidence
+import io.screenstream.engine.internal.android.AndroidVirtualDisplayCreationEvidence
 import io.screenstream.engine.internal.settlement.OperationDisposition
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
 import io.screenstream.engine.internal.settlement.OperationOccurrence

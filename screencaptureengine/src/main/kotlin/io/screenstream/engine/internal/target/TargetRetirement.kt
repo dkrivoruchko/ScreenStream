@@ -2,6 +2,7 @@ package io.screenstream.engine.internal.target
 
 import android.graphics.SurfaceTexture
 import android.view.Surface
+import io.screenstream.engine.internal.android.androidEnteredOperationSafetyNanos
 import io.screenstream.engine.internal.gl.ContextIntegrity
 import io.screenstream.engine.internal.gl.GlDestructionEvidence
 import io.screenstream.engine.internal.gl.GlDestructionKind
@@ -22,7 +23,6 @@ import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.OperationReturnUse
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
 import io.screenstream.engine.internal.settlement.SettlementSignal
-import io.screenstream.engine.internal.settlement.androidEnteredOperationSafetyNanos
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 

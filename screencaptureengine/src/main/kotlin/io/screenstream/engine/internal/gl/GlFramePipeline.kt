@@ -4,7 +4,7 @@ import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.os.Build
 import io.screenstream.engine.ColorMode
-import io.screenstream.engine.internal.RgbaCarrierLease
+import io.screenstream.engine.internal.jpeg.RgbaCarrierLease
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.target.CurrentTarget
 import io.screenstream.engine.internal.target.TargetPorts

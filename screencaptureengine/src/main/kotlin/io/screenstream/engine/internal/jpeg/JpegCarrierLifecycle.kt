@@ -1,4 +1,4 @@
-package io.screenstream.engine.internal
+package io.screenstream.engine.internal.jpeg
 
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationEvidence
@@ -8,15 +8,9 @@ import io.screenstream.engine.internal.settlement.OperationReceipt
 import io.screenstream.engine.internal.settlement.OperationReturnCell
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
 import io.screenstream.engine.internal.settlement.SettlementSignal
-import io.screenstream.engine.internal.settlement.jpegEnteredOperationSafetyNanos
 import java.nio.ByteBuffer
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-
-internal enum class NativeJpegHealth {
-    Enabled,
-    Disabled,
-}
 
 internal sealed class JpegRuntimeProduct(
     internal val carrier: RgbaCarrier,
@@ -385,13 +379,6 @@ internal class ManagedDirectCarrierLease private constructor(carrier: ManagedDir
     }
 }
 
-internal class JpegFiniteOperationIdentity internal constructor(
-    internal val operationIdentity: Long,
-    internal val deadlineIdentity: Long,
-    internal val initialWakeGeneration: Long,
-    internal val timeoutCause: Throwable,
-)
-
 internal class NativeCarrierFreeReceipt internal constructor() : OperationReceipt
 
 internal enum class NativeCarrierFreeSettlement {
@@ -476,8 +463,3 @@ internal class NativeCarrierFreeOccurrence private constructor(
         }
     }
 }
-
-internal class JpegIoOperation<E : OperationEvidence> internal constructor(
-    internal val occurrence: OperationOccurrence<E>,
-    internal val runnable: Runnable,
-)

@@ -7,11 +7,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-internal const val firstMetricsReadinessNanos: Long = 5_000_000_000L
-internal const val initialCapturedResizeReadinessNanos: Long = 5_000_000_000L
-internal const val androidEnteredOperationSafetyNanos: Long = 5_000_000_000L
-internal const val jpegEnteredOperationSafetyNanos: Long = 15_000_000_000L
-
 internal fun interface EngineClock {
     fun nowNanos(): Long
 }

@@ -9,8 +9,8 @@ import android.opengl.EGLSurface
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.view.Surface
-import io.screenstream.engine.internal.JpegRuntimeProduct
-import io.screenstream.engine.internal.RgbaCarrierLease
+import io.screenstream.engine.internal.jpeg.JpegRuntimeProduct
+import io.screenstream.engine.internal.jpeg.RgbaCarrierLease
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationReturnCell
