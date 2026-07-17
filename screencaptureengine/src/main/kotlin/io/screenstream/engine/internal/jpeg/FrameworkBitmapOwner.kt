@@ -221,6 +221,7 @@ internal fun executeResourceCreation(occurrence: FrameworkResourceCreationOccurr
     }
 
     val candidate = checkNotNull(occurrence.ownerBag.candidateOwner)
+    candidate.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
     val evidence = occurrence.operation.returnCell.evidence
     val bitmap = try {
         Bitmap.createBitmap(candidate.imageSize.widthPx, candidate.imageSize.heightPx, Bitmap.Config.ARGB_8888)

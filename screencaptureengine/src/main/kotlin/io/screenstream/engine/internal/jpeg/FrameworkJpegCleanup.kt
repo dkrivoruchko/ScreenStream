@@ -177,6 +177,7 @@ private fun executeFrameworkRecycle(
         if (entryResult == OperationEntryResult.InvalidDeadline) owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
         return
     }
+    owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
 
     val bitmap = owner.bitmapOwner.bitmapForRecycle(occurrence)
     if (bitmap == null) {

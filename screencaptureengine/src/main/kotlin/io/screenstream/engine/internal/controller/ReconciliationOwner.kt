@@ -302,10 +302,8 @@ internal object ReconciliationOwner {
         capabilities.maxTextureSize > 0 && capabilities.maxViewportWidth > 0 && capabilities.maxViewportHeight > 0
 
     private fun exceedsCapabilities(width: Int, height: Int, capabilities: GlCapabilityFacts): Boolean =
-        width > capabilities.maxTextureSize ||
-                height > capabilities.maxTextureSize ||
-                width > capabilities.maxViewportWidth ||
-                height > capabilities.maxViewportHeight
+        width > capabilities.maxTextureSize || height > capabilities.maxTextureSize ||
+                width > capabilities.maxViewportWidth || height > capabilities.maxViewportHeight
 
     private fun greatestCommonDivisor(first: Int, second: Int): Int {
         var left = first

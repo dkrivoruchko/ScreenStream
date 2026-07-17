@@ -304,6 +304,7 @@ private fun executeFrameworkEncode(owner: FrameworkJpegOwner, occurrence: Framew
         if (entryResult == OperationEntryResult.InvalidDeadline) owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
         return
     }
+    owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
 
     val bitmap = owner.bitmapOwner.enterBitmapUse(occurrence)
     if (bitmap == null) {

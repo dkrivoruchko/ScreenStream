@@ -120,7 +120,7 @@ requirements. Verification-only domain anchors appear only in testing supplement
 | Target | `TGT:TargetContracts.kt`, `TGT:TargetConstruction.kt`, `TGT:TargetPorts.kt`, `TGT:CurrentTarget.kt`, `TGT:TargetRetirement.kt`, `TGT:TargetOwner.kt` |
 | GL | `GL:GlPipelineContracts.kt`, `GL:GlLaneRuntime.kt`, `GL:EglSession.kt`, `GL:GlProgram.kt`, `GL:GlTargetBridge.kt`, `GL:GlRenderTarget.kt`, `GL:GlFramePipeline.kt`, `GL:GlCleanup.kt`, `GL:GlPipelineOwner.kt` |
 | Framework JPEG | `JPG:FrameworkJpegContracts.kt`, `JPG:FrameworkBitmapOwner.kt`, `JPG:FrameworkJpegExecution.kt`, `JPG:FrameworkJpegCleanup.kt`, `JPG:FrameworkJpegOwner.kt` |
-| Native JPEG/carrier | `JPG:JpegRuntimeCore.kt`, `JPG:JpegRuntimeOperations.kt`, `JPG:JpegCarrierLifecycle.kt`, `JPG:NativeResultProtocol.kt`, `JPG:NativeEncodeCoordinator.kt`; root ABI facade `INT:JpegRuntimeOwner.kt`; `CPP:CMakeLists.txt`, `CPP:screen_capture_engine_jni.cpp`, `CPP:native_jpeg_runtime.h`, `CPP:native_jpeg_runtime.cpp`; `MOD:build.gradle.kts`, `MOD:src/main/AndroidManifest.xml`, `MOD:consumer-rules.pro` |
+| Native JPEG/carrier | `JPG:JpegRuntimeCore.kt`, `JPG:JpegRuntimeOperations.kt`, `JPG:JpegCarrierLifecycle.kt`, `JPG:NativeResultProtocol.kt`, `JPG:NativeEncodeCoordinator.kt`, `JPG:NativeJpegProcess.kt`; Session owner `INT:JpegRuntimeOwner.kt`; `CPP:CMakeLists.txt`, `CPP:screen_capture_engine_jni.cpp`, `CPP:native_jpeg_runtime.h`, `CPP:native_jpeg_runtime.cpp`; `MOD:build.gradle.kts`, `MOD:src/main/AndroidManifest.xml`, `MOD:consumer-rules.pro` |
 | Encoded storage | `INT:EncodedStorageOwner.kt` |
 | Delivery/observation | `DEL:PacingOwner.kt`, `DEL:DeliveryOwner.kt`, `DEL:ObservationOwner.kt` |
 | Native test boundary | `NTCPP:CMakeLists.txt`, `NTCPP:screen_capture_engine_native_test_jni.cpp` |
@@ -150,13 +150,15 @@ domain file/package; generic deadline machinery stays settlement-owned. `Encoded
 root while its single storage machine is cohesive.
 
 Framework consumes carrier and transaction interfaces but owns neither declaration. Native owns the carrier,
-JNI writer, and frozen adoption-target descriptor/call/keep boundary. Storage owns the nested adoption-sink
+call-scoped JNI writer, and frozen adoption-target descriptor/call/keep boundary. Storage owns the nested adoption-sink
 declaration and its managed validation/copy behavior, transactions, and payload roles. Physical files are not
 acceptance slices.
 
-The exact JNI binary anchors remain root-internal:
-`io.screenstream.engine.internal.JpegRuntimeOwner$NativeBridge` in `INT:JpegRuntimeOwner.kt` and
+The exact JNI binary anchors are
+`io.screenstream.engine.internal.jpeg.NativeJpegProcess` in `JPG:NativeJpegProcess.kt` and
 `io.screenstream.engine.internal.EncodedStorageOwner$NativeSegmentSink` in `INT:EncodedStorageOwner.kt`.
+`NativeJpegProcess` owns only process loader state and the stateless JNI facade; `JpegRuntimeOwner` remains the
+sole Session mode/health/backend/carrier authority.
 
 ## 7. Test manifest
 

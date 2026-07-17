@@ -1335,6 +1335,7 @@ internal class JpegRuntimeOwner internal constructor(
             if (entryResult == OperationEntryResult.InvalidDeadline) settlementSignal.signal()
             return
         }
+        settlementSignal.signal()
 
         val loadState = ProcessNativeLoader.ensureAvailable()
         when (loadState) {
@@ -1449,6 +1450,7 @@ internal class JpegRuntimeOwner internal constructor(
             if (entryResult == OperationEntryResult.InvalidDeadline) settlementSignal.signal()
             return
         }
+        settlementSignal.signal()
 
         val published = try {
             NativeBridge.nativeFreeCarrier(occurrence.ownerBag.buffer)
@@ -1466,6 +1468,7 @@ internal class JpegRuntimeOwner internal constructor(
             if (entryResult == OperationEntryResult.InvalidDeadline) settlementSignal.signal()
             return
         }
+        settlementSignal.signal()
 
         val carrier = occurrence.carrierCandidate
         val buffer = try {
@@ -1512,6 +1515,7 @@ internal class JpegRuntimeOwner internal constructor(
             if (entryResult == OperationEntryResult.InvalidDeadline) settlementSignal.signal()
             return
         }
+        settlementSignal.signal()
 
         val carrier = occurrence.carrierCandidate
         val buffer = try {

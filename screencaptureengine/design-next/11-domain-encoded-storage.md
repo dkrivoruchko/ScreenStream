@@ -3,8 +3,8 @@
 This file owns the checked managed transaction, immutable segmented JPEG payload, production/latest/displaced
 roles, and encoded-payload leases. Framework Bitmap transfer/encode is
 [FJPEG-040](09-domain-framework-jpeg.md#fjpeg-040--exact-carrier-to-bitmap-transfer) and
-[FJPEG-050](09-domain-framework-jpeg.md#fjpeg-050--framework-encode-and-transaction). Native carrier, JNI writer,
-segment-transfer order, and residue are
+[FJPEG-050](09-domain-framework-jpeg.md#fjpeg-050--framework-encode-and-transaction). Native carrier, call-scoped
+JNI writer, segment-transfer order, and native cleanup are
 [NJPEG-030](10-domain-native-jpeg.md#njpeg-030--carrier-ownership-and-replacement),
 [NJPEG-080](10-domain-native-jpeg.md#njpeg-080--writer-capsule-result-block-and-adoption), and
 [NJPEG-100](10-domain-native-jpeg.md#njpeg-100--cleanup-and-late-return). Public borrowed-frame behavior is
@@ -41,8 +41,8 @@ The cohesive storage state machine remains in this root file; no empty `storage`
 
 Storage declares the nested `NativeSegmentSink` and its private
 `adoptNativeSegment(ByteBuffer, Int): Unit` method. `NJPEG-001` and `NJPEG-050` alone own its frozen JNI binary
-target/descriptor, registration, call ordering, and keep boundary. Storage does not own `JpegRuntimeOwner.NativeBridge`,
-native writer blocks/capsules/segments, carrier leases, Bitmap transfer, controller currentness, pacing,
+target/descriptor, registration, call ordering, and keep boundary. Storage does not own `NativeJpegProcess`,
+the call-scoped native capsule/segments, carrier leases, Bitmap transfer, controller currentness, pacing,
 dispatcher handoff, or the public frame wrapper.
 
 ## STORE-010 — Typed boundary
@@ -50,7 +50,7 @@ dispatcher handoff, or the public frame wrapper.
 | Direction | Exact typed value | Storage obligation |
 | --- | --- | --- |
 | inbound from `FJPEG-050` | one attached `FrameworkTransaction` and its private checked `OutputStream` | accept only validated ordered writes; commit or abort one transaction |
-| inbound from `NJPEG-080` | one attached `NativeTransaction`, its exact `NativeSegmentSink`, and one synchronous exact-range invocation | validate and copy the invocation into managed transaction state; retain no native view/backing or native residue fact |
+| inbound from `NJPEG-080` | one attached `NativeTransaction`, its exact `NativeSegmentSink`, and one synchronous exact-range invocation | validate and copy the invocation into managed transaction state; retain no native view/backing or native cleanup fact |
 | inbound from `CTRL-200`, `CTRL-300` | expected role identities, positive `ImageSize`, output sequence and elapsed-realtime timestamp | perform the commanded identity-fenced role transition under `sessionGate`; never decide currentness, publication policy, or counters |
 | outbound to `CTRL-200`, `CTRL-300` | `UnpublishedEncodedPayload`, `PublishedEncodedPayload`, and exact transition success/failure | expose only complete immutable payload/role facts for controller arbitration |
 | outbound to `DEL-PACE-020`, `DEL-HO-001`, `DEL-HO-020` | exact published-payload metadata and one `EncodedPayloadLease` | preserve backing ownership; delivery gets only the counted lease and its copy surface |
@@ -168,7 +168,7 @@ copy additionally requires the thread/token validity owned by `DEL-HO-020` and `
 ## STORE-060 — Native segment adoption
 
 `NJPEG-080` alone decides whether, when, and in which order to invoke the sink and owns each native segment,
-temporary local reference, return/throw evidence, and later release/residue. At entry to one synchronous
+temporary local reference, return/throw evidence, and native release/close. At entry to one synchronous
 `adoptNativeSegment` invocation, storage applies only this managed sequence:
 
 1. require an `Open` Native transaction and positive `byteCount`;
@@ -184,7 +184,7 @@ creates one managed segment; storage never groups, coalesces, exposes, or uses i
 
 If managed validation/allocation/copy throws, the transaction becomes sticky with the exact storage
 classification and preserves that throwable for `NJPEG-080`/`NJPEG-090` evidence. Storage claims no JNI,
-native-transfer, native-free, local-reference, writer-residue, or segment-release receipt. Its complete result is
+native-transfer, native-free, local-reference, capsule-close, or segment-release receipt. Its complete result is
 only the managed transaction mutation (or sticky failure) and the invariant that it retained no view.
 
 ## STORE-070 — Publish, cache, repeat, lease, and retirement
@@ -220,7 +220,7 @@ tentative managed owners until the producer fact permits an exact command.
 | terminal with settled managed payload/lease | detach each exact role when its uses permit; last engine-reference drop is logical retirement only |
 
 Cancellation, deadline, abort request, role detachment, or loss of a managed reference is not proof of physical
-reclamation. `NJPEG-100` owns uncertain native borrowing/residue; `DEL-HO-040` owns unresolved physical handoff
+reclamation. `NJPEG-100` owns native nonreturn and late-return cleanup; `DEL-HO-040` owns unresolved physical handoff
 and lease-release facts. `CORE-CLEAN-1`/`CORE-CLEAN-2` alone define root transfer and late reduction.
 
 ## STORE-090 — Structural memory and copy policy
@@ -264,7 +264,7 @@ closure/routing and test namespaces are in [Document 04](04-verification.md), an
 | `H-PS` / Framework growth | symbolic inputs covering first tail, old-tail fill, new/full/partial tail, `write(int)`, mixed calls, valid/invalid/zero bulk ranges, checked limits, and source mutation; exact derived `C` and byte order with no tuning literal |
 | `H-PS`, `A-FJ` | injected tail allocation, copy, list append, trim, container/freeze, and caller-flatten allocation results; exact storage classification/abortability, zero partial publication, ordered `copyTo`, persistent `J`, and symbolic managed bounds |
 | `H-PS`, `H-DL` | production/latest/displaced/lease identity transitions; accepted fresh/repeat/cache/invalidating/terminal commands; exact release fact; at most one displaced payload and no duplicate detach/copy; `DEL-PACE-020`, `DEL-HO-001`, `DEL-HO-020`, and `DEL-HO-040` own physical use/handoff ordering |
-| `N-JPEG` | storage-side exact positive direct-range validation, checked cumulative boundary, one managed segment per valid invocation, ordered bytes, view non-retention, and allocation/copy throwable identity; every adoption asserts the exact pre-copy, transient-copy, post-free, one-segment `2J`, and final `J` ledgers owned by `NJPEG-080`, while `NJPEG-120` owns invocation/release/residue receipt order |
+| `N-JPEG` | storage-side exact positive direct-range validation, checked cumulative boundary, one managed segment per valid invocation, ordered bytes, view non-retention, and allocation/copy throwable identity; every adoption asserts the exact pre-copy, transient-copy, post-free, one-segment `2J`, and final `J` ledgers owned by `NJPEG-080`, while `NJPEG-120` owns invocation and native release/close order |
 | `A-CL` | held transaction or encoded lease preserves only exact managed storage roles; accepted late facts detach only matching roles; no tentative/stale bytes or backing container escape; generic root/cross-Session mechanics remain `CORE-CLEAN-1`/`CORE-CLEAN-2` |
 
 All checked additions, destination/source ranges, exact `Int` limits, image-size validity, sequence exhaustion, and

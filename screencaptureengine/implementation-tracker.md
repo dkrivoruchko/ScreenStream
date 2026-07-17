@@ -2,381 +2,323 @@
 
 ## Authority
 
-The normative implementation authority is, in order:
+Documents `design-next/01-authority-router.md` through `design-next/12-domain-delivery-observation.md` are the sole
+normative implementation authority, in router order. `design-next/13-future-evolution.md` is nonnormative. The previous
+`design/01`–`09` package is not authority.
 
-1. design-next/01-authority-router.md
-2. design-next/02-product-contract.md
-3. design-next/03-shared-runtime.md
-4. design-next/04-verification.md
-5. design-next/05-domain-controller-reconciliation.md
-6. design-next/06-domain-android-capture-metrics.md
-7. design-next/07-domain-target.md
-8. design-next/08-domain-gl.md
-9. design-next/09-domain-framework-jpeg.md
-10. design-next/10-domain-native-jpeg.md
-11. design-next/11-domain-encoded-storage.md
-12. design-next/12-domain-delivery-observation.md
+This tracker is operational state only. It may become stale after interruption, compaction or document updates; any
+conflict is resolved from current Documents 01–12 and the tracker is corrected before more work starts. Kotlin is
+implementation evidence, not authority.
 
-`design-next/13-future-evolution.md` is nonnormative product-roadmap material. The previous `design/01`–`09` package is
-not implementation authority and must not be loaded as a requirement source. Kotlin and Git history are implementation
-evidence. Documents 01–12 are the primary best-effort design reference for the intended final product, not uniformly
-absolute predictions of the eventual Kotlin implementation. If code cannot satisfy a critical product/platform/safety/
-ownership/performance requirement, stop and report a designer/user blocker. A necessary secondary structural deviation
-is recorded and reported rather than hidden, but does not require a complex workaround or frozen-document edit. Loading
-all twelve documents into every agent's immediate context is not required when the router defines a smaller sufficient
-authority packet.
-
-Every Markdown file except this tracker is frozen at its current content. No agent may edit frozen documentation. An
-implementation conflict, ambiguity, difficulty, deviation, or improvement proposal is reported to the user with exact
-authority and implementation evidence. Critical product/platform/ownership/safety/performance uncertainty stops for
-designer/user resolution. Secondary internal structure, visibility, naming, file-layout, or mechanism differences are
-recorded and may proceed with the simplest sound implementation; neither case authorizes an implicit documentation edit.
+Every Markdown file except this tracker is frozen. Only a direct user decision may authorize a separately bounded
+documentation task.
 
 ## Permanent working rules
 
-- Root is the exclusive tracker writer, status owner, and gate integrator. Root personally reads, audits, and updates
-  this tracker. Technical implementation, research, code audit, diagnostics, production builds, and production analysis
-  are delegated to at most three direct fresh subagents unless the user explicitly requests a bounded root-only check.
-  Nested subagent delegation is prohibited.
-- Fresh subagents are the default for every new slice, independent audit axis, solution proposal, and adjudication.
-  Reuse is allowed for a bounded continuation of the same assigned work, including the same three independent agents
-  cross-reviewing their deduplicated finding/solution set, or a small follow-up fix when the exact issue and accepted
-  solution are already known and the agent's immediately prior context materially reduces risk. A new independent
-  review, broad reopening, materially different task, or disagreement adjudication always uses a fresh agent.
-- Subagents never edit this tracker, announce closure, or delegate. Only root writes tracker state and integrates gates.
-- Every future subagent running longer than roughly two to three minutes sends root a concise progress heartbeat at
-  that cadence: completed reading/work, current phase, any finding/blocker, and remaining bounded work. Heartbeats do
-  not pause the task, request a restart, expand scope, or substitute for the final evidence report.
-- Root never interrupts, cancels, or replaces an active subagent without the user's direct explicit permission. Long or
-  complex work is not evidence of a hang. Root waits or provides noninterrupting assistance and never starts a duplicate
-  replacement while the original task can still complete. Once interrupted, never resume it unless the user explicitly
-  orders that exact resume.
-- Preserve unrelated work. Do not stage, unstage, commit, reset, checkout, revert, or otherwise change index/history
-  without explicit user instruction. The user exclusively owns staging and commits.
-- Every technical subagent first checks current official primary guidance and applicable current platform/tool best
-  practices. Android uses official Android/AOSP sources; Kotlin/IDE uses official Kotlin/JetBrains; Java/JMM/JNI uses
-  official Oracle/OpenJDK/JNI; OpenGL/EGL uses official Khronos and Android/AOSP sources. Record exact sources, relevant
-  conclusions, and disposition in every handoff.
-- Authority loading is proportional to task type, scope, and risk. Root gives each agent a minimum sufficient authority
-  packet: current tracker state and exact pins, approved task/fix contract, directly governing sections, affected code
-  and boundary call sites, required invariants, and relevant official primary sources. Full Documents 01–12 reading is
-  the default for design, architecture, cross-document reconciliation, and authority adjudication. Selective loading
-  never permits an unsupported conformance claim or silently ignoring a relevant requirement.
-- The finished working product is the objective. Documents 01–12 describe that product and a best-effort route toward a
-  correct implementation, but design-time predictions have unequal importance and incomplete implementation knowledge.
-  Root may change intermediate order, supporting declaration placement, exact internal mechanism, or bounded
-  cross-domain sequencing when the result is simpler and improves final correctness. Record and report every material
-  deviation; never silently imply that the frozen text already said something different.
-- Apply authority proportionally. Highest priority is correct public/observable behavior; reliable platform/system
-  interaction; concurrency/JMM and thread/lane behavior; graphics/EGL/GLES correctness; ownership, resource lifetime,
-  cleanup, failure and JNI/ABI safety; privacy/security; and appropriate memory, CPU, GPU, allocation and latency
-  efficiency. Next is maximally simple, compact, maintainable and idiomatic Kotlin. Internal visibility, exact names,
-  file count/location, class decomposition, and a design-proposed implementation mechanism are secondary.
-- When a design instruction is hard to implement, determine whether it protects a critical product invariant or is
-  secondary guidance. Critical uncertainty, contradiction, or unavoidable tradeoff stops for the user. For a secondary
-  mismatch, choose the simplest technically sound implementation, record the exact deviation/reason and report it.
-- Classify every finding before selecting a correction: intrinsic current defect; intentional temporary migration
-  state; or integration-dependent gap owned by a named future Controller/GL/JPEG/Android/Delivery slice. Fix intrinsic
-  stable defects. Record and defer future-owned gaps when the accepted next topology naturally supplies the missing
-  path; do not add a temporary workaround that later integration will delete.
-- Architectural authority contains current product, architecture, system, implementation-binding, verification, and
-  explicitly nonnormative future-product content. Work orchestration, review procedure, migration history, tracker/Git/
-  index instructions, and change history live only in this tracker or temporary handoffs.
-- Keep this tracker operational rather than archival. Retain permanent rules, current action queue, exact accepted
-  checkpoints, accepted invariants/deviations, open blockers and named future-owned obligations. Once a slice closes,
-  delete intermediate hashes, writer/auditor chronology, superseded findings, manual-review states, severity counts and
-  repeated verification narration after confirming no future task depends on them.
-- Before releasing an agent whose report may be needed later, exhausting its context, or performing a user-requested
-  root restart, root writes every material handoff, exact pin, unresolved disagreement, proposed solution and next gate
-  into this tracker and rereads the saved section for completeness.
-- Frozen documentation has no implementation-side writer. Only a new direct user decision may lift the freeze for a
-  separately bounded documentation task.
-- Accepted Kotlin is a high-confidence checkpoint, not frozen code. Bounded reopening, refactoring, extension, or
-  rewrite is allowed when evidence requires it and Documents 01–12 remain satisfied.
-- Acceptance follows bounded production source slices, not source-file completion. One writer owns each file at a time;
-  overlapping writers never edit the same file concurrently.
-- Final passive declarations may land before later behavior only when they have permanent domain ownership and no
-  placeholder behavior, mutable authority, lifecycle transition, arbitration, platform call, fake health/presence
-  projection, or incomplete execution path.
-- Physical layout follows the authority source manifest, cohesion, and one-way dependency. Active implementation units
-  normally target 250–500 lines; a cohesive state/resource machine may reach roughly 600–700 lines. More than 800 lines
-  requires an explicit cohesion review, not automatic mechanical splitting.
-- Every subagent performs at least two explicit self-review passes before handoff. Every writer additionally uses
-  JetBrains/Android Studio formatting and diagnostics, a focused IDE build, proportional forced Gradle compilation, and
-  a naming/spacing review. JetBrains/Android Studio MCP is used when directly available; otherwise note once and continue
-  without blocking.
-- Thorough review of critical or high-risk code uses three fresh independent read-only agents on distinct technical
-  axes. Root deduplicates their reports; the same three cross-review material, complex, disputed, or writer-contract-
-  changing findings and proposed corrections. Trivial aligned observations and mechanical inventory facts do not
-  require three-way cross-review.
-- High-risk includes platform and Android interaction; graphics/EGL/GLES/driver/image pipelines; concurrency, threading,
-  scheduling, locks, atomics, publication, deadlines, cancellation, late return, nonreturn and resource lifetime; JNI/
-  native/ABI boundaries; and complex stateful business logic.
-- One independent axis in every high-risk review explicitly checks Documents 01–12 architecture and technical-decision
-  conformance. Ambiguity, contradiction, missing decision, or disproportionate machinery is reported with exact
-  evidence and bounded options. Critical uncertainty stops for the user; secondary structure uses the simplest recorded
-  deviation. Frozen documentation is never silently reinterpreted.
-- Implementation may start after cross-review when all three axes converge on both the problem and technical solution.
-  Any material disagreement about the finding, scope, or solution requires a fresh adjudicator.
-- Every finding needs exact authority/source/line evidence and at least one concrete solution. Severity labels are not
-  required and do not replace agreement on the problem, impact, and solution.
-- GL and every concurrency/lock/publication slice are elevated-risk. Planning, implementation and closure require three
-  independent axes, mutual cross-review, fresh adjudication for disagreement, official primary authority and explicit
-  gate/allocation/deadline/late-return/nonreturn/nontermination probes. A single clean report never closes such a slice.
-- Production code uses Kotlin 2.4 and must be maximally simple, compact, readable and idiomatic. Prefer direct typed
-  composition, immutable data, narrow visibility, explicit ownership and the smallest understandable control flow.
-  Avoid cleverness, speculative abstractions, unnecessary layers, duplicated models and generic machinery. If the
-  simplest conforming implementation remains convoluted, stop and escalate the design.
-- After every writer handoff, independent audit waits for user manual review and explicit authorization unless the user
-  directly selects a narrower bounded verification for an already cross-reviewed mechanical correction.
-- Preserve checked sizes/narrowing, hard limits, exact identities, bounded work, reuse, minimal copies, exact cleanup
-  and structural ownership. Do not use `Any`, fake health/presence booleans, compatibility interfaces, duplicate
-  topology wrappers, raw handles as ownership proof, fabricated receipts, incomplete implementations, or predictive
-  accounting.
+- Root is exclusively an orchestrator, the sole tracker reader/writer, status owner and gate integrator. Root does not
+  perform technical implementation, audit, research, diagnostics or production builds unless the user explicitly asks
+  for a bounded root-only check.
+- At most three direct subagents run simultaneously. Every subagent must do its task personally and must not create,
+  run, resume, delegate to or message another subagent or use collaboration/multi-agent. Nested delegation is forbidden.
+- Before every production writer, three independent planning agents derive the plan from current Markdown authority.
+  Aligned plans proceed directly; no redundant cross-review is required. Material disagreement uses a fresh adjudicator.
+- Fresh agents are required for new independent axes, broad reopening, architecture and adjudication. Reuse is preferred
+  for the same task's bounded continuation, mechanical writer, writer correction or exact-context follow-up.
+- If a slot/thread is stuck, root reports the real capacity immediately, continues with available agents, and resumes the
+  remaining axis when capacity releases. Root never pretends rejected work is active.
+- Root never interrupts, cancels, replaces or duplicates an active agent without direct user permission. An interrupted
+  agent is never resumed unless the user explicitly orders that exact resume.
+- Agents working longer than roughly two to three minutes send a concise heartbeat: completed work, current phase,
+  finding/blocker and bounded remainder.
+- Root supplies proportional authority: current tracker state and pins, exact task contract, governing document sections,
+  affected code/boundaries, required invariants and relevant current official primary sources. Full Docs01–12 reading is
+  required for architecture, design and cross-document adjudication; bounded slices use the router's sufficient packet.
+- Technical agents check current official primary guidance: Android/AOSP, Kotlin/JetBrains, Oracle/OpenJDK/JNI, or
+  Khronos as applicable. Every handoff records exact sources, conclusion and disposition.
+- Every finding is classified as an intrinsic defect, intentional migration state or named future-owned integration gap.
+  Fix stable intrinsic defects; do not add temporary workarounds for future-owned gaps.
+- Every finding includes exact authority/source/line evidence and at least one concrete correction. Labels and severity
+  never substitute for agreement on the problem, impact and solution.
+- Critical product/platform/concurrency/ownership/safety/performance ambiguity stops for the user/designer. Secondary
+  structure, visibility, naming, layout or mechanism may use the simplest sound recorded deviation.
+- The finished working product is the objective. Priority is observable correctness, platform behavior, concurrency,
+  graphics, ownership/resource lifetime, cleanup/failure/JNI safety, privacy/security and appropriate efficiency; then
+  simple maintainable idiomatic Kotlin. Names, internal visibility, file placement and predicted mechanism are secondary.
+- Root does not begin a materially different slice after completing the current one until the user agrees the next
+  action. Safe bounded continuations inside an already approved slice follow its recorded procedure.
+- Preserve unrelated work. Root and agents never stage, unstage, commit, reset, checkout, revert, mutate index/history or
+  otherwise take over Git ownership without direct user instruction. The user exclusively owns staging and commits.
+- Tests are entirely out of scope until the user separately authorizes them.
+- One writer owns every affected file. Overlapping writers are forbidden. Accepted Kotlin is a checkpoint, not frozen
+  code, and may be reopened when evidence requires it.
+- Final passive declarations may land early only with permanent domain ownership and no placeholder behavior, mutable
+  authority, lifecycle transition, arbitration, platform call, fabricated health/presence or incomplete execution path.
+- Physical layout follows the authority manifest, cohesion and one-way dependency. File size is only a review signal:
+  roughly 250–500 lines is convenient, 600–700 may suit a cohesive state machine, and more than 800 requires a cohesion
+  justification, never compression, shortened names, removed evidence or a split that widens authority.
+- Every subagent performs two self-review passes. A writer also formats only its scope, uses available JetBrains/Android
+  Studio diagnostics, performs proportional focused/forced production compilation, reviews naming/spacing and stops for
+  user manual review. Unavailable IDE tooling is noted once and is not a blocker.
+- After user manual review, closure uses independent read-only audit proportional to risk. The user may explicitly select
+  a narrower audit for a planned mechanical correction.
+- Critical/high-risk review uses three fresh independent axes. High-risk includes Android/platform, GL/EGL/GLES,
+  concurrency, scheduling, locks, atomics, publication, deadlines, cancellation, late/nonreturn, resource lifetime,
+  JNI/native/ABI and complex stateful logic. One axis explicitly checks Docs01–12 conformance.
+- GL and every concurrency/lock/publication slice are always elevated-risk. Their planning and closure use three axes,
+  official primary authority and explicit gate, allocation, deadline, late-return, nonreturn and nontermination probes.
+  Aligned results proceed without redundant cross-review; material findings follow the cross-review rule below.
+- Cross-review is required only for material, complex, disputed or writer-contract-changing findings/solutions. Trivial
+  aligned observations and mechanical inventory facts do not require it.
+- Production Kotlin 2.4 must be direct, typed, compact, readable and idiomatic. Prefer immutable facts, narrow visibility
+  and explicit ownership; avoid speculative abstractions, compatibility layers, duplicate models and generic machinery.
+- Android platform branches read `Build.VERSION.SDK_INT` at the owning boundary and use typed `Build.VERSION_CODES`
+  constants. Do not thread caller-supplied SDK surrogates or duplicate platform constants.
+- Preserve checked sizes, narrowing, limits, identities, bounded work, minimal copies, exact cleanup and resource roots.
+  Do not use `Any`, fake health/presence flags, fabricated receipts, raw handles as ownership proof, incomplete behavior,
+  duplicate authority/topology or predictive accounting.
+- Keep this tracker current, not archival. Retain rules, current queue, compact accepted pins/deviations, open blockers,
+  future obligations and approved handoffs. Delete writer/auditor chronology, intermediate hashes, superseded findings,
+  manual-review history and repeated verification narration once no future task depends on them.
+- Retain consolidated audit/research/design conclusions, exact decisions and evidence when a future task depends on
+  them. Remove raw conversational logs and repeated narration, not useful future knowledge.
+- Before compaction, restart or releasing context needed later, root records every material current handoff, pin,
+  disagreement, solution and next gate here, then rereads the saved section.
 
-## Repository checkpoint
+## Current repository checkpoint
 
-- The user exclusively manages staging, commits, index and history; root and subagents never mutate them without a
-  direct instruction.
-- Target and GL source decomposition are accepted on the current worktree pins below. The user has manually reviewed and
-  staged the current checkpoint and is ready to commit.
-- The production-Kotlin source-decomposition barrier remains active for JPEG and Android. Functional implementation and
-  integration remain paused until both close.
-- Tests remain entirely out of scope.
+- Production source decomposition for Android, Target, GL and JPEG is accepted. Functional work proceeds through bounded
+  authority-owned slices.
+- No active subagent or writer is part of this checkpoint.
+- Tests remain out of scope. The user owns all staging, index, commits and history.
 
-## CURRENT ACTION QUEUE
+## Current action queue
 
-1. **USER COMMIT — NEXT.** Root performs no staging, commit or history operation.
-2. **JPEG — TOMORROW'S ACTIVE DOMAIN.** After the user commit and explicit continuation, repin current GL/JPEG seams,
-   run three fresh final JPEG axes, mutually cross-review findings/solutions and adjudicate disagreement before any
-   writer. Use the readiness plan below; do not cross unresolved native-evidence boundaries.
-3. **ANDROID — AFTER JPEG.** Repin after prior-domain closure, run the mandated three axes and complete decomposition.
-4. **POST-BARRIER INTEGRATION.** Resume Controller/Delivery and retained F1–F6 obligations only after all four domains
-   close.
+1. **NATIVE/JNI — READY FOR PRODUCTION PLANNING/WRITER SEQUENCE.** Authority is approved and staged. The complete atomic
+   production handoff is retained below. A future writer must load the new accepted pins for `JpegRuntimeOwner.kt` and
+   `NativeEncodeCoordinator.kt`.
+2. **FRAMEWORK/JPEG REMAINING CORRECTIONS — OPEN.** Bitmap lifetime, returned recycle, fatal/allocation partition,
+   failure evidence, reference clearing, platform wiring, carrier integration and shared retention remain listed below.
+   Each production slice starts with three independent plans.
+3. **CONTROLLER / OBSERVATION / CLEANUP / DELIVERY D6 — FUTURE, NO ACTIVE TASK.** Do not land a standalone signal,
+   drainer, registry or placeholder Controller. Retained preliminary research and unresolved planning points are below.
+4. **TARGET/GL F4 — FUTURE INTEGRATION.** Replace raw TargetScope progress/receipt seams with private exact GL evidence
+   only when the real Controller/GL/Target integration slice starts.
 
-## Mandatory source-decomposition procedure
+## Accepted functional checkpoints
 
-Status: `REQUIRED_BEFORE_FURTHER_IMPLEMENTATION`.
+Only current pins needed to anchor future work are retained. Rehash affected files before every new writer.
 
-Current scope is production Kotlin only. Tests are entirely out of scope: agents do not inspect test sources, plan tests,
-edit tests, run test tasks, map executable test IDs, or use test requirements to shape current work. Production
-formatting, static analysis, compilation, two writer self-reviews and independent production-code audit are the complete
-verification scope.
+| Slice | Current accepted pins |
+| --- | --- |
+| Shared deadline/settlement | `OperationDeadline.kt` `0a811bf63e14a7dd4fe92d011f9b7795907f466474d6c738a5cb1b0988ef5fd7` (595); `OperationSettlement.kt` `7c643bb7d80192def414b942544b4e69920a56eed6e756baa6855d7fd724b270` (493) |
+| Android Metrics | `ScreenCaptureConfig.kt` `8816033c93e987e9ebd3dc53d482a939f2092cd2f1dfb4abe47201bd6aa9842e` (298); `CaptureMetricsOwner.kt` `73f1854f6724f0569eef73b9d2300b362e1b56d0e3cafe63ea606c7b34be0cad` (461) |
+| Android↔Target typed closure | `AndroidCaptureOwner.kt` `27483ee0d444b291e3690a41de16f1e44f59c3aa09feb20231ece4a40362f525` (1,021); `VirtualDisplayOperations.kt` `4270f4b788a773d15a98f72c5c64ed98797a22a665aa970ac75361dec0dec98d` (420); `TargetPorts.kt` `ee346c4294953eaf1efe2d8fc936746dca5c8c444777ba94d1c65742241e53e4` (886); `CurrentTarget.kt` `c3758ed6e66cdefb34dcba891479b2dd51f18bd6e172b7574090f02b3688ef76` (610) |
+| Reconciliation | `ReconciliationOwner.kt` `96da06c1172e4d125ea83f7730bc4ca4c16b17eac1b18dadebca4feab936498c` (327) |
+| Pacing | `PacingOwner.kt` `77d9265cb5ede4ed67eb176f236cfba4394b1e2eac9522759e098c97fcf851e9` (254) |
+| Delivery F1/F2/F3 mechanics | `DeliveryOwner.kt` `04c24d8ec0dd8181ecbad28ae8f0570e9db809b6cea264c5183c693744a3c904` (933); `OperationDeadline.kt` pin above |
+| JPEG/Framework entry signals | `JpegRuntimeOwner.kt` `94362304bb40ef65a8b780d8550bc9602ac73fa128b6462e24621033612cdf8e` (1,714); `NativeEncodeCoordinator.kt` `e57e8b1b294332795666aefeaa764a0ab246270e584e4163e1840638c9a7b820` (107); `FrameworkBitmapOwner.kt` `c6bf078cd2f43bfac4478554c4affe4d378dfcece0c03404d1b6889f1924ab43` (341); `FrameworkJpegExecution.kt` `0e4b628d1862f4c48779ca01b6db4803bca273d1533392739ad7e9ea0db5eb42` (447); `FrameworkJpegCleanup.kt` `2396d3bdb6606ac611c5ca3fa441d0854a35a461465c4000457be76bd7e8f3d1` (281) |
 
-1. Work domain by domain in this order: Target, GL, JPEG, Android. Storage remains cohesive unless concrete review
-   demonstrates that its current unit obstructs implementation.
-2. Give one writer exclusive ownership of affected owner files for the whole domain move. Supporting import/package/
-   constant edits may cross the current boundary for a compile-clean migration but do not start later behavior work.
-3. Start with permanent immutable contracts, models, evidence, receipts and narrow commands. Do not predeclare
-   speculative whole-engine models, placeholders, TODO behavior or fake-success paths.
-4. Extract cohesive state/resource components, then reduce the owner to its sole-authority facade. Use composition and
-   narrow typed boundaries, never extension files exposing mutable owner fields.
-5. Preserve exactly one existing gate, lane, scope/view, scheduler, executor, HandlerThread/Handler, fatal fence and
-   resource-lifetime state machine wherever authority assigns one. File boundaries never authorize another runtime axis.
-6. Preserve exact root binary identities and native signatures of
-   `io.screenstream.engine.internal.JpegRuntimeOwner$NativeBridge` and
-   `io.screenstream.engine.internal.EncodedStorageOwner$NativeSegmentSink`.
-7. Keep sealed families in a legal common Kotlin package, maintain one-way dependencies and move domain deadline
-   constants without alias/duplicate; generic deadline machinery remains settlement-owned.
-8. After each domain move, format, statically analyze and compile affected production Kotlin, perform two writer
-   self-reviews and obtain independent read-only production-code audit before the next domain.
+Current accepted implementation facts needed later:
 
-Exit criteria:
+- `OperationDeadline` atomically commits `Armed + Requested`. `Future.cancel(false) == true` is not a stop receipt:
+  queued work may be generation-suppressed, while running work retains its generation until exact `Fired` or scheduler
+  termination receipt.
+- Only definite `RejectedExecutionException` proves scheduler non-acceptance. Other schedule/cancel throws retain
+  ambiguous generation evidence. Fatal scheduling/cancellation errors preserve exact identity.
+- Android owns a closed `Attached / MechanicallyDetached / null` VirtualDisplay state. Target applies first; Android
+  validates exact immutable facts and identity-CASes second. Future Controller owns currentness and claim ordering.
+- Reconciliation and Pacing are stateless calculations. Future Controller owns revalidation, commit, scheduling,
+  currentness and policy.
+- Delivery F1–F3 mechanics are closed. End-to-end Delivery remains open only through D6 below.
+- All eight JPEG/Framework successful-entry paths now signal after durable entry and before same-stack outward/resource
+  work. The user reviewed and staged the five-file tuple; the user-selected narrow independent closure audit was clean.
 
-- Canonical responsibilities match Documents 01–12, subject to recorded secondary deviations that improve simplicity
-  without weakening critical requirements.
-- No affected file exceeds 800 lines without cohesion justification; typical units are 250–500 lines and a cohesive
-  resource machine may remain roughly 600–700 lines.
-- JNI identities, sole-owner authority, concurrency/lifetime/resource invariants and observable behavior are preserved.
-- Target, GL, JPEG and Android production slices close compilation, static analysis, writer self-reviews and independent
-  production-code audit.
-- Only then may functional implementation and integration resume.
+Accepted deviations/watchpoints:
 
-## Accepted Target checkpoint
-
-Status: `CLOSED_SOURCE_DECOMPOSITION_ACCEPTED`.
-
-| Target file | SHA-256 | Lines |
-| --- | --- | ---: |
-| `target/TargetContracts.kt` | `0e0048b10a0c5253c31e4500e2522559c5d1a42a64dc236d810e34e2314cca1e` | 171 |
-| `target/TargetConstruction.kt` | `44d13a9d468ab7371929b612792fc542f639adc596aac4ff3e929498c92f720f` | 588 |
-| `target/TargetPorts.kt` | `fc9daf71e4fb1d03fbebe0154c5aa9d5e33db212a9c2154255f76e7a24a392eb` | 755 |
-| `target/CurrentTarget.kt` | `c79daef9d796f2ad25f3ddf749f6ce6878f8ec34265808e19a9a692b77035c9a` | 607 |
-| `target/TargetRetirement.kt` | `65577fa36d756d52d6a284dbc53ee757526bc53b6f47743b86f87e2d60900ee5` | 606 |
-| `target/TargetOwner.kt` | `7e0009af811e6378af40cbecc54fe51dc9d7cc7aec758ab6d68586c98851b5a7` | 202 |
-
-Accepted invariants and deviations:
-
-- Six cohesive files under `internal.target`; one small Session-facing `TargetOwner`; one shared nonfair `targetGate`;
-  occurrence-local settlement gates only; no extra owner, lock, monitor, CAS authority, lane, scope, dispatcher,
-  scheduler or runtime axis.
-- One normative `latestPendingSource: AtomicBoolean`; zero Target `compareAndSet`/`synchronized`; held-gate-only
-  readiness seams; unlocked outward/platform work and signalling after gate release.
-- Direct `VirtualDisplayCreation` `OutOfMemoryError` releases its completed lease and rethrows the identical object;
-  every other `Error` retains fatal lease semantics.
+- `AndroidCaptureOwner.kt` and `TargetPorts.kt` remain cohesive large single-authority files. Reassess only when real
+  Controller integration removes responsibilities; do not split by widening mutable authority.
+- GL currently allocates three `Ref` objects plus three capturing functions per entered frame. Revisit only after
+  integration profiling or new authority evidence.
 - Narrow module-internal seams are accepted where Kotlin multifile composition makes file-private access impractical.
-- Exact JNI identities remain `JpegRuntimeOwner$NativeBridge` and `EncodedStorageOwner$NativeSegmentSink`.
 
-Future Controller-owned watchpoint: concrete `SettlementSignal` is a precreated Session-owned lossless wake that commits
-durable facts before signalling, runs unlocked, is prompt/nonblocking/allocation-free/non-throwing and uses exact
-`IDLE/RUNNING/RUNNING_DIRTY` coalescing. Dispatch rejection/throw is captured by identity in the Controller emergency
-fact and handled by its exclusive fail-closed turn. Do not add a Target-local catch, retry, wrapper, lane or scheduler.
+## Future Controller / Observation / Cleanup research
 
-## Accepted GL checkpoint
+This is retained preliminary work, not an active plan or writer authorization.
 
-Status: `CLOSED_SOURCE_DECOMPOSITION_ACCEPTED`.
+- No designer blocker remains for `SettlementSignal`. It is one Session-owned, prompt, nonblocking, allocation-free and
+  universally nonthrowing wake. Producers publish durable facts first, release their gate, then signal.
+- Controller-dispatch rejection/throw is retained by exact identity in a precreated emergency fact. One exclusive
+  bounded allocation-free fail-closed turn transfers fixed unresolved roots; signal still returns to the producer.
+  Leaf-domain fatal errors remain separate and are rethrown by their owning boundary.
+- The wake uses exact `IDLE / RUNNING / RUNNING_DIRTY` coalescing, one precreated Runnable and the single Session
+  deadline scheduler. Only a complete empty scan may return to `IDLE`.
+- The call-site inventory found 107 direct/helper settlement-signal edges plus one dormant wrapper and no hidden alias or
+  alternate implementation. `TargetSourceSignal.signal(generation)` is a separate nominal producer contract.
+- A standalone signal/drainer is forbidden dormant authority. A live vertical landing needs real public reachability,
+  `SessionController`, direct source/action slots, a complete scanner and `CleanupOwner`. Observation remains stateless
+  over Controller-owned immutable snapshots and Session-owned Flow cells.
+- Future three-axis planning must resolve whether `ObservationOwner` co-lands or follows in the next behavior-complete
+  slice, and must adjudicate the proposed precreated dispatch-return/failure handshake that prevents a possibly-started
+  Runnable from beginning useful work before an acceptance-ambiguous dispatch throw is observed.
+- Do not start more Controller planning, adjudication or a writer without a separate user-approved task.
 
-The user performed final formatting-only cleanup after technical closure. The table pins the current reviewed/staged
-worktree bytes; staging remains user-owned.
+## Open Framework/JPEG obligations
 
-| GL file | SHA-256 | Lines |
-| --- | --- | ---: |
-| `gl/GlPipelineContracts.kt` | `385112dd940e0b21e1ca76517f6cd9725c521b9ff866c846f53e8b6d382ac0f2` | 189 |
-| `gl/GlLaneRuntime.kt` | `f7f8a96984ae0cd5f94d61fa09fdf5ec1e7125c482fdc79a47ee2f7d240dba5f` | 625 |
-| `gl/EglSession.kt` | `298d9584427a38e9772286ad58a0f3dc67b06ba5bfa7a5b268544fe05f828372` | 771 |
-| `gl/GlProgram.kt` | `87df44349231f1a0b9c5de4ec5600701fd8d07e5e59e81f30de3c06675e515fe` | 326 |
-| `gl/GlTargetBridge.kt` | `424e40f26f6a6a8859656c5d8763eeb2f9a29f3962c9c806afa26889071734d8` | 230 |
-| `gl/GlRenderTarget.kt` | `f062067f22dad6da41eaa4036d9a5a4b823981e2422b4180df4a8640333f22cb` | 239 |
-| `gl/GlFramePipeline.kt` | `e187a84af32d9cefdf1806eb22e444da68939402a7e9eeb98dea3fa98b21be84` | 356 |
-| `gl/GlCleanup.kt` | `e5e51c05783236ceea41302cff44acaa123fdeef7abe077fbaa7dbff57c20759` | 577 |
-| `gl/GlPipelineOwner.kt` | `c282a70492f886264249322fcc51dc967dca6cb65d019ffcd3321f2cf62ac1bf` | 711 |
+The successful-entry signal correction is closed. Remaining work:
 
-Accepted invariants:
+1. **Bitmap lifetime — intrinsic.** Remove `BitmapReturnedOwner`/`bitmapGate` without a replacement axis. The creation
+   occurrence owns the partial shell; installed Bitmap/scratch/metadata are immutable; the encode occurrence bag is the
+   sole Bitmap-use loan. Unentered cancellation returns it; entered/late/nonreturn retains it.
+2. **Returned recycle — intrinsic.** Snapshot under the source gate, precreate an empty recycle occurrence unlocked,
+   arbitrate on its gate, revalidate and transfer the whole owner under the source gate, then submit unlocked. Only exact
+   normal recycle return plus claimed settlement permits clearing the owner slot.
+3. **Allocation/fatal partition — intrinsic.** Ordinary resource exhaustion is limited to checked creation-size denial,
+   direct Bitmap creation, row scratch, Bitmap compress including entered sink growth, separately Storage-owned commit
+   trim/freeze and checked cumulative sink overflow. Other fatal errors are published/signalled and rethrown by identity
+   after fixed nonthrowing bookkeeping. Root dispatch treats ordinary `Exception` as rejection and rethrows fatal errors.
+4. **Failure evidence — intrinsic plus Storage-owned.** Replace return-path checks/new causes with closed discriminators
+   and precreated evidence. Preserve exact managed OOM causes where promised; typed `NativeOutOfMemory` may map to a
+   nullable public cause and never fabricates an OOME. Preserve `FrameworkTransaction.firstFatalWriteError`.
+5. **Reference clearing — intrinsic with Controller completion.** Retain one exact nullable slot per owner/product/use/
+   transaction obligation until currentness, use, transaction, payload and cleanup settle. Transfer unresolved roots.
+6. **Platform wiring — future-owned.** Remove caller `sdkInt` at final wiring; branch on actual
+   `Build.VERSION.SDK_INT`. API 24–25 performs no API-26 metadata access.
+7. **Carrier integration — future Controller/GL/JPEG.** Preserve `RgbaCarrier.leaseGate` until one exact
+   Controller-owned `CarrierRangeLoan` replaces it through `sessionGate -> settlementGate`. Never enter a raw range
+   before `tryEnter`.
+8. **Shared retention.** Clear carrier, result block and direct buffer only after exact receipt or all managed uses
+   settle. The Native/JNI landing removes the former cross-return writer block/gate/loan. The encode occurrence roots
+   transaction, carrier, result block and live native call through unentered, entered, late and nonreturn states.
 
-- Nine cohesive files under `internal.gl`; one nonfair `glGate`, one executor/lane, one fatal cell and no added monitor,
-  lock, atomic, scheduler, dispatcher, scope, state machine or runtime axis.
-- Complete generic and required outer submission `Error` boundaries; executor-only rejection ranges; first-fatal-wins
-  identity; winner-only unlocked no-throw fatal signal; best-effort fatal cleanup; exact normal-false cleanup proofs.
-- Extension-first compile-time fragment shaders with unchanged body, P3/grayscale math, uniforms and GL state.
-- Every fallible owner/component/array/direct-buffer initialization precedes construction and prestart of `laneRuntime`;
-  the lane is the final `GlPipelineOwner` property initializer.
-- Repeated-submit, deadline/late/nonreturn, EGL/GLES error-read/OOM poison, Target/carrier, namespace/reservation,
-  shutdown and residue behavior closed the independent authority, concurrency and platform review cycle.
-- Exact JNI identities/descriptors remain unchanged.
+## Native/JNI approved implementation handoff
 
-Deferred secondary watchpoint: three `Ref` plus three capturing function allocations per entered frame. Revisit only
-after integration profiling or new authority evidence. The separately named TargetScope F4 remains post-barrier
-integration-owned.
+Status: `AUTHORITY_APPROVED_STAGED_READY_FOR_PRODUCTION_WRITER`.
 
-## JPEG next-slice readiness
+The final contract is frozen and staged in Documents 01/03/04/10/11. Current Kotlin is replacement evidence, not a
+compatibility boundary.
 
-Status: `READY_FOR_FINAL_AUDIT_AFTER_USER_COMMIT`.
+### Target topology and binding
 
-Current planning pins:
+- Add `internal/jpeg/NativeJpegProcess.kt` with binary identity
+  `io.screenstream.engine.internal.jpeg.NativeJpegProcess`. It owns only loader/bootstrap state and the stateless JNI
+  facade. `JpegRuntimeOwner` retains Session mode, health, backend and carrier authority.
+- Keep exact Storage identity `io.screenstream.engine.internal.EncodedStorageOwner$NativeSegmentSink` and upcall
+  descriptor `adoptNativeSegment(Ljava/nio/ByteBuffer;I)V` unchanged.
+- The production inventory is five Kotlin external methods: exported `nativeBootstrap` plus four registered runtime
+  methods for carrier allocation, carrier free, weak-compressor query and compression. `RegisterNatives` has four
+  entries. Production exports are only `JNI_OnLoad` and
+  `Java_io_screenstream_engine_internal_jpeg_NativeJpegProcess_nativeBootstrap`.
+- `JNI_OnLoad` is `noexcept` and version-only. Explicit receiver bootstrap after successful loading distinguishes a
+  missing DSO from post-load registration poison.
+- `nativeCompress` returns `Unit` with exact descriptor:
 
-| JPEG planning file | SHA-256 | Lines |
-| --- | --- | ---: |
-| `JpegRuntimeOwner.kt` | `207e8e94f994c8772d95cc3017dea729d7b6dcbe4129589eb725d15c7d1acd2a` | 2,018 |
-| `JpegRuntimeCore.kt` | `1b37341e2f6aa2b1c1326d635f348c8912cb8e1dc2858b399da1aa5fcf243cb4` | 483 |
-| `JpegRuntimeOperations.kt` | `ccc58af229ec8200d80714838d25058f7909555a9c76ac8391c518168debe569` | 487 |
-| `FrameworkJpegOwner.kt` | `9dededada52c5b128ffadd8aa7260e67e012f37bef1477ee1e42dbb9650a151b` | 1,476 |
-| `EncodedStorageOwner.kt` | `f52948740742a86fc42811f808d987ada5148f034d4f3dd6305c3008483aa8ad` | 617 |
-| `settlement/OperationDeadline.kt` | `dc7dc3fecade761b98412e411e570481453f7c3e9125d7de7cfee89b45c33c40` | 388 |
+```text
+(Ljava/nio/ByteBuffer;JIIIIJIIILio/screenstream/engine/internal/EncodedStorageOwner$NativeSegmentSink;Ljava/nio/ByteBuffer;)V
+```
 
-Exact ABI anchors:
+### Call-scoped native ownership
 
-- `io.screenstream.engine.internal.JpegRuntimeOwner$NativeBridge`;
-- `io.screenstream.engine.internal.EncodedStorageOwner$NativeSegmentSink`;
-- `adoptNativeSegment(ByteBuffer, Int): Unit`;
-- unchanged complete `nativeCompress` descriptor.
+- One `WriterCapsule`, its mutex and every native segment belong to one `nativeCompress` stack frame. Remove
+  `NativeWriterOwnerBlock`, writer-token inspection/initialization, residue disposition, writer-block loan/gate,
+  `nativeReleaseWriterResidue` and the second cleanup JNI boundary.
+- Validate the exact direct result-block address and 16-byte capacity, install an allocation-free nonthrowing finalizer,
+  and arm the result channel immediately. Perform remaining lookup, pixels/sink/buffer, range/count, narrowing,
+  descriptor and representation checks after arming but before capsule creation or outward work.
+- The callback performs no JNI and is `noexcept`. Retain the capsule mutex because callback thread identity and
+  serialization are not guaranteed. Callback failures become allocation-free sticky evidence and return `false`.
+- Catch every C++ exception while the capsule remains in lexical scope. Every returning path explicitly performs
+  idempotent `releaseAll() noexcept`, verifies closed state, writes the complete result and returns. The destructor is
+  only an idempotent safety net; no C++ exception crosses JNI.
+- Remove each segment from the owned list and free it exactly once after synchronous sink return. `releaseAll()` frees
+  only the remaining list.
+- Nonreturn proves no cleanup receipt: capsule/segments remain on the native stack and the exact Kotlin occurrence,
+  worker, result block, transaction and carrier remain quarantined. Late return performs the same native cleanup and
+  publishes only cleanup evidence through the existing settlement identity.
 
-Required first action tomorrow:
+### Exact result protocol
 
-1. Repin current GL/JPEG/settlement seams after the user commit.
-2. Launch three fresh axes: authority/layout; concurrency/JMM/resource lifetime; JNI/native/platform/ownership.
-3. Mutually cross-review material findings and solutions; use a fresh adjudicator for disagreement.
-4. Select a writer contract only after convergence.
+Kotlin initializes a native-order 16-byte direct block to `-1/-1`. Native uses fixed-offset field-wise `memcpy`, never a
+struct or potentially unaligned `int64_t*`:
 
-Known intrinsic candidates for the final audit:
+```text
+offset 0: nativeStatus
+offset 8: nativeProducedByteCount
+```
 
-1. Broad `Throwable`/`Error` catches and blanket OOM normalization across dispatcher, JNI/result/free, Bitmap recycle and
-   Framework housekeeping. Preserve nonordinary `Error` identity after no-throw bookkeeping; keep
-   `FrameworkTransaction.firstFatalWriteError`.
-2. Native deadline entry occurs before range/block/sink preparation rather than immediately before `nativeCompress`.
-3. Kotlin interprets the opaque writer token using `getLong`. The current result evidence has no token-presence fact;
-   safe correction requires native-side invariant/evidence revalidation.
-4. Two call-block allocations can lose the first buffer before typed partial ownership.
-5. Surplus Bitmap lock/settlement nesting and likely call-block gate; `RgbaCarrier.leaseGate` needs post-GL revalidation.
-6. Carrier/free-bag direct-buffer references survive physical/logical retirement and must clear only after exact receipt
-   or all managed uses settle.
-7. Oversized misplaced owners and the JPEG deadline constant require decomposition without a new runtime axis.
+Native writes count first and status last after verified cleanup. Status-last is a semantic completion marker, not a
+memory fence. The same worker copies both scalars into managed return evidence; settlement-gate publication supplies
+cross-thread visibility. Controller never reads the direct block.
 
-Conditional first compile-safe landing after the audit:
+```text
+Pending                          = -1
+NativeTransferComplete           = 0
+SafeCompressorAllocationFailure  = 1
+NativeOutOfMemory                 = 2
+InternalFailure                  = 3
+JavaThrowable                    = 4
+```
 
-- move complete `JpegRuntimeCore.kt` and `JpegRuntimeOperations.kt` to `internal.jpeg`;
-- move `jpegEnteredOperationSafetyNanos` from settlement into `JpegRuntimeCore.kt` with no alias/duplicate;
-- update imports in root `JpegRuntimeOwner`, current `FrameworkJpegOwner`, `GlPipelineOwner` and `GlFramePipeline`;
-- keep root `JpegRuntimeOwner.NativeBridge` and root `EncodedStorageOwner.NativeSegmentSink` physically unchanged;
-- change no method body, catch, lock, state, native descriptor or ownership behavior.
+Let `P = nativeProducedByteCount` and `M = NativeTransaction.byteCount`.
 
-Planned later sequence: move Framework owner into `internal.jpeg`; extract Framework contracts, Bitmap owner, execution
-and cleanup; extract carrier lifecycle with exact buffer-reference retirement; correct partial call-block ownership;
-then extract native encode coordination/result protocol. `EncodedStorageOwner.kt` remains cohesive and unmoved.
+| Final status | Required `P` | Required `M` | Pending throwable |
+| --- | ---: | ---: | --- |
+| `NativeTransferComplete` | `P > 0` | `M == P` | none |
+| `SafeCompressorAllocationFailure` | `0..Int.MAX_VALUE` | `M == 0` | none |
+| `NativeOutOfMemory` | `0..Int.MAX_VALUE` | `M == 0` | none |
+| `InternalFailure` | `0..Int.MAX_VALUE` | `0 <= M <= P` | only exact pre-adoption/malformed path |
+| `JavaThrowable` | `P > 0` | `0 <= M <= P` | required from adoption boundary |
 
-Blocking decisions before the native encode landing:
+- `NativeTransferComplete` proves native production, adoption and cleanup, not Storage commit, currentness or
+  publication.
+- Native allocation/representation failures eligible for `NativeOutOfMemory` occur before adoption. Typed native OOM
+  maps to `ResourceExhausted` with nullable cause and never fabricates OOME. Unexpected `std::bad_alloc` after adoption
+  is `InternalFailure` with `0 <= M <= P`.
+- `JavaThrowable` is valid only for a pending throwable from `NewDirectByteBuffer` or synchronous
+  `NativeSegmentSink.adoptNativeSegment` and verified closed native state.
+- Invalid/missing result channel stays unarmed: create no capsule or outward work. Normal returned `Pending` is malformed
+  `InternalFailure`; pending `Exception` is exact-cause `InternalFailure`; every other pending throwable is rethrown.
+- Armed preflight failure writes `P = 0` then `InternalFailure` without capsule/compressor/adopter. A post-arm lookup
+  throwable remains pending with `InternalFailure`; it is never `JavaThrowable`.
+- Unknown status/count or impossible status/throw/`M`/`P` pairing is malformed `InternalFailure` while fatal identity is
+  preserved.
 
-- opaque token presence/residue requires native-side contract revalidation; if unavailable, stop for user/designer
-  resolution rather than inventing Kotlin proof;
-- decide the exact no-extra-lock Bitmap/call-block/carrier protocol after the final concurrency axis;
-- define stage-local OOM and identical-fatal mechanics through the final cross-review.
+### Throwable partition
 
-Named future-owned work: Controller construction/currentness/health/cleanup-root and concrete lossless signal; Delivery
-publication/lease/cache retirement; native C++/headers/CMake/RegisterNatives/package/consumer rules; final GL carrier
-integration.
+- Valid `JavaThrowable` plus exact OOME becomes `ResourceExhausted` with the same cause.
+- Valid `JavaThrowable` plus `Exception` becomes exact-cause `InternalFailure`.
+- Valid `JavaThrowable` plus every other throwable completes fixed allocation-free bookkeeping and rethrows the same
+  object.
+- `InternalFailure`/malformed plus `Exception` remains `InternalFailure`; with every other throwable, fixed bookkeeping
+  precedes identical rethrow. Cleanup ambiguity outranks ordinary OOME normalization.
 
-## Android forward readiness
+### Atomic production writer scope
 
-Status: `PRELIMINARY_TWO_AXES_COMPLETE_JPEG_BARRIER_ACTIVE`.
+One writer owns the complete tuple; mixed old/new binding is not an acceptable checkpoint:
 
-Current pins:
+1. Add `NativeJpegProcess`, update Kotlin caller/result protocol and remove token/residue/release mechanics.
+2. Add production C++ header/glue/runtime with call-scoped RAII, exact registration and unchanged sink upcall.
+3. Add CMake targets/export map, consumer keep rules and Gradle native/package wiring. Use NDK `29.0.14206865` and
+   namespace `io.screenstream.engine`.
+4. Keep tests out of writer scope; Document 04 owns later native verification.
 
-| Android planning file | SHA-256 | Lines |
-| --- | --- | ---: |
-| `AndroidCaptureOwner.kt` | `c77d915d2e7e59efe46243d3a7b062a8bb6c3b6dc273df7a562a491e20ba1227` | 1,058 |
-| `CaptureMetricsOwner.kt` | `114f4165848bde0a807b5390371986c4e29fe7fc9ff83ad39528acc81962abcf` | 564 |
-| `ScreenCaptureConfig.kt` | `61f37d061b67f2d5a76b9784ff61471cd850e141c8bf74156b54471af8fdd086` | 289 |
-| `settlement/OperationDeadline.kt` | `dc7dc3fecade761b98412e411e570481453f7c3e9125d7de7cfee89b45c33c40` | 388 |
+Before writing, load the router Native/JPEG packet plus Docs03/04/10/11 and all current call sites, including the accepted
+new `JpegRuntimeOwner` and `NativeEncodeCoordinator` pins. After landing, perform scoped formatting/IDE analysis,
+forced and normal Kotlin compilation, native configure/build/package receipts, full applicable production build,
+forbidden-symbol/descriptor/export scans and two writer self-reviews. Stop for user manual review before fresh
+high-risk closure audit.
 
-Preliminary seven-file direction under `internal.android`: contracts/deadlines; sole HandlerThread/Handler lane;
-MediaProjection operations; VirtualDisplay operations; metrics contracts; metrics lifetime owner; small Android capture
-facade. `ScreenCaptureConfig.kt` keeps public provider declarations. Add no `androidGate`, executor, lane, scope,
-dispatcher or compatibility shim.
+## Remaining cross-domain obligations
 
-Candidates for the later final three-axis audit:
-
-1. All finite Android operations enter without requesting the existing deadline wake.
-2. API 34–37 initial resize needs an actual child deadline occurrence sharing the creation settlement gate.
-3. Timely metrics can overwrite durable wake-submission rejection.
-4. Two invalidity exits lose the recovery turn; persistent absence must not create a self-rescheduling spin.
-5. Returned VirtualDisplay can collide before it is rooted in returned-owner evidence.
-6. Lane/post and startup/finally boundaries can convert or replace unexpected `Error`; do not add an Android fatal fence.
-7. Metrics collection catches downstream engine failures as provider `CollectionFailed`; use downstream-transparent
-   `Flow.catch`.
-8. Shared `OperationDeadline` can strand `Submitting`/`Cancelling` on unexpected scheduler/cancel `Error`.
-9. Decompose monolith/package/deadline layout; unused raw getters should not survive the facade.
-
-Future-owned: Controller result application and currentness; exact provenance; closed Attached/MechanicallyDetached
-display state; owner-derived reasons; concrete lossless signal; geometry/lifecycle/terminal application; final quit
-eligibility.
-
-After JPEG closure, repin `OperationDeadline`, `OperationSettlement`, GL/Target seams and the complete Android manifest
-before the final Android audit.
-
-## Deferred post-barrier integration obligations
-
-These remain paused until Target, GL, JPEG and Android decomposition all close:
-
-- **F1:** The sole Controller/action drainer claims opaque Android results and applies Target state before terminal
-  fencing, without worker-side authoritative apply, secondary atomics or a second sequencer.
-- **F2:** Exact wrapper/occurrence/bag/target/port/provenance/kind/consumer reference checks replace scalar-only trust.
-- **F3:** Maintain private closed VirtualDisplay state:
-  `Attached(exact target, generation, producer operation/port/provenance)` or
-  `MechanicallyDetached(exact detach provenance)`.
-- **F4:** Remove raw TargetScope progress/normal/receipt-getter seams; GL returns private exact evidence after real
-  SurfaceTexture/OES work and Target consumes only the exact settled result.
-- **F5:** Replace caller reason arguments with owner-derived `ReturnedWithoutProducer`, `Unentered` and mechanically
-  settled `Inapplicable` issuance.
-- **F6:** Replace `Any` with private nominal construction/factory authority.
-
-These are implementation dependencies, not design contradictions. Do not add temporary Target/Android/GL workarounds
-during the decomposition barrier.
+- **Delivery D6:** Future Controller/Cleanup owns Storage consume invocation, Delivery acknowledgement, currentness,
+  counters, terminal/unsubscribe, exact root attachment, fact claims and post-claim reference reduction. The intended
+  sequence is `DeliveryOwner.releasedLeaseForStorageConsumption` ->
+  `EncodedStorageOwner.consumeReleasedLease` ->
+  `DeliveryOwner.acknowledgeStorageLeaseConsumption`. Do not add a placeholder Delivery cleanup root.
+- **Observation:** It remains stateless/unlocked over Controller snapshots and Session-owned Flow cells. The exact
+  diagnostic-allocation OOME boundary remains a future Controller planning question, not a designer blocker.
+- **Cleanup:** `CleanupOwner` must co-land with real Controller scheduler/root types, never a generic registry or
+  callback placeholder.
+- **Target/GL F4:** Remove raw TargetScope progress/normal/receipt getters when GL returns private exact evidence after
+  real SurfaceTexture/OES work and Target consumes only the settled result.
+- Former F1–F3, F5 and F6 are closed by the accepted typed Android↔Target/Delivery work. Do not keep or reopen their old
+  tracker wording without new evidence.

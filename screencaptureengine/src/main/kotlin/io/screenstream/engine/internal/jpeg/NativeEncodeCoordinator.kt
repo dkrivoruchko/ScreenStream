@@ -15,6 +15,7 @@ internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence:
         if (entryResult == OperationEntryResult.InvalidDeadline) owner.signalJpegIoSettlement()
         return
     }
+    owner.signalJpegIoSettlement()
 
     val bag = occurrence.ownerBag
     val lease = checkNotNull(bag.retainedOperationLease)

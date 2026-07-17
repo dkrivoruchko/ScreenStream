@@ -163,7 +163,9 @@ mandatory-cleanup occurrence transfers intact; cancellation never fabricates its
 
 A finite parent owns one minimal `DeadlineWakeLink`, not a separate lifecycle domain. Its phase is exactly
 `Unarmed`, `Armed`, `Expired`, or `Retired`. It precreates one generation-tagged wake whose submission moves
-through `None`, `Requested`, `Submitting`, `Accepted`, or `Rejected`, plus an independent one-shot Fired fact.
+through `None`, `Requested`, `Submitting`, `Accepted`, or `Rejected`, plus an independent one-shot Fired fact and
+one per-link generation-and-phase atomic. That atomic is allocated with the link; its checked, nonreused-generation
+transitions allocate no objects and are exactly `Queued(g)`, `Running(g)`, or `Suppressed(g)`.
 The physical Session scheduler resource and its ownership/shutdown binding are owned by
 [CTRL-040](05-domain-controller-reconciliation.md#ctrl-040--session-scheduler-resource); this section owns only
 the generic per-occurrence wake and settlement protocol.
@@ -171,15 +173,37 @@ the generic per-occurrence wake and settlement protocol.
 Arming under the parent gate moves `Unarmed -> Armed` and the current wake submission `None -> Requested`.
 The controller claims that generation as `Submitting`, calls
 `schedule(wake, max(0, D - EngineClock.now()), NANOSECONDS)` unlocked, then publishes the exact Future or
-rejection under the parent gate. The callback checks the generation, samples `EngineClock`, publishes only its
-one-shot Fired fact, releases the gate, and signals. It may fire before Future publication; an early fire is
-evidence only.
+the scheduling Throwable under the parent gate before any full-settlement check. The Runnable's first engine
+operation is CAS `Queued(g) -> Running(g)`, whose success defines engine operational start. Only that winner may
+check the link generation, sample `EngineClock`,
+publish the same-generation one-shot Fired fact, release the gate, and signal. A failed CAS returns immediately
+without other link, gate, clock, or signal access. Fired may precede Future publication; an early fire is evidence
+only.
 
-A successor waits until both the Fired side and the Future-or-rejection publication side settle, preventing an
-orphan Future. A current active wake-submission rejection is `InternalFailure` even though its finite parent is
-already Entered; a prior retirement, cancellation, terminal, stale-generation, or active-to-cleanup disposition
-remains authoritative and makes the rejection cleanup-only. Retirement/cancellation is identity-fenced,
-accepted-Future cancellation occurs unlocked, and a stale callback can settle only its own generation.
+Only after accepted-Future `cancel(false) == true` may the canceller CAS `Queued(g) -> Suppressed(g)`. Cancellation
+publication records the exact `cancel(false)` return or thrown `Exception`/`Error` and any suppression-CAS outcome
+under the parent gate before any full-settlement check: `Suppressed(g)` is alternative callback-side no-Fired
+settlement, not proof that a Java task frame returned. `cancel(false) == false`, cancellation `Exception`,
+cancellation `Error`, acceptance-ambiguous scheduling Throwable, and generation mismatch never suppress and
+conservatively retain the
+exact `Queued(g)` or `Running(g)` link until its same-generation Fired fact or scheduler-termination receipt.
+Never-submitted and pre-submit work, and definite `RejectedExecutionException`, retain their separate existing
+no-callback paths.
+
+A successor requires same-generation Fired plus Future-or-rejection settlement, no cancellation in flight, and
+successful checked pre-increment of the next generation and its atomic representation before exact-generation,
+ABA-safe `Running(g) -> Queued(g+1)`; guard failure is `InternalFailure` before transition/CAS, wrap, reuse, or
+successor, and the successful transition allocates no object. Suppression and scheduler termination create no
+successor. A current active wake-submission rejection is `InternalFailure` even
+though its finite parent is already Entered; a prior retirement, cancellation, terminal, stale-generation, or
+active-to-cleanup disposition remains authoritative and makes the rejection cleanup-only. Retirement/cancellation
+is identity-fenced, accepted-Future cancellation occurs unlocked, and a stale callback can settle only its own
+generation. The [Java 17 `Future`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/Future.html)
+and current Android [`Future`](https://developer.android.com/reference/java/util/concurrent/Future.html) contracts
+support only that successful `cancel(false)` is not a stop receipt, and the
+[atomic-variable](https://developer.android.com/reference/java/util/concurrent/atomic/package-summary) contract
+supports only single-variable CAS atomicity; `Queued`/`Running`/`Suppressed` and every other engine rule above
+remain CORE-WAKE authority.
 
 Queued engine work has no queue-start timeout. Scheduler nonprogress is not an operation return and cannot prove
 cancellation, release, or safe replacement.
@@ -228,8 +252,11 @@ The common precedence is:
 
 Only OOM at an explicitly enumerated allocation boundary receives that boundary's ordinary classification.
 Unexpected fatal JVM `Error` follows the owning domain's fatal boundary and is never normalized into ordinary
-cleanup. A partially returned resource is immediately owner-bag state; a catch path must not depend on fresh
-allocation to retain it.
+cleanup. The Native JPEG boundary distinguishes typed pre-adoption native OOM from late allocation failure and
+pending Java OOM under [`NJPEG-080`](10-domain-native-jpeg.md#njpeg-080--writer-capsule-result-block-and-adoption)
+and [`NJPEG-090`](10-domain-native-jpeg.md#njpeg-090--native-encode-result-and-fallback); no generic OOM rule may
+collapse those phases. A partially returned resource is immediately owner-bag state; a catch path must not
+depend on fresh allocation to retain it.
 
 ## CORE-EFF-1 — Structural efficiency and reuse
 
@@ -298,6 +325,11 @@ and every resource that the incomplete call may still use or own. Cleanup may pr
 siblings. If the call later returns, its identity-fenced fact can release or shrink only that exact child after
 all dependent receipts become valid.
 
+A returning Native JPEG call has no cross-return writer owner or second cleanup boundary: its call-scoped native
+capsule is closed before return. A nonreturn instead keeps that capsule and its segments on the live native stack,
+while the exact Kotlin occurrence, worker, result block, transaction, carrier, and leases remain rooted together.
+Only a late return can produce the ordinary native cleanup evidence defined by `NJPEG-080` and `NJPEG-100`.
+
 No cleanup/quarantine fact may revive a Session, reopen admission, install a replacement, publish stale bytes,
 change backend health, add active counters, or rewrite the terminal winner. Resolution before an actual root
 mutation emits no quarantine-change event; a real attach/reduction/removal requests the one best-effort diagnostic
@@ -309,8 +341,8 @@ recovered.
 
 ## CORE-PRIV-1 — Data lifetime and privacy
 
-Raw pixels, mutable encoder input, tentative encoded segments, immutable payloads, native writer residue, and
-borrowed frames remain behind their exact owner/lease boundaries. Failed, partial, stale, or unleased data never
+Raw pixels, mutable encoder input, tentative encoded segments, immutable payloads, call-scoped native writer
+segments, and borrowed frames remain behind their exact owner/lease boundaries. Failed, partial, stale, or unleased data never
 publishes. Reusable CPU storage is cleared as required after its last lease before cross-purpose reuse.
 
 Only caller-requested `copyBytes`/`copyTo` transfers JPEG bytes into caller ownership. Allocator, gralloc,

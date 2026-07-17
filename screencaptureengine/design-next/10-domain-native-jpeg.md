@@ -1,8 +1,8 @@
 # Screen Capture Engine — Native JPEG Domain Contract
 
 This file solely owns the Session JPEG runtime and carriers, own-DSO loader/bootstrap, weak compressor
-capability, JNI and JNI-free native boundary, Native encode evidence, writer residue, native cleanup, and native
-build/package contract. Framework Bitmap behavior belongs to
+capability, JNI and JNI-free native boundary, Native encode evidence, call-scoped writer, native cleanup, and
+native build/package contract. Framework Bitmap behavior belongs to
 [09-domain-framework-jpeg.md](09-domain-framework-jpeg.md), transactional managed bytes and publication to
 [11-domain-encoded-storage.md](11-domain-encoded-storage.md), render/readback to
 [08-domain-gl.md](08-domain-gl.md), and policy/currentness commits to
@@ -26,7 +26,7 @@ fallback and errors remain [PROD-060](02-product-contract.md#prod-060--state-and
 - [NJPEG-090](#njpeg-090--native-encode-result-and-fallback)
 - [NJPEG-100](#njpeg-100--cleanup-and-late-return)
 - [NJPEG-CONST-001](#njpeg-const-001--jpeg-entered-operation-interval)
-- [NJPEG-WIRE-001](#njpeg-wire-001--fixed-writer-codes)
+- [NJPEG-WIRE-001](#njpeg-wire-001--fixed-native-result-codes)
 - [NJPEG-PKG-001](#njpeg-pkg-001--native-build-and-artifacts)
 - [NJPEG-110](#njpeg-110--forbidden-alternatives)
 - [NJPEG-120](#njpeg-120--executable-obligations)
@@ -39,23 +39,25 @@ Production ownership is split without splitting behavior. Every path uses the al
 | Path | Sole role |
 | --- | --- |
 | `JPG:JpegRuntimeCore.kt` | Cohesive closed JPEG products, `NativeJpegHealth`, carrier owner/lease contracts, and native-free identity/evidence/bag/receipt. |
-| `JPG:JpegRuntimeOperations.kt` | Cohesive typed preparation, replacement-allocation and Native-encode occurrences/evidence/bags; frame/result descriptors and writer-block loans. |
+| `JPG:JpegRuntimeOperations.kt` | Cohesive typed preparation, replacement-allocation and Native-encode occurrences/evidence/bags; frame and result descriptors. |
 | `JPG:JpegCarrierLifecycle.kt` | Native/managed carrier allocation, lease, replacement, free, and logical-retirement mechanics under owner commands. |
-| `JPG:NativeResultProtocol.kt` | Exact result-block/writer-status decoding and complete immutable evidence assembly; no policy classification or health mutation. |
+| `JPG:NativeResultProtocol.kt` | Exact two-word result decoding, throwable partition, and complete immutable evidence assembly; no policy or health mutation. |
 | `JPG:NativeEncodeCoordinator.kt` | One admitted Native encode execution, JNI/adoption coordination, and return publication under the owner-selected occurrence. |
-| `INT:JpegRuntimeOwner.kt` | Root ABI facade and sole mutable Session `JpegRuntimeOwner`: Session mode/health, process loader, backend/carrier selection, operation admission, and private nested `NativeBridge`. |
+| `JPG:NativeJpegProcess.kt` | Process-private loader state and stateless JNI facade rooted at binary class `io.screenstream.engine.internal.jpeg.NativeJpegProcess`. |
+| `INT:JpegRuntimeOwner.kt` | Sole mutable Session `JpegRuntimeOwner`: Session mode/health, backend/carrier selection, operation admission, and cleanup routing. |
 | `CPP:screen_capture_engine_jni.cpp` | Production JNI glue, bootstrap/registration, guarded weak helper, registered entries, block validation, writer services, adoption adapter, narrowing, and exception containment. |
 | `CPP:native_jpeg_runtime.h`, `CPP:native_jpeg_runtime.cpp` | JNI-free immutable descriptor, non-owning compressor function, writer/adopter services, capsule/segments, encode mechanics, evidence, and release. |
 | `CPP:CMakeLists.txt` | Production object composition, `jnigraphics` link, visibility, weak-API diagnostics, and production native target. |
 | `MOD:build.gradle.kts`, `MOD:src/main/AndroidManifest.xml`, `MOD:consumer-rules.pro` | Module native configuration, empty library manifest, artifacts, and exact JNI keep boundary. |
 
-The private binary class `io.screenstream.engine.internal.JpegRuntimeOwner$NativeBridge`, its bootstrap method,
-and all registered method names/signatures are rooted in `INT:JpegRuntimeOwner.kt`. The production adoption
-target is `io.screenstream.engine.internal.EncodedStorageOwner$NativeSegmentSink.adoptNativeSegment`. Both
-binary boundaries use these exact root identities, method names, and signatures.
+The binary class `io.screenstream.engine.internal.jpeg.NativeJpegProcess` roots the exported bootstrap and all
+four registered runtime methods. The unchanged production adoption target is
+`io.screenstream.engine.internal.EncodedStorageOwner$NativeSegmentSink.adoptNativeSegment(ByteBuffer, Int)`.
+Both binary boundaries use their exact names and descriptors in `NJPEG-050`.
 
 `JpegRuntimeOwner` alone mutates Session carrier mode and Native health. The loader coordinator is process-private;
-it owns no Session state. JPEG components act only on narrow owner commands and cannot mutate backend/health
+the stateless JNI facade and loader own no Session state. JPEG components act only on narrow owner commands and
+cannot mutate backend/health
 independently or create another scope, dispatcher, gate, lane, or resource-lifetime machine. Native runtime code
 owns no Session selector, compressor handle, `JNIEnv`, Java global reference, or cross-DSO mutable owner.
 
@@ -68,10 +70,10 @@ owns no Session selector, compressor handle, `JNIEnv`, Java global reference, or
 | inbound from [`STORE-010`](11-domain-encoded-storage.md#store-010--typed-boundary), [`STORE-030`](11-domain-encoded-storage.md#store-030--transaction-state-and-arbitration), [`STORE-060`](11-domain-encoded-storage.md#store-060--native-segment-adoption) | one tentative transaction and `NativeSegmentSink` adoption endpoint | Treat the transaction as borrowed through the encode occurrence; never publish or cache bytes here. |
 | outbound to [`FJPEG-010`](09-domain-framework-jpeg.md#fjpeg-010--typed-domain-boundary), [`FJPEG-040`](09-domain-framework-jpeg.md#fjpeg-040--exact-carrier-to-bitmap-transfer) | exact-range lease over the installed native or managed carrier after Framework is selected | Keep carrier ownership in `JpegRuntimeOwner`; Framework receives only its operation-scoped view. |
 | outbound to [`CTRL-130`](05-domain-controller-reconciliation.md#ctrl-130--completion-and-fallback-arbitration), [`CTRL-200`](05-domain-controller-reconciliation.md#ctrl-200--policy-attempt-counter-and-observation-authority), [`CTRL-300`](05-domain-controller-reconciliation.md#ctrl-300--cross-domain-commit-rules) | carrier/backend product, payload-free `Enabled`/`Disabled`, encode result, safe-disable fact, or exact unsafe residue | Publish fixed evidence before signalling; controller alone changes lifecycle, health, fallback, counters, and topology. |
-| outbound to [`STORE-060`](11-domain-encoded-storage.md#store-060--native-segment-adoption), [`STORE-080`](11-domain-encoded-storage.md#store-080--failure-terminal-and-cleanup) | synchronous native-segment calls plus exact native transfer/residue facts | Native preserves one-segment ordering and native ownership; storage alone validates, copies, mutates, commits, or publishes managed bytes. |
-| outbound to [`CORE-CLEAN-1`](03-shared-runtime.md#core-clean-1--cleanup-forest-and-dependency-graph), [`CORE-CLEAN-2`](03-shared-runtime.md#core-clean-2--quarantine-nonreturn-and-late-reduction) | unresolved occurrence, writable cells, carrier/transaction leases, writer block/capsule/segments and cleanup operations | Transfer the intact graph; late facts reduce only their exact child. |
+| outbound to [`STORE-060`](11-domain-encoded-storage.md#store-060--native-segment-adoption), [`STORE-080`](11-domain-encoded-storage.md#store-080--failure-terminal-and-cleanup) | synchronous native-segment calls plus exact native transfer/cleanup facts | Native preserves one-segment ordering and native ownership; storage alone validates, copies, mutates, commits, or publishes managed bytes. |
+| outbound to [`CORE-CLEAN-1`](03-shared-runtime.md#core-clean-1--cleanup-forest-and-dependency-graph), [`CORE-CLEAN-2`](03-shared-runtime.md#core-clean-2--quarantine-nonreturn-and-late-reduction) | unresolved occurrence, worker/result cell, carrier/transaction leases, and live call-scoped capsule/segments | Transfer the intact Kotlin graph; the native stack retains its call-scoped ownership, and late return reduces only that exact child. |
 
-A raw pointer, direct-buffer address, writer token, compressor function, ABI string, Boolean capability, or result
+A raw pointer, direct-buffer address, compressor function, ABI string, Boolean capability, or result
 code is never ownership or currentness authority by itself.
 
 ## NJPEG-020 — Session runtime, execution view, and legal products
@@ -137,23 +139,23 @@ JNI free, or reclamation inference.
 
 ## NJPEG-040 — Own-DSO loader and bootstrap
 
-One process-private synchronized coordinator permits exactly one direct
-`System.loadLibrary("screencaptureengine")` attempt. Its state tag, first-cause slot, bridge-publication slot, and
+`NativeJpegProcess` contains one process-private synchronized coordinator that permits exactly one direct
+`System.loadLibrary("screencaptureengine")` attempt. Its state tag, first-cause slot, facade-publication slot, and
 every preparation result holder exist before load entry. Static initialization and `JNI_OnLoad` create no
 carrier, sink, Session resource, worker, owner, global reference, or registration side effect.
 
-`JNI_OnLoad` is `noexcept` and version-only: it accepts and returns `JNI_VERSION_1_6`. After normal load return,
-the private `NativeBridge` instance invokes exported `nativeBootstrap(): Int` once. Bootstrap obtains the
-receiver class with `GetObjectClass`, installs one fixed `RegisterNatives` table, and publishes the bridge only
+`JNI_OnLoad` is `noexcept` and version-only: it returns `JNI_VERSION_1_6`. After normal load return,
+the private `NativeJpegProcess` receiver invokes exported `nativeBootstrap(): Int` once. Bootstrap obtains the
+receiver class with `GetObjectClass`, installs one fixed `RegisterNatives` table, and publishes the facade only
 for zero/JNI-OK with no pending exception.
 
 | Observation | Process result and Session disposition |
 | --- | --- |
 | direct load `UnsatisfiedLinkError` or `SecurityException`, before bootstrap/JNI operation and with zero native owner | clean unavailability; preparation selects `FrameworkOnManagedCarrier` and `Disabled` |
-| first `OutOfMemoryError` thrown directly by load | sticky `LoadOome(firstCause)` with the identical cause and absent bridge; timely current preparation is `ResourceExhausted` |
+| first `OutOfMemoryError` thrown directly by load | sticky `LoadOome(firstCause)` with the identical cause and absent facade; timely current preparation is `ResourceExhausted` |
 | any other load throwable | sticky unsafe `InternalFailure` |
 | load returned, then bootstrap/class/registration/pending-exception/unexpected-result failure | sticky post-entry `InternalFailure` poison |
-| successful load, bootstrap, registration, and bridge publication | process bridge available; registered operations cannot revise loader state |
+| successful load, bootstrap, registration, and facade publication | process JNI facade available; registered operations cannot revise loader state |
 
 `LoadOome` prevents every later load, bootstrap, carrier allocation, and managed fallback until process death;
 all later timely current preparations receive `ResourceExhausted` with the same first cause. A load OOM published
@@ -164,7 +166,7 @@ Successful own-DSO load/bootstrap/registration is sufficient structural proof th
 shipped library. Runtime selection has no executing-ABI query, field, string, enum, `Build.SUPPORTED_ABIS`,
 `Process.is64Bit()`, or comparison. Static package inspection separately proves all shipped ABIs.
 
-After bridge publication, initial `NativeMallocCarrier` allocation failure is required-storage
+After facade publication, initial `NativeMallocCarrier` allocation failure is required-storage
 `ResourceExhausted`; it cannot select the managed carrier. A registered runtime-operation failure uses that
 operation's frozen partition and cannot retroactively alter the successful loader state.
 
@@ -174,21 +176,23 @@ Production exports exactly:
 
 ```text
 JNI_OnLoad
-Java_io_screenstream_engine_internal_JpegRuntimeOwner_00024NativeBridge_nativeBootstrap
+Java_io_screenstream_engine_internal_jpeg_NativeJpegProcess_nativeBootstrap
 ```
 
-Every runtime method is in the single registered table:
+`NativeJpegProcess` declares exactly five Kotlin external methods: the exported bootstrap plus the following
+four methods in one `RegisterNatives` table:
 
 | Kotlin method | JNI signature | Exact contract |
 | --- | --- | --- |
 | `nativeAllocateCarrier(byteCount: Long): ByteBuffer` | `(J)Ljava/nio/ByteBuffer;` | Check positive `jlong` to `size_t`; after `malloc`, ownership transfers only when `NewDirectByteBuffer` succeeds. Provably owned partial allocation is freed on failure. |
 | `nativeFreeCarrier(pixels: ByteBuffer): Unit` | `(Ljava/nio/ByteBuffer;)V` | Kotlin requires exact view identity/range, zero leases and one-shot admission; JNI requires nonnull direct address and positive representable capacity, frees that address once, and normal return is the receipt. |
 | `nativeHasWeakCompressor(): Boolean` | `()Z` | `Auto` preparation only; returns payload-free capability through the guarded helper. |
-| `nativeCompress(writerBlock, pixels, pixelByteCount, width, height, stride, format, flags, dataspace, compressFormat, quality, sink, resultBlock): Int` | `(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;JIIIIJIIILio/screenstream/engine/internal/EncodedStorageOwner$NativeSegmentSink;Ljava/nio/ByteBuffer;)I` | Uses this exact argument order; compressor result is authoritative only after complete writer/JNI/adoption evidence. |
-| `nativeReleaseWriterResidue(writerBlock: ByteBuffer): Int` | `(Ljava/nio/ByteBuffer;)I` | Exact nonzero-token owner block only after adoption returned; zero result plus cleared token is the capsule/segment-release receipt. |
+| `nativeCompress(pixels, pixelByteCount, width, height, stride, format, flags, dataspace, compressFormat, quality, sink, resultBlock): Unit` | `(Ljava/nio/ByteBuffer;JIIIIJIIILio/screenstream/engine/internal/EncodedStorageOwner$NativeSegmentSink;Ljava/nio/ByteBuffer;)V` | Uses this exact argument order and the two-word result/throwable protocol in `NJPEG-080`; no cross-return writer owner exists. |
 
-`MOD:consumer-rules.pro` retains only the exact nested bridge bootstrap/registered members and the adoption sink
-binary method. Production JNI contains no fault selector or test hook.
+The adoption upcall remains exactly
+`io/screenstream/engine/internal/EncodedStorageOwner$NativeSegmentSink.adoptNativeSegment(Ljava/nio/ByteBuffer;I)V`.
+`MOD:consumer-rules.pro` retains only the exact `NativeJpegProcess` bootstrap/registered members and the
+adoption-sink binary method. Production JNI contains no fault selector or test hook.
 
 Every JNI export/entry has an outer C++ containment boundary. No C++ exception crosses JNI. Bootstrap maps
 `std::bad_alloc`, typed, and unknown exceptions to bootstrap `InternalFailure`; only a direct load OOM has the
@@ -198,13 +202,14 @@ exception remains pending while only exception-safe evidence and local-reference
 
 ## NJPEG-060 — Weak compressor capability and non-ownership
 
-The native module links system `jnigraphics` directly and consumes `ANDROID_WEAK_API_DEFS=ON` under NDK
-`28.2.13676358`; unguarded-availability diagnostics remain errors. The dependency itself is not weak, so loading
+The native module links system `jnigraphics` directly and consumes `ANDROID_WEAK_API_DEFS=ON` under the canonical
+NDK in `NJPEG-PKG-001`; unguarded-availability diagnostics remain errors. The dependency itself is not weak, so
+loading
 the engine DSO may map `libjnigraphics.so` on API 24–29 and under `FrameworkOnly`. That opaque incremental cost
 is not a runtime selector or predictive memory input.
 
-`FrameworkOnly` loads/selects the own bridge and carrier but never evaluates or invokes the platform compressor.
-Own-bridge/carrier preparation is not a Native compressor attempt.
+`FrameworkOnly` loads/selects the own DSO facade and carrier but never evaluates or invokes the platform compressor.
+Own-DSO/carrier preparation is not a Native compressor attempt.
 `Auto` preparation and every actual Native compression use the same native helper and same function:
 
 ```cpp
@@ -260,69 +265,118 @@ pixels, writer function, writer context. Carrier and transaction leases remain o
 
 ## NJPEG-080 — Writer capsule, result block, and adoption
 
-Before compressor entry, native allocates one typed `WriterCapsule` and writes its round-trippable nonzero
-`uintptr_t` as `uint64_t` into an exact zero-token `NativeWriterOwnerBlock`. The native-order managed block has
-one opaque `uint64_t ownerToken`; Kotlin never interprets it as a `Long`. It does not alias or embed the C++
-object. A token must be nonzero and round-trip through `uint64_t`; failure is malformed `InternalFailure`. Kotlin
-neither reads nor passes the token as a scalar.
+Kotlin preallocates one exact-capacity `16`-byte direct result block, applies `ByteOrder.nativeOrder()`, and writes
+signed `-1L` at offsets `0` and `8` before JNI entry. Native first validates only the exact result-block direct
+address and `16`-byte capacity, establishes an allocation-free nonthrowing finalization path, and immediately
+arms the result channel. It then validates and caches every other required JNI lookup, pixel/sink/direct-buffer
+address, range, count, narrowing, descriptor, and preflight fact. Only after all preflight succeeds may a
+`WriterCapsule` exist or an outward call begin.
 
-The capsule owns a native mutex, sticky status, checked cumulative length, ordered callback-sized malloc
-segments, and cleanup state. The native-only `AndroidBitmap_CompressWriteFunc` is `noexcept`, uses no `JNIEnv` or
-managed callback, and applies:
+An invalid or missing result address/capacity leaves the channel unarmed: native creates no capsule and performs
+no outward work. Kotlin treats normal return with either word still `Pending` as malformed `InternalFailure`; a
+pending `Exception` becomes exact-cause `InternalFailure`; every other pending `Throwable`, including
+`OutOfMemoryError`, is rethrown identically. After arming, every returning path writes a complete pair: produced
+count first, status last. Status-last is the semantic completion marker, not a memory fence. The same worker reads
+both words into its precreated managed return cell before the existing settlement-gate publication; the
+controller never reads the direct result block.
+
+Any post-arm preflight failure creates no capsule and invokes neither compressor nor adopter. Native writes
+`nativeProducedByteCount = 0` followed by `InternalFailure`. A post-arm lookup throwable remains pending with that
+status and follows the exhaustive `InternalFailure` throwable partition in `NJPEG-090`; it is never
+`JavaThrowable`, which remains exclusive to the two adoption boundaries.
+
+One call-scoped `WriterCapsule`, its retained mutex, and all native segments belong exclusively to the single
+`nativeCompress` stack frame. No native owner or secondary cleanup handle crosses a returning JNI boundary.
+
+The native-only `AndroidBitmap_CompressWriteFunc` is `noexcept`, performs no JNI, and retains the capsule mutex
+because callback thread identity and serialization are not guaranteed. It catches every C++ failure into
+allocation-free sticky evidence and returns `false`; no C++ exception escapes the callback.
 
 | Callback observation | Result |
 | --- | --- |
 | `size == 0` after valid capsule/state | true; nullable data is accepted; no allocation, copy, link, or length change |
 | valid nonempty data/range/state and successful exact malloc/copy/link | true; append one exact owned segment |
-| allocation failure or otherwise-valid segment/cumulative length outside managed `Int` representation | sticky `OutOfMemory`; false |
+| allocation failure or otherwise-valid segment/cumulative length outside managed `Int` representation | sticky typed native OOM; false |
 | null data for nonzero size, invalid capsule/state, lock/link/publication failure, or unexpected internal fault | sticky `InternalFailure`; false |
 
-Status is monotone `Safe -> OutOfMemory -> InternalFailure`; `InternalFailure` is absorbing. After OOM, later
+Failure evidence is monotone, and `InternalFailure` is absorbing. After native OOM, later
 callbacks perform only nonthrowing contract/state checks so malformed evidence may upgrade it, but no bytes,
 length, allocation, copy, or link changes. After InternalFailure they return false immediately.
 
-`NativeResultBlock` is a separate preallocated native-order direct block with exactly five explicit `uint64_t`
-words, accessed field-by-field:
+Finalization maps clean compressor success plus complete adoption to `NativeTransferComplete`, clean
+`ANDROID_BITMAP_RESULT_ALLOCATION_FAILED` with no adoption to `SafeCompressorAllocationFailure`, permitted
+pre-adoption native allocation/representation failure to `NativeOutOfMemory`, and every other compressor,
+callback, contract, or cleanup failure to `InternalFailure` unless an adoption-boundary pending throwable
+requires `JavaThrowable`.
 
-```text
-writerStatus, totalEncodedBytes, managedAdoptedBytes,
-nativeRemainingBytes, nativeRemainingSegmentCount
-```
-
-Every normal evidence-return path initializes all five words. Writer residue identity exists only in the writer
-owner block. The exact writer wire values are owned by [NJPEG-WIRE-001](#njpeg-wire-001--fixed-writer-codes).
-
-Runtime freezes compressor and writer evidence before transfer. Only safe-writer
+Runtime freezes compressor and callback evidence before transfer. Only clean
 `ANDROID_BITMAP_RESULT_SUCCESS` invokes the supplied adopter. Each native segment is transferred sequentially:
 production creates one temporary direct local view, calls
-`NativeSegmentSink.adoptNativeSegment(ByteBuffer, Int)` synchronously, deletes the local reference, and frees
-that segment only after the adoption return proves it unborrowed. Exact managed validation, copy, transaction
+`NativeSegmentSink.adoptNativeSegment(ByteBuffer, Int)` synchronously, and waits for its return. That return
+proves the view unborrowed; native deletes the local reference, removes the segment from the capsule's still-owned
+list, and frees it exactly once. `releaseAll()` therefore frees only segments that remain owned. Exact
+managed validation, copy, transaction
 mutation, and view non-retention are solely [`STORE-060`](11-domain-encoded-storage.md#store-060--native-segment-adoption).
 Non-success compressor results invoke no adopter and free every provably owned native segment before
-classification. Failure retains exact adopted/native/residue facts; uncertain borrowing is quarantined.
+classification.
 
-An adoption Java exception stays pending while native records exception-safe evidence, deletes the temporary
-local reference, and frees only proven-unborrowed segments. Kotlin catches the identical throwable; the returned
-compressor integer is absent/non-authoritative on that branch. A zero token plus zero native remaining bytes/
-segments and normal JNI return proves native writer ownership retired; a nonzero token transfers the exact
-capsule and remaining segments into the occurrence bag for `nativeReleaseWriterResidue` or quarantine.
+Only `NewDirectByteBuffer` and synchronous `NativeSegmentSink.adoptNativeSegment` are adoption JNI boundaries.
+Their Java throwable stays pending while native performs fixed exception-safe bookkeeping, deletes the temporary
+local reference, and releases all provably owned segments. Kotlin catches the identical object.
 
-Let `J` be the frozen total encoded bytes, `N` the bytes still owned in native segments, `M` the bytes already
-adopted into the managed transaction, `s` the current segment size, and `Smax` the largest actual segment in this
-call. Before each adoption, `N + M = J`. While copying the current segment, the exact transient relation is
-`N + M + s = J + s <= J + Smax`; normal adoption return followed by native free moves `s` from `N` to `M` and
-removes that duplicate. A one-segment result has transient `2J`; complete transfer leaves `N = 0`, `M = J`, and
-no native cache backing. These are observed ownership equations, not admission estimates or a runtime axis.
+Explicit close occurs only after the compressor returned or was never entered and no callback is active. It uses
+no throwing lock path, allocation, or fallible transition; `releaseAll()` and close are idempotent `noexcept`
+operations. Every C++ exception is caught while the capsule remains in lexical scope. Every returning path that
+created a capsule calls `releaseAll()`, verifies the closed state, writes the result pair, and only then returns
+through JNI. The capsule
+destructor invokes the same close solely as a safety net. No C++ exception crosses JNI.
+
+If `nativeCompress` does not return, there is no cleanup receipt: the capsule and segments remain on the live
+native stack, and the exact Kotlin occurrence, worker, result block, transaction, carrier, and leases remain
+quarantined. A late return performs the normal native close and lets Kotlin publish cleanup-only evidence under
+the original settlement identity.
+
+The result block contains exactly two signed 64-bit native-order fields. Native accesses each field with
+field-wise `memcpy`; it never aliases the block as a struct or `int64_t*` and assumes no alignment:
+
+```text
+offset 0: nativeStatus
+offset 8: nativeProducedByteCount
+```
+
+Let `P` be `nativeProducedByteCount` and `M` be `NativeTransaction.byteCount`, the sole authority for the prefix
+already adopted into managed storage. `P` is the native-produced prefix and denotes a complete JPEG only for
+`NativeTransferComplete`. The exact status codes are `NJPEG-WIRE-001`; every final pair obeys:
+
+| Status | Required evidence |
+| --- | --- |
+| `NativeTransferComplete` | `P > 0`, `M == P`, no throwable, adoption and native cleanup complete. This proves neither Storage commit/currentness nor publication. |
+| `SafeCompressorAllocationFailure` | `P` in `0..Int.MAX_VALUE`, `M == 0`, no throwable, native prefix freed. |
+| `NativeOutOfMemory` | `P` in `0..Int.MAX_VALUE`, strictly `M == 0`, no throwable, native prefix freed. All allowed native allocation and checked-representation failures occur before adoption. |
+| `InternalFailure` | `P` in `0..Int.MAX_VALUE`, `0 <= M <= P`; internal, malformed, or cleanup failure. A pending throwable is permitted only for an exact pre-adoption or malformed path. |
+| `JavaThrowable` | `P > 0`, `0 <= M <= P`, exact pending throwable from one adoption JNI boundary, and verified native cleanup/closed state. |
+
+`Pending` is Kotlin initialization only and is never a native final value. Unknown status, invalid count, normal
+return with `Pending`, or an impossible status/throwable/`M`/`P` pairing is malformed `InternalFailure` while
+preserving fatal throwable identity. There is no third cleanup or adopted-count word.
+
+For a successful compressor result, let `J = P`, `N` be the bytes still owned in native segments, `s` the
+current segment size, and `Smax` the largest actual segment in this call. Before each adoption, `N + M = J`.
+While copying the current segment, `N + M + s = J + s <= J + Smax`; normal sink return followed by native free
+moves `s` from `N` to `M` and removes that duplicate. A one-segment result has transient `2J`; complete transfer
+leaves `N = 0`, `M = J`, and no native cache backing. These are observed ownership equations, not admission
+estimates or a runtime axis.
 
 The precreated production return cell records the complete evidence inventory before classification:
 
 | Fact | Exact production evidence |
 | --- | --- |
 | carrier | exact pixel-carrier lease/range identity and whether mechanical JNI return proved the borrow ended |
-| compressor | frozen result present only on a normal exception-free return; otherwise explicitly absent, with the exact JNI return/throw fact |
-| segments | all five `NativeResultBlock` words, writer-token state, and ordered native remaining/adopted byte and segment ownership facts |
+| compressor | frozen result and callback evidence, plus exact JNI normal-return/throw fact |
+| result | exact two-word result pair, result-channel armed fact, and managed `M` observed after JNI return/throw |
+| segments | ordered native segment ownership, adoption, release and final capsule-closed facts |
 | adoption | each synchronous sink call's segment identity/size, normal return or identical throwable, managed transaction status/bytes, and the structural non-retention obligation for its temporary view |
-| free | ordered native-segment free receipts, plus token-clear or exact writer-residue identity for later release |
+| cleanup | ordered native-segment free receipts and verified call-scoped `releaseAll()`/closed state; nonreturn has no cleanup receipt |
 
 The test-only `CompressReceipt` is only a projection of this production evidence; it is not a production result
 type or substitute receipt.
@@ -330,20 +384,35 @@ type or substitute receipt.
 ## NJPEG-090 — Native encode result and fallback
 
 The encode occurrence starts its own JPEG interval immediately before the outward `nativeCompress` entry and
-ends only after allocation-free complete return-cell publication. Classification accumulates all writer, JNI,
-adoption, transaction, ownership, and compressor evidence before applying this precedence:
+ends only after allocation-free complete return-cell publication. Kotlin validates the armed fact, two-word pair,
+exact pending throwable, managed `M`, native closed evidence, transaction state, and ownership before result
+classification. Cleanup ambiguity or malformed evidence outranks ordinary OOM normalization.
 
-1. ownership ambiguity, malformed writer/block/callback/contract evidence, or non-OOM JNI/adoption exception:
-   terminal `InternalFailure`;
-2. exact writer/sink/adoption/JNI OOM or unrepresentable cumulative length: terminal `ResourceExhausted`;
-3. only then, classify the present compressor result.
-
-| Compressor result after clean higher-precedence evidence | Exact disposition |
+| Valid native status | Exact disposition |
 | --- | --- |
-| `ANDROID_BITMAP_RESULT_SUCCESS` plus complete adoption and committable transaction | mechanically successful encode; [`STORE-050`](11-domain-encoded-storage.md#store-050--commit-immutable-payload-and-caller-copies) alone commits immutable bytes, subject to controller currentness |
-| `ANDROID_BITMAP_RESULT_ALLOCATION_FAILED` with exact returned carrier/sink ownership | safe optional failure: abort bytes, record this materialized attempt once as `byFailure`, and monotonically disable Native for later work |
-| `ANDROID_BITMAP_RESULT_BAD_PARAMETER` | terminal `InternalFailure` for the engine-built descriptor |
-| `ANDROID_BITMAP_RESULT_JNI_EXCEPTION` without exact OOM, unknown code, or impossible result/evidence combination | terminal `InternalFailure` |
+| `NativeTransferComplete` | mechanically successful encode; [`STORE-050`](11-domain-encoded-storage.md#store-050--commit-immutable-payload-and-caller-copies) alone commits immutable bytes, subject to controller currentness |
+| `SafeCompressorAllocationFailure` | abort bytes, record the materialized attempt once as `byFailure`, and monotonically disable Native for later work |
+| `NativeOutOfMemory` | terminal `ResourceExhausted` with nullable cause; no Java OOM is fabricated |
+| `InternalFailure` without a pending throwable | terminal `InternalFailure` |
+| `JavaThrowable` or `InternalFailure` with a permitted pending throwable | apply the exact partition below |
+
+All native allocation and checked-representation failures that qualify as `NativeOutOfMemory` occur before
+adoption and therefore require `M == 0`. An unexpected `std::bad_alloc` after adoption begins is
+`InternalFailure` with `0 <= M <= P`; RAII cleanup remains mandatory.
+
+The pending-throwable partition is exact:
+
+- valid `JavaThrowable` plus the identical `OutOfMemoryError` becomes `ResourceExhausted` retaining that same cause;
+- valid `JavaThrowable` plus an `Exception` becomes exact-cause `InternalFailure`;
+- valid `JavaThrowable` plus every other `Throwable` performs fixed allocation-free bookkeeping and rethrows the
+  identical object;
+- `InternalFailure`/malformed evidence plus an `Exception` becomes exact-cause `InternalFailure`;
+- `InternalFailure`/malformed evidence plus every other `Throwable`, including `OutOfMemoryError`, performs fixed
+  bookkeeping and rethrows the identical object.
+
+`JavaThrowable` is valid only for `NewDirectByteBuffer` or synchronous
+`NativeSegmentSink.adoptNativeSegment`. A pre-adoption `OutOfMemoryError` is not normalized to
+`ResourceExhausted`. No branch creates an artificial `OutOfMemoryError`.
 
 A safe disable atomically belongs to the still-current Native-health occurrence. A current-key attempt drops the
 switching frame; a key-stale/current-health attempt also records `byFailure`, publishes no stale output or
@@ -368,8 +437,8 @@ without retries:
 | --- | --- |
 | native carrier free | one normal `nativeFreeCarrier` return; throw/nonreturn retains carrier, view, occurrence and blocks replacement |
 | returned stale/late carrier | its own one-shot free; no install or lifecycle result |
-| writer residue | zero `nativeReleaseWriterResidue` return plus cleared token; ambiguous borrowed segment remains rooted |
-| encode/adoption | mechanical JNI/adopter return plus exact segment release and transaction abort/retirement facts |
+| encode/adoption return | mechanical JNI/adopter return plus verified call-scoped capsule close, exact segment release, and transaction abort/retirement facts |
+| encode/adoption nonreturn | no native cleanup receipt; live native stack retains capsule/segments while the intact Kotlin occurrence, worker, result block, transaction, carrier, and leases remain rooted |
 | managed carrier | last engine-reference drop after all uses; no physical receipt |
 
 Terminal before an unentered optional encode cancels without JNI. Terminal before an admitted mandatory free
@@ -390,19 +459,25 @@ For every finite occurrence, [CORE-SET-3](03-shared-runtime.md#core-set-3--finit
 deadline arithmetic, `T < D` timeliness, equality-to-expiry, terminal transfer, and late facts. Consecutive
 stages receive independent intervals. This constant is implementation policy, not a public latency guarantee.
 
-## NJPEG-WIRE-001 — Fixed writer codes
+## NJPEG-WIRE-001 — Fixed native-result codes
 
-| `NativeResultBlock.writerStatus` | Kotlin raw `Long` bits | Native `uint64_t` |
-| --- | ---: | ---: |
-| `Safe` | `0L` | `0` |
-| `OutOfMemory` | `1L` | `1` |
-| `InternalFailure` | `2L` | `2` |
+| `nativeStatus` | Signed Kotlin/native value |
+| --- | ---: |
+| `Pending` | `-1` |
+| `NativeTransferComplete` | `0` |
+| `SafeCompressorAllocationFailure` | `1` |
+| `NativeOutOfMemory` | `2` |
+| `InternalFailure` | `3` |
+| `JavaThrowable` | `4` |
 
-Kotlin decodes by exact raw-bit equality, never enum ordinal, range, or maximum arithmetic. Every other 64-bit
-pattern, including a high-bit pattern observed as a negative Kotlin `Long`, is malformed `InternalFailure` and
-authorizes no bytes, fallback, or Native-health change.
+`Pending` is Kotlin initialization only. Kotlin decodes exact signed `Long` equality, never enum ordinal or
+range. Every other 64-bit value is malformed `InternalFailure` and authorizes no bytes, fallback, or
+Native-health change.
 
 ## NJPEG-PKG-001 — Native build and artifacts
+
+The module namespace is the router-owned `io.screenstream.engine`, and its canonical NDK is
+`29.0.14206865` for every production and nativeTest native configuration.
 
 The production JNI-free runtime compiles once as hidden PIC CMake OBJECT target
 `screencaptureengine_runtime` and links unchanged into both DSOs. Both JNI glue units include the same
@@ -436,15 +511,15 @@ actual ABI.
 - managed carrier with Native enabled, second Session health cell, per-frame capability cache, or device allowlist;
 - same-frame Framework retry, precreated Framework resources while Native is healthy, or Target/GL fallback coupling;
 - result classification before all writer/JNI/adoption/ownership evidence, or compressor result outranking faults;
-- raw writer token in a result, Kotlin token interpretation, native struct aliasing of owner/result blocks, or
-  unknown writer-status acceptance;
+- a cross-return native writer owner, second writer-cleanup JNI boundary, struct/pointer aliasing of the result
+  block, or unknown native-status acceptance;
 - JNI from the writer callback, retained temporary segment view, grouped native segments, native-backed published
   payload, or publication outside [`STORE-050`](11-domain-encoded-storage.md#store-050--commit-immutable-payload-and-caller-copies);
 - loader/bootstrap retry after a fixed result, managed fallback after load OOM/poison, or owner creation in
   static initialization/`JNI_OnLoad`;
 - cancellation/closure/quarantine/termination receipt for the shared IO view, or coroutine suspension inside an
   owner Runnable;
-- timeout as release, late return as active authority, duplicate free/residue release, or fabricated managed
+- timeout as release, late return as active authority, duplicate free/capsule close, or fabricated managed
   reclamation receipt.
 
 ## NJPEG-120 — Executable obligations
@@ -457,52 +532,56 @@ shared closure/routing and test namespaces are in [Document 04](04-verification.
 | --- | --- |
 | `H-NL` | One process load attempt; clean pre-JNI unavailability; sticky identical-cause `LoadOome`; post-load/bootstrap poison; concurrent/late observation; weak-capability managed outcomes; no ABI input. |
 | `H-RC`, `H-OS` | Legal carrier/health combinations; reuse and separate free/native-allocation/managed-allocation occurrences; exact deadline, rejection, stale, terminal, nonreturn and late-return arbitration; atomic safe disable and no same-frame retry. |
-| `N-JPEG` | Eligible API 30+ production bridge black-box path; real carrier/guard/compressor/writer/adoption/decode; exact registered allocate/free; block/range rejection; writer status/precedence; production adoption OOM/throw/local-reference cleanup/residue; test-DSO runtime and C++ containment/fault/barrier rows. |
-| `N-PKG` | Installed own-DSO load/bootstrap structural proof, connected-ABI production structure, production/test DSO separation, and no runtime ABI query. |
-| `P-PKG` | Four production ABIs, exact exports/registered descriptors/keep rules, hidden shared runtime object, weak guard/symbol, direct `jnigraphics` dependency, exception containment source structure, configuration argument, DSO isolation and 16-KiB alignment. |
+| `N-JPEG` | Eligible API 30+ production-facade black-box path; real carrier/guard/compressor/adoption/decode; exact registered allocate/free; result arming and block/range rejection; fixed-offset pair, every status/truth-table row, throwable partition, RAII close, production adoption faults, late return and nonreturn; test-DSO containment/fault/barrier rows. |
+| `N-PKG` | Installed own-DSO load/bootstrap structural proof, exact process-facade receiver and connected-ABI production structure, production/test DSO separation, and no runtime ABI query. |
+| `P-PKG` | Namespace and NDK bindings; four production ABIs; exact two exports, five Kotlin external methods, four registered names/descriptors and sink upcall/keep rules; hidden shared runtime object, weak guard/symbol, direct `jnigraphics` dependency, containment source structure, configuration argument, DSO isolation and 16-KiB alignment. |
 | `A-FJ`, `A-CL` | Both carrier leases through the Framework transfer seam; native/managed retirement semantics; exact nonreturn residue; independent-root and cross-Session progress. |
 
-The production-bridge managed controls are exact:
+The production-facade managed controls are exact:
 
 | Controlled fact | Required evidence |
 | --- | --- |
-| adoption allocator throws its exact OOM | same throwable reaches Kotlin; five block fields and residue agree; `ResourceExhausted` outranks compressor result; no disable/fallback/retry/publication |
-| adoption throws identity-bearing non-OOM | identical throwable reaches Kotlin; `InternalFailure` outranks OOM/result; only proven-unborrowed segments free |
-| either throw leaves a pending Java exception | native performs only exception-safe evidence/local-reference cleanup; Kotlin receives and clears the original exception; a following registered call succeeds |
-| zero-token non-direct/wrong-capacity/mismatched owner or result block; non-direct/short pixels; invalid count/capacity | rejection precedes compressor/adopter, preserves owners, and creates no result; an adjacent exact control succeeds; tests neither forge a nonzero token nor infer `ByteBuffer.order()` through JNI |
+| adoption allocator throws its exact OOM | `JavaThrowable`, identical throwable, valid `P/M`, verified close; Kotlin produces `ResourceExhausted` with that cause; no disable/fallback/retry/publication |
+| adoption throws identity-bearing `Exception` | `JavaThrowable`, identical throwable, valid `P/M`, verified close; exact-cause `InternalFailure`; only proven-unborrowed segments free |
+| adoption throws any other identity-bearing `Throwable` | `JavaThrowable`, fixed bookkeeping and close complete, then Kotlin rethrows the identical object |
+| a pre-adoption or malformed path has a pending throwable | `Exception` becomes exact-cause `InternalFailure`; every other throwable including OOME is identically rethrown after fixed bookkeeping; a following registered call succeeds when process state remains valid |
+| invalid, non-direct, missing-address, or non-`16`-byte result block | result channel remains unarmed; capsule/compressor/adopter are absent; result memory remains unchanged from `Pending` initialization; normal-return, `Exception`, and every-other-`Throwable` partitions are exact; owners are preserved; an adjacent exact control succeeds |
+| armed channel followed by lookup, pixels/sink/direct-buffer, range/count, narrowing, descriptor, or other preflight failure | capsule/compressor/adopter are absent; native writes `P = 0` then `InternalFailure`; any lookup throwable remains identical and pending for the exhaustive `InternalFailure` partition; `JavaThrowable` is impossible; an adjacent exact control succeeds |
 
 The test DSO exposes only this typed test inventory; each `native*` entry is owned by
 `NTCPP:screen_capture_engine_native_test_jni.cpp` and accesses no production state:
 
 | `AI:NativeTestHarness.kt` / native entry | Typed input | Receipt |
 | --- | --- | --- |
-| `bootstrapLocal` / `nativeBootstrapLocal` | `BootstrapBehavior`: `Success`, `BadAlloc`, `TypedUnexpected`, or `Unknown` | `BootstrapReceipt(status, bridgePublished, poisonPublished, ownerPublished)` |
-| `compressLocal` / `nativeCompressLocal` | exact blocks/range/descriptor; test-local compressor; typed `WriterBehavior`, `AdopterBehavior`, and `CallbackThreadMode` (`Caller` or one joined helper) | `CompressReceipt(compressorResult, writerStatus, totalBytes, adoptedBytes, remainingBytes, remainingSegments, writerTokenPresent, callbackThreadMode, writerReceipts, adoptionReceipts, segmentReleaseReceipts)`; receipt lists are ordered and typed |
+| `bootstrapLocal` / `nativeBootstrapLocal` | `BootstrapBehavior`: `Success`, `BadAlloc`, `TypedUnexpected`, or `Unknown` | `BootstrapReceipt(status, facadePublished, poisonPublished, ownerPublished)` |
+| `compressLocal` / `nativeCompressLocal` | exact result block/range/descriptor; test-local compressor; typed `WriterBehavior`, `AdopterBehavior`, and `CallbackThreadMode` (`Caller` or one joined helper) | `CompressReceipt(compressorResult, nativeStatus, nativeProducedByteCount, managedAdoptedByteCount, resultChannelArmed, capsuleClosed, callbackThreadMode, writerReceipts, adoptionReceipts, segmentReleaseReceipts)`; receipt lists are ordered and typed |
 | `armCompressorReturnBarrier`, `armWriterCallbackBarrier`, `armAdopterCallBarrier` and matching native entries | exact current fixture and named boundary | `BarrierArmReceipt(armed)` |
 | matching `await*Barrier` entries | already armed named barrier | `BarrierEntryReceipt(entered)` |
 | matching `release*Barrier` entries | already armed named barrier | `BarrierReleaseReceipt(released)`; the worker supplies the separate eventual return |
-| `releaseLocalWriterResidue` / `nativeReleaseLocalWriterResidue` | exact returned writer-owner block | `ResidueReceipt(status, tokenCleared, releasedBytes, releasedSegments)` |
 
 `WriterBehavior` names only reachable nonthrowing callback outcomes: normal; null-nonempty, invalid-state, and
 lock/link/status-publication InternalFailure; null-malloc and valid segment/cumulative nonrepresentability or
-overflow OOM. `AdopterBehavior` names success, managed OOM/non-OOM failure, and test-local `std::bad_alloc`,
-typed-unexpected, or unknown throw. Ordered behavior lists express monotone writer transitions without a numeric
+overflow typed native OOM. `AdopterBehavior` names success, identity-bearing Java OOME/Exception/other Throwable,
+and test-local late `std::bad_alloc`, typed-unexpected, or unknown C++ throw. Ordered behavior lists express
+monotone writer transitions without a numeric
 scenario axis. The helper thread joins before `compressLocal` returns unless a named barrier is held. Holding uses
 only those barriers; `finally` releases each and awaits the same eventual receipt. Production-unreachable
 defensive writer exceptions remain source-inspection obligations.
 
-Native writer tests cover zero and nonempty callbacks, ordered segments, every status transition, unknown low/high
-wire values, result-block initialization, success-gated adoption, every non-success compressor result after
-partial callbacks, allocation/copy/adoption faults, pending-exception identity, residue release, timeout/late
-health, and cleanup in `finally`. The production DSO remains black-box; deterministic compressor/writer/adopter
+Native writer tests cover zero and nonempty callbacks, ordered segments, both-word `Pending` initialization,
+arming, exact 16-byte capacity, offsets `0`/`8`, native order, field-wise `memcpy`, count-first/status-last writes,
+every final status and truth-table relation, unknown values, success-gated adoption, every non-success compressor
+result after partial callbacks, allocation/copy/adoption faults, pending-exception identity/partition, explicit
+RAII close, timeout/late return, nonreturn rooting, and cleanup in `finally`. The production DSO remains black-box;
+deterministic compressor/writer/adopter
 faults use only test-local services around the unchanged runtime object. Defensive unreachable writer exceptions
 remain static source evidence rather than fabricated production runtime cases.
 
-For every adoption, the ordered `CompressReceipt` lists and five result words must agree with the exact
+For every adoption, the ordered `CompressReceipt` lists and two result words must agree with the exact
 `N + M = J` pre-copy ledger, the `N + M + s = J + s <= J + Smax` transient ledger, and the post-free transfer of
 `s` from native to managed ownership. A one-segment fixture reaches transient `2J`; complete success ends at
-`N = 0`, `M = J`, zero remaining segments/bytes, cleared writer token, and one managed payload of exact `J`.
-Failure rows assert the same prefix ledger and retain only the residue named by their ordered receipts.
+`P = M = J`, no native segment, a closed capsule, and one managed payload of exact `J`. Every returning failure
+asserts closed native ownership; a nonreturn reports no close receipt and retains the exact live call graph.
 
 Representative Native output uses the shared JPEG vector and tolerances owned by `TEST-VECTOR-JPEG-01` in
 [04-verification.md](04-verification.md#test-vector-jpeg-01--shared-jpeg-64-x-48-oracle); it verifies
