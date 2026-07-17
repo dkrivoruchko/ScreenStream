@@ -9,6 +9,7 @@ import io.screenstream.engine.internal.settlement.DeadlineDisposition
 import io.screenstream.engine.internal.settlement.DeadlineOccurrence
 import io.screenstream.engine.internal.settlement.DeadlineWakeSubmissionDisposition
 import io.screenstream.engine.internal.settlement.DeadlineWakeSuccessorResult
+import io.screenstream.engine.internal.settlement.DeadlineWakeThrowableDisposition
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import kotlinx.coroutines.CancellationException
@@ -20,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.locks.ReentrantLock
@@ -149,6 +151,18 @@ internal class CaptureMetricsReadinessOccurrence(
         settlementGate.withLock {
             if (cleanupDomain) return@withLock
 
+            val wakeLink = deadlineOccurrence.wakeLink
+            if (readinessOutcome == CaptureMetricsReadinessArbitration.None &&
+                wakeLink.submissionDisposition == DeadlineWakeSubmissionDisposition.Rejected
+            ) {
+                if (wakeLink.schedulingThrowableDisposition == DeadlineWakeThrowableDisposition.NonfatalException) {
+                    deadlineOccurrence.retireLocked()
+                    readinessOutcome = CaptureMetricsReadinessArbitration.SchedulerRejected
+                    published = true
+                }
+                return@withLock
+            }
+
             if (readinessOutcome == CaptureMetricsReadinessArbitration.None && metrics != null) {
                 val settlementNanos = clock.nowNanos()
                 readinessOutcome = if (deadlineOccurrence.disposition == DeadlineDisposition.Armed && settlementNanos < deadlineOccurrence.deadlineNanos) {
@@ -183,8 +197,12 @@ internal class CaptureMetricsReadinessOccurrence(
         if (readinessOutcome == CaptureMetricsReadinessArbitration.None &&
             deadlineOccurrence.wakeLink.submissionDisposition == DeadlineWakeSubmissionDisposition.Rejected
         ) {
-            deadlineOccurrence.retireLocked()
-            readinessOutcome = CaptureMetricsReadinessArbitration.SchedulerRejected
+            if (deadlineOccurrence.wakeLink.schedulingThrowableDisposition == DeadlineWakeThrowableDisposition.NonfatalException) {
+                deadlineOccurrence.retireLocked()
+                readinessOutcome = CaptureMetricsReadinessArbitration.SchedulerRejected
+            } else {
+                return@withLock CaptureMetricsReadinessArbitration.None
+            }
         }
         if (readinessOutcome == CaptureMetricsReadinessArbitration.None &&
             deadlineOccurrence.disposition == DeadlineDisposition.Armed &&
@@ -411,21 +429,24 @@ private suspend fun collectCaptureMetrics(provider: CaptureMetricsProvider, read
     val adoptedFlow = observedFlow ?: return
     if (!readinessOccurrence.recordCollectionEntry()) return
 
-    try {
-        adoptedFlow.collect { metrics -> readinessOccurrence.publishMetrics(metrics) }
-    } catch (failure: Throwable) {
-        publishCaptureMetricsProviderFailure(
-            readinessOccurrence = readinessOccurrence,
-            outcome = CaptureMetricsProviderArbitration.CollectionFailed,
-            failure = failure,
-        )
-        return
-    }
+    var collectionFailed = false
+    adoptedFlow
+        .catch { failure ->
+            collectionFailed = true
+            publishCaptureMetricsProviderFailure(
+                readinessOccurrence = readinessOccurrence,
+                outcome = CaptureMetricsProviderArbitration.CollectionFailed,
+                failure = failure,
+            )
+        }
+        .collect(readinessOccurrence::publishMetrics)
 
-    readinessOccurrence.publishProviderOutcome(
-        outcome = CaptureMetricsProviderArbitration.Completed,
-        cause = null,
-    )
+    if (!collectionFailed) {
+        readinessOccurrence.publishProviderOutcome(
+            outcome = CaptureMetricsProviderArbitration.Completed,
+            cause = null,
+        )
+    }
 }
 
 private suspend fun publishCaptureMetricsProviderFailure(

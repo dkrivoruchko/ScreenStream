@@ -72,19 +72,21 @@ internal enum class TargetResourceObligation {
 
 internal sealed interface TargetOperationProvenance
 
-internal sealed interface TargetProducerEvidence {
+internal sealed interface TargetProducerApplicationCandidate
+
+internal sealed interface TargetProducerDetachApplicationCandidate
+
+internal sealed interface TargetProducerApplicationFact {
     val targetGeneration: Long
     val operationIdentity: Long
     val operationKind: TargetProducerOperationKind
     val provenance: TargetOperationProvenance
 }
 
-internal sealed interface TargetNoProducerEvidence {
-    val targetGeneration: Long
-    val operationIdentity: Long
-    val operationKind: TargetProducerOperationKind
+internal sealed interface TargetProducerEvidence : TargetProducerApplicationFact
+
+internal sealed interface TargetNoProducerEvidence : TargetProducerApplicationFact {
     val reason: TargetNoProducerReason
-    val provenance: TargetOperationProvenance
 }
 
 internal sealed interface TargetProducerDetachReceipt : OperationReceipt {

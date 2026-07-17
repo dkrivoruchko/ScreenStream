@@ -59,6 +59,23 @@ internal class AndroidFiniteOperationIdentity(
     }
 }
 
+internal class AndroidInitialResizeDeadlineIdentity(
+    internal val deadlineIdentity: Long,
+    internal val deadlineWakeGeneration: Long,
+    internal val timeoutCause: Throwable,
+) {
+    init {
+        require(deadlineIdentity > 0L)
+        require(deadlineWakeGeneration > 0L)
+    }
+}
+
+internal enum class AndroidVirtualDisplayInstallResult {
+    Installed,
+    NotReady,
+    Collision,
+}
+
 
 internal object AndroidTargetListenerInstallationReceipt : OperationReceipt
 
@@ -75,6 +92,13 @@ internal class AndroidTargetListenerInstallationOwnerBag(
 
 internal object AndroidTargetListenerRemovalReceipt : OperationReceipt
 
+internal enum class AndroidListenerSentinelSubmissionDisposition {
+    None,
+    Accepted,
+    Rejected,
+    AmbiguousError,
+}
+
 internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {
     override val receipt: AndroidTargetListenerRemovalReceipt = AndroidTargetListenerRemovalReceipt
     override val returnedOwner: OperationReturnedOwner? = null
@@ -82,22 +106,33 @@ internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {
     internal var listenerRemovalReturned: Boolean = false
         private set
 
-    internal var sentinelSubmissionAccepted: Boolean = false
+    internal var sentinelSubmissionDisposition: AndroidListenerSentinelSubmissionDisposition =
+        AndroidListenerSentinelSubmissionDisposition.None
         private set
 
-    internal var sentinelSubmissionRejection: Throwable? = null
+    internal var sentinelSubmissionCause: Throwable? = null
         private set
 
-    internal fun recordListenerRemovalReturn() {
+    internal fun recordListenerRemovalReturnLocked(): Boolean {
+        if (listenerRemovalReturned) return false
         listenerRemovalReturned = true
+        return true
     }
 
-    internal fun recordSentinelSubmissionAccepted() {
-        sentinelSubmissionAccepted = true
-    }
-
-    internal fun recordSentinelSubmissionRejected(cause: Throwable) {
-        sentinelSubmissionRejection = cause
+    internal fun recordSentinelSubmissionLocked(
+        disposition: AndroidListenerSentinelSubmissionDisposition,
+        cause: Throwable?,
+    ): Boolean {
+        if (sentinelSubmissionDisposition != AndroidListenerSentinelSubmissionDisposition.None ||
+            disposition == AndroidListenerSentinelSubmissionDisposition.None ||
+            disposition == AndroidListenerSentinelSubmissionDisposition.Accepted && cause != null ||
+            disposition != AndroidListenerSentinelSubmissionDisposition.Accepted && cause == null
+        ) {
+            return false
+        }
+        sentinelSubmissionDisposition = disposition
+        sentinelSubmissionCause = cause
+        return true
     }
 }
 

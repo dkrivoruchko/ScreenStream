@@ -207,25 +207,30 @@ internal class CurrentTarget private constructor(
     ): TargetPorts.AndroidSurfacePort? =
         ports.registerProducerPort(operationIdentity, operationKind)
 
-    internal fun applyProducerEvidence(evidence: TargetProducerEvidence): Boolean = ports.applyProducerEvidence(evidence)
-
-    internal fun applyNoProducerEvidence(evidence: TargetNoProducerEvidence): Boolean = ports.applyNoProducerEvidence(evidence)
-
-    internal fun producerEvidenceAfterSettlement(port: TargetPorts.AndroidSurfacePort, operation: OperationOccurrence<*>): TargetProducerEvidence? =
-        ports.producerEvidenceAfterSettlement(port, operation)
-
-    internal fun noProducerEvidenceAfterSettlement(
+    internal fun producerApplicationCandidateAfterSettlement(
         port: TargetPorts.AndroidSurfacePort,
         operation: OperationOccurrence<*>,
-        reason: TargetNoProducerReason,
-    ): TargetNoProducerEvidence? =
-        ports.noProducerEvidenceAfterSettlement(port, operation, reason)
+    ): TargetProducerApplicationCandidate? =
+        ports.producerApplicationCandidateAfterSettlement(port, operation)
 
-    internal fun producerDetachReceiptAfterSettlement(
+    internal fun applyProducerApplication(candidate: TargetProducerApplicationCandidate): TargetProducerApplicationFact? =
+        ports.applyProducerApplication(candidate)
+
+    internal fun prepareProducerApplicationCandidates(port: TargetPorts.AndroidSurfacePort, operation: OperationOccurrence<*>): Boolean =
+        ports.prepareProducerApplicationCandidates(port, operation)
+
+    internal fun producerDetachApplicationCandidateAfterSettlement(
         port: TargetPorts.AndroidDetachPort,
         operation: OperationOccurrence<*>,
-    ): TargetProducerDetachReceipt? =
-        ports.producerDetachReceiptAfterSettlement(port, operation)
+    ): TargetProducerDetachApplicationCandidate? =
+        ports.producerDetachApplicationCandidateAfterSettlement(port, operation)
+
+    internal fun applyProducerDetachApplication(
+        candidate: TargetProducerDetachApplicationCandidate,
+    ): TargetProducerDetachReceipt? = ports.applyProducerDetachApplication(candidate)
+
+    internal fun prepareProducerDetachApplicationCandidate(port: TargetPorts.AndroidDetachPort, operation: OperationOccurrence<*>): Boolean =
+        ports.prepareProducerDetachApplicationCandidate(port, operation)
 
     internal fun detachedGlFramePort(operationIdentity: Long): TargetPorts.GlFramePort? =
         ports.detachedGlFramePort(operationIdentity)
@@ -288,9 +293,6 @@ internal class CurrentTarget private constructor(
 
     internal fun applyListenerRemovalSettlement(port: TargetPorts.AndroidListenerRemovalPort, operation: OperationOccurrence<*>): Boolean =
         ports.applyListenerRemovalSettlement(port, operation)
-
-    internal fun applyProducerDetachReceipt(receipt: TargetProducerDetachReceipt): Boolean =
-        ports.applyProducerDetachReceipt(receipt)
 
     internal fun beginSurfaceReleaseSubmission(): Boolean =
         retirement.beginSurfaceReleaseSubmission()
@@ -429,6 +431,7 @@ internal class CurrentTarget private constructor(
             evidence.operationIdentity != portOperationIdentity ||
             evidence.operationKind != portOperationKind ||
             evidence.provenance !== portProvenance ||
+            generationFenced ||
             producerState != TargetProducerState.AwaitingEvidence ||
             (evidence.reason == TargetNoProducerReason.ReturnedWithoutProducer &&
                     evidence.operationKind != TargetProducerOperationKind.VirtualDisplayCreation)

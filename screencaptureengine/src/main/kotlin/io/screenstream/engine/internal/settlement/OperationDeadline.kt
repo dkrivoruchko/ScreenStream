@@ -49,6 +49,12 @@ internal enum class DeadlineWakeSchedulerReceiptDisposition {
     Returned,
 }
 
+internal enum class DeadlineWakeThrowableDisposition {
+    None,
+    NonfatalException,
+    FatalError,
+}
+
 internal enum class DeadlineArmResult {
     Armed,
     AlreadySettled,
@@ -80,14 +86,16 @@ internal class DeadlineWakeLink internal constructor(
     internal var generation: Long = initialGeneration
         private set
 
-    internal var submissionDisposition: DeadlineWakeSubmissionDisposition =
-        DeadlineWakeSubmissionDisposition.None
+    internal var submissionDisposition: DeadlineWakeSubmissionDisposition = DeadlineWakeSubmissionDisposition.None
         private set
 
     internal var acceptedFuture: Future<*>? = null
         private set
 
     internal var schedulingRejection: Throwable? = null
+        private set
+
+    internal var schedulingThrowableDisposition: DeadlineWakeThrowableDisposition = DeadlineWakeThrowableDisposition.None
         private set
 
     internal var fireDisposition: DeadlineWakeFireDisposition = DeadlineWakeFireDisposition.Empty
@@ -103,6 +111,9 @@ internal class DeadlineWakeLink internal constructor(
     internal var cancellationFailure: Throwable? = null
         private set
 
+    internal var cancellationThrowableDisposition: DeadlineWakeThrowableDisposition = DeadlineWakeThrowableDisposition.None
+        private set
+
     internal var schedulerReceiptDisposition: DeadlineWakeSchedulerReceiptDisposition =
         DeadlineWakeSchedulerReceiptDisposition.Empty
         private set
@@ -111,8 +122,11 @@ internal class DeadlineWakeLink internal constructor(
         get() = fireDisposition == DeadlineWakeFireDisposition.Fired ||
                 schedulerReceiptDisposition == DeadlineWakeSchedulerReceiptDisposition.Returned
 
-    internal val failedCancellationRetainsGeneration: Boolean
-        get() = cancellationDisposition == DeadlineWakeCancellationDisposition.Failed && !callbackStopProven
+    internal val wakeRetainsGeneration: Boolean
+        get() = !callbackStopProven &&
+                (cancellationDisposition == DeadlineWakeCancellationDisposition.Failed ||
+                        submissionDisposition == DeadlineWakeSubmissionDisposition.Rejected &&
+                        schedulingRejection !is RejectedExecutionException)
 
     private var scheduledGeneration: Long = initialGeneration
 
@@ -124,6 +138,7 @@ internal class DeadlineWakeLink internal constructor(
         startNanos = start
         deadlineNanos = deadline
         deadlineDisposition = DeadlineDisposition.Armed
+        submissionDisposition = DeadlineWakeSubmissionDisposition.Requested
     }
 
     internal fun expireLocked() {
@@ -139,11 +154,16 @@ internal class DeadlineWakeLink internal constructor(
     }
 
     internal fun requestSubmission(): Boolean = settlementGate.withLock {
-        if (deadlineDisposition != DeadlineDisposition.Armed || submissionDisposition != DeadlineWakeSubmissionDisposition.None) {
-            return@withLock false
+        if (deadlineDisposition != DeadlineDisposition.Armed) return@withLock false
+        when (submissionDisposition) {
+            DeadlineWakeSubmissionDisposition.None -> {
+                submissionDisposition = DeadlineWakeSubmissionDisposition.Requested
+                true
+            }
+
+            DeadlineWakeSubmissionDisposition.Requested -> true
+            else -> false
         }
-        submissionDisposition = DeadlineWakeSubmissionDisposition.Requested
-        true
     }
 
     internal fun submitRequested(scheduler: ScheduledExecutorService): Boolean {
@@ -169,15 +189,21 @@ internal class DeadlineWakeLink internal constructor(
         val future: Future<*>
         try {
             future = scheduler.schedule(wakeRunnable, delayNanos, TimeUnit.NANOSECONDS)
-        } catch (allocationFailure: OutOfMemoryError) {
-            publishSchedulingFailure(claimedGeneration, allocationFailure)
+        } catch (failure: Exception) {
+            val published = publishSchedulingFailure(
+                generation = claimedGeneration,
+                failure = failure,
+                throwableDisposition = DeadlineWakeThrowableDisposition.NonfatalException,
+            )
+            if (published) signal.signal()
             return true
-        } catch (rejection: RejectedExecutionException) {
-            publishSchedulingFailure(claimedGeneration, rejection)
-            return true
-        } catch (rejection: RuntimeException) {
-            publishSchedulingFailure(claimedGeneration, rejection)
-            return true
+        } catch (failure: Error) {
+            val published = publishSchedulingFailure(
+                generation = claimedGeneration,
+                failure = failure,
+                throwableDisposition = DeadlineWakeThrowableDisposition.FatalError,
+            )
+            signalAndRethrow(published, failure)
         }
 
         val accepted: Boolean = settlementGate.withLock {
@@ -209,27 +235,26 @@ internal class DeadlineWakeLink internal constructor(
         }
         if (!claimed) return false
 
-        var cancelled = false
+        var cancelled: Boolean
         var failure: Throwable? = null
+        var throwableDisposition = DeadlineWakeThrowableDisposition.None
         try {
             cancelled = future?.cancel(false) == true
-        } catch (thrown: RuntimeException) {
+        } catch (thrown: Exception) {
+            cancelled = false
             failure = thrown
+            throwableDisposition = DeadlineWakeThrowableDisposition.NonfatalException
+        } catch (thrown: Error) {
+            val published = publishCancellationResult(
+                cancelled = false,
+                failure = thrown,
+                throwableDisposition = DeadlineWakeThrowableDisposition.FatalError,
+            )
+            signalAndRethrow(published, thrown)
         }
 
-        settlementGate.withLock {
-            if (cancellationDisposition != DeadlineWakeCancellationDisposition.Cancelling) {
-                return@withLock
-            }
-            cancellationFailure = failure
-            cancellationDisposition = if (cancelled) {
-                DeadlineWakeCancellationDisposition.Succeeded
-            } else {
-                DeadlineWakeCancellationDisposition.Failed
-            }
-            clearSettledAcceptedFutureLocked()
-        }
-        signal.signal()
+        val published = publishCancellationResult(cancelled, failure, throwableDisposition)
+        if (published) signal.signal()
         return true
     }
 
@@ -249,10 +274,13 @@ internal class DeadlineWakeLink internal constructor(
         submissionDisposition = DeadlineWakeSubmissionDisposition.Requested
         acceptedFuture = null
         schedulingRejection = null
+        schedulingThrowableDisposition = DeadlineWakeThrowableDisposition.None
         fireDisposition = DeadlineWakeFireDisposition.Empty
         firedAtNanos = NO_TIME
         cancellationDisposition = DeadlineWakeCancellationDisposition.None
         cancellationFailure = null
+        cancellationThrowableDisposition = DeadlineWakeThrowableDisposition.None
+        schedulerReceiptDisposition = DeadlineWakeSchedulerReceiptDisposition.Empty
         DeadlineWakeSuccessorResult.Requested
     }
 
@@ -282,19 +310,54 @@ internal class DeadlineWakeLink internal constructor(
         if (published) signal.signal()
     }
 
-    private fun publishSchedulingFailure(generation: Long, failure: Throwable) {
-        val published: Boolean = settlementGate.withLock {
-            if (this.generation != generation || submissionDisposition != DeadlineWakeSubmissionDisposition.Submitting) {
-                return@withLock false
-            }
-            schedulingRejection = failure
-            submissionDisposition = DeadlineWakeSubmissionDisposition.Rejected
+    private fun publishSchedulingFailure(
+        generation: Long,
+        failure: Throwable,
+        throwableDisposition: DeadlineWakeThrowableDisposition,
+    ): Boolean = settlementGate.withLock {
+        if (this.generation != generation || submissionDisposition != DeadlineWakeSubmissionDisposition.Submitting) {
+            return@withLock false
+        }
+        schedulingRejection = failure
+        schedulingThrowableDisposition = throwableDisposition
+        submissionDisposition = DeadlineWakeSubmissionDisposition.Rejected
+        if (failure is RejectedExecutionException) {
             if (cancellationDisposition == DeadlineWakeCancellationDisposition.Requested) {
                 cancellationDisposition = DeadlineWakeCancellationDisposition.NotNeeded
             }
-            true
+        } else if (callbackStopProven) {
+            cancellationDisposition = DeadlineWakeCancellationDisposition.NotNeeded
+        } else if (cancellationDisposition == DeadlineWakeCancellationDisposition.None ||
+            cancellationDisposition == DeadlineWakeCancellationDisposition.Requested
+        ) {
+            cancellationDisposition = DeadlineWakeCancellationDisposition.Requested
         }
-        if (published) signal.signal()
+        true
+    }
+
+    private fun publishCancellationResult(
+        cancelled: Boolean,
+        failure: Throwable?,
+        throwableDisposition: DeadlineWakeThrowableDisposition,
+    ): Boolean = settlementGate.withLock {
+        if (cancellationDisposition != DeadlineWakeCancellationDisposition.Cancelling) return@withLock false
+        cancellationFailure = failure
+        cancellationThrowableDisposition = throwableDisposition
+        cancellationDisposition = if (cancelled) {
+            DeadlineWakeCancellationDisposition.Succeeded
+        } else {
+            DeadlineWakeCancellationDisposition.Failed
+        }
+        clearSettledAcceptedFutureLocked()
+        true
+    }
+
+    private fun signalAndRethrow(published: Boolean, failure: Error): Nothing {
+        try {
+            if (published) signal.signal()
+        } finally {
+            throw failure
+        }
     }
 
     private fun requestCancellationLocked(): Boolean {
@@ -302,8 +365,14 @@ internal class DeadlineWakeLink internal constructor(
         cancellationDisposition = when (submissionDisposition) {
             DeadlineWakeSubmissionDisposition.None,
             DeadlineWakeSubmissionDisposition.Requested,
-            DeadlineWakeSubmissionDisposition.Rejected,
                 -> DeadlineWakeCancellationDisposition.NotNeeded
+
+            DeadlineWakeSubmissionDisposition.Rejected ->
+                if (callbackStopProven || schedulingRejection is RejectedExecutionException) {
+                    DeadlineWakeCancellationDisposition.NotNeeded
+                } else {
+                    DeadlineWakeCancellationDisposition.Requested
+                }
 
             DeadlineWakeSubmissionDisposition.Submitting,
             DeadlineWakeSubmissionDisposition.Accepted,

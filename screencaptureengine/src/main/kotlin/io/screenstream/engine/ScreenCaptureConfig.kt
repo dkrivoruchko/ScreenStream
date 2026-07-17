@@ -160,8 +160,12 @@ private class BuiltInCaptureMetricsCollectionState(
 
         val selectedDisplay = resolveSelectedDisplay()
         if (selectedDisplay == null || !selectedDisplay.isValid) {
+            val hadEpoch = currentEpochDisplay != null
             retireCurrentEpoch()
-            publishIfChanged(metrics = null, publishMetrics = publishMetrics)
+            val unavailableChanged = publishIfChanged(metrics = null, publishMetrics = publishMetrics)
+            if (hadEpoch || unavailableChanged) {
+                refreshSignals.trySend(Unit)
+            }
             return
         }
 
@@ -180,8 +184,12 @@ private class BuiltInCaptureMetricsCollectionState(
 
         val epochDisplay = checkNotNull(currentEpochDisplay)
         if (!selectionStillMatches(epochDisplay) || !epochDisplay.isValid) {
+            val hadEpoch = currentEpochDisplay != null
             retireCurrentEpoch()
-            publishIfChanged(metrics = null, publishMetrics = publishMetrics)
+            val unavailableChanged = publishIfChanged(metrics = null, publishMetrics = publishMetrics)
+            if (hadEpoch || unavailableChanged) {
+                refreshSignals.trySend(Unit)
+            }
             return
         }
 
@@ -271,12 +279,13 @@ private class BuiltInCaptureMetricsCollectionState(
     private suspend fun publishIfChanged(
         metrics: CaptureMetrics?,
         publishMetrics: suspend (CaptureMetrics?) -> Unit,
-    ) {
-        if (!hasPublished || latestMetrics != metrics) {
-            publishMetrics(metrics)
-            latestMetrics = metrics
-            hasPublished = true
-        }
+    ): Boolean {
+        if (hasPublished && latestMetrics == metrics) return false
+
+        publishMetrics(metrics)
+        latestMetrics = metrics
+        hasPublished = true
+        return true
     }
 
     private fun retireCurrentEpoch() {

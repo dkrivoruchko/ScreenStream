@@ -166,6 +166,11 @@ internal class OperationOccurrence<R : OperationEvidence>(
     internal var submissionRejection: Throwable? = null
         private set
 
+    internal var submissionAmbiguousError: Error? = null
+        private set
+
+    private var submissionExecutionObserved: Boolean = false
+
     internal var entryDisposition: OperationEntryDisposition = OperationEntryDisposition.Unentered
         private set
 
@@ -238,7 +243,47 @@ internal class OperationOccurrence<R : OperationEvidence>(
             }
         }
 
+    internal fun publishSubmissionAmbiguousError(error: Error): Boolean = settlementGate.withLock {
+        if (submissionAmbiguousError != null ||
+            submissionDisposition != OperationSubmissionDisposition.Submitting &&
+            submissionDisposition != OperationSubmissionDisposition.Accepted
+        ) {
+            return@withLock false
+        }
+        submissionAmbiguousError = error
+        if (submissionExecutionObserved) {
+            submissionDisposition = OperationSubmissionDisposition.Accepted
+        }
+        true
+    }
+
+    internal fun resolveAmbiguousSubmissionAfterTermination(): Boolean = settlementGate.withLock {
+        if (submissionAmbiguousError == null ||
+            submissionExecutionObserved ||
+            submissionDisposition != OperationSubmissionDisposition.Submitting ||
+            entryDisposition != OperationEntryDisposition.Unentered ||
+            returnCell.disposition != OperationReturnDisposition.Empty
+        ) {
+            return@withLock false
+        }
+        submissionDisposition = OperationSubmissionDisposition.Cancelled
+        entryDisposition = OperationEntryDisposition.Cancelled
+        deadlineOccurrence?.retireLocked()
+        if (disposition == OperationDisposition.Pending || disposition == OperationDisposition.Cleanup) {
+            disposition = OperationDisposition.Cancelled
+        }
+        true
+    }
+
     internal fun tryEnter(): OperationEntryResult = settlementGate.withLock {
+        if (submissionDisposition == OperationSubmissionDisposition.Submitting ||
+            submissionDisposition == OperationSubmissionDisposition.Accepted
+        ) {
+            submissionExecutionObserved = true
+            if (submissionAmbiguousError != null) {
+                submissionDisposition = OperationSubmissionDisposition.Accepted
+            }
+        }
         if (entryDisposition != OperationEntryDisposition.Unentered ||
             returnCell.disposition != OperationReturnDisposition.Empty ||
             submissionDisposition != OperationSubmissionDisposition.Submitting &&
@@ -292,8 +337,15 @@ internal class OperationOccurrence<R : OperationEvidence>(
 
     internal fun arbitrateTerminal(mandatoryCleanup: Boolean): OperationTerminalArbitration =
         settlementGate.withLock {
-            if (returnCell.disposition != OperationReturnDisposition.Empty && returnCell.use == OperationReturnUse.Unclaimed) {
-                return@withLock terminalArbitration(arbitrateLocked())
+            val fatalWakeFailure = deadlineOccurrence?.wakeLink?.let { wakeLink ->
+                wakeLink.submissionDisposition == DeadlineWakeSubmissionDisposition.Rejected &&
+                        wakeLink.schedulingThrowableDisposition == DeadlineWakeThrowableDisposition.FatalError
+            } == true
+            if (!fatalWakeFailure && returnCell.disposition != OperationReturnDisposition.Empty &&
+                returnCell.use == OperationReturnUse.Unclaimed
+            ) {
+                val arbitration = terminalArbitration(arbitrateLocked())
+                if (arbitration != OperationTerminalArbitration.Transferred) return@withLock arbitration
             }
             if (returnCell.use != OperationReturnUse.Unclaimed) {
                 return@withLock OperationTerminalArbitration.AlreadySettled
@@ -338,6 +390,23 @@ internal class OperationOccurrence<R : OperationEvidence>(
     }
 
     private fun arbitrateLocked(): OperationArbitration {
+        val activeDeadline = deadlineOccurrence
+        if (domain == OperationDomain.Active && disposition == OperationDisposition.Pending &&
+            activeDeadline?.wakeLink?.submissionDisposition == DeadlineWakeSubmissionDisposition.Rejected
+        ) {
+            return when (activeDeadline.wakeLink.schedulingThrowableDisposition) {
+                DeadlineWakeThrowableDisposition.NonfatalException -> {
+                    activeDeadline.retireLocked()
+                    disposition = OperationDisposition.SchedulerRejected
+                    OperationArbitration.SchedulerRejected
+                }
+
+                DeadlineWakeThrowableDisposition.None,
+                DeadlineWakeThrowableDisposition.FatalError,
+                    -> OperationArbitration.None
+            }
+        }
+
         if (returnCell.disposition != OperationReturnDisposition.Empty && returnCell.use == OperationReturnUse.Unclaimed) {
             if (domain == OperationDomain.Cleanup || disposition != OperationDisposition.Pending) {
                 returnCell.claimCleanupLocked()
@@ -369,11 +438,6 @@ internal class OperationOccurrence<R : OperationEvidence>(
         }
 
         val deadline = deadlineOccurrence ?: return OperationArbitration.None
-        if (deadline.wakeLink.submissionDisposition == DeadlineWakeSubmissionDisposition.Rejected) {
-            deadline.retireLocked()
-            disposition = OperationDisposition.SchedulerRejected
-            return OperationArbitration.SchedulerRejected
-        }
         if (deadline.disposition == DeadlineDisposition.Armed && clock.nowNanos() >= deadline.deadlineNanos) {
             deadline.expireLocked()
             disposition = OperationDisposition.Expired

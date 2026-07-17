@@ -7,11 +7,23 @@ import java.util.concurrent.atomic.AtomicReference
 internal sealed class AndroidLaneStartupResult {
     internal class Ready(internal val handler: Handler) : AndroidLaneStartupResult()
 
-    internal class Failed(internal val cause: Throwable) : AndroidLaneStartupResult()
+    internal class Failed : AndroidLaneStartupResult() {
+        private var recordedCause: Throwable? = null
+
+        internal val cause: Throwable
+            get() = checkNotNull(recordedCause)
+
+        internal fun recordCause(cause: Throwable) {
+            check(recordedCause == null)
+            recordedCause = cause
+        }
+    }
 }
 
 internal class AndroidLaneStartupCell {
     private val result = AtomicReference<AndroidLaneStartupResult?>(null)
+    private val startFailure = AndroidLaneStartupResult.Failed()
+    private val looperFailure = AndroidLaneStartupResult.Failed()
 
     internal val current: AndroidLaneStartupResult?
         get() = result.get()
@@ -19,8 +31,15 @@ internal class AndroidLaneStartupCell {
     internal fun publishReady(handler: Handler): Boolean =
         result.compareAndSet(null, AndroidLaneStartupResult.Ready(handler))
 
-    internal fun publishFailure(cause: Throwable): Boolean =
-        result.compareAndSet(null, AndroidLaneStartupResult.Failed(cause))
+    internal fun publishStartFailure(cause: Throwable): Boolean {
+        startFailure.recordCause(cause)
+        return result.compareAndSet(null, startFailure)
+    }
+
+    internal fun publishLooperFailure(cause: Throwable): Boolean {
+        looperFailure.recordCause(cause)
+        return result.compareAndSet(null, looperFailure)
+    }
 }
 
 internal class AndroidLaneQuitRequestCell {
@@ -34,9 +53,19 @@ internal class AndroidLaneQuitRequestCell {
 
 internal class AndroidLaneTerminationCell {
     private val returned = AtomicBoolean(false)
+    private var threadCause: Throwable? = null
 
     internal val hasReturned: Boolean
         get() = returned.get()
 
-    internal fun publishThreadReturn(): Boolean = returned.compareAndSet(false, true)
+    internal val cause: Throwable?
+        get() {
+            if (!returned.get()) return null
+            return threadCause
+        }
+
+    internal fun publishThreadReturn(cause: Throwable?): Boolean {
+        threadCause = cause
+        return returned.compareAndSet(false, true)
+    }
 }
