@@ -58,17 +58,11 @@ internal class EncodedStorageOwner {
             }
 
             if (imageSize.widthPx <= 0 || imageSize.heightPx <= 0) {
-                recordFailure(
-                    failure = TransactionFailure.InternalFailure,
-                    cause = IllegalArgumentException("imageSize must be positive"),
-                )
+                recordFailure(failure = TransactionFailure.InternalFailure, cause = INVALID_IMAGE_SIZE)
                 return false
             }
             if (acceptedByteCount == 0) {
-                recordFailure(
-                    failure = TransactionFailure.InternalFailure,
-                    cause = IllegalStateException("encoded payload must not be empty"),
-                )
+                recordFailure(failure = TransactionFailure.InternalFailure, cause = EMPTY_ENCODED_PAYLOAD)
                 return false
             }
 
@@ -119,11 +113,7 @@ internal class EncodedStorageOwner {
             when (state) {
                 TransactionState.Open -> Unit
                 TransactionState.Faulted -> throw checkNotNull(transactionFailureCause)
-                TransactionState.ProducerClosed -> failAndThrow(
-                    failure = TransactionFailure.InternalFailure,
-                    cause = IllegalStateException("producer is closed"),
-                )
-
+                TransactionState.ProducerClosed -> failAndThrow(failure = TransactionFailure.InternalFailure, cause = PRODUCER_CLOSED)
                 TransactionState.Committed -> error("transaction is committed")
                 TransactionState.Aborted -> error("transaction is aborted")
             }
@@ -143,10 +133,7 @@ internal class EncodedStorageOwner {
 
         protected fun checkedNewTotal(additionalByteCount: Int): Int {
             if (additionalByteCount < 0 || additionalByteCount > Int.MAX_VALUE - acceptedByteCount) {
-                failAndThrow(
-                    failure = TransactionFailure.ResourceExhausted,
-                    cause = OutOfMemoryError("encoded byte count exceeds Int.MAX_VALUE"),
-                )
+                failAndThrow(failure = TransactionFailure.ResourceExhausted, cause = ENCODED_BYTE_COUNT_EXHAUSTED)
             }
             return acceptedByteCount + additionalByteCount
         }
@@ -261,10 +248,7 @@ internal class EncodedStorageOwner {
         private fun writeByteRange(source: ByteArray, offset: Int, byteCount: Int) {
             requireWritable()
             if (offset < 0 || byteCount < 0 || offset > source.size - byteCount) {
-                failAndThrow(
-                    failure = TransactionFailure.InternalFailure,
-                    cause = IndexOutOfBoundsException("offset=$offset, byteCount=$byteCount, sourceSize=${source.size}"),
-                )
+                failAndThrow(failure = TransactionFailure.InternalFailure, cause = INVALID_SOURCE_RANGE)
             }
 
             val finalTotal = checkedNewTotal(byteCount)
@@ -277,6 +261,8 @@ internal class EncodedStorageOwner {
                 val copiedByteCount = minOf(remainingByteCount, currentTail.size - tailByteCount)
                 try {
                     System.arraycopy(source, sourceOffset, currentTail, tailByteCount, copiedByteCount)
+                } catch (allocationFailure: OutOfMemoryError) {
+                    failAndThrow(TransactionFailure.ResourceExhausted, allocationFailure)
                 } catch (failure: Exception) {
                     failAndThrow(TransactionFailure.InternalFailure, failure)
                 }
@@ -345,17 +331,10 @@ internal class EncodedStorageOwner {
 
         internal fun adoptSegment(segment: ByteBuffer, byteCount: Int) {
             requireWritable()
-            if (byteCount <= 0 ||
-                !segment.isDirect ||
-                segment.position() != 0 ||
-                segment.limit() != byteCount ||
-                segment.remaining() != byteCount ||
-                segment.capacity() != byteCount
+            if (byteCount <= 0 || !segment.isDirect || segment.position() != 0 || segment.limit() != byteCount ||
+                segment.remaining() != byteCount || segment.capacity() != byteCount
             ) {
-                failAndThrow(
-                    failure = TransactionFailure.InternalFailure,
-                    cause = IllegalArgumentException("native segment must be one exact positive direct range"),
-                )
+                failAndThrow(failure = TransactionFailure.InternalFailure, cause = INVALID_NATIVE_SEGMENT)
             }
 
             val newTotal = checkedNewTotal(byteCount)
@@ -463,9 +442,13 @@ internal class EncodedStorageOwner {
     }
 
     internal class EncodedPayloadLease internal constructor(
-        internal val publishedPayload: PublishedEncodedPayload,
+        publishedPayload: PublishedEncodedPayload,
     ) {
         private val released: AtomicBoolean = AtomicBoolean(false)
+        private var publishedPayloadBacking: PublishedEncodedPayload? = publishedPayload
+
+        internal val publishedPayload: PublishedEncodedPayload
+            get() = checkNotNull(publishedPayloadBacking)
 
         internal val isReleased: Boolean
             get() = released.get()
@@ -488,6 +471,12 @@ internal class EncodedStorageOwner {
         internal fun copyBytes(): ByteArray = publishedPayload.payload.copyBytes()
 
         internal fun release(): Boolean = released.compareAndSet(false, true)
+
+        internal fun clearConsumedPayload(expectedPayload: PublishedEncodedPayload): Boolean {
+            if (!isReleased || publishedPayloadBacking !== expectedPayload) return false
+            publishedPayloadBacking = null
+            return true
+        }
     }
 
     private var productionTransaction: SegmentedTransaction? = null
@@ -593,10 +582,12 @@ internal class EncodedStorageOwner {
     internal fun consumeReleasedLease(releasedLease: EncodedPayloadLease): Boolean {
         if (activeLease !== releasedLease || !releasedLease.isReleased) return false
 
+        val consumedPayload = releasedLease.publishedPayload
         activeLease = null
-        if (displacedLeasedPayload === releasedLease.publishedPayload) {
+        if (displacedLeasedPayload === consumedPayload) {
             displacedLeasedPayload = null
         }
+        check(releasedLease.clearConsumedPayload(consumedPayload))
         return true
     }
 
@@ -614,4 +605,19 @@ internal class EncodedStorageOwner {
 
     private fun PublishedEncodedPayload.matches(other: PublishedEncodedPayload): Boolean =
         payload === other.payload && imageSize === other.imageSize
+
+    private companion object {
+        private val INVALID_IMAGE_SIZE: IllegalArgumentException =
+            IllegalArgumentException("imageSize must be positive")
+        private val EMPTY_ENCODED_PAYLOAD: IllegalStateException =
+            IllegalStateException("encoded payload must not be empty")
+        private val PRODUCER_CLOSED: IllegalStateException =
+            IllegalStateException("producer is closed")
+        private val ENCODED_BYTE_COUNT_EXHAUSTED: OutOfMemoryError =
+            OutOfMemoryError("encoded byte count exceeds Int.MAX_VALUE")
+        private val INVALID_SOURCE_RANGE: IndexOutOfBoundsException =
+            IndexOutOfBoundsException("encoded source range is invalid")
+        private val INVALID_NATIVE_SEGMENT: IllegalArgumentException =
+            IllegalArgumentException("native segment must be one exact positive direct range")
+    }
 }

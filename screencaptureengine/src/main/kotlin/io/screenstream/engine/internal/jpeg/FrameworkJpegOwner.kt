@@ -1,11 +1,13 @@
 package io.screenstream.engine.internal.jpeg
 
+import android.graphics.Bitmap
 import io.screenstream.engine.ImageSize
 import io.screenstream.engine.internal.EncodedStorageOwner
 import io.screenstream.engine.internal.JpegRuntimeOwner
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.OperationReturnUse
+import io.screenstream.engine.internal.settlement.OperationReturnedOwner
 import kotlin.concurrent.withLock
 
 internal class FrameworkJpegOwner private constructor(
@@ -14,13 +16,94 @@ internal class FrameworkJpegOwner private constructor(
     internal val pixelByteCount: Int,
     internal val jpegRuntimeOwner: JpegRuntimeOwner,
     internal val clock: EngineClock,
-    internal val bitmapOwner: BitmapReturnedOwner,
-) {
+) : OperationReturnedOwner {
+    private var bitmapSlot: Bitmap? = null
+    private var rowScratchSlot: IntArray? = null
+    private var selectedTransferMode: FrameworkTransferMode? = null
+    private var actualWidth: Int = 0
+    private var actualHeight: Int = 0
+    private var actualConfig: Bitmap.Config? = null
+    private var actualMutable: Boolean = false
+    private var actualRecycled: Boolean = true
+    private var actualRowByteCount: Int = 0
+    private var actualBitmapByteCount: Int = 0
+    private var actualApiMetadataValid: Boolean = false
+
     internal val transferMode: FrameworkTransferMode
-        get() = checkNotNull(bitmapOwner.transferMode())
+        get() = checkNotNull(selectedTransferMode)
 
     internal fun isShapeCompatible(expectedImageSize: ImageSize, expectedCarrierByteCount: Int): Boolean =
-        expectedCarrierByteCount == pixelByteCount && expectedImageSize == imageSize && bitmapOwner.isInstalledAndHealthy()
+        expectedCarrierByteCount == pixelByteCount && expectedImageSize == imageSize && hasCompleteResources()
+
+    internal fun adoptBitmap(returnedBitmap: Bitmap): Boolean {
+        if (bitmapSlot != null) return false
+        bitmapSlot = returnedBitmap
+        return true
+    }
+
+    internal fun recordActualMetadata(
+        width: Int,
+        height: Int,
+        config: Bitmap.Config?,
+        mutable: Boolean,
+        recycled: Boolean,
+        rowByteCount: Int,
+        bitmapByteCount: Int,
+        apiMetadataValid: Boolean,
+    ): Boolean {
+        if (bitmapSlot == null || actualConfig != null || actualWidth != 0 || actualHeight != 0 || actualRowByteCount != 0 || actualBitmapByteCount != 0) {
+            return false
+        }
+
+        actualWidth = width
+        actualHeight = height
+        actualConfig = config
+        actualMutable = mutable
+        actualRecycled = recycled
+        actualRowByteCount = rowByteCount
+        actualBitmapByteCount = bitmapByteCount
+        actualApiMetadataValid = apiMetadataValid
+        return true
+    }
+
+    internal fun completeResources(transferMode: FrameworkTransferMode, scratch: IntArray?): Boolean {
+        if (bitmapSlot == null || selectedTransferMode != null || rowScratchSlot != null ||
+            (transferMode == FrameworkTransferMode.TightBufferCopy && scratch != null) ||
+            (transferMode == FrameworkTransferMode.PortableRowCopy && scratch == null) || actualWidth <= 0 ||
+            actualHeight <= 0 || actualConfig != Bitmap.Config.ARGB_8888 || !actualMutable || actualRecycled ||
+            actualRowByteCount <= 0 || actualBitmapByteCount <= 0 || !actualApiMetadataValid
+        ) {
+            return false
+        }
+
+        selectedTransferMode = transferMode
+        rowScratchSlot = scratch
+        return true
+    }
+
+    internal fun hasCompleteResources(): Boolean =
+        bitmapSlot != null && selectedTransferMode != null && actualWidth > 0 && actualHeight > 0 &&
+                actualConfig == Bitmap.Config.ARGB_8888 && actualMutable && !actualRecycled &&
+                actualRowByteCount > 0 && actualBitmapByteCount > 0 && actualApiMetadataValid &&
+                (selectedTransferMode != FrameworkTransferMode.TightBufferCopy || rowScratchSlot == null) &&
+                (selectedTransferMode != FrameworkTransferMode.PortableRowCopy || rowScratchSlot != null)
+
+    internal fun bitmapForUse(): Bitmap? = if (hasCompleteResources()) bitmapSlot else null
+
+    internal fun rowScratchForUse(): IntArray? = if (hasCompleteResources()) rowScratchSlot else null
+
+    internal fun bitmapForRecycle(): Bitmap? = bitmapSlot
+
+    internal fun clearRecycledReferences(): Boolean {
+        if (bitmapSlot == null) return false
+        bitmapSlot = null
+        rowScratchSlot = null
+        return true
+    }
+
+    internal fun hasNoBitmap(): Boolean = bitmapSlot == null
+
+    internal fun ownsBitmapForCleanup(): Boolean = bitmapSlot != null
 
     internal fun beginEncode(
         expectedProduct: JpegRuntimeProduct.FrameworkOnNativeCarrier,
@@ -75,8 +158,6 @@ internal class FrameworkJpegOwner private constructor(
         retainCommittedFrame = retainCommittedFrame,
     )
 
-    internal fun closeAdmissionAndCheckDrained(): Boolean = bitmapOwner.closeAdmissionAndCheckDrained()
-
     internal fun beginIncompatibleRecycle(
         desiredRevision: Long,
         geometryGeneration: Long,
@@ -110,7 +191,6 @@ internal class FrameworkJpegOwner private constructor(
         internal fun beginResourceCreation(
             jpegRuntimeOwner: JpegRuntimeOwner,
             clock: EngineClock,
-            sdkInt: Int,
             expectedProduct: JpegRuntimeProduct.FrameworkOnNativeCarrier,
             imageSize: ImageSize,
             desiredRevision: Long,
@@ -120,7 +200,6 @@ internal class FrameworkJpegOwner private constructor(
         ): FrameworkResourceCreationOccurrence? = beginResourceCreationCommon(
             jpegRuntimeOwner = jpegRuntimeOwner,
             clock = clock,
-            sdkInt = sdkInt,
             expectedProduct = expectedProduct,
             imageSize = imageSize,
             desiredRevision = desiredRevision,
@@ -132,7 +211,6 @@ internal class FrameworkJpegOwner private constructor(
         internal fun beginResourceCreation(
             jpegRuntimeOwner: JpegRuntimeOwner,
             clock: EngineClock,
-            sdkInt: Int,
             expectedProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier,
             imageSize: ImageSize,
             desiredRevision: Long,
@@ -142,7 +220,6 @@ internal class FrameworkJpegOwner private constructor(
         ): FrameworkResourceCreationOccurrence? = beginResourceCreationCommon(
             jpegRuntimeOwner = jpegRuntimeOwner,
             clock = clock,
-            sdkInt = sdkInt,
             expectedProduct = expectedProduct,
             imageSize = imageSize,
             desiredRevision = desiredRevision,
@@ -164,8 +241,10 @@ internal class FrameworkJpegOwner private constructor(
                 if (!installAllowed || !timelyComplete) return@withLock null
 
                 val exactCandidate = occurrence.ownerBag.candidateOwner ?: return@withLock null
-                if (!exactCandidate.bitmapOwner.install()) return@withLock null
-                occurrence.ownerBag.candidateOwner = null
+                if (occurrence.operation.returnCell.evidence.returnedOwner !== exactCandidate || !exactCandidate.hasCompleteResources()) {
+                    return@withLock null
+                }
+                if (!occurrence.clearSettledReferencesLocked(exactCandidate)) return@withLock null
                 exactCandidate
             }
         }
@@ -187,7 +266,6 @@ internal class FrameworkJpegOwner private constructor(
         private fun beginResourceCreationCommon(
             jpegRuntimeOwner: JpegRuntimeOwner,
             clock: EngineClock,
-            sdkInt: Int,
             expectedProduct: JpegRuntimeProduct,
             imageSize: ImageSize,
             desiredRevision: Long,
@@ -206,21 +284,18 @@ internal class FrameworkJpegOwner private constructor(
                 return null
             }
 
-            val bitmapReturnedOwner = BitmapReturnedOwner()
             val candidateOwner = FrameworkJpegOwner(
                 imageSize = imageSize,
                 rowByteCount = rowLong.toInt(),
                 pixelByteCount = pixelLong.toInt(),
                 jpegRuntimeOwner = jpegRuntimeOwner,
                 clock = clock,
-                bitmapOwner = bitmapReturnedOwner,
             )
             val occurrence = FrameworkResourceCreationOccurrence.create(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
                 lifecycleEpoch = lifecycleEpoch,
                 expectedProduct = expectedProduct,
-                sdkInt = sdkInt,
                 identity = identity,
                 candidateOwner = candidateOwner,
                 clock = clock,
@@ -247,8 +322,6 @@ internal class FrameworkJpegOwner private constructor(
             IllegalStateException("Framework RGBA transfer rejected its exact input")
         internal val MALFORMED_FRAMEWORK_TRANSACTION: IllegalStateException =
             IllegalStateException("Framework JPEG transaction returned malformed evidence")
-        internal val FRAMEWORK_STORAGE_OUT_OF_MEMORY: OutOfMemoryError =
-            OutOfMemoryError("Framework JPEG transaction exhausted storage")
         internal val FRAMEWORK_ENCODE_ADMISSION_FAILED: IllegalStateException =
             IllegalStateException("Framework JPEG encode admission could not be unwound")
         internal val BITMAP_RECYCLE_OWNER_MISSING: IllegalStateException =

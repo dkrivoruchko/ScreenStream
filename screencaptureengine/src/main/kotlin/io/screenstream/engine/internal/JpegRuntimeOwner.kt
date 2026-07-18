@@ -110,10 +110,13 @@ internal class JpegRuntimeOwner internal constructor(
         val carrier = product.carrier
         if (!carrier.install(product)) return false
 
-        occurrence.ownerBag.product = null
-        occurrence.ownerBag.nativeCarrier = null
-        occurrence.ownerBag.managedCarrier = null
         currentProduct = product
+        occurrence.operation.settlementGate.withLock {
+            occurrence.ownerBag.product = null
+            occurrence.ownerBag.nativeCarrier = null
+            occurrence.ownerBag.managedCarrier = null
+            occurrence.operation.returnCell.evidence.returnedOwner = null
+        }
         preparationOccurrence = null
         return true
     }
@@ -229,6 +232,7 @@ internal class JpegRuntimeOwner internal constructor(
         var normal = false
         var exactReceipt = false
         var buffer: ByteBuffer? = null
+        var expectedProduct: JpegRuntimeProduct? = null
         gate.withLock {
             if (nativeFreeOccurrence !== occurrence) return NativeCarrierFreeSettlement.NotSettled
             if (occurrence.operation.returnCell.use == OperationReturnUse.Unclaimed) occurrence.operation.arbitrate()
@@ -242,11 +246,13 @@ internal class JpegRuntimeOwner internal constructor(
             exactReceipt = evidence.receipt === evidence.normalReceipt
             carrier = occurrence.ownerBag.carrier
             buffer = occurrence.ownerBag.buffer
+            expectedProduct = occurrence.expectedProduct
         }
 
         val exactCarrier = carrier
         val exactBuffer = buffer
-        if (!normal || !exactReceipt || exactCarrier == null || exactBuffer == null) {
+        val exactExpectedProduct = expectedProduct
+        if (!normal || !exactReceipt || exactCarrier == null || exactBuffer == null || exactExpectedProduct == null) {
             return NativeCarrierFreeSettlement.UnsafeResidue
         }
         if (!exactCarrier.markPhysicallyFreed(exactBuffer, occurrence)) {
@@ -259,15 +265,18 @@ internal class JpegRuntimeOwner internal constructor(
             }
 
             val installedOrigin = occurrence.origin != NativeCarrierFreeOrigin.ReturnedOwnerCleanup
-            val exactInstalledProduct = currentProduct === occurrence.expectedProduct && currentLease == null
+            val exactInstalledProduct = currentProduct === exactExpectedProduct && currentLease == null
             if (installedOrigin && !exactInstalledProduct) return@withLock NativeCarrierFreeSettlement.UnsafeResidue
 
             val replacementAuthorized = timely && occurrence.origin == NativeCarrierFreeOrigin.IncompatibleReplacement
+            if (!occurrence.ownerBag.clearBufferLocked(gate, exactBuffer) || !occurrence.clearExpectedProductLocked(gate, exactExpectedProduct)) {
+                return@withLock NativeCarrierFreeSettlement.UnsafeResidue
+            }
             occurrence.ownerBag.carrier = null
             nativeFreeOccurrence = null
             if (installedOrigin) currentProduct = null
             if (replacementAuthorized) {
-                nativeReplacementAuthorizedSource = occurrence.expectedProduct
+                nativeReplacementAuthorizedSource = exactExpectedProduct
                 NativeCarrierFreeSettlement.ReplacementAuthorized
             } else {
                 NativeCarrierFreeSettlement.CleanupCompleted
@@ -302,7 +311,8 @@ internal class JpegRuntimeOwner internal constructor(
         return gate.withLock {
             if (nativeReplacementOccurrence !== occurrence) return@withLock NoReturnedCarrierSettlement.NotSettled
 
-            val settlement = noReturnedCarrierSettlementLocked(occurrence.operation, occurrence.carrierCandidate)
+            val carrierCandidate = occurrence.carrierCandidate
+            val settlement = noReturnedCarrierSettlementLocked(occurrence.operation, carrierCandidate)
             if (settlement != NoReturnedCarrierSettlement.Completed) return@withLock settlement
             if (occurrence.ownerBag.carrier != null) return@withLock NoReturnedCarrierSettlement.UnsafeResidue
 
@@ -319,7 +329,8 @@ internal class JpegRuntimeOwner internal constructor(
         return gate.withLock {
             if (managedReplacementOccurrence !== occurrence) return@withLock NoReturnedCarrierSettlement.NotSettled
 
-            val settlement = noReturnedCarrierSettlementLocked(occurrence.operation, occurrence.carrierCandidate)
+            val carrierCandidate = occurrence.carrierCandidate
+            val settlement = noReturnedCarrierSettlementLocked(occurrence.operation, carrierCandidate)
             if (settlement != NoReturnedCarrierSettlement.Completed) return@withLock settlement
             if (occurrence.ownerBag.carrier != null) return@withLock NoReturnedCarrierSettlement.UnsafeResidue
 
@@ -394,6 +405,7 @@ internal class JpegRuntimeOwner internal constructor(
             }
             occurrence.ownerBag.managedCarrier = null
             occurrence.ownerBag.product = null
+            occurrence.operation.returnCell.evidence.returnedOwner = null
             preparationOccurrence = null
             true
         }
@@ -424,8 +436,14 @@ internal class JpegRuntimeOwner internal constructor(
             ) {
                 return@withLock false
             }
+            val sourceProduct = occurrence.sourceProduct
+            val carrierCandidate = occurrence.carrierCandidate
+            if (carrierCandidate !== exactCarrier) return@withLock false
+
             occurrence.ownerBag.carrier = null
             occurrence.ownerBag.product = null
+            occurrence.operation.returnCell.evidence.returnedOwner = null
+            check(occurrence.clearSourceAliasesLocked(gate, sourceProduct, carrierCandidate))
             managedReplacementOccurrence = null
             true
         }
@@ -469,23 +487,30 @@ internal class JpegRuntimeOwner internal constructor(
     }
 
     internal fun installNativeReplacement(occurrence: NativeCarrierReplacementAllocationOccurrence): Boolean {
-        if (nativeReplacementOccurrence !== occurrence || currentProduct != null ||
-            nativeReplacementAuthorizedSource !== occurrence.sourceProduct ||
-            occurrence.operation.arbitrate() != OperationArbitration.TimelyNormal
-        ) {
-            return false
+        val gate = occurrence.operation.settlementGate
+        return gate.withLock {
+            if (nativeReplacementOccurrence !== occurrence || currentProduct != null) return@withLock false
+            val sourceProduct = occurrence.sourceProduct
+            val carrierCandidate = occurrence.carrierCandidate
+            if (nativeReplacementAuthorizedSource !== sourceProduct || occurrence.operation.arbitrate() != OperationArbitration.TimelyNormal) {
+                return@withLock false
+            }
+
+            val product = occurrence.ownerBag.product ?: return@withLock false
+            val carrier = occurrence.ownerBag.carrier ?: return@withLock false
+            if (carrier !== carrierCandidate || product.carrier !== carrier || !carrier.install(product)) {
+                return@withLock false
+            }
+
+            currentProduct = product
+            occurrence.ownerBag.product = null
+            occurrence.ownerBag.carrier = null
+            occurrence.operation.returnCell.evidence.returnedOwner = null
+            check(occurrence.clearSourceAliasesLocked(gate, sourceProduct, carrierCandidate))
+            nativeReplacementOccurrence = null
+            nativeReplacementAuthorizedSource = null
+            true
         }
-
-        val product = occurrence.ownerBag.product ?: return false
-        val carrier = occurrence.ownerBag.carrier ?: return false
-        if (product.carrier !== carrier || !carrier.install(product)) return false
-
-        occurrence.ownerBag.product = null
-        occurrence.ownerBag.carrier = null
-        currentProduct = product
-        nativeReplacementOccurrence = null
-        nativeReplacementAuthorizedSource = null
-        return true
     }
 
     internal fun detachManagedForReplacement(expectedProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier): Boolean {
@@ -530,23 +555,32 @@ internal class JpegRuntimeOwner internal constructor(
     }
 
     internal fun installManagedReplacement(occurrence: ManagedDirectCarrierReplacementAllocationOccurrence): Boolean {
-        if (managedReplacementOccurrence !== occurrence || currentProduct != null ||
-            managedReplacementAuthorizedSource !== occurrence.sourceProduct ||
-            occurrence.operation.arbitrate() != OperationArbitration.TimelyNormal
-        ) {
-            return false
+        val gate = occurrence.operation.settlementGate
+        return gate.withLock {
+            if (managedReplacementOccurrence !== occurrence || currentProduct != null) return@withLock false
+            val sourceProduct = occurrence.sourceProduct
+            val carrierCandidate = occurrence.carrierCandidate
+            if (managedReplacementAuthorizedSource !== sourceProduct ||
+                occurrence.operation.arbitrate() != OperationArbitration.TimelyNormal
+            ) {
+                return@withLock false
+            }
+
+            val product = occurrence.ownerBag.product ?: return@withLock false
+            val carrier = occurrence.ownerBag.carrier ?: return@withLock false
+            if (carrier !== carrierCandidate || product.carrier !== carrier || !carrier.install(product)) {
+                return@withLock false
+            }
+
+            currentProduct = product
+            occurrence.ownerBag.product = null
+            occurrence.ownerBag.carrier = null
+            occurrence.operation.returnCell.evidence.returnedOwner = null
+            check(occurrence.clearSourceAliasesLocked(gate, sourceProduct, carrierCandidate))
+            managedReplacementOccurrence = null
+            managedReplacementAuthorizedSource = null
+            true
         }
-
-        val product = occurrence.ownerBag.product ?: return false
-        val carrier = occurrence.ownerBag.carrier ?: return false
-        if (product.carrier !== carrier || !carrier.install(product)) return false
-
-        occurrence.ownerBag.product = null
-        occurrence.ownerBag.carrier = null
-        currentProduct = product
-        managedReplacementOccurrence = null
-        managedReplacementAuthorizedSource = null
-        return true
     }
 
     internal fun discardReplacementAuthorizationForTerminal(sourceProduct: JpegRuntimeProduct): Boolean {
@@ -719,6 +753,7 @@ internal class JpegRuntimeOwner internal constructor(
                     if (bag.retainCommittedFrame == null) {
                         bag.retainCommittedFrame = retainCommittedFrame && timelyNormal
                     }
+                    bag.clearResultBlockLocked(gate)
                 }
             }
         }
@@ -826,7 +861,8 @@ internal class JpegRuntimeOwner internal constructor(
                 return@withLock NativeEncodeSettlement.NotSettled
             }
 
-            nativeEncodeOccurrence = null
+            clearNativeEncodeOccurrenceIfSettledLocked(occurrence)
+            if (nativeEncodeOccurrence === occurrence) return@withLock NativeEncodeSettlement.NotSettled
             settledResult
         }
     }
@@ -956,14 +992,22 @@ internal class JpegRuntimeOwner internal constructor(
         }
     }
 
-    private fun clearNativeEncodeOccurrenceIfSettledLocked(occurrence: NativeEncodeOccurrence) {
+    private fun clearNativeEncodeOccurrenceIfSettledLocked(occurrence: NativeEncodeOccurrence): Boolean {
         check(occurrence.operation.settlementGate.isHeldByCurrentThread)
         val bag = occurrence.ownerBag
-        if (nativeEncodeOccurrence === occurrence && nativeEncodeMechanicsSettledLocked(bag) &&
-            bag.nativeDisableCandidate == null && bag.nativeDisableStage == NativeDisableStage.Finalized
-        ) {
-            nativeEncodeOccurrence = null
-        }
+        if (nativeEncodeOccurrence !== occurrence || !nativeEncodeMechanicsSettledLocked(bag) ||
+            bag.nativeDisableCandidate != null || bag.nativeDisableStage != NativeDisableStage.Finalized
+        ) return false
+
+        val capturedProduct = occurrence.capturedProduct
+        val product = bag.product
+        val carrierLease = bag.carrierLease
+        if (product !== capturedProduct) return false
+        check(bag.clearFinalAliasesLocked(occurrence.operation.settlementGate, product, carrierLease))
+        check(occurrence.clearCapturedProductLocked(occurrence.operation.settlementGate, capturedProduct))
+
+        nativeEncodeOccurrence = null
+        return true
     }
 
     internal fun transferTerminal(occurrence: OperationOccurrence<*>, mandatoryCleanup: Boolean): OperationTerminalArbitration =
@@ -1068,6 +1112,7 @@ internal class JpegRuntimeOwner internal constructor(
             }
             occurrence.ownerBag.nativeCarrier = null
             occurrence.ownerBag.product = null
+            occurrence.operation.returnCell.evidence.returnedOwner = null
             preparationOccurrence = null
             nativeFreeOccurrence = cleanup
         }
@@ -1115,8 +1160,13 @@ internal class JpegRuntimeOwner internal constructor(
             if (nativeReplacementOccurrence !== occurrence || occurrence.ownerBag.carrier !== exactCarrier || occurrence.ownerBag.product !== exactProduct) {
                 return null
             }
+            val sourceProduct = occurrence.sourceProduct
+            val carrierCandidate = occurrence.carrierCandidate
+            if (carrierCandidate !== exactCarrier) return null
+            check(occurrence.clearSourceAliasesLocked(sourceGate, sourceProduct, carrierCandidate))
             occurrence.ownerBag.carrier = null
             occurrence.ownerBag.product = null
+            occurrence.operation.returnCell.evidence.returnedOwner = null
             nativeReplacementOccurrence = null
             nativeFreeOccurrence = cleanup
         }
@@ -1205,8 +1255,7 @@ internal class JpegRuntimeOwner internal constructor(
             if (nativeEncodeMechanicsSettledLocked(bag)) {
                 bag.nativeDisableCandidate = null
                 bag.nativeDisableStage = NativeDisableStage.Finalized
-                nativeEncodeOccurrence = null
-                true
+                clearNativeEncodeOccurrenceIfSettledLocked(occurrence)
             } else {
                 bag.admissionDisposition = NativeEncodeAdmissionDisposition.CleanupResidue
                 if (bag.admissionFailureCause == null) bag.admissionFailureCause = failure
@@ -1244,11 +1293,19 @@ internal class JpegRuntimeOwner internal constructor(
 
         try {
             jpegIoDispatcher.dispatch(EmptyCoroutineContext, operation.runnable)
-        } catch (rejection: Throwable) {
+        } catch (rejection: Exception) {
             if (operation.occurrence.publishSubmissionRejected(rejection) != OperationSubmissionRejectionResult.NotCurrent) {
                 settlementSignal.signal()
             }
             return false
+        } catch (fatal: Error) {
+            try {
+                if (operation.occurrence.publishSubmissionRejected(fatal) != OperationSubmissionRejectionResult.NotCurrent) {
+                    settlementSignal.signal()
+                }
+            } finally {
+                throw fatal
+            }
         }
 
         if (operation.occurrence.publishSubmissionAccepted()) settlementSignal.signal()
@@ -1282,41 +1339,81 @@ internal class JpegRuntimeOwner internal constructor(
     }
 
     private fun prepareWithNativeCarrier(occurrence: JpegPreparationOccurrence, policy: JpegBackendPolicy, byteCount: Int) {
-        val carrier = NativeMallocCarrier.create(byteCount)
+        val carrier = try {
+            NativeMallocCarrier.create(byteCount)
+        } catch (failure: Exception) {
+            publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, failure)
+            return
+        } catch (fatal: Error) {
+            publishPreparationFatalAndRethrow(occurrence, fatal)
+        }
         val nativeAvailable = if (policy == JpegBackendPolicy.Auto) {
             try {
                 NativeJpegProcess.hasWeakCompressor()
-            } catch (failure: Throwable) {
-                publishFailure(occurrence.operation, classifyFailure(failure), failure)
+            } catch (failure: Exception) {
+                publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, failure)
                 return
+            } catch (fatal: Error) {
+                publishPreparationFatalAndRethrow(occurrence, fatal)
             }
         } else {
             false
         }
-        val product: JpegRuntimeProduct = if (nativeAvailable) {
-            JpegRuntimeProduct.NativeEnabled.create(carrier)
-        } else {
-            JpegRuntimeProduct.FrameworkOnNativeCarrier.create(carrier)
+        val product: JpegRuntimeProduct = try {
+            if (nativeAvailable) {
+                JpegRuntimeProduct.NativeEnabled.create(carrier)
+            } else {
+                JpegRuntimeProduct.FrameworkOnNativeCarrier.create(carrier)
+            }
+        } catch (failure: Exception) {
+            publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, failure)
+            return
+        } catch (fatal: Error) {
+            publishPreparationFatalAndRethrow(occurrence, fatal)
         }
         occurrence.ownerBag.product = product
 
         val buffer = try {
             NativeJpegProcess.allocateCarrier(byteCount.toLong())
-        } catch (failure: Throwable) {
-            publishFailure(occurrence.operation, classifyFailure(failure), failure)
+        } catch (allocationFailure: OutOfMemoryError) {
+            publishFailure(occurrence.operation, JpegRuntimeFailure.ResourceExhausted, allocationFailure)
             return
+        } catch (failure: Exception) {
+            publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, failure)
+            return
+        } catch (fatal: Error) {
+            publishPreparationFatalAndRethrow(occurrence, fatal)
         }
         attachAndPublishNativePreparation(occurrence, carrier, buffer)
     }
 
     private fun prepareWithManagedCarrier(occurrence: JpegPreparationOccurrence, byteCount: Int) {
-        val carrier = ManagedDirectCarrier.create(byteCount)
-        occurrence.ownerBag.product = JpegRuntimeProduct.FrameworkOnManagedCarrier.create(carrier)
+        val carrier = try {
+            ManagedDirectCarrier.create(byteCount)
+        } catch (failure: Exception) {
+            publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, failure)
+            return
+        } catch (fatal: Error) {
+            publishPreparationFatalAndRethrow(occurrence, fatal)
+        }
+        occurrence.ownerBag.product = try {
+            JpegRuntimeProduct.FrameworkOnManagedCarrier.create(carrier)
+        } catch (failure: Exception) {
+            publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, failure)
+            return
+        } catch (fatal: Error) {
+            publishPreparationFatalAndRethrow(occurrence, fatal)
+        }
         val buffer = try {
             ByteBuffer.allocateDirect(byteCount)
-        } catch (failure: Throwable) {
-            publishFailure(occurrence.operation, classifyFailure(failure), failure)
+        } catch (allocationFailure: OutOfMemoryError) {
+            publishFailure(occurrence.operation, JpegRuntimeFailure.ResourceExhausted, allocationFailure)
             return
+        } catch (failure: Exception) {
+            publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, failure)
+            return
+        } catch (fatal: Error) {
+            publishPreparationFatalAndRethrow(occurrence, fatal)
         }
         attachAndPublishManagedPreparation(occurrence, carrier, buffer)
     }
@@ -1327,7 +1424,11 @@ internal class JpegRuntimeOwner internal constructor(
             if (!carrier.attachReturnedBufferLocked(gate, buffer)) throw ATTACHMENT_STATE_VIOLATION
             occurrence.ownerBag.nativeCarrier = carrier
         }
-        inspectBuffer(buffer, carrier.byteCount, occurrence.validation)
+        try {
+            inspectBuffer(buffer, carrier.byteCount, occurrence.validation)
+        } catch (fatal: Error) {
+            publishPreparationFatalAndRethrow(occurrence, fatal)
+        }
         val validation = occurrence.validation
         val validationFailure = validation.failure
         val published = gate.withLock {
@@ -1336,6 +1437,8 @@ internal class JpegRuntimeOwner internal constructor(
             if (validationFailure == null) {
                 occurrence.operation.publishNormalReturn()
             } else {
+                occurrence.operation.returnCell.evidence.failure = JpegRuntimeFailure.InternalFailure
+                occurrence.operation.returnCell.evidence.failureCause = validationFailure
                 occurrence.operation.publishThrownReturn(validationFailure)
             }
         }
@@ -1348,7 +1451,11 @@ internal class JpegRuntimeOwner internal constructor(
             if (!carrier.attachReturnedBufferLocked(gate, buffer)) throw ATTACHMENT_STATE_VIOLATION
             occurrence.ownerBag.managedCarrier = carrier
         }
-        inspectBuffer(buffer, carrier.byteCount, occurrence.validation)
+        try {
+            inspectBuffer(buffer, carrier.byteCount, occurrence.validation)
+        } catch (fatal: Error) {
+            publishPreparationFatalAndRethrow(occurrence, fatal)
+        }
         val validation = occurrence.validation
         val validationFailure = validation.failure
         val published = gate.withLock {
@@ -1357,6 +1464,8 @@ internal class JpegRuntimeOwner internal constructor(
             if (validationFailure == null) {
                 occurrence.operation.publishNormalReturn()
             } else {
+                occurrence.operation.returnCell.evidence.failure = JpegRuntimeFailure.InternalFailure
+                occurrence.operation.returnCell.evidence.failureCause = validationFailure
                 occurrence.operation.publishThrownReturn(validationFailure)
             }
         }
@@ -1375,8 +1484,10 @@ internal class JpegRuntimeOwner internal constructor(
             NativeJpegProcess.freeCarrier(occurrence.ownerBag.buffer)
             occurrence.operation.returnCell.evidence.receipt = occurrence.operation.returnCell.evidence.normalReceipt
             occurrence.operation.publishNormalReturn()
-        } catch (failure: Throwable) {
+        } catch (failure: Exception) {
             occurrence.operation.publishThrownReturn(failure)
+        } catch (fatal: Error) {
+            publishNativeFreeFatalAndRethrow(occurrence, fatal)
         }
         if (published) settlementSignal.signal()
     }
@@ -1392,11 +1503,18 @@ internal class JpegRuntimeOwner internal constructor(
         val carrier = occurrence.carrierCandidate
         val buffer = try {
             NativeJpegProcess.allocateCarrier(byteCount.toLong())
-        } catch (failure: Throwable) {
-            occurrence.operation.returnCell.evidence.failure = classifyFailure(failure)
+        } catch (allocationFailure: OutOfMemoryError) {
+            occurrence.operation.returnCell.evidence.failure = JpegRuntimeFailure.ResourceExhausted
+            occurrence.operation.returnCell.evidence.failureCause = allocationFailure
+            if (occurrence.operation.publishThrownReturn(allocationFailure)) settlementSignal.signal()
+            return
+        } catch (failure: Exception) {
+            occurrence.operation.returnCell.evidence.failure = JpegRuntimeFailure.InternalFailure
             occurrence.operation.returnCell.evidence.failureCause = failure
             if (occurrence.operation.publishThrownReturn(failure)) settlementSignal.signal()
             return
+        } catch (fatal: Error) {
+            publishNativeReplacementFatalAndRethrow(occurrence, fatal)
         }
         attachAndPublishNativeReplacement(occurrence, carrier, buffer)
     }
@@ -1411,7 +1529,11 @@ internal class JpegRuntimeOwner internal constructor(
             if (!carrier.attachReturnedBufferLocked(gate, buffer)) throw ATTACHMENT_STATE_VIOLATION
             occurrence.ownerBag.carrier = carrier
         }
-        inspectBuffer(buffer, carrier.byteCount, occurrence.validation)
+        try {
+            inspectBuffer(buffer, carrier.byteCount, occurrence.validation)
+        } catch (fatal: Error) {
+            publishNativeReplacementFatalAndRethrow(occurrence, fatal)
+        }
         val validation = occurrence.validation
         val validationFailure = validation.failure
         val published = gate.withLock {
@@ -1439,11 +1561,18 @@ internal class JpegRuntimeOwner internal constructor(
         val carrier = occurrence.carrierCandidate
         val buffer = try {
             ByteBuffer.allocateDirect(byteCount)
-        } catch (failure: Throwable) {
-            occurrence.operation.returnCell.evidence.failure = classifyFailure(failure)
+        } catch (allocationFailure: OutOfMemoryError) {
+            occurrence.operation.returnCell.evidence.failure = JpegRuntimeFailure.ResourceExhausted
+            occurrence.operation.returnCell.evidence.failureCause = allocationFailure
+            if (occurrence.operation.publishThrownReturn(allocationFailure)) settlementSignal.signal()
+            return
+        } catch (failure: Exception) {
+            occurrence.operation.returnCell.evidence.failure = JpegRuntimeFailure.InternalFailure
             occurrence.operation.returnCell.evidence.failureCause = failure
             if (occurrence.operation.publishThrownReturn(failure)) settlementSignal.signal()
             return
+        } catch (fatal: Error) {
+            publishManagedReplacementFatalAndRethrow(occurrence, fatal)
         }
         attachAndPublishManagedReplacement(occurrence, carrier, buffer)
     }
@@ -1458,7 +1587,11 @@ internal class JpegRuntimeOwner internal constructor(
             if (!carrier.attachReturnedBufferLocked(gate, buffer)) throw ATTACHMENT_STATE_VIOLATION
             occurrence.ownerBag.carrier = carrier
         }
-        inspectBuffer(buffer, carrier.byteCount, occurrence.validation)
+        try {
+            inspectBuffer(buffer, carrier.byteCount, occurrence.validation)
+        } catch (fatal: Error) {
+            publishManagedReplacementFatalAndRethrow(occurrence, fatal)
+        }
         val validation = occurrence.validation
         val validationFailure = validation.failure
         val published = gate.withLock {
@@ -1483,8 +1616,41 @@ internal class JpegRuntimeOwner internal constructor(
         if (operation.publishThrownReturn(cause)) settlementSignal.signal()
     }
 
-    private fun classifyFailure(failure: Throwable): JpegRuntimeFailure =
-        if (failure is OutOfMemoryError) JpegRuntimeFailure.ResourceExhausted else JpegRuntimeFailure.InternalFailure
+    private fun publishPreparationFatalAndRethrow(occurrence: JpegPreparationOccurrence, fatal: Error): Nothing {
+        try {
+            publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, fatal)
+        } finally {
+            throw fatal
+        }
+    }
+
+    private fun publishNativeFreeFatalAndRethrow(occurrence: NativeCarrierFreeOccurrence, fatal: Error): Nothing {
+        try {
+            if (occurrence.operation.publishThrownReturn(fatal)) settlementSignal.signal()
+        } finally {
+            throw fatal
+        }
+    }
+
+    private fun publishNativeReplacementFatalAndRethrow(occurrence: NativeCarrierReplacementAllocationOccurrence, fatal: Error): Nothing {
+        try {
+            occurrence.operation.returnCell.evidence.failure = JpegRuntimeFailure.InternalFailure
+            occurrence.operation.returnCell.evidence.failureCause = fatal
+            if (occurrence.operation.publishThrownReturn(fatal)) settlementSignal.signal()
+        } finally {
+            throw fatal
+        }
+    }
+
+    private fun publishManagedReplacementFatalAndRethrow(occurrence: ManagedDirectCarrierReplacementAllocationOccurrence, fatal: Error): Nothing {
+        try {
+            occurrence.operation.returnCell.evidence.failure = JpegRuntimeFailure.InternalFailure
+            occurrence.operation.returnCell.evidence.failureCause = fatal
+            if (occurrence.operation.publishThrownReturn(fatal)) settlementSignal.signal()
+        } finally {
+            throw fatal
+        }
+    }
 
     private fun inspectBuffer(buffer: ByteBuffer, expectedByteCount: Int, validation: CarrierValidation) {
         try {
@@ -1499,10 +1665,15 @@ internal class JpegRuntimeOwner internal constructor(
             validation.structurallyFreeable = structurallyFreeable
             validation.ready = ready
             validation.failure = if (ready) null else INVALID_CARRIER_BUFFER
-        } catch (failure: Throwable) {
+        } catch (failure: Exception) {
             validation.structurallyFreeable = false
             validation.ready = false
             validation.failure = failure
+        } catch (fatal: Error) {
+            validation.structurallyFreeable = false
+            validation.ready = false
+            validation.failure = fatal
+            throw fatal
         }
     }
 
@@ -1522,7 +1693,7 @@ internal class JpegRuntimeOwner internal constructor(
             } else {
                 null
             }
-        } catch (_: Throwable) {
+        } catch (_: Exception) {
             null
         }
     }

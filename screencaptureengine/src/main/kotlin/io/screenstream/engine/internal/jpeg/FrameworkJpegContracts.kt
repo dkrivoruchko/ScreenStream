@@ -46,19 +46,35 @@ internal class FrameworkResourceCreationOccurrence private constructor(
     internal val desiredRevision: Long,
     internal val geometryGeneration: Long,
     internal val lifecycleEpoch: Long,
-    internal val expectedProduct: JpegRuntimeProduct,
-    internal val sdkInt: Int,
+    expectedProduct: JpegRuntimeProduct,
     internal val operation: OperationOccurrence<FrameworkResourceCreationEvidence>,
     internal val ownerBag: FrameworkResourceCreationOwnerBag,
     internal val ioOperation: JpegIoOperation<FrameworkResourceCreationEvidence>,
 ) {
+    private var expectedProductSlot: JpegRuntimeProduct? = expectedProduct
+
+    internal val expectedProduct: JpegRuntimeProduct
+        get() = checkNotNull(expectedProductSlot)
+
+    internal fun clearSettledReferencesLocked(expectedOwner: FrameworkJpegOwner): Boolean {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        val returnedOwner = operation.returnCell.evidence.returnedOwner
+        if (expectedProductSlot == null || ownerBag.candidateOwner !== expectedOwner || returnedOwner != null && returnedOwner !== expectedOwner) {
+            return false
+        }
+
+        ownerBag.candidateOwner = null
+        operation.returnCell.evidence.returnedOwner = null
+        expectedProductSlot = null
+        return true
+    }
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,
             geometryGeneration: Long,
             lifecycleEpoch: Long,
             expectedProduct: JpegRuntimeProduct,
-            sdkInt: Int,
             identity: JpegFiniteOperationIdentity,
             candidateOwner: FrameworkJpegOwner,
             clock: EngineClock,
@@ -85,7 +101,6 @@ internal class FrameworkResourceCreationOccurrence private constructor(
                 geometryGeneration = geometryGeneration,
                 lifecycleEpoch = lifecycleEpoch,
                 expectedProduct = expectedProduct,
-                sdkInt = sdkInt,
                 operation = operation,
                 ownerBag = ownerBag,
                 ioOperation = ioOperation,
@@ -117,33 +132,67 @@ internal class FrameworkEncodeEvidence internal constructor() : OperationEvidenc
 }
 
 internal class FrameworkEncodeOwnerBag internal constructor(
-    internal val owner: FrameworkJpegOwner,
-    internal val product: JpegRuntimeProduct,
-    internal val carrierLease: RgbaCarrierLease,
+    internal var bitmapUseOwner: FrameworkJpegOwner?,
+    product: JpegRuntimeProduct,
+    carrierLease: RgbaCarrierLease,
     internal var retainedOperationLease: RgbaCarrierLease?,
     internal var storageOwner: EncodedStorageOwner?,
     internal var transaction: EncodedStorageOwner.FrameworkTransaction?,
     internal var unpublishedToRetire: EncodedStorageOwner.UnpublishedEncodedPayload?,
     internal var retainCommittedFrame: Boolean?,
-) : OperationOwnerBag
+) : OperationOwnerBag {
+    private var productSlot: JpegRuntimeProduct? = product
+    private var carrierLeaseSlot: RgbaCarrierLease? = carrierLease
+
+    internal val product: JpegRuntimeProduct
+        get() = checkNotNull(productSlot)
+
+    internal val carrierLease: RgbaCarrierLease
+        get() = checkNotNull(carrierLeaseSlot)
+
+    internal fun clearSettledReferences(expectedOwner: FrameworkJpegOwner, expectedProduct: JpegRuntimeProduct): Boolean {
+        if (bitmapUseOwner !== expectedOwner || productSlot !== expectedProduct || carrierLeaseSlot == null ||
+            retainedOperationLease != null || storageOwner != null || transaction != null || unpublishedToRetire != null
+        ) {
+            return false
+        }
+
+        bitmapUseOwner = null
+        productSlot = null
+        carrierLeaseSlot = null
+        return true
+    }
+}
 
 internal class FrameworkEncodeOccurrence private constructor(
     internal val desiredRevision: Long,
     internal val geometryGeneration: Long,
     internal val lifecycleEpoch: Long,
-    internal val capturedOwner: FrameworkJpegOwner,
-    internal val capturedProduct: JpegRuntimeProduct,
+    capturedProduct: JpegRuntimeProduct,
     internal val quality: Int,
     internal val operation: OperationOccurrence<FrameworkEncodeEvidence>,
     internal val ownerBag: FrameworkEncodeOwnerBag,
     internal val ioOperation: JpegIoOperation<FrameworkEncodeEvidence>,
 ) {
+    private var capturedProductSlot: JpegRuntimeProduct? = capturedProduct
+
+    internal val capturedProduct: JpegRuntimeProduct
+        get() = checkNotNull(capturedProductSlot)
+
+    internal fun clearSettledReferencesLocked(expectedOwner: FrameworkJpegOwner): Boolean {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        val exactProduct = capturedProductSlot ?: return false
+        if (!ownerBag.clearSettledReferences(expectedOwner, exactProduct)) return false
+        capturedProductSlot = null
+        return true
+    }
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,
             geometryGeneration: Long,
             lifecycleEpoch: Long,
-            capturedOwner: FrameworkJpegOwner,
+            bitmapUseOwner: FrameworkJpegOwner,
             capturedProduct: JpegRuntimeProduct,
             carrierLease: RgbaCarrierLease,
             quality: Int,
@@ -154,7 +203,7 @@ internal class FrameworkEncodeOccurrence private constructor(
         ): FrameworkEncodeOccurrence {
             val evidence = FrameworkEncodeEvidence()
             val ownerBag = FrameworkEncodeOwnerBag(
-                owner = capturedOwner,
+                bitmapUseOwner = bitmapUseOwner,
                 product = capturedProduct,
                 carrierLease = carrierLease,
                 retainedOperationLease = null,
@@ -180,7 +229,6 @@ internal class FrameworkEncodeOccurrence private constructor(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
                 lifecycleEpoch = lifecycleEpoch,
-                capturedOwner = capturedOwner,
                 capturedProduct = capturedProduct,
                 quality = quality,
                 operation = operation,
@@ -236,7 +284,7 @@ internal class FrameworkBitmapRecycleOccurrence private constructor(
             geometryGeneration: Long,
             lifecycleEpoch: Long,
             origin: FrameworkBitmapRecycleOrigin,
-            owner: FrameworkJpegOwner,
+            owner: FrameworkJpegOwner?,
             identity: JpegFiniteOperationIdentity?,
             operationIdentity: Long,
             clock: EngineClock,

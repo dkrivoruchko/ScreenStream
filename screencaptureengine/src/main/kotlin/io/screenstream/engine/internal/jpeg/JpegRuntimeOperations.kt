@@ -12,6 +12,7 @@ import io.screenstream.engine.internal.settlement.OperationReturnedOwner
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.locks.ReentrantLock
 
 internal enum class JpegRuntimeFailure {
     ResourceExhausted,
@@ -126,13 +127,36 @@ internal class NativeCarrierReplacementAllocationOccurrence private constructor(
     internal val desiredRevision: Long,
     internal val geometryGeneration: Long,
     internal val lifecycleEpoch: Long,
-    internal val sourceProduct: JpegRuntimeProduct,
-    internal val carrierCandidate: NativeMallocCarrier,
+    sourceProduct: JpegRuntimeProduct,
+    carrierCandidate: NativeMallocCarrier,
     internal val operation: OperationOccurrence<NativeCarrierReplacementAllocationEvidence>,
     internal val ownerBag: NativeCarrierReplacementAllocationOwnerBag,
     internal val validation: CarrierValidation,
     internal val ioOperation: JpegIoOperation<NativeCarrierReplacementAllocationEvidence>,
 ) {
+    private var sourceProductSlot: JpegRuntimeProduct? = sourceProduct
+    private var carrierCandidateSlot: NativeMallocCarrier? = carrierCandidate
+
+    internal val sourceProduct: JpegRuntimeProduct
+        get() = checkNotNull(sourceProductSlot)
+
+    internal val carrierCandidate: NativeMallocCarrier
+        get() = checkNotNull(carrierCandidateSlot)
+
+    internal fun clearSourceAliasesLocked(
+        settlementGate: ReentrantLock,
+        expectedSourceProduct: JpegRuntimeProduct,
+        expectedCarrierCandidate: NativeMallocCarrier,
+    ): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (sourceProductSlot !== expectedSourceProduct) return false
+        if (carrierCandidateSlot !== expectedCarrierCandidate) return false
+
+        sourceProductSlot = null
+        carrierCandidateSlot = null
+        return true
+    }
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,
@@ -198,13 +222,36 @@ internal class ManagedDirectCarrierReplacementAllocationOccurrence private const
     internal val desiredRevision: Long,
     internal val geometryGeneration: Long,
     internal val lifecycleEpoch: Long,
-    internal val sourceProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier,
-    internal val carrierCandidate: ManagedDirectCarrier,
+    sourceProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier,
+    carrierCandidate: ManagedDirectCarrier,
     internal val operation: OperationOccurrence<ManagedDirectCarrierReplacementAllocationEvidence>,
     internal val ownerBag: ManagedDirectCarrierReplacementAllocationOwnerBag,
     internal val validation: CarrierValidation,
     internal val ioOperation: JpegIoOperation<ManagedDirectCarrierReplacementAllocationEvidence>,
 ) {
+    private var sourceProductSlot: JpegRuntimeProduct.FrameworkOnManagedCarrier? = sourceProduct
+    private var carrierCandidateSlot: ManagedDirectCarrier? = carrierCandidate
+
+    internal val sourceProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier
+        get() = checkNotNull(sourceProductSlot)
+
+    internal val carrierCandidate: ManagedDirectCarrier
+        get() = checkNotNull(carrierCandidateSlot)
+
+    internal fun clearSourceAliasesLocked(
+        settlementGate: ReentrantLock,
+        expectedSourceProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier,
+        expectedCarrierCandidate: ManagedDirectCarrier,
+    ): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (sourceProductSlot !== expectedSourceProduct) return false
+        if (carrierCandidateSlot !== expectedCarrierCandidate) return false
+
+        sourceProductSlot = null
+        carrierCandidateSlot = null
+        return true
+    }
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,
@@ -300,10 +347,10 @@ internal class NativeEncodeEvidence internal constructor() : OperationEvidence {
 }
 
 internal class NativeEncodeOwnerBag internal constructor(
-    internal val product: JpegRuntimeProduct.NativeEnabled,
+    product: JpegRuntimeProduct.NativeEnabled,
     internal val descriptor: NativeFrameDescriptor,
-    internal val carrierLease: NativeMallocCarrierLease,
-    internal val resultBlock: ByteBuffer,
+    carrierLease: NativeMallocCarrierLease,
+    resultBlock: ByteBuffer,
     internal var nativeDisableCandidate: JpegRuntimeProduct.FrameworkOnNativeCarrier?,
     internal var retainedOperationLease: NativeMallocCarrierLease? = null,
     internal var storageOwner: EncodedStorageOwner? = null,
@@ -314,17 +361,66 @@ internal class NativeEncodeOwnerBag internal constructor(
     internal var admissionDisposition: NativeEncodeAdmissionDisposition = NativeEncodeAdmissionDisposition.Preparing,
     internal var admissionFailureCause: Throwable? = null,
     internal var nativeDisableStage: NativeDisableStage = NativeDisableStage.Candidate,
-) : OperationOwnerBag
+) : OperationOwnerBag {
+    private var productSlot: JpegRuntimeProduct.NativeEnabled? = product
+    private var carrierLeaseSlot: NativeMallocCarrierLease? = carrierLease
+    private var resultBlockSlot: ByteBuffer? = resultBlock
+
+    internal val product: JpegRuntimeProduct.NativeEnabled
+        get() = checkNotNull(productSlot)
+
+    internal val carrierLease: NativeMallocCarrierLease
+        get() = checkNotNull(carrierLeaseSlot)
+
+    internal val resultBlock: ByteBuffer
+        get() = checkNotNull(resultBlockSlot)
+
+    internal fun clearResultBlockLocked(settlementGate: ReentrantLock): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (resultBlockSlot == null) return false
+
+        resultBlockSlot = null
+        return true
+    }
+
+    internal fun clearFinalAliasesLocked(
+        settlementGate: ReentrantLock,
+        expectedProduct: JpegRuntimeProduct.NativeEnabled,
+        expectedCarrierLease: NativeMallocCarrierLease,
+    ): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (productSlot !== expectedProduct) return false
+        if (carrierLeaseSlot !== expectedCarrierLease) return false
+
+        productSlot = null
+        carrierLeaseSlot = null
+        resultBlockSlot = null
+        return true
+    }
+}
 
 internal class NativeEncodeOccurrence private constructor(
     internal val desiredRevision: Long,
     internal val geometryGeneration: Long,
     internal val lifecycleEpoch: Long,
-    internal val capturedProduct: JpegRuntimeProduct.NativeEnabled,
+    capturedProduct: JpegRuntimeProduct.NativeEnabled,
     internal val operation: OperationOccurrence<NativeEncodeEvidence>,
     internal val ownerBag: NativeEncodeOwnerBag,
     internal val ioOperation: JpegIoOperation<NativeEncodeEvidence>,
 ) {
+    private var capturedProductSlot: JpegRuntimeProduct.NativeEnabled? = capturedProduct
+
+    internal val capturedProduct: JpegRuntimeProduct.NativeEnabled
+        get() = checkNotNull(capturedProductSlot)
+
+    internal fun clearCapturedProductLocked(settlementGate: ReentrantLock, expectedProduct: JpegRuntimeProduct.NativeEnabled): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (capturedProductSlot !== expectedProduct) return false
+
+        capturedProductSlot = null
+        return true
+    }
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,

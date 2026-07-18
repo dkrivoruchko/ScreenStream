@@ -205,14 +205,15 @@ internal sealed class RgbaCarrier(
     }
 
     internal fun logicallyDetach(expectedProduct: JpegRuntimeProduct): Boolean = leaseGate.withLock {
-        if (installedProduct !== expectedProduct || admissionOpen || attachedLease != null ||
-            retainedOperationLease != null || enteredUses != 0 || detached
+        if (this !is ManagedDirectCarrier || installedProduct !== expectedProduct || admissionOpen ||
+            attachedLease != null || retainedOperationLease != null || enteredUses != 0 || detached
         ) {
             return@withLock false
         }
 
         detached = true
         installedProduct = null
+        attachment.buffer = null
         true
     }
 
@@ -248,6 +249,7 @@ internal sealed class RgbaCarrier(
         expectedBuffer: ByteBuffer,
         occurrence: NativeCarrierFreeOccurrence,
     ): Boolean = leaseGate.withLock {
+        if (this !is NativeMallocCarrier) return@withLock false
         if (admittedFreeOccurrence !== occurrence || attachment.buffer !== expectedBuffer) return@withLock false
         if (detached) return@withLock installedProduct == null
         if (admissionOpen || attachedLease != null || retainedOperationLease != null || enteredUses != 0) {
@@ -256,6 +258,8 @@ internal sealed class RgbaCarrier(
 
         detached = true
         installedProduct = null
+        attachment.buffer = null
+        admittedFreeOccurrence = null
         true
     }
 
@@ -290,14 +294,15 @@ internal sealed class RgbaCarrier(
     }
 
     internal fun logicallyDropUninstalled(): Boolean = leaseGate.withLock {
-        if (installedProduct != null || admissionOpen || attachedLease != null || retainedOperationLease != null ||
-            enteredUses != 0 || detached || admittedFreeOccurrence != null ||
+        if (this !is ManagedDirectCarrier || installedProduct != null || admissionOpen || attachedLease != null ||
+            retainedOperationLease != null || enteredUses != 0 || detached || admittedFreeOccurrence != null ||
             attachment.state != AttachmentState.Ready && attachment.state != AttachmentState.Rejected
         ) {
             return@withLock false
         }
 
         detached = true
+        attachment.buffer = null
         true
     }
 }
@@ -314,9 +319,7 @@ internal class ManagedDirectCarrier private constructor(byteCount: Int) : RgbaCa
     }
 }
 
-internal sealed class RgbaCarrierLease(
-    internal val carrier: RgbaCarrier,
-) {
+internal sealed class RgbaCarrierLease(carrier: RgbaCarrier) {
     private enum class LeaseState {
         Prepared,
         Attached,
@@ -325,6 +328,10 @@ internal sealed class RgbaCarrierLease(
 
     private var state: LeaseState = LeaseState.Prepared
     private var product: JpegRuntimeProduct? = null
+    private var carrierSlot: RgbaCarrier? = carrier
+
+    internal val carrier: RgbaCarrier
+        get() = checkNotNull(carrierSlot)
 
     internal fun attachLocked(expectedProduct: JpegRuntimeProduct): Boolean {
         if (state != LeaseState.Prepared || expectedProduct.carrier !== carrier) return false
@@ -349,9 +356,11 @@ internal sealed class RgbaCarrierLease(
     }
 
     internal fun releaseLocked(): Boolean {
-        if (state != LeaseState.Attached) return false
+        if (state != LeaseState.Attached || product == null || carrierSlot == null) return false
 
         state = LeaseState.Released
+        product = null
+        carrierSlot = null
         return true
     }
 
@@ -406,19 +415,45 @@ internal class NativeCarrierFreeEvidence internal constructor() : OperationEvide
 
 internal class NativeCarrierFreeOwnerBag internal constructor(
     internal var carrier: NativeMallocCarrier?,
-    internal val buffer: ByteBuffer,
-) : OperationOwnerBag
+    buffer: ByteBuffer,
+) : OperationOwnerBag {
+    private var bufferSlot: ByteBuffer? = buffer
+
+    internal val buffer: ByteBuffer
+        get() = checkNotNull(bufferSlot)
+
+    internal fun clearBufferLocked(settlementGate: ReentrantLock, expectedBuffer: ByteBuffer): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (bufferSlot !== expectedBuffer) return false
+
+        bufferSlot = null
+        return true
+    }
+}
 
 internal class NativeCarrierFreeOccurrence private constructor(
     internal val desiredRevision: Long,
     internal val geometryGeneration: Long,
     internal val lifecycleEpoch: Long,
-    internal val expectedProduct: JpegRuntimeProduct,
+    expectedProduct: JpegRuntimeProduct,
     internal val origin: NativeCarrierFreeOrigin,
     internal val operation: OperationOccurrence<NativeCarrierFreeEvidence>,
     internal val ownerBag: NativeCarrierFreeOwnerBag,
     internal val ioOperation: JpegIoOperation<NativeCarrierFreeEvidence>,
 ) {
+    private var expectedProductSlot: JpegRuntimeProduct? = expectedProduct
+
+    internal val expectedProduct: JpegRuntimeProduct
+        get() = checkNotNull(expectedProductSlot)
+
+    internal fun clearExpectedProductLocked(settlementGate: ReentrantLock, expectedProduct: JpegRuntimeProduct): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (expectedProductSlot !== expectedProduct) return false
+
+        expectedProductSlot = null
+        return true
+    }
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,

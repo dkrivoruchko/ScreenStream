@@ -2,6 +2,7 @@
 #define SCREEN_CAPTURE_ENGINE_NATIVE_JPEG_RUNTIME_H_
 
 #include <android/bitmap.h>
+#include <android/data_space.h>
 
 #include <atomic>
 #include <cstddef>
@@ -18,7 +19,7 @@ namespace screenstream::jpeg {
 
     struct NativeFrameDescriptor final {
         AndroidBitmapInfo bitmapInfo{};
-        std::int32_t dataspace = 0;
+        std::int32_t dataspace = ADATASPACE_UNKNOWN;
         std::int32_t compressFormat = ANDROID_BITMAP_COMPRESS_FORMAT_JPEG;
         std::int32_t quality = 0;
         const void *pixels = nullptr;

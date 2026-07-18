@@ -27,7 +27,7 @@ namespace {
         JavaThrowable = 4,
     };
 
-    constexpr std::int32_t kBootstrapSuccess = 0;
+    constexpr std::int32_t kBootstrapSuccess = JNI_OK;
     constexpr std::int32_t kBootstrapInternalFailure = 3;
     constexpr jlong kResultBlockByteCount = 16;
     constexpr std::size_t kStatusOffset = 0;
@@ -45,11 +45,11 @@ namespace {
             address_ = static_cast<std::uint8_t *>(address);
         }
 
-        bool armed() const noexcept { return address_ != nullptr; }
+        [[nodiscard]] bool armed() const noexcept { return address_ != nullptr; }
 
         void complete(NativeStatus status, std::int64_t producedByteCount) noexcept {
             if (address_ == nullptr) return;
-            const std::int64_t statusValue = static_cast<std::int64_t>(status);
+            const auto statusValue = static_cast<std::int64_t>(status);
             std::memcpy(address_ + kProducedByteCountOffset, &producedByteCount, sizeof(producedByteCount));
             std::memcpy(address_ + kStatusOffset, &statusValue, sizeof(statusValue));
         }
@@ -84,7 +84,7 @@ namespace {
                 throwNew(env, "java/lang/IllegalArgumentException", "native carrier byte count is invalid");
                 return nullptr;
             }
-            const std::size_t allocationSize = static_cast<std::size_t>(byteCount);
+            const auto allocationSize = static_cast<std::size_t>(byteCount);
             void *allocation = std::malloc(allocationSize);
             if (allocation == nullptr) {
                 throwNew(env, "java/lang/OutOfMemoryError", "native carrier allocation failed");

@@ -22,7 +22,16 @@ internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence:
     val lease = checkNotNull(bag.retainedOperationLease)
     val transaction = checkNotNull(bag.transaction)
     val evidence = occurrence.operation.returnCell.evidence
-    val pixels = lease.enterExactRange()
+    val pixels = try {
+        lease.enterExactRange()
+    } catch (failure: Exception) {
+        if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, failure)) {
+            owner.signalJpegIoSettlement()
+        }
+        return
+    } catch (fatal: Error) {
+        publishAndRethrowFatalNativeEncode(owner, occurrence, fatal)
+    }
     if (pixels == null) {
         evidence.carrierUseResolved = true
         transaction.abort()
@@ -35,19 +44,38 @@ internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence:
     try {
         bag.resultBlock.putLong(NATIVE_STATUS_OFFSET, NATIVE_RESULT_PENDING)
         bag.resultBlock.putLong(NATIVE_PRODUCED_BYTE_COUNT_OFFSET, NATIVE_RESULT_PENDING)
-    } catch (failure: Throwable) {
-        evidence.carrierUseResolved = lease.exitExactRange()
-        transaction.abort()
-        if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, failure)) {
+    } catch (failure: Exception) {
+        val exitFailure = try {
+            evidence.carrierUseResolved = lease.exitExactRange()
+            null
+        } catch (fatal: Error) {
+            publishAndRethrowFatalNativeEncode(owner, occurrence, fatal)
+        } catch (releaseFailure: Exception) {
+            releaseFailure
+        }
+        if (evidence.carrierUseResolved) transaction.abort()
+        val exactFailure = exitFailure ?: failure
+        if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, exactFailure)) {
             owner.signalJpegIoSettlement()
         }
         return
+    } catch (fatal: Error) {
+        publishAndRethrowFatalNativeEncode(owner, occurrence, fatal)
     }
     val sink = bag.segmentSink
     if (sink == null) {
-        evidence.carrierUseResolved = lease.exitExactRange()
-        transaction.abort()
-        if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, NATIVE_ENCODE_ADMISSION_FAILED)) {
+        val exitFailure = try {
+            evidence.carrierUseResolved = lease.exitExactRange()
+            null
+        } catch (failure: Throwable) {
+            failure
+        }
+        if (exitFailure is Error) {
+            publishAndRethrowFatalNativeEncode(owner, occurrence, exitFailure)
+        }
+        if (evidence.carrierUseResolved) transaction.abort()
+        val exactFailure = exitFailure ?: NATIVE_ENCODE_ADMISSION_FAILED
+        if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, exactFailure)) {
             owner.signalJpegIoSettlement()
         }
         return
@@ -58,8 +86,26 @@ internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence:
         owner.compressNativeFrame(pixels, bag, sink, bag.resultBlock)
     } catch (failure: Throwable) {
         thrown = failure
-    } finally {
+    }
+    val exitFailure = try {
         evidence.carrierUseResolved = lease.exitExactRange()
+        null
+    } catch (failure: Throwable) {
+        failure
+    }
+    if (exitFailure != null || !evidence.carrierUseResolved) {
+        val fatal = when {
+            thrown != null && thrown !is Exception -> thrown
+            exitFailure != null && exitFailure !is Exception -> exitFailure
+            else -> null
+        }
+        if (fatal != null) publishAndRethrowFatalNativeEncode(owner, occurrence, fatal)
+
+        val exactFailure = exitFailure ?: LEASE_NOT_OPERATIONAL
+        if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, exactFailure)) {
+            owner.signalJpegIoSettlement()
+        }
+        return
     }
 
     val published = try {

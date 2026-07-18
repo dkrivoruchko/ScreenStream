@@ -49,7 +49,6 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 @Suppress("unused")
 internal class ScreenCaptureStartupTransaction(
-    private val apiLevel: Int = Build.VERSION.SDK_INT,
     private val startupResizeTimeoutMillis: Long = API34_FIRST_CAPTURED_CONTENT_RESIZE_TIMEOUT_MILLIS,
     private val callbackAdapterFactory: StartupCallbackAdapterFactory = StartupCallbackAdapterFactory { listener, synchronousEventObserver ->
         MediaProjectionCallbackAdapter(listener = listener, synchronousEventObserver = synchronousEventObserver)
@@ -388,7 +387,7 @@ internal class ScreenCaptureStartupTransaction(
         projectionStoppedException: () -> ScreenCaptureStartException,
         startupGeometryUnavailableException: () -> ScreenCaptureStartException,
     ): StartupAuthoritativeGeometry {
-        if (apiLevel < ANDROID_14_API_LEVEL) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             if (startupGeometryArbiter.isProjectionStopped) throw projectionStoppedException()
             return StartupAuthoritativeGeometry(
                 geometry = CaptureGeometry(
@@ -450,6 +449,5 @@ internal class ScreenCaptureStartupTransaction(
 
     private companion object {
         private const val DEFAULT_VIRTUAL_DISPLAY_NAME: String = "ScreenCaptureEngine"
-        private const val ANDROID_14_API_LEVEL: Int = 34
     }
 }

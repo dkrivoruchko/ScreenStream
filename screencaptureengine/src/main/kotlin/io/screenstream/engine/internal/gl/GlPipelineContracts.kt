@@ -1,5 +1,6 @@
 package io.screenstream.engine.internal.gl
 
+import android.opengl.GLES20
 import io.screenstream.engine.ImageSize
 import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationReceipt
@@ -147,9 +148,9 @@ internal class GlOperationEvidence internal constructor(
 
     internal var result: GlOperationResult? = null
     internal var throwable: Throwable? = null
-    internal var preprobeErrorCode: Int = 0
+    internal var preprobeErrorCode: Int = GLES20.GL_NO_ERROR
     internal var preprobeErrorCodePresent: Boolean = false
-    internal var postprobeErrorCode: Int = 0
+    internal var postprobeErrorCode: Int = GLES20.GL_NO_ERROR
     internal var postprobeErrorCodePresent: Boolean = false
     internal var contextIntegrity: ContextIntegrity = ContextIntegrity.Unknown
 
@@ -177,9 +178,9 @@ internal class GlDestructionEvidence internal constructor(
 
     internal var result: GlOperationResult? = null
     internal var throwable: Throwable? = null
-    internal var preprobeErrorCode: Int = 0
+    internal var preprobeErrorCode: Int = GLES20.GL_NO_ERROR
     internal var preprobeErrorCodePresent: Boolean = false
-    internal var postprobeErrorCode: Int = 0
+    internal var postprobeErrorCode: Int = GLES20.GL_NO_ERROR
     internal var postprobeErrorCodePresent: Boolean = false
     internal var contextIntegrity: ContextIntegrity = ContextIntegrity.Unknown
 

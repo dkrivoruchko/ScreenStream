@@ -27,11 +27,11 @@ internal class GlClaimedOperationFacts private constructor(
         private set
     internal var throwable: Throwable? = null
         private set
-    internal var preprobeErrorCode: Int = 0
+    internal var preprobeErrorCode: Int = GLES20.GL_NO_ERROR
         private set
     internal var preprobeErrorCodePresent: Boolean = false
         private set
-    internal var postprobeErrorCode: Int = 0
+    internal var postprobeErrorCode: Int = GLES20.GL_NO_ERROR
         private set
     internal var postprobeErrorCodePresent: Boolean = false
         private set
@@ -102,11 +102,11 @@ internal class GlClaimedDestructionFacts private constructor(
         private set
     internal var throwable: Throwable? = null
         private set
-    internal var preprobeErrorCode: Int = 0
+    internal var preprobeErrorCode: Int = GLES20.GL_NO_ERROR
         private set
     internal var preprobeErrorCodePresent: Boolean = false
         private set
-    internal var postprobeErrorCode: Int = 0
+    internal var postprobeErrorCode: Int = GLES20.GL_NO_ERROR
         private set
     internal var postprobeErrorCodePresent: Boolean = false
         private set
@@ -178,7 +178,7 @@ internal class GlDestructionHandle internal constructor(
     private val owner: GlPipelineOwner,
     identity: GlFiniteOperationIdentity,
     private val action: GlDestructionAction,
-    private val renderTarget: GlPipelineOwner.GlRenderTargetOwner?,
+    renderTarget: GlPipelineOwner.GlRenderTargetOwner?,
     private val renderState: GlRenderTargetState?,
     internal var installedRenderTargetDestruction: Boolean,
 ) : GlPipelineOwner.DestructionCommand {

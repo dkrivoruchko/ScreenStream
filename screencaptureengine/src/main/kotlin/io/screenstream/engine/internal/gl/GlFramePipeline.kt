@@ -27,9 +27,9 @@ internal class GlFrameHandle internal constructor(
     identity: GlFiniteOperationIdentity,
     private val target: CurrentTarget,
     private val targetPort: TargetPorts.GlFramePort,
-    private val renderTarget: GlPipelineOwner.GlRenderTargetOwner,
+    renderTarget: GlPipelineOwner.GlRenderTargetOwner,
     private val renderState: GlRenderTargetState,
-    private val lease: RgbaCarrierLease,
+    lease: RgbaCarrierLease,
 ) : GlPipelineOwner.FrameCommand {
     private val evidence: GlOperationEvidence = GlOperationEvidence(identity.operationIdentity, GlOperationKind.Frame)
     private val ownerBag: GlOwnerBag = GlOwnerBag(renderTarget)
@@ -37,6 +37,7 @@ internal class GlFrameHandle internal constructor(
     private val claimedFacts: GlClaimedOperationFacts = GlClaimedOperationFacts.precreate(evidence)
     private val runnable: Runnable = owner.fatalBoundary { execute() }
     private val laneTicket: GlLaneTicket = GlLaneTicket()
+    private var lease: RgbaCarrierLease? = lease
     private var leaseReleased: Boolean = false
     private val colorActionFacts: GlColorActionCell = GlColorActionCell()
     private val stateProbeFacts: GlProbeFacts = GlProbeFacts()
@@ -52,7 +53,7 @@ internal class GlFrameHandle internal constructor(
             if (owner.renderFrame(
                     targetPort = targetPort,
                     renderState = renderState,
-                    lease = lease,
+                    lease = owner.glGate.withLock { checkNotNull(lease) },
                     evidence = evidence,
                     stateProbeFacts = stateProbeFacts,
                     drawReadProbeFacts = drawReadProbeFacts,
@@ -88,10 +89,15 @@ internal class GlFrameHandle internal constructor(
     }
 
     private fun releaseCarrierLease(): Boolean {
-        if (owner.glGate.withLock { leaseReleased }) return true
-        if (!lease.releaseFromOperation()) return false
+        val exactLease = owner.glGate.withLock {
+            if (leaseReleased) return true
+            checkNotNull(lease)
+        }
+        if (!exactLease.releaseFromOperation()) return false
         owner.glGate.withLock {
             check(!leaseReleased)
+            check(lease === exactLease)
+            lease = null
             leaseReleased = true
         }
         return true
@@ -183,9 +189,9 @@ internal class GlFrameReconciliationFacts internal constructor(
 }
 
 internal class GlProbeFacts internal constructor() {
-    internal var preprobeErrorCode: Int = 0
+    internal var preprobeErrorCode: Int = GLES20.GL_NO_ERROR
         private set
-    internal var postprobeErrorCode: Int = 0
+    internal var postprobeErrorCode: Int = GLES20.GL_NO_ERROR
         private set
     internal var preprobePresent: Boolean = false
         private set

@@ -17,8 +17,6 @@ internal fun settleFrameworkEncode(
     storage: EncodedStorageOwner,
     retainCommittedFrame: Boolean,
 ): FrameworkEncodeSettlement {
-    if (occurrence.capturedOwner !== owner) return FrameworkEncodeSettlement.NotSettled
-
     val operation = occurrence.operation
     val gate = operation.settlementGate
     var settledResult = FrameworkEncodeSettlement.NotSettled
@@ -26,7 +24,7 @@ internal fun settleFrameworkEncode(
     var timelyNormal = false
     gate.withLock {
         val ownerBag = occurrence.ownerBag
-        if (ownerBag.owner !== owner || ownerBag.storageOwner != null && ownerBag.storageOwner !== storage) {
+        if (ownerBag.bitmapUseOwner !== owner || ownerBag.storageOwner != null && ownerBag.storageOwner !== storage) {
             return FrameworkEncodeSettlement.NotSettled
         }
 
@@ -120,17 +118,19 @@ internal fun settleFrameworkEncode(
         if (ownerBag.transaction == null && ownerBag.unpublishedToRetire == null) ownerBag.storageOwner = null
         ownerBag.retainedOperationLease == null && ownerBag.storageOwner == null && ownerBag.transaction == null && ownerBag.unpublishedToRetire == null
     }
-    if (!mechanicsSettled || !bitmapUseResolved || !owner.bitmapOwner.completeEncode(occurrence)) {
+    if (!mechanicsSettled || !bitmapUseResolved) {
         return FrameworkEncodeSettlement.NotSettled
     }
+    val bitmapUseReturned = gate.withLock { occurrence.clearSettledReferencesLocked(owner) }
+    if (!bitmapUseReturned) return FrameworkEncodeSettlement.NotSettled
     return settledResult
 }
 
 private fun transferExactRgbaToBitmap(owner: FrameworkJpegOwner, lease: RgbaCarrierLease): Boolean {
     val exactRange = lease.enterExactRange() ?: return false
-    var transferred: Boolean = false
+    var transferred = false
     var transferFailure: Throwable? = null
-    var exactRangeUseResolved: Boolean = false
+    var exactRangeUseResolved = false
     var exitFailure: Throwable? = null
     try {
         exactRange.limit(owner.pixelByteCount)
@@ -138,7 +138,7 @@ private fun transferExactRgbaToBitmap(owner: FrameworkJpegOwner, lease: RgbaCarr
         if (exactRange.isDirect && !exactRange.isReadOnly && exactRange.capacity() == owner.pixelByteCount &&
             exactRange.position() == 0 && exactRange.limit() == owner.pixelByteCount && exactRange.remaining() == owner.pixelByteCount
         ) {
-            val bitmap = owner.bitmapOwner.bitmapForTransfer()
+            val bitmap = owner.bitmapForUse()
             if (bitmap != null) {
                 when (owner.transferMode) {
                     FrameworkTransferMode.TightBufferCopy -> {
@@ -147,7 +147,7 @@ private fun transferExactRgbaToBitmap(owner: FrameworkJpegOwner, lease: RgbaCarr
                     }
 
                     FrameworkTransferMode.PortableRowCopy -> {
-                        val row = owner.bitmapOwner.rowScratchForTransfer()
+                        val row = owner.rowScratchForUse()
                         if (row != null && row.size == owner.imageSize.widthPx) {
                             for (y in 0..<owner.imageSize.heightPx) {
                                 val rowOffset = y * owner.rowByteCount
@@ -176,8 +176,8 @@ private fun transferExactRgbaToBitmap(owner: FrameworkJpegOwner, lease: RgbaCarr
         }
     }
 
-    if (transferFailure is Error && transferFailure !is OutOfMemoryError) throw transferFailure
-    if (exitFailure is Error && exitFailure !is OutOfMemoryError) throw exitFailure
+    if (transferFailure is Error) throw transferFailure
+    if (exitFailure is Error) throw exitFailure
     if (exitFailure != null || !exactRangeUseResolved) throw FrameworkJpegOwner.CARRIER_USE_RESOLUTION_FAILED
     if (transferFailure != null) throw transferFailure
     return transferred
@@ -196,7 +196,7 @@ internal fun beginFrameworkEncode(
 ): FrameworkEncodeOccurrence? {
     if (quality !in 0..100 || expectedProduct.carrier !== expectedLease.carrier ||
         expectedProduct.carrier.byteCount != owner.pixelByteCount || owner.jpegRuntimeOwner.product !== expectedProduct ||
-        owner.jpegRuntimeOwner.lease !== expectedLease || !owner.bitmapOwner.isInstalledAndHealthy()
+        owner.jpegRuntimeOwner.lease !== expectedLease || !owner.hasCompleteResources()
     ) {
         return null
     }
@@ -205,21 +205,21 @@ internal fun beginFrameworkEncode(
         desiredRevision = desiredRevision,
         geometryGeneration = geometryGeneration,
         lifecycleEpoch = lifecycleEpoch,
-        capturedOwner = owner,
+        bitmapUseOwner = owner,
         capturedProduct = expectedProduct,
         carrierLease = expectedLease,
         quality = quality,
         identity = identity,
         clock = owner.clock,
         signal = owner.jpegRuntimeOwner.jpegIoSettlementSignal,
-        work = { executeFrameworkEncode(owner, it) },
+        work = ::executeFrameworkEncode,
     )
-    if (!owner.bitmapOwner.admitEncode(occurrence)) return null
 
     if (!expectedLease.retainForOperation(expectedProduct)) {
-        if (!owner.bitmapOwner.cancelEncodeAdmission(occurrence)) {
-            throw FrameworkJpegOwner.FRAMEWORK_ENCODE_ADMISSION_FAILED
+        val cleared = occurrence.operation.settlementGate.withLock {
+            occurrence.clearSettledReferencesLocked(owner)
         }
+        if (!cleared) throw FrameworkJpegOwner.FRAMEWORK_ENCODE_ADMISSION_FAILED
         return null
     }
     occurrence.operation.settlementGate.withLock {
@@ -295,18 +295,21 @@ private fun unwindEncodeAdmission(owner: FrameworkJpegOwner, occurrence: Framewo
     val mechanicsSettled = gate.withLock {
         occurrence.ownerBag.retainedOperationLease == null && occurrence.ownerBag.storageOwner == null && occurrence.ownerBag.transaction == null
     }
-    return mechanicsSettled && owner.bitmapOwner.cancelEncodeAdmission(occurrence)
+    if (!mechanicsSettled) return false
+    return gate.withLock { occurrence.clearSettledReferencesLocked(owner) }
 }
 
-private fun executeFrameworkEncode(owner: FrameworkJpegOwner, occurrence: FrameworkEncodeOccurrence) {
+private fun executeFrameworkEncode(occurrence: FrameworkEncodeOccurrence) {
     val entryResult = occurrence.operation.tryEnter()
+    val owner = occurrence.operation.settlementGate.withLock { occurrence.ownerBag.bitmapUseOwner }
     if (entryResult != OperationEntryResult.Entered) {
-        if (entryResult == OperationEntryResult.InvalidDeadline) owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
+        if (entryResult == OperationEntryResult.InvalidDeadline) owner?.jpegRuntimeOwner?.jpegIoSettlementSignal?.signal()
         return
     }
+    if (owner == null) return
     owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
 
-    val bitmap = owner.bitmapOwner.enterBitmapUse(occurrence)
+    val bitmap = owner.bitmapForUse()
     if (bitmap == null) {
         val evidence = occurrence.operation.returnCell.evidence
         evidence.bitmapUseResolved = true
@@ -321,58 +324,91 @@ private fun executeFrameworkEncode(owner: FrameworkJpegOwner, occurrence: Framew
     var result = FrameworkEncodeSettlement.InternalFailure
     var resultCause: Throwable? = null
     var unexpectedBoundaryFailure = false
+    var fatalFailure: Error? = null
     try {
         val transferred = transferExactRgbaToBitmap(owner, occurrence.ownerBag.carrierLease)
         if (!transferred) {
             resultCause = FrameworkJpegOwner.RGBA_TRANSFER_REJECTED
         } else {
             val transaction = checkNotNull(occurrence.ownerBag.transaction)
-            val compressed = try {
-                bitmap.compress(Bitmap.CompressFormat.JPEG, occurrence.quality, transaction.outputStream)
-            } finally {
-                val firstFatalWriteError = transaction.firstFatalWriteError
-                if (firstFatalWriteError != null) throw firstFatalWriteError
+            val compressed: Boolean? = try {
+                try {
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, occurrence.quality, transaction.outputStream)
+                } finally {
+                    val firstFatalWriteError = transaction.firstFatalWriteError
+                    if (firstFatalWriteError != null) throw firstFatalWriteError
+                }
+            } catch (allocationFailure: OutOfMemoryError) {
+                result = FrameworkEncodeSettlement.ResourceExhausted
+                resultCause = allocationFailure
+                null
+            } catch (failure: Exception) {
+                result = FrameworkEncodeSettlement.InternalFailure
+                resultCause = failure
+                unexpectedBoundaryFailure = true
+                null
+            } catch (fatal: Error) {
+                fatalFailure = fatal
+                null
             }
-            when {
-                transaction.failure == EncodedStorageOwner.TransactionFailure.InternalFailure -> {
-                    result = FrameworkEncodeSettlement.InternalFailure
-                    resultCause = transaction.failureCause ?: FrameworkJpegOwner.MALFORMED_FRAMEWORK_TRANSACTION
-                }
+            if (compressed != null) {
+                when {
+                    transaction.failure == EncodedStorageOwner.TransactionFailure.InternalFailure -> {
+                        result = FrameworkEncodeSettlement.InternalFailure
+                        resultCause = transaction.failureCause ?: FrameworkJpegOwner.MALFORMED_FRAMEWORK_TRANSACTION
+                    }
 
-                transaction.failure == EncodedStorageOwner.TransactionFailure.ResourceExhausted -> {
-                    result = FrameworkEncodeSettlement.ResourceExhausted
-                    resultCause = transaction.failureCause ?: FrameworkJpegOwner.FRAMEWORK_STORAGE_OUT_OF_MEMORY
-                }
+                    transaction.failure == EncodedStorageOwner.TransactionFailure.ResourceExhausted -> {
+                        val storageCause = transaction.failureCause
+                        if (storageCause == null) {
+                            result = FrameworkEncodeSettlement.InternalFailure
+                            resultCause = FrameworkJpegOwner.MALFORMED_FRAMEWORK_TRANSACTION
+                        } else {
+                            result = FrameworkEncodeSettlement.ResourceExhausted
+                            resultCause = storageCause
+                        }
+                    }
 
-                !compressed -> {
-                    transaction.abort()
-                    result = FrameworkEncodeSettlement.CompressionRejected
-                }
+                    !compressed -> {
+                        transaction.abort()
+                        result = FrameworkEncodeSettlement.CompressionRejected
+                    }
 
-                transaction.commit(owner.imageSize) -> {
-                    result = FrameworkEncodeSettlement.Success
-                }
+                    transaction.commit(owner.imageSize) -> {
+                        result = FrameworkEncodeSettlement.Success
+                    }
 
-                transaction.failure == EncodedStorageOwner.TransactionFailure.ResourceExhausted -> {
-                    result = FrameworkEncodeSettlement.ResourceExhausted
-                    resultCause = transaction.failureCause ?: FrameworkJpegOwner.FRAMEWORK_STORAGE_OUT_OF_MEMORY
-                }
+                    transaction.failure == EncodedStorageOwner.TransactionFailure.ResourceExhausted -> {
+                        val storageCause = transaction.failureCause
+                        if (storageCause == null) {
+                            result = FrameworkEncodeSettlement.InternalFailure
+                            resultCause = FrameworkJpegOwner.MALFORMED_FRAMEWORK_TRANSACTION
+                        } else {
+                            result = FrameworkEncodeSettlement.ResourceExhausted
+                            resultCause = storageCause
+                        }
+                    }
 
-                else -> {
-                    result = FrameworkEncodeSettlement.InternalFailure
-                    resultCause = transaction.failureCause ?: FrameworkJpegOwner.MALFORMED_FRAMEWORK_TRANSACTION
+                    else -> {
+                        result = FrameworkEncodeSettlement.InternalFailure
+                        resultCause = transaction.failureCause ?: FrameworkJpegOwner.MALFORMED_FRAMEWORK_TRANSACTION
+                    }
                 }
             }
         }
-    } catch (allocationFailure: OutOfMemoryError) {
-        result = FrameworkEncodeSettlement.ResourceExhausted
-        resultCause = allocationFailure
     } catch (failure: Exception) {
         result = FrameworkEncodeSettlement.InternalFailure
         resultCause = failure
         unexpectedBoundaryFailure = true
+    } catch (fatal: Error) {
+        fatalFailure = fatal
     } finally {
-        occurrence.operation.returnCell.evidence.bitmapUseResolved = owner.bitmapOwner.exitBitmapUse(occurrence)
+        occurrence.operation.returnCell.evidence.bitmapUseResolved = true
+    }
+
+    val exactFatalFailure = fatalFailure
+    if (exactFatalFailure != null) {
+        publishFrameworkEncodeFatalAndRethrow(owner, occurrence, exactFatalFailure)
     }
 
     val transaction = occurrence.ownerBag.transaction
@@ -382,8 +418,14 @@ private fun executeFrameworkEncode(owner: FrameworkJpegOwner, occurrence: Framew
     } else if (!unexpectedBoundaryFailure &&
         transaction?.failure == EncodedStorageOwner.TransactionFailure.ResourceExhausted
     ) {
-        result = FrameworkEncodeSettlement.ResourceExhausted
-        resultCause = transaction.failureCause ?: FrameworkJpegOwner.FRAMEWORK_STORAGE_OUT_OF_MEMORY
+        val storageCause = transaction.failureCause
+        if (storageCause == null) {
+            result = FrameworkEncodeSettlement.InternalFailure
+            resultCause = FrameworkJpegOwner.MALFORMED_FRAMEWORK_TRANSACTION
+        } else {
+            result = FrameworkEncodeSettlement.ResourceExhausted
+            resultCause = storageCause
+        }
     }
     if (result != FrameworkEncodeSettlement.Success && transaction != null && !transaction.isCommitted && !transaction.isAborted) {
         transaction.abort()
@@ -408,6 +450,19 @@ private fun executeFrameworkEncode(owner: FrameworkJpegOwner, occurrence: Framew
         else -> false
     }
     if (published) owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
+}
+
+private fun publishFrameworkEncodeFatalAndRethrow(owner: FrameworkJpegOwner, occurrence: FrameworkEncodeOccurrence, fatal: Error): Nothing {
+    try {
+        val evidence = occurrence.operation.returnCell.evidence
+        evidence.result = FrameworkEncodeSettlement.InternalFailure
+        evidence.failureCause = fatal
+        if (occurrence.operation.publishThrownReturn(fatal)) {
+            owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
+        }
+    } finally {
+        throw fatal
+    }
 }
 
 private fun cancelledEncodeWithoutReturnLocked(occurrence: FrameworkEncodeOccurrence): Boolean {

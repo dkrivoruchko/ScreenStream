@@ -19,7 +19,13 @@ internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown
     }
     if (blockFailure != null) {
         abortIfPossible(transaction)
-        return classifyMalformedThrowable(occurrence, thrown ?: blockFailure)
+        val selectedFailure = when {
+            thrown != null && thrown !is Exception -> thrown
+            blockFailure !is Exception -> blockFailure
+            thrown != null -> thrown
+            else -> blockFailure
+        }
+        return classifyMalformedThrowable(occurrence, selectedFailure)
     }
 
     val status = evidence.nativeStatus
@@ -48,8 +54,11 @@ internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown
             } else {
                 val transactionCause = transaction.failureCause
                 when (transaction.failure) {
-                    EncodedStorageOwner.TransactionFailure.ResourceExhausted ->
+                    EncodedStorageOwner.TransactionFailure.ResourceExhausted -> if (transactionCause == null) {
+                        publishReturnedResult(occurrence, NativeEncodeSettlement.InternalFailure, MALFORMED_NATIVE_RESULT)
+                    } else {
                         publishReturnedResult(occurrence, NativeEncodeSettlement.ResourceExhausted, transactionCause)
+                    }
 
                     else -> publishReturnedResult(
                         occurrence,
@@ -90,7 +99,7 @@ internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown
             val throwableEvidenceValid = thrown != null && produced > 0L &&
                     (transaction.failureCause == null || transaction.failureCause === thrown)
             if (throwableEvidenceValid) {
-                classifyJavaThrowable(occurrence, checkNotNull(thrown))
+                classifyJavaThrowable(occurrence, thrown)
             } else {
                 classifyMalformedThrowable(occurrence, thrown)
             }
