@@ -11,8 +11,6 @@ import io.screenstream.engine.internal.jpeg.JpegRuntimeProduct
 import io.screenstream.engine.internal.jpeg.ManagedDirectCarrier
 import io.screenstream.engine.internal.jpeg.ManagedDirectCarrierReplacementAllocationOccurrence
 import io.screenstream.engine.internal.jpeg.NATIVE_ENCODE_ADMISSION_FAILED
-import io.screenstream.engine.internal.jpeg.NativeCallBlockLoan
-import io.screenstream.engine.internal.jpeg.NativeCallBlocks
 import io.screenstream.engine.internal.jpeg.NativeCarrierFreeOccurrence
 import io.screenstream.engine.internal.jpeg.NativeCarrierFreeOrigin
 import io.screenstream.engine.internal.jpeg.NativeCarrierFreeSettlement
@@ -25,9 +23,9 @@ import io.screenstream.engine.internal.jpeg.NativeEncodeOwnerBag
 import io.screenstream.engine.internal.jpeg.NativeEncodeSettlement
 import io.screenstream.engine.internal.jpeg.NativeFrameDescriptor
 import io.screenstream.engine.internal.jpeg.NativeJpegHealth
+import io.screenstream.engine.internal.jpeg.NativeJpegProcess
 import io.screenstream.engine.internal.jpeg.NativeMallocCarrier
 import io.screenstream.engine.internal.jpeg.NativeMallocCarrierLease
-import io.screenstream.engine.internal.jpeg.NativeWriterResidueDisposition
 import io.screenstream.engine.internal.jpeg.NoReturnedCarrierSettlement
 import io.screenstream.engine.internal.jpeg.RgbaCarrier
 import io.screenstream.engine.internal.jpeg.RgbaCarrierLease
@@ -61,7 +59,6 @@ internal class JpegRuntimeOwner internal constructor(
 ) {
     private var currentProduct: JpegRuntimeProduct? = null
     private var currentLease: RgbaCarrierLease? = null
-    private var nativeCallBlocks: NativeCallBlocks? = null
     private var nativeReplacementAuthorizedSource: JpegRuntimeProduct? = null
     private var managedReplacementAuthorizedSource: JpegRuntimeProduct.FrameworkOnManagedCarrier? = null
 
@@ -117,8 +114,6 @@ internal class JpegRuntimeOwner internal constructor(
         occurrence.ownerBag.nativeCarrier = null
         occurrence.ownerBag.managedCarrier = null
         currentProduct = product
-        nativeCallBlocks = occurrence.ownerBag.nativeCallBlocks
-        occurrence.ownerBag.nativeCallBlocks = null
         preparationOccurrence = null
         return true
     }
@@ -295,7 +290,6 @@ internal class JpegRuntimeOwner internal constructor(
             }
 
             occurrence.ownerBag.product = null
-            occurrence.ownerBag.nativeCallBlocks = null
             preparationOccurrence = null
             NoReturnedCarrierSettlement.Completed
         }
@@ -595,7 +589,6 @@ internal class JpegRuntimeOwner internal constructor(
             return null
         }
 
-        val blocks = nativeCallBlocks ?: return null
         val nativeDisableCandidate = JpegRuntimeProduct.FrameworkOnNativeCarrier.create(expectedProduct.nativeCarrier)
         val occurrence = NativeEncodeOccurrence.create(
             desiredRevision = desiredRevision,
@@ -621,18 +614,6 @@ internal class JpegRuntimeOwner internal constructor(
         }
         gate.withLock {
             occurrence.ownerBag.retainedOperationLease = expectedLease
-        }
-
-        val loan = blocks.acquire()
-        if (loan == null) {
-            if (!unwindNativeEncodeAdmission(occurrence, NATIVE_ENCODE_ADMISSION_FAILED)) {
-                throw NATIVE_ENCODE_ADMISSION_FAILED
-            }
-            return null
-        }
-        gate.withLock {
-            occurrence.ownerBag.callBlocksOwner = blocks
-            occurrence.ownerBag.callBlockLoan = loan
         }
 
         val transaction = try {
@@ -691,7 +672,6 @@ internal class JpegRuntimeOwner internal constructor(
         val gate = occurrence.operation.settlementGate
         var settledResult = NativeEncodeSettlement.NotSettled
         var timelyNormal = false
-        var residueDisposition = NativeWriterResidueDisposition.Unresolved
         var carrierUseResolved = false
         gate.withLock {
             if (nativeEncodeOccurrence !== occurrence) return NativeEncodeSettlement.NotSettled
@@ -700,8 +680,6 @@ internal class JpegRuntimeOwner internal constructor(
 
             if (bag.admissionDisposition == NativeEncodeAdmissionDisposition.CleanupResidue) {
                 settledResult = NativeEncodeSettlement.InternalFailure
-                residueDisposition = bag.callBlockLoan?.writerResidueDisposition
-                    ?: NativeWriterResidueDisposition.NoNativeEntry
                 carrierUseResolved = true
                 if (bag.retainCommittedFrame == null) bag.retainCommittedFrame = false
             } else {
@@ -712,12 +690,10 @@ internal class JpegRuntimeOwner internal constructor(
                 if (occurrence.operation.returnCell.use == OperationReturnUse.Unclaimed) {
                     if (cancelledNativeEncodeWithoutReturnLocked(occurrence)) {
                         settledResult = NativeEncodeSettlement.CancelledWithoutReturn
-                        residueDisposition = NativeWriterResidueDisposition.NoNativeEntry
                         carrierUseResolved = true
                         if (bag.retainCommittedFrame == null) bag.retainCommittedFrame = false
                     } else if (terminalizedUnenteredEncodeFailureLocked(occurrence)) {
                         settledResult = NativeEncodeSettlement.InternalFailure
-                        residueDisposition = NativeWriterResidueDisposition.NoNativeEntry
                         carrierUseResolved = true
                         if (bag.retainCommittedFrame == null) bag.retainCommittedFrame = false
                     } else if (arbitration != OperationArbitration.SchedulerRejected &&
@@ -731,8 +707,6 @@ internal class JpegRuntimeOwner internal constructor(
                                 ?: NATIVE_ENCODE_ADMISSION_FAILED
                         }
                         settledResult = NativeEncodeSettlement.InternalFailure
-                        residueDisposition = bag.callBlockLoan?.writerResidueDisposition
-                            ?: NativeWriterResidueDisposition.NoNativeEntry
                         carrierUseResolved = true
                         if (bag.retainCommittedFrame == null) bag.retainCommittedFrame = false
                     }
@@ -741,7 +715,6 @@ internal class JpegRuntimeOwner internal constructor(
                     settledResult = evidence.result ?: return NativeEncodeSettlement.NotSettled
                     timelyNormal = occurrence.operation.returnCell.use == OperationReturnUse.Timely &&
                             occurrence.operation.returnCell.disposition == OperationReturnDisposition.Normal
-                    residueDisposition = evidence.writerResidueDisposition
                     carrierUseResolved = evidence.carrierUseResolved
                     if (bag.retainCommittedFrame == null) {
                         bag.retainCommittedFrame = retainCommittedFrame && timelyNormal
@@ -822,27 +795,6 @@ internal class JpegRuntimeOwner internal constructor(
                     occurrence.ownerBag.storageOwner === exactStorage
                 ) {
                     occurrence.ownerBag.unpublishedToRetire = null
-                }
-            }
-        }
-
-        var callBlocks: NativeCallBlocks? = null
-        var loan: NativeCallBlockLoan? = null
-        gate.withLock {
-            if (nativeEncodeOccurrence === occurrence && residueDisposition != NativeWriterResidueDisposition.Unresolved) {
-                callBlocks = occurrence.ownerBag.callBlocksOwner
-                loan = occurrence.ownerBag.callBlockLoan
-            }
-        }
-        val exactCallBlocks = callBlocks
-        val exactLoan = loan
-        if (exactCallBlocks != null && exactLoan != null && exactCallBlocks.release(exactLoan)) {
-            gate.withLock {
-                if (nativeEncodeOccurrence === occurrence && occurrence.ownerBag.callBlocksOwner === exactCallBlocks &&
-                    occurrence.ownerBag.callBlockLoan === exactLoan
-                ) {
-                    occurrence.ownerBag.callBlockLoan = null
-                    occurrence.ownerBag.callBlocksOwner = null
                 }
             }
         }
@@ -1116,7 +1068,6 @@ internal class JpegRuntimeOwner internal constructor(
             }
             occurrence.ownerBag.nativeCarrier = null
             occurrence.ownerBag.product = null
-            occurrence.ownerBag.nativeCallBlocks = null
             preparationOccurrence = null
             nativeFreeOccurrence = cleanup
         }
@@ -1233,27 +1184,6 @@ internal class JpegRuntimeOwner internal constructor(
             }
         }
 
-        var blocks: NativeCallBlocks? = null
-        var loan: NativeCallBlockLoan? = null
-        gate.withLock {
-            if (nativeEncodeOccurrence === occurrence) {
-                blocks = occurrence.ownerBag.callBlocksOwner
-                loan = occurrence.ownerBag.callBlockLoan
-            }
-        }
-        val exactBlocks = blocks
-        val exactLoan = loan
-        if (exactBlocks != null && exactLoan != null && exactBlocks.release(exactLoan)) {
-            gate.withLock {
-                if (nativeEncodeOccurrence === occurrence && occurrence.ownerBag.callBlocksOwner === exactBlocks &&
-                    occurrence.ownerBag.callBlockLoan === exactLoan
-                ) {
-                    occurrence.ownerBag.callBlocksOwner = null
-                    occurrence.ownerBag.callBlockLoan = null
-                }
-            }
-        }
-
         var lease: NativeMallocCarrierLease? = null
         gate.withLock {
             if (nativeEncodeOccurrence === occurrence) lease = occurrence.ownerBag.retainedOperationLease
@@ -1286,12 +1216,11 @@ internal class JpegRuntimeOwner internal constructor(
     }
 
     internal fun compressNativeFrame(
-        loan: NativeCallBlockLoan,
         pixels: ByteBuffer,
         bag: NativeEncodeOwnerBag,
         sink: EncodedStorageOwner.NativeSegmentSink,
-    ): Int = NativeBridge.nativeCompress(
-        writerBlock = loan.writerBlock,
+        resultBlock: ByteBuffer,
+    ): Unit = NativeJpegProcess.compress(
         pixels = pixels,
         pixelByteCount = bag.descriptor.pixelByteCount,
         width = bag.descriptor.width,
@@ -1303,11 +1232,8 @@ internal class JpegRuntimeOwner internal constructor(
         compressFormat = ANDROID_BITMAP_COMPRESS_FORMAT_JPEG,
         quality = bag.descriptor.quality,
         sink = sink,
-        resultBlock = loan.resultBlock,
+        resultBlock = resultBlock,
     )
-
-    internal fun releaseNativeWriterResidue(writerBlock: ByteBuffer): Int =
-        NativeBridge.nativeReleaseWriterResidue(writerBlock)
 
     internal fun signalJpegIoSettlement() {
         settlementSignal.signal()
@@ -1337,21 +1263,21 @@ internal class JpegRuntimeOwner internal constructor(
         }
         settlementSignal.signal()
 
-        val loadState = ProcessNativeLoader.ensureAvailable()
+        val loadState = NativeJpegProcess.ensureAvailable()
         when (loadState) {
-            ProcessNativeLoader.State.LoadOome ->
-                publishFailure(occurrence.operation, JpegRuntimeFailure.ResourceExhausted, ProcessNativeLoader.cause() ?: MISSING_LOADER_FAILURE)
+            NativeJpegProcess.State.LoadOome ->
+                publishFailure(occurrence.operation, JpegRuntimeFailure.ResourceExhausted, NativeJpegProcess.cause() ?: MISSING_LOADER_FAILURE)
 
-            ProcessNativeLoader.State.Poisoned ->
-                publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, ProcessNativeLoader.cause() ?: MISSING_LOADER_FAILURE)
+            NativeJpegProcess.State.Poisoned ->
+                publishFailure(occurrence.operation, JpegRuntimeFailure.InternalFailure, NativeJpegProcess.cause() ?: MISSING_LOADER_FAILURE)
 
-            ProcessNativeLoader.State.Available -> prepareWithNativeCarrier(occurrence, policy, byteCount)
-            ProcessNativeLoader.State.CleanUnavailable -> {
-                occurrence.operation.returnCell.evidence.cleanNativeUnavailabilityCause = ProcessNativeLoader.cause()
+            NativeJpegProcess.State.Available -> prepareWithNativeCarrier(occurrence, policy, byteCount)
+            NativeJpegProcess.State.CleanUnavailable -> {
+                occurrence.operation.returnCell.evidence.cleanNativeUnavailabilityCause = NativeJpegProcess.cause()
                 prepareWithManagedCarrier(occurrence, byteCount)
             }
 
-            ProcessNativeLoader.State.Unattempted -> error("loader result cannot remain unattempted")
+            NativeJpegProcess.State.Unattempted -> error("loader result cannot remain unattempted")
         }
     }
 
@@ -1359,7 +1285,7 @@ internal class JpegRuntimeOwner internal constructor(
         val carrier = NativeMallocCarrier.create(byteCount)
         val nativeAvailable = if (policy == JpegBackendPolicy.Auto) {
             try {
-                NativeBridge.nativeHasWeakCompressor()
+                NativeJpegProcess.hasWeakCompressor()
             } catch (failure: Throwable) {
                 publishFailure(occurrence.operation, classifyFailure(failure), failure)
                 return
@@ -1372,17 +1298,10 @@ internal class JpegRuntimeOwner internal constructor(
         } else {
             JpegRuntimeProduct.FrameworkOnNativeCarrier.create(carrier)
         }
-        val blocks = try {
-            if (nativeAvailable) NativeCallBlocks.create() else null
-        } catch (failure: Throwable) {
-            publishFailure(occurrence.operation, classifyFailure(failure), failure)
-            return
-        }
         occurrence.ownerBag.product = product
-        occurrence.ownerBag.nativeCallBlocks = blocks
 
         val buffer = try {
-            NativeBridge.nativeAllocateCarrier(byteCount.toLong())
+            NativeJpegProcess.allocateCarrier(byteCount.toLong())
         } catch (failure: Throwable) {
             publishFailure(occurrence.operation, classifyFailure(failure), failure)
             return
@@ -1453,7 +1372,7 @@ internal class JpegRuntimeOwner internal constructor(
         settlementSignal.signal()
 
         val published = try {
-            NativeBridge.nativeFreeCarrier(occurrence.ownerBag.buffer)
+            NativeJpegProcess.freeCarrier(occurrence.ownerBag.buffer)
             occurrence.operation.returnCell.evidence.receipt = occurrence.operation.returnCell.evidence.normalReceipt
             occurrence.operation.publishNormalReturn()
         } catch (failure: Throwable) {
@@ -1472,7 +1391,7 @@ internal class JpegRuntimeOwner internal constructor(
 
         val carrier = occurrence.carrierCandidate
         val buffer = try {
-            NativeBridge.nativeAllocateCarrier(byteCount.toLong())
+            NativeJpegProcess.allocateCarrier(byteCount.toLong())
         } catch (failure: Throwable) {
             occurrence.operation.returnCell.evidence.failure = classifyFailure(failure)
             occurrence.operation.returnCell.evidence.failureCause = failure
@@ -1608,63 +1527,7 @@ internal class JpegRuntimeOwner internal constructor(
         }
     }
 
-    private object ProcessNativeLoader {
-        enum class State {
-            Unattempted,
-            Available,
-            CleanUnavailable,
-            LoadOome,
-            Poisoned,
-        }
-
-        private var state: State = State.Unattempted
-        private var firstCause: Throwable? = null
-
-        @Synchronized
-        fun ensureAvailable(): State {
-            if (state != State.Unattempted) return state
-
-            try {
-                System.loadLibrary("screencaptureengine")
-            } catch (failure: UnsatisfiedLinkError) {
-                state = State.CleanUnavailable
-                firstCause = failure
-                return state
-            } catch (failure: SecurityException) {
-                state = State.CleanUnavailable
-                firstCause = failure
-                return state
-            } catch (failure: OutOfMemoryError) {
-                state = State.LoadOome
-                firstCause = failure
-                return state
-            } catch (failure: Throwable) {
-                state = State.Poisoned
-                firstCause = failure
-                return state
-            }
-
-            try {
-                if (NativeBridge.nativeBootstrap() == NATIVE_BOOTSTRAP_SUCCESS) {
-                    state = State.Available
-                } else {
-                    state = State.Poisoned
-                    firstCause = BOOTSTRAP_REJECTED
-                }
-            } catch (failure: Throwable) {
-                state = State.Poisoned
-                firstCause = failure
-            }
-            return state
-        }
-
-        @Synchronized
-        fun cause(): Throwable? = firstCause
-
-    }
-
     private companion object {
-        private const val NATIVE_BOOTSTRAP_SUCCESS: Int = 0
         private const val RGBA_PIXEL_BYTE_COUNT: Long = 4L
         private const val MIN_JPEG_QUALITY: Int = 0
         private const val MAX_JPEG_QUALITY: Int = 100
@@ -1674,41 +1537,11 @@ internal class JpegRuntimeOwner internal constructor(
         private const val ANDROID_DATASPACE_SRGB: Int = 142_671_872
         private const val ANDROID_BITMAP_COMPRESS_FORMAT_JPEG: Int = 0
 
-        private val BOOTSTRAP_REJECTED: IllegalStateException =
-            IllegalStateException("native JPEG bootstrap rejected its protocol")
         private val INVALID_CARRIER_BUFFER: IllegalStateException =
             IllegalStateException("carrier allocator returned a malformed direct buffer")
         private val MISSING_LOADER_FAILURE: IllegalStateException =
             IllegalStateException("native JPEG loader failed without a cause")
         private val ATTACHMENT_STATE_VIOLATION: IllegalStateException =
             IllegalStateException("carrier attachment transaction is not current")
-    }
-
-    private object NativeBridge {
-        external fun nativeBootstrap(): Int
-
-        external fun nativeAllocateCarrier(byteCount: Long): ByteBuffer
-
-        external fun nativeFreeCarrier(buffer: ByteBuffer)
-
-        external fun nativeHasWeakCompressor(): Boolean
-
-        external fun nativeCompress(
-            writerBlock: ByteBuffer,
-            pixels: ByteBuffer,
-            pixelByteCount: Long,
-            width: Int,
-            height: Int,
-            stride: Int,
-            format: Int,
-            flags: Long,
-            dataspace: Int,
-            compressFormat: Int,
-            quality: Int,
-            sink: EncodedStorageOwner.NativeSegmentSink,
-            resultBlock: ByteBuffer,
-        ): Int
-
-        external fun nativeReleaseWriterResidue(writerBlock: ByteBuffer): Int
     }
 }

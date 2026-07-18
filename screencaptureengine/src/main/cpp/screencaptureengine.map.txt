@@ -1,0 +1,7 @@
+SCE_1.0 {
+    global:
+        JNI_OnLoad;
+        Java_io_screenstream_engine_internal_jpeg_NativeJpegProcess_nativeBootstrap;
+    local:
+        *;
+};

@@ -12,8 +12,6 @@ import io.screenstream.engine.internal.settlement.OperationReturnedOwner
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 internal enum class JpegRuntimeFailure {
     ResourceExhausted,
@@ -57,7 +55,6 @@ internal class JpegPreparationOwnerBag internal constructor() : OperationOwnerBa
     internal var nativeCarrier: NativeMallocCarrier? = null
     internal var managedCarrier: ManagedDirectCarrier? = null
     internal var product: JpegRuntimeProduct? = null
-    internal var nativeCallBlocks: NativeCallBlocks? = null
 }
 
 internal class JpegPreparationOccurrence private constructor(
@@ -262,13 +259,6 @@ internal class NativeFrameDescriptor internal constructor(
     internal val imageSize: ImageSize,
 )
 
-internal enum class NativeWriterResidueDisposition {
-    NoNativeEntry,
-    Unresolved,
-    ClearOnReturn,
-    ReleasedAndCleared,
-}
-
 internal enum class NativeEncodeAdmissionDisposition {
     Preparing,
     Attached,
@@ -302,13 +292,10 @@ internal class NativeEncodeEvidence internal constructor() : OperationEvidence {
 
     internal var result: NativeEncodeSettlement? = null
     internal var failureCause: Throwable? = null
-    internal var compressorResult: Int = Int.MIN_VALUE
-    internal var writerStatus: Long = Long.MIN_VALUE
-    internal var totalBytes: Long = Long.MIN_VALUE
-    internal var adoptedBytes: Long = Long.MIN_VALUE
-    internal var remainingBytes: Long = Long.MIN_VALUE
-    internal var remainingSegmentCount: Long = Long.MIN_VALUE
-    internal var writerResidueDisposition: NativeWriterResidueDisposition = NativeWriterResidueDisposition.Unresolved
+    internal var nativeStatus: Long = NATIVE_RESULT_PENDING
+    internal var nativeProducedByteCount: Long = NATIVE_RESULT_PENDING
+    internal var managedAdoptedByteCount: Int = 0
+    internal var resultChannelArmed: Boolean = false
     internal var carrierUseResolved: Boolean = false
 }
 
@@ -316,10 +303,9 @@ internal class NativeEncodeOwnerBag internal constructor(
     internal val product: JpegRuntimeProduct.NativeEnabled,
     internal val descriptor: NativeFrameDescriptor,
     internal val carrierLease: NativeMallocCarrierLease,
+    internal val resultBlock: ByteBuffer,
     internal var nativeDisableCandidate: JpegRuntimeProduct.FrameworkOnNativeCarrier?,
     internal var retainedOperationLease: NativeMallocCarrierLease? = null,
-    internal var callBlocksOwner: NativeCallBlocks? = null,
-    internal var callBlockLoan: NativeCallBlockLoan? = null,
     internal var storageOwner: EncodedStorageOwner? = null,
     internal var transaction: EncodedStorageOwner.NativeTransaction? = null,
     internal var segmentSink: EncodedStorageOwner.NativeSegmentSink? = null,
@@ -354,10 +340,14 @@ internal class NativeEncodeOccurrence private constructor(
             work: (NativeEncodeOccurrence) -> Unit,
         ): NativeEncodeOccurrence {
             val evidence = NativeEncodeEvidence()
+            val resultBlock = ByteBuffer.allocateDirect(NATIVE_RESULT_BLOCK_BYTE_COUNT).order(ByteOrder.nativeOrder())
+            resultBlock.putLong(NATIVE_STATUS_OFFSET, NATIVE_RESULT_PENDING)
+            resultBlock.putLong(NATIVE_PRODUCED_BYTE_COUNT_OFFSET, NATIVE_RESULT_PENDING)
             val bag = NativeEncodeOwnerBag(
                 product = capturedProduct,
                 descriptor = descriptor,
                 carrierLease = carrierLease,
+                resultBlock = resultBlock,
                 nativeDisableCandidate = nativeDisableCandidate,
             )
             val operation = OperationOccurrence(
@@ -387,101 +377,7 @@ internal class NativeEncodeOccurrence private constructor(
     }
 }
 
-internal class NativeCallBlocks private constructor(
-    internal val writerBlock: ByteBuffer,
-    internal val resultBlock: ByteBuffer,
-) {
-    private val gate: ReentrantLock = ReentrantLock(false)
-    private val reusableLoan: NativeCallBlockLoan = NativeCallBlockLoan.create(writerBlock, resultBlock)
-    private var activeLoan: NativeCallBlockLoan? = null
-
-    internal fun acquire(): NativeCallBlockLoan? = gate.withLock {
-        if (activeLoan != null || !reusableLoan.acquire()) return@withLock null
-
-        activeLoan = reusableLoan
-        reusableLoan
-    }
-
-    internal fun release(loan: NativeCallBlockLoan): Boolean = gate.withLock {
-        if (activeLoan !== loan || !loan.release()) return@withLock false
-
-        activeLoan = null
-        true
-    }
-
-    internal companion object {
-        internal fun create(): NativeCallBlocks = NativeCallBlocks(
-            writerBlock = ByteBuffer.allocateDirect(Long.SIZE_BYTES).order(ByteOrder.nativeOrder()),
-            resultBlock = ByteBuffer.allocateDirect(Long.SIZE_BYTES * RESULT_FIELD_COUNT).order(ByteOrder.nativeOrder()),
-        )
-
-        private const val RESULT_FIELD_COUNT: Int = 5
-    }
-}
-
-internal class NativeCallBlockLoan private constructor(
-    internal val writerBlock: ByteBuffer,
-    internal val resultBlock: ByteBuffer,
-) {
-    private enum class LoanState {
-        Available,
-        Acquired,
-    }
-
-    private var state: LoanState = LoanState.Available
-    internal var writerResidueDisposition: NativeWriterResidueDisposition = NativeWriterResidueDisposition.NoNativeEntry
-        private set
-
-    internal fun acquire(): Boolean {
-        if (state != LoanState.Available || writerResidueDisposition != NativeWriterResidueDisposition.NoNativeEntry) {
-            return false
-        }
-
-        state = LoanState.Acquired
-        return true
-    }
-
-    internal fun reset() {
-        check(state == LoanState.Acquired && writerResidueDisposition == NativeWriterResidueDisposition.NoNativeEntry)
-        writerBlock.putLong(0, 0L)
-        var offset = 0
-        while (offset < resultBlock.capacity()) {
-            resultBlock.putLong(offset, 0L)
-            offset += Long.SIZE_BYTES
-        }
-    }
-
-    internal fun markNativeEntryAttempted(): Boolean {
-        if (state != LoanState.Acquired || writerResidueDisposition != NativeWriterResidueDisposition.NoNativeEntry) return false
-
-        writerResidueDisposition = NativeWriterResidueDisposition.Unresolved
-        return true
-    }
-
-    internal fun markClearOnReturn(): Boolean {
-        if (state != LoanState.Acquired || writerResidueDisposition != NativeWriterResidueDisposition.Unresolved) return false
-
-        writerResidueDisposition = NativeWriterResidueDisposition.ClearOnReturn
-        return true
-    }
-
-    internal fun markReleasedAndCleared(): Boolean {
-        if (state != LoanState.Acquired || writerResidueDisposition != NativeWriterResidueDisposition.Unresolved) return false
-
-        writerResidueDisposition = NativeWriterResidueDisposition.ReleasedAndCleared
-        return true
-    }
-
-    internal fun release(): Boolean {
-        if (state != LoanState.Acquired || writerResidueDisposition == NativeWriterResidueDisposition.Unresolved) return false
-
-        writerResidueDisposition = NativeWriterResidueDisposition.NoNativeEntry
-        state = LoanState.Available
-        return true
-    }
-
-    internal companion object {
-        internal fun create(writerBlock: ByteBuffer, resultBlock: ByteBuffer): NativeCallBlockLoan =
-            NativeCallBlockLoan(writerBlock = writerBlock, resultBlock = resultBlock)
-    }
-}
+internal const val NATIVE_RESULT_PENDING: Long = -1L
+internal const val NATIVE_RESULT_BLOCK_BYTE_COUNT: Int = Long.SIZE_BYTES * 2
+internal const val NATIVE_STATUS_OFFSET: Int = 0
+internal const val NATIVE_PRODUCED_BYTE_COUNT_OFFSET: Int = Long.SIZE_BYTES

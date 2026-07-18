@@ -8,13 +8,33 @@ kotlin {
 }
 
 android {
-    namespace = "dev.dmkr.screencaptureengine"
+    namespace = "io.screenstream.engine"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
         minSdk = 24
+
+        ndk {
+            abiFilters += setOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
+
+        externalNativeBuild {
+            cmake {
+                arguments += "-DANDROID_WEAK_API_DEFS=ON"
+                targets += "screencaptureengine"
+            }
+        }
+
+        consumerProguardFiles("consumer-rules.pro")
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 }
 

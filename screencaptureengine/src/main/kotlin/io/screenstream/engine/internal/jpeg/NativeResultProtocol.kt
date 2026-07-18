@@ -1,270 +1,162 @@
 package io.screenstream.engine.internal.jpeg
 
 import io.screenstream.engine.internal.EncodedStorageOwner
-import io.screenstream.engine.internal.JpegRuntimeOwner
 
-internal fun decodeNativeEncodeResult(
-    owner: JpegRuntimeOwner,
-    occurrence: NativeEncodeOccurrence,
-    compressorResult: Int,
-    thrown: Throwable?,
-): Boolean {
+internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown: Throwable?): Boolean {
     val bag = occurrence.ownerBag
     val evidence = occurrence.operation.returnCell.evidence
-    val loan = checkNotNull(bag.callBlockLoan)
     val transaction = checkNotNull(bag.transaction)
 
-    var blockFailure: Throwable? = null
-    try {
-        evidence.compressorResult = compressorResult
-        evidence.writerStatus = loan.resultBlock.getLong(WRITER_STATUS_OFFSET)
-        evidence.totalBytes = loan.resultBlock.getLong(TOTAL_BYTES_OFFSET)
-        evidence.adoptedBytes = loan.resultBlock.getLong(ADOPTED_BYTES_OFFSET)
-        evidence.remainingBytes = loan.resultBlock.getLong(REMAINING_BYTES_OFFSET)
-        evidence.remainingSegmentCount = loan.resultBlock.getLong(REMAINING_SEGMENTS_OFFSET)
+    val blockFailure = try {
+        evidence.nativeStatus = bag.resultBlock.getLong(NATIVE_STATUS_OFFSET)
+        evidence.nativeProducedByteCount = bag.resultBlock.getLong(NATIVE_PRODUCED_BYTE_COUNT_OFFSET)
+        evidence.managedAdoptedByteCount = transaction.byteCount
+        evidence.resultChannelArmed = evidence.nativeStatus != NATIVE_RESULT_PENDING &&
+                evidence.nativeProducedByteCount != NATIVE_RESULT_PENDING
+        null
     } catch (failure: Throwable) {
-        blockFailure = failure
+        failure
+    }
+    if (blockFailure != null) {
+        abortIfPossible(transaction)
+        return classifyMalformedThrowable(occurrence, thrown ?: blockFailure)
     }
 
-    var tokenRead = false
-    val tokenClearOnReturn = try {
-        val clear = loan.writerBlock.getLong(WRITER_TOKEN_OFFSET) == 0L
-        tokenRead = true
-        clear
-    } catch (failure: Throwable) {
-        if (blockFailure == null) blockFailure = failure
-        false
+    val status = evidence.nativeStatus
+    val produced = evidence.nativeProducedByteCount
+    val adopted = evidence.managedAdoptedByteCount.toLong()
+    val knownStatus = status == NATIVE_STATUS_TRANSFER_COMPLETE ||
+            status == NATIVE_STATUS_SAFE_COMPRESSOR_ALLOCATION_FAILURE ||
+            status == NATIVE_STATUS_OUT_OF_MEMORY ||
+            status == NATIVE_STATUS_INTERNAL_FAILURE ||
+            status == NATIVE_STATUS_JAVA_THROWABLE
+    val commonCountsValid = produced in 0L..Int.MAX_VALUE.toLong() && adopted in 0L..produced
+
+    if (!evidence.carrierUseResolved || !evidence.resultChannelArmed || !knownStatus || !commonCountsValid) {
+        abortIfPossible(transaction)
+        return classifyMalformedThrowable(occurrence, thrown)
     }
-    var residueFailure: Throwable? = null
-    if (tokenClearOnReturn) {
-        if (!loan.markClearOnReturn()) residueFailure = MALFORMED_NATIVE_RESULT
-    } else if (tokenRead) {
-        try {
-            if (owner.releaseNativeWriterResidue(loan.writerBlock) == NATIVE_RESIDUE_RELEASE_SUCCESS) {
-                val tokenClearedAfterRelease = loan.writerBlock.getLong(WRITER_TOKEN_OFFSET) == 0L
-                if (tokenClearedAfterRelease && !loan.markReleasedAndCleared()) {
-                    residueFailure = MALFORMED_NATIVE_RESULT
+
+    return when (status) {
+        NATIVE_STATUS_TRANSFER_COMPLETE -> {
+            val valid = thrown == null && produced > 0L && adopted == produced && transaction.failure == null
+            if (!valid) {
+                abortIfPossible(transaction)
+                classifyMalformedThrowable(occurrence, thrown)
+            } else if (transaction.commit(bag.descriptor.imageSize)) {
+                publishReturnedResult(occurrence, NativeEncodeSettlement.Success, null)
+            } else {
+                val transactionCause = transaction.failureCause
+                when (transaction.failure) {
+                    EncodedStorageOwner.TransactionFailure.ResourceExhausted ->
+                        publishReturnedResult(occurrence, NativeEncodeSettlement.ResourceExhausted, transactionCause)
+
+                    else -> publishReturnedResult(
+                        occurrence,
+                        NativeEncodeSettlement.InternalFailure,
+                        transactionCause ?: MALFORMED_NATIVE_RESULT,
+                    )
                 }
             }
-        } catch (failure: Throwable) {
-            residueFailure = failure
         }
-    }
-    evidence.writerResidueDisposition = loan.writerResidueDisposition
 
-    val writerMalformed = evidence.writerStatus != WRITER_STATUS_SAFE &&
-            evidence.writerStatus != WRITER_STATUS_OUT_OF_MEMORY &&
-            evidence.writerStatus != WRITER_STATUS_INTERNAL
-    val countsNonnegative = evidence.totalBytes >= 0L && evidence.adoptedBytes >= 0L &&
-            evidence.remainingBytes >= 0L && evidence.remainingSegmentCount >= 0L
-    val sumRepresentable = countsNonnegative && evidence.adoptedBytes <= Long.MAX_VALUE - evidence.remainingBytes
-    val countsMalformed = !countsNonnegative || evidence.adoptedBytes > evidence.totalBytes ||
-            evidence.remainingBytes > evidence.totalBytes || !sumRepresentable ||
-            evidence.totalBytes != evidence.adoptedBytes + evidence.remainingBytes ||
-            (evidence.remainingBytes == 0L) != (evidence.remainingSegmentCount == 0L) ||
-            evidence.remainingSegmentCount > evidence.remainingBytes ||
-            evidence.adoptedBytes != transaction.byteCount.toLong()
-    val transactionFailure = transaction.failure
-    val nonOomBlockFailure = blockFailure != null && blockFailure !is OutOfMemoryError
-    val nonOomResidueFailure = residueFailure != null && residueFailure !is OutOfMemoryError
-    val nonOomThrown = thrown != null && thrown !is OutOfMemoryError
-    val residueResolved = evidence.writerResidueDisposition == NativeWriterResidueDisposition.ClearOnReturn ||
-            evidence.writerResidueDisposition == NativeWriterResidueDisposition.ReleasedAndCleared
-    val internalFault = !evidence.carrierUseResolved || !residueResolved || nonOomBlockFailure ||
-            nonOomResidueFailure || nonOomThrown || writerMalformed || countsMalformed ||
-            evidence.writerStatus == WRITER_STATUS_INTERNAL ||
-            transactionFailure == EncodedStorageOwner.TransactionFailure.InternalFailure
-    val outOfMemory = blockFailure is OutOfMemoryError || residueFailure is OutOfMemoryError ||
-            thrown is OutOfMemoryError || evidence.writerStatus == WRITER_STATUS_OUT_OF_MEMORY ||
-            transactionFailure == EncodedStorageOwner.TransactionFailure.ResourceExhausted
-
-    if (internalFault) {
-        if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-        return publishNativeEncodeFailure(
-            occurrence,
-            NativeEncodeSettlement.InternalFailure,
-            selectInternalFailureCause(
-                blockFailure = blockFailure,
-                residueFailure = residueFailure,
-                thrown = thrown,
-                transactionFailure = transactionFailure,
-                transactionCause = transaction.failureCause,
-            ),
-        )
-    }
-    if (outOfMemory) {
-        if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-        return publishNativeEncodeFailure(
-            occurrence,
-            NativeEncodeSettlement.ResourceExhausted,
-            selectResourceExhaustedCause(
-                blockFailure = blockFailure,
-                residueFailure = residueFailure,
-                thrown = thrown,
-                transactionFailure = transactionFailure,
-                transactionCause = transaction.failureCause,
-            ),
-        )
-    }
-
-    val nativeRemainderEmpty = evidence.remainingBytes == 0L && evidence.remainingSegmentCount == 0L
-    when (compressorResult) {
-        ANDROID_BITMAP_RESULT_SUCCESS -> {
-            val successful = evidence.writerStatus == WRITER_STATUS_SAFE && nativeRemainderEmpty &&
-                    evidence.totalBytes > 0L && evidence.totalBytes == evidence.adoptedBytes &&
-                    transaction.commit(bag.descriptor.imageSize)
-            if (successful) {
-                evidence.result = NativeEncodeSettlement.Success
-                return occurrence.operation.publishNormalReturn()
+        NATIVE_STATUS_SAFE_COMPRESSOR_ALLOCATION_FAILURE -> {
+            val valid = thrown == null && adopted == 0L && transaction.failure == null
+            abortIfPossible(transaction)
+            if (valid) {
+                publishReturnedResult(occurrence, NativeEncodeSettlement.SafeNativeAllocationFailure, null)
             } else {
-                if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-                val transactionResult = classifyTransactionFailure(transaction)
-                return publishNativeEncodeFailure(
-                    occurrence,
-                    transactionResult,
-                    selectTransactionFailureCause(transaction, transactionResult),
-                )
+                classifyMalformedThrowable(occurrence, thrown)
             }
         }
 
-        ANDROID_BITMAP_RESULT_ALLOCATION_FAILED -> {
-            val safeAllocationFailure = evidence.writerStatus == WRITER_STATUS_SAFE && evidence.totalBytes == 0L &&
-                    evidence.adoptedBytes == 0L && nativeRemainderEmpty &&
-                    transaction.byteCount == 0 && transaction.failure == null
-            if (safeAllocationFailure) {
-                transaction.abort()
-                evidence.result = NativeEncodeSettlement.SafeNativeAllocationFailure
-                return occurrence.operation.publishNormalReturn()
+        NATIVE_STATUS_OUT_OF_MEMORY -> {
+            val valid = thrown == null && adopted == 0L && transaction.failure == null
+            abortIfPossible(transaction)
+            if (valid) {
+                publishReturnedResult(occurrence, NativeEncodeSettlement.ResourceExhausted, null)
             } else {
-                if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-                return publishNativeEncodeFailure(
-                    occurrence,
-                    NativeEncodeSettlement.InternalFailure,
-                    MALFORMED_NATIVE_RESULT,
-                )
+                classifyMalformedThrowable(occurrence, thrown)
             }
         }
 
-        ANDROID_BITMAP_RESULT_BAD_PARAMETER,
-        ANDROID_BITMAP_RESULT_JNI_EXCEPTION,
-            -> {
-            if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-            return publishNativeEncodeFailure(
-                occurrence,
-                NativeEncodeSettlement.InternalFailure,
-                NATIVE_COMPRESSOR_FAILURE,
-            )
+        NATIVE_STATUS_INTERNAL_FAILURE -> {
+            abortIfPossible(transaction)
+            classifyInternalThrowable(occurrence, thrown)
         }
 
-        else -> {
-            if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
-            return publishNativeEncodeFailure(
-                occurrence,
-                NativeEncodeSettlement.InternalFailure,
-                UNKNOWN_NATIVE_COMPRESSOR_RESULT,
-            )
+        NATIVE_STATUS_JAVA_THROWABLE -> {
+            abortIfPossible(transaction)
+            val throwableEvidenceValid = thrown != null && produced > 0L &&
+                    (transaction.failureCause == null || transaction.failureCause === thrown)
+            if (throwableEvidenceValid) {
+                classifyJavaThrowable(occurrence, checkNotNull(thrown))
+            } else {
+                classifyMalformedThrowable(occurrence, thrown)
+            }
         }
+
+        else -> error("known native status branch is exhaustive")
     }
 }
 
-internal fun publishNativeEncodeFailure(
-    occurrence: NativeEncodeOccurrence,
-    result: NativeEncodeSettlement,
-    failure: Throwable,
-): Boolean {
+internal fun publishNativeEncodeFailure(occurrence: NativeEncodeOccurrence, result: NativeEncodeSettlement, failure: Throwable): Boolean {
     val evidence = occurrence.operation.returnCell.evidence
     evidence.result = result
     evidence.failureCause = failure
     return occurrence.operation.publishThrownReturn(failure)
 }
 
-private fun classifyTransactionFailure(transaction: EncodedStorageOwner.NativeTransaction): NativeEncodeSettlement =
-    if (transaction.failure == EncodedStorageOwner.TransactionFailure.ResourceExhausted) {
-        NativeEncodeSettlement.ResourceExhausted
-    } else {
-        NativeEncodeSettlement.InternalFailure
-    }
-
-private fun selectTransactionFailureCause(
-    transaction: EncodedStorageOwner.NativeTransaction,
-    result: NativeEncodeSettlement,
-): Throwable = when (result) {
-    NativeEncodeSettlement.ResourceExhausted -> selectResourceExhaustedCause(
-        blockFailure = null,
-        residueFailure = null,
-        thrown = null,
-        transactionFailure = transaction.failure,
-        transactionCause = transaction.failureCause,
-    )
-
-    NativeEncodeSettlement.InternalFailure -> selectInternalFailureCause(
-        blockFailure = null,
-        residueFailure = null,
-        thrown = null,
-        transactionFailure = transaction.failure,
-        transactionCause = transaction.failureCause,
-    )
-
-    else -> MALFORMED_NATIVE_RESULT
+private fun classifyJavaThrowable(occurrence: NativeEncodeOccurrence, thrown: Throwable): Boolean = when (thrown) {
+    is OutOfMemoryError -> publishThrownResult(occurrence, NativeEncodeSettlement.ResourceExhausted, thrown)
+    is Exception -> publishThrownResult(occurrence, NativeEncodeSettlement.InternalFailure, thrown)
+    else -> rethrowFatal(occurrence, thrown)
 }
 
-private fun selectInternalFailureCause(
-    blockFailure: Throwable?,
-    residueFailure: Throwable?,
-    thrown: Throwable?,
-    transactionFailure: EncodedStorageOwner.TransactionFailure?,
-    transactionCause: Throwable?,
-): Throwable {
-    if (blockFailure != null && blockFailure !is OutOfMemoryError) return blockFailure
-    if (residueFailure != null && residueFailure !is OutOfMemoryError) return residueFailure
-    if (thrown != null && thrown !is OutOfMemoryError) return thrown
-    if (transactionFailure == EncodedStorageOwner.TransactionFailure.InternalFailure &&
-        transactionCause != null && transactionCause !is OutOfMemoryError
-    ) {
-        return transactionCause
-    }
-    return MALFORMED_NATIVE_RESULT
+private fun classifyInternalThrowable(occurrence: NativeEncodeOccurrence, thrown: Throwable?): Boolean = when (thrown) {
+    null -> publishReturnedResult(occurrence, NativeEncodeSettlement.InternalFailure, NATIVE_INTERNAL_FAILURE)
+    is Exception -> publishThrownResult(occurrence, NativeEncodeSettlement.InternalFailure, thrown)
+    else -> rethrowFatal(occurrence, thrown)
 }
 
-private fun selectResourceExhaustedCause(
-    blockFailure: Throwable?,
-    residueFailure: Throwable?,
-    thrown: Throwable?,
-    transactionFailure: EncodedStorageOwner.TransactionFailure?,
-    transactionCause: Throwable?,
-): Throwable {
-    if (blockFailure is OutOfMemoryError) return blockFailure
-    if (residueFailure is OutOfMemoryError) return residueFailure
-    if (thrown is OutOfMemoryError) return thrown
-    if (transactionFailure == EncodedStorageOwner.TransactionFailure.ResourceExhausted && transactionCause != null) {
-        return transactionCause
-    }
-    return NATIVE_WRITER_OUT_OF_MEMORY
+private fun classifyMalformedThrowable(occurrence: NativeEncodeOccurrence, thrown: Throwable?): Boolean = when (thrown) {
+    null -> publishReturnedResult(occurrence, NativeEncodeSettlement.InternalFailure, MALFORMED_NATIVE_RESULT)
+    is Exception -> publishThrownResult(occurrence, NativeEncodeSettlement.InternalFailure, thrown)
+    else -> rethrowFatal(occurrence, thrown)
 }
 
-private const val NATIVE_RESIDUE_RELEASE_SUCCESS: Int = 0
+private fun publishReturnedResult(occurrence: NativeEncodeOccurrence, result: NativeEncodeSettlement, cause: Throwable?): Boolean {
+    val evidence = occurrence.operation.returnCell.evidence
+    evidence.result = result
+    evidence.failureCause = cause
+    return occurrence.operation.publishNormalReturn()
+}
 
-private const val ANDROID_BITMAP_RESULT_SUCCESS: Int = 0
-private const val ANDROID_BITMAP_RESULT_BAD_PARAMETER: Int = -1
-private const val ANDROID_BITMAP_RESULT_JNI_EXCEPTION: Int = -2
-private const val ANDROID_BITMAP_RESULT_ALLOCATION_FAILED: Int = -3
+private fun publishThrownResult(occurrence: NativeEncodeOccurrence, result: NativeEncodeSettlement, cause: Throwable): Boolean {
+    val evidence = occurrence.operation.returnCell.evidence
+    evidence.result = result
+    evidence.failureCause = cause
+    return occurrence.operation.publishThrownReturn(cause)
+}
 
-private const val WRITER_STATUS_SAFE: Long = 0L
-private const val WRITER_STATUS_OUT_OF_MEMORY: Long = 1L
-private const val WRITER_STATUS_INTERNAL: Long = 2L
+private fun rethrowFatal(occurrence: NativeEncodeOccurrence, fatal: Throwable): Nothing {
+    val evidence = occurrence.operation.returnCell.evidence
+    evidence.result = NativeEncodeSettlement.InternalFailure
+    evidence.failureCause = fatal
+    throw fatal
+}
 
-private const val WRITER_TOKEN_OFFSET: Int = 0
-private const val WRITER_STATUS_OFFSET: Int = 0
-private const val TOTAL_BYTES_OFFSET: Int = Long.SIZE_BYTES
-private const val ADOPTED_BYTES_OFFSET: Int = Long.SIZE_BYTES * 2
-private const val REMAINING_BYTES_OFFSET: Int = Long.SIZE_BYTES * 3
-private const val REMAINING_SEGMENTS_OFFSET: Int = Long.SIZE_BYTES * 4
+private fun abortIfPossible(transaction: EncodedStorageOwner.NativeTransaction) {
+    if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
+}
+
+private const val NATIVE_STATUS_TRANSFER_COMPLETE: Long = 0L
+private const val NATIVE_STATUS_SAFE_COMPRESSOR_ALLOCATION_FAILURE: Long = 1L
+private const val NATIVE_STATUS_OUT_OF_MEMORY: Long = 2L
+private const val NATIVE_STATUS_INTERNAL_FAILURE: Long = 3L
+private const val NATIVE_STATUS_JAVA_THROWABLE: Long = 4L
 
 private val MALFORMED_NATIVE_RESULT: IllegalStateException =
-    IllegalStateException("native JPEG returned malformed writer evidence")
-private val NATIVE_WRITER_OUT_OF_MEMORY: OutOfMemoryError =
-    OutOfMemoryError("native JPEG writer exhausted storage")
-private val NATIVE_COMPRESSOR_FAILURE: IllegalStateException =
-    IllegalStateException("native JPEG compressor rejected the frame")
-private val UNKNOWN_NATIVE_COMPRESSOR_RESULT: IllegalStateException =
-    IllegalStateException("native JPEG compressor returned an unknown result")
+    IllegalStateException("native JPEG returned malformed result evidence")
+private val NATIVE_INTERNAL_FAILURE: IllegalStateException =
+    IllegalStateException("native JPEG reported an internal failure")

@@ -8,6 +8,7 @@ import io.screenstream.engine.internal.settlement.OperationEntryResult
 import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.OperationReturnUse
 import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
+import kotlin.concurrent.withLock
 
 internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence: NativeEncodeOccurrence) {
     val entryResult = occurrence.operation.tryEnter()
@@ -19,13 +20,11 @@ internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence:
 
     val bag = occurrence.ownerBag
     val lease = checkNotNull(bag.retainedOperationLease)
-    val loan = checkNotNull(bag.callBlockLoan)
     val transaction = checkNotNull(bag.transaction)
     val evidence = occurrence.operation.returnCell.evidence
     val pixels = lease.enterExactRange()
     if (pixels == null) {
         evidence.carrierUseResolved = true
-        evidence.writerResidueDisposition = loan.writerResidueDisposition
         transaction.abort()
         if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, LEASE_NOT_OPERATIONAL)) {
             owner.signalJpegIoSettlement()
@@ -34,10 +33,10 @@ internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence:
     }
 
     try {
-        loan.reset()
+        bag.resultBlock.putLong(NATIVE_STATUS_OFFSET, NATIVE_RESULT_PENDING)
+        bag.resultBlock.putLong(NATIVE_PRODUCED_BYTE_COUNT_OFFSET, NATIVE_RESULT_PENDING)
     } catch (failure: Throwable) {
         evidence.carrierUseResolved = lease.exitExactRange()
-        evidence.writerResidueDisposition = loan.writerResidueDisposition
         transaction.abort()
         if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, failure)) {
             owner.signalJpegIoSettlement()
@@ -45,9 +44,8 @@ internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence:
         return
     }
     val sink = bag.segmentSink
-    if (sink == null || !loan.markNativeEntryAttempted()) {
+    if (sink == null) {
         evidence.carrierUseResolved = lease.exitExactRange()
-        evidence.writerResidueDisposition = loan.writerResidueDisposition
         transaction.abort()
         if (publishNativeEncodeFailure(occurrence, NativeEncodeSettlement.InternalFailure, NATIVE_ENCODE_ADMISSION_FAILED)) {
             owner.signalJpegIoSettlement()
@@ -55,17 +53,44 @@ internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence:
         return
     }
 
-    var compressorResult = Int.MIN_VALUE
     var thrown: Throwable? = null
     try {
-        compressorResult = owner.compressNativeFrame(loan, pixels, bag, sink)
+        owner.compressNativeFrame(pixels, bag, sink, bag.resultBlock)
     } catch (failure: Throwable) {
         thrown = failure
     } finally {
         evidence.carrierUseResolved = lease.exitExactRange()
     }
 
-    if (decodeNativeEncodeResult(owner, occurrence, compressorResult, thrown)) owner.signalJpegIoSettlement()
+    val published = try {
+        decodeNativeEncodeResult(occurrence, thrown)
+    } catch (fatal: Throwable) {
+        publishAndRethrowFatalNativeEncode(owner, occurrence, fatal)
+    }
+    if (published) owner.signalJpegIoSettlement()
+}
+
+private fun publishAndRethrowFatalNativeEncode(
+    owner: JpegRuntimeOwner,
+    occurrence: NativeEncodeOccurrence,
+    fatal: Throwable,
+): Nothing {
+    try {
+        val operation = occurrence.operation
+        val published = operation.settlementGate.withLock {
+            val returnCell = operation.returnCell
+            if (returnCell.disposition != OperationReturnDisposition.Empty) {
+                false
+            } else {
+                returnCell.evidence.result = NativeEncodeSettlement.InternalFailure
+                returnCell.evidence.failureCause = fatal
+                operation.publishThrownReturn(fatal)
+            }
+        }
+        if (published) owner.signalJpegIoSettlement()
+    } finally {
+        throw fatal
+    }
 }
 
 internal fun cancelledNativeEncodeWithoutReturnLocked(occurrence: NativeEncodeOccurrence): Boolean {
@@ -79,8 +104,7 @@ internal fun cancelledNativeEncodeWithoutReturnLocked(occurrence: NativeEncodeOc
             submissionResolved &&
             operation.disposition == OperationDisposition.Cancelled &&
             operation.returnCell.disposition == OperationReturnDisposition.Empty &&
-            operation.returnCell.use == OperationReturnUse.Unclaimed &&
-            occurrence.ownerBag.callBlockLoan?.writerResidueDisposition == NativeWriterResidueDisposition.NoNativeEntry
+            operation.returnCell.use == OperationReturnUse.Unclaimed
 }
 
 internal fun terminalizedUnenteredEncodeFailureLocked(occurrence: NativeEncodeOccurrence): Boolean {
@@ -92,14 +116,11 @@ internal fun terminalizedUnenteredEncodeFailureLocked(occurrence: NativeEncodeOc
             operation.entryDisposition == OperationEntryDisposition.Cancelled &&
             operation.submissionDisposition == OperationSubmissionDisposition.Cancelled &&
             operation.returnCell.disposition == OperationReturnDisposition.Empty &&
-            operation.returnCell.use == OperationReturnUse.Unclaimed &&
-            occurrence.ownerBag.callBlockLoan?.writerResidueDisposition == NativeWriterResidueDisposition.NoNativeEntry
+            operation.returnCell.use == OperationReturnUse.Unclaimed
 }
 
 internal fun nativeEncodeMechanicsSettledLocked(bag: NativeEncodeOwnerBag): Boolean =
-    bag.retainedOperationLease == null && bag.callBlocksOwner == null && bag.callBlockLoan == null &&
-            bag.storageOwner == null && bag.transaction == null && bag.segmentSink == null &&
-            bag.unpublishedToRetire == null
+    bag.retainedOperationLease == null && bag.storageOwner == null && bag.transaction == null && bag.segmentSink == null && bag.unpublishedToRetire == null
 
 private val LEASE_NOT_OPERATIONAL: IllegalStateException =
     IllegalStateException("native carrier lease is not operational")

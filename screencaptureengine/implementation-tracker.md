@@ -34,7 +34,9 @@ documentation task.
   affected code/boundaries, required invariants and relevant current official primary sources. Full Docs01–12 reading is
   required for architecture, design and cross-document adjudication; bounded slices use the router's sufficient packet.
 - Technical agents check current official primary guidance: Android/AOSP, Kotlin/JetBrains, Oracle/OpenJDK/JNI, or
-  Khronos as applicable. Every handoff records exact sources, conclusion and disposition.
+  Khronos as applicable. They must actually browse the current sources during the task; memory-only source claims are
+  not acceptable. Every handoff records exact title/URL, conclusion and disposition. Frozen project Markdown remains
+  normative product authority; external sources validate mechanism and current platform best practice.
 - Every finding is classified as an intrinsic defect, intentional migration state or named future-owned integration gap.
   Fix stable intrinsic defects; do not add temporary workarounds for future-owned gaps.
 - Every finding includes exact authority/source/line evidence and at least one concrete correction. Labels and severity
@@ -69,6 +71,13 @@ documentation task.
   Aligned results proceed without redundant cross-review; material findings follow the cross-review rule below.
 - Cross-review is required only for material, complex, disputed or writer-contract-changing findings/solutions. Trivial
   aligned observations and mechanical inventory facts do not require it.
+- Native/JNI is a stricter exception: every candidate defect returned by any closure axis must receive an explicit
+  independent confirm/reject disposition from all three current fresh axes before closure or correction. Root circulates
+  one consolidated finding packet; agents never communicate with one another.
+- Screen Capture Engine production audits inspect `build.gradle.kts` only where the active slice requires native
+  configuration or wiring. For Native/JNI this includes NDK, CMake, ABI filters, weak-API flags, native targets,
+  DSO/AAR packaging and consumer native keep boundaries. Generic `minSdk`, `targetSdk`, `compileSdk` and unrelated module
+  configuration are out of scope and are not findings.
 - Production Kotlin 2.4 must be direct, typed, compact, readable and idiomatic. Prefer immutable facts, narrow visibility
   and explicit ownership; avoid speculative abstractions, compatibility layers, duplicate models and generic machinery.
 - Android platform branches read `Build.VERSION.SDK_INT` at the owning boundary and use typed `Build.VERSION_CODES`
@@ -88,14 +97,33 @@ documentation task.
 
 - Production source decomposition for Android, Target, GL and JPEG is accepted. Functional work proceeds through bounded
   authority-owned slices.
-- No active subagent or writer is part of this checkpoint.
+- Native/JNI production implementation and its bounded corrections are closed. Final independent audits are clean,
+  mutex/lock behavior is authority-conformant and F3 is adjudicated not to be a defect. The user formatted, manually
+  reviewed and staged the complete Kotlin/C++/configuration tuple.
+- A targeted C++ formatting audit proved semantic identity by whitespace, preprocessor-token, object-file and normalized
+  CMake-graph comparison plus production builds. A final staged pin/inventory gate is clean: the production/configuration
+  snapshot exactly matches the accepted pins below, has no unstaged production overlap, unrelated staged files or tracked
+  generated artifacts. `screencaptureengine/.cxx/` is ignored.
+- This tracker contains the final current checkpoint and is the only file awaiting user staging before commit. No agent
+  or writer is active.
 - Tests remain out of scope. The user owns all staging, index, commits and history.
 
 ## Current action queue
 
-1. **NATIVE/JNI — READY FOR PRODUCTION PLANNING/WRITER SEQUENCE.** Authority is approved and staged. The complete atomic
-   production handoff is retained below. A future writer must load the new accepted pins for `JpegRuntimeOwner.kt` and
-   `NativeEncodeCoordinator.kt`.
+1. **NATIVE/JNI — CLOSED; PRODUCTION/CONFIGURATION STAGED, TRACKER READY TO STAGE AND COMMIT.** F1 fatal-return
+   publication and F2 capsule lexical exception containment are corrected. The fallback F1 path atomically completes
+   `InternalFailure` plus exact fatal under `settlementGate`, does not mutate an already-published cell, signals only after
+   unlock and rethrows the identical object. F2 catches post-construction C++ exceptions while the capsule remains alive,
+   then explicitly closes, verifies `closed()` and only afterward publishes count-first/status-last. Mutex/freeze/adoption
+   and pending-Java-throwable behavior are authority-conformant. Fresh adjudication rejected F3: runtime continues to own
+   capsule/segment/release services while glue owns the JNI adoption adapter; do not refactor runtime for F3.
+
+   Final independent audits aligned clean on Kotlin and deep C++/JNI safety. The subsequent formatting-only native diff is
+   proven semantically identical: staged/working NDK Clang tokens, direct objects and normalized CMake Ninja graphs match;
+   debug/release native production builds pass for all four ABIs; ownership, mutex/freeze/adoption and ABI behavior are
+   unchanged. Android Studio reports no errors; advisory warnings are pre-existing and token-identical. A final read-only
+   staged gate confirms the complete production/configuration tuple matches the pins below with no mixed overlap,
+   unrelated staged file or generated `.cxx` artifact. Only this final tracker update remains for the user to stage.
 2. **FRAMEWORK/JPEG REMAINING CORRECTIONS — OPEN.** Bitmap lifetime, returned recycle, fatal/allocation partition,
    failure evidence, reference clearing, platform wiring, carrier integration and shared retention remain listed below.
    Each production slice starts with three independent plans.
@@ -116,7 +144,8 @@ Only current pins needed to anchor future work are retained. Rehash affected fil
 | Reconciliation | `ReconciliationOwner.kt` `96da06c1172e4d125ea83f7730bc4ca4c16b17eac1b18dadebca4feab936498c` (327) |
 | Pacing | `PacingOwner.kt` `77d9265cb5ede4ed67eb176f236cfba4394b1e2eac9522759e098c97fcf851e9` (254) |
 | Delivery F1/F2/F3 mechanics | `DeliveryOwner.kt` `04c24d8ec0dd8181ecbad28ae8f0570e9db809b6cea264c5183c693744a3c904` (933); `OperationDeadline.kt` pin above |
-| JPEG/Framework entry signals | `JpegRuntimeOwner.kt` `94362304bb40ef65a8b780d8550bc9602ac73fa128b6462e24621033612cdf8e` (1,714); `NativeEncodeCoordinator.kt` `e57e8b1b294332795666aefeaa764a0ab246270e584e4163e1840638c9a7b820` (107); `FrameworkBitmapOwner.kt` `c6bf078cd2f43bfac4478554c4affe4d378dfcece0c03404d1b6889f1924ab43` (341); `FrameworkJpegExecution.kt` `0e4b628d1862f4c48779ca01b6db4803bca273d1533392739ad7e9ea0db5eb42` (447); `FrameworkJpegCleanup.kt` `2396d3bdb6606ac611c5ca3fa441d0854a35a461465c4000457be76bd7e8f3d1` (281) |
+| Framework JPEG entry signals | `FrameworkBitmapOwner.kt` `c6bf078cd2f43bfac4478554c4affe4d378dfcece0c03404d1b6889f1924ab43` (341); `FrameworkJpegExecution.kt` `0e4b628d1862f4c48779ca01b6db4803bca273d1533392739ad7e9ea0db5eb42` (447); `FrameworkJpegCleanup.kt` `2396d3bdb6606ac611c5ca3fa441d0854a35a461465c4000457be76bd7e8f3d1` (281) |
+| Native/JNI production | `JpegRuntimeOwner.kt` `a70e5b8b8cc2214aafe89ce7da3c0de0bb027f3008b61b708225e3f2ebaf9a4c` (1,547); `JpegRuntimeOperations.kt` `f29b5a7f39d889d6599d569efe82580a032a0ab477ba5f9bc52ad2390e2fb39a` (383); `NativeEncodeCoordinator.kt` `10faec745518df22240139c12ad0116a19cc4d4dde9eae17a6ebce2e0d9875a0` (128); `NativeJpegProcess.kt` `80daebf4fd3872fa99e5aaddda34bdf0c1c2abaa760018e55570db30aaa8aa21` (128); `NativeResultProtocol.kt` `06f5e4994a01921caaa9bf86f947c998424630493430cfd0cdefa20cfe5839b1` (162); `screen_capture_engine_jni.cpp` `acfeefe1c14575a497b697e479ad95c1953e8524cbd68d0ec718a086702c55ce` (371); `native_jpeg_runtime.cpp` `bb0e247468599d4602cb3bb16e7f3a64e121b2f301cafe8bd907eeb260c7e30c` (187); `native_jpeg_runtime.h` `b5904c361232e3aff530605f6694a6c2dfc1ec1c097355c18b428041d651ae13` (105); `CMakeLists.txt` `76e361b00eb3b7f6a97d750dc0daf4b68bce773fa6ee593341e7f04103415585` (57); `screencaptureengine.map.txt` `8f8b39754f7be5b1a3797247ddbfafd0a2897b77efe724ea6628ae43e8f04697` (7); `consumer-rules.pro` `da2bf6e5c4a8674d75344b83e3cc13ea54dc42dcef27a45ac50fb1f3ffee0137` (13); `build.gradle.kts` `8ba4808c1b4129f33e020ddcce90d9f75f089cc58cfc0d0e80f912e8416e2a34` (49) |
 
 Current accepted implementation facts needed later:
 
@@ -131,7 +160,7 @@ Current accepted implementation facts needed later:
   currentness and policy.
 - Delivery F1–F3 mechanics are closed. End-to-end Delivery remains open only through D6 below.
 - All eight JPEG/Framework successful-entry paths now signal after durable entry and before same-stack outward/resource
-  work. The user reviewed and staged the five-file tuple; the user-selected narrow independent closure audit was clean.
+  work. The user reviewed and committed the five-file tuple; the user-selected narrow independent closure audit was clean.
 
 Accepted deviations/watchpoints:
 
@@ -192,9 +221,9 @@ The successful-entry signal correction is closed. Remaining work:
 
 ## Native/JNI approved implementation handoff
 
-Status: `AUTHORITY_APPROVED_STAGED_READY_FOR_PRODUCTION_WRITER`.
+Status: `CLOSED_PRODUCTION_STAGED_TRACKER_READY_TO_STAGE_AND_COMMIT`.
 
-The final contract is frozen and staged in Documents 01/03/04/10/11. Current Kotlin is replacement evidence, not a
+The final contract is frozen and committed in Documents 01/03/04/10/11. Current Kotlin is replacement evidence, not a
 compatibility boundary.
 
 ### Target topology and binding
@@ -291,21 +320,22 @@ Let `P = nativeProducedByteCount` and `M = NativeTransaction.byteCount`.
 - `InternalFailure`/malformed plus `Exception` remains `InternalFailure`; with every other throwable, fixed bookkeeping
   precedes identical rethrow. Cleanup ambiguity outranks ordinary OOME normalization.
 
-### Atomic production writer scope
+### Current production receipt
 
-One writer owns the complete tuple; mixed old/new binding is not an acceptable checkpoint:
-
-1. Add `NativeJpegProcess`, update Kotlin caller/result protocol and remove token/residue/release mechanics.
-2. Add production C++ header/glue/runtime with call-scoped RAII, exact registration and unchanged sink upcall.
-3. Add CMake targets/export map, consumer keep rules and Gradle native/package wiring. Use NDK `29.0.14206865` and
-   namespace `io.screenstream.engine`.
-4. Keep tests out of writer scope; Document 04 owns later native verification.
-
-Before writing, load the router Native/JPEG packet plus Docs03/04/10/11 and all current call sites, including the accepted
-new `JpegRuntimeOwner` and `NativeEncodeCoordinator` pins. After landing, perform scoped formatting/IDE analysis,
-forced and normal Kotlin compilation, native configure/build/package receipts, full applicable production build,
-forbidden-symbol/descriptor/export scans and two writer self-reviews. Stop for user manual review before fresh
-high-risk closure audit.
+- The Kotlin/C++/CMake/Gradle tuple is implemented, manually reviewed and staged. `EncodedStorageOwner.kt` and
+  `AndroidManifest.xml` were not changed. The capsule mutex required by `NJPEG-080` remains in place.
+- Closure confirmed and corrected F1 fatal-return publication, its fallback-evidence path and F2 lexical C++ exception
+  containment. Mandatory three-way candidate dispositions are complete. Fresh adjudication rejected F3 and forbids an
+  F3-driven runtime refactor. Final independent Kotlin and deep C++/JNI audits are clean.
+- Debug/release Kotlin compilation, native builds for all four ABIs and AAR assembly completed successfully. Artifact
+  scans found exactly four production DSOs, the two permitted exports, weak undefined `AndroidBitmap_compress`, direct
+  `DT_NEEDED: libjnigraphics.so` and `0x4000` LOAD alignment for every ABI. Old writer-token/residue/release mechanics are
+  absent.
+- The final C++ formatting audit found identical preprocessor tokens, direct objects and normalized CMake graphs, clean
+  production builds and unchanged lifecycle/ABI semantics. Android Studio reports no errors; advisory warnings are
+  pre-existing. The staged readiness gate matches every accepted pin, has no production overlap, unrelated staged file,
+  generated `.cxx` artifact or whitespace error.
+- Tests were neither created, changed nor run.
 
 ## Remaining cross-domain obligations
 
