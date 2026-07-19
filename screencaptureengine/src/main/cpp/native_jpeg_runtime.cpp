@@ -158,7 +158,8 @@ namespace screenstream::jpeg {
             WriterCapsule &capsule
     ) noexcept {
         CompressionResult result{};
-        if (compressor == nullptr || descriptor.pixels == nullptr) {
+        if (compressor == nullptr || descriptor.pixels == nullptr ||
+            descriptor.writerFunction == nullptr || descriptor.writerContext == nullptr) {
             capsule.recordInternalFailure();
         } else {
             try {
@@ -168,8 +169,8 @@ namespace screenstream::jpeg {
                         descriptor.pixels,
                         descriptor.compressFormat,
                         descriptor.quality,
-                        &capsule,
-                        &WriterCapsule::write
+                        descriptor.writerContext,
+                        descriptor.writerFunction
                 );
             } catch (const std::bad_alloc &) {
                 capsule.recordInternalFailure();

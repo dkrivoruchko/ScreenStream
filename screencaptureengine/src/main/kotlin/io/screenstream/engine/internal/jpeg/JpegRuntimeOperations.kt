@@ -9,9 +9,12 @@ import io.screenstream.engine.internal.settlement.OperationOwnerBag
 import io.screenstream.engine.internal.settlement.OperationReceipt
 import io.screenstream.engine.internal.settlement.OperationReturnCell
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
+import io.screenstream.engine.internal.settlement.PrivateExecutorOperation
+import io.screenstream.engine.internal.settlement.PrivateExecutorRuntime
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 
 internal enum class JpegRuntimeFailure {
@@ -32,6 +35,12 @@ internal enum class NativeEncodeSettlement {
     ResourceExhausted,
     InternalFailure,
     CancelledWithoutReturn,
+}
+
+internal enum class NativeEncodeFatalCleanupSettlement {
+    NotReady,
+    Reduced,
+    UnsafeResidue,
 }
 
 internal enum class NoReturnedCarrierSettlement {
@@ -65,8 +74,10 @@ internal class JpegPreparationOccurrence private constructor(
     internal val operation: OperationOccurrence<JpegPreparationEvidence>,
     internal val ownerBag: JpegPreparationOwnerBag,
     internal val validation: CarrierValidation,
-    internal val ioOperation: JpegIoOperation<JpegPreparationEvidence>,
-) {
+    override val executorOperation: PrivateExecutorOperation<JpegPreparationEvidence>,
+) : JpegEndpointOccurrence {
+    override var endpointReleased: Boolean = false
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,
@@ -75,6 +86,7 @@ internal class JpegPreparationOccurrence private constructor(
             identity: JpegFiniteOperationIdentity,
             clock: EngineClock,
             signal: SettlementSignal,
+            endpoint: PrivateExecutorRuntime,
             work: (JpegPreparationOccurrence) -> Unit,
         ): JpegPreparationOccurrence {
             val evidence = JpegPreparationEvidence()
@@ -92,7 +104,7 @@ internal class JpegPreparationOccurrence private constructor(
                 wakeSignal = signal,
             )
             lateinit var occurrence: JpegPreparationOccurrence
-            val ioOperation = JpegIoOperation(operation, Runnable { work(occurrence) })
+            val executorOperation = endpoint.operation(operation, Runnable { work(occurrence) })
             occurrence = JpegPreparationOccurrence(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
@@ -100,7 +112,7 @@ internal class JpegPreparationOccurrence private constructor(
                 operation = operation,
                 ownerBag = bag,
                 validation = validation,
-                ioOperation = ioOperation,
+                executorOperation = executorOperation,
             )
             return occurrence
         }
@@ -132,8 +144,10 @@ internal class NativeCarrierReplacementAllocationOccurrence private constructor(
     internal val operation: OperationOccurrence<NativeCarrierReplacementAllocationEvidence>,
     internal val ownerBag: NativeCarrierReplacementAllocationOwnerBag,
     internal val validation: CarrierValidation,
-    internal val ioOperation: JpegIoOperation<NativeCarrierReplacementAllocationEvidence>,
-) {
+    internal val transitionClaim: JpegRuntimeTransitionClaim,
+    override val executorOperation: PrivateExecutorOperation<NativeCarrierReplacementAllocationEvidence>,
+) : JpegEndpointOccurrence {
+    override var endpointReleased: Boolean = false
     private var sourceProductSlot: JpegRuntimeProduct? = sourceProduct
     private var carrierCandidateSlot: NativeMallocCarrier? = carrierCandidate
 
@@ -157,17 +171,26 @@ internal class NativeCarrierReplacementAllocationOccurrence private constructor(
         return true
     }
 
+    internal fun clearTransitionAliasesLocked(settlementGate: ReentrantLock) {
+        check(settlementGate.isHeldByCurrentThread)
+        sourceProductSlot = null
+        carrierCandidateSlot = null
+    }
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,
             geometryGeneration: Long,
             lifecycleEpoch: Long,
             sourceProduct: JpegRuntimeProduct,
+            sourceTopology: JpegRuntimeTopologySnapshot,
+            topologyState: AtomicReference<JpegRuntimeTopologyState>,
             identity: JpegFiniteOperationIdentity,
             carrier: NativeMallocCarrier,
             product: JpegRuntimeProduct,
             clock: EngineClock,
             signal: SettlementSignal,
+            endpoint: PrivateExecutorRuntime,
             work: (NativeCarrierReplacementAllocationOccurrence) -> Unit,
         ): NativeCarrierReplacementAllocationOccurrence {
             val evidence = NativeCarrierReplacementAllocationEvidence()
@@ -185,7 +208,19 @@ internal class NativeCarrierReplacementAllocationOccurrence private constructor(
                 wakeSignal = signal,
             )
             lateinit var occurrence: NativeCarrierReplacementAllocationOccurrence
-            val ioOperation = JpegIoOperation(operation, Runnable { work(occurrence) })
+            val executorOperation = endpoint.operation(operation, Runnable { work(occurrence) })
+            val claim = JpegRuntimeTransitionClaim(
+                operationIdentity = identity.operationIdentity,
+                source = sourceTopology,
+                committed = JpegRuntimeTopologySnapshot(
+                    carrierMode = JpegCarrierMode.NativeMalloc,
+                    nativeHealth = product.nativeHealth,
+                    product = product,
+                    lease = null,
+                    replacementSource = null,
+                ),
+                topologyState = topologyState,
+            )
             occurrence = NativeCarrierReplacementAllocationOccurrence(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
@@ -195,7 +230,8 @@ internal class NativeCarrierReplacementAllocationOccurrence private constructor(
                 operation = operation,
                 ownerBag = bag,
                 validation = validation,
-                ioOperation = ioOperation,
+                transitionClaim = claim,
+                executorOperation = executorOperation,
             )
             return occurrence
         }
@@ -227,8 +263,10 @@ internal class ManagedDirectCarrierReplacementAllocationOccurrence private const
     internal val operation: OperationOccurrence<ManagedDirectCarrierReplacementAllocationEvidence>,
     internal val ownerBag: ManagedDirectCarrierReplacementAllocationOwnerBag,
     internal val validation: CarrierValidation,
-    internal val ioOperation: JpegIoOperation<ManagedDirectCarrierReplacementAllocationEvidence>,
-) {
+    internal val transitionClaim: JpegRuntimeTransitionClaim,
+    override val executorOperation: PrivateExecutorOperation<ManagedDirectCarrierReplacementAllocationEvidence>,
+) : JpegEndpointOccurrence {
+    override var endpointReleased: Boolean = false
     private var sourceProductSlot: JpegRuntimeProduct.FrameworkOnManagedCarrier? = sourceProduct
     private var carrierCandidateSlot: ManagedDirectCarrier? = carrierCandidate
 
@@ -252,17 +290,26 @@ internal class ManagedDirectCarrierReplacementAllocationOccurrence private const
         return true
     }
 
+    internal fun clearTransitionAliasesLocked(settlementGate: ReentrantLock) {
+        check(settlementGate.isHeldByCurrentThread)
+        sourceProductSlot = null
+        carrierCandidateSlot = null
+    }
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,
             geometryGeneration: Long,
             lifecycleEpoch: Long,
             sourceProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier,
+            sourceTopology: JpegRuntimeTopologySnapshot,
+            topologyState: AtomicReference<JpegRuntimeTopologyState>,
             identity: JpegFiniteOperationIdentity,
             carrier: ManagedDirectCarrier,
             product: JpegRuntimeProduct.FrameworkOnManagedCarrier,
             clock: EngineClock,
             signal: SettlementSignal,
+            endpoint: PrivateExecutorRuntime,
             work: (ManagedDirectCarrierReplacementAllocationOccurrence) -> Unit,
         ): ManagedDirectCarrierReplacementAllocationOccurrence {
             val evidence = ManagedDirectCarrierReplacementAllocationEvidence()
@@ -280,7 +327,19 @@ internal class ManagedDirectCarrierReplacementAllocationOccurrence private const
                 wakeSignal = signal,
             )
             lateinit var occurrence: ManagedDirectCarrierReplacementAllocationOccurrence
-            val ioOperation = JpegIoOperation(operation, Runnable { work(occurrence) })
+            val executorOperation = endpoint.operation(operation, Runnable { work(occurrence) })
+            val claim = JpegRuntimeTransitionClaim(
+                operationIdentity = identity.operationIdentity,
+                source = sourceTopology,
+                committed = JpegRuntimeTopologySnapshot(
+                    carrierMode = JpegCarrierMode.ManagedDirect,
+                    nativeHealth = NativeJpegHealth.Disabled,
+                    product = product,
+                    lease = null,
+                    replacementSource = null,
+                ),
+                topologyState = topologyState,
+            )
             occurrence = ManagedDirectCarrierReplacementAllocationOccurrence(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
@@ -290,7 +349,8 @@ internal class ManagedDirectCarrierReplacementAllocationOccurrence private const
                 operation = operation,
                 ownerBag = bag,
                 validation = validation,
-                ioOperation = ioOperation,
+                transitionClaim = claim,
+                executorOperation = executorOperation,
             )
             return occurrence
         }
@@ -312,24 +372,6 @@ internal enum class NativeEncodeAdmissionDisposition {
     CleanupResidue,
 }
 
-internal enum class NativeDisableStage {
-    Candidate,
-    Authorized,
-    Transitioning,
-    CarrierBound,
-    TransitionRejected,
-    Finalized,
-}
-
-internal enum class NativeDisableResult {
-    NotReady,
-    Authorized,
-    CarrierBound,
-    TransitionRejected,
-    Committed,
-    TerminalFinalized,
-}
-
 internal class NativeEncodeEvidence internal constructor() : OperationEvidence {
     override var receipt: OperationReceipt? = null
         internal set
@@ -344,14 +386,18 @@ internal class NativeEncodeEvidence internal constructor() : OperationEvidence {
     internal var managedAdoptedByteCount: Int = 0
     internal var resultChannelArmed: Boolean = false
     internal var carrierUseResolved: Boolean = false
+    internal var nativeCallReturned: Boolean = false
+    internal var fatalCleanupReduced: Boolean = false
 }
 
 internal class NativeEncodeOwnerBag internal constructor(
     product: JpegRuntimeProduct.NativeEnabled,
+    internal var transitionProduct: JpegRuntimeProduct.FrameworkOnNativeCarrier?,
+    internal var transitionLease: NativeMallocCarrierLease?,
+    internal val transitionClaim: JpegRuntimeTransitionClaim,
     internal val descriptor: NativeFrameDescriptor,
     carrierLease: NativeMallocCarrierLease,
     resultBlock: ByteBuffer,
-    internal var nativeDisableCandidate: JpegRuntimeProduct.FrameworkOnNativeCarrier?,
     internal var retainedOperationLease: NativeMallocCarrierLease? = null,
     internal var storageOwner: EncodedStorageOwner? = null,
     internal var transaction: EncodedStorageOwner.NativeTransaction? = null,
@@ -360,7 +406,6 @@ internal class NativeEncodeOwnerBag internal constructor(
     internal var retainCommittedFrame: Boolean? = null,
     internal var admissionDisposition: NativeEncodeAdmissionDisposition = NativeEncodeAdmissionDisposition.Preparing,
     internal var admissionFailureCause: Throwable? = null,
-    internal var nativeDisableStage: NativeDisableStage = NativeDisableStage.Candidate,
 ) : OperationOwnerBag {
     private var productSlot: JpegRuntimeProduct.NativeEnabled? = product
     private var carrierLeaseSlot: NativeMallocCarrierLease? = carrierLease
@@ -391,11 +436,21 @@ internal class NativeEncodeOwnerBag internal constructor(
         check(settlementGate.isHeldByCurrentThread)
         if (productSlot !== expectedProduct) return false
         if (carrierLeaseSlot !== expectedCarrierLease) return false
+        if (transitionProduct != null || transitionLease != null) return false
 
         productSlot = null
         carrierLeaseSlot = null
         resultBlockSlot = null
         return true
+    }
+
+    internal fun clearTransitionAliasesLocked(settlementGate: ReentrantLock) {
+        check(settlementGate.isHeldByCurrentThread)
+        productSlot = null
+        carrierLeaseSlot = null
+        resultBlockSlot = null
+        transitionProduct = null
+        transitionLease = null
     }
 }
 
@@ -406,8 +461,9 @@ internal class NativeEncodeOccurrence private constructor(
     capturedProduct: JpegRuntimeProduct.NativeEnabled,
     internal val operation: OperationOccurrence<NativeEncodeEvidence>,
     internal val ownerBag: NativeEncodeOwnerBag,
-    internal val ioOperation: JpegIoOperation<NativeEncodeEvidence>,
-) {
+    override val executorOperation: PrivateExecutorOperation<NativeEncodeEvidence>,
+) : JpegEndpointOccurrence {
+    override var endpointReleased: Boolean = false
     private var capturedProductSlot: JpegRuntimeProduct.NativeEnabled? = capturedProduct
 
     internal val capturedProduct: JpegRuntimeProduct.NativeEnabled
@@ -421,6 +477,11 @@ internal class NativeEncodeOccurrence private constructor(
         return true
     }
 
+    internal fun clearTransitionAliasesLocked(settlementGate: ReentrantLock) {
+        check(settlementGate.isHeldByCurrentThread)
+        capturedProductSlot = null
+    }
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,
@@ -429,22 +490,40 @@ internal class NativeEncodeOccurrence private constructor(
             identity: JpegFiniteOperationIdentity,
             capturedProduct: JpegRuntimeProduct.NativeEnabled,
             carrierLease: NativeMallocCarrierLease,
+            sourceTopology: JpegRuntimeTopologySnapshot,
+            topologyState: AtomicReference<JpegRuntimeTopologyState>,
             descriptor: NativeFrameDescriptor,
-            nativeDisableCandidate: JpegRuntimeProduct.FrameworkOnNativeCarrier,
             clock: EngineClock,
             signal: SettlementSignal,
+            endpoint: PrivateExecutorRuntime,
             work: (NativeEncodeOccurrence) -> Unit,
         ): NativeEncodeOccurrence {
             val evidence = NativeEncodeEvidence()
+            val transitionProduct = JpegRuntimeProduct.FrameworkOnNativeCarrier.create(capturedProduct.nativeCarrier)
+            val transitionLease = transitionProduct.initialLease
+            val claim = JpegRuntimeTransitionClaim(
+                operationIdentity = identity.operationIdentity,
+                source = sourceTopology,
+                committed = JpegRuntimeTopologySnapshot(
+                    carrierMode = JpegCarrierMode.NativeMalloc,
+                    nativeHealth = NativeJpegHealth.Disabled,
+                    product = transitionProduct,
+                    lease = transitionLease,
+                    replacementSource = null,
+                ),
+                topologyState = topologyState,
+            )
             val resultBlock = ByteBuffer.allocateDirect(NATIVE_RESULT_BLOCK_BYTE_COUNT).order(ByteOrder.nativeOrder())
             resultBlock.putLong(NATIVE_STATUS_OFFSET, NATIVE_RESULT_PENDING)
             resultBlock.putLong(NATIVE_PRODUCED_BYTE_COUNT_OFFSET, NATIVE_RESULT_PENDING)
             val bag = NativeEncodeOwnerBag(
                 product = capturedProduct,
+                transitionProduct = transitionProduct,
+                transitionLease = transitionLease,
+                transitionClaim = claim,
                 descriptor = descriptor,
                 carrierLease = carrierLease,
                 resultBlock = resultBlock,
-                nativeDisableCandidate = nativeDisableCandidate,
             )
             val operation = OperationOccurrence(
                 identity = identity.operationIdentity,
@@ -458,7 +537,7 @@ internal class NativeEncodeOccurrence private constructor(
                 wakeSignal = signal,
             )
             lateinit var occurrence: NativeEncodeOccurrence
-            val ioOperation = JpegIoOperation(operation, Runnable { work(occurrence) })
+            val executorOperation = endpoint.operation(operation, Runnable { work(occurrence) })
             occurrence = NativeEncodeOccurrence(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
@@ -466,7 +545,7 @@ internal class NativeEncodeOccurrence private constructor(
                 capturedProduct = capturedProduct,
                 operation = operation,
                 ownerBag = bag,
-                ioOperation = ioOperation,
+                executorOperation = executorOperation,
             )
             return occurrence
         }

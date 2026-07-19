@@ -15,8 +15,10 @@ completion rule; they may not copy it into a competing state machine.
 - [CORE-OWN-1](#core-own-1--ownership-loans-and-receipts)
 - [CORE-SET-1](#core-set-1--generic-operation-occurrence)
 - [CORE-SET-2](#core-set-2--entry-return-publication-and-lock-order)
+- [CORE-EXEC-1](#core-exec-1--private-execute-endpoints)
+- [CORE-FATAL-1](#core-fatal-1--direct-fatal-throwable-policy)
 - [CORE-SET-3](#core-set-3--finite-deadline-arbitration)
-- [CORE-WAKE-2](#core-wake-2--deadline-wake-link-and-scheduling-rejection)
+- [CORE-WAKE-2](#core-wake-2--one-shot-control-wake-link-and-scheduling-rejection)
 - [CORE-TIME-1](#core-time-1--clock-and-named-completion-rules)
 - [CORE-ALLOC-1](#core-alloc-1--checked-allocation-and-failure-partition)
 - [CORE-EFF-1](#core-eff-1--structural-efficiency-and-reuse)
@@ -46,6 +48,11 @@ The runtime uses direct typed ownership, one active topology, bounded latest-val
 one current registration/handoff, and one permanent Session quarantine root. It has no generic resource
 registry, alternate planner, rollback topology, duplicate state machine, compatibility wrapper, or raw-handle
 ownership proof.
+
+One Session owns exactly six runtime threads: the Control `ScheduledThreadPoolExecutor` thread, the Metrics
+`ThreadPoolExecutor` thread, one Android `HandlerThread`, and the GL, JPEG, and Delivery `ThreadPoolExecutor`
+threads. Main Looper threads, provider-owned callback threads, Flow collector threads, platform/native callback
+threads, and any other caller/runtime threads are not Session-owned and are outside this count.
 
 Controller rules are routed without restatement:
 
@@ -87,14 +94,14 @@ Every opaque, system, ownership-sensitive, or mandatory-release call owns one ty
 `OperationOccurrence<R>` containing:
 
 - nonreused identity and `Active`/`Cleanup` domain;
-- one-shot scheduler-submission and entered dispositions;
+- its boundary-specific submission and entered dispositions;
 - one nonfair occurrence-local `ReentrantLock` named `settlementGate`;
 - one precreated typed `OperationReturnCell<R>` with a closed discriminator and fixed scalar/reference fields for
   the normal result, throwable, typed receipt, and already-existing returned owner;
 - the exact owner bag travelling with unresolved work;
 - for a finite boundary, one identity-fenced `DeadlineOccurrence` and its child wake link.
 
-The gate, writable return cell, owner bag, deadline/wake state, and live worker/trampoline travel together through
+The gate, writable return cell, owner bag, deadline/wake state, and live worker/Runnable travel together through
 active use, terminal transfer, cleanup, and quarantine. An operation-specific type may add closed evidence and
 receipt fields but not another settlement machine.
 
@@ -126,15 +133,72 @@ complete cell, select expiry/cancellation/transfer, and write existing reference
 allocation, scheduling, outward call, publication, diagnostics, release, or cleanup while either gate is held.
 Workers and callbacks that do not arbitrate Session admission never acquire `sessionGate`.
 
-Callback admission is the bounded exception: its trampoline takes `sessionGate -> its settlementGate`, commits
-entry or detached self-rejection, and releases both before invoking application code. Terminal uses the same
-order against that record.
+Callback admission is the bounded exception: its Delivery Runnable takes
+`sessionGate -> its settlementGate`, commits entry or detached self-rejection, and releases both before invoking
+application code. Terminal uses the same order against that record.
 
-Synchronous engine submission rejection for an owner Runnable settles only a current unresolved submission while
-that operation is unentered and its return cell is empty. Existing cancellation, terminal, entry, return, or
-cleanup disposition wins. Active rejection of required work is `InternalFailure`; rejection of mandatory cleanup
-preserves its owner and one-shot obligation. Caller dispatcher return/throw/rejection remains an external-call
-fact.
+Boundary-specific submission settlement is authoritative. The four private `execute` endpoints follow
+`CORE-EXEC-1`; Control scheduling follows `CTRL-040`; Android Handler posting follows `AND-CAP-001`. Existing
+cancellation, terminal, entry, return, or cleanup disposition wins over a later submission result. Active
+rejection of required work is `InternalFailure`; rejection of mandatory cleanup preserves its owner and one-shot
+obligation.
+
+## CORE-EXEC-1 — Private execute endpoints
+
+Metrics, GL, JPEG, and Delivery each own a separate prestarted private `ThreadPoolExecutor` with exactly one core
+thread, one maximum thread, zero keep-alive, one `ArrayBlockingQueue<Runnable>(1)`, a dedicated Session thread
+factory, and `AbortPolicy`. Core timeout and executor reconfiguration are forbidden. Construction succeeds only
+after `prestartAllCoreThreads()` proves that its one core thread started; an endpoint is not published or used
+before that barrier. No coroutine dispatcher or shared worker pool is part of these four lanes.
+
+Each endpoint admits at most one submitted but not fully settled ticket. Its typed ticket contains the exact
+endpoint, nonreused operation identity, `Active`/`Cleanup` domain, owner bag, submission state
+`None | Submitting | Accepted | SubmissionFailed`, and entry state `Unentered | Entered | Inert`. The Runnable's
+first engine action validates that ticket against the endpoint and current domain under its settlement gate, then
+commits exactly `Entered` or `Inert` before any domain work. `execute` normal return proves acceptance but not
+entry. An outward `execute` throw is always recorded as the raw submission fact, even if the Runnable entered or
+returned before the throw.
+
+Entry wins: once the ticket is `Entered`, a later `execute` return or throw cannot retract or reclassify its
+domain outcome. If the ticket remains unentered, an `Exception` from `execute` is an active `InternalFailure` or
+a retained cleanup obligation as appropriate. A direct `Error` or other non-`Exception` throwable follows
+`CORE-FATAL-1`. After any outward throw, the exact endpoint is monotonically poisoned before further submission;
+every queued, replacement-worker, or late Runnable checks poison and can only settle inert. A poisoned endpoint
+is never reused, even when entry won the occurrence that exposed the throw.
+
+For a direct fatal, the exact raw object in the endpoint fatal slot, engine settlement, poison, cleanup residue,
+and direct rethrow from the engine owner-Runnable boundary remain authoritative. A direct `Error` reaches the
+uncaught worker-thread boundary as that identical object. For a custom direct `Throwable` that is neither
+`Exception` nor `Error`, the runtime may instead expose `Error(raw)` at that outer thread boundary on older AOSP;
+this runtime-shaped representation neither replaces nor unwraps the raw engine authority and requires no bridge.
+
+Terminal closes active admission, transfers already-entered or acceptance-ambiguous tickets intact, and permits
+only their finite dependency-ordered cleanup suffix while the endpoint remains healthy. Each endpoint receives
+exactly one `shutdown()` request and never `shutdownNow()`. Executor `terminated()` is the only endpoint/thread
+termination receipt; shutdown request, worker return, poison, queue emptiness, and thread interrupt are not.
+Nontermination retains the exact endpoint, thread, ticket, owner bag, and dependent residue in quarantine. There
+is no queue-start watchdog, worker replacement recovery, or second endpoint.
+
+## CORE-FATAL-1 — Direct fatal throwable policy
+
+Only an `OutOfMemoryError` thrown at an explicitly enumerated allocation boundary may receive that boundary's
+ordinary `ResourceExhausted` or optional-fallback classification. At every other engine, platform, provider, or
+application boundary, an outwardly thrown `Exception` follows the boundary's stated ordinary failure partition;
+an outwardly thrown `Error` or custom direct `Throwable` that is not an `Exception` is fatal.
+
+The outermost engine owner-lane boundary preallocates a fatal slot. On a direct fatal throwable it records that
+exact raw object, performs only allocation-free identity-fenced settlement, poisons the affected endpoint or
+lane, closes new Session work, publishes the emergency failure fact, and rethrows that object directly from the
+engine owner-Runnable boundary. The engine never wraps, copies, replaces by cause, recognizes by class
+name/reflection, or converts the raw authority to an ordinary drop. Later controller handling and cleanup observe
+only that durable identity and may not substitute another object. For the four ordinary private TPEs only, a
+custom direct `Throwable` that is neither `Exception` nor `Error` has runtime-defined uncaught thread-top
+representation and may appear as `Error(raw)` on older AOSP; direct `Error` thread-top identity remains exact.
+Control and Android retain their named identity-preserving outer-boundary specializations. The sole narrower
+ordinary-classification exception is a direct exact `UnsatisfiedLinkError` from the
+engine's own optional `System.loadLibrary("screencaptureengine")` attempt while every observable prepublication
+fence in `NJPEG-040` still proves clean unavailability. Control's scheduled-task specialization is defined by
+`CTRL-040`; Android's outer HandlerThread specialization is defined by `AND-CAP-001`.
 
 ## CORE-SET-3 — Finite-deadline arbitration
 
@@ -159,46 +223,59 @@ terminal cutoff, it first folds a complete active cell under this same rule. A s
 occurrence with empty entry/return cells resolves directly. An entered, in-call, externally accepted, or
 mandatory-cleanup occurrence transfers intact; cancellation never fabricates its return.
 
-## CORE-WAKE-2 — Deadline wake link and scheduling rejection
+## CORE-WAKE-2 — One-shot Control wake link and scheduling rejection
 
-A finite parent owns one minimal `DeadlineWakeLink`, not a separate lifecycle domain. Its phase is exactly
-`Unarmed`, `Armed`, `Expired`, or `Retired`. It precreates one generation-tagged wake whose submission moves
-through `None`, `Requested`, `Submitting`, `Accepted`, or `Rejected`, plus an independent one-shot Fired fact and
-one per-link generation-and-phase atomic. That atomic is allocated with the link; its checked, nonreused-generation
-transitions allocate no objects and are exactly `Queued(g)`, `Running(g)`, or `Suppressed(g)`.
-The physical Session scheduler resource and its ownership/shutdown binding are owned by
-[CTRL-040](05-domain-controller-reconciliation.md#ctrl-040--session-scheduler-resource); this section owns only
-the generic per-occurrence wake and settlement protocol.
+Every one-shot Control wake—operation deadline, pacing/repeat, or Stats—uses one central typed `ControlWakeLink`,
+not a leaf-private submission lifecycle. The link owns a checked nonreused generation, leaf identity and
+eligibility input, submission `None | Requested | Submitting | Accepted | Rejected`, the exact accepted `Future`,
+callback state `Queued(g) | Running(g) | Suppressed(g)`, one-shot `Fired(g)`, cancellation and exact outer-wrapper
+removal publications, generation-scoped engine-operational settlement, physical outer-frame settlement,
+termination fallback, and successor authority. It is allocated before request publication; all
+same-generation transitions are allocation-free. A deadline parent additionally owns
+`Unarmed | Armed | Expired | Retired`; pacing/repeat and Stats leaves retain only their calculation/eligibility
+state and do not reproduce link mechanics.
 
-Arming under the parent gate moves `Unarmed -> Armed` and the current wake submission `None -> Requested`.
-The controller claims that generation as `Submitting`, calls
-`schedule(wake, max(0, D - EngineClock.now()), NANOSECONDS)` unlocked, then publishes the exact Future or
-the scheduling Throwable under the parent gate before any full-settlement check. The Runnable's first engine
-operation is CAS `Queued(g) -> Running(g)`, whose success defines engine operational start. Only that winner may
-check the link generation, sample `EngineClock`,
-publish the same-generation one-shot Fired fact, release the gate, and signal. A failed CAS returns immediately
-without other link, gate, clock, or signal access. Fired may precede Future publication; an early fire is evidence
-only.
+The controller changes an eligible link to `Requested`, claims it as `Submitting`, calls
+`schedule(wake, max(0, due - EngineClock.now()), NANOSECONDS)` unlocked, then publishes the exact Future or
+scheduling Throwable before any operational-settlement check. The Runnable's first engine operation is CAS
+`Queued(g) -> Running(g)`, whose success defines engine operational start. Only that winner may validate link
+generation and current leaf identity, sample `EngineClock` when the leaf requires it, publish the one-shot
+same-generation Fired fact, release the gate, and signal, execute the wake body, then publish its exact body
+return or outward throw. A failed CAS is a stale/dequeued/on-stack wrapper: it returns immediately with zero
+further link, gate, clock, `Fired`, signal, or domain access. The checked nonreused generation prevents ABA.
+Fired may precede Future or body-return publication; an early fire is evidence only. The leaf
+subsequently decides expiry, pacing/repeat eligibility, or Stats dirtiness from the accepted fact.
 
-Only after accepted-Future `cancel(false) == true` may the canceller CAS `Queued(g) -> Suppressed(g)`. Cancellation
-publication records the exact `cancel(false)` return or thrown `Exception`/`Error` and any suppression-CAS outcome
-under the parent gate before any full-settlement check: `Suppressed(g)` is alternative callback-side no-Fired
-settlement, not proof that a Java task frame returned. `cancel(false) == false`, cancellation `Exception`,
+Only after accepted-Future `cancel(false) == true` may the canceller CAS `Queued(g) -> Suppressed(g)`. For every
+accepted-Future cancellation attempt, regardless of cancel return or throw, exact outer-wrapper removal is also
+attempted and its true/false/throw result recorded as queue hygiene. Cancellation
+publication records the exact Future, `cancel(false)` return or thrown `Exception`/`Error`, suppression-CAS
+outcome, and outer-removal outcome under the parent gate before any operational-settlement check.
+`Suppressed(g)` is alternative no-Fired engine-operational settlement, not proof that a Java task frame returned
+or that outer removal succeeded. `cancel(false) == false`, cancellation `Exception`,
 cancellation `Error`, acceptance-ambiguous scheduling Throwable, and generation mismatch never suppress and
 conservatively retain the
 exact `Queued(g)` or `Running(g)` link until its same-generation Fired fact or scheduler-termination receipt.
 Never-submitted and pre-submit work, and definite `RejectedExecutionException`, retain their separate existing
 no-callback paths.
 
-A successor requires same-generation Fired plus Future-or-rejection settlement, no cancellation in flight, and
-successful checked pre-increment of the next generation and its atomic representation before exact-generation,
-ABA-safe `Running(g) -> Queued(g+1)`; guard failure is `InternalFailure` before transition/CAS, wrap, reuse, or
-successor, and the successful transition allocates no object. Suppression and scheduler termination create no
-successor. A current active wake-submission rejection is `InternalFailure` even
-though its finite parent is already Entered; a prior retirement, cancellation, terminal, stale-generation, or
-active-to-cleanup disposition remains authoritative and makes the rejection cleanup-only. Retirement/cancellation
-is identity-fenced, accepted-Future cancellation occurs unlocked, and a stale callback can settle only its own
-generation. The [Java 17 `Future`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/Future.html)
+A running generation reaches engine-operational settlement after same-generation Fired and wake-body return. A
+suppressed generation reaches it after accepted-Future `cancel(false) == true`, successful
+`Queued(g) -> Suppressed(g)`, and settlement of every Future/cancel/suppression/outer-removal publication. Removal
+success and physical outer-wrapper return are not successor prerequisites; `remove == false` is not evidence of
+dequeue, entry, return, or no-run. After either operational branch and successful checked pre-increment, the link
+may make the ABA-safe transition to `Queued(g+1)`. Guard failure is `InternalFailure` before wrap, reuse, or
+successor; the transition allocates no object. The single Control worker prevents physical entry of `g+1` while
+an older wrapper is on its stack. An old return or nonreturn affects only worker availability, exact cleanup
+residue, the final Control turn, and real scheduler termination; it fabricates no Fired, return, or progress
+receipt. Scheduler termination is the fallback only for an accepted link that can no longer run; it creates no
+Fired fact or successor. A current
+required wake-submission rejection is `InternalFailure`; a prior retirement, cancellation, terminal,
+stale-generation, or active-to-cleanup disposition remains authoritative and makes rejection cleanup-only.
+Retirement/cancellation is identity-fenced, accepted-Future cancellation occurs unlocked, and a stale callback
+can settle only its own physical frame. Control shutdown waits for engine-operational settlement and every exact
+physical residue required by the final Control turn.
+The [Java 17 `Future`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/Future.html)
 and current Android [`Future`](https://developer.android.com/reference/java/util/concurrent/Future.html) contracts
 support only that successful `cancel(false)` is not a stop receipt, and the
 [atomic-variable](https://developer.android.com/reference/java/util/concurrent/atomic/package-summary) contract
@@ -222,8 +299,7 @@ own the current metrics, captured-resize, Android, GL, and JPEG values and exact
 The shared watchdog exclusions are:
 
 - queued engine work before entry;
-- long-lived metrics collection after first readiness;
-- caller-dispatch invocation duration;
+- long-lived metrics observation after first readiness;
 - entered application callback duration;
 - blocking or Unconfined observation collectors;
 - scheduler progress and public/diagnostic Flow publication;
@@ -280,7 +356,7 @@ second live engine owner.
 
 Concurrency between Sessions is valid, but aggregate pressure and opaque platform/global-driver serialization
 remain outside an individual Session guarantee. Private owner lanes isolate engine queues and lifecycle; they do
-not promise progress through vendor-global locks or the shared Kotlin dispatcher implementation.
+not promise progress through vendor-global locks or non-owned application/runtime threads.
 
 ## Publication and diagnostic routing
 
@@ -302,17 +378,26 @@ independent cleanup-root record before public terminal assignment.
 
 Cleanup is a forest. Each domain leaf defines its local receipt order; a returned failure is recorded and every
 independent reachable root continues. A nonreturn blocks only that call's physical dependents and serial suffix,
-not unrelated roots or another Session. Cleanup never blocks one owner lane waiting for another; completion
-arrives through its precreated fact.
+not unrelated roots or another Session. Cleanup never blocks an owner thread waiting for another; completion
+arrives through its precreated fact. Healthy Control is the receive-only last Session lane after terminal: it
+remains alive until every other owned lane/thread termination receipt and every externally produced late fact or
+controller-consumed dependency has settled. A nonreturning external producer therefore retains Control as a
+quarantine dependency. Only the final Control turn may close remaining successor authority and request its one
+orderly shutdown.
 
 Each root stores the exact occurrence, settlement gate, writable return cell, domain/deadline state, owner bag,
-worker/trampoline where applicable, and transitive resources still owned by it. Logical active-to-cleanup
+worker/Runnable where applicable, and transitive resources still owned by it. Logical active-to-cleanup
 transfer occurs under the normal gate order; physical release/free/detach runs unlocked.
 
 Real typed receipts alone remove obligations. An already absent resource may be structurally marked
 inapplicable only after the relevant construction/entry state proves absence; it never receives a fabricated
 release receipt. Managed references are dropped only after exact uses settle, without claiming physical
 reclamation. Non-owned process/runtime services never enter quarantine and have no invented shutdown receipt.
+Control's `terminated()` hook must not signal, submit, or run a controller turn. It release-publishes the
+precreated termination receipt and performs only the one-shot inline release of its own scheduler/thread root;
+if the already-defined cleanup-diagnostic request is strictly required, it may attempt that precreated
+best-effort request. It cannot revise active/public state or create a successor. Poison or nonreturn retains the
+exact Control root and dependent residue.
 
 ## CORE-CLEAN-2 — Quarantine, nonreturn, and late reduction
 
@@ -347,5 +432,5 @@ publishes. Reusable CPU storage is cleared as required after its last lease befo
 
 Only caller-requested `copyBytes`/`copyTo` transfers JPEG bytes into caller ownership. Allocator, gralloc,
 driver, OS, and JVM zeroization/reclamation are outside the engine contract. Diagnostics and text representations
-never expose raw pixels, encoded bytes, raw handles, tokens, callback/provider/dispatcher objects, or copied
+never expose raw pixels, encoded bytes, raw handles, tokens, callback/provider objects, or copied
 Throwable text.

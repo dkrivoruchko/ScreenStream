@@ -1,6 +1,6 @@
 # Screen Capture Engine — Android Capture and Metrics Domain
 
-This leaf owns built-in capture metrics, metrics collection, geometry-source arbitration, the Session Android
+This leaf owns built-in capture metrics, metrics observation, geometry-source arbitration, the Session Android
 lane, `MediaProjection`, and `VirtualDisplay`. Application/platform obligations and public behavior belong to
 [PROD-001](02-product-contract.md#prod-001--product-and-support-boundary) and
 [PROD-020](02-product-contract.md#prod-020--configuration-and-metrics),
@@ -14,8 +14,8 @@ construction, ports/leases, listener state, and release are owned respectively b
 [TGT-070](07-domain-target.md#tgt-070--surface-and-targetscope-destruction).
 
 Canonical paths are in [router §6](01-authority-router.md#6-source-manifest). `PUB:ScreenCaptureConfig.kt`
-declares the built-in provider definitions. `AND:CaptureMetricsContracts.kt` and
-`AND:CaptureMetricsOwner.kt` own metrics facts and collection lifetime. `AND:AndroidCaptureContracts.kt` owns
+declares the public source/provider contracts and built-in source factories. `AND:CaptureMetricsContracts.kt` and
+`AND:CaptureMetricsOwner.kt` own metrics facts and observation lifetime. `AND:AndroidCaptureContracts.kt` owns
 capture evidence and occurrence bags; `AND:AndroidLane.kt` contains the single Session
 `HandlerThread`/`Handler` runtime; `AND:MediaProjectionOperations.kt` and
 `AND:VirtualDisplayOperations.kt` contain their named platform boundaries; and
@@ -24,10 +24,10 @@ not create an additional lane, gate, owner, or state machine.
 
 ## Navigation
 
-- [AND-MET-001](#and-met-001--provider-identity-and-collection-ownership)
+- [AND-MET-001](#and-met-001--source-identity-and-observation-ownership)
 - [AND-MET-010](#and-met-010--exact-api-band-reads-and-authority)
 - [AND-MET-011](#and-met-011--epoch-invalidation-and-latest-geometry)
-- [AND-MET-020](#and-met-020--structured-metrics-lifetime)
+- [AND-MET-020](#and-met-020--provider-observation-and-active-ordering)
 - [AND-MET-021](#and-met-021--provider-mechanical-outcome-partition)
 - [AND-MET-030](#and-met-030--built-in-close-and-residue)
 - [AND-CAP-001](#and-cap-001--android-lane-and-startup-sequence)
@@ -39,29 +39,33 @@ not create an additional lane, gate, owner, or state machine.
 - [AND-CAP-060](#and-cap-060--exact-androidmetrics-verification)
 - [AND-CAP-070](#and-cap-070--closed-alternatives)
 
-## AND-MET-001 — Provider identity and collection ownership
+## AND-MET-001 — Source identity and observation ownership
 
-The engine calls `observe()` exactly once on the exact configured provider. Null configuration creates and
-attaches one Session-private `BuiltInCaptureMetricsDefinition` for the default-display policy. Public
-`CaptureMetricsProviders.fromDisplay(context, display)` returns an immutable reusable definition fixed to the
+Null configuration creates one Session-private built-in source for the default-display policy. Public
+`CaptureMetricsSources.fromDisplay(context, display)` returns an immutable reusable built-in source fixed to the
 exact supplied `Display` object and ID. Both retain a normalized application Context and its `DisplayManager`;
 the explicit policy never substitutes another Display, including one with the same ID. The default policy may
-select a different current `Display.DEFAULT_DISPLAY` object after the prior selection is removed. A custom
-provider retains its exact identity and owns its Activity/window/dynamic-display policy.
+select a different current `Display.DEFAULT_DISPLAY` object after the prior selection is removed. A configured
+custom `CaptureMetricsProvider` retains its exact identity and owns its Activity/window/dynamic-display policy.
 
-Each built-in `observe()` returns a cold Flow. Direct, repeated, parallel, reused-definition, and cross-Session
-collections have independent listener, conflated signal, authority fence, epoch-invalidated bit, selected epoch,
-window-object cache, and unregister obligation. Collection starts no platform work before collection entry and
-inherits no fact or completion from another collection.
+`CaptureMetricsProvider` is the externally implementable direct subtype of the sealed `CaptureMetricsSource`;
+application implementations are therefore indirect source implementations. A built-in source is an
+engine-defined direct subtype and cannot be confused with a custom provider by reflection, wrapper identity, or
+factory provenance. The Session branches only on these closed source kinds and calls custom `subscribe` exactly
+once.
 
-On collection entry, the built-in registers one exact listener with the Handler, creates one
-`Channel<Unit>(Channel.CONFLATED)`, seeds one token, and serially performs one complete read/emission per token.
-One engine-private `Handler(Looper.getMainLooper())` routes every built-in `DisplayListener` callback on API
-24–37. The Handler and process Main Looper are non-owned. Registration, reads, emission, signal close, and
-unregister run serially in the Flow's upstream context; Session collection uses its distinct non-owned
-`Dispatchers.IO.limitedParallelism(1)` metrics view. The callback only checks the collection fence and selected
-ID, sets the sticky boundary bit for add/remove, and performs a conflated `trySend(Unit)`; it makes no read,
-publication, lifecycle decision, or platform mutation.
+Every built-in observation attachment creates an independent listener, coalesced-refresh bit, authority fence,
+epoch-invalidated bit, selected epoch, window-object cache, and unregister obligation. Direct, repeated,
+parallel, reused-source, and cross-Session observations inherit no fact or completion from one another.
+
+One non-owned `Handler(Looper.getMainLooper())` routes built-in `DisplayListener` callbacks on API 24–37. A Main
+callback performs only O(1), allocation-free fence/selected-ID checks, sets the sticky boundary bit for
+add/remove when applicable, atomically changes the coalesced-refresh bit, and signals the Session Metrics lane.
+It performs no Display/window read, application observer callback, publication, lifecycle decision, or platform
+mutation. Registration, every complete read, and unregister execute serially on the prestarted Session-owned
+Metrics endpoint defined by `CORE-EXEC-1`; at most one read and one coalesced pending refresh exist. The idle
+refresh winner reserves the sole ticket; a callback during that ticket marks it dirty, and ticket settlement
+submits one successor without requiring another source signal.
 
 ## AND-MET-010 — Exact API-band reads and authority
 
@@ -87,7 +91,7 @@ verifies the MediaProjection capture source.
 
 ## AND-MET-011 — Epoch invalidation and latest geometry
 
-Each collection token begins with the only consuming exchange:
+Each Metrics-lane refresh turn begins with the only consuming exchange:
 
 ```text
 boundary = epochInvalidated.getAndSet(false)
@@ -105,60 +109,104 @@ and drives a later boundary pass. An ordinary `onDisplayChanged` only adds a rer
 read, that candidate may publish and the pending token then rereads. At most one read and one pending refresh
 exist, including storms.
 
-Provider and projection facts update only the fields owned by the API table and publish one immutable combined
+Selected-source and projection facts update only the fields owned by the API table and publish one immutable combined
 tuple or availability fact. [CTRL-100](05-domain-controller-reconciliation.md#ctrl-100--currentness-identities)
 alone assigns `geometryGeneration`; [CTRL-110](05-domain-controller-reconciliation.md#ctrl-110--reconciliation-decision)
 and [CTRL-130](05-domain-controller-reconciliation.md#ctrl-130--completion-and-fallback-arbitration) own latest-cell
 claim, supersession, suspension, terminal classification, and rebuild selection.
 
-## AND-MET-020 — Structured metrics lifetime
+The full authority key offered to that controller contains observation/source identity, selected Display and
+continuous-validity epoch or projection owner, availability phase, and every authoritative field. Repeated
+unavailable and an equal full key are no-ops after ingress consumption. First valid, availability transition,
+new epoch/owner, or field change is real; unavailable followed by historically equal valid fields is recovery.
 
-Accepted startup precreates the readiness occurrence, owner bag, empty Flow-return cell, entry/outcome cells,
-parent-completion cell, one plain `parentJob = Job()`, one
-`CoroutineScope(parentJob + metricsIoView)`, and exactly one
-`launch(start = CoroutineStart.LAZY)` child. Child and parent completion handlers are attached before the
-provider/scope/child/readiness `S,D` transfer under `sessionGate -> settlementGate`; `child.start()` runs after
-unlock.
+## AND-MET-020 — Provider observation and Active ordering
 
-The child calls `observe()` once. It publishes the raw returned reference into the preattached Flow cell before
-rechecking active versus cleanup authority. A null interop return is unusable; a nonnull Flow is retained with
-the provider until final parent completion. Cleanup winning before collection entry prevents entry but does not
-erase the returned reference.
+Accepted startup precreates the readiness occurrence, observer, bounded staging summary, handle-outcome/adoption
+cell, close occurrence, owner bag, and attachment ticket, then submits that one ticket to the prestarted Metrics
+endpoint under `CORE-EXEC-1`. After its Runnable commits `Entered`, the worker takes the attachment
+`settlementGate`, samples `S = EngineClock.now()`, computes checked `D` from `AND-CAP-040`, and publishes both;
+it releases the gate immediately before exactly one outward observation-start call. That call is custom
+`provider.subscribe(observer)` or the built-in attach/register equivalent. Thus `S,D` are visible before any
+inline callback. Observer calls may be synchronous before return, inline/reentrant, concurrent, or later on
+arbitrary source-owned threads; no callback-thread ordering is assumed.
 
-`observe()` and `collect` have separate `catch (Throwable)` boundaries. On caught `CancellationException`,
-`currentCoroutineContext().ensureActive()` distinguishes provider failure while the Job remains active from
-terminal mechanics cancellation. Provider failure retains the original throwable as the `InternalFailure`
-cause. Other throws receive the same classification. Normal completion or classified failure publishes one
-fact and lets the child exit normally.
+The bounded summary is sufficient and exhaustive: earliest validated positive value with ingress sequence,
+sample time, and value; sticky first post-valid availability loss before first Active; latest nullable metrics
+with sequence and value; first terminal kind/cause, sequence, and
+`BeforeJointReadiness | AfterJointReadiness` phase; and the distinct handle-outcome/adoption cell. For each
+contract-valid positive callback, the observer takes `sessionGate`, validates exact source/observation identity,
+the open fence, and the value, reserves the next nonreused ingress sequence, samples `T = EngineClock.now()` in
+that same critical section, and publishes the tuple before unlock. This internal clock sample is permitted while
+no outward call, I/O, scheduling, or explicit wait occurs. Nullable and terminal callbacks use the same semantic
+sequence authority without a readiness time sample. Sequence exhaustion fences ingress and publishes the
+precreated `InternalFailure` before wrap or reuse. Each gated body is O(1), allocation-free, and nonthrowing for
+contract-valid input; it may contend briefly on `sessionGate` and requests the lossless drain only after unlock.
+`onComplete`/`onFailure` close ingress and the first terminal wins. Reported failure is source data, so its raw
+cause is retained as `InternalFailure` regardless of subtype and is never thrown by the engine.
 
-The child completion handler only and unconditionally calls `parentJob.complete()`; the parent completion handler only fills the
-precreated completion cell and issues the nonblocking lossless controller wake. Both are fast, allocation-free,
-nonthrowing, thread-safe, acquire no engine gate, and perform no outward call or lifecycle decision. Terminal calls
-`parentJob.cancel()` outside gates. Final parent completion is the sole metrics-lifecycle receipt, including
-cancel-before-entry; first valid metrics is readiness, not release. An entered nonreturn transfers the exact
-parent/scope/child/provider/Flow/cells and collection dependencies under [CORE-CLEAN-1](03-shared-runtime.md#core-clean-1--cleanup-forest-and-dependency-graph).
+The controller folds summary cells by ingress sequence, not callback arrival, drain order, or sample-time order;
+no event queue is needed. One-shot joint readiness commits under `sessionGate` only when the timely earliest
+positive tuple (`T < D`) and a normally returned, nonnull, adopted exact close handle coexist before expiry and
+before any prior availability loss or terminal occurrence. Handle outcome/adoption may occur after the positive
+sample and is distinct from full attachment-ticket submission/Runnable-return settlement. Null handle or an
+outward observation-start `Exception` while readiness is unresolved is authoritative `InternalFailure` over all
+staged callbacks. Direct fatal follows `CORE-FATAL-1`; an already committed expiry or Session terminal remains
+fixed. Nonreturn cannot be converted into success by staged callbacks.
+
+Normal `onComplete` before joint readiness—including valid-before-handle—closes ingress and selects startup
+`CaptureUnavailable` subject to the authoritative unresolved handle-outcome rule above; it requests no completion
+diagnostic. If the observation-start call later returns a normal nonnull handle, the engine adopts it and makes
+it the exact pending close obligation. Normal
+`onComplete` after joint readiness, including after readiness but before first Active, closes ingress, retains
+the last valid tuple, requests the one null-cause completion diagnostic, and does not prevent startup from
+continuing. `onFailure` retains its ordinary pre-/post-readiness `InternalFailure` behavior. The first terminal
+callback remains the only terminal occurrence.
+
+Source ingress and first `Running(Active)` are ordered by the same `sessionGate`. Before Active, the controller
+folds every represented earlier sequence and rechecks the observation fence, joint-readiness commit, sticky loss,
+terminal phase, and latest tuple. After Active, the latest nullable cell and first terminal follow `PROD-020`.
+Duplicate determination uses the full authority key in `CTRL-100`: a duplicate still consumes its ingress
+sequence but produces no geometry/lifecycle generation, reconciliation, rebuild, State/Stats publication, or
+diagnostic.
+
+Observation completion, Session terminal, or another close trigger sets sticky `closePending/closeRequested`
+under `sessionGate`; it does not immediately create a second Metrics ticket. The exact close ticket may be
+submitted only after the attachment ticket has fully settled its submission, entry, and Runnable-return sides,
+the exact handle is adopted, and the same endpoint remains healthy. `subscription.close()` or the built-in
+equivalent then executes once on that endpoint outside all gates. Normal return is the exact close receipt.
+Submission throw/endpoint poison, returned `Exception`, direct fatal, or nonreturn retains the handle, close
+obligation, and exact dependency residue; no second endpoint, fabricated close, or duplicate ticket is allowed.
+Terminal while attachment is unresolved transfers the attachment ticket, bounded summary, selected source,
+observer, possible future handle, owner bag, and close obligation intact. Only exact fully settled attachment
+evidence that no handle exists makes close structurally inapplicable. Metrics `terminated()` remains a distinct
+endpoint/thread receipt.
 
 ## AND-MET-021 — Provider mechanical outcome partition
 
 | Mechanical outcome | Exact outbound fact/ownership route |
 | --- | --- |
-| first valid positive tuple settles with `T < D` | readiness success plus the complete tuple; collection remains owned and active |
-| normal completion before any valid tuple | completion-before-readiness fact |
-| first-readiness expiry | readiness-expired fact with its fixed cause; collection ownership remains mechanical |
-| `observe()` throw, null interop Flow, or collection throw | provider-failure fact with the raw cause when present and readiness phase |
+| timely first valid positive tuple and its normal nonnull handle are jointly committed before prior loss/terminal/expiry | readiness success plus the complete tuple; full attachment-ticket settlement may be later, and observation remains owned |
+| normal completion before joint readiness, including valid-before-handle | startup `CaptureUnavailable`; no completion diagnostic; a later normal nonnull handle is adopted for exact close |
+| first-readiness expiry | readiness-expired fact with its fixed cause; observation ownership remains mechanical |
+| observation-start throws `Exception` or returns a null interop handle while unresolved | authoritative source-observation `InternalFailure` over staged callbacks, with the raw cause when present |
+| observer reports `onFailure` | source-observation failure with the raw cause and exact joint-readiness phase; first terminal wins |
+| observation-start throws `Error` or another direct non-`Exception` throwable | exact raw fatal settlement and engine-boundary rethrow under `CORE-FATAL-1` |
+| adopted-handle `close` throws `Exception` while still active | provider-close-failure fact with the raw cause; a prior terminal transfer remains authoritative |
 | required tuple becomes null/invalid | availability-loss fact with readiness/Active phase and raw nullable cause |
-| normal completion after readiness | completion-after-readiness fact; last valid tuple remains mechanically available |
+| normal completion after joint readiness, including before first Active | one completion-after-readiness fact; ingress closes and last valid tuple remains mechanically available |
 | later valid tuple while nonterminal | one new complete combined tuple fact |
 | result after active-to-cleanup transfer | reduce only the same metrics residue; publish no geometry or lifecycle fact |
 
-The completion-after-readiness fact requests exactly one diagnostic for that matching provider lifetime
-completion: source `MetricsProvider`, label `CapabilityCheck`, and `cause = null`. Completion before readiness
-and provider failure do not create this post-readiness completion request. The request is routed through
+The completion-after-readiness fact requests exactly one normal observation-completion diagnostic for that
+matching observation lifetime: source `MetricsProvider`, label `CapabilityCheck`, and `cause = null`. Pre-readiness
+completion, provider failure, and duplicate terminal delivery create no such event; the one observation lifetime
+can never request it twice. The request is routed through
 [CTRL-300](05-domain-controller-reconciliation.md#ctrl-300--cross-domain-commit-rules), which retains diagnostic
 sequence authority, and [DEL-OBS-020](12-domain-delivery-observation.md#del-obs-020--diagnostic-construction-and-emission)
 for unlocked construction/emission.
 
-[PROD-020](02-product-contract.md#prod-020--configuration-and-metrics) owns visible provider outcomes;
+[PROD-020](02-product-contract.md#prod-020--configuration-and-metrics) owns visible source-observation outcomes;
 [CTRL-030](05-domain-controller-reconciliation.md#ctrl-030--lifecycle-and-terminal-application) and
 [CTRL-130](05-domain-controller-reconciliation.md#ctrl-130--completion-and-fallback-arbitration) apply them.
 A positive tuple incompatible with region/crop is routed to controller geometry validation, not reclassified by
@@ -166,24 +214,41 @@ this domain.
 
 ## AND-MET-030 — Built-in close and residue
 
-Collection close first fences authority and closes the signal, then attempts exact
-`unregisterDisplayListener(listener)` on the upstream/metrics-IO view. Registration failure before the first
-value is `InternalFailure` and still attempts unregister. Normal unregister plus collection-body completion can
-advance the parent receipt. A returned unregister throw settles that attempt and permits remaining collection
-cleanup; nonreturn prevents child/final-parent completion. The retained residue is limited to that collection's
-listener, `DisplayManager`, Main-Handler reference, provider/Flow/lifecycle cells, and dependencies still needed
-by the entered work. It excludes the Session Android Handler/HandlerThread and all other collections/Sessions.
+Built-in close first fences Main-callback authority and clears refresh admission, then attempts exact
+`unregisterDisplayListener(listener)` on the Metrics endpoint. Registration failure before the first value is
+`InternalFailure` and still admits the matching unregister when registration may have escaped. Normal unregister
+is the built-in observation-close receipt. A returned unregister throw settles that attempt and preserves its
+failure; nonreturn retains the listener and prevents endpoint shutdown. The residue is limited to that
+observation's listener, `DisplayManager`, Main-Handler reference, built-in source, epoch/window state, refresh
+ticket, and dependencies still needed by entered work. It excludes the Session Android Handler/HandlerThread and
+all other observations/Sessions.
 
 A Main-queue callback whose framework snapshot predates close/unregister may enter after a normal unregister or
-after Session Android-thread shutdown. The fence makes it the same O(1) inert callback: zero publication, wake,
-read, and lifecycle calls. A blocking metrics read is identity/domain-fenced; its late return is cleanup-only.
+after Session Android-thread shutdown. The fence makes it the same O(1) inert callback: zero refresh submission,
+read, publication, and lifecycle calls. A blocking metrics read is identity/domain-fenced; its late return is
+cleanup-only.
 
 ## AND-CAP-001 — Android lane and startup sequence
 
 Each accepted Session owns one `HandlerThread` and `Handler`. `AndroidCaptureOwner` alone uses that Handler for
 every `MediaProjection` callback registration/unregistration and callback, VirtualDisplay create/resize/
 setSurface/release, target-listener Android-side call, and projection stop. Callback bodies carry the Session
-epoch and post immutable facts; they do not mutate controller, Target, or GL state.
+epoch and publish immutable facts; they do not mutate controller, Target, or GL state.
+
+Every engine-originated Android Runnable has a typed post/entry ticket. `Handler.post(runnable) == true` is
+acceptance only, not entry, execution, return, release, or thread-liveness receipt. `false` or an outward throw is
+always recorded; entry wins the affected occurrence if its Runnable already committed entry, but any such active
+post failure monotonically poisons the Android lane and initiates the allocation-free fail-close path. A thrown
+`Exception` is `InternalFailure`; a direct `Error` or other non-`Exception` throwable follows `CORE-FATAL-1` and
+is rethrown identically after settlement. A poisoned-lane Runnable can only settle inert. Framework callbacks
+delivered through the registered Handler are callback occurrences, not engine `post` tickets, and do not consume
+a private-executor ticket. The `CORE-EXEC-1` queue and one-outstanding-ticket rules do not apply to Android.
+
+The HandlerThread outer run boundary owns a preallocated direct-fatal slot and a `finally` publication. It fences
+new work and preserves/rethrows the identical fatal object after allocation-free settlement. `quitSafely()` is a
+one-shot shutdown request only; it is neither acceptance of future work nor a thread-return receipt and may omit
+future-due messages. The HandlerThread's actual `run` return through `finally` is the sole Android lane/thread
+receipt.
 
 After the winning start commit in
 [CTRL-020](05-domain-controller-reconciliation.md#ctrl-020--public-command-application), this domain settles its
@@ -212,12 +277,12 @@ normal result is eligible for active application by
 
 | Boundary | Exact call and cardinality | Timely result partition / receipt |
 | --- | --- | --- |
-| projection callback registration | Once, before display creation: `mediaProjection.registerCallback(callback, androidHandler)` | Normal return is the startup registration receipt; throw is `InternalFailure`. |
-| VirtualDisplay creation | Once: `mediaProjection.createVirtualDisplay("ScreenCaptureEngine", W, H, D, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, null)` | Nonnull adopts the sole display owner; null or `SecurityException` is `CaptureUnavailable`; direct `OutOfMemoryError` is `ResourceExhausted`; `IllegalStateException` or any other throwable is `InternalFailure`. A late nonnull owner is adopted for cleanup and must be released. |
-| density/size mutation | `virtualDisplay.resize(W,H,D)` once per admitted mutation occurrence | Normal return is the resize receipt; throw or ambiguity is `InternalFailure`. |
+| projection callback registration | Once, before display creation: `mediaProjection.registerCallback(callback, androidHandler)` | Normal return is the startup registration receipt; thrown `Exception` is `InternalFailure`; direct fatal follows `CORE-FATAL-1`. |
+| VirtualDisplay creation | Once: `mediaProjection.createVirtualDisplay("ScreenCaptureEngine", W, H, D, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, null)` | Nonnull adopts the sole display owner; null or `SecurityException` is `CaptureUnavailable`; direct `OutOfMemoryError` is `ResourceExhausted`; `IllegalStateException` or another unexpected `Exception` is `InternalFailure`; other direct throwables follow `CORE-FATAL-1`. A late nonnull owner is adopted for cleanup and must be released. |
+| density/size mutation | `virtualDisplay.resize(W,H,D)` once per admitted mutation occurrence | Normal return is the resize receipt; thrown `Exception` or ambiguity is `InternalFailure`; direct fatal follows `CORE-FATAL-1`. |
 | target attach/detach | `virtualDisplay.setSurface(surface)` / `virtualDisplay.setSurface(null)` once per admitted occurrence | Normal attach/detach publishes the exact platform result consumed by `TGT-040`; throw/timeout supplies no producer, no-producer, or detach proof. |
-| callback unregister | At most once in cleanup: `mediaProjection.unregisterCallback(callback)` | Normal return releases callback registration. Returned throw is recorded and cleanup continues to display release; nonreturn blocks this serial suffix. |
-| display release | At most once in cleanup: `virtualDisplay.release()` | Normal return releases the display and, where applicable, is eligible for the matching `TGT-040` detach receipt. Returned throw is recorded and cleanup continues to projection stop; nonreturn blocks the suffix. |
+| callback unregister | At most once in cleanup: `mediaProjection.unregisterCallback(callback)` | Normal return releases callback registration. Returned `Exception` is recorded and cleanup continues; direct fatal follows `CORE-FATAL-1`; nonreturn blocks this serial suffix. |
+| display release | At most once in cleanup: `virtualDisplay.release()` | Normal return releases the display and may supply the matching `TGT-040` detach receipt. Returned `Exception` is recorded and cleanup continues; direct fatal follows `CORE-FATAL-1`; nonreturn blocks the suffix. |
 | projection stop | At most once after display cleanup outcome: `mediaProjection.stop()` | Normal return releases projection ownership. It creates no `CaptureEnded` fact. |
 
 The VirtualDisplay always retains authoritative logical `W x H` and density `D`, uses automatic-mirroring, and
@@ -281,7 +346,8 @@ Local Android cleanup order is fixed:
 projection callback unregister -> VirtualDisplay release -> MediaProjection stop
 ```
 
-A returned throw is recorded and the next reachable step is attempted; nonreturn blocks only its serial suffix.
+A returned `Exception` is recorded and the next reachable step is attempted; direct fatal follows
+`CORE-FATAL-1`, and nonreturn blocks only its serial suffix.
 Target release remains the separate dependency graph in
 [TGT-060](07-domain-target.md#tgt-060--mutually-exclusive-retirement-readiness),
 [TGT-070](07-domain-target.md#tgt-070--surface-and-targetscope-destruction), and
@@ -299,7 +365,7 @@ These private `Long` nanosecond values are implementation policy, not public SLA
 
 | Constant | Value | One occurrence |
 | --- | ---: | --- |
-| `firstMetricsReadinessNanos` | `5_000_000_000L` | Accepted metrics attachment through first valid positive tuple. Long-lived collection and final parent completion have no readiness watchdog. |
+| `firstMetricsReadinessNanos` | `5_000_000_000L` | Under attachment `settlementGate`, arm `S,D` after attachment-Runnable entry and immediately before the one observation-start call. Joint readiness requires a positive observer sample `T < D` plus normal nonnull exact-handle adoption before prior loss/terminal/expiry. Long-lived observation and exact close have no readiness watchdog. |
 | `initialCapturedResizeReadinessNanos` | `5_000_000_000L` | API 34–37 only, from atomic publication of `S,D` with the nonnull VirtualDisplay owner through first valid resize. API 24–33 create zero such occurrence. |
 | `androidEnteredOperationSafetyNanos` | `5_000_000_000L` | One preterminal projection registration, VirtualDisplay create/resize/setSurface, target-listener install/remove, or typed Surface-release occurrence after its prerequisites. GL-070 executes the Surface call; this row owns only its deadline and result-classification policy. It is never one window for a compound sequence. |
 
@@ -320,8 +386,8 @@ A higher-priority terminal winner leaves the timeout cleanup-only.
 
 | Direction | Typed interface/fact | Authority/use |
 | --- | --- | --- |
-| product -> metrics | exact `CaptureMetricsProvider`, built-in policy, nullable Flow values | `PROD-020` defines public meaning; `AND-MET-*` owns collection mechanics. |
-| metrics -> controller | provider outcome, complete combined tuple, final-parent receipt | `CTRL-030`, `CTRL-100`, and `CTRL-130` own lifecycle/currentness/application. |
+| product -> metrics | exact `CaptureMetricsSource`, custom provider, built-in policy, and nullable observer values | `PROD-020` defines public meaning; `AND-MET-*` owns observation mechanics. |
+| metrics -> controller | selected-source observation outcome, complete combined tuple, exact close receipt, and Metrics-endpoint termination receipt | `CTRL-030`, `CTRL-100`, and `CTRL-130` own lifecycle/currentness/application. |
 | Target -> Android | installed CurrentTarget Android-operation port/lease and provenance | `TGT-010`/`TGT-030` own identity, exposure, and lease authority. |
 | Android -> Target | physical listener settlement/sentinel, producer-call result, detach result | `TGT-040`/`TGT-050`/`TGT-060` alone interpret matching Target evidence. |
 | Android -> controller | callback registration/create/mutation facts, resize/visibility/stop facts, Android lane receipt | `CTRL-030`/`CTRL-100`/`CTRL-130`/`CTRL-300` arbitrate; this leaf owns physical result classification. |
@@ -337,19 +403,28 @@ Android/metrics-specific proof.
 matrix, not six devices. The complete required vectors are:
 
 1. Factory/identity: null default present/missing/remove/same-ID replacement/add; explicit exact Display
-   invalid/recover/same-ID-other-object/unrelated changes; custom identity. Assert one Session `observe()` call,
-   independent cold collections, normalized Context, and zero public default factory.
+   invalid/recover/same-ID-other-object/unrelated changes; custom identity. Assert one Session `subscribe` call,
+   independent built-in observations, exact source/provider identity, normalized Context, and zero public default
+   factory.
 2. Reads: exact API-band calls, one epoch WindowContext pair, one fresh density Context per read, complete-tuple
    publication, zero frame-path reads, and no guarded post-24 API call outside its branch.
 3. Epoch races: boundary before opening exchange; after exchange/between every read/before install; immediately
    after final validation; recovery; ordinary change during read; callback storm. Assert no mixed tuple, erased
    boundary, duplicate epoch pair, or unbounded pending work.
-4. Structured lifetime: cancel before lazy entry; child entry versus cancel; observe return versus cleanup;
-   normal completion before/after readiness; active provider `CancellationException` versus parent cancellation;
-   other throw; getter/collect/read/unregister nonreturn; late parent completion. Hold each engine gate while
-   invoking completion handlers and assert their bounded behavior. Normal completion after readiness requests
-   exactly one `MetricsProvider`/`CapabilityCheck` event with null cause for that provider lifetime; completion
-   before readiness and provider failure request no duplicate post-readiness completion event.
+4. Observation lifetime: `S,D` publication before the exactly one custom/built-in observation-start call;
+   inline/arbitrary-thread/concurrent callbacks before/during/after its return; semantic-sequence folding of the
+   bounded earliest-positive/sticky-pre-Active-loss/latest-nullable/first-terminal-phase/handle-adoption summary;
+   same-critical-section positive `T` sample/publication; ingress exhaustion before reuse; returned null, throw,
+   nonreturn, expiry, or terminal never converted to success; `D-1/D/D+1` and concurrent reverse callback/drain
+   order; earlier/later normal nonnull handle adoption; normal completion before joint readiness, including
+   valid-before-handle, versus after joint readiness before/after first Active; late handle adoption and exact
+   close; valid-loss-valid before Active remains startup unavailable; exact full-key duplicate/no-op and unavailable
+   recovery; attachment submission/entry/Runnable-return settlement before one close ticket; closePending during
+   attachment; poisoned/nonreturn residue with no second endpoint or fabricated close; callback versus first
+   Active; raw fatal-slot identity, direct-Error thread-top identity, runtime-shaped custom-Throwable thread-top,
+   and reported Error as data; late callback/return. Normal completion after joint readiness requests exactly one
+   `MetricsProvider`/`CapabilityCheck` event with null cause for that observation lifetime; pre-readiness
+   completion, provider failure, and duplicates request none.
 5. Projection: exact registration order/Handler and sole create arguments; null, SecurityException, direct OOM,
    IllegalStateException, unexpected throw, nonreturn, and late owner; API 34–37 resize-before-display-return,
    readiness `D-1/D/D+1`, missing resize, runtime resize, visibility, onStop, stale epoch, and terminal facts.
@@ -365,9 +440,9 @@ matrix, not six devices. The complete required vectors are:
    uninstalled Target has zero Android calls. Full release-chain acceptance remains in
    [TGT-100](07-domain-target.md#tgt-100--executable-obligations).
 
-Tests use deterministic barriers and injected elapsed time, never sleeps or log parsing. They assert no Handler
-object identity beyond Main-Looper routing, no physical metrics-IO thread identity, and no device matrix. This
-domain introduces no image vector or numeric tolerance.
+Tests use deterministic barriers and injected elapsed time, never sleeps or log parsing. They assert only the
+documented Main-Looper routing plus the dedicated Metrics endpoint/thread, and no device matrix. This domain
+introduces no image vector or numeric tolerance.
 
 ## AND-CAP-070 — Closed alternatives
 
@@ -403,7 +478,5 @@ domain introduces no image vector or numeric tolerance.
 - [Surface](https://developer.android.com/reference/android/view/Surface),
   [SurfaceTexture](https://developer.android.com/reference/android/graphics/SurfaceTexture),
   and [Handler](https://developer.android.com/reference/android/os/Handler)
-- [CoroutineScope](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-scope/),
-  [CoroutineStart](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-start/),
-  [Job](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-job/),
-  and [coroutine cancellation](https://kotlinlang.org/docs/cancellation-and-timeouts.html)
+- [HandlerThread](https://developer.android.com/reference/android/os/HandlerThread) and
+  [Looper](https://developer.android.com/reference/android/os/Looper)

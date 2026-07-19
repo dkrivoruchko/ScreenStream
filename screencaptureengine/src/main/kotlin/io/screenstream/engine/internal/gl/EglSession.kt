@@ -2,8 +2,9 @@ package io.screenstream.engine.internal.gl
 
 import android.opengl.EGL14
 import android.opengl.GLES20
+import io.screenstream.engine.internal.settlement.ControlWakeLink
 import io.screenstream.engine.internal.settlement.OperationOccurrence
-import java.util.concurrent.ScheduledExecutorService
+import io.screenstream.engine.internal.settlement.isHandedOff
 import kotlin.concurrent.withLock
 
 internal enum class EglStepApplicability {
@@ -42,7 +43,7 @@ internal class GlSessionConstructionHandle internal constructor(
     private val owner: GlPipelineOwner,
     identity: GlFiniteOperationIdentity,
     partialCleanupIdentity: GlFiniteOperationIdentity,
-) : GlPipelineOwner.SessionConstructionCommand {
+) : GlPipelineOwner.SessionConstructionCommand, GlTeardownOwner {
     private val evidence: GlOperationEvidence =
         GlOperationEvidence(
             identity.operationIdentity,
@@ -53,17 +54,17 @@ internal class GlSessionConstructionHandle internal constructor(
     private val ownerBag: GlOwnerBag = GlOwnerBag(owner)
     private val occurrence: OperationOccurrence<GlOperationEvidence> = owner.operationOccurrence(identity, evidence, ownerBag)
     private val claimedFacts: GlClaimedOperationFacts = GlClaimedOperationFacts.precreate(evidence)
-    private val runnable: Runnable = owner.fatalBoundary { execute() }
-    internal val laneTicket: GlLaneTicket = GlLaneTicket()
+    private val endpointOperation = owner.endpointOperation(occurrence, Runnable { execute() })
     private val partialCleanupEvidence: GlDestructionEvidence =
         GlDestructionEvidence(partialCleanupIdentity.operationIdentity, GlDestructionKind.ContextNamespace)
     private val partialCleanupOwnerBag: GlOwnerBag = GlOwnerBag(owner)
     private val partialCleanupOccurrence: OperationOccurrence<GlDestructionEvidence> =
         owner.destructionOccurrence(partialCleanupIdentity, partialCleanupEvidence, partialCleanupOwnerBag)
     private val partialCleanupClaimedFacts: GlClaimedDestructionFacts = GlClaimedDestructionFacts.precreate(partialCleanupEvidence)
-    private val partialCleanupRunnable: Runnable = owner.fatalBoundary { executePartialCleanup() }
-    private val partialCleanupLaneTicket: GlLaneTicket = GlLaneTicket()
+    private val partialCleanupEndpointOperation =
+        owner.endpointOperation(partialCleanupOccurrence, Runnable { executePartialCleanup() })
     private var partialCleanupReady: Boolean = false
+    private var primaryEndpointReleased: Boolean = false
     private var partialCleanupNamespaceConsumed: Boolean = false
     private var partialCleanupSuffixSucceeded: Boolean = false
 
@@ -73,11 +74,14 @@ internal class GlSessionConstructionHandle internal constructor(
 
     private fun isPartialCleanupReady(): Boolean = owner.glGate.withLock { partialCleanupReady }
 
+    private fun releasePrimaryEndpoint(): Boolean {
+        if (owner.glGate.withLock { primaryEndpointReleased }) return true
+        if (!owner.releaseSettledOperation(endpointOperation)) return false
+        owner.glGate.withLock { primaryEndpointReleased = true }
+        return true
+    }
+
     private fun execute() {
-        if (!owner.enter(laneTicket, occurrence)) {
-            closeUnusedPartialCleanup()
-            return
-        }
         try {
             if (owner.constructSession(evidence)) {
                 owner.checkFatalFence()
@@ -88,13 +92,10 @@ internal class GlSessionConstructionHandle internal constructor(
             }
             owner.checkFatalFence()
             setPartialCleanupReady(evidence.result != GlOperationResult.Success && owner.sessionEglStarted)
-            if (!isPartialCleanupReady()) {
-                owner.checkFatalForPrepared(partialCleanupLaneTicket)
-                owner.laneRuntime.cancelWithoutExecutorCall(partialCleanupLaneTicket)
-            }
             owner.checkFatalFence()
             owner.closeNormalResult(evidence)
             occurrence.publishNormalReturn()
+            if (!isPartialCleanupReady()) closeUnusedPartialCleanup()
         } catch (exception: Exception) {
             owner.checkFatalFence()
             owner.markContextUnknown()
@@ -103,60 +104,23 @@ internal class GlSessionConstructionHandle internal constructor(
             evidence.contextIntegrity = ContextIntegrity.Unknown
             owner.checkFatalFence()
             setPartialCleanupReady(owner.sessionEglStarted)
-            if (!isPartialCleanupReady()) {
-                owner.checkFatalForPrepared(partialCleanupLaneTicket)
-                owner.laneRuntime.cancelWithoutExecutorCall(partialCleanupLaneTicket)
-            }
             owner.checkFatalFence()
             occurrence.publishThrownReturn(exception)
+            if (!isPartialCleanupReady()) closeUnusedPartialCleanup()
         }
-        owner.finishLaneReturn(laneTicket)
     }
 
-    override fun submit(): Boolean = owner.laneRuntime.submissionBoundary {
-        val submitted = try {
-            owner.submit(laneTicket, occurrence, runnable)
-        } catch (error: Error) {
-            try {
-                if (owner.laneRuntime.canReleaseCancelledDependenciesAfterFatal(laneTicket, error)) {
-                    closeUnusedPartialCleanup()
-                }
-            } catch (_: Throwable) {
-                // The original fatal remains authoritative.
-            }
-            throw error
-        }
-        val closePartialCleanup = !submitted && owner.glGate.withLock {
-            owner.laneRuntime.isTerminalNoExecutorSubmissionLocked(laneTicket)
-        }
-        if (closePartialCleanup) closeUnusedPartialCleanup()
-        submitted
+    override fun submit(): Boolean {
+        val result = owner.submit(endpointOperation)
+        return result.isHandedOff
     }
 
     private fun closeUnusedPartialCleanup() {
-        if (!owner.glGate.withLock { owner.sessionEglStarted }) {
-            owner.laneRuntime.cancelWithoutExecutorCall(partialCleanupLaneTicket)
-            owner.signalSettlement()
-        }
-    }
-
-    internal fun admitLane(): Boolean {
-        if (!owner.laneRuntime.issue(partialCleanupLaneTicket)) return false
-        return try {
-            if (owner.laneRuntime.issue(laneTicket)) {
-                true
-            } else {
-                owner.laneRuntime.cancelWithoutExecutorCall(partialCleanupLaneTicket)
-                false
-            }
-        } catch (error: Error) {
-            owner.laneRuntime.cancelWithoutExecutorCall(partialCleanupLaneTicket)
-            throw error
-        }
+        partialCleanupOccurrence.arbitrateTerminal(mandatoryCleanup = false)
+        owner.signalSettlement()
     }
 
     private fun executePartialCleanup() {
-        if (!owner.enter(partialCleanupLaneTicket, partialCleanupOccurrence)) return
         try {
             val contextRetired = if (owner.context == EGL14.EGL_NO_CONTEXT) {
                 owner.checkFatalFence()
@@ -176,7 +140,7 @@ internal class GlSessionConstructionHandle internal constructor(
                 owner.contextDestroyed = true
                 true
             } else {
-                owner.unbindAndDestroyContext(partialCleanupLaneTicket, partialCleanupEvidence)
+                owner.unbindAndDestroyContext(this, partialCleanupEvidence)
             }
             if (contextRetired) {
                 owner.checkFatalFence()
@@ -204,7 +168,6 @@ internal class GlSessionConstructionHandle internal constructor(
             owner.recordUnreachableSuffixResidue()
             false
         }
-        owner.finishLaneReturn(partialCleanupLaneTicket, signal = false)
         if (suffixSucceeded) {
             recordPartialCleanupSuffixSuccess()
         } else {
@@ -212,15 +175,20 @@ internal class GlSessionConstructionHandle internal constructor(
         }
     }
 
-    override fun submitPartialCleanup(): Boolean = owner.laneRuntime.submissionBoundary {
-        isPartialCleanupReady() && owner.reserveTeardown(partialCleanupLaneTicket) &&
-                owner.submit(partialCleanupLaneTicket, partialCleanupOccurrence, partialCleanupRunnable)
+    override fun submitPartialCleanup(): Boolean {
+        if (!isPartialCleanupReady() || !releasePrimaryEndpoint() ||
+            !owner.claimTeardown(this)
+        ) {
+            return false
+        }
+        val result = owner.submit(partialCleanupEndpointOperation, this)
+        return result.isHandedOff
     }
 
     override fun claimPartialCleanup(): GlClaimedDestructionFacts? {
         if (!isPartialCleanupReady()) return null
         val facts = owner.claimDestruction(partialCleanupOccurrence, partialCleanupClaimedFacts)
-        owner.retireMechanicallyCompleteLane(partialCleanupLaneTicket, partialCleanupOccurrence)
+        owner.releaseSettledOperation(partialCleanupEndpointOperation)
         if (facts?.result == GlOperationResult.Success && facts.receipt === partialCleanupEvidence.receipt) {
             if (!recordPartialCleanupNamespaceConsumed()) return null
         }
@@ -231,13 +199,13 @@ internal class GlSessionConstructionHandle internal constructor(
         val consumed = owner.glGate.withLock {
             owner.checkFatalLocked()
             check(!partialCleanupNamespaceConsumed)
-            if (partialCleanupSuffixSucceeded && !owner.ownsTeardownReservationLocked(partialCleanupLaneTicket)) {
+            if (partialCleanupSuffixSucceeded && !owner.ownsTeardown(this)) {
                 return@withLock false
             }
             if (!owner.consumePartialContextNamespaceLocked()) return@withLock false
             partialCleanupNamespaceConsumed = true
             if (partialCleanupSuffixSucceeded) {
-                check(owner.completeTeardownReservationLocked(partialCleanupLaneTicket))
+                check(owner.releaseTeardown(this))
             }
             true
         }
@@ -249,32 +217,32 @@ internal class GlSessionConstructionHandle internal constructor(
         owner.glGate.withLock {
             owner.checkFatalLocked()
             check(!partialCleanupSuffixSucceeded)
-            if (partialCleanupNamespaceConsumed && !owner.ownsTeardownReservationLocked(partialCleanupLaneTicket)) {
+            if (partialCleanupNamespaceConsumed && !owner.ownsTeardown(this)) {
                 return@withLock
             }
             partialCleanupSuffixSucceeded = true
             if (partialCleanupNamespaceConsumed) {
-                check(owner.completeTeardownReservationLocked(partialCleanupLaneTicket))
+                check(owner.releaseTeardown(this))
             }
         }
         owner.signalSettlement()
     }
 
-    override fun submitRequestedPartialCleanupDeadlineWake(scheduler: ScheduledExecutorService): Boolean =
-        partialCleanupOccurrence.submitRequestedDeadlineWake(scheduler)
+    override val deadlineWakeLink: ControlWakeLink = checkNotNull(occurrence.controlWakeLink)
 
-    override fun performRequestedPartialCleanupDeadlineCancellation(): Boolean =
-        partialCleanupOccurrence.performRequestedDeadlineCancellation()
+    override val partialCleanupDeadlineWakeLink: ControlWakeLink =
+        checkNotNull(partialCleanupOccurrence.controlWakeLink)
 
-    override fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean =
-        occurrence.submitRequestedDeadlineWake(scheduler)
-
-    override fun performRequestedDeadlineCancellation(): Boolean =
-        occurrence.performRequestedDeadlineCancellation()
+    init {
+        check(deadlineWakeLink !== partialCleanupDeadlineWakeLink)
+    }
 
     override fun claim(): GlClaimedOperationFacts? {
         val facts = owner.claimOperation(occurrence, claimedFacts)
-        owner.retireMechanicallyCompleteLane(laneTicket, occurrence)
+        releasePrimaryEndpoint()
+        if (facts == null && !owner.glGate.withLock { owner.sessionEglStarted }) {
+            closeUnusedPartialCleanup()
+        }
         return facts
     }
 }
@@ -486,11 +454,11 @@ internal class GlEglRuntime internal constructor(
         return owner.queryCapabilities(evidence)
     }
 
-    internal fun unbindAndDestroyContext(ticket: GlLaneTicket, evidence: GlDestructionEvidence): Boolean {
+    internal fun unbindAndDestroyContext(teardownOwner: GlTeardownOwner, evidence: GlDestructionEvidence): Boolean {
         if (owner.context == EGL14.EGL_NO_CONTEXT || owner.display == EGL14.EGL_NO_DISPLAY) {
             return false
         }
-        if (!owner.ownsTeardownReservation(ticket)) return false
+        if (!owner.ownsTeardown(teardownOwner)) return false
         if (!owner.contextUnbound) {
             owner.unbindStep.requireMutable()
             owner.unbindStep.applicability = EglStepApplicability.Applicable

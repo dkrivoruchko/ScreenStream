@@ -11,9 +11,7 @@ import io.screenstream.engine.internal.gl.GlFiniteOperationIdentity
 import io.screenstream.engine.internal.gl.GlOperationResult
 import io.screenstream.engine.internal.gl.glEnteredOperationSafetyNanos
 import io.screenstream.engine.internal.settlement.EngineClock
-import io.screenstream.engine.internal.settlement.OperationDomain
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
-import io.screenstream.engine.internal.settlement.OperationEntryResult
 import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationOwnerBag
@@ -82,6 +80,45 @@ internal class TargetRetirement private constructor(
         }
     }
 
+    internal class SurfaceReleaseOperation internal constructor(
+        private val retirement: TargetRetirement,
+    ) {
+        private var committedPort: SurfaceReleasePort? = null
+
+        internal val occurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>
+            get() = retirement.surfaceReleaseOccurrence
+
+        internal fun prepareInstalled(): Boolean {
+            if (!retirement.target.isSurfaceReleaseReady) return false
+            val port = retirement.detachedSurfaceReleasePort() ?: return false
+            return bind(port)
+        }
+
+        internal fun prepareUninstalled(constructionSettled: Boolean): Boolean {
+            if (!retirement.beginUninstalledSurfaceReleaseSubmissionReadiness(constructionSettled)) return false
+            val port = retirement.detachedSurfaceReleasePort() ?: return false
+            return bind(port)
+        }
+
+        internal fun release(): Boolean {
+            val port = retirement.targetGate.withLock { committedPort } ?: return false
+            return retirement.releaseEnteredSurface(port)
+        }
+
+        internal fun publishNormalReturn(): Boolean = retirement.publishSurfaceReleaseNormalReturn()
+
+        internal fun publishThrownReturn(thrown: Exception): Boolean =
+            retirement.publishSurfaceReleaseThrownReturn(thrown)
+
+        private fun bind(port: SurfaceReleasePort): Boolean = retirement.targetGate.withLock {
+            val existing = committedPort
+            if (existing != null) return@withLock existing === port
+            if (!retirement.commitSurfaceReleasePort(port)) return@withLock false
+            committedPort = port
+            true
+        }
+    }
+
     internal class TargetScopeDestructionCommand private constructor(
         private val owner: TargetPorts,
         internal val targetGeneration: Long,
@@ -141,14 +178,25 @@ internal class TargetRetirement private constructor(
         namespaceIdentity: GlFiniteOperationIdentity,
         occurrenceFactory: (GlFiniteOperationIdentity, GlDestructionEvidence, OperationOwnerBag) -> OperationOccurrence<GlDestructionEvidence>,
     ) {
+        private val targetOperationIdentity: Long = targetIdentity.operationIdentity
+        private val targetDeadlineIdentity: Long = targetIdentity.deadlineIdentity
+        private val targetInitialWakeGeneration: Long = targetIdentity.initialWakeGeneration
+        private val targetTimeoutCause: Throwable = targetIdentity.timeoutCause
+        private val namespaceOperationIdentity: Long = namespaceIdentity.operationIdentity
+        private val namespaceDeadlineIdentity: Long = namespaceIdentity.deadlineIdentity
+        private val namespaceInitialWakeGeneration: Long = namespaceIdentity.initialWakeGeneration
+        private val namespaceTimeoutCause: Throwable = namespaceIdentity.timeoutCause
+        private val targetProvenance: TargetOperationProvenance = command.provenance
+        private val targetOwnerBag = TargetScopeDestructionOwnerBag(target, command)
+        private val namespaceOwnerBag = TargetScopeDestructionOwnerBag(target, command)
         internal val targetEvidence: GlDestructionEvidence =
-            GlDestructionEvidence(targetIdentity.operationIdentity, GlDestructionKind.TargetScope)
+            GlDestructionEvidence(targetOperationIdentity, GlDestructionKind.TargetScope)
         internal val targetOccurrence: OperationOccurrence<GlDestructionEvidence> =
-            occurrenceFactory(targetIdentity, targetEvidence, TargetScopeDestructionOwnerBag(target, command))
+            occurrenceFactory(targetIdentity, targetEvidence, targetOwnerBag)
         internal val namespaceEvidence: GlDestructionEvidence =
-            GlDestructionEvidence(namespaceIdentity.operationIdentity, GlDestructionKind.ContextNamespace)
+            GlDestructionEvidence(namespaceOperationIdentity, GlDestructionKind.ContextNamespace)
         internal val namespaceOccurrence: OperationOccurrence<GlDestructionEvidence> =
-            occurrenceFactory(namespaceIdentity, namespaceEvidence, TargetScopeDestructionOwnerBag(target, command))
+            occurrenceFactory(namespaceIdentity, namespaceEvidence, namespaceOwnerBag)
         private var frozen: Boolean = false
         private var surfaceTextureReleased: Boolean = false
         private var targetReceiptSelected: Boolean = false
@@ -197,10 +245,70 @@ internal class TargetRetirement private constructor(
             targetIdentity: GlFiniteOperationIdentity,
             namespaceIdentity: GlFiniteOperationIdentity,
             expectedCommand: TargetScopeDestructionCommand,
-        ): Boolean =
-            target === expectedTarget && command === expectedCommand &&
-                    targetOccurrence.identity == targetIdentity.operationIdentity &&
-                    namespaceOccurrence.identity == namespaceIdentity.operationIdentity
+        ): Boolean {
+            if (target !== expectedTarget || command !== expectedCommand ||
+                command.targetGeneration != target.generation ||
+                command.operationIdentity != targetOperationIdentity ||
+                command.provenance !== targetProvenance ||
+                expectedCommand.provenance !== targetProvenance
+            ) {
+                return false
+            }
+            return finiteIdentityMatches(
+                expected = targetIdentity,
+                storedOperationIdentity = targetOperationIdentity,
+                storedDeadlineIdentity = targetDeadlineIdentity,
+                storedInitialWakeGeneration = targetInitialWakeGeneration,
+                storedTimeoutCause = targetTimeoutCause,
+                occurrence = targetOccurrence,
+                evidence = targetEvidence,
+                expectedKind = GlDestructionKind.TargetScope,
+                expectedOwnerBag = targetOwnerBag,
+            ) && finiteIdentityMatches(
+                expected = namespaceIdentity,
+                storedOperationIdentity = namespaceOperationIdentity,
+                storedDeadlineIdentity = namespaceDeadlineIdentity,
+                storedInitialWakeGeneration = namespaceInitialWakeGeneration,
+                storedTimeoutCause = namespaceTimeoutCause,
+                occurrence = namespaceOccurrence,
+                evidence = namespaceEvidence,
+                expectedKind = GlDestructionKind.ContextNamespace,
+                expectedOwnerBag = namespaceOwnerBag,
+            )
+        }
+
+        private fun finiteIdentityMatches(
+            expected: GlFiniteOperationIdentity,
+            storedOperationIdentity: Long,
+            storedDeadlineIdentity: Long,
+            storedInitialWakeGeneration: Long,
+            storedTimeoutCause: Throwable,
+            occurrence: OperationOccurrence<GlDestructionEvidence>,
+            evidence: GlDestructionEvidence,
+            expectedKind: GlDestructionKind,
+            expectedOwnerBag: TargetScopeDestructionOwnerBag,
+        ): Boolean {
+            val deadline = occurrence.deadlineOccurrence ?: return false
+            val wakeLink = occurrence.controlWakeLink ?: return false
+            return expected.operationIdentity == storedOperationIdentity &&
+                    expected.deadlineIdentity == storedDeadlineIdentity &&
+                    expected.initialWakeGeneration == storedInitialWakeGeneration &&
+                    expected.timeoutCause === storedTimeoutCause &&
+                    occurrence.identity == storedOperationIdentity &&
+                    occurrence.ownerBag === expectedOwnerBag &&
+                    expectedOwnerBag.target === target &&
+                    expectedOwnerBag.command === command &&
+                    occurrence.returnCell.evidence === evidence &&
+                    evidence.operationIdentity == storedOperationIdentity &&
+                    evidence.destructionKind == expectedKind &&
+                    evidence.receipt.operationIdentity == storedOperationIdentity &&
+                    evidence.receipt.destructionKind == expectedKind &&
+                    deadline.identity == storedDeadlineIdentity &&
+                    deadline.boundOccurrenceIdentity == storedOperationIdentity &&
+                    deadline.durationNanos == glEnteredOperationSafetyNanos &&
+                    wakeLink.generation == storedInitialWakeGeneration &&
+                    deadline.timeoutCause === storedTimeoutCause
+        }
 
         internal fun markTargetApplied(): Boolean {
             if (targetApplied) return false
@@ -234,6 +342,7 @@ internal class TargetRetirement private constructor(
     private lateinit var targetScopeDestructionGraph: TargetScopeDestructionGraph
     internal lateinit var surfaceReleaseOccurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>
         private set
+    internal val surfaceReleaseOperation: SurfaceReleaseOperation = SurfaceReleaseOperation(this)
 
     private var surfaceObligation: TargetResourceObligation = TargetResourceObligation.AwaitingSettlement
     private var surfaceTextureObligation: TargetResourceObligation = TargetResourceObligation.AwaitingSettlement
@@ -319,18 +428,13 @@ internal class TargetRetirement private constructor(
             )
     }
 
-    internal fun beginSurfaceReleaseSubmission(): Boolean {
-        if (!target.isSurfaceReleaseReady) return false
-        return surfaceReleaseOccurrence.beginSubmission()
-    }
-
-    internal fun beginUninstalledSurfaceReleaseSubmission(constructionSettled: Boolean): Boolean {
+    private fun beginUninstalledSurfaceReleaseSubmissionReadiness(constructionSettled: Boolean): Boolean {
         val surfaceReleased = hasAppliedSurfaceReleaseReceipt
         val ready = targetGate.withLock {
             constructionSettled && cleanup && surfaceObligation == TargetResourceObligation.Required && ownedSurface != null &&
                     !surfaceReleased && ports.hasNoLeasesOrInstalledWorkLocked
         }
-        return ready && surfaceReleaseOccurrence.beginSubmission()
+        return ready
     }
 
     internal fun detachedSurfaceReleasePort(): SurfaceReleasePort? =
@@ -348,17 +452,6 @@ internal class TargetRetirement private constructor(
             },
         )
 
-    internal fun enterSurfaceRelease(port: SurfaceReleasePort): OperationEntryResult {
-        if (!ports.isExactSurfaceReleasePort(port)) return OperationEntryResult.NotCurrent
-        val entryResult = surfaceReleaseOccurrence.tryEnter()
-        if (entryResult == OperationEntryResult.NotCurrent) return entryResult
-        if (entryResult == OperationEntryResult.Entered && surfaceReleaseOccurrence.domain == OperationDomain.Active) {
-            surfaceReleaseOccurrence.requestDeadlineWake()
-        }
-        settlementSignal.signal()
-        return entryResult
-    }
-
     internal fun releaseEnteredSurface(port: SurfaceReleasePort): Boolean {
         if (!ports.isExactSurfaceReleasePort(port)) return false
         val entered = surfaceReleaseOccurrence.settlementGate.withLock {
@@ -374,7 +467,7 @@ internal class TargetRetirement private constructor(
         return published
     }
 
-    internal fun publishSurfaceReleaseThrownReturn(thrown: Throwable): Boolean {
+    internal fun publishSurfaceReleaseThrownReturn(thrown: Exception): Boolean {
         val published = surfaceReleaseOccurrence.publishThrownReturn(thrown)
         if (published) settlementSignal.signal()
         return published
@@ -469,22 +562,26 @@ internal class TargetRetirement private constructor(
     }
 
     internal fun adoptConstructionOesTextureName(oesTextureName: Int) {
+        check(targetGate.isHeldByCurrentThread)
         check(!installed && ownedOesTextureName == 0) { "Target OES ownership has already been assigned" }
         require(oesTextureName != 0)
         ownedOesTextureName = oesTextureName
     }
 
     internal fun adoptConstructionSurfaceTexture(surfaceTexture: SurfaceTexture) {
+        check(targetGate.isHeldByCurrentThread)
         check(!installed && ownedSurfaceTexture == null) { "Target SurfaceTexture ownership has already been assigned" }
         ownedSurfaceTexture = surfaceTexture
     }
 
     internal fun adoptConstructionSurface(surface: Surface) {
+        check(targetGate.isHeldByCurrentThread)
         check(!installed && ownedSurface == null)
         ownedSurface = surface
     }
 
     internal fun finishConstructionOwnership(installed: Boolean) {
+        check(targetGate.isHeldByCurrentThread)
         check(!this.installed && !cleanup)
         if (installed) {
             check(ownedOesTextureName != 0)

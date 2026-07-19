@@ -53,8 +53,11 @@ internal class NativeJpegProcess private constructor() {
                 return publishFailure(State.CleanUnavailable, failure)
             } catch (failure: OutOfMemoryError) {
                 return publishFailure(State.LoadOome, failure)
-            } catch (failure: Throwable) {
+            } catch (failure: Exception) {
                 return publishFailure(State.Poisoned, failure)
+            } catch (fatal: Throwable) {
+                publishFailure(State.Poisoned, fatal)
+                throw fatal
             }
 
             return try {
@@ -65,8 +68,11 @@ internal class NativeJpegProcess private constructor() {
                 } else {
                     publishFailure(State.Poisoned, BOOTSTRAP_REJECTED)
                 }
-            } catch (failure: Throwable) {
+            } catch (failure: Exception) {
                 publishFailure(State.Poisoned, failure)
+            } catch (fatal: Throwable) {
+                publishFailure(State.Poisoned, fatal)
+                throw fatal
             }
         }
 

@@ -16,7 +16,7 @@ fallback and errors remain [PROD-060](02-product-contract.md#prod-060--state-and
 
 - [NJPEG-001](#njpeg-001--files-binary-identity-and-authority)
 - [NJPEG-010](#njpeg-010--typed-boundary-map)
-- [NJPEG-020](#njpeg-020--session-runtime-execution-view-and-legal-products)
+- [NJPEG-020](#njpeg-020--session-runtime-jpeg-endpoint-and-legal-products)
 - [NJPEG-030](#njpeg-030--carrier-ownership-and-replacement)
 - [NJPEG-040](#njpeg-040--own-dso-loader-and-bootstrap)
 - [NJPEG-050](#njpeg-050--registration-and-frozen-jni-surface)
@@ -76,18 +76,19 @@ owns no Session selector, compressor handle, `JNIEnv`, Java global reference, or
 A raw pointer, direct-buffer address, compressor function, ABI string, Boolean capability, or result
 code is never ownership or currentness authority by itself.
 
-## NJPEG-020 — Session runtime, execution view, and legal products
+## NJPEG-020 — Session runtime, JPEG endpoint, and legal products
 
-After accepted start, each Session retains one distinct, non-owned `Dispatchers.IO.limitedParallelism(1)` view
-for non-suspending owner Runnables covering Native preparation, Framework/native encode, Framework
-creation/recycle, native carrier free/allocation, and managed-direct replacement allocation. This view is
-distinct from delivery and metrics views. It serializes admitted Runnables without owning their occurrences or
-promising physical thread identity or cross-Session progress through the shared IO runtime.
+After accepted start, each Session constructs one distinct prestarted JPEG `ThreadPoolExecutor` under
+[CORE-EXEC-1](03-shared-runtime.md#core-exec-1--private-execute-endpoints). It serializes Native preparation,
+Framework/native encode, Framework creation/recycle, native carrier free/allocation, and managed-direct
+replacement allocation on one Session-owned thread. These operation kinds share the endpoint but never share an
+occurrence or admit more than one submitted-not-fully-settled ticket.
 
-Each Runnable carries its precreated submission, entry, return, deadline, and owner cells. Terminal closes new
-admission and settles or transfers exact occurrences; the view itself is never closed, cancelled, quarantined,
-or awaited and has no shutdown/termination receipt. A nonreturn roots only the Session-owned occurrence and its
-real owners/leases, not the dispatcher or view.
+Each Runnable carries its precreated submission, entry, return, deadline, owner cells, and exact lane ticket.
+Every outward `execute` throw poisons the endpoint; direct fatal identity follows `CORE-FATAL-1`. Terminal closes
+new admission and settles or transfers exact occurrences, requests one orderly shutdown after the permitted
+suffix, and awaits only the real `terminated()` receipt. A nonreturn roots the occurrence, endpoint/thread,
+ticket, and real owners/leases.
 
 One `JpegRuntimeOwner` stores one Session-fixed carrier mode and one Session-monotone `NativeJpegHealth` whose
 payload-free values are exactly `Enabled` and `Disabled`. The only stable products are:
@@ -151,9 +152,10 @@ for zero/JNI-OK with no pending exception.
 
 | Observation | Process result and Session disposition |
 | --- | --- |
-| direct load `UnsatisfiedLinkError` or `SecurityException`, before bootstrap/JNI operation and with zero native owner | clean unavailability; preparation selects `FrameworkOnManagedCarrier` and `Disabled` |
+| direct exact `UnsatisfiedLinkError` from this own load attempt, or its direct `SecurityException`, while the call has not returned normally, Java bootstrap is unentered, the facade is unpublished, and zero native owner is observable | clean unavailability; preparation selects `FrameworkOnManagedCarrier` and `Disabled` |
 | first `OutOfMemoryError` thrown directly by load | sticky `LoadOome(firstCause)` with the identical cause and absent facade; timely current preparation is `ResourceExhausted` |
-| any other load throwable | sticky unsafe `InternalFailure` |
+| any other `Exception` thrown directly by load | sticky `InternalFailure` |
+| every other direct `Error` or non-`Exception` throwable | identity-preserving fatal settlement and rethrow under `CORE-FATAL-1` |
 | load returned, then bootstrap/class/registration/pending-exception/unexpected-result failure | sticky post-entry `InternalFailure` poison |
 | successful load, bootstrap, registration, and facade publication | process JNI facade available; registered operations cannot revise loader state |
 
@@ -162,8 +164,10 @@ all later timely current preparations receive `ResourceExhausted` with the same 
 after its originating Session's deadline or terminal winner still governs future Sessions but cannot revise that
 Session. Clean unavailability and poison likewise create no retry.
 
-Successful own-DSO load/bootstrap/registration is sufficient structural proof that the process is executing a
-shipped library. Runtime selection has no executing-ABI query, field, string, enum, `Build.SUPPORTED_ABIS`,
+These are observable Kotlin/JVM fences, not a claim about whether loader-internal native initialization began or
+`JNI_OnLoad` executed before the outward throw. Successful own-DSO load/bootstrap/registration is sufficient
+structural proof that the process is executing a shipped library. Runtime selection has no executing-ABI query,
+field, string, enum, `Build.SUPPORTED_ABIS`,
 `Process.is64Bit()`, or comparison. Static package inspection separately proves all shipped ABIs.
 
 After facade publication, initial `NativeMallocCarrier` allocation failure is required-storage
@@ -446,7 +450,9 @@ converts the same occurrence to no-watchdog cleanup; terminal after entry retire
 intact writable occurrence. A carrier free created by terminal retirement starts as one no-watchdog occurrence.
 Late return can reduce only the matching cleanup child and cannot publish bytes, install a carrier, retry,
 fallback, change Native health, counters, State, or terminal winner. Independent roots and another Session
-continue; a shared IO worker/vendor nonreturn carries no finite progress guarantee.
+continue. A nonreturn on the Session JPEG endpoint/thread roots that exact endpoint dependency; a non-owned
+vendor/global runtime has no finite progress guarantee and never acquires an engine shutdown or termination
+receipt.
 
 ## NJPEG-CONST-001 — JPEG entered-operation interval
 
@@ -517,8 +523,9 @@ actual ABI.
   payload, or publication outside [`STORE-050`](11-domain-encoded-storage.md#store-050--commit-immutable-payload-and-caller-copies);
 - loader/bootstrap retry after a fixed result, managed fallback after load OOM/poison, or owner creation in
   static initialization/`JNI_OnLoad`;
-- cancellation/closure/quarantine/termination receipt for the shared IO view, or coroutine suspension inside an
-  owner Runnable;
+- treating cancellation, closure, quarantine, poison, shutdown request, queue state, worker return, or non-owned
+  runtime progress as the JPEG endpoint's `terminated()` receipt;
+- suspension or any cross-return asynchronous continuation inside a JPEG owner Runnable;
 - timeout as release, late return as active authority, duplicate free/capsule close, or fabricated managed
   reclamation receipt.
 
@@ -530,7 +537,7 @@ shared closure/routing and test namespaces are in [Document 04](04-verification.
 
 | Tests | Required proof |
 | --- | --- |
-| `H-NL` | One process load attempt; clean pre-JNI unavailability; sticky identical-cause `LoadOome`; post-load/bootstrap poison; concurrent/late observation; weak-capability managed outcomes; no ABI input. |
+| `H-NL` | One process load attempt; exact observable clean-unavailability fences for direct own-load `UnsatisfiedLinkError` and `SecurityException` without asserting whether `JNI_OnLoad` ran; sticky identical-cause `LoadOome`; every other `Exception` -> sticky InternalFailure; every other direct `Error`/custom Throwable -> identical fatal rethrow; post-load/bootstrap poison; concurrent/late observation; weak-capability managed outcomes; no ABI input. |
 | `H-RC`, `H-OS` | Legal carrier/health combinations; reuse and separate free/native-allocation/managed-allocation occurrences; exact deadline, rejection, stale, terminal, nonreturn and late-return arbitration; atomic safe disable and no same-frame retry. |
 | `N-JPEG` | Eligible API 30+ production-facade black-box path; real carrier/guard/compressor/adoption/decode; exact registered allocate/free; result arming and block/range rejection; fixed-offset pair, every status/truth-table row, throwable partition, RAII close, production adoption faults, late return and nonreturn; test-DSO containment/fault/barrier rows. |
 | `N-PKG` | Installed own-DSO load/bootstrap structural proof, exact process-facade receiver and connected-ABI production structure, production/test DSO separation, and no runtime ABI query. |
@@ -598,4 +605,4 @@ reported unexecuted rather than replaced by host or package evidence.
 - [Android ABIs](https://developer.android.com/ndk/guides/abis)
 - [Using newer NDK APIs](https://developer.android.com/ndk/guides/using-newer-apis)
 - [Android 16-KiB page-size compatibility](https://developer.android.com/guide/practices/page-sizes)
-- [`CoroutineDispatcher.limitedParallelism`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-dispatcher/limited-parallelism.html)
+- [Java 17 `ThreadPoolExecutor`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html)

@@ -11,6 +11,8 @@
 
 namespace screenstream::jpeg {
 
+    using CompressWriteFunction = bool (*)(void *, const void *, std::size_t);
+
     enum class WriterFault : std::int32_t {
         None = 0,
         NativeOutOfMemory = 1,
@@ -23,6 +25,8 @@ namespace screenstream::jpeg {
         std::int32_t compressFormat = ANDROID_BITMAP_COMPRESS_FORMAT_JPEG;
         std::int32_t quality = 0;
         const void *pixels = nullptr;
+        CompressWriteFunction writerFunction = nullptr;
+        void *writerContext = nullptr;
     };
 
     struct NativeSegment final {
@@ -75,8 +79,6 @@ namespace screenstream::jpeg {
         bool frozen_ = false;
         bool closed_ = false;
     };
-
-    using CompressWriteFunction = bool (*)(void *, const void *, std::size_t);
 
     using CompressorFunction = int32_t (*)(
             const AndroidBitmapInfo *,

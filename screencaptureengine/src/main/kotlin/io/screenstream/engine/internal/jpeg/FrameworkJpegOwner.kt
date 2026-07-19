@@ -8,6 +8,7 @@ import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.OperationReturnUse
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
+import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
 import kotlin.concurrent.withLock
 
 internal class FrameworkJpegOwner private constructor(
@@ -28,6 +29,10 @@ internal class FrameworkJpegOwner private constructor(
     private var actualRowByteCount: Int = 0
     private var actualBitmapByteCount: Int = 0
     private var actualApiMetadataValid: Boolean = false
+    private var activeCreation: FrameworkResourceCreationOccurrence? = null
+    private var activeEncode: FrameworkEncodeOccurrence? = null
+    private var activeRecycle: FrameworkBitmapRecycleOccurrence? = null
+    private var bitmapUseCount: Int = 0
 
     internal val transferMode: FrameworkTransferMode
         get() = checkNotNull(selectedTransferMode)
@@ -104,6 +109,73 @@ internal class FrameworkJpegOwner private constructor(
     internal fun hasNoBitmap(): Boolean = bitmapSlot == null
 
     internal fun ownsBitmapForCleanup(): Boolean = bitmapSlot != null
+
+    internal fun reserveCreation(occurrence: FrameworkResourceCreationOccurrence): Boolean {
+        if (activeCreation != null) return false
+        activeCreation = occurrence
+        return true
+    }
+
+    internal fun ownsCreation(occurrence: FrameworkResourceCreationOccurrence): Boolean = activeCreation === occurrence
+
+    internal fun clearCreation(occurrence: FrameworkResourceCreationOccurrence): Boolean {
+        if (activeCreation !== occurrence) return false
+        activeCreation = null
+        return true
+    }
+
+    internal fun reserveEncodeUse(occurrence: FrameworkEncodeOccurrence): Boolean {
+        if (activeCreation != null || activeEncode != null || activeRecycle != null || bitmapUseCount != 0 ||
+            !hasCompleteResources()
+        ) {
+            return false
+        }
+        activeEncode = occurrence
+        bitmapUseCount = 1
+        return true
+    }
+
+    internal fun ownsEncode(occurrence: FrameworkEncodeOccurrence): Boolean = activeEncode === occurrence
+
+    internal fun releaseEncodeUse(occurrence: FrameworkEncodeOccurrence): Boolean {
+        if (activeEncode !== occurrence || bitmapUseCount != 1) return false
+        bitmapUseCount = 0
+        return true
+    }
+
+    internal fun clearEncode(occurrence: FrameworkEncodeOccurrence): Boolean {
+        if (activeEncode !== occurrence || bitmapUseCount != 0) return false
+        activeEncode = null
+        return true
+    }
+
+    internal fun encodeUseIsReleased(occurrence: FrameworkEncodeOccurrence): Boolean =
+        activeEncode !== occurrence && bitmapUseCount == 0
+
+    internal fun reserveRecycle(occurrence: FrameworkBitmapRecycleOccurrence): Boolean {
+        if (activeCreation != null || activeRecycle != null || activeEncode != null || bitmapUseCount != 0) return false
+        activeRecycle = occurrence
+        return true
+    }
+
+    internal fun reserveCreationRecycle(
+        creation: FrameworkResourceCreationOccurrence,
+        recycle: FrameworkBitmapRecycleOccurrence,
+    ): Boolean {
+        if (activeCreation !== creation || activeRecycle != null || activeEncode != null || bitmapUseCount != 0) {
+            return false
+        }
+        activeRecycle = recycle
+        return true
+    }
+
+    internal fun ownsRecycle(occurrence: FrameworkBitmapRecycleOccurrence): Boolean = activeRecycle === occurrence
+
+    internal fun clearRecycle(occurrence: FrameworkBitmapRecycleOccurrence): Boolean {
+        if (activeRecycle !== occurrence || bitmapUseCount != 0) return false
+        activeRecycle = null
+        return true
+    }
 
     internal fun beginEncode(
         expectedProduct: JpegRuntimeProduct.FrameworkOnNativeCarrier,
@@ -233,18 +305,22 @@ internal class FrameworkJpegOwner private constructor(
             installAllowed: Boolean,
         ): FrameworkJpegOwner? {
             val gate = occurrence.operation.settlementGate
+            val runtimeOwner = gate.withLock { occurrence.ownerBag.candidateOwner?.jpegRuntimeOwner } ?: return null
+            if (!runtimeOwner.releaseJpegIoOperation(occurrence)) return null
             return gate.withLock {
+                val exactCandidate = occurrence.ownerBag.candidateOwner ?: return@withLock null
+                if (!exactCandidate.ownsCreation(occurrence)) return@withLock null
                 if (occurrence.operation.returnCell.use == OperationReturnUse.Unclaimed) occurrence.operation.arbitrate()
                 val timelyComplete = occurrence.operation.returnCell.use == OperationReturnUse.Timely &&
                         occurrence.operation.returnCell.disposition == OperationReturnDisposition.Normal &&
                         occurrence.operation.returnCell.evidence.result == FrameworkResourceCreationResult.Complete
                 if (!installAllowed || !timelyComplete) return@withLock null
 
-                val exactCandidate = occurrence.ownerBag.candidateOwner ?: return@withLock null
                 if (occurrence.operation.returnCell.evidence.returnedOwner !== exactCandidate || !exactCandidate.hasCompleteResources()) {
                     return@withLock null
                 }
                 if (!occurrence.clearSettledReferencesLocked(exactCandidate)) return@withLock null
+                check(exactCandidate.clearCreation(occurrence))
                 exactCandidate
             }
         }
@@ -275,7 +351,8 @@ internal class FrameworkJpegOwner private constructor(
         ): FrameworkResourceCreationOccurrence? {
             val width = imageSize.widthPx
             val height = imageSize.heightPx
-            if (width <= 0 || height <= 0 || jpegRuntimeOwner.product !== expectedProduct) return null
+            val topology = jpegRuntimeOwner.stableTopologySnapshot() ?: return null
+            if (width <= 0 || height <= 0 || topology.product !== expectedProduct) return null
 
             val rowLong = 4L * width.toLong()
             if (rowLong !in 1L..Int.MAX_VALUE.toLong() || rowLong > Long.MAX_VALUE / height.toLong()) return null
@@ -300,9 +377,19 @@ internal class FrameworkJpegOwner private constructor(
                 candidateOwner = candidateOwner,
                 clock = clock,
                 signal = jpegRuntimeOwner.jpegIoSettlementSignal,
+                endpoint = jpegRuntimeOwner.jpegExecutorEndpoint,
                 work = ::executeResourceCreation,
             )
-            jpegRuntimeOwner.submitJpegIoOperation(occurrence.ioOperation)
+            if (!candidateOwner.reserveCreation(occurrence)) return null
+            if (!jpegRuntimeOwner.submitJpegIoOperation(occurrence.executorOperation) &&
+                occurrence.operation.submissionDisposition == OperationSubmissionDisposition.None
+            ) {
+                check(occurrence.operation.settlementGate.withLock {
+                    occurrence.clearSettledReferencesLocked(candidateOwner)
+                })
+                check(candidateOwner.clearCreation(occurrence))
+                throw FRAMEWORK_RESOURCE_CREATION_ADMISSION_FAILED
+            }
             return occurrence
         }
 
@@ -324,7 +411,11 @@ internal class FrameworkJpegOwner private constructor(
             IllegalStateException("Framework JPEG transaction returned malformed evidence")
         internal val FRAMEWORK_ENCODE_ADMISSION_FAILED: IllegalStateException =
             IllegalStateException("Framework JPEG encode admission could not be unwound")
+        internal val FRAMEWORK_RESOURCE_CREATION_ADMISSION_FAILED: IllegalStateException =
+            IllegalStateException("Framework JPEG resource creation was not submitted")
         internal val BITMAP_RECYCLE_OWNER_MISSING: IllegalStateException =
             IllegalStateException("Framework Bitmap recycle owner is missing")
+        internal val BITMAP_RECYCLE_ADMISSION_UNWIND_FAILED: IllegalStateException =
+            IllegalStateException("Framework Bitmap recycle admission could not be unwound")
     }
 }

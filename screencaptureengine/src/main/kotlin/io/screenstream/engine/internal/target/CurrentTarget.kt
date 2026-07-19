@@ -2,12 +2,13 @@ package io.screenstream.engine.internal.target
 
 import android.graphics.SurfaceTexture
 import android.view.Surface
+import io.screenstream.engine.internal.TargetQuarantineChild
 import io.screenstream.engine.internal.gl.GlFiniteOperationIdentity
 import io.screenstream.engine.internal.settlement.EngineClock
-import io.screenstream.engine.internal.settlement.OperationEntryResult
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -34,7 +35,9 @@ internal class CurrentTarget private constructor(
     private val targetDestructionIdentity: GlFiniteOperationIdentity,
     private val namespaceDestructionIdentity: GlFiniteOperationIdentity,
 ) {
+    internal val quarantineChild: TargetQuarantineChild.Current = TargetQuarantineChild.Current(this)
     private val latestPendingSource: AtomicBoolean = AtomicBoolean(false)
+    private val currentnessVersion: AtomicLong = AtomicLong(1L)
     internal var expectedListenerRemovalOperationIdentity: Long = NO_OPERATION_IDENTITY
     internal var expectedSetSurfaceDetachOperationIdentity: Long = NO_OPERATION_IDENTITY
     internal var expectedVirtualDisplayReleaseOperationIdentity: Long = NO_OPERATION_IDENTITY
@@ -124,6 +127,22 @@ internal class CurrentTarget private constructor(
     internal val currentProducerState: TargetProducerState
         get() = targetGate.withLock { producerState }
 
+    internal fun currentnessSnapshot(): TargetCurrentnessSnapshot {
+        var listener = false
+        var producer = TargetProducerState.AwaitingEvidence
+        var fenced = false
+        var version = 0L
+        targetGate.withLock {
+            listener = listenerInstalled
+            producer = producerState
+            fenced = generationFenced
+            version = currentnessVersion.get()
+        }
+        return TargetCurrentnessSnapshot(this, generation, plan, listener, producer, fenced, version)
+    }
+
+    internal fun isCurrentnessVersion(expected: Long): Boolean = currentnessVersion.get() == expected
+
     internal val isSurfaceReleaseReady: Boolean
         get() = targetGate.withLock {
             retirement.installedResources &&
@@ -166,15 +185,16 @@ internal class CurrentTarget private constructor(
         namespaceDestructionIdentity: GlFiniteOperationIdentity,
     ): Boolean {
         val deadline = surfaceReleaseOccurrence.deadlineOccurrence ?: return false
+        val wakeLink = surfaceReleaseOccurrence.controlWakeLink ?: return false
         return plan === expectedPlan &&
                 generation == expectedGeneration &&
                 ports.matchesListenerInstallationOperationIdentity(listenerInstallationOperationIdentity) &&
                 surfaceReleaseOccurrence.identity ==
                 surfaceReleaseOperationIdentity &&
                 deadline.identity == surfaceReleaseDeadlineIdentity &&
-                deadline.wakeLink.generation ==
+                wakeLink.generation ==
                 surfaceReleaseDeadlineWakeGeneration &&
-                deadline.wakeLink.timeoutCause === surfaceReleaseTimeoutCause &&
+                deadline.timeoutCause === surfaceReleaseTimeoutCause &&
                 this.targetDestructionIdentity.operationIdentity ==
                 targetDestructionIdentity.operationIdentity &&
                 this.targetDestructionIdentity.deadlineIdentity ==
@@ -253,6 +273,7 @@ internal class CurrentTarget private constructor(
             return@withLock false
         }
         retirementAdmissionClosed = true
+        bumpCurrentnessLocked()
         true
     }
 
@@ -263,6 +284,7 @@ internal class CurrentTarget private constructor(
             return@withLock false
         }
         enteredTargetWorkDrained = true
+        bumpCurrentnessLocked()
         true
     }
 
@@ -272,6 +294,7 @@ internal class CurrentTarget private constructor(
         }
         sourceSignalsAccepted = false
         generationFenced = true
+        bumpCurrentnessLocked()
         latestPendingSource.set(false)
         true
     }
@@ -294,29 +317,13 @@ internal class CurrentTarget private constructor(
     internal fun applyListenerRemovalSettlement(port: TargetPorts.AndroidListenerRemovalPort, operation: OperationOccurrence<*>): Boolean =
         ports.applyListenerRemovalSettlement(port, operation)
 
-    internal fun beginSurfaceReleaseSubmission(): Boolean =
-        retirement.beginSurfaceReleaseSubmission()
+    internal fun prepareSurfaceReleaseOperation(): TargetRetirement.SurfaceReleaseOperation? =
+        retirement.surfaceReleaseOperation.takeIf { it.prepareInstalled() }
 
-    internal fun beginUninstalledSurfaceReleaseSubmission(constructionSettled: Boolean): Boolean =
-        retirement.beginUninstalledSurfaceReleaseSubmission(constructionSettled)
-
-    internal fun detachedSurfaceReleasePort(): TargetRetirement.SurfaceReleasePort? =
-        retirement.detachedSurfaceReleasePort()
-
-    internal fun commitSurfaceReleasePort(port: TargetRetirement.SurfaceReleasePort): Boolean =
-        retirement.commitSurfaceReleasePort(port)
-
-    internal fun enterSurfaceRelease(port: TargetRetirement.SurfaceReleasePort): OperationEntryResult =
-        retirement.enterSurfaceRelease(port)
-
-    internal fun releaseEnteredSurface(port: TargetRetirement.SurfaceReleasePort): Boolean =
-        retirement.releaseEnteredSurface(port)
-
-    internal fun publishSurfaceReleaseNormalReturn(): Boolean =
-        retirement.publishSurfaceReleaseNormalReturn()
-
-    internal fun publishSurfaceReleaseThrownReturn(thrown: Throwable): Boolean =
-        retirement.publishSurfaceReleaseThrownReturn(thrown)
+    internal fun prepareUninstalledSurfaceReleaseOperation(
+        constructionSettled: Boolean,
+    ): TargetRetirement.SurfaceReleaseOperation? =
+        retirement.surfaceReleaseOperation.takeIf { it.prepareUninstalled(constructionSettled) }
 
     internal fun signalSurfaceReleaseSettlement() {
         settlementSignal.signal()
@@ -387,6 +394,7 @@ internal class CurrentTarget private constructor(
         }
         listenerInstalled = true
         sourceSignalsAccepted = true
+        bumpCurrentnessLocked()
         return true
     }
 
@@ -415,6 +423,7 @@ internal class CurrentTarget private constructor(
             return false
         }
         producerState = TargetProducerState.ProducerAttached
+        bumpCurrentnessLocked()
         return true
     }
 
@@ -439,6 +448,7 @@ internal class CurrentTarget private constructor(
             return false
         }
         producerState = TargetProducerState.NoProducer
+        bumpCurrentnessLocked()
         return true
     }
 
@@ -503,6 +513,7 @@ internal class CurrentTarget private constructor(
             return false
         }
         listenerRemoved = true
+        bumpCurrentnessLocked()
         return true
     }
 
@@ -510,6 +521,7 @@ internal class CurrentTarget private constructor(
         check(targetGate.isHeldByCurrentThread)
         if (!exactPort || !listenerRemoved || listenerRemovalSettled) return false
         listenerRemovalSettled = true
+        bumpCurrentnessLocked()
         return true
     }
 
@@ -539,6 +551,7 @@ internal class CurrentTarget private constructor(
             return false
         }
         producerState = TargetProducerState.Detached
+        bumpCurrentnessLocked()
         return true
     }
 
@@ -551,6 +564,11 @@ internal class CurrentTarget private constructor(
             true
         }
         if (published) sourceSignal.signal(generation)
+    }
+
+    private fun bumpCurrentnessLocked() {
+        check(targetGate.isHeldByCurrentThread)
+        currentnessVersion.updateAndGet { current -> if (current == Long.MAX_VALUE) Long.MAX_VALUE else current + 1L }
     }
 
     private fun publishListenerSentinel() {

@@ -5,13 +5,17 @@ import android.opengl.GLES20
 import android.os.Build
 import io.screenstream.engine.ColorMode
 import io.screenstream.engine.internal.jpeg.RgbaCarrierLease
+import io.screenstream.engine.internal.settlement.ControlWakeLink
+import io.screenstream.engine.internal.settlement.OperationDisposition
+import io.screenstream.engine.internal.settlement.OperationEntryDisposition
 import io.screenstream.engine.internal.settlement.OperationOccurrence
+import io.screenstream.engine.internal.settlement.PrivateExecutorSubmissionResult
+import io.screenstream.engine.internal.settlement.isHandedOff
 import io.screenstream.engine.internal.target.CurrentTarget
 import io.screenstream.engine.internal.target.TargetPorts
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
-import java.util.concurrent.ScheduledExecutorService
 import kotlin.concurrent.withLock
 
 internal enum class GlColorClassification {
@@ -35,8 +39,7 @@ internal class GlFrameHandle internal constructor(
     private val ownerBag: GlOwnerBag = GlOwnerBag(renderTarget)
     private val occurrence: OperationOccurrence<GlOperationEvidence> = owner.operationOccurrence(identity, evidence, ownerBag)
     private val claimedFacts: GlClaimedOperationFacts = GlClaimedOperationFacts.precreate(evidence)
-    private val runnable: Runnable = owner.fatalBoundary { execute() }
-    private val laneTicket: GlLaneTicket = GlLaneTicket()
+    private val endpointOperation = owner.endpointOperation(occurrence, Runnable { execute() })
     private var lease: RgbaCarrierLease? = lease
     private var leaseReleased: Boolean = false
     private val colorActionFacts: GlColorActionCell = GlColorActionCell()
@@ -44,11 +47,6 @@ internal class GlFrameHandle internal constructor(
     private val drawReadProbeFacts: GlProbeFacts = GlProbeFacts()
 
     private fun execute() {
-        if (!owner.enter(laneTicket, occurrence)) {
-            releaseDependenciesAfterSettlement()
-            owner.signalSettlement()
-            return
-        }
         try {
             if (owner.renderFrame(
                     targetPort = targetPort,
@@ -66,7 +64,6 @@ internal class GlFrameHandle internal constructor(
             owner.checkFatalFence()
             owner.closeNormalResult(evidence)
             if (!releaseCarrierLease()) {
-                owner.finishLaneReturn(laneTicket)
                 return
             }
             owner.checkFatalFence()
@@ -78,14 +75,12 @@ internal class GlFrameHandle internal constructor(
             evidence.result = GlOperationResult.InternalFailure
             evidence.contextIntegrity = owner.contextIntegrity
             if (!releaseCarrierLease()) {
-                owner.finishLaneReturn(laneTicket)
                 return
             }
             owner.checkFatalFence()
             occurrence.publishThrownReturn(exception)
             target.retireGlFramePortAfterSettlement(targetPort, occurrence)
         }
-        owner.finishLaneReturn(laneTicket)
     }
 
     private fun releaseCarrierLease(): Boolean {
@@ -109,43 +104,16 @@ internal class GlFrameHandle internal constructor(
         return leaseSettled && targetSettled
     }
 
-    private fun releaseCancelledDependenciesAfterFatal(error: Error) {
-        try {
-            if (owner.laneRuntime.canReleaseCancelledDependenciesAfterFatal(laneTicket, error)) {
-                releaseDependenciesAfterSettlement()
-                owner.signalSettlement()
-            }
-        } catch (_: Throwable) {
-            // The original fatal remains authoritative.
-        }
-    }
-
-    override fun submit(): Boolean = owner.laneRuntime.submissionBoundary {
-        val submitted = try {
-            owner.submit(laneTicket, occurrence, runnable)
-        } catch (error: Error) {
-            releaseCancelledDependenciesAfterFatal(error)
-            throw error
-        }
-        val releaseDependencies = !submitted && owner.glGate.withLock {
-            owner.laneRuntime.isTerminalNoExecutorSubmissionLocked(laneTicket)
-        }
-        if (releaseDependencies) {
+    override fun submit(): Boolean {
+        val result = owner.submit(endpointOperation)
+        if (result == PrivateExecutorSubmissionResult.NotSubmitted) {
             releaseDependenciesAfterSettlement()
             owner.signalSettlement()
         }
-        submitted
+        return result.isHandedOff
     }
 
-    internal fun admitLane(): Boolean = owner.laneRuntime.issue(laneTicket)
-
-    internal fun abandonDetachedLane() = owner.laneRuntime.cancelWithoutExecutorCall(laneTicket)
-
-    internal fun checkPreparedFatal() = owner.checkFatalForPrepared(laneTicket)
-
-    override fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean = occurrence.submitRequestedDeadlineWake(scheduler)
-
-    override fun performRequestedDeadlineCancellation(): Boolean = occurrence.performRequestedDeadlineCancellation()
+    override val deadlineWakeLink: ControlWakeLink = checkNotNull(occurrence.controlWakeLink)
 
     override fun claim(): GlClaimedOperationFacts? {
         val facts = owner.claimOperation(
@@ -155,7 +123,16 @@ internal class GlFrameHandle internal constructor(
             stateProbeFacts = stateProbeFacts,
             drawReadProbeFacts = drawReadProbeFacts,
         )
-        owner.retireMechanicallyCompleteLane(laneTicket, occurrence)
+        owner.releaseSettledOperation(endpointOperation)
+        if (facts == null) {
+            val safelyUnentered = occurrence.settlementGate.withLock {
+                occurrence.entryDisposition != OperationEntryDisposition.Entered &&
+                        (occurrence.disposition == OperationDisposition.SchedulerRejected ||
+                                occurrence.disposition == OperationDisposition.DeadlineGuardFailed ||
+                                occurrence.disposition == OperationDisposition.Cancelled)
+            }
+            if (safelyUnentered) releaseDependenciesAfterSettlement()
+        }
         return facts
     }
 }

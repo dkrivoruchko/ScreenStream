@@ -258,24 +258,21 @@ public class ScreenCaptureFrameDropStats internal constructor(
 
 public class ScreenCaptureDeliveryDropStats internal constructor(
     public val byConsumerBusy: Long,
-    public val byDispatchFailure: Long,
     public val byCallbackFailure: Long,
 ) {
     public val total: Long
-        get() = saturatingAdd(saturatingAdd(byConsumerBusy, byDispatchFailure), byCallbackFailure)
+        get() = saturatingAdd(byConsumerBusy, byCallbackFailure)
 
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ScreenCaptureDeliveryDropStats) return false
 
         return byConsumerBusy == other.byConsumerBusy &&
-                byDispatchFailure == other.byDispatchFailure &&
                 byCallbackFailure == other.byCallbackFailure
     }
 
     public override fun hashCode(): Int {
         var result: Int = byConsumerBusy.hashCode()
-        result = 31 * result + byDispatchFailure.hashCode()
         result = 31 * result + byCallbackFailure.hashCode()
         return result
     }
@@ -283,7 +280,6 @@ public class ScreenCaptureDeliveryDropStats internal constructor(
     public override fun toString(): String =
         "ScreenCaptureDeliveryDropStats(" +
                 "byConsumerBusy=$byConsumerBusy, " +
-                "byDispatchFailure=$byDispatchFailure, " +
                 "byCallbackFailure=$byCallbackFailure)"
 }
 

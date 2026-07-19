@@ -173,18 +173,18 @@ internal class EncodedStorageOwner {
         private var tail: ByteArray? = null
         private var tailByteCount: Int = 0
 
-        internal var firstFatalWriteError: Error? = null
+        internal var firstDirectFatalWriteThrowable: Throwable? = null
             private set
 
         internal val outputStream: OutputStream = object : OutputStream() {
             override fun write(value: Int) {
-                writeRetainingFatalError {
+                writeRetainingDirectFatal {
                     writeSingleByte(value)
                 }
             }
 
             override fun write(source: ByteArray, offset: Int, byteCount: Int) {
-                writeRetainingFatalError {
+                writeRetainingDirectFatal {
                     writeByteRange(source, offset, byteCount)
                 }
             }
@@ -198,17 +198,19 @@ internal class EncodedStorageOwner {
             }
         }
 
-        private inline fun writeRetainingFatalError(writeAction: () -> Unit) {
-            val retainedFatalWriteError = firstFatalWriteError
-            if (retainedFatalWriteError != null) throw retainedFatalWriteError
+        private inline fun writeRetainingDirectFatal(writeAction: () -> Unit) {
+            val retainedFatal = firstDirectFatalWriteThrowable
+            if (retainedFatal != null) throw retainedFatal
 
             try {
                 writeAction()
-            } catch (writeError: Error) {
-                if (writeError !is OutOfMemoryError && firstFatalWriteError == null) {
-                    firstFatalWriteError = writeError
-                }
-                throw writeError
+            } catch (allocationFailure: OutOfMemoryError) {
+                throw allocationFailure
+            } catch (failure: Exception) {
+                throw failure
+            } catch (fatal: Throwable) {
+                if (firstDirectFatalWriteThrowable == null) firstDirectFatalWriteThrowable = fatal
+                throw fatal
             }
         }
 

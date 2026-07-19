@@ -9,36 +9,55 @@ import io.screenstream.engine.internal.target.TargetPorts
 
 internal const val androidEnteredOperationSafetyNanos: Long = 5_000_000_000L
 
-internal sealed class AndroidCaptureFact(
-    internal val sessionEpoch: Long,
+internal enum class AndroidCaptureApiBand {
+    Unsupported,
+    Api24To31,
+    Api32To33,
+    Api34To37,
+}
+
+internal class AndroidCallbackProvenance(
+    internal val owner: AndroidCaptureOwner,
+    internal val projectionOwnerEpoch: Long,
+    internal val callbackRegistrationIdentity: Long,
     internal val callbackIdentity: Long,
+) {
+    init {
+        require(projectionOwnerEpoch > 0L)
+        require(callbackRegistrationIdentity > 0L)
+        require(callbackIdentity > 0L)
+    }
+}
+
+internal sealed class AndroidCaptureFact(
+    internal val provenance: AndroidCallbackProvenance,
+    internal val callbackSequence: Long,
     internal val sampleNanos: Long,
 ) {
     init {
-        require(sessionEpoch > 0L)
-        require(callbackIdentity > 0L)
+        require(callbackSequence > 0L)
     }
 
     internal class CapturedContentResized(
-        sessionEpoch: Long,
-        callbackIdentity: Long,
+        provenance: AndroidCallbackProvenance,
+        callbackSequence: Long,
         sampleNanos: Long,
         internal val widthPx: Int,
         internal val heightPx: Int,
-    ) : AndroidCaptureFact(sessionEpoch, callbackIdentity, sampleNanos)
+    ) : AndroidCaptureFact(provenance, callbackSequence, sampleNanos)
 
     internal class CapturedContentVisibilityChanged(
-        sessionEpoch: Long,
-        callbackIdentity: Long,
+        provenance: AndroidCallbackProvenance,
+        callbackSequence: Long,
         sampleNanos: Long,
         internal val isVisible: Boolean,
-    ) : AndroidCaptureFact(sessionEpoch, callbackIdentity, sampleNanos)
+    ) : AndroidCaptureFact(provenance, callbackSequence, sampleNanos)
 
     internal class CaptureEnded(
-        sessionEpoch: Long,
-        callbackIdentity: Long,
+        provenance: AndroidCallbackProvenance,
+        callbackSequence: Long,
         sampleNanos: Long,
-    ) : AndroidCaptureFact(sessionEpoch, callbackIdentity, sampleNanos)
+    ) : AndroidCaptureFact(provenance, callbackSequence, sampleNanos)
 }
 
 internal fun interface AndroidCaptureFactSink {
@@ -70,13 +89,6 @@ internal class AndroidInitialResizeDeadlineIdentity(
     }
 }
 
-internal enum class AndroidVirtualDisplayInstallResult {
-    Installed,
-    NotReady,
-    Collision,
-}
-
-
 internal object AndroidTargetListenerInstallationReceipt : OperationReceipt
 
 internal class AndroidTargetListenerInstallationEvidence : OperationEvidence {
@@ -96,7 +108,7 @@ internal enum class AndroidListenerSentinelSubmissionDisposition {
     None,
     Accepted,
     Rejected,
-    AmbiguousError,
+    AmbiguousThrowable,
 }
 
 internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {

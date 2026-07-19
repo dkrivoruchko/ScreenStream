@@ -2,13 +2,14 @@ package io.screenstream.engine.internal.gl
 
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
+import io.screenstream.engine.internal.settlement.ControlWakeLink
 import io.screenstream.engine.internal.settlement.OperationArbitration
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationOwnerBag
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
+import io.screenstream.engine.internal.settlement.isHandedOff
 import io.screenstream.engine.internal.target.TargetRetirement
 import io.screenstream.engine.internal.target.TargetSurfaceReleaseReceipt
-import java.util.concurrent.ScheduledExecutorService
 import kotlin.concurrent.withLock
 
 internal class GlOwnerBag internal constructor(
@@ -174,6 +175,8 @@ internal enum class GlDestructionAction {
     Session,
 }
 
+private class GlSessionTeardownOwner : GlTeardownOwner
+
 internal class GlDestructionHandle internal constructor(
     private val owner: GlPipelineOwner,
     identity: GlFiniteOperationIdentity,
@@ -191,16 +194,16 @@ internal class GlDestructionHandle internal constructor(
     private val occurrence: OperationOccurrence<GlDestructionEvidence> =
         owner.destructionOccurrence(identity = identity, evidence = evidence, ownerBag = GlOwnerBag(renderTarget))
     private val claimedFacts: GlClaimedDestructionFacts = GlClaimedDestructionFacts.precreate(evidence)
-    private val runnable: Runnable = owner.fatalBoundary { execute() }
-    internal val laneTicket: GlLaneTicket = GlLaneTicket()
+    private val endpointOperation = owner.endpointOperation(occurrence, Runnable { execute() })
+    private val sessionTeardownOwner: GlTeardownOwner? =
+        if (action == GlDestructionAction.Session) GlSessionTeardownOwner() else null
 
     private fun execute() {
-        if (!owner.enter(laneTicket, occurrence)) return
         try {
             val success = when (action) {
                 GlDestructionAction.RenderTarget -> owner.destroyRenderTarget(checkNotNull(renderState), installedRenderTargetDestruction, evidence)
                 GlDestructionAction.Program -> owner.destroyProgram(evidence)
-                GlDestructionAction.Session -> owner.destroyHealthySession(laneTicket, evidence)
+                GlDestructionAction.Session -> owner.destroyHealthySession(checkNotNull(sessionTeardownOwner), evidence)
             }
             owner.checkFatalFence()
             if (success) evidence.result = GlOperationResult.Success
@@ -215,25 +218,22 @@ internal class GlDestructionHandle internal constructor(
             evidence.contextIntegrity = ContextIntegrity.Unknown
             occurrence.publishThrownReturn(exception)
         }
-        owner.finishLaneReturn(laneTicket)
     }
 
-    override fun submit(): Boolean = owner.submit(laneTicket, occurrence, runnable)
+    override fun submit(): Boolean =
+        owner.submit(
+            endpointOperation,
+            teardownOwner = sessionTeardownOwner,
+        ).isHandedOff
 
-    internal fun admitLane(): Boolean = owner.laneRuntime.issue(laneTicket)
+    internal fun claimSessionTeardown(): Boolean =
+        sessionTeardownOwner?.let(owner::claimTeardown) == true
 
-    internal fun admitHealthyLaneLocked(): Boolean {
-        check(owner.glGate.isHeldByCurrentThread)
-        return owner.laneRuntime.issueTeardownLocked(laneTicket, allowDormantRender = false)
-    }
-
-    override fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean = occurrence.submitRequestedDeadlineWake(scheduler)
-
-    override fun performRequestedDeadlineCancellation(): Boolean = occurrence.performRequestedDeadlineCancellation()
+    override val deadlineWakeLink: ControlWakeLink = checkNotNull(occurrence.controlWakeLink)
 
     override fun claim(): GlClaimedDestructionFacts? {
         val facts = owner.claimDestruction(occurrence, claimedFacts)
-        owner.retireMechanicallyCompleteLane(laneTicket, occurrence)
+        owner.releaseSettledOperation(endpointOperation)
         if (facts == null) return null
         if (action == GlDestructionAction.RenderTarget && installedRenderTargetDestruction &&
             facts.result == GlOperationResult.Success && facts.receipt === evidence.receipt
@@ -254,11 +254,18 @@ internal class GlDestructionHandle internal constructor(
         if (action == GlDestructionAction.RenderTarget && !installedRenderTargetDestruction &&
             facts.result == GlOperationResult.Success && facts.receipt === evidence.receipt
         ) {
-            val exactState = checkNotNull(renderState)
-            if (!exactState.releaseRenderReservation(owner)) return null
+            checkNotNull(renderState)
         }
-        if (action == GlDestructionAction.Session && facts.result == GlOperationResult.Success && facts.receipt === evidence.receipt) {
-            check(owner.completeTeardownReservation(laneTicket))
+        if (action == GlDestructionAction.Program &&
+            facts.result == GlOperationResult.Success && facts.receipt === evidence.receipt &&
+            !owner.clearProgramDestruction(this)
+        ) {
+            return null
+        }
+        if (action == GlDestructionAction.Session &&
+            facts.result == GlOperationResult.Success && facts.receipt === evidence.receipt
+        ) {
+            check(owner.releaseTeardown(checkNotNull(sessionTeardownOwner)))
         }
         return facts
     }
@@ -267,23 +274,20 @@ internal class GlDestructionHandle internal constructor(
 internal class GlTargetScopeDestructionHandle internal constructor(
     private val owner: GlPipelineOwner,
     private val graph: TargetRetirement.TargetScopeDestructionGraph,
-) : GlPipelineOwner.TargetScopeDestructionCommand {
+) : GlPipelineOwner.TargetScopeDestructionCommand, GlTeardownOwner {
     private val evidence: GlDestructionEvidence = graph.targetEvidence
     private val occurrence: OperationOccurrence<GlDestructionEvidence> = graph.targetOccurrence
     private val namespaceEvidence: GlDestructionEvidence = graph.namespaceEvidence
     private val namespaceOccurrence: OperationOccurrence<GlDestructionEvidence> = graph.namespaceOccurrence
     private val claimedFacts: GlClaimedDestructionFacts = GlClaimedDestructionFacts.precreate(evidence)
     private val namespaceClaimedFacts: GlClaimedDestructionFacts = GlClaimedDestructionFacts.precreate(namespaceEvidence)
-    private val runnable: Runnable = owner.fatalBoundary { executeTargetScope() }
-    private val namespaceRunnable: Runnable = owner.fatalBoundary { executeNamespace() }
-    private val targetLaneTicket: GlLaneTicket = GlLaneTicket()
-    private val namespaceLaneTicket: GlLaneTicket = GlLaneTicket()
+    private val targetEndpointOperation = owner.endpointOperation(occurrence, Runnable { executeTargetScope() })
+    private val namespaceEndpointOperation = owner.endpointOperation(namespaceOccurrence, Runnable { executeNamespace() })
     private var namespaceAdmitted: Boolean = false
     private var namespaceConsumed: Boolean = false
     private var namespaceSuffixSucceeded: Boolean = false
 
     private fun executeTargetScope() {
-        if (!owner.enter(targetLaneTicket, occurrence)) return
         var oesPhaseEntered = false
         var remainingOesName = 0
         try {
@@ -363,13 +367,11 @@ internal class GlTargetScopeDestructionHandle internal constructor(
             owner.checkFatalFence()
             occurrence.publishThrownReturn(exception)
         }
-        owner.finishLaneReturn(targetLaneTicket)
     }
 
     private fun executeNamespace() {
-        if (!owner.enter(namespaceLaneTicket, namespaceOccurrence)) return
         try {
-            if (owner.unbindAndDestroyContext(namespaceLaneTicket, namespaceEvidence)) {
+            if (owner.unbindAndDestroyContext(this, namespaceEvidence)) {
                 owner.checkFatalFence()
                 namespaceEvidence.result = GlOperationResult.Success
                 namespaceEvidence.contextIntegrity = owner.contextIntegrity
@@ -395,7 +397,6 @@ internal class GlTargetScopeDestructionHandle internal constructor(
             owner.recordUnreachableSuffixResidue()
             false
         }
-        owner.finishLaneReturn(namespaceLaneTicket, signal = false)
         if (suffixSucceeded) {
             recordNamespaceSuffixSuccess()
         } else {
@@ -403,40 +404,32 @@ internal class GlTargetScopeDestructionHandle internal constructor(
         }
     }
 
-    override fun submit(): Boolean = owner.submit(targetLaneTicket, occurrence, runnable)
-
-    internal fun admitLane(): Boolean = owner.laneRuntime.issue(targetLaneTicket)
+    override fun submit(): Boolean =
+        owner.submit(targetEndpointOperation).isHandedOff
 
     override fun claim(): GlClaimedDestructionFacts? {
         val facts = owner.claimDestruction(occurrence, claimedFacts)
-        owner.retireMechanicallyCompleteLane(targetLaneTicket, occurrence)
+        owner.releaseSettledOperation(targetEndpointOperation)
         if (facts == null) return null
         owner.checkFatalFence()
         val namespaceSelected = graph.isNamespaceTransferSelected()
-        val namespaceIssued =
-            if (namespaceSelected) {
-                owner.issueTeardown(namespaceLaneTicket, allowDormantRender = true)
-            } else {
-                owner.laneRuntime.issue(namespaceLaneTicket)
-            }
-        if (!namespaceIssued) return null
+        if (namespaceSelected && !owner.claimTeardown(this)) return null
         if (!graph.applyTargetProjection()) {
-            if (!namespaceSelected) {
-                owner.laneRuntime.cancelWithoutExecutorCall(namespaceLaneTicket)
-            }
+            if (namespaceSelected) owner.releaseTeardown(this)
             return null
         }
         namespaceAdmitted = graph.isNamespaceTransferSelected()
-        if (!namespaceAdmitted) owner.laneRuntime.cancelWithoutExecutorCall(namespaceLaneTicket)
+        if (!namespaceAdmitted) namespaceOccurrence.arbitrateTerminal(mandatoryCleanup = false)
         return facts
     }
 
     override fun submitNamespaceRetirement(): Boolean =
-        namespaceAdmitted && owner.submit(namespaceLaneTicket, namespaceOccurrence, namespaceRunnable)
+        namespaceAdmitted &&
+                owner.submit(namespaceEndpointOperation, this).isHandedOff
 
     override fun claimNamespaceRetirement(): GlClaimedDestructionFacts? {
         val facts = owner.claimDestruction(namespaceOccurrence, namespaceClaimedFacts)
-        owner.retireMechanicallyCompleteLane(namespaceLaneTicket, namespaceOccurrence)
+        owner.releaseSettledOperation(namespaceEndpointOperation)
         if (facts == null) return null
         owner.checkFatalFence()
         if (!namespaceAdmitted || !graph.applyNamespaceProjection()) return null
@@ -448,13 +441,13 @@ internal class GlTargetScopeDestructionHandle internal constructor(
         val consumed = owner.glGate.withLock {
             owner.checkFatalLocked()
             check(!namespaceConsumed)
-            if (namespaceSuffixSucceeded && !owner.ownsTeardownReservationLocked(namespaceLaneTicket)) {
+            if (namespaceSuffixSucceeded && !owner.ownsTeardown(this)) {
                 return@withLock false
             }
             if (!owner.consumeContextNamespaceLocked(graph)) return@withLock false
             namespaceConsumed = true
             if (namespaceSuffixSucceeded) {
-                check(owner.completeTeardownReservationLocked(namespaceLaneTicket))
+                check(owner.releaseTeardown(this))
             }
             true
         }
@@ -466,24 +459,25 @@ internal class GlTargetScopeDestructionHandle internal constructor(
         owner.glGate.withLock {
             owner.checkFatalLocked()
             check(!namespaceSuffixSucceeded)
-            if (namespaceConsumed && !owner.ownsTeardownReservationLocked(namespaceLaneTicket)) {
+            if (namespaceConsumed && !owner.ownsTeardown(this)) {
                 return@withLock
             }
             namespaceSuffixSucceeded = true
             if (namespaceConsumed) {
-                check(owner.completeTeardownReservationLocked(namespaceLaneTicket))
+                check(owner.releaseTeardown(this))
             }
         }
         owner.signalSettlement()
     }
 
-    override fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean = occurrence.submitRequestedDeadlineWake(scheduler)
+    override val deadlineWakeLink: ControlWakeLink = checkNotNull(occurrence.controlWakeLink)
 
-    override fun submitRequestedNamespaceDeadlineWake(scheduler: ScheduledExecutorService): Boolean = namespaceOccurrence.submitRequestedDeadlineWake(scheduler)
+    override val namespaceDeadlineWakeLink: ControlWakeLink =
+        checkNotNull(namespaceOccurrence.controlWakeLink)
 
-    override fun performRequestedDeadlineCancellation(): Boolean = occurrence.performRequestedDeadlineCancellation()
-
-    override fun performRequestedNamespaceDeadlineCancellation(): Boolean = namespaceOccurrence.performRequestedDeadlineCancellation()
+    init {
+        check(deadlineWakeLink !== namespaceDeadlineWakeLink)
+    }
 }
 
 internal class GlClaimArbitrator internal constructor(

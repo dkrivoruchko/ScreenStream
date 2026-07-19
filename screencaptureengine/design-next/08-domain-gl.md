@@ -70,7 +70,8 @@ ownership, currentness, deletion, context retirement, or cleanup.
 
 ## GL-010 — Private lane, admission, fatal fence, and termination
 
-Each Session constructs one unexposed `ThreadPoolExecutor` with exactly:
+Each Session constructs the unexposed prestarted GL `ThreadPoolExecutor` defined by
+[CORE-EXEC-1](03-shared-runtime.md#core-exec-1--private-execute-endpoints), with exactly:
 
 ```text
 corePoolSize=1; maximumPoolSize=1; keepAliveTime=0 NANOSECONDS
@@ -79,9 +80,9 @@ workQueue=ArrayBlockingQueue(1); dedicated ThreadFactory; AbortPolicy
 
 One worker must prestart successfully before EGL ownership. Submission uses `execute`, never `submit`; no pool
 mutator or core timeout is used. Each Runnable precreates its generic submission/entry/return/deadline cells and
-lane ticket. Entry may win before `execute` returns. Only the exact synchronous `RejectedExecutionException`
-publishes ordinary rejection; generic submission facts remain exactly `None -> Submitting -> Accepted | Rejected`.
-No synchronous public call waits for this lane.
+lane ticket. Entry may win before `execute` returns. Every outward throw is recorded and poisons GL; an unentered
+`Exception` is active `InternalFailure`, while direct fatal identity follows `CORE-FATAL-1`. No synchronous public
+call waits for this lane.
 
 The lane admits no successor after shutdown admission closes. It retains every accepted, queued, entered, late,
 or cleanup-dependent occurrence until that occurrence settles or proves it can need no later lane call. Logical
@@ -90,12 +91,11 @@ cleanup transfer alone is insufficient. Only then it calls unlocked `shutdown()`
 atomic/volatile termination receipt with release/acquire visibility before signalling; nontermination roots the
 executor/thread and exact dependent residue.
 
-Unexpected JVM `Error` handling is separate from generic settlement. Only enumerated allocation-boundary
-`OutOfMemoryError` is an ordinary domain result. Any other `Error`, including unexpected OOM and `ThreadDeath`, is
-caught only at submission or the outer Runnable boundary, stored by identity in the sole precreated GL fatal
-cell with release visibility, signalled once, and rethrown unchanged. Every current or replacement worker
-acquire-checks that fence immediately before each outward call and performs no useful work after publication.
-The active occurrence, namespace and lane suffix remain rooted; later EGL teardown is not promised.
+Only enumerated allocation-boundary `OutOfMemoryError` is an ordinary domain result. Every other direct fatal
+throwable uses the precreated GL fatal slot, exact raw engine-boundary rethrow, replacement-worker poison check,
+and retained owner suffix required by `CORE-FATAL-1`. Direct `Error` retains thread-top identity; a custom direct
+non-`Exception`/non-`Error` Throwable may have a runtime-shaped thread-top wrapper without changing raw engine
+authority. The active occurrence and namespace remain rooted; later EGL teardown is not promised.
 
 This structure proves engine-owned queue/worker isolation between Sessions. It does not assert finite progress
 through vendor-global driver locks. Deterministic isolation tests stop immediately before driver entry; real
@@ -378,8 +378,9 @@ shared closure/routing and test namespaces are in [Document 04](04-verification.
 Every GL operation is crossed with current/stale/terminal keys, timely/equality/late settlement, throw,
 rejection, nonreturn, and each owner held separately where applicable. Exact classifier cases are:
 
-- executor construction, successful prestart, early entry, one-slot saturation, exact rejection, fatal identity/
-  visibility/rethrow, replacement-worker fence checks, one shutdown, zero forceful shutdown, termination and
+- executor construction, successful prestart, early entry, one-slot saturation, exact rejection, raw fatal-slot
+  identity/visibility and engine-boundary rethrow, direct-Error thread-top identity, permitted runtime-shaped
+  custom-Throwable thread top, replacement-worker fence checks, one shutdown, zero forceful shutdown, termination and
   nontermination;
 - each EGL true/non-sentinel, malformed-success, false/sentinel, current-context match/mismatch and
   release-thread result with [GL-020](#gl-020--egl-construction-and-exact-result-reads) call counts;

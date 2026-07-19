@@ -4,20 +4,11 @@ import io.screenstream.engine.internal.JpegRuntimeOwner
 import io.screenstream.engine.internal.settlement.OperationDisposition
 import io.screenstream.engine.internal.settlement.OperationDomain
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
-import io.screenstream.engine.internal.settlement.OperationEntryResult
 import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.OperationReturnUse
 import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
-import kotlin.concurrent.withLock
 
 internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence: NativeEncodeOccurrence) {
-    val entryResult = occurrence.operation.tryEnter()
-    if (entryResult != OperationEntryResult.Entered) {
-        if (entryResult == OperationEntryResult.InvalidDeadline) owner.signalJpegIoSettlement()
-        return
-    }
-    owner.signalJpegIoSettlement()
-
     val bag = occurrence.ownerBag
     val lease = checkNotNull(bag.retainedOperationLease)
     val transaction = checkNotNull(bag.transaction)
@@ -87,6 +78,7 @@ internal fun executeCoordinatedNativeEncode(owner: JpegRuntimeOwner, occurrence:
     } catch (failure: Throwable) {
         thrown = failure
     }
+    evidence.nativeCallReturned = true
     val exitFailure = try {
         evidence.carrierUseResolved = lease.exitExactRange()
         null
@@ -120,24 +112,7 @@ private fun publishAndRethrowFatalNativeEncode(
     owner: JpegRuntimeOwner,
     occurrence: NativeEncodeOccurrence,
     fatal: Throwable,
-): Nothing {
-    try {
-        val operation = occurrence.operation
-        val published = operation.settlementGate.withLock {
-            val returnCell = operation.returnCell
-            if (returnCell.disposition != OperationReturnDisposition.Empty) {
-                false
-            } else {
-                returnCell.evidence.result = NativeEncodeSettlement.InternalFailure
-                returnCell.evidence.failureCause = fatal
-                operation.publishThrownReturn(fatal)
-            }
-        }
-        if (published) owner.signalJpegIoSettlement()
-    } finally {
-        throw fatal
-    }
-}
+): Nothing = throw fatal
 
 internal fun cancelledNativeEncodeWithoutReturnLocked(occurrence: NativeEncodeOccurrence): Boolean {
     val operation = occurrence.operation

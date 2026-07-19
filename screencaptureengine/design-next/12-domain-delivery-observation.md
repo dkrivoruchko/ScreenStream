@@ -7,7 +7,7 @@
 - [DEL-PACE-010](#del-pace-010--clock-cadence-and-one-wake)
 - [DEL-PACE-020](#del-pace-020--repeat-cache-eligibility-and-output-commit)
 - [DEL-HO-001](#del-ho-001--one-registration-and-one-handoff)
-- [DEL-HO-010](#del-ho-010--dispatch-entry-callback-and-classification)
+- [DEL-HO-010](#del-ho-010--submission-entry-callback-and-classification)
 - [DEL-HO-020](#del-ho-020--borrowed-frame-and-synchronous-callback-boundary)
 - [DEL-HO-030](#del-ho-030--unsubscribe-and-replacement)
 - [DEL-HO-040](#del-ho-040--terminal-cutoff-and-delivery-cleanup)
@@ -53,16 +53,16 @@ transactions, and leases are owned by [STORE-020](11-domain-encoded-storage.md#s
 | [TGT-050](07-domain-target.md#tgt-050--listener-source-bit-and-generation-fence) -> controller | generation-fenced `AtomicBoolean` latest-pending bit plus lossless signal | Listener only sets `true`; it selects no work and owns no counter. |
 | Controller -> `PacingOwner` | immutable policy, current wake/candidate identities, grant phase/times, pending/storage occupancy and sampled `EngineClock` | Helper returns one calculation; controller alone accepts it and commits exchange, grant, wake, or terminal action. |
 | `STORE-070` -> delivery | immutable encoded payload metadata plus one counted `EncodedPayloadLease` | Delivery borrows one lease; it never owns/copies/mutates payload storage. |
-| Delivery -> controller | identity-fenced scheduler, dispatch, trampoline-entry, callback-return, and handoff-convergence facts | Controller applies admission, counter, terminal-cutoff, and shared unsubscribe result. |
+| Delivery -> controller | identity-fenced scheduler, Delivery submission, callback-entry/return, and handoff-convergence facts | Controller applies admission, counter, terminal-cutoff, and shared unsubscribe result. |
 | Controller -> `ObservationOwner` | one immutable committed State/Stats/diagnostic snapshot | Helper constructs and assigns/tries emission unlocked and retains no authority. |
 
 Production files are `DEL:PacingOwner.kt`, `DEL:DeliveryOwner.kt`, and `DEL:ObservationOwner.kt`, with canonical
 paths in [router §6](01-authority-router.md#6-source-manifest). `PacingOwner` contains pure cadence and candidate
 calculations, `DeliveryOwner` the cohesive handoff/record lifecycle, and `ObservationOwner` unlocked immutable
 construction and publication. They retain the sole-owner boundaries below and create no second controller state,
-Session scope, dispatcher, scheduler, gate, or handoff machine. This leaf
-constructs and emits the product-owned `ScreenCaptureOutput` and observation values but owns no public source
-file.
+Session scope, scheduler, gate, or handoff machine. This leaf constructs and delivers public
+`EncodedImageFrame` values and constructs/publishes observation values. `ScreenCaptureOutput.kt`, if named by the
+source manifest, is only a production filename; it is not a public value type or separate authority.
 
 ## DEL-PACE-001 — Pending source and materialization
 
@@ -99,15 +99,19 @@ contract in [CORE-TIME-1](03-shared-runtime.md#core-time-1--clock-and-named-comp
 `SurfaceTexture` producer timestamp is diagnostic-only and never chooses a fresh/output grant, repeat eligibility,
 or public frame timestamp.
 
-The controller owns one current pacing/repeat wake carrier, separate from the Stats wake. It represents the
+The controller owns one current pacing/repeat wake link, separate from the Stats wake link. Both use the central
+submission/Future/callback/cancellation/termination/successor mechanics in
+[CORE-WAKE-2](03-shared-runtime.md#core-wake-2--one-shot-control-wake-link-and-scheduling-rejection); this leaf
+retains only pacing/repeat eligibility and calculation. The pacing/repeat link represents the
 earliest future eligibility among: pending fresh source, completed-unpublished JPEG, and current-cache repeat.
 Replacing policy or a candidate first cancels/removes/coalesces the queued predecessor before the current post.
-Physical cardinality is at most one queued submission plus one already-dequeued stale callback from a
-cancel/dequeue race. `CTRL-200` commits replacement order and the current identity; this leaf executes the
-authorized cancel/remove/coalesce/post calls. There is no timer queue or per-purpose timer set.
+Operational cardinality is one current generation. A suppressed predecessor may retain only the exact physical
+outer-frame residue permitted by `CORE-WAKE-2`; its removal success or outer return is not successor authority.
+`CTRL-200` commits replacement order and the current identity; this leaf executes the authorized
+cancel/remove/coalesce/post calls. There is no timer queue or per-purpose timer set.
 
-Dequeue consumes and checks identity before clock resampling. A stale callback returns without resampling or
-offering an action/successor. A current callback resamples and returns one immutable calculation; `CTRL-200`
+After the central link publishes Fired, the leaf checks identity before clock resampling. A stale wrapper loses
+its first generation CAS and returns before leaf access. A current fact resamples and returns one immutable calculation; `CTRL-200`
 rechecks candidate identity, policy, and elapsed delta, then commits at most one action and one successor for this
 leaf to execute. An early wake calculation proposes no action. There is no catch-up burst. Current required
 submission rejection is offered as an immutable fact; the controller commits terminal `InternalFailure` with no
@@ -156,89 +160,85 @@ counters nor pacing phase; absent/stale cache creates no waiting record.
 ## DEL-HO-001 — One registration and one handoff
 
 `CTRL-200` owns the authoritative registration generation and admission. For its one controller-authorized
-current generation, `DeliveryOwner` physically owns one record, one active delivery-worker occurrence, and one
-encoded lease. Its execution service is a distinct non-owned per-Session `Dispatchers.IO.limitedParallelism(1)`
-view; the owner submits one non-suspending Runnable at a time and claims no physical thread identity, view
-termination, or cleanup receipt. Sequential records may reuse capacity; callbacks, cache offers, repeats, and
-unsubscribe create no parallel worker or queue. A generation must reach exact successful unsubscribe before
-replacement; old and new callbacks never overlap.
+current generation, `DeliveryOwner` physically owns one handoff record, one `CORE-EXEC-1` Delivery ticket, and
+one encoded lease. The Session-owned Delivery endpoint is constructed and prestarted before callback admission;
+the callback runs directly on its one thread. Sequential records may reuse the healthy endpoint, but at most one
+submitted-not-fully-settled ticket exists. Callbacks, cache offers, repeats, and unsubscribe create no parallel
+worker or delivery queue. A generation must reach exact successful unsubscribe before replacement; old and new
+callbacks never overlap.
 
-Each record precreates, under its `settlementGate`, three independent one-shot cells:
+Each record precreates, under its `settlementGate`, independent submission, entry, callback-return, and Runnable-
+return cells:
 
 ```kotlin
 internal enum class HandoffState {
-    Prepared, Dispatching, AcceptedQueued, DetachedPreEntry, Entered, Resolved, Quarantined
+    Prepared, Submitting, AcceptedUnentered, DetachedPreEntry, Entered, Resolved, Quarantined
 }
 ```
 
-The record cells are the actual dispatcher-call return (normal or exact throwable/rejection), separate
-trampoline entry/detached self-rejection, and callback return (normal or exact throwable). The record also owns
-its borrowed-frame authority and encoded lease until callback settlement or exact unentered resolution/transfer,
-plus worker/trampoline sides, fixed scalar/reference fields, and an optional accepted-task deadline link. These
-declarations are closed typed shapes; they are not public models or alternate settlement machinery.
+The submission cell records actual `execute` normal return or exact outward throwable; the entry cell records
+`Entered` or `Inert`; the callback cell records normal return or the exact thrown object; and the Runnable-return
+cell proves the task frame returned. The record also owns borrowed-frame authority and its encoded lease until
+callback settlement or exact unentered resolution/transfer. No callback deadline exists.
 
 ```text
-Prepared -> Dispatching -> AcceptedQueued -> Entered -> Resolved
+Prepared -> Submitting -> AcceptedUnentered -> Entered -> Resolved
 Prepared -> Resolved
-Dispatching -> Entered
-Dispatching -> Resolved
-Dispatching | AcceptedQueued -> DetachedPreEntry -> Resolved
-Dispatching | AcceptedQueued | DetachedPreEntry | Entered -> Quarantined
+Submitting -> Entered
+Submitting -> Resolved
+Submitting | AcceptedUnentered -> DetachedPreEntry -> Resolved
+Submitting | AcceptedUnentered | DetachedPreEntry | Entered -> Quarantined
 Resolved -> idle  (only while the same registration remains active)
 ```
 
 | State | Remaining exact ownership |
 | --- | --- |
-| `Prepared` | admitted generation, record, three cells, borrowed authority, lease and worker capacity; no caller dispatch entry |
-| `Dispatching` | in-call dispatch side, worker, trampoline, borrowed authority and lease until their exact sides settle |
-| `AcceptedQueued` | queued trampoline, accepted-task deadline, borrowed authority and lease; dispatch side settled |
-| `DetachedPreEntry` | closed admission; unresolved dispatch side if any, trampoline self-rejection/entry side, deadline when armed, borrowed authority and lease; user code is forbidden |
-| `Entered` | while the callback-return cell is empty, the callback side owns borrowed authority/lease; after callback settlement they release immediately, while any unresolved dispatch side alone retains record/worker and the state remains `Entered` |
+| `Prepared` | admitted generation, record/cells, borrowed authority, lease, and the reserved endpoint ticket |
+| `Submitting` | outward `execute` side plus Runnable entry/return, borrowed authority, and lease until their exact sides settle |
+| `AcceptedUnentered` | accepted queued Runnable, borrowed authority and lease; submission side settled |
+| `DetachedPreEntry` | closed admission; unresolved submission or inert/return side, borrowed authority and lease; user code is forbidden |
+| `Entered` | while the callback cell is empty, callback authority/lease; after callback settlement they release immediately, while unresolved submission or Runnable-return alone keeps the handoff occupied |
 | `Resolved` | every required side settled and no handoff owner remains |
-| `Quarantined` | only unresolved cells and their exact worker/trampoline sides remain; callback authority/lease remain only when the callback-return cell is empty; the residue is rooted once and never reusable |
+| `Quarantined` | only unresolved cells, ticket, endpoint/thread, and exact owner sides remain; callback authority/lease remain only while the callback cell is empty; the residue is rooted once and never reusable |
 
-## DEL-HO-010 — Dispatch, entry, callback, and classification
+## DEL-HO-010 — Submission, entry, callback, and classification
 
-The worker commits `Prepared -> Dispatching` under the record gate, unlocks, then directly calls
-`frameCallbackDispatcher.dispatch(EmptyCoroutineContext, trampoline)`. It catches and commits the actual call
-outcome allocation-free. Trampoline entry alone takes `sessionGate -> settlementGate`, verifies Session and
-registration admission, commits `Entered` or detached self-rejection, then unlocks before user code. No external
-call or callback runs under either gate.
+The submitting owner commits `Prepared -> Submitting`, unlocks, and calls `deliveryExecutor.execute(runnable)`
+once. The Runnable's first engine action takes `sessionGate -> settlementGate`, validates Session, registration,
+ticket, endpoint health, and admission, and commits `Entered` or detached/inert self-rejection before unlocking.
+An Entered winner invokes the application callback directly on the Delivery thread. No external call or callback
+runs under either gate.
 
 | Winning mechanical fact | Controller application under `CTRL-200`/`CTRL-300` |
 | --- | --- |
-| trampoline enters before dispatcher outcome | entry owns classification; invoke callback; later dispatch outcome settles only its side |
-| normal dispatch return before entry | `AcceptedQueued`; sample return time and arm the accepted-task entry deadline defined by [PROD-050](02-product-contract.md#prod-050--frame-delivery-caching-and-replacement) |
-| dispatcher throw/rejection before entry | resolve opportunity; controller increments `byDispatchFailure` and requests `DeliveryProblem`; registration remains active; no retry |
+| Runnable enters before `execute` outcome | entry owns callback classification; later submission outcome settles its own side and may poison/fail-close the endpoint |
+| normal `execute` return before entry | `AcceptedUnentered`; acceptance creates no execution receipt or deadline |
+| `execute` throws `Exception` before entry | poison Delivery; controller commits terminal `InternalFailure`; no delivery drop or retry |
+| `execute` throws `Error` or other direct non-`Exception` throwable | poison Delivery, retain exact raw fatal authority, and rethrow directly from the engine owner-Runnable boundary under `CORE-FATAL-1` |
 | callback normal return before terminal transfer | release callback authority/lease; no delivery drop |
-| callback throw before terminal transfer | release callback authority/lease; controller increments `byCallbackFailure` and requests `DeliveryProblem`; registration remains active |
+| callback throws `Exception` before terminal transfer | release callback authority/lease; controller increments `byCallbackFailure` and requests `DeliveryProblem`; registration remains active |
+| callback throws `Error` or other direct non-`Exception` throwable | release only through fatal settlement, poison Delivery, fail-close, and directly rethrow the exact raw object from the engine owner-Runnable boundary; no delivery drop |
 | new opportunity while any required record side remains occupied | controller increments `byConsumerBusy`; create no record/worker/submission |
-| active delivery-worker scheduling rejection before detach/entry/terminal | controller commits terminal `InternalFailure`; no `byDispatchFailure`; safely unentered record/lease resolve in terminal cleanup |
 | scheduling rejection after another disposition | cleanup-only |
 
-If callback returns inline while `dispatch` remains in call, callback authority and lease release immediately.
-The record remains `Entered`, and only its record/worker/dispatch side stays occupied until the actual dispatch
-return/throw; only then can it resolve. The later outcome cannot reclassify entry or increment
-`byDispatchFailure`. During this composite interval a new opportunity is `byConsumerBusy`, and unsubscribe waits
-for dispatch settlement.
-
-A normal dispatch return for `AcceptedQueued` or a detached in-call record starts the same accepted-task deadline
-at that return sample. Entry/self-rejection at or beyond the deadline, or an empty entry fact observed at/after it,
-claims expiry under `sessionGate -> settlementGate`. While nonterminal this is `Failed(InternalFailure)`; after a
-terminal winner it only roots unresolved residue. A late trampoline invokes no user code and may resolve only its
-record. An entered callback and a caller `dispatch` call have no execution watchdog. Nonreturn keeps the one
-record occupied; terminal transfers the exact residue.
+If callback and Runnable return while `execute` remains in call, callback authority and lease release
+immediately. The record remains `Entered`, and only its record/ticket/submission side stays occupied until the
+actual `execute` return/throw; only then can it resolve. The later outcome cannot reclassify the callback, but an
+outward throw still poisons Delivery and applies the internal submission failure policy. During this composite
+interval a new opportunity is `byConsumerBusy`, and unsubscribe waits for submission settlement. An unentered
+accepted Runnable has no queue-start watchdog. Submission nonreturn or Runnable nonreturn keeps the record
+occupied; terminal transfers the exact residue.
 
 ## DEL-HO-020 — Borrowed frame and synchronous callback boundary
 
-The callback receives one `EncodedImageFrame` backed by the record's counted storage lease. The trampoline records
-the callback thread before invocation. Every property, `copyTo`, and `copyBytes` validates both that thread and the
+The callback receives one `EncodedImageFrame` backed by the record's counted storage lease. The Delivery Runnable
+records its thread before invocation. Every property, `copyTo`, and `copyBytes` validates both that thread and the
 still-open callback authority. Callback return/throw closes authority synchronously before releasing the lease.
 Wrong-thread or post-return access throws `IllegalStateException`; invalid `copyTo` range throws
 `IndexOutOfBoundsException` and modifies no destination byte. Only caller-created copies may outlive the callback.
 
 Delivery never exposes raw storage, partial/tentative bytes, mutable buffers, or an unleased payload. It does not
-retain caller callback/dispatcher data beyond the current registration and exact unresolved handoff.
+retain caller callback data beyond the current registration and exact unresolved handoff.
 
 ## DEL-HO-030 — Unsubscribe and replacement
 
@@ -263,14 +263,16 @@ await the same result. Self-unsubscribe is detected by exact callback-thread ide
 ## DEL-HO-040 — Terminal cutoff and delivery cleanup
 
 Controller terminal arbitration folds every complete callback cell through ordinary accounting before final Stats. A
-complete callback side releases its authority/lease; an unresolved dispatch side transfers only its worker/call
-residue. If the callback cell is empty, the writable cell, callback occurrence, borrowed authority and lease
+complete callback side releases its authority/lease; an unresolved submission side transfers only its
+ticket/endpoint residue. If the callback cell is empty, the writable cell, callback occurrence, borrowed authority and lease
 transfer whole. Later facts can reduce only that exact cleanup/quarantine child and cannot change counters,
 `DeliveryProblem`, unsubscribe result, State, or terminal winner. `QuarantineChanged` is attempted only after an
 actual root mutation; cleanup completed before attachment emits none.
 
-Delivery cleanup owns record/cell/worker/trampoline and encoded-lease retirement. It fabricates no dispatcher,
-entry, callback, or release fact. Storage frees displaced bytes only after the real counted lease receipt under
+Delivery cleanup owns record/cells/ticket/endpoint and encoded-lease retirement. It fabricates no submission,
+entry, callback, Runnable-return, endpoint-termination, or release fact. After the final ticket settles, Delivery
+receives one `shutdown()` and zero `shutdownNow()` calls; only `terminated()` releases its endpoint/thread root.
+Storage frees displaced bytes only after the real counted lease receipt under
 [STORE-070](11-domain-encoded-storage.md#store-070--publish-cache-repeat-lease-and-retirement); active-to-cleanup
 commit is [CTRL-400](05-domain-controller-reconciliation.md#ctrl-400--cleanuproot-handoff), while generic root
 shape and late reduction remain `CORE-CLEAN-1`/`CORE-CLEAN-2`.
@@ -315,7 +317,9 @@ one `StatsProblem` with null cause.
 
 Accepted start publishes the initial all-zero runtime snapshot immediately. Lifecycle, suspension/resume,
 rebuild/fallback, and terminal changes publish dirty Stats immediately. Other dirty
-facts coalesce behind one identity-fenced wake anchored at the previous publication; the earliest next ordinary
+facts coalesce behind one identity-fenced Stats wake link anchored at the previous publication; its physical
+submission, cancellation, fire, termination fallback, and successor settlement are solely `CORE-WAKE-2`. The
+earliest next ordinary
 publication follows the ordinary Stats cadence defined by
 [PROD-070](02-product-contract.md#prod-070--stats). There is no catch-up, and scheduler/collector delay gives no
 cadence-bound delivery promise. No dirtiness arms no wake. Final Stats is immediate and uses the
@@ -339,16 +343,16 @@ exhaustion fails terminally before wrap or reuse.
 
 | Label | Exact source/site and payload rule |
 | --- | --- |
-| `CapabilityCheck` | Boundary source for each top-level capability selection/failure; name boundary, decision and action; carry exact raw cause when present. |
+| `CapabilityCheck` | For each top-level capability selection/failure, use the boundary source; message names the boundary, decision, and action and the payload carries the exact raw cause when present. Separately, exactly one normal post-readiness `MetricsProvider` completion event per exact observation lifetime names the retained-last-valid action and has null cause. Pre-readiness completion, provider failure, and duplicate terminal delivery create no completion event. |
 | `RuntimeProfile` | `Session`, once at initial Running; name selected Target, Direct readback/precision, JPEG/transfer/color modes; null cause. |
 | `RuntimeModeChanged` | `SurfaceTarget` for safe Downscaled -> Full, `FrameworkJpeg` for actual transfer-mode change, or `NativeJpeg` for Native -> Framework disablement; name old/new/action and carry a safe returned cause when present; never emit for timeout, stale cleanup, or a considered-only change. |
-| `DeliveryProblem` | `FrameConsumer` for caller-dispatch failure committed before entry or callback throw committed before terminal transfer; exact throwable. Busy is Stats-only. |
+| `DeliveryProblem` | `FrameConsumer` only for a callback `Exception` committed before terminal transfer; exact throwable. Busy and internal submission failure are not DeliveryProblem events. |
 | `StatsProblem` | `Controller` for finite retention/clamp/freeze; null cause. |
 | `ColorAction` | `ColorPipeline` once per Target and on actual classification/action change; null cause. |
 | `QuarantineChanged` | `Cleanup` only after attaching/reducing/removing an exact root child; raw cleanup cause when present. |
 | `SessionTerminal` | `Session`, once for winning terminal after final Stats and before terminal State; name reason/problem and last modes. Owner/capture stop and pre-Active valid-then-invalid metrics use null cause; another Failure carries its selected raw cause when defined; timeout reuses its `CapabilityCheck` cause. |
 
-Routine geometry, visibility, rebuild, consumer lifecycle, and frame production require no event. Provider/callback
+Routine geometry, visibility, rebuild, consumer lifecycle, and frame production require no event. Source/callback
 faults keep the boundary source. All allowed source strings and the public six-field event schema are owned by
 [PROD-080](02-product-contract.md#prod-080--diagnostics).
 
@@ -373,8 +377,8 @@ retry, runtime-mode change, duration telemetry, aggregate, or new public field.
 
 | Binding | Exact shape |
 | --- | --- |
-| production/delivery capacity | one production slot, one pending bit per current Target generation, one registration, one handoff, one active delivery worker, one encoded lease |
-| pacing/repeat wake | one queued submission plus at most one already-dequeued stale callback; separate from the Stats wake |
+| production/delivery capacity | one production slot, one pending bit per current Target generation, one registration, one handoff, one submitted-not-fully-settled Delivery ticket, one encoded lease |
+| pacing/repeat wake | one current operational generation plus exact physically unsettled stale outer-frame residue permitted by `CORE-WAKE-2`; separate from the Stats wake |
 
 No additional delivery/observation private numeric policy or test tolerance exists. Frame-rate and repeat input
 ranges remain public in `PROD-030`; image/JPEG tolerances belong to their image-domain verification rows.
@@ -388,28 +392,30 @@ leaf's local executable proofs; controller authority remains `CTRL-200`/`CTRL-30
 
 | Tests | Required matrix |
 | --- | --- |
-| `H-PS` | source set before/after exchange; retired generation; Auto/MaxFps/SampleEvery boundaries; early retention; occupied/unpublished slot plus pending bit; one-wake churn/cancel/dequeue/current-stale rejection; no burst/stranding; rational phases; repeat/cache/cached-first; all production dispositions; terminal cutoff; Stats formulas/cadence/saturation/finite protection |
-| `H-DL` | every state; worker rejection; dispatch normal/throw/reject/nonreturn crossed with entry, unsubscribe and terminal; inline callback settlement with unresolved dispatch keeps `Entered`, releases callback authority/lease to zero, leaves only record/worker/dispatch residue, rejects the next opportunity as busy, makes unsubscribe wait, and resolves only after dispatch settlement; entry at deadline-1/equal/after; detached late normal return and self-rejection; callback return/throw/nonreturn before/after transfer; shared unsubscribe result, cancellation, self-call, replacement exclusion; exact lease/root reduction |
-| `H-OB` | coherent Running snapshots, StateFlow conflation, startup/terminal order, all-zero initial Stats, exact formulas and finite guards, immediate/periodic/final publication, all eight categories/sites, cause identity, first/overflow sequence, wall-clock movement, no-emission/noncontrol and terminal cutoff |
-| `A-SES` | installed callback dispatcher/thread and borrowed-frame access/range/lifetime; cached-first metadata; registration replacement; main-safe unsubscribe and exact public exception mapping |
+| `H-PS` | source set before/after exchange; retired generation; Auto/MaxFps/SampleEvery boundaries; early retention; occupied/unpublished slot plus pending bit; pacing/repeat and Stats link fire-before-Future, body return/throw after fire, terminal-Submitting, cancel true/false/throw, outer-remove true/false/throw, operational successor before physical stale-frame settlement, stale first-CAS zero-access, stale nonreturn and scheduler termination; no burst/stranding or fabricated progress; rational phases; repeat/cache/cached-first; all production dispositions; terminal cutoff; Stats formulas/cadence/saturation/finite protection |
+| `H-DL` | every state; Delivery prestart and one-ticket bound; `execute` normal/Exception/direct-fatal/nonreturn crossed with entry, unsubscribe and terminal; callback settlement with unresolved submission keeps `Entered`, releases callback authority/lease to zero, leaves only record/ticket/submission residue, rejects the next opportunity as busy, makes unsubscribe wait, and resolves only after submission settlement; accepted-unentered and detached inert entry; callback normal/Exception/direct-fatal/nonreturn before/after transfer; poison, exact raw fatal slot/engine-boundary rethrow, direct-Error thread-top identity, permitted runtime-shaped custom-Throwable thread top, shared unsubscribe result, cancellation, self-call, replacement exclusion, one shutdown/terminated receipt, and exact lease/root reduction |
+| `H-OB` | coherent Running snapshots, StateFlow conflation, startup/terminal order, all-zero initial Stats, exact formulas and finite guards, immediate/periodic/final publication, all eight categories/sites, ordinary CapabilityCheck boundary/decision/action plus exact cause, exactly one normal post-readiness MetricsProvider completion event per exact observation lifetime with null cause/retained-last-valid action and none for pre-readiness/failure/duplicate, cause identity, first/overflow sequence, wall-clock movement, no-emission/noncontrol and terminal cutoff |
+| `A-SES` | dedicated Delivery callback thread and borrowed-frame access/range/lifetime; cached-first metadata; registration replacement; main-safe unsubscribe and exact public exception mapping |
 | `H-OS`, `A-CL` | generic gate/deadline and whole-occurrence terminal-transfer mechanics by reference; late delivery facts shrink only exact residue and never revise observations |
 
 Required delivery interleavings:
 
 | Order | Observable result |
 | --- | --- |
-| dispatcher rejection -> entry | one `byDispatchFailure`; trampoline is fenced; registration remains active |
-| entry -> late dispatcher throw | callback outcome owns classification; no dispatch drop |
-| callback return -> dispatch return | state stays `Entered`; callback authority/lease become zero immediately; only record/worker/dispatch residue remains, next opportunity is `byConsumerBusy`, unsubscribe waits, and resolution occurs only after dispatch settles |
-| unsubscribe/stop -> trampoline | detached self-rejection, no user code; exact record resolves or remains deadline/root residue |
-| trampoline -> unsubscribe/stop | entered callback may finish after stop return; no later admission |
+| `execute` Exception -> entry | unentered record resolves into internal terminal cleanup; Delivery is poisoned; no delivery drop |
+| entry -> late `execute` throw | callback outcome remains classified; Delivery is still poisoned and fail-closes; no delivery drop |
+| callback return -> `execute` return | state stays `Entered`; callback authority/lease become zero immediately; only record/ticket/submission residue remains, next opportunity is `byConsumerBusy`, unsubscribe waits, and resolution occurs only after submission settles |
+| unsubscribe/stop -> Runnable entry | detached/inert self-rejection, no user code; exact record resolves or remains root residue |
+| Runnable entry -> unsubscribe/stop | entered callback may finish after stop return; no later admission |
 | callback fact commit -> terminal transfer | fold normal/throw once into final Stats; transfer only unresolved sides |
 | terminal transfer -> callback fact commit | cleanup-only release/root reduction; no counter/event/State mutation |
 | current wake rejection -> policy replacement | terminal `InternalFailure` if rejection won while required/current; otherwise stale cleanup-only |
+| cancel true + Suppressed + outer remove false -> successor | after all exact publications, `g+1` may become operationally current; remove false proves no dequeue/entry/no-run fact, and any stale `g` frame loses its first CAS with zero engine/domain access |
+| suppressed stale wrapper nonreturns -> successor | the single Control worker prevents physical `g+1` entry; retain exact worker/frame cleanup residue and fabricate no Fired/return/termination receipt |
 
-All deadline boundary tests use exact checked `D`, `D-1`, `D`, `D+1`, empty-at-`D`, commit-before-signal,
+All applicable operation-deadline tests use exact checked `D`, `D-1`, `D`, `D+1`, empty-at-`D`, commit-before-signal,
 sample-before-gate pause, expiry/return orders, terminal transfer, and late fact. Deterministic clocks, barriers,
-dispatcher/scheduler seams, fixed slots, and ownership ledgers are required; no real sleep, scheduler luck, log
+executor/scheduler seams, fixed slots, and ownership ledgers are required; no real sleep, scheduler luck, log
 parsing, or repetition-until-race is an oracle.
 
 ## DEL-900 — Forbidden alternatives
@@ -418,9 +424,9 @@ parsing, or repetition-until-race is an oracle.
   or second production slot.
 - No helper-owned lifecycle, policy, phase, attempt identity, counter, public value, sequence, arbitration, or
   commit; controller facts are never reinterpreted locally.
-- No callback execution under gates, coroutine wrapper around the direct dispatcher boundary, parallel delivery
-  worker, retry queue, or immediate redispatch of a rejected record.
-- No dispatcher-call or entered-callback watchdog, fabricated cancellation/return/release, callback interruption,
+- No callback execution under gates, configurable callback dispatcher, coroutine delivery wrapper, parallel
+  Delivery endpoint, retry queue, or immediate resubmission of a rejected record.
+- No submission-call, queued-callback, or entered-callback watchdog, fabricated cancellation/return/release, callback interruption,
   or replacement before complete shared unsubscribe success.
 - No borrowed-frame escape, raw/tentative storage exposure, post-return access, payload copy for repeat, or
   cached-first production/pacing mutation.
@@ -431,8 +437,9 @@ parsing, or repetition-until-race is an oracle.
 
 ## 5. Official sources
 
-- Kotlin [`CoroutineDispatcher`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-dispatcher/)
-  and [coroutine dispatchers](https://kotlinlang.org/docs/coroutine-context-and-dispatchers.html).
+- Java 17 [`ThreadPoolExecutor`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html),
+  [`ArrayBlockingQueue`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ArrayBlockingQueue.html),
+  and [`RejectedExecutionHandler`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/RejectedExecutionHandler.html).
 - Kotlin [`StateFlow`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-state-flow/),
   [`MutableSharedFlow`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-mutable-shared-flow/),
   and [`BufferOverflow`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.channels/-buffer-overflow/).

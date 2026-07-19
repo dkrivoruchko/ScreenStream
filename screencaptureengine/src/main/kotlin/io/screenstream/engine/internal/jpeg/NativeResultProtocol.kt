@@ -113,7 +113,13 @@ internal fun publishNativeEncodeFailure(occurrence: NativeEncodeOccurrence, resu
     val evidence = occurrence.operation.returnCell.evidence
     evidence.result = result
     evidence.failureCause = failure
-    return occurrence.operation.publishThrownReturn(failure)
+    return when (failure) {
+        is Exception -> occurrence.operation.publishThrownReturn(failure)
+        else -> {
+            occurrence.operation.publishDirectFatalReturn(failure)
+            throw failure
+        }
+    }
 }
 
 private fun classifyJavaThrowable(occurrence: NativeEncodeOccurrence, thrown: Throwable): Boolean = when (thrown) {
@@ -145,13 +151,22 @@ private fun publishThrownResult(occurrence: NativeEncodeOccurrence, result: Nati
     val evidence = occurrence.operation.returnCell.evidence
     evidence.result = result
     evidence.failureCause = cause
-    return occurrence.operation.publishThrownReturn(cause)
+    return when (cause) {
+        is Exception -> occurrence.operation.publishThrownReturn(cause)
+        is OutOfMemoryError -> {
+            check(result == NativeEncodeSettlement.ResourceExhausted)
+            occurrence.operation.publishNormalReturn()
+        }
+
+        else -> {
+            occurrence.operation.publishDirectFatalReturn(cause)
+            throw cause
+        }
+    }
 }
 
 private fun rethrowFatal(occurrence: NativeEncodeOccurrence, fatal: Throwable): Nothing {
-    val evidence = occurrence.operation.returnCell.evidence
-    evidence.result = NativeEncodeSettlement.InternalFailure
-    evidence.failureCause = fatal
+    occurrence.operation.publishDirectFatalReturn(fatal)
     throw fatal
 }
 

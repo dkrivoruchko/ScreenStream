@@ -1,15 +1,23 @@
 package io.screenstream.engine.internal.controller
 
-import android.os.Build
 import io.screenstream.engine.CaptureGeometry
 import io.screenstream.engine.ContentMode
 import io.screenstream.engine.ImageRect
 import io.screenstream.engine.ImageSize
+import io.screenstream.engine.Mirror
 import io.screenstream.engine.OutputSize
 import io.screenstream.engine.Rotation
+import io.screenstream.engine.ScreenCaptureEffectiveParameters
 import io.screenstream.engine.ScreenCaptureParameters
 import io.screenstream.engine.SourceRegion
+import io.screenstream.engine.internal.android.AndroidCaptureApiBand
 import io.screenstream.engine.internal.gl.GlCapabilityFacts
+import io.screenstream.engine.internal.gl.GlFrameReconciliationFacts
+import io.screenstream.engine.internal.gl.GlPipelineOwner
+import io.screenstream.engine.internal.gl.GlRenderTargetCompatibilityFacts
+import io.screenstream.engine.internal.jpeg.FrameworkJpegOwner
+import io.screenstream.engine.internal.jpeg.JpegRuntimeProduct
+import io.screenstream.engine.internal.target.CurrentTarget
 import io.screenstream.engine.internal.target.TargetMode
 import io.screenstream.engine.internal.target.TargetPlan
 import kotlin.math.floor
@@ -29,16 +37,20 @@ internal class ReconciliationKey(
 internal sealed interface ReconciliationInput {
     val key: ReconciliationKey
     val reconciliationOccurrenceIdentity: Long
+    val apiBand: AndroidCaptureApiBand
     val capabilities: GlCapabilityFacts
+    val topologyIdentity: Long
 }
 
 internal class ProvisionalBootstrapInput(
     override val key: ReconciliationKey,
     override val reconciliationOccurrenceIdentity: Long,
+    override val apiBand: AndroidCaptureApiBand,
     internal val provisionalWidthPx: Int,
     internal val provisionalHeightPx: Int,
     internal val densityDpi: Int,
     override val capabilities: GlCapabilityFacts,
+    override val topologyIdentity: Long,
 ) : ReconciliationInput {
     init {
         require(reconciliationOccurrenceIdentity > 0L)
@@ -48,13 +60,30 @@ internal class ProvisionalBootstrapInput(
 internal class AuthoritativeInput(
     override val key: ReconciliationKey,
     override val reconciliationOccurrenceIdentity: Long,
+    override val apiBand: AndroidCaptureApiBand,
     internal val captureGeometry: CaptureGeometry,
     internal val parameters: ScreenCaptureParameters,
+    internal val currentTopology: ReconciliationCurrentTopology,
     override val capabilities: GlCapabilityFacts,
+    override val topologyIdentity: Long,
 ) : ReconciliationInput {
     init {
         require(reconciliationOccurrenceIdentity > 0L)
     }
+}
+
+internal class ReconciliationCurrentTopology(
+    internal val target: CurrentTarget?,
+    internal val renderTarget: GlPipelineOwner.GlRenderTargetOwner?,
+    internal val jpegProduct: JpegRuntimeProduct?,
+    internal val frameworkOwner: FrameworkJpegOwner?,
+)
+
+internal enum class ReconciliationResourceAction {
+    Absent,
+    Retain,
+    Create,
+    Replace,
 }
 
 internal sealed interface ReconciliationCalculation {
@@ -75,6 +104,13 @@ internal class Resolved(
     internal val rgbaRowByteCount: Int,
     internal val rgbaByteCount: Int,
     internal val targetPlan: TargetPlan,
+    internal val effectiveParameters: ScreenCaptureEffectiveParameters,
+    internal val frameReconciliationFacts: GlFrameReconciliationFacts,
+    internal val renderCompatibilityFacts: GlRenderTargetCompatibilityFacts,
+    internal val targetAction: ReconciliationResourceAction,
+    internal val renderAction: ReconciliationResourceAction,
+    internal val jpegAction: ReconciliationResourceAction,
+    internal val frameworkAction: ReconciliationResourceAction,
 ) : ReconciliationCalculation
 
 internal class InvalidRequest(
@@ -97,7 +133,7 @@ internal object ReconciliationOwner {
     }
 
     private fun calculateProvisional(input: ProvisionalBootstrapInput): ReconciliationCalculation {
-        if (Build.VERSION.SDK_INT !in Build.VERSION_CODES.UPSIDE_DOWN_CAKE..Build.VERSION_CODES.CINNAMON_BUN ||
+        if (input.apiBand != AndroidCaptureApiBand.Api34To37 ||
             input.provisionalWidthPx <= 0 || input.provisionalHeightPx <= 0 || input.densityDpi <= 0 || !hasValidCapabilities(input.capabilities)
         ) {
             return InternalFailure(input)
@@ -123,7 +159,7 @@ internal object ReconciliationOwner {
         val captureWidth = geometry.widthPx
         val captureHeight = geometry.heightPx
 
-        if (Build.VERSION.SDK_INT !in Build.VERSION_CODES.N..Build.VERSION_CODES.CINNAMON_BUN ||
+        if (input.apiBand == AndroidCaptureApiBand.Unsupported ||
             captureWidth <= 0 || captureHeight <= 0 || geometry.densityDpi <= 0 || !hasValidCapabilities(input.capabilities)
         ) {
             return InternalFailure(input)
@@ -252,7 +288,8 @@ internal object ReconciliationOwner {
         var targetWidth = captureWidth
         var targetHeight = captureHeight
         val scaleFactor = parameters.outputSize as? OutputSize.ScaleFactor
-        if (Build.VERSION.SDK_INT in Build.VERSION_CODES.S_V2..Build.VERSION_CODES.CINNAMON_BUN &&
+        if ((input.apiBand == AndroidCaptureApiBand.Api32To33 ||
+                    input.apiBand == AndroidCaptureApiBand.Api34To37) &&
             parameters.sourceRegion == SourceRegion.Full &&
             crop.left == 0 && crop.top == 0 && crop.right == 0 && crop.bottom == 0 &&
             scaleFactor != null && scaleFactor.factor < 1.0
@@ -286,16 +323,166 @@ internal object ReconciliationOwner {
             return CapacityDenied(input)
         }
 
+        val appliedRect = ImageRect(appliedLeft, appliedTop, appliedRight, appliedBottom)
+        val finalSize = ImageSize(outputWidth, outputHeight)
+        val effective = ScreenCaptureEffectiveParameters(
+            captureGeometry = geometry,
+            sourceRegion = parameters.sourceRegion,
+            crop = parameters.crop,
+            appliedSourceRect = appliedRect,
+            outputSize = parameters.outputSize,
+            finalImageSize = finalSize,
+            rotation = parameters.rotation,
+            mirror = parameters.mirror,
+            colorMode = parameters.colorMode,
+            frameRate = parameters.frameRate,
+            frameRepeatIntervalMillis = parameters.frameRepeatIntervalMillis,
+            jpegQuality = parameters.jpegQuality,
+        )
+        val targetPlan = TargetPlan(targetMode, targetWidth, targetHeight)
+        val current = input.currentTopology
+        val targetAction = when {
+            current.target == null -> ReconciliationResourceAction.Create
+            sameTargetPlan(current.target.plan, targetPlan) -> ReconciliationResourceAction.Retain
+            else -> ReconciliationResourceAction.Replace
+        }
+        val renderFacts = GlRenderTargetCompatibilityFacts(finalSize, byteCount)
+        val renderAction = when {
+            current.renderTarget == null -> ReconciliationResourceAction.Create
+            current.renderTarget.compatibilityFacts.imageSize == finalSize &&
+                    current.renderTarget.compatibilityFacts.rgbaByteCount == byteCount -> ReconciliationResourceAction.Retain
+            else -> ReconciliationResourceAction.Replace
+        }
+        val jpegAction = when {
+            current.jpegProduct == null -> ReconciliationResourceAction.Create
+            current.jpegProduct.carrier.byteCount == byteCount -> ReconciliationResourceAction.Retain
+            else -> ReconciliationResourceAction.Replace
+        }
+        val frameworkAction = when (val product = current.jpegProduct) {
+            null,
+            is JpegRuntimeProduct.NativeEnabled,
+                -> ReconciliationResourceAction.Absent
+
+            is JpegRuntimeProduct.FrameworkOnNativeCarrier,
+            is JpegRuntimeProduct.FrameworkOnManagedCarrier,
+                -> when {
+                    current.frameworkOwner == null -> ReconciliationResourceAction.Create
+                    current.frameworkOwner.isShapeCompatible(finalSize, byteCount) -> ReconciliationResourceAction.Retain
+                    else -> ReconciliationResourceAction.Replace
+                }
+        }
+        val logicalInverse = calculateLogicalInverse(
+            captureWidth = captureWidth,
+            captureHeight = captureHeight,
+            appliedLeft = appliedLeft,
+            appliedTop = appliedTop,
+            croppedWidth = croppedWidth,
+            croppedHeight = croppedHeight,
+            rotation = parameters.rotation,
+            mirror = parameters.mirror,
+        ) ?: return InternalFailure(input)
+
         return Resolved(
             input = input,
-            appliedSourceRect = ImageRect(appliedLeft, appliedTop, appliedRight, appliedBottom),
-            finalImageSize = ImageSize(outputWidth, outputHeight),
+            appliedSourceRect = appliedRect,
+            finalImageSize = finalSize,
             requiredSourceWidthPx = requiredSourceWidth,
             requiredSourceHeightPx = requiredSourceHeight,
             rgbaRowByteCount = rowByteCount,
             rgbaByteCount = byteCount,
-            targetPlan = TargetPlan(targetMode, targetWidth, targetHeight),
+            targetPlan = targetPlan,
+            effectiveParameters = effective,
+            frameReconciliationFacts = GlFrameReconciliationFacts(logicalInverse, parameters.colorMode),
+            renderCompatibilityFacts = renderFacts,
+            targetAction = targetAction,
+            renderAction = renderAction,
+            jpegAction = jpegAction,
+            frameworkAction = frameworkAction,
         )
+    }
+
+    private fun sameTargetPlan(left: TargetPlan, right: TargetPlan): Boolean =
+        left.mode == right.mode && left.targetWidthPx == right.targetWidthPx && left.targetHeightPx == right.targetHeightPx
+
+    private fun calculateLogicalInverse(
+        captureWidth: Int,
+        captureHeight: Int,
+        appliedLeft: Int,
+        appliedTop: Int,
+        croppedWidth: Int,
+        croppedHeight: Int,
+        rotation: Rotation,
+        mirror: Mirror,
+    ): FloatArray? {
+        fun map(a: Double, b: Double): Pair<Double, Double> {
+            val orientedWidth = if (rotation == Rotation.Degrees90 || rotation == Rotation.Degrees270) {
+                croppedHeight.toDouble()
+            } else {
+                croppedWidth.toDouble()
+            }
+            val orientedHeight = if (rotation == Rotation.Degrees90 || rotation == Rotation.Degrees270) {
+                croppedWidth.toDouble()
+            } else {
+                croppedHeight.toDouble()
+            }
+            var u = a * orientedWidth
+            var v = b * orientedHeight
+            when (mirror) {
+                Mirror.None -> Unit
+                Mirror.Horizontal -> u = orientedWidth - u
+                Mirror.Vertical -> v = orientedHeight - v
+            }
+            val x: Double
+            val y: Double
+            when (rotation) {
+                Rotation.Degrees0 -> {
+                    x = u
+                    y = v
+                }
+
+                Rotation.Degrees90 -> {
+                    x = v
+                    y = croppedHeight - u
+                }
+
+                Rotation.Degrees180 -> {
+                    x = croppedWidth - u
+                    y = croppedHeight - v
+                }
+
+                Rotation.Degrees270 -> {
+                    x = croppedWidth - v
+                    y = u
+                }
+            }
+            return Pair(
+                (appliedLeft + x) / captureWidth.toDouble(),
+                (appliedTop + y) / captureHeight.toDouble(),
+            )
+        }
+
+        val p00 = map(0.0, 0.0)
+        val p10 = map(1.0, 0.0)
+        val p01 = map(0.0, 1.0)
+        val coefficients = doubleArrayOf(
+            p10.first - p00.first,
+            p10.second - p00.second,
+            p01.first - p00.first,
+            p01.second - p00.second,
+            p00.first,
+            p00.second,
+        )
+        if (coefficients.any { !it.isFinite() || it !in -Float.MAX_VALUE.toDouble()..Float.MAX_VALUE.toDouble() }) return null
+        return FloatArray(16).also { matrix ->
+            matrix[0] = coefficients[0].toFloat()
+            matrix[1] = coefficients[1].toFloat()
+            matrix[4] = coefficients[2].toFloat()
+            matrix[5] = coefficients[3].toFloat()
+            matrix[10] = 1f
+            matrix[12] = coefficients[4].toFloat()
+            matrix[13] = coefficients[5].toFloat()
+            matrix[15] = 1f
+        }
     }
 
     private fun hasValidCapabilities(capabilities: GlCapabilityFacts): Boolean =

@@ -8,6 +8,8 @@ import io.screenstream.engine.internal.settlement.OperationOwnerBag
 import io.screenstream.engine.internal.settlement.OperationReceipt
 import io.screenstream.engine.internal.settlement.OperationReturnCell
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
+import io.screenstream.engine.internal.settlement.PrivateExecutorOperation
+import io.screenstream.engine.internal.settlement.PrivateExecutorRuntime
 import io.screenstream.engine.internal.settlement.SettlementSignal
 
 internal enum class FrameworkTransferMode {
@@ -49,8 +51,9 @@ internal class FrameworkResourceCreationOccurrence private constructor(
     expectedProduct: JpegRuntimeProduct,
     internal val operation: OperationOccurrence<FrameworkResourceCreationEvidence>,
     internal val ownerBag: FrameworkResourceCreationOwnerBag,
-    internal val ioOperation: JpegIoOperation<FrameworkResourceCreationEvidence>,
-) {
+    override val executorOperation: PrivateExecutorOperation<FrameworkResourceCreationEvidence>,
+) : JpegEndpointOccurrence {
+    override var endpointReleased: Boolean = false
     private var expectedProductSlot: JpegRuntimeProduct? = expectedProduct
 
     internal val expectedProduct: JpegRuntimeProduct
@@ -79,6 +82,7 @@ internal class FrameworkResourceCreationOccurrence private constructor(
             candidateOwner: FrameworkJpegOwner,
             clock: EngineClock,
             signal: SettlementSignal,
+            endpoint: PrivateExecutorRuntime,
             work: (FrameworkResourceCreationOccurrence) -> Unit,
         ): FrameworkResourceCreationOccurrence {
             val evidence = FrameworkResourceCreationEvidence()
@@ -95,7 +99,7 @@ internal class FrameworkResourceCreationOccurrence private constructor(
                 wakeSignal = signal,
             )
             lateinit var occurrence: FrameworkResourceCreationOccurrence
-            val ioOperation = JpegIoOperation(operation) { work(occurrence) }
+            val executorOperation = endpoint.operation(operation, Runnable { work(occurrence) })
             occurrence = FrameworkResourceCreationOccurrence(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
@@ -103,7 +107,7 @@ internal class FrameworkResourceCreationOccurrence private constructor(
                 expectedProduct = expectedProduct,
                 operation = operation,
                 ownerBag = ownerBag,
-                ioOperation = ioOperation,
+                executorOperation = executorOperation,
             )
             return occurrence
         }
@@ -117,6 +121,7 @@ internal enum class FrameworkEncodeSettlement {
     ResourceExhausted,
     InternalFailure,
     CancelledWithoutReturn,
+    FatalCleanupCompleted,
 }
 
 internal class FrameworkEncodeEvidence internal constructor() : OperationEvidence {
@@ -162,6 +167,11 @@ internal class FrameworkEncodeOwnerBag internal constructor(
         carrierLeaseSlot = null
         return true
     }
+
+    internal fun hasNoRetainedAliases(): Boolean =
+        bitmapUseOwner == null && productSlot == null && carrierLeaseSlot == null &&
+                retainedOperationLease == null && storageOwner == null && transaction == null &&
+                unpublishedToRetire == null
 }
 
 internal class FrameworkEncodeOccurrence private constructor(
@@ -172,8 +182,9 @@ internal class FrameworkEncodeOccurrence private constructor(
     internal val quality: Int,
     internal val operation: OperationOccurrence<FrameworkEncodeEvidence>,
     internal val ownerBag: FrameworkEncodeOwnerBag,
-    internal val ioOperation: JpegIoOperation<FrameworkEncodeEvidence>,
-) {
+    override val executorOperation: PrivateExecutorOperation<FrameworkEncodeEvidence>,
+) : JpegEndpointOccurrence {
+    override var endpointReleased: Boolean = false
     private var capturedProductSlot: JpegRuntimeProduct? = capturedProduct
 
     internal val capturedProduct: JpegRuntimeProduct
@@ -185,6 +196,11 @@ internal class FrameworkEncodeOccurrence private constructor(
         if (!ownerBag.clearSettledReferences(expectedOwner, exactProduct)) return false
         capturedProductSlot = null
         return true
+    }
+
+    internal fun hasNoRetainedAliasesLocked(): Boolean {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        return capturedProductSlot == null && ownerBag.hasNoRetainedAliases()
     }
 
     internal companion object {
@@ -199,6 +215,7 @@ internal class FrameworkEncodeOccurrence private constructor(
             identity: JpegFiniteOperationIdentity,
             clock: EngineClock,
             signal: SettlementSignal,
+            endpoint: PrivateExecutorRuntime,
             work: (FrameworkEncodeOccurrence) -> Unit,
         ): FrameworkEncodeOccurrence {
             val evidence = FrameworkEncodeEvidence()
@@ -224,7 +241,7 @@ internal class FrameworkEncodeOccurrence private constructor(
                 wakeSignal = signal,
             )
             lateinit var occurrence: FrameworkEncodeOccurrence
-            val ioOperation = JpegIoOperation(operation) { work(occurrence) }
+            val executorOperation = endpoint.operation(operation, Runnable { work(occurrence) })
             occurrence = FrameworkEncodeOccurrence(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
@@ -233,7 +250,7 @@ internal class FrameworkEncodeOccurrence private constructor(
                 quality = quality,
                 operation = operation,
                 ownerBag = ownerBag,
-                ioOperation = ioOperation,
+                executorOperation = executorOperation,
             )
             return occurrence
         }
@@ -276,8 +293,10 @@ internal class FrameworkBitmapRecycleOccurrence private constructor(
     internal val origin: FrameworkBitmapRecycleOrigin,
     internal val operation: OperationOccurrence<FrameworkBitmapRecycleEvidence>,
     internal val ownerBag: FrameworkBitmapRecycleOwnerBag,
-    internal val ioOperation: JpegIoOperation<FrameworkBitmapRecycleEvidence>,
-) {
+    override val executorOperation: PrivateExecutorOperation<FrameworkBitmapRecycleEvidence>,
+) : JpegEndpointOccurrence {
+    override var endpointReleased: Boolean = false
+
     internal companion object {
         internal fun create(
             desiredRevision: Long,
@@ -289,6 +308,7 @@ internal class FrameworkBitmapRecycleOccurrence private constructor(
             operationIdentity: Long,
             clock: EngineClock,
             signal: SettlementSignal,
+            endpoint: PrivateExecutorRuntime,
             work: (FrameworkBitmapRecycleOccurrence) -> Unit,
         ): FrameworkBitmapRecycleOccurrence {
             val evidence = FrameworkBitmapRecycleEvidence()
@@ -305,7 +325,7 @@ internal class FrameworkBitmapRecycleOccurrence private constructor(
                 wakeSignal = identity?.let { signal },
             )
             lateinit var occurrence: FrameworkBitmapRecycleOccurrence
-            val ioOperation = JpegIoOperation(operation) { work(occurrence) }
+            val executorOperation = endpoint.operation(operation, Runnable { work(occurrence) })
             occurrence = FrameworkBitmapRecycleOccurrence(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
@@ -313,7 +333,7 @@ internal class FrameworkBitmapRecycleOccurrence private constructor(
                 origin = origin,
                 operation = operation,
                 ownerBag = ownerBag,
-                ioOperation = ioOperation,
+                executorOperation = executorOperation,
             )
             return occurrence
         }

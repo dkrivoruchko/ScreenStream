@@ -82,7 +82,8 @@ stays `Running(Suspended(Reconfiguring))` until a complete Framework owner is in
 
 Before submission, the occurrence owns its generic cells, `FJPEG-090` deadline, immutable key/backend/shape,
 fixed metadata/mode evidence, partial owner bag, and recycle authority. The bag has precreated Bitmap and scratch
-slots. One non-suspending Runnable on the Session JPEG IO view performs this exact sequence:
+slots. One Runnable on the prestarted Session-owned JPEG endpoint in
+[CORE-EXEC-1](03-shared-runtime.md#core-exec-1--private-execute-endpoints) performs this exact sequence:
 
 1. enter once and call `Bitmap.createBitmap(Ow, Oh, Bitmap.Config.ARGB_8888)` exactly once;
 2. adopt the returned Bitmap immediately, including the interval before its bag slot is published;
@@ -165,7 +166,7 @@ process/thread semantics and roots whatever exact occurrence residue remains.
 
 Same-shape healthy reuse creates neither creation nor recycle work. Before incompatible replacement or terminal
 retirement, every Bitmap copy/compress use and lease must mechanically settle. The exact Bitmap owner then moves
-once into one generic recycle occurrence on the JPEG IO view; that occurrence calls `Bitmap.recycle()` exactly
+once into one generic recycle occurrence on the JPEG endpoint; that occurrence calls `Bitmap.recycle()` exactly
 once.
 
 | Recycle boundary | Required result |
@@ -180,10 +181,10 @@ Bitmap-specific state machine, second executor, or private constant.
 
 ## FJPEG-070 — Cleanup, cancellation, and lane ownership
 
-Creation, encode, and recycle use the single per-Session serial JPEG IO view owned by `NJPEG-020`. Each is a
-separate non-suspending Runnable with its own precreated occurrence and cells. The view is non-owned: terminal
-closes admission but never closes, cancels, quarantines, or awaits the view, and no worker/view termination
-receipt exists.
+Creation, encode, and recycle use the single prestarted per-Session JPEG endpoint owned by `NJPEG-020`. Each is a
+separate Runnable with its own precreated occurrence and cells and obeys the one-outstanding-ticket rule.
+Terminal closes active admission; the endpoint then follows one orderly shutdown and actual `terminated()`
+receipt under `CORE-EXEC-1`.
 
 | Unresolved work | Exact retained cleanup state |
 | --- | --- |
@@ -191,8 +192,8 @@ receipt exists.
 | transfer/encode | exact operation, still-live carrier/Bitmap uses, transaction and tentative bytes; any lease already mechanically released is absent |
 | recycle | exact Bitmap owner, one-shot call authority, writable return cell and dependencies |
 
-A nonreturn roots only the Session-owned occurrence and resources it may still use, not the shared dispatcher or
-view. Terminal conversion retires a finite deadline without inventing a return. Late facts reduce only matching
+A nonreturn roots only the Session-owned occurrence, JPEG endpoint/thread, ticket, and resources it may still use,
+not an unrelated runtime. Terminal conversion retires a finite deadline without inventing a return. Late facts reduce only matching
 residue under `CORE-CLEAN-2`; independent cleanup roots and other Sessions continue.
 
 ## FJPEG-080 — Efficiency, privacy, and diagnostics

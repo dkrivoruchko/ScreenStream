@@ -49,12 +49,16 @@ controller turns inspect or write only bounded existing references, tags, identi
 Allocation, scheduling, Flow assignment/emission, platform work, GL/JPEG work, callbacks, release, diagnostics,
 and cleanup execution occur after all applicable gates are released.
 
-The only nested order is the shared `sessionGate -> one exact settlementGate` order from `CORE-SET-2`. A worker
-never acquires `sessionGate`. Helper return does not commit authority: the controller must revalidate currentness
-and commit the selected action under `sessionGate`.
+The only nested order is the shared `sessionGate -> one exact settlementGate` order from `CORE-SET-2`. The only
+non-controller paths that acquire `sessionGate` are the Metrics observer ingress in `AND-MET-020` and Delivery
+Runnable admission in `DEL-HO-010`; each uses its explicitly defined arbitration and lock order. Every other owner
+worker publishes a complete fact through its settlement authority, never acquires `sessionGate`, and cannot
+mutate controller state. Helper return does not commit authority: the controller must revalidate currentness and
+commit the selected action under `sessionGate`.
 
-The controller directly owns the one Session scheduler specified by `CTRL-040`. `Dispatchers.Default` remains a
-non-owned drainer service; no other execution resource becomes controller-owned by composition.
+The controller directly owns the one Session Control scheduler/thread specified by `CTRL-040`. Both controller
+drains and all one-shot Control wakes execute there; no shared coroutine dispatcher or caller execution service participates in
+controller progress.
 
 ## CTRL-010 — Lossless action drainer
 
@@ -62,8 +66,8 @@ The controller owns this exact wake protocol:
 
 1. each producer completes its durable return/latest/command cell before signalling;
 2. signalling performs exactly `IDLE -> RUNNING`, `RUNNING -> RUNNING_DIRTY`, or
-   `RUNNING_DIRTY -> RUNNING_DIRTY`; only the `IDLE -> RUNNING` winner dispatches one controller drainer to
-   `Dispatchers.Default`;
+   `RUNNING_DIRTY -> RUNNING_DIRTY`; only the `IDLE -> RUNNING` winner submits one controller drainer to the
+   prestarted Control scheduler;
 3. one bounded complete scan claims facts once into precreated fixed action slots;
 4. a full action batch changes or retains the state as `RUNNING_DIRTY`, executes claimed actions unlocked, and
    requires a rescan without a producer signal;
@@ -74,10 +78,17 @@ The controller owns this exact wake protocol:
    `RUNNING -> IDLE` first, the producer then wins `IDLE -> RUNNING` and dispatches the successor drainer.
 
 Claimed actions contain existing references/tags/scalars only. The drainer invokes neither a public entry point
-nor an outward owner while gated. Active controller-dispatch throw/rejection publishes the precreated emergency
-fact; one atomically exclusive observing thread performs the bounded fail-closed terminal turn. A rejected wake
-does not erase a previously published fact. `Dispatchers.Default` is non-owned and is never closed, cancelled, or
-placed in quarantine.
+nor an outward owner while gated. At most one drainer identity is logically live, but the Control scheduler may
+also contain the finite set of currently owned deadline, pacing, repeat, and Stats wakes. The private-executor
+one-ticket rule in `CORE-EXEC-1` does not apply to Control; its bound is the protocol cardinality of those named
+wakes plus the one drainer.
+
+Drainer submission owns a typed submission/entry record. Normal `execute` return proves acceptance, not entry;
+entry may commit before that return or a throw. Entry wins the drainer occurrence, while every outward submission
+throw is still recorded and monotonically poisons Control. An active pre-entry `Exception` or any Control poison
+publishes the precreated emergency fact; one atomically exclusive producer performs the bounded allocation-free
+fail-closed terminal turn. A direct fatal throwable additionally follows `CORE-FATAL-1`. A rejected or poisoned
+wake cannot erase a durable fact, create a second drainer, or authorize scheduler reuse.
 
 ## CTRL-020 — Public-command application
 
@@ -88,7 +99,7 @@ path is:
 
 | Command | Controller commit | Unlocked continuation |
 | --- | --- | --- |
-| `create` | none; create all-zero observation cells, empty quarantine root, one-shot facade, normalized application Context, and configured metrics-provider value | no runtime owner starts before accepted `start` |
+| `create` | none; create all-zero observation cells, empty quarantine root, one-shot facade, normalized application Context, and configured metrics-source value | no runtime owner starts before accepted `start` |
 | winning `start` | validate parameters first; under `sessionGate`, commit `NotStarted -> Starting`, first nonzero desired revision, and transfer only that projection | signal startup owners; complete the Session-owned waiter only after direct `Running(Active)` assignment returns |
 | losing `start` | observe non-`NotStarted`; commit and allocate nothing | throw without inspecting, retaining, registering, or stopping the losing projection |
 | equal legal `updateParameters` | after common local validation, change nothing | return `Unit` |
@@ -123,10 +134,22 @@ An accepted start succeeds only after `Running(Active)` assignment. If terminal 
 invented. A result published only after intact transfer to cleanup is cleanup-only and cannot revise State,
 Stats, cache, fallback, health, admission, or the selected cause.
 
+Metrics readiness consumes only the bounded `AND-MET-020` summary under `sessionGate`: earliest validated
+positive `(sequence,T,value)`, sticky first post-valid pre-Active loss, latest nullable `(sequence,value)`, first
+terminal `(sequence,kind,cause,BeforeJointReadiness|AfterJointReadiness)`, and the distinct handle
+outcome/adoption. It folds semantic sequence without an event queue. One-shot joint readiness requires `T < D`
+plus normal nonnull exact-handle adoption before prior loss/terminal/expiry. Normal completion before that commit
+is startup `CaptureUnavailable`; after it, including before first Active, completion retains the latest tuple and
+does not prevent startup. Null handle or outward attachment `Exception` while unresolved is authoritative
+`InternalFailure` over staged callbacks; committed expiry or Session terminal remains fixed. A pre-Active loss
+remains startup `CaptureUnavailable` despite later valid latest data. Ingress-sequence exhaustion applies the
+precreated `InternalFailure` before reuse.
+
 ## CTRL-040 — Session scheduler resource
 
 After accepted start, `SessionController` constructs and immediately roots one owned
-`ScheduledThreadPoolExecutor(1)` as an owned startup operation. Before publication it sets:
+`ScheduledThreadPoolExecutor(1)` as an owned startup operation. It is the Session's single Control thread and is
+not published or used until `prestartAllCoreThreads()` returns one. Before that barrier it sets:
 
 ```text
 setRemoveOnCancelPolicy(true)
@@ -134,22 +157,42 @@ setExecuteExistingDelayedTasksAfterShutdownPolicy(false)
 setContinueExistingPeriodicTasksAfterShutdownPolicy(false)
 ```
 
-No periodic task is created. This scheduler serves finite-deadline, pacing/repeat, accepted-callback-entry, and
-Stats wakes. [`CORE-WAKE-2`](03-shared-runtime.md#core-wake-2--deadline-wake-link-and-scheduling-rejection) owns
-each generic deadline-wake submission/Future/rejection protocol; `DEL-PACE-*`, `DEL-HO-*`, and `DEL-OBS-*` own
+No periodic task is created. This scheduler serves the one controller drainer and one-shot deadline, pacing,
+repeat, and Stats wakes. [`CORE-WAKE-2`](03-shared-runtime.md#core-wake-2--one-shot-control-wake-link-and-scheduling-rejection) owns
+every wake's central submission/Future/callback/cancellation/termination/successor protocol; `DEL-PACE-*`,
+`DEL-HO-*`, and `DEL-OBS-*` own
 their domain calculations and physical callback mechanics. `SessionController` alone accepts the resulting
 facts and controls scheduler admission and lifetime.
 
-Terminal first closes every successor authority and cancels each current Future outside gates. Scheduler
-shutdown becomes eligible only after every caller-dispatch invocation still in call, every `Submitting` result,
-and every retained or later-armable accepted-callback wake have settled. The controller then invokes exactly one
-unlocked orderly `shutdown()` and invokes `shutdownNow()` zero times. Scheduler shutdown and termination have no
-watchdog.
+Every Control task is a typed decorated `RunnableScheduledFuture` whose outer wrapper and engine runner share one
+preallocated task identity, entry/return record, direct-fatal slot, and bridge `Pending | Applied`. The wrapper
+delegates `run` exactly once, delegates `get`, completion/status, `getDelay`, `isPeriodic`, and ordering/comparison
+semantics to the exact delegate, and retains no second task result. Its `cancel(false)` delegates the exact call;
+the `CORE-WAKE-2` cancellation action separately attempts and records removal of that exact outer wrapper as
+queue hygiene regardless of the cancel result. Only an accepted true cancellation may win wake suppression.
 
-The private `terminated()` hook release-publishes its precreated scheduler-termination receipt, then signals the
-controller. Nontermination roots only the scheduler/thread plus the exact queued/dequeued wake, `Submitting`
-record, retained callback-deadline link, or deadline record that still depends on it. It cannot root a non-owned
-dispatcher or an unrelated owner/root.
+The engine runner catches a direct fatal, records that exact object in the shared slot, and rethrows it into the
+delegate `FutureTask`. `afterExecute` reads only the exact typed wrapper, slot, and bridge; it never calls `get`,
+classifies the hook's Throwable, unwraps causes, uses reflection/class names, or inspects an untyped task. Empty
+or `Applied` returns. `Pending` plus a fatal slot performs once the allocation-free, identity-fenced settlement,
+Control poison, admission closure, and emergency fail-close, release-publishes `Applied`, then throws the same
+object. On runtimes with two hook observations, the second sees `Applied` and returns so `runWorker` rethrows the
+same object; a single-hook runtime likewise propagates that object. No hook creates a duplicate task or fact.
+A replacement worker checks Control poison before engine work and can only settle its task inert.
+
+After terminal, healthy Control becomes receive-only. It remains the last Session lane until every other owned
+lane/thread termination receipt, every external late fact, every controller-consumed cleanup dependency, every
+drainer submission in call, every `Submitting` result, and every created Control wake link fully settles. An
+external nonreturn therefore retains Control as a quarantine dependency. The final Control turn closes all
+remaining successor authority, cancels current Futures outside gates, and invokes exactly one unlocked orderly
+`shutdown()`; `shutdownNow()` is never invoked and termination has no watchdog.
+
+The private `terminated()` hook must not signal, resubmit, or execute another controller turn. It
+release-publishes its precreated scheduler-termination receipt and one-shot inline releases only its own
+scheduler/thread root, plus the strictly required already-defined best-effort cleanup diagnostic if applicable.
+It cannot revise active/public state or create a successor. Poison or nontermination retains the scheduler/thread
+and exact dependent wake, `Submitting`, drainer, external-fact, or cleanup residue; it cannot root an unrelated
+owner.
 
 ## 2. Typed domain boundary
 
@@ -159,12 +202,12 @@ physical declaration is domain-private, “fact” means its immutable typed rec
 | Direction | Typed value, owner, fact, or receipt | Controller use |
 | --- | --- | --- |
 | inbound | `ScreenCaptureParameters` plus accepted desired revision | resolve the latest requested plan; never redirect already-entered work |
-| inbound | provider/projection geometry and availability facts, each limited to the fields owned by its API-band source | update the sole combined-geometry accumulator, assign `geometryGeneration`, and form the reconciliation key |
+| inbound | selected-source/projection geometry and availability facts, each limited to the fields owned by its API-band source | update the sole combined-geometry accumulator, assign `geometryGeneration`, and form the reconciliation key |
 | inbound | exact installed `CurrentTarget` reference with generation/provenance/health facts | target compatibility and smallest replacement decision; copied handles/facts are insufficient |
 | inbound | exact installed `GlRenderTargetOwner` reference plus immutable GL capability/shape/health facts | live output compatibility, checked per-axis capacity, and current render selection |
 | inbound | exact Framework/native JPEG owner and carrier references with shape, lease, backend-health, and operation facts | encoder/carrier reuse, replacement, optional fallback, and production disposition |
 | inbound | immutable `DEL-PACE-*` calculation/fact carrying exact candidate/wake/policy identity, sampled clock inputs, and storage occupancy/result | accept or reject calculation; commit grant/phase/wake, attempt/final disposition, cache-role command, counters, and cutoff |
-| inbound | immutable `DEL-HO-*` registration/handoff/dispatch/entry/callback fact | commit admission, classification/counter, terminal cutoff, and shared unsubscribe result |
+| inbound | immutable `DEL-HO-*` registration/handoff/submission/entry/callback fact | commit admission, classification/counter, terminal cutoff, and shared unsubscribe result |
 | inbound | identity-fenced scheduler submission/Future/rejection/Fired fact or scheduler-termination receipt | apply `CORE-WAKE-2`, current domain authority, and `CTRL-040` lifetime without inferring execution or cancellation |
 | inbound | complete `OperationReturnCell`, deadline disposition, typed domain receipt, cleanup reduction, or terminal contender | apply `CORE-SET-2`/`CORE-SET-3`, `CORE-CLEAN-1`/`CORE-CLEAN-2`, and terminal arbitration without inferring adjacent success |
 | outbound | immutable Android/Target/GL/JPEG/storage/delivery owner command carrying full key, occurrence identity, exact owner reference/loan, and fixed plan | execute only the named current operation; return a typed fact, never mutate controller authority |
@@ -185,11 +228,19 @@ The exact reconciliation key is:
 ```
 
 The controller owns one authoritative accumulator and one latest cell for the combined positive
-`(widthPx, heightPx, densityDpi, geometryGeneration)` tuple. Provider and projection facts update only the fields
+`(widthPx, heightPx, densityDpi, geometryGeneration)` tuple. The full duplicate/no-op authority key includes the
+observation/source identity, selected Display identity plus continuous-validity epoch or projection-owner epoch,
+availability phase, and every authoritative field. Selected-source and projection facts update only the fields
 their API-band source owns under
 [`AND-MET-010`](06-domain-android-capture-metrics.md#and-met-010--exact-api-band-reads-and-authority); no owner publishes
 a second combined cell or generation. Before replacing the cell, the controller reserves the next strictly
 increasing nonreused `geometryGeneration`. Exhaustion fails terminally before replacement or identity reuse.
+
+After ingress consumption, equality of that full key is a complete no-op: it creates no geometry/lifecycle
+generation, reconciliation, rebuild, State/Stats publication, or diagnostic. Repeated unavailable in the same
+phase is likewise a no-op. First valid input, an availability transition, a new Display epoch/projection owner,
+or any authoritative-field change is real. Unavailable followed by a value equal to historical geometry is a
+recovery transition, never a duplicate.
 
 Replacing an unclaimed revision settles that revision as `Superseded` and creates no rebuild. The controller
 claims only the newest cell value. While one claimed revision has materialized reconciliation/rebuild work,
@@ -243,7 +294,7 @@ Tw = baseW * k; Th = baseH * k
 
 All planner arithmetic is checked before narrowing. `Tw:Th == W:H`, and each Target axis supplies at least its
 rotation-aware required source samples. The VirtualDisplay remains `W x H` at `D`; only the Surface target is
-`Tw x Th`. API 32–33 plan from provider-authoritative dimensions. API 34–37 bootstrap with provisional `Full`
+`Tw x Th`. API 32–33 plan from source-authoritative dimensions. API 34–37 bootstrap with provisional `Full`
 and closed frame admission; after the first valid projection resize, that Target is retained only when
 authoritative `W,H` and the selected mode require the exact same Full Target. Otherwise the ordinary pre-Running
 destructive transition installs the authoritative Full or Downscaled Target.
@@ -388,8 +439,9 @@ only the active-to-cleanup commit: under the normal gates it selects the exact d
 owner/occurrence once to its named root or quarantine child, and records the terminal cutoff before publication.
 It then issues cleanup actions unlocked. A later cleanup fact is accepted only for its matching transferred
 identity and may update only the authoritative root/quarantine child; it cannot authorize active state or a
-successor. The scheduler root follows `CTRL-040`: its termination receipt releases that root; nontermination
-retains only the exact scheduler/thread and dependent wake/submission residue.
+successor. The scheduler root follows `CTRL-040`: healthy Control is the receive-only last lane, and only its
+inline termination hook may release its root after all inbound dependencies settle. Poison/nontermination
+retains only the exact scheduler/thread and dependent wake/submission/external-fact residue.
 
 ## CTRL-900 — Forbidden alternatives
 
@@ -421,16 +473,16 @@ closure/routing is in [Document 04](04-verification.md), and exact test paths ar
 
 | Test ID | Required controller/reconciliation evidence |
 | --- | --- |
-| `H-LC` | Both concurrent-start gate orders and zero losing-projection access; accepted-cancellation orders; equal/unequal/concurrent update acceptance with coherent whole Running snapshots and no setter-return observation oracle; revision exhaustion; stop/admission cutoff; all terminal contenders and final Stats-before-State; every `CTRL-010` signal transition, drainer `RUNNING_DIRTY -> RUNNING` CAS, and both producer-versus-`RUNNING -> IDLE` orders; saturated fixed action batch self-dirties and consumes all complete cells once without a later producer signal; active drainer-dispatch failure uses one emergency fail-closed turn; scheduler construction is one owned startup operation with exact pre-publication configuration and no periodic task; cross-Session authority isolation. |
-| `H-RC` | Complete-key and occurrence currentness; combined-geometry newest-only claim, unclaimed supersession, one running rebuild plus later latest revisions, exact materialized dispositions, exhaustion-before-reuse, and storm bounds; safe/unsafe stale returns; destructive A-to-B-to-A; exact Full/Downscaled retain, shrink-retain, larger-demand, ineligibility, and changed-dimensions decisions; actual owner-identity/shape/health reuse; deterministic pre-retirement denial with zero allocation/retirement; one smallest-scope post-retirement replacement; target replacement retaining compatible output-owner identities; typed recycle/free or managed-detach followed by fresh current/nonterminal recheck; PreparedTarget install-or-cleanup arbitration; Native-disable-to-complete-Framework-install sequence; quiescent convergence; no registry, rollback, predictive accounting, or second topology. |
+| `H-LC` | Both concurrent-start gate orders and zero losing-projection access; accepted-cancellation orders; equal/unequal/concurrent update acceptance with coherent whole Running snapshots and no setter-return observation oracle; revision exhaustion; stop/admission cutoff; all terminal contenders and final Stats-before-State; every `CTRL-010` signal transition, drainer `RUNNING_DIRTY -> RUNNING` CAS, and both producer-versus-`RUNNING -> IDLE` orders; saturated fixed action batch self-dirties and consumes all complete cells once without a later producer signal; active drainer-dispatch failure uses one emergency fail-closed turn; scheduler construction is one owned startup operation with exact pre-publication configuration and no periodic task; post-terminal Control remains receive-only and last until all inbound dependencies settle, then one final turn/shutdown and a nonsignalling inline `terminated()` release; cross-Session authority isolation. |
+| `H-RC` | Complete-key and occurrence currentness; full metrics authority-key duplicate and repeated-unavailable no-op with zero generation/reconciliation/publication, contrasted with first-valid, availability transition, new epoch/owner, field change, and unavailable-to-historically-equal recovery; combined-geometry newest-only claim, unclaimed supersession, one running rebuild plus later latest revisions, exact materialized dispositions, exhaustion-before-reuse, and storm bounds; safe/unsafe stale returns; destructive A-to-B-to-A; exact Full/Downscaled retain, shrink-retain, larger-demand, ineligibility, and changed-dimensions decisions; actual owner-identity/shape/health reuse; deterministic pre-retirement denial with zero allocation/retirement; one smallest-scope post-retirement replacement; target replacement retaining compatible output-owner identities; typed recycle/free or managed-detach followed by fresh current/nonterminal recheck; PreparedTarget install-or-cleanup arbitration; Native-disable-to-complete-Framework-install sequence; quiescent convergence; no registry, rollback, predictive accounting, or second topology. |
 | `H-PS` | Cross each `PacingOwner` calculation and production/storage fact with lifecycle, current policy/candidate/wake identity, topology, slot and terminal state. Assert that only `SessionController` commits source exchange/materialization, phase/grant/wake action, attempt disposition, cache-role command, every counter/accumulator update, and authoritative Stats snapshot; superseded calculations change none. Exact calculation and storage mechanics are exercised through `DEL-PACE-*` and `STORE-*`. |
-| `H-DL` | Cross every scheduler/dispatch/entry/callback/convergence fact with controller admission, registration generation, prior disposition and terminal cutoff. Assert one controller classification/counter/shared-unsubscribe commit, no helper-owned result, and no late revision; shutdown waits for in-call dispatch and every retained/later-armable accepted-callback wake before the one orderly request; physical record/lease mechanics remain `DEL-HO-*`. |
-| `H-OS` | Controller consumption uses the generic settlement lock/order and currentness rules; complete-before-signal, `Submitting`, Future publication/cancel, Fired/dequeue, rejection, terminal transfer, orderly shutdown, `terminated()` receipt, and late-return rows cannot duplicate controller authority or revise terminal/public results. Domain-specific operation mechanics stay in their owning leaves. |
+| `H-DL` | Cross every scheduler/Delivery-submission/entry/callback/convergence fact with controller admission, registration generation, prior disposition and terminal cutoff. Assert one controller classification/counter/shared-unsubscribe commit, no helper-owned result, and no late revision; Delivery shutdown waits for each exact ticket side and its `terminated()` receipt; physical record/lease mechanics remain `DEL-HO-*`. |
+| `H-OS` | Controller consumption uses the generic settlement lock/order and currentness rules; every deadline/pacing/repeat/Stats link covers fire-before-Future, wake-body return/throw, terminal while Submitting, cancel true/false/throw, exact outer-removal true/false/throw, stale generation, scheduler termination, operational successor settlement, and separate physical outer-frame residue. Suppressed `g` may authorize `g+1` after all required publications even when removal fails; the stale wrapper's first CAS then loses with zero further engine access, while old return/nonreturn changes only worker/cleanup/termination evidence. Typed Control wrappers retain the unchanged single- and double-hook `Error`/custom-Throwable paths, one fatal fact/poison, identical rethrow identity, and no fabricated receipt. Late rows cannot duplicate controller authority or revise terminal/public results. Domain-specific mechanics stay in their owning leaves. |
 | `H-GM` | Checked `gcd`/`ceilDiv` planner arithmetic, rotation-aware required axes, `Tw,Th`, every closed Full/Downscaled eligibility branch, and per-axis deterministic capability denial feed the controller decision before retirement; denial performs zero target/output allocation and no fallback. |
 | `H-OB` | Controller-authoritative accumulators and State/Stats values, coherent construction snapshots, Native-disable/GL-poison Reconfiguring commits, terminal order, exact diagnostic sequence reservation/exhaustion, and emission noncontrol. `ObservationOwner` construction/assignment/`tryEmit` is `DEL-OBS-*` and cannot reinterpret the snapshot or retain authority. |
 | `A-SES` | Installed facade observes main-safe start, wrong-state commands, update/stop linearization, public startup/terminal mappings, cached-first admission, and controller-committed shared unsubscribe result without exposing internal authority. |
-| `A-CAP` | API-band source facts update only their owned combined-geometry fields; API 32–33 planning uses provider dimensions; API 34–37 provisional Full admits no frame and first valid resize drives exact retain-or-rebuild selection without a second geometry authority. |
-| `A-CL` plus owning suites | Terminal cutoff transfers exact intact occurrences; independent roots and another Session progress; scheduler termination releases its root, while nontermination retains only the exact scheduler/thread and dependent wake/`Submitting`/callback-deadline/deadline residue; late receipts reduce only matching cleanup/quarantine residue and cannot admit replacement or alter the winner. |
+| `A-CAP` | API-band source facts update only their owned combined-geometry fields; API 32–33 planning uses source dimensions; API 34–37 provisional Full admits no frame and first valid resize drives exact retain-or-rebuild selection without a second geometry authority. |
+| `A-CL` plus owning suites | Terminal cutoff transfers exact intact occurrences; independent roots and another Session progress; every non-Control lane receipt and external late dependency reaches healthy receive-only Control before its final turn; external nonreturn retains the Control dependency; the Control hook cannot signal/resubmit/revise and releases only its own root inline. Poison/nontermination retains the exact thread/endpoint and dependent wake/ticket/`Submitting` residue; late receipts cannot admit replacement or alter the winner. |
 
 ### Required interleavings
 
@@ -454,7 +506,7 @@ The test rows reproduce both sides of these controller decision points:
 
 This leaf owns no numeric policy constant or test tolerance. Its material structural bound is one latest desired
 cell, one latest combined-geometry cell, and at most one reconciliation occurrence. Delivery/observation
-physical cardinalities and cadence values live with `DEL-*`; generic deadline-wake mechanics live with
+physical cardinalities and cadence values live with `DEL-*`; generic one-shot Control-wake mechanics live with
 `CORE-WAKE-2`. `CTRL-040` additionally fixes one Session scheduler worker, zero periodic tasks, one orderly
 shutdown, zero `shutdownNow()`, and no shutdown watchdog. The five private safety intervals live with their
 boundary domains.
@@ -463,9 +515,9 @@ boundary domains.
 
 - [SystemClock elapsed realtime](https://developer.android.com/reference/android/os/SystemClock) — the engine's
   monotonic interval source.
-- [CoroutineDispatcher](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-dispatcher/)
-  and [coroutine dispatchers](https://kotlinlang.org/docs/coroutine-context-and-dispatchers.html) — non-owned
-  controller dispatch service and dispatch semantics.
+- Java 17 [`ScheduledThreadPoolExecutor`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ScheduledThreadPoolExecutor.html)
+  and [`ThreadPoolExecutor`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html)
+  — Control task wrapping, orderly shutdown, and termination hooks.
 - [StateFlow](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-state-flow/)
   — whole-value observation and permitted equality conflation.
 - [cancellation](https://kotlinlang.org/docs/cancellation-and-timeouts.html) — waiter cancellation semantics.

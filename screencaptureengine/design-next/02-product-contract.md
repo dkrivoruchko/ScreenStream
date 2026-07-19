@@ -74,7 +74,7 @@ public interface FrameSubscription {
 ```
 
 `create` returns a fresh identity-based one-shot Session. It normally retains `context.applicationContext`; an
-explicit built-in metrics provider may retain the documented display association. Merely accessing or collecting
+explicit built-in metrics source may retain the documented display association. Merely accessing or collecting
 the three Flows does not start capture.
 
 At creation, State is `NotStarted`, every Stats/drop field is zero, and no platform/capture owner has started.
@@ -128,15 +128,26 @@ the same real result. Only successful unsubscribe return permits replacement reg
 
 ```kotlin
 public class ScreenCaptureConfig(
-    public val captureMetricsProvider: CaptureMetricsProvider? = null,
-    public val frameCallbackDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    public val captureMetricsSource: CaptureMetricsSource? = null,
     public val jpegBackendPolicy: JpegBackendPolicy = JpegBackendPolicy.Auto,
 )
 
 public enum class JpegBackendPolicy { Auto, FrameworkOnly }
 
-public fun interface CaptureMetricsProvider {
-    public fun observe(): Flow<CaptureMetrics?>
+public sealed interface CaptureMetricsSource
+
+public fun interface CaptureMetricsProvider : CaptureMetricsSource {
+    public fun subscribe(observer: CaptureMetricsObserver): CaptureMetricsSubscription
+}
+
+public interface CaptureMetricsObserver {
+    public fun onMetricsChanged(metrics: CaptureMetrics?): Unit
+    public fun onComplete(): Unit
+    public fun onFailure(cause: Throwable): Unit
+}
+
+public fun interface CaptureMetricsSubscription {
+    public fun close(): Unit
 }
 
 public class CaptureMetrics(
@@ -145,54 +156,61 @@ public class CaptureMetrics(
     public val densityDpi: Int,
 )
 
-public object CaptureMetricsProviders {
-    public fun fromDisplay(context: Context, display: Display): CaptureMetricsProvider
+public object CaptureMetricsSources {
+    public fun fromDisplay(context: Context, display: Display): CaptureMetricsSource
 }
 ```
 
-`CaptureMetrics` requires three positive values. A custom provider returns a cold Flow; null means that its
-currently associated geometry is unavailable. A throw from `observe()` is a getter failure. A nonnull returned
-Flow is collected; a throw during collection is a collection failure. A null Flow observed through Java/platform
-interop is unusable. A provider-origin `CancellationException` while collection remains active is a provider
-failure; cancellation caused by Session termination is mechanics cancellation. The engine performs no separate
-coldness probe.
+`CaptureMetrics` requires three positive values; null means that the selected source's currently associated
+geometry is unavailable. `CaptureMetricsSource` is closed to engine-defined source kinds. The public
+`CaptureMetricsProvider` direct subtype is deliberately externally implementable, so application providers are
+indirect implementations of the sealed source contract. `subscribe` establishes one explicit observation and
+returns its exact close handle. Observer calls may occur synchronously before `subscribe` returns and may arrive
+from arbitrary provider threads; their adoption, ordering, and closure are defined by
+[AND-MET-020](06-domain-android-capture-metrics.md#and-met-020--provider-observation-and-active-ordering).
 
 | Configuration | Contract |
 | --- | --- |
-| `captureMetricsProvider == null` | Create one Session-private built-in definition that follows `Display.DEFAULT_DISPLAY` through application `DisplayManager`. |
+| `captureMetricsSource == null` | Create one Session-private built-in source that follows `Display.DEFAULT_DISPLAY` through application `DisplayManager`. |
 | `fromDisplay(context, display)` | Return an immutable reusable built-in definition fixed to that exact logical `Display` object. A provably missing/invalid association at construction throws `IllegalArgumentException`; later loss emits null and the same exact association may recover. |
 | custom provider | Preserve that exact provider object and its Activity/window/dynamic-display/caller-lifecycle policy. |
-| `frameCallbackDispatcher` | Use it only to enter the application frame callback. It is caller-owned and never closed by the engine. Deliberately Unconfined/undispatched callback execution is unsupported. |
 | `jpegBackendPolicy == Auto` | Use Native when every documented capability check succeeds; otherwise Framework. Safely returned Native failure disables Native monotonically for later frames. |
 | `jpegBackendPolicy == FrameworkOnly` | Never attempt the platform Native compressor. |
 
-Every built-in `observe()` collection is independent, including direct, repeated, concurrent, and cross-Session
-collection of the same reusable definition. The `Display` is metrics authority, not capture-source selection;
-the caller is responsible for matching it to projection consent.
+Every engine attachment to a built-in source is independent, including repeated, concurrent, and cross-Session
+use of the same reusable source. The `Display` is metrics authority, not capture-source selection; the caller is
+responsible for matching it to projection consent.
 
 | API | Width/height authority | Density authority |
 | --- | --- | --- |
-| 24–33 | selected provider | selected provider |
-| 34–37 before first valid projection resize | provider values are provisional; frame admission remains closed | selected provider |
-| 34–37 after first valid projection resize | latest projection resize | latest selected-provider density |
+| 24–33 | selected source | selected source |
+| 34–37 before first valid projection resize | source values are provisional; frame admission remains closed | selected source |
+| 34–37 after first valid projection resize | latest projection resize | latest selected-source density |
 
 On API 34–37, startup cannot produce a frame from provisional dimensions. Missing the initial authoritative
 resize becomes startup `CaptureUnavailable`. Visibility remains null on API 24–33; on API 34–37 it becomes the
 latest projection `onCapturedContentVisibilityChanged` value and is informational only.
 
-Provider outcomes are closed:
+Metrics-source outcomes are closed:
 
 | Outcome | Visible result |
 | --- | --- |
-| completion before a valid value, or expiry of first-value readiness | startup `Failed(CaptureUnavailable)` and matching start exception |
-| getter/unusable-Flow/collection failure before first valid value | startup `Failed(InternalFailure)` and matching start exception |
+| normal completion before joint readiness, including after a timely valid value but before handle adoption | startup `Failed(CaptureUnavailable)` and matching start exception; no completion diagnostic |
+| no joint readiness before expiry | startup `Failed(CaptureUnavailable)` and matching start exception |
+| subscribe `Exception`, invalid returned handle, or reported provider failure before joint readiness | startup `Failed(InternalFailure)` and matching start exception; subscribe `Exception`/invalid handle is authoritative over staged callbacks while readiness remains unresolved |
 | loss of required metrics after a valid value but before first Active | startup `Failed(CaptureUnavailable)` and matching start exception |
-| normal completion after a valid value | retain the last valid metrics and attempt the `MetricsProvider`/`CapabilityCheck` completion diagnostic with null cause defined by [AND-MET-021](06-domain-android-capture-metrics.md#and-met-021--provider-mechanical-outcome-partition) |
-| collection failure after a valid value | terminal `Failed(InternalFailure)` |
+| normal completion after joint readiness, including before first Active | close ingress, retain the last valid metrics, allow startup to continue, and attempt exactly one normal observation-completion `MetricsProvider`/`CapabilityCheck` diagnostic with null cause for that observation lifetime |
+| subscribe failure or reported provider failure after a valid value | terminal `Failed(InternalFailure)` |
+| subscription-close `Exception` while the Session remains nonterminal | terminal `Failed(InternalFailure)` |
 | null/unusable runtime value after first Active | `Running(Suspended(CaptureUnavailable))`, retaining last committed geometry as historical observation |
 | later valid runtime value | reconcile and potentially resume Active |
 
 A positive tuple incompatible with the requested region/crop is `InvalidRequest`, not `CaptureUnavailable`.
+Joint readiness uses the first positive sample's elapsed `T < D`, but commits only when that tuple and the same
+attachment's normally returned nonnull exact handle coexist before prior loss, terminal, or expiry. Handle
+outcome/adoption is distinct from full attachment-ticket settlement. Pre-return callbacks are staging only;
+null return, throw, nonreturn, expiry, or Session terminal cannot be converted into success. A first post-valid
+availability loss before first Active remains startup `CaptureUnavailable` even if a later staged value is valid.
 
 ## PROD-030 — Capture parameters
 
@@ -357,23 +375,19 @@ callback returns; wrong-thread or post-return access throws `IllegalStateExcepti
 
 ## PROD-050 — Frame delivery, caching, and replacement
 
-At most one callback invocation is outstanding. Callback execution uses the configured dispatcher. A supported
-dispatcher eventually returns or throws from each `dispatch` invocation and eventually executes every normally
-accepted task. A normally accepted task that has not entered within 5,000 ms terminally fails the Session; an
-entered callback has no execution timeout. A dispatcher-call nonreturn is not timed: it can permanently occupy
-the one handoff and prevent replacement.
+At most one callback invocation or unresolved internal submission for that invocation is outstanding. The engine
+invokes the callback directly on the Session-owned Delivery lane; callback thread selection is not configurable.
+There is no callback entry or execution deadline. The internal `execute` call and callback entry/return are
+separate settlement sides: callback entry may win before `execute` returns or throws. Callback return immediately
+releases borrowed-frame authority and its encoded lease, but an unresolved submission keeps the handoff occupied;
+a new opportunity records `byConsumerBusy`. Successful unsubscribe requires settlement of every required side.
 
-One delivery has separate dispatcher-call, trampoline-entry, and callback-return sides. Entry wins delivery
-classification. A later dispatcher return/throw cannot reclassify an entered callback or increment
-`byDispatchFailure`. Callback return immediately releases borrowed-frame authority and its encoded lease, but if
-the dispatch call is still unresolved the handoff remains occupied; a new opportunity records
-`byConsumerBusy`. Only settlement of every required side permits reuse or successful unsubscribe.
-
-A dispatcher throw/rejection that commits before entry drops only that opportunity, increments
-`byDispatchFailure`, leaves registration active, and creates no retry queue. An entered callback throw that
-commits before terminal transfer increments `byCallbackFailure`, resolves its callback side, and leaves the
-registration active for later output. Results committed after terminal transfer change only cleanup residue and
-no public counter, diagnostic problem, or State.
+An entered callback `Exception` increments `byCallbackFailure`, resolves its callback side, attempts one
+`FrameConsumer`/`DeliveryProblem` diagnostic, and leaves the registration active for later output. A callback
+`Error` or other direct non-`Exception` throwable follows the identity-preserving fatal policy in
+[CORE-FATAL-1](03-shared-runtime.md#core-fatal-1--direct-fatal-throwable-policy) and is never a delivery drop.
+Internal Delivery-lane submission failure is a Session failure, not a delivery drop. Results committed after
+terminal transfer change only cleanup residue and no public counter, diagnostic problem, or State.
 
 After successful registration, the current valid cached JPEG is offered immediately when available. It preserves
 the original bytes, sequence, timestamp, and image size; it performs no capture/encode/copy, does not increment
@@ -458,8 +472,8 @@ acceleration for later work. Any
 ownership-ambiguous or unsafe result is terminal `InternalFailure`, including when stale.
 
 During the sole `createVirtualDisplay` attempt, null or `SecurityException` is `CaptureUnavailable`; a directly
-thrown `OutOfMemoryError` is `ResourceExhausted`; `IllegalStateException` or any other unexpected throwable is
-`InternalFailure`.
+thrown `OutOfMemoryError` is `ResourceExhausted`; `IllegalStateException` or another unexpected `Exception` is
+`InternalFailure`. A direct non-`Exception` throwable follows `CORE-FATAL-1`.
 
 Terminal State ends capture authority and all new work, but is not a physical-cleanup receipt. Cleanup may
 continue or retain unresolved resources until process death; the public API exposes no cleanup-completion handle.
@@ -491,18 +505,17 @@ public class ScreenCaptureFrameDropStats internal constructor(
 
 public class ScreenCaptureDeliveryDropStats internal constructor(
     public val byConsumerBusy: Long,
-    public val byDispatchFailure: Long,
     public val byCallbackFailure: Long,
 ) {
     public val total: Long
-        get() = saturatingSum(byConsumerBusy, byDispatchFailure, byCallbackFailure)
+        get() = saturatingSum(byConsumerBusy, byCallbackFailure)
 }
 ```
 
 All fields start at zero. Counters and totals saturate at `Long.MAX_VALUE`. `droppedFrames.total` is the
 saturating sum of `byRateLimit + byPipelineBusy + byStaleWork + byFailure`;
 `droppedDeliveries.total` is the saturating sum of
-`byConsumerBusy + byDispatchFailure + byCallbackFailure`. Each total is derived from its components, never an
+`byConsumerBusy + byCallbackFailure`. Each total is derived from its components, never an
 independently updated counter. `framesEncoded` counts mechanically successful fresh JPEG encodes, including a
 result later suppressed as stale. `framesProduced` counts fresh and repeat output commits whether or not a
 consumer exists; cached-first delivery counts neither.
@@ -513,8 +526,8 @@ failure is `byFailure` even if its work identity became stale; `byStaleWork` is 
 work suppressed solely by stale identity. Terminal retirement of unclassified/unpublished/transferred work adds
 no frame-drop count.
 
-`byConsumerBusy`, `byDispatchFailure`, and `byCallbackFailure` retain the exact delivery meanings in `PROD-050`.
-Engine scheduling rejection is an internal Session failure, not a dispatch drop.
+`byConsumerBusy` and `byCallbackFailure` retain the exact delivery meanings in `PROD-050`.
+Engine scheduling rejection is an internal Session failure, not a delivery drop.
 Producing output while no consumer is registered is not a delivery drop.
 
 Encode/readback means include only successful real operations; repeat contributes no sample. Each eligible
@@ -565,10 +578,10 @@ Allowed sources are exactly `Session`, `MetricsProvider`, `MediaProjection`, `Vi
 
 | Label | Allowed source and required observation |
 | --- | --- |
-| `CapabilityCheck` | Applicable boundary source for each top-level capability selection or failure. |
+| `CapabilityCheck` | Applicable boundary source for each top-level capability selection or failure; message names boundary, decision, and action and carries the exact raw cause when present. Additionally, exactly one normal post-readiness `MetricsProvider` observation-completion event per observation lifetime names the retained-last-valid action and has null cause. Pre-readiness completion, failure, and duplicate terminal delivery create no completion event. |
 | `RuntimeProfile` | `Session`, once for initial Running modes. |
 | `RuntimeModeChanged` | `SurfaceTarget`, `FrameworkJpeg`, or `NativeJpeg` for an actual mode change/fallback. |
-| `DeliveryProblem` | `FrameConsumer` for committed dispatcher/callback failure. |
+| `DeliveryProblem` | `FrameConsumer` for a committed callback `Exception`. |
 | `StatsProblem` | `Controller` for finite-value protection. Cause is null. |
 | `ColorAction` | `ColorPipeline` for initial/changed color classification and action. |
 | `QuarantineChanged` | `Cleanup` only when exact quarantine ownership actually changes. |
@@ -583,8 +596,9 @@ frame production require no event.
 Public API uses ordinary classes, never data classes. Parameters, parameter values, metrics, geometry,
 `ImageSize`, State, effective parameters, Stats, and drop vectors have manual structural equality/hash and a
 bounded `toString()` containing the class name and documented scalar/enum/value fields. It excludes buffers,
-bytes, callbacks, providers, dispatchers, and Throwable graphs. Config, provider, dispatcher, Session,
-subscription, frame lease, diagnostic event, and exception retain identity semantics unless stated otherwise.
+bytes, callbacks, sources, providers, observers, and Throwable graphs. Config, metrics source/provider/observer,
+metrics subscription, Session, frame subscription, frame lease, diagnostic event, and exception retain identity
+semantics unless stated otherwise.
 
 Only caller-input models have public constructors. Engine-produced geometry, output, State, Stats, diagnostics,
 frame, subscription, and exception values cannot be constructed by callers. Kotlin/JVM null checks retain normal
@@ -601,8 +615,7 @@ collection; Unconfined collection is unsupported where it creates reentry/livene
 
 Private readiness and entered-operation boundaries are positive finite implementation policy, not public SLAs.
 They cannot change product classification, ownership, lifecycle priority, support, or runtime selection. The only
-fixed public timing values are the 5,000 ms accepted-callback entry deadline and the 1,000 ms ordinary Stats
-cadence.
+fixed public timing value is the 1,000 ms ordinary Stats cadence.
 
 ## PROD-100 — Explicit V1 boundaries
 

@@ -11,16 +11,21 @@ import android.opengl.GLES20
 import android.view.Surface
 import io.screenstream.engine.internal.jpeg.JpegRuntimeProduct
 import io.screenstream.engine.internal.jpeg.RgbaCarrierLease
+import io.screenstream.engine.internal.settlement.ControlWakeLink
 import io.screenstream.engine.internal.settlement.EngineClock
+import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationReturnCell
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
+import io.screenstream.engine.internal.settlement.PrivateExecutorOperation
+import io.screenstream.engine.internal.settlement.PrivateExecutorSubmissionResult
+import io.screenstream.engine.internal.settlement.PrivateExecutorStartupDisposition
+import io.screenstream.engine.internal.settlement.PrivateExecutorTerminationReceipt
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import io.screenstream.engine.internal.target.CurrentTarget
 import io.screenstream.engine.internal.target.PreparedTarget
 import io.screenstream.engine.internal.target.TargetPorts
 import io.screenstream.engine.internal.target.TargetRetirement
-import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -37,61 +42,53 @@ internal class GlPipelineOwner(
     internal interface OrderlyShutdownCommand
 
     internal interface SessionConstructionCommand {
+        val deadlineWakeLink: ControlWakeLink
+        val partialCleanupDeadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
         fun submitPartialCleanup(): Boolean
         fun claimPartialCleanup(): GlClaimedDestructionFacts?
-        fun submitRequestedPartialCleanupDeadlineWake(scheduler: ScheduledExecutorService): Boolean
-        fun performRequestedPartialCleanupDeadlineCancellation(): Boolean
-        fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean
-        fun performRequestedDeadlineCancellation(): Boolean
         fun claim(): GlClaimedOperationFacts?
     }
 
     internal interface SurfaceReleaseCommand {
+        val deadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
-        fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean
-        fun performRequestedDeadlineCancellation(): Boolean
         fun claim(): TargetSurfaceReleaseClaim?
     }
 
     internal interface TargetConstructionCommand {
+        val deadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
-        fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean
-        fun performRequestedDeadlineCancellation(): Boolean
         fun retireAfterTargetArbitration()
     }
 
     internal interface RenderTargetConstructionCommand {
+        val deadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
-        fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean
-        fun performRequestedDeadlineCancellation(): Boolean
-        fun claim(): GlClaimedOperationFacts?
-        fun prepareCleanupDestruction(): DestructionCommand?
+        fun claim(): GlRenderTargetConstructionClaim?
+        fun commitInstallation(claim: GlRenderTargetConstructionClaim): GlRenderTargetOwner?
+        fun claimCleanupDestruction(claim: GlRenderTargetConstructionClaim): GlRenderTargetCleanupClaim?
     }
 
     internal interface FrameCommand {
+        val deadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
-        fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean
-        fun performRequestedDeadlineCancellation(): Boolean
         fun claim(): GlClaimedOperationFacts?
     }
 
     internal interface DestructionCommand {
+        val deadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
-        fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean
-        fun performRequestedDeadlineCancellation(): Boolean
         fun claim(): GlClaimedDestructionFacts?
     }
 
     internal interface TargetScopeDestructionCommand {
+        val deadlineWakeLink: ControlWakeLink
+        val namespaceDeadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
         fun claim(): GlClaimedDestructionFacts?
         fun submitNamespaceRetirement(): Boolean
         fun claimNamespaceRetirement(): GlClaimedDestructionFacts?
-        fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean
-        fun submitRequestedNamespaceDeadlineWake(scheduler: ScheduledExecutorService): Boolean
-        fun performRequestedDeadlineCancellation(): Boolean
-        fun performRequestedNamespaceDeadlineCancellation(): Boolean
     }
 
     internal val glGate: ReentrantLock = ReentrantLock(false)
@@ -108,6 +105,7 @@ internal class GlPipelineOwner(
     private val capabilityCandidate: GlCapabilityFacts = GlCapabilityFacts()
     private var stagedPrecision: GlFragmentPrecision? = null
     private val program: GlProgram = GlProgram(this)
+    private var programDestructionHandle: GlDestructionHandle? = null
     private val framePipeline: GlFramePipeline = GlFramePipeline(this)
     private val eglRuntime: GlEglRuntime = GlEglRuntime(this)
     private val claimArbitrator: GlClaimArbitrator = GlClaimArbitrator(this)
@@ -154,11 +152,22 @@ internal class GlPipelineOwner(
     internal val capabilityFacts: GlCapabilityFacts?
         get() = capabilities
 
-    internal val observedFatalError: Error?
-        get() = laneRuntime.observedFatalError
+    internal val observedFatal: Throwable?
+        get() = laneRuntime.observedFatal
 
-    internal val isExecutorTerminated: Boolean
-        get() = laneRuntime.isExecutorTerminated
+    internal val laneTerminationReceipt: PrivateExecutorTerminationReceipt?
+        get() = laneRuntime.terminationReceipt
+
+    internal val laneStartupState: PrivateExecutorStartupDisposition
+        get() = laneRuntime.startupState
+
+    internal val laneStartupFailure: Throwable?
+        get() = laneRuntime.startupFailure
+
+    internal fun prestartLane(): PrivateExecutorStartupDisposition = laneRuntime.prestart()
+
+    internal fun acceptsLaneTerminationReceipt(receipt: PrivateExecutorTerminationReceipt): Boolean =
+        laneRuntime.acceptsTerminationReceipt(receipt)
 
     private val orderlyShutdownCapability: GlOrderlyShutdownCapability = GlOrderlyShutdownCapability(this)
     internal val laneRuntime: GlLaneRuntime = GlLaneRuntime(glGate, settlementSignal, threadName)
@@ -168,11 +177,11 @@ internal class GlPipelineOwner(
             program.current != null || context != EGL14.EGL_NO_CONTEXT ||
             pbuffer != EGL14.EGL_NO_SURFACE || contextNamespaceTransferredTarget != null ||
             display != EGL14.EGL_NO_DISPLAY || config != null || program.hasOwnedNames ||
-            laneRuntime.observedFatalError != null
+            laneRuntime.observedFatal != null || laneRuntime.hasUnsettledOperation ||
+            laneRuntime.hasActiveTeardownLocked()
         ) {
             return@withLock null
         }
-        if (!laneRuntime.prepareShutdownLocked()) return@withLock null
         orderlyShutdownCapability
     }
 
@@ -184,55 +193,41 @@ internal class GlPipelineOwner(
                     program.current == null && context == EGL14.EGL_NO_CONTEXT &&
                     pbuffer == EGL14.EGL_NO_SURFACE && contextNamespaceTransferredTarget == null &&
                     display == EGL14.EGL_NO_DISPLAY && config == null && !program.hasOwnedNames &&
-                    laneRuntime.observedFatalError == null
+                    laneRuntime.observedFatal == null && !laneRuntime.hasUnsettledOperation &&
+                    !laneRuntime.hasActiveTeardownLocked()
         }
         if (!stillEligible) return false
         return laneRuntime.requestShutdown()
     }
 
-    private fun publishFatal(error: Error) = laneRuntime.publishFatal(error)
-
     internal fun checkFatalFence() = laneRuntime.checkFatal()
 
     internal fun checkFatalLocked() = laneRuntime.checkFatalLocked()
 
-    internal fun checkFatalForPrepared(ticket: GlLaneTicket) = laneRuntime.checkFatalForPrepared(ticket)
-
     internal fun signalSettlement() = settlementSignal.signal()
 
-    internal fun submit(ticket: GlLaneTicket, occurrence: OperationOccurrence<*>, runnable: Runnable): Boolean =
-        laneRuntime.submit(ticket, occurrence, runnable)
+    internal fun <R : OperationEvidence> endpointOperation(
+        occurrence: OperationOccurrence<R>,
+        runnable: Runnable,
+    ): PrivateExecutorOperation<R> = laneRuntime.operation(occurrence, runnable)
 
-    internal fun fatalBoundary(body: () -> Unit): Runnable = laneRuntime.fatalBoundary(body)
+    internal fun submit(
+        operation: PrivateExecutorOperation<*>,
+        teardownOwner: GlTeardownOwner? = null,
+    ): PrivateExecutorSubmissionResult = laneRuntime.submit(operation, teardownOwner)
+
+    internal fun releaseSettledOperation(operation: PrivateExecutorOperation<*>): Boolean =
+        laneRuntime.releaseSettledOperation(operation)
 
     internal inline fun <T> outward(block: () -> T): T = laneRuntime.outward(block)
 
     internal inline fun <T> outwardAdopt(adopt: (T) -> Unit, block: () -> T): T = laneRuntime.outwardAdopt(adopt, block)
 
-    internal fun enter(ticket: GlLaneTicket, occurrence: OperationOccurrence<*>): Boolean = laneRuntime.enter(ticket, occurrence)
+    internal fun claimTeardown(owner: GlTeardownOwner): Boolean = laneRuntime.claimTeardown(owner)
 
-    internal fun finishLaneReturn(ticket: GlLaneTicket, cleanupDependent: Boolean = false, signal: Boolean = true) =
-        laneRuntime.finishReturn(ticket, cleanupDependent, signal)
+    internal fun ownsTeardown(owner: GlTeardownOwner): Boolean = laneRuntime.ownsTeardown(owner)
 
-    internal fun reserveTeardown(ticket: GlLaneTicket, allowDormantRender: Boolean = false): Boolean =
-        laneRuntime.reserveTeardown(ticket, allowDormantRender)
-
-    internal fun issueTeardown(ticket: GlLaneTicket, allowDormantRender: Boolean = false): Boolean = laneRuntime.issueTeardown(ticket, allowDormantRender)
-
-    internal fun completeTeardownReservation(ticket: GlLaneTicket): Boolean = laneRuntime.completeTeardownReservation(ticket)
-
-    internal fun completeTeardownReservationLocked(ticket: GlLaneTicket): Boolean = laneRuntime.completeTeardownReservationLocked(ticket)
-
-    internal fun cancelUnusedTeardown(ticket: GlLaneTicket): Boolean = laneRuntime.cancelUnusedTeardown(ticket)
-
-    internal fun ownsTeardownReservation(ticket: GlLaneTicket): Boolean = laneRuntime.ownsTeardownReservation(ticket)
-
-    internal fun ownsTeardownReservationLocked(ticket: GlLaneTicket): Boolean = laneRuntime.ownsTeardownReservationLocked(ticket)
-
-    internal fun retireReturnedLane(ticket: GlLaneTicket) = laneRuntime.retireReturned(ticket)
-
-    internal fun retireMechanicallyCompleteLane(ticket: GlLaneTicket, occurrence: OperationOccurrence<*>, rejectionRetainsDependency: Boolean = false) =
-        laneRuntime.retireMechanicallyComplete(ticket, occurrence, rejectionRetainsDependency)
+    internal fun releaseTeardown(owner: GlTeardownOwner): Boolean = laneRuntime.releaseTeardown(owner)
 
     internal fun requireCurrent(evidence: GlOperationEvidence): Boolean = eglRuntime.requireCurrent(evidence)
 
@@ -272,9 +267,7 @@ internal class GlPipelineOwner(
         identity: GlFiniteOperationIdentity,
         partialCleanupIdentity: GlFiniteOperationIdentity,
     ): SessionConstructionCommand =
-        GlSessionConstructionHandle(this, identity, partialCleanupIdentity).also {
-            check(it.admitLane())
-        }
+        GlSessionConstructionHandle(this, identity, partialCleanupIdentity)
 
     internal fun constructSession(evidence: GlOperationEvidence): Boolean {
         if (!eglRuntime.construct(evidence)) return false
@@ -321,29 +314,20 @@ internal class GlPipelineOwner(
         return true
     }
 
-    internal fun prepareSurfaceRelease(target: CurrentTarget): SurfaceReleaseCommand? =
-        prepareSurfaceReleaseAccess(InstalledSurfaceReleaseAccess(target))
+    internal fun prepareSurfaceRelease(target: CurrentTarget): SurfaceReleaseCommand? {
+        checkFatalFence()
+        val operation = target.prepareSurfaceReleaseOperation() ?: return null
+        return GlSurfaceReleaseHandle(this, operation)
+    }
 
-    internal fun prepareCleanupSurfaceRelease(target: PreparedTarget): SurfaceReleaseCommand? =
-        prepareSurfaceReleaseAccess(CleanupSurfaceReleaseAccess(target))
-
-    private fun prepareSurfaceReleaseAccess(access: GlSurfaceReleaseAccess): SurfaceReleaseCommand? {
+    internal fun prepareCleanupSurfaceRelease(target: PreparedTarget): SurfaceReleaseCommand? {
         checkFatalFence()
-        val port = access.detachedPort() ?: return null
-        checkFatalFence()
-        val handle = GlSurfaceReleaseHandle(this, access, port)
-        if (!laneRuntime.issue(handle.laneTicket)) return null
-        checkFatalForPrepared(handle.laneTicket)
-        if (access.commitPort(port)) return handle
-        checkFatalFence()
-        laneRuntime.cancelWithoutExecutorCall(handle.laneTicket)
-        return null
+        val operation = target.prepareCleanupSurfaceReleaseOperation() ?: return null
+        return GlSurfaceReleaseHandle(this, operation)
     }
 
     internal fun prepareTargetConstruction(preparedTarget: PreparedTarget): TargetConstructionCommand =
-        GlTargetConstructionHandle(this, preparedTarget).also {
-            check(it.admitLane())
-        }
+        GlTargetConstructionHandle(this, preparedTarget)
 
     internal fun constructTarget(preparedTarget: PreparedTarget, localEvidence: GlOperationEvidence): Boolean {
         val plan = preparedTarget.plan
@@ -400,7 +384,7 @@ internal class GlPipelineOwner(
         ) {
             return null
         }
-        if (glGate.withLock { installedRenderTarget != null } || laneRuntime.observedFatalError != null) {
+        if (glGate.withLock { installedRenderTarget != null || contextRenderTarget != null } || laneRuntime.observedFatal != null) {
             return null
         }
         val candidate = GlRenderTargetOwnerImpl(renderGeneration, compatibilityFacts)
@@ -415,7 +399,7 @@ internal class GlPipelineOwner(
         )
         state.bindDestructionHandle(destructionHandle)
         val handle = GlRenderTargetConstructionHandle(this, identity, candidate, state)
-        return handle.takeIf { it.admitLane() }
+        return handle.takeIf { it.claimContextOwnership() }
     }
 
     internal fun constructRenderTarget(state: GlRenderTargetState, evidence: GlOperationEvidence): Boolean = glesGroup(evidence) {
@@ -473,25 +457,15 @@ internal class GlPipelineOwner(
             renderState = renderState,
             lease = lease,
         )
-        if (!handle.admitLane()) return null
-        handle.checkPreparedFatal()
         if (!lease.retainForOperation(product)) {
             checkFatalFence()
-            handle.abandonDetachedLane()
             return null
         }
-        try {
-            checkFatalFence()
-        } catch (error: Error) {
-            check(lease.releaseFromOperation())
-            handle.abandonDetachedLane()
-            throw error
-        }
+        checkFatalFence()
         if (!target.commitGlFramePort(targetPort)) {
             checkFatalFence()
             check(lease.releaseFromOperation())
             checkFatalFence()
-            handle.abandonDetachedLane()
             return null
         }
         return handle
@@ -513,19 +487,25 @@ internal class GlPipelineOwner(
         state.claimDestruction(this, installed = true)
     }
 
-    internal fun prepareProgramDestruction(identity: GlFiniteOperationIdentity): DestructionCommand? =
-        if (program.hasOwnedNames) {
-            GlDestructionHandle(
-                this,
-                identity,
-                GlDestructionAction.Program,
-                null,
-                null,
-                installedRenderTargetDestruction = false,
-            ).takeIf { it.admitLane() }
-        } else {
-            null
-        }
+    internal fun prepareProgramDestruction(identity: GlFiniteOperationIdentity): DestructionCommand? = glGate.withLock {
+        if (!program.hasOwnedNames) return@withLock null
+        val existing = programDestructionHandle
+        if (existing != null) return@withLock existing
+        GlDestructionHandle(
+            this,
+            identity,
+            GlDestructionAction.Program,
+            null,
+            null,
+            installedRenderTargetDestruction = false,
+        ).also { programDestructionHandle = it }
+    }
+
+    internal fun clearProgramDestruction(handle: GlDestructionHandle): Boolean = glGate.withLock {
+        if (programDestructionHandle !== handle || program.hasOwnedNames) return@withLock false
+        programDestructionHandle = null
+        true
+    }
 
     internal fun destroyProgram(evidence: GlDestructionEvidence): Boolean = program.destroy(evidence)
 
@@ -543,12 +523,12 @@ internal class GlPipelineOwner(
                 contextRenderTarget != null || program.hasOwnedNames || contextNamespaceTransferredTarget != null ||
                 display == EGL14.EGL_NO_DISPLAY || config == null || context == EGL14.EGL_NO_CONTEXT ||
                 pbuffer == EGL14.EGL_NO_SURFACE || contextUnbound || contextDestroyed ||
-                pbufferDestroyed || threadReleased || !handle.admitHealthyLaneLocked()
+                pbufferDestroyed || threadReleased
             ) {
-                return@withLock null
+                return@withLock false
             }
-            handle
-        }
+            handle.claimSessionTeardown()
+        }.let { claimed -> handle.takeIf { claimed } }
     }
 
     internal fun destroyRenderTarget(state: GlRenderTargetState, installed: Boolean, evidence: GlDestructionEvidence): Boolean {
@@ -578,8 +558,8 @@ internal class GlPipelineOwner(
         return deleted
     }
 
-    internal fun destroyHealthySession(ticket: GlLaneTicket, evidence: GlDestructionEvidence): Boolean {
-        val contextRetired = unbindAndDestroyContext(ticket, evidence)
+    internal fun destroyHealthySession(teardownOwner: GlTeardownOwner, evidence: GlDestructionEvidence): Boolean {
+        val contextRetired = unbindAndDestroyContext(teardownOwner, evidence)
         val suffixRetired = if (contextUnbound) {
             destroyPbufferAndReleaseThread()
         } else {
@@ -601,8 +581,7 @@ internal class GlPipelineOwner(
         namespaceIdentity: GlFiniteOperationIdentity,
     ): TargetScopeDestructionCommand? {
         val graph = target.prepareTargetScopeDestructionGraph(targetIdentity, namespaceIdentity) ?: return null
-        val handle = GlTargetScopeDestructionHandle(this, graph)
-        return handle.takeIf { it.admitLane() }
+        return GlTargetScopeDestructionHandle(this, graph)
     }
 
     internal fun prepareCleanupTargetScopeDestruction(
@@ -611,8 +590,7 @@ internal class GlPipelineOwner(
         namespaceIdentity: GlFiniteOperationIdentity,
     ): TargetScopeDestructionCommand? {
         val graph = target.prepareTargetScopeDestructionGraph(targetIdentity, namespaceIdentity) ?: return null
-        val handle = GlTargetScopeDestructionHandle(this, graph)
-        return handle.takeIf { it.admitLane() }
+        return GlTargetScopeDestructionHandle(this, graph)
     }
 
     internal fun consumeContextNamespaceLocked(graph: TargetRetirement.TargetScopeDestructionGraph): Boolean {
@@ -660,7 +638,8 @@ internal class GlPipelineOwner(
         return true
     }
 
-    internal fun unbindAndDestroyContext(ticket: GlLaneTicket, evidence: GlDestructionEvidence): Boolean = eglRuntime.unbindAndDestroyContext(ticket, evidence)
+    internal fun unbindAndDestroyContext(teardownOwner: GlTeardownOwner, evidence: GlDestructionEvidence): Boolean =
+        eglRuntime.unbindAndDestroyContext(teardownOwner, evidence)
 
     internal fun destroyPbufferAndReleaseThread(): Boolean = eglRuntime.destroyPbufferAndReleaseThread()
 

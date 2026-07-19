@@ -40,8 +40,9 @@ namespace {
         ResultChannel(JNIEnv *env, jobject resultBlock) noexcept {
             if (env == nullptr || resultBlock == nullptr) return;
             void *address = env->GetDirectBufferAddress(resultBlock);
+            if (env->ExceptionCheck() || address == nullptr) return;
             const jlong capacity = env->GetDirectBufferCapacity(resultBlock);
-            if (address == nullptr || capacity != kResultBlockByteCount || env->ExceptionCheck()) return;
+            if (env->ExceptionCheck() || capacity != kResultBlockByteCount) return;
             address_ = static_cast<std::uint8_t *>(address);
         }
 
@@ -116,10 +117,14 @@ namespace {
                 return;
             }
             void *address = env->GetDirectBufferAddress(pixels);
+            if (env->ExceptionCheck()) return;
+            if (address == nullptr) {
+                throwNew(env, "java/lang/IllegalArgumentException", "native carrier is not a positive direct range");
+                return;
+            }
             const jlong capacity = env->GetDirectBufferCapacity(pixels);
-            if (address == nullptr || capacity <= 0 ||
-                static_cast<std::uint64_t>(capacity) > std::numeric_limits<std::size_t>::max() ||
-                env->ExceptionCheck()) {
+            if (env->ExceptionCheck() || capacity <= 0 ||
+                static_cast<std::uint64_t>(capacity) > std::numeric_limits<std::size_t>::max()) {
                 if (!env->ExceptionCheck()) {
                     throwNew(env, "java/lang/IllegalArgumentException", "native carrier is not a positive direct range");
                 }
@@ -207,8 +212,12 @@ namespace {
             }
 
             void *pixelAddress = env->GetDirectBufferAddress(pixels);
+            if (env->ExceptionCheck() || pixelAddress == nullptr) {
+                result.complete(NativeStatus::InternalFailure, 0);
+                return;
+            }
             const jlong pixelCapacity = env->GetDirectBufferCapacity(pixels);
-            if (pixelAddress == nullptr || pixelCapacity != pixelByteCount || env->ExceptionCheck()) {
+            if (env->ExceptionCheck() || pixelCapacity != pixelByteCount) {
                 result.complete(NativeStatus::InternalFailure, 0);
                 return;
             }
@@ -232,6 +241,7 @@ namespace {
                 return;
             }
 
+            WriterCapsule capsule;
             NativeFrameDescriptor descriptor{};
             descriptor.bitmapInfo.width = static_cast<std::uint32_t>(width);
             descriptor.bitmapInfo.height = static_cast<std::uint32_t>(height);
@@ -242,8 +252,9 @@ namespace {
             descriptor.compressFormat = compressFormat;
             descriptor.quality = quality;
             descriptor.pixels = pixelAddress;
+            descriptor.writerFunction = &WriterCapsule::write;
+            descriptor.writerContext = &capsule;
 
-            WriterCapsule capsule;
             NativeStatus finalStatus = NativeStatus::InternalFailure;
             try {
                 const CompressionResult compression = screenstream::jpeg::compressFrame(descriptor, compressor, capsule);

@@ -7,8 +7,11 @@ import io.screenstream.engine.internal.settlement.OperationOwnerBag
 import io.screenstream.engine.internal.settlement.OperationReceipt
 import io.screenstream.engine.internal.settlement.OperationReturnCell
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
+import io.screenstream.engine.internal.settlement.PrivateExecutorOperation
+import io.screenstream.engine.internal.settlement.PrivateExecutorRuntime
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import java.nio.ByteBuffer
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -56,6 +59,7 @@ internal sealed class JpegRuntimeProduct(
 
 internal sealed class RgbaCarrier(
     internal val byteCount: Int,
+    private val topologyState: AtomicReference<JpegRuntimeTopologyState>,
 ) : OperationReturnedOwner {
     private enum class AttachmentState {
         Empty,
@@ -97,7 +101,11 @@ internal sealed class RgbaCarrier(
         return true
     }
 
-    internal fun install(product: JpegRuntimeProduct): Boolean = leaseGate.withLock {
+    internal fun install(
+        product: JpegRuntimeProduct,
+        expectedTopology: JpegRuntimeTopologySnapshot,
+    ): Boolean = leaseGate.withLock {
+        if (topologyState.get() !== expectedTopology) return@withLock false
         if (product.carrier !== this || attachment.state != AttachmentState.Ready || detached || retainedOperationLease != null) {
             return@withLock false
         }
@@ -108,26 +116,68 @@ internal sealed class RgbaCarrier(
         true
     }
 
-    internal fun rebindInstalledProductAndLease(
+    internal fun installTransition(
+        product: JpegRuntimeProduct,
+        claim: JpegRuntimeTransitionClaim,
+    ): Boolean = leaseGate.withLock {
+        if (!claim.isCurrent()) return@withLock false
+        if (product.carrier !== this || attachment.state != AttachmentState.Ready || detached || retainedOperationLease != null) {
+            return@withLock false
+        }
+        if (installedProduct != null && installedProduct !== product) return@withLock false
+
+        installedProduct = product
+        admissionOpen = true
+        true
+    }
+
+    internal fun commitInstalledProductAndLeaseTransition(
+        claim: JpegRuntimeTransitionClaim,
         expectedProduct: JpegRuntimeProduct,
         replacementProduct: JpegRuntimeProduct,
         expectedLease: RgbaCarrierLease,
+        replacementLease: RgbaCarrierLease,
     ): Boolean = leaseGate.withLock {
-        if (!admissionOpen || expectedProduct.carrier !== this || replacementProduct.carrier !== this ||
+        if (!claim.isCurrent() || !admissionOpen || expectedProduct.carrier !== this ||
+            replacementProduct.carrier !== this ||
             installedProduct !== expectedProduct || attachedLease !== expectedLease || detached ||
             retainedOperationLease != null || enteredUses != 0 ||
-            !expectedLease.rebindAttachedProductLocked(expectedProduct, replacementProduct)
+            !expectedLease.canRetireAttachedLocked(expectedProduct) ||
+            !replacementLease.canAttachLocked(replacementProduct)
         ) {
             return@withLock false
         }
 
+        expectedLease.commitRetiredLocked()
+        replacementLease.commitAttachedLocked(replacementProduct, claim.committed)
         installedProduct = replacementProduct
+        attachedLease = replacementLease
         true
     }
 
-    internal fun acquireLease(expectedProduct: JpegRuntimeProduct, candidate: RgbaCarrierLease): Boolean = leaseGate.withLock {
-        if (!admissionOpen || detached || installedProduct !== expectedProduct || candidate.carrier !== this ||
-            attachedLease != null || !candidate.attachLocked(expectedProduct)
+    internal fun retirePreparedTransition(
+        transitionProduct: JpegRuntimeProduct,
+        transitionLease: RgbaCarrierLease,
+    ): Boolean = leaseGate.withLock {
+        if (transitionProduct.carrier !== this || attachedLease === transitionLease ||
+            !transitionLease.canAttachLocked(transitionProduct)
+        ) {
+            return@withLock false
+        }
+
+        transitionLease.commitRetiredLocked()
+        true
+    }
+
+    internal fun acquireLease(
+        expectedTopology: JpegRuntimeTopologySnapshot,
+        installedTopology: JpegRuntimeTopologySnapshot,
+        expectedProduct: JpegRuntimeProduct,
+        candidate: RgbaCarrierLease,
+    ): Boolean = leaseGate.withLock {
+        if (topologyState.get() !== expectedTopology || !admissionOpen || detached ||
+            installedProduct !== expectedProduct ||
+            candidate.carrier !== this || attachedLease != null || !candidate.attachLocked(expectedProduct, installedTopology)
         ) {
             return@withLock false
         }
@@ -135,6 +185,9 @@ internal sealed class RgbaCarrier(
         attachedLease = candidate
         true
     }
+
+    internal fun isCurrentTopology(expectedTopology: JpegRuntimeTopologySnapshot): Boolean =
+        topologyState.get() === expectedTopology
 
     internal fun releaseLease(lease: RgbaCarrierLease): Boolean = leaseGate.withLock {
         if (attachedLease !== lease || retainedOperationLease != null || enteredUses != 0 || !lease.releaseLocked()) {
@@ -147,7 +200,8 @@ internal sealed class RgbaCarrier(
 
     internal fun retainForOperation(expectedProduct: JpegRuntimeProduct, lease: RgbaCarrierLease): Boolean = leaseGate.withLock {
         if (!admissionOpen || detached || installedProduct !== expectedProduct || attachedLease !== lease ||
-            retainedOperationLease != null || !lease.matchesAttachedProductLocked(expectedProduct)
+            retainedOperationLease != null || !lease.matchesAttachedProductLocked(expectedProduct) ||
+            !lease.matchesCurrentTopologyLocked()
         ) {
             return@withLock false
         }
@@ -165,7 +219,9 @@ internal sealed class RgbaCarrier(
 
     internal fun enterUse(lease: RgbaCarrierLease): ByteBuffer? {
         val buffer = leaseGate.withLock {
-            if (!admissionOpen || detached || attachedLease !== lease || retainedOperationLease !== lease || !lease.isAttachedLocked()) {
+            if (!admissionOpen || detached || attachedLease !== lease || retainedOperationLease !== lease ||
+                !lease.isAttachedLocked() || !lease.matchesCurrentTopologyLocked()
+            ) {
                 return@withLock null
             }
 
@@ -197,15 +253,21 @@ internal sealed class RgbaCarrier(
         true
     }
 
-    internal fun closeAdmissionAndCheckDrained(expectedProduct: JpegRuntimeProduct): Boolean = leaseGate.withLock {
-        if (installedProduct !== expectedProduct || detached) return@withLock false
+    internal fun closeAdmissionAndCheckDrained(
+        expectedTopology: JpegRuntimeTopologySnapshot,
+        expectedProduct: JpegRuntimeProduct,
+    ): Boolean = leaseGate.withLock {
+        if (topologyState.get() !== expectedTopology || installedProduct !== expectedProduct || detached) return@withLock false
 
         admissionOpen = false
         attachedLease == null && retainedOperationLease == null && enteredUses == 0
     }
 
-    internal fun logicallyDetach(expectedProduct: JpegRuntimeProduct): Boolean = leaseGate.withLock {
-        if (this !is ManagedDirectCarrier || installedProduct !== expectedProduct || admissionOpen ||
+    internal fun logicallyDetach(
+        expectedTopology: JpegRuntimeTopologySnapshot,
+        expectedProduct: JpegRuntimeProduct,
+    ): Boolean = leaseGate.withLock {
+        if (topologyState.get() !== expectedTopology || this !is ManagedDirectCarrier || installedProduct !== expectedProduct || admissionOpen ||
             attachedLease != null || retainedOperationLease != null || enteredUses != 0 || detached
         ) {
             return@withLock false
@@ -217,8 +279,12 @@ internal sealed class RgbaCarrier(
         true
     }
 
-    internal fun freeCandidate(expectedProduct: JpegRuntimeProduct): ByteBuffer? = leaseGate.withLock {
-        if (installedProduct !== expectedProduct || admissionOpen || attachedLease != null || retainedOperationLease != null ||
+    internal fun freeCandidate(
+        expectedTopology: JpegRuntimeTopologySnapshot,
+        expectedProduct: JpegRuntimeProduct,
+    ): ByteBuffer? = leaseGate.withLock {
+        if (topologyState.get() !== expectedTopology || installedProduct !== expectedProduct || admissionOpen ||
+            attachedLease != null || retainedOperationLease != null ||
             enteredUses != 0 || detached || admittedFreeOccurrence != null
         ) {
             return@withLock null
@@ -264,11 +330,13 @@ internal sealed class RgbaCarrier(
     }
 
     internal fun admitInstalledFree(
+        expectedTopology: JpegRuntimeTopologySnapshot,
         expectedProduct: JpegRuntimeProduct,
         expectedBuffer: ByteBuffer,
         occurrence: NativeCarrierFreeOccurrence,
     ): Boolean = leaseGate.withLock {
-        if (installedProduct !== expectedProduct || attachment.buffer !== expectedBuffer || admissionOpen ||
+        if (topologyState.get() !== expectedTopology || installedProduct !== expectedProduct ||
+            attachment.buffer !== expectedBuffer || admissionOpen ||
             attachedLease != null || retainedOperationLease != null || enteredUses != 0 || detached ||
             admittedFreeOccurrence != null
         ) {
@@ -307,15 +375,27 @@ internal sealed class RgbaCarrier(
     }
 }
 
-internal class NativeMallocCarrier private constructor(byteCount: Int) : RgbaCarrier(byteCount) {
+internal class NativeMallocCarrier private constructor(
+    byteCount: Int,
+    topologyState: AtomicReference<JpegRuntimeTopologyState>,
+) : RgbaCarrier(byteCount, topologyState) {
     internal companion object {
-        internal fun create(byteCount: Int): NativeMallocCarrier = NativeMallocCarrier(byteCount)
+        internal fun create(
+            byteCount: Int,
+            topologyState: AtomicReference<JpegRuntimeTopologyState>,
+        ): NativeMallocCarrier = NativeMallocCarrier(byteCount, topologyState)
     }
 }
 
-internal class ManagedDirectCarrier private constructor(byteCount: Int) : RgbaCarrier(byteCount) {
+internal class ManagedDirectCarrier private constructor(
+    byteCount: Int,
+    topologyState: AtomicReference<JpegRuntimeTopologyState>,
+) : RgbaCarrier(byteCount, topologyState) {
     internal companion object {
-        internal fun create(byteCount: Int): ManagedDirectCarrier = ManagedDirectCarrier(byteCount)
+        internal fun create(
+            byteCount: Int,
+            topologyState: AtomicReference<JpegRuntimeTopologyState>,
+        ): ManagedDirectCarrier = ManagedDirectCarrier(byteCount, topologyState)
     }
 }
 
@@ -329,14 +409,19 @@ internal sealed class RgbaCarrierLease(carrier: RgbaCarrier) {
     private var state: LeaseState = LeaseState.Prepared
     private var product: JpegRuntimeProduct? = null
     private var carrierSlot: RgbaCarrier? = carrier
+    private var topologySlot: JpegRuntimeTopologySnapshot? = null
 
     internal val carrier: RgbaCarrier
         get() = checkNotNull(carrierSlot)
 
-    internal fun attachLocked(expectedProduct: JpegRuntimeProduct): Boolean {
+    internal fun attachLocked(
+        expectedProduct: JpegRuntimeProduct,
+        expectedTopology: JpegRuntimeTopologySnapshot,
+    ): Boolean {
         if (state != LeaseState.Prepared || expectedProduct.carrier !== carrier) return false
 
         product = expectedProduct
+        topologySlot = expectedTopology
         state = LeaseState.Attached
         return true
     }
@@ -346,13 +431,31 @@ internal sealed class RgbaCarrierLease(carrier: RgbaCarrier) {
     internal fun matchesAttachedProductLocked(expectedProduct: JpegRuntimeProduct): Boolean =
         state == LeaseState.Attached && product === expectedProduct
 
-    internal fun rebindAttachedProductLocked(expectedProduct: JpegRuntimeProduct, replacementProduct: JpegRuntimeProduct): Boolean {
-        if (state != LeaseState.Attached || product !== expectedProduct || replacementProduct.carrier !== carrier) {
-            return false
-        }
+    internal fun matchesCurrentTopologyLocked(): Boolean {
+        val topology = topologySlot ?: return false
+        return topology.product === product && topology.lease === this && carrier.isCurrentTopology(topology)
+    }
 
-        product = replacementProduct
-        return true
+    internal fun canAttachLocked(expectedProduct: JpegRuntimeProduct): Boolean =
+        state == LeaseState.Prepared && product == null && carrierSlot === expectedProduct.carrier
+
+    internal fun canRetireAttachedLocked(expectedProduct: JpegRuntimeProduct): Boolean =
+        state == LeaseState.Attached && product === expectedProduct && carrierSlot === expectedProduct.carrier
+
+    internal fun commitAttachedLocked(
+        expectedProduct: JpegRuntimeProduct,
+        expectedTopology: JpegRuntimeTopologySnapshot,
+    ) {
+        product = expectedProduct
+        topologySlot = expectedTopology
+        state = LeaseState.Attached
+    }
+
+    internal fun commitRetiredLocked() {
+        state = LeaseState.Released
+        product = null
+        carrierSlot = null
+        topologySlot = null
     }
 
     internal fun releaseLocked(): Boolean {
@@ -361,6 +464,7 @@ internal sealed class RgbaCarrierLease(carrier: RgbaCarrier) {
         state = LeaseState.Released
         product = null
         carrierSlot = null
+        topologySlot = null
         return true
     }
 
@@ -439,8 +543,9 @@ internal class NativeCarrierFreeOccurrence private constructor(
     internal val origin: NativeCarrierFreeOrigin,
     internal val operation: OperationOccurrence<NativeCarrierFreeEvidence>,
     internal val ownerBag: NativeCarrierFreeOwnerBag,
-    internal val ioOperation: JpegIoOperation<NativeCarrierFreeEvidence>,
-) {
+    override val executorOperation: PrivateExecutorOperation<NativeCarrierFreeEvidence>,
+) : JpegEndpointOccurrence {
+    override var endpointReleased: Boolean = false
     private var expectedProductSlot: JpegRuntimeProduct? = expectedProduct
 
     internal val expectedProduct: JpegRuntimeProduct
@@ -467,6 +572,7 @@ internal class NativeCarrierFreeOccurrence private constructor(
             operationIdentity: Long,
             clock: EngineClock,
             signal: SettlementSignal,
+            endpoint: PrivateExecutorRuntime,
             work: (NativeCarrierFreeOccurrence) -> Unit,
         ): NativeCarrierFreeOccurrence {
             val evidence = NativeCarrierFreeEvidence()
@@ -483,7 +589,7 @@ internal class NativeCarrierFreeOccurrence private constructor(
                 wakeSignal = identity?.let { signal },
             )
             lateinit var occurrence: NativeCarrierFreeOccurrence
-            val ioOperation = JpegIoOperation(operation, Runnable { work(occurrence) })
+            val executorOperation = endpoint.operation(operation, Runnable { work(occurrence) })
             occurrence = NativeCarrierFreeOccurrence(
                 desiredRevision = desiredRevision,
                 geometryGeneration = geometryGeneration,
@@ -492,7 +598,7 @@ internal class NativeCarrierFreeOccurrence private constructor(
                 origin = origin,
                 operation = operation,
                 ownerBag = bag,
-                ioOperation = ioOperation,
+                executorOperation = executorOperation,
             )
             return occurrence
         }

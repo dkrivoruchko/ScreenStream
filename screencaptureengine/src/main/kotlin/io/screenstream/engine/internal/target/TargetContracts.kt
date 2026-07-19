@@ -12,6 +12,19 @@ internal enum class PreparedTargetDisposition {
     CleanupClaimed,
 }
 
+internal enum class TargetConstructionAdmissionDisposition {
+    Active,
+    Terminal,
+}
+
+internal enum class TargetConstructionFoldDisposition {
+    Install,
+    CleanupFailure,
+    CleanupStale,
+    CleanupTerminal,
+    CleanupCollision,
+}
+
 internal enum class TargetMode {
     Full,
     Downscaled,
@@ -27,6 +40,16 @@ internal class TargetPlan(
         require(targetHeightPx > 0)
     }
 }
+
+internal class TargetCurrentnessSnapshot(
+    internal val target: CurrentTarget,
+    internal val generation: Long,
+    internal val plan: TargetPlan,
+    internal val listenerInstalled: Boolean,
+    internal val producerState: TargetProducerState,
+    internal val generationFenced: Boolean,
+    internal val version: Long,
+)
 
 internal enum class TargetProducerOperationKind {
     VirtualDisplayCreation,

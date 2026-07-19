@@ -12,9 +12,6 @@ internal class TargetOwner(
     private val targetGate: ReentrantLock = ReentrantLock(false)
     private val constructionProof: () -> Unit = {}
 
-    internal var currentTarget: CurrentTarget? = null
-        private set
-
     private var preparedTarget: PreparedTarget? = null
     private var lastTargetGeneration: Long = 0L
     private var constructionAdmissionOpen: Boolean = true
@@ -27,6 +24,7 @@ internal class TargetOwner(
         desiredRevision: Long,
         geometryGeneration: Long,
         lifecycleEpoch: Long,
+        reconciliationIdentity: Long,
         constructionIdentity: GlFiniteOperationIdentity,
         listenerInstallationOperationIdentity: Long,
         sourceSignal: TargetSourceSignal,
@@ -39,9 +37,11 @@ internal class TargetOwner(
         targetDestructionIdentity: GlFiniteOperationIdentity,
         namespaceDestructionIdentity: GlFiniteOperationIdentity,
     ): PreparedTarget? {
+        check(!sessionGate.isHeldByCurrentThread)
         require(desiredRevision > 0L)
         require(geometryGeneration > 0L)
         require(lifecycleEpoch > 0L)
+        require(reconciliationIdentity > 0L)
         require(listenerInstallationOperationIdentity > 0L)
         require(surfaceReleaseOperationIdentity > 0L)
         require(surfaceReleaseDeadlineIdentity > 0L)
@@ -50,7 +50,7 @@ internal class TargetOwner(
         require(namespaceDestructionIdentity.operationIdentity > 0L)
 
         val predecessorGeneration = sessionGate.withLock {
-            if (!constructionAdmissionOpen || currentTarget != null || preparedTarget != null || lastTargetGeneration == Long.MAX_VALUE) {
+            if (!constructionAdmissionOpen || preparedTarget != null || lastTargetGeneration == Long.MAX_VALUE) {
                 return null
             }
             lastTargetGeneration
@@ -67,6 +67,7 @@ internal class TargetOwner(
             desiredRevision = desiredRevision,
             geometryGeneration = geometryGeneration,
             lifecycleEpoch = lifecycleEpoch,
+            reconciliationIdentity = reconciliationIdentity,
             constructionIdentity = constructionIdentity,
             listenerInstallationOperationIdentity = listenerInstallationOperationIdentity,
             sourceSignal = sourceSignal,
@@ -86,10 +87,11 @@ internal class TargetOwner(
         currentDesiredRevision: Long,
         currentGeometryGeneration: Long,
         currentLifecycleEpoch: Long,
+        currentReconciliationIdentity: Long,
         currentPlan: TargetPlan,
     ): Boolean {
         check(sessionGate.isHeldByCurrentThread)
-        if (!constructionAdmissionOpen || currentTarget != null || preparedTarget != null) {
+        if (!constructionAdmissionOpen || preparedTarget != null) {
             return false
         }
 
@@ -100,6 +102,7 @@ internal class TargetOwner(
                     currentDesiredRevision = currentDesiredRevision,
                     currentGeometryGeneration = currentGeometryGeneration,
                     currentLifecycleEpoch = currentLifecycleEpoch,
+                    currentReconciliationIdentity = currentReconciliationIdentity,
                     currentPlan = currentPlan,
                 )
             ) {
@@ -113,37 +116,81 @@ internal class TargetOwner(
         }
     }
 
-    internal fun arbitratePreparedTarget(
+    internal fun claimPreparedTargetResultLocked(
         target: PreparedTarget,
         expectedConstructionOperationIdentity: Long,
         currentDesiredRevision: Long,
         currentGeometryGeneration: Long,
         currentLifecycleEpoch: Long,
+        currentReconciliationIdentity: Long,
         currentPlan: TargetPlan,
-    ): PreparedTargetDisposition = sessionGate.withLock {
-        if (preparedTarget !== target) return@withLock target.currentDisposition
-
-        target.constructionSettlementGate.withLock {
-            val installed = target.claimInstalledLocked(
+        admissionDisposition: TargetConstructionAdmissionDisposition,
+    ): TargetConstructionFoldToken? {
+        check(sessionGate.isHeldByCurrentThread)
+        if (preparedTarget !== target) return null
+        val effectiveAdmission = if (constructionAdmissionOpen) {
+            admissionDisposition
+        } else {
+            TargetConstructionAdmissionDisposition.Terminal
+        }
+        return target.constructionSettlementGate.withLock {
+            target.claimConstructionResultLocked(
                 expectedConstructionOperationIdentity = expectedConstructionOperationIdentity,
                 currentDesiredRevision = currentDesiredRevision,
                 currentGeometryGeneration = currentGeometryGeneration,
                 currentLifecycleEpoch = currentLifecycleEpoch,
+                currentReconciliationIdentity = currentReconciliationIdentity,
                 currentPlan = currentPlan,
+                admissionDisposition = effectiveAdmission,
             )
-            if (installed != null) {
-                check(currentTarget == null)
-                currentTarget = installed
-                preparedTarget = null
-                return@withLock PreparedTargetDisposition.Installed
-            }
-
-            val disposition = target.currentDisposition
-            if (disposition == PreparedTargetDisposition.CleanupClaimed) {
-                preparedTarget = target
-            }
-            disposition
         }
+    }
+
+    internal fun foldPreparedTargetResultLocked(
+        token: TargetConstructionFoldToken,
+        expectedConstructionOperationIdentity: Long,
+        currentDesiredRevision: Long,
+        currentGeometryGeneration: Long,
+        currentLifecycleEpoch: Long,
+        currentReconciliationIdentity: Long,
+        currentPlan: TargetPlan,
+        requestedDisposition: TargetConstructionFoldDisposition,
+    ): TargetConstructionFoldDisposition? {
+        check(sessionGate.isHeldByCurrentThread)
+        val target = token.preparedTarget
+        val exactPreparedTarget = preparedTarget === target &&
+                lastTargetGeneration == token.targetGeneration
+        val effectiveDisposition = when {
+            requestedDisposition == TargetConstructionFoldDisposition.CleanupTerminal -> requestedDisposition
+            !constructionAdmissionOpen -> TargetConstructionFoldDisposition.CleanupTerminal
+            !exactPreparedTarget -> TargetConstructionFoldDisposition.CleanupCollision
+            else -> requestedDisposition
+        }
+        val selected = target.constructionSettlementGate.withLock {
+            target.selectFoldLocked(
+                token = token,
+                expectedConstructionOperationIdentity = expectedConstructionOperationIdentity,
+                currentDesiredRevision = currentDesiredRevision,
+                currentGeometryGeneration = currentGeometryGeneration,
+                currentLifecycleEpoch = currentLifecycleEpoch,
+                currentReconciliationIdentity = currentReconciliationIdentity,
+                currentPlan = currentPlan,
+                requestedDisposition = effectiveDisposition,
+            )
+        } ?: return null
+        if (selected == TargetConstructionFoldDisposition.Install && exactPreparedTarget) {
+            preparedTarget = null
+        }
+        if (selected == TargetConstructionFoldDisposition.CleanupTerminal) {
+            constructionAdmissionOpen = false
+        }
+        return selected
+    }
+
+    internal fun applyPreparedTargetFold(token: TargetConstructionFoldToken): Boolean {
+        check(!sessionGate.isHeldByCurrentThread)
+        check(!token.preparedTarget.constructionSettlementGate.isHeldByCurrentThread)
+        return token.preparedTarget.applyFold(token)
     }
 
     internal fun closeConstructionAdmission(): Boolean = sessionGate.withLock {
@@ -151,17 +198,6 @@ internal class TargetOwner(
         constructionAdmissionOpen = false
         true
     }
-
-    internal fun claimPreparedTargetForTerminalCleanup(target: PreparedTarget): PreparedTargetDisposition =
-        sessionGate.withLock {
-            constructionAdmissionOpen = false
-            if (preparedTarget !== target) {
-                return@withLock target.currentDisposition
-            }
-            target.constructionSettlementGate.withLock {
-                target.claimTerminalCleanupLocked()
-            }
-        }
 
     internal fun clearMechanicallyCompletedPreparedTarget(target: PreparedTarget): Boolean {
         if (target.currentDisposition != PreparedTargetDisposition.CleanupClaimed || !target.isCleanupComplete()) {
@@ -174,29 +210,7 @@ internal class TargetOwner(
         }
     }
 
-    internal fun clearRetiredCurrentTarget(targetGeneration: Long): CurrentTarget? {
-        val target = sessionGate.withLock {
-            currentTarget?.takeIf { it.generation == targetGeneration }
-        } ?: return null
-        if (!target.isFullyRetired) return null
-        return sessionGate.withLock {
-            if (currentTarget !== target) return@withLock null
-            currentTarget = null
-            target
-        }
-    }
+    internal fun hasPendingSource(target: CurrentTarget): Boolean = target.hasPendingSource
 
-    internal fun hasPendingSource(targetGeneration: Long): Boolean {
-        val target = sessionGate.withLock {
-            currentTarget?.takeIf { it.generation == targetGeneration }
-        } ?: return false
-        return target.hasPendingSource
-    }
-
-    internal fun consumePendingSource(targetGeneration: Long): Boolean {
-        val target = sessionGate.withLock {
-            currentTarget?.takeIf { it.generation == targetGeneration }
-        } ?: return false
-        return target.consumePendingSource()
-    }
+    internal fun consumePendingSource(target: CurrentTarget): Boolean = target.consumePendingSource()
 }

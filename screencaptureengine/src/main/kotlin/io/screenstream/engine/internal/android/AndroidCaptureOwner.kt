@@ -5,13 +5,11 @@ import android.hardware.display.VirtualDisplay
 import android.media.projection.MediaProjection
 import android.os.Build
 import android.os.Handler
-import android.os.HandlerThread
-import android.os.Looper
+import io.screenstream.engine.internal.AndroidLaneQuitAction
 import io.screenstream.engine.internal.settlement.DeadlineOccurrence
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationDisposition
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
-import io.screenstream.engine.internal.settlement.OperationEntryResult
 import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationOwnerBag
@@ -34,19 +32,25 @@ import kotlin.concurrent.withLock
 
 internal class AndroidCaptureOwner(
     private val projection: MediaProjection,
-    private val sessionEpoch: Long,
+    private val projectionOwnerEpoch: Long,
     private val callbackIdentity: Long,
     private val clock: EngineClock,
     private val settlementSignal: SettlementSignal,
     private val factSink: AndroidCaptureFactSink,
 ) {
-    internal val startupCell: AndroidLaneStartupCell = AndroidLaneStartupCell()
-    internal val quitRequestCell: AndroidLaneQuitRequestCell = AndroidLaneQuitRequestCell()
-    internal val terminationCell: AndroidLaneTerminationCell = AndroidLaneTerminationCell()
+    internal val cleanupQuitAction: AndroidLaneQuitAction = AndroidLaneQuitAction(this)
+    internal val apiBand: AndroidCaptureApiBand = when (Build.VERSION.SDK_INT) {
+        in Build.VERSION_CODES.N..Build.VERSION_CODES.S -> AndroidCaptureApiBand.Api24To31
+        in Build.VERSION_CODES.S_V2..Build.VERSION_CODES.TIRAMISU -> AndroidCaptureApiBand.Api32To33
+        in Build.VERSION_CODES.UPSIDE_DOWN_CAKE..Build.VERSION_CODES.CINNAMON_BUN -> AndroidCaptureApiBand.Api34To37
+        else -> AndroidCaptureApiBand.Unsupported
+    }
 
-    private val laneStartRequested = AtomicBoolean(false)
+    private val laneRuntime = AndroidLaneRuntime(settlementSignal)
     private val callbackRegistrationOperation =
         AtomicReference<OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>?>(null)
+    private val callbackProvenance = AtomicReference<AndroidCallbackProvenance?>(null)
+    private val callbackSequence = java.util.concurrent.atomic.AtomicLong(0L)
     private val callbackRegistrationNoPlatformEntryProven = AtomicBoolean(false)
     private val callbackRegistrationReturned = AtomicBoolean(false)
     private val callbackRegistered = AtomicBoolean(false)
@@ -67,10 +71,12 @@ internal class AndroidCaptureOwner(
 
     private val projectionCallback: MediaProjection.Callback = object : MediaProjection.Callback() {
         override fun onCapturedContentResize(width: Int, height: Int) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || !callbackAuthorityOpen.get()) return
+            if (apiBand != AndroidCaptureApiBand.Api34To37 || !callbackAuthorityOpen.get()) return
+            val provenance = callbackProvenance.get() ?: return
+            val sequence = nextCallbackSequence() ?: return
             val fact = AndroidCaptureFact.CapturedContentResized(
-                sessionEpoch = sessionEpoch,
-                callbackIdentity = callbackIdentity,
+                provenance = provenance,
+                callbackSequence = sequence,
                 sampleNanos = clock.nowNanos(),
                 widthPx = width,
                 heightPx = height,
@@ -80,15 +86,17 @@ internal class AndroidCaptureOwner(
                 virtualDisplayCreationOperation.get() === operation && operation.returnCell.evidence.recordInitialResizeLocked(fact)
             } == true
             factSink.publish(fact)
-            if (recorded) settlementSignal.signal()
+            if (recorded) signalBestEffort()
         }
 
         override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || !callbackAuthorityOpen.get()) return
+            if (apiBand != AndroidCaptureApiBand.Api34To37 || !callbackAuthorityOpen.get()) return
+            val provenance = callbackProvenance.get() ?: return
+            val sequence = nextCallbackSequence() ?: return
             factSink.publish(
                 AndroidCaptureFact.CapturedContentVisibilityChanged(
-                    sessionEpoch = sessionEpoch,
-                    callbackIdentity = callbackIdentity,
+                    provenance = provenance,
+                    callbackSequence = sequence,
                     sampleNanos = clock.nowNanos(),
                     isVisible = isVisible,
                 ),
@@ -97,61 +105,48 @@ internal class AndroidCaptureOwner(
 
         override fun onStop() {
             if (!callbackAuthorityOpen.get()) return
+            val provenance = callbackProvenance.get() ?: return
+            val sequence = nextCallbackSequence() ?: return
             factSink.publish(
                 AndroidCaptureFact.CaptureEnded(
-                    sessionEpoch = sessionEpoch,
-                    callbackIdentity = callbackIdentity,
+                    provenance = provenance,
+                    callbackSequence = sequence,
                     sampleNanos = clock.nowNanos(),
                 ),
             )
         }
     }
 
-    private val handlerThread: HandlerThread = object : HandlerThread("ScreenCaptureEngine-Android") {
-        override fun onLooperPrepared() {
-            try {
-                val preparedLooper = checkNotNull(Looper.myLooper())
-                startupCell.publishReady(Handler(preparedLooper))
-            } catch (thrown: Throwable) {
-                startupCell.publishLooperFailure(thrown)
-                signalBestEffort()
-                throw thrown
-            }
-            settlementSignal.signal()
-        }
-
-        override fun run() {
-            try {
-                super.run()
-            } catch (thrown: Throwable) {
-                terminationCell.publishThreadReturn(thrown)
-                signalBestEffort()
-                throw thrown
-            }
-            terminationCell.publishThreadReturn(null)
-            signalBestEffort()
-        }
-    }
-
     init {
-        require(sessionEpoch > 0L)
+        require(projectionOwnerEpoch > 0L)
         require(callbackIdentity > 0L)
     }
 
     internal val isProjectionCallbackRegistered: Boolean
         get() = callbackRegistered.get()
 
-    internal fun startLane(): Boolean {
-        if (!laneStartRequested.compareAndSet(false, true)) return false
-        try {
-            handlerThread.start()
-        } catch (thrown: Throwable) {
-            startupCell.publishStartFailure(thrown)
-            signalBestEffort()
-            throw thrown
-        }
-        return true
-    }
+    internal val laneStartupResult: AndroidLaneStartupResult
+        get() = laneRuntime.startupResult
+
+    internal val observedLaneFatal: Throwable?
+        get() = laneRuntime.observedFatal
+
+    internal val observedOrdinaryLaneFailure: Exception?
+        get() = laneRuntime.observedOrdinaryLaneFailure
+
+    internal val hasLaneReturned: Boolean
+        get() = laneTerminationReceipt != null
+
+    internal val laneTerminationReceipt: AndroidLaneTerminationReceipt?
+        get() = laneRuntime.terminationReceipt
+
+    internal val laneReturnCause: Throwable?
+        get() = laneRuntime.threadReturnCause
+
+    internal val laneQuitOutcome: AndroidLaneQuitOutcome?
+        get() = laneRuntime.observedQuitOutcome
+
+    internal fun startLane(): Boolean = laneRuntime.start()
 
     internal fun createProjectionCallbackRegistrationOperation(
         identity: AndroidFiniteOperationIdentity,
@@ -161,7 +156,15 @@ internal class AndroidCaptureOwner(
             evidence = AndroidProjectionCallbackRegistrationEvidence(),
             ownerBag = AndroidProjectionCallbackRegistrationOwnerBag(projection, projectionCallback),
         )
-        return if (callbackRegistrationOperation.compareAndSet(null, operation)) operation else null
+        val provenance = AndroidCallbackProvenance(
+            owner = this,
+            projectionOwnerEpoch = projectionOwnerEpoch,
+            callbackRegistrationIdentity = operation.identity,
+            callbackIdentity = callbackIdentity,
+        )
+        if (!callbackRegistrationOperation.compareAndSet(null, operation)) return null
+        check(callbackProvenance.compareAndSet(null, provenance))
+        return operation
     }
 
     internal fun submitProjectionCallbackRegistration(
@@ -216,7 +219,7 @@ internal class AndroidCaptureOwner(
         require(heightPx > 0)
         require(densityDpi > 0)
         require(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if (apiBand == AndroidCaptureApiBand.Api34To37) {
                 initialResizeDeadlineIdentity != null
             } else {
                 initialResizeDeadlineIdentity == null
@@ -567,27 +570,19 @@ internal class AndroidCaptureOwner(
             }
             val sentinelAccepted = try {
                 handler.post(sentinel)
-            } catch (error: Error) {
-                try {
-                    operation.settlementGate.withLock {
-                        operation.returnCell.evidence.recordSentinelSubmissionLocked(
-                            AndroidListenerSentinelSubmissionDisposition.AmbiguousError,
-                            error,
-                        )
-                    }
-                } catch (_: Throwable) {
-                }
-                throw error
-            } catch (thrown: Throwable) {
+            } catch (raw: Throwable) {
                 val rejectionRecorded = operation.settlementGate.withLock {
                     operation.returnCell.evidence.recordSentinelSubmissionLocked(
-                        AndroidListenerSentinelSubmissionDisposition.Rejected,
-                        thrown,
+                        AndroidListenerSentinelSubmissionDisposition.AmbiguousThrowable,
+                        raw,
                     )
                 }
                 check(rejectionRecorded)
-                operation.publishThrownReturn(thrown)
-                return@submitToLane
+                if (raw is Exception) {
+                    operation.publishThrownReturn(raw)
+                    return@submitToLane
+                }
+                throw raw
             }
             if (!sentinelAccepted) {
                 val rejectionRecorded = operation.settlementGate.withLock {
@@ -769,10 +764,24 @@ internal class AndroidCaptureOwner(
     }
 
     internal fun requestLaneQuitSafely(): Boolean {
-        if (!projectionStopReturned.get() || !quitRequestCell.request()) return false
-        val requested = handlerThread.quitSafely()
-        settlementSignal.signal()
-        return requested
+        if (!projectionStopReturned.get()) return false
+        return laneRuntime.requestQuitSafely()
+    }
+
+    internal val isLaneQuitReady: Boolean
+        get() = projectionStopReturned.get()
+
+    private fun nextCallbackSequence(): Long? {
+        while (true) {
+            val current = callbackSequence.get()
+            if (current == Long.MAX_VALUE) {
+                closeProjectionCallbackAuthority()
+                signalBestEffort()
+                return null
+            }
+            val next = current + 1L
+            if (callbackSequence.compareAndSet(current, next)) return next
+        }
     }
 
     private fun isProjectionCallbackCleanupComplete(): Boolean {
@@ -908,8 +917,17 @@ internal class AndroidCaptureOwner(
         operation: OperationOccurrence<AndroidVirtualDisplayCreationEvidence>,
         thrown: Throwable,
     ): Boolean = operation.settlementGate.withLock {
+        if (operation.entryDisposition != OperationEntryDisposition.Entered) return@withLock false
         operation.returnCell.evidence.retireInitialResizeLocked()
-        operation.publishThrownReturn(thrown)
+        when (thrown) {
+            is Exception -> operation.publishThrownReturn(thrown)
+            is OutOfMemoryError -> {
+                check(operation.returnCell.evidence.directCreateOutOfMemoryError === thrown)
+                operation.returnCell.publishThrownLocked(clock.nowNanos(), thrown)
+            }
+
+            else -> operation.publishDirectFatalReturnLocked(thrown)
+        }
     }
 
     private fun matchesProducerFact(
@@ -939,77 +957,30 @@ internal class AndroidCaptureOwner(
         postRejectionMessage: String,
         publishNormalReturn: Boolean = true,
         onReturnedThrow: (Throwable) -> Unit = {},
-        onThrownSettlement: (Throwable) -> Boolean = operation::publishThrownReturn,
+        onThrownSettlement: (Exception) -> Boolean = operation::publishThrownReturn,
         call: (Handler) -> Unit,
     ): Boolean {
-        val ready = startupCell.current
-        val handler = (ready as? AndroidLaneStartupResult.Ready)?.handler
-        val laneNotReadyRejection = RejectedExecutionException("Android capture lane is not ready")
-        val postRejection = RejectedExecutionException(postRejectionMessage)
-        val runnable = handler?.let { readyHandler ->
-            Runnable {
+        val ticket = laneRuntime.ticket(
+            occurrence = operation,
+            postRejectionMessage = postRejectionMessage,
+            enteredWork = AndroidEnteredWork { handler ->
                 try {
-                    val entryResult = operation.tryEnter()
-                    settlementSignal.signal()
-                    if (entryResult != OperationEntryResult.Entered) return@Runnable
-
+                    call(handler)
+                    if (publishNormalReturn) operation.publishNormalReturn()
+                } catch (failure: Exception) {
+                    onReturnedThrow(failure)
+                    onThrownSettlement(failure)
+                } catch (raw: Throwable) {
                     try {
-                        call(readyHandler)
-                        if (publishNormalReturn) operation.publishNormalReturn()
-                    } catch (error: Error) {
-                        throw error
-                    } catch (thrown: Throwable) {
-                        onReturnedThrow(thrown)
-                        onThrownSettlement(thrown)
-                    }
-                    settlementSignal.signal()
-                } catch (error: Error) {
-                    try {
-                        onReturnedThrow(error)
+                        onReturnedThrow(raw)
                     } catch (_: Throwable) {
                     }
-                    try {
-                        onThrownSettlement(error)
-                    } catch (_: Throwable) {
-                    }
-                    signalBestEffort()
-                    throw error
+                    throw raw
                 }
-            }
-        }
-
-        if (!operation.beginSubmission()) return false
-        if (handler == null || runnable == null) {
-            val rejection = when (ready) {
-                is AndroidLaneStartupResult.Failed -> ready.cause
-                else -> laneNotReadyRejection
-            }
-            operation.publishSubmissionRejected(rejection)
-            settlementSignal.signal()
-            return false
-        }
-
-        val accepted = try {
-            handler.post(runnable)
-        } catch (error: Error) {
-            try {
-                operation.publishSubmissionAmbiguousError(error)
-            } catch (_: Throwable) {
-            }
-            signalBestEffort()
-            throw error
-        } catch (thrown: Throwable) {
-            operation.publishSubmissionRejected(thrown)
-            settlementSignal.signal()
-            return false
-        }
-        if (accepted) {
-            operation.publishSubmissionAccepted()
-        } else {
-            operation.publishSubmissionRejected(postRejection)
-        }
-        settlementSignal.signal()
-        return accepted
+                signalBestEffort()
+            },
+        )
+        return laneRuntime.post(ticket) == AndroidPostResult.Accepted
     }
 
     private fun signalBestEffort() {

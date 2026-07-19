@@ -1,6 +1,5 @@
 package io.screenstream.engine.internal.settlement
 
-import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -66,6 +65,7 @@ internal enum class OperationEntryResult {
 internal enum class OperationSubmissionRejectionResult {
     Active,
     Cleanup,
+    EntryWon,
     NotCurrent,
 }
 
@@ -156,6 +156,9 @@ internal class OperationOccurrence<R : OperationEvidence>(
 
     internal val deadlineOccurrence: DeadlineOccurrence?
 
+    internal val controlWakeLink: ControlWakeLink?
+        get() = deadlineOccurrence?.controlWakeLink
+
     internal var domain: OperationDomain = OperationDomain.Active
         private set
 
@@ -163,10 +166,10 @@ internal class OperationOccurrence<R : OperationEvidence>(
         OperationSubmissionDisposition.None
         private set
 
-    internal var submissionRejection: Throwable? = null
+    internal var submissionFailure: Exception? = null
         private set
 
-    internal var submissionAmbiguousError: Error? = null
+    internal var submissionAmbiguousFatal: Throwable? = null
         private set
 
     private var submissionExecutionObserved: Boolean = false
@@ -200,6 +203,11 @@ internal class OperationOccurrence<R : OperationEvidence>(
     }
 
     internal fun beginSubmission(): Boolean = settlementGate.withLock {
+        beginSubmissionLocked()
+    }
+
+    internal fun beginSubmissionLocked(): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
         val submissionAllowed = domain == OperationDomain.Active &&
                 disposition == OperationDisposition.Pending ||
                 domain == OperationDomain.Cleanup &&
@@ -210,47 +218,67 @@ internal class OperationOccurrence<R : OperationEvidence>(
             entryDisposition != OperationEntryDisposition.Unentered ||
             returnCell.disposition != OperationReturnDisposition.Empty
         ) {
-            return@withLock false
+            return false
         }
         submissionDisposition = OperationSubmissionDisposition.Submitting
-        true
+        return true
     }
 
     internal fun publishSubmissionAccepted(): Boolean = settlementGate.withLock {
-        if (submissionDisposition != OperationSubmissionDisposition.Submitting) return@withLock false
-        submissionDisposition = OperationSubmissionDisposition.Accepted
-        cancelSafelyUnenteredCleanupLocked()
-        true
+        publishSubmissionAcceptedLocked()
     }
 
-    internal fun publishSubmissionRejected(thrown: Throwable): OperationSubmissionRejectionResult =
+    internal fun publishSubmissionAcceptedLocked(): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (submissionDisposition != OperationSubmissionDisposition.Submitting) return false
+        submissionDisposition = OperationSubmissionDisposition.Accepted
+        cancelSafelyUnenteredCleanupLocked()
+        return true
+    }
+
+    internal fun publishSubmissionRejected(thrown: Exception): OperationSubmissionRejectionResult =
         settlementGate.withLock {
-            if (submissionDisposition != OperationSubmissionDisposition.Submitting) {
-                return@withLock OperationSubmissionRejectionResult.NotCurrent
-            }
-            submissionRejection = thrown
-            submissionDisposition = OperationSubmissionDisposition.Rejected
-            if (entryDisposition == OperationEntryDisposition.Unentered &&
-                returnCell.disposition == OperationReturnDisposition.Empty &&
-                domain == OperationDomain.Active &&
-                disposition == OperationDisposition.Pending
-            ) {
-                disposition = OperationDisposition.SchedulerRejected
-                OperationSubmissionRejectionResult.Active
-            } else {
-                cancelSafelyUnenteredCleanupLocked()
-                OperationSubmissionRejectionResult.Cleanup
-            }
+            publishSubmissionFailedLocked(thrown)
         }
 
-    internal fun publishSubmissionAmbiguousError(error: Error): Boolean = settlementGate.withLock {
-        if (submissionAmbiguousError != null ||
+    internal fun publishSubmissionFailed(thrown: Exception): OperationSubmissionRejectionResult =
+        settlementGate.withLock { publishSubmissionFailedLocked(thrown) }
+
+    internal fun publishSubmissionFailedLocked(thrown: Exception): OperationSubmissionRejectionResult {
+        check(settlementGate.isHeldByCurrentThread)
+        if (submissionDisposition != OperationSubmissionDisposition.Submitting) {
+            return OperationSubmissionRejectionResult.NotCurrent
+        }
+        submissionFailure = thrown
+        if (submissionExecutionObserved ||
+            entryDisposition == OperationEntryDisposition.Entered ||
+            returnCell.disposition != OperationReturnDisposition.Empty
+        ) {
+            submissionExecutionObserved = true
+            submissionDisposition = OperationSubmissionDisposition.Accepted
+            return OperationSubmissionRejectionResult.EntryWon
+        }
+        submissionDisposition = OperationSubmissionDisposition.Rejected
+        if (entryDisposition == OperationEntryDisposition.Unentered &&
+            domain == OperationDomain.Active &&
+            disposition == OperationDisposition.Pending
+        ) {
+            disposition = OperationDisposition.SchedulerRejected
+            return OperationSubmissionRejectionResult.Active
+        }
+        cancelSafelyUnenteredCleanupLocked()
+        return OperationSubmissionRejectionResult.Cleanup
+    }
+
+    internal fun publishSubmissionAmbiguousFatal(raw: Throwable): Boolean = settlementGate.withLock {
+        require(raw !is Exception)
+        if (submissionAmbiguousFatal != null ||
             submissionDisposition != OperationSubmissionDisposition.Submitting &&
             submissionDisposition != OperationSubmissionDisposition.Accepted
         ) {
             return@withLock false
         }
-        submissionAmbiguousError = error
+        submissionAmbiguousFatal = raw
         if (submissionExecutionObserved) {
             submissionDisposition = OperationSubmissionDisposition.Accepted
         }
@@ -258,7 +286,7 @@ internal class OperationOccurrence<R : OperationEvidence>(
     }
 
     internal fun resolveAmbiguousSubmissionAfterTermination(): Boolean = settlementGate.withLock {
-        if (submissionAmbiguousError == null ||
+        if (submissionAmbiguousFatal == null ||
             submissionExecutionObserved ||
             submissionDisposition != OperationSubmissionDisposition.Submitting ||
             entryDisposition != OperationEntryDisposition.Unentered ||
@@ -276,11 +304,16 @@ internal class OperationOccurrence<R : OperationEvidence>(
     }
 
     internal fun tryEnter(): OperationEntryResult = settlementGate.withLock {
+        tryEnterLocked()
+    }
+
+    internal fun tryEnterLocked(): OperationEntryResult {
+        check(settlementGate.isHeldByCurrentThread)
         if (submissionDisposition == OperationSubmissionDisposition.Submitting ||
             submissionDisposition == OperationSubmissionDisposition.Accepted
         ) {
             submissionExecutionObserved = true
-            if (submissionAmbiguousError != null) {
+            if (submissionAmbiguousFatal != null) {
                 submissionDisposition = OperationSubmissionDisposition.Accepted
             }
         }
@@ -292,17 +325,17 @@ internal class OperationOccurrence<R : OperationEvidence>(
             disposition != OperationDisposition.Pending &&
             disposition != OperationDisposition.Cleanup
         ) {
-            return@withLock OperationEntryResult.NotCurrent
+            return OperationEntryResult.NotCurrent
         }
 
         val deadline = deadlineOccurrence
         if (domain == OperationDomain.Active && deadline != null) {
             when (deadline.armLocked(clock.nowNanos())) {
                 DeadlineArmResult.Armed -> Unit
-                DeadlineArmResult.AlreadySettled -> return@withLock OperationEntryResult.NotCurrent
+                DeadlineArmResult.AlreadySettled -> return OperationEntryResult.NotCurrent
                 DeadlineArmResult.InvalidClockOrOverflow -> {
                     disposition = OperationDisposition.DeadlineGuardFailed
-                    return@withLock OperationEntryResult.InvalidDeadline
+                    return OperationEntryResult.InvalidDeadline
                 }
             }
         } else {
@@ -310,7 +343,7 @@ internal class OperationOccurrence<R : OperationEvidence>(
         }
 
         entryDisposition = OperationEntryDisposition.Entered
-        OperationEntryResult.Entered
+        return OperationEntryResult.Entered
     }
 
     internal fun publishNormalReturn(): Boolean = settlementGate.withLock {
@@ -318,30 +351,48 @@ internal class OperationOccurrence<R : OperationEvidence>(
         returnCell.publishNormalLocked(settlementSampleLocked())
     }
 
-    internal fun publishThrownReturn(thrown: Throwable): Boolean = settlementGate.withLock {
+    internal fun publishThrownReturn(thrown: Exception): Boolean = settlementGate.withLock {
         if (entryDisposition != OperationEntryDisposition.Entered) return@withLock false
         returnCell.publishThrownLocked(settlementSampleLocked(), thrown)
+    }
+
+    internal fun publishDirectFatalReturn(raw: Throwable): Boolean = settlementGate.withLock {
+        publishDirectFatalReturnLocked(raw)
+    }
+
+    internal fun publishDirectFatalReturnLocked(raw: Throwable): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        require(raw !is Exception)
+        if (entryDisposition != OperationEntryDisposition.Entered) return false
+        return returnCell.publishThrownLocked(settlementSampleLocked(), raw)
+    }
+
+    internal fun settleInertBeforeEntry(): Boolean = settlementGate.withLock {
+        settleInertBeforeEntryLocked()
+    }
+
+    internal fun settleInertBeforeEntryLocked(): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (entryDisposition != OperationEntryDisposition.Unentered ||
+            returnCell.disposition != OperationReturnDisposition.Empty
+        ) {
+            return false
+        }
+        entryDisposition = OperationEntryDisposition.Cancelled
+        deadlineOccurrence?.retireLocked()
+        if (disposition == OperationDisposition.Pending || disposition == OperationDisposition.Cleanup) {
+            disposition = OperationDisposition.Cancelled
+        }
+        return true
     }
 
     internal fun arbitrate(): OperationArbitration = settlementGate.withLock {
         arbitrateLocked()
     }
 
-    internal fun requestDeadlineWake(): Boolean = deadlineOccurrence?.wakeLink?.requestSubmission() ?: false
-
-    internal fun submitRequestedDeadlineWake(scheduler: ScheduledExecutorService): Boolean =
-        deadlineOccurrence?.wakeLink?.submitRequested(scheduler) ?: false
-
-    internal fun performRequestedDeadlineCancellation(): Boolean =
-        deadlineOccurrence?.wakeLink?.performRequestedCancellation() ?: false
-
     internal fun arbitrateTerminal(mandatoryCleanup: Boolean): OperationTerminalArbitration =
         settlementGate.withLock {
-            val fatalWakeFailure = deadlineOccurrence?.wakeLink?.let { wakeLink ->
-                wakeLink.submissionDisposition == DeadlineWakeSubmissionDisposition.Rejected &&
-                        wakeLink.schedulingThrowableDisposition == DeadlineWakeThrowableDisposition.FatalError
-            } == true
-            if (!fatalWakeFailure && returnCell.disposition != OperationReturnDisposition.Empty &&
+            if (returnCell.disposition != OperationReturnDisposition.Empty &&
                 returnCell.use == OperationReturnUse.Unclaimed
             ) {
                 val arbitration = terminalArbitration(arbitrateLocked())
@@ -391,22 +442,7 @@ internal class OperationOccurrence<R : OperationEvidence>(
 
     private fun arbitrateLocked(): OperationArbitration {
         val activeDeadline = deadlineOccurrence
-        if (domain == OperationDomain.Active && disposition == OperationDisposition.Pending &&
-            activeDeadline?.wakeLink?.submissionDisposition == DeadlineWakeSubmissionDisposition.Rejected
-        ) {
-            return when (activeDeadline.wakeLink.schedulingThrowableDisposition) {
-                DeadlineWakeThrowableDisposition.NonfatalException -> {
-                    activeDeadline.retireLocked()
-                    disposition = OperationDisposition.SchedulerRejected
-                    OperationArbitration.SchedulerRejected
-                }
-
-                DeadlineWakeThrowableDisposition.None,
-                DeadlineWakeThrowableDisposition.FatalError,
-                    -> OperationArbitration.None
-            }
-        }
-
+        val activeWake = activeDeadline?.controlWakeLink
         if (returnCell.disposition != OperationReturnDisposition.Empty && returnCell.use == OperationReturnUse.Unclaimed) {
             if (domain == OperationDomain.Cleanup || disposition != OperationDisposition.Pending) {
                 returnCell.claimCleanupLocked()
@@ -428,6 +464,22 @@ internal class OperationOccurrence<R : OperationEvidence>(
             disposition = OperationDisposition.Expired
             returnCell.claimCleanupLocked()
             return expiredReturnArbitration()
+        }
+
+        if (domain == OperationDomain.Active && disposition == OperationDisposition.Pending &&
+            activeWake?.submissionDisposition == ControlWakeSubmissionDisposition.Rejected
+        ) {
+            return when (activeWake.schedulingThrowableDisposition) {
+                ControlWakeThrowableDisposition.NonfatalException -> {
+                    checkNotNull(activeDeadline).retireLocked()
+                    disposition = OperationDisposition.SchedulerRejected
+                    OperationArbitration.SchedulerRejected
+                }
+
+                ControlWakeThrowableDisposition.None,
+                ControlWakeThrowableDisposition.FatalThrowable,
+                    -> OperationArbitration.None
+            }
         }
 
         if (domain != OperationDomain.Active || disposition != OperationDisposition.Pending) {

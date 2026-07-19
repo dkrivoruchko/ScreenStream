@@ -4,7 +4,6 @@ import io.screenstream.engine.internal.settlement.OperationArbitration
 import io.screenstream.engine.internal.settlement.OperationDisposition
 import io.screenstream.engine.internal.settlement.OperationDomain
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
-import io.screenstream.engine.internal.settlement.OperationEntryResult
 import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.OperationReturnUse
 import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
@@ -29,7 +28,17 @@ internal fun beginIncompatibleFrameworkRecycle(
         identity = identity,
         operationIdentity = identity.operationIdentity,
     )
-    owner.jpegRuntimeOwner.submitJpegIoOperation(occurrence.ioOperation)
+    if (!owner.reserveRecycle(occurrence)) return null
+    val handedOff = owner.jpegRuntimeOwner.submitJpegIoOperation(occurrence.executorOperation)
+    if (!handedOff && occurrence.operation.submissionDisposition == OperationSubmissionDisposition.None) {
+        val unwound = occurrence.operation.settlementGate.withLock {
+            if (occurrence.ownerBag.owner !== owner || !owner.ownsRecycle(occurrence)) return@withLock false
+            occurrence.ownerBag.owner = null
+            owner.clearRecycle(occurrence)
+        }
+        if (!unwound) throw FrameworkJpegOwner.BITMAP_RECYCLE_ADMISSION_UNWIND_FAILED
+        return null
+    }
     return occurrence
 }
 
@@ -55,7 +64,11 @@ internal fun beginTerminalFrameworkRecycle(
         return null
     }
 
-    owner.jpegRuntimeOwner.submitJpegIoOperation(occurrence.ioOperation)
+    if (!owner.reserveRecycle(occurrence)) return null
+    val handedOff = owner.jpegRuntimeOwner.submitJpegIoOperation(occurrence.executorOperation)
+    if (!handedOff && occurrence.operation.submissionDisposition == OperationSubmissionDisposition.None) {
+        return occurrence
+    }
     return occurrence
 }
 
@@ -63,9 +76,14 @@ internal fun settleFrameworkRecycle(
     owner: FrameworkJpegOwner,
     occurrence: FrameworkBitmapRecycleOccurrence,
 ): FrameworkBitmapRecycleSettlement {
+    if (!owner.jpegRuntimeOwner.releaseJpegIoOperation(occurrence)) {
+        return FrameworkBitmapRecycleSettlement.NotSettled
+    }
     val gate = occurrence.operation.settlementGate
     return gate.withLock {
-        if (occurrence.ownerBag.owner !== owner) return FrameworkBitmapRecycleSettlement.NotSettled
+        if (!owner.ownsRecycle(occurrence) || occurrence.ownerBag.owner !== owner) {
+            return FrameworkBitmapRecycleSettlement.NotSettled
+        }
         val arbitration = if (occurrence.operation.returnCell.use == OperationReturnUse.Unclaimed) {
             occurrence.operation.arbitrate()
         } else {
@@ -89,6 +107,7 @@ internal fun settleFrameworkRecycle(
         }
         if (!owner.clearRecycledReferences()) return@withLock FrameworkBitmapRecycleSettlement.UnsafeResidue
         occurrence.ownerBag.owner = null
+        check(owner.clearRecycle(occurrence))
         if (timely && occurrence.origin == FrameworkBitmapRecycleOrigin.IncompatibleReplacement) {
             FrameworkBitmapRecycleSettlement.ReplacementAuthorized
         } else {
@@ -101,15 +120,20 @@ internal fun settleFrameworkResourceCreationWithoutReturnedBitmap(
     occurrence: FrameworkResourceCreationOccurrence,
 ): Boolean {
     val gate = occurrence.operation.settlementGate
+    val runtimeOwner = gate.withLock { occurrence.ownerBag.candidateOwner?.jpegRuntimeOwner } ?: return false
+    if (!runtimeOwner.releaseJpegIoOperation(occurrence)) return false
     return gate.withLock {
         val candidate = occurrence.ownerBag.candidateOwner ?: return@withLock false
+        if (!candidate.ownsCreation(occurrence)) return@withLock false
         if (!candidate.hasNoBitmap() || occurrence.operation.returnCell.evidence.returnedOwner != null) {
             return@withLock false
         }
         if (occurrence.operation.returnCell.use == OperationReturnUse.Unclaimed) occurrence.operation.arbitrate()
         if (!creationWithoutReturnedBitmapSettledLocked(occurrence)) return@withLock false
 
-        occurrence.clearSettledReferencesLocked(candidate)
+        if (!occurrence.clearSettledReferencesLocked(candidate)) return@withLock false
+        check(candidate.clearCreation(occurrence))
+        true
     }
 }
 
@@ -150,20 +174,15 @@ private fun createFrameworkRecycleOccurrence(
     operationIdentity = operationIdentity,
     clock = clockOwner.clock,
     signal = clockOwner.jpegRuntimeOwner.jpegIoSettlementSignal,
+    endpoint = clockOwner.jpegRuntimeOwner.jpegExecutorEndpoint,
     work = ::executeFrameworkRecycle,
 )
 
 private fun executeFrameworkRecycle(
     occurrence: FrameworkBitmapRecycleOccurrence,
 ) {
-    val entryResult = occurrence.operation.tryEnter()
     val owner = occurrence.operation.settlementGate.withLock { occurrence.ownerBag.owner }
-    if (entryResult != OperationEntryResult.Entered) {
-        if (entryResult == OperationEntryResult.InvalidDeadline) owner?.jpegRuntimeOwner?.jpegIoSettlementSignal?.signal()
-        return
-    }
     if (owner == null) return
-    owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
 
     val bitmap = owner.bitmapForRecycle()
     if (bitmap == null) {
@@ -187,15 +206,7 @@ private fun executeFrameworkRecycle(
     if (published) owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
 }
 
-private fun publishRecycleFatalAndRethrow(occurrence: FrameworkBitmapRecycleOccurrence, owner: FrameworkJpegOwner, fatal: Error): Nothing {
-    try {
-        if (occurrence.operation.publishThrownReturn(fatal)) {
-            owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
-        }
-    } finally {
-        throw fatal
-    }
-}
+private fun publishRecycleFatalAndRethrow(occurrence: FrameworkBitmapRecycleOccurrence, owner: FrameworkJpegOwner, fatal: Error): Nothing = throw fatal
 
 private fun unenteredFrameworkRecycleFailureLocked(occurrence: FrameworkBitmapRecycleOccurrence): Boolean {
     val operation = occurrence.operation
@@ -214,9 +225,14 @@ private fun beginReturnedOwnerFrameworkRecycleCommon(
     identity: JpegFiniteOperationIdentity?,
     operationIdentity: Long,
 ): FrameworkBitmapRecycleOccurrence? {
+    val runtimeOwner = occurrence.operation.settlementGate.withLock {
+        occurrence.ownerBag.candidateOwner?.jpegRuntimeOwner
+    } ?: return null
+    if (!runtimeOwner.releaseJpegIoOperation(occurrence)) return null
     val sourceGate = occurrence.operation.settlementGate
     val owner = sourceGate.withLock {
         val candidate = occurrence.ownerBag.candidateOwner ?: return null
+        if (!candidate.ownsCreation(occurrence)) return null
         if (occurrence.operation.returnCell.use == OperationReturnUse.Unclaimed) occurrence.operation.arbitrate()
         if (occurrence.operation.returnCell.use == OperationReturnUse.Unclaimed ||
             occurrence.operation.returnCell.evidence.returnedOwner !== candidate || !candidate.ownsBitmapForCleanup()
@@ -241,6 +257,7 @@ private fun beginReturnedOwnerFrameworkRecycleCommon(
     ) {
         return null
     }
+    if (!owner.reserveCreationRecycle(occurrence, recycle)) return null
 
     val transferred = sourceGate.withLock {
         if (occurrence.ownerBag.candidateOwner !== owner ||
@@ -255,11 +272,18 @@ private fun beginReturnedOwnerFrameworkRecycleCommon(
             recycle.ownerBag.owner = null
             return@withLock false
         }
+        check(owner.clearCreation(occurrence))
         true
     }
-    if (!transferred) return null
+    if (!transferred) {
+        check(owner.clearRecycle(recycle))
+        return null
+    }
 
-    owner.jpegRuntimeOwner.submitJpegIoOperation(recycle.ioOperation)
+    val handedOff = owner.jpegRuntimeOwner.submitJpegIoOperation(recycle.executorOperation)
+    if (!handedOff && recycle.operation.submissionDisposition == OperationSubmissionDisposition.None) {
+        return recycle
+    }
     return recycle
 }
 

@@ -2,20 +2,10 @@ package io.screenstream.engine.internal.jpeg
 
 import android.graphics.Bitmap
 import android.os.Build
-import io.screenstream.engine.internal.settlement.OperationEntryResult
 import kotlin.concurrent.withLock
 
 internal fun executeResourceCreation(occurrence: FrameworkResourceCreationOccurrence) {
-    val entryResult = occurrence.operation.tryEnter()
-    if (entryResult != OperationEntryResult.Entered) {
-        if (entryResult == OperationEntryResult.InvalidDeadline) {
-            occurrence.ownerBag.candidateOwner?.jpegRuntimeOwner?.jpegIoSettlementSignal?.signal()
-        }
-        return
-    }
-
     val candidate = checkNotNull(occurrence.ownerBag.candidateOwner)
-    candidate.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
     val evidence = occurrence.operation.returnCell.evidence
     val bitmap = try {
         Bitmap.createBitmap(candidate.imageSize.widthPx, candidate.imageSize.heightPx, Bitmap.Config.ARGB_8888)
@@ -145,15 +135,26 @@ private fun publishCreationFailure(
     val evidence = occurrence.operation.returnCell.evidence
     evidence.result = result
     evidence.failureCause = failure
-    if (occurrence.operation.publishThrownReturn(failure)) {
+    val published = when (failure) {
+        is Exception -> occurrence.operation.publishThrownReturn(failure)
+        is OutOfMemoryError -> {
+            check(result == FrameworkResourceCreationResult.ResourceExhausted)
+            occurrence.operation.publishNormalReturn()
+        }
+
+        else -> {
+            occurrence.operation.publishDirectFatalReturn(failure)
+            throw failure
+        }
+    }
+    if (published) {
         occurrence.ownerBag.candidateOwner?.jpegRuntimeOwner?.jpegIoSettlementSignal?.signal()
     }
 }
 
 private fun publishCreationFatalAndRethrow(occurrence: FrameworkResourceCreationOccurrence, fatal: Error): Nothing {
-    try {
-        publishCreationFailure(occurrence, FrameworkResourceCreationResult.InternalFailure, fatal)
-    } finally {
-        throw fatal
+    if (occurrence.operation.publishDirectFatalReturn(fatal)) {
+        occurrence.ownerBag.candidateOwner?.jpegRuntimeOwner?.jpegIoSettlementSignal?.signal()
     }
+    throw fatal
 }

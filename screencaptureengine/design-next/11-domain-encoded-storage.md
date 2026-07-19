@@ -43,7 +43,7 @@ Storage declares the nested `NativeSegmentSink` and its private
 `adoptNativeSegment(ByteBuffer, Int): Unit` method. `NJPEG-001` and `NJPEG-050` alone own its frozen JNI binary
 target/descriptor, registration, call ordering, and keep boundary. Storage does not own `NativeJpegProcess`,
 the call-scoped native capsule/segments, carrier leases, Bitmap transfer, controller currentness, pacing,
-dispatcher handoff, or the public frame wrapper.
+Delivery handoff, or the public frame wrapper.
 
 ## STORE-010 — Typed boundary
 
