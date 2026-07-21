@@ -17,6 +17,18 @@ import io.screenstream.engine.internal.target.TargetProducerEvidence
 
 internal const val initialCapturedResizeReadinessNanos: Long = 5_000_000_000L
 
+internal data class AndroidVirtualDisplayLogicalTuple(
+    internal val widthPx: Int,
+    internal val heightPx: Int,
+    internal val densityDpi: Int,
+) {
+    init {
+        require(widthPx > 0)
+        require(heightPx > 0)
+        require(densityDpi > 0)
+    }
+}
+
 internal object AndroidVirtualDisplayCreationReceipt : OperationReceipt
 
 internal enum class AndroidVirtualDisplayReturnedOwnerDisposition {
@@ -28,6 +40,10 @@ internal enum class AndroidVirtualDisplayReturnedOwnerDisposition {
 
 internal sealed interface AndroidVirtualDisplayOwnership {
     val virtualDisplay: VirtualDisplay
+    val mechanicalState: AndroidVirtualDisplayMechanicalState
+
+    val actualLogicalTuple: AndroidVirtualDisplayLogicalTuple
+        get() = mechanicalState.actualLogicalTuple
 }
 
 internal class AndroidVirtualDisplayReturnedOwnerCell : OperationReturnedOwner {
@@ -41,13 +57,31 @@ internal class AndroidVirtualDisplayReturnedOwnerCell : OperationReturnedOwner {
     }
 }
 
+internal class AndroidVirtualDisplayMechanicalState(
+    private val returnedOwnerCell: AndroidVirtualDisplayReturnedOwnerCell,
+) {
+    @Volatile
+    private var returnedLogicalTuple: AndroidVirtualDisplayLogicalTuple? = null
+
+    internal val actualLogicalTuple: AndroidVirtualDisplayLogicalTuple
+        get() = checkNotNull(returnedLogicalTuple)
+
+    internal fun recordCreationReturnedLocked(actual: AndroidVirtualDisplayLogicalTuple): Boolean {
+        if (returnedLogicalTuple != null || returnedOwnerCell.virtualDisplay == null) return false
+        returnedLogicalTuple = actual
+        return true
+    }
+
+    internal val virtualDisplay: VirtualDisplay
+        get() = checkNotNull(returnedOwnerCell.virtualDisplay)
+}
+
 internal sealed interface AndroidVirtualDisplayProducerApplicationEvidence {
     val appliedProducerFact: TargetProducerEvidence?
 }
 
 internal class AndroidAttachedVirtualDisplay private constructor(
-    private val fixedVirtualDisplay: VirtualDisplay?,
-    private val returnedOwnerCell: AndroidVirtualDisplayReturnedOwnerCell?,
+    override val mechanicalState: AndroidVirtualDisplayMechanicalState,
     internal val target: CurrentTarget,
     internal val producerPort: TargetPorts.AndroidSurfacePort,
     private val producerEvidence: AndroidVirtualDisplayProducerApplicationEvidence,
@@ -59,17 +93,22 @@ internal class AndroidAttachedVirtualDisplay private constructor(
         target: CurrentTarget,
         producerPort: TargetPorts.AndroidSurfacePort,
         producerEvidence: AndroidVirtualDisplayProducerApplicationEvidence,
-    ) : this(null, returnedOwnerCell, target, producerPort, producerEvidence)
+    ) : this(
+        AndroidVirtualDisplayMechanicalState(returnedOwnerCell),
+        target,
+        producerPort,
+        producerEvidence,
+    )
 
     internal constructor(
-        virtualDisplay: VirtualDisplay,
+        previousOwnership: AndroidMechanicallyDetachedVirtualDisplay,
         target: CurrentTarget,
         producerPort: TargetPorts.AndroidSurfacePort,
         producerEvidence: AndroidVirtualDisplayProducerApplicationEvidence,
-    ) : this(virtualDisplay, null, target, producerPort, producerEvidence)
+    ) : this(previousOwnership.mechanicalState, target, producerPort, producerEvidence)
 
     override val virtualDisplay: VirtualDisplay
-        get() = returnedOwnerCell?.virtualDisplay ?: checkNotNull(fixedVirtualDisplay)
+        get() = mechanicalState.virtualDisplay
 
     internal val producerOperation: OperationOccurrence<*>
         get() = checkNotNull(exactProducerOperation)
@@ -79,10 +118,6 @@ internal class AndroidAttachedVirtualDisplay private constructor(
 
     internal val targetGeneration: Long
         get() = appliedTargetFact.targetGeneration
-
-    init {
-        check((fixedVirtualDisplay == null) != (returnedOwnerCell == null))
-    }
 
     internal fun bindProducerOperation(operation: OperationOccurrence<*>): Boolean {
         if (exactProducerOperation != null || operation.identity != producerPort.operationIdentity) return false
@@ -100,6 +135,9 @@ internal class AndroidMechanicallyDetachedVirtualDisplay(
 
     override val virtualDisplay: VirtualDisplay
         get() = attached.virtualDisplay
+
+    override val mechanicalState: AndroidVirtualDisplayMechanicalState
+        get() = attached.mechanicalState
 
     internal val detachOperation: OperationOccurrence<*>
         get() = checkNotNull(exactDetachOperation)
@@ -242,39 +280,17 @@ internal class AndroidVirtualDisplayCreationOwnerBag(
     internal val projection: MediaProjection,
     internal val target: CurrentTarget,
     internal val port: TargetPorts.AndroidSurfacePort,
-    internal val widthPx: Int,
-    internal val heightPx: Int,
-    internal val densityDpi: Int,
+    internal val initialLogicalTuple: AndroidVirtualDisplayLogicalTuple,
     internal val applicationCandidate: AndroidAttachedVirtualDisplay,
 ) : OperationOwnerBag {
-    init {
-        require(widthPx > 0)
-        require(heightPx > 0)
-        require(densityDpi > 0)
-    }
-}
+    internal val widthPx: Int
+        get() = initialLogicalTuple.widthPx
 
-internal object AndroidVirtualDisplayResizeReceipt : OperationReceipt
+    internal val heightPx: Int
+        get() = initialLogicalTuple.heightPx
 
-internal class AndroidVirtualDisplayResizeEvidence : OperationEvidence {
-    override val receipt: AndroidVirtualDisplayResizeReceipt = AndroidVirtualDisplayResizeReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-}
-
-internal class AndroidVirtualDisplayResizeOwnerBag(
-    internal val ownership: AndroidAttachedVirtualDisplay,
-    internal val widthPx: Int,
-    internal val heightPx: Int,
-    internal val densityDpi: Int,
-) : OperationOwnerBag {
-    internal val virtualDisplay: VirtualDisplay
-        get() = ownership.virtualDisplay
-
-    init {
-        require(widthPx > 0)
-        require(heightPx > 0)
-        require(densityDpi > 0)
-    }
+    internal val densityDpi: Int
+        get() = initialLogicalTuple.densityDpi
 }
 
 internal object AndroidVirtualDisplayAttachReceipt : OperationReceipt
@@ -289,34 +305,11 @@ internal class AndroidVirtualDisplayAttachEvidence : OperationEvidence, AndroidV
     override val appliedProducerFact: TargetProducerEvidence?
         get() = appliedTargetFact as? TargetProducerEvidence
 
-    internal var collisionExistingOwnership: AndroidVirtualDisplayOwnership? = null
-        private set
-
-    internal var collisionObserved: Boolean = false
-        private set
-
     internal fun recordAppliedTargetFactLocked(fact: TargetProducerApplicationFact): Boolean {
         if (appliedTargetFact != null) return false
         appliedTargetFact = fact
         return true
     }
-
-    internal fun recordCollisionLocked(existingOwnership: AndroidVirtualDisplayOwnership?): Boolean {
-        if (collisionObserved) return false
-        collisionObserved = true
-        collisionExistingOwnership = existingOwnership
-        return true
-    }
-}
-
-internal class AndroidVirtualDisplayAttachOwnerBag(
-    internal val previousOwnership: AndroidMechanicallyDetachedVirtualDisplay,
-    internal val target: CurrentTarget,
-    internal val port: TargetPorts.AndroidSurfacePort,
-    internal val applicationCandidate: AndroidAttachedVirtualDisplay,
-) : OperationOwnerBag {
-    internal val virtualDisplay: VirtualDisplay
-        get() = previousOwnership.virtualDisplay
 }
 
 internal object AndroidVirtualDisplayDetachReceipt : OperationReceipt
@@ -328,38 +321,12 @@ internal class AndroidVirtualDisplayDetachEvidence : OperationEvidence {
     internal var appliedTargetFact: TargetProducerDetachReceipt? = null
         private set
 
-    internal var collisionExistingOwnership: AndroidVirtualDisplayOwnership? = null
-        private set
-
-    internal var collisionObserved: Boolean = false
-        private set
-
     internal fun recordAppliedTargetFactLocked(fact: TargetProducerDetachReceipt): Boolean {
         if (appliedTargetFact != null) return false
         appliedTargetFact = fact
         return true
     }
-
-    internal fun recordCollisionLocked(existingOwnership: AndroidVirtualDisplayOwnership?): Boolean {
-        if (collisionObserved) return false
-        collisionObserved = true
-        collisionExistingOwnership = existingOwnership
-        return true
-    }
 }
-
-internal class AndroidVirtualDisplayDetachOwnerBag(
-    internal val ownership: AndroidAttachedVirtualDisplay,
-    internal val port: TargetPorts.AndroidDetachPort,
-    internal val applicationCandidate: AndroidMechanicallyDetachedVirtualDisplay,
-) : OperationOwnerBag {
-    internal val virtualDisplay: VirtualDisplay
-        get() = ownership.virtualDisplay
-
-    internal val target: CurrentTarget
-        get() = ownership.target
-}
-
 
 internal object AndroidVirtualDisplayReleaseReceipt : OperationReceipt
 

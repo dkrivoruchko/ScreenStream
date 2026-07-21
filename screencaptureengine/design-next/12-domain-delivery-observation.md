@@ -50,31 +50,23 @@ transactions, and leases are owned by [STORE-020](11-domain-encoded-storage.md#s
 
 | Direction | Typed boundary | Rule |
 | --- | --- | --- |
-| [TGT-050](07-domain-target.md#tgt-050--listener-source-bit-and-generation-fence) -> controller | generation-fenced `AtomicBoolean` latest-pending bit plus lossless signal | Listener only sets `true`; it selects no work and owns no counter. |
+| [TGT-050](07-domain-target.md#tgt-050--listener-source-bit-and-generation-fence) -> controller | one generation-fenced conflated pending indication plus lossless signal | Listener selects no work and owns no counter. |
 | Controller -> `PacingOwner` | immutable policy, current wake/candidate identities, grant phase/times, pending/storage occupancy and sampled `EngineClock` | Helper returns one calculation; controller alone accepts it and commits exchange, grant, wake, or terminal action. |
 | `STORE-070` -> delivery | immutable encoded payload metadata plus one counted `EncodedPayloadLease` | Delivery borrows one lease; it never owns/copies/mutates payload storage. |
 | Delivery -> controller | identity-fenced scheduler, Delivery submission, callback-entry/return, and handoff-convergence facts | Controller applies admission, counter, terminal-cutoff, and shared unsubscribe result. |
 | Controller -> `ObservationOwner` | one immutable committed State/Stats/diagnostic snapshot | Helper constructs and assigns/tries emission unlocked and retains no authority. |
 
-Production files are `DEL:PacingOwner.kt`, `DEL:DeliveryOwner.kt`, and `DEL:ObservationOwner.kt`, with canonical
-paths in [router §6](01-authority-router.md#6-source-manifest). `PacingOwner` contains pure cadence and candidate
-calculations, `DeliveryOwner` the cohesive handoff/record lifecycle, and `ObservationOwner` unlocked immutable
-construction and publication. They retain the sole-owner boundaries below and create no second controller state,
-Session scope, scheduler, gate, or handoff machine. This leaf constructs and delivers public
-`EncodedImageFrame` values and constructs/publishes observation values. `ScreenCaptureOutput.kt`, if named by the
-source manifest, is only a production filename; it is not a public value type or separate authority.
+Private pacing, handoff, and observation collaborators retain the sole-owner boundaries below and create no
+second controller state, Session scope, scheduler, gate, or handoff machine. This leaf constructs/delivers public
+frames and constructs/publishes observation values.
 
 ## DEL-PACE-001 — Pending source and materialization
 
-Each Target generation owns exactly one `AtomicBoolean`, initially false. A current listener callback performs
-`set(true)` and signals the lossless controller drainer. Repeated sets coalesce and are neither attempts nor
-drops. A retired generation can neither signal nor affect a current generation.
-
-Only a controller-authorized consume performs `getAndSet(false)`. It does so exactly when currentness, topology,
-fresh cadence, and the sole production slot permit materialization. That exchange creates one fresh-attempt
-occurrence, reserves its final-outcome slot, and claims the production slot. A set before the exchange belongs to
-that attempt; a set after it remains true for a later rescan. Deferral never clears the bit. Retirement,
-suspension, rebuild, Target replacement, or terminal may clear the unmaterialized bit with no counter.
+Each Target generation owns one conflated pending-source indication. A current listener sets it and signals the
+lossless drainer; repetitions are neither attempts nor drops, and retired generations are inert. Only a
+controller-authorized consume may clear it, when currentness, topology, cadence, and the sole production slot
+permit one fresh attempt. A signal racing after that consume remains pending for a later scan; deferral never
+loses it. Retirement/suspension/rebuild/terminal may discard unmaterialized work without a counter.
 
 The production slot stays occupied through tentative storage/JPEG work and a completed-unpublished JPEG until
 one final disposition: output/cache commit, one classified drop, or terminal transfer. One pending bit may coexist
@@ -167,47 +159,19 @@ submitted-not-fully-settled ticket exists. Callbacks, cache offers, repeats, and
 worker or delivery queue. A generation must reach exact successful unsubscribe before replacement; old and new
 callbacks never overlap.
 
-Each record precreates, under its `settlementGate`, independent submission, entry, callback-return, and Runnable-
-return cells:
-
-```kotlin
-internal enum class HandoffState {
-    Prepared, Submitting, AcceptedUnentered, DetachedPreEntry, Entered, Resolved, Quarantined
-}
-```
-
-The submission cell records actual `execute` normal return or exact outward throwable; the entry cell records
-`Entered` or `Inert`; the callback cell records normal return or the exact thrown object; and the Runnable-return
-cell proves the task frame returned. The record also owns borrowed-frame authority and its encoded lease until
-callback settlement or exact unentered resolution/transfer. No callback deadline exists.
-
-```text
-Prepared -> Submitting -> AcceptedUnentered -> Entered -> Resolved
-Prepared -> Resolved
-Submitting -> Entered
-Submitting -> Resolved
-Submitting | AcceptedUnentered -> DetachedPreEntry -> Resolved
-Submitting | AcceptedUnentered | DetachedPreEntry | Entered -> Quarantined
-Resolved -> idle  (only while the same registration remains active)
-```
-
-| State | Remaining exact ownership |
-| --- | --- |
-| `Prepared` | admitted generation, record/cells, borrowed authority, lease, and the reserved endpoint ticket |
-| `Submitting` | outward `execute` side plus Runnable entry/return, borrowed authority, and lease until their exact sides settle |
-| `AcceptedUnentered` | accepted queued Runnable, borrowed authority and lease; submission side settled |
-| `DetachedPreEntry` | closed admission; unresolved submission or inert/return side, borrowed authority and lease; user code is forbidden |
-| `Entered` | while the callback cell is empty, callback authority/lease; after callback settlement they release immediately, while unresolved submission or Runnable-return alone keeps the handoff occupied |
-| `Resolved` | every required side settled and no handoff owner remains |
-| `Quarantined` | only unresolved cells, ticket, endpoint/thread, and exact owner sides remain; callback authority/lease remain only while the callback cell is empty; the residue is rooted once and never reusable |
+Each handoff independently settles submission, entry, callback return, and Runnable return under one occurrence.
+It owns borrowed-frame authority and the encoded lease until callback settlement or proven no-entry. Admission
+closure can make unentered work inert, while entered callback work may finish. Full resolution requires every
+applicable side; terminal transfers only unresolved sides. Callback settlement releases callback authority and
+lease immediately even when submission or Runnable return still keeps the handoff occupied. No callback
+deadline exists.
 
 ## DEL-HO-010 — Submission, entry, callback, and classification
 
-The submitting owner commits `Prepared -> Submitting`, unlocks, and calls `deliveryExecutor.execute(runnable)`
-once. The Runnable's first engine action takes `sessionGate -> settlementGate`, validates Session, registration,
-ticket, endpoint health, and admission, and commits `Entered` or detached/inert self-rejection before unlocking.
-An Entered winner invokes the application callback directly on the Delivery thread. No external call or callback
-runs under either gate.
+Submission follows `CORE-EXEC-1`. The Runnable's first domain action uses
+`sessionGate -> settlementGate` to validate Session, registration, ticket, endpoint health, and admission, then
+commits entered or inert before unlocking. Only an entered winner invokes the callback, and no external call or
+callback runs under either gate.
 
 | Winning mechanical fact | Controller application under `CTRL-200`/`CTRL-300` |
 | --- | --- |
@@ -242,17 +206,9 @@ retain caller callback data beyond the current registration and exact unresolved
 
 ## DEL-HO-030 — Unsubscribe and replacement
 
-The controller handling the first `unsubscribe()` commits `Open -> Closing` under `sessionGate`, closing
-admission immediately. `Prepared`
-resolves directly; other states converge through their exact cells. Handoff convergence publishes one
-identity-fenced mechanical fact. The controller alone commits one shared monotone result and signals waiters after
-unlocking:
-
-```text
-Open -> Closing -> Success
-Open | Closing -> FailedTerminal(problem)
-Open | Closing -> StoppedTerminal(reason)
-```
+The first `unsubscribe()` closes admission immediately under `sessionGate`; unsubmitted work resolves directly
+and other work converges through its exact sides. The controller alone commits one shared monotone success,
+failed-terminal, or stopped-terminal result and signals waiters after unlocking.
 
 `Success` clears replacement exclusion and is idempotent. Terminal/quarantine winning first maps Failure to
 `ScreenCaptureException(problem)` and Stop to `CancellationException`; it leaves replacement forbidden. Caller
@@ -392,8 +348,8 @@ leaf's local executable proofs; controller authority remains `CTRL-200`/`CTRL-30
 
 | Tests | Required matrix |
 | --- | --- |
-| `H-PS` | source set before/after exchange; retired generation; Auto/MaxFps/SampleEvery boundaries; early retention; occupied/unpublished slot plus pending bit; pacing/repeat and Stats link fire-before-Future, body return/throw after fire, terminal-Submitting, cancel true/false/throw, outer-remove true/false/throw, operational successor before physical stale-frame settlement, stale first-CAS zero-access, stale nonreturn and scheduler termination; no burst/stranding or fabricated progress; rational phases; repeat/cache/cached-first; all production dispositions; terminal cutoff; Stats formulas/cadence/saturation/finite protection |
-| `H-DL` | every state; Delivery prestart and one-ticket bound; `execute` normal/Exception/direct-fatal/nonreturn crossed with entry, unsubscribe and terminal; callback settlement with unresolved submission keeps `Entered`, releases callback authority/lease to zero, leaves only record/ticket/submission residue, rejects the next opportunity as busy, makes unsubscribe wait, and resolves only after submission settlement; accepted-unentered and detached inert entry; callback normal/Exception/direct-fatal/nonreturn before/after transfer; poison, exact raw fatal slot/engine-boundary rethrow, direct-Error thread-top identity, permitted runtime-shaped custom-Throwable thread top, shared unsubscribe result, cancellation, self-call, replacement exclusion, one shutdown/terminated receipt, and exact lease/root reduction |
+| `H-PS` | source exchange and retired generation; Auto/MaxFps/SampleEvery boundaries; early retention and occupied/unpublished-slot coalescing; common wake matrix for pacing/repeat and Stats; no burst, stranding, or fabricated progress; rational phases; repeat/cache/cached-first; all production dispositions; terminal cutoff; Stats formulas/cadence/saturation/finite protection |
+| `H-DL` | Delivery prestart and one-ticket bound; submission normal/throw/fatal/nonreturn crossed with entry, callback, unsubscribe, and terminal; unresolved submission retains only its exact residue and blocks successor/unsubscribe completion after callback authority and lease release; accepted-unentered and detached inert entry; poison and fatal identity/rethrow; shared unsubscribe result, cancellation, self-call, replacement exclusion, one shutdown/termination receipt, and exact lease/root reduction |
 | `H-OB` | coherent Running snapshots, StateFlow conflation, startup/terminal order, all-zero initial Stats, exact formulas and finite guards, immediate/periodic/final publication, all eight categories/sites, ordinary CapabilityCheck boundary/decision/action plus exact cause, exactly one normal post-readiness MetricsProvider completion event per exact observation lifetime with null cause/retained-last-valid action and none for pre-readiness/failure/duplicate, cause identity, first/overflow sequence, wall-clock movement, no-emission/noncontrol and terminal cutoff |
 | `A-SES` | dedicated Delivery callback thread and borrowed-frame access/range/lifetime; cached-first metadata; registration replacement; main-safe unsubscribe and exact public exception mapping |
 | `H-OS`, `A-CL` | generic gate/deadline and whole-occurrence terminal-transfer mechanics by reference; late delivery facts shrink only exact residue and never revise observations |
@@ -410,7 +366,7 @@ Required delivery interleavings:
 | callback fact commit -> terminal transfer | fold normal/throw once into final Stats; transfer only unresolved sides |
 | terminal transfer -> callback fact commit | cleanup-only release/root reduction; no counter/event/State mutation |
 | current wake rejection -> policy replacement | terminal `InternalFailure` if rejection won while required/current; otherwise stale cleanup-only |
-| cancel true + Suppressed + outer remove false -> successor | after all exact publications, `g+1` may become operationally current; remove false proves no dequeue/entry/no-run fact, and any stale `g` frame loses its first CAS with zero engine/domain access |
+| successful suppression + outer remove false -> successor | after all required publications, the successor may become operationally current; remove false proves no dequeue/entry/no-run fact, and any stale frame has zero engine/domain access |
 | suppressed stale wrapper nonreturns -> successor | the single Control worker prevents physical `g+1` entry; retain exact worker/frame cleanup residue and fabricate no Fired/return/termination receipt |
 
 All applicable operation-deadline tests use exact checked `D`, `D-1`, `D`, `D+1`, empty-at-`D`, commit-before-signal,

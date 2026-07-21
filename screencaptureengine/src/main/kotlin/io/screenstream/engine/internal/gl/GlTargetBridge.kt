@@ -6,6 +6,7 @@ import io.screenstream.engine.internal.settlement.OperationArbitration
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.isHandedOff
 import io.screenstream.engine.internal.target.PreparedTarget
+import io.screenstream.engine.internal.target.TargetPortUseOutcome
 import io.screenstream.engine.internal.target.TargetRetirement
 import io.screenstream.engine.internal.target.TargetSurfaceReleaseEvidence
 
@@ -13,7 +14,7 @@ internal class GlSurfaceReleaseHandle internal constructor(
     private val owner: GlPipelineOwner,
     private val operation: TargetRetirement.SurfaceReleaseOperation,
 ) : GlPipelineOwner.SurfaceReleaseCommand {
-    private val occurrence: OperationOccurrence<TargetSurfaceReleaseEvidence> = operation.occurrence
+    override val occurrence: OperationOccurrence<TargetSurfaceReleaseEvidence> = operation.occurrence
     private val canonicalEvidence: TargetSurfaceReleaseEvidence = occurrence.returnCell.evidence
     private val claimedFacts: TargetSurfaceReleaseClaim = TargetSurfaceReleaseClaim.precreate(canonicalEvidence.receipt)
     private val endpointOperation = owner.endpointOperation(occurrence, Runnable { execute() })
@@ -26,7 +27,7 @@ internal class GlSurfaceReleaseHandle internal constructor(
     private fun execute() {
         owner.checkFatalFence()
         try {
-            check(operation.release())
+            check(operation.release() == TargetPortUseOutcome.BodyReturned)
             owner.checkFatalFence()
             check(operation.publishNormalReturn())
         } catch (error: Error) {
@@ -68,8 +69,9 @@ internal class GlTargetConstructionHandle internal constructor(
     private val preparedTarget: PreparedTarget,
 ) : GlPipelineOwner.TargetConstructionCommand {
     private val evidence: GlOperationEvidence = preparedTarget.constructionGlEvidence
+    override val occurrence: OperationOccurrence<GlOperationEvidence> = preparedTarget.constructionOccurrence
     private val endpointOperation = owner.endpointOperation(
-        preparedTarget.constructionOccurrence,
+        occurrence,
         Runnable { execute() },
     )
 

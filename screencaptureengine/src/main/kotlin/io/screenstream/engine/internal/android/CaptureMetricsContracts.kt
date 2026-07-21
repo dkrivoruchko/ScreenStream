@@ -5,20 +5,173 @@ import io.screenstream.engine.CaptureMetrics
 import io.screenstream.engine.CaptureMetricsObserver
 import io.screenstream.engine.CaptureMetricsSource
 import io.screenstream.engine.CaptureMetricsSubscription
+import io.screenstream.engine.internal.settlement.OperationEntryDisposition
 import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationOwnerBag
 import io.screenstream.engine.internal.settlement.OperationReceipt
+import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
+import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
+import io.screenstream.engine.internal.settlement.PrivateExecutorSubmissionResult
 
-internal enum class CaptureMetricsReadinessArbitration {
-    None,
+internal enum class CaptureMetricsReadinessOutcome {
     Timely,
     Expired,
-    CompletedBeforeReadiness,
-    FailedBeforeReadiness,
+    ProviderCompletedBeforeReadiness,
+    ProviderFailedBeforeReadiness,
     AvailabilityLostBeforeActive,
-    AttachmentFailed,
+    AttachmentSubmissionRejected,
+    AttachmentSubmissionException,
+    AttachmentSubmissionDirectFatal,
+    AttachmentException,
+    AttachmentDirectFatal,
+    NullHandle,
+    SequenceExhausted,
+    DeadlineWakeRejected,
     DeadlineGuardFailed,
+}
+
+internal enum class CaptureMetricsReadinessDeadlineRelation {
+    Unarmed,
+    JointEvidenceTimely,
+    Expired,
+    RetiredWithoutJointReadiness,
+}
+
+internal class CaptureMetricsReadinessMechanicalFact internal constructor(
+    internal val source: CaptureMetricsSource,
+    internal val observationIdentity: Long,
+    internal val deadlineIdentity: Long,
+) {
+    internal var outcome: CaptureMetricsReadinessOutcome? = null
+        private set
+
+    internal var cause: Throwable? = null
+        private set
+
+    internal var ingressSequence: Long = 0L
+        private set
+
+    internal var sampleNanos: Long = Long.MIN_VALUE
+        private set
+
+    internal var metrics: CaptureMetrics? = null
+        private set
+
+    internal var display: Display? = null
+        private set
+
+    internal var displayEpoch: Long = 0L
+        private set
+
+    internal var deadlineStartNanos: Long = Long.MIN_VALUE
+        private set
+
+    internal var deadlineNanos: Long = Long.MIN_VALUE
+        private set
+
+    internal var deadlineRelation: CaptureMetricsReadinessDeadlineRelation =
+        CaptureMetricsReadinessDeadlineRelation.Unarmed
+        private set
+
+    internal var arbitrationNanos: Long = Long.MIN_VALUE
+        private set
+
+    internal var attachmentSubmissionResult: PrivateExecutorSubmissionResult? = null
+        private set
+
+    internal var attachmentSubmissionDisposition: OperationSubmissionDisposition = OperationSubmissionDisposition.None
+        private set
+
+    internal var attachmentSubmissionFailure: Exception? = null
+        private set
+
+    internal var attachmentSubmissionAmbiguousFatal: Throwable? = null
+        private set
+
+    internal var attachmentEntryDisposition: OperationEntryDisposition = OperationEntryDisposition.Unentered
+        private set
+
+    internal var attachmentReturnDisposition: OperationReturnDisposition = OperationReturnDisposition.Empty
+        private set
+
+    internal var handleDisposition: CaptureMetricsHandleDisposition = CaptureMetricsHandleDisposition.Pending
+        private set
+
+    internal var handleSettlementNanos: Long = Long.MIN_VALUE
+        private set
+
+    internal var subscriptionOwner: CaptureMetricsSubscriptionOwner? = null
+        private set
+
+    internal var terminalKind: CaptureMetricsTerminalKind? = null
+        private set
+
+    internal var terminalCause: Throwable? = null
+        private set
+
+    internal var terminalSequence: Long = 0L
+        private set
+
+    internal var terminalPhase: CaptureMetricsTerminalPhase? = null
+        private set
+
+    internal val isClaimed: Boolean
+        get() = outcome != null
+
+    internal fun commitLocked(
+        outcome: CaptureMetricsReadinessOutcome,
+        cause: Throwable?,
+        ingressSequence: Long,
+        sampleNanos: Long,
+        metrics: CaptureMetrics?,
+        display: Display?,
+        displayEpoch: Long,
+        deadlineStartNanos: Long,
+        deadlineNanos: Long,
+        deadlineRelation: CaptureMetricsReadinessDeadlineRelation,
+        arbitrationNanos: Long,
+        attachmentSubmissionResult: PrivateExecutorSubmissionResult?,
+        attachmentSubmissionDisposition: OperationSubmissionDisposition,
+        attachmentSubmissionFailure: Exception?,
+        attachmentSubmissionAmbiguousFatal: Throwable?,
+        attachmentEntryDisposition: OperationEntryDisposition,
+        attachmentReturnDisposition: OperationReturnDisposition,
+        handleDisposition: CaptureMetricsHandleDisposition,
+        handleSettlementNanos: Long,
+        subscriptionOwner: CaptureMetricsSubscriptionOwner?,
+        terminalKind: CaptureMetricsTerminalKind?,
+        terminalCause: Throwable?,
+        terminalSequence: Long,
+        terminalPhase: CaptureMetricsTerminalPhase?,
+    ): Boolean {
+        if (isClaimed) return false
+        this.cause = cause
+        this.ingressSequence = ingressSequence
+        this.sampleNanos = sampleNanos
+        this.metrics = metrics
+        this.display = display
+        this.displayEpoch = displayEpoch
+        this.deadlineStartNanos = deadlineStartNanos
+        this.deadlineNanos = deadlineNanos
+        this.deadlineRelation = deadlineRelation
+        this.arbitrationNanos = arbitrationNanos
+        this.attachmentSubmissionResult = attachmentSubmissionResult
+        this.attachmentSubmissionDisposition = attachmentSubmissionDisposition
+        this.attachmentSubmissionFailure = attachmentSubmissionFailure
+        this.attachmentSubmissionAmbiguousFatal = attachmentSubmissionAmbiguousFatal
+        this.attachmentEntryDisposition = attachmentEntryDisposition
+        this.attachmentReturnDisposition = attachmentReturnDisposition
+        this.handleDisposition = handleDisposition
+        this.handleSettlementNanos = handleSettlementNanos
+        this.subscriptionOwner = subscriptionOwner
+        this.terminalKind = terminalKind
+        this.terminalCause = terminalCause
+        this.terminalSequence = terminalSequence
+        this.terminalPhase = terminalPhase
+        this.outcome = outcome
+        return true
+    }
 }
 
 internal enum class CaptureMetricsIngressPublishResult {
@@ -163,6 +316,12 @@ internal class CaptureMetricsIngressSummary(
     internal var earliestPositiveMetrics: CaptureMetrics? = null
         private set
 
+    internal var earliestPositiveDisplay: Display? = null
+        private set
+
+    internal var earliestPositiveDisplayEpoch: Long = 0L
+        private set
+
     internal var latestSequence: Long = 0L
         private set
 
@@ -211,6 +370,9 @@ internal class CaptureMetricsIngressSummary(
     internal var terminalPhase: CaptureMetricsTerminalPhase? = null
         private set
 
+    internal var sequenceExhausted: Boolean = false
+        private set
+
     internal fun publishMetricsLocked(
         metrics: CaptureMetrics?,
         sampleNanos: Long,
@@ -235,6 +397,8 @@ internal class CaptureMetricsIngressSummary(
             earliestPositiveSequence = sequence
             earliestPositiveSampleNanos = sampleNanos
             earliestPositiveMetrics = metrics
+            earliestPositiveDisplay = display
+            earliestPositiveDisplayEpoch = displayEpoch
         } else if (metrics == null && earliestPositiveMetrics != null && !firstActiveCommitted) {
             postValidLossBeforeActive = true
         }
@@ -294,6 +458,7 @@ internal class CaptureMetricsIngressSummary(
 
     private fun reserveSequenceLocked(): Long {
         if (nextSequence <= 0L || nextSequence == Long.MAX_VALUE) {
+            sequenceExhausted = true
             if (terminalKind == null) {
                 terminalKind = CaptureMetricsTerminalKind.Failed
                 terminalCause = sequenceExhaustionCause

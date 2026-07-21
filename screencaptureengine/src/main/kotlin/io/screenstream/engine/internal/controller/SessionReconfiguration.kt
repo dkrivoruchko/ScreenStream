@@ -9,12 +9,11 @@ import io.screenstream.engine.internal.gl.GlPipelineOwner
 import io.screenstream.engine.internal.jpeg.FrameworkJpegOwner
 import io.screenstream.engine.internal.jpeg.JpegRuntimeTopologySnapshot
 import io.screenstream.engine.internal.target.CurrentTarget
-import io.screenstream.engine.internal.target.TargetCurrentnessSnapshot
+import io.screenstream.engine.internal.target.TargetCurrentnessFact
 import io.screenstream.engine.internal.target.TargetProducerState
 
 internal class SessionTopologyCaptureCommand internal constructor(
-    internal val key: ReconciliationKey,
-    internal val topologyIdentity: Long,
+    internal val stamp: TopologyStamp,
     internal val metricsOwner: CaptureMetricsOwner,
     internal val metricsSource: CaptureMetricsSource,
     internal val metricsObservationIdentity: Long,
@@ -30,8 +29,7 @@ internal class SessionTopologyCaptureCommand internal constructor(
 )
 
 internal class AcceptedTopologySnapshot internal constructor(
-    internal val key: ReconciliationKey,
-    internal val topologyIdentity: Long,
+    internal val stamp: TopologyStamp,
     internal val metricsOwner: CaptureMetricsOwner,
     internal val metricsSource: CaptureMetricsSource,
     internal val metricsObservationIdentity: Long,
@@ -41,7 +39,7 @@ internal class AcceptedTopologySnapshot internal constructor(
     internal val projectionCallbackInstalled: Boolean,
     internal val glOwner: GlPipelineOwner,
     internal val target: CurrentTarget,
-    internal val targetCurrentness: TargetCurrentnessSnapshot,
+    internal val targetCurrentness: TargetCurrentnessFact,
     internal val targetActiveLeaseCount: Int,
     internal val renderTarget: GlPipelineOwner.GlRenderTargetOwner,
     internal val renderGeneration: Long,
@@ -54,13 +52,13 @@ internal class AcceptedTopologySnapshot internal constructor(
 
 internal object SessionReconfiguration {
     internal fun captureCompleteTopology(command: SessionTopologyCaptureCommand): AcceptedTopologySnapshot? {
-        val currentness = command.target.currentnessSnapshot()
+        val currentness = command.target.currentnessFact()
         val activeLeaseCount = command.target.activeLeaseCount
         val jpegTopology = command.jpegOwner.stableTopologySnapshot() ?: return null
         val product = jpegTopology.product ?: return null
         val frameworkComplete = command.frameworkOwner?.hasCompleteResources() == true
         if (!command.androidOwner.isProjectionCallbackRegistered || command.projectionRegistrationIdentity <= 0L ||
-            currentness.target !== command.target || currentness.plan !== command.target.plan ||
+            !currentness.targetIdentity.matches(command.target) || currentness.plan !== command.target.plan ||
             !currentness.listenerInstalled || currentness.producerState != TargetProducerState.ProducerAttached ||
             currentness.generationFenced || activeLeaseCount != 0 ||
             command.renderTarget.compatibilityFacts.imageSize != command.effectiveParameters.finalImageSize ||
@@ -70,8 +68,7 @@ internal object SessionReconfiguration {
             return null
         }
         return AcceptedTopologySnapshot(
-            key = command.key,
-            topologyIdentity = command.topologyIdentity,
+            stamp = command.stamp,
             metricsOwner = command.metricsOwner,
             metricsSource = command.metricsSource,
             metricsObservationIdentity = command.metricsObservationIdentity,
@@ -93,11 +90,11 @@ internal object SessionReconfiguration {
         )
     }
 
-    internal fun revalidate(snapshot: AcceptedTopologySnapshot): Boolean {
-        val currentness = snapshot.target.currentnessSnapshot()
-        return snapshot.projectionCallbackInstalled && snapshot.androidOwner.isProjectionCallbackRegistered &&
-                currentness.target === snapshot.target &&
-                currentness.generation == snapshot.targetCurrentness.generation &&
+    internal fun revalidate(snapshot: AcceptedTopologySnapshot): TargetCurrentnessFact? {
+        val currentness = snapshot.target.currentnessFact()
+        val exact = snapshot.projectionCallbackInstalled && snapshot.androidOwner.isProjectionCallbackRegistered &&
+                currentness.targetIdentity.matches(snapshot.target) &&
+                currentness.targetIdentity === snapshot.targetCurrentness.targetIdentity &&
                 currentness.plan === snapshot.targetCurrentness.plan &&
                 currentness.listenerInstalled == snapshot.targetCurrentness.listenerInstalled &&
                 currentness.producerState == snapshot.targetCurrentness.producerState &&
@@ -108,5 +105,6 @@ internal object SessionReconfiguration {
                 snapshot.jpegOwner.stableTopologySnapshot() === snapshot.jpegTopology &&
                 (snapshot.frameworkOwner == null ||
                         snapshot.frameworkOwner.hasCompleteResources() == snapshot.frameworkResourcesComplete)
+        return currentness.takeIf { exact }
     }
 }

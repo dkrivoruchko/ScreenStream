@@ -136,8 +136,13 @@ internal class GlSessionConstructionHandle internal constructor(
                 owner.contextDestructionStep.applicability = EglStepApplicability.Inapplicable
                 owner.contextDestructionStep.receiptPresent = true
                 owner.contextDestructionStep.freeze()
-                owner.contextUnbound = true
-                owner.contextDestroyed = true
+                owner.glGate.withLock {
+                    if (!owner.contextUnbound || !owner.contextDestroyed) {
+                        owner.contextUnbound = true
+                        owner.contextDestroyed = true
+                        owner.commitRenderCurrentnessMutationLocked()
+                    }
+                }
                 true
             } else {
                 owner.unbindAndDestroyContext(this, partialCleanupEvidence)
@@ -396,6 +401,7 @@ internal class GlEglRuntime internal constructor(
         owner.glGate.withLock {
             check(!owner.sessionEglStarted)
             owner.sessionEglStarted = true
+            owner.commitRenderCurrentnessMutationLocked()
         }
         val candidateDisplay = owner.outwardAdopt(
             adopt = { candidate -> if (candidate != EGL14.EGL_NO_DISPLAY) owner.display = candidate },
@@ -427,14 +433,28 @@ internal class GlEglRuntime internal constructor(
             evidence.contextIntegrity = ContextIntegrity.Unknown
             return false
         }
-        val candidateContext = owner.outwardAdopt(adopt = { candidate -> if (candidate != EGL14.EGL_NO_CONTEXT) owner.context = candidate }) {
+        val candidateContext = owner.outwardAdopt(adopt = { candidate ->
+            if (candidate != EGL14.EGL_NO_CONTEXT) {
+                owner.glGate.withLock {
+                    owner.context = candidate
+                    owner.commitRenderCurrentnessMutationLocked()
+                }
+            }
+        }) {
             EGL14.eglCreateContext(owner.display, selectedConfig, EGL14.EGL_NO_CONTEXT, owner.eglContextAttributes, 0)
         }
         if (candidateContext == EGL14.EGL_NO_CONTEXT) {
             recordEglFailure(evidence, owner.outward { EGL14.eglGetError() })
             return false
         }
-        val candidatePbuffer = owner.outwardAdopt(adopt = { candidate -> if (candidate != EGL14.EGL_NO_SURFACE) owner.pbuffer = candidate }) {
+        val candidatePbuffer = owner.outwardAdopt(adopt = { candidate ->
+            if (candidate != EGL14.EGL_NO_SURFACE) {
+                owner.glGate.withLock {
+                    owner.pbuffer = candidate
+                    owner.commitRenderCurrentnessMutationLocked()
+                }
+            }
+        }) {
             EGL14.eglCreatePbufferSurface(owner.display, selectedConfig, owner.eglPbufferAttributes, 0)
         }
         if (candidatePbuffer == EGL14.EGL_NO_SURFACE) {
@@ -450,7 +470,7 @@ internal class GlEglRuntime internal constructor(
             return false
         }
         owner.checkFatalFence()
-        owner.contextIntegrity = ContextIntegrity.Intact
+        owner.recordContextIntegrity(ContextIntegrity.Intact)
         return owner.queryCapabilities(evidence)
     }
 
@@ -506,7 +526,12 @@ internal class GlEglRuntime internal constructor(
             }
             owner.inverseCurrentStep.freeze()
             owner.checkFatalFence()
-            owner.contextUnbound = true
+            owner.glGate.withLock {
+                if (!owner.contextUnbound) {
+                    owner.contextUnbound = true
+                    owner.commitRenderCurrentnessMutationLocked()
+                }
+            }
         }
         if (!owner.contextDestroyed) {
             owner.contextDestructionStep.requireMutable()
@@ -517,8 +542,11 @@ internal class GlEglRuntime internal constructor(
                 owner.contextDestructionStep.outcome = if (returned) EglStepOutcome.ReturnedTrue else EglStepOutcome.ReturnedFalse
                 owner.contextDestructionStep.receiptPresent = returned
                 if (returned) {
-                    owner.contextDestroyed = true
-                    owner.context = EGL14.EGL_NO_CONTEXT
+                    owner.glGate.withLock {
+                        owner.contextDestroyed = true
+                        owner.context = EGL14.EGL_NO_CONTEXT
+                        owner.commitRenderCurrentnessMutationLocked()
+                    }
                 }
                 owner.checkFatalFence()
                 returned
@@ -549,8 +577,11 @@ internal class GlEglRuntime internal constructor(
                 owner.pbufferSuffix.outcome = if (returned) EglStepOutcome.ReturnedTrue else EglStepOutcome.ReturnedFalse
                 owner.pbufferSuffix.receiptPresent = returned
                 if (returned) {
-                    owner.pbufferDestroyed = true
-                    owner.pbuffer = EGL14.EGL_NO_SURFACE
+                    owner.glGate.withLock {
+                        owner.pbufferDestroyed = true
+                        owner.pbuffer = EGL14.EGL_NO_SURFACE
+                        owner.commitRenderCurrentnessMutationLocked()
+                    }
                 }
                 owner.checkFatalFence()
             } catch (exception: Exception) {
@@ -565,7 +596,12 @@ internal class GlEglRuntime internal constructor(
             owner.pbufferSuffix.requireMutable()
             owner.pbufferSuffix.applicability = EglStepApplicability.Inapplicable
             owner.pbufferSuffix.receiptPresent = true
-            owner.pbufferDestroyed = true
+            owner.glGate.withLock {
+                if (!owner.pbufferDestroyed) {
+                    owner.pbufferDestroyed = true
+                    owner.commitRenderCurrentnessMutationLocked()
+                }
+            }
         }
         owner.pbufferSuffix.freeze()
         if (!owner.threadReleased) {
@@ -671,11 +707,13 @@ internal class GlEglRuntime internal constructor(
             evidence.postprobeErrorCode = error
             evidence.postprobeErrorCodePresent = true
         }
-        owner.contextIntegrity = if (error == GLES20.GL_OUT_OF_MEMORY) {
-            ContextIntegrity.PoisonedByOutOfMemory
-        } else {
-            ContextIntegrity.Unknown
-        }
+        owner.recordContextIntegrity(
+            if (error == GLES20.GL_OUT_OF_MEMORY) {
+                ContextIntegrity.PoisonedByOutOfMemory
+            } else {
+                ContextIntegrity.Unknown
+            },
+        )
         evidence.contextIntegrity = owner.contextIntegrity
         evidence.result = if (error == GLES20.GL_OUT_OF_MEMORY) {
             GlOperationResult.ResourceExhausted
@@ -693,11 +731,13 @@ internal class GlEglRuntime internal constructor(
             evidence.postprobeErrorCode = error
             evidence.postprobeErrorCodePresent = true
         }
-        owner.contextIntegrity = if (error == GLES20.GL_OUT_OF_MEMORY) {
-            ContextIntegrity.PoisonedByOutOfMemory
-        } else {
-            ContextIntegrity.Unknown
-        }
+        owner.recordContextIntegrity(
+            if (error == GLES20.GL_OUT_OF_MEMORY) {
+                ContextIntegrity.PoisonedByOutOfMemory
+            } else {
+                ContextIntegrity.Unknown
+            },
+        )
         evidence.contextIntegrity = owner.contextIntegrity
         evidence.result = if (error == GLES20.GL_OUT_OF_MEMORY) {
             GlOperationResult.ResourceExhausted

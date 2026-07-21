@@ -4,6 +4,7 @@ import android.graphics.SurfaceTexture
 import android.view.Surface
 import io.screenstream.engine.internal.android.AndroidVirtualDisplayAttachEvidence
 import io.screenstream.engine.internal.android.AndroidVirtualDisplayCreationEvidence
+import io.screenstream.engine.internal.android.AndroidVirtualDisplayDetachEvidence
 import io.screenstream.engine.internal.settlement.OperationDisposition
 import io.screenstream.engine.internal.settlement.OperationDomain
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
@@ -20,7 +21,7 @@ internal class TargetPorts private constructor(
     private val target: CurrentTarget,
     private val targetGate: ReentrantLock,
     private val generation: Long,
-    listenerInstallationOperationIdentity: Long,
+    private val listenerInstallationOperationIdentity: Long,
     surfaceReleaseOperationIdentity: Long,
     targetDestructionOperationIdentity: Long,
     private val settlementSignal: SettlementSignal,
@@ -34,38 +35,62 @@ internal class TargetPorts private constructor(
     }
 
     internal interface AndroidSurfacePort {
+        val targetIdentity: TargetIdentity
         val operationIdentity: Long
         val operationKind: TargetProducerOperationKind
         val provenance: TargetOperationProvenance
 
-        fun withSurface(block: (Surface) -> Unit): Boolean
+        fun withSurface(block: (Surface) -> Unit): TargetPortUseOutcome
     }
 
     internal interface AndroidDetachPort {
+        val targetIdentity: TargetIdentity
         val operationIdentity: Long
         val detachKind: TargetProducerDetachKind
         val provenance: TargetOperationProvenance
     }
 
+    /** Detached, fully allocated producer-port candidate. It has no Target authority before commit. */
+    internal interface StagedAndroidSurfacePort {
+        val targetIdentity: TargetIdentity
+        val operationIdentity: Long
+        val retargetOccurrenceIdentity: Long
+        val port: AndroidSurfacePort
+    }
+
+    /** Detached, fully allocated detach-port candidate. It has no Target authority before commit. */
+    internal interface StagedAndroidDetachPort {
+        val targetIdentity: TargetIdentity
+        val operationIdentity: Long
+        val retargetOccurrenceIdentity: Long
+        val port: AndroidDetachPort
+    }
+
     internal interface AndroidListenerInstallationPort {
+        val targetIdentity: TargetIdentity
         val operationIdentity: Long
         val provenance: TargetOperationProvenance
 
-        fun withListener(block: (SurfaceTexture, SurfaceTexture.OnFrameAvailableListener) -> Unit): Boolean
+        fun withListener(block: (SurfaceTexture, SurfaceTexture.OnFrameAvailableListener) -> Unit): TargetPortUseOutcome
     }
 
     internal interface AndroidListenerRemovalPort {
+        val targetIdentity: TargetIdentity
         val operationIdentity: Long
         val provenance: TargetOperationProvenance
 
-        fun withSurfaceTexture(block: (SurfaceTexture) -> Unit): Boolean
+        fun withSurfaceTexture(block: (SurfaceTexture) -> Unit): TargetPortUseOutcome
     }
 
     internal interface GlFramePort {
+        val targetIdentity: TargetIdentity
         val operationIdentity: Long
         val provenance: TargetOperationProvenance
+        val frameAdmissionEpoch: Long
 
-        fun withHandles(block: (SurfaceTexture, Int) -> Unit): Boolean
+        /** The GL Runnable's first domain transition. The returned fact is precreated. */
+        fun enter(): TargetFrameEntryResult
+        fun withHandles(block: (SurfaceTexture, Int) -> Unit): TargetPortUseOutcome
     }
 
     internal class TargetLease(
@@ -100,6 +125,7 @@ internal class TargetPorts private constructor(
 
     private class AndroidSurfacePortImpl(
         private val owner: TargetPorts,
+        override val targetIdentity: TargetIdentity,
         override val operationIdentity: Long,
         override val operationKind: TargetProducerOperationKind,
         override val provenance: TargetOperationProvenance,
@@ -109,10 +135,11 @@ internal class TargetPorts private constructor(
         val lease: TargetLease = TargetLease(owner)
         private var rawHandleConsumed: Boolean = false
         private var outcomeClaimed: Boolean = false
+        @Volatile
         private var applicationCandidates: ProducerApplicationCandidates? = null
 
-        override fun withSurface(block: (Surface) -> Unit): Boolean =
-            owner.withSurfaceLease(this, block)
+        override fun withSurface(block: (Surface) -> Unit): TargetPortUseOutcome =
+            owner.withSurfaceLease(this, block).toPortUseOutcome()
 
         fun claimRawHandleLocked(): Boolean {
             check(owner.targetGate.isHeldByCurrentThread)
@@ -162,12 +189,14 @@ internal class TargetPorts private constructor(
 
     private class AndroidDetachPortImpl(
         private val owner: TargetPorts,
+        override val targetIdentity: TargetIdentity,
         override val operationIdentity: Long,
         override val detachKind: TargetProducerDetachKind,
         override val provenance: TargetOperationProvenance,
         private val receipt: TargetProducerDetachReceipt,
     ) : AndroidDetachPort {
         private var consumed: Boolean = false
+        @Volatile
         private var applicationCandidate: ProducerDetachApplicationCandidate? = null
 
         fun detachReceiptLocked(): TargetProducerDetachReceipt? {
@@ -224,16 +253,266 @@ internal class TargetPorts private constructor(
         val operation: OperationOccurrence<*>,
     ) : TargetProducerDetachApplicationCandidate
 
+    private enum class StagedPortDisposition {
+        Detached,
+        CommittedUnsubmitted,
+        PostAcceptedOrAmbiguous,
+        AppliedOrRetired,
+        Unused,
+    }
+
+    private enum class StagedOccurrencePhase {
+        PreSubmission,
+        DefinitelyUnentered,
+        PostAcceptedOrAmbiguous,
+        NormalReturned,
+        OtherSettled,
+    }
+
+    private abstract class StagedPortFactImpl(
+        final override val targetIdentity: TargetIdentity,
+        final override val targetGeneration: Long,
+        final override val operationIdentity: Long,
+        final override val provenance: TargetOperationProvenance,
+        final override val retargetOccurrenceIdentity: Long,
+    ) : TargetStagedPortFact {
+        init {
+            require(targetGeneration > 0L)
+            require(operationIdentity > 0L)
+            require(retargetOccurrenceIdentity > 0L)
+            check(targetIdentity.generation == targetGeneration)
+            check(provenance.targetIdentity === targetIdentity)
+            check(provenance.operationIdentity == operationIdentity)
+        }
+    }
+
+    private class StagedProducerCommittedFactImpl(
+        targetIdentity: TargetIdentity,
+        targetGeneration: Long,
+        operationIdentity: Long,
+        provenance: TargetOperationProvenance,
+        retargetOccurrenceIdentity: Long,
+    ) : StagedPortFactImpl(
+        targetIdentity,
+        targetGeneration,
+        operationIdentity,
+        provenance,
+        retargetOccurrenceIdentity,
+    ), TargetStagedProducerPortCommittedFact
+
+    private class StagedDetachCommittedFactImpl(
+        targetIdentity: TargetIdentity,
+        targetGeneration: Long,
+        operationIdentity: Long,
+        provenance: TargetOperationProvenance,
+        retargetOccurrenceIdentity: Long,
+    ) : StagedPortFactImpl(
+        targetIdentity,
+        targetGeneration,
+        operationIdentity,
+        provenance,
+        retargetOccurrenceIdentity,
+    ), TargetStagedDetachPortCommittedFact
+
+    private class StagedProducerUnusedFactImpl(
+        targetIdentity: TargetIdentity,
+        targetGeneration: Long,
+        operationIdentity: Long,
+        provenance: TargetOperationProvenance,
+        retargetOccurrenceIdentity: Long,
+    ) : StagedPortFactImpl(
+        targetIdentity,
+        targetGeneration,
+        operationIdentity,
+        provenance,
+        retargetOccurrenceIdentity,
+    ), TargetStagedProducerPortUnusedFact
+
+    private class StagedDetachUnusedFactImpl(
+        targetIdentity: TargetIdentity,
+        targetGeneration: Long,
+        operationIdentity: Long,
+        provenance: TargetOperationProvenance,
+        retargetOccurrenceIdentity: Long,
+    ) : StagedPortFactImpl(
+        targetIdentity,
+        targetGeneration,
+        operationIdentity,
+        provenance,
+        retargetOccurrenceIdentity,
+    ), TargetStagedDetachPortUnusedFact
+
+    private class StagedPostExposedFactImpl(
+        targetIdentity: TargetIdentity,
+        targetGeneration: Long,
+        operationIdentity: Long,
+        provenance: TargetOperationProvenance,
+        retargetOccurrenceIdentity: Long,
+    ) : StagedPortFactImpl(
+        targetIdentity,
+        targetGeneration,
+        operationIdentity,
+        provenance,
+        retargetOccurrenceIdentity,
+    ), TargetStagedPortPostExposedFact
+
+    private class StagedProducerRetiredFactImpl(
+        targetIdentity: TargetIdentity,
+        targetGeneration: Long,
+        operationIdentity: Long,
+        provenance: TargetOperationProvenance,
+        retargetOccurrenceIdentity: Long,
+        override val noProducerEvidence: TargetNoProducerEvidence,
+    ) : StagedPortFactImpl(
+        targetIdentity,
+        targetGeneration,
+        operationIdentity,
+        provenance,
+        retargetOccurrenceIdentity,
+    ), TargetStagedProducerPortRetiredFact {
+        init {
+            val retargetEvidence = noProducerEvidence as? TargetRetargetProducerApplicationFact
+            check(retargetEvidence?.retargetOccurrenceIdentity == retargetOccurrenceIdentity)
+            check(noProducerEvidence.operationIdentity == operationIdentity)
+            check(noProducerEvidence.provenance === provenance)
+        }
+    }
+
+    private class StagedDetachRetiredFactImpl(
+        targetIdentity: TargetIdentity,
+        targetGeneration: Long,
+        operationIdentity: Long,
+        provenance: TargetOperationProvenance,
+        retargetOccurrenceIdentity: Long,
+    ) : StagedPortFactImpl(
+        targetIdentity,
+        targetGeneration,
+        operationIdentity,
+        provenance,
+        retargetOccurrenceIdentity,
+    ), TargetStagedDetachPortRetiredFact
+
+    private class StagedAndroidSurfacePortImpl(
+        private val owner: TargetPorts,
+        override val targetIdentity: TargetIdentity,
+        override val operationIdentity: Long,
+        override val retargetOccurrenceIdentity: Long,
+        override val port: AndroidSurfacePortImpl,
+        provenance: TargetOperationProvenance,
+        unenteredEvidence: TargetNoProducerEvidence,
+        inapplicableEvidence: TargetNoProducerEvidence,
+    ) : StagedAndroidSurfacePort {
+        var disposition: StagedPortDisposition = StagedPortDisposition.Detached
+        var boundOperation: OperationOccurrence<*>? = null
+        val committedFact: TargetStagedProducerPortCommittedFact = StagedProducerCommittedFactImpl(
+            targetIdentity,
+            targetIdentity.generation,
+            operationIdentity,
+            provenance,
+            retargetOccurrenceIdentity,
+        )
+        val unusedFact: TargetStagedProducerPortUnusedFact = StagedProducerUnusedFactImpl(
+            targetIdentity,
+            targetIdentity.generation,
+            operationIdentity,
+            provenance,
+            retargetOccurrenceIdentity,
+        )
+        val postExposedFact: TargetStagedPortPostExposedFact = StagedPostExposedFactImpl(
+            targetIdentity,
+            targetIdentity.generation,
+            operationIdentity,
+            provenance,
+            retargetOccurrenceIdentity,
+        )
+        val unenteredRetiredFact: TargetStagedProducerPortRetiredFact = StagedProducerRetiredFactImpl(
+            targetIdentity,
+            targetIdentity.generation,
+            operationIdentity,
+            provenance,
+            retargetOccurrenceIdentity,
+            unenteredEvidence,
+        )
+        val inapplicableRetiredFact: TargetStagedProducerPortRetiredFact = StagedProducerRetiredFactImpl(
+            targetIdentity,
+            targetIdentity.generation,
+            operationIdentity,
+            provenance,
+            retargetOccurrenceIdentity,
+            inapplicableEvidence,
+        )
+
+        init {
+            require(retargetOccurrenceIdentity > 0L)
+            check(port.targetIdentity === targetIdentity)
+            check(port.operationIdentity == operationIdentity)
+            check(port.provenance === provenance)
+        }
+
+        fun belongsTo(candidate: TargetPorts): Boolean = owner === candidate
+    }
+
+    private class StagedAndroidDetachPortImpl(
+        private val owner: TargetPorts,
+        override val targetIdentity: TargetIdentity,
+        override val operationIdentity: Long,
+        override val retargetOccurrenceIdentity: Long,
+        override val port: AndroidDetachPortImpl,
+        provenance: TargetOperationProvenance,
+    ) : StagedAndroidDetachPort {
+        var disposition: StagedPortDisposition = StagedPortDisposition.Detached
+        var boundOperation: OperationOccurrence<*>? = null
+        val committedFact: TargetStagedDetachPortCommittedFact = StagedDetachCommittedFactImpl(
+            targetIdentity,
+            targetIdentity.generation,
+            operationIdentity,
+            provenance,
+            retargetOccurrenceIdentity,
+        )
+        val unusedFact: TargetStagedDetachPortUnusedFact = StagedDetachUnusedFactImpl(
+            targetIdentity,
+            targetIdentity.generation,
+            operationIdentity,
+            provenance,
+            retargetOccurrenceIdentity,
+        )
+        val postExposedFact: TargetStagedPortPostExposedFact = StagedPostExposedFactImpl(
+            targetIdentity,
+            targetIdentity.generation,
+            operationIdentity,
+            provenance,
+            retargetOccurrenceIdentity,
+        )
+        val unenteredRetiredFact: TargetStagedDetachPortRetiredFact = StagedDetachRetiredFactImpl(
+            targetIdentity,
+            targetIdentity.generation,
+            operationIdentity,
+            provenance,
+            retargetOccurrenceIdentity,
+        )
+
+        init {
+            require(retargetOccurrenceIdentity > 0L)
+            check(port.targetIdentity === targetIdentity)
+            check(port.operationIdentity == operationIdentity)
+            check(port.provenance === provenance)
+        }
+
+        fun belongsTo(candidate: TargetPorts): Boolean = owner === candidate
+    }
+
     private class AndroidListenerInstallationPortImpl(
         private val owner: TargetPorts,
+        override val targetIdentity: TargetIdentity,
         override val operationIdentity: Long,
         override val provenance: TargetOperationProvenance,
     ) : AndroidListenerInstallationPort {
         val lease: TargetLease = TargetLease(owner)
         private var consumed: Boolean = false
 
-        override fun withListener(block: (SurfaceTexture, SurfaceTexture.OnFrameAvailableListener) -> Unit): Boolean =
-            owner.withListenerInstallationLease(this, block)
+        override fun withListener(
+            block: (SurfaceTexture, SurfaceTexture.OnFrameAvailableListener) -> Unit,
+        ): TargetPortUseOutcome = owner.withListenerInstallationLease(this, block).toPortUseOutcome()
 
         fun claimLocked(): Boolean {
             check(owner.targetGate.isHeldByCurrentThread)
@@ -245,14 +524,15 @@ internal class TargetPorts private constructor(
 
     private class AndroidListenerRemovalPortImpl(
         private val owner: TargetPorts,
+        override val targetIdentity: TargetIdentity,
         override val operationIdentity: Long,
         override val provenance: TargetOperationProvenance,
     ) : AndroidListenerRemovalPort {
         val lease: TargetLease = TargetLease(owner)
         private var consumed: Boolean = false
 
-        override fun withSurfaceTexture(block: (SurfaceTexture) -> Unit): Boolean =
-            owner.withListenerRemovalLease(this, block)
+        override fun withSurfaceTexture(block: (SurfaceTexture) -> Unit): TargetPortUseOutcome =
+            owner.withListenerRemovalLease(this, block).toPortUseOutcome()
 
         fun claimLocked(): Boolean {
             check(owner.targetGate.isHeldByCurrentThread)
@@ -264,14 +544,128 @@ internal class TargetPorts private constructor(
 
     private class GlFramePortImpl(
         private val owner: TargetPorts,
+        override val targetIdentity: TargetIdentity,
         override val operationIdentity: Long,
         override val provenance: TargetOperationProvenance,
+        override val frameAdmissionEpoch: Long,
     ) : GlFramePort {
+        private enum class Disposition {
+            Detached,
+            Reserved,
+            Entered,
+            Rejected,
+            Retired,
+        }
+
         val lease: TargetLease = TargetLease(owner)
         private var consumed: Boolean = false
+        private var disposition: Disposition = Disposition.Detached
+        val enteredFact: TargetEnteredFact = TargetEnteredFact.create(
+            owner.targetOwner,
+            owner.constructionProof,
+            targetIdentity,
+            frameAdmissionEpoch,
+            operationIdentity,
+            provenance,
+        )
+        val reservedFact: TargetFrameReservedFact = TargetFrameReservedFact.create(
+            owner.targetOwner,
+            owner.constructionProof,
+            targetIdentity,
+            frameAdmissionEpoch,
+            operationIdentity,
+            provenance,
+        )
+        val rejectedFact: TargetFrameRejectedBySealOrStaleEpochFact =
+            TargetFrameRejectedBySealOrStaleEpochFact.create(
+                owner.targetOwner,
+                owner.constructionProof,
+                targetIdentity,
+                frameAdmissionEpoch,
+                operationIdentity,
+                provenance,
+            )
+        private val retiredAfterEntryFact: TargetFramePortRetiredFact = TargetFramePortRetiredFact.create(
+            owner.targetOwner,
+            owner.constructionProof,
+            targetIdentity,
+            frameAdmissionEpoch,
+            operationIdentity,
+            provenance,
+            enteredFact,
+        )
+        private val retiredAfterRejectionFact: TargetFramePortRetiredFact = TargetFramePortRetiredFact.create(
+            owner.targetOwner,
+            owner.constructionProof,
+            targetIdentity,
+            frameAdmissionEpoch,
+            operationIdentity,
+            provenance,
+            rejectedFact,
+        )
 
-        override fun withHandles(block: (SurfaceTexture, Int) -> Unit): Boolean =
-            owner.withGlFrameLease(this, block)
+        override fun enter(): TargetFrameEntryResult = owner.enterGlFramePort(this)
+
+        override fun withHandles(block: (SurfaceTexture, Int) -> Unit): TargetPortUseOutcome =
+            owner.withGlFrameLease(this, block).toPortUseOutcome()
+
+        fun reserveLocked(): Boolean {
+            check(owner.targetGate.isHeldByCurrentThread)
+            if (disposition != Disposition.Detached) return false
+            disposition = Disposition.Reserved
+            return true
+        }
+
+        fun enterLocked(): TargetFrameEntryResult {
+            check(owner.targetGate.isHeldByCurrentThread)
+            return when (disposition) {
+                Disposition.Reserved -> {
+                    disposition = Disposition.Entered
+                    enteredFact
+                }
+                Disposition.Rejected -> rejectedFact
+                Disposition.Entered -> enteredFact
+                Disposition.Detached, Disposition.Retired -> rejectedFact
+            }
+        }
+
+        fun rejectLocked(): TargetFrameRejectedBySealOrStaleEpochFact {
+            check(owner.targetGate.isHeldByCurrentThread)
+            if (disposition == Disposition.Detached || disposition == Disposition.Reserved) {
+                disposition = Disposition.Rejected
+            }
+            return rejectedFact
+        }
+
+        fun isEnteredLocked(): Boolean {
+            check(owner.targetGate.isHeldByCurrentThread)
+            return disposition == Disposition.Entered
+        }
+
+        fun isReservedLocked(): Boolean {
+            check(owner.targetGate.isHeldByCurrentThread)
+            return disposition == Disposition.Reserved
+        }
+
+        fun decidedEntryResultLocked(): TargetFrameEntryResult? {
+            check(owner.targetGate.isHeldByCurrentThread)
+            return when (disposition) {
+                Disposition.Entered -> enteredFact
+                Disposition.Rejected, Disposition.Retired -> rejectedFact
+                Disposition.Detached, Disposition.Reserved -> null
+            }
+        }
+
+        fun retireLocked(): TargetFramePortRetiredFact? {
+            check(owner.targetGate.isHeldByCurrentThread)
+            val fact = when (disposition) {
+                Disposition.Entered -> retiredAfterEntryFact
+                Disposition.Reserved, Disposition.Rejected -> retiredAfterRejectionFact
+                Disposition.Detached, Disposition.Retired -> return null
+            }
+            disposition = Disposition.Retired
+            return fact
+        }
 
         fun claimLocked(): Boolean {
             check(owner.targetGate.isHeldByCurrentThread)
@@ -285,11 +679,21 @@ internal class TargetPorts private constructor(
 
     private var producerPort: AndroidSurfacePortImpl? = null
     private var producerDetachPort: AndroidDetachPortImpl? = null
+    private var committedStagedProducerPort: StagedAndroidSurfacePortImpl? = null
+    private var committedStagedDetachPort: StagedAndroidDetachPortImpl? = null
     private var listenerInstallationPort: AndroidListenerInstallationPortImpl? = null
     private var listenerRemovalPort: AndroidListenerRemovalPortImpl? = null
     private var surfaceReleasePort: TargetRetirement.SurfaceReleasePort? = null
     private var glFramePort: GlFramePortImpl? = null
     private var leaseCount: Int = 0
+
+    private val precreatedListenerInstallationPort: AndroidListenerInstallationPortImpl =
+        AndroidListenerInstallationPortImpl(
+            this,
+            target.identity,
+            listenerInstallationOperationIdentity,
+            provenance(listenerInstallationOperationIdentity, TargetPortKind.ListenerInstallation),
+        )
 
     internal val precreatedSurfaceReleasePort: TargetRetirement.SurfaceReleasePort =
         TargetRetirement.SurfaceReleasePort.create(
@@ -339,26 +743,49 @@ internal class TargetPorts private constructor(
     internal fun matchesListenerInstallationOperationIdentity(operationIdentity: Long): Boolean =
         target.listenerInstallationOperationIdentity == operationIdentity
 
+    internal fun installPrecreatedListenerInstallationPortLocked() {
+        check(targetGate.isHeldByCurrentThread)
+        check(listenerInstallationPort == null)
+        check(target.canRegisterListenerInstallationLocked(
+            listenerInstallationOperationIdentity,
+            portAlreadyRegistered = false,
+        ))
+        listenerInstallationPort = precreatedListenerInstallationPort
+    }
+
     internal fun registerListenerInstallationPort(operationIdentity: Long): AndroidListenerInstallationPort? {
         require(operationIdentity > 0L)
-        val provenance = provenance(operationIdentity, TargetPortKind.ListenerInstallation)
-        val candidate = AndroidListenerInstallationPortImpl(this, operationIdentity, provenance)
         return targetGate.withLock {
-            if (!target.canRegisterListenerInstallationLocked(operationIdentity, listenerInstallationPort != null)) {
+            val existing = listenerInstallationPort
+            if (existing != null) {
+                return@withLock existing.takeIf { it.operationIdentity == operationIdentity }
+            }
+            if (!target.canRegisterListenerInstallationLocked(operationIdentity, portAlreadyRegistered = false)) {
                 return@withLock null
             }
-            candidate.also { listenerInstallationPort = it }
+            precreatedListenerInstallationPort.also { listenerInstallationPort = it }
         }
     }
 
-    internal fun applyListenerInstallationReceipt(port: AndroidListenerInstallationPort, operation: OperationOccurrence<*>): Boolean {
+    internal fun applyListenerInstallationReceipt(
+        port: AndroidListenerInstallationPort,
+        operation: OperationOccurrence<*>,
+    ): TargetListenerInstalledFact? {
         val mechanicallyReturned = operation.settlementGate.withLock {
             operation.identity == port.operationIdentity && operation.returnCell.disposition == OperationReturnDisposition.Normal
         }
-        if (!mechanicallyReturned) return false
-        return targetGate.withLock {
+        if (!mechanicallyReturned) return null
+        val applied = targetGate.withLock {
             target.applyListenerInstallationLocked(port === listenerInstallationPort, port.operationIdentity)
         }
+        if (!applied) return null
+        return TargetListenerInstalledFact.create(
+            targetOwner,
+            constructionProof,
+            target.identity,
+            port.operationIdentity,
+            port.provenance,
+        )
     }
 
     internal fun registerProducerPort(operationIdentity: Long, operationKind: TargetProducerOperationKind): AndroidSurfacePort? {
@@ -384,12 +811,265 @@ internal class TargetPorts private constructor(
                     provenance,
                 )
             }
-        val candidate = AndroidSurfacePortImpl(this, operationIdentity, operationKind, provenance, producerEvidence, noProducerEvidence)
+        val candidate = AndroidSurfacePortImpl(this, target.identity, operationIdentity, operationKind, provenance, producerEvidence, noProducerEvidence)
         return targetGate.withLock {
             if (!target.canRegisterProducerPortLocked(producerPort != null)) {
                 return@withLock null
             }
             candidate.also { producerPort = it }
+        }
+    }
+
+    internal fun prepareStagedProducerPort(
+        operationIdentity: Long,
+        retargetOccurrenceIdentity: Long,
+    ): StagedAndroidSurfacePort {
+        require(operationIdentity > 0L)
+        require(retargetOccurrenceIdentity > 0L)
+        val operationKind = TargetProducerOperationKind.VirtualDisplayAttachment
+        val portKind = TargetPortKind.VirtualDisplayAttachment
+        val provenance = provenance(operationIdentity, portKind)
+        val producerEvidence = targetRetargetProducerEvidence(
+            targetOwner,
+            constructionProof,
+            generation,
+            operationIdentity,
+            operationKind,
+            provenance,
+            retargetOccurrenceIdentity,
+        )
+        val noProducerEvidence: Array<TargetNoProducerEvidence> =
+            Array(TargetNoProducerReason.entries.size) { index ->
+                targetRetargetNoProducerEvidence(
+                    targetOwner,
+                    constructionProof,
+                    generation,
+                    operationIdentity,
+                    operationKind,
+                    TargetNoProducerReason.entries[index],
+                    provenance,
+                    retargetOccurrenceIdentity,
+                )
+            }
+        val port = AndroidSurfacePortImpl(
+            this,
+            target.identity,
+            operationIdentity,
+            operationKind,
+            provenance,
+            producerEvidence,
+            noProducerEvidence,
+        )
+        return StagedAndroidSurfacePortImpl(
+            this,
+            target.identity,
+            operationIdentity,
+            retargetOccurrenceIdentity,
+            port,
+            provenance,
+            noProducerEvidence[TargetNoProducerReason.Unentered.ordinal],
+            noProducerEvidence[TargetNoProducerReason.Inapplicable.ordinal],
+        )
+    }
+
+    internal fun prepareStagedProducerApplicationCandidates(
+        stagedPort: StagedAndroidSurfacePort,
+        operation: OperationOccurrence<*>,
+    ): Boolean {
+        val staged = stagedPort as? StagedAndroidSurfacePortImpl ?: return false
+        if (!staged.belongsTo(this) || operation.identity != staged.operationIdentity ||
+            operation.returnCell.evidence !is AndroidVirtualDisplayAttachEvidence
+        ) {
+            return false
+        }
+        val candidates = ProducerApplicationCandidates(this, staged.port, operation)
+        return targetGate.withLock {
+            val bound = staged.disposition == StagedPortDisposition.Detached && staged.boundOperation == null &&
+                    staged.port.bindApplicationCandidatesLocked(candidates)
+            if (bound) staged.boundOperation = operation
+            bound
+        }
+    }
+
+    internal fun commitStagedProducerPort(
+        stagedPort: StagedAndroidSurfacePort,
+    ): TargetStagedProducerPortCommitResult? {
+        val staged = stagedPort as? StagedAndroidSurfacePortImpl ?: return null
+        if (!staged.belongsTo(this)) return null
+        return targetGate.withLock {
+            when (staged.disposition) {
+                StagedPortDisposition.CommittedUnsubmitted,
+                StagedPortDisposition.PostAcceptedOrAmbiguous,
+                StagedPortDisposition.AppliedOrRetired ->
+                    return@withLock staged.committedFact.takeIf {
+                        committedStagedProducerPort === staged && producerPort === staged.port
+                    }
+
+                StagedPortDisposition.Unused -> return@withLock staged.unusedFact
+                StagedPortDisposition.Detached -> Unit
+            }
+            val boundOperation = staged.boundOperation
+            if (boundOperation == null ||
+                boundOperation.returnCell.evidence !is AndroidVirtualDisplayAttachEvidence ||
+                !target.canRegisterProducerPortLocked(producerPort != null) ||
+                committedStagedProducerPort != null
+            ) {
+                staged.disposition = StagedPortDisposition.Unused
+                return@withLock staged.unusedFact
+            }
+            producerPort = staged.port
+            committedStagedProducerPort = staged
+            staged.disposition = StagedPortDisposition.CommittedUnsubmitted
+            staged.committedFact
+        }
+    }
+
+    internal fun markStagedProducerPostAcceptedOrAmbiguous(
+        stagedPort: StagedAndroidSurfacePort,
+    ): TargetStagedPortPostExposedFact? {
+        val staged = stagedPort as? StagedAndroidSurfacePortImpl ?: return null
+        if (!staged.belongsTo(this)) return null
+        val operation = staged.boundOperation ?: return null
+        val phase = stagedOccurrencePhase(operation)
+        if (phase != StagedOccurrencePhase.PostAcceptedOrAmbiguous &&
+            phase != StagedOccurrencePhase.NormalReturned
+        ) {
+            return null
+        }
+        return targetGate.withLock {
+            if (staged !== committedStagedProducerPort || staged.port !== producerPort ||
+                staged.boundOperation !== operation ||
+                staged.disposition != StagedPortDisposition.CommittedUnsubmitted
+            ) {
+                return@withLock null
+            }
+            staged.disposition = StagedPortDisposition.PostAcceptedOrAmbiguous
+            staged.postExposedFact
+        }
+    }
+
+    internal fun retireCommittedStagedProducerPortDefinitelyUnentered(
+        stagedPort: StagedAndroidSurfacePort,
+    ): TargetStagedProducerPortRetiredFact? {
+        val staged = stagedPort as? StagedAndroidSurfacePortImpl ?: return null
+        if (!staged.belongsTo(this)) return null
+        val operation = staged.boundOperation ?: return null
+        if (stagedOccurrencePhase(operation) != StagedOccurrencePhase.DefinitelyUnentered) return null
+        return targetGate.withLock {
+            if (staged !== committedStagedProducerPort || staged.port !== producerPort ||
+                staged.boundOperation !== operation ||
+                staged.disposition != StagedPortDisposition.CommittedUnsubmitted &&
+                staged.disposition != StagedPortDisposition.PostAcceptedOrAmbiguous
+            ) {
+                return@withLock null
+            }
+            val evidence = staged.port.noProducerEvidenceLocked(TargetNoProducerReason.Unentered)
+                ?: return@withLock null
+            if (!target.applyNoProducerEvidenceLocked(
+                    evidence,
+                    staged.port.matchesNoProducerEvidence(evidence),
+                    staged.port.operationIdentity,
+                    staged.port.operationKind,
+                    staged.port.provenance,
+                )
+            ) {
+                return@withLock null
+            }
+            staged.port.recordOutcomeClaimedLocked()
+            staged.disposition = StagedPortDisposition.AppliedOrRetired
+            producerPort = null
+            committedStagedProducerPort = null
+            staged.unenteredRetiredFact
+        }
+    }
+
+    internal fun retireUnusedStagedProducerPortTerminalInapplicable(
+        stagedPort: StagedAndroidSurfacePort,
+    ): TargetStagedProducerPortRetiredFact? {
+        val staged = stagedPort as? StagedAndroidSurfacePortImpl ?: return null
+        if (!staged.belongsTo(this)) return null
+        val operation = staged.boundOperation ?: return null
+        if (stagedOccurrencePhase(operation) != StagedOccurrencePhase.DefinitelyUnentered) return null
+        return targetGate.withLock {
+            if (staged.boundOperation !== operation || staged.disposition != StagedPortDisposition.Unused ||
+                producerPort != null || committedStagedProducerPort != null
+            ) {
+                return@withLock null
+            }
+            val evidence = staged.port.noProducerEvidenceLocked(TargetNoProducerReason.Inapplicable)
+                ?: return@withLock null
+            if (!target.applyStagedProducerTerminalFactLocked(
+                    evidence,
+                    staged.port.matchesNoProducerEvidence(evidence),
+                    staged.port.operationIdentity,
+                    staged.port.provenance,
+                    staged.retargetOccurrenceIdentity,
+                )
+            ) {
+                return@withLock null
+            }
+            staged.port.recordOutcomeClaimedLocked()
+            staged.disposition = StagedPortDisposition.AppliedOrRetired
+            staged.inapplicableRetiredFact
+        }
+    }
+
+    internal fun applyStagedProducerTerminalApplication(
+        stagedPort: StagedAndroidSurfacePort,
+    ): TargetProducerApplicationFact? {
+        val staged = stagedPort as? StagedAndroidSurfacePortImpl ?: return null
+        if (!staged.belongsTo(this)) return null
+        val operation = staged.boundOperation ?: return null
+        val outcome = operation.settlementGate.withLock {
+            producerMechanicalOutcomeLocked(staged.port, operation)
+        }
+        if (outcome != ProducerMechanicalOutcome.Producer &&
+            outcome != ProducerMechanicalOutcome.Unentered &&
+            outcome != ProducerMechanicalOutcome.Inapplicable
+        ) {
+            return null
+        }
+        return targetGate.withLock {
+            if (staged !== committedStagedProducerPort || staged.port !== producerPort ||
+                staged.boundOperation !== operation ||
+                staged.disposition != StagedPortDisposition.CommittedUnsubmitted &&
+                staged.disposition != StagedPortDisposition.PostAcceptedOrAmbiguous
+            ) {
+                return@withLock null
+            }
+            val fact: TargetProducerApplicationFact = when (outcome) {
+                ProducerMechanicalOutcome.Producer ->
+                    staged.port.producerEvidenceLocked()
+
+                ProducerMechanicalOutcome.Unentered ->
+                    staged.port.noProducerEvidenceLocked(TargetNoProducerReason.Unentered)
+
+                ProducerMechanicalOutcome.Inapplicable ->
+                    staged.port.noProducerEvidenceLocked(TargetNoProducerReason.Inapplicable)
+
+                ProducerMechanicalOutcome.None,
+                ProducerMechanicalOutcome.ReturnedWithoutProducer -> null
+            } ?: return@withLock null
+            val exactEvidence = when (fact) {
+                is TargetProducerEvidence -> staged.port.matchesProducerEvidence(fact)
+                is TargetNoProducerEvidence -> staged.port.matchesNoProducerEvidence(fact)
+                else -> false
+            }
+            if (!target.applyStagedProducerTerminalFactLocked(
+                    fact,
+                    exactEvidence,
+                    staged.port.operationIdentity,
+                    staged.port.provenance,
+                    staged.retargetOccurrenceIdentity,
+                )
+            ) {
+                return@withLock null
+            }
+            staged.port.recordOutcomeClaimedLocked()
+            staged.disposition = StagedPortDisposition.AppliedOrRetired
+            producerPort = null
+            committedStagedProducerPort = null
+            fact
         }
     }
 
@@ -418,6 +1098,12 @@ internal class TargetPorts private constructor(
             if (port !== exactPort ||
                 port.provenance !== exactPort.provenance ||
                 exactCandidate.operation.identity != exactPort.operationIdentity
+            ) {
+                return@withLock null
+            }
+            val staged = committedStagedProducerPort
+            if (staged != null &&
+                (staged.port !== exactPort || staged.disposition != StagedPortDisposition.PostAcceptedOrAmbiguous)
             ) {
                 return@withLock null
             }
@@ -462,6 +1148,11 @@ internal class TargetPorts private constructor(
             }
             if (!applied) return@withLock null
             exactPort.recordOutcomeClaimedLocked()
+            if (staged != null) {
+                staged.disposition = StagedPortDisposition.AppliedOrRetired
+                producerPort = null
+                committedStagedProducerPort = null
+            }
             fact
         }
     }
@@ -488,6 +1179,12 @@ internal class TargetPorts private constructor(
             if (port !== exactPort || port.provenance !== exactPort.provenance || exactCandidate.operation.identity != exactPort.operationIdentity) {
                 return@withLock null
             }
+            val staged = committedStagedDetachPort
+            if (staged != null &&
+                (staged.port !== exactPort || staged.disposition != StagedPortDisposition.PostAcceptedOrAmbiguous)
+            ) {
+                return@withLock null
+            }
             val receipt = exactPort.detachReceiptLocked() ?: return@withLock null
             if (!target.applyProducerDetachReceiptLocked(
                     receipt,
@@ -500,37 +1197,104 @@ internal class TargetPorts private constructor(
                 return@withLock null
             }
             exactPort.recordConsumedLocked()
+            if (staged != null) {
+                staged.disposition = StagedPortDisposition.AppliedOrRetired
+                producerDetachPort = null
+                committedStagedDetachPort = null
+            }
             receipt
         }
     }
 
     internal fun detachedGlFramePort(operationIdentity: Long): GlFramePort? {
         require(operationIdentity > 0L)
-        val provenance = provenance(operationIdentity, TargetPortKind.GlFrame)
-        val candidate = GlFramePortImpl(this, operationIdentity, provenance)
-        return targetGate.withLock {
+        var epoch = 0L
+        val canPrecreate = targetGate.withLock {
             if (!resources.installedResources || !target.listenerInstalled || target.generationFenced || glFramePort != null ||
                 target.producerState != TargetProducerState.ProducerAttached
             ) {
-                return@withLock null
+                return@withLock false
+            }
+            epoch = target.frameAdmissionEpochLocked
+            true
+        }
+        if (!canPrecreate) return null
+        val provenance = provenance(operationIdentity, TargetPortKind.GlFrame)
+        val candidate = GlFramePortImpl(this, target.identity, operationIdentity, provenance, epoch)
+        return targetGate.withLock {
+            if (!resources.installedResources || !target.listenerInstalled || target.generationFenced || glFramePort != null ||
+                target.producerState != TargetProducerState.ProducerAttached ||
+                !target.isFrameAdmissionOpenLocked(epoch)
+            ) {
+                candidate.rejectLocked()
+                return@withLock candidate
             }
             candidate
         }
     }
 
-    internal fun commitGlFramePort(port: GlFramePort): Boolean = targetGate.withLock {
-        val candidate = port as? GlFramePortImpl ?: return@withLock false
-        if (!candidate.belongsTo(target) || !resources.installedResources ||
-            !target.listenerInstalled || target.generationFenced || glFramePort != null ||
-            target.producerState != TargetProducerState.ProducerAttached
-        ) {
-            return@withLock false
+    internal fun commitGlFrameReservation(port: GlFramePort): TargetFrameReservationResult {
+        val candidate = port as? GlFramePortImpl
+        if (candidate == null) {
+            return TargetFrameRejectedBySealOrStaleEpochFact.create(
+                targetOwner,
+                constructionProof,
+                port.targetIdentity,
+                port.frameAdmissionEpoch,
+                port.operationIdentity,
+                port.provenance,
+            )
         }
-        glFramePort = candidate
-        true
+        return targetGate.withLock {
+            if (candidate === glFramePort) return@withLock candidate.rejectedFact
+            if (!candidate.belongsTo(target) || !resources.installedResources ||
+                !target.listenerInstalled || target.generationFenced || glFramePort != null ||
+                target.producerState != TargetProducerState.ProducerAttached ||
+                !target.isFrameAdmissionOpenLocked(candidate.frameAdmissionEpoch) || !candidate.reserveLocked()
+            ) {
+                candidate.rejectLocked()
+                return@withLock candidate.rejectedFact
+            }
+            glFramePort = candidate
+            candidate.reservedFact
+        }
     }
 
-    internal fun retireGlFramePortAfterSettlement(port: GlFramePort, operation: OperationOccurrence<*>): Boolean {
+    internal fun commitGlFramePort(port: GlFramePort): Boolean =
+        commitGlFrameReservation(port) is TargetFrameReservedFact
+
+    internal fun enterGlFramePort(port: GlFramePort): TargetFrameEntryResult {
+        val candidate = port as? GlFramePortImpl
+        if (candidate == null) {
+            return TargetFrameRejectedBySealOrStaleEpochFact.create(
+                targetOwner,
+                constructionProof,
+                port.targetIdentity,
+                port.frameAdmissionEpoch,
+                port.operationIdentity,
+                port.provenance,
+            )
+        }
+        return targetGate.withLock {
+            if (candidate !== glFramePort || candidate.provenance !== glFramePort?.provenance) {
+                return@withLock candidate.rejectLocked()
+            }
+            val decidedResult = candidate.decidedEntryResultLocked()
+            if (decidedResult != null) return@withLock decidedResult
+            if (!target.isFrameAdmissionOpenLocked(candidate.frameAdmissionEpoch)) {
+                return@withLock candidate.rejectLocked()
+            }
+            check(candidate.isReservedLocked())
+            val result = candidate.enterLocked()
+            if (result is TargetEnteredFact) target.recordFrameEnteredLocked(result)
+            result
+        }
+    }
+
+    internal fun retireGlFramePortFactAfterSettlement(
+        port: GlFramePort,
+        operation: OperationOccurrence<*>,
+    ): TargetFramePortRetiredFact? {
         val mechanicallySettled = operation.settlementGate.withLock {
             if (operation.identity != port.operationIdentity) return@withLock false
             if (operation.returnCell.disposition != OperationReturnDisposition.Empty) {
@@ -546,20 +1310,32 @@ internal class TargetPorts private constructor(
                             operation.disposition == OperationDisposition.SchedulerRejected ||
                             operation.disposition == OperationDisposition.DeadlineGuardFailed)
         }
-        if (!mechanicallySettled) return false
+        if (!mechanicallySettled) return null
         return targetGate.withLock {
             if (port !== glFramePort || port.provenance !== glFramePort?.provenance) {
-                return@withLock false
+                return@withLock null
             }
+            val candidate = port as? GlFramePortImpl ?: return@withLock null
+            val retiredFact = candidate.retireLocked() ?: return@withLock null
             glFramePort = null
-            true
+            target.recordFramePortRetiredLocked(candidate.enteredFact)
+            retiredFact
         }
+    }
+
+    internal fun retireGlFramePortAfterSettlement(port: GlFramePort, operation: OperationOccurrence<*>): Boolean =
+        retireGlFramePortFactAfterSettlement(port, operation) != null
+
+    internal fun rejectReservedFrameForSealLocked(): TargetFrameRejectedBySealOrStaleEpochFact? {
+        check(targetGate.isHeldByCurrentThread)
+        val port = glFramePort ?: return null
+        return port.rejectedFact.takeIf { port.isReservedLocked() }?.also { port.rejectLocked() }
     }
 
     internal fun registerListenerRemovalPort(operationIdentity: Long): AndroidListenerRemovalPort? {
         require(operationIdentity > 0L)
         val provenance = provenance(operationIdentity, TargetPortKind.ListenerRemoval)
-        val candidate = AndroidListenerRemovalPortImpl(this, operationIdentity, provenance)
+        val candidate = AndroidListenerRemovalPortImpl(this, target.identity, operationIdentity, provenance)
         return targetGate.withLock {
             when (target.claimListenerRemovalIdentityLocked(operationIdentity)) {
                 TargetRegistrationClaim.New ->
@@ -579,11 +1355,183 @@ internal class TargetPorts private constructor(
     internal fun registerVirtualDisplayReleasePort(operationIdentity: Long): AndroidDetachPort? =
         registerDetachPort(operationIdentity, TargetPortKind.VirtualDisplayRelease, TargetProducerDetachKind.VirtualDisplayRelease)
 
+    internal fun prepareStagedDetachPort(
+        operationIdentity: Long,
+        retargetOccurrenceIdentity: Long,
+    ): StagedAndroidDetachPort {
+        require(operationIdentity > 0L)
+        require(retargetOccurrenceIdentity > 0L)
+        val detachKind = TargetProducerDetachKind.VirtualDisplayDetach
+        val portKind = TargetPortKind.VirtualDisplayDetach
+        val provenance = provenance(operationIdentity, portKind)
+        val receipt = targetRetargetProducerDetachReceipt(
+            targetOwner,
+            constructionProof,
+            generation,
+            operationIdentity,
+            detachKind,
+            provenance,
+            retargetOccurrenceIdentity,
+        )
+        val port = AndroidDetachPortImpl(
+            this,
+            target.identity,
+            operationIdentity,
+            detachKind,
+            provenance,
+            receipt,
+        )
+        return StagedAndroidDetachPortImpl(
+            this,
+            target.identity,
+            operationIdentity,
+            retargetOccurrenceIdentity,
+            port,
+            provenance,
+        )
+    }
+
+    internal fun prepareStagedDetachApplicationCandidate(
+        stagedPort: StagedAndroidDetachPort,
+        operation: OperationOccurrence<*>,
+    ): Boolean {
+        val staged = stagedPort as? StagedAndroidDetachPortImpl ?: return false
+        if (!staged.belongsTo(this) || operation.identity != staged.operationIdentity ||
+            operation.returnCell.evidence !is AndroidVirtualDisplayDetachEvidence
+        ) {
+            return false
+        }
+        val candidate = ProducerDetachApplicationCandidate(this, staged.port, operation)
+        return targetGate.withLock {
+            val bound = staged.disposition == StagedPortDisposition.Detached && staged.boundOperation == null &&
+                    staged.port.bindApplicationCandidateLocked(candidate)
+            if (bound) staged.boundOperation = operation
+            bound
+        }
+    }
+
+    internal fun commitStagedDetachPort(
+        stagedPort: StagedAndroidDetachPort,
+    ): TargetStagedDetachPortCommitResult? {
+        val staged = stagedPort as? StagedAndroidDetachPortImpl ?: return null
+        if (!staged.belongsTo(this)) return null
+        return targetGate.withLock {
+            when (staged.disposition) {
+                StagedPortDisposition.CommittedUnsubmitted,
+                StagedPortDisposition.PostAcceptedOrAmbiguous,
+                StagedPortDisposition.AppliedOrRetired ->
+                    return@withLock staged.committedFact.takeIf {
+                        committedStagedDetachPort === staged && producerDetachPort === staged.port
+                    }
+
+                StagedPortDisposition.Unused -> return@withLock staged.unusedFact
+                StagedPortDisposition.Detached -> Unit
+            }
+            val boundOperation = staged.boundOperation
+            if (boundOperation == null ||
+                boundOperation.returnCell.evidence !is AndroidVirtualDisplayDetachEvidence ||
+                producerDetachPort != null || committedStagedDetachPort != null ||
+                target.claimDetachIdentityLocked(staged.operationIdentity, staged.port.detachKind) != TargetRegistrationClaim.New
+            ) {
+                staged.disposition = StagedPortDisposition.Unused
+                return@withLock staged.unusedFact
+            }
+            producerDetachPort = staged.port
+            committedStagedDetachPort = staged
+            staged.disposition = StagedPortDisposition.CommittedUnsubmitted
+            staged.committedFact
+        }
+    }
+
+    internal fun markStagedDetachPostAcceptedOrAmbiguous(
+        stagedPort: StagedAndroidDetachPort,
+    ): TargetStagedPortPostExposedFact? {
+        val staged = stagedPort as? StagedAndroidDetachPortImpl ?: return null
+        if (!staged.belongsTo(this)) return null
+        val operation = staged.boundOperation ?: return null
+        val phase = stagedOccurrencePhase(operation)
+        if (phase != StagedOccurrencePhase.PostAcceptedOrAmbiguous &&
+            phase != StagedOccurrencePhase.NormalReturned
+        ) {
+            return null
+        }
+        return targetGate.withLock {
+            if (staged !== committedStagedDetachPort || staged.port !== producerDetachPort ||
+                staged.boundOperation !== operation ||
+                staged.disposition != StagedPortDisposition.CommittedUnsubmitted
+            ) {
+                return@withLock null
+            }
+            staged.disposition = StagedPortDisposition.PostAcceptedOrAmbiguous
+            staged.postExposedFact
+        }
+    }
+
+    internal fun retireCommittedStagedDetachPortDefinitelyUnentered(
+        stagedPort: StagedAndroidDetachPort,
+    ): TargetStagedDetachPortRetiredFact? {
+        val staged = stagedPort as? StagedAndroidDetachPortImpl ?: return null
+        if (!staged.belongsTo(this)) return null
+        val operation = staged.boundOperation ?: return null
+        if (stagedOccurrencePhase(operation) != StagedOccurrencePhase.DefinitelyUnentered) return null
+        return targetGate.withLock {
+            if (staged !== committedStagedDetachPort || staged.port !== producerDetachPort ||
+                staged.boundOperation !== operation ||
+                staged.disposition != StagedPortDisposition.CommittedUnsubmitted &&
+                staged.disposition != StagedPortDisposition.PostAcceptedOrAmbiguous ||
+                !target.retireDefinitelyUnenteredDetachPortLocked(
+                    staged.operationIdentity,
+                    staged.port.detachKind,
+                )
+            ) {
+                return@withLock null
+            }
+            producerDetachPort = null
+            committedStagedDetachPort = null
+            staged.disposition = StagedPortDisposition.AppliedOrRetired
+            staged.unenteredRetiredFact
+        }
+    }
+
+    internal fun applyStagedDetachTerminalApplication(
+        stagedPort: StagedAndroidDetachPort,
+    ): TargetProducerDetachReceipt? {
+        val staged = stagedPort as? StagedAndroidDetachPortImpl ?: return null
+        if (!staged.belongsTo(this)) return null
+        val operation = staged.boundOperation ?: return null
+        if (stagedOccurrencePhase(operation) != StagedOccurrencePhase.NormalReturned) return null
+        return targetGate.withLock {
+            if (staged !== committedStagedDetachPort || staged.port !== producerDetachPort ||
+                staged.boundOperation !== operation ||
+                staged.disposition != StagedPortDisposition.CommittedUnsubmitted &&
+                staged.disposition != StagedPortDisposition.PostAcceptedOrAmbiguous
+            ) {
+                return@withLock null
+            }
+            val receipt = staged.port.detachReceiptLocked() ?: return@withLock null
+            if (!target.applyProducerDetachReceiptLocked(
+                    receipt,
+                    exactPort = true,
+                    portOperationIdentity = staged.port.operationIdentity,
+                    portDetachKind = staged.port.detachKind,
+                    portProvenance = staged.port.provenance,
+                )
+            ) {
+                return@withLock null
+            }
+            staged.port.recordConsumedLocked()
+            staged.disposition = StagedPortDisposition.AppliedOrRetired
+            producerDetachPort = null
+            committedStagedDetachPort = null
+            receipt
+        }
+    }
+
     private fun registerDetachPort(operationIdentity: Long, portKind: TargetPortKind, detachKind: TargetProducerDetachKind): AndroidDetachPort? {
         require(operationIdentity > 0L)
         val provenance = provenance(operationIdentity, portKind)
         val receipt = targetProducerDetachReceipt(targetOwner, constructionProof, generation, operationIdentity, detachKind, provenance)
-        val candidate = AndroidDetachPortImpl(this, operationIdentity, detachKind, provenance, receipt)
+        val candidate = AndroidDetachPortImpl(this, target.identity, operationIdentity, detachKind, provenance, receipt)
         return targetGate.withLock {
             when (target.claimDetachIdentityLocked(operationIdentity, detachKind)) {
                 TargetRegistrationClaim.New ->
@@ -613,14 +1561,25 @@ internal class TargetPorts private constructor(
         target.recordListenerRemovalReturnLocked(port === listenerRemovalPort, port.operationIdentity)
     }
 
-    internal fun applyListenerRemovalSettlement(port: AndroidListenerRemovalPort, operation: OperationOccurrence<*>): Boolean {
+    internal fun applyListenerRemovalSettlement(
+        port: AndroidListenerRemovalPort,
+        operation: OperationOccurrence<*>,
+    ): TargetListenerRemovalSettledFact? {
         val mechanicallyReturned = operation.settlementGate.withLock {
             operation.identity == port.operationIdentity && operation.returnCell.disposition == OperationReturnDisposition.Normal
         }
-        if (!mechanicallyReturned) return false
-        return targetGate.withLock {
+        if (!mechanicallyReturned) return null
+        val applied = targetGate.withLock {
             target.applyListenerRemovalSettlementLocked(port === listenerRemovalPort)
         }
+        if (!applied) return null
+        return TargetListenerRemovalSettledFact.create(
+            targetOwner,
+            constructionProof,
+            target.identity,
+            port.operationIdentity,
+            port.provenance,
+        )
     }
 
     internal fun detachedSurfaceReleasePort(surfaceRequired: Boolean): TargetRetirement.SurfaceReleasePort? = targetGate.withLock {
@@ -657,25 +1616,28 @@ internal class TargetPorts private constructor(
         block: (SurfaceTexture, SurfaceTexture.OnFrameAvailableListener) -> Unit,
     ): Boolean {
         var surfaceTexture: SurfaceTexture? = null
+        var listener: SurfaceTexture.OnFrameAvailableListener? = null
         val admitted = targetGate.withLock {
-            if (!port.claimLocked() || port !== listenerInstallationPort || !resources.installedResources ||
+            if (port !== listenerInstallationPort || !resources.installedResources ||
                 target.generationFenced || target.listenerInstalled || leaseCount == Int.MAX_VALUE
             ) {
                 return@withLock false
             }
             surfaceTexture = resources.surfaceTexture ?: return@withLock false
+            listener = target.listenerForInstallationPortLocked()
+            if (!port.claimLocked()) return@withLock false
             leaseCount += 1
             true
         }
         if (!admitted) return false
         try {
-            block(checkNotNull(surfaceTexture), target.frameAvailableListener)
-        } catch (error: Error) {
-            check(port.lease.retainAfterFatal())
-            throw error
+            block(checkNotNull(surfaceTexture), checkNotNull(listener))
         } catch (exception: Exception) {
             check(port.lease.release())
             throw exception
+        } catch (fatal: Throwable) {
+            check(port.lease.retainAfterFatal())
+            throw fatal
         }
         check(port.lease.release())
         return true
@@ -692,22 +1654,23 @@ internal class TargetPorts private constructor(
     internal fun releaseSurface(port: TargetRetirement.SurfaceReleasePort): Boolean {
         var surface: Surface? = null
         val admitted = targetGate.withLock {
-            if (!port.claimConsumedLocked(this) || port !== surfaceReleasePort || leaseCount == Int.MAX_VALUE) {
+            if (port !== surfaceReleasePort || leaseCount == Int.MAX_VALUE) {
                 return@withLock false
             }
             surface = resources.surface ?: return@withLock false
+            if (!port.claimConsumedLocked(this)) return@withLock false
             leaseCount += 1
             true
         }
         if (!admitted) return false
         try {
             checkNotNull(surface).release()
-        } catch (error: Error) {
-            check(port.retainLeaseAfterFatal())
-            throw error
         } catch (exception: Exception) {
             check(port.releaseLease())
             throw exception
+        } catch (fatal: Throwable) {
+            check(port.retainLeaseAfterFatal())
+            throw fatal
         }
         check(port.releaseLease())
         return true
@@ -717,23 +1680,25 @@ internal class TargetPorts private constructor(
         var surfaceTexture: SurfaceTexture? = null
         var oesTextureName = 0
         val admitted = targetGate.withLock {
-            if (!command.claimConsumedLocked(this) || command !== targetScopeDestructionCommand || leaseCount == Int.MAX_VALUE) {
+            if (command !== targetScopeDestructionCommand || leaseCount == Int.MAX_VALUE) {
                 return@withLock false
             }
             surfaceTexture = resources.surfaceTexture
             oesTextureName = resources.oesTextureName
+            if (surfaceTexture == null && oesTextureName == 0) return@withLock false
+            if (!command.claimConsumedLocked(this)) return@withLock false
             leaseCount += 1
             true
         }
         if (!admitted) return false
         try {
             block(surfaceTexture, oesTextureName)
-        } catch (error: Error) {
-            check(command.retainLeaseAfterFatal())
-            throw error
         } catch (exception: Exception) {
             check(command.releaseLease())
             throw exception
+        } catch (fatal: Throwable) {
+            check(command.retainLeaseAfterFatal())
+            throw fatal
         }
         check(command.releaseLease())
         return true
@@ -743,24 +1708,28 @@ internal class TargetPorts private constructor(
         var surfaceTexture: SurfaceTexture? = null
         var oesTextureName = 0
         val admitted = targetGate.withLock {
-            if (!port.claimLocked() || port !== glFramePort || !resources.installedResources || target.generationFenced || leaseCount == Int.MAX_VALUE) {
+            if (port !== glFramePort || !resources.installedResources || target.generationFenced ||
+                !port.isEnteredLocked() || !target.acceptsEnteredFrameLocked(port.enteredFact) ||
+                leaseCount == Int.MAX_VALUE
+            ) {
                 return@withLock false
             }
             surfaceTexture = resources.surfaceTexture ?: return@withLock false
             oesTextureName = resources.oesTextureName
             if (oesTextureName == 0) return@withLock false
+            if (!port.claimLocked()) return@withLock false
             leaseCount += 1
             true
         }
         if (!admitted) return false
         try {
             block(checkNotNull(surfaceTexture), oesTextureName)
-        } catch (error: Error) {
-            check(port.lease.retainAfterFatal())
-            throw error
         } catch (exception: Exception) {
             check(port.lease.release())
             throw exception
+        } catch (fatal: Throwable) {
+            check(port.lease.retainAfterFatal())
+            throw fatal
         }
         check(port.lease.release())
         return true
@@ -775,27 +1744,62 @@ internal class TargetPorts private constructor(
     ): Boolean {
         var ownedValue: T? = null
         val admitted = targetGate.withLock {
-            if (!claim() || !admission() || leaseCount == Int.MAX_VALUE) return@withLock false
+            if (!admission() || leaseCount == Int.MAX_VALUE) return@withLock false
             ownedValue = value() ?: return@withLock false
+            if (!claim()) return@withLock false
             leaseCount += 1
             true
         }
         if (!admitted) return false
         try {
             block(checkNotNull(ownedValue))
-        } catch (error: Error) {
-            check(lease.retainAfterFatal())
-            throw error
         } catch (exception: Exception) {
             check(lease.release())
             throw exception
+        } catch (fatal: Throwable) {
+            check(lease.retainAfterFatal())
+            throw fatal
         }
         check(lease.release())
         return true
     }
 
     private fun provenance(operationIdentity: Long, portKind: TargetPortKind): TargetOperationProvenance =
-        targetOperationProvenance(targetOwner, constructionProof, target, operationIdentity, portKind)
+        targetOperationProvenance(targetOwner, constructionProof, target.identity, operationIdentity, portKind)
+
+    private fun stagedOccurrencePhase(operation: OperationOccurrence<*>): StagedOccurrencePhase =
+        operation.settlementGate.withLock {
+            if (operation.returnCell.disposition == OperationReturnDisposition.Normal) {
+                return@withLock StagedOccurrencePhase.NormalReturned
+            }
+            val definitelyUnentered = operation.returnCell.disposition == OperationReturnDisposition.Empty &&
+                    operation.entryDisposition != OperationEntryDisposition.Entered &&
+                    (operation.disposition == OperationDisposition.DeadlineGuardFailed ||
+                            operation.entryDisposition == OperationEntryDisposition.Cancelled &&
+                            operation.disposition == OperationDisposition.Cancelled ||
+                            operation.submissionDisposition == OperationSubmissionDisposition.Rejected &&
+                            operation.submissionFailure != null ||
+                            operation.disposition == OperationDisposition.SchedulerRejected &&
+                            operation.submissionFailure != null)
+            if (definitelyUnentered) return@withLock StagedOccurrencePhase.DefinitelyUnentered
+            if (operation.returnCell.disposition == OperationReturnDisposition.Empty &&
+                operation.entryDisposition == OperationEntryDisposition.Unentered &&
+                operation.submissionDisposition == OperationSubmissionDisposition.None &&
+                operation.submissionFailure == null &&
+                operation.submissionAmbiguousFatal == null
+            ) {
+                return@withLock StagedOccurrencePhase.PreSubmission
+            }
+            if (operation.entryDisposition == OperationEntryDisposition.Entered ||
+                operation.returnCell.disposition != OperationReturnDisposition.Empty ||
+                operation.submissionDisposition == OperationSubmissionDisposition.Submitting ||
+                operation.submissionDisposition == OperationSubmissionDisposition.Accepted ||
+                operation.submissionAmbiguousFatal != null
+            ) {
+                return@withLock StagedOccurrencePhase.PostAcceptedOrAmbiguous
+            }
+            StagedOccurrencePhase.OtherSettled
+        }
 
     private fun producerMechanicalOutcomeLocked(port: AndroidSurfacePort, operation: OperationOccurrence<*>): ProducerMechanicalOutcome {
         check(operation.settlementGate.isHeldByCurrentThread)
@@ -825,10 +1829,10 @@ internal class TargetPorts private constructor(
         ) {
             return ProducerMechanicalOutcome.None
         }
-        if (operation.submissionRejection != null ||
+        if (operation.submissionFailure != null ||
             operation.disposition == OperationDisposition.SchedulerRejected ||
             operation.disposition == OperationDisposition.DeadlineGuardFailed ||
-            operation.submissionAmbiguousError != null &&
+            operation.submissionAmbiguousFatal != null &&
             operation.submissionDisposition == OperationSubmissionDisposition.Cancelled &&
             operation.entryDisposition == OperationEntryDisposition.Cancelled &&
             operation.disposition == OperationDisposition.Cancelled
@@ -838,8 +1842,8 @@ internal class TargetPorts private constructor(
         return if (operation.domain == OperationDomain.Cleanup &&
             operation.entryDisposition == OperationEntryDisposition.Cancelled &&
             operation.disposition == OperationDisposition.Cancelled &&
-            operation.submissionRejection == null &&
-            operation.submissionAmbiguousError == null
+            operation.submissionFailure == null &&
+            operation.submissionAmbiguousFatal == null
         ) {
             ProducerMechanicalOutcome.Inapplicable
         } else {
@@ -884,3 +1888,6 @@ internal class TargetPorts private constructor(
         }
     }
 }
+
+private fun Boolean.toPortUseOutcome(): TargetPortUseOutcome =
+    if (this) TargetPortUseOutcome.BodyReturned else TargetPortUseOutcome.Rejected

@@ -1,8 +1,8 @@
 # Screen Capture Engine — Controller and Reconciliation
 
-This leaf owns the concrete `SessionController` and reconciliation bindings: command arbitration, lossless
-draining, lifecycle transition application, desired/currentness decisions, topology selection, terminal
-integration, and the immutable cross-domain command/fact boundary. Public results belong to
+This leaf owns the Single-Gate Faceted Session Aggregate and reconciliation bindings: command arbitration,
+lossless draining, lifecycle transition application, desired/currentness decisions, topology selection,
+terminal integration, and the immutable cross-domain command/fact boundary. Public results belong to
 [`02-product-contract.md`](02-product-contract.md); generic occurrence, deadline, allocation, ownership,
 cleanup, and quarantine rules belong to [`03-shared-runtime.md`](03-shared-runtime.md). This leaf
 links those rules and adds only controller-specific mechanics.
@@ -28,24 +28,28 @@ links those rules and adds only controller-specific mechanics.
 
 ## 1. Source boundary and authority
 
-| Role | Repository-relative production path | Authority |
-| --- | --- | --- |
-| Session state and serial turns | `CTR:SessionController.kt` | sole lifecycle, desired/revision, current plan/topology, reconciliation/production/delivery occurrences, pacing/repeat policy and grant/phase state, counters/accumulators, public-observation values, diagnostic sequence, and public/terminal result authority |
-| Pure transition calculation | `CTR:ReconciliationOwner.kt` | synchronous checked geometry, `Full`/`Downscaled`, compatibility, and smallest-transition resolver over one immutable snapshot; no retained cell, owner, transition, policy, or result authority |
-| Public facade | `PUB:ScreenCaptureEngine.kt` | validation and command forwarding under the public contract; no resource or lifecycle authority outside `SessionController` |
+The controller domain is one Single-Gate Session aggregate. It alone owns public-command linearization,
+lifecycle/admission, currentness and cross-domain decisions, terminal winner/cutoff, exact owner transfer, and
+commits spanning topology, production, delivery, observations, or cleanup. Domain resources and operation cells
+retain their own mechanical owners and gates; the aggregate consumes immutable facts and issues immutable
+effects only after releasing gates.
 
-`CTR:` and `PUB:` are defined by the [router path convention](01-authority-router.md#4-module-and-path-bindings). Physical
-file boundaries do not create a second state machine. Domain owners retain and operate their resources; the
-controller accepts only immutable facts and emits immutable commands after releasing all gates.
-`DEL:PacingOwner.kt` and `DEL:ObservationOwner.kt` are physically routed to
-[`12-domain-delivery-observation.md`](12-domain-delivery-observation.md); this leaf owns only the controller's
-input snapshots, acceptance and application of their immutable calculations/builds, and every resulting
-authoritative value or commit.
+`SessionController` names that authority, not physical containment. Its thin shell retains `sessionGate`, final
+currentness recheck, cross-facet commit, terminal arbitration/transfer, and effect sealing; cohesive private
+calculation, action, scheduler, settlement, cleanup, or publication collaborators hold no independent authority.
+The `Retained` and `Replacement` descriptions are mandatory safety/visibility partial orders, not class or method
+layout. Gate-confined state may be partitioned cohesively but gains no lock, executor, signal, outward call,
+publication, cross-partition authority, or alternate commit path.
+
+`SessionReconfigurationOccurrence` is one closed exact family with `Retained` and `Replacement` variants. The
+same occurrence identity fences Production and new-delivery admission; no Boolean, copied key, or separate leaf
+occurrence can substitute for it.
 
 ## CTRL-001 — Controller confinement and gates
 
 The controller owns one nonfair `sessionGate` and never reenters itself. Public command critical sections and
-controller turns inspect or write only bounded existing references, tags, identities, bits, and scalars.
+controller turns inspect or write only bounded existing references, tags, identities, bits, and scalars through
+the aggregate root or one bounded facet commit.
 Allocation, scheduling, Flow assignment/emission, platform work, GL/JPEG work, callbacks, release, diagnostics,
 and cleanup execution occur after all applicable gates are released.
 
@@ -60,22 +64,17 @@ The controller directly owns the one Session Control scheduler/thread specified 
 drains and all one-shot Control wakes execute there; no shared coroutine dispatcher or caller execution service participates in
 controller progress.
 
+For either reconfiguration variant, `sessionGate` alone commits
+`Open -> Sealed(exact occurrence) -> Open` for Production and new-delivery admission. `Open | Sealed` may instead
+move permanently to `Terminal`; entered delivery is never revoked. Reopen requires the matching variant's
+complete proof and the final current-owner/key revalidation in the sole Session commit gateway.
+
 ## CTRL-010 — Lossless action drainer
 
-The controller owns this exact wake protocol:
-
-1. each producer completes its durable return/latest/command cell before signalling;
-2. signalling performs exactly `IDLE -> RUNNING`, `RUNNING -> RUNNING_DIRTY`, or
-   `RUNNING_DIRTY -> RUNNING_DIRTY`; only the `IDLE -> RUNNING` winner submits one controller drainer to the
-   prestarted Control scheduler;
-3. one bounded complete scan claims facts once into precreated fixed action slots;
-4. a full action batch changes or retains the state as `RUNNING_DIRTY`, executes claimed actions unlocked, and
-   requires a rescan without a producer signal;
-5. before each required rescan, the drainer wins `RUNNING_DIRTY -> RUNNING` by CAS; after any nonempty batch it
-   performs another complete scan, so a nonfull batch cannot hide a concurrently completed fact;
-6. only a complete empty scan may attempt `RUNNING -> IDLE`. If a producer wins `RUNNING -> RUNNING_DIRTY`
-   first, the idle CAS fails and the drainer changes `RUNNING_DIRTY -> RUNNING` and rescans. If the drainer wins
-   `RUNNING -> IDLE` first, the producer then wins `IDLE -> RUNNING` and dispatches the successor drainer.
+Each producer makes its durable fact complete before signalling. The signal protocol permits at most one live
+drainer, records work arriving during a drain, and loses no fact across the drain-to-idle race: only a complete
+empty scan may become idle, while any claimed work or concurrent signal guarantees another bounded complete
+scan without relying on a later producer.
 
 Claimed actions contain existing references/tags/scalars only. The drainer invokes neither a public entry point
 nor an outward owner while gated. At most one drainer identity is logically live, but the Control scheduler may
@@ -105,7 +104,7 @@ path is:
 | equal legal `updateParameters` | after common local validation, change nothing | return `Unit` |
 | unequal legal `updateParameters` | use a precreated update/publication cell; atomically replace desired value, reserve the next nonreused revision, and complete one coherent snapshot containing the new requested value plus same-turn running/effective/visibility references | signal once; the drainer claims only the latest complete whole snapshot and publishes it without mixing fields |
 | `onFrame` admission | require allowed nonterminal lifecycle and no unresolved predecessor; install one nonreused registration generation; if a current cache exists, reserve the ordinary handoff/lease atomically | send the registration or cached-first command to delivery; perform no encode or payload copy |
-| `stop` | idempotently fix the owner-stop contender and close start, desire/reconciliation, production, repeat, and delivery admission before return | signal terminal convergence and cleanup |
+| `stop` | apply `PROD-011` under `sessionGate`: without an accepted start/runtime owner, fix `OwnerStop` and close start without creating desire or runtime ownership; otherwise idempotently fix the contender and close desire/reconciliation, production, repeat, and delivery admission | without a runtime owner, directly execute the already-selected final zero-Stats, terminal-diagnostic, and terminal-State publication actions without Control; otherwise signal normal terminal convergence and cleanup |
 
 Revision or identity exhaustion commits `InternalFailure` before wrap/reuse. No synchronous command waits for an
 owner lane. A suspending waiter observes Session-owned completion; its cancellation cannot cancel or fabricate
@@ -147,15 +146,9 @@ precreated `InternalFailure` before reuse.
 
 ## CTRL-040 — Session scheduler resource
 
-After accepted start, `SessionController` constructs and immediately roots one owned
-`ScheduledThreadPoolExecutor(1)` as an owned startup operation. It is the Session's single Control thread and is
-not published or used until `prestartAllCoreThreads()` returns one. Before that barrier it sets:
-
-```text
-setRemoveOnCancelPolicy(true)
-setExecuteExistingDelayedTasksAfterShutdownPolicy(false)
-setContinueExistingPeriodicTasksAfterShutdownPolicy(false)
-```
+After accepted start, the Session constructs and roots one single-worker `ScheduledThreadPoolExecutor` as an
+owned startup operation. It is unpublished until its worker is prestarted, removes cancelled work, runs no
+existing delayed or periodic task after shutdown, and creates no periodic task.
 
 No periodic task is created. This scheduler serves the one controller drainer and one-shot deadline, pacing,
 repeat, and Stats wakes. [`CORE-WAKE-2`](03-shared-runtime.md#core-wake-2--one-shot-control-wake-link-and-scheduling-rejection) owns
@@ -164,21 +157,11 @@ every wake's central submission/Future/callback/cancellation/termination/success
 their domain calculations and physical callback mechanics. `SessionController` alone accepts the resulting
 facts and controls scheduler admission and lifetime.
 
-Every Control task is a typed decorated `RunnableScheduledFuture` whose outer wrapper and engine runner share one
-preallocated task identity, entry/return record, direct-fatal slot, and bridge `Pending | Applied`. The wrapper
-delegates `run` exactly once, delegates `get`, completion/status, `getDelay`, `isPeriodic`, and ordering/comparison
-semantics to the exact delegate, and retains no second task result. Its `cancel(false)` delegates the exact call;
-the `CORE-WAKE-2` cancellation action separately attempts and records removal of that exact outer wrapper as
-queue hygiene regardless of the cancel result. Only an accepted true cancellation may win wake suppression.
-
-The engine runner catches a direct fatal, records that exact object in the shared slot, and rethrows it into the
-delegate `FutureTask`. `afterExecute` reads only the exact typed wrapper, slot, and bridge; it never calls `get`,
-classifies the hook's Throwable, unwraps causes, uses reflection/class names, or inspects an untyped task. Empty
-or `Applied` returns. `Pending` plus a fatal slot performs once the allocation-free, identity-fenced settlement,
-Control poison, admission closure, and emergency fail-close, release-publishes `Applied`, then throws the same
-object. On runtimes with two hook observations, the second sees `Applied` and returns so `runWorker` rethrows the
-same object; a single-hook runtime likewise propagates that object. No hook creates a duplicate task or fact.
-A replacement worker checks Control poison before engine work and can only settle its task inert.
+Each Control task is typed and preserves the exact scheduled delegate's Future, cancellation, delay, periodicity,
+and ordering semantics without a second result. Direct fatal settlement is one-shot, poisons Control, closes
+admission, and rethrows the identical object at the worker boundary; hooks neither call `get`, unwrap/classify
+causes, inspect untyped tasks, nor create duplicate facts. A replacement worker can only settle poisoned work
+inert. Wake cancellation/removal and successor rules remain solely `CORE-WAKE-2`.
 
 After terminal, healthy Control becomes receive-only. It remains the last Session lane until every other owned
 lane/thread termination receipt, every external late fact, every controller-consumed cleanup dependency, every
@@ -221,19 +204,18 @@ created and physically settled. `CTRL-*` owns their controller state, arbitratio
 
 ## CTRL-100 — Currentness identities
 
-The exact reconciliation key is:
+The Topology facet is the only source of Session currentness identity. Each immutable identity snapshot combines
+the desired revision, geometry generation, and lifecycle epoch. It is not a resource lease, lifetime token, or permission to use an installed
+owner. Operation acceptance additionally rechecks its exact occurrence and live owner references as required
+below; no other facet or domain owner creates a competing Session currentness identity.
 
-```text
-(desiredRevision, geometryGeneration, lifecycleEpoch)
-```
-
-The controller owns one authoritative accumulator and one latest cell for the combined positive
+The Topology facet holds the one authoritative accumulator and one latest cell for the combined positive
 `(widthPx, heightPx, densityDpi, geometryGeneration)` tuple. The full duplicate/no-op authority key includes the
 observation/source identity, selected Display identity plus continuous-validity epoch or projection-owner epoch,
 availability phase, and every authoritative field. Selected-source and projection facts update only the fields
 their API-band source owns under
 [`AND-MET-010`](06-domain-android-capture-metrics.md#and-met-010--exact-api-band-reads-and-authority); no owner publishes
-a second combined cell or generation. Before replacing the cell, the controller reserves the next strictly
+a second combined cell or generation. Before replacing the cell, `SessionController` reserves the next strictly
 increasing nonreused `geometryGeneration`. Exhaustion fails terminally before replacement or identity reuse.
 
 After ingress consumption, equality of that full key is a complete no-op: it creates no geometry/lifecycle
@@ -257,9 +239,9 @@ advances:
   their owning transitions.
 
 Active/Suspended publication and steps already owned by the current reconciliation do not advance
-`lifecycleEpoch`. A completion must match the complete key, its occurrence identity, applicable lifecycle/health
-identity, and the actual live owner references. Equality with historical effective parameters never proves
-current ownership.
+`lifecycleEpoch`; neither an ordinary retained nor an ordinary replacement reconfiguration advances it. A
+completion must match the complete key, its occurrence identity, applicable lifecycle/health identity, and the
+actual live owner references. Equality with historical effective parameters never proves current ownership.
 
 ## CTRL-110 — Reconciliation decision
 
@@ -303,8 +285,9 @@ For unchanged authoritative `W,H`, a healthy Full Target is retained exactly whe
 new Downscaled selection rebuilds it. A healthy Downscaled Target is retained while the plan remains eligible
 and `Tw >= requiredSourceW` and `Th >= requiredSourceH`; it is never rebuilt only to shrink. Changed `W,H`, a
 larger eligible demand that violates either inequality, or any Downscaled ineligibility rebuilds the Target,
-with ineligibility selecting Full. The controller is the sole selector and cell authority; the Android leaf
-supplies source-owned facts and the Target leaf executes only the accepted immutable plan.
+with ineligibility selecting Full. `SessionController` is the sole selector and commits the result into the
+Topology facet's sole cell; the Android leaf supplies source-owned facts and the Target leaf executes only the
+accepted immutable plan.
 
 | Difference or observed state | Exact controller decision |
 | --- | --- |
@@ -324,39 +307,107 @@ rollback.
 
 ## CTRL-120 — Destructive transition order
 
-An image-affecting transition has this exact order:
+The Topology facet owns one exact `SessionReconfigurationOccurrence = Retained | Replacement`. Before either
+variant performs outward work, the aggregate atomically seals Production and new-delivery admission for that
+same occurrence under `sessionGate`; entered delivery is not revoked. Terminal may instead absorb the exact
+occurrence and unresolved graph from any phase and never reopens either admission. Ordinary retained and
+replacement occurrences do not advance `lifecycleEpoch`.
+
+A `Retained` occurrence keeps the installed Target and all affected physical owners. Public state remains
+`Running(Active(old effective parameters))` throughout this reversible interval. Its unlocked effects have this
+exact order:
+
+```text
+create and revalidate the exact Retained occurrence
+-> seal Production and new-delivery admission for the exact occurrence
+-> seal the exact Target frame-admission epoch
+-> drain the exact Target-entered predecessor and obtain TargetFrameQuiescedFact
+-> in parallel when applicable, resize the exact attached VirtualDisplay and apply retained GL reconciliation
+-> settle every admitted mutation occurrence and compensate until actual state matches the latest key
+-> mechanically reopen the exact Target epoch while both Session admissions remain Sealed
+-> under sessionGate commit topology/effective output and reopen both exact admissions
+```
+
+Android resize runs exactly when the retained occurrence changes `(W,H,D)` and may run in parallel with the
+CPU-only `GL-060` application for retained output-size-compatible region, crop, rotation, mirror, or color
+change. A density-only occurrence skips GL only when the exact recorded GL mechanical state already matches the
+selected state. Neither leaf selects lifecycle, currentness, compensation, or reopening.
+
+Generic executor/operation entry grants no Target handle. `TGT-030` solely owns epoch-bound reservation,
+Target entry, inert rejection, predecessor retirement, quiescence, and reopen mechanics; the controller accepts
+only their exact facts in the order above.
+
+A newer desire replaces only the latest desired cell while the sole retained occurrence has an admitted mutation
+unsettled; both Session admissions and Target remain sealed under that occurrence. After every such mutation mechanically
+settles and records actual state, the old occurrence closes, the latest successor is created/revalidated, and
+both admissions atomically move `Sealed(old occurrence) -> Sealed(new occurrence)` while Target remains sealed.
+Successor effects are admitted only afterward. Thus every safe stale success updates exact nonpublic actual
+Android/GL state without changing desired/effective/public state, and the latest occurrence compensates from that
+state, including A-to-B-to-A. Reopen requires matching actual state and mechanical settlement or definite
+pre-entry inert rejection for every admitted mutation. `Applied`, `Superseded`, and `Failed` close only after
+mechanical settlement; terminal alone may transfer unresolved mechanics and close `TerminalAbsorbed` because it
+permanently forbids reopen.
+
+Terminal moves both admissions to `Terminal`, moves Target admission to `RetirementClosed` from any reversible
+state, and never reopens; terminal after mechanical Target reopen but before the Session commit closes Target
+again.
+Current rejection, throw, expiry, nonreturn, mutation ambiguity, or epoch exhaustion is `InternalFailure`; expiry
+does not count as returned failure while a mutation call remains unresolved. Its exact occurrence and dependents
+follow `CTRL-400`, and any late result is cleanup-only.
+
+Target replacement uses the `Replacement` variant and publishes `Suspended(Reconfiguring)` only after crossing
+irreversible retirement. Its exact path is:
 
 ```text
 snapshot key and actual topology
 -> resolve geometry/plan and run allocation-free deterministic preflight
 -> while reversible, retain healthy old output Active
--> close only affected fresh/repeat/new-delivery admission
+-> seal Production and new-delivery admission for the exact Replacement occurrence
 -> invalidate affected cache and old identities
--> drain entered affected work and fence the superseded occurrence
+-> seal the exact old Target epoch and drain entered affected work
 -> cross irreversible retirement and publish Suspended(Reconfiguring)
--> detach, retire, and release or cleanup-transfer the smallest incompatible scope
--> after real release authority, recheck nonterminal/current key and allocate one replacement
--> validate returned owners against key/occurrence/current topology
--> install current success and reopen admission, or safely retire stale success
+-> on the same sole VirtualDisplay, normal setSurface(null) proves old producer detach
+-> complete exact old Target retirement
+-> construct and install one replacement Target while both admissions remain sealed and no two Targets are active
+-> settle the replacement Target listener installation
+-> when required resize the same VirtualDisplay, then normal setSurface(newSurface) proves only the new producer
+-> settle required Target, GL, and Android mechanics and mechanically reopen the new Target
+-> under one sessionGate commit install topology/effective state and reopen both exact admissions
 ```
 
-Target replacement performs no speculative replacement and does not itself retire exact-compatible output
-owners. Incompatible Bitmap/carrier replacement waits for all uses/leases and the applicable typed recycle/free
-or managed-detach outcome, then performs a fresh gated current/nonterminal check before one replacement
-allocation. An A-to-B-to-A sequence after A retirement rebuilds A; it cannot restore Active from historical
-equality. Normal replacement never retains two healthy complete pipelines.
+Replacement preserves the one Session VirtualDisplay and one JPEG endpoint/runtime; it creates neither a second
+display nor a second active Target/pipeline. `setSurface(newSurface)` is producer evidence only and cannot prove
+old detach. Target replacement remains nonspeculative and does not retire exact-compatible output owners.
+One exact `Replacement` correlates two independent Android occurrence/ticket/root graphs: old
+`setSurface(null)` detach and new `setSurface(newSurface)` producer attachment. Neither graph's return, outcome,
+or Target fact proves the other. For each graph the controller accepts only the sealed Android-owned
+`AndroidTargetPostOutcome` and subsequent Target-owned application fact, never ticket/occurrence internals. Final
+success requires exact settlement and Target application of both; terminal transfers each unresolved graph
+intact.
+Incompatible Bitmap/carrier replacement waits for all uses/leases and its typed recycle/free or managed-detach
+outcome, then performs a fresh gated current/nonterminal check before one replacement allocation. An A-to-B-to-A
+sequence after A retirement rebuilds A; historical equality cannot restore Active.
 
 ## CTRL-130 — Completion and fallback arbitration
 
 | Completion | Controller disposition |
 | --- | --- |
 | timely current safe success with complete compatible topology | install/retain owners, commit effective parameters, reopen applicable admission, publish Active |
-| safe stale success | publish nothing; safely retire only its returned owners and reconcile latest |
+| safe stale success | publish nothing; record exact actual state for an in-place effect, safely retire only returned owners, and reconcile latest |
 | safe stale failure | publish no stale lifecycle/output result; settle its owners and reconcile latest |
 | unsafe or ownership-ambiguous result, including stale | terminal `InternalFailure`; transfer exact residue |
 | current capture/metrics unavailable or geometry-invalid desire | retain desire in exact recoverable `Suspended(CaptureUnavailable)` or `Suspended(InvalidRequest)` |
 | current mandatory build failure after retirement | terminal with the classified problem; no rollback |
 | safely returned optional-axis failure | disable only that Session-monotone acceleration once, advance lifecycle epoch, and select mandatory fallback for later work |
+
+`CTRL-120` owns the closed `Retained | Replacement` dispositions. Both variants converge only at final
+exact-occurrence/current-owner/key revalidation and one `sessionGate` commit; their completion proofs remain
+distinct. Retained success requires exact Target quiescence, mechanical settlement or definite pre-entry inert
+proof for every admitted mutation, matching recorded Android/GL state, and Target reopen. Replacement success
+requires exact old detach and retirement, one installed producer-attached replacement Target on the same
+VirtualDisplay, required Android/GL settlement, and new-Target reopen. Transfer is terminal-only and Terminal
+forbids reopen. Mechanical Target reopen alone leaves both admissions sealed and cannot publish or admit work;
+stale facts may update actual mechanical state but cannot reopen or publish.
 
 Recoverable suspension is reconsidered only after a new desire or the applicable geometry, availability, or
 health fact. Once relevant inputs quiesce, the latest key converges to Active, its exact recoverable suspension,
@@ -414,14 +465,17 @@ complete Framework installation without revoking entered delivery.
 
 ## CTRL-300 — Cross-domain commit rules
 
-The controller integrates domain facts only through these rules:
+Every cross-domain turn is a closed typed fact, gated aggregate-root commit, bounded precreated immutable action
+batch, unlocked effect, and closed typed returned fact. There is no generic bus, mutable context, or alternate
+commit path. The aggregate root integrates domain facts only through these rules:
 
 1. a fact is mechanically complete before it is considered;
 2. full key, occurrence identity, lifecycle/health identity, and exact installed-owner identity are rechecked;
 3. fact classification precedes policy action; ambiguity cannot be downgraded by staleness or a returned code;
-4. controller state and owner transfer are committed under the applicable gates;
+4. `SessionController` commits state and owner transfer through bounded facet methods under `sessionGate` and
+   seals one bounded precreated immutable action batch;
 5. immutable owner commands, publication snapshots, diagnostics, scheduling, and cleanup actions execute unlocked;
-6. a late cleanup fact may reduce only its matching residue.
+6. effects return closed typed facts; a late cleanup fact may reduce only its matching residue.
 
 Domain diagnostic facts become requests only after their controlling mechanical fact is durable. After releasing
 all gates, the serial controller reserves the next nonreused Session sequence (first is one), samples wall clock,
@@ -448,6 +502,7 @@ retains only the exact scheduler/thread and dependent wake/submission/external-f
 This design permits no:
 
 - second lifecycle/reconciliation/pacing/result writer or helper-owned authority cell;
+- second Session gate or commit gateway, facet-to-facet call, or facet-owned signal/executor/publication;
 - generic resource registry, alternate planner, rollback topology, replacement generation, or historical-plan
   ownership inference;
 - speculative replacement before safe retirement or second healthy complete topology;
@@ -468,16 +523,16 @@ generic deadline boundary rows remain owned by
 [`CORE-SET-1` through `CORE-WAKE-2`](03-shared-runtime.md#core-set-1--generic-operation-occurrence).
 
 Closed packet membership is in [router §5](01-authority-router.md#5-closed-implementation-packets); shared
-closure/routing is in [Document 04](04-verification.md), and exact test paths are in
+closure/routing is in [Document 04](04-verification.md), and canonical test source sets are in
 [router §7](01-authority-router.md#7-test-manifest). The rows below retain only controller-specific evidence.
 
 | Test ID | Required controller/reconciliation evidence |
 | --- | --- |
-| `H-LC` | Both concurrent-start gate orders and zero losing-projection access; accepted-cancellation orders; equal/unequal/concurrent update acceptance with coherent whole Running snapshots and no setter-return observation oracle; revision exhaustion; stop/admission cutoff; all terminal contenders and final Stats-before-State; every `CTRL-010` signal transition, drainer `RUNNING_DIRTY -> RUNNING` CAS, and both producer-versus-`RUNNING -> IDLE` orders; saturated fixed action batch self-dirties and consumes all complete cells once without a later producer signal; active drainer-dispatch failure uses one emergency fail-closed turn; scheduler construction is one owned startup operation with exact pre-publication configuration and no periodic task; post-terminal Control remains receive-only and last until all inbound dependencies settle, then one final turn/shutdown and a nonsignalling inline `terminated()` release; cross-Session authority isolation. |
-| `H-RC` | Complete-key and occurrence currentness; full metrics authority-key duplicate and repeated-unavailable no-op with zero generation/reconciliation/publication, contrasted with first-valid, availability transition, new epoch/owner, field change, and unavailable-to-historically-equal recovery; combined-geometry newest-only claim, unclaimed supersession, one running rebuild plus later latest revisions, exact materialized dispositions, exhaustion-before-reuse, and storm bounds; safe/unsafe stale returns; destructive A-to-B-to-A; exact Full/Downscaled retain, shrink-retain, larger-demand, ineligibility, and changed-dimensions decisions; actual owner-identity/shape/health reuse; deterministic pre-retirement denial with zero allocation/retirement; one smallest-scope post-retirement replacement; target replacement retaining compatible output-owner identities; typed recycle/free or managed-detach followed by fresh current/nonterminal recheck; PreparedTarget install-or-cleanup arbitration; Native-disable-to-complete-Framework-install sequence; quiescent convergence; no registry, rollback, predictive accounting, or second topology. |
+| `H-LC` | Both concurrent-start gate orders and zero losing-projection access; accepted-cancellation orders; equal/unequal/concurrent update acceptance with coherent whole Running snapshots and no setter-return observation oracle; revision exhaustion; stop/admission cutoff; all terminal contenders and final Stats-before-State; lossless bounded Control draining under producer/drainer races and dispatch failure; scheduler configuration before publication with no periodic task; post-terminal Control remains receive-only and last until all inbound dependencies settle, then one final turn/shutdown and a nonsignalling inline termination release; cross-Session authority isolation. |
+| `H-RC` | Complete-key and occurrence currentness; full metrics authority-key duplicate and repeated-unavailable no-op with zero generation/reconciliation/publication, contrasted with first-valid, availability transition, new epoch/owner, field change, and unavailable-to-historically-equal recovery; combined-geometry newest-only claim, unclaimed supersession, one running rebuild plus later latest revisions, exact materialized dispositions, exhaustion-before-reuse, and storm bounds; safe/unsafe stale returns; common exact `Retained | Replacement` Production/new-delivery seal with no lifecycle-epoch advance, entered-delivery preservation, sealed supersession, variant-distinct completion proofs and one final commit; retained Target quiesce/apply/reopen, combined Android/GL work, definite pre-entry inertness, stale A-to-B-to-A compensation; Replacement old-Target quiesce, exact null-surface detach/retirement, one same VirtualDisplay, one replacement Target, producer-only new-surface attach, required Android/GL settlement and no old/new active coexistence; terminal absorption before/during/after every phase with no reopen; destructive A-to-B-to-A; exact Full/Downscaled retain, shrink-retain, larger-demand, ineligibility, and changed-dimensions decisions; actual owner-identity/shape/health reuse; deterministic pre-retirement denial with zero allocation/retirement; target replacement retaining compatible output-owner identities; typed recycle/free or managed-detach followed by fresh current/nonterminal recheck; PreparedTarget install-or-cleanup arbitration; Native-disable-to-complete-Framework-install sequence; quiescent convergence; no registry, rollback, predictive accounting, second display, or second topology. |
 | `H-PS` | Cross each `PacingOwner` calculation and production/storage fact with lifecycle, current policy/candidate/wake identity, topology, slot and terminal state. Assert that only `SessionController` commits source exchange/materialization, phase/grant/wake action, attempt disposition, cache-role command, every counter/accumulator update, and authoritative Stats snapshot; superseded calculations change none. Exact calculation and storage mechanics are exercised through `DEL-PACE-*` and `STORE-*`. |
 | `H-DL` | Cross every scheduler/Delivery-submission/entry/callback/convergence fact with controller admission, registration generation, prior disposition and terminal cutoff. Assert one controller classification/counter/shared-unsubscribe commit, no helper-owned result, and no late revision; Delivery shutdown waits for each exact ticket side and its `terminated()` receipt; physical record/lease mechanics remain `DEL-HO-*`. |
-| `H-OS` | Controller consumption uses the generic settlement lock/order and currentness rules; every deadline/pacing/repeat/Stats link covers fire-before-Future, wake-body return/throw, terminal while Submitting, cancel true/false/throw, exact outer-removal true/false/throw, stale generation, scheduler termination, operational successor settlement, and separate physical outer-frame residue. Suppressed `g` may authorize `g+1` after all required publications even when removal fails; the stale wrapper's first CAS then loses with zero further engine access, while old return/nonreturn changes only worker/cleanup/termination evidence. Typed Control wrappers retain the unchanged single- and double-hook `Error`/custom-Throwable paths, one fatal fact/poison, identical rethrow identity, and no fabricated receipt. Late rows cannot duplicate controller authority or revise terminal/public results. Domain-specific mechanics stay in their owning leaves. |
+| `H-OS` | Controller consumption uses the generic settlement, wake, lock-order, currentness, and terminal-transfer rules. For either exact Session-reconfiguration variant, controller accepts only matching sealed/quiesced/reopened, sealed Android-owned `AndroidTargetPostOutcome`, settled-mechanical, Target-owned application, transferred-whole-graph, or terminal facts; terminal absorbs the exact occurrence and never reopens either admission. Each Replacement independently crosses old-detach and new-producer acceptance, rejection/no-entry, entry/return/throw, fatal/ambiguity, inert-after-poison, cancellation-before-platform-entry, terminal, and nonreturn orders; neither graph proves the other. Operational wake succession may precede stale wrapper return only after all required publications, and stale work has zero engine access. Typed Control fatal paths preserve one fact/poison, identical rethrow identity, and no fabricated receipt. Late rows cannot duplicate controller authority or revise terminal/public results. Domain-specific mechanics stay in their owning leaves. |
 | `H-GM` | Checked `gcd`/`ceilDiv` planner arithmetic, rotation-aware required axes, `Tw,Th`, every closed Full/Downscaled eligibility branch, and per-axis deterministic capability denial feed the controller decision before retirement; denial performs zero target/output allocation and no fallback. |
 | `H-OB` | Controller-authoritative accumulators and State/Stats values, coherent construction snapshots, Native-disable/GL-poison Reconfiguring commits, terminal order, exact diagnostic sequence reservation/exhaustion, and emission noncontrol. `ObservationOwner` construction/assignment/`tryEmit` is `DEL-OBS-*` and cannot reinterpret the snapshot or retain authority. |
 | `A-SES` | Installed facade observes main-safe start, wrong-state commands, update/stop linearization, public startup/terminal mappings, cached-first admission, and controller-committed shared unsubscribe result without exposing internal authority. |
@@ -501,11 +556,14 @@ The test rows reproduce both sides of these controller decision points:
 | stop versus callback entry | entered callback may finish | stop-first fences user-code entry |
 | optional-health failure versus terminal | current safe failure disables one axis and starts reconciliation | terminal winner prevents health/fallback/publication change |
 | allocation around retirement | deterministic denial allocates/retires nothing | required current post-retirement allocation failure is terminal, with no rollback |
+| retained Target seal versus frame port entry | exact inert/sealed fact routes from `TGT-100` | exact quiesced/reopened or terminal fact routes from `TGT-100`; controller never infers Target mechanics |
+| retained application versus newer desire/terminal | newer desire remains sealed and reconciles without an open interval | terminal absorbs the seal and no late fact reopens or publishes |
 
 ## 5. Controller-owned numeric and structural bindings
 
 This leaf owns no numeric policy constant or test tolerance. Its material structural bound is one latest desired
-cell, one latest combined-geometry cell, and at most one reconciliation occurrence. Delivery/observation
+cell, one latest combined-geometry cell, at most one reconciliation occurrence, and at most one exact Session-
+reconfiguration occurrence. Delivery/observation
 physical cardinalities and cadence values live with `DEL-*`; generic one-shot Control-wake mechanics live with
 `CORE-WAKE-2`. `CTRL-040` additionally fixes one Session scheduler worker, zero periodic tasks, one orderly
 shutdown, zero `shutdownNow()`, and no shutdown watchdog. The five private safety intervals live with their

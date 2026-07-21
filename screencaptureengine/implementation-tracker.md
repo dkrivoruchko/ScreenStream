@@ -2,209 +2,220 @@
 
 ## Authority
 
-Documents `design-next/01-authority-router.md` through `design-next/12-domain-delivery-observation.md` are the sole
-normative implementation authority, in router order. `design-next/13-future-evolution.md` is nonnormative. The previous
-`design/01`–`09` package is not authority.
+`design-next/01-authority-router.md` through `design-next/12-domain-delivery-observation.md` are the sole normative
+implementation authority, in router order. `design-next/13-future-evolution.md` is nonnormative; the old `design/01`–`09`
+package is not authority. Kotlin is implementation evidence, not authority.
 
-This tracker contains operational rules, current accepted implementation state, open obligations and compact handoffs.
-It is not normative. If it becomes stale, current Documents 01–12 win and this tracker is corrected before more work
-starts. Kotlin is implementation evidence, not authority.
-
-Every Markdown file except this tracker is frozen. Only a direct user decision may authorize a separately bounded
-documentation task.
+This tracker contains working rules, accepted implementation evidence, current blockers and restart-safe handoffs. It is
+not normative. If it conflicts with Docs01–12, root corrects it before more work. Every other Markdown file is frozen unless
+the user explicitly authorizes a bounded documentation task.
 
 ## Permanent working rules
 
-- Root is exclusively an orchestrator, the sole tracker owner/writer, status owner and gate integrator. Subagents receive
-  bounded product tasks from root; they do not analyze this tracker or use its internal procedure as their task contract.
-  Root does not perform technical implementation, audit, research, diagnostics or production builds unless the user
-  explicitly asks for a bounded root-only check.
-- Root protects its orchestration context. Detailed document/code reading, implementation and technical audit belong to
-  bounded subagents. Root retains only compact decisions, dependencies, material evidence, disagreements, gates and the
-  current handoff; it does not ingest full document copies, code dumps or repeated agent reports when a compact verdict is
-  sufficient. Context economy never replaces evidence or agent dialogue needed for a correct decision: root requests and
-  retains full technical detail whenever the unresolved product risk requires it. After compaction, root restores the task
-  from this tracker instead of restarting completed analysis.
-- At most three direct subagents run simultaneously. Every subagent must do its task personally and must not create,
-  run, resume, delegate to or message another subagent or use collaboration/multi-agent. Nested delegation is forbidden.
-- Before elevated-risk architecture, product, concurrency, graphics, cleanup/publication or JNI work, three independent
-  planning axes derive the product plan from current Markdown authority. Root consolidates their material conclusions and
-  sends one bounded product packet back for cross-review of critical decisions, disagreements and the writer boundary.
-  Unchanged evidence and mechanical consequences are not independently re-derived or re-audited. A material unresolved
-  disagreement uses a fresh adjudicator.
-- Fresh agents are required for genuinely independent axes, broad reopening, architecture and adjudication. Reuse is
-  preferred for the same task's bounded continuation, mechanical writer, correction or exact-context follow-up.
-- If a slot/thread is stuck, root reports the real capacity immediately, continues with available agents, and resumes the
-  remaining axis when capacity releases. Root never pretends rejected work is active.
-- Root never interrupts, cancels, replaces or duplicates an active agent without direct user permission. An interrupted
-  agent is never resumed unless the user explicitly orders that exact resume.
-- Agents working longer than roughly two to three minutes send a concise heartbeat: completed work, current phase,
-  finding/blocker and bounded remainder.
-- Root gives each agent an exact product task, affected boundaries, required invariants and the router-selected authority
-  packet. Agents read the normative documents needed for that product decision. Full Docs01–12 reading is reserved for a
-  genuine architecture reopening or cross-document adjudication, not repeated for an unchanged bounded scope.
-- Technical agents browse applicable official primary guidance from Android/AOSP, Kotlin/JetBrains, Oracle/OpenJDK/JNI
-  or Khronos. For Android-specific inspection, documentation, project analysis, deployment or device work, use Android CLI
-  first whenever it offers the stronger or more complete operation; use JetBrains/IDE MCP second where IDE semantic
-  analysis is better or Android CLI lacks the capability, then raw terminal/Gradle only for unsupported verification.
-  Frozen project Markdown remains normative product authority; external sources validate mechanism.
-- Every finding is classified as an intrinsic defect, intentional migration state or named future-owned integration gap,
-  and includes exact authority/source evidence plus a concrete correction.
-- Critical product/platform/concurrency/ownership/safety/performance ambiguity stops for the user/designer. Secondary
-  structure, visibility, naming, layout or mechanism may use the simplest sound recorded deviation.
-- Frozen Markdown is immutable to implementers, not presumed infallible. When implementation-depth evidence reveals a
-  gap, inconsistency, impractical constraint, needless complexity or a materially simpler design, stop that decision and
-  return a concise designer-escalation packet instead of hiding it behind a workaround.
-- Product behavior is the stable approval boundary: any proposed product-level change stops for explicit user decision.
-  Technical architecture, ownership decomposition, file layout and implementation mechanisms in the frozen documents
-  are best-effort design hypotheses informed by incomplete pre-implementation knowledge. They may be challenged and
-  revised when implementation evidence shows a simpler or more correct whole-product design, but implementers never
-  diverge silently: the proposed technical change, reason and document impact are cross-reviewed and agreed with the
-  user before code relies on it.
-- The finished working product is the objective. Priority is observable correctness, platform behavior, concurrency,
-  graphics, ownership/resource lifetime, cleanup/failure/JNI safety, privacy/security and appropriate efficiency; then
-  simple maintainable idiomatic Kotlin. Predicted mechanism and physical layout are secondary.
-- Documentation exists to make that product correct, complete, simple and implementable, not to maximize formal
-  guarantees or sustain an endless audit cycle. Keep product-critical behavior exact; when a non-product guarantee needs
-  disproportionate machinery, weaken or remove it explicitly and close with the smallest sound design.
-- Root does not begin a materially different slice after completing the current one until the user agrees the next
-  action. Safe bounded continuations inside an approved slice follow its recorded procedure.
-- After each implementation stage, root delegates one bounded revalidation of the next roadmap stage to a fresh or
-  exact-context subagent. That check uses the interfaces and ownership boundaries actually produced, and does not repeat
-  the completed audit. Mechanical impact updates the next task narrowly; a material architecture or critical-boundary
-  change reopens the three independent planning axes before any writer. Root orchestrates this check and does not perform
-  the technical revalidation itself.
-- Preserve unrelated work. Root and agents never stage, unstage, commit, reset, checkout, revert, mutate index/history or
-  otherwise take over Git ownership without direct user instruction. The user exclusively owns staging and commits.
-- Tests are entirely out of scope until the user separately authorizes them.
-- One writer owns every affected file. Overlapping writers are forbidden. Accepted Kotlin is a checkpoint, not frozen
-  code, and may be reopened when evidence requires it.
-- Current code is best-effort implementation evidence, never a design constraint. Future work may refactor, replace,
-  split, merge, simplify or remove it whenever that better satisfies Documents 01–12.
-- Final passive declarations may land early only with permanent domain ownership and no placeholder behavior, mutable
-  authority, lifecycle transition, arbitration, platform call or fabricated health/receipt.
-- Physical layout follows the authority manifest, cohesion and one-way dependency. File size is only a review signal;
-  never compress names or remove evidence merely to meet a line target.
-- Every subagent performs two self-review passes. A writer formats only its scope, uses available diagnostics, performs
-  proportional verification and stops for user manual review. Unavailable IDE tooling is noted once and is not a blocker.
-- Closure uses one independent read-only round proportional to changed product risk. Elevated design, GL,
-  concurrency/lock/publication, cleanup/fatal and Native/JNI decisions use three independent axes and consolidated
-  cross-review once; JNI candidate defects receive explicit disposition from all three. Gate, deadline, late-return,
-  nonreturn and nontermination behavior is checked where the changed boundary can actually affect it. Unchanged evidence
-  and already-settled claims are not rechecked without a concrete conflicting signal. The user may explicitly select a
-  narrower review for a planned mechanical correction.
-- Screen Capture Engine production audits inspect `build.gradle.kts` only where the active slice requires native
-  configuration or wiring. Generic SDK configuration is not a finding outside that scope.
-- Production Kotlin 2.4 must be direct, typed, compact, readable and idiomatic. Prefer immutable facts, narrow visibility
-  and explicit ownership; avoid speculative abstractions, compatibility layers, duplicate models and generic machinery.
-- Android platform branches read `Build.VERSION.SDK_INT` at the owning boundary and use typed
-  `Build.VERSION_CODES` constants. Do not thread caller-supplied SDK surrogates or duplicate platform constants.
-- Prefer an existing exact platform, standard-library, protocol or project constant over an equivalent raw literal. Do
-  not invent named constants for self-evident local sizes, offsets, sentinels, counts or frozen protocol values.
-- Preserve checked sizes, narrowing, limits, identities, bounded work, minimal copies, exact cleanup and resource roots.
-  Do not use `Any`, fake health flags, fabricated receipts, raw handles as ownership proof, incomplete behavior,
-  duplicate authority/topology or predictive accounting.
-- Keep this tracker current, not archival. Retain rules, current queue, open blockers and approved handoffs; delete
-  writer/auditor chronology, hashes and line-count pins, superseded findings and repeated verification narration.
-- Work from the current relevant file contents. Do not spend work cycles routinely polling Git/index state, calculating
-  hashes or rereading unchanged files. Recheck a source only after its relevant contents changed or when a concrete
-  product-critical contradiction requires it. Git ownership remains governed by the preservation rule above.
-- Before compaction or restart, root records every material current handoff, decision and next gate here, then rereads it.
+- Root is exclusively the orchestrator and sole tracker/status/gate owner. Root does not inspect or implement production
+  code, perform technical audits/research or run builds unless the user explicitly asks for a bounded root-only check.
+  Detailed document/code work belongs to bounded subagents; root retains compact evidence, decisions, disagreements and gates.
+- At most three direct subagents run at once. They do not read this tracker, use its procedure as their task contract, spawn/
+  resume/message agents or delegate work. Root gives each an exact product packet, authority routes, invariants, file scope,
+  negative manifest and required evidence. Long-running agents send a concise heartbeat.
+- Three independent axes precede elevated architecture, product, concurrency, graphics, cleanup/publication or JNI decisions.
+  Root consolidates them and returns critical disagreements/writer boundaries for cross-review. A material unresolved
+  disagreement uses a fresh adjudicator. Fresh agents are required for independent axes, broad reopening and adjudication;
+  reuse is preferred for a writer correction or exact-context continuation.
+- Root never interrupts, cancels, replaces or duplicates an active agent without direct user permission. If capacity is
+  unavailable, root reports it truthfully and continues only with work that is actually active.
+- Agents use current Docs authority and current source. Full Docs01–12 reading is reserved for genuine architecture reopening
+  or cross-document adjudication. Technical mechanism checks use official primary Android/AOSP, Kotlin/JetBrains,
+  Oracle/OpenJDK/JNI or Khronos guidance. Android CLI is first for Android-specific coverage when stronger, IDE semantic
+  tooling second, and raw terminal/Gradle only for unsupported checks. Frozen Docs remain product authority.
+- Findings are classified as intrinsic defect, intentional migration state or named future-owned gap and include exact
+  evidence plus a concrete correction. Product/platform/concurrency/ownership/safety/performance ambiguity stops for the
+  user. Secondary private structure may use the simplest sound recorded choice.
+- Product behavior is the stable approval boundary. Technical architecture, decomposition and mechanism in Docs are
+  best-effort hypotheses, not implementation facts. Implementation evidence may reopen them, but divergence is cross-reviewed
+  and agreed with the user before code relies on it.
+- Normative Docs are strict about product behavior, semantic authority, ownership, boundaries, critical partial orders,
+  platform/binary contracts and verification obligations. They are not a complete implementation design and do not freeze
+  transient algorithms, private class/file/type shapes, migration mechanics or exhaustive call sequences.
+- The goal is a finished correct product: observable behavior, platform correctness, concurrency, graphics, ownership/
+  lifetime, cleanup/failure/JNI safety, privacy/security and appropriate efficiency, followed by maintainable idiomatic Kotlin.
+  Formal guarantees or machinery that cost disproportionately to their product value are weakened or removed explicitly.
+- Root does not begin a materially different slice until the user agrees the next action. After each implementation stage,
+  one bounded next-stage revalidation uses the interfaces actually produced; material architecture change reopens three axes.
+- Preserve unrelated work. Root and agents never stage, unstage, commit, reset, checkout, revert, mutate history/index or run
+  hash procedures without direct user instruction. The user owns Git. Tests, builds, runtime/device/emulator and performance
+  work are entirely out of scope until separately authorized.
+- One writer owns every affected file; overlapping writers are forbidden. Accepted Kotlin is a checkpoint, not frozen code.
+  Current code may be refactored, split, merged, replaced or deleted when that better satisfies authority and whole-design fit.
+- Foundation constructibility/reachability is a hard gate. Every executable API, mutable occurrence, cell, ticket or receipt
+  graph must have in the same accepted slice an authoritative root, direct producer/consumer, submission/entry/return
+  arbitration, exact claim and terminal transfer/reduction. If a link is future-owned, land only permanent immutable vocabulary
+  or defer it. No unreachable scaffold may close as a foundation.
+- Semantic authority does not imply physical co-location. Canonical owners may use cohesive private collaborators without a
+  second gate, lane, writer, lifecycle/currentness/terminal authority, ownership root, state machine or commit path. Reject
+  mega-owners, forwarding shells over mega-owners, mixed authority+mechanics+cleanup units, generic manager/registry/event-bus
+  layers, and also file-per-method/mechanical fragmentation or `utils/common` dumps.
+- File size is a qualitative review signal, not a numeric acceptance target. The user's rough expectation is normally a few
+  hundred lines and only exceptionally around/above a thousand with architectural justification. Optimize for cohesive
+  responsibility, readable visibility/dependency direction and official Kotlin/Android best practices, never line arithmetic.
+- Every subagent performs two self-review passes. Verification is proportional to changed risk. Elevated design, GL,
+  concurrency/lock/publication, cleanup/fatal and Native/JNI closure uses three independent axes and one consolidated review;
+  a narrow mechanical correction may receive a user-approved narrower recheck. Unchanged evidence is not repeatedly audited.
+- Production Kotlin must be direct, typed, compact and idiomatic: immutable facts, narrow visibility, explicit ownership,
+  checked identities/sizes/limits, bounded work, minimal copies and exact cleanup. Avoid `Any`, fake health/receipts, raw
+  handles as ownership proof, duplicate authority/topology, compatibility layers and predictive accounting.
+- Keep this tracker current, compact and nonarchival. Retain rules, accepted baseline, open decisions and next gate; delete
+  writer/auditor chronology, hashes, line pins, superseded findings and repeated verification narration. Before compaction or
+  restart, root records the complete handoff here and rereads it.
 
-## Current state
+## Accepted baseline
 
-- Three fresh read-only strategy axes and their consolidated cross-review are complete. All reject both Stage 5/API on
-  top of the current Controller and a disposable Stage 5 code draft; no material disagreement remains and no adjudicator
-  is needed. No production code or frozen documentation changed, and no builds/tests or Git/index operations ran.
-- Documents 01–12 remain current authority. Doc01 contains the short user-authorized Controller source-manifest amendment.
-  Runtime/Metrics/Android, Target/GL, JPEG, `CleanupOwner` and `ObservationOwner` remain accepted leaf foundations, but all
-  current Kotlin is best-effort evidence and may be substantially refactored or replaced.
-- Stage 4 is **STOP after final reclosure and consolidated cross-review**. No material disagreement or document ambiguity
-  remains, so no adjudicator is needed. Builds/tests were not run and Stage 4 conformance is not claimed.
-- Current Controller structure is not accepted. `SessionController.kt` is 3,756 lines. `SessionControlScheduler.kt` is a
-  substantive extraction and `SessionStartupTopology.kt` is partial; `SessionReconfiguration.kt`,
-  `SessionTerminalCleanup.kt` and `SessionPublication.kt` remain thin while most orchestration stays in Controller.
-  `SessionStartupTopology` receives raw `sessionGate` through a command, contrary to the amended subordinate-unit rule.
-- Binding blocker groups:
-  1. **Control fatal/lifetime:** direct fatal records poison but does not close admission or establish emergency fail-close;
-     poison is not a scheduler-level first-action fence; failure publication may signal before poison; later signal,
-     remove or shutdown can replace the exact raw failure. Healthy final Control shutdown is absent. `terminated()`
-     illegally takes `sessionGate`, allocates collections and signals instead of only releasing its precreated receipt/root.
-  2. **Terminal transfer/Control residue:** cutoff attaches top-level owners but does not atomically fold and transfer the
-     exact bounded occurrence/deadline/wake/ticket/owner-bag inventory. Post-cutoff code still performs active arbitration,
-     can install late JPEG preparation and creates new terminal deadlines. `ControlWakeResidue` is not wired, so
-     `AwaitingStage5Delivery` overstates Stage 4 cleanup readiness.
-  3. **Cleanup evidence/residue:** cleanup actions swallow ordinary failures or return `false`, while the invoker observes
-     only outward throws. Attempt return is confused with physical release; Metrics/Android/GL residue may be forgotten,
-     and one-shot Target/GL work can remain stuck without quarantine. Typed outcomes and exact normal/quarantine reduction
-     are incomplete.
-  4. **Metrics readiness:** joint readiness is committed by Metrics and later adopted by Controller through a separate
-     `claimLatest()`; an intervening loss can turn valid readiness into the wrong `InternalFailure`.
-  5. **Reconfiguration/topology/authority:** API 34 provisional-to-authoritative replacement cannot converge while
-     Starting; Running replacement is not smallest-scope and crosses the irreversible boundary before close/drain/fence;
-     Android VD resize/detach/attach is unused; Android result classification collapses OOM, illegal state, unexpected
-     failure, expiry and rejection into `CaptureUnavailable`; the accepted topology snapshot is hybrid and lacks coherent
-     versioned Android/Target/GL/JPEG/Framework health/lease/installed facts. `TargetOwner` retains/acquires
-     `sessionGate`. Post-Active deterministic denial retains Active instead of the required recoverable suspension.
-- Confirmed positive facts: Control is published only after successful prestart; typed task comparison unwraps the peer
-  delegate; asynchronous Android startup failure is folded; initial VirtualDisplay uses logical `W×H,D`; desired-update
-  mutation/publication is gate-coherent; base terminal publication remains final Stats → one diagnostic attempt →
-  terminal State and physical cleanup starts afterward; Target quarantine has one tagged child. Active
-  frame/readback/encode/Delivery work remains Stage 5. JNI frame-compress remains dormant, while Stage 4 legitimately uses
-  native library load/capability/carrier allocate/free; no JNI correction is indicated.
-- The approved program is named **Stage 4+5 Runtime Spine Path** (`Runtime Spine Path` for short):
-  1. Short design pass for the final Stage 4+5 runtime spine: production flow/currentness, topology lease, Delivery and
-     unsubscribe ownership, complete wake inventory, terminal transfer, cleanup dependencies and reconfiguration
-     invalidation. Protect observable Doc02 behavior; identify any technical-only Docs01/03/05/12 amendments explicitly.
-  2. Refactor only the critical Stage 4 foundation needed by a real frame: close the five blocker groups, add final
-     production/Delivery authority seams, rewrite Delivery as one dedicated direct-callback lane and make it a real
-     startup/terminal dependency. Do not first perform a total Controller decomposition or cosmetic file cleanup.
-  3. Land one permanent FrameworkOnly vertical slice through the real public Session API: source → pacing → GL/readback
-     → Framework JPEG → storage → Delivery callback → unsubscribe → stop and terminal convergence. No mocks, bypasses,
-     temporary API or compatibility layer.
-  4. Extend the durable path with pacing modes, cache/repeat, complete Stats/diagnostics, Native/fallback and full dynamic
-     reconfiguration; then consolidate semantic ownership, file layout and technical documentation from the proven path.
-  Keep the current six isolated Session lanes for this work. Stateful subordinate coordinators are technical-only, not
-  product changes, but current sole-authority wording requires an explicit agreed amendment before such mutable facets are
-  implemented. The Controller must retain lifecycle, terminal winner, public cutoff and cross-domain commit authority.
-  The next authorized action is the short Stage 4+5 runtime-spine design pass. Production implementation begins only
-  after that pass produces one cross-reviewed responsibility model, exact first-slice boundary and any required concise
-  technical-document amendment packet.
+- The final de-prescribed Docs01–12 are explicitly user-approved/staged and three-axis closure-PASS. Doc02 product authority
+  is unchanged. Product math/outcomes, semantic owners/gates/lanes/currentness, ownership/receipt/terminal/cleanup, platform
+  calls, security, JNI/ABI/wire/build/source-set anchors and verification scenarios/races/oracles remain hard.
+- Accepted Runtime Spine, Control, RF1 and passive-RF2 checkpoints are valuable implementation evidence, not immunity from
+  refactoring and not proof of a complete product.
+- Reusable kernels with strong fit evidence include public immutable models; settlement occurrence/deadline/fatal concepts;
+  isolated endpoint mechanics; Android lane semantics; pure reconciliation/pacing/observation calculations; GL/EGL mechanics;
+  Native/Framework JPEG, storage and JNI/C++ contracts. Their physical owners may still require cohesive refactoring.
+- RF1 retained Target seal/quiescence/reopen and retained GL actual/currentness/compensation semantics are closure-PASS.
+  Passive RF2 accepted only Android actual VD tuple/callback currentness/create-release ownership, minimal detach/attach evidence
+  and passive facet vocabulary; its unreachable executable Android mutation overreach was removed.
+- The later W-TARGET edits in `TargetContracts.kt`, `TargetPorts.kt` and `CurrentTarget.kt` are unreachable, **REOPEN and
+  unaccepted**. They directly inspect `OperationOccurrence` and mint Target-side post facts, conflicting with the approved
+  Android-owned typed-outcome boundary. They must be deleted/replaced without an adapter after architecture/migration freeze.
 
-## Product handoff anchors
+## Current implementation reality
 
-Root converts these compact anchors and the relevant normative document packet into each bounded product task. Subagents
-do not need tracker procedure. These anchors are not a substitute for Documents 01–12:
+- The engine is not a finished reachable product: production does not yet expose a complete public engine/session facade,
+  `SessionController` is not a live end-to-end steady-state engine, and production GL→JPEG→Storage→Delivery integration is
+  absent. Delivery/Pacing/admission foundations are not proof of a working frame path.
+- `SessionController` is the correct sole Session authority in concept but physically mixes lifecycle/currentness/commit,
+  Control mechanics, startup, reconciliation inputs, topology installation, leaf result interpretation, publication, terminal
+  arbitration and detailed domain cleanup. Existing `Session*Facet` files are largely mutable bags, not closed collaborators.
+- The old active reconfiguration path is invalid for the approved architecture: it broadly retires compatible ownership,
+  may construct a replacement JPEG runtime, does not implement the same-VD independent detach/attach graphs and must be
+  replaced rather than moved behind a facade.
+- Controller-side leaf cleanup reads domain operation/evidence/owner-bag internals. Cleanup authority is split between
+  Controller, facets and `CleanupOwner`; late returns and domain suffixes must become leaf-owned typed progress.
+- `DeliveryEndpoint` duplicates executor/prestart/submission/poison/shutdown/termination mechanics already represented by
+  Runtime Spine. Delivery-specific handoff/callback/borrowed-lease settlement is distinct and must be preserved when its
+  duplicate endpoint lifecycle is replaced in the first live Delivery slice.
+- Other concentration hotspots include Control scheduling/deadline composition, Metrics/Android/Target physical owners,
+  `JpegRuntimeOwner`, `EncodedStorageOwner` and `DeliveryOwner`. Size alone is not the defect; mixed authority, mechanics,
+  settlement, cleanup and action construction is.
 
-- One active Session owns exactly six runtime threads: Control STPE, Metrics TPE, Android HandlerThread, GL TPE, JPEG
-  TPE and Delivery TPE. Main/provider/collector/native callback threads are non-owned.
-- Metrics/GL/JPEG/Delivery use separate prestarted bounded `CORE-EXEC-1` endpoints with one unsettled ticket,
-  entry-wins, monotone poison/no-reuse after outward submission throw, orderly shutdown and real `terminated()` receipt.
-  Control and Android use their separately specified scheduler/post protocols.
-- `CORE-FATAL-1` keeps exact raw fatal authority, settlement and poison. Direct `Error` identity remains exact at thread
-  top. On the four ordinary TPEs, a custom non-`Exception`/non-`Error` Throwable may be runtime-wrapped at thread top;
-  do not add bridges or reinterpret that wrapper. Preserve the narrow optional-Native own-load `UnsatisfiedLinkError`
-  fallback and the separate Control/Android fatal specializations.
-- Control uses one central wake protocol for deadline, pacing/repeat and Stats. `Suppressed(g)` is complete
-  generation-scoped engine-operational settlement after its exact publications settle; outer queue removal/return remains
-  physical cleanup/termination evidence, not a successor prerequisite. Control stays receive-only and terminates last;
-  its own `terminated()` releases only its exact root inline without resubmission.
-- Metrics uses the callback/subscription API. Joint readiness requires both a timely first positive and adopted normal
-  nonnull handle. Completion before joint readiness is startup `CaptureUnavailable`; completion after readiness retains
-  the last tuple and may continue startup. Null handle/subscribe `Exception` remains authoritative `InternalFailure`.
-  Arm `S,D` immediately before observation attachment and sample positive callback `T` with ingress sequence under
-  `sessionGate`. Close waits full attachment-ticket settlement; duplicate full authority keys are no-ops.
-- Delivery invokes the application callback directly on the isolated Delivery lane. Preserve one handoff, exact
-  unsubscribe, borrowed-frame checks, `byConsumerBusy` and `byCallbackFailure`. The caller copies synchronously before
-  dispatching its own copy elsewhere.
-- Do not implement internal `Dispatchers.Default`, `Dispatchers.IO.limitedParallelism`, pre-use coroutine barriers,
-  `DispatchException` unwrap logic, Metrics Flow/Job/Scope/Channel lifecycle, configurable callback dispatcher,
-  trampoline states, callback-entry watchdog/SLA or `byDispatchFailure`.
-- Public State, Stats, diagnostics, dynamic Metrics, frame delivery, caller-owned copying, cache/repeat and backend
-  fallback remain required product capabilities.
+## Candidate target architecture — cross-reviewed, awaiting adjudication
 
-## Implementation watchpoints
+- The governing strategy is **coherence-first, reuse-where-fit**. The end state is one coherent design, not adapters or
+  patchwork around legacy pieces. Retain/refine code only when authority, lifecycle and cohesion fit the whole; otherwise
+  locally rewrite it. Whole-engine rewrite is nondefault, but no bounded component is protected by sunk cost or prior closure.
+- `SessionController` becomes a thin sole-`sessionGate` decision/commit shell: public-command linearization, lifecycle/
+  currentness/terminal winner, cross-partition decisions, exact active→cleanup transfer and sealing of immutable effects.
+  It does not contain scheduler, platform, leaf settlement, cleanup suffix or publication mechanics.
+- Gate-confined lifecycle/topology/reconfiguration/production/delivery/Stats/cleanup partitions expose closed transitions
+  under the same `sessionGate`. They have no gate, lane, signal, outward work, independent policy or commit path.
+- Control owns its scheduler/drainer/wake/fatal/termination mechanics and returns typed facts. Metrics, Android, Target, GL,
+  JPEG, Storage and Delivery own physical resources, outward calls, settlement and local cleanup suffixes. Pure calculations
+  remain pure. A thin public facade delegates to the reachable Session aggregate without owning policy.
+- Target prepares its port/provenance/evidence boundary; Android precreates and roots the exact occurrence/ticket/result graph,
+  owns `RetiredUnused | DefinitelyUnentered | PostExposed`, and returns the typed outcome plus exact platform result. Target
+  never reads Android occurrence/ticket/Handler internals. Replacement uses independent old `setSurface(null)` detach and new
+  `setSurface(surface)` producer graphs on the same VirtualDisplay.
+- One `Retained | Replacement` Session reconfiguration correlation seals Production and new Delivery, holds only Session-level
+  phase/currentness/progress and commits once after typed leaf facts. One Session JPEG runtime/endpoint remains. Terminal moves
+  each unresolved leaf graph intact and never fabricates reopen or cleanup evidence.
+- Cleanup is one typed forest/quarantine model. Controller owns cutoff/transfer/matching reduction commit; leaf domains own
+  serial suffixes and return immutable progress. Control remains receive-only last and terminates only after non-Control
+  receipts and every external late-fact dependency settle.
+- Package direction remains shallow and domain-oriented (`session/controller`, `control`, `settlement`, `metrics`, `android`,
+  `target`, `gl`, `jpeg`, `storage`, `delivery`, `cleanup` or semantic equivalents). Exact private files/classes are not frozen;
+  a reviewed responsibility map must prove canonical owners remain thin and internal units cohesive.
 
-- `AndroidCaptureOwner.kt` and `TargetPorts.kt` remain cohesive large single-authority files. Reassess only when Controller
-  integration actually removes responsibilities.
-- Narrow module-internal seams are accepted where Kotlin multifile composition makes file-private access impractical.
+## Preserve / refactor / replace / delete
+
+- **Keep/refine:** public immutable models; settlement/fatal/runtime kernels; Android lane; pure reconciliation/pacing/
+  observation; GL/EGL mechanics; Native/Framework JPEG, storage and JNI/C++ platform contracts.
+- **Refactor substantially:** Control composition; Metrics/Android/Target physical cohesion; GL/JPEG canonical owners where
+  mechanics concentrate; Storage internals while preserving `EncodedStorageOwner$NativeSegmentSink` binary identity;
+  Delivery owner/handoff composition; typed cleanup forest and publication construction.
+- **Replace slice-by-slice:** current `SessionController` implementation while retaining its authority identity; mutable facet
+  bags; incomplete retained-only reconfiguration/admissions; W-TARGET; Controller-owned leaf cleanup; duplicate Delivery
+  endpoint lifecycle.
+- **Delete in the same vertical cutover:** current invalid replacement-JPEG/reconfiguration helpers and state, staged Target APIs
+  and direct Android evidence imports, duplicate Delivery executor protocol, adapters/feature flags/alternate planners,
+  duplicate state machines and unreachable scaffold.
+
+## Migration invariants and provisional order
+
+- Freeze semantic owners, authority, dependency direction, typed boundaries, lifecycle/terminal rules and architecture-quality
+  criteria—not exact private Kotlin layout or migration choreography.
+- Use vertical replacement slices. Every new command/fact has one producer and consumer, is reachable in that slice, carries
+  exact terminal/late-return cleanup, and deletes the displaced path in the same checkpoint. No prolonged dual authority,
+  compatibility adapter or future-owned executable foundation may close.
+- A behavior-preserving structural containment checkpoint is legal only when the extracted code is immediately used by the
+  current/same-slice path and the old body is deleted. No broad facet/action/cleanup framework precedes its consumer.
+- Cross-review agrees that Replacement precedes Production; every slice closes its own terminal residue; Delivery runtime
+  consolidation occurs only in the first live Delivery slice; final terminal work connects already-closed suffixes and proves
+  whole-forest Control-last. Remaining post-product decomposition must be nonsemantic only.
+- Provisional sequence: architecture freeze → disputed reachability/Retained ordering → Replacement → Production → Delivery/
+  public integration → full cleanup/Control-last convergence → remaining nonsemantic cohesion.
+
+## Open adjudication and exact post-restart procedure
+
+- All pre-restart agents are complete and their contexts are disposable. No writer is authorized. A fresh adjudicator is the
+  first action after restart and reads current Docs/source, not this tracker.
+- The adjudicator must resolve one material sequencing disagreement:
+  1. minimal public/runtime reachability spine before Retained, because the current aggregate has no production construction;
+  2. or Retained first, with public reachability only after Production/Delivery, to avoid a facade over an incomplete engine.
+  It must distinguish a real constructibility root from premature public product exposure.
+- It must also validate the optional narrow live-Control containment exception, Delivery Runtime-Spine consolidation,
+  exact slice order, preserve/refactor/replace/delete ledger and exclusive writer boundaries.
+- Before any writer, three bounded migration views then cover:
+  A. reachability and slice dependency order;
+  B. package/file/writer topology plus official Kotlin/JetBrains and Android/AOSP best-practice fit;
+  C. constructibility, same-slice deletion, terminal closure and proportional source verification.
+  The adjudicator decides whether those axes review one complete roadmap or the exact first-slice packet. Cross-review and a
+  fresh adjudicator resolve any remaining material disagreement. Root shows the final roadmap to the user before writers.
+- Tests/builds/runtime/Git remain outside this planning. Android CLI is used first where it gives stronger Android coverage;
+  the known sandbox bundle-lock failure is noted once and official source/guidance is the fallback.
+
+## Architecture-quality gate
+
+- A projected package/file responsibility map is mandatory before implementation. It covers every large domain, not only
+  Controller, and proves canonical owners are thin semantic anchors rather than forwarding shells over hidden mega-owners.
+- File size is qualitative: normally a few hundred lines; around/above a thousand is exceptional and requires architectural
+  justification. This is not a line budget. Review responsibility count, lifecycle/protocol cohesion, visibility, dependency
+  direction and platform ownership. Reject both mega-files and mechanical fragmentation.
+- The dedicated topology axis checks official Kotlin composition/visibility/package guidance and Android/AOSP resource,
+  Handler/VirtualDisplay/currentness guidance. Exact JNI/ABI/build anchors override private layout freedom where required.
+- Parallel writing is legal only after typed contracts and exclusive file ownership freeze. One integration writer owns each
+  cross-domain occurrence/cutover/deletion set; disjoint leaf writers may run in parallel only when they do not change shared
+  boundary types, Controller call sites, lifecycle/cleanup contracts or the same semantic owner.
+
+## Compact product handoff anchors
+
+- One active Session owns exactly six runtime threads: Control, Metrics, Android HandlerThread, GL, JPEG and Delivery.
+  Main/provider/collector/native callback threads are non-owned. Metrics/GL/JPEG/Delivery use separate bounded serial
+  endpoints; Control and Android use their specialized scheduler/post protocols.
+- Exact raw fatal authority, entry/return separation, poison after acceptance ambiguity, one orderly shutdown and real
+  termination receipts remain mandatory. Control is receive-only last; terminal transfer never fabricates physical cleanup.
+- Metrics joint readiness requires a timely first positive and adopted normal handle; Latest is not readiness authority.
+  Android owns the single VirtualDisplay actual tuple and callback currentness. Same-authority equal `W/H/D` is a no-op.
+- Target uses one `targetGate`, exact identities/ports/leases/provenance and real producer/detach/release evidence. GL/JPEG/
+  Storage retain exact platform/resource ownership and cleanup receipts. One JPEG runtime serves the Session.
+- Delivery invokes the application callback on its isolated lane with one handoff, borrowed-frame checks and exact
+  unsubscribe/callback settlement. Public State, Stats, diagnostics, dynamic Metrics, cache/repeat and fallback remain required.
+- Preserve stop-before-start zero-runtime semantics: OwnerStop, default requested parameters, null effective parameters, no
+  desired revision and no lane construction.
+
+## Immediate watchpoints
+
+- Do not extend, relocate or wrap the current invalid active-reconfiguration path. Replace it through the adjudicated vertical
+  cutover; do not accept W-TARGET, hide `advanceReconfigurationBoundary` behind a helper or construct a replacement JPEG runtime.
+- Do not expose a public facade merely to make unreachable internals appear complete; adjudication must define the minimum
+  reachability root and its truthful observable contract.
+- Do not connect Delivery as-is; its duplicate endpoint lifecycle must be replaced only with a live handoff consumer and
+  without changing Delivery-specific settlement.
+- Do not defer terminal/cleanup for a newly introduced owner or occurrence to a later global phase.
+- Do not use file size, previous closure or sunk effort as a substitute for whole-design fit.

@@ -12,8 +12,8 @@ import io.screenstream.engine.CaptureMetrics
 import io.screenstream.engine.CaptureMetricsObserver
 import io.screenstream.engine.CaptureMetricsProvider
 import io.screenstream.engine.CaptureMetricsSource
-import io.screenstream.engine.internal.MetricsEndpointShutdownAction
 import io.screenstream.engine.CaptureMetricsSubscription
+import io.screenstream.engine.internal.MetricsEndpointShutdownAction
 import io.screenstream.engine.internal.settlement.ControlWakeLink
 import io.screenstream.engine.internal.settlement.ControlWakeSubmissionDisposition
 import io.screenstream.engine.internal.settlement.ControlWakeThrowableDisposition
@@ -31,7 +31,6 @@ import io.screenstream.engine.internal.settlement.PrivateExecutorSubmissionResul
 import io.screenstream.engine.internal.settlement.PrivateExecutorTerminationReceipt
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 private const val firstMetricsReadinessNanos: Long = 5_000_000_000L
@@ -43,7 +42,7 @@ internal fun interface BuiltInCaptureMetricsSink {
 internal class CaptureMetricsOwner(
     applicationContext: Context,
     configuredSource: CaptureMetricsSource?,
-    private val sessionGate: ReentrantLock,
+    private val ingressPort: CaptureMetricsIngressPort,
     private val clock: EngineClock,
     private val settlementSignal: SettlementSignal,
     attachmentIdentity: Long,
@@ -66,6 +65,11 @@ internal class CaptureMetricsOwner(
         source = source,
         observationIdentity = attachmentIdentity,
         sequenceExhaustionCause = IllegalStateException("Capture metrics ingress sequence exhausted"),
+    )
+    private val readinessFact = CaptureMetricsReadinessMechanicalFact(
+        source = source,
+        observationIdentity = attachmentIdentity,
+        deadlineIdentity = readinessDeadlineIdentity,
     )
     private val readinessDeadlineGuardCause =
         IllegalStateException("Capture metrics readiness deadline could not be armed")
@@ -95,7 +99,6 @@ internal class CaptureMetricsOwner(
     private val closeOperation: OperationOccurrence<CaptureMetricsCloseEvidence>
     private val attachmentEndpointOperation: PrivateExecutorOperation<CaptureMetricsAttachmentEvidence>
 
-    private var readinessClaimed = false
     private var terminalClaimed = false
     private var attachmentEndpointOperationReleased = false
     private var refreshEndpointOperation: PrivateExecutorOperation<CaptureMetricsRefreshEvidence>? = null
@@ -106,6 +109,14 @@ internal class CaptureMetricsOwner(
     private var closeSubmitted = false
     private var closeSettled = false
     private var readinessGuardFailed = false
+    private var attachmentSubmissionResult: PrivateExecutorSubmissionResult? = null
+    private var claimedLatestSource: CaptureMetricsSource? = null
+    private var claimedLatestObservationIdentity = 0L
+    private var claimedLatestSequence = 0L
+    private var claimedLatestMetrics: CaptureMetrics? = null
+    private var claimedLatestDisplay: Display? = null
+    private var claimedLatestDisplayEpoch = 0L
+    private var claimedLatestAvailable = false
 
     init {
         attachmentOperation = OperationOccurrence(
@@ -136,8 +147,7 @@ internal class CaptureMetricsOwner(
         )
     }
 
-    internal val providerCause: Throwable?
-        get() = sessionGate.withLock { summary.terminalCause }
+    internal fun providerCauseLocked(): Throwable? = summary.terminalCause
 
     internal val observedFatal: Throwable?
         get() = endpoint.observedFatal
@@ -172,113 +182,210 @@ internal class CaptureMetricsOwner(
             closeOperation.returnCell.throwable
         }
 
-    internal fun attach(): PrivateExecutorSubmissionResult = endpoint.submit(attachmentEndpointOperation)
+    internal fun attach(): PrivateExecutorSubmissionResult {
+        val result = endpoint.submit(attachmentEndpointOperation)
+        attachmentOperation.settlementGate.withLock {
+            if (attachmentSubmissionResult == null) attachmentSubmissionResult = result
+        }
+        signalBestEffort()
+        return result
+    }
 
-    internal fun arbitrateReadiness(): CaptureMetricsReadinessArbitration {
-        return sessionGate.withLock sessionLock@{
-            attachmentOperation.settlementGate.withLock attachmentLock@{
-                if (readinessClaimed) return@attachmentLock CaptureMetricsReadinessArbitration.None
+    internal fun claimReadinessFoldLocked(): CaptureMetricsReadinessMechanicalFact? {
+        return attachmentOperation.settlementGate.withLock attachmentLock@{
+            if (readinessFact.isClaimed) return@attachmentLock null
 
-                val result = when {
-                    readinessGuardFailed ->
-                        CaptureMetricsReadinessArbitration.DeadlineGuardFailed
+            var arbitrationNanos = Long.MIN_VALUE
+            val outcome = when {
+                attachmentOperation.submissionAmbiguousFatal != null ->
+                    CaptureMetricsReadinessOutcome.AttachmentSubmissionDirectFatal
 
-                    readinessWakeLink.submissionDisposition == ControlWakeSubmissionDisposition.Rejected &&
-                            readinessWakeLink.schedulingThrowableDisposition ==
-                            ControlWakeThrowableDisposition.NonfatalException ->
-                        CaptureMetricsReadinessArbitration.AttachmentFailed
+                attachmentSubmissionResult == null -> null
 
-                    attachmentOperation.returnCell.disposition == OperationReturnDisposition.Thrown ->
-                        CaptureMetricsReadinessArbitration.AttachmentFailed
+                attachmentSubmissionResult == PrivateExecutorSubmissionResult.NotSubmitted ->
+                    CaptureMetricsReadinessOutcome.AttachmentSubmissionRejected
 
-                    attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
-                            attachmentOperation.returnCell.evidence.handleDisposition == CaptureMetricsHandleDisposition.NullReturned ->
-                        CaptureMetricsReadinessArbitration.AttachmentFailed
+                attachmentSubmissionResult == PrivateExecutorSubmissionResult.SubmissionFailed ||
+                        attachmentSubmissionResult == PrivateExecutorSubmissionResult.EntryWon ->
+                    CaptureMetricsReadinessOutcome.AttachmentSubmissionException
 
-                    attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
-                            summary.terminalKind == CaptureMetricsTerminalKind.Failed ->
-                        CaptureMetricsReadinessArbitration.FailedBeforeReadiness
+                readinessGuardFailed ->
+                    CaptureMetricsReadinessOutcome.DeadlineGuardFailed
 
-                    attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
-                            summary.terminalKind == CaptureMetricsTerminalKind.Completed ->
-                        CaptureMetricsReadinessArbitration.CompletedBeforeReadiness
+                readinessWakeLink.submissionDisposition == ControlWakeSubmissionDisposition.Rejected &&
+                        readinessWakeLink.schedulingThrowableDisposition ==
+                        ControlWakeThrowableDisposition.NonfatalException ->
+                    CaptureMetricsReadinessOutcome.DeadlineWakeRejected
 
-                    attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
-                            summary.postValidLossBeforeActive ->
-                        CaptureMetricsReadinessArbitration.AvailabilityLostBeforeActive
-
-                    attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
-                            isJointReadinessPresentLocked() -> {
-                        readinessDeadline.retireLocked()
-                        summary.commitJointReadinessLocked()
-                        CaptureMetricsReadinessArbitration.Timely
+                attachmentOperation.returnCell.disposition == OperationReturnDisposition.Thrown -> {
+                    if (attachmentOperation.returnCell.throwable is Exception) {
+                        CaptureMetricsReadinessOutcome.AttachmentException
+                    } else {
+                        CaptureMetricsReadinessOutcome.AttachmentDirectFatal
                     }
+                }
 
-                    readinessDeadline.disposition == DeadlineDisposition.Armed &&
-                            clock.nowNanos() >= readinessDeadline.deadlineNanos -> {
-                        readinessDeadline.expireLocked()
-                        CaptureMetricsReadinessArbitration.Expired
+                attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
+                        attachmentOperation.returnCell.evidence.handleDisposition == CaptureMetricsHandleDisposition.NullReturned ->
+                    CaptureMetricsReadinessOutcome.NullHandle
+
+                attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
+                        summary.sequenceExhausted ->
+                    CaptureMetricsReadinessOutcome.SequenceExhausted
+
+                attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
+                        summary.terminalKind == CaptureMetricsTerminalKind.Failed ->
+                    CaptureMetricsReadinessOutcome.ProviderFailedBeforeReadiness
+
+                attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
+                        summary.terminalKind == CaptureMetricsTerminalKind.Completed ->
+                    CaptureMetricsReadinessOutcome.ProviderCompletedBeforeReadiness
+
+                attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
+                        summary.postValidLossBeforeActive ->
+                    CaptureMetricsReadinessOutcome.AvailabilityLostBeforeActive
+
+                attachmentOperation.returnCell.disposition == OperationReturnDisposition.Normal &&
+                        hasTimelyJointReadinessEvidenceLocked() ->
+                    CaptureMetricsReadinessOutcome.Timely
+
+                readinessDeadline.disposition == DeadlineDisposition.Armed -> {
+                    arbitrationNanos = clock.nowNanos()
+                    if (arbitrationNanos >= readinessDeadline.deadlineNanos) {
+                        CaptureMetricsReadinessOutcome.Expired
+                    } else {
+                        null
                     }
-
-                    readinessDeadline.disposition == DeadlineDisposition.Expired ->
-                        CaptureMetricsReadinessArbitration.Expired
-
-                    attachmentOperation.returnCell.disposition == OperationReturnDisposition.Empty ->
-                        CaptureMetricsReadinessArbitration.None
-
-                    else -> CaptureMetricsReadinessArbitration.None
                 }
-                if (result != CaptureMetricsReadinessArbitration.None) {
-                    if (result != CaptureMetricsReadinessArbitration.Expired) readinessDeadline.retireLocked()
-                    readinessClaimed = true
+
+                readinessDeadline.disposition == DeadlineDisposition.Expired ->
+                    CaptureMetricsReadinessOutcome.Expired
+
+                else -> null
+            } ?: return@attachmentLock null
+
+            val deadlineRelation = when (outcome) {
+                CaptureMetricsReadinessOutcome.Timely -> {
+                    readinessDeadline.retireLocked()
+                    check(summary.commitJointReadinessLocked())
+                    CaptureMetricsReadinessDeadlineRelation.JointEvidenceTimely
                 }
-                result
+
+                CaptureMetricsReadinessOutcome.Expired -> {
+                    readinessDeadline.expireLocked()
+                    CaptureMetricsReadinessDeadlineRelation.Expired
+                }
+
+                CaptureMetricsReadinessOutcome.DeadlineGuardFailed ->
+                    CaptureMetricsReadinessDeadlineRelation.Unarmed
+
+                else -> {
+                    val relation = if (readinessDeadline.disposition == DeadlineDisposition.Unarmed) {
+                        CaptureMetricsReadinessDeadlineRelation.Unarmed
+                    } else {
+                        CaptureMetricsReadinessDeadlineRelation.RetiredWithoutJointReadiness
+                    }
+                    readinessDeadline.retireLocked()
+                    relation
+                }
             }
+
+            val evidence = attachmentOperation.returnCell.evidence
+            val adoptedSubscriptionOwner = if (evidence.handleDisposition == CaptureMetricsHandleDisposition.Adopted) {
+                evidence.subscriptionOwner
+            } else {
+                null
+            }
+            val cause = when (outcome) {
+                CaptureMetricsReadinessOutcome.Expired -> readinessDeadline.timeoutCause
+                CaptureMetricsReadinessOutcome.DeadlineGuardFailed -> readinessDeadlineGuardCause
+                CaptureMetricsReadinessOutcome.DeadlineWakeRejected -> readinessWakeLink.schedulingFailure
+                CaptureMetricsReadinessOutcome.AttachmentSubmissionException ->
+                    attachmentOperation.submissionFailure
+
+                CaptureMetricsReadinessOutcome.AttachmentSubmissionDirectFatal ->
+                    attachmentOperation.submissionAmbiguousFatal
+
+                CaptureMetricsReadinessOutcome.AttachmentException,
+                CaptureMetricsReadinessOutcome.AttachmentDirectFatal,
+                    -> attachmentOperation.returnCell.throwable
+
+                CaptureMetricsReadinessOutcome.SequenceExhausted,
+                CaptureMetricsReadinessOutcome.ProviderFailedBeforeReadiness,
+                    -> summary.terminalCause
+
+                CaptureMetricsReadinessOutcome.Timely,
+                CaptureMetricsReadinessOutcome.ProviderCompletedBeforeReadiness,
+                CaptureMetricsReadinessOutcome.AvailabilityLostBeforeActive,
+                CaptureMetricsReadinessOutcome.AttachmentSubmissionRejected,
+                CaptureMetricsReadinessOutcome.NullHandle,
+                    -> null
+            }
+            check(
+                readinessFact.commitLocked(
+                    outcome = outcome,
+                    cause = cause,
+                    ingressSequence = summary.earliestPositiveSequence,
+                    sampleNanos = summary.earliestPositiveSampleNanos,
+                    metrics = summary.earliestPositiveMetrics,
+                    display = summary.earliestPositiveDisplay,
+                    displayEpoch = summary.earliestPositiveDisplayEpoch,
+                    deadlineStartNanos = readinessDeadline.startNanos,
+                    deadlineNanos = readinessDeadline.deadlineNanos,
+                    deadlineRelation = deadlineRelation,
+                    arbitrationNanos = arbitrationNanos,
+                    attachmentSubmissionResult = attachmentSubmissionResult,
+                    attachmentSubmissionDisposition = attachmentOperation.submissionDisposition,
+                    attachmentSubmissionFailure = attachmentOperation.submissionFailure,
+                    attachmentSubmissionAmbiguousFatal = attachmentOperation.submissionAmbiguousFatal,
+                    attachmentEntryDisposition = attachmentOperation.entryDisposition,
+                    attachmentReturnDisposition = attachmentOperation.returnCell.disposition,
+                    handleDisposition = evidence.handleDisposition,
+                    handleSettlementNanos = evidence.handleSettlementNanos,
+                    subscriptionOwner = adoptedSubscriptionOwner,
+                    terminalKind = summary.terminalKind,
+                    terminalCause = summary.terminalCause,
+                    terminalSequence = summary.terminalSequence,
+                    terminalPhase = summary.terminalPhase,
+                ),
+            )
+            readinessFact
         }
     }
 
     internal fun commitFirstActiveLocked(): Boolean {
-        check(sessionGate.isHeldByCurrentThread)
         return summary.commitFirstActiveLocked()
     }
 
-    internal fun claimLatest(): CaptureMetricsClaimedValue? {
-        var claimedSource: CaptureMetricsSource? = null
-        var observationIdentity = 0L
-        var sequence = 0L
-        var metrics: CaptureMetrics? = null
-        var display: Display? = null
-        var displayEpoch = 0L
-        var available = false
-        val claimed = sessionGate.withLock {
-            if (!summary.claimLatestLocked()) return@withLock false
-            claimedSource = summary.latestSource
-            observationIdentity = summary.latestObservationIdentity
-            sequence = summary.latestSequence
-            metrics = summary.latestMetrics
-            display = summary.latestDisplay
-            displayEpoch = summary.latestDisplayEpoch
-            available = summary.latestValueAvailable
-            true
-        }
-        if (!claimed) return null
-        return CaptureMetricsClaimedValue(
-            source = checkNotNull(claimedSource),
-            observationIdentity = observationIdentity,
-            sequence = sequence,
-            metrics = metrics,
-            display = display,
-            displayEpoch = displayEpoch,
-            isAvailable = available,
-        )
+    internal fun claimLatestLocked(): Boolean {
+        if (!summary.claimLatestLocked()) return false
+        claimedLatestSource = summary.latestSource
+        claimedLatestObservationIdentity = summary.latestObservationIdentity
+        claimedLatestSequence = summary.latestSequence
+        claimedLatestMetrics = summary.latestMetrics
+        claimedLatestDisplay = summary.latestDisplay
+        claimedLatestDisplayEpoch = summary.latestDisplayEpoch
+        claimedLatestAvailable = summary.latestValueAvailable
+        return true
     }
 
-    internal fun claimTerminal(): CaptureMetricsTerminalArbitration = sessionGate.withLock {
-        if (terminalClaimed) return@withLock CaptureMetricsTerminalArbitration.None
-        val phase = summary.terminalPhase ?: return@withLock CaptureMetricsTerminalArbitration.None
-        val kind = summary.terminalKind ?: return@withLock CaptureMetricsTerminalArbitration.None
+    internal fun materializeLatestClaimUnlocked(): CaptureMetricsClaimedValue =
+        CaptureMetricsClaimedValue(
+            source = checkNotNull(claimedLatestSource),
+            observationIdentity = claimedLatestObservationIdentity,
+            sequence = claimedLatestSequence,
+            metrics = claimedLatestMetrics,
+            display = claimedLatestDisplay,
+            displayEpoch = claimedLatestDisplayEpoch,
+            isAvailable = claimedLatestAvailable,
+        )
+
+    internal fun claimTerminalLocked(): CaptureMetricsTerminalArbitration {
+        if (terminalClaimed) return CaptureMetricsTerminalArbitration.None
+        val phase = summary.terminalPhase ?: return CaptureMetricsTerminalArbitration.None
+        val kind = summary.terminalKind ?: return CaptureMetricsTerminalArbitration.None
         terminalClaimed = true
-        when (kind) {
+        return when (kind) {
             CaptureMetricsTerminalKind.Completed -> when (phase) {
                 CaptureMetricsTerminalPhase.BeforeJointReadiness ->
                     CaptureMetricsTerminalArbitration.CompletedBeforeReadiness
@@ -295,6 +402,35 @@ internal class CaptureMetricsOwner(
                     CaptureMetricsTerminalArbitration.FailedAfterReadiness
             }
         }
+    }
+
+    internal fun commitMetricsSampleIngressLocked(
+        expectedObservationIdentity: Long,
+        metrics: CaptureMetrics?,
+        sampleNanos: Long,
+        display: Display?,
+        displayEpoch: Long,
+    ): CaptureMetricsIngressResult {
+        if (expectedObservationIdentity != summary.observationIdentity) {
+            return CaptureMetricsIngressResult.RejectedCurrentness
+        }
+        return summary.publishMetricsLocked(
+            metrics = metrics,
+            sampleNanos = sampleNanos,
+            display = display,
+            displayEpoch = displayEpoch,
+        ).toIngressResult()
+    }
+
+    internal fun commitMetricsTerminalIngressLocked(
+        expectedObservationIdentity: Long,
+        kind: CaptureMetricsTerminalKind,
+        cause: Throwable?,
+    ): CaptureMetricsIngressResult {
+        if (expectedObservationIdentity != summary.observationIdentity) {
+            return CaptureMetricsIngressResult.RejectedCurrentness
+        }
+        return summary.publishTerminalLocked(kind, cause).toIngressResult()
     }
 
     internal fun submitPendingRefresh(operationIdentity: Long): PrivateExecutorSubmissionResult {
@@ -323,18 +459,18 @@ internal class CaptureMetricsOwner(
         return endpoint.submit(endpointOperation)
     }
 
-    internal fun requestClose(): Boolean {
-        val requested = sessionGate.withLock {
-            if (closeRequested) return@withLock false
-            closeRequested = true
-            summary.closeIngressLocked()
-            true
-        }
+    internal fun requestCloseLocked(): Boolean {
+        if (closeRequested) return false
+        closeRequested = true
+        summary.closeIngressLocked()
+        return true
+    }
+
+    internal fun applyCloseRequestEffectsUnlocked(requested: Boolean) {
         if (requested) {
             builtInAttachment?.fenceCallbacks()
             signalBestEffort()
         }
-        return requested
     }
 
     internal fun submitPendingClose(): PrivateExecutorSubmissionResult {
@@ -373,7 +509,6 @@ internal class CaptureMetricsOwner(
     }
 
     internal fun prepareEndpointShutdown(): Boolean {
-        requestClose()
         submitPendingClose()
         releaseReturnedOperation()
         if (endpoint.isPoisoned) return true
@@ -434,11 +569,15 @@ internal class CaptureMetricsOwner(
         }
     }
 
-    private fun isJointReadinessPresentLocked(): Boolean {
+    private fun hasTimelyJointReadinessEvidenceLocked(): Boolean {
         val evidence = attachmentOperation.returnCell.evidence
-        return evidence.handleDisposition == CaptureMetricsHandleDisposition.Adopted &&
+        return readinessDeadline.disposition == DeadlineDisposition.Armed &&
+                evidence.handleDisposition == CaptureMetricsHandleDisposition.Adopted &&
                 summary.earliestPositiveMetrics != null &&
+                summary.earliestPositiveSequence > 0L &&
+                summary.earliestPositiveSampleNanos >= 0L &&
                 summary.earliestPositiveSampleNanos < readinessDeadline.deadlineNanos &&
+                evidence.handleSettlementNanos >= 0L &&
                 evidence.handleSettlementNanos < readinessDeadline.deadlineNanos
     }
 
@@ -466,35 +605,40 @@ internal class CaptureMetricsOwner(
         }
 
         override fun onComplete() {
-            val result = sessionGate.withLock {
-                summary.publishTerminalLocked(CaptureMetricsTerminalKind.Completed, null)
-            }
+            val result = ingressPort.publishMetricsTerminal(
+                expectedOwner = this@CaptureMetricsOwner,
+                expectedObservationIdentity = summary.observationIdentity,
+                kind = CaptureMetricsTerminalKind.Completed,
+                cause = null,
+            )
             signalIngressResult(result)
         }
 
         override fun onFailure(cause: Throwable) {
-            val result = sessionGate.withLock {
-                summary.publishTerminalLocked(CaptureMetricsTerminalKind.Failed, cause)
-            }
+            val result = ingressPort.publishMetricsTerminal(
+                expectedOwner = this@CaptureMetricsOwner,
+                expectedObservationIdentity = summary.observationIdentity,
+                kind = CaptureMetricsTerminalKind.Failed,
+                cause = cause,
+            )
             signalIngressResult(result)
         }
     }
 
     private fun publishMetricsIngress(metrics: CaptureMetrics?, display: Display?, displayEpoch: Long) {
-        val result = sessionGate.withLock {
-            summary.publishMetricsLocked(
-                metrics = metrics,
-                sampleNanos = clock.nowNanos(),
-                display = display,
-                displayEpoch = displayEpoch,
-            )
-        }
+        val result = ingressPort.publishMetricsSample(
+            expectedOwner = this,
+            expectedObservationIdentity = summary.observationIdentity,
+            metrics = metrics,
+            display = display,
+            displayEpoch = displayEpoch,
+        )
         signalIngressResult(result)
     }
 
-    private fun signalIngressResult(result: CaptureMetricsIngressPublishResult) {
-        if (result == CaptureMetricsIngressPublishResult.Published ||
-            result == CaptureMetricsIngressPublishResult.SequenceExhausted
+    private fun signalIngressResult(result: CaptureMetricsIngressResult) {
+        if (result == CaptureMetricsIngressResult.Published ||
+            result == CaptureMetricsIngressResult.SequenceExhausted
         ) {
             signalBestEffort()
         }
@@ -507,6 +651,13 @@ internal class CaptureMetricsOwner(
             // Durable state is consumed by the future Control owner.
         }
     }
+}
+
+private fun CaptureMetricsIngressPublishResult.toIngressResult(): CaptureMetricsIngressResult = when (this) {
+    CaptureMetricsIngressPublishResult.Published -> CaptureMetricsIngressResult.Published
+    CaptureMetricsIngressPublishResult.Duplicate -> CaptureMetricsIngressResult.Duplicate
+    CaptureMetricsIngressPublishResult.Closed -> CaptureMetricsIngressResult.Closed
+    CaptureMetricsIngressPublishResult.SequenceExhausted -> CaptureMetricsIngressResult.SequenceExhausted
 }
 
 internal class BuiltInCaptureMetricsAttachment(

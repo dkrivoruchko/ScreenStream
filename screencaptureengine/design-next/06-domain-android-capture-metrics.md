@@ -13,14 +13,10 @@ construction, ports/leases, listener state, and release are owned respectively b
 [TGT-060](07-domain-target.md#tgt-060--mutually-exclusive-retirement-readiness)/
 [TGT-070](07-domain-target.md#tgt-070--surface-and-targetscope-destruction).
 
-Canonical paths are in [router §6](01-authority-router.md#6-source-manifest). `PUB:ScreenCaptureConfig.kt`
-declares the public source/provider contracts and built-in source factories. `AND:CaptureMetricsContracts.kt` and
-`AND:CaptureMetricsOwner.kt` own metrics facts and observation lifetime. `AND:AndroidCaptureContracts.kt` owns
-capture evidence and occurrence bags; `AND:AndroidLane.kt` contains the single Session
-`HandlerThread`/`Handler` runtime; `AND:MediaProjectionOperations.kt` and
-`AND:VirtualDisplayOperations.kt` contain their named platform boundaries; and
-`AND:AndroidCaptureOwner.kt` is the sole mutable domain facade. These files share one Android authority and do
-not create an additional lane, gate, owner, or state machine.
+The Android domain owns one metrics observation authority and one Session `HandlerThread`/`Handler` lane for
+`MediaProjection` and `VirtualDisplay` calls. Its Target-facing post outcome is closed as
+`RetiredUnused | DefinitelyUnentered | PostExposed`; Target retains port/provenance and producer/detach evidence.
+Private decomposition creates no additional Android lane, gate, owner, or state machine.
 
 ## Navigation
 
@@ -91,15 +87,9 @@ verifies the MediaProjection capture source.
 
 ## AND-MET-011 — Epoch invalidation and latest geometry
 
-Each Metrics-lane refresh turn begins with the only consuming exchange:
-
-```text
-boundary = epochInvalidated.getAndSet(false)
-```
-
-When true, that token performs only a boundary pass: retire the current epoch and cached window pair, publish
-unavailable once in latest-value state, queue one conflated recovery token, and do not resolve or install an
-epoch. Installation occurs only on a later token and never clears `epochInvalidated`.
+Metrics refresh uses one sticky epoch-invalidated signal and one conflated recovery request. Consuming an
+invalidation retires the current epoch/window pair and publishes unavailable; only a later refresh may install a
+new epoch, so an invalidation cannot be erased by the read that observed it.
 
 A read/recovery token resolves its policy's selected nonnull valid Display and, on API 30+, constructs the epoch
 window pair before installation. Final validation uses a nonconsuming sticky-bit read. A changed selection,
@@ -122,28 +112,19 @@ new epoch/owner, or field change is real; unavailable followed by historically e
 
 ## AND-MET-020 — Provider observation and Active ordering
 
-Accepted startup precreates the readiness occurrence, observer, bounded staging summary, handle-outcome/adoption
-cell, close occurrence, owner bag, and attachment ticket, then submits that one ticket to the prestarted Metrics
-endpoint under `CORE-EXEC-1`. After its Runnable commits `Entered`, the worker takes the attachment
-`settlementGate`, samples `S = EngineClock.now()`, computes checked `D` from `AND-CAP-040`, and publishes both;
-it releases the gate immediately before exactly one outward observation-start call. That call is custom
+Accepted startup creates one identity-fenced observation with bounded readiness, handle-adoption, attachment,
+and close ownership, then submits it under `CORE-EXEC-1`. After entry it publishes checked start/deadline samples
+before exactly one outward observation-start call. That call is custom
 `provider.subscribe(observer)` or the built-in attach/register equivalent. Thus `S,D` are visible before any
 inline callback. Observer calls may be synchronous before return, inline/reentrant, concurrent, or later on
 arbitrary source-owned threads; no callback-thread ordering is assumed.
 
-The bounded summary is sufficient and exhaustive: earliest validated positive value with ingress sequence,
-sample time, and value; sticky first post-valid availability loss before first Active; latest nullable metrics
-with sequence and value; first terminal kind/cause, sequence, and
-`BeforeJointReadiness | AfterJointReadiness` phase; and the distinct handle-outcome/adoption cell. For each
-contract-valid positive callback, the observer takes `sessionGate`, validates exact source/observation identity,
-the open fence, and the value, reserves the next nonreused ingress sequence, samples `T = EngineClock.now()` in
-that same critical section, and publishes the tuple before unlock. This internal clock sample is permitted while
-no outward call, I/O, scheduling, or explicit wait occurs. Nullable and terminal callbacks use the same semantic
-sequence authority without a readiness time sample. Sequence exhaustion fences ingress and publishes the
-precreated `InternalFailure` before wrap or reuse. Each gated body is O(1), allocation-free, and nonthrowing for
-contract-valid input; it may contend briefly on `sessionGate` and requests the lossless drain only after unlock.
-`onComplete`/`onFailure` close ingress and the first terminal wins. Reported failure is source data, so its raw
-cause is retained as `InternalFailure` regardless of subtype and is never thrown by the engine.
+The bounded summary retains only the earliest timed positive value, sticky first post-valid pre-Active loss,
+latest nullable value, first terminal with its readiness phase, and distinct handle adoption. Callbacks validate
+identity/fence under `sessionGate`, receive one nonreused semantic sequence, and publish before signalling; a
+positive callback samples `T` in that same critical section. Exhaustion fails before reuse. Completion/failure
+closes ingress and the first terminal wins; a reported failure remains raw source data mapped to
+`InternalFailure`, never an engine throw.
 
 The controller folds summary cells by ingress sequence, not callback arrival, drain order, or sample-time order;
 no event queue is needed. One-shot joint readiness commits under `sessionGate` only when the timely earliest
@@ -225,8 +206,7 @@ all other observations/Sessions.
 
 A Main-queue callback whose framework snapshot predates close/unregister may enter after a normal unregister or
 after Session Android-thread shutdown. The fence makes it the same O(1) inert callback: zero refresh submission,
-read, publication, and lifecycle calls. A blocking metrics read is identity/domain-fenced; its late return is
-cleanup-only.
+read, publication, and lifecycle calls.
 
 ## AND-CAP-001 — Android lane and startup sequence
 
@@ -237,10 +217,14 @@ epoch and publish immutable facts; they do not mutate controller, Target, or GL 
 
 Every engine-originated Android Runnable has a typed post/entry ticket. `Handler.post(runnable) == true` is
 acceptance only, not entry, execution, return, release, or thread-liveness receipt. `false` or an outward throw is
-always recorded; entry wins the affected occurrence if its Runnable already committed entry, but any such active
-post failure monotonically poisons the Android lane and initiates the allocation-free fail-close path. A thrown
-`Exception` is `InternalFailure`; a direct `Error` or other non-`Exception` throwable follows `CORE-FATAL-1` and
-is rethrown identically after settlement. A poisoned-lane Runnable can only settle inert. Framework callbacks
+always recorded. Physical Runnable entry wins only post/acceptance arbitration and prevents a concurrent
+false/throw/failure from being interpreted as no-entry; it neither enters nor wins the separately authoritative
+platform-boundary `OperationOccurrence`. Any such active post failure monotonically poisons the Android lane and
+initiates the allocation-free fail-close path. A thrown `Exception` is `InternalFailure`; a direct `Error` or
+other non-`Exception` throwable follows `CORE-FATAL-1` and is rethrown identically after settlement. After
+poison/closing, an entered-inert Runnable may irrevocably commit that occurrence `Cancelled` before platform
+entry under `AND-CAP-020`, perform no platform work, and publish only ticket `Returned`; poison alone never proves
+`DefinitelyUnentered`. Framework callbacks
 delivered through the registered Handler are callback occurrences, not engine `post` tickets, and do not consume
 a private-executor ticket. The `CORE-EXEC-1` queue and one-outstanding-ticket rules do not apply to Android.
 
@@ -270,8 +254,8 @@ occurs later.
 ## AND-CAP-010 — Projection and VirtualDisplay calls
 
 All calls below are typed [CORE-SET-1](03-shared-runtime.md#core-set-1--generic-operation-occurrence) occurrences.
-"Once" means exactly once when its prerequisites admit that boundary and zero otherwise. Only a timely current
-normal result is eligible for active application by
+"Once" means exactly once when its prerequisites admit that boundary and zero otherwise. Every normal resize
+return records its exact actual applied tuple; only a timely current normal result is eligible for active application by
 [CTRL-100](05-domain-controller-reconciliation.md#ctrl-100--currentness-identities) and
 [CTRL-130](05-domain-controller-reconciliation.md#ctrl-130--completion-and-fallback-arbitration); late facts are cleanup-only.
 
@@ -279,7 +263,7 @@ normal result is eligible for active application by
 | --- | --- | --- |
 | projection callback registration | Once, before display creation: `mediaProjection.registerCallback(callback, androidHandler)` | Normal return is the startup registration receipt; thrown `Exception` is `InternalFailure`; direct fatal follows `CORE-FATAL-1`. |
 | VirtualDisplay creation | Once: `mediaProjection.createVirtualDisplay("ScreenCaptureEngine", W, H, D, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, null)` | Nonnull adopts the sole display owner; null or `SecurityException` is `CaptureUnavailable`; direct `OutOfMemoryError` is `ResourceExhausted`; `IllegalStateException` or another unexpected `Exception` is `InternalFailure`; other direct throwables follow `CORE-FATAL-1`. A late nonnull owner is adopted for cleanup and must be released. |
-| density/size mutation | `virtualDisplay.resize(W,H,D)` once per admitted mutation occurrence | Normal return is the resize receipt; thrown `Exception` or ambiguity is `InternalFailure`; direct fatal follows `CORE-FATAL-1`. |
+| density/size mutation | `virtualDisplay.resize(W,H,D)` once per admitted mutation occurrence | Normal return records the exact actual applied tuple and resize receipt; thrown `Exception` or ambiguity is `InternalFailure`; direct fatal follows `CORE-FATAL-1`. |
 | target attach/detach | `virtualDisplay.setSurface(surface)` / `virtualDisplay.setSurface(null)` once per admitted occurrence | Normal attach/detach publishes the exact platform result consumed by `TGT-040`; throw/timeout supplies no producer, no-producer, or detach proof. |
 | callback unregister | At most once in cleanup: `mediaProjection.unregisterCallback(callback)` | Normal return releases callback registration. Returned `Exception` is recorded and cleanup continues; direct fatal follows `CORE-FATAL-1`; nonreturn blocks this serial suffix. |
 | display release | At most once in cleanup: `virtualDisplay.release()` | Normal return releases the display and may supply the matching `TGT-040` detach receipt. Returned `Exception` is recorded and cleanup continues; direct fatal follows `CORE-FATAL-1`; nonreturn blocks the suffix. |
@@ -303,23 +287,43 @@ are cleanup operations and cannot fabricate callback/lifecycle facts.
 
 ## AND-CAP-020 — Target-facing typed boundary
 
-This domain consumes only the inaccessible installed-Target interfaces in
+For Target-port calls, this domain consumes only the inaccessible installed-Target interfaces in
 [TGT-010](07-domain-target.md#tgt-010--typed-boundary-map) and
 [TGT-030](07-domain-target.md#tgt-030--currenttarget-ports-leases-and-provenance); it never constructs a
 `PreparedTarget`/`CurrentTarget` or creates Target authority.
 
-| Android operation | Inbound Target authority | Android output to Target/controller |
+| Android operation | Inbound authority | Android output to Target/controller |
 | --- | --- | --- |
 | listener install/remove | registered one-operation listener port bound to CurrentTarget, target generation, operation identity/kind, and provenance | exact platform settlement and sentinel-post/observation facts for `TGT-050` |
 | display create/attach | registered counted one-shot Android Surface port/lease with the same bindings | exact platform result offered to `TGT-040` after complete settlement |
 | display detach/release | registered one-shot detach port | exact normal/throw result offered to `TGT-040` |
+| retained display resize | controller-authorized `CTRL-120` command bound to the exact retained occurrence and sealed Target epoch | exact normal/throw result and actual applied `(W,H,D)` offered to the controller |
 
-Each Android occurrence owner bag retains the exact Target port and provenance it received until settlement and
-invokes only that operation. Port binding, raw-handle exposure, lease accounting, and uninstalled-Target exclusion
-remain solely [TGT-020](07-domain-target.md#tgt-020--preparation-and-single-disposition) and
-[TGT-030](07-domain-target.md#tgt-030--currenttarget-ports-leases-and-provenance). After complete
-platform settlement, Android offers the matching physical result to
-[TGT-040](07-domain-target.md#tgt-040--producer-evidence); it neither synthesizes nor interprets producer authority.
+Target prepares the port, provenance, and evidence; the Controller supplies the exact `Replacement` identity.
+Before Target commits registration, Android binds its post/operation/root and result evidence to both identities.
+A commit loser is `RetiredUnused`; a committed graph is `PostExposed` unless Android proves
+`DefinitelyUnentered`. Physical Runnable entry and later platform-operation entry remain distinct. Android alone
+produces the bound outcome. `DefinitelyUnentered` requires
+exactly one Android-owned proof:
+
+1. authoritative rejection before physical ticket entry plus the exact nonentered occurrence;
+2. an accepted ticket enters inert after poison/closing, irrevocably commits the occurrence `Cancelled` before
+   platform entry, and then publishes the exact ticket `Returned`, while the lane may remain alive; or
+3. authoritative final HandlerThread return plus exact ticket/occurrence state proves neither entered and neither
+   can later enter.
+
+Either entry winning or acceptance ambiguity yields `PostExposed`. Post return/throw, direct fatal, poison,
+queue observation, shutdown request, or caller result alone does not prove no-entry. Without one listed proof,
+terminal transfers the whole graph; one Replacement graph proves nothing about the other.
+
+Each committed Target-port owner bag retains its exact port, provenance, occurrence, ticket, outcomes, and root
+through physical ticket return and until Target consumes the applicable outcome or cleanup adopts the intact
+graph, even when Target-port inert retirement has become safe; it invokes only that operation.
+Port binding, raw-handle exposure, lease accounting, and uninstalled-Target exclusion remain solely
+[TGT-020](07-domain-target.md#tgt-020--preparation-and-single-disposition) and
+[TGT-030](07-domain-target.md#tgt-030--currenttarget-ports-leases-and-provenance). Retained resize instead consumes
+only its listed controller command and holds no Target port. Each result goes only to the typed consumer listed above;
+Android neither synthesizes nor interprets producer authority.
 
 Android executes listener installation before producer attach and, on removal, posts the same-Handler sentinel
 before publishing the physical return fact. [TGT-050](07-domain-target.md#tgt-050--listener-source-bit-and-generation-fence)
@@ -330,15 +334,21 @@ this domain owns only the listed Android Handler calls and their physical outcom
 
 ## AND-CAP-030 — Mutation, currentness, and cleanup
 
-After [CTRL-110](05-domain-controller-reconciliation.md#ctrl-110--reconciliation-decision) closes/drains the
-density-only scope, Android performs one current resize and offers its physical completion fact; controller owns
-cache, retention, and reopened admission. A dimension or target-health change follows
+For any [CTRL-120](05-domain-controller-reconciliation.md#ctrl-120--destructive-transition-order) retained
+occurrence, including combined density plus GL changes, Android performs exactly one resize iff its accepted
+`(W,H,D)` differs. Every normal return retains the exact nonpublic actual applied tuple and occurrence, including
+safe stale success; the latest sealed occurrence alone selects compensation before reopen. Android owns no
+Session currentness, effective/public state, compensation, or reopen decision. An incompatible dimension or target-health change follows
 [CTRL-120](05-domain-controller-reconciliation.md#ctrl-120--destructive-transition-order): detach and retire the
 old Target before replacement. Android publishes only the matching typed physical facts;
 [CTRL-100](05-domain-controller-reconciliation.md#ctrl-100--currentness-identities),
 [CTRL-120](05-domain-controller-reconciliation.md#ctrl-120--destructive-transition-order), and
 [CTRL-130](05-domain-controller-reconciliation.md#ctrl-130--completion-and-fallback-arbitration) own currentness,
 stale disposition, replacement, fallback, and terminal application.
+
+Terminal transfers every submitted, ambiguous, entered, or unproved `PostExposed` Target-port graph intact.
+No-entry remains exclusively the three `AND-CAP-020` proofs. Each Android root remains live through physical
+ticket return and until Target consumes its sealed outcome or cleanup transfer becomes durable.
 
 Local Android cleanup order is fixed:
 
@@ -354,8 +364,11 @@ Target release remains the separate dependency graph in
 [TGT-090](07-domain-target.md#tgt-090--successor-admission-cleanup-and-nonreturn), so unrelated cleanup roots, metrics
 unregister, Android-thread shutdown eligibility, and other Sessions progress whenever their own prerequisites
 permit. `AndroidCaptureOwner` calls `HandlerThread.quitSafely()` only after every Android-owned operation,
-callback, Target Android-side dependency, and cleanup suffix settles. Its thread `finally` publishes the sole
-lane-return cell. Lane shutdown and every terminal-origin or terminal-converted cleanup call have no watchdog.
+callback, Target Android-side dependency, and cleanup suffix settles, except an intact terminal-transferred
+never-entered ticket/occurrence graph may remain as an exact lane-termination dependency. No active, ambiguous,
+or platform-entered graph qualifies. Final thread return plus its exact state may then produce
+`DefinitelyUnentered`; its `finally` publishes the sole lane-return cell. Lane shutdown and every terminal-origin
+or terminal-converted cleanup call have no watchdog.
 
 ## AND-CAP-040 — Android deadlines and call policy
 
@@ -388,10 +401,11 @@ A higher-priority terminal winner leaves the timeout cleanup-only.
 | --- | --- | --- |
 | product -> metrics | exact `CaptureMetricsSource`, custom provider, built-in policy, and nullable observer values | `PROD-020` defines public meaning; `AND-MET-*` owns observation mechanics. |
 | metrics -> controller | selected-source observation outcome, complete combined tuple, exact close receipt, and Metrics-endpoint termination receipt | `CTRL-030`, `CTRL-100`, and `CTRL-130` own lifecycle/currentness/application. |
-| Target -> Android | installed CurrentTarget Android-operation port/lease and provenance | `TGT-010`/`TGT-030` own identity, exposure, and lease authority. |
-| Android -> Target | physical listener settlement/sentinel, producer-call result, detach result | `TGT-040`/`TGT-050`/`TGT-060` alone interpret matching Target evidence. |
-| Android -> controller | callback registration/create/mutation facts, resize/visibility/stop facts, Android lane receipt | `CTRL-030`/`CTRL-100`/`CTRL-130`/`CTRL-300` arbitrate; this leaf owns physical result classification. |
-| cleanup -> Android/metrics | intact occurrence/owner bag in Cleanup domain | `CORE-CLEAN-1`, `CORE-CLEAN-2`, and `CTRL-400` own transfer; this leaf owns local suffix and residue. |
+| controller -> Android | retained-resize command or exact Controller-owned Replacement correlation naming the independent old-detach/new-producer graphs | Android executes only the matching physical mutation and owns no Session decision. |
+| Target -> Android | installed CurrentTarget staged Android-operation port/lease and provenance bound to the exact Android occurrence/ticket/root | `TGT-010`/`TGT-030` own identity, exposure, and Target-state authority. |
+| Android -> Target | sealed bound `AndroidTargetPostOutcome` plus exact physical listener settlement/sentinel, producer-call result, or detach result | Target consumes only the typed outcome/result and reads no occurrence/ticket internals; `TGT-040`/`TGT-050`/`TGT-060` alone create and interpret Target facts. |
+| Android -> controller | callback registration/create/mutation facts, resize/visibility/stop facts, Android lane receipt | `CTRL-030`/`CTRL-100`/`CTRL-120`/`CTRL-130`/`CTRL-300` arbitrate; this leaf owns physical result classification. |
+| cleanup -> Android/metrics | intact occurrence/ticket/root/owner bag in Cleanup domain | `CORE-CLEAN-1`, `CORE-CLEAN-2`, and `CTRL-400` own transfer; this leaf owns local suffix and residue. |
 
 ## AND-CAP-060 — Exact Android/metrics verification
 
@@ -427,7 +441,8 @@ matrix, not six devices. The complete required vectors are:
    completion, provider failure, and duplicates request none.
 5. Projection: exact registration order/Handler and sole create arguments; null, SecurityException, direct OOM,
    IllegalStateException, unexpected throw, nonreturn, and late owner; API 34–37 resize-before-display-return,
-   readiness `D-1/D/D+1`, missing resize, runtime resize, visibility, onStop, stale epoch, and terminal facts.
+   readiness `D-1/D/D+1`, missing resize, runtime and combined density+GL resize, stale-success/A-to-B-to-A
+   actual-state compensation, visibility, onStop, stale epoch, and terminal facts.
 6. Finite-call policy: each governed call at `D-1`, `D`, `D+1`, empty-at-D, rejection, throw, nonreturn,
    terminal-before/after-entry, and late return. Assert one call, exact receipt, current-only application, and no
    fabricated lifecycle/producer fact. For Surface release this row verifies only the `AND-CAP-040` deadline and
@@ -436,8 +451,15 @@ matrix, not six devices. The complete required vectors are:
    and after Android-thread shutdown, unregister throw/nonreturn, each Android suffix throw/nonreturn, lane
    completion, independent roots, and another Session.
 8. Target integration: only installed CurrentTarget registered ports/leases reach Android calls; exact
-   identity/provenance and one-shot counts; safe no-producer partition; detach receipt; listener sentinel;
-   uninstalled Target has zero Android calls. Full release-chain acceptance remains in
+   identity/provenance, one-shot counts, and independent Replacement correlations. Cross commit-lost/no-post,
+   accepted-before-entry, authoritative rejected-before-ticket-entry plus exact nonentered occurrence, physical
+   ticket entry before post return/throw, direct fatal/acceptance ambiguity, accepted → poison/closing →
+   entered-inert → occurrence-cancelled-before-platform-entry →
+   ticket-returned while the lane remains alive, terminal before/after outcome, and terminal-transferred
+   never-entered graph carried as a lane dependency through final lane return. Assert exact sealed
+   `AndroidTargetPostOutcome`, whole-graph transfer, root retention through ticket
+   return, and that neither detach nor producer graph proves the other. Also cover the safe no-producer
+   partition, detach receipt, listener sentinel, and zero uninstalled-Target Android calls. Full release-chain acceptance remains in
    [TGT-100](07-domain-target.md#tgt-100--executable-obligations).
 
 Tests use deterministic barriers and injected elapsed time, never sleeps or log parsing. They assert only the
@@ -457,8 +479,8 @@ introduces no image vector or numeric tolerance.
 - no Android access outside [TGT-030](07-domain-target.md#tgt-030--currenttarget-ports-leases-and-provenance) or
   interpretation outside [TGT-040](07-domain-target.md#tgt-040--producer-evidence); Target-specific forbidden
   alternatives remain solely [TGT-098](07-domain-target.md#tgt-098--forbidden-alternatives);
-- no cancellation intent, first tuple, deadline expiry, thread quit request, or dropped reference treated as a
-  mechanical completion receipt.
+- no post false/return/throw, poison, shutdown request, queue absence, dropped root, cancellation intent, first
+  tuple, or deadline expiry treated alone as no-entry, detach, or mechanical settlement proof.
 
 ## Official platform references
 

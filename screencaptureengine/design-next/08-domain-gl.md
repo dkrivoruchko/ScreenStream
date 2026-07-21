@@ -24,27 +24,14 @@ ownership and ports remain in [Target](07-domain-target.md).
 
 ## GL-001 — Files, owners, and typed boundary
 
-Canonical paths are in [router §6](01-authority-router.md#6-source-manifest).
-`GL:GlPipelineContracts.kt` owns passive facts and receipts; `GL:GlLaneRuntime.kt` the single private lane and
-fatal fence; `GL:EglSession.kt` EGL context/pbuffer lifetime; `GL:GlProgram.kt` programs and shaders;
-`GL:GlTargetBridge.kt` Target/OES construction access; `GL:GlRenderTarget.kt` output texture/FBO lifetime;
-`GL:GlFramePipeline.kt` render/readback/color work; `GL:GlCleanup.kt` destruction and namespace retirement; and
-`GL:GlPipelineOwner.kt` the sole mutable GL facade. They share exactly one GL lane, synchronization authority,
-context-integrity state, and fatal fence; no file owns an independent GL lifecycle.
+GL is one Session-private authority for its lane/fatal fence, EGL context/pbuffer, programs, render targets,
+reusable client storage, context integrity, and every EGL/GLES call. Nothing is shared with the application or
+another Session, and private decomposition creates no independent GL lifecycle.
 
-`GlPipelineOwner` exclusively owns one Session's EGL context, pbuffer, GL lane, fatal fence, programs, render
-targets, GL objects, reusable client buffers, context-integrity state, and every EGL/GLES call. It has no public
-API and shares no context or GL object with the application or another Session.
-
-The passive contract is closed:
-
-| Family | Exact shapes and authority |
-| --- | --- |
-| capability | immutable positive per-axis texture/viewport limits and `GlFragmentPrecisionFacts`; precision is exactly `Highp` or `Mediump` |
-| operation | `GlOperationKind = SessionConstruction | TargetConstruction | RenderTargetConstruction | Frame`; one positive operation/deadline identity; precreated duration-free evidence/result/receipt and optional returned-owner slot |
-| destruction | `GlDestructionKind = RenderTarget | Program | TargetScope | Session | ContextNamespace`; one positive operation identity and the sole canonical duration-free `GlDestructionSuccessReceipt` |
-| result | `GlOperationResult = Success | ResourceExhausted | InternalFailure`; `ContextIntegrity = Intact | PoisonedByOutOfMemory | Unknown` |
-| render owner | inaccessible, identity-based `GlRenderTargetOwner` bound to its pipeline, positive nonreused render generation, exact `ImageSize`, and checked tight RGBA byte count |
+Its closed facts cover per-axis capability/precision, identity-fenced construction/frame/destruction,
+retained CPU-state reconciliation, complete render-owner shape, `Success | ResourceExhausted | InternalFailure`,
+and `Intact | PoisonedByOutOfMemory | Unknown` context integrity. Retained application is bound to the exact
+occurrence, owner/Target identities and quiescence proof, and reports applied actual state or rejection.
 
 Under [CORE-SET-1](03-shared-runtime.md#core-set-1--generic-operation-occurrence) and
 [CORE-SET-2](03-shared-runtime.md#core-set-2--entry-return-publication-and-lock-order), each operation/destruction
@@ -60,8 +47,10 @@ Exact inbound/outbound boundaries are:
 | --- | --- | --- |
 | inbound from `CTRL-100`/`CTRL-110` | current key/plan, installed exact render-owner identity, immutable shape and compatibility facts | preflight per axis, execute only current work, publish typed result; never decide lifecycle, replacement, or fallback |
 | inbound from `TGT-030`/`TGT-070` | registered one-operation `GlFramePort`, `SurfaceReleasePort`, or TargetScope-destruction port plus counted lease | use only the matching `Surface`, `SurfaceTexture`, and/or OES name inside the lease; retain exact provenance and never copy a raw handle |
+| inbound from `CTRL-120`/`TGT-030` | retained reconciliation command with exact occurrence/topology/owner generations, `TargetFrameQuiescedFact`, and complete precreated CPU state | atomically apply or reject it under `glGate` |
 | inbound from `NJPEG-030` | exact native- or managed-carrier owner and one operation lease for checked range `[0,B)` | Direct-read only into that range; bytes stay tentative until timely settlement |
 | outbound to `TGT-020`/`TGT-070`/`TGT-080` | typed target-OES construction result, exact Surface-release outcome, canonical TargetScope receipt, or exclusive `ContextNamespace` transfer/receipt | publish only exact evidence; Target adopts each returned owner and GL never fabricates a Surface or OES receipt |
+| outbound to `CTRL-120`/`CTRL-300` | exact `GlFrameReconciliationResult` | report `Applied(actual installed state)` or `Rejected(reason)`; never reopen or publish |
 | outbound to `CTRL-300`/`CTRL-400` and `CORE-CLEAN-1`/`CORE-CLEAN-2` | capability, render-owner/result, color action, readback fact, integrity/namespace and exact residue | publish immutable facts only; transfer the intact occurrence/owner graph when mechanical completion is unknown |
 
 Per [CORE-OWN-1](03-shared-runtime.md#core-own-1--ownership-loans-and-receipts), raw EGL handles, GL names,
@@ -70,19 +59,17 @@ ownership, currentness, deletion, context retirement, or cleanup.
 
 ## GL-010 — Private lane, admission, fatal fence, and termination
 
-Each Session constructs the unexposed prestarted GL `ThreadPoolExecutor` defined by
-[CORE-EXEC-1](03-shared-runtime.md#core-exec-1--private-execute-endpoints), with exactly:
+The GL lane is the distinct prestarted one-ticket endpoint defined by `CORE-EXEC-1`; EGL ownership begins only
+after successful prestart. GL adds no duplicate submission, entry, poison, fatal, or termination protocol. No
+synchronous public call waits for this lane.
 
-```text
-corePoolSize=1; maximumPoolSize=1; keepAliveTime=0 NANOSECONDS
-workQueue=ArrayBlockingQueue(1); dedicated ThreadFactory; AbortPolicy
-```
-
-One worker must prestart successfully before EGL ownership. Submission uses `execute`, never `submit`; no pool
-mutator or core timeout is used. Each Runnable precreates its generic submission/entry/return/deadline cells and
-lane ticket. Entry may win before `execute` returns. Every outward throw is recorded and poisons GL; an unentered
-`Exception` is active `InternalFailure`, while direct fatal identity follows `CORE-FATAL-1`. No synchronous public
-call waits for this lane.
+A frame Runnable's first domain action is its exact GL-frame-port `TargetEntered` transition from `TGT-030`,
+before `requireCurrent`, `updateTexImage`, or any other Target/GL outward work. If a Target seal already rejected
+the reserved port, the Runnable executes zero such work, publishes only its inert exact settlement, releases its
+carrier dependency, and retires the port. If port entry won first, that exact sole predecessor may later acquire
+its one Target lease and drain. On every returning or safely unentered/rejected path, carrier release precedes
+mechanically settled Target-port retirement; no copied lease count or separate dependency receipt substitutes
+for that order.
 
 The lane admits no successor after shutdown admission closes. It retains every accepted, queued, entered, late,
 or cleanup-dependent occurrence until that occurrence settles or proves it can need no later lane call. Logical
@@ -224,15 +211,21 @@ probe OOM follows [GL-040](#gl-040--fail-closed-gles-groups-and-context-integrit
 Installation requires the exact complete owner identity and current reconciliation key.
 An installed healthy owner is reused while its image size, checked byte count, fixed format and pipeline identity
 remain exactly compatible; Target replacement alone does not retire it.
-[CTRL-110](05-domain-controller-reconciliation.md#ctrl-110--reconciliation-decision) alone decides reuse or the
-smallest incompatible replacement scope.
 
-The owner creates exactly two small direct native-order `FloatBuffer`s for canonical position and texture
-coordinates. It reuses them for every frame and restores positions before `glVertexAttribPointer`. It creates no
-VBO, pool, per-frame direct/client buffer, per-frame dependent transform object, PBO, or second raw-frame-sized
-copy. One retained 16-float OES matrix and reconciled transform storage are reused.
+Small vertex/texture-coordinate and OES-transform client storage is retained and reused. Frame processing creates
+no per-frame dependent buffer/transform object, PBO, or second raw-frame-sized copy; its storage representation is
+private.
 
 ## GL-060 — Geometry, shader, color, and readback
+
+Retained reconciliation applies one immutable transform/color state bound to the exact retained occurrence,
+topology, owner/Target identities, and `TargetFrameQuiescedFact`. Under `glGate` it atomically records actual
+installed state; wrong identity, absent quiescence, or repetition is inertly rejected. Each frame uses a matching
+immutable snapshot. Application makes
+zero EGL/GLES calls and changes no texture, FBO, carrier, JPEG owner, context health, lifecycle, or currentness.
+A stale `Applied` result still reports actual mechanical state but cannot reopen or publish; `CTRL-120` keeps
+admission sealed and compensates the latest state. Density-only skips application only when recorded GL state
+already matches; retained output-size-compatible region, crop, rotation, mirror, or color change requires it.
 
 The shader implements [PROD-031](02-product-contract.md#prod-031--geometry-and-visible-transform) once, with the
 following exact GL mapping. For source `(W,H)`, selected region is Full `(0,0,W,H)`, LeftHalf `(0,0,W/2,H)`, or
@@ -364,15 +357,16 @@ cleanup state.
 ## GL-080 — Exact verification matrix
 
 Closed packet membership is in [router §5](01-authority-router.md#5-closed-implementation-packets); runners,
-shared closure/routing and test namespaces are in [Document 04](04-verification.md), and exact test paths are in
+shared closure/routing and test namespaces are in [Document 04](04-verification.md), and canonical test source sets are in
 [router §7](01-authority-router.md#7-test-manifest). The matrix below retains GL-specific proof through `H-GM`,
-`H-OS`, `A-GL`, and `A-CL`:
+`H-RC`, `H-OS`, `A-GL`, and `A-CL`:
 
 | Test | Exact GL proof |
 | --- | --- |
 | `H-GM` | checked geometry/oracle arithmetic; per-axis capacity; P3 binary64 conversion; color/grayscale classifications; raw vector expectations and tolerances below |
-| `H-OS` | GL interval literal and `D-1/D/D+1`; precreated evidence/no duration; submission/entry/return/rejection/expiry/late/terminal transfer; allocation-free return path |
-| `A-GL` | real EGL/GLES2, OES acquisition, GL-lane Surface release, transforms, FBO-only Direct readback and image; injected exact EGL/GLES classifier inputs; partial adoption, currentness, poison, fatal fence and destruction receipts |
+| `H-RC` | exact retained-command bindings; closed `Applied | Rejected`; same-`glGate` allocation-free swap/frame snapshot; stale actual-state report and A-to-B-to-A compensation input; zero EGL/GLES, Session-currentness, lifecycle, or health authority |
+| `H-OS` | GL interval literal and `D-1/D/D+1`; precreated evidence/no duration; submission/entry/return/rejection/expiry/late/terminal transfer; first-action Target entry and carrier-release-before-port-retire order; allocation-free return and reconciliation swap/snapshot paths |
+| `A-GL` | real EGL/GLES2, OES acquisition, GL-lane Surface release, transforms, FBO-only Direct readback and image; first-action Target entry and reserved rejection with zero outward work; closed retained CPU reconciliation apply/reject, synchronized frame snapshot, stale actual-state/A-to-B-to-A compensation and zero EGL/GLES; injected exact EGL/GLES classifier inputs; partial adoption, currentness, poison, fatal fence and destruction receipts |
 | `A-CL` | namespace/OES transfer, prerequisite holds, unbind/context/pbuffer/release-thread residues, lane shutdown/nontermination, independent-root and pre-driver cross-Session progress |
 
 Every GL operation is crossed with current/stale/terminal keys, timely/equality/late settlement, throw,
@@ -388,7 +382,7 @@ rejection, nonreturn, and each owner held separately where applicable. Exact cla
   pre-retirement denial;
 - every group with dirty preprobe, normal commands plus clean/dirty postprobe, command throw/nonreturn, OOM at
   either probe, stale/late OOM, and zero later GLES calls/receipts;
-- partial target/program/render construction; exact GL ports/leases; state/draw/readback; clean structural
+- partial target/program/render construction; exact GL ports/leases, reversible seal entry orders and retained reconciliation application; state/draw/readback; clean structural
   deletion groups; exact Surface-release submission/invocation and deadline outcomes; TargetScope receipt versus
   exclusive namespace transfer; each release/poison prerequisite and cleanup suffix failure/nonreturn;
 - deterministic isolation at the injected immediately-pre-driver seam; real-driver concurrency only as an
@@ -436,8 +430,7 @@ runtime path.
 - raw handle/name as owner/currentness/receipt, general Target getter, lease-free access, or duplicate GL receipt;
 - GL work after a dirty probe, per-object deletion after poison, fabricated deletion/namespace receipt, or OOM
   fallback/retry;
-- pbuffer readback, default-framebuffer readback, PBO, VBO, second B-sized raw copy, per-frame client-buffer or
-  dependent transform allocation;
+- pbuffer/default-framebuffer readback, PBO, second B-sized raw copy, or per-frame dependent storage allocation;
 - GPU storage accounting inferred from RGBA transfer format, predictive memory accounting, device allowlist,
   image score, measured performance, or tests as runtime selection axes;
 - extra color framebuffer, Display capability as buffer color evidence, HDR guarantee, or linear-light claim for

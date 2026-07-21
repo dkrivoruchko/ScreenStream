@@ -24,11 +24,22 @@ import io.screenstream.engine.internal.settlement.SettlementSignal
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-internal class TargetSurfaceReleaseReceipt internal constructor(
+internal class TargetSurfaceReleaseReceipt private constructor(
     internal val operationIdentity: Long,
-) : OperationReceipt
+) : OperationReceipt {
+    internal companion object {
+        internal fun create(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            operationIdentity: Long,
+        ): TargetSurfaceReleaseReceipt {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return TargetSurfaceReleaseReceipt(operationIdentity)
+        }
+    }
+}
 
-internal class TargetSurfaceReleaseEvidence internal constructor(
+internal class TargetSurfaceReleaseEvidence private constructor(
     internal val operationIdentity: Long,
     override val receipt: TargetSurfaceReleaseReceipt,
 ) : OperationEvidence {
@@ -38,9 +49,139 @@ internal class TargetSurfaceReleaseEvidence internal constructor(
         require(operationIdentity > 0L)
         require(receipt.operationIdentity == operationIdentity)
     }
+
+    internal companion object {
+        internal fun create(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            operationIdentity: Long,
+            receipt: TargetSurfaceReleaseReceipt,
+        ): TargetSurfaceReleaseEvidence {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return TargetSurfaceReleaseEvidence(operationIdentity, receipt)
+        }
+    }
+}
+
+internal sealed interface TargetRetirementSuffixEvidence {
+    val targetIdentity: TargetIdentity
+}
+
+internal class TargetSurfaceReleaseSuffixEvidence private constructor(
+    override val targetIdentity: TargetIdentity,
+    internal val occurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>,
+) : TargetRetirementSuffixEvidence {
+    init {
+        check(occurrence.identity == occurrence.returnCell.evidence.operationIdentity)
+    }
+
+    internal companion object {
+        internal fun create(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            targetIdentity: TargetIdentity,
+            occurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>,
+        ): TargetSurfaceReleaseSuffixEvidence {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return TargetSurfaceReleaseSuffixEvidence(targetIdentity, occurrence)
+        }
+    }
+}
+
+internal class TargetScopeSuffixEvidence private constructor(
+    override val targetIdentity: TargetIdentity,
+    internal val graph: TargetRetirement.TargetScopeDestructionGraph,
+) : TargetRetirementSuffixEvidence {
+    init {
+        check(graph.targetGeneration == targetIdentity.generation)
+    }
+
+    internal companion object {
+        internal fun create(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            targetIdentity: TargetIdentity,
+            graph: TargetRetirement.TargetScopeDestructionGraph,
+        ): TargetScopeSuffixEvidence {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return TargetScopeSuffixEvidence(targetIdentity, graph)
+        }
+    }
+}
+
+internal class TargetNamespaceSuffixEvidence private constructor(
+    override val targetIdentity: TargetIdentity,
+    internal val graph: TargetRetirement.TargetScopeDestructionGraph,
+    internal val occurrence: OperationOccurrence<GlDestructionEvidence>,
+) : TargetRetirementSuffixEvidence {
+    init {
+        check(graph.targetGeneration == targetIdentity.generation)
+        check(occurrence === graph.namespaceOccurrence)
+    }
+
+    internal companion object {
+        internal fun create(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            targetIdentity: TargetIdentity,
+            graph: TargetRetirement.TargetScopeDestructionGraph,
+            occurrence: OperationOccurrence<GlDestructionEvidence>,
+        ): TargetNamespaceSuffixEvidence {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return TargetNamespaceSuffixEvidence(targetIdentity, graph, occurrence)
+        }
+    }
+}
+
+internal class TargetRetirementCompleteEvidence private constructor(
+    override val targetIdentity: TargetIdentity,
+) : TargetRetirementSuffixEvidence {
+    internal companion object {
+        internal fun create(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            targetIdentity: TargetIdentity,
+        ): TargetRetirementCompleteEvidence {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return TargetRetirementCompleteEvidence(targetIdentity)
+        }
+    }
+}
+
+/**
+ * Exact passive evidence for cleanup adoption. The [owner] remains the physical owner; this evidence never
+ * transfers ownership or stands in for the permanent Session quarantine-root commit.
+ */
+internal class TargetQuarantineEvidence private constructor(
+    internal val targetIdentity: TargetIdentity,
+    internal val owner: CurrentTarget,
+    internal val suffix: TargetRetirementSuffixEvidence,
+    internal val activeLeaseCount: Int,
+) {
+    init {
+        require(activeLeaseCount >= 0)
+        check(targetIdentity.matches(owner))
+        check(suffix.targetIdentity === targetIdentity)
+    }
+
+    internal companion object {
+        internal fun create(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            targetIdentity: TargetIdentity,
+            owner: CurrentTarget,
+            suffix: TargetRetirementSuffixEvidence,
+            activeLeaseCount: Int,
+        ): TargetQuarantineEvidence {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return TargetQuarantineEvidence(targetIdentity, owner, suffix, activeLeaseCount)
+        }
+    }
 }
 
 internal class TargetRetirement private constructor(
+    private val targetOwner: TargetOwner,
+    private val constructionProof: () -> Unit,
     private val target: CurrentTarget,
     private val targetGate: ReentrantLock,
     private val clock: EngineClock,
@@ -54,14 +195,14 @@ internal class TargetRetirement private constructor(
 ) : TargetPorts.ResourceAccess {
     internal class SurfaceReleasePort private constructor(
         private val owner: TargetPorts,
+        internal val targetIdentity: TargetIdentity,
         internal val operationIdentity: Long,
         internal val provenance: TargetOperationProvenance,
     ) {
         private val lease: TargetPorts.TargetLease = TargetPorts.TargetLease(owner)
         private var consumed: Boolean = false
 
-        internal fun releaseSurface(): Boolean =
-            owner.releaseSurface(this)
+        internal fun releaseSurface(): Boolean = owner.releaseSurface(this)
 
         internal fun claimConsumedLocked(requester: TargetPorts): Boolean {
             check(owner.acceptsLockedClaim(requester))
@@ -76,7 +217,7 @@ internal class TargetRetirement private constructor(
 
         internal companion object {
             internal fun create(owner: TargetPorts, operationIdentity: Long, provenance: TargetOperationProvenance): SurfaceReleasePort =
-                SurfaceReleasePort(owner, operationIdentity, provenance)
+                SurfaceReleasePort(owner, provenance.targetIdentity, operationIdentity, provenance)
         }
     }
 
@@ -88,8 +229,12 @@ internal class TargetRetirement private constructor(
         internal val occurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>
             get() = retirement.surfaceReleaseOccurrence
 
-        internal fun prepareInstalled(): Boolean {
-            if (!retirement.target.isSurfaceReleaseReady) return false
+        internal fun prepareInstalled(readinessFact: TargetSurfaceReleaseReadyFact): Boolean {
+            if (readinessFact.targetIdentity !== retirement.target.identity ||
+                retirement.target.surfaceReleaseReadyFact() !== readinessFact
+            ) {
+                return false
+            }
             val port = retirement.detachedSurfaceReleasePort() ?: return false
             return bind(port)
         }
@@ -100,8 +245,9 @@ internal class TargetRetirement private constructor(
             return bind(port)
         }
 
-        internal fun release(): Boolean {
-            val port = retirement.targetGate.withLock { committedPort } ?: return false
+        internal fun release(): TargetPortUseOutcome {
+            val port = retirement.targetGate.withLock { committedPort }
+                ?: return TargetPortUseOutcome.Rejected
             return retirement.releaseEnteredSurface(port)
         }
 
@@ -121,6 +267,7 @@ internal class TargetRetirement private constructor(
 
     internal class TargetScopeDestructionCommand private constructor(
         private val owner: TargetPorts,
+        internal val targetIdentity: TargetIdentity,
         internal val targetGeneration: Long,
         internal val operationIdentity: Long,
         internal val provenance: TargetOperationProvenance,
@@ -128,8 +275,12 @@ internal class TargetRetirement private constructor(
         private val lease: TargetPorts.TargetLease = TargetPorts.TargetLease(owner)
         private var consumed: Boolean = false
 
-        internal fun withHandles(block: (SurfaceTexture?, Int) -> Unit): Boolean =
-            owner.withTargetScopeDestructionLease(this, block)
+        internal fun withHandles(block: (SurfaceTexture?, Int) -> Unit): TargetPortUseOutcome =
+            if (owner.withTargetScopeDestructionLease(this, block)) {
+                TargetPortUseOutcome.BodyReturned
+            } else {
+                TargetPortUseOutcome.Rejected
+            }
 
         internal fun claimConsumedLocked(requester: TargetPorts): Boolean {
             check(owner.acceptsLockedClaim(requester))
@@ -149,7 +300,7 @@ internal class TargetRetirement private constructor(
                 operationIdentity: Long,
                 provenance: TargetOperationProvenance
             ): TargetScopeDestructionCommand =
-                TargetScopeDestructionCommand(owner, targetGeneration, operationIdentity, provenance)
+                TargetScopeDestructionCommand(owner, provenance.targetIdentity, targetGeneration, operationIdentity, provenance)
         }
     }
 
@@ -207,7 +358,8 @@ internal class TargetRetirement private constructor(
         internal val targetGeneration: Long
             get() = command.targetGeneration
 
-        internal fun withHandles(block: (SurfaceTexture?, Int) -> Unit): Boolean = command.withHandles(block)
+        internal fun withHandles(block: (SurfaceTexture?, Int) -> Unit): TargetPortUseOutcome =
+            command.withHandles(block)
 
         internal fun recordSurfaceTextureRelease() {
             check(!frozen && !surfaceTextureReleased)
@@ -340,6 +492,11 @@ internal class TargetRetirement private constructor(
 
     private lateinit var ports: TargetPorts
     private lateinit var targetScopeDestructionGraph: TargetScopeDestructionGraph
+    private lateinit var surfaceReleaseSuffixEvidence: TargetSurfaceReleaseSuffixEvidence
+    private lateinit var targetScopeSuffixEvidence: TargetScopeSuffixEvidence
+    private lateinit var namespaceSuffixEvidence: TargetNamespaceSuffixEvidence
+    private val retirementCompleteEvidence: TargetRetirementCompleteEvidence =
+        TargetRetirementCompleteEvidence.create(targetOwner, constructionProof, target.identity)
     internal lateinit var surfaceReleaseOccurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>
         private set
     internal val surfaceReleaseOperation: SurfaceReleaseOperation = SurfaceReleaseOperation(this)
@@ -369,16 +526,17 @@ internal class TargetRetirement private constructor(
     override val oesTextureName: Int
         get() = ownedOesTextureName
 
-    internal val hasAppliedSurfaceReleaseReceipt: Boolean
-        get() = surfaceReleaseOccurrence.settlementGate.withLock {
+    internal fun appliedSurfaceReleaseReceipt(): TargetSurfaceReleaseReceipt? =
+        surfaceReleaseOccurrence.settlementGate.withLock {
             val evidence = surfaceReleaseOccurrence.returnCell.evidence
-            evidence === surfaceReleaseEvidence &&
+            val applied = evidence === surfaceReleaseEvidence &&
                     surfaceReleaseOccurrence.returnCell.disposition ==
                     OperationReturnDisposition.Normal &&
                     surfaceReleaseOccurrence.returnCell.use != OperationReturnUse.Unclaimed &&
                     evidence.receipt === surfaceReleaseReceipt &&
                     surfaceReleaseReceipt.operationIdentity ==
                     surfaceReleaseOccurrence.identity
+            surfaceReleaseReceipt.takeIf { applied }
         }
 
     internal val isFullyRetired: Boolean
@@ -397,8 +555,60 @@ internal class TargetRetirement private constructor(
             surfaceSettled && targetScopeSettled
         }
 
-    private val surfaceReleaseReceipt: TargetSurfaceReleaseReceipt = TargetSurfaceReleaseReceipt(surfaceReleaseOperationIdentity)
-    private val surfaceReleaseEvidence: TargetSurfaceReleaseEvidence = TargetSurfaceReleaseEvidence(surfaceReleaseOperationIdentity, surfaceReleaseReceipt)
+    internal fun retirementSuffixEvidence(): TargetRetirementSuffixEvidence = targetGate.withLock {
+        retirementSuffixEvidenceLocked()
+    }
+
+    private fun retirementSuffixEvidenceLocked(): TargetRetirementSuffixEvidence {
+        check(targetGate.isHeldByCurrentThread)
+        return when {
+            surfaceObligation == TargetResourceObligation.AwaitingSettlement ||
+                    surfaceObligation == TargetResourceObligation.Required ->
+                surfaceReleaseSuffixEvidence
+
+            oesTextureObligation == TargetOesObligation.Transferred && contextNamespaceReceipt == null ->
+                namespaceSuffixEvidence
+
+            surfaceTextureObligation == TargetResourceObligation.AwaitingSettlement ||
+                    surfaceTextureObligation == TargetResourceObligation.Required ||
+                    oesTextureObligation == TargetOesObligation.AwaitingSettlement ||
+                    oesTextureObligation == TargetOesObligation.Required ->
+                targetScopeSuffixEvidence
+
+            else -> retirementCompleteEvidence
+        }
+    }
+
+    internal fun quarantineEvidence(): TargetQuarantineEvidence? {
+        var suffix: TargetRetirementSuffixEvidence? = null
+        var leaseCount = 0
+        val quarantineEligible = targetGate.withLock {
+            if (!cleanup && !target.retirementAdmissionClosed) return@withLock false
+            suffix = retirementSuffixEvidenceLocked()
+            if (suffix is TargetRetirementCompleteEvidence) return@withLock false
+            leaseCount = ports.leaseCountLocked
+            true
+        }
+        if (!quarantineEligible) return null
+        return TargetQuarantineEvidence.create(
+            targetOwner = targetOwner,
+            constructionProof = constructionProof,
+            targetIdentity = target.identity,
+            owner = target,
+            suffix = checkNotNull(suffix),
+            activeLeaseCount = leaseCount,
+        )
+    }
+
+    private val surfaceReleaseReceipt: TargetSurfaceReleaseReceipt =
+        TargetSurfaceReleaseReceipt.create(targetOwner, constructionProof, surfaceReleaseOperationIdentity)
+    private val surfaceReleaseEvidence: TargetSurfaceReleaseEvidence =
+        TargetSurfaceReleaseEvidence.create(
+            targetOwner,
+            constructionProof,
+            surfaceReleaseOperationIdentity,
+            surfaceReleaseReceipt,
+        )
 
     internal fun bindPorts(targetOwner: TargetOwner, constructionProof: () -> Unit, ports: TargetPorts) {
         check(targetOwner.acceptsConstructionProof(constructionProof))
@@ -426,10 +636,29 @@ internal class TargetRetirement private constructor(
                 namespaceDestructionIdentity,
                 ::destructionOccurrence,
             )
+        surfaceReleaseSuffixEvidence = TargetSurfaceReleaseSuffixEvidence.create(
+            targetOwner,
+            constructionProof,
+            target.identity,
+            surfaceReleaseOccurrence,
+        )
+        targetScopeSuffixEvidence = TargetScopeSuffixEvidence.create(
+            targetOwner,
+            constructionProof,
+            target.identity,
+            targetScopeDestructionGraph,
+        )
+        namespaceSuffixEvidence = TargetNamespaceSuffixEvidence.create(
+            targetOwner,
+            constructionProof,
+            target.identity,
+            targetScopeDestructionGraph,
+            targetScopeDestructionGraph.namespaceOccurrence,
+        )
     }
 
     private fun beginUninstalledSurfaceReleaseSubmissionReadiness(constructionSettled: Boolean): Boolean {
-        val surfaceReleased = hasAppliedSurfaceReleaseReceipt
+        val surfaceReleased = appliedSurfaceReleaseReceipt() != null
         val ready = targetGate.withLock {
             constructionSettled && cleanup && surfaceObligation == TargetResourceObligation.Required && ownedSurface != null &&
                     !surfaceReleased && ports.hasNoLeasesOrInstalledWorkLocked
@@ -452,13 +681,17 @@ internal class TargetRetirement private constructor(
             },
         )
 
-    internal fun releaseEnteredSurface(port: SurfaceReleasePort): Boolean {
-        if (!ports.isExactSurfaceReleasePort(port)) return false
+    internal fun releaseEnteredSurface(port: SurfaceReleasePort): TargetPortUseOutcome {
+        if (!ports.isExactSurfaceReleasePort(port)) return TargetPortUseOutcome.Rejected
         val entered = surfaceReleaseOccurrence.settlementGate.withLock {
             surfaceReleaseOccurrence.entryDisposition == OperationEntryDisposition.Entered &&
                     surfaceReleaseOccurrence.returnCell.disposition == OperationReturnDisposition.Empty
         }
-        return entered && ports.releaseEnteredSurface(port)
+        return if (entered && ports.releaseEnteredSurface(port)) {
+            TargetPortUseOutcome.BodyReturned
+        } else {
+            TargetPortUseOutcome.Rejected
+        }
     }
 
     internal fun publishSurfaceReleaseNormalReturn(): Boolean {
@@ -480,7 +713,7 @@ internal class TargetRetirement private constructor(
         if (!targetScopeDestructionGraph.matches(target, targetIdentity, namespaceIdentity, ports.targetScopeDestructionCommand)) {
             return null
         }
-        val surfaceReleaseReceiptApplied = hasAppliedSurfaceReleaseReceipt
+        val surfaceReleaseReceiptApplied = appliedSurfaceReleaseReceipt() != null
         return targetGate.withLock {
             if (surfaceObligation == TargetResourceObligation.Required && surfaceReleaseReceiptApplied) {
                 surfaceObligation = TargetResourceObligation.Completed
@@ -512,28 +745,44 @@ internal class TargetRetirement private constructor(
         if (!claimed || !normal && !thrown) return false
         return targetGate.withLock {
             if (graph !== targetScopeDestructionGraph || !graph.isFrozen() ||
-                graph.targetOccurrence.returnCell.evidence !== graph.targetEvidence || !graph.markTargetApplied()
+                graph.targetOccurrence.returnCell.evidence !== graph.targetEvidence
             ) {
                 return@withLock false
             }
             val targetReceipt = graph.isTargetReceiptSelected()
             val transfer = graph.isNamespaceTransferSelected()
+            val surfaceTextureReleased = graph.isSurfaceTextureReleased()
             if (targetReceipt && transfer) return@withLock false
             if (targetReceipt && (!normal || graph.targetEvidence.result != GlOperationResult.Success ||
                         graph.targetEvidence.contextIntegrity != ContextIntegrity.Intact)
             ) {
                 return@withLock false
             }
+            if (transfer && (graph.targetEvidence.contextIntegrity == ContextIntegrity.Intact ||
+                        graph.targetEvidence.result == GlOperationResult.Success)
+            ) {
+                return@withLock false
+            }
             if (normal && oesTextureObligation == TargetOesObligation.Required && !targetReceipt && !transfer) {
                 return@withLock false
             }
-            if (graph.isSurfaceTextureReleased() && surfaceTextureObligation == TargetResourceObligation.Required) {
+            if ((targetReceipt || transfer) && oesTextureObligation != TargetOesObligation.Required) {
+                return@withLock false
+            }
+            if (surfaceTextureReleased && surfaceTextureObligation != TargetResourceObligation.Required) {
+                return@withLock false
+            }
+            if (normal && surfaceTextureObligation == TargetResourceObligation.Required && !surfaceTextureReleased) {
+                return@withLock false
+            }
+            if (!graph.markTargetApplied()) return@withLock false
+            if (surfaceTextureReleased) {
                 surfaceTextureObligation = TargetResourceObligation.Completed
             }
-            if (targetReceipt && oesTextureObligation == TargetOesObligation.Required) {
+            if (targetReceipt) {
                 oesTextureObligation = TargetOesObligation.Deleted
                 targetDestructionReceipt = graph.targetEvidence.receipt
-            } else if (transfer && oesTextureObligation == TargetOesObligation.Required) {
+            } else if (transfer) {
                 oesTextureObligation = TargetOesObligation.Transferred
                 contextNamespaceTransfer = graph
             }
@@ -687,6 +936,8 @@ internal class TargetRetirement private constructor(
         ): TargetRetirement {
             check(targetOwner.acceptsConstructionProof(constructionProof))
             return TargetRetirement(
+                targetOwner,
+                constructionProof,
                 target,
                 targetGate,
                 clock,

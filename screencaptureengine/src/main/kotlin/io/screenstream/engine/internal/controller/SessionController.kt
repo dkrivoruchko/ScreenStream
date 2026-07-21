@@ -5,6 +5,7 @@ import android.media.projection.MediaProjection
 import android.os.SystemClock
 import android.view.Display
 import io.screenstream.engine.CaptureGeometry
+import io.screenstream.engine.CaptureMetrics
 import io.screenstream.engine.CaptureMetricsSource
 import io.screenstream.engine.JpegBackendPolicy
 import io.screenstream.engine.ScreenCaptureConfig
@@ -27,22 +28,18 @@ import io.screenstream.engine.internal.android.AndroidCaptureOwner
 import io.screenstream.engine.internal.android.AndroidFiniteOperationIdentity
 import io.screenstream.engine.internal.android.AndroidInitialResizeDeadlineIdentity
 import io.screenstream.engine.internal.android.AndroidLaneStartupResult
-import io.screenstream.engine.internal.android.AndroidProjectionCallbackRegistrationEvidence
-import io.screenstream.engine.internal.android.AndroidProjectionCallbackUnregistrationEvidence
-import io.screenstream.engine.internal.android.AndroidProjectionStopEvidence
-import io.screenstream.engine.internal.android.AndroidTargetListenerInstallationEvidence
 import io.screenstream.engine.internal.android.AndroidTargetListenerInstallationOwnerBag
-import io.screenstream.engine.internal.android.AndroidTargetListenerRemovalEvidence
 import io.screenstream.engine.internal.android.AndroidTargetListenerRemovalOwnerBag
-import io.screenstream.engine.internal.android.AndroidVirtualDisplayCreationEvidence
 import io.screenstream.engine.internal.android.AndroidVirtualDisplayCreationOwnerBag
-import io.screenstream.engine.internal.android.AndroidVirtualDisplayReleaseEvidence
 import io.screenstream.engine.internal.android.AndroidVirtualDisplayReleaseMode
 import io.screenstream.engine.internal.android.AndroidVirtualDisplayReleaseOwnerBag
 import io.screenstream.engine.internal.android.CaptureMetricsClaimedValue
+import io.screenstream.engine.internal.android.CaptureMetricsIngressPort
+import io.screenstream.engine.internal.android.CaptureMetricsIngressResult
 import io.screenstream.engine.internal.android.CaptureMetricsOwner
 import io.screenstream.engine.internal.android.CaptureMetricsReadinessArbitration
 import io.screenstream.engine.internal.android.CaptureMetricsTerminalArbitration
+import io.screenstream.engine.internal.android.CaptureMetricsTerminalKind
 import io.screenstream.engine.internal.delivery.ObservationDiagnosticRequest
 import io.screenstream.engine.internal.delivery.ObservationOwner
 import io.screenstream.engine.internal.delivery.ObservationRunningStateSnapshot
@@ -57,26 +54,31 @@ import io.screenstream.engine.internal.gl.GlOperationKind
 import io.screenstream.engine.internal.gl.GlOperationResult
 import io.screenstream.engine.internal.gl.GlPipelineOwner
 import io.screenstream.engine.internal.jpeg.FrameworkJpegOwner
-import io.screenstream.engine.internal.jpeg.FrameworkBitmapRecycleOccurrence
 import io.screenstream.engine.internal.jpeg.FrameworkBitmapRecycleSettlement
 import io.screenstream.engine.internal.jpeg.FrameworkResourceCreationOccurrence
 import io.screenstream.engine.internal.jpeg.FrameworkResourceCreationResult
 import io.screenstream.engine.internal.jpeg.JpegRuntimeProduct
 import io.screenstream.engine.internal.jpeg.NativeEncodeFatalCleanupSettlement
 import io.screenstream.engine.internal.jpeg.NativeEncodeOccurrence
-import io.screenstream.engine.internal.jpeg.NativeCarrierFreeOccurrence
 import io.screenstream.engine.internal.jpeg.NativeCarrierFreeSettlement
 import io.screenstream.engine.internal.jpeg.JpegFiniteOperationIdentity
-import io.screenstream.engine.internal.jpeg.JpegPreparationOccurrence
 import io.screenstream.engine.internal.settlement.ControlWakeCancellationAction
 import io.screenstream.engine.internal.settlement.ControlWakeLink
+import io.screenstream.engine.internal.settlement.ControlWakeOuterRemovalDisposition
+import io.screenstream.engine.internal.settlement.ControlWakeRemovalFailureDisposition
 import io.screenstream.engine.internal.settlement.ControlWakeScheduleAction
 import io.screenstream.engine.internal.settlement.ControlScheduledTaskRecord
+import io.screenstream.engine.internal.settlement.ControlPoisonAuthority
+import io.screenstream.engine.internal.settlement.ControlPoisonClaimOutcome
+import io.screenstream.engine.internal.settlement.ControlPoisonPublicationDisposition
+import io.screenstream.engine.internal.settlement.ControlWakeActionPublicationOutcome
+import io.screenstream.engine.internal.settlement.ControlWakeScheduleFailurePublicationOutcome
+import io.screenstream.engine.internal.settlement.ControlWakeScheduleReturnPublicationOutcome
+import io.screenstream.engine.internal.settlement.ControlWakeSuccessorResult
 import io.screenstream.engine.internal.settlement.ControlWakeSuppressionDisposition
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.DeadlineDisposition
 import io.screenstream.engine.internal.settlement.FatalThrowablePolicy
-import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationArbitration
 import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.OperationReturnUse
@@ -85,15 +87,18 @@ import io.screenstream.engine.internal.settlement.PrivateExecutorStartupDisposit
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import io.screenstream.engine.internal.target.CurrentTarget
 import io.screenstream.engine.internal.target.PreparedTarget
+import io.screenstream.engine.internal.target.PreparedTargetAdmissionFact
 import io.screenstream.engine.internal.target.TargetConstructionAdmissionDisposition
+import io.screenstream.engine.internal.target.TargetConstructionFailureFact
 import io.screenstream.engine.internal.target.TargetConstructionFoldDisposition
-import io.screenstream.engine.internal.target.TargetConstructionFoldToken
+import io.screenstream.engine.internal.target.TargetConstructionInstalledFact
+import io.screenstream.engine.internal.target.TargetConstructionResultFact
 import io.screenstream.engine.internal.target.TargetOwner
 import io.screenstream.engine.internal.target.TargetPlan
 import io.screenstream.engine.internal.target.TargetProducerState
+import io.screenstream.engine.internal.target.TargetRequestedIdentity
+import io.screenstream.engine.internal.target.TargetRetirementCompleteEvidence
 import io.screenstream.engine.internal.target.TargetSourceSignal
-import java.util.concurrent.Future
-import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -106,7 +111,7 @@ internal class SessionController internal constructor(
     config: ScreenCaptureConfig,
     private val clock: EngineClock = EngineClock { SystemClock.elapsedRealtimeNanos() },
     private val wallClockMillis: () -> Long = System::currentTimeMillis,
-) : AndroidCaptureFactSink, SettlementSignal, SessionControlSchedulerPort {
+) : AndroidCaptureFactSink, CaptureMetricsIngressPort, SettlementSignal, SessionControlSchedulerPort {
 
     internal enum class Lifecycle {
         NotStarted,
@@ -153,27 +158,6 @@ internal class SessionController internal constructor(
         ) : StartOutcome
     }
 
-    internal class FullGeometryAuthority(
-        internal val source: CaptureMetricsSource,
-        internal val observationIdentity: Long,
-        internal val displayIdentity: Display?,
-        internal val displayEpoch: Long,
-        internal val projectionEpoch: Long,
-        internal val available: Boolean,
-        internal val sourceWidthPx: Int,
-        internal val sourceHeightPx: Int,
-        internal val projectionWidthPx: Int,
-        internal val projectionHeightPx: Int,
-        internal val densityDpi: Int,
-    )
-
-    private class MetricsJointReadinessFacts(
-        val owner: CaptureMetricsOwner,
-        val source: CaptureMetricsSource,
-        val observationIdentity: Long,
-        val sequence: Long,
-    )
-
     private class TerminalContender {
         var present: Boolean = false
         var kind: TerminalKind = TerminalKind.Failed
@@ -195,6 +179,124 @@ internal class SessionController internal constructor(
         var stopReason: ScreenCaptureStopReason? = null
         var problem: ScreenCaptureProblem? = null
         var cause: Throwable? = null
+    }
+
+    private enum class ControlAggregateFactSite {
+        StartupInvariant,
+        SchedulerUnavailable,
+        ScheduleInvariant,
+        CancellationInvariant,
+        DetachedInvariant,
+        DrainerIdentityExhausted,
+        SuccessorIdentityExhausted,
+        DrainerRecordReuse,
+        ScheduleClaimExhausted,
+        CancelClaimExhausted,
+        RemoveClaimExhausted,
+        DetachedCancelClaimExhausted,
+        DetachedRemoveClaimExhausted,
+        SuccessorClaimExhausted,
+        StartupSecondary,
+        StartupCleanupSecondary,
+        ScheduleSecondary,
+        CancellationSecondary,
+        DetachedSecondary,
+        DrainerSecondary,
+        SuccessorSecondary,
+    }
+
+    private enum class ControlAggregateFactPublicationOutcome {
+        Published,
+        AlreadyPublished,
+        IdentityMismatch,
+        Exhausted,
+    }
+
+    private class ControlAggregateFactReceipt(
+        val site: ControlAggregateFactSite,
+        val identity: Long,
+    )
+
+    private class ControlAggregateFactCell(
+        site: ControlAggregateFactSite,
+        identity: Long,
+    ) {
+        val exactReceipt: ControlAggregateFactReceipt = ControlAggregateFactReceipt(site, identity)
+        private val state = AtomicInteger(FACT_EMPTY)
+        private val exactRaw = AtomicReference<Throwable?>(null)
+
+        fun publish(
+            receipt: ControlAggregateFactReceipt,
+            raw: Throwable,
+        ): ControlAggregateFactPublicationOutcome {
+            if (receipt !== exactReceipt || receipt.site != exactReceipt.site ||
+                receipt.identity != exactReceipt.identity
+            ) {
+                return ControlAggregateFactPublicationOutcome.IdentityMismatch
+            }
+            if (receipt.identity <= 0L || receipt.identity == Long.MAX_VALUE) {
+                return ControlAggregateFactPublicationOutcome.Exhausted
+            }
+            if (state.compareAndSet(FACT_EMPTY, FACT_PUBLISHING)) {
+                exactRaw.set(raw)
+                state.set(FACT_PUBLISHED)
+                return ControlAggregateFactPublicationOutcome.Published
+            }
+            while (state.get() == FACT_PUBLISHING) Unit
+            return if (exactRaw.get() === raw) {
+                ControlAggregateFactPublicationOutcome.AlreadyPublished
+            } else {
+                ControlAggregateFactPublicationOutcome.Exhausted
+            }
+        }
+
+        private companion object {
+            private const val FACT_EMPTY = 0
+            private const val FACT_PUBLISHING = 1
+            private const val FACT_PUBLISHED = 2
+        }
+    }
+
+    private enum class DeferredControlTerminalPublicationOutcome {
+        Published,
+        AlreadyPublished,
+        Exhausted,
+    }
+
+    private class DeferredControlTerminalPublication {
+        private val state = AtomicInteger(DEFERRED_EMPTY)
+        private val stableRaw = AtomicReference<Throwable?>(null)
+
+        fun publish(raw: Throwable): DeferredControlTerminalPublicationOutcome {
+            if (state.compareAndSet(DEFERRED_EMPTY, DEFERRED_PUBLISHING)) {
+                stableRaw.set(raw)
+                state.set(DEFERRED_PENDING)
+                return DeferredControlTerminalPublicationOutcome.Published
+            }
+            val observed = state.get()
+            return if (observed == DEFERRED_PUBLISHING || stableRaw.get() === raw) {
+                DeferredControlTerminalPublicationOutcome.AlreadyPublished
+            } else {
+                DeferredControlTerminalPublicationOutcome.Exhausted
+            }
+        }
+
+        fun claim(): Throwable? =
+            if (state.compareAndSet(DEFERRED_PENDING, DEFERRED_APPLYING)) stableRaw.get() else null
+
+        fun publishApplied(raw: Throwable): Boolean =
+            stableRaw.get() === raw && state.compareAndSet(DEFERRED_APPLYING, DEFERRED_APPLIED)
+
+        fun publishRetry(raw: Throwable): Boolean =
+            stableRaw.get() === raw && state.compareAndSet(DEFERRED_APPLYING, DEFERRED_PENDING)
+
+        private companion object {
+            private const val DEFERRED_EMPTY = 0
+            private const val DEFERRED_PUBLISHING = 1
+            private const val DEFERRED_PENDING = 2
+            private const val DEFERRED_APPLYING = 3
+            private const val DEFERRED_APPLIED = 4
+        }
     }
 
     private class StartupOwnerBag {
@@ -235,60 +337,6 @@ internal class SessionController internal constructor(
 
         val isComplete: Boolean
             get() = metrics != null && android != null && gl != null && jpeg != null && storage != null
-    }
-
-    private class StatsAuthority {
-        var framesEncoded: Long = 0L
-        var framesProduced: Long = 0L
-        var byPipelineBusy: Long = 0L
-        var byStaleWork: Long = 0L
-        var byFailure: Long = 0L
-        var byConsumerBusy: Long = 0L
-        var byCallbackFailure: Long = 0L
-        var encodeSamples: Long = 0L
-        var encodeMeanNanos: Double = 0.0
-        var readbackSamples: Long = 0L
-        var readbackMeanNanos: Double = 0.0
-        var encodedByteSamples: Long = 0L
-        var encodedByteMean: Double = 0.0
-        var lastEncodedByteCount: Int = 0
-        var firstProducedNanos: Long = Long.MIN_VALUE
-        var lastProducedNanos: Long = Long.MIN_VALUE
-        var cutoff: Boolean = false
-
-        fun snapshot(): ObservationStatsSnapshot {
-            val fps = if (framesProduced < 2L || firstProducedNanos == Long.MIN_VALUE ||
-                lastProducedNanos <= firstProducedNanos
-            ) {
-                0.0
-            } else {
-                val value = (framesProduced - 1L).toDouble() * NANOS_PER_SECOND.toDouble() /
-                        (lastProducedNanos - firstProducedNanos).toDouble()
-                if (value.isFinite()) value else Double.MAX_VALUE
-            }
-            val encodedAverage = if (encodedByteSamples == 0L) {
-                0
-            } else {
-                minOf(Int.MAX_VALUE.toDouble(), kotlin.math.floor(encodedByteMean + 0.5)).toInt()
-            }
-            return ObservationStatsSnapshot(
-                framesEncoded = framesEncoded,
-                framesProduced = framesProduced,
-                frameDropsByRateLimit = 0L,
-                frameDropsByPipelineBusy = byPipelineBusy,
-                frameDropsByStaleWork = byStaleWork,
-                frameDropsByFailure = byFailure,
-                deliveryDropsByConsumerBusy = byConsumerBusy,
-                deliveryDropsByCallbackFailure = byCallbackFailure,
-                averageProducedFps = fps,
-                averageEncodeMs = finiteOrZero(encodeMeanNanos / NANOS_PER_MILLISECOND),
-                averageReadbackMs = finiteOrZero(readbackMeanNanos / NANOS_PER_MILLISECOND),
-                lastEncodedByteCount = lastEncodedByteCount,
-                averageEncodedByteCount = encodedAverage,
-            )
-        }
-
-        private fun finiteOrZero(value: Double): Double = if (value.isFinite()) value else 0.0
     }
 
     private class TurnSlots {
@@ -342,29 +390,78 @@ internal class SessionController internal constructor(
 
     internal val sessionGate: ReentrantLock = ReentrantLock(false)
     internal val observationOwner: ObservationOwner = ObservationOwner()
-    internal val cleanupOwner: CleanupOwner = CleanupOwner(sessionGate)
-    internal val targetOwner: TargetOwner = TargetOwner(sessionGate)
+    internal val targetOwner: TargetOwner = TargetOwner()
+
+    private val topologyFacet = SessionTopologyFacet()
+    private val productionFacet = SessionProductionFacet()
+    private val deliveryFacet = SessionDeliveryFacet()
+    private val statsFacet = SessionStatsFacet()
+    private val cleanupFacet = SessionCleanupFacet(CleanupOwner(sessionGate))
 
     private val startCompletion = StartCompletion()
     private val acceptedAdmission = StartAdmission(true, startCompletion)
     private val rejectedAdmission = StartAdmission(false, startCompletion)
     private val terminalContenders: Array<TerminalContender> = Array(3) { TerminalContender() }
     private val terminalWinner = TerminalWinner()
-    private val statsAuthority = StatsAuthority()
     private val turnSlots = TurnSlots()
     private val emergencyTurnSlots = TurnSlots()
     private val startupOwnerBag = StartupOwnerBag()
 
-    private val controlPoison = AtomicReference<Throwable?>(null)
+    private val controlPoisonAuthority = ControlPoisonAuthority()
+    private val controlStartupInvariantFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.StartupInvariant, 1L)
+    private val controlSchedulerUnavailableFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.SchedulerUnavailable, 3L)
+    private val controlScheduleInvariantFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.ScheduleInvariant, 4L)
+    private val controlCancellationInvariantFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.CancellationInvariant, 5L)
+    private val controlDetachedInvariantFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.DetachedInvariant, 6L)
+    private val controlDrainerIdentityExhaustedFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.DrainerIdentityExhausted, 7L)
+    private val controlSuccessorIdentityExhaustedFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.SuccessorIdentityExhausted, 8L)
+    private val controlDrainerRecordReuseFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.DrainerRecordReuse, 9L)
+    private val controlScheduleClaimExhaustedFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.ScheduleClaimExhausted, 10L)
+    private val controlCancelClaimExhaustedFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.CancelClaimExhausted, 11L)
+    private val controlRemoveClaimExhaustedFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.RemoveClaimExhausted, 12L)
+    private val controlDetachedCancelClaimExhaustedFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.DetachedCancelClaimExhausted, 13L)
+    private val controlDetachedRemoveClaimExhaustedFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.DetachedRemoveClaimExhausted, 14L)
+    private val controlSuccessorClaimExhaustedFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.SuccessorClaimExhausted, 15L)
+    private val controlStartupSecondaryFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.StartupSecondary, 16L)
+    private val controlStartupCleanupSecondaryFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.StartupCleanupSecondary, 17L)
+    private val controlScheduleSecondaryFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.ScheduleSecondary, 20L)
+    private val controlCancellationSecondaryFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.CancellationSecondary, 21L)
+    private val controlDetachedSecondaryFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.DetachedSecondary, 22L)
+    private val controlDrainerSecondaryFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.DrainerSecondary, 23L)
+    private val controlSuccessorSecondaryFact =
+        ControlAggregateFactCell(ControlAggregateFactSite.SuccessorSecondary, 24L)
+    private val deferredControlTerminalPublication = DeferredControlTerminalPublication()
+    private val unpublishedControlRuntimeOwner = AtomicReference<SessionControlRuntimeOwner?>(null)
+    private val unpublishedControlRuntimeRoot = AtomicReference<SessionStartupControlRuntimeRoot?>(null)
     private val unpublishedControlScheduler = AtomicReference<SessionControlScheduler?>(null)
     private val controlScheduler = AtomicReference<SessionControlScheduler?>(null)
-    private val controlTermination = AtomicReference<SessionControlTerminationReceipt?>(null)
+    private val acceptedControlRuntimePublished = java.util.concurrent.atomic.AtomicBoolean(false)
     private val preBarrierDirty = java.util.concurrent.atomic.AtomicBoolean(false)
     private val drainerState = AtomicInteger(DRAIN_IDLE)
     private val drainerGeneration = AtomicLong(0L)
     private val drainerRecords: Array<SessionControlDrainerTaskRecord> = arrayOf(
-        SessionControlDrainerTaskRecord(this, Runnable(::runDrainer)),
-        SessionControlDrainerTaskRecord(this, Runnable(::runDrainer)),
+        SessionControlDrainerTaskRecord(controlPoisonAuthority, Runnable(::runDrainer)),
+        SessionControlDrainerTaskRecord(controlPoisonAuthority, Runnable(::runDrainer)),
     )
 
     private val latestResize = AtomicReference<AndroidCaptureFact.CapturedContentResized?>(null)
@@ -374,170 +471,386 @@ internal class SessionController internal constructor(
     private var lifecycle: Lifecycle = Lifecycle.NotStarted
     private var pendingStartupBag: StartupOwnerBag? = null
     private var runningPhase: RunningPhase? = null
+    @Volatile
     private var admissionsClosed: Boolean = false
     private var terminalCutoffApplied: Boolean = false
-    private var targetAdmissionClosePending: Boolean = false
     private var ownersLaunched: Boolean = false
-    private var androidLaneReadyOwner: AndroidCaptureOwner? = null
-    private var metricsJointReadiness: MetricsJointReadinessFacts? = null
     private var startingAssigned: Boolean = false
     private var firstActiveAssigned: Boolean = false
-    private var runningPublicationPending: Boolean = false
-    private var runningPublicationProblem: ScreenCaptureProblem? = null
-    private var requestedParameters: ScreenCaptureParameters? = null
-    private var desiredRevision: Long = 0L
-    private var geometryGeneration: Long = 0L
-    private var lifecycleEpoch: Long = 0L
-    private var reconciliationIdentity: Long = 0L
     private var nextIdentity: Long = 1L
-    private var nextDiagnosticSequence: Long = 1L
-    private var capturedContentVisible: Boolean? = null
-    private var projectionEpoch: Long = 0L
-    private var projectionCallbackIdentity: Long = 0L
-    private var acceptedProjectionCallbackRegistrationIdentity: Long = 0L
-    private var lastAndroidCallbackSequence: Long = 0L
-    private var projectionGeometryAvailable: Boolean = false
-    private var geometryBuildPending: Boolean = false
-    private var projectionWidthPx: Int = 0
-    private var projectionHeightPx: Int = 0
-    private var latestMetricsFact: CaptureMetricsClaimedValue? = null
-    private var combinedGeometryAuthority: FullGeometryAuthority? = null
-    private var captureGeometry: CaptureGeometry? = null
-    private var lastEffectiveParameters: ScreenCaptureEffectiveParameters? = null
-    private var currentCalculation: Resolved? = null
-    private var currentProvisional: ProvisionalFull? = null
-    private var currentPlan: TargetPlan? = null
-
-    private var projection: MediaProjection? = null
-    private var metricsOwner: CaptureMetricsOwner? = null
-    private var androidOwner: AndroidCaptureOwner? = null
-    private var glOwner: GlPipelineOwner? = null
-    private var jpegOwner: JpegRuntimeOwner? = null
-    private var storageOwner: EncodedStorageOwner? = null
-    private var preparedTarget: PreparedTarget? = null
-    private var currentTarget: CurrentTarget? = null
-    private var installedRenderTarget: GlPipelineOwner.GlRenderTargetOwner? = null
-    private var installedFrameworkOwner: FrameworkJpegOwner? = null
-    private var pendingFrameworkCreation: FrameworkResourceCreationOccurrence? = null
-    private var pendingNativeEncode: NativeEncodeOccurrence? = null
-    private var acceptedTopologySnapshot: AcceptedTopologySnapshot? = null
-    private var pendingProjectionRegistration: OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>? = null
-    private var pendingListenerInstallation: OperationOccurrence<AndroidTargetListenerInstallationEvidence>? = null
-    private var pendingVirtualDisplayCreation: OperationOccurrence<AndroidVirtualDisplayCreationEvidence>? = null
-    private var virtualDisplayReturnAccepted: Boolean = false
-    private var preparedTargetCommand: GlPipelineOwner.TargetConstructionCommand? = null
-    private var preparedTargetListenerIdentity: AndroidFiniteOperationIdentity? = null
-    private var pendingRenderConstruction: GlPipelineOwner.RenderTargetConstructionCommand? = null
-    private var pendingJpegPreparation: JpegPreparationOccurrence? = null
-    private var nextRenderGeneration: Long = 1L
-    private var cleanupProjectionUnregistration: OperationOccurrence<AndroidProjectionCallbackUnregistrationEvidence>? = null
-    private var cleanupVirtualDisplayRelease: OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>? = null
-    private var cleanupProjectionStop: OperationOccurrence<AndroidProjectionStopEvidence>? = null
-    private var cleanupListenerRemoval: OperationOccurrence<AndroidTargetListenerRemovalEvidence>? = null
-    private var cleanupRenderOwner: GlPipelineOwner.GlRenderTargetOwner? = null
-    private var cleanupRenderDestruction: GlPipelineOwner.DestructionCommand? = null
-    private var cleanupSurfaceRelease: GlPipelineOwner.SurfaceReleaseCommand? = null
-    private var cleanupTargetScope: GlPipelineOwner.TargetScopeDestructionCommand? = null
-    private var cleanupTargetNamespaceSubmitted: Boolean = false
-    private var cleanupFrameworkRecycle: FrameworkBitmapRecycleOccurrence? = null
-    private var cleanupProgramDestruction: GlPipelineOwner.DestructionCommand? = null
-    private var cleanupSessionDestruction: GlPipelineOwner.DestructionCommand? = null
-    private var cleanupNativeCarrierFree: NativeCarrierFreeOccurrence? = null
-    private var preparedTargetDestructionIdentity: GlFiniteOperationIdentity? = null
-    private var preparedNamespaceDestructionIdentity: GlFiniteOperationIdentity? = null
-
-    private var glCapabilities: GlCapabilityFacts? = null
-    private var glSessionFacts: GlClaimedOperationFacts? = null
-    private var glSessionCommand: GlPipelineOwner.SessionConstructionCommand? = null
-    private var topologyPublicationIdentity: Long = 0L
-    private var publicStatePublicationIdentity: Long = 0L
-    private var publicStatsPublicationIdentity: Long = 0L
-    private var cleanupWorkPending: Boolean = false
-    private var pendingQuarantineDiagnostics: Long = 0L
-    private var replacementJpegConstructionClaimed: Boolean = false
 
     internal val topologySnapshot: AcceptedTopologySnapshot?
-        get() = sessionGate.withLock { acceptedTopologySnapshot }
+        get() = sessionGate.withLock { topologyFacet.acceptedTopologySnapshot }
 
     internal fun acceptStart(
         mediaProjection: MediaProjection,
         initialParameters: ScreenCaptureParameters,
     ): StartAdmission {
+        convergeDeferredControlTerminalPublication()
         val accepted = sessionGate.withLock {
             if (lifecycle != Lifecycle.NotStarted) return@withLock false
             lifecycle = Lifecycle.Starting
-            lifecycleEpoch = reserveIdentityLocked()
-            desiredRevision = reserveIdentityLocked()
-            projectionEpoch = reserveIdentityLocked()
-            requestedParameters = initialParameters
-            projection = mediaProjection
+            topologyFacet.lifecycleEpoch = reserveIdentityLocked()
+            topologyFacet.desiredRevision = reserveIdentityLocked()
+            topologyFacet.projectionEpoch = reserveIdentityLocked()
+            topologyFacet.requestedParameters = initialParameters
+            topologyFacet.projection = mediaProjection
             startupOwnerBag.bindLocked(
                 projection = mediaProjection,
-                projectionOwnerEpoch = projectionEpoch,
+                projectionOwnerEpoch = topologyFacet.projectionEpoch,
                 callbackIdentity = reserveIdentityLocked(),
                 metricsAttachmentIdentity = reserveIdentityLocked(),
                 metricsDeadlineIdentity = reserveIdentityLocked(),
                 metricsWakeIdentity = reserveIdentityLocked(),
                 metricsCloseIdentity = reserveIdentityLocked(),
             )
-            projectionCallbackIdentity = startupOwnerBag.callbackIdentity
+            topologyFacet.projectionCallbackIdentity = startupOwnerBag.callbackIdentity
             pendingStartupBag = startupOwnerBag
             true
         }
         if (!accepted) return rejectedAdmission
 
+        val startupRecord = SessionControlStartupRecord()
+        val startupCleanupAction = SessionControlStartupCleanupAction(startupRecord)
+        val runtimeOwner = SessionControlRuntimeOwner()
+        val startupRuntimeRoot = SessionStartupControlRuntimeRoot(
+            runtimeOwner,
+            startupRecord,
+            startupCleanupAction,
+        )
+        check(unpublishedControlRuntimeOwner.compareAndSet(null, runtimeOwner))
+        check(unpublishedControlRuntimeRoot.compareAndSet(null, startupRuntimeRoot))
+        retainUnresolvedStartupControlRuntime(startupRuntimeRoot)
         val scheduler = try {
-            SessionControlScheduler(this)
+            SessionControlScheduler(
+                runtimeOwner,
+                controlPoisonAuthority,
+                startupRecord,
+                startupCleanupAction,
+                this,
+            )
         } catch (raw: Throwable) {
-            if (FatalThrowablePolicy.isDirectFatal(raw)) FatalThrowablePolicy.rethrow(raw)
-            emergencyFailClosed(raw)
+            when (startupRecord.publishConstructionFailure(raw)) {
+                SessionControlStartupFactPublicationOutcome.Published -> Unit
+                SessionControlStartupFactPublicationOutcome.NotEligible -> publishAggregateFact(
+                    controlStartupInvariantFact,
+                    CONTROL_STARTUP_CONSTRUCTION_FACT_NOT_ELIGIBLE,
+                )
+            }
+            val constructionDirectFatal = startupRecord.constructionDirectFatalFailure ?:
+                if (FatalThrowablePolicy.isDirectFatal(raw)) raw else null
+            settleStartupFailureAndCleanup(
+                startupRuntimeRoot = startupRuntimeRoot,
+                scheduler = null,
+                primaryRaw = raw,
+                primaryDirectFatalRaw = constructionDirectFatal,
+            )
             return acceptedAdmission
         }
-        if (!unpublishedControlScheduler.compareAndSet(null, scheduler)) {
-            scheduler.shutdown()
-            emergencyFailClosed(CONTROL_SCHEDULER_COLLISION)
-            return acceptedAdmission
-        }
-        val startup = try {
+        check(unpublishedControlScheduler.compareAndSet(null, scheduler))
+        val acceptedRuntimeRoot = SessionAcceptedControlRuntimeRoot(
+            runtimeOwner = runtimeOwner,
+            terminationRoot = scheduler.terminationRoot,
+            terminationReceipt = scheduler.terminationRoot.exactReceipt,
+            finalShutdownAction = scheduler.finalShutdownAction,
+        )
+        val prestartOutcome = try {
             scheduler.prestart()
         } catch (raw: Throwable) {
-            unpublishedControlScheduler.compareAndSet(scheduler, null)
-            if (FatalThrowablePolicy.isDirectFatal(raw)) FatalThrowablePolicy.rethrow(raw)
-            emergencyFailClosed(raw)
+            publishAggregateFact(controlStartupInvariantFact, raw)
+            settleStartupFailureAndCleanup(
+                startupRuntimeRoot,
+                scheduler,
+                raw,
+                if (FatalThrowablePolicy.isDirectFatal(raw)) raw else null,
+            )
             return acceptedAdmission
         }
-        if (startup != SessionControlStartupDisposition.Ready) {
-            unpublishedControlScheduler.compareAndSet(scheduler, null)
-            emergencyFailClosed(scheduler.startupFailure ?: CONTROL_SCHEDULER_UNAVAILABLE)
-            return acceptedAdmission
+        return when (prestartOutcome) {
+            SessionControlPrestartOutcome.Ready -> {
+                check(controlScheduler.compareAndSet(null, scheduler))
+                check(
+                    scheduler.transferReadyRuntimeOwner() ==
+                            SessionControlRuntimeTransferOutcome.Transferred,
+                )
+                storeAcceptedControlRuntime(startupRuntimeRoot, acceptedRuntimeRoot)
+                clearUnpublishedControlRuntime(scheduler, startupRuntimeRoot, runtimeOwner)
+                acceptedControlRuntimePublished.set(true)
+                preBarrierDirty.set(false)
+                signal()
+                acceptedAdmission
+            }
+
+            SessionControlPrestartOutcome.CleanupRequired -> {
+                val primaryRaw = checkNotNull(startupRecord.startupFailure)
+                settleStartupFailureAndCleanup(
+                    startupRuntimeRoot,
+                    scheduler,
+                    primaryRaw,
+                    startupRecord.startupDirectFatalFailure,
+                )
+                acceptedAdmission
+            }
+
+            SessionControlPrestartOutcome.NotEligible -> {
+                publishAggregateFact(controlStartupInvariantFact, CONTROL_STARTUP_NOT_ELIGIBLE)
+                settleStartupFailureAndCleanup(
+                    startupRuntimeRoot,
+                    scheduler,
+                    CONTROL_STARTUP_NOT_ELIGIBLE,
+                    null,
+                )
+                acceptedAdmission
+            }
         }
-        if (!controlScheduler.compareAndSet(null, scheduler)) {
-            unpublishedControlScheduler.compareAndSet(scheduler, null)
-            scheduler.shutdown()
-            if (controlScheduler.get() == null) emergencyFailClosed(CONTROL_SCHEDULER_COLLISION)
-            else offerFailure(ScreenCaptureProblem.InternalFailure, CONTROL_SCHEDULER_COLLISION)
-            return acceptedAdmission
+    }
+
+    private fun retainUnresolvedStartupControlRuntime(root: SessionStartupControlRuntimeRoot) {
+        sessionGate.withLock {
+            val existing = cleanupFacet.unresolvedStartupControlRuntimeRoot
+            if (existing === root) return@withLock
+            check(existing == null)
+            cleanupFacet.unresolvedStartupControlRuntimeRoot = root
         }
-        unpublishedControlScheduler.compareAndSet(scheduler, null)
-        preBarrierDirty.set(false)
-        signal()
-        return acceptedAdmission
+    }
+
+    private fun storeAcceptedControlRuntime(
+        startupRoot: SessionStartupControlRuntimeRoot,
+        acceptedRoot: SessionAcceptedControlRuntimeRoot,
+    ) {
+        sessionGate.withLock {
+            check(cleanupFacet.acceptedControlRuntimeRoot == null)
+            check(cleanupFacet.unresolvedStartupControlRuntimeRoot === startupRoot)
+            cleanupFacet.unresolvedStartupControlRuntimeRoot = null
+            cleanupFacet.acceptedControlRuntimeRoot = acceptedRoot
+        }
+    }
+
+    private fun releaseResolvedStartupControlRuntime(root: SessionStartupControlRuntimeRoot) {
+        sessionGate.withLock {
+            check(cleanupFacet.unresolvedStartupControlRuntimeRoot === root)
+            cleanupFacet.unresolvedStartupControlRuntimeRoot = null
+        }
+    }
+
+    private fun clearUnpublishedControlRuntime(
+        scheduler: SessionControlScheduler?,
+        root: SessionStartupControlRuntimeRoot,
+        runtimeOwner: SessionControlRuntimeOwner,
+    ) {
+        if (scheduler == null) {
+            check(unpublishedControlScheduler.get() == null)
+        } else {
+            check(unpublishedControlScheduler.compareAndSet(scheduler, null))
+        }
+        check(unpublishedControlRuntimeRoot.compareAndSet(root, null))
+        check(unpublishedControlRuntimeOwner.compareAndSet(runtimeOwner, null))
+    }
+
+    private fun publishAggregateFact(cell: ControlAggregateFactCell, raw: Throwable) {
+        when (cell.publish(cell.exactReceipt, raw)) {
+            ControlAggregateFactPublicationOutcome.Published,
+            ControlAggregateFactPublicationOutcome.AlreadyPublished,
+                -> Unit
+
+            ControlAggregateFactPublicationOutcome.IdentityMismatch ->
+                throw CONTROL_AGGREGATE_FACT_IDENTITY_MISMATCH
+
+            ControlAggregateFactPublicationOutcome.Exhausted -> throw CONTROL_AGGREGATE_FACT_EXHAUSTED
+        }
+    }
+
+    private fun settleRecordedControlFailure(
+        primaryRaw: Throwable,
+        directFatalRaw: Throwable?,
+        secondaryFact: ControlAggregateFactCell,
+    ) {
+        if (directFatalRaw != null) {
+            settleDirectFatalControlFailure(primaryRaw, directFatalRaw)
+        }
+        var secondaryRaw: Throwable? = null
+        try {
+            val emergencyRaw = when (controlPoisonAuthority.publish(primaryRaw)) {
+                ControlPoisonPublicationDisposition.Published,
+                ControlPoisonPublicationDisposition.AlreadyPublished,
+                    -> controlPoisonAuthority.observe() ?: primaryRaw
+
+                ControlPoisonPublicationDisposition.ClaimExhausted ->
+                    controlPoisonAuthority.observe() ?: primaryRaw
+            }
+            emergencyFailClosed(emergencyRaw)
+        } catch (raw: Throwable) {
+            publishAggregateFact(secondaryFact, raw)
+            secondaryRaw = raw
+        }
+        if (secondaryRaw != null && FatalThrowablePolicy.isDirectFatal(secondaryRaw)) {
+            settleDirectFatalControlFailure(primaryRaw, secondaryRaw)
+        }
+        if (secondaryRaw != null) throw secondaryRaw
+    }
+
+    private fun settleDirectFatalControlFailure(
+        primaryRaw: Throwable,
+        exactDirectFatalRaw: Throwable,
+    ): Nothing {
+        try {
+            val stablePrimaryRaw = when (controlPoisonAuthority.publish(primaryRaw)) {
+                ControlPoisonPublicationDisposition.Published,
+                ControlPoisonPublicationDisposition.AlreadyPublished,
+                    -> controlPoisonAuthority.observe() ?: primaryRaw
+
+                ControlPoisonPublicationDisposition.ClaimExhausted ->
+                    controlPoisonAuthority.observe() ?: primaryRaw
+            }
+            admissionsClosed = true
+            when (deferredControlTerminalPublication.publish(stablePrimaryRaw)) {
+                DeferredControlTerminalPublicationOutcome.Published,
+                DeferredControlTerminalPublicationOutcome.AlreadyPublished,
+                    -> Unit
+
+                DeferredControlTerminalPublicationOutcome.Exhausted -> Unit
+            }
+        } finally {
+            FatalThrowablePolicy.rethrow(exactDirectFatalRaw)
+        }
+    }
+
+    private fun convergeDeferredControlTerminalPublication() {
+        val stablePrimaryRaw = deferredControlTerminalPublication.claim() ?: return
+        try {
+            emergencyFailClosed(stablePrimaryRaw)
+            check(deferredControlTerminalPublication.publishApplied(stablePrimaryRaw))
+        } catch (raw: Throwable) {
+            check(deferredControlTerminalPublication.publishRetry(stablePrimaryRaw))
+            throw raw
+        }
+    }
+
+    private fun settleControlClaimExhausted(
+        claimFact: ControlAggregateFactCell,
+        secondaryFact: ControlAggregateFactCell,
+    ) {
+        val raw = checkNotNull(controlPoisonAuthority.observe())
+        publishAggregateFact(claimFact, raw)
+        settleRecordedControlFailure(raw, null, secondaryFact)
+    }
+
+    private fun settleStartupFailureAndCleanup(
+        startupRuntimeRoot: SessionStartupControlRuntimeRoot,
+        scheduler: SessionControlScheduler?,
+        primaryRaw: Throwable,
+        primaryDirectFatalRaw: Throwable?,
+    ) {
+        if (primaryDirectFatalRaw != null) {
+            try {
+                clearUnpublishedControlRuntime(scheduler, startupRuntimeRoot, startupRuntimeRoot.runtimeOwner)
+            } finally {
+                settleDirectFatalControlFailure(primaryRaw, primaryDirectFatalRaw)
+            }
+        }
+        var cleanupRaw: Throwable? = null
+        var cleanupOutcome: SessionControlStartupCleanupExecutionOutcome? = null
+        try {
+            cleanupOutcome = startupRuntimeRoot.startupCleanupAction.execute()
+        } catch (raw: Throwable) {
+            publishAggregateFact(controlStartupCleanupSecondaryFact, raw)
+            cleanupRaw = raw
+        }
+        val releasedReceipt = startupRuntimeRoot.startupCleanupAction.releasedReceipt
+        val exactReleased = cleanupOutcome == SessionControlStartupCleanupExecutionOutcome.Released &&
+                releasedReceipt === startupRuntimeRoot.terminationReceipt
+        if (cleanupOutcome == SessionControlStartupCleanupExecutionOutcome.Released && !exactReleased) {
+            publishAggregateFact(controlStartupCleanupSecondaryFact, CONTROL_STARTUP_RELEASE_RECEIPT_MISMATCH)
+        }
+        val shutdownDirectFatal = startupRuntimeRoot.startupRecord.shutdownDirectFatalFailure
+        val cleanupDirectFatal =
+            if (cleanupRaw != null && FatalThrowablePolicy.isDirectFatal(cleanupRaw)) cleanupRaw else null
+        val exactDirectFatal = shutdownDirectFatal ?: cleanupDirectFatal
+        if (exactDirectFatal != null) {
+            try {
+                clearUnpublishedControlRuntime(scheduler, startupRuntimeRoot, startupRuntimeRoot.runtimeOwner)
+            } finally {
+                settleDirectFatalControlFailure(primaryRaw, exactDirectFatal)
+            }
+        }
+        settleStartupControlRuntimeOwnership(startupRuntimeRoot, scheduler, exactReleased)
+        settleRecordedControlFailure(primaryRaw, null, controlStartupSecondaryFact)
+        if (cleanupRaw != null) throw cleanupRaw
+    }
+
+    private fun settleStartupControlRuntimeOwnership(
+        startupRuntimeRoot: SessionStartupControlRuntimeRoot,
+        scheduler: SessionControlScheduler?,
+        exactReleased: Boolean,
+    ) {
+        if (exactReleased) {
+            releaseResolvedStartupControlRuntime(startupRuntimeRoot)
+        } else {
+            retainUnresolvedStartupControlRuntime(startupRuntimeRoot)
+        }
+        clearUnpublishedControlRuntime(scheduler, startupRuntimeRoot, startupRuntimeRoot.runtimeOwner)
+    }
+
+    override fun publishMetricsSample(
+        expectedOwner: CaptureMetricsOwner,
+        expectedObservationIdentity: Long,
+        metrics: CaptureMetrics?,
+        display: Display?,
+        displayEpoch: Long,
+    ): CaptureMetricsIngressResult = sessionGate.withLock {
+        if (terminalWinner.fixed || admissionsClosed || lifecycle == Lifecycle.Terminal) {
+            return@withLock CaptureMetricsIngressResult.RejectedAdmission
+        }
+        if (topologyFacet.metricsOwner !== expectedOwner ||
+            expectedObservationIdentity != startupOwnerBag.metricsAttachmentIdentity
+        ) {
+            return@withLock CaptureMetricsIngressResult.RejectedCurrentness
+        }
+        expectedOwner.commitMetricsSampleIngressLocked(
+            expectedObservationIdentity = expectedObservationIdentity,
+            metrics = metrics,
+            sampleNanos = clock.nowNanos(),
+            display = display,
+            displayEpoch = displayEpoch,
+        )
+    }
+
+    override fun publishMetricsTerminal(
+        expectedOwner: CaptureMetricsOwner,
+        expectedObservationIdentity: Long,
+        kind: CaptureMetricsTerminalKind,
+        cause: Throwable?,
+    ): CaptureMetricsIngressResult = sessionGate.withLock {
+        if (terminalWinner.fixed || admissionsClosed || lifecycle == Lifecycle.Terminal) {
+            return@withLock CaptureMetricsIngressResult.RejectedAdmission
+        }
+        if (topologyFacet.metricsOwner !== expectedOwner ||
+            expectedObservationIdentity != startupOwnerBag.metricsAttachmentIdentity
+        ) {
+            return@withLock CaptureMetricsIngressResult.RejectedCurrentness
+        }
+        expectedOwner.commitMetricsTerminalIngressLocked(
+            expectedObservationIdentity = expectedObservationIdentity,
+            kind = kind,
+            cause = cause,
+        )
     }
 
     internal fun updateDesired(parameters: ScreenCaptureParameters): Boolean {
+        convergeDeferredControlTerminalPublication()
         val changed = sessionGate.withLock {
             if (lifecycle != Lifecycle.Running || admissionsClosed) return@withLock false
-            if (requestedParameters == parameters) return@withLock true
+            if (topologyFacet.requestedParameters == parameters) return@withLock true
             if (nextIdentity == Long.MAX_VALUE) {
                 offerFailureLocked(ScreenCaptureProblem.InternalFailure, IDENTITY_EXHAUSTED)
                 return@withLock false
             }
-            requestedParameters = parameters
-            desiredRevision = reserveIdentityLocked()
-            reconciliationIdentity = 0L
-            currentCalculation = null
-            currentProvisional = null
-            currentPlan = null
+            topologyFacet.requestedParameters = parameters
+            topologyFacet.desiredRevision = reserveIdentityLocked()
+            topologyFacet.reconciliationIdentity = 0L
+            topologyFacet.currentCalculation = null
+            topologyFacet.currentProvisional = null
+            topologyFacet.currentPlan = null
             reserveRunningPublicationLocked()
             true
         }
@@ -546,72 +859,107 @@ internal class SessionController internal constructor(
     }
 
     private fun advanceReconfigurationBoundary() {
+        var calculation: Resolved? = null
+        var topology: AcceptedTopologySnapshot? = null
+        val selected = sessionGate.withLock {
+            if (lifecycle != Lifecycle.Running || terminalWinner.fixed || admissionsClosed ||
+                runningPhase != RunningPhase.Active || cleanupFacet.owner.currentTargetRoot.target != null ||
+                cleanupFacet.owner.jpegRoot.owner != null || cleanupFacet.owner.jpegRoot.frameworkOwner != null ||
+                cleanupFacet.renderOwner != null || topologyFacet.pendingProjectionRegistration != null ||
+                topologyFacet.pendingListenerInstallation != null || topologyFacet.pendingVirtualDisplayCreation != null ||
+                topologyFacet.pendingRenderConstruction != null || topologyFacet.pendingJpegPreparation != null ||
+                topologyFacet.pendingFrameworkCreation != null
+            ) {
+                return@withLock false
+            }
+            calculation = topologyFacet.currentCalculation ?: return@withLock false
+            topology = topologyFacet.acceptedTopologySnapshot ?: return@withLock false
+            val exactCalculation = checkNotNull(calculation)
+            exactCalculation.targetAction == ReconciliationResourceAction.Replace ||
+                    exactCalculation.renderAction == ReconciliationResourceAction.Replace ||
+                    exactCalculation.jpegAction == ReconciliationResourceAction.Replace ||
+                    exactCalculation.frameworkAction == ReconciliationResourceAction.Replace
+        }
+        if (!selected) return
+        val exactCalculation = checkNotNull(calculation)
+        val exactTopology = checkNotNull(topology)
+        val targetRevalidation = SessionReconfiguration.revalidate(exactTopology) ?: return
+        if (exactTopology.target.activeLeaseCount != 0) return
+
         sessionGate.withLock {
             if (lifecycle != Lifecycle.Running || terminalWinner.fixed || admissionsClosed ||
-                runningPhase != RunningPhase.Active || cleanupOwner.currentTargetRoot.target != null ||
-                cleanupOwner.jpegRoot.owner != null || cleanupOwner.jpegRoot.frameworkOwner != null ||
-                cleanupRenderOwner != null || pendingProjectionRegistration != null ||
-                pendingListenerInstallation != null || pendingVirtualDisplayCreation != null ||
-                pendingRenderConstruction != null || pendingJpegPreparation != null ||
-                pendingFrameworkCreation != null
+                runningPhase != RunningPhase.Active || topologyFacet.currentCalculation !== exactCalculation ||
+                topologyFacet.acceptedTopologySnapshot !== exactTopology ||
+                exactTopology.stamp.desiredRevision != topologyFacet.desiredRevision ||
+                exactTopology.stamp.geometryGeneration != topologyFacet.geometryGeneration ||
+                exactTopology.stamp.lifecycleEpoch != topologyFacet.lifecycleEpoch ||
+                topologyFacet.metricsOwner !== exactTopology.metricsOwner ||
+                topologyFacet.androidOwner !== exactTopology.androidOwner || topologyFacet.glOwner !== exactTopology.glOwner ||
+                topologyFacet.currentTarget !== exactTopology.target ||
+                targetRevalidation.targetIdentity !== exactTopology.targetCurrentness.targetIdentity ||
+                targetRevalidation.version != exactTopology.targetCurrentness.version ||
+                topologyFacet.installedRenderTarget !== exactTopology.renderTarget ||
+                topologyFacet.jpegOwner !== exactTopology.jpegOwner ||
+                topologyFacet.installedFrameworkOwner !== exactTopology.frameworkOwner ||
+                topologyFacet.acceptedProjectionCallbackRegistrationIdentity != exactTopology.projectionRegistrationIdentity ||
+                cleanupFacet.owner.currentTargetRoot.target != null || cleanupFacet.owner.jpegRoot.owner != null ||
+                cleanupFacet.owner.jpegRoot.frameworkOwner != null || cleanupFacet.renderOwner != null ||
+                topologyFacet.pendingProjectionRegistration != null || topologyFacet.pendingListenerInstallation != null ||
+                topologyFacet.pendingVirtualDisplayCreation != null || topologyFacet.pendingRenderConstruction != null ||
+                topologyFacet.pendingJpegPreparation != null || topologyFacet.pendingFrameworkCreation != null
             ) {
                 return
             }
-            val calculation = currentCalculation ?: return
-            val topology = acceptedTopologySnapshot ?: return
-            val replaceTarget = calculation.targetAction == ReconciliationResourceAction.Replace
-            val replaceRender = calculation.renderAction == ReconciliationResourceAction.Replace
-            val replaceJpeg = calculation.jpegAction == ReconciliationResourceAction.Replace
-            val replaceFramework = calculation.frameworkAction == ReconciliationResourceAction.Replace
+            val replaceTarget = exactCalculation.targetAction == ReconciliationResourceAction.Replace
+            val replaceRender = exactCalculation.renderAction == ReconciliationResourceAction.Replace
+            val replaceJpeg = exactCalculation.jpegAction == ReconciliationResourceAction.Replace
+            val replaceFramework = exactCalculation.frameworkAction == ReconciliationResourceAction.Replace
             if (!replaceTarget && !replaceRender && !replaceJpeg && !replaceFramework) return
-            if (!SessionReconfiguration.revalidate(topology) || topology.target.activeLeaseCount != 0) return
-
-            val exactTarget = currentTarget ?: return
-            val exactRender = installedRenderTarget ?: return
-            if (!recordCleanupMutationLocked(cleanupOwner.attachCurrentTarget(exactTarget))) return
-            cleanupRenderOwner = exactRender
+            if (!recordCleanupMutationLocked(cleanupFacet.owner.attachCurrentTarget(exactTopology.target))) return
+            val exactRender = exactTopology.renderTarget
+            cleanupFacet.renderOwner = exactRender
             if (replaceFramework) {
-                installedFrameworkOwner?.let { framework ->
-                    if (!recordCleanupMutationLocked(cleanupOwner.attachFramework(framework))) return
-                    installedFrameworkOwner = null
+                topologyFacet.installedFrameworkOwner?.let { framework ->
+                    if (!recordCleanupMutationLocked(cleanupFacet.owner.attachFramework(framework))) return
+                    topologyFacet.installedFrameworkOwner = null
                 }
             }
             if (replaceJpeg) {
-                installedFrameworkOwner?.let { framework ->
-                    if (!recordCleanupMutationLocked(cleanupOwner.attachFramework(framework))) return
-                    installedFrameworkOwner = null
+                topologyFacet.installedFrameworkOwner?.let { framework ->
+                    if (!recordCleanupMutationLocked(cleanupFacet.owner.attachFramework(framework))) return
+                    topologyFacet.installedFrameworkOwner = null
                 }
-                val exactJpeg = jpegOwner ?: return
-                if (!recordCleanupMutationLocked(cleanupOwner.attachJpeg(exactJpeg))) return
-                jpegOwner = null
-                replacementJpegConstructionClaimed = false
+                val exactJpeg = topologyFacet.jpegOwner ?: return
+                if (!recordCleanupMutationLocked(cleanupFacet.owner.attachJpeg(exactJpeg))) return
+                topologyFacet.jpegOwner = null
+                topologyFacet.replacementJpegConstructionClaimed = false
             }
-            currentTarget = null
-            installedRenderTarget = null
+            topologyFacet.currentTarget = null
+            topologyFacet.installedRenderTarget = null
             runningPhase = RunningPhase.Suspended
             advanceLifecycleEpochLocked()
             invalidateOutputLocked()
             invalidateReconciliationForTopologyMutationLocked()
-            cleanupWorkPending = true
+            cleanupFacet.workPending = true
             reserveRunningPublicationLocked(ScreenCaptureProblem.Reconfiguring)
         }
     }
 
     private fun constructReplacementJpegOwner() {
         val claimed = sessionGate.withLock {
-            if (lifecycle != Lifecycle.Running || terminalWinner.fixed || admissionsClosed || jpegOwner != null ||
-                cleanupOwner.jpegRoot.owner != null || replacementJpegConstructionClaimed
+            if (lifecycle != Lifecycle.Running || terminalWinner.fixed || admissionsClosed || topologyFacet.jpegOwner != null ||
+                cleanupFacet.owner.jpegRoot.owner != null || topologyFacet.replacementJpegConstructionClaimed
             ) {
                 return@withLock false
             }
-            replacementJpegConstructionClaimed = true
+            topologyFacet.replacementJpegConstructionClaimed = true
             true
         }
         if (!claimed) return
         val candidate = try {
             SessionStartupTopology.constructJpeg(clock, this)
         } catch (raw: Throwable) {
-            sessionGate.withLock { replacementJpegConstructionClaimed = false }
+            sessionGate.withLock { topologyFacet.replacementJpegConstructionClaimed = false }
             offerFailure(ScreenCaptureProblem.InternalFailure, raw)
             if (FatalThrowablePolicy.isDirectFatal(raw)) FatalThrowablePolicy.rethrow(raw)
             return
@@ -620,9 +968,9 @@ internal class SessionController internal constructor(
             candidate.prestartJpegEndpoint()
         } catch (raw: Throwable) {
             sessionGate.withLock {
-                recordCleanupMutationLocked(cleanupOwner.attachJpeg(candidate))
-                cleanupWorkPending = true
-                replacementJpegConstructionClaimed = false
+                recordCleanupMutationLocked(cleanupFacet.owner.attachJpeg(candidate))
+                cleanupFacet.workPending = true
+                topologyFacet.replacementJpegConstructionClaimed = false
             }
             offerFailure(ScreenCaptureProblem.InternalFailure, raw)
             if (FatalThrowablePolicy.isDirectFatal(raw)) FatalThrowablePolicy.rethrow(raw)
@@ -630,36 +978,36 @@ internal class SessionController internal constructor(
         }
         if (startup != PrivateExecutorStartupDisposition.Ready) {
             sessionGate.withLock {
-                recordCleanupMutationLocked(cleanupOwner.attachJpeg(candidate))
-                cleanupWorkPending = true
-                replacementJpegConstructionClaimed = false
+                recordCleanupMutationLocked(cleanupFacet.owner.attachJpeg(candidate))
+                cleanupFacet.workPending = true
+                topologyFacet.replacementJpegConstructionClaimed = false
             }
             offerFailure(ScreenCaptureProblem.InternalFailure, candidate.jpegEndpointStartupFailure)
             return
         }
         val installed = sessionGate.withLock {
-            if (lifecycle != Lifecycle.Running || terminalWinner.fixed || admissionsClosed || jpegOwner != null ||
-                cleanupOwner.jpegRoot.owner != null
+            if (lifecycle != Lifecycle.Running || terminalWinner.fixed || admissionsClosed || topologyFacet.jpegOwner != null ||
+                cleanupFacet.owner.jpegRoot.owner != null
             ) {
                 return@withLock false
             }
-            jpegOwner = candidate
-            replacementJpegConstructionClaimed = false
-            topologyPublicationIdentity = reserveIdentityLocked()
+            topologyFacet.jpegOwner = candidate
+            topologyFacet.replacementJpegConstructionClaimed = false
             invalidateReconciliationForTopologyMutationLocked()
             true
         }
         if (!installed) {
             sessionGate.withLock {
-                recordCleanupMutationLocked(cleanupOwner.attachJpeg(candidate))
-                cleanupWorkPending = true
-                replacementJpegConstructionClaimed = false
+                recordCleanupMutationLocked(cleanupFacet.owner.attachJpeg(candidate))
+                cleanupFacet.workPending = true
+                topologyFacet.replacementJpegConstructionClaimed = false
             }
         }
         signal()
     }
 
     internal fun requestOwnerStop() {
+        convergeDeferredControlTerminalPublication()
         val changed = sessionGate.withLock {
             if (terminalWinner.fixed || contenderLocked(TerminalKind.OwnerStop) != null) return@withLock false
             closeAdmissionLocked()
@@ -673,14 +1021,16 @@ internal class SessionController internal constructor(
     }
 
     internal fun cancelAcceptedStartWaiter(): Boolean {
+        convergeDeferredControlTerminalPublication()
         val accepted = sessionGate.withLock {
-            lifecycle == Lifecycle.Starting && projection != null && !terminalWinner.fixed
+            lifecycle == Lifecycle.Starting && topologyFacet.projection != null && !terminalWinner.fixed
         }
         if (accepted) requestOwnerStop()
         return accepted
     }
 
     internal fun offerFailure(problem: ScreenCaptureProblem, cause: Throwable?) {
+        convergeDeferredControlTerminalPublication()
         val changed = sessionGate.withLock { offerFailureLocked(problem, cause) }
         if (changed) signal()
     }
@@ -715,7 +1065,22 @@ internal class SessionController internal constructor(
         }
     }
 
+    private fun isAcceptedControlRuntimeReleased(): Boolean {
+        if (!acceptedControlRuntimePublished.get()) return false
+        val scheduler = controlScheduler.get() ?: return false
+        val terminationRoot = scheduler.terminationRoot
+        val releasedReceipt = terminationRoot.observeReleasedReceipt()
+        if (releasedReceipt != null) check(releasedReceipt === terminationRoot.exactReceipt)
+        return releasedReceipt === terminationRoot.exactReceipt
+    }
+
     override fun signal() {
+        convergeDeferredControlTerminalPublication()
+        if (!acceptedControlRuntimePublished.get()) {
+            preBarrierDirty.set(true)
+            return
+        }
+        if (isAcceptedControlRuntimeReleased()) return
         if (controlScheduler.get() == null) {
             preBarrierDirty.set(true)
             return
@@ -738,29 +1103,45 @@ internal class SessionController internal constructor(
     }
 
     internal fun consumeMetricsReadiness() {
-        val owner = metricsOwner ?: return
-        when (owner.arbitrateReadiness()) {
+        var owner: CaptureMetricsOwner? = null
+        val arbitration = sessionGate.withLock {
+            owner = topologyFacet.metricsOwner ?: return@withLock CaptureMetricsReadinessArbitration.None
+            checkNotNull(owner).arbitrateReadinessLocked()
+        }
+        val exactOwner = owner ?: return
+        when (arbitration) {
             CaptureMetricsReadinessArbitration.None -> Unit
             CaptureMetricsReadinessArbitration.Timely -> {
-                val fact = owner.claimLatest()
+                var current = false
+                val claimed = sessionGate.withLock {
+                    if (terminalWinner.fixed || admissionsClosed || topologyFacet.metricsOwner !== exactOwner ||
+                        topologyFacet.metricsJointReadiness != null
+                    ) {
+                        return@withLock false
+                    }
+                    current = true
+                    exactOwner.claimLatestLocked()
+                }
+                if (!current) return
+                val fact = if (claimed) exactOwner.materializeLatestClaimUnlocked() else null
                 if (fact == null || !fact.isAvailable || fact.metrics == null || fact.sequence <= 0L) {
                     offerFailure(ScreenCaptureProblem.InternalFailure, METRICS_JOINT_READINESS_EVIDENCE_INVALID)
                     return
                 }
                 val committed = sessionGate.withLock {
-                    if (terminalWinner.fixed || admissionsClosed || metricsOwner !== owner ||
-                        metricsJointReadiness != null
+                    if (terminalWinner.fixed || admissionsClosed || topologyFacet.metricsOwner !== exactOwner ||
+                        topologyFacet.metricsJointReadiness != null
                     ) {
                         return@withLock false
                     }
-                    metricsJointReadiness = MetricsJointReadinessFacts(
-                        owner = owner,
+                    topologyFacet.metricsJointReadiness = SessionMetricsJointReadinessFacts(
+                        owner = exactOwner,
                         source = fact.source,
                         observationIdentity = fact.observationIdentity,
                         sequence = fact.sequence,
                     )
-                    latestMetricsFact = fact
-                    geometryBuildPending = true
+                    topologyFacet.latestMetricsFact = fact
+                    topologyFacet.geometryBuildPending = true
                     true
                 }
                 if (committed) signal()
@@ -769,37 +1150,46 @@ internal class SessionController internal constructor(
             CaptureMetricsReadinessArbitration.Expired,
             CaptureMetricsReadinessArbitration.CompletedBeforeReadiness,
             CaptureMetricsReadinessArbitration.AvailabilityLostBeforeActive,
-                -> offerFailure(ScreenCaptureProblem.CaptureUnavailable, owner.providerCause)
+                -> {
+                    val cause = sessionGate.withLock { exactOwner.providerCauseLocked() }
+                    offerFailure(ScreenCaptureProblem.CaptureUnavailable, cause)
+                }
 
             CaptureMetricsReadinessArbitration.FailedBeforeReadiness,
             CaptureMetricsReadinessArbitration.AttachmentFailed,
             CaptureMetricsReadinessArbitration.DeadlineGuardFailed,
-                -> offerFailure(ScreenCaptureProblem.InternalFailure, owner.providerCause)
+                -> {
+                    val cause = sessionGate.withLock { exactOwner.providerCauseLocked() }
+                    offerFailure(ScreenCaptureProblem.InternalFailure, cause)
+                }
         }
     }
 
     internal fun consumeMetricsLatest() {
-        val owner = sessionGate.withLock {
-            val readiness = metricsJointReadiness ?: return@withLock null
-            if (metricsOwner !== readiness.owner) return@withLock null
-            readiness.owner
+        var owner: CaptureMetricsOwner? = null
+        val claimed = sessionGate.withLock {
+            val readiness = topologyFacet.metricsJointReadiness ?: return@withLock null
+            if (topologyFacet.metricsOwner !== readiness.owner) return@withLock null
+            owner = readiness.owner
+            checkNotNull(owner).claimLatestLocked()
         } ?: return
-        owner.claimLatest()?.let(::consumeMetricsValue)
+        if (!claimed) return
+        consumeMetricsValue(checkNotNull(owner).materializeLatestClaimUnlocked())
     }
 
     private fun consumeAndroidLaneStartup() {
         val owner = sessionGate.withLock {
-            if (terminalWinner.fixed || admissionsClosed || androidLaneReadyOwner != null) return@withLock null
-            androidOwner
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.androidLaneReadyOwner != null) return@withLock null
+            topologyFacet.androidOwner
         } ?: return
         when (val startup = owner.laneStartupResult) {
             AndroidLaneStartupResult.Pending -> Unit
             is AndroidLaneStartupResult.Ready -> {
                 val committed = sessionGate.withLock {
-                    if (terminalWinner.fixed || admissionsClosed || androidOwner !== owner || androidLaneReadyOwner != null) {
+                    if (terminalWinner.fixed || admissionsClosed || topologyFacet.androidOwner !== owner || topologyFacet.androidLaneReadyOwner != null) {
                         return@withLock false
                     }
-                    androidLaneReadyOwner = owner
+                    topologyFacet.androidLaneReadyOwner = owner
                     true
                 }
                 if (committed) signal()
@@ -810,8 +1200,13 @@ internal class SessionController internal constructor(
     }
 
     internal fun consumeMetricsTerminal() {
-        val owner = metricsOwner ?: return
-        when (owner.claimTerminal()) {
+        var owner: CaptureMetricsOwner? = null
+        val arbitration = sessionGate.withLock {
+            owner = topologyFacet.metricsOwner ?: return@withLock CaptureMetricsTerminalArbitration.None
+            checkNotNull(owner).claimTerminalLocked()
+        }
+        val exactOwner = owner ?: return
+        when (arbitration) {
             CaptureMetricsTerminalArbitration.None -> Unit
             CaptureMetricsTerminalArbitration.CompletedBeforeReadiness ->
                 offerFailure(ScreenCaptureProblem.CaptureUnavailable, null)
@@ -825,21 +1220,24 @@ internal class SessionController internal constructor(
 
             CaptureMetricsTerminalArbitration.FailedBeforeReadiness,
             CaptureMetricsTerminalArbitration.FailedAfterReadiness,
-                -> offerFailure(ScreenCaptureProblem.InternalFailure, owner.providerCause)
+                -> {
+                    val cause = sessionGate.withLock { exactOwner.providerCauseLocked() }
+                    offerFailure(ScreenCaptureProblem.InternalFailure, cause)
+                }
         }
     }
 
     private fun consumeMetricsValue(fact: CaptureMetricsClaimedValue) {
         val changed = sessionGate.withLock {
             if (terminalWinner.fixed || fact.sequence <= 0L) return@withLock false
-            val old = latestMetricsFact
+            val old = topologyFacet.latestMetricsFact
             if (old != null && old.source === fact.source && old.observationIdentity == fact.observationIdentity &&
                 old.sequence == fact.sequence
             ) {
                 return@withLock false
             }
-            latestMetricsFact = fact
-            geometryBuildPending = true
+            topologyFacet.latestMetricsFact = fact
+            topologyFacet.geometryBuildPending = true
             true
         }
         if (changed) signal()
@@ -868,16 +1266,16 @@ internal class SessionController internal constructor(
 
     private fun consumeAndroidFactLocked(fact: AndroidCaptureFact) {
         check(sessionGate.isHeldByCurrentThread)
-        val owner = androidOwner ?: return
+        val owner = topologyFacet.androidOwner ?: return
         val provenance = fact.provenance
         if (terminalWinner.fixed || owner.apiBand == AndroidCaptureApiBand.Unsupported || provenance.owner !== owner ||
-            provenance.projectionOwnerEpoch != projectionEpoch ||
-            provenance.callbackRegistrationIdentity != acceptedProjectionCallbackRegistrationIdentity ||
-            provenance.callbackIdentity != projectionCallbackIdentity || fact.callbackSequence <= lastAndroidCallbackSequence
+            provenance.projectionOwnerEpoch != topologyFacet.projectionEpoch ||
+            provenance.callbackRegistrationIdentity != topologyFacet.acceptedProjectionCallbackRegistrationIdentity ||
+            provenance.callbackIdentity != topologyFacet.projectionCallbackIdentity || fact.callbackSequence <= topologyFacet.lastAndroidCallbackSequence
         ) {
             return
         }
-        lastAndroidCallbackSequence = fact.callbackSequence
+        topologyFacet.lastAndroidCallbackSequence = fact.callbackSequence
         when (fact) {
             is AndroidCaptureFact.CaptureEnded -> {
                 closeAdmissionLocked()
@@ -889,22 +1287,22 @@ internal class SessionController internal constructor(
 
             is AndroidCaptureFact.CapturedContentResized -> {
                 if (fact.widthPx <= 0 || fact.heightPx <= 0 ||
-                    projectionWidthPx == fact.widthPx && projectionHeightPx == fact.heightPx
+                    topologyFacet.projectionWidthPx == fact.widthPx && topologyFacet.projectionHeightPx == fact.heightPx
                 ) {
                     return
                 }
-                projectionWidthPx = fact.widthPx
-                projectionHeightPx = fact.heightPx
-                if (!projectionGeometryAvailable) {
-                    projectionGeometryAvailable = true
+                topologyFacet.projectionWidthPx = fact.widthPx
+                topologyFacet.projectionHeightPx = fact.heightPx
+                if (!topologyFacet.projectionGeometryAvailable) {
+                    topologyFacet.projectionGeometryAvailable = true
                     advanceLifecycleEpochLocked()
                 }
-                geometryBuildPending = true
+                topologyFacet.geometryBuildPending = true
             }
 
             is AndroidCaptureFact.CapturedContentVisibilityChanged -> {
-                if (capturedContentVisible == fact.isVisible) return
-                capturedContentVisible = fact.isVisible
+                if (topologyFacet.capturedContentVisible == fact.isVisible) return
+                topologyFacet.capturedContentVisible = fact.isVisible
                 if (lifecycle == Lifecycle.Running) reserveRunningPublicationLocked()
             }
         }
@@ -917,13 +1315,13 @@ internal class SessionController internal constructor(
         var projectionHeight = 0
         var projectionOwnerEpoch = 0L
         val claimed = sessionGate.withLock {
-            if (!geometryBuildPending || terminalWinner.fixed) return@withLock false
-            owner = androidOwner
-            metricsFact = latestMetricsFact
-            projectionWidth = projectionWidthPx
-            projectionHeight = projectionHeightPx
-            projectionOwnerEpoch = projectionEpoch
-            geometryBuildPending = false
+            if (!topologyFacet.geometryBuildPending || terminalWinner.fixed) return@withLock false
+            owner = topologyFacet.androidOwner
+            metricsFact = topologyFacet.latestMetricsFact
+            projectionWidth = topologyFacet.projectionWidthPx
+            projectionHeight = topologyFacet.projectionHeightPx
+            projectionOwnerEpoch = topologyFacet.projectionEpoch
+            topologyFacet.geometryBuildPending = false
             owner != null && metricsFact != null
         }
         if (!claimed) return
@@ -949,7 +1347,7 @@ internal class SessionController internal constructor(
         }
         val density = metrics?.densityDpi ?: 0
         val effectiveAvailable = available && width > 0 && height > 0 && density > 0
-        val candidate = FullGeometryAuthority(
+        val candidate = SessionFullGeometryAuthority(
             source = exactMetricsFact.source,
             observationIdentity = exactMetricsFact.observationIdentity,
             displayIdentity = exactMetricsFact.display,
@@ -965,27 +1363,27 @@ internal class SessionController internal constructor(
         val builtCaptureGeometry = if (effectiveAvailable) CaptureGeometry(width, height, density) else null
 
         val changed = sessionGate.withLock {
-            if (terminalWinner.fixed || androidOwner !== exactOwner || latestMetricsFact !== exactMetricsFact ||
-                projectionWidthPx != projectionWidth || projectionHeightPx != projectionHeight ||
-                projectionEpoch != projectionOwnerEpoch
+            if (terminalWinner.fixed || topologyFacet.androidOwner !== exactOwner || topologyFacet.latestMetricsFact !== exactMetricsFact ||
+                topologyFacet.projectionWidthPx != projectionWidth || topologyFacet.projectionHeightPx != projectionHeight ||
+                topologyFacet.projectionEpoch != projectionOwnerEpoch
             ) {
-                geometryBuildPending = true
+                topologyFacet.geometryBuildPending = true
                 return@withLock false
             }
-            if (sameGeometryAuthority(combinedGeometryAuthority, candidate)) return@withLock false
-            if (geometryGeneration == Long.MAX_VALUE || nextIdentity == Long.MAX_VALUE) {
+            if (sameGeometryAuthority(topologyFacet.combinedGeometryAuthority, candidate)) return@withLock false
+            if (topologyFacet.geometryGeneration == Long.MAX_VALUE || nextIdentity == Long.MAX_VALUE) {
                 offerFailureLocked(ScreenCaptureProblem.InternalFailure, IDENTITY_EXHAUSTED)
                 return@withLock true
             }
-            val priorAvailable = combinedGeometryAuthority?.available == true
-            if (priorAvailable != candidate.available && combinedGeometryAuthority != null) advanceLifecycleEpochLocked()
-            geometryGeneration = reserveIdentityLocked()
-            combinedGeometryAuthority = candidate
-            captureGeometry = builtCaptureGeometry
-            reconciliationIdentity = 0L
-            currentCalculation = null
-            currentProvisional = null
-            currentPlan = null
+            val priorAvailable = topologyFacet.combinedGeometryAuthority?.available == true
+            if (priorAvailable != candidate.available && topologyFacet.combinedGeometryAuthority != null) advanceLifecycleEpochLocked()
+            topologyFacet.geometryGeneration = reserveIdentityLocked()
+            topologyFacet.combinedGeometryAuthority = candidate
+            topologyFacet.captureGeometry = builtCaptureGeometry
+            topologyFacet.reconciliationIdentity = 0L
+            topologyFacet.currentCalculation = null
+            topologyFacet.currentProvisional = null
+            topologyFacet.currentPlan = null
             if (!effectiveAvailable && firstActiveAssigned) {
                 runningPhase = RunningPhase.Suspended
                 invalidateOutputLocked()
@@ -996,7 +1394,7 @@ internal class SessionController internal constructor(
         if (changed) signal()
     }
 
-    private fun sameGeometryAuthority(left: FullGeometryAuthority?, right: FullGeometryAuthority): Boolean =
+    private fun sameGeometryAuthority(left: SessionFullGeometryAuthority?, right: SessionFullGeometryAuthority): Boolean =
         left != null && left.source === right.source && left.observationIdentity == right.observationIdentity &&
                 left.displayIdentity === right.displayIdentity && left.displayEpoch == right.displayEpoch &&
                 left.projectionEpoch == right.projectionEpoch && left.available == right.available &&
@@ -1006,101 +1404,195 @@ internal class SessionController internal constructor(
 
     internal fun calculateLatestReconciliation(): ReconciliationCalculation? {
         var geometry: CaptureGeometry? = null
-        var geometryAuthority: FullGeometryAuthority? = null
+        var geometryAuthority: SessionFullGeometryAuthority? = null
         var parameters: ScreenCaptureParameters? = null
         var capabilities: GlCapabilityFacts? = null
         var apiBand: AndroidCaptureApiBand? = null
-        var keyDesired = 0L
-        var keyGeometry = 0L
-        var keyLifecycle = 0L
+        var stampDesiredRevision = 0L
+        var stampGeometryGeneration = 0L
+        var stampLifecycleEpoch = 0L
         var occurrenceIdentity = 0L
-        var topologyIdentity = 0L
         var exactTarget: CurrentTarget? = null
+        var exactGlOwner: GlPipelineOwner? = null
         var exactRender: GlPipelineOwner.GlRenderTargetOwner? = null
         var exactFramework: FrameworkJpegOwner? = null
         var exactJpegOwner: JpegRuntimeOwner? = null
+        var exactAcceptedTopology: AcceptedTopologySnapshot? = null
         val claimed = sessionGate.withLock {
-            if (admissionsClosed || terminalWinner.fixed || metricsJointReadiness == null ||
-                androidLaneReadyOwner !== androidOwner || reconciliationIdentity != 0L ||
-                desiredRevision <= 0L || geometryGeneration <= 0L || lifecycleEpoch <= 0L
+            if (admissionsClosed || terminalWinner.fixed || topologyFacet.metricsJointReadiness == null ||
+                topologyFacet.androidLaneReadyOwner !== topologyFacet.androidOwner || topologyFacet.reconciliationIdentity != 0L ||
+                topologyFacet.desiredRevision <= 0L || topologyFacet.geometryGeneration <= 0L || topologyFacet.lifecycleEpoch <= 0L
             ) {
                 return@withLock false
             }
-            parameters = requestedParameters ?: return@withLock false
-            capabilities = glCapabilities ?: return@withLock false
-            apiBand = androidOwner?.apiBand ?: return@withLock false
-            geometry = captureGeometry
-            geometryAuthority = combinedGeometryAuthority
-            keyDesired = desiredRevision
-            keyGeometry = geometryGeneration
-            keyLifecycle = lifecycleEpoch
+            parameters = topologyFacet.requestedParameters ?: return@withLock false
+            capabilities = topologyFacet.glCapabilities ?: return@withLock false
+            apiBand = topologyFacet.androidOwner?.apiBand ?: return@withLock false
+            geometry = topologyFacet.captureGeometry
+            geometryAuthority = topologyFacet.combinedGeometryAuthority
+            stampDesiredRevision = topologyFacet.desiredRevision
+            stampGeometryGeneration = topologyFacet.geometryGeneration
+            stampLifecycleEpoch = topologyFacet.lifecycleEpoch
             occurrenceIdentity = reserveIdentityLocked()
-            reconciliationIdentity = occurrenceIdentity
-            topologyIdentity = topologyPublicationIdentity
-            exactTarget = currentTarget
-            exactRender = installedRenderTarget
-            exactFramework = installedFrameworkOwner
-            exactJpegOwner = jpegOwner
+            topologyFacet.reconciliationIdentity = occurrenceIdentity
+            exactTarget = topologyFacet.currentTarget
+            exactGlOwner = topologyFacet.glOwner
+            exactRender = topologyFacet.installedRenderTarget
+            exactFramework = topologyFacet.installedFrameworkOwner
+            exactJpegOwner = topologyFacet.jpegOwner
+            exactAcceptedTopology = topologyFacet.acceptedTopologySnapshot
             true
         }
         if (!claimed) return null
-        val jpegProduct = exactJpegOwner?.stableTopologySnapshot()?.product
-        val key = ReconciliationKey(keyDesired, keyGeometry, keyLifecycle)
+        val targetCurrentness = exactTarget?.currentnessFact()
+        val installedTargetTopology = exactAcceptedTopology?.takeIf { it.target === exactTarget }
+        val targetTopologyFacts = exactTarget?.let { target ->
+            val currentness = checkNotNull(targetCurrentness)
+            ReconciliationTargetTopologyFacts(
+                plan = currentness.plan,
+                installedCaptureWidthPx = installedTargetTopology?.effectiveParameters?.captureGeometry?.widthPx,
+                installedCaptureHeightPx = installedTargetTopology?.effectiveParameters?.captureGeometry?.heightPx,
+                reusable = currentness.targetIdentity.matches(target) && currentness.plan === target.plan &&
+                        currentness.listenerInstalled && currentness.producerState == TargetProducerState.ProducerAttached &&
+                        !currentness.generationFenced && !currentness.frameAdmissionRetirementClosed,
+            )
+        }
+        val renderCurrentness = exactRender?.let { render ->
+            exactGlOwner?.renderCurrentnessFact(render)
+        }
+        val renderTopologyFacts = renderCurrentness?.let { currentness ->
+            ReconciliationRenderTopologyFacts(
+                compatibility = currentness.compatibilityFacts,
+                reusable = currentness.reusable,
+            )
+        }
+        val jpegTopology = exactJpegOwner?.stableTopologySnapshot()
+        val jpegTopologyFacts = jpegTopology?.product?.let { product ->
+            val backend = when (product) {
+                is JpegRuntimeProduct.NativeEnabled -> ReconciliationJpegBackend.NativeEnabled
+                is JpegRuntimeProduct.FrameworkOnNativeCarrier -> ReconciliationJpegBackend.FrameworkOnNativeCarrier
+                is JpegRuntimeProduct.FrameworkOnManagedCarrier -> ReconciliationJpegBackend.FrameworkOnManagedCarrier
+            }
+            ReconciliationJpegTopologyFacts(
+                backend = backend,
+                carrierByteCount = product.carrier.byteCount,
+                reusable = true,
+            )
+        }
+        val frameworkResourcesComplete = exactFramework?.hasCompleteResources()
+        val frameworkTopologyFacts = exactFramework?.let { framework ->
+            ReconciliationFrameworkTopologyFacts(
+                imageSize = framework.imageSize,
+                pixelByteCount = framework.pixelByteCount,
+                resourcesComplete = frameworkResourcesComplete == true,
+            )
+        }
+        val exactTopologyStillCurrent = sessionGate.withLock {
+            topologyFacet.reconciliationIdentity == occurrenceIdentity &&
+                    topologyFacet.desiredRevision == stampDesiredRevision &&
+                    topologyFacet.geometryGeneration == stampGeometryGeneration &&
+                    topologyFacet.lifecycleEpoch == stampLifecycleEpoch &&
+                    topologyFacet.currentTarget === exactTarget &&
+                    topologyFacet.glOwner === exactGlOwner &&
+                    topologyFacet.installedRenderTarget === exactRender &&
+                    topologyFacet.installedFrameworkOwner === exactFramework &&
+                    topologyFacet.jpegOwner === exactJpegOwner &&
+                    topologyFacet.acceptedTopologySnapshot === exactAcceptedTopology
+        }
+        val exactTargetCurrentnessStillCurrent = targetCurrentness?.let { currentness ->
+            exactTarget?.isCurrentnessVersion(currentness.version) == true
+        } ?: (exactTarget == null)
+        val targetCurrentnessExhausted = targetCurrentness?.versionExhausted == true ||
+                exactTarget?.currentnessVersionExhausted == true
+        val exactRenderCurrentnessStillCurrent = renderCurrentness?.let { currentness ->
+            exactGlOwner?.isRenderCurrentnessVersion(currentness) == true
+        } ?: (exactRender == null)
+        val exactGlFatal = exactGlOwner?.observedFatal
+        if (exactGlFatal != null) FatalThrowablePolicy.rethrow(exactGlFatal)
+        val glRenderCurrentnessExhausted = exactGlOwner?.isRenderCurrentnessVersionExhausted == true
+        val renderCurrentnessInvalid = glRenderCurrentnessExhausted ||
+                (exactRender != null &&
+                        (renderCurrentness == null || renderCurrentness.renderTargetOwner !== exactRender ||
+                                !renderCurrentness.reusable || renderCurrentness.versionExhausted ||
+                                exactGlOwner?.isRenderCurrentnessVersionExhausted != false ||
+                                renderCurrentness.lanePoisoned || renderCurrentness.observedFatal != null))
+        if (!exactTopologyStillCurrent ||
+            (!targetCurrentnessExhausted && !exactTargetCurrentnessStillCurrent) ||
+            (!renderCurrentnessInvalid && !exactRenderCurrentnessStillCurrent) ||
+            exactJpegOwner?.stableTopologySnapshot() !== jpegTopology ||
+            exactFramework?.hasCompleteResources() != frameworkResourcesComplete
+        ) {
+            sessionGate.withLock {
+                if (topologyFacet.reconciliationIdentity == occurrenceIdentity) {
+                    topologyFacet.reconciliationIdentity = 0L
+                }
+            }
+            return null
+        }
+        val stamp = TopologyStamp(stampDesiredRevision, stampGeometryGeneration, stampLifecycleEpoch)
         val exactGeometry = geometry
         val input: ReconciliationInput = if (exactGeometry != null) {
             AuthoritativeInput(
-                key = key,
+                stamp = stamp,
                 reconciliationOccurrenceIdentity = occurrenceIdentity,
                 apiBand = checkNotNull(apiBand),
                 captureGeometry = exactGeometry,
                 parameters = checkNotNull(parameters),
-                currentTopology = ReconciliationCurrentTopology(exactTarget, exactRender, jpegProduct, exactFramework),
+                currentTopology = ReconciliationCurrentTopology(
+                    target = targetTopologyFacts,
+                    render = renderTopologyFacts,
+                    jpeg = jpegTopologyFacts,
+                    framework = frameworkTopologyFacts,
+                ),
                 capabilities = checkNotNull(capabilities),
-                topologyIdentity = topologyIdentity,
             )
         } else {
             val authority = geometryAuthority
             if (apiBand != AndroidCaptureApiBand.Api34To37 || authority == null || authority.sourceWidthPx <= 0 ||
                 authority.sourceHeightPx <= 0 || authority.densityDpi <= 0
             ) {
-                sessionGate.withLock { if (reconciliationIdentity == occurrenceIdentity) reconciliationIdentity = 0L }
+                sessionGate.withLock { if (topologyFacet.reconciliationIdentity == occurrenceIdentity) topologyFacet.reconciliationIdentity = 0L }
                 return null
             }
             ProvisionalBootstrapInput(
-                key = key,
+                stamp = stamp,
                 reconciliationOccurrenceIdentity = occurrenceIdentity,
                 apiBand = checkNotNull(apiBand),
                 provisionalWidthPx = authority.sourceWidthPx,
                 provisionalHeightPx = authority.sourceHeightPx,
                 densityDpi = authority.densityDpi,
                 capabilities = checkNotNull(capabilities),
-                topologyIdentity = topologyIdentity,
             )
         }
-        return ReconciliationOwner.calculate(input)
+        return if (targetCurrentnessExhausted || renderCurrentnessInvalid) {
+            InternalFailure(input)
+        } else {
+            ReconciliationOwner.calculate(input)
+        }
     }
 
     internal fun acceptReconciliation(calculation: ReconciliationCalculation): Boolean {
         val changed = sessionGate.withLock {
             val input = calculation.input
-            if (terminalWinner.fixed || admissionsClosed || input.reconciliationOccurrenceIdentity != reconciliationIdentity ||
-                input.key.desiredRevision != desiredRevision || input.key.geometryGeneration != geometryGeneration ||
-                input.key.lifecycleEpoch != lifecycleEpoch || input.topologyIdentity != topologyPublicationIdentity
+            if (terminalWinner.fixed || admissionsClosed || input.reconciliationOccurrenceIdentity != topologyFacet.reconciliationIdentity ||
+                input.stamp.desiredRevision != topologyFacet.desiredRevision ||
+                input.stamp.geometryGeneration != topologyFacet.geometryGeneration ||
+                input.stamp.lifecycleEpoch != topologyFacet.lifecycleEpoch
             ) {
                 return@withLock false
             }
             when (calculation) {
                 is Resolved -> {
-                    currentCalculation = calculation
-                    currentProvisional = null
-                    currentPlan = calculation.targetPlan
+                    topologyFacet.currentCalculation = calculation
+                    topologyFacet.currentProvisional = null
+                    topologyFacet.currentPlan = calculation.targetPlan
                     true
                 }
 
                 is ProvisionalFull -> {
-                    currentCalculation = null
-                    currentProvisional = calculation
-                    currentPlan = calculation.targetPlan
+                    topologyFacet.currentCalculation = null
+                    topologyFacet.currentProvisional = calculation
+                    topologyFacet.currentPlan = calculation.targetPlan
                     true
                 }
 
@@ -1115,7 +1607,7 @@ internal class SessionController internal constructor(
 
     private fun applyRecoverableOrStartupFailureLocked(problem: ScreenCaptureProblem): Boolean {
         check(sessionGate.isHeldByCurrentThread)
-        return if (firstActiveAssigned && lastEffectiveParameters != null) {
+        return if (firstActiveAssigned && topologyFacet.lastEffectiveParameters != null) {
             runningPhase = RunningPhase.Active
             reserveRunningPublicationLocked()
             true
@@ -1125,7 +1617,7 @@ internal class SessionController internal constructor(
     }
 
     internal fun installGlSessionFacts(facts: GlClaimedOperationFacts): Boolean {
-        val owner = glOwner ?: return false
+        val owner = topologyFacet.glOwner ?: return false
         val accepted = sessionGate.withLock {
             if (terminalWinner.fixed || facts.operationKind != GlOperationKind.SessionConstruction ||
                 facts.result != GlOperationResult.Success || !facts.timely || facts.receipt == null ||
@@ -1134,125 +1626,178 @@ internal class SessionController internal constructor(
                 return@withLock false
             }
             val capabilities = owner.capabilityFacts ?: return@withLock false
-            if (glSessionFacts != null && glSessionFacts !== facts) return@withLock false
-            glSessionFacts = facts
-            glCapabilities = capabilities
+            if (topologyFacet.glSessionFacts != null && topologyFacet.glSessionFacts !== facts) return@withLock false
+            topologyFacet.glSessionFacts = facts
+            topologyFacet.glCapabilities = capabilities
             true
         }
         if (accepted) signal()
         return accepted
     }
 
-    internal fun admitPreparedTarget(candidate: PreparedTarget): Boolean {
-        val admitted = sessionGate.withLock {
-            val reconciliationInput = currentCalculation?.input ?: currentProvisional?.input ?: return@withLock false
-            val plan = currentPlan ?: return@withLock false
-            if (preparedTarget != null || currentTarget != null || cleanupOwner.preparedTargetRoot.target != null ||
-                cleanupOwner.currentTargetRoot.target != null || cleanupOwner.quarantineRoot.targetChild != null ||
-                terminalWinner.fixed || admissionsClosed
+    private fun admitPreparedTarget(
+        candidate: PreparedTarget,
+        requestedIdentity: TargetRequestedIdentity,
+        plan: TargetPlan,
+        glOwner: GlPipelineOwner,
+    ): PreparedTargetAdmissionFact? {
+        val admissionFact = targetOwner.admitPreparedTarget(
+            prospectiveTarget = candidate,
+            currentRequestedIdentity = requestedIdentity,
+            currentPlan = plan,
+        ) ?: return null
+        val rooted = sessionGate.withLock {
+            if (admissionFact.preparedTarget !== candidate || admissionFact.requestedIdentity !== requestedIdentity ||
+                admissionFact.targetGeneration != candidate.targetGeneration || candidate.plan !== plan ||
+                topologyFacet.preparedTarget != null || topologyFacet.preparedTargetAdmissionFact != null ||
+                cleanupFacet.owner.preparedTargetRoot.target != null
             ) {
                 return@withLock false
             }
-            if (!targetOwner.admitPreparedTarget(
-                    prospectiveTarget = candidate,
-                    currentDesiredRevision = desiredRevision,
-                    currentGeometryGeneration = geometryGeneration,
-                    currentLifecycleEpoch = lifecycleEpoch,
-                    currentReconciliationIdentity = reconciliationIdentity,
-                    currentPlan = plan,
-                )
-            ) {
+            topologyFacet.preparedTargetAdmissionFact = admissionFact
+            val currentRequest = admissionFact.disposition == TargetConstructionAdmissionDisposition.Active &&
+                    !terminalWinner.fixed && !admissionsClosed && topologyFacet.glOwner === glOwner &&
+                    topologyFacet.currentTarget == null && topologyFacet.currentPlan === plan &&
+                    cleanupFacet.owner.currentTargetRoot.target == null &&
+                    cleanupFacet.owner.quarantineRoot.targetChild == null &&
+                    isTargetRequestCurrentLocked(requestedIdentity)
+            if (currentRequest) {
+                topologyFacet.preparedTarget = candidate
+            } else if (cleanupFacet.owner.attachPreparedTarget(candidate) != CleanupMutation.None) {
+                cleanupFacet.workPending = true
+            } else {
+                topologyFacet.preparedTargetAdmissionFact = null
                 return@withLock false
             }
-            reconciliationInput.reconciliationOccurrenceIdentity
-            preparedTarget = candidate
             true
         }
-        if (admitted) signal()
-        return admitted
+        if (rooted) signal()
+        return admissionFact.takeIf { rooted }
     }
 
-    internal fun claimPreparedTargetFold(): TargetConstructionFoldToken? = sessionGate.withLock {
-        val candidate = preparedTarget ?: return@withLock null
-        val plan = currentPlan ?: return@withLock null
-        targetOwner.claimPreparedTargetResultLocked(
-            target = candidate,
-            expectedConstructionOperationIdentity = candidate.constructionOccurrence.identity,
-            currentDesiredRevision = desiredRevision,
-            currentGeometryGeneration = geometryGeneration,
-            currentLifecycleEpoch = lifecycleEpoch,
-            currentReconciliationIdentity = reconciliationIdentity,
+    private fun foldPreparedTargetResult(): TargetConstructionResultFact? {
+        var admissionFact: PreparedTargetAdmissionFact? = null
+        var candidate: PreparedTarget? = null
+        val captured = sessionGate.withLock {
+            admissionFact = topologyFacet.preparedTargetAdmissionFact ?: return@withLock false
+            candidate = checkNotNull(admissionFact).preparedTarget
+            val exactRoot = topologyFacet.preparedTarget === candidate ||
+                    cleanupFacet.owner.preparedTargetRoot.target === candidate
+            val cleanupFallbackCapacity = cleanupFacet.owner.currentTargetRoot.target == null ||
+                    cleanupFacet.owner.quarantineRoot.targetChild == null
+            exactRoot && cleanupFallbackCapacity
+        }
+        if (!captured) return null
+        val exactAdmission = checkNotNull(admissionFact)
+        val exactCandidate = checkNotNull(candidate)
+        val requestedIdentity = exactAdmission.requestedIdentity
+        val plan = exactCandidate.plan
+        val token = targetOwner.claimPreparedTargetResult(
+            admissionFact = exactAdmission,
+            expectedConstructionOperationIdentity = exactCandidate.constructionOccurrence.identity,
+            currentRequestedIdentity = requestedIdentity,
             currentPlan = plan,
-            admissionDisposition = if (terminalWinner.fixed || admissionsClosed) {
-                TargetConstructionAdmissionDisposition.Terminal
-            } else {
-                TargetConstructionAdmissionDisposition.Active
-            },
-        )
-    }
+        ) ?: return null
 
-    internal fun selectAndApplyPreparedTargetFold(token: TargetConstructionFoldToken): TargetConstructionFoldDisposition? {
-        val selected = sessionGate.withLock {
-            val candidate = preparedTarget
-            val plan = currentPlan
-            val exactCurrent = candidate === token.preparedTarget && plan != null && !terminalWinner.fixed && !admissionsClosed &&
-                    token.desiredRevision == desiredRevision && token.geometryGeneration == geometryGeneration &&
-                    token.lifecycleEpoch == lifecycleEpoch && token.reconciliationIdentity == reconciliationIdentity &&
-                    token.plan === plan
-            val request = if (exactCurrent) {
-                TargetConstructionFoldDisposition.Install
-            } else if (terminalWinner.fixed || admissionsClosed) {
-                TargetConstructionFoldDisposition.CleanupTerminal
-            } else {
-                TargetConstructionFoldDisposition.CleanupStale
-            }
-            if (plan == null) return@withLock null
-            targetOwner.foldPreparedTargetResultLocked(
-                token = token,
-                expectedConstructionOperationIdentity = token.constructionOperationIdentity,
-                currentDesiredRevision = desiredRevision,
-                currentGeometryGeneration = geometryGeneration,
-                currentLifecycleEpoch = lifecycleEpoch,
-                currentReconciliationIdentity = reconciliationIdentity,
-                currentPlan = plan,
-                requestedDisposition = request,
-            )
-        } ?: return null
-
-        if (!targetOwner.applyPreparedTargetFold(token)) return null
-        sessionGate.withLock {
-            if (selected == TargetConstructionFoldDisposition.Install &&
-                token.installedTarget != null && preparedTarget === token.preparedTarget
-            ) {
-                currentTarget = token.installedTarget
-                preparedTarget = null
-                topologyPublicationIdentity = reserveIdentityLocked()
-                invalidateReconciliationForTopologyMutationLocked()
-            } else if (preparedTarget === token.preparedTarget) {
-                preparedTarget = null
+        val requestedDisposition = sessionGate.withLock {
+            val exactRoot = topologyFacet.preparedTargetAdmissionFact === exactAdmission &&
+                    exactAdmission.preparedTarget === exactCandidate &&
+                    (topologyFacet.preparedTarget === exactCandidate ||
+                            cleanupFacet.owner.preparedTargetRoot.target === exactCandidate)
+            when {
+                terminalWinner.fixed || admissionsClosed -> TargetConstructionFoldDisposition.CleanupTerminal
+                exactRoot && topologyFacet.preparedTarget === exactCandidate &&
+                        topologyFacet.currentTarget == null && topologyFacet.currentPlan === plan &&
+                        isTargetRequestCurrentLocked(requestedIdentity) -> TargetConstructionFoldDisposition.Install
+                else -> TargetConstructionFoldDisposition.CleanupStale
             }
         }
-        if (selected != TargetConstructionFoldDisposition.Install) {
-            sessionGate.withLock {
-                if (cleanupOwner.attachPreparedTarget(token.preparedTarget) != CleanupMutation.None) cleanupWorkPending = true
+        targetOwner.selectPreparedTargetDisposition(
+            token = token,
+            expectedConstructionOperationIdentity = exactCandidate.constructionOccurrence.identity,
+            currentRequestedIdentity = requestedIdentity,
+            currentPlan = plan,
+            requestedDisposition = requestedDisposition,
+        ) ?: return null
+        val result = targetOwner.applyPreparedTargetFold(token) ?: return null
+
+        sessionGate.withLock {
+            val exactTopologyRoot = topologyFacet.preparedTarget === exactCandidate &&
+                    topologyFacet.preparedTargetAdmissionFact === exactAdmission
+            when (result) {
+                is TargetConstructionInstalledFact -> {
+                    val installedTarget = result.targetIdentity.target
+                    val exactInstalled = result.requestedIdentity === requestedIdentity && result.plan === plan &&
+                            result.constructionOperationIdentity == exactCandidate.constructionOccurrence.identity &&
+                            result.targetIdentity.matches(installedTarget)
+                    val acceptInstalled = exactInstalled && exactTopologyRoot && !terminalWinner.fixed && !admissionsClosed &&
+                            topologyFacet.currentTarget == null && topologyFacet.currentPlan === plan &&
+                            isTargetRequestCurrentLocked(requestedIdentity)
+                    if (acceptInstalled) {
+                        topologyFacet.currentTarget = installedTarget
+                        invalidateReconciliationForTopologyMutationLocked()
+                    }
+                    val retainedResult = acceptInstalled || (exactInstalled &&
+                            (retainCurrentTargetForCleanupLocked(installedTarget) ||
+                                    retainStaleCurrentTargetInTopologyLocked(
+                                        target = installedTarget,
+                                        exactPreparedTarget = exactCandidate,
+                                        exactAdmissionFact = exactAdmission,
+                                    )))
+                    if (exactTopologyRoot && retainedResult) {
+                        topologyFacet.preparedTarget = null
+                        topologyFacet.preparedTargetAdmissionFact = null
+                    }
+                }
+
+                is TargetConstructionFailureFact -> {
+                    val exactFailure = result.requestedIdentity === requestedIdentity &&
+                            result.constructionOperationIdentity == exactCandidate.constructionOccurrence.identity &&
+                            result.cleanupTarget === exactCandidate &&
+                            result.cleanupTarget === result.targetIdentity.target &&
+                            result.cleanupTarget.requestedIdentity === requestedIdentity
+                    val retainedForCleanup = exactFailure &&
+                            (cleanupFacet.owner.preparedTargetRoot.target === exactCandidate ||
+                                    cleanupFacet.owner.attachPreparedTarget(exactCandidate) != CleanupMutation.None)
+                    if (retainedForCleanup) {
+                        cleanupFacet.workPending = true
+                        cleanupFacet.preparedTargetFailureFact = result
+                    }
+                    if (exactTopologyRoot && retainedForCleanup) topologyFacet.preparedTarget = null
+                }
             }
         }
         signal()
-        return selected
+        return result
     }
 
     internal fun acceptRenderTargetInstallation(
         command: GlPipelineOwner.RenderTargetConstructionCommand,
         claim: io.screenstream.engine.internal.gl.GlRenderTargetConstructionClaim,
     ): Boolean {
+        var target: CurrentTarget? = null
+        var glOwner: GlPipelineOwner? = null
+        val captured = sessionGate.withLock {
+            target = topologyFacet.currentTarget
+            glOwner = topologyFacet.glOwner
+            target != null && glOwner != null
+        }
+        if (!captured) {
+            command.claimCleanupDestruction(claim)?.destructionCommand?.submit()
+            return false
+        }
+        val exactTarget = checkNotNull(target)
+        val exactGlOwner = checkNotNull(glOwner)
+        val targetCurrentness = exactTarget.currentnessFact()
         val currentBeforeCommit = sessionGate.withLock {
-            val target = currentTarget ?: return@withLock false
-            val calculation = currentCalculation ?: return@withLock false
-            !terminalWinner.fixed && !admissionsClosed && target.generation > 0L &&
-                    calculation.input.key.desiredRevision == desiredRevision &&
-                    calculation.input.key.geometryGeneration == geometryGeneration &&
-                    calculation.input.key.lifecycleEpoch == lifecycleEpoch &&
-                    installedRenderTarget == null && claim.facts.result == GlOperationResult.Success &&
+            val calculation = topologyFacet.currentCalculation ?: return@withLock false
+            !terminalWinner.fixed && !admissionsClosed && topologyFacet.currentTarget === exactTarget &&
+                    topologyFacet.glOwner === exactGlOwner &&
+                    targetCurrentness.targetIdentity.matches(exactTarget) && !targetCurrentness.generationFenced &&
+                    calculation.input.stamp.desiredRevision == topologyFacet.desiredRevision &&
+                    calculation.input.stamp.geometryGeneration == topologyFacet.geometryGeneration &&
+                    calculation.input.stamp.lifecycleEpoch == topologyFacet.lifecycleEpoch &&
+                    topologyFacet.installedRenderTarget == null && claim.facts.result == GlOperationResult.Success &&
                     claim.facts.receipt != null && claim.facts.timely &&
                     claim.facts.contextIntegrity == ContextIntegrity.Intact
         }
@@ -1264,21 +1809,25 @@ internal class SessionController internal constructor(
             command.claimCleanupDestruction(claim)?.destructionCommand?.submit()
             return false
         }
+        val targetRecheck = exactTarget.currentnessFact()
         val accepted = sessionGate.withLock {
-            val calculation = currentCalculation
-            if (terminalWinner.fixed || admissionsClosed || installedRenderTarget != null || calculation == null ||
-                calculation.input.key.desiredRevision != desiredRevision ||
-                calculation.input.key.geometryGeneration != geometryGeneration ||
-                calculation.input.key.lifecycleEpoch != lifecycleEpoch
+            val calculation = topologyFacet.currentCalculation
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.currentTarget !== exactTarget ||
+                topologyFacet.glOwner !== exactGlOwner ||
+                targetRecheck.targetIdentity !== targetCurrentness.targetIdentity ||
+                targetRecheck.version != targetCurrentness.version ||
+                topologyFacet.installedRenderTarget != null || calculation == null ||
+                calculation.input.stamp.desiredRevision != topologyFacet.desiredRevision ||
+                calculation.input.stamp.geometryGeneration != topologyFacet.geometryGeneration ||
+                calculation.input.stamp.lifecycleEpoch != topologyFacet.lifecycleEpoch
             ) {
                 return@withLock false
             }
-            installedRenderTarget = installed
-            topologyPublicationIdentity = reserveIdentityLocked()
+            topologyFacet.installedRenderTarget = installed
             invalidateReconciliationForTopologyMutationLocked()
             true
         }
-        if (!accepted) glOwner?.prepareRenderTargetDestruction(installed)?.submit()
+        if (!accepted) exactGlOwner.prepareRenderTargetDestruction(installed)?.submit()
         signal()
         return accepted
     }
@@ -1287,9 +1836,9 @@ internal class SessionController internal constructor(
         occurrence: FrameworkResourceCreationOccurrence,
     ): FrameworkJpegOwner? {
         val current = sessionGate.withLock {
-            !terminalWinner.fixed && !admissionsClosed && pendingFrameworkCreation === occurrence &&
-                    occurrence.desiredRevision == desiredRevision && occurrence.geometryGeneration == geometryGeneration &&
-                    occurrence.lifecycleEpoch == lifecycleEpoch
+            !terminalWinner.fixed && !admissionsClosed && topologyFacet.pendingFrameworkCreation === occurrence &&
+                    occurrence.desiredRevision == topologyFacet.desiredRevision && occurrence.geometryGeneration == topologyFacet.geometryGeneration &&
+                    occurrence.lifecycleEpoch == topologyFacet.lifecycleEpoch
         }
         val evidence = occurrence.operation.settlementGate.withLock {
             if (occurrence.operation.returnCell.use == OperationReturnUse.Unclaimed) occurrence.operation.arbitrate()
@@ -1306,15 +1855,14 @@ internal class SessionController internal constructor(
         val installed = FrameworkJpegOwner.settleResourceCreation(occurrence, installAllowed = current && safeComplete)
         if (installed != null) {
             val accepted = sessionGate.withLock {
-                if (terminalWinner.fixed || admissionsClosed || pendingFrameworkCreation !== occurrence ||
-                    occurrence.desiredRevision != desiredRevision || occurrence.geometryGeneration != geometryGeneration ||
-                    occurrence.lifecycleEpoch != lifecycleEpoch || installedFrameworkOwner != null
+                if (terminalWinner.fixed || admissionsClosed || topologyFacet.pendingFrameworkCreation !== occurrence ||
+                    occurrence.desiredRevision != topologyFacet.desiredRevision || occurrence.geometryGeneration != topologyFacet.geometryGeneration ||
+                    occurrence.lifecycleEpoch != topologyFacet.lifecycleEpoch || topologyFacet.installedFrameworkOwner != null
                 ) {
                     return@withLock false
                 }
-                installedFrameworkOwner = installed
-                pendingFrameworkCreation = null
-                topologyPublicationIdentity = reserveIdentityLocked()
+                topologyFacet.installedFrameworkOwner = installed
+                topologyFacet.pendingFrameworkCreation = null
                 invalidateReconciliationForTopologyMutationLocked()
                 true
             }
@@ -1325,7 +1873,7 @@ internal class SessionController internal constructor(
         }
 
         sessionGate.withLock {
-            if (pendingFrameworkCreation === occurrence) pendingFrameworkCreation = null
+            if (topologyFacet.pendingFrameworkCreation === occurrence) topologyFacet.pendingFrameworkCreation = null
         }
         if (!current) {
             recycleReturnedFrameworkOwner(occurrence)
@@ -1361,12 +1909,12 @@ internal class SessionController internal constructor(
         }
         val owner = recycle.ownerBag.owner ?: return
         sessionGate.withLock {
-            if (lifecycle == Lifecycle.Terminal || jpegOwner !== owner.jpegRuntimeOwner) {
-                recordCleanupMutationLocked(cleanupOwner.attachJpeg(owner.jpegRuntimeOwner))
+            if (lifecycle == Lifecycle.Terminal || topologyFacet.jpegOwner !== owner.jpegRuntimeOwner) {
+                recordCleanupMutationLocked(cleanupFacet.owner.attachJpeg(owner.jpegRuntimeOwner))
             }
-            recordCleanupMutationLocked(cleanupOwner.attachFramework(owner))
-            if (cleanupFrameworkRecycle == null) cleanupFrameworkRecycle = recycle
-            cleanupWorkPending = true
+            recordCleanupMutationLocked(cleanupFacet.owner.attachFramework(owner))
+            if (cleanupFacet.frameworkRecycle == null) cleanupFacet.frameworkRecycle = recycle
+            cleanupFacet.workPending = true
         }
     }
 
@@ -1374,15 +1922,15 @@ internal class SessionController internal constructor(
         occurrence: NativeEncodeOccurrence,
         returnedFatal: Throwable? = null,
     ): Boolean {
-        val owner = jpegOwner ?: return false
-        val storage = storageOwner ?: return false
+        val owner = topologyFacet.jpegOwner ?: return false
+        val storage = topologyFacet.storageOwner ?: return false
         if (returnedFatal != null) {
             val child = ReturnedNativeFatalCleanupChild(owner, occurrence, storage)
             sessionGate.withLock {
-                val attached = cleanupOwner.attachJpeg(owner) != CleanupMutation.None || cleanupOwner.jpegRoot.owner === owner
-                val storageAttached = cleanupOwner.attachStorage(storage) != CleanupMutation.None ||
-                        cleanupOwner.storageRoot.owner === storage
-                if (attached && storageAttached) cleanupOwner.attachReturnedNativeFatal(child)
+                val attached = cleanupFacet.owner.attachJpeg(owner) != CleanupMutation.None || cleanupFacet.owner.jpegRoot.owner === owner
+                val storageAttached = cleanupFacet.owner.attachStorage(storage) != CleanupMutation.None ||
+                        cleanupFacet.owner.storageRoot.owner === storage
+                if (attached && storageAttached) cleanupFacet.owner.attachReturnedNativeFatal(child)
             }
             return when (owner.settleReturnedFatalNativeEncodeCleanup(occurrence, storage)) {
                 NativeEncodeFatalCleanupSettlement.NotReady -> false
@@ -1431,7 +1979,7 @@ internal class SessionController internal constructor(
     internal fun commitActive(effectiveParameters: ScreenCaptureEffectiveParameters): Boolean {
         var calculation: Resolved? = null
         var metrics: CaptureMetricsOwner? = null
-        var readiness: MetricsJointReadinessFacts? = null
+        var readiness: SessionMetricsJointReadinessFacts? = null
         var android: AndroidCaptureOwner? = null
         var gl: GlPipelineOwner? = null
         var target: CurrentTarget? = null
@@ -1440,34 +1988,31 @@ internal class SessionController internal constructor(
         var framework: FrameworkJpegOwner? = null
         var parameters: ScreenCaptureParameters? = null
         var visible: Boolean? = null
-        var topologyIdentity = 0L
         var registrationIdentity = 0L
         val selected = sessionGate.withLock {
-            calculation = currentCalculation
-            metrics = metricsOwner
-            readiness = metricsJointReadiness
-            android = androidOwner
-            gl = glOwner
-            target = currentTarget
-            renderTarget = installedRenderTarget
-            runtime = jpegOwner
-            framework = installedFrameworkOwner
-            parameters = requestedParameters
-            visible = capturedContentVisible
-            topologyIdentity = topologyPublicationIdentity
-            registrationIdentity = acceptedProjectionCallbackRegistrationIdentity
+            calculation = topologyFacet.currentCalculation
+            metrics = topologyFacet.metricsOwner
+            readiness = topologyFacet.metricsJointReadiness
+            android = topologyFacet.androidOwner
+            gl = topologyFacet.glOwner
+            target = topologyFacet.currentTarget
+            renderTarget = topologyFacet.installedRenderTarget
+            runtime = topologyFacet.jpegOwner
+            framework = topologyFacet.installedFrameworkOwner
+            parameters = topologyFacet.requestedParameters
+            visible = topologyFacet.capturedContentVisible
+            registrationIdentity = topologyFacet.acceptedProjectionCallbackRegistrationIdentity
             !terminalWinner.fixed && !admissionsClosed && calculation != null && metrics != null && readiness != null &&
                     android != null && gl != null && target != null && renderTarget != null && runtime != null &&
                     parameters != null && registrationIdentity > 0L &&
                     checkNotNull(calculation).effectiveParameters == effectiveParameters &&
-                    cleanupOwner.currentTargetRoot.target == null && cleanupOwner.jpegRoot.owner == null &&
-                    cleanupOwner.jpegRoot.frameworkOwner == null
+                    cleanupFacet.owner.currentTargetRoot.target == null && cleanupFacet.owner.jpegRoot.owner == null &&
+                    cleanupFacet.owner.jpegRoot.frameworkOwner == null
         }
         if (!selected) return false
         val exactReadiness = checkNotNull(readiness)
         val topology = SessionReconfiguration.captureCompleteTopology(SessionTopologyCaptureCommand(
-            key = checkNotNull(calculation).input.key,
-            topologyIdentity = topologyIdentity,
+            stamp = checkNotNull(calculation).input.stamp,
             metricsOwner = checkNotNull(metrics),
             metricsSource = exactReadiness.source,
             metricsObservationIdentity = exactReadiness.observationIdentity,
@@ -1481,36 +2026,40 @@ internal class SessionController internal constructor(
             frameworkOwner = framework,
             effectiveParameters = effectiveParameters,
         )) ?: return false
-        if (!SessionReconfiguration.revalidate(topology)) return false
+        val targetRecheck = SessionReconfiguration.revalidate(topology) ?: return false
         val publicSnapshot = ObservationStateSnapshot.Running(
             requestedParameters = checkNotNull(parameters),
             runningState = ObservationRunningStateSnapshot.Active(effectiveParameters),
             capturedContentVisible = visible,
         )
         val committed = sessionGate.withLock {
-            val currentReadiness = metricsJointReadiness
-            if (terminalWinner.fixed || admissionsClosed || currentCalculation !== calculation ||
-                topologyPublicationIdentity != topology.topologyIdentity || metricsOwner !== topology.metricsOwner ||
+            val currentReadiness = topologyFacet.metricsJointReadiness
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.currentCalculation !== calculation ||
+                topology.stamp.desiredRevision != topologyFacet.desiredRevision ||
+                topology.stamp.geometryGeneration != topologyFacet.geometryGeneration ||
+                topology.stamp.lifecycleEpoch != topologyFacet.lifecycleEpoch ||
+                topologyFacet.metricsOwner !== topology.metricsOwner ||
                 currentReadiness == null || currentReadiness.owner !== topology.metricsOwner ||
                 currentReadiness.source !== topology.metricsSource ||
                 currentReadiness.observationIdentity != topology.metricsObservationIdentity ||
                 currentReadiness.sequence != topology.metricsReadinessSequence ||
-                androidOwner !== topology.androidOwner ||
-                acceptedProjectionCallbackRegistrationIdentity != topology.projectionRegistrationIdentity ||
-                glOwner !== topology.glOwner || currentTarget !== topology.target ||
-                !topology.target.isCurrentnessVersion(topology.targetCurrentness.version) ||
-                installedRenderTarget !== topology.renderTarget || jpegOwner !== topology.jpegOwner ||
+                topologyFacet.androidOwner !== topology.androidOwner ||
+                topologyFacet.acceptedProjectionCallbackRegistrationIdentity != topology.projectionRegistrationIdentity ||
+                topologyFacet.glOwner !== topology.glOwner || topologyFacet.currentTarget !== topology.target ||
+                targetRecheck.targetIdentity !== topology.targetCurrentness.targetIdentity ||
+                targetRecheck.version != topology.targetCurrentness.version ||
+                topologyFacet.installedRenderTarget !== topology.renderTarget || topologyFacet.jpegOwner !== topology.jpegOwner ||
                 checkNotNull(runtime).stableTopologySnapshot() !== topology.jpegTopology ||
-                installedFrameworkOwner !== topology.frameworkOwner || requestedParameters !== parameters
+                topologyFacet.installedFrameworkOwner !== topology.frameworkOwner || topologyFacet.requestedParameters !== parameters
             ) {
                 return@withLock false
             }
-            acceptedTopologySnapshot = topology
-            lastEffectiveParameters = effectiveParameters
+            topologyFacet.acceptedTopologySnapshot = topology
+            topologyFacet.lastEffectiveParameters = effectiveParameters
             lifecycle = Lifecycle.Running
             runningPhase = RunningPhase.Active
-            if (!firstActiveAssigned) metricsOwner?.commitFirstActiveLocked()
-            publicStatePublicationIdentity = reserveIdentityLocked()
+            if (!firstActiveAssigned) topologyFacet.metricsOwner?.commitFirstActiveLocked()
+            statsFacet.publicStatePublicationIdentity = reserveIdentityLocked()
             true
         }
         if (!committed) return false
@@ -1536,65 +2085,128 @@ internal class SessionController internal constructor(
         encodeDurationNanos: Long,
     ) {
         sessionGate.withLock {
-            if (statsAuthority.cutoff || encodedByteCount <= 0 || encodeDurationNanos < 0L) return
-            statsAuthority.framesEncoded = saturatedIncrement(statsAuthority.framesEncoded)
-            statsAuthority.encodeSamples = saturatedIncrement(statsAuthority.encodeSamples)
-            statsAuthority.encodeMeanNanos = orderedMean(
-                statsAuthority.encodeMeanNanos,
+            if (statsFacet.cutoff || encodedByteCount <= 0 || encodeDurationNanos < 0L) return
+            statsFacet.framesEncoded = saturatedIncrement(statsFacet.framesEncoded)
+            statsFacet.encodeSamples = saturatedIncrement(statsFacet.encodeSamples)
+            statsFacet.encodeMeanNanos = orderedMean(
+                statsFacet.encodeMeanNanos,
                 encodeDurationNanos.toDouble(),
-                statsAuthority.encodeSamples,
+                statsFacet.encodeSamples,
             )
-            statsAuthority.encodedByteSamples = saturatedIncrement(statsAuthority.encodedByteSamples)
-            statsAuthority.encodedByteMean = orderedMean(
-                statsAuthority.encodedByteMean,
+            statsFacet.encodedByteSamples = saturatedIncrement(statsFacet.encodedByteSamples)
+            statsFacet.encodedByteMean = orderedMean(
+                statsFacet.encodedByteMean,
                 encodedByteCount.toDouble(),
-                statsAuthority.encodedByteSamples,
+                statsFacet.encodedByteSamples,
             )
-            statsAuthority.lastEncodedByteCount = encodedByteCount
+            statsFacet.lastEncodedByteCount = encodedByteCount
         }
     }
 
     internal fun recordMechanicallySuccessfulReadback(readbackDurationNanos: Long) {
         sessionGate.withLock {
-            if (statsAuthority.cutoff || readbackDurationNanos < 0L) return
-            statsAuthority.readbackSamples = saturatedIncrement(statsAuthority.readbackSamples)
-            statsAuthority.readbackMeanNanos = orderedMean(
-                statsAuthority.readbackMeanNanos,
+            if (statsFacet.cutoff || readbackDurationNanos < 0L) return
+            statsFacet.readbackSamples = saturatedIncrement(statsFacet.readbackSamples)
+            statsFacet.readbackMeanNanos = orderedMean(
+                statsFacet.readbackMeanNanos,
                 readbackDurationNanos.toDouble(),
-                statsAuthority.readbackSamples,
+                statsFacet.readbackSamples,
             )
         }
     }
 
     internal fun recordProduced(timestampNanos: Long) {
         sessionGate.withLock {
-            if (statsAuthority.cutoff || timestampNanos < 0L) return
-            statsAuthority.framesProduced = saturatedIncrement(statsAuthority.framesProduced)
-            if (statsAuthority.firstProducedNanos == Long.MIN_VALUE) statsAuthority.firstProducedNanos = timestampNanos
-            statsAuthority.lastProducedNanos = timestampNanos
+            if (statsFacet.cutoff || timestampNanos < 0L) return
+            statsFacet.framesProduced = saturatedIncrement(statsFacet.framesProduced)
+            if (statsFacet.firstProducedNanos == Long.MIN_VALUE) statsFacet.firstProducedNanos = timestampNanos
+            statsFacet.lastProducedNanos = timestampNanos
         }
     }
 
     internal fun executeWakeSubmission(
-        link: ControlWakeLink,
         action: ControlWakeScheduleAction,
     ) {
-        val scheduler = controlScheduler.get() ?: run {
-            link.publishSchedulingFailure(action, RejectedExecutionException("Control scheduler unavailable"))
-            offerFailure(ScreenCaptureProblem.InternalFailure, CONTROL_SCHEDULER_UNAVAILABLE)
+        if (isAcceptedControlRuntimeReleased()) return
+        when (action.claimInvocation(controlPoisonAuthority)) {
+            ControlPoisonClaimOutcome.PoisonFenced -> return
+            ControlPoisonClaimOutcome.ClaimExhausted -> {
+                settleControlClaimExhausted(controlScheduleClaimExhaustedFact, controlScheduleSecondaryFact)
+                return
+            }
+
+            ControlPoisonClaimOutcome.Admitted -> Unit
+        }
+        val nowNanos = try {
+            clock.nowNanos()
+        } catch (raw: Throwable) {
+            val directFatalRaw = if (FatalThrowablePolicy.isDirectFatal(raw)) raw else null
+            val publicationOutcome = if (directFatalRaw != null) {
+                action.publishDirectFatalPreInvocationFailure(raw)
+            } else {
+                action.publishSignalledPreInvocationFailure(raw)
+            }
+            when (publicationOutcome) {
+                ControlWakeActionPublicationOutcome.Published -> Unit
+                ControlWakeActionPublicationOutcome.NotEligible ->
+                    publishAggregateFact(controlScheduleInvariantFact, CONTROL_SCHEDULE_PREINVOCATION_FACT_NOT_ELIGIBLE)
+            }
+            settleRecordedControlFailure(raw, directFatalRaw, controlScheduleSecondaryFact)
             return
         }
-        val delay = maxOf(0L, action.dueNanos - clock.nowNanos())
-        try {
-            val future = scheduler.schedule(action.runner, delay, TimeUnit.NANOSECONDS)
-            val outer = future as Runnable
-            if (!link.publishSchedulingAccepted(action, future, outer)) {
-                executeDetachedFutureCancellation(future, outer)
+        val scheduler = controlScheduler.get() ?: run {
+            when (action.publishSignalledPreInvocationFailure(CONTROL_SCHEDULER_UNAVAILABLE)) {
+                ControlWakeActionPublicationOutcome.Published -> Unit
+                ControlWakeActionPublicationOutcome.NotEligible ->
+                    publishAggregateFact(controlScheduleInvariantFact, CONTROL_SCHEDULE_PREINVOCATION_FACT_NOT_ELIGIBLE)
             }
+            settleRecordedControlFailure(
+                CONTROL_SCHEDULER_UNAVAILABLE,
+                null,
+                controlScheduleSecondaryFact,
+            )
+            return
+        }
+        val delay = maxOf(0L, action.dueNanos - nowNanos)
+        when (action.markInvocationStarted(scheduler.runtimeOwner)) {
+            ControlWakeActionPublicationOutcome.Published -> Unit
+            ControlWakeActionPublicationOutcome.NotEligible -> {
+                publishAggregateFact(controlScheduleInvariantFact, CONTROL_SCHEDULE_MARK_NOT_ELIGIBLE)
+                settleRecordedControlFailure(
+                    CONTROL_SCHEDULE_MARK_NOT_ELIGIBLE,
+                    null,
+                    controlScheduleSecondaryFact,
+                )
+                return
+            }
+        }
+        val future = try {
+            scheduler.schedule(action.runner, delay, TimeUnit.NANOSECONDS)
         } catch (raw: Throwable) {
-            link.publishSchedulingFailure(action, raw)
-            poisonControl(raw)
-            if (FatalThrowablePolicy.isDirectFatal(raw)) FatalThrowablePolicy.rethrow(raw)
+            when (action.publishInvocationFailure(raw)) {
+                ControlWakeScheduleFailurePublicationOutcome.Rejected,
+                ControlWakeScheduleFailurePublicationOutcome.Ambiguous,
+                    -> Unit
+
+                ControlWakeScheduleFailurePublicationOutcome.NotEligible ->
+                    publishAggregateFact(controlScheduleInvariantFact, CONTROL_SCHEDULE_FAILURE_FACT_NOT_ELIGIBLE)
+            }
+            val directFatalRaw = if (FatalThrowablePolicy.isDirectFatal(raw)) raw else null
+            settleRecordedControlFailure(raw, directFatalRaw, controlScheduleSecondaryFact)
+            return
+        }
+        val outer = future as Runnable
+        when (action.publishReturned(future, outer)) {
+            ControlWakeScheduleReturnPublicationOutcome.Accepted -> Unit
+            ControlWakeScheduleReturnPublicationOutcome.Detached -> executeDetachedScheduleReturn(action)
+            ControlWakeScheduleReturnPublicationOutcome.NotEligible -> {
+                publishAggregateFact(controlScheduleInvariantFact, CONTROL_SCHEDULE_RETURN_NOT_ELIGIBLE)
+                settleRecordedControlFailure(
+                    CONTROL_SCHEDULE_RETURN_NOT_ELIGIBLE,
+                    null,
+                    controlScheduleSecondaryFact,
+                )
+            }
         }
     }
 
@@ -1602,11 +2214,42 @@ internal class SessionController internal constructor(
         link: ControlWakeLink,
         action: ControlWakeCancellationAction,
     ) {
+        if (isAcceptedControlRuntimeReleased()) return
+        val scheduler = controlScheduler.get() ?: run {
+            publishAggregateFact(controlSchedulerUnavailableFact, CONTROL_SCHEDULER_UNAVAILABLE)
+            controlPoisonAuthority.publish(CONTROL_SCHEDULER_UNAVAILABLE)
+            when (action.claimCancelInvocation(controlPoisonAuthority)) {
+                ControlPoisonClaimOutcome.PoisonFenced -> Unit
+                ControlPoisonClaimOutcome.ClaimExhausted -> publishAggregateFact(
+                    controlCancelClaimExhaustedFact,
+                    checkNotNull(controlPoisonAuthority.observe()),
+                )
+
+                ControlPoisonClaimOutcome.Admitted -> {
+                    publishAggregateFact(controlCancellationInvariantFact, CONTROL_CANCEL_ADMITTED_WITHOUT_SCHEDULER)
+                }
+            }
+            settleRecordedControlFailure(
+                CONTROL_SCHEDULER_UNAVAILABLE,
+                null,
+                controlCancellationSecondaryFact,
+            )
+            return
+        }
         val future = checkNotNull(action.future)
         val outer = checkNotNull(action.outerWrapper)
         var cancelReturned: Boolean? = null
         var cancelFailure: Throwable? = null
         var suppression = ControlWakeSuppressionDisposition.NotAttempted
+        when (action.claimCancelInvocation(controlPoisonAuthority)) {
+            ControlPoisonClaimOutcome.PoisonFenced -> return
+            ControlPoisonClaimOutcome.ClaimExhausted -> {
+                settleControlClaimExhausted(controlCancelClaimExhaustedFact, controlCancellationSecondaryFact)
+                return
+            }
+
+            ControlPoisonClaimOutcome.Admitted -> Unit
+        }
         try {
             cancelReturned = future.cancel(false)
             if (cancelReturned) {
@@ -1620,71 +2263,302 @@ internal class SessionController internal constructor(
             cancelFailure = raw
         }
 
+        val directFatalCancellation =
+            cancelFailure != null && FatalThrowablePolicy.isDirectFatal(cancelFailure)
         var removalReturned: Boolean? = null
         var removalFailure: Throwable? = null
-        try {
-            removalReturned = controlScheduler.get()?.remove(outer) ?: false
-        } catch (raw: Throwable) {
-            removalFailure = raw
+        var removeClaimExhausted = false
+        val removalDisposition = when {
+            directFatalCancellation -> ControlWakeOuterRemovalDisposition.NotAttempted
+            else -> when (action.claimRemoveInvocation(controlPoisonAuthority)) {
+                ControlPoisonClaimOutcome.PoisonFenced -> ControlWakeOuterRemovalDisposition.PoisonFenced
+                ControlPoisonClaimOutcome.ClaimExhausted -> {
+                    removeClaimExhausted = true
+                    ControlWakeOuterRemovalDisposition.PoisonFenced
+                }
+
+                ControlPoisonClaimOutcome.Admitted -> try {
+                    removalReturned = scheduler.remove(outer)
+                    ControlWakeOuterRemovalDisposition.Returned
+                } catch (raw: Throwable) {
+                    removalFailure = raw
+                    ControlWakeOuterRemovalDisposition.Thrown
+                }
+            }
         }
-        link.publishCancellation(
-            action = action,
-            cancelReturned = cancelReturned,
-            cancelFailure = cancelFailure,
-            suppressionDisposition = suppression,
-            removalReturned = removalReturned,
-            removalFailure = removalFailure,
-        )
-        val fatal = when {
+        val firstFailure = cancelFailure ?: removalFailure
+        val cancellationPublished = link.publishCancellation(
+                action = action,
+                cancelReturned = cancelReturned,
+                cancelFailure = cancelFailure,
+                suppressionDisposition = suppression,
+                removalDisposition = removalDisposition,
+                removalReturned = removalReturned,
+                removalFailure = removalFailure,
+            )
+        if (!cancellationPublished) {
+            publishAggregateFact(
+                controlCancellationInvariantFact,
+                firstFailure ?: CONTROL_CANCELLATION_FACT_NOT_ELIGIBLE,
+            )
+        }
+        val exactDirectFatal = when {
             cancelFailure != null && FatalThrowablePolicy.isDirectFatal(cancelFailure) -> cancelFailure
+            cancellationPublished &&
+                    (link.outerRemovalFailureDisposition == ControlWakeRemovalFailureDisposition.DirectFatal ||
+                            link.outerRemovalFailureDisposition == ControlWakeRemovalFailureDisposition.OtherThrowable) ->
+                checkNotNull(removalFailure)
+
             removalFailure != null && FatalThrowablePolicy.isDirectFatal(removalFailure) -> removalFailure
             else -> null
         }
-        val ordinary = cancelFailure ?: removalFailure
-        if (ordinary != null) poisonControl(ordinary)
-        if (fatal != null) FatalThrowablePolicy.rethrow(fatal)
+        if (exactDirectFatal != null) {
+            settleRecordedControlFailure(
+                checkNotNull(firstFailure),
+                exactDirectFatal,
+                controlCancellationSecondaryFact,
+            )
+        } else if (cancelFailure != null) {
+            settleRecordedControlFailure(cancelFailure, null, controlCancellationSecondaryFact)
+        } else if (removalFailure != null &&
+            (!cancellationPublished ||
+                    link.outerRemovalFailureDisposition != ControlWakeRemovalFailureDisposition.OrdinaryException)
+        ) {
+            settleRecordedControlFailure(removalFailure, null, controlCancellationSecondaryFact)
+        } else if (removeClaimExhausted) {
+            settleControlClaimExhausted(controlRemoveClaimExhaustedFact, controlCancellationSecondaryFact)
+        }
     }
 
-    private fun executeDetachedFutureCancellation(future: Future<*>, outer: Runnable) {
+    private fun executeDetachedScheduleReturn(action: ControlWakeScheduleAction) {
+        if (isAcceptedControlRuntimeReleased()) return
+        val future = checkNotNull(action.returnedFuture)
+        val outer = checkNotNull(action.returnedOuterWrapper)
+        val scheduler = controlScheduler.get() ?: run {
+            publishAggregateFact(controlSchedulerUnavailableFact, CONTROL_SCHEDULER_UNAVAILABLE)
+            controlPoisonAuthority.publish(CONTROL_SCHEDULER_UNAVAILABLE)
+            when (action.claimDetachedCancelInvocation(controlPoisonAuthority)) {
+                ControlPoisonClaimOutcome.PoisonFenced -> Unit
+                ControlPoisonClaimOutcome.ClaimExhausted ->
+                    publishAggregateFact(
+                        controlDetachedCancelClaimExhaustedFact,
+                        checkNotNull(controlPoisonAuthority.observe()),
+                    )
+
+                ControlPoisonClaimOutcome.Admitted ->
+                    publishAggregateFact(controlDetachedInvariantFact, CONTROL_DETACHED_ADMITTED_WITHOUT_SCHEDULER)
+            }
+            settleRecordedControlFailure(
+                CONTROL_SCHEDULER_UNAVAILABLE,
+                null,
+                controlDetachedSecondaryFact,
+            )
+            return
+        }
+        var cancelFailure: Throwable? = null
+        when (action.claimDetachedCancelInvocation(controlPoisonAuthority)) {
+            ControlPoisonClaimOutcome.PoisonFenced -> return
+            ControlPoisonClaimOutcome.ClaimExhausted -> {
+                settleControlClaimExhausted(
+                    controlDetachedCancelClaimExhaustedFact,
+                    controlDetachedSecondaryFact,
+                )
+                return
+            }
+
+            ControlPoisonClaimOutcome.Admitted -> Unit
+        }
+        var cancelReturned: Boolean? = null
+        var suppression = ControlWakeSuppressionDisposition.NotAttempted
         try {
-            future.cancel(false)
-        } finally {
-            controlScheduler.get()?.remove(outer)
+            cancelReturned = future.cancel(false)
+            if (cancelReturned) {
+                suppression = if (action.trySuppressDetached()) {
+                    ControlWakeSuppressionDisposition.Succeeded
+                } else {
+                    ControlWakeSuppressionDisposition.Failed
+                }
+            }
+        } catch (raw: Throwable) {
+            cancelFailure = raw
+        }
+        val directFatalCancellation =
+            cancelFailure != null && FatalThrowablePolicy.isDirectFatal(cancelFailure)
+        var removalReturned: Boolean? = null
+        var removalFailure: Throwable? = null
+        var removeClaimExhausted = false
+        val removalDisposition: ControlWakeOuterRemovalDisposition
+        if (!directFatalCancellation) {
+            removalDisposition = when (action.claimDetachedRemoveInvocation(controlPoisonAuthority)) {
+                ControlPoisonClaimOutcome.PoisonFenced -> ControlWakeOuterRemovalDisposition.PoisonFenced
+                ControlPoisonClaimOutcome.ClaimExhausted -> {
+                    removeClaimExhausted = true
+                    ControlWakeOuterRemovalDisposition.PoisonFenced
+                }
+
+                ControlPoisonClaimOutcome.Admitted -> try {
+                    removalReturned = scheduler.remove(outer)
+                    ControlWakeOuterRemovalDisposition.Returned
+                } catch (raw: Throwable) {
+                    removalFailure = raw
+                    ControlWakeOuterRemovalDisposition.Thrown
+                }
+            }
+        } else {
+            removalDisposition = ControlWakeOuterRemovalDisposition.NotAttempted
+        }
+        val firstFailure = cancelFailure ?: removalFailure
+        val detachedSettlementPublished = when (action.publishDetachedSettlement(
+            cancelReturned = cancelReturned,
+            cancelFailure = cancelFailure,
+            suppressionDisposition = suppression,
+            removalDisposition = removalDisposition,
+            removalReturned = removalReturned,
+            removalFailure = removalFailure,
+        )) {
+            ControlWakeActionPublicationOutcome.Published -> true
+            ControlWakeActionPublicationOutcome.NotEligible -> {
+                publishAggregateFact(
+                    controlDetachedInvariantFact,
+                    firstFailure ?: CONTROL_DETACHED_FACT_NOT_ELIGIBLE,
+                )
+                false
+            }
+        }
+        val exactDirectFatal = when {
+            cancelFailure != null && FatalThrowablePolicy.isDirectFatal(cancelFailure) -> cancelFailure
+            detachedSettlementPublished &&
+                    (action.detachedRemovalFailureDisposition == ControlWakeRemovalFailureDisposition.DirectFatal ||
+                            action.detachedRemovalFailureDisposition == ControlWakeRemovalFailureDisposition.OtherThrowable) ->
+                checkNotNull(removalFailure)
+
+            removalFailure != null && FatalThrowablePolicy.isDirectFatal(removalFailure) -> removalFailure
+            else -> null
+        }
+        if (exactDirectFatal != null) {
+            settleRecordedControlFailure(
+                checkNotNull(firstFailure),
+                exactDirectFatal,
+                controlDetachedSecondaryFact,
+            )
+        } else if (cancelFailure != null) {
+            settleRecordedControlFailure(cancelFailure, null, controlDetachedSecondaryFact)
+        } else if (removalFailure != null &&
+            (!detachedSettlementPublished ||
+                    action.detachedRemovalFailureDisposition != ControlWakeRemovalFailureDisposition.OrdinaryException)
+        ) {
+            settleRecordedControlFailure(removalFailure, null, controlDetachedSecondaryFact)
+        } else if (removeClaimExhausted) {
+            settleControlClaimExhausted(
+                controlDetachedRemoveClaimExhaustedFact,
+                controlDetachedSecondaryFact,
+            )
         }
     }
 
     private fun submitDrainer() {
-        val scheduler = controlScheduler.get()
-        if (scheduler == null) {
-            preBarrierDirty.set(true)
+        if (isAcceptedControlRuntimeReleased()) {
+            drainerState.set(DRAIN_IDLE)
+            return
+        }
+        val scheduler = controlScheduler.get() ?: run {
+            if (controlPoisonAuthority.observe() == null) {
+                preBarrierDirty.set(true)
+            } else {
+                drainerState.set(DRAIN_IDLE)
+            }
             return
         }
         val generation = drainerGeneration.updateAndGet { current ->
             if (current == Long.MAX_VALUE) Long.MAX_VALUE else current + 1L
         }
         if (generation == Long.MAX_VALUE) {
-            emergencyFailClosed(IDENTITY_EXHAUSTED)
+            try {
+                publishAggregateFact(controlDrainerIdentityExhaustedFact, IDENTITY_EXHAUSTED)
+                settleRecordedControlFailure(IDENTITY_EXHAUSTED, null, controlDrainerSecondaryFact)
+            } finally {
+                drainerState.set(DRAIN_IDLE)
+            }
             return
         }
         val record = drainerRecords[(generation and 1L).toInt()]
         if (!record.prepare(generation)) {
-            emergencyFailClosed(CONTROL_DRAINER_RECORD_REUSE)
+            try {
+                publishAggregateFact(controlDrainerRecordReuseFact, CONTROL_DRAINER_RECORD_REUSE)
+                settleRecordedControlFailure(CONTROL_DRAINER_RECORD_REUSE, null, controlDrainerSecondaryFact)
+            } finally {
+                drainerState.set(DRAIN_IDLE)
+            }
             return
+        }
+        when (record.claimSubmissionInvocation(generation)) {
+            SessionControlDrainerInvocationClaimOutcome.PoisonFenced -> {
+                drainerState.set(DRAIN_IDLE)
+                return
+            }
+
+            SessionControlDrainerInvocationClaimOutcome.ClaimExhausted -> {
+                try {
+                    val raw = checkNotNull(controlPoisonAuthority.observe())
+                    settleRecordedControlFailure(raw, null, controlDrainerSecondaryFact)
+                } finally {
+                    drainerState.set(DRAIN_IDLE)
+                }
+                return
+            }
+
+            SessionControlDrainerInvocationClaimOutcome.NotEligible -> {
+                try {
+                    publishAggregateFact(controlDrainerRecordReuseFact, CONTROL_DRAINER_RECORD_REUSE)
+                    settleRecordedControlFailure(CONTROL_DRAINER_RECORD_REUSE, null, controlDrainerSecondaryFact)
+                } finally {
+                    drainerState.set(DRAIN_IDLE)
+                }
+                return
+            }
+
+            SessionControlDrainerInvocationClaimOutcome.Admitted -> Unit
         }
         try {
             scheduler.execute(record.runner)
-            record.publishSubmissionAccepted(generation)
         } catch (raw: Throwable) {
-            record.publishSubmissionFailure(generation, raw)
-            poisonControl(raw)
-            emergencyFailClosed(raw)
-            if (FatalThrowablePolicy.isDirectFatal(raw)) FatalThrowablePolicy.rethrow(raw)
+            try {
+                when (record.publishSubmissionFailure(generation, raw)) {
+                    SessionControlDrainerSubmissionFailurePublicationOutcome.Rejected,
+                    SessionControlDrainerSubmissionFailurePublicationOutcome.Ambiguous,
+                        -> Unit
+
+                    SessionControlDrainerSubmissionFailurePublicationOutcome.NotEligible ->
+                        publishAggregateFact(controlDrainerRecordReuseFact, raw)
+                }
+                val directFatalRaw = if (FatalThrowablePolicy.isDirectFatal(raw)) raw else null
+                settleRecordedControlFailure(raw, directFatalRaw, controlDrainerSecondaryFact)
+            } finally {
+                drainerState.set(DRAIN_IDLE)
+            }
+            return
+        }
+        when (record.publishSubmissionAccepted(generation)) {
+            SessionControlDrainerSubmissionAcceptancePublicationOutcome.Published -> Unit
+            SessionControlDrainerSubmissionAcceptancePublicationOutcome.NotEligible -> {
+                publishAggregateFact(controlDrainerRecordReuseFact, CONTROL_DRAINER_ACCEPTANCE_NOT_ELIGIBLE)
+                settleRecordedControlFailure(
+                    CONTROL_DRAINER_ACCEPTANCE_NOT_ELIGIBLE,
+                    null,
+                    controlDrainerSecondaryFact,
+                )
+            }
         }
     }
 
     private fun runDrainer() {
-        controlPoison.get()?.let { raw ->
-            emergencyFailClosed(raw)
+        if (isAcceptedControlRuntimeReleased()) {
+            drainerState.set(DRAIN_IDLE)
+            return
+        }
+        val poisonedRaw = controlPoisonAuthority.observe()
+        if (poisonedRaw != null) {
+            emergencyFailClosed(poisonedRaw)
             drainerState.set(DRAIN_IDLE)
             return
         }
@@ -1698,7 +2572,7 @@ internal class SessionController internal constructor(
                 constructOwnersForAcceptedStart()
                 prestartAndAdoptStartupOwners()
                 launchOwnersForAcceptedStart()
-                sessionGate.withLock { metricsOwner }?.readinessWakeLink?.let(::serviceWakeLink)
+                sessionGate.withLock { topologyFacet.metricsOwner }?.readinessWakeLink?.let(::serviceWakeLink)
                 consumeGlSessionConstruction()
                 consumeAndroidLaneStartup()
                 advanceProjectionRegistration()
@@ -1736,28 +2610,28 @@ internal class SessionController internal constructor(
         check(sessionGate.isHeldByCurrentThread)
         if (lifecycle == Lifecycle.Starting && !startingAssigned) {
             startingAssigned = true
-            publicStatePublicationIdentity = reserveIdentityLocked()
+            statsFacet.publicStatePublicationIdentity = reserveIdentityLocked()
             slots.publishStarting = true
         }
-        if (targetAdmissionClosePending) {
-            targetAdmissionClosePending = false
+        if (deliveryFacet.targetAdmissionClosePending) {
+            deliveryFacet.targetAdmissionClosePending = false
             slots.closeTargetAdmission = true
         }
-        if (runningPublicationPending && lifecycle == Lifecycle.Running) {
-            val parameters = requestedParameters
-            val effective = lastEffectiveParameters
+        if (statsFacet.runningPublicationPending && lifecycle == Lifecycle.Running) {
+            val parameters = topologyFacet.requestedParameters
+            val effective = topologyFacet.lastEffectiveParameters
             if (parameters != null && effective != null) {
                 slots.buildRunningOutput = true
                 slots.runningParameters = parameters
                 slots.runningEffective = effective
-                slots.runningProblem = runningPublicationProblem
-                slots.runningGeometry = captureGeometry
-                slots.runningVisible = capturedContentVisible
-                slots.runningIsActive = runningPublicationProblem == null && runningPhase == RunningPhase.Active
-                publicStatePublicationIdentity = reserveIdentityLocked()
+                slots.runningProblem = statsFacet.runningPublicationProblem
+                slots.runningGeometry = topologyFacet.captureGeometry
+                slots.runningVisible = topologyFacet.capturedContentVisible
+                slots.runningIsActive = statsFacet.runningPublicationProblem == null && runningPhase == RunningPhase.Active
+                statsFacet.publicStatePublicationIdentity = reserveIdentityLocked()
             }
-            runningPublicationPending = false
-            runningPublicationProblem = null
+            statsFacet.runningPublicationPending = false
+            statsFacet.runningPublicationProblem = null
         }
         chooseTerminalWinnerLocked()
         if (terminalWinner.fixed && !terminalCutoffApplied) {
@@ -1785,7 +2659,7 @@ internal class SessionController internal constructor(
                 slots.runningVisible,
             )
         }
-        if (slots.publishStarting) slots.publishStats = statsAuthority.snapshot()
+        if (slots.publishStarting) slots.publishStats = statsFacet.snapshot()
         val diagnostic = if (slots.terminalDiagnosticSequence > 0L) {
             val message = when (slots.terminalDiagnosticKind) {
                 TerminalKind.CaptureEnded -> "capture ended; terminal cleanup started"
@@ -1820,21 +2694,21 @@ internal class SessionController internal constructor(
     }
 
     private fun buildTerminalOutputsUnlocked(slots: TurnSlots) {
-        val parameters = checkNotNull(requestedParameters)
-        slots.terminalStats = statsAuthority.snapshot()
+        val parameters = checkNotNull(topologyFacet.requestedParameters)
+        slots.terminalStats = statsFacet.snapshot()
         slots.terminalState = when (terminalWinner.kind) {
             TerminalKind.CaptureEnded,
             TerminalKind.OwnerStop,
                 -> ObservationStateSnapshot.Stopped(
                 reason = checkNotNull(terminalWinner.stopReason),
                 requestedParameters = parameters,
-                lastEffectiveParameters = lastEffectiveParameters,
+                lastEffectiveParameters = topologyFacet.lastEffectiveParameters,
             )
 
             TerminalKind.Failed -> ObservationStateSnapshot.Failed(
                 problem = terminalWinner.problem ?: ScreenCaptureProblem.InternalFailure,
                 requestedParameters = parameters,
-                lastEffectiveParameters = lastEffectiveParameters,
+                lastEffectiveParameters = topologyFacet.lastEffectiveParameters,
             )
         }
         if (!firstActiveAssigned) {
@@ -1872,60 +2746,60 @@ internal class SessionController internal constructor(
         check(sessionGate.isHeldByCurrentThread)
         closeAdmissionLocked()
         terminalCutoffApplied = true
-        statsAuthority.cutoff = true
+        statsFacet.cutoff = true
         lifecycle = Lifecycle.Terminal
         runningPhase = null
         advanceLifecycleEpochLocked()
         invalidateOutputLocked()
 
         val startupBag = pendingStartupBag
-        val exactMetrics = metricsOwner ?: startupBag?.metrics
-        val exactAndroid = androidOwner ?: startupBag?.android
-        val exactPrepared = preparedTarget
-        val exactCurrent = currentTarget
-        val exactRender = installedRenderTarget
-        val exactGl = glOwner ?: startupBag?.gl
-        val exactJpeg = jpegOwner ?: startupBag?.jpeg
-        val exactStorage = storageOwner ?: startupBag?.storage
-        if (exactMetrics != null && cleanupOwner.attachMetrics(exactMetrics) != CleanupMutation.None) cleanupWorkPending = true
-        if (exactAndroid != null && cleanupOwner.attachAndroid(exactAndroid) != CleanupMutation.None) cleanupWorkPending = true
-        if (exactPrepared != null && cleanupOwner.attachPreparedTarget(exactPrepared) != CleanupMutation.None) cleanupWorkPending = true
-        if (exactCurrent != null && cleanupOwner.attachCurrentTarget(exactCurrent) != CleanupMutation.None) cleanupWorkPending = true
-        if (exactGl != null && cleanupOwner.attachGl(exactGl) != CleanupMutation.None) cleanupWorkPending = true
-        if (exactJpeg != null && cleanupOwner.attachJpeg(exactJpeg) != CleanupMutation.None) cleanupWorkPending = true
-        installedFrameworkOwner?.let { framework ->
-            if (cleanupOwner.attachFramework(framework) != CleanupMutation.None) cleanupWorkPending = true
+        val exactMetrics = topologyFacet.metricsOwner ?: startupBag?.metrics
+        val exactAndroid = topologyFacet.androidOwner ?: startupBag?.android
+        val exactPrepared = topologyFacet.preparedTarget
+        val exactCurrent = topologyFacet.currentTarget
+        val exactRender = topologyFacet.installedRenderTarget
+        val exactGl = topologyFacet.glOwner ?: startupBag?.gl
+        val exactJpeg = topologyFacet.jpegOwner ?: startupBag?.jpeg
+        val exactStorage = topologyFacet.storageOwner ?: startupBag?.storage
+        if (exactMetrics != null && cleanupFacet.owner.attachMetrics(exactMetrics) != CleanupMutation.None) cleanupFacet.workPending = true
+        if (exactAndroid != null && cleanupFacet.owner.attachAndroid(exactAndroid) != CleanupMutation.None) cleanupFacet.workPending = true
+        if (exactPrepared != null && cleanupFacet.owner.attachPreparedTarget(exactPrepared) != CleanupMutation.None) cleanupFacet.workPending = true
+        if (exactCurrent != null && cleanupFacet.owner.attachCurrentTarget(exactCurrent) != CleanupMutation.None) cleanupFacet.workPending = true
+        if (exactGl != null && cleanupFacet.owner.attachGl(exactGl) != CleanupMutation.None) cleanupFacet.workPending = true
+        if (exactJpeg != null && cleanupFacet.owner.attachJpeg(exactJpeg) != CleanupMutation.None) cleanupFacet.workPending = true
+        topologyFacet.installedFrameworkOwner?.let { framework ->
+            if (cleanupFacet.owner.attachFramework(framework) != CleanupMutation.None) cleanupFacet.workPending = true
         }
-        if (exactStorage != null && cleanupOwner.attachStorage(exactStorage) != CleanupMutation.None) cleanupWorkPending = true
+        if (exactStorage != null && cleanupFacet.owner.attachStorage(exactStorage) != CleanupMutation.None) cleanupFacet.workPending = true
 
-        metricsOwner = null
-        metricsJointReadiness = null
-        androidOwner = null
-        androidLaneReadyOwner = null
-        projection = null
-        preparedTarget = null
-        currentTarget = null
-        glOwner = null
-        jpegOwner = null
-        storageOwner = null
+        topologyFacet.metricsOwner = null
+        topologyFacet.metricsJointReadiness = null
+        topologyFacet.androidOwner = null
+        topologyFacet.androidLaneReadyOwner = null
+        topologyFacet.projection = null
+        topologyFacet.preparedTarget = null
+        topologyFacet.currentTarget = null
+        topologyFacet.glOwner = null
+        topologyFacet.jpegOwner = null
+        topologyFacet.storageOwner = null
         pendingStartupBag = null
-        installedRenderTarget = null
-        cleanupRenderOwner = exactRender
-        installedFrameworkOwner = null
-        currentCalculation = null
-        currentProvisional = null
-        currentPlan = exactPrepared?.plan
-        latestMetricsFact = null
-        combinedGeometryAuthority = null
-        captureGeometry = null
+        topologyFacet.installedRenderTarget = null
+        cleanupFacet.renderOwner = exactRender
+        topologyFacet.installedFrameworkOwner = null
+        topologyFacet.currentCalculation = null
+        topologyFacet.currentProvisional = null
+        topologyFacet.currentPlan = exactPrepared?.plan
+        topologyFacet.latestMetricsFact = null
+        topologyFacet.combinedGeometryAuthority = null
+        topologyFacet.captureGeometry = null
 
-        publicStatsPublicationIdentity = reserveIdentityLocked()
+        statsFacet.publicStatsPublicationIdentity = reserveIdentityLocked()
         slots.buildTerminalOutputs = true
         slots.terminalDiagnosticSequence = reserveDiagnosticSequenceLocked()
         slots.terminalDiagnosticKind = terminalWinner.kind
         slots.terminalDiagnosticProblem = terminalWinner.problem
         slots.terminalDiagnosticCause = terminalWinner.cause
-        publicStatePublicationIdentity = reserveIdentityLocked()
+        statsFacet.publicStatePublicationIdentity = reserveIdentityLocked()
     }
 
     private fun executeCleanupActions() {
@@ -1939,30 +2813,38 @@ internal class SessionController internal constructor(
         var returnedNativeFatal: io.screenstream.engine.internal.ReturnedNativeFatalCleanupChild? = null
         var awaitingStage5 = false
         foldTerminalLateOccurrences()
-        val metricsForPreparation = sessionGate.withLock { cleanupOwner.metricsRoot.owner }
-        metricsForPreparation?.prepareEndpointShutdown()
+        var metricsCloseRequested = false
+        val metricsForPreparation = sessionGate.withLock {
+            val owner = cleanupFacet.owner.metricsRoot.owner ?: return@withLock null
+            metricsCloseRequested = owner.requestCloseLocked()
+            owner
+        }
+        if (metricsForPreparation != null) {
+            metricsForPreparation.applyCloseRequestEffectsUnlocked(metricsCloseRequested)
+            metricsForPreparation.prepareEndpointShutdown()
+        }
         advancePreparedTargetCleanup()
-        val targetForProgress = sessionGate.withLock { cleanupOwner.currentTargetRoot.target }
+        val targetForProgress = sessionGate.withLock { cleanupFacet.owner.currentTargetRoot.target }
         if (targetForProgress != null) advanceTerminalTargetCleanup(targetForProgress)
-        val androidForProgress = sessionGate.withLock { cleanupOwner.androidRoot.owner }
+        val androidForProgress = sessionGate.withLock { cleanupFacet.owner.androidRoot.owner }
         if (androidForProgress != null) advanceTerminalAndroidCleanup(androidForProgress)
         advanceTerminalFrameworkCleanup()
         advanceTerminalJpegProductCleanup()
-        val glForProgress = sessionGate.withLock { cleanupOwner.glRoot.owner }
+        val glForProgress = sessionGate.withLock { cleanupFacet.owner.glRoot.owner }
         if (glForProgress != null) advanceTerminalGlCleanup(glForProgress)
 
         sessionGate.withLock {
-            if (lifecycle != Lifecycle.Terminal && !cleanupWorkPending) return
-            cleanupWorkPending = false
-            metricsAction = cleanupOwner.claimMetricsShutdownAction()
-            androidAction = cleanupOwner.claimAndroidQuitAction()
-            existingGlAction = cleanupOwner.claimExistingGlShutdownAction()
-            if (existingGlAction == null) glForPreparation = cleanupOwner.selectGlShutdownOwner()
-            jpegAction = cleanupOwner.claimJpegShutdownAction()
-            existingStorageAction = cleanupOwner.claimExistingStorageRetirementAction()
-            if (existingStorageAction == null) storageForPreparation = cleanupOwner.selectStorageRetirementOwner()
-            returnedNativeFatal = cleanupOwner.selectReturnedNativeFatal()
-            awaitingStage5 = cleanupOwner.controlShutdownReadiness == ControlShutdownReadiness.AwaitingStage5Delivery
+            if (lifecycle != Lifecycle.Terminal && !cleanupFacet.workPending) return
+            cleanupFacet.workPending = false
+            metricsAction = cleanupFacet.owner.claimMetricsShutdownAction()
+            androidAction = cleanupFacet.owner.claimAndroidQuitAction()
+            existingGlAction = cleanupFacet.owner.claimExistingGlShutdownAction()
+            if (existingGlAction == null) glForPreparation = cleanupFacet.owner.selectGlShutdownOwner()
+            jpegAction = cleanupFacet.owner.claimJpegShutdownAction()
+            existingStorageAction = cleanupFacet.owner.claimExistingStorageRetirementAction()
+            if (existingStorageAction == null) storageForPreparation = cleanupFacet.owner.selectStorageRetirementOwner()
+            returnedNativeFatal = cleanupFacet.owner.selectReturnedNativeFatal()
+            awaitingStage5 = cleanupFacet.owner.controlShutdownReadiness == ControlShutdownReadiness.AwaitingStage5Delivery
         }
 
         val attempt = SessionTerminalCleanup.attempt(
@@ -1977,70 +2859,98 @@ internal class SessionController internal constructor(
         if (attempt.hasFailure) {
             sessionGate.withLock {
                 if (attempt.metricsFailure != null) {
-                    metricsForPreparation?.let { recordCleanupMutationLocked(cleanupOwner.quarantineMetrics(it)) }
+                    metricsForPreparation?.let { recordCleanupMutationLocked(cleanupFacet.owner.quarantineMetrics(it)) }
                 }
                 if (attempt.androidFailure != null) {
-                    androidForProgress?.let { recordCleanupMutationLocked(cleanupOwner.quarantineAndroid(it)) }
+                    androidForProgress?.let { recordCleanupMutationLocked(cleanupFacet.owner.quarantineAndroid(it)) }
                 }
                 if (attempt.glFailure != null) {
-                    glForProgress?.let { recordCleanupMutationLocked(cleanupOwner.quarantineGl(it)) }
+                    glForProgress?.let { recordCleanupMutationLocked(cleanupFacet.owner.quarantineGl(it)) }
                 }
                 if (attempt.jpegFailure != null) {
-                    cleanupOwner.jpegRoot.owner?.let { recordCleanupMutationLocked(cleanupOwner.quarantineJpeg(it)) }
+                    cleanupFacet.owner.jpegRoot.owner?.let { recordCleanupMutationLocked(cleanupFacet.owner.quarantineJpeg(it)) }
                 }
                 if (attempt.storageFailure != null) {
-                    cleanupOwner.storageRoot.owner?.let { recordCleanupMutationLocked(cleanupOwner.quarantineStorage(it)) }
+                    cleanupFacet.owner.storageRoot.owner?.let { recordCleanupMutationLocked(cleanupFacet.owner.quarantineStorage(it)) }
                 }
             }
         }
 
+        val quarantinedTargetChild = sessionGate.withLock { cleanupFacet.owner.quarantineRoot.targetChild }
+        val quarantinedPreparedRetired = when (quarantinedTargetChild) {
+            is TargetQuarantineChild.Prepared -> if (quarantinedTargetChild.target.isCleanupComplete()) {
+                targetOwner.retireMechanicallyCompletedPreparedTarget(quarantinedTargetChild.target)
+            } else {
+                null
+            }
+
+            else -> null
+        }
+        val quarantinedCurrentComplete = when (quarantinedTargetChild) {
+            is TargetQuarantineChild.Current -> quarantinedTargetChild.target.retirementSuffixEvidence()
+                .takeIf { it is TargetRetirementCompleteEvidence && it.targetIdentity.matches(quarantinedTargetChild.target) }
+
+            else -> null
+        }
+
         sessionGate.withLock {
-            cleanupOwner.metricsRoot.owner?.endpointTerminationReceipt?.let { receipt ->
-                if (cleanupOwner.reduceMetrics(receipt) != CleanupMutation.None) cleanupWorkPending = true
+            cleanupFacet.owner.metricsRoot.owner?.endpointTerminationReceipt?.let { receipt ->
+                if (cleanupFacet.owner.reduceMetrics(receipt) != CleanupMutation.None) cleanupFacet.workPending = true
             }
-            cleanupOwner.androidRoot.owner?.laneTerminationReceipt?.let { receipt ->
-                if (cleanupOwner.reduceAndroid(receipt) != CleanupMutation.None) cleanupWorkPending = true
+            cleanupFacet.owner.androidRoot.owner?.laneTerminationReceipt?.let { receipt ->
+                if (cleanupFacet.owner.reduceAndroid(receipt) != CleanupMutation.None) cleanupFacet.workPending = true
             }
-            cleanupOwner.glRoot.owner?.laneTerminationReceipt?.let { receipt ->
-                if (cleanupOwner.reduceGl(receipt) != CleanupMutation.None) cleanupWorkPending = true
+            cleanupFacet.owner.glRoot.owner?.laneTerminationReceipt?.let { receipt ->
+                if (cleanupFacet.owner.reduceGl(receipt) != CleanupMutation.None) cleanupFacet.workPending = true
             }
-            cleanupOwner.jpegRoot.owner?.jpegTerminationReceipt?.let { receipt ->
-                if (cleanupOwner.reduceJpeg(receipt) != CleanupMutation.None) cleanupWorkPending = true
+            cleanupFacet.owner.jpegRoot.owner?.jpegTerminationReceipt?.let { receipt ->
+                if (cleanupFacet.owner.reduceJpeg(receipt) != CleanupMutation.None) cleanupFacet.workPending = true
             }
-            cleanupOwner.storageRoot.owner?.let { owner ->
-                if (cleanupOwner.reduceStorage(owner) != CleanupMutation.None) cleanupWorkPending = true
+            cleanupFacet.owner.storageRoot.owner?.let { owner ->
+                if (cleanupFacet.owner.reduceStorage(owner) != CleanupMutation.None) cleanupFacet.workPending = true
             }
-            cleanupOwner.quarantineRoot.metrics?.endpointTerminationReceipt?.let { receipt ->
-                if (recordCleanupMutationLocked(cleanupOwner.reduceQuarantinedMetrics(receipt))) cleanupWorkPending = true
+            cleanupFacet.owner.quarantineRoot.metrics?.endpointTerminationReceipt?.let { receipt ->
+                if (recordCleanupMutationLocked(cleanupFacet.owner.reduceQuarantinedMetrics(receipt))) cleanupFacet.workPending = true
             }
-            cleanupOwner.quarantineRoot.android?.laneTerminationReceipt?.let { receipt ->
-                if (recordCleanupMutationLocked(cleanupOwner.reduceQuarantinedAndroid(receipt))) cleanupWorkPending = true
+            cleanupFacet.owner.quarantineRoot.android?.laneTerminationReceipt?.let { receipt ->
+                if (recordCleanupMutationLocked(cleanupFacet.owner.reduceQuarantinedAndroid(receipt))) cleanupFacet.workPending = true
             }
-            cleanupOwner.quarantineRoot.gl?.laneTerminationReceipt?.let { receipt ->
-                if (recordCleanupMutationLocked(cleanupOwner.reduceQuarantinedGl(receipt))) cleanupWorkPending = true
+            cleanupFacet.owner.quarantineRoot.gl?.laneTerminationReceipt?.let { receipt ->
+                if (recordCleanupMutationLocked(cleanupFacet.owner.reduceQuarantinedGl(receipt))) cleanupFacet.workPending = true
             }
-            cleanupOwner.quarantineRoot.jpeg?.jpegTerminationReceipt?.let { receipt ->
-                if (recordCleanupMutationLocked(cleanupOwner.reduceQuarantinedJpeg(receipt))) cleanupWorkPending = true
+            cleanupFacet.owner.quarantineRoot.jpeg?.jpegTerminationReceipt?.let { receipt ->
+                if (recordCleanupMutationLocked(cleanupFacet.owner.reduceQuarantinedJpeg(receipt))) cleanupFacet.workPending = true
             }
-            cleanupOwner.quarantineRoot.framework?.let { owner ->
-                if (recordCleanupMutationLocked(cleanupOwner.reduceQuarantinedFrameworkProvenComplete(owner))) {
-                    cleanupWorkPending = true
+            cleanupFacet.owner.quarantineRoot.framework?.let { owner ->
+                if (recordCleanupMutationLocked(cleanupFacet.owner.reduceQuarantinedFrameworkProvenComplete(owner))) {
+                    cleanupFacet.workPending = true
                 }
             }
-            cleanupOwner.quarantineRoot.storage?.let { owner ->
-                if (recordCleanupMutationLocked(cleanupOwner.reduceQuarantinedStorage(owner))) cleanupWorkPending = true
+            cleanupFacet.owner.quarantineRoot.storage?.let { owner ->
+                if (recordCleanupMutationLocked(cleanupFacet.owner.reduceQuarantinedStorage(owner))) cleanupFacet.workPending = true
             }
-            when (val child = cleanupOwner.quarantineRoot.targetChild) {
-                is TargetQuarantineChild.Prepared -> if (child.target.isCleanupComplete() &&
-                    recordCleanupMutationLocked(cleanupOwner.reduceQuarantinedPreparedTargetProvenComplete(child.target))
+            when (val child = cleanupFacet.owner.quarantineRoot.targetChild) {
+                is TargetQuarantineChild.Prepared -> if (child === quarantinedTargetChild &&
+                    quarantinedPreparedRetired?.retiredTarget === child.target &&
+                    recordCleanupMutationLocked(cleanupFacet.owner.reduceQuarantinedPreparedTargetProvenComplete(child.target))
                 ) {
-                    cleanupWorkPending = true
+                    if (topologyFacet.preparedTargetAdmissionFact?.preparedTarget === child.target) {
+                        topologyFacet.preparedTargetAdmissionFact = null
+                    }
+                    if (cleanupFacet.preparedTargetFailureFact?.let { fact ->
+                            fact.requestedIdentity === child.target.requestedIdentity &&
+                                    fact.targetIdentity.generation == child.target.targetGeneration
+                        } == true
+                    ) {
+                        cleanupFacet.preparedTargetFailureFact = null
+                    }
+                    cleanupFacet.workPending = true
                 }
 
-                is TargetQuarantineChild.Current -> if (child.target.isFullyRetired &&
-                    recordCleanupMutationLocked(cleanupOwner.reduceQuarantinedCurrentTargetProvenComplete(child.target))
+                is TargetQuarantineChild.Current -> if (child === quarantinedTargetChild && quarantinedCurrentComplete != null &&
+                    recordCleanupMutationLocked(cleanupFacet.owner.reduceQuarantinedCurrentTargetProvenComplete(child.target))
                 ) {
-                    cleanupWorkPending = true
+                    cleanupFacet.workPending = true
                 }
 
                 null -> Unit
@@ -2053,7 +2963,7 @@ internal class SessionController internal constructor(
             if (command != null) {
                 val candidate = io.screenstream.engine.internal.GlLaneShutdownAction(glOwner, command)
                 val action = sessionGate.withLock {
-                    cleanupOwner.installAndClaimGlShutdownAction(glOwner, command, candidate)
+                    cleanupFacet.owner.installAndClaimGlShutdownAction(glOwner, command, candidate)
                 }
                 action?.runUnlocked()
             }
@@ -2063,7 +2973,7 @@ internal class SessionController internal constructor(
             val prepared = StorageRetirementAction.prepare(storageOwner)
             if (prepared != null) {
                 val action = sessionGate.withLock {
-                    cleanupOwner.installAndClaimStorageRetirementAction(storageOwner, prepared)
+                    cleanupFacet.owner.installAndClaimStorageRetirementAction(storageOwner, prepared)
                 }
                 action?.runUnlocked()
             }
@@ -2075,8 +2985,8 @@ internal class SessionController internal constructor(
                 nativeFatal.storage,
             )
             sessionGate.withLock {
-                if (recordCleanupMutationLocked(cleanupOwner.applyReturnedNativeFatalReduction(nativeFatal, reduction))) {
-                    cleanupWorkPending = true
+                if (recordCleanupMutationLocked(cleanupFacet.owner.applyReturnedNativeFatalReduction(nativeFatal, reduction))) {
+                    cleanupFacet.workPending = true
                 }
             }
         }
@@ -2090,16 +3000,16 @@ internal class SessionController internal constructor(
 
     private fun foldTerminalLateOccurrences() {
         if (!sessionGate.withLock { terminalCutoffApplied }) return
-        sessionGate.withLock { pendingProjectionRegistration }?.let { occurrence ->
+        sessionGate.withLock { topologyFacet.pendingProjectionRegistration }?.let { occurrence ->
             occurrence.controlWakeLink?.let(::serviceWakeLink)
             if (occurrence.arbitrate() != OperationArbitration.None) {
                 sessionGate.withLock {
-                    if (pendingProjectionRegistration === occurrence) pendingProjectionRegistration = null
-                    cleanupWorkPending = true
+                    if (topologyFacet.pendingProjectionRegistration === occurrence) topologyFacet.pendingProjectionRegistration = null
+                    cleanupFacet.workPending = true
                 }
             }
         }
-        sessionGate.withLock { pendingListenerInstallation }?.let { occurrence ->
+        sessionGate.withLock { topologyFacet.pendingListenerInstallation }?.let { occurrence ->
             occurrence.controlWakeLink?.let(::serviceWakeLink)
             val arbitration = occurrence.arbitrate()
             if (arbitration != OperationArbitration.None) {
@@ -2108,12 +3018,12 @@ internal class SessionController internal constructor(
                     bag.target.applyListenerInstallationReceipt(bag.port, occurrence)
                 }
                 sessionGate.withLock {
-                    if (pendingListenerInstallation === occurrence) pendingListenerInstallation = null
-                    cleanupWorkPending = true
+                    if (topologyFacet.pendingListenerInstallation === occurrence) topologyFacet.pendingListenerInstallation = null
+                    cleanupFacet.workPending = true
                 }
             }
         }
-        sessionGate.withLock { pendingVirtualDisplayCreation }?.let { occurrence ->
+        sessionGate.withLock { topologyFacet.pendingVirtualDisplayCreation }?.let { occurrence ->
             occurrence.controlWakeLink?.let(::serviceWakeLink)
             occurrence.returnCell.evidence.initialResizeDeadlineOccurrence?.controlWakeLink?.let(::serviceWakeLink)
             val arbitration = occurrence.arbitrate()
@@ -2122,25 +3032,25 @@ internal class SessionController internal constructor(
                     val bag = occurrence.ownerBag as AndroidVirtualDisplayCreationOwnerBag
                     val candidate = bag.target.producerApplicationCandidateAfterSettlement(bag.port, occurrence)
                     val fact = candidate?.let(bag.target::applyProducerApplication)
-                    val owner = sessionGate.withLock { cleanupOwner.androidRoot.owner }
+                    val owner = sessionGate.withLock { cleanupFacet.owner.androidRoot.owner }
                     if (fact != null) owner?.applyVirtualDisplayCreationTargetFact(occurrence, fact)
                 }
                 sessionGate.withLock {
-                    if (pendingVirtualDisplayCreation === occurrence) pendingVirtualDisplayCreation = null
-                    virtualDisplayReturnAccepted = false
-                    cleanupWorkPending = true
+                    if (topologyFacet.pendingVirtualDisplayCreation === occurrence) topologyFacet.pendingVirtualDisplayCreation = null
+                    topologyFacet.virtualDisplayReturnAccepted = false
+                    cleanupFacet.workPending = true
                 }
             }
         }
-        sessionGate.withLock { pendingRenderConstruction }?.let { command ->
+        sessionGate.withLock { topologyFacet.pendingRenderConstruction }?.let { command ->
             serviceWakeLink(command.deadlineWakeLink)
             val claim = command.claim()
             if (claim != null) {
                 val destruction = command.claimCleanupDestruction(claim)?.destructionCommand
                 sessionGate.withLock {
-                    if (pendingRenderConstruction === command) pendingRenderConstruction = null
-                    if (destruction != null && cleanupRenderDestruction == null) cleanupRenderDestruction = destruction
-                    cleanupWorkPending = true
+                    if (topologyFacet.pendingRenderConstruction === command) topologyFacet.pendingRenderConstruction = null
+                    if (destruction != null && cleanupFacet.renderDestruction == null) cleanupFacet.renderDestruction = destruction
+                    cleanupFacet.workPending = true
                 }
                 if (destruction != null) {
                     destruction.submit()
@@ -2148,20 +3058,20 @@ internal class SessionController internal constructor(
                 }
             }
         }
-        sessionGate.withLock { pendingJpegPreparation }?.let { occurrence ->
+        sessionGate.withLock { topologyFacet.pendingJpegPreparation }?.let { occurrence ->
             occurrence.operation.controlWakeLink?.let(::serviceWakeLink)
             val returned = occurrence.operation.settlementGate.withLock {
                 occurrence.operation.returnCell.disposition != OperationReturnDisposition.Empty
             }
             if (returned) {
-                sessionGate.withLock { cleanupOwner.jpegRoot.owner }?.installPrepared(occurrence)
+                sessionGate.withLock { cleanupFacet.owner.jpegRoot.owner }?.installPrepared(occurrence)
                 sessionGate.withLock {
-                    if (pendingJpegPreparation === occurrence) pendingJpegPreparation = null
-                    cleanupWorkPending = true
+                    if (topologyFacet.pendingJpegPreparation === occurrence) topologyFacet.pendingJpegPreparation = null
+                    cleanupFacet.workPending = true
                 }
             }
         }
-        sessionGate.withLock { pendingFrameworkCreation }?.let { occurrence ->
+        sessionGate.withLock { topologyFacet.pendingFrameworkCreation }?.let { occurrence ->
             occurrence.operation.controlWakeLink?.let(::serviceWakeLink)
             val returned = occurrence.operation.settlementGate.withLock {
                 occurrence.operation.returnCell.disposition != OperationReturnDisposition.Empty
@@ -2169,8 +3079,8 @@ internal class SessionController internal constructor(
             if (returned) {
                 recycleReturnedFrameworkOwner(occurrence)
                 sessionGate.withLock {
-                    if (pendingFrameworkCreation === occurrence) pendingFrameworkCreation = null
-                    cleanupWorkPending = true
+                    if (topologyFacet.pendingFrameworkCreation === occurrence) topologyFacet.pendingFrameworkCreation = null
+                    cleanupFacet.workPending = true
                 }
             }
         }
@@ -2183,16 +3093,16 @@ internal class SessionController internal constructor(
     private fun recordCleanupMutationLocked(mutation: CleanupMutation): Boolean {
         check(sessionGate.isHeldByCurrentThread)
         if (mutation == CleanupMutation.QuarantineAttached || mutation == CleanupMutation.QuarantineReduced) {
-            pendingQuarantineDiagnostics = saturatedIncrement(pendingQuarantineDiagnostics)
-            cleanupWorkPending = true
+            cleanupFacet.pendingQuarantineDiagnostics = saturatedIncrement(cleanupFacet.pendingQuarantineDiagnostics)
+            cleanupFacet.workPending = true
         }
         return mutation != CleanupMutation.None
     }
 
     private fun publishPendingQuarantineDiagnostics() {
         val count = sessionGate.withLock {
-            val value = pendingQuarantineDiagnostics
-            pendingQuarantineDiagnostics = 0L
+            val value = cleanupFacet.pendingQuarantineDiagnostics
+            cleanupFacet.pendingQuarantineDiagnostics = 0L
             value
         }
         var remaining = count
@@ -2220,48 +3130,48 @@ internal class SessionController internal constructor(
 
     private fun advanceTerminalGlCleanup(owner: GlPipelineOwner) {
         val targetCleanupPending = sessionGate.withLock {
-            cleanupOwner.preparedTargetRoot.target != null || cleanupOwner.currentTargetRoot.target != null ||
-                    cleanupOwner.quarantineRoot.targetChild != null
+            cleanupFacet.owner.preparedTargetRoot.target != null || cleanupFacet.owner.currentTargetRoot.target != null ||
+                    cleanupFacet.owner.quarantineRoot.targetChild != null
         }
         if (targetCleanupPending) return
-        val partial = sessionGate.withLock { glSessionCommand }
+        val partial = sessionGate.withLock { topologyFacet.glSessionCommand }
         if (partial != null) {
             serviceWakeLink(partial.partialCleanupDeadlineWakeLink)
             val facts = partial.claimPartialCleanup() ?: return
             if (facts.result != GlOperationResult.Success) {
-                sessionGate.withLock { recordCleanupMutationLocked(cleanupOwner.quarantineGl(owner)) }
+                sessionGate.withLock { recordCleanupMutationLocked(cleanupFacet.owner.quarantineGl(owner)) }
                 return
             }
             sessionGate.withLock {
-                if (glSessionCommand === partial) {
-                    glSessionCommand = null
-                    cleanupWorkPending = true
+                if (topologyFacet.glSessionCommand === partial) {
+                    topologyFacet.glSessionCommand = null
+                    cleanupFacet.workPending = true
                 }
             }
         }
 
-        val program = sessionGate.withLock { cleanupProgramDestruction }
+        val program = sessionGate.withLock { cleanupFacet.programDestruction }
         if (program != null) {
             serviceWakeLink(program.deadlineWakeLink)
             val facts = program.claim() ?: return
             if (facts.result != GlOperationResult.Success) {
-                sessionGate.withLock { recordCleanupMutationLocked(cleanupOwner.quarantineGl(owner)) }
+                sessionGate.withLock { recordCleanupMutationLocked(cleanupFacet.owner.quarantineGl(owner)) }
                 return
             }
             val exact = program as? GlDestructionHandle ?: return
             owner.clearProgramDestruction(exact)
             sessionGate.withLock {
-                if (cleanupProgramDestruction === program) {
-                    cleanupProgramDestruction = null
-                    cleanupWorkPending = true
+                if (cleanupFacet.programDestruction === program) {
+                    cleanupFacet.programDestruction = null
+                    cleanupFacet.workPending = true
                 }
             }
         } else {
             val command = owner.prepareProgramDestruction(reserveTerminalGlIdentity(PROGRAM_DESTRUCTION_TIMEOUT))
             if (command != null) {
                 val rooted = sessionGate.withLock {
-                    if (cleanupOwner.glRoot.owner !== owner || cleanupProgramDestruction != null) return@withLock false
-                    cleanupProgramDestruction = command
+                    if (cleanupFacet.owner.glRoot.owner !== owner || cleanupFacet.programDestruction != null) return@withLock false
+                    cleanupFacet.programDestruction = command
                     true
                 }
                 if (rooted) {
@@ -2272,26 +3182,26 @@ internal class SessionController internal constructor(
             }
         }
 
-        val session = sessionGate.withLock { cleanupSessionDestruction }
+        val session = sessionGate.withLock { cleanupFacet.sessionDestruction }
         if (session != null) {
             serviceWakeLink(session.deadlineWakeLink)
             val facts = session.claim() ?: return
             if (facts.result != GlOperationResult.Success) {
-                sessionGate.withLock { recordCleanupMutationLocked(cleanupOwner.quarantineGl(owner)) }
+                sessionGate.withLock { recordCleanupMutationLocked(cleanupFacet.owner.quarantineGl(owner)) }
                 return
             }
             sessionGate.withLock {
-                if (cleanupSessionDestruction === session) {
-                    cleanupSessionDestruction = null
-                    cleanupWorkPending = true
+                if (cleanupFacet.sessionDestruction === session) {
+                    cleanupFacet.sessionDestruction = null
+                    cleanupFacet.workPending = true
                 }
             }
         } else {
             val command = owner.prepareHealthySessionDestruction(reserveTerminalGlIdentity(SESSION_DESTRUCTION_TIMEOUT))
             if (command != null) {
                 val rooted = sessionGate.withLock {
-                    if (cleanupOwner.glRoot.owner !== owner || cleanupSessionDestruction != null) return@withLock false
-                    cleanupSessionDestruction = command
+                    if (cleanupFacet.owner.glRoot.owner !== owner || cleanupFacet.sessionDestruction != null) return@withLock false
+                    cleanupFacet.sessionDestruction = command
                     true
                 }
                 if (rooted) {
@@ -2303,57 +3213,57 @@ internal class SessionController internal constructor(
     }
 
     private fun advanceTerminalFrameworkCleanup() {
-        val owner = sessionGate.withLock { cleanupOwner.jpegRoot.frameworkOwner } ?: return
-        val existing = sessionGate.withLock { cleanupFrameworkRecycle }
+        val owner = sessionGate.withLock { cleanupFacet.owner.jpegRoot.frameworkOwner } ?: return
+        val existing = sessionGate.withLock { cleanupFacet.frameworkRecycle }
         if (existing != null) {
             when (owner.settleRecycle(existing)) {
                 FrameworkBitmapRecycleSettlement.NotSettled -> return
                 FrameworkBitmapRecycleSettlement.CleanupCompleted -> sessionGate.withLock {
-                    if (cleanupFrameworkRecycle === existing) cleanupFrameworkRecycle = null
-                    if (cleanupOwner.reduceFramework(owner) != CleanupMutation.None) cleanupWorkPending = true
+                    if (cleanupFacet.frameworkRecycle === existing) cleanupFacet.frameworkRecycle = null
+                    if (cleanupFacet.owner.reduceFramework(owner) != CleanupMutation.None) cleanupFacet.workPending = true
                 }
 
                 FrameworkBitmapRecycleSettlement.ReplacementAuthorized,
                 FrameworkBitmapRecycleSettlement.UnsafeResidue,
                     -> sessionGate.withLock {
-                    recordCleanupMutationLocked(cleanupOwner.quarantineFramework(owner))
-                    cleanupOwner.jpegRoot.owner?.let {
-                        recordCleanupMutationLocked(cleanupOwner.quarantineJpeg(it))
+                    recordCleanupMutationLocked(cleanupFacet.owner.quarantineFramework(owner))
+                    cleanupFacet.owner.jpegRoot.owner?.let {
+                        recordCleanupMutationLocked(cleanupFacet.owner.quarantineJpeg(it))
                     }
                 }
             }
             return
         }
         val occurrence = owner.beginTerminalRecycle(
-            desiredRevision,
-            geometryGeneration,
-            lifecycleEpoch,
+            topologyFacet.desiredRevision,
+            topologyFacet.geometryGeneration,
+            topologyFacet.lifecycleEpoch,
             reserveTerminalOperationIdentity(),
         ) ?: return
         sessionGate.withLock {
-            if (cleanupOwner.jpegRoot.frameworkOwner === owner && cleanupFrameworkRecycle == null) {
-                cleanupFrameworkRecycle = occurrence
+            if (cleanupFacet.owner.jpegRoot.frameworkOwner === owner && cleanupFacet.frameworkRecycle == null) {
+                cleanupFacet.frameworkRecycle = occurrence
             }
         }
     }
 
     private fun advanceTerminalJpegProductCleanup() {
-        val owner = sessionGate.withLock { cleanupOwner.jpegRoot.owner } ?: return
-        if (sessionGate.withLock { cleanupOwner.jpegRoot.frameworkOwner != null }) return
-        val existing = sessionGate.withLock { cleanupNativeCarrierFree }
+        val owner = sessionGate.withLock { cleanupFacet.owner.jpegRoot.owner } ?: return
+        if (sessionGate.withLock { cleanupFacet.owner.jpegRoot.frameworkOwner != null }) return
+        val existing = sessionGate.withLock { cleanupFacet.nativeCarrierFree }
         if (existing != null) {
             when (owner.settleNativeCarrierFree(existing)) {
                 NativeCarrierFreeSettlement.NotSettled -> return
                 NativeCarrierFreeSettlement.CleanupCompleted -> sessionGate.withLock {
-                    if (cleanupNativeCarrierFree === existing) {
-                        cleanupNativeCarrierFree = null
-                        cleanupWorkPending = true
+                    if (cleanupFacet.nativeCarrierFree === existing) {
+                        cleanupFacet.nativeCarrierFree = null
+                        cleanupFacet.workPending = true
                     }
                 }
 
                 NativeCarrierFreeSettlement.ReplacementAuthorized,
                 NativeCarrierFreeSettlement.UnsafeResidue,
-                    -> sessionGate.withLock { recordCleanupMutationLocked(cleanupOwner.quarantineJpeg(owner)) }
+                    -> sessionGate.withLock { recordCleanupMutationLocked(cleanupFacet.owner.quarantineJpeg(owner)) }
             }
             return
         }
@@ -2364,55 +3274,288 @@ internal class SessionController internal constructor(
                 -> {
                 val occurrence = owner.beginTerminalNativeCarrierFree(
                     product,
-                    desiredRevision,
-                    geometryGeneration,
-                    lifecycleEpoch,
+                    topologyFacet.desiredRevision,
+                    topologyFacet.geometryGeneration,
+                    topologyFacet.lifecycleEpoch,
                     reserveTerminalOperationIdentity(),
                 ) ?: return
                 sessionGate.withLock {
-                    if (cleanupOwner.jpegRoot.owner === owner && cleanupNativeCarrierFree == null) {
-                        cleanupNativeCarrierFree = occurrence
+                    if (cleanupFacet.owner.jpegRoot.owner === owner && cleanupFacet.nativeCarrierFree == null) {
+                        cleanupFacet.nativeCarrierFree = occurrence
                     }
                 }
             }
 
             is JpegRuntimeProduct.FrameworkOnManagedCarrier -> {
                 if (owner.detachManagedForReplacement(product) && owner.discardReplacementAuthorizationForTerminal(product)) {
-                    sessionGate.withLock { cleanupWorkPending = true }
+                    sessionGate.withLock { cleanupFacet.workPending = true }
                 }
             }
         }
     }
 
     private fun advancePreparedTargetCleanup() {
-        val target = sessionGate.withLock { cleanupOwner.preparedTargetRoot.target } ?: return
-        val command = sessionGate.withLock { preparedTargetCommand } ?: return
-        serviceWakeLink(command.deadlineWakeLink)
-        val token = claimPreparedTargetFold() ?: return
-        command.retireAfterTargetArbitration()
-        selectAndApplyPreparedTargetFold(token) ?: return
-        val cleanupTarget = token.cleanupTarget ?: return
+        val target = sessionGate.withLock { cleanupFacet.owner.preparedTargetRoot.target } ?: return
+        val targetRequestedIdentity = target.requestedIdentity
+        val constructionCommand = sessionGate.withLock { topologyFacet.preparedTargetCommand }
+        if (constructionCommand != null) {
+            serviceWakeLink(constructionCommand.deadlineWakeLink)
+            val result = foldPreparedTargetResult() ?: return
+            val retained = sessionGate.withLock {
+                cleanupFacet.owner.preparedTargetRoot.target === target &&
+                        topologyFacet.preparedTargetCommand === constructionCommand &&
+                        result.requestedIdentity === targetRequestedIdentity &&
+                        isTargetConstructionResultRetainedLocked(result)
+            }
+            if (!retained) return
+            constructionCommand.retireAfterTargetArbitration()
+            sessionGate.withLock {
+                if (cleanupFacet.owner.preparedTargetRoot.target !== target ||
+                    topologyFacet.preparedTargetCommand !== constructionCommand ||
+                    result.requestedIdentity !== targetRequestedIdentity ||
+                    !isTargetConstructionResultRetainedLocked(result)
+                ) {
+                    return@withLock
+                }
+                when (result) {
+                    is TargetConstructionInstalledFact -> {
+                        val installedTarget = result.targetIdentity.target
+                        if (cleanupFacet.owner.currentTargetRoot.target === installedTarget &&
+                            result.targetIdentity.matches(installedTarget) &&
+                            recordCleanupMutationLocked(cleanupFacet.owner.reducePreparedTargetProvenComplete(target))
+                        ) {
+                            if (topologyFacet.preparedTargetAdmissionFact?.preparedTarget === target) {
+                                topologyFacet.preparedTargetAdmissionFact = null
+                            }
+                            topologyFacet.preparedTargetCommand = null
+                            cleanupFacet.workPending = true
+                        }
+                    }
+
+                    is TargetConstructionFailureFact -> if (cleanupFacet.preparedTargetFailureFact === result) {
+                        topologyFacet.preparedTargetCommand = null
+                        cleanupFacet.workPending = true
+                    }
+                }
+            }
+            return
+        }
+
+        val failureFact = sessionGate.withLock {
+            cleanupFacet.preparedTargetFailureFact.takeIf { fact ->
+                cleanupFacet.owner.preparedTargetRoot.target === target &&
+                        topologyFacet.preparedTargetAdmissionFact?.preparedTarget === target &&
+                        fact.requestedIdentity === target.requestedIdentity
+            }
+        } ?: return
+        if (!target.isConstructionMechanicallySettledForCleanup()) return
+        val gl = sessionGate.withLock { cleanupFacet.owner.glRoot.owner ?: topologyFacet.glOwner } ?: return
+
+        val surfaceCommand = sessionGate.withLock { cleanupFacet.surfaceRelease }
+        if (surfaceCommand != null) {
+            serviceWakeLink(surfaceCommand.deadlineWakeLink)
+            val claim = surfaceCommand.claim() ?: return
+            val appliedReceipt = failureFact.cleanupTarget.appliedSurfaceReleaseReceipt()
+            if (appliedReceipt !== claim.receipt) {
+                val quarantine = target.quarantineEvidence()
+                sessionGate.withLock {
+                    if (cleanupFacet.owner.preparedTargetRoot.target === target &&
+                        quarantine.requestedIdentity === target.requestedIdentity && quarantine.owner === target
+                    ) {
+                        recordCleanupMutationLocked(cleanupFacet.owner.quarantinePreparedTarget(target))
+                    }
+                }
+                return
+            }
+            sessionGate.withLock {
+                if (cleanupFacet.owner.preparedTargetRoot.target === target &&
+                    cleanupFacet.surfaceRelease === surfaceCommand
+                ) {
+                    cleanupFacet.surfaceRelease = null
+                    cleanupFacet.workPending = true
+                }
+            }
+            return
+        }
+        if (failureFact.cleanupTarget.appliedSurfaceReleaseReceipt() == null) {
+            val command = gl.prepareCleanupSurfaceRelease(target)
+            if (command != null) {
+                val rooted = sessionGate.withLock {
+                    if (cleanupFacet.owner.preparedTargetRoot.target !== target ||
+                        cleanupFacet.preparedTargetFailureFact !== failureFact || cleanupFacet.surfaceRelease != null
+                    ) {
+                        return@withLock false
+                    }
+                    cleanupFacet.surfaceRelease = command
+                    true
+                }
+                if (rooted) {
+                    command.submit()
+                    serviceWakeLink(command.deadlineWakeLink)
+                }
+                return
+            }
+        }
+
+        val targetCommand = sessionGate.withLock { cleanupFacet.targetScope }
+        if (targetCommand != null) {
+            serviceWakeLink(targetCommand.deadlineWakeLink)
+            serviceWakeLink(targetCommand.namespaceDeadlineWakeLink)
+            if (!sessionGate.withLock { cleanupFacet.targetNamespaceSubmitted }) {
+                val claim = targetCommand.claim() ?: return
+                if (claim.result == GlOperationResult.Success && target.isCleanupComplete()) {
+                    sessionGate.withLock {
+                        if (cleanupFacet.owner.preparedTargetRoot.target === target &&
+                            cleanupFacet.targetScope === targetCommand
+                        ) {
+                            cleanupFacet.targetScope = null
+                            cleanupFacet.workPending = true
+                        }
+                    }
+                } else if (targetCommand.submitNamespaceRetirement()) {
+                    sessionGate.withLock {
+                        if (cleanupFacet.owner.preparedTargetRoot.target === target &&
+                            cleanupFacet.targetScope === targetCommand
+                        ) {
+                            cleanupFacet.targetNamespaceSubmitted = true
+                        }
+                    }
+                    serviceWakeLink(targetCommand.namespaceDeadlineWakeLink)
+                    return
+                } else {
+                    return
+                }
+            } else {
+                targetCommand.claimNamespaceRetirement() ?: return
+                sessionGate.withLock {
+                    if (cleanupFacet.owner.preparedTargetRoot.target === target &&
+                        cleanupFacet.targetScope === targetCommand
+                    ) {
+                        cleanupFacet.targetScope = null
+                        cleanupFacet.targetNamespaceSubmitted = false
+                        cleanupFacet.workPending = true
+                    }
+                }
+            }
+        } else if (!target.isCleanupComplete()) {
+            val targetIdentity = sessionGate.withLock { cleanupFacet.preparedTargetDestructionIdentity } ?: return
+            val namespaceIdentity = sessionGate.withLock { cleanupFacet.preparedNamespaceDestructionIdentity } ?: return
+            val command = gl.prepareCleanupTargetScopeDestruction(target, targetIdentity, namespaceIdentity) ?: return
+            val rooted = sessionGate.withLock {
+                if (cleanupFacet.owner.preparedTargetRoot.target !== target ||
+                    cleanupFacet.preparedTargetFailureFact !== failureFact || cleanupFacet.targetScope != null
+                ) {
+                    return@withLock false
+                }
+                cleanupFacet.targetScope = command
+                cleanupFacet.targetNamespaceSubmitted = false
+                true
+            }
+            if (rooted) {
+                command.submit()
+                serviceWakeLink(command.deadlineWakeLink)
+            }
+            return
+        }
+
+        val quarantineEvidence = target.quarantineEvidence()
+        if (quarantineEvidence.cleanupSuffix !is TargetRetirementCompleteEvidence ||
+            quarantineEvidence.requestedIdentity !== target.requestedIdentity || quarantineEvidence.owner !== target
+        ) {
+            return
+        }
+        val retiredFact = targetOwner.retireMechanicallyCompletedPreparedTarget(target) ?: return
         sessionGate.withLock {
-            cleanupOwner.reducePreparedTargetProvenComplete(target)
-            if (cleanupOwner.attachCurrentTarget(cleanupTarget) != CleanupMutation.None) cleanupWorkPending = true
-            if (preparedTargetCommand === command) preparedTargetCommand = null
+            if (cleanupFacet.owner.preparedTargetRoot.target === target &&
+                topologyFacet.preparedTargetAdmissionFact?.preparedTarget === target &&
+                cleanupFacet.preparedTargetFailureFact === failureFact && retiredFact.retiredTarget === target &&
+                retiredFact.requestedIdentity === target.requestedIdentity
+            ) {
+                recordCleanupMutationLocked(cleanupFacet.owner.reducePreparedTargetProvenComplete(target))
+                topologyFacet.preparedTargetAdmissionFact = null
+                cleanupFacet.preparedTargetFailureFact = null
+                cleanupFacet.workPending = true
+            }
         }
     }
 
     private fun advanceTerminalTargetCleanup(target: CurrentTarget) {
-        target.recordRetirementAdmissionClosed()
-        target.recordEnteredTargetWorkDrained()
-        target.fenceGeneration()
+        var admissionClosedFact = sessionGate.withLock {
+            cleanupFacet.targetRetirementAdmissionClosedFact.takeIf {
+                cleanupFacet.targetRetirementRoot === target && it.targetIdentity.matches(target)
+            }
+        }
+        if (admissionClosedFact == null) {
+            val candidate = target.closeRetirementAdmission() ?: return
+            val rooted = sessionGate.withLock {
+                if (cleanupFacet.owner.currentTargetRoot.target !== target ||
+                    cleanupFacet.targetRetirementRoot != null ||
+                    cleanupFacet.targetRetirementAdmissionClosedFact != null || !candidate.targetIdentity.matches(target)
+                ) {
+                    return@withLock false
+                }
+                cleanupFacet.targetRetirementRoot = target
+                cleanupFacet.targetRetirementAdmissionClosedFact = candidate
+                true
+            }
+            if (!rooted) return
+            admissionClosedFact = candidate
+        }
 
-        val pendingRender = sessionGate.withLock { pendingRenderConstruction }
+        var workDrainedFact = sessionGate.withLock {
+            cleanupFacet.targetWorkDrainedFact.takeIf {
+                cleanupFacet.targetRetirementRoot === target &&
+                        it.admissionClosedFact === admissionClosedFact && it.targetIdentity.matches(target)
+            }
+        }
+        if (workDrainedFact == null) {
+            val candidate = target.recordEnteredTargetWorkDrained(checkNotNull(admissionClosedFact)) ?: return
+            val rooted = sessionGate.withLock {
+                if (cleanupFacet.owner.currentTargetRoot.target !== target ||
+                    cleanupFacet.targetRetirementRoot !== target ||
+                    cleanupFacet.targetRetirementAdmissionClosedFact !== admissionClosedFact ||
+                    cleanupFacet.targetWorkDrainedFact != null || candidate.admissionClosedFact !== admissionClosedFact
+                ) {
+                    return@withLock false
+                }
+                cleanupFacet.targetWorkDrainedFact = candidate
+                true
+            }
+            if (!rooted) return
+            workDrainedFact = candidate
+        }
+
+        var generationFencedFact = sessionGate.withLock {
+            cleanupFacet.targetGenerationFencedFact.takeIf {
+                cleanupFacet.targetRetirementRoot === target &&
+                        it.workDrainedFact === workDrainedFact && it.targetIdentity.matches(target)
+            }
+        }
+        if (generationFencedFact == null) {
+            val candidate = target.fenceGeneration(checkNotNull(workDrainedFact)) ?: return
+            val rooted = sessionGate.withLock {
+                if (cleanupFacet.owner.currentTargetRoot.target !== target ||
+                    cleanupFacet.targetRetirementRoot !== target || cleanupFacet.targetWorkDrainedFact !== workDrainedFact ||
+                    cleanupFacet.targetGenerationFencedFact != null || candidate.workDrainedFact !== workDrainedFact
+                ) {
+                    return@withLock false
+                }
+                cleanupFacet.targetGenerationFencedFact = candidate
+                true
+            }
+            if (!rooted) return
+            generationFencedFact = candidate
+        }
+
+        val pendingRender = sessionGate.withLock { topologyFacet.pendingRenderConstruction }
         if (pendingRender != null) {
             serviceWakeLink(pendingRender.deadlineWakeLink)
             val claim = pendingRender.claim() ?: return
             val cleanup = pendingRender.claimCleanupDestruction(claim)?.destructionCommand
             sessionGate.withLock {
-                if (pendingRenderConstruction === pendingRender) pendingRenderConstruction = null
-                if (cleanup != null && cleanupRenderDestruction == null) cleanupRenderDestruction = cleanup
-                cleanupWorkPending = true
+                if (topologyFacet.pendingRenderConstruction === pendingRender) topologyFacet.pendingRenderConstruction = null
+                if (cleanup != null && cleanupFacet.renderDestruction == null) cleanupFacet.renderDestruction = cleanup
+                cleanupFacet.workPending = true
             }
             if (cleanup != null) {
                 cleanup.submit()
@@ -2421,8 +3564,8 @@ internal class SessionController internal constructor(
             return
         }
 
-        val listener = sessionGate.withLock { cleanupListenerRemoval }
-        val android = sessionGate.withLock { cleanupOwner.androidRoot.owner ?: androidOwner }
+        val listener = sessionGate.withLock { cleanupFacet.listenerRemoval }
+        val android = sessionGate.withLock { cleanupFacet.owner.androidRoot.owner ?: topologyFacet.androidOwner }
         if (listener != null) {
             val returned = listener.settlementGate.withLock {
                 listener.returnCell.disposition != OperationReturnDisposition.Empty
@@ -2431,21 +3574,21 @@ internal class SessionController internal constructor(
             val bag = listener.ownerBag as AndroidTargetListenerRemovalOwnerBag
             val applied = bag.target.applyListenerRemovalSettlement(bag.port, listener)
             sessionGate.withLock {
-                if (cleanupListenerRemoval === listener) cleanupListenerRemoval = null
-                cleanupWorkPending = true
+                if (cleanupFacet.listenerRemoval === listener) cleanupFacet.listenerRemoval = null
+                cleanupFacet.workPending = true
             }
             if (!applied) return
         } else {
-            val snapshot = target.currentnessSnapshot()
-            if (snapshot.listenerInstalled) {
+            val currentness = target.currentnessFact()
+            if (currentness.listenerInstalled) {
                 val exactAndroid = android ?: return
                 val operationIdentity = reserveTerminalOperationIdentity()
                 val operation = exactAndroid.createTargetListenerRemovalOperation(target, operationIdentity, null) ?: return
                 val rooted = sessionGate.withLock {
-                    if (cleanupOwner.currentTargetRoot.target !== target || cleanupListenerRemoval != null) {
+                    if (cleanupFacet.owner.currentTargetRoot.target !== target || cleanupFacet.listenerRemoval != null) {
                         return@withLock false
                     }
-                    cleanupListenerRemoval = operation
+                    cleanupFacet.listenerRemoval = operation
                     true
                 }
                 if (rooted) exactAndroid.submitTargetListenerRemoval(operation)
@@ -2453,7 +3596,7 @@ internal class SessionController internal constructor(
             }
         }
 
-        val virtualDisplayRelease = sessionGate.withLock { cleanupVirtualDisplayRelease }
+        val virtualDisplayRelease = sessionGate.withLock { cleanupFacet.virtualDisplayRelease }
         if (virtualDisplayRelease != null) {
             val returned = virtualDisplayRelease.settlementGate.withLock {
                 virtualDisplayRelease.returnCell.disposition != OperationReturnDisposition.Empty
@@ -2479,18 +3622,18 @@ internal class SessionController internal constructor(
                 }
             }
             sessionGate.withLock {
-                if (cleanupVirtualDisplayRelease === virtualDisplayRelease) cleanupVirtualDisplayRelease = null
-                cleanupWorkPending = true
+                if (cleanupFacet.virtualDisplayRelease === virtualDisplayRelease) cleanupFacet.virtualDisplayRelease = null
+                cleanupFacet.workPending = true
             }
         } else {
             val exactAndroid = android ?: return
             val operation = exactAndroid.createVirtualDisplayReleaseOperation(reserveTerminalOperationIdentity())
             if (operation != null) {
                 val rooted = sessionGate.withLock {
-                    if (cleanupOwner.currentTargetRoot.target !== target || cleanupVirtualDisplayRelease != null) {
+                    if (cleanupFacet.owner.currentTargetRoot.target !== target || cleanupFacet.virtualDisplayRelease != null) {
                         return@withLock false
                     }
-                    cleanupVirtualDisplayRelease = operation
+                    cleanupFacet.virtualDisplayRelease = operation
                     true
                 }
                 if (rooted) exactAndroid.submitVirtualDisplayRelease(operation)
@@ -2498,30 +3641,30 @@ internal class SessionController internal constructor(
             }
         }
 
-        val gl = sessionGate.withLock { cleanupOwner.glRoot.owner ?: glOwner } ?: return
-        val renderCommand = sessionGate.withLock { cleanupRenderDestruction }
+        val gl = sessionGate.withLock { cleanupFacet.owner.glRoot.owner ?: topologyFacet.glOwner } ?: return
+        val renderCommand = sessionGate.withLock { cleanupFacet.renderDestruction }
         if (renderCommand != null) {
             serviceWakeLink(renderCommand.deadlineWakeLink)
             val claim = renderCommand.claim() ?: return
             if (claim.result != GlOperationResult.Success) return
             sessionGate.withLock {
-                if (cleanupRenderDestruction === renderCommand) {
-                    cleanupRenderDestruction = null
-                    cleanupRenderOwner = null
-                    cleanupWorkPending = true
+                if (cleanupFacet.renderDestruction === renderCommand) {
+                    cleanupFacet.renderDestruction = null
+                    cleanupFacet.renderOwner = null
+                    cleanupFacet.workPending = true
                 }
             }
         } else {
-            val render = sessionGate.withLock { cleanupRenderOwner }
+            val render = sessionGate.withLock { cleanupFacet.renderOwner }
             if (render != null) {
                 val command = gl.prepareRenderTargetDestruction(render) ?: return
                 val rooted = sessionGate.withLock {
-                    if (cleanupOwner.currentTargetRoot.target !== target || cleanupRenderOwner !== render ||
-                        cleanupRenderDestruction != null
+                    if (cleanupFacet.owner.currentTargetRoot.target !== target || cleanupFacet.renderOwner !== render ||
+                        cleanupFacet.renderDestruction != null
                     ) {
                         return@withLock false
                     }
-                    cleanupRenderDestruction = command
+                    cleanupFacet.renderDestruction = command
                     true
                 }
                 if (rooted) {
@@ -2532,24 +3675,65 @@ internal class SessionController internal constructor(
             }
         }
 
-        val surfaceCommand = sessionGate.withLock { cleanupSurfaceRelease }
+        val surfaceCommand = sessionGate.withLock { cleanupFacet.surfaceRelease }
         if (surfaceCommand != null) {
             serviceWakeLink(surfaceCommand.deadlineWakeLink)
             val claim = surfaceCommand.claim() ?: return
-            if (claim.receipt.operationIdentity != target.surfaceReleaseOccurrence.identity) return
-            target.settleConstructionResourceObligations()
+            val appliedReceipt = target.appliedSurfaceReleaseReceipt()
+            if (appliedReceipt !== claim.receipt || claim.receipt.operationIdentity != target.surfaceReleaseOccurrence.identity) {
+                val quarantine = target.quarantineEvidence() ?: return
+                sessionGate.withLock {
+                    if (cleanupFacet.owner.currentTargetRoot.target === target &&
+                        cleanupFacet.targetRetirementRoot === target && quarantine.owner === target &&
+                        quarantine.targetIdentity.matches(target) && quarantine.suffix.targetIdentity === quarantine.targetIdentity
+                    ) {
+                        recordCleanupMutationLocked(cleanupFacet.owner.quarantineCurrentTarget(target))
+                        clearTargetRetirementFactsLocked(target)
+                    }
+                }
+                return
+            }
             sessionGate.withLock {
-                if (cleanupSurfaceRelease === surfaceCommand) {
-                    cleanupSurfaceRelease = null
-                    cleanupWorkPending = true
+                if (cleanupFacet.owner.currentTargetRoot.target === target &&
+                    cleanupFacet.targetRetirementRoot === target && cleanupFacet.surfaceRelease === surfaceCommand
+                ) {
+                    cleanupFacet.surfaceRelease = null
+                    cleanupFacet.workPending = true
                 }
             }
-        } else if (!target.hasAppliedSurfaceReleaseReceipt) {
-            if (!target.isSurfaceReleaseReady) return
-            val command = gl.prepareSurfaceRelease(target) ?: return
+        } else if (target.appliedSurfaceReleaseReceipt() == null) {
+            var readinessFact = sessionGate.withLock {
+                cleanupFacet.targetSurfaceReleaseReadyFact.takeIf {
+                    cleanupFacet.targetRetirementRoot === target &&
+                            it.generationFencedFact === generationFencedFact && it.targetIdentity.matches(target)
+                }
+            }
+            if (readinessFact == null) {
+                val candidate = target.surfaceReleaseReadyFact() ?: return
+                val rooted = sessionGate.withLock {
+                    if (cleanupFacet.owner.currentTargetRoot.target !== target || cleanupFacet.targetRetirementRoot !== target ||
+                        cleanupFacet.targetGenerationFencedFact !== generationFencedFact ||
+                        cleanupFacet.targetSurfaceReleaseReadyFact != null ||
+                        candidate.generationFencedFact !== generationFencedFact
+                    ) {
+                        return@withLock false
+                    }
+                    cleanupFacet.targetSurfaceReleaseReadyFact = candidate
+                    true
+                }
+                if (!rooted) return
+                readinessFact = candidate
+            }
+            val command = gl.prepareSurfaceRelease(checkNotNull(readinessFact)) ?: return
             val rooted = sessionGate.withLock {
-                if (cleanupOwner.currentTargetRoot.target !== target || cleanupSurfaceRelease != null) return@withLock false
-                cleanupSurfaceRelease = command
+                if (cleanupFacet.owner.currentTargetRoot.target !== target || cleanupFacet.targetRetirementRoot !== target ||
+                    cleanupFacet.targetSurfaceReleaseReadyFact !== readinessFact ||
+                    checkNotNull(readinessFact).generationFencedFact !== generationFencedFact ||
+                    cleanupFacet.surfaceRelease != null
+                ) {
+                    return@withLock false
+                }
+                cleanupFacet.surfaceRelease = command
                 true
             }
             if (rooted) {
@@ -2559,18 +3743,29 @@ internal class SessionController internal constructor(
             return
         }
 
-        val targetCommand = sessionGate.withLock { cleanupTargetScope }
+        val targetCommand = sessionGate.withLock { cleanupFacet.targetScope }
         if (targetCommand != null) {
             serviceWakeLink(targetCommand.deadlineWakeLink)
             serviceWakeLink(targetCommand.namespaceDeadlineWakeLink)
-            if (!cleanupTargetNamespaceSubmitted) {
+            if (!sessionGate.withLock { cleanupFacet.targetNamespaceSubmitted }) {
                 val claim = targetCommand.claim() ?: return
                 if (claim.result == GlOperationResult.Success && target.isFullyRetired) {
                     sessionGate.withLock {
-                        if (cleanupTargetScope === targetCommand) cleanupTargetScope = null
+                        if (cleanupFacet.owner.currentTargetRoot.target === target &&
+                            cleanupFacet.targetRetirementRoot === target && cleanupFacet.targetScope === targetCommand
+                        ) {
+                            cleanupFacet.targetScope = null
+                            cleanupFacet.workPending = true
+                        }
                     }
                 } else if (targetCommand.submitNamespaceRetirement()) {
-                    cleanupTargetNamespaceSubmitted = true
+                    sessionGate.withLock {
+                        if (cleanupFacet.owner.currentTargetRoot.target === target &&
+                            cleanupFacet.targetRetirementRoot === target && cleanupFacet.targetScope === targetCommand
+                        ) {
+                            cleanupFacet.targetNamespaceSubmitted = true
+                        }
+                    }
                     serviceWakeLink(targetCommand.namespaceDeadlineWakeLink)
                     return
                 } else {
@@ -2579,20 +3774,28 @@ internal class SessionController internal constructor(
             } else {
                 targetCommand.claimNamespaceRetirement() ?: return
                 sessionGate.withLock {
-                    if (cleanupTargetScope === targetCommand) {
-                        cleanupTargetScope = null
-                        cleanupTargetNamespaceSubmitted = false
+                    if (cleanupFacet.owner.currentTargetRoot.target === target &&
+                        cleanupFacet.targetRetirementRoot === target && cleanupFacet.targetScope === targetCommand
+                    ) {
+                        cleanupFacet.targetScope = null
+                        cleanupFacet.targetNamespaceSubmitted = false
+                        cleanupFacet.workPending = true
                     }
                 }
             }
         } else if (!target.isFullyRetired) {
-            val targetIdentity = sessionGate.withLock { preparedTargetDestructionIdentity } ?: return
-            val namespaceIdentity = sessionGate.withLock { preparedNamespaceDestructionIdentity } ?: return
+            val targetIdentity = sessionGate.withLock { cleanupFacet.preparedTargetDestructionIdentity } ?: return
+            val namespaceIdentity = sessionGate.withLock { cleanupFacet.preparedNamespaceDestructionIdentity } ?: return
             val command = gl.prepareTargetScopeDestruction(target, targetIdentity, namespaceIdentity) ?: return
             val rooted = sessionGate.withLock {
-                if (cleanupOwner.currentTargetRoot.target !== target || cleanupTargetScope != null) return@withLock false
-                cleanupTargetScope = command
-                cleanupTargetNamespaceSubmitted = false
+                if (cleanupFacet.owner.currentTargetRoot.target !== target || cleanupFacet.targetRetirementRoot !== target ||
+                    cleanupFacet.targetGenerationFencedFact !== generationFencedFact ||
+                    cleanupFacet.targetSurfaceReleaseReadyFact == null || cleanupFacet.targetScope != null
+                ) {
+                    return@withLock false
+                }
+                cleanupFacet.targetScope = command
+                cleanupFacet.targetNamespaceSubmitted = false
                 true
             }
             if (rooted) {
@@ -2603,8 +3806,16 @@ internal class SessionController internal constructor(
         }
 
         if (target.isFullyRetired) {
+            val completeEvidence = target.retirementSuffixEvidence()
             sessionGate.withLock {
-                if (cleanupOwner.reduceCurrentTargetProvenComplete(target) != CleanupMutation.None) cleanupWorkPending = true
+                if (cleanupFacet.owner.currentTargetRoot.target === target && cleanupFacet.targetRetirementRoot === target &&
+                    completeEvidence is TargetRetirementCompleteEvidence && completeEvidence.targetIdentity.matches(target)
+                ) {
+                    if (cleanupFacet.owner.reduceCurrentTargetProvenComplete(target) != CleanupMutation.None) {
+                        clearTargetRetirementFactsLocked(target)
+                        cleanupFacet.workPending = true
+                    }
+                }
             }
         }
     }
@@ -2612,24 +3823,24 @@ internal class SessionController internal constructor(
     private fun advanceTerminalAndroidCleanup(owner: AndroidCaptureOwner) {
         owner.closeProjectionCallbackAuthority()
 
-        val unregister = sessionGate.withLock { cleanupProjectionUnregistration }
+        val unregister = sessionGate.withLock { cleanupFacet.projectionUnregistration }
         if (unregister != null) {
             val returned = unregister.settlementGate.withLock {
                 unregister.returnCell.disposition != OperationReturnDisposition.Empty
             }
             if (!returned) return
             sessionGate.withLock {
-                if (cleanupProjectionUnregistration === unregister) cleanupProjectionUnregistration = null
-                cleanupWorkPending = true
+                if (cleanupFacet.projectionUnregistration === unregister) cleanupFacet.projectionUnregistration = null
+                cleanupFacet.workPending = true
             }
         } else {
             val operation = owner.createProjectionCallbackUnregistrationOperation(reserveTerminalOperationIdentity())
             if (operation != null) {
                 val rooted = sessionGate.withLock {
-                    if (cleanupOwner.androidRoot.owner !== owner || cleanupProjectionUnregistration != null) {
+                    if (cleanupFacet.owner.androidRoot.owner !== owner || cleanupFacet.projectionUnregistration != null) {
                         return@withLock false
                     }
-                    cleanupProjectionUnregistration = operation
+                    cleanupFacet.projectionUnregistration = operation
                     true
                 }
                 if (rooted) owner.submitProjectionCallbackUnregistration(operation)
@@ -2637,7 +3848,7 @@ internal class SessionController internal constructor(
             }
         }
 
-        val release = sessionGate.withLock { cleanupVirtualDisplayRelease }
+        val release = sessionGate.withLock { cleanupFacet.virtualDisplayRelease }
         if (release != null) {
             val returned = release.settlementGate.withLock {
                 release.returnCell.disposition != OperationReturnDisposition.Empty
@@ -2660,17 +3871,17 @@ internal class SessionController internal constructor(
                 }
             }
             sessionGate.withLock {
-                if (cleanupVirtualDisplayRelease === release) cleanupVirtualDisplayRelease = null
-                cleanupWorkPending = true
+                if (cleanupFacet.virtualDisplayRelease === release) cleanupFacet.virtualDisplayRelease = null
+                cleanupFacet.workPending = true
             }
         } else {
             val operation = owner.createVirtualDisplayReleaseOperation(reserveTerminalOperationIdentity())
             if (operation != null) {
                 val rooted = sessionGate.withLock {
-                    if (cleanupOwner.androidRoot.owner !== owner || cleanupVirtualDisplayRelease != null) {
+                    if (cleanupFacet.owner.androidRoot.owner !== owner || cleanupFacet.virtualDisplayRelease != null) {
                         return@withLock false
                     }
-                    cleanupVirtualDisplayRelease = operation
+                    cleanupFacet.virtualDisplayRelease = operation
                     true
                 }
                 if (rooted) owner.submitVirtualDisplayRelease(operation)
@@ -2678,21 +3889,21 @@ internal class SessionController internal constructor(
             }
         }
 
-        val stop = sessionGate.withLock { cleanupProjectionStop }
+        val stop = sessionGate.withLock { cleanupFacet.projectionStop }
         if (stop != null) {
             val returned = stop.settlementGate.withLock {
                 stop.returnCell.disposition != OperationReturnDisposition.Empty
             }
             if (!returned) return
             sessionGate.withLock {
-                if (cleanupProjectionStop === stop) cleanupProjectionStop = null
-                cleanupWorkPending = true
+                if (cleanupFacet.projectionStop === stop) cleanupFacet.projectionStop = null
+                cleanupFacet.workPending = true
             }
         } else if (!owner.isLaneQuitReady) {
             val operation = owner.createProjectionStopOperation(reserveTerminalOperationIdentity()) ?: return
             val rooted = sessionGate.withLock {
-                if (cleanupOwner.androidRoot.owner !== owner || cleanupProjectionStop != null) return@withLock false
-                cleanupProjectionStop = operation
+                if (cleanupFacet.owner.androidRoot.owner !== owner || cleanupFacet.projectionStop != null) return@withLock false
+                cleanupFacet.projectionStop = operation
                 true
             }
             if (rooted) owner.submitProjectionStop(operation)
@@ -2701,18 +3912,18 @@ internal class SessionController internal constructor(
 
     private fun reserveRunningPublicationLocked(problem: ScreenCaptureProblem? = null) {
         check(sessionGate.isHeldByCurrentThread)
-        if (requestedParameters == null || lastEffectiveParameters == null) return
-        runningPublicationPending = true
-        runningPublicationProblem = problem
+        if (topologyFacet.requestedParameters == null || topologyFacet.lastEffectiveParameters == null) return
+        statsFacet.runningPublicationPending = true
+        statsFacet.runningPublicationProblem = problem
     }
 
     private fun reserveDiagnosticSequenceLocked(): Long {
         check(sessionGate.isHeldByCurrentThread)
-        if (nextDiagnosticSequence == Long.MAX_VALUE) {
+        if (statsFacet.nextDiagnosticSequence == Long.MAX_VALUE) {
             offerFailureLocked(ScreenCaptureProblem.InternalFailure, DIAGNOSTIC_SEQUENCE_EXHAUSTED)
             return 0L
         }
-        return nextDiagnosticSequence++
+        return statsFacet.nextDiagnosticSequence++
     }
 
     private fun emitDiagnostic(source: String, label: String, message: String, cause: Throwable?) {
@@ -2725,32 +3936,31 @@ internal class SessionController internal constructor(
     private fun hasImmediateControllerWork(): Boolean =
         latestResize.get() != null || latestVisibility.get() != null || captureEnded.get() != null ||
                 sessionGate.withLock {
-                    cleanupWorkPending || !terminalCutoffApplied && terminalContenders.any { it.present }
+                    cleanupFacet.workPending || !terminalCutoffApplied && terminalContenders.any { it.present }
                 }
 
     private fun closeAdmissionLocked() {
         check(sessionGate.isHeldByCurrentThread)
         admissionsClosed = true
-        targetAdmissionClosePending = true
+        deliveryFacet.targetAdmissionClosePending = true
     }
 
     private fun invalidateOutputLocked() {
         check(sessionGate.isHeldByCurrentThread)
-        acceptedTopologySnapshot = null
-        topologyPublicationIdentity = if (nextIdentity == Long.MAX_VALUE) Long.MAX_VALUE else reserveIdentityLocked()
+        topologyFacet.acceptedTopologySnapshot = null
     }
 
     private fun invalidateReconciliationForTopologyMutationLocked() {
         check(sessionGate.isHeldByCurrentThread)
-        reconciliationIdentity = 0L
-        currentCalculation = null
-        currentProvisional = null
-        currentPlan = currentTarget?.plan
+        topologyFacet.reconciliationIdentity = 0L
+        topologyFacet.currentCalculation = null
+        topologyFacet.currentProvisional = null
+        topologyFacet.currentPlan = topologyFacet.currentTarget?.plan
     }
 
     private fun advanceLifecycleEpochLocked() {
         check(sessionGate.isHeldByCurrentThread)
-        lifecycleEpoch = reserveIdentityLocked()
+        topologyFacet.lifecycleEpoch = reserveIdentityLocked()
     }
 
     private fun reserveIdentityLocked(): Long {
@@ -2769,11 +3979,7 @@ internal class SessionController internal constructor(
 
     private fun saturatingIncrementFailureLocked() {
         check(sessionGate.isHeldByCurrentThread)
-        statsAuthority.byFailure = saturatedIncrement(statsAuthority.byFailure)
-    }
-
-    private fun poisonControl(raw: Throwable) {
-        controlPoison.compareAndSet(null, raw)
+        statsFacet.byFailure = saturatedIncrement(statsFacet.byFailure)
     }
 
     private fun emergencyFailClosed(raw: Throwable) {
@@ -2792,65 +3998,27 @@ internal class SessionController internal constructor(
         if (shouldApply) executeTurnUnlocked(emergencyTurnSlots)
     }
 
-    override fun onControlTaskPoison(raw: Throwable) {
-        poisonControl(raw)
-    }
-
-    override fun onControlTaskPostStackPoison(raw: Throwable) {
-        poisonControl(raw)
-        drainerState.set(DRAIN_IDLE)
-        signal()
+    override fun onControlTaskOrdinaryEscaped(
+        @Suppress("UNUSED_PARAMETER") record: ControlScheduledTaskRecord,
+        raw: Throwable,
+    ) {
+        try {
+            controlPoisonAuthority.publish(raw)
+            emergencyFailClosed(controlPoisonAuthority.observe() ?: raw)
+        } finally {
+            drainerState.set(DRAIN_IDLE)
+        }
     }
 
     override fun onControlTaskDirectFatal(
         @Suppress("UNUSED_PARAMETER") record: ControlScheduledTaskRecord,
         raw: Throwable,
     ) {
-        poisonControl(raw)
-    }
-
-    override fun onControlSchedulerTerminated(receipt: SessionControlTerminationReceipt) {
-        if (controlTermination.compareAndSet(null, receipt)) {
-            val links = sessionGate.withLock { fixedControlWakeInventoryLocked() }
-            links.forEach(ControlWakeLink::publishSchedulerTermination)
+        try {
+            settleDirectFatalControlFailure(raw, raw)
+        } finally {
+            drainerState.set(DRAIN_IDLE)
         }
-        preBarrierDirty.set(true)
-    }
-
-    private fun fixedControlWakeInventoryLocked(): List<ControlWakeLink> {
-        check(sessionGate.isHeldByCurrentThread)
-        val links = LinkedHashSet<ControlWakeLink>()
-        fun add(link: ControlWakeLink?) {
-            if (link != null) links.add(link)
-        }
-        add(metricsOwner?.readinessWakeLink)
-        add(pendingStartupBag?.metrics?.readinessWakeLink)
-        add(cleanupOwner.metricsRoot.owner?.readinessWakeLink)
-        add(cleanupOwner.quarantineRoot.metrics?.readinessWakeLink)
-        add(glSessionCommand?.deadlineWakeLink)
-        add(glSessionCommand?.partialCleanupDeadlineWakeLink)
-        add(pendingProjectionRegistration?.controlWakeLink)
-        add(preparedTargetCommand?.deadlineWakeLink)
-        add(pendingListenerInstallation?.controlWakeLink)
-        add(pendingVirtualDisplayCreation?.controlWakeLink)
-        add(pendingVirtualDisplayCreation?.returnCell?.evidence?.initialResizeDeadlineOccurrence?.controlWakeLink)
-        add(pendingRenderConstruction?.deadlineWakeLink)
-        add(pendingJpegPreparation?.operation?.controlWakeLink)
-        add(pendingFrameworkCreation?.operation?.controlWakeLink)
-        add(pendingNativeEncode?.operation?.controlWakeLink)
-        add(cleanupProjectionUnregistration?.controlWakeLink)
-        add(cleanupVirtualDisplayRelease?.controlWakeLink)
-        add(cleanupProjectionStop?.controlWakeLink)
-        add(cleanupListenerRemoval?.controlWakeLink)
-        add(cleanupRenderDestruction?.deadlineWakeLink)
-        add(cleanupSurfaceRelease?.deadlineWakeLink)
-        add(cleanupTargetScope?.deadlineWakeLink)
-        add(cleanupTargetScope?.namespaceDeadlineWakeLink)
-        add(cleanupFrameworkRecycle?.operation?.controlWakeLink)
-        add(cleanupProgramDestruction?.deadlineWakeLink)
-        add(cleanupSessionDestruction?.deadlineWakeLink)
-        add(cleanupNativeCarrierFree?.operation?.controlWakeLink)
-        return links.toList()
     }
 
     internal fun constructOwnersForAcceptedStart(): Boolean {
@@ -2870,7 +4038,7 @@ internal class SessionController internal constructor(
                 SessionMetricsConstructionCommand(
                     applicationContext = applicationContext,
                     source = metricsSource,
-                    sessionGate = sessionGate,
+                    ingress = this,
                     clock = clock,
                     signal = this,
                     attachmentIdentity = bag.metricsAttachmentIdentity,
@@ -2881,7 +4049,7 @@ internal class SessionController internal constructor(
                 ),
             )
             sessionGate.withLock {
-                if (pendingStartupBag === bag && bag.metrics == null) bag.metrics = metrics else cleanupOwner.attachMetrics(metrics)
+                if (pendingStartupBag === bag && bag.metrics == null) bag.metrics = metrics else cleanupFacet.owner.attachMetrics(metrics)
             }
 
             val android = SessionStartupTopology.constructAndroid(
@@ -2895,22 +4063,22 @@ internal class SessionController internal constructor(
                 ),
             )
             sessionGate.withLock {
-                if (pendingStartupBag === bag && bag.android == null) bag.android = android else cleanupOwner.attachAndroid(android)
+                if (pendingStartupBag === bag && bag.android == null) bag.android = android else cleanupFacet.owner.attachAndroid(android)
             }
 
             val gl = SessionStartupTopology.constructGl(clock, this)
             sessionGate.withLock {
-                if (pendingStartupBag === bag && bag.gl == null) bag.gl = gl else cleanupOwner.attachGl(gl)
+                if (pendingStartupBag === bag && bag.gl == null) bag.gl = gl else cleanupFacet.owner.attachGl(gl)
             }
 
             val jpeg = SessionStartupTopology.constructJpeg(clock, this)
             sessionGate.withLock {
-                if (pendingStartupBag === bag && bag.jpeg == null) bag.jpeg = jpeg else cleanupOwner.attachJpeg(jpeg)
+                if (pendingStartupBag === bag && bag.jpeg == null) bag.jpeg = jpeg else cleanupFacet.owner.attachJpeg(jpeg)
             }
 
             val storage = SessionStartupTopology.constructStorage()
             sessionGate.withLock {
-                if (pendingStartupBag === bag && bag.storage == null) bag.storage = storage else cleanupOwner.attachStorage(storage)
+                if (pendingStartupBag === bag && bag.storage == null) bag.storage = storage else cleanupFacet.owner.attachStorage(storage)
                 if (pendingStartupBag === bag && bag.isComplete) bag.constructionComplete = true
             }
         } catch (raw: Throwable) {
@@ -2960,15 +4128,15 @@ internal class SessionController internal constructor(
 
         val adopted = sessionGate.withLock {
             if (pendingStartupBag !== bag || lifecycle != Lifecycle.Starting || terminalWinner.fixed || admissionsClosed ||
-                metricsOwner != null || androidOwner != null || glOwner != null || jpegOwner != null || storageOwner != null
+                topologyFacet.metricsOwner != null || topologyFacet.androidOwner != null || topologyFacet.glOwner != null || topologyFacet.jpegOwner != null || topologyFacet.storageOwner != null
             ) {
                 return@withLock false
             }
-            metricsOwner = metrics
-            androidOwner = android
-            glOwner = gl
-            jpegOwner = jpeg
-            storageOwner = storage
+            topologyFacet.metricsOwner = metrics
+            topologyFacet.androidOwner = android
+            topologyFacet.glOwner = gl
+            topologyFacet.jpegOwner = jpeg
+            topologyFacet.storageOwner = storage
             pendingStartupBag = null
             true
         }
@@ -2989,9 +4157,9 @@ internal class SessionController internal constructor(
             if (lifecycle != Lifecycle.Starting || terminalWinner.fixed || admissionsClosed || ownersLaunched) {
                 return@withLock false
             }
-            metrics = metricsOwner ?: return@withLock false
-            android = androidOwner ?: return@withLock false
-            gl = glOwner ?: return@withLock false
+            metrics = topologyFacet.metricsOwner ?: return@withLock false
+            android = topologyFacet.androidOwner ?: return@withLock false
+            gl = topologyFacet.glOwner ?: return@withLock false
             constructionOperation = reserveIdentityLocked()
             constructionDeadline = reserveIdentityLocked()
             constructionWake = reserveIdentityLocked()
@@ -3028,10 +4196,10 @@ internal class SessionController internal constructor(
             }
             val command = checkNotNull(facts.glCommand)
             val accepted = sessionGate.withLock {
-                if (terminalWinner.fixed || admissionsClosed || glOwner !== input.gl || glSessionCommand != null) {
+                if (terminalWinner.fixed || admissionsClosed || topologyFacet.glOwner !== input.gl || topologyFacet.glSessionCommand != null) {
                     return@withLock false
                 }
-                glSessionCommand = command
+                topologyFacet.glSessionCommand = command
                 true
             }
             if (!accepted) return
@@ -3043,7 +4211,7 @@ internal class SessionController internal constructor(
     }
 
     private fun consumeGlSessionConstruction() {
-        val command = sessionGate.withLock { glSessionCommand } ?: return
+        val command = sessionGate.withLock { topologyFacet.glSessionCommand } ?: return
         serviceWakeLink(command.deadlineWakeLink)
         serviceWakeLink(command.partialCleanupDeadlineWakeLink)
         val facts = command.claim() ?: return
@@ -3059,26 +4227,26 @@ internal class SessionController internal constructor(
             offerFailure(problem, facts.throwable)
         } else {
             sessionGate.withLock {
-                if (glSessionCommand === command) glSessionCommand = null
+                if (topologyFacet.glSessionCommand === command) topologyFacet.glSessionCommand = null
             }
         }
     }
 
     private fun advanceProjectionRegistration() {
-        val existing = sessionGate.withLock { pendingProjectionRegistration }
+        val existing = sessionGate.withLock { topologyFacet.pendingProjectionRegistration }
         if (existing != null) {
             existing.controlWakeLink?.let(::serviceWakeLink)
             when (val arbitration = existing.arbitrate()) {
                 OperationArbitration.None -> return
                 OperationArbitration.TimelyNormal -> {
                     val accepted = sessionGate.withLock {
-                        if (pendingProjectionRegistration !== existing || terminalWinner.fixed || admissionsClosed ||
-                            androidOwner == null
+                        if (topologyFacet.pendingProjectionRegistration !== existing || terminalWinner.fixed || admissionsClosed ||
+                            topologyFacet.androidOwner == null
                         ) {
                             return@withLock false
                         }
-                        acceptedProjectionCallbackRegistrationIdentity = existing.identity
-                        pendingProjectionRegistration = null
+                        topologyFacet.acceptedProjectionCallbackRegistrationIdentity = existing.identity
+                        topologyFacet.pendingProjectionRegistration = null
                         true
                     }
                     if (accepted) signal()
@@ -3086,7 +4254,7 @@ internal class SessionController internal constructor(
 
                 else -> {
                     sessionGate.withLock {
-                        if (pendingProjectionRegistration === existing) pendingProjectionRegistration = null
+                        if (topologyFacet.pendingProjectionRegistration === existing) topologyFacet.pendingProjectionRegistration = null
                     }
                     offerFailure(
                         if (arbitration == OperationArbitration.TimelyThrown) {
@@ -3102,13 +4270,13 @@ internal class SessionController internal constructor(
         }
 
         val owner = sessionGate.withLock {
-            if (terminalWinner.fixed || admissionsClosed || acceptedProjectionCallbackRegistrationIdentity != 0L ||
-                pendingProjectionRegistration != null || metricsJointReadiness == null ||
-                androidLaneReadyOwner !== androidOwner
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.acceptedProjectionCallbackRegistrationIdentity != 0L ||
+                topologyFacet.pendingProjectionRegistration != null || topologyFacet.metricsJointReadiness == null ||
+                topologyFacet.androidLaneReadyOwner !== topologyFacet.androidOwner
             ) {
                 return@withLock null
             }
-            androidOwner
+            topologyFacet.androidOwner
         } ?: return
         val identity = reserveAndroidIdentity(PROJECTION_CALLBACK_REGISTRATION_TIMEOUT) ?: return
         val operation = owner.createProjectionCallbackRegistrationOperation(identity) ?: run {
@@ -3116,10 +4284,10 @@ internal class SessionController internal constructor(
             return
         }
         val installed = sessionGate.withLock {
-            if (terminalWinner.fixed || admissionsClosed || androidOwner !== owner || pendingProjectionRegistration != null) {
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.androidOwner !== owner || topologyFacet.pendingProjectionRegistration != null) {
                 return@withLock false
             }
-            pendingProjectionRegistration = operation
+            topologyFacet.pendingProjectionRegistration = operation
             true
         }
         if (!installed) return
@@ -3128,36 +4296,58 @@ internal class SessionController internal constructor(
     }
 
     private fun advanceTargetConstruction() {
-        val existingCommand = sessionGate.withLock { preparedTargetCommand }
+        val existingCommand = sessionGate.withLock { topologyFacet.preparedTargetCommand }
         if (existingCommand != null) {
             serviceWakeLink(existingCommand.deadlineWakeLink)
-            val token = claimPreparedTargetFold() ?: return
+            val result = foldPreparedTargetResult() ?: return
+            val retained = sessionGate.withLock {
+                topologyFacet.preparedTargetCommand === existingCommand &&
+                        isTargetConstructionResultRetainedLocked(result)
+            }
+            if (!retained) return
             existingCommand.retireAfterTargetArbitration()
-            selectAndApplyPreparedTargetFold(token)
             sessionGate.withLock {
-                if (preparedTargetCommand === existingCommand) preparedTargetCommand = null
+                if (topologyFacet.preparedTargetCommand === existingCommand &&
+                    isTargetConstructionResultRetainedLocked(result)
+                ) {
+                    topologyFacet.preparedTargetCommand = null
+                }
             }
             return
         }
 
         var plan: TargetPlan? = null
-        var desired = 0L
-        var geometry = 0L
-        var epoch = 0L
-        var reconciliation = 0L
+        var requestedIdentity: TargetRequestedIdentity? = null
         var owner: GlPipelineOwner? = null
         val selected = sessionGate.withLock {
-            if (terminalWinner.fixed || admissionsClosed || acceptedProjectionCallbackRegistrationIdentity == 0L ||
-                currentTarget != null || preparedTarget != null || preparedTargetCommand != null || glSessionFacts == null
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.acceptedProjectionCallbackRegistrationIdentity == 0L ||
+                topologyFacet.currentTarget != null || topologyFacet.preparedTarget != null ||
+                topologyFacet.preparedTargetAdmissionFact != null || topologyFacet.preparedTargetCommand != null ||
+                cleanupFacet.owner.preparedTargetRoot.target != null ||
+                cleanupFacet.owner.currentTargetRoot.target != null ||
+                cleanupFacet.owner.quarantineRoot.targetChild != null ||
+                topologyFacet.glSessionFacts == null || topologyFacet.reconciliationIdentity <= 0L
             ) {
                 return@withLock false
             }
-            plan = currentPlan ?: return@withLock false
-            desired = desiredRevision
-            geometry = geometryGeneration
-            epoch = lifecycleEpoch
-            reconciliation = reconciliationIdentity
-            owner = glOwner ?: return@withLock false
+            val reconciliationInput = topologyFacet.currentCalculation?.input ?:
+                topologyFacet.currentProvisional?.input ?: return@withLock false
+            plan = topologyFacet.currentPlan ?: return@withLock false
+            val stamp = reconciliationInput.stamp
+            if (stamp.desiredRevision != topologyFacet.desiredRevision ||
+                stamp.geometryGeneration != topologyFacet.geometryGeneration ||
+                stamp.lifecycleEpoch != topologyFacet.lifecycleEpoch ||
+                reconciliationInput.reconciliationOccurrenceIdentity != topologyFacet.reconciliationIdentity
+            ) {
+                return@withLock false
+            }
+            requestedIdentity = TargetRequestedIdentity(
+                desiredRevision = stamp.desiredRevision,
+                geometryGeneration = stamp.geometryGeneration,
+                lifecycleEpoch = stamp.lifecycleEpoch,
+                reconciliationIdentity = topologyFacet.reconciliationIdentity,
+            )
+            owner = topologyFacet.glOwner ?: return@withLock false
             true
         }
         if (!selected) return
@@ -3167,12 +4357,11 @@ internal class SessionController internal constructor(
         val surfaceRelease = reserveAndroidIdentity(TARGET_SURFACE_RELEASE_TIMEOUT) ?: return
         val targetDestruction = reserveGlIdentity(TARGET_DESTRUCTION_TIMEOUT) ?: return
         val namespaceDestruction = reserveGlIdentity(TARGET_NAMESPACE_DESTRUCTION_TIMEOUT) ?: return
+        val exactRequestedIdentity = checkNotNull(requestedIdentity)
+        val exactPlan = checkNotNull(plan)
         val candidate = targetOwner.prepareTarget(
-            plan = checkNotNull(plan),
-            desiredRevision = desired,
-            geometryGeneration = geometry,
-            lifecycleEpoch = epoch,
-            reconciliationIdentity = reconciliation,
+            plan = exactPlan,
+            requestedIdentity = exactRequestedIdentity,
             constructionIdentity = construction,
             listenerInstallationOperationIdentity = listener.operationIdentity,
             sourceSignal = TargetSourceSignal { _ -> signal() },
@@ -3186,15 +4375,23 @@ internal class SessionController internal constructor(
             namespaceDestructionIdentity = namespaceDestruction,
         ) ?: return
         val command = checkNotNull(owner).prepareTargetConstruction(candidate)
-        if (!admitPreparedTarget(candidate)) return
+        val exactGlOwner = checkNotNull(owner)
+        val admissionFact = admitPreparedTarget(candidate, exactRequestedIdentity, exactPlan, exactGlOwner) ?: return
         val rooted = sessionGate.withLock {
-            if (preparedTarget !== candidate || terminalWinner.fixed || admissionsClosed || preparedTargetCommand != null) {
+            val exactOwner = topologyFacet.glOwner === exactGlOwner || cleanupFacet.owner.glRoot.owner === exactGlOwner
+            val exactTargetRoot = topologyFacet.preparedTarget === candidate ||
+                    cleanupFacet.owner.preparedTargetRoot.target === candidate
+            if (!exactTargetRoot ||
+                topologyFacet.preparedTargetAdmissionFact !== admissionFact ||
+                admissionFact.requestedIdentity !== exactRequestedIdentity || candidate.plan !== exactPlan ||
+                !exactOwner || topologyFacet.preparedTargetCommand != null
+            ) {
                 return@withLock false
             }
-            preparedTargetListenerIdentity = listener
-            preparedTargetDestructionIdentity = targetDestruction
-            preparedNamespaceDestructionIdentity = namespaceDestruction
-            preparedTargetCommand = command
+            topologyFacet.preparedTargetListenerIdentity = listener
+            cleanupFacet.preparedTargetDestructionIdentity = targetDestruction
+            cleanupFacet.preparedNamespaceDestructionIdentity = namespaceDestruction
+            topologyFacet.preparedTargetCommand = command
             true
         }
         if (!rooted) return
@@ -3203,7 +4400,7 @@ internal class SessionController internal constructor(
     }
 
     private fun advanceListenerInstallation() {
-        val existing = sessionGate.withLock { pendingListenerInstallation }
+        val existing = sessionGate.withLock { topologyFacet.pendingListenerInstallation }
         if (existing != null) {
             existing.controlWakeLink?.let(::serviceWakeLink)
             when (val arbitration = existing.arbitrate()) {
@@ -3212,7 +4409,7 @@ internal class SessionController internal constructor(
                     val bag = existing.ownerBag as AndroidTargetListenerInstallationOwnerBag
                     val applied = bag.target.applyListenerInstallationReceipt(bag.port, existing)
                     sessionGate.withLock {
-                        if (pendingListenerInstallation === existing) pendingListenerInstallation = null
+                        if (topologyFacet.pendingListenerInstallation === existing) topologyFacet.pendingListenerInstallation = null
                     }
                     if (!applied) {
                         offerFailure(ScreenCaptureProblem.InternalFailure, TARGET_LISTENER_RECEIPT_REJECTED)
@@ -3223,7 +4420,7 @@ internal class SessionController internal constructor(
 
                 else -> {
                     sessionGate.withLock {
-                        if (pendingListenerInstallation === existing) pendingListenerInstallation = null
+                        if (topologyFacet.pendingListenerInstallation === existing) topologyFacet.pendingListenerInstallation = null
                     }
                     offerFailure(ScreenCaptureProblem.CaptureUnavailable, existing.returnCell.throwable)
                 }
@@ -3235,12 +4432,12 @@ internal class SessionController internal constructor(
         var owner: AndroidCaptureOwner? = null
         var identity: AndroidFiniteOperationIdentity? = null
         val selected = sessionGate.withLock {
-            target = currentTarget
-            owner = androidOwner
-            identity = preparedTargetListenerIdentity
+            target = topologyFacet.currentTarget
+            owner = topologyFacet.androidOwner
+            identity = topologyFacet.preparedTargetListenerIdentity
             !terminalWinner.fixed && !admissionsClosed && target != null && owner != null && identity != null
         }
-        if (!selected || checkNotNull(target).currentnessSnapshot().listenerInstalled) return
+        if (!selected || checkNotNull(target).currentnessFact().listenerInstalled) return
         val operation = checkNotNull(owner).createTargetListenerInstallationOperation(
             checkNotNull(target),
             checkNotNull(identity),
@@ -3249,12 +4446,12 @@ internal class SessionController internal constructor(
             return
         }
         val rooted = sessionGate.withLock {
-            if (terminalWinner.fixed || admissionsClosed || currentTarget !== target || androidOwner !== owner ||
-                preparedTargetListenerIdentity !== identity || pendingListenerInstallation != null
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.currentTarget !== target || topologyFacet.androidOwner !== owner ||
+                topologyFacet.preparedTargetListenerIdentity !== identity || topologyFacet.pendingListenerInstallation != null
             ) {
                 return@withLock false
             }
-            pendingListenerInstallation = operation
+            topologyFacet.pendingListenerInstallation = operation
             true
         }
         if (!rooted) return
@@ -3263,28 +4460,64 @@ internal class SessionController internal constructor(
     }
 
     private fun advanceVirtualDisplayCreation() {
-        val existing = sessionGate.withLock { pendingVirtualDisplayCreation }
+        val existing = sessionGate.withLock { topologyFacet.pendingVirtualDisplayCreation }
         if (existing != null) {
             existing.controlWakeLink?.let(::serviceWakeLink)
             existing.returnCell.evidence.initialResizeDeadlineOccurrence?.controlWakeLink?.let(::serviceWakeLink)
-            if (!virtualDisplayReturnAccepted) {
+            val exactOwnerBag = existing.ownerBag as AndroidVirtualDisplayCreationOwnerBag
+            var returnAccepted = false
+            var androidOwner: AndroidCaptureOwner? = null
+            val captured = sessionGate.withLock {
+                if (terminalWinner.fixed || admissionsClosed ||
+                    topologyFacet.pendingVirtualDisplayCreation !== existing ||
+                    topologyFacet.currentTarget !== exactOwnerBag.target
+                ) {
+                    return@withLock false
+                }
+                returnAccepted = topologyFacet.virtualDisplayReturnAccepted
+                androidOwner = topologyFacet.androidOwner
+                androidOwner != null
+            }
+            if (!captured) return
+            val exactAndroidOwner = checkNotNull(androidOwner)
+            if (!returnAccepted) {
                 when (val arbitration = existing.arbitrate()) {
                     OperationArbitration.None -> return
                     OperationArbitration.TimelyNormal -> {
-                        val bag = existing.ownerBag as AndroidVirtualDisplayCreationOwnerBag
-                        val candidate = bag.target.producerApplicationCandidateAfterSettlement(bag.port, existing)
-                        val fact = candidate?.let(bag.target::applyProducerApplication)
-                        val applied = fact != null && checkNotNull(androidOwner).applyVirtualDisplayCreationTargetFact(existing, fact)
+                        val candidate = exactOwnerBag.target.producerApplicationCandidateAfterSettlement(
+                            exactOwnerBag.port,
+                            existing,
+                        )
+                        val fact = candidate?.let(exactOwnerBag.target::applyProducerApplication)
+                        val applied = fact != null && exactAndroidOwner.applyVirtualDisplayCreationTargetFact(existing, fact)
                         if (!applied || fact !is io.screenstream.engine.internal.target.TargetProducerEvidence) {
                             offerFailure(ScreenCaptureProblem.CaptureUnavailable, VIRTUAL_DISPLAY_PRODUCER_REJECTED)
                             return
                         }
-                        virtualDisplayReturnAccepted = true
+                        val committed = sessionGate.withLock {
+                            if (terminalWinner.fixed || admissionsClosed ||
+                                topologyFacet.pendingVirtualDisplayCreation !== existing ||
+                                topologyFacet.androidOwner !== exactAndroidOwner ||
+                                topologyFacet.currentTarget !== exactOwnerBag.target ||
+                                topologyFacet.virtualDisplayReturnAccepted != returnAccepted
+                            ) {
+                                return@withLock false
+                            }
+                            topologyFacet.virtualDisplayReturnAccepted = true
+                            true
+                        }
+                        if (!committed) return
                     }
 
                     else -> {
                         sessionGate.withLock {
-                            if (pendingVirtualDisplayCreation === existing) pendingVirtualDisplayCreation = null
+                            if (topologyFacet.pendingVirtualDisplayCreation === existing &&
+                                topologyFacet.androidOwner === exactAndroidOwner &&
+                                topologyFacet.currentTarget === exactOwnerBag.target &&
+                                topologyFacet.virtualDisplayReturnAccepted == returnAccepted
+                            ) {
+                                topologyFacet.pendingVirtualDisplayCreation = null
+                            }
                         }
                         offerFailure(ScreenCaptureProblem.CaptureUnavailable, existing.returnCell.throwable)
                         return
@@ -3292,7 +4525,7 @@ internal class SessionController internal constructor(
                 }
             }
 
-            val api34 = sessionGate.withLock { androidOwner?.apiBand == AndroidCaptureApiBand.Api34To37 }
+            val api34 = exactAndroidOwner.apiBand == AndroidCaptureApiBand.Api34To37
             if (api34) {
                 val evidence = existing.returnCell.evidence
                 val timelyResize = existing.settlementGate.withLock { evidence.isTimelyInitialResizeLocked() }
@@ -3305,10 +4538,13 @@ internal class SessionController internal constructor(
                 }
             }
             sessionGate.withLock {
-                if (pendingVirtualDisplayCreation === existing) {
-                    pendingVirtualDisplayCreation = null
-                    virtualDisplayReturnAccepted = false
-                    topologyPublicationIdentity = reserveIdentityLocked()
+                if (topologyFacet.pendingVirtualDisplayCreation === existing &&
+                    topologyFacet.androidOwner === exactAndroidOwner &&
+                    topologyFacet.currentTarget === exactOwnerBag.target &&
+                    topologyFacet.virtualDisplayReturnAccepted
+                ) {
+                    topologyFacet.pendingVirtualDisplayCreation = null
+                    topologyFacet.virtualDisplayReturnAccepted = false
                 }
             }
             signal()
@@ -3321,10 +4557,10 @@ internal class SessionController internal constructor(
         var logicalHeight = 0
         var density = 0
         val selected = sessionGate.withLock {
-            target = currentTarget
-            owner = androidOwner
-            val logical = captureGeometry
-            val provisional = combinedGeometryAuthority
+            target = topologyFacet.currentTarget
+            owner = topologyFacet.androidOwner
+            val logical = topologyFacet.captureGeometry
+            val provisional = topologyFacet.combinedGeometryAuthority
             logicalWidth = logical?.widthPx ?: provisional?.sourceWidthPx ?: 0
             logicalHeight = logical?.heightPx ?: provisional?.sourceHeightPx ?: 0
             density = logical?.densityDpi ?: provisional?.densityDpi ?: 0
@@ -3332,7 +4568,7 @@ internal class SessionController internal constructor(
                     logicalWidth > 0 && logicalHeight > 0 && density > 0
         }
         if (!selected) return
-        val currentness = checkNotNull(target).currentnessSnapshot()
+        val currentness = checkNotNull(target).currentnessFact()
         if (!currentness.listenerInstalled || currentness.producerState != TargetProducerState.AwaitingEvidence) return
         val identity = reserveAndroidIdentity(VIRTUAL_DISPLAY_CREATION_TIMEOUT) ?: return
         val initialResize = if (checkNotNull(owner).apiBand == AndroidCaptureApiBand.Api34To37) {
@@ -3361,13 +4597,13 @@ internal class SessionController internal constructor(
             return
         }
         val rooted = sessionGate.withLock {
-            if (terminalWinner.fixed || admissionsClosed || currentTarget !== target || androidOwner !== owner ||
-                pendingVirtualDisplayCreation != null
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.currentTarget !== target || topologyFacet.androidOwner !== owner ||
+                topologyFacet.pendingVirtualDisplayCreation != null
             ) {
                 return@withLock false
             }
-            pendingVirtualDisplayCreation = operation
-            virtualDisplayReturnAccepted = false
+            topologyFacet.pendingVirtualDisplayCreation = operation
+            topologyFacet.virtualDisplayReturnAccepted = false
             true
         }
         if (!rooted) return
@@ -3376,13 +4612,13 @@ internal class SessionController internal constructor(
     }
 
     private fun advanceRenderTargetConstruction() {
-        val existing = sessionGate.withLock { pendingRenderConstruction }
+        val existing = sessionGate.withLock { topologyFacet.pendingRenderConstruction }
         if (existing != null) {
             serviceWakeLink(existing.deadlineWakeLink)
             val claim = existing.claim() ?: return
             acceptRenderTargetInstallation(existing, claim)
             sessionGate.withLock {
-                if (pendingRenderConstruction === existing) pendingRenderConstruction = null
+                if (topologyFacet.pendingRenderConstruction === existing) topologyFacet.pendingRenderConstruction = null
             }
             return
         }
@@ -3392,24 +4628,24 @@ internal class SessionController internal constructor(
         var owner: GlPipelineOwner? = null
         var renderGeneration = 0L
         val selected = sessionGate.withLock {
-            target = currentTarget
-            calculation = currentCalculation
-            owner = glOwner
+            target = topologyFacet.currentTarget
+            calculation = topologyFacet.currentCalculation
+            owner = topologyFacet.glOwner
             if (terminalWinner.fixed || admissionsClosed || target == null || calculation == null || owner == null ||
-                installedRenderTarget != null || pendingRenderConstruction != null
+                topologyFacet.installedRenderTarget != null || topologyFacet.pendingRenderConstruction != null
             ) {
                 return@withLock false
             }
-            renderGeneration = nextRenderGeneration
+            renderGeneration = topologyFacet.nextRenderGeneration
             if (renderGeneration == Long.MAX_VALUE) {
                 offerFailureLocked(ScreenCaptureProblem.InternalFailure, IDENTITY_EXHAUSTED)
                 return@withLock false
             }
-            nextRenderGeneration++
+            topologyFacet.nextRenderGeneration++
             true
         }
         if (!selected) return
-        val targetSnapshot = checkNotNull(target).currentnessSnapshot()
+        val targetSnapshot = checkNotNull(target).currentnessFact()
         if (!targetSnapshot.listenerInstalled || targetSnapshot.producerState != TargetProducerState.ProducerAttached ||
             targetSnapshot.generationFenced
         ) {
@@ -3422,26 +4658,27 @@ internal class SessionController internal constructor(
             destructionIdentity = destruction,
             renderGeneration = renderGeneration,
             compatibilityFacts = checkNotNull(calculation).renderCompatibilityFacts,
-            targetGeneration = targetSnapshot.generation,
+            targetGeneration = targetSnapshot.targetIdentity.generation,
             reconciliationFacts = checkNotNull(calculation).frameReconciliationFacts,
         ) ?: run {
             offerFailure(ScreenCaptureProblem.ResourceExhausted, null)
             return
         }
+        val targetRecheck = checkNotNull(target).currentnessFact()
         val rooted = sessionGate.withLock {
-            if (terminalWinner.fixed || admissionsClosed || currentTarget !== target || currentCalculation !== calculation ||
-                glOwner !== owner || installedRenderTarget != null || pendingRenderConstruction != null ||
-                !checkNotNull(target).isCurrentnessVersion(targetSnapshot.version)
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.currentTarget !== target || topologyFacet.currentCalculation !== calculation ||
+                topologyFacet.glOwner !== owner || topologyFacet.installedRenderTarget != null || topologyFacet.pendingRenderConstruction != null ||
+                targetRecheck.targetIdentity !== targetSnapshot.targetIdentity || targetRecheck.version != targetSnapshot.version
             ) {
                 return@withLock false
             }
-            pendingRenderConstruction = command
+            topologyFacet.pendingRenderConstruction = command
             true
         }
         if (!rooted) {
             val retainedForCleanup = sessionGate.withLock {
-                if (glOwner !== owner || pendingRenderConstruction != null) return@withLock false
-                pendingRenderConstruction = command
+                if (topologyFacet.glOwner !== owner || topologyFacet.pendingRenderConstruction != null) return@withLock false
+                topologyFacet.pendingRenderConstruction = command
                 true
             }
             if (retainedForCleanup) {
@@ -3455,19 +4692,18 @@ internal class SessionController internal constructor(
     }
 
     private fun advanceJpegPreparation() {
-        val existing = sessionGate.withLock { pendingJpegPreparation }
+        val existing = sessionGate.withLock { topologyFacet.pendingJpegPreparation }
         if (existing != null) {
             existing.operation.controlWakeLink?.let(::serviceWakeLink)
             val mechanicallyReturned = existing.operation.settlementGate.withLock {
                 existing.operation.returnCell.disposition != OperationReturnDisposition.Empty
             }
             if (!mechanicallyReturned) return
-            val owner = sessionGate.withLock { jpegOwner }
+            val owner = sessionGate.withLock { topologyFacet.jpegOwner }
             val installed = owner?.installPrepared(existing) == true
             sessionGate.withLock {
-                if (pendingJpegPreparation === existing) pendingJpegPreparation = null
+                if (topologyFacet.pendingJpegPreparation === existing) topologyFacet.pendingJpegPreparation = null
                 if (installed) {
-                    topologyPublicationIdentity = reserveIdentityLocked()
                     invalidateReconciliationForTopologyMutationLocked()
                 }
             }
@@ -3493,13 +4729,13 @@ internal class SessionController internal constructor(
         var geometry = 0L
         var epoch = 0L
         val selected = sessionGate.withLock {
-            owner = jpegOwner
-            calculation = currentCalculation
-            desired = desiredRevision
-            geometry = geometryGeneration
-            epoch = lifecycleEpoch
+            owner = topologyFacet.jpegOwner
+            calculation = topologyFacet.currentCalculation
+            desired = topologyFacet.desiredRevision
+            geometry = topologyFacet.geometryGeneration
+            epoch = topologyFacet.lifecycleEpoch
             !terminalWinner.fixed && !admissionsClosed && owner != null && calculation != null &&
-                    installedRenderTarget != null && pendingJpegPreparation == null
+                    topologyFacet.installedRenderTarget != null && topologyFacet.pendingJpegPreparation == null
         }
         if (!selected || checkNotNull(owner).stableTopologySnapshot()?.product != null) return
         val identity = reserveJpegIdentity(JPEG_PREPARATION_TIMEOUT) ?: return
@@ -3515,12 +4751,12 @@ internal class SessionController internal constructor(
             return
         }
         val rooted = sessionGate.withLock {
-            if (terminalWinner.fixed || admissionsClosed || jpegOwner !== owner || currentCalculation !== calculation ||
-                pendingJpegPreparation != null
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.jpegOwner !== owner || topologyFacet.currentCalculation !== calculation ||
+                topologyFacet.pendingJpegPreparation != null
             ) {
                 return@withLock false
             }
-            pendingJpegPreparation = occurrence
+            topologyFacet.pendingJpegPreparation = occurrence
             true
         }
         if (!rooted) return
@@ -3528,7 +4764,7 @@ internal class SessionController internal constructor(
     }
 
     private fun advanceFrameworkPreparation() {
-        val existing = sessionGate.withLock { pendingFrameworkCreation }
+        val existing = sessionGate.withLock { topologyFacet.pendingFrameworkCreation }
         if (existing != null) {
             existing.operation.controlWakeLink?.let(::serviceWakeLink)
             val mechanicallyReturned = existing.operation.settlementGate.withLock {
@@ -3543,14 +4779,14 @@ internal class SessionController internal constructor(
         var geometry = 0L
         var epoch = 0L
         val selected = sessionGate.withLock {
-            runtime = jpegOwner
-            calculation = currentCalculation
-            desired = desiredRevision
-            geometry = geometryGeneration
-            epoch = lifecycleEpoch
+            runtime = topologyFacet.jpegOwner
+            calculation = topologyFacet.currentCalculation
+            desired = topologyFacet.desiredRevision
+            geometry = topologyFacet.geometryGeneration
+            epoch = topologyFacet.lifecycleEpoch
             !terminalWinner.fixed && !admissionsClosed && runtime != null && calculation != null &&
-                    installedRenderTarget != null && installedFrameworkOwner == null && pendingFrameworkCreation == null &&
-                    cleanupOwner.jpegRoot.frameworkOwner == null
+                    topologyFacet.installedRenderTarget != null && topologyFacet.installedFrameworkOwner == null && topologyFacet.pendingFrameworkCreation == null &&
+                    cleanupFacet.owner.jpegRoot.frameworkOwner == null
         }
         if (!selected) return
         val product = checkNotNull(runtime).stableTopologySnapshot()?.product ?: return
@@ -3573,12 +4809,12 @@ internal class SessionController internal constructor(
             return
         }
         val rooted = sessionGate.withLock {
-            if (terminalWinner.fixed || admissionsClosed || jpegOwner !== runtime || currentCalculation !== calculation ||
-                pendingFrameworkCreation != null
+            if (terminalWinner.fixed || admissionsClosed || topologyFacet.jpegOwner !== runtime || topologyFacet.currentCalculation !== calculation ||
+                topologyFacet.pendingFrameworkCreation != null
             ) {
                 return@withLock false
             }
-            pendingFrameworkCreation = occurrence
+            topologyFacet.pendingFrameworkCreation = occurrence
             true
         }
         if (!rooted) return
@@ -3588,9 +4824,9 @@ internal class SessionController internal constructor(
     private fun acceptCompleteTopology() {
         var calculation: Resolved? = null
         val eligible = sessionGate.withLock {
-            calculation = currentCalculation
-            !terminalWinner.fixed && !admissionsClosed && calculation != null && currentTarget != null &&
-                    installedRenderTarget != null && acceptedTopologySnapshot == null &&
+            calculation = topologyFacet.currentCalculation
+            !terminalWinner.fixed && !admissionsClosed && calculation != null && topologyFacet.currentTarget != null &&
+                    topologyFacet.installedRenderTarget != null && topologyFacet.acceptedTopologySnapshot == null &&
                     calculation?.targetAction == ReconciliationResourceAction.Retain &&
                     calculation?.renderAction == ReconciliationResourceAction.Retain &&
                     calculation?.jpegAction == ReconciliationResourceAction.Retain &&
@@ -3601,8 +4837,28 @@ internal class SessionController internal constructor(
     }
 
     private fun serviceWakeLink(link: ControlWakeLink) {
-        link.claimSubmissionAction()?.let { action -> executeWakeSubmission(link, action) }
+        link.claimSubmissionAction()?.let { action -> executeWakeSubmission(action) }
         link.claimCancellationAction()?.let { action -> executeWakeCancellation(link, action) }
+        when (val successor = link.prepareBoundFiniteDeadlineEarlySuccessor(controlPoisonAuthority)) {
+            ControlWakeSuccessorResult.NotEligible -> Unit
+            ControlWakeSuccessorResult.PoisonFenced -> Unit
+            ControlWakeSuccessorResult.IdentityExhausted -> {
+                publishAggregateFact(controlSuccessorIdentityExhaustedFact, IDENTITY_EXHAUSTED)
+                settleRecordedControlFailure(IDENTITY_EXHAUSTED, null, controlSuccessorSecondaryFact)
+            }
+
+            ControlWakeSuccessorResult.ClaimExhausted -> {
+                settleControlClaimExhausted(
+                    controlSuccessorClaimExhaustedFact,
+                    controlSuccessorSecondaryFact,
+                )
+            }
+
+            is ControlWakeSuccessorResult.Requested -> {
+                val action = successor.action.claimSubmissionAction() ?: return
+                executeWakeSubmission(action)
+            }
+        }
     }
 
     private fun reserveAndroidIdentity(timeoutCause: Throwable): AndroidFiniteOperationIdentity? {
@@ -3665,18 +4921,89 @@ internal class SessionController internal constructor(
         jpegProduct: JpegRuntimeProduct?,
         frameworkOwner: FrameworkJpegOwner?,
     ): Boolean = sessionGate.withLock {
-        currentTarget === target && installedRenderTarget === renderTarget &&
-                jpegOwner?.stableTopologySnapshot()?.product === jpegProduct &&
-                installedFrameworkOwner === frameworkOwner
+        topologyFacet.currentTarget === target && topologyFacet.installedRenderTarget === renderTarget &&
+                topologyFacet.jpegOwner?.stableTopologySnapshot()?.product === jpegProduct &&
+                topologyFacet.installedFrameworkOwner === frameworkOwner
     }
 
-    internal fun claimWakeSubmission(
-        occurrence: OperationOccurrence<*>,
-    ): ControlWakeScheduleAction? = occurrence.controlWakeLink?.claimSubmissionAction()
+    private fun isTargetRequestCurrentLocked(requestedIdentity: TargetRequestedIdentity): Boolean {
+        check(sessionGate.isHeldByCurrentThread)
+        val reconciliationInput = topologyFacet.currentCalculation?.input ?: topologyFacet.currentProvisional?.input
+            ?: return false
+        val stamp = reconciliationInput.stamp
+        return requestedIdentity.desiredRevision == stamp.desiredRevision &&
+                requestedIdentity.geometryGeneration == stamp.geometryGeneration &&
+                requestedIdentity.lifecycleEpoch == stamp.lifecycleEpoch &&
+                requestedIdentity.reconciliationIdentity == reconciliationInput.reconciliationOccurrenceIdentity &&
+                stamp.desiredRevision == topologyFacet.desiredRevision &&
+                stamp.geometryGeneration == topologyFacet.geometryGeneration &&
+                stamp.lifecycleEpoch == topologyFacet.lifecycleEpoch &&
+                reconciliationInput.reconciliationOccurrenceIdentity == topologyFacet.reconciliationIdentity
+    }
 
-    internal fun claimWakeCancellation(
-        occurrence: OperationOccurrence<*>,
-    ): ControlWakeCancellationAction? = occurrence.controlWakeLink?.claimCancellationAction()
+    private fun retainCurrentTargetForCleanupLocked(target: CurrentTarget): Boolean {
+        check(sessionGate.isHeldByCurrentThread)
+        val predecessor = cleanupFacet.owner.currentTargetRoot.target
+        if (predecessor === target) return true
+        if (predecessor != null) {
+            if (cleanupFacet.owner.quarantineRoot.targetChild != null ||
+                !recordCleanupMutationLocked(cleanupFacet.owner.quarantineCurrentTarget(predecessor))
+            ) {
+                return false
+            }
+            clearTargetRetirementFactsLocked(predecessor)
+        }
+        if (!recordCleanupMutationLocked(cleanupFacet.owner.attachCurrentTarget(target))) return false
+        cleanupFacet.workPending = true
+        return true
+    }
+
+    private fun retainStaleCurrentTargetInTopologyLocked(
+        target: CurrentTarget,
+        exactPreparedTarget: PreparedTarget,
+        exactAdmissionFact: PreparedTargetAdmissionFact,
+    ): Boolean {
+        check(sessionGate.isHeldByCurrentThread)
+        if (lifecycle != Lifecycle.Running || terminalWinner.fixed || admissionsClosed ||
+            topologyFacet.currentTarget != null || topologyFacet.preparedTarget !== exactPreparedTarget ||
+            topologyFacet.preparedTargetAdmissionFact !== exactAdmissionFact
+        ) {
+            return false
+        }
+        topologyFacet.currentTarget = target
+        invalidateReconciliationForTopologyMutationLocked()
+        return true
+    }
+
+    private fun isTargetConstructionResultRetainedLocked(result: TargetConstructionResultFact): Boolean {
+        check(sessionGate.isHeldByCurrentThread)
+        return when (result) {
+            is TargetConstructionInstalledFact -> {
+                val target = result.targetIdentity.target
+                result.targetIdentity.matches(target) &&
+                        (topologyFacet.currentTarget === target || cleanupFacet.owner.currentTargetRoot.target === target)
+            }
+
+            is TargetConstructionFailureFact -> {
+                val target = result.cleanupTarget
+                result.targetIdentity.target === target &&
+                        cleanupFacet.owner.preparedTargetRoot.target === target &&
+                        topologyFacet.preparedTargetAdmissionFact?.preparedTarget === target &&
+                        cleanupFacet.preparedTargetFailureFact === result
+            }
+        }
+    }
+
+    private fun clearTargetRetirementFactsLocked(target: CurrentTarget): Boolean {
+        check(sessionGate.isHeldByCurrentThread)
+        if (cleanupFacet.targetRetirementRoot !== target) return false
+        cleanupFacet.targetRetirementRoot = null
+        cleanupFacet.targetRetirementAdmissionClosedFact = null
+        cleanupFacet.targetWorkDrainedFact = null
+        cleanupFacet.targetGenerationFencedFact = null
+        cleanupFacet.targetSurfaceReleaseReadyFact = null
+        return true
+    }
 
     private fun orderedMean(previous: Double, sample: Double, count: Long): Double {
         if (count <= 0L || !sample.isFinite()) return previous
@@ -3699,8 +5026,35 @@ internal class SessionController internal constructor(
         private val IDENTITY_EXHAUSTED = IllegalStateException("Session identity exhausted before reuse")
         private val DIAGNOSTIC_SEQUENCE_EXHAUSTED =
             IllegalStateException("Session diagnostic sequence exhausted before reuse")
-        private val CONTROL_SCHEDULER_COLLISION = IllegalStateException("Control scheduler already exists")
         private val CONTROL_SCHEDULER_UNAVAILABLE = IllegalStateException("Control scheduler unavailable")
+        private val CONTROL_STARTUP_CONSTRUCTION_FACT_NOT_ELIGIBLE =
+            IllegalStateException("Control construction failure fact was not eligible")
+        private val CONTROL_STARTUP_NOT_ELIGIBLE =
+            IllegalStateException("Control startup was not eligible")
+        private val CONTROL_STARTUP_RELEASE_RECEIPT_MISMATCH =
+            IllegalStateException("Control startup cleanup released without its exact termination receipt")
+        private val CONTROL_SCHEDULE_PREINVOCATION_FACT_NOT_ELIGIBLE =
+            IllegalStateException("Control schedule pre-invocation fact was not eligible")
+        private val CONTROL_SCHEDULE_MARK_NOT_ELIGIBLE =
+            IllegalStateException("Control schedule invocation mark was not eligible")
+        private val CONTROL_SCHEDULE_FAILURE_FACT_NOT_ELIGIBLE =
+            IllegalStateException("Control schedule invocation failure fact was not eligible")
+        private val CONTROL_SCHEDULE_RETURN_NOT_ELIGIBLE =
+            IllegalStateException("Control schedule return fact was not eligible")
+        private val CONTROL_CANCEL_ADMITTED_WITHOUT_SCHEDULER =
+            IllegalStateException("Control cancel was admitted without a scheduler")
+        private val CONTROL_CANCELLATION_FACT_NOT_ELIGIBLE =
+            IllegalStateException("Control cancellation fact was not eligible")
+        private val CONTROL_DETACHED_ADMITTED_WITHOUT_SCHEDULER =
+            IllegalStateException("Detached Control cancel was admitted without a scheduler")
+        private val CONTROL_DETACHED_FACT_NOT_ELIGIBLE =
+            IllegalStateException("Detached Control settlement fact was not eligible")
+        private val CONTROL_DRAINER_ACCEPTANCE_NOT_ELIGIBLE =
+            IllegalStateException("Control drainer acceptance fact was not eligible")
+        private val CONTROL_AGGREGATE_FACT_IDENTITY_MISMATCH =
+            IllegalStateException("Control aggregate fact identity mismatched")
+        private val CONTROL_AGGREGATE_FACT_EXHAUSTED =
+            IllegalStateException("Control aggregate fact cell was exhausted")
         private val CONTROL_DRAINER_RECORD_REUSE =
             IllegalStateException("Control drainer record reused before settlement")
         private val RECONCILIATION_EVIDENCE_INVALID = IllegalStateException("Reconciliation evidence is invalid")

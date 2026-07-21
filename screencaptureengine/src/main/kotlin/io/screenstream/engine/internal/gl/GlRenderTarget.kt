@@ -2,12 +2,14 @@ package io.screenstream.engine.internal.gl
 
 import android.hardware.DataSpace
 import android.os.Build
+import io.screenstream.engine.ColorMode
 import io.screenstream.engine.internal.settlement.ControlWakeLink
 import io.screenstream.engine.internal.settlement.OperationDisposition
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.PrivateExecutorSubmissionResult
 import io.screenstream.engine.internal.settlement.isHandedOff
+import io.screenstream.engine.internal.target.TargetRetainedGlAdmittedFact
 import kotlin.concurrent.withLock
 
 internal class GlRenderTargetOwnerImpl internal constructor(
@@ -96,27 +98,71 @@ private enum class GlRenderTargetConstructionDisposition {
     CleanupClaimed,
 }
 
+internal class GlColorActionSet internal constructor(
+    targetGeneration: Long,
+) {
+    private val srgbColor: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.Srgb, ColorMode.Color)
+    private val srgbGrayscale: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.Srgb, ColorMode.Grayscale)
+    private val displayP3Color: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.DisplayP3, ColorMode.Color)
+    private val displayP3Grayscale: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.DisplayP3, ColorMode.Grayscale)
+    private val scrgbColor: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.Scrgb, ColorMode.Color)
+    private val scrgbGrayscale: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.Scrgb, ColorMode.Grayscale)
+    private val hdrColor: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.HdrTransfer, ColorMode.Color)
+    private val hdrGrayscale: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.HdrTransfer, ColorMode.Grayscale)
+    private val nominalColor: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.NominalSdr, ColorMode.Color)
+    private val nominalGrayscale: GlColorActionFacts =
+        GlColorActionFacts(targetGeneration, GlColorClassification.NominalSdr, ColorMode.Grayscale)
+
+    internal fun actionFor(dataSpace: Int, colorMode: ColorMode): GlColorActionFacts = when {
+        dataSpace == DataSpace.DATASPACE_SRGB -> when (colorMode) {
+            ColorMode.Color -> srgbColor
+            ColorMode.Grayscale -> srgbGrayscale
+        }
+
+        dataSpace == DataSpace.DATASPACE_DISPLAY_P3 -> when (colorMode) {
+            ColorMode.Color -> displayP3Color
+            ColorMode.Grayscale -> displayP3Grayscale
+        }
+
+        dataSpace == DataSpace.DATASPACE_SCRGB || dataSpace == DataSpace.DATASPACE_SCRGB_LINEAR -> when (colorMode) {
+            ColorMode.Color -> scrgbColor
+            ColorMode.Grayscale -> scrgbGrayscale
+        }
+
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                (DataSpace.getTransfer(dataSpace) == DataSpace.TRANSFER_ST2084 ||
+                        DataSpace.getTransfer(dataSpace) == DataSpace.TRANSFER_HLG) -> when (colorMode) {
+            ColorMode.Color -> hdrColor
+            ColorMode.Grayscale -> hdrGrayscale
+        }
+
+        else -> when (colorMode) {
+            ColorMode.Color -> nominalColor
+            ColorMode.Grayscale -> nominalGrayscale
+        }
+    }
+}
+
 internal class GlRenderTargetState private constructor(
     internal val owner: GlPipelineOwner.GlRenderTargetOwner,
     internal val targetGeneration: Long,
-    reconciliationFacts: GlFrameReconciliationFacts,
+    reconciliationFacts: GlFrameDesiredState,
 ) {
     internal var textureName: Int = 0
     internal var framebufferName: Int = 0
-    internal val logicalInverseTransform: FloatArray = FloatArray(16).also {
-        check(reconciliationFacts.copyLogicalInverseTransformTo(it))
-    }
-    private val srgbAction: GlColorActionFacts =
-        GlColorActionFacts(targetGeneration, GlColorClassification.Srgb, reconciliationFacts.colorMode)
-    private val displayP3Action: GlColorActionFacts =
-        GlColorActionFacts(targetGeneration, GlColorClassification.DisplayP3, reconciliationFacts.colorMode)
-    private val scrgbAction: GlColorActionFacts =
-        GlColorActionFacts(targetGeneration, GlColorClassification.Scrgb, reconciliationFacts.colorMode)
-    private val hdrAction: GlColorActionFacts =
-        GlColorActionFacts(targetGeneration, GlColorClassification.HdrTransfer, reconciliationFacts.colorMode)
-    private val nominalAction: GlColorActionFacts =
-        GlColorActionFacts(targetGeneration, GlColorClassification.NominalSdr, reconciliationFacts.colorMode)
+    internal val bootstrapDesiredState: GlFrameDesiredState = reconciliationFacts
+    internal val bootstrapColorActions: GlColorActionSet = GlColorActionSet(targetGeneration)
     internal var lastColorAction: GlColorActionFacts? = null
+    private var exactActualState: GlFrameActualState? = null
     private var destructionHandle: GlDestructionHandle? = null
     private var destructionClaimed: Boolean = false
 
@@ -155,25 +201,81 @@ internal class GlRenderTargetState private constructor(
         val handle = destructionHandle ?: return null
         handle.installedRenderTargetDestruction = installed
         destructionClaimed = true
+        owner.commitRenderCurrentnessMutationLocked()
         return handle
     }
 
-    internal fun actionFor(dataSpace: Int): GlColorActionFacts = when {
-        dataSpace == DataSpace.DATASPACE_SRGB -> srgbAction
-        dataSpace == DataSpace.DATASPACE_DISPLAY_P3 -> displayP3Action
-        dataSpace == DataSpace.DATASPACE_SCRGB || dataSpace == DataSpace.DATASPACE_SCRGB_LINEAR -> scrgbAction
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                (DataSpace.getTransfer(dataSpace) == DataSpace.TRANSFER_ST2084 ||
-                        DataSpace.getTransfer(dataSpace) == DataSpace.TRANSFER_HLG) -> hdrAction
+    internal fun destructionClaimedLocked(owner: GlPipelineOwner): Boolean {
+        check(owner.glGate.isHeldByCurrentThread)
+        return destructionClaimed
+    }
 
-        else -> nominalAction
+    internal fun actualStateLocked(owner: GlPipelineOwner): GlFrameActualState? {
+        check(owner.glGate.isHeldByCurrentThread)
+        return exactActualState
+    }
+
+    internal fun applyFrameReconciliationLocked(
+        owner: GlPipelineOwner,
+        command: GlFrameReconciliationApplyCommand,
+        admittedFact: TargetRetainedGlAdmittedFact,
+    ): GlFrameReconciliationResult {
+        check(owner.glGate.isHeldByCurrentThread)
+        val reservation = command.targetReservation.reservation
+        val structuralRejection = when {
+            this.owner.renderGeneration != command.renderGeneration ||
+                    command.renderTargetOwner.renderGeneration != command.renderGeneration ->
+                GlFrameReconciliationRejectionReason.RenderGenerationMismatch
+
+            this.owner !== command.renderTargetOwner ->
+                GlFrameReconciliationRejectionReason.RenderTargetOwnerMismatch
+
+            admittedFact.reservation !== reservation ||
+                    reservation.reservedFact !== command.targetReservation ||
+                    reservation.admittedFact !== admittedFact ->
+                GlFrameReconciliationRejectionReason.QuiescenceMismatch
+
+            command.quiescedFact.targetIdentity !== command.targetIdentity ||
+                    command.quiescedFact.sealedFact.targetIdentity !== command.targetIdentity ||
+                    reservation.targetIdentity !== command.targetIdentity ||
+                    reservation.quiescedFact !== command.quiescedFact ->
+                GlFrameReconciliationRejectionReason.TargetIdentityMismatch
+
+            command.targetIdentity.generation != command.targetGeneration ||
+                    command.quiescedFact.targetGeneration != command.targetGeneration ||
+                    command.quiescedFact.sealedFact.targetGeneration != command.targetGeneration ||
+                    reservation.targetGeneration != command.targetGeneration ->
+                GlFrameReconciliationRejectionReason.TargetGenerationMismatch
+
+            command.quiescedFact.originRetainedReconfigurationIdentity !=
+                    command.quiescedFact.sealedFact.originRetainedReconfigurationIdentity ||
+                    command.quiescedFact.sealedEpoch != command.quiescedFact.sealedFact.sealedEpoch ||
+                    reservation.retainedReconfigurationIdentity != command.retainedReconfigurationIdentity ->
+                GlFrameReconciliationRejectionReason.QuiescenceMismatch
+
+            else -> null
+        }
+        val pipelineClosed = owner.frameReconciliationPipelineClosedLocked(this)
+        val endpointPoisoned = owner.frameReconciliationEndpointPoisonedLocked()
+        val rejection = structuralRejection ?: if (pipelineClosed || endpointPoisoned) {
+            GlFrameReconciliationRejectionReason.PipelineClosed
+        } else {
+            null
+        }
+        if (rejection != null) return command.rejectedResult(rejection)
+
+        val applied = command.appliedResult()
+        exactActualState = applied.actualState
+        lastColorAction = null
+        owner.commitRenderCurrentnessMutationLocked()
+        return applied
     }
 
     internal companion object {
         internal fun create(
             owner: GlPipelineOwner.GlRenderTargetOwner,
             targetGeneration: Long,
-            reconciliationFacts: GlFrameReconciliationFacts,
+            reconciliationFacts: GlFrameDesiredState,
         ): GlRenderTargetState =
             GlRenderTargetState(owner, targetGeneration, reconciliationFacts)
     }
@@ -192,7 +294,7 @@ internal class GlRenderTargetConstructionHandle internal constructor(
         returnedOwner = candidate
     }
     private val ownerBag: GlOwnerBag = GlOwnerBag(candidate)
-    private val occurrence: OperationOccurrence<GlOperationEvidence> = owner.operationOccurrence(identity, evidence, ownerBag)
+    override val occurrence: OperationOccurrence<GlOperationEvidence> = owner.operationOccurrence(identity, evidence, ownerBag)
     private val claimedFacts: GlClaimedOperationFacts = GlClaimedOperationFacts.precreate(evidence)
     private val constructionClaim: GlRenderTargetConstructionClaim =
         GlRenderTargetConstructionClaim.precreate(claimedFacts, candidate)
@@ -269,6 +371,7 @@ internal class GlRenderTargetConstructionHandle internal constructor(
                 return@withLock null
             }
             owner.installedRenderTarget = state
+            owner.commitRenderCurrentnessMutationLocked()
             disposition = GlRenderTargetConstructionDisposition.Installed
             candidate
         }

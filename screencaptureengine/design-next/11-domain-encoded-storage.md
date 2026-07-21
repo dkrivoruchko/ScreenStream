@@ -33,16 +33,17 @@ and `CORE-PRIV-1`.
 
 ## STORE-001 — File and authority boundary
 
-Production storage declarations and behavior are in `INT:EncodedStorageOwner.kt`. It owns the transaction
-states, checked Framework `OutputStream`, native adoption sink, immutable payloads, frame metadata wrappers,
-production/cache roles, and counted lease. Path aliases are defined in
+`INT:EncodedStorageOwner.kt` is the canonical storage authority anchor. One semantic storage state machine owns
+the transaction states, checked Framework `OutputStream`, native adoption sink, immutable payloads, frame
+metadata wrappers, production/cache roles, and counted lease. Private transaction, payload-role, copy/adoption,
+lease, and retirement mechanics may use cohesive internal units without creating a second role store, gate,
+commit path, or payload representation. Path aliases are defined in
 [01-authority-router.md](01-authority-router.md#4-module-and-path-bindings).
-The cohesive storage state machine remains in this root file; no empty `storage` package or forced split exists.
 
 Storage declares the nested `NativeSegmentSink` and its private
 `adoptNativeSegment(ByteBuffer, Int): Unit` method. `NJPEG-001` and `NJPEG-050` alone own its frozen JNI binary
 target/descriptor, registration, call ordering, and keep boundary. Storage does not own `NativeJpegProcess`,
-the call-scoped native capsule/segments, carrier leases, Bitmap transfer, controller currentness, pacing,
+the call-scoped native writer/segments, carrier leases, Bitmap transfer, controller currentness, pacing,
 Delivery handoff, or the public frame wrapper.
 
 ## STORE-010 — Typed boundary
@@ -56,26 +57,14 @@ Delivery handoff, or the public frame wrapper.
 | outbound to `DEL-PACE-020`, `DEL-HO-001`, `DEL-HO-020` | exact published-payload metadata and one `EncodedPayloadLease` | preserve backing ownership; delivery gets only the counted lease and its copy surface |
 | outbound to `CTRL-400`, `CORE-CLEAN-1`, `CORE-CLEAN-2` | exact transaction, tentative managed segments, payload role, or encoded-lease obligation | detach managed ownership only after exact producer/delivery facts permit it; claim no physical managed-free receipt |
 
-`EncodedStorageOwner` has these closed private roles. Exact private spelling may vary, but no competing storage
-state machine or payload representation may exist:
-
-```kotlin
-EncodedStorageOwner
-  SegmentedTransaction -> FrameworkTransaction | NativeTransaction
-  NativeSegmentSink.adoptNativeSegment(segment: ByteBuffer, byteCount: Int): Unit
-  ImmutableEncodedPayload.copyTo(destination: ByteArray, destinationOffset: Int): Int
-  ImmutableEncodedPayload.copyBytes(): ByteArray
-  UnpublishedEncodedPayload
-  PublishedEncodedPayload
-  EncodedPayloadLease
-```
-
-Transactions expose only commit/abort and their backend-specific producer facade. Payload and lease references
-are identity-bearing owners, not interchangeable value snapshots.
+Storage has one transaction family, immutable segmented payload representation, production/cache roles, and
+counted delivery lease. Transactions expose only commit/abort and the applicable producer boundary; payload and
+lease references are identity-bearing owners, not interchangeable snapshots. The nested JNI sink named above is
+the sole physical-layout exception.
 
 ## STORE-020 — Closed owner roles
 
-`EncodedStorageOwner` contains exactly these mutually constrained roles:
+The storage authority contains exactly these mutually constrained semantic roles:
 
 | Role | Maximum | Contents and transition |
 | --- | ---: | --- |
@@ -96,14 +85,9 @@ same payload. A zero-lease retired payload is detached outside `sessionGate` aft
 
 ## STORE-030 — Transaction state and arbitration
 
-The sole transaction state set is:
-
-```text
-Open -> ProducerClosed -> Committed
-Open ------------------> Committed
-Open | ProducerClosed -> Faulted -> Aborted
-Open | ProducerClosed -----------> Aborted
-```
+One transaction is writable until producer close, then may commit once; any precommit fault is sticky and only
+abort remains. Abort also closes a healthy uncommitted transaction. Committed or aborted transactions never
+reopen.
 
 | Operation | Exact rule |
 | --- | --- |
@@ -132,19 +116,10 @@ complete new cumulative `Int` total before its first mutation.
 - The call fills any available tail first. If bytes remain, it creates at most one new tail and copies the
   remaining source bytes once. Existing full segments are never copied.
 
-When a new tail is required, capacity is derived, never configured:
-
-```text
-A = bytes already accepted at that point
-R = positive bytes remaining in this write call
-V = Int.MAX_VALUE - A
-C = min(max(A, R), V)
-```
-
-The prior cumulative check proves `R <= V`, so `C >= R > 0`. The first bulk write therefore allocates exact
-`R`; isolated single-byte writes derive `1, 1, 2, 4, ...`. Tail allocation, source copy, and segment-list append
-belong to that write. If any fails after earlier bytes from the call were copied, the whole transaction becomes
-sticky `Faulted`; no partial transaction can commit or publish.
+New-tail capacity is derived from accepted and remaining bytes with checked managed bounds, never a tuning
+constant. Growth is segmented and bounded, existing full segments are not recopied, and each write adds at most
+one tail. Any allocation/copy/append failure makes the whole transaction sticky-failed; no partial transaction
+can commit or publish.
 
 ## STORE-050 — Commit, immutable payload, and caller copies
 
@@ -167,16 +142,10 @@ copy additionally requires the thread/token validity owned by `DEL-HO-020` and `
 
 ## STORE-060 — Native segment adoption
 
-`NJPEG-080` alone decides whether, when, and in which order to invoke the sink and owns each native segment,
-temporary local reference, return/throw evidence, and native release/close. At entry to one synchronous
-`adoptNativeSegment` invocation, storage applies only this managed sequence:
-
-1. require an `Open` Native transaction and positive `byteCount`;
-2. require one direct view with `position == 0`, `limit == byteCount`, `remaining == byteCount`, and
-   `capacity == byteCount`;
-3. check `accepted + byteCount` in managed `Int` before allocation;
-4. allocate exact `ByteArray(byteCount)`, copy the full range once, append it once, then publish the new total;
-5. return without retaining or publishing the temporary native view.
+`NJPEG-080` alone orders sink calls and owns native segments, temporary references, return/throw, and native
+release. Each synchronous adoption requires an open Native transaction, positive exact direct range, and checked
+managed cumulative bound before mutation; storage copies the full range once into one managed segment, appends
+once, then publishes the total without retaining or exposing the native view.
 
 A zero-size writer callback supplies no sink invocation under `NJPEG-080` and therefore creates no managed
 segment. Framework writes and native adoption cannot mix in one transaction. Each valid nonempty sink invocation
@@ -184,7 +153,7 @@ creates one managed segment; storage never groups, coalesces, exposes, or uses i
 
 If managed validation/allocation/copy throws, the transaction becomes sticky with the exact storage
 classification and preserves that throwable for `NJPEG-080`/`NJPEG-090` evidence. Storage claims no JNI,
-native-transfer, native-free, local-reference, capsule-close, or segment-release receipt. Its complete result is
+native-transfer, native-free, local-reference, native-close, or segment-release receipt. Its complete result is
 only the managed transaction mutation (or sticky failure) and the invariant that it retained no view.
 
 ## STORE-070 — Publish, cache, repeat, lease, and retirement
@@ -255,13 +224,13 @@ copy, native-backed published payload, per-payload native cleanup, or zeroizatio
 ## STORE-100 — Executable obligations
 
 Closed packet membership is in [router §5](01-authority-router.md#5-closed-implementation-packets); shared
-closure/routing and test namespaces are in [Document 04](04-verification.md), and exact test paths are in
+closure/routing and test namespaces are in [Document 04](04-verification.md), and canonical test source sets are in
 [router §7](01-authority-router.md#7-test-manifest). Storage-specific proofs are:
 
 | Test ID | Exact proof |
 | --- | --- |
 | `H-PS` / transaction | every legal/illegal write, flush, close, commit, committed-payload transfer, and abort sequence; attach identity; first-fault stickiness; empty commit; payload visibility and exact owner detachment |
-| `H-PS` / Framework growth | symbolic inputs covering first tail, old-tail fill, new/full/partial tail, `write(int)`, mixed calls, valid/invalid/zero bulk ranges, checked limits, and source mutation; exact derived `C` and byte order with no tuning literal |
+| `H-PS` / Framework growth | symbolic inputs covering first tail, old-tail fill, new/full/partial tail, single-byte and mixed writes, valid/invalid/zero bulk ranges, checked limits, and source mutation; derived bounded capacity and byte order with no tuning literal |
 | `H-PS`, `A-FJ` | injected tail allocation, copy, list append, trim, container/freeze, and caller-flatten allocation results; exact storage classification/abortability, zero partial publication, ordered `copyTo`, persistent `J`, and symbolic managed bounds |
 | `H-PS`, `H-DL` | production/latest/displaced/lease identity transitions; accepted fresh/repeat/cache/invalidating/terminal commands; exact release fact; at most one displaced payload and no duplicate detach/copy; `DEL-PACE-020`, `DEL-HO-001`, `DEL-HO-020`, and `DEL-HO-040` own physical use/handoff ordering |
 | `N-JPEG` | storage-side exact positive direct-range validation, checked cumulative boundary, one managed segment per valid invocation, ordered bytes, view non-retention, and allocation/copy throwable identity; every adoption asserts the exact pre-copy, transient-copy, post-free, one-segment `2J`, and final `J` ledgers owned by `NJPEG-080`, while `NJPEG-120` owns invocation and native release/close order |

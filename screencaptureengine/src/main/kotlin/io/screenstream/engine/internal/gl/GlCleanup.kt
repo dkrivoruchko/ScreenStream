@@ -8,6 +8,7 @@ import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationOwnerBag
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
 import io.screenstream.engine.internal.settlement.isHandedOff
+import io.screenstream.engine.internal.target.TargetPortUseOutcome
 import io.screenstream.engine.internal.target.TargetRetirement
 import io.screenstream.engine.internal.target.TargetSurfaceReleaseReceipt
 import kotlin.concurrent.withLock
@@ -191,7 +192,7 @@ internal class GlDestructionHandle internal constructor(
         GlDestructionAction.Session -> GlDestructionKind.Session
     }
     private val evidence: GlDestructionEvidence = GlDestructionEvidence(identity.operationIdentity, kind)
-    private val occurrence: OperationOccurrence<GlDestructionEvidence> =
+    override val occurrence: OperationOccurrence<GlDestructionEvidence> =
         owner.destructionOccurrence(identity = identity, evidence = evidence, ownerBag = GlOwnerBag(renderTarget))
     private val claimedFacts: GlClaimedDestructionFacts = GlClaimedDestructionFacts.precreate(evidence)
     private val endpointOperation = owner.endpointOperation(occurrence, Runnable { execute() })
@@ -246,6 +247,7 @@ internal class GlDestructionHandle internal constructor(
                     false
                 } else {
                     owner.installedRenderTarget = null
+                    owner.commitRenderCurrentnessMutationLocked()
                     true
                 }
             }
@@ -276,9 +278,9 @@ internal class GlTargetScopeDestructionHandle internal constructor(
     private val graph: TargetRetirement.TargetScopeDestructionGraph,
 ) : GlPipelineOwner.TargetScopeDestructionCommand, GlTeardownOwner {
     private val evidence: GlDestructionEvidence = graph.targetEvidence
-    private val occurrence: OperationOccurrence<GlDestructionEvidence> = graph.targetOccurrence
+    override val occurrence: OperationOccurrence<GlDestructionEvidence> = graph.targetOccurrence
     private val namespaceEvidence: GlDestructionEvidence = graph.namespaceEvidence
-    private val namespaceOccurrence: OperationOccurrence<GlDestructionEvidence> = graph.namespaceOccurrence
+    override val namespaceOccurrence: OperationOccurrence<GlDestructionEvidence> = graph.namespaceOccurrence
     private val claimedFacts: GlClaimedDestructionFacts = GlClaimedDestructionFacts.precreate(evidence)
     private val namespaceClaimedFacts: GlClaimedDestructionFacts = GlClaimedDestructionFacts.precreate(namespaceEvidence)
     private val targetEndpointOperation = owner.endpointOperation(occurrence, Runnable { executeTargetScope() })
@@ -325,7 +327,7 @@ internal class GlTargetScopeDestructionHandle internal constructor(
                     }
                 }
             }
-            if (!released) {
+            if (released != TargetPortUseOutcome.BodyReturned) {
                 owner.checkFatalFence()
                 evidence.result = GlOperationResult.InternalFailure
                 evidence.contextIntegrity = owner.contextIntegrity

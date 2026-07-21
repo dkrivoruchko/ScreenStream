@@ -24,8 +24,12 @@ import io.screenstream.engine.internal.settlement.PrivateExecutorTerminationRece
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import io.screenstream.engine.internal.target.CurrentTarget
 import io.screenstream.engine.internal.target.PreparedTarget
+import io.screenstream.engine.internal.target.TargetFrameEntryResult
 import io.screenstream.engine.internal.target.TargetPorts
+import io.screenstream.engine.internal.target.TargetRetainedGlAdmittedFact
 import io.screenstream.engine.internal.target.TargetRetirement
+import io.screenstream.engine.internal.target.TargetSurfaceReleaseEvidence
+import io.screenstream.engine.internal.target.TargetSurfaceReleaseReadyFact
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -51,18 +55,21 @@ internal class GlPipelineOwner(
     }
 
     internal interface SurfaceReleaseCommand {
+        val occurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>
         val deadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
         fun claim(): TargetSurfaceReleaseClaim?
     }
 
     internal interface TargetConstructionCommand {
+        val occurrence: OperationOccurrence<GlOperationEvidence>
         val deadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
         fun retireAfterTargetArbitration()
     }
 
     internal interface RenderTargetConstructionCommand {
+        val occurrence: OperationOccurrence<GlOperationEvidence>
         val deadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
         fun claim(): GlRenderTargetConstructionClaim?
@@ -72,17 +79,21 @@ internal class GlPipelineOwner(
 
     internal interface FrameCommand {
         val deadlineWakeLink: ControlWakeLink
+        val targetFrameEntryResult: TargetFrameEntryResult?
         fun submit(): Boolean
         fun claim(): GlClaimedOperationFacts?
     }
 
     internal interface DestructionCommand {
+        val occurrence: OperationOccurrence<GlDestructionEvidence>
         val deadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
         fun claim(): GlClaimedDestructionFacts?
     }
 
     internal interface TargetScopeDestructionCommand {
+        val occurrence: OperationOccurrence<GlDestructionEvidence>
+        val namespaceOccurrence: OperationOccurrence<GlDestructionEvidence>
         val deadlineWakeLink: ControlWakeLink
         val namespaceDeadlineWakeLink: ControlWakeLink
         fun submit(): Boolean
@@ -94,12 +105,15 @@ internal class GlPipelineOwner(
     internal val glGate: ReentrantLock = ReentrantLock(false)
     internal var installedRenderTarget: GlRenderTargetState? = null
     internal var contextRenderTarget: GlRenderTargetState? = null
+    private var renderCurrentnessVersion: Long = 1L
+    private var renderCurrentnessVersionExhausted: Boolean = false
 
     internal var display: EGLDisplay = EGL14.EGL_NO_DISPLAY
     internal var config: EGLConfig? = null
     internal var context: EGLContext = EGL14.EGL_NO_CONTEXT
     internal var pbuffer: EGLSurface = EGL14.EGL_NO_SURFACE
     internal var contextIntegrity: ContextIntegrity = ContextIntegrity.Unknown
+        private set
     internal var lastGroupCleanPostprobe: Boolean = false
     private var capabilities: GlCapabilityFacts? = null
     private val capabilityCandidate: GlCapabilityFacts = GlCapabilityFacts()
@@ -147,7 +161,116 @@ internal class GlPipelineOwner(
     internal val currentProgram: GlProgram.State?
         get() = program.current
 
-    internal fun isInstalledRenderState(state: GlRenderTargetState): Boolean = glGate.withLock { installedRenderTarget === state }
+    internal fun renderCurrentnessFact(expected: GlRenderTargetOwner): GlRenderCurrentnessFact? = glGate.withLock {
+        val state = installedRenderTarget ?: return@withLock null
+        if (state.owner !== expected) return@withLock null
+        val fatal = laneRuntime.observedFatal
+        val poisoned = laneRuntime.isPoisoned
+        val pipelineComplete = renderPipelineCompleteLocked(state)
+        val destructionClaimed = state.destructionClaimedLocked(this)
+        val exhausted = renderCurrentnessVersionExhausted
+        GlRenderCurrentnessFact(
+            renderTargetOwner = state.owner,
+            renderGeneration = state.owner.renderGeneration,
+            compatibilityFacts = state.owner.compatibilityFacts,
+            actualState = state.actualStateLocked(this),
+            contextIntegrity = contextIntegrity,
+            pipelineComplete = pipelineComplete,
+            destructionClaimed = destructionClaimed,
+            lanePoisoned = poisoned,
+            observedFatal = fatal,
+            version = renderCurrentnessVersion,
+            versionExhausted = exhausted,
+            reusable = !exhausted && pipelineComplete && !destructionClaimed &&
+                    contextIntegrity == ContextIntegrity.Intact && !poisoned && fatal == null,
+        )
+    }
+
+    internal fun isRenderCurrentnessVersion(fact: GlRenderCurrentnessFact): Boolean = glGate.withLock {
+        val state = installedRenderTarget ?: return@withLock false
+        val fatal = laneRuntime.observedFatal
+        val poisoned = laneRuntime.isPoisoned
+        val pipelineComplete = renderPipelineCompleteLocked(state)
+        val destructionClaimed = state.destructionClaimedLocked(this)
+        val reusable = pipelineComplete && !destructionClaimed && contextIntegrity == ContextIntegrity.Intact &&
+                !poisoned && fatal == null
+        !renderCurrentnessVersionExhausted && !fact.versionExhausted &&
+                fact.version == renderCurrentnessVersion && fact.renderTargetOwner === state.owner &&
+                fact.renderGeneration == state.owner.renderGeneration &&
+                fact.compatibilityFacts === state.owner.compatibilityFacts &&
+                fact.actualState === state.actualStateLocked(this) &&
+                fact.contextIntegrity == contextIntegrity &&
+                fact.pipelineComplete == pipelineComplete && fact.destructionClaimed == destructionClaimed &&
+                fact.lanePoisoned == poisoned && fact.observedFatal === fatal && fact.reusable == reusable
+    }
+
+    internal val isRenderCurrentnessVersionExhausted: Boolean
+        get() = glGate.withLock { renderCurrentnessVersionExhausted }
+
+    internal fun commitRenderCurrentnessMutationLocked() {
+        check(glGate.isHeldByCurrentThread)
+        if (renderCurrentnessVersionExhausted) return
+        if (renderCurrentnessVersion == Long.MAX_VALUE) {
+            renderCurrentnessVersionExhausted = true
+        } else {
+            renderCurrentnessVersion += 1L
+            if (renderCurrentnessVersion == Long.MAX_VALUE) {
+                renderCurrentnessVersionExhausted = true
+            }
+        }
+    }
+
+    internal fun commitRenderCurrentnessMutation() {
+        glGate.withLock { commitRenderCurrentnessMutationLocked() }
+    }
+
+    private fun renderPipelineCompleteLocked(state: GlRenderTargetState): Boolean {
+        check(glGate.isHeldByCurrentThread)
+        return installedRenderTarget === state && state.textureName != 0 && state.framebufferName != 0 &&
+                program.current != null && sessionEglStarted && context != EGL14.EGL_NO_CONTEXT &&
+                pbuffer != EGL14.EGL_NO_SURFACE && !contextUnbound && !contextDestroyed
+    }
+
+    internal fun frameReconciliationPipelineClosedLocked(state: GlRenderTargetState): Boolean {
+        check(glGate.isHeldByCurrentThread)
+        return contextIntegrity != ContextIntegrity.Intact || state.destructionClaimedLocked(this) ||
+                !renderPipelineCompleteLocked(state) || renderCurrentnessVersionExhausted ||
+                renderCurrentnessVersion == Long.MAX_VALUE
+    }
+
+    internal fun frameReconciliationEndpointPoisonedLocked(): Boolean {
+        check(glGate.isHeldByCurrentThread)
+        val poisoned = laneRuntime.isPoisoned
+        checkFatalLocked()
+        return poisoned
+    }
+
+    internal fun frameActualStateSnapshot(state: GlRenderTargetState): GlFrameActualState? = glGate.withLock {
+        check(installedRenderTarget === state)
+        state.actualStateLocked(this)
+    }
+
+    internal fun isChangedColorAction(
+        state: GlRenderTargetState,
+        actualState: GlFrameActualState?,
+        action: GlColorActionFacts,
+    ): Boolean = glGate.withLock {
+        check(installedRenderTarget === state)
+        check(state.actualStateLocked(this) === actualState)
+        state.lastColorAction !== action
+    }
+
+    internal fun recordColorAction(
+        state: GlRenderTargetState,
+        actualState: GlFrameActualState?,
+        action: GlColorActionFacts,
+    ): Boolean = glGate.withLock {
+        if (installedRenderTarget !== state || state.actualStateLocked(this) !== actualState) {
+            return@withLock false
+        }
+        state.lastColorAction = action
+        true
+    }
 
     internal val capabilityFacts: GlCapabilityFacts?
         get() = capabilities
@@ -239,7 +362,15 @@ internal class GlPipelineOwner(
     internal fun glesGroup(evidence: GlDestructionEvidence, commands: () -> Boolean): Boolean = eglRuntime.glesGroup(evidence, commands)
 
     internal fun markContextUnknown() {
-        contextIntegrity = ContextIntegrity.Unknown
+        recordContextIntegrity(ContextIntegrity.Unknown)
+    }
+
+    internal fun recordContextIntegrity(integrity: ContextIntegrity) {
+        glGate.withLock {
+            if (contextIntegrity == integrity) return@withLock
+            contextIntegrity = integrity
+            commitRenderCurrentnessMutationLocked()
+        }
     }
 
     internal fun bindContextNamespace(graph: TargetRetirement.TargetScopeDestructionGraph): Boolean = glGate.withLock {
@@ -272,7 +403,9 @@ internal class GlPipelineOwner(
     internal fun constructSession(evidence: GlOperationEvidence): Boolean {
         if (!eglRuntime.construct(evidence)) return false
         val precision = capabilities?.fragmentPrecision?.selectedPrecision ?: return false
-        return program.construct(evidence, precision)
+        val constructed = program.construct(evidence, precision)
+        if (constructed) commitRenderCurrentnessMutation()
+        return constructed
     }
 
     internal fun queryCapabilities(evidence: GlOperationEvidence): Boolean {
@@ -314,9 +447,10 @@ internal class GlPipelineOwner(
         return true
     }
 
-    internal fun prepareSurfaceRelease(target: CurrentTarget): SurfaceReleaseCommand? {
+    internal fun prepareSurfaceRelease(readinessFact: TargetSurfaceReleaseReadyFact): SurfaceReleaseCommand? {
         checkFatalFence()
-        val operation = target.prepareSurfaceReleaseOperation() ?: return null
+        val target = readinessFact.targetIdentity.target
+        val operation = target.prepareSurfaceReleaseOperation(readinessFact) ?: return null
         return GlSurfaceReleaseHandle(this, operation)
     }
 
@@ -375,7 +509,7 @@ internal class GlPipelineOwner(
         renderGeneration: Long,
         compatibilityFacts: GlRenderTargetCompatibilityFacts,
         targetGeneration: Long,
-        reconciliationFacts: GlFrameReconciliationFacts,
+        reconciliationFacts: GlFrameDesiredState,
     ): RenderTargetConstructionCommand? {
         val facts = capabilities ?: return null
         val size = compatibilityFacts.imageSize
@@ -439,7 +573,16 @@ internal class GlPipelineOwner(
         product: JpegRuntimeProduct,
         lease: RgbaCarrierLease,
     ): FrameCommand? {
-        val renderState = glGate.withLock { installedRenderTarget } ?: return null
+        val renderState = glGate.withLock {
+            val state = installedRenderTarget ?: return@withLock null
+            val actualState = state.actualStateLocked(this)
+            if (actualState != null &&
+                (actualState.targetIdentity !== target.identity || actualState.targetGeneration != target.generation)
+            ) {
+                return@withLock null
+            }
+            state
+        } ?: return null
         checkFatalFence()
         if (renderState.owner !== renderTarget || product.carrier.byteCount != renderTarget.compatibilityFacts.rgbaByteCount ||
             lease.carrier !== product.carrier
@@ -469,6 +612,22 @@ internal class GlPipelineOwner(
             return null
         }
         return handle
+    }
+
+    internal fun applyFrameReconciliation(
+        command: GlFrameReconciliationApplyCommand,
+    ): GlFrameReconciliationResult = command.invoke(this)
+
+    internal fun applyAdmittedFrameReconciliation(
+        command: GlFrameReconciliationApplyCommand,
+        admittedFact: TargetRetainedGlAdmittedFact,
+    ): GlFrameReconciliationResult = glGate.withLock {
+        val state = installedRenderTarget
+        if (state == null) {
+            frameReconciliationEndpointPoisonedLocked()
+            return@withLock command.rejectedResult(GlFrameReconciliationRejectionReason.PipelineClosed)
+        }
+        state.applyFrameReconciliationLocked(this, command, admittedFact)
     }
 
     internal fun renderFrame(
@@ -507,7 +666,12 @@ internal class GlPipelineOwner(
         true
     }
 
-    internal fun destroyProgram(evidence: GlDestructionEvidence): Boolean = program.destroy(evidence)
+    internal fun destroyProgram(evidence: GlDestructionEvidence): Boolean {
+        val hadCurrentProgram = glGate.withLock { program.current != null }
+        val destroyed = program.destroy(evidence)
+        if (destroyed && hadCurrentProgram) commitRenderCurrentnessMutation()
+        return destroyed
+    }
 
     internal fun prepareHealthySessionDestruction(identity: GlFiniteOperationIdentity): DestructionCommand? {
         val handle = GlDestructionHandle(
@@ -553,6 +717,7 @@ internal class GlPipelineOwner(
                 state.framebufferName = 0
                 state.textureName = 0
                 if (contextRenderTarget === state) contextRenderTarget = null
+                commitRenderCurrentnessMutationLocked()
             }
         }
         return deleted
@@ -613,6 +778,7 @@ internal class GlPipelineOwner(
         contextRenderTarget = null
         program.consumeNamespaceLocked()
         contextNamespaceTransferredTarget = null
+        commitRenderCurrentnessMutationLocked()
         return true
     }
 
@@ -635,6 +801,7 @@ internal class GlPipelineOwner(
         installedRenderTarget = null
         contextRenderTarget = null
         program.consumeNamespaceLocked()
+        commitRenderCurrentnessMutationLocked()
         return true
     }
 

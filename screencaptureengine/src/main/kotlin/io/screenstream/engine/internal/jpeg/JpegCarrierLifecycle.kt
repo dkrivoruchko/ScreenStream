@@ -2,11 +2,13 @@ package io.screenstream.engine.internal.jpeg
 
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationEvidence
+import io.screenstream.engine.internal.settlement.OperationEntryDisposition
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationOwnerBag
 import io.screenstream.engine.internal.settlement.OperationReceipt
 import io.screenstream.engine.internal.settlement.OperationReturnCell
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
+import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
 import io.screenstream.engine.internal.settlement.PrivateExecutorOperation
 import io.screenstream.engine.internal.settlement.PrivateExecutorRuntime
 import io.screenstream.engine.internal.settlement.SettlementSignal
@@ -49,12 +51,56 @@ internal sealed class JpegRuntimeProduct(
     ) : JpegRuntimeProduct(managedCarrier) {
         override val nativeHealth: NativeJpegHealth = NativeJpegHealth.Disabled
         override val initialLease: ManagedDirectCarrierLease = ManagedDirectCarrierLease.create(managedCarrier)
+        internal val installedRetirement: ManagedCarrierRetirementFact = ManagedCarrierRetirementFact(
+            product = this,
+            carrier = managedCarrier,
+            origin = ManagedCarrierRetirementOrigin.Installed,
+        )
+        internal val uninstalledRetirement: ManagedCarrierRetirementFact = ManagedCarrierRetirementFact(
+            product = this,
+            carrier = managedCarrier,
+            origin = ManagedCarrierRetirementOrigin.UninstalledReturn,
+        )
 
         internal companion object {
             internal fun create(carrier: ManagedDirectCarrier): FrameworkOnManagedCarrier =
                 FrameworkOnManagedCarrier(carrier)
         }
     }
+}
+
+internal enum class JpegCarrierAllocationKind {
+    NativeMalloc,
+    ManagedDirect,
+}
+
+internal class JpegCarrierAllocationFact internal constructor(
+    internal val carrier: RgbaCarrier,
+    internal val kind: JpegCarrierAllocationKind,
+    internal val byteCount: Int,
+    internal val structurallyFreeable: Boolean,
+    internal val ready: Boolean,
+    internal val failure: Throwable?,
+)
+
+internal class JpegCarrierLeaseFact internal constructor(
+    internal val topologyIdentity: JpegRuntimeTopologySnapshot,
+    internal val product: JpegRuntimeProduct,
+    internal val carrier: RgbaCarrier,
+    internal val lease: RgbaCarrierLease,
+)
+
+internal enum class ManagedCarrierRetirementOrigin {
+    Installed,
+    UninstalledReturn,
+}
+
+internal class ManagedCarrierRetirementFact internal constructor(
+    internal val product: JpegRuntimeProduct.FrameworkOnManagedCarrier,
+    internal val carrier: ManagedDirectCarrier,
+    internal val origin: ManagedCarrierRetirementOrigin,
+) {
+    internal val physicalReleaseReceipt: OperationReceipt? = null
 }
 
 internal sealed class RgbaCarrier(
@@ -69,8 +115,11 @@ internal sealed class RgbaCarrier(
     }
 
     private class AttachmentShell {
+        @Volatile
         var state: AttachmentState = AttachmentState.Empty
         var buffer: ByteBuffer? = null
+        var structurallyFreeable: Boolean = false
+        var failure: Throwable? = null
     }
 
     private val attachment: AttachmentShell = AttachmentShell()
@@ -83,6 +132,33 @@ internal sealed class RgbaCarrier(
     private var admissionOpen: Boolean = false
     private var detached: Boolean = false
     private var admittedFreeOccurrence: NativeCarrierFreeOccurrence? = null
+    @Volatile
+    private var completedPhysicalReleaseFact: NativeCarrierPhysicalReleaseFact? = null
+    @Volatile
+    private var completedManagedRetirementFact: ManagedCarrierRetirementFact? = null
+
+    internal fun allocationFact(): JpegCarrierAllocationFact? {
+        val state = attachment.state
+        if (state != AttachmentState.Ready && state != AttachmentState.Rejected) return null
+        return JpegCarrierAllocationFact(
+            carrier = this,
+            kind = when (this) {
+                is NativeMallocCarrier -> JpegCarrierAllocationKind.NativeMalloc
+                is ManagedDirectCarrier -> JpegCarrierAllocationKind.ManagedDirect
+            },
+            byteCount = byteCount,
+            structurallyFreeable = attachment.structurallyFreeable,
+            ready = state == AttachmentState.Ready,
+            failure = attachment.failure,
+        )
+    }
+
+    internal fun physicalReleaseFactFor(occurrence: NativeCarrierFreeOccurrence): NativeCarrierPhysicalReleaseFact? =
+        completedPhysicalReleaseFact?.takeIf { it.occurrence === occurrence }
+
+    internal fun managedRetirementFactFor(
+        product: JpegRuntimeProduct.FrameworkOnManagedCarrier,
+    ): ManagedCarrierRetirementFact? = completedManagedRetirementFact?.takeIf { it.product === product }
 
     internal fun attachReturnedBufferLocked(settlementGate: ReentrantLock, returnedBuffer: ByteBuffer): Boolean {
         check(settlementGate.isHeldByCurrentThread)
@@ -93,11 +169,13 @@ internal sealed class RgbaCarrier(
         return true
     }
 
-    internal fun completeAttachmentLocked(settlementGate: ReentrantLock, ready: Boolean): Boolean {
+    internal fun completeAttachmentLocked(settlementGate: ReentrantLock, validation: CarrierValidation): Boolean {
         check(settlementGate.isHeldByCurrentThread)
         if (attachment.state != AttachmentState.Attached) return false
 
-        attachment.state = if (ready) AttachmentState.Ready else AttachmentState.Rejected
+        attachment.structurallyFreeable = validation.structurallyFreeable
+        attachment.failure = validation.failure
+        attachment.state = if (validation.ready) AttachmentState.Ready else AttachmentState.Rejected
         return true
     }
 
@@ -189,6 +267,26 @@ internal sealed class RgbaCarrier(
     internal fun isCurrentTopology(expectedTopology: JpegRuntimeTopologySnapshot): Boolean =
         topologyState.get() === expectedTopology
 
+    internal fun currentLeaseFact(
+        expectedTopology: JpegRuntimeTopologySnapshot,
+        expectedProduct: JpegRuntimeProduct,
+        expectedLease: RgbaCarrierLease,
+    ): JpegCarrierLeaseFact? = leaseGate.withLock {
+        if (topologyState.get() !== expectedTopology || installedProduct !== expectedProduct ||
+            attachedLease !== expectedLease || detached || !expectedLease.matchesAttachedProductLocked(expectedProduct) ||
+            !expectedLease.matchesCurrentTopologyLocked()
+        ) {
+            return@withLock null
+        }
+
+        JpegCarrierLeaseFact(
+            topologyIdentity = expectedTopology,
+            product = expectedProduct,
+            carrier = this,
+            lease = expectedLease,
+        )
+    }
+
     internal fun releaseLease(lease: RgbaCarrierLease): Boolean = leaseGate.withLock {
         if (attachedLease !== lease || retainedOperationLease != null || enteredUses != 0 || !lease.releaseLocked()) {
             return@withLock false
@@ -265,17 +363,20 @@ internal sealed class RgbaCarrier(
 
     internal fun logicallyDetach(
         expectedTopology: JpegRuntimeTopologySnapshot,
-        expectedProduct: JpegRuntimeProduct,
+        expectedProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier,
     ): Boolean = leaseGate.withLock {
         if (topologyState.get() !== expectedTopology || this !is ManagedDirectCarrier || installedProduct !== expectedProduct || admissionOpen ||
             attachedLease != null || retainedOperationLease != null || enteredUses != 0 || detached
         ) {
             return@withLock false
         }
+        val retirement = expectedProduct.installedRetirement
+        if (retirement.carrier !== this || completedManagedRetirementFact != null) return@withLock false
 
         detached = true
         installedProduct = null
         attachment.buffer = null
+        completedManagedRetirementFact = retirement
         true
     }
 
@@ -314,19 +415,24 @@ internal sealed class RgbaCarrier(
     internal fun markPhysicallyFreed(
         expectedBuffer: ByteBuffer,
         occurrence: NativeCarrierFreeOccurrence,
-    ): Boolean = leaseGate.withLock {
-        if (this !is NativeMallocCarrier) return@withLock false
-        if (admittedFreeOccurrence !== occurrence || attachment.buffer !== expectedBuffer) return@withLock false
-        if (detached) return@withLock installedProduct == null
+        receipt: NativeCarrierFreeReceipt,
+    ): NativeCarrierPhysicalReleaseFact? = leaseGate.withLock {
+        if (this !is NativeMallocCarrier) return@withLock null
+        val existing = completedPhysicalReleaseFact
+        if (existing != null) return@withLock existing.takeIf { it.occurrence === occurrence && it.receipt === receipt }
+        if (admittedFreeOccurrence !== occurrence || attachment.buffer !== expectedBuffer) return@withLock null
+        if (detached) return@withLock null
         if (admissionOpen || attachedLease != null || retainedOperationLease != null || enteredUses != 0) {
-            return@withLock false
+            return@withLock null
         }
+        val candidate = occurrence.attemptFact.physicalReleaseCandidate
+        if (candidate.carrier !== this || candidate.receipt !== receipt) return@withLock null
 
         detached = true
         installedProduct = null
         attachment.buffer = null
         admittedFreeOccurrence = null
-        true
+        candidate.also { completedPhysicalReleaseFact = it }
     }
 
     internal fun admitInstalledFree(
@@ -361,9 +467,12 @@ internal sealed class RgbaCarrier(
         true
     }
 
-    internal fun logicallyDropUninstalled(): Boolean = leaseGate.withLock {
+    internal fun logicallyDropUninstalled(
+        expectedProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier,
+    ): Boolean = leaseGate.withLock {
         if (this !is ManagedDirectCarrier || installedProduct != null || admissionOpen || attachedLease != null ||
             retainedOperationLease != null || enteredUses != 0 || detached || admittedFreeOccurrence != null ||
+            expectedProduct.managedCarrier !== this || completedManagedRetirementFact != null ||
             attachment.state != AttachmentState.Ready && attachment.state != AttachmentState.Rejected
         ) {
             return@withLock false
@@ -371,6 +480,7 @@ internal sealed class RgbaCarrier(
 
         detached = true
         attachment.buffer = null
+        completedManagedRetirementFact = expectedProduct.uninstalledRetirement
         true
     }
 }
@@ -494,6 +604,61 @@ internal class ManagedDirectCarrierLease private constructor(carrier: ManagedDir
 
 internal class NativeCarrierFreeReceipt internal constructor() : OperationReceipt
 
+internal enum class NativeCarrierFreeReturnKind {
+    Normal,
+    Thrown,
+}
+
+internal enum class NativeCarrierFreeQuarantineCause {
+    Nonreturn,
+    Thrown,
+    MissingReceipt,
+    MissingOwnerEvidence,
+    PhysicalReleaseUnproven,
+    TopologyRetirementUnproven,
+    UnsettledTicket,
+}
+
+internal class NativeCarrierFreeAttemptFact internal constructor(
+    internal val currentness: JpegProducerCurrentnessFact,
+    internal val occurrence: NativeCarrierFreeOccurrence,
+    internal val expectedProduct: JpegRuntimeProduct,
+    internal val carrier: NativeMallocCarrier,
+    internal val origin: NativeCarrierFreeOrigin,
+    internal val ticket: PrivateExecutorOperation<NativeCarrierFreeEvidence>,
+    internal val physicalReleaseCandidate: NativeCarrierPhysicalReleaseFact,
+)
+
+internal class NativeCarrierFreeReturnFact internal constructor(
+    internal val kind: NativeCarrierFreeReturnKind,
+    internal val throwable: Throwable?,
+    internal val receipt: NativeCarrierFreeReceipt?,
+)
+
+internal class NativeCarrierPhysicalReleaseFact internal constructor(
+    internal val occurrence: NativeCarrierFreeOccurrence,
+    internal val carrier: NativeMallocCarrier,
+    internal val receipt: NativeCarrierFreeReceipt,
+)
+
+internal class NativeCarrierFreeOutcomeFact internal constructor(
+    internal val attempt: NativeCarrierFreeAttemptFact,
+    internal val returned: NativeCarrierFreeReturnFact,
+    internal val physicalRelease: NativeCarrierPhysicalReleaseFact?,
+    internal val topologyRetired: Boolean?,
+    internal val settlement: NativeCarrierFreeSettlement,
+    internal val quarantineCause: NativeCarrierFreeQuarantineCause?,
+)
+
+internal class NativeCarrierFreeResidueFact internal constructor(
+    internal val attempt: NativeCarrierFreeAttemptFact,
+    internal val submissionDisposition: OperationSubmissionDisposition,
+    internal val entryDisposition: OperationEntryDisposition,
+    internal val returned: NativeCarrierFreeReturnFact?,
+    internal val physicalRelease: NativeCarrierPhysicalReleaseFact?,
+    internal val quarantineCause: NativeCarrierFreeQuarantineCause,
+)
+
 internal enum class NativeCarrierFreeSettlement {
     NotSettled,
     ReplacementAuthorized,
@@ -547,6 +712,11 @@ internal class NativeCarrierFreeOccurrence private constructor(
 ) : JpegEndpointOccurrence {
     override var endpointReleased: Boolean = false
     private var expectedProductSlot: JpegRuntimeProduct? = expectedProduct
+    internal lateinit var attemptFact: NativeCarrierFreeAttemptFact
+        private set
+    @Volatile
+    internal var outcomeFact: NativeCarrierFreeOutcomeFact? = null
+        private set
 
     internal val expectedProduct: JpegRuntimeProduct
         get() = checkNotNull(expectedProductSlot)
@@ -556,6 +726,18 @@ internal class NativeCarrierFreeOccurrence private constructor(
         if (expectedProductSlot !== expectedProduct) return false
 
         expectedProductSlot = null
+        return true
+    }
+
+    internal fun publishOutcomeFactLocked(
+        settlementGate: ReentrantLock,
+        fact: NativeCarrierFreeOutcomeFact,
+    ): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        val existing = outcomeFact
+        if (existing != null) return existing === fact
+
+        outcomeFact = fact
         return true
     }
 
@@ -599,6 +781,25 @@ internal class NativeCarrierFreeOccurrence private constructor(
                 operation = operation,
                 ownerBag = bag,
                 executorOperation = executorOperation,
+            )
+            val physicalReleaseCandidate = NativeCarrierPhysicalReleaseFact(
+                occurrence = occurrence,
+                carrier = carrier,
+                receipt = evidence.normalReceipt,
+            )
+            occurrence.attemptFact = NativeCarrierFreeAttemptFact(
+                currentness = JpegProducerCurrentnessFact(
+                    desiredRevision = desiredRevision,
+                    geometryGeneration = geometryGeneration,
+                    lifecycleEpoch = lifecycleEpoch,
+                    operationIdentity = operationIdentity,
+                ),
+                occurrence = occurrence,
+                expectedProduct = expectedProduct,
+                carrier = carrier,
+                origin = origin,
+                ticket = executorOperation,
+                physicalReleaseCandidate = physicalReleaseCandidate,
             )
             return occurrence
         }

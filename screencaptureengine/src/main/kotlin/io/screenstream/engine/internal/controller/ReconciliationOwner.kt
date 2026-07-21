@@ -12,45 +12,27 @@ import io.screenstream.engine.ScreenCaptureParameters
 import io.screenstream.engine.SourceRegion
 import io.screenstream.engine.internal.android.AndroidCaptureApiBand
 import io.screenstream.engine.internal.gl.GlCapabilityFacts
-import io.screenstream.engine.internal.gl.GlFrameReconciliationFacts
-import io.screenstream.engine.internal.gl.GlPipelineOwner
+import io.screenstream.engine.internal.gl.GlFrameDesiredState
 import io.screenstream.engine.internal.gl.GlRenderTargetCompatibilityFacts
-import io.screenstream.engine.internal.jpeg.FrameworkJpegOwner
-import io.screenstream.engine.internal.jpeg.JpegRuntimeProduct
-import io.screenstream.engine.internal.target.CurrentTarget
 import io.screenstream.engine.internal.target.TargetMode
 import io.screenstream.engine.internal.target.TargetPlan
 import kotlin.math.floor
 
-internal class ReconciliationKey(
-    internal val desiredRevision: Long,
-    internal val geometryGeneration: Long,
-    internal val lifecycleEpoch: Long,
-) {
-    init {
-        require(desiredRevision > 0L)
-        require(geometryGeneration > 0L)
-        require(lifecycleEpoch > 0L)
-    }
-}
-
 internal sealed interface ReconciliationInput {
-    val key: ReconciliationKey
+    val stamp: TopologyStamp
     val reconciliationOccurrenceIdentity: Long
     val apiBand: AndroidCaptureApiBand
     val capabilities: GlCapabilityFacts
-    val topologyIdentity: Long
 }
 
 internal class ProvisionalBootstrapInput(
-    override val key: ReconciliationKey,
+    override val stamp: TopologyStamp,
     override val reconciliationOccurrenceIdentity: Long,
     override val apiBand: AndroidCaptureApiBand,
     internal val provisionalWidthPx: Int,
     internal val provisionalHeightPx: Int,
     internal val densityDpi: Int,
     override val capabilities: GlCapabilityFacts,
-    override val topologyIdentity: Long,
 ) : ReconciliationInput {
     init {
         require(reconciliationOccurrenceIdentity > 0L)
@@ -58,25 +40,70 @@ internal class ProvisionalBootstrapInput(
 }
 
 internal class AuthoritativeInput(
-    override val key: ReconciliationKey,
+    override val stamp: TopologyStamp,
     override val reconciliationOccurrenceIdentity: Long,
     override val apiBand: AndroidCaptureApiBand,
     internal val captureGeometry: CaptureGeometry,
     internal val parameters: ScreenCaptureParameters,
     internal val currentTopology: ReconciliationCurrentTopology,
     override val capabilities: GlCapabilityFacts,
-    override val topologyIdentity: Long,
 ) : ReconciliationInput {
     init {
         require(reconciliationOccurrenceIdentity > 0L)
     }
 }
 
+internal class ReconciliationTargetTopologyFacts(
+    internal val plan: TargetPlan,
+    internal val installedCaptureWidthPx: Int?,
+    internal val installedCaptureHeightPx: Int?,
+    internal val reusable: Boolean,
+) {
+    init {
+        require(
+            (installedCaptureWidthPx == null && installedCaptureHeightPx == null) ||
+                    (installedCaptureWidthPx != null && installedCaptureWidthPx > 0 &&
+                            installedCaptureHeightPx != null && installedCaptureHeightPx > 0),
+        )
+    }
+}
+
+internal class ReconciliationRenderTopologyFacts(
+    internal val compatibility: GlRenderTargetCompatibilityFacts,
+    internal val reusable: Boolean,
+)
+
+internal enum class ReconciliationJpegBackend {
+    NativeEnabled,
+    FrameworkOnNativeCarrier,
+    FrameworkOnManagedCarrier,
+}
+
+internal class ReconciliationJpegTopologyFacts(
+    internal val backend: ReconciliationJpegBackend,
+    internal val carrierByteCount: Int,
+    internal val reusable: Boolean,
+) {
+    init {
+        require(carrierByteCount > 0)
+    }
+}
+
+internal class ReconciliationFrameworkTopologyFacts(
+    internal val imageSize: ImageSize,
+    internal val pixelByteCount: Int,
+    internal val resourcesComplete: Boolean,
+) {
+    init {
+        require(pixelByteCount > 0)
+    }
+}
+
 internal class ReconciliationCurrentTopology(
-    internal val target: CurrentTarget?,
-    internal val renderTarget: GlPipelineOwner.GlRenderTargetOwner?,
-    internal val jpegProduct: JpegRuntimeProduct?,
-    internal val frameworkOwner: FrameworkJpegOwner?,
+    internal val target: ReconciliationTargetTopologyFacts?,
+    internal val render: ReconciliationRenderTopologyFacts?,
+    internal val jpeg: ReconciliationJpegTopologyFacts?,
+    internal val framework: ReconciliationFrameworkTopologyFacts?,
 )
 
 internal enum class ReconciliationResourceAction {
@@ -105,7 +132,7 @@ internal class Resolved(
     internal val rgbaByteCount: Int,
     internal val targetPlan: TargetPlan,
     internal val effectiveParameters: ScreenCaptureEffectiveParameters,
-    internal val frameReconciliationFacts: GlFrameReconciliationFacts,
+    internal val frameReconciliationFacts: GlFrameDesiredState,
     internal val renderCompatibilityFacts: GlRenderTargetCompatibilityFacts,
     internal val targetAction: ReconciliationResourceAction,
     internal val renderAction: ReconciliationResourceAction,
@@ -339,35 +366,52 @@ internal object ReconciliationOwner {
             frameRepeatIntervalMillis = parameters.frameRepeatIntervalMillis,
             jpegQuality = parameters.jpegQuality,
         )
-        val targetPlan = TargetPlan(targetMode, targetWidth, targetHeight)
+        val selectedTargetPlan = TargetPlan(targetMode, targetWidth, targetHeight)
         val current = input.currentTopology
         val targetAction = when {
             current.target == null -> ReconciliationResourceAction.Create
-            sameTargetPlan(current.target.plan, targetPlan) -> ReconciliationResourceAction.Retain
+            !current.target.reusable -> ReconciliationResourceAction.Replace
+            selectedTargetPlan.mode == TargetMode.Full && current.target.plan.mode == TargetMode.Full &&
+                    retainsFullTarget(current.target, captureWidth, captureHeight) -> ReconciliationResourceAction.Retain
+            selectedTargetPlan.mode == TargetMode.Downscaled && current.target.plan.mode == TargetMode.Downscaled &&
+                    current.target.installedCaptureWidthPx == captureWidth &&
+                    current.target.installedCaptureHeightPx == captureHeight &&
+                    current.target.plan.targetWidthPx >= requiredSourceWidth &&
+                    current.target.plan.targetHeightPx >= requiredSourceHeight -> ReconciliationResourceAction.Retain
             else -> ReconciliationResourceAction.Replace
+        }
+        val executableTargetPlan = if (targetAction == ReconciliationResourceAction.Retain &&
+            selectedTargetPlan.mode == TargetMode.Downscaled
+        ) {
+            checkNotNull(current.target).plan
+        } else {
+            selectedTargetPlan
         }
         val renderFacts = GlRenderTargetCompatibilityFacts(finalSize, byteCount)
         val renderAction = when {
-            current.renderTarget == null -> ReconciliationResourceAction.Create
-            current.renderTarget.compatibilityFacts.imageSize == finalSize &&
-                    current.renderTarget.compatibilityFacts.rgbaByteCount == byteCount -> ReconciliationResourceAction.Retain
+            current.render == null -> ReconciliationResourceAction.Create
+            !current.render.reusable -> ReconciliationResourceAction.Replace
+            current.render.compatibility.imageSize == finalSize &&
+                    current.render.compatibility.rgbaByteCount == byteCount -> ReconciliationResourceAction.Retain
             else -> ReconciliationResourceAction.Replace
         }
         val jpegAction = when {
-            current.jpegProduct == null -> ReconciliationResourceAction.Create
-            current.jpegProduct.carrier.byteCount == byteCount -> ReconciliationResourceAction.Retain
+            current.jpeg == null -> ReconciliationResourceAction.Create
+            !current.jpeg.reusable -> ReconciliationResourceAction.Replace
+            current.jpeg.carrierByteCount == byteCount -> ReconciliationResourceAction.Retain
             else -> ReconciliationResourceAction.Replace
         }
-        val frameworkAction = when (val product = current.jpegProduct) {
+        val frameworkAction = when (current.jpeg?.backend) {
             null,
-            is JpegRuntimeProduct.NativeEnabled,
+            ReconciliationJpegBackend.NativeEnabled,
                 -> ReconciliationResourceAction.Absent
 
-            is JpegRuntimeProduct.FrameworkOnNativeCarrier,
-            is JpegRuntimeProduct.FrameworkOnManagedCarrier,
+            ReconciliationJpegBackend.FrameworkOnNativeCarrier,
+            ReconciliationJpegBackend.FrameworkOnManagedCarrier,
                 -> when {
-                    current.frameworkOwner == null -> ReconciliationResourceAction.Create
-                    current.frameworkOwner.isShapeCompatible(finalSize, byteCount) -> ReconciliationResourceAction.Retain
+                    current.framework == null -> ReconciliationResourceAction.Create
+                    current.framework.resourcesComplete && current.framework.imageSize == finalSize &&
+                            current.framework.pixelByteCount == byteCount -> ReconciliationResourceAction.Retain
                     else -> ReconciliationResourceAction.Replace
                 }
         }
@@ -390,9 +434,9 @@ internal object ReconciliationOwner {
             requiredSourceHeightPx = requiredSourceHeight,
             rgbaRowByteCount = rowByteCount,
             rgbaByteCount = byteCount,
-            targetPlan = targetPlan,
+            targetPlan = executableTargetPlan,
             effectiveParameters = effective,
-            frameReconciliationFacts = GlFrameReconciliationFacts(logicalInverse, parameters.colorMode),
+            frameReconciliationFacts = GlFrameDesiredState(logicalInverse, parameters.colorMode),
             renderCompatibilityFacts = renderFacts,
             targetAction = targetAction,
             renderAction = renderAction,
@@ -401,8 +445,15 @@ internal object ReconciliationOwner {
         )
     }
 
-    private fun sameTargetPlan(left: TargetPlan, right: TargetPlan): Boolean =
-        left.mode == right.mode && left.targetWidthPx == right.targetWidthPx && left.targetHeightPx == right.targetHeightPx
+    private fun retainsFullTarget(
+        current: ReconciliationTargetTopologyFacts,
+        captureWidth: Int,
+        captureHeight: Int,
+    ): Boolean = if (current.installedCaptureWidthPx != null && current.installedCaptureHeightPx != null) {
+        current.installedCaptureWidthPx == captureWidth && current.installedCaptureHeightPx == captureHeight
+    } else {
+        current.plan.targetWidthPx == captureWidth && current.plan.targetHeightPx == captureHeight
+    }
 
     private fun calculateLogicalInverse(
         captureWidth: Int,

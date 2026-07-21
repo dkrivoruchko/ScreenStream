@@ -25,7 +25,11 @@
 
 This file owns verification method, shared deterministic support, executable namespaces, and the complete
 acceptance, verification-slice, and paper-trace indexes. It does not define product behavior, implementation
-ownership, a fallback, or a timing rule. Exact domain cases live only in the linked domain file:
+ownership, a fallback, or a timing rule. Exact domain cases live only in the linked domain file.
+
+Verification binds behavior, invariants, race outcomes, and oracles rather than private production/test
+filenames, harness decomposition, or an equivalent algorithm. Only an explicitly marked public, binary, wire,
+platform, source-set, package, or build contract makes those structural details normative.
 
 | Verification subject | Exact owner |
 | --- | --- |
@@ -61,12 +65,13 @@ All paths are repository-relative through the aliases in
 
 | Evidence | Runner/task | Required scope |
 | --- | --- | --- |
-| `HOST` | Gradle/JUnit via `testDebugUnitTest`; `verifyScreenCaptureEngineHost` | values, controller/races, arithmetic, ownership, storage, Stats and diagnostics; excludes `BuildPackagingContractTest` |
+| `HOST` | Gradle/JUnit via `testDebugUnitTest`; `verifyScreenCaptureEngineHost` | values, controller/races, arithmetic, ownership, storage, Stats and diagnostics; excludes `P-PKG` |
 | `AIT`, `AI` | `androidx.test.runner.AndroidJUnitRunner` via one `connectedNativeTestAndroidTest`; `verifyScreenCaptureEngineDevice` and `verifyScreenCaptureEngineNative` both depend on it | public contract, real Android/EGL/Bitmap/native/cleanup/image behavior; absent managed Android branches may use production seams, but absent native branches are not claimed executed |
-| built artifacts and sources | separate filtered Gradle/JUnit `Test` task selecting only `BuildPackagingContractTest`; `verifyScreenCaptureEnginePackage` depends on exact `assembleDebug`, `assembleRelease`, `assembleNativeTest`, and `lintRelease` | every [router §4 module-baseline binding](01-authority-router.md#module-baseline), source-set/package boundary, and NJPEG-owned native artifact evidence |
+| built artifacts and sources | separate filtered Gradle/JUnit `Test` task selecting only the `P-PKG` package-verification suite; `verifyScreenCaptureEnginePackage` depends on exact `assembleDebug`, `assembleRelease`, `assembleNativeTest`, and `lintRelease` | every [router §4 module-baseline binding](01-authority-router.md#module-baseline), source-set/package boundary, and NJPEG-owned native artifact evidence |
 
-`P-PKG` requires `lintRelease` to report no `NewApi` finding for `FrameworkJpegOwner.kt`, with no local `NewApi`
-suppression and no module lint baseline. `BuildPackagingContractTest` and source inspection verify those facts.
+`P-PKG` requires `lintRelease` to report no `NewApi` finding for any applicable Framework API-band production
+code, with no local `NewApi` suppression and no module lint baseline. The `P-PKG` package-verification suite and source
+inspection verify those facts.
 The NDK, JNI, ABI, symbol, and native packaging requirements remain owned by
 [`NJPEG-PKG-001`](10-domain-native-jpeg.md#njpeg-pkg-001--native-build-and-artifacts); `P-PKG` only supplies
 their assigned artifact evidence.
@@ -79,7 +84,7 @@ task is introduced.
 
 ### 3.1 Harness
 
-`HOST:HostTestHarness.kt` supplies:
+The host harness supplies:
 
 - independently set elapsed and wall clocks;
 - controllable Control, Metrics, GL, JPEG, and Delivery executor seams covering prestart, outward
@@ -100,8 +105,8 @@ task is introduced.
 - typed boundary fakes and an ownership ledger for acquisition, transfer, lease, receipt, logical retirement,
   physical release, and exact quarantine identity.
 
-`AI:AndroidTestHarness.kt` supplies real Android call receipts, callback adapters, Surface fixtures, private
-EGL/GLES2 support, Bitmap/JPEG decode helpers, and programmatic image vectors. `AI:NativeTestHarness.kt` and
+The Android instrumentation harness supplies real Android call receipts, callback adapters, Surface fixtures,
+private EGL/GLES2 support, Bitmap/JPEG decode helpers, and programmatic image vectors. Native harness support and
 `NTCPP:screen_capture_engine_native_test_jni.cpp` supply only test-DSO controls around the unchanged JNI-free
 runtime; they neither access production DSO state nor masquerade as execution of an absent production branch.
 
@@ -145,23 +150,14 @@ their linked named completion rules rather than this finite-deadline matrix.
 
 Scheduler-rejection tests observe [CORE-WAKE-2](03-shared-runtime.md#core-wake-2--one-shot-control-wake-link-and-scheduling-rejection)
 and each linked domain disposition. `H-LC` verifies the `CTRL-040` scheduler construction/configuration before
-any public publication and its exact startup-failure path. `H-OS` applies the same link matrix independently to
-deadline, pacing/repeat, and Stats wakes: entry/publication before unlocked signal,
-`Requested -> Submitting -> Accepted | Rejected`, Fired before Future publication, wake-body return/throw after
-Fired, terminal while Submitting, exact current-required rejection, and generation-scoped operational settlement
-separate from physical outer-frame settlement. Deterministic
-barriers separately cover `Running(g)` before cancellation; successful `cancel(false)` returning before the Runnable
-wins `Queued(g) -> Running(g)` and before the suppression CAS; and cancellation winning
-`Queued(g) -> Suppressed(g)`, including a pause before its parent-gated publication and no Fired or later
-link/gate/clock/signal access by the loser. The matrix distinguishes `cancel(false) == false`, cancellation
-`Exception`, cancellation `Error`, never-submitted/pre-submit work, definite `RejectedExecutionException`, and
-acceptance-ambiguous scheduling Throwable. It crosses exact outer-wrapper removal true/false/throw with each
-cancellation result and never treats remove false as dequeue, entry, return, or no-run. It also covers generation
-mismatch/ABA, running operational settlement by Fired plus body return, suppressed operational settlement after
-cancel true plus suppression and all Future/cancel/removal publications, guarded successor reset before physical
-stale-frame return, stale first-CAS zero access, stale-frame return/nonreturn, single-worker exclusion of physical
-successor entry, shutdown concurrent with a successfully removed no-run wrapper, pre-increment/representation
-exhaustion, and no successor from termination.
+any public publication and its startup-failure path. `H-OS` applies the same link matrix independently to deadline,
+pacing/repeat, and Stats wakes. Deterministic barriers cover submission, Future publication, entry,
+cancellation/suppression, body return/throw, terminal transfer, and successor selection. The matrix distinguishes
+definite rejection from acceptance ambiguity; every cancel and outer-removal result, including throws;
+currentness/ABA; operational settlement from physical wrapper settlement; stale return/nonreturn; single-worker
+exclusion; shutdown; exhaustion; and termination. It asserts the exact `CORE-WAKE-2` outcomes, including zero
+engine access after a stale entry loses, no fabricated no-entry proof from removal failure, and no successor
+before all required publications.
 
 The Control fatal harness supplies exact typed decorated wrappers and single- and double-`afterExecute` runtime
 shapes. For `Error` and a custom non-`Exception` Throwable it asserts one runner capture, one settlement/poison/
@@ -206,15 +202,15 @@ snapshot; it neither recomputes nor owns expected counter values.
 
 ## 4. Executable namespaces
 
-An ID denotes a table-driven behavioral slice, not one monolithic test. The sole exact ID-to-test-path manifest
-is [router Section 7](01-authority-router.md#7-test-manifest); this file owns only verification responsibility.
-The linked rules remain behavior authority; exact domain rows in Section 1 own full matrices and production-file
-bindings.
+An ID denotes a table-driven behavioral slice, not one monolithic test. Canonical ID-to-test-path orientation is
+in [router Section 7](01-authority-router.md#7-test-manifest); this file owns only verification responsibility.
+The linked rules remain behavior authority; exact domain rows in Section 1 own full matrices and production-
+boundary bindings.
 
 | ID | Exact scope | Canonical owners |
 | --- | --- | --- |
 | `H-LC` | lifecycle/commands, terminal priority, lossless drainer, Session-scheduler construction and shutdown | [`CTRL-010`](05-domain-controller-reconciliation.md#ctrl-010--lossless-action-drainer), [`CTRL-020`](05-domain-controller-reconciliation.md#ctrl-020--public-command-application), [`CTRL-030`](05-domain-controller-reconciliation.md#ctrl-030--lifecycle-and-terminal-application), [`CTRL-040`](05-domain-controller-reconciliation.md#ctrl-040--session-scheduler-resource) |
-| `H-RC` | currentness, geometry conflation, topology decision/reuse/replacement, fallback and convergence | [`CTRL-100`](05-domain-controller-reconciliation.md#ctrl-100--currentness-identities)–[`CTRL-130`](05-domain-controller-reconciliation.md#ctrl-130--completion-and-fallback-arbitration) |
+| `H-RC` | currentness, geometry conflation, topology decision/reuse/replacement, retained GL reconciliation, fallback and convergence | [`CTRL-100`](05-domain-controller-reconciliation.md#ctrl-100--currentness-identities)–[`CTRL-130`](05-domain-controller-reconciliation.md#ctrl-130--completion-and-fallback-arbitration), [`GL-060`](08-domain-gl.md#gl-060--geometry-shader-color-and-readback) |
 | `H-OS` | operation occurrence, private endpoint submission/poison/raw fatal authority and thread-top partition, settlement, all Control wake kinds, transfer, late return and quarantine | [`CORE-SET-1`](03-shared-runtime.md#core-set-1--generic-operation-occurrence)–[`CORE-WAKE-2`](03-shared-runtime.md#core-wake-2--one-shot-control-wake-link-and-scheduling-rejection), [`CORE-EXEC-1`](03-shared-runtime.md#core-exec-1--private-execute-endpoints), [`CORE-FATAL-1`](03-shared-runtime.md#core-fatal-1--direct-fatal-throwable-policy), [`CORE-CLEAN-1`](03-shared-runtime.md#core-clean-1--cleanup-forest-and-dependency-graph)–[`CORE-CLEAN-2`](03-shared-runtime.md#core-clean-2--quarantine-nonreturn-and-late-reduction) |
 | `H-PS` | pacing/production, cache/repeat, storage roles and memory ledgers, exact Stats values | [`CTRL-200`](05-domain-controller-reconciliation.md#ctrl-200--policy-attempt-counter-and-observation-authority), [`DEL-PACE-001`](12-domain-delivery-observation.md#del-pace-001--pending-source-and-materialization)–[`DEL-PACE-020`](12-domain-delivery-observation.md#del-pace-020--repeat-cache-eligibility-and-output-commit), [`STORE-020`](11-domain-encoded-storage.md#store-020--closed-owner-roles)–[`STORE-100`](11-domain-encoded-storage.md#store-100--executable-obligations), [`PROD-070`](02-product-contract.md#prod-070--stats) |
 | `H-DL` | registration, Delivery submission/entry/callback, unsubscribe, successor cutoff and endpoint shutdown races; callback settlement releases authority/lease immediately while unresolved `execute` keeps `Entered` busy and blocks unsubscribe | [`DEL-HO-001`](12-domain-delivery-observation.md#del-ho-001--one-registration-and-one-handoff)–[`DEL-HO-040`](12-domain-delivery-observation.md#del-ho-040--terminal-cutoff-and-delivery-cleanup), [`CTRL-200`](05-domain-controller-reconciliation.md#ctrl-200--policy-attempt-counter-and-observation-authority) |

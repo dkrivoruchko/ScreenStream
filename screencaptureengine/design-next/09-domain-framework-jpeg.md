@@ -24,19 +24,9 @@ linked rather than repeated.
 
 ## FJPEG-001 — Source and file boundary
 
-Canonical paths are in [router §6](01-authority-router.md#6-source-manifest).
-`JPG:FrameworkJpegContracts.kt` owns Framework occurrences and evidence;
-`JPG:FrameworkBitmapOwner.kt` owns cohesive Bitmap/scratch state and uses;
-`JPG:FrameworkJpegExecution.kt` owns transfer/compress execution;
-`JPG:FrameworkJpegCleanup.kt` owns recycle and returned-resource cleanup; and
-`JPG:FrameworkJpegOwner.kt` is the sole mutable Framework facade. It consumes carrier interfaces from
-`JPG:JpegRuntimeCore.kt` and the transaction interface from `INT:EncodedStorageOwner.kt`; those declarations do
-not become Framework authority.
-
-`FrameworkJpegOwner` contains the installed Bitmap owner, optional row scratch, actual Bitmap metadata and
-transfer mode, one combined `FrameworkResourceCreationOccurrence`, one Framework encode occurrence per fresh
-attempt, and one recycle occurrence per retired Bitmap. Subordinate files cannot mutate backend selection or
-health independently and add no second settlement or resource-lifetime machine.
+Framework JPEG is one authority for Bitmap/scratch ownership, transfer/compress execution, and recycle cleanup.
+It consumes carrier and storage-transaction interfaces without owning them. Private collaborators cannot mutate
+backend selection/health or add a second settlement or resource-lifetime machine.
 
 ## FJPEG-010 — Typed domain boundary
 
@@ -57,13 +47,9 @@ owner/lease/occurrence. Native JPEG health and carrier allocation remain `NJPEG-
 
 ## FJPEG-020 — Installed resources and reuse
 
-Framework JPEG is the mandatory backend. One healthy installed owner holds exactly:
-
-- one mutable, software, sRGB `Bitmap.Config.ARGB_8888` Bitmap of `(Ow, Oh)`;
-- actual `width`, `height`, `rowBytes`, `byteCount`, config, mutability, and applicable color-space facts;
-- the selected `TightCopy` or `RowConversion` mode;
-- exactly one reusable `IntArray(Ow)` only for `RowConversion`;
-- use/lease accounting that prevents recycle while copy or compress can still access the Bitmap.
+Framework JPEG is the mandatory backend. One healthy installed owner holds one exact-shape mutable software sRGB
+`ARGB_8888` Bitmap, its validated actual metadata, one selected tight or row-conversion transfer mode, only the
+reusable row scratch that mode needs, and use accounting that prevents recycle during copy/compress.
 
 Canonical carrier pixels are tight top-down RGBA with opaque alpha. `R = 4 * Ow` and `B = R * Oh` are checked
 before creation or transfer. A healthy exact-shape owner, including its scratch when required by its installed
@@ -80,17 +66,10 @@ ineligibility reach this point after carrier/backend selection. A safe runtime N
 switching frame ends once as `byFailure`, performs no Framework allocation or retry, and later reconciliation
 stays `Running(Suspended(Reconfiguring))` until a complete Framework owner is installed.
 
-Before submission, the occurrence owns its generic cells, `FJPEG-090` deadline, immutable key/backend/shape,
-fixed metadata/mode evidence, partial owner bag, and recycle authority. The bag has precreated Bitmap and scratch
-slots. One Runnable on the prestarted Session-owned JPEG endpoint in
-[CORE-EXEC-1](03-shared-runtime.md#core-exec-1--private-execute-endpoints) performs this exact sequence:
-
-1. enter once and call `Bitmap.createBitmap(Ow, Oh, Bitmap.Config.ARGB_8888)` exactly once;
-2. adopt the returned Bitmap immediately, including the interval before its bag slot is published;
-3. inspect and validate the applicable actual metadata under `FJPEG-031`;
-4. select transfer mode from actual metadata and the fixed carrier shape;
-5. create exactly one `IntArray(Ow)` only when `RowConversion` is selected;
-6. publish the complete result using only precreated fields and references.
+One creation occurrence on the JPEG endpoint creates at most one requested mutable software sRGB `ARGB_8888`
+Bitmap, adopts it immediately, validates actual metadata, selects the compatible transfer mode, allocates only
+required row scratch, and publishes one complete result. Partial ownership remains in the occurrence until
+installation or cleanup.
 
 The one finite interval begins immediately before `Bitmap.createBitmap` and spans immediate adoption, metadata
 inspection, optional scratch construction, and complete allocation-free return publication. Creation is separate
@@ -121,16 +100,14 @@ logically dropped only after creation work and occurrence settlement; it has no 
 
 ## FJPEG-040 — Exact carrier-to-Bitmap transfer
 
-One private synchronous function accepts either legal carrier mode through the same exact `[0, B)` lease. It
-retains no carrier reference and creates no adapter owner, availability decision, operation state, cleanup root,
-or return resource. The caller resets the view to `position = 0` and `limit = B`; on normal return or throw it
-releases the carrier lease in `finally`. If the call does not return, that lease remains with the exact encode
-occurrence because carrier use has not mechanically ended. Bitmap use remains held through encode settlement.
+One synchronous transfer accepts either legal mode through the same exact `[0, B)` lease, retains no carrier,
+and releases the lease only after real return/throw. Nonreturn keeps it with the encode occurrence; Bitmap use
+remains held through encode settlement.
 
 | Selected installed mode | Required calls and predicates |
 | --- | --- |
-| `TightCopy` | Require checked `bitmap.rowBytes == R`, `bitmap.byteCount == B`, and view `position == 0`, `limit == B`, `remaining == B`; call `copyPixelsFromBuffer` exactly once. Raw byte order is independent of `ByteBuffer.order()` on the supported Android little-endian ABIs; no `IntBuffer` view exists. |
-| `RowConversion` | Reuse the installed `IntArray(Ow)`; for each row, pack each RGBA pixel as logical Kotlin `0xFFRRGGBB`, then call `setPixels(row, 0, Ow, 0, y, Ow, 1)` exactly once. There is no full-frame temporary array. |
+| `TightCopy` | Require tight actual Bitmap storage and the exact full leased range, then perform one direct pixel transfer. Raw byte order is independent of `ByteBuffer.order()` on supported Android little-endian ABIs. |
+| `RowConversion` | Convert tight RGBA to opaque logical `ARGB_8888` one row at a time through retained row scratch. There is no full-frame temporary array. |
 
 Mode is selected from the built Bitmap's actual metadata, not predicted from requested shape. The mandatory
 diagnostic records actual `rowBytes`, expected `R`, and selected mode; an actual mode change emits the
@@ -239,14 +216,14 @@ image score are not assertions. Exact Framework matrices remain below without re
 | `H-RC` | exact eligibility, complete-owner installation before Active, compatible identity reuse, recycle-to-fresh-recheck replacement, target-retention, A-to-B-to-A and safe Native-disable sequencing |
 | `H-OS` | creation/encode/recycle occurrences at rejection, inline entry/return, `D-1`/`D`/`D+1`, empty-at-`D`, gate pauses, commit-before-signal, terminal transfer, late return, OOM/throw/malformed/nonreturn, and exact owner-bag cleanup |
 | `H-PS` | transaction abort/commit, partial-byte nonpublication, storage allocation/copy failures, mechanical-success and currentness/Stats partition |
-| `A-FJ` | real Bitmap/API-band metadata, both carrier modes, exact fast/portable call shapes, real `Bitmap.compress`, transaction, decode, quality forwarding and the shared JPEG oracle |
+| `A-FJ` | real Bitmap/API-band metadata, both carrier transfer modes, real `Bitmap.compress`, transaction, decode, quality forwarding and the shared JPEG oracle |
 | `A-CL` | creation partial owners, held uses preventing recycle, nonreturn/quarantine isolation, logical scratch drop, exact late reduction and cross-Session progress |
 | `H-OB` | Framework diagnostic source/label/cause identity and noncontrol behavior |
 
 The creation matrix crosses Bitmap return with optional-scratch success/OOM/throw/malformed/nonreturn for
 current, stale, expired, late, and terminal results. API cases are exactly 24, 25, 26, and 37: API 24–25 prove
 zero API-26 metadata-helper invocation; API 26+ exercises the guarded color-space/HARDWARE branch. Transfer tests
-assert one fast copy or exactly `Oh` row calls, never both, and both Native/Managed carrier leases. Recycle tests
+exercise both paths, select only one per transfer, retain no full-frame temporary, and cover both Native/Managed carrier leases. Recycle tests
 hold each use open, require one normal receipt before replacement, and cover return-versus-terminal transfer.
 
 ## FJPEG-110 — Forbidden alternatives

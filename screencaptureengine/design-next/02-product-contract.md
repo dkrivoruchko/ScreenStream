@@ -111,6 +111,7 @@ Local parameter validation always precedes the state decision. Therefore a local
 | --- | --- |
 | winning `start` in `NotStarted` | Accept the projection and begin startup. |
 | `start` in Starting, any Running, or terminal | Throw `IllegalStateException`; allocate and touch nothing for the losing projection. |
+| `stop` in `NotStarted` | Fix `OwnerStop`; terminal `requestedParameters` is ordinary default `ScreenCaptureParameters()` and `lastEffectiveParameters == null`. Create no desired revision or runtime lane. Every later `start` loses and does not touch its projection. |
 | `updateParameters` in NotStarted, Starting, or terminal, after local validation | Throw `IllegalStateException`; publish no desire/revision and perform no resource work. |
 | legal update structurally equal to current requested parameters | Return `Unit`; requested value and revision remain unchanged. |
 | legal unequal update | Replace the latest desired value/revision and return `Unit`; intermediate accepted desires may be conflated in observation. Revision exhaustion fails terminally with `InternalFailure` before reuse and throws its `ScreenCaptureException`. |

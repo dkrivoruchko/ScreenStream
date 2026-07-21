@@ -20,6 +20,7 @@ import io.screenstream.engine.internal.settlement.OperationTerminalArbitration
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import io.screenstream.engine.internal.target.CurrentTarget
 import io.screenstream.engine.internal.target.TargetNoProducerEvidence
+import io.screenstream.engine.internal.target.TargetPortUseOutcome
 import io.screenstream.engine.internal.target.TargetPorts
 import io.screenstream.engine.internal.target.TargetProducerApplicationFact
 import io.screenstream.engine.internal.target.TargetProducerDetachReceipt
@@ -27,8 +28,27 @@ import io.screenstream.engine.internal.target.TargetProducerEvidence
 import io.screenstream.engine.internal.target.TargetProducerOperationKind
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.withLock
+
+private data class AndroidCapturedContentSize(
+    val widthPx: Int,
+    val heightPx: Int,
+)
+
+private class AndroidProjectionCallbackCurrentness(
+    val owner: AndroidCaptureOwner,
+    val projection: MediaProjection,
+    val registrationOperation: OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>,
+    val callback: MediaProjection.Callback,
+    val provenance: AndroidCallbackProvenance,
+)
+
+private class AndroidProjectionCallbackOccurrence(
+    val currentness: AndroidProjectionCallbackCurrentness,
+    val sequence: Long,
+)
 
 internal class AndroidCaptureOwner(
     private val projection: MediaProjection,
@@ -50,7 +70,8 @@ internal class AndroidCaptureOwner(
     private val callbackRegistrationOperation =
         AtomicReference<OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>?>(null)
     private val callbackProvenance = AtomicReference<AndroidCallbackProvenance?>(null)
-    private val callbackSequence = java.util.concurrent.atomic.AtomicLong(0L)
+    private val callbackSequence = AtomicLong(0L)
+    private val lastCapturedContentSize = AtomicReference<AndroidCapturedContentSize?>(null)
     private val callbackRegistrationNoPlatformEntryProven = AtomicBoolean(false)
     private val callbackRegistrationReturned = AtomicBoolean(false)
     private val callbackRegistered = AtomicBoolean(false)
@@ -63,6 +84,7 @@ internal class AndroidCaptureOwner(
     private val virtualDisplayCreationNoPlatformEntryProven = AtomicBoolean(false)
     private val virtualDisplayCreationReturned = AtomicBoolean(false)
     private val virtualDisplayOwner = AtomicReference<AndroidVirtualDisplayOwnership?>(null)
+    private val virtualDisplayReleasePreparationClaimed = AtomicBoolean(false)
     private val virtualDisplayReleaseOperation =
         AtomicReference<OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>?>(null)
     private val virtualDisplayReleaseReturned = AtomicBoolean(false)
@@ -71,12 +93,18 @@ internal class AndroidCaptureOwner(
 
     private val projectionCallback: MediaProjection.Callback = object : MediaProjection.Callback() {
         override fun onCapturedContentResize(width: Int, height: Int) {
-            if (apiBand != AndroidCaptureApiBand.Api34To37 || !callbackAuthorityOpen.get()) return
-            val provenance = callbackProvenance.get() ?: return
-            val sequence = nextCallbackSequence() ?: return
+            if (width <= 0 || height <= 0) return
+            val currentness = authoritativeApi34To37CallbackCurrentness() ?: return
+            val size = AndroidCapturedContentSize(width, height)
+            while (true) {
+                val previous = lastCapturedContentSize.get()
+                if (previous == size) return
+                if (lastCapturedContentSize.compareAndSet(previous, size)) break
+            }
+            val callbackOccurrence = nextExactCallbackOccurrence(currentness) ?: return
             val fact = AndroidCaptureFact.CapturedContentResized(
-                provenance = provenance,
-                callbackSequence = sequence,
+                provenance = callbackOccurrence.currentness.provenance,
+                callbackSequence = callbackOccurrence.sequence,
                 sampleNanos = clock.nowNanos(),
                 widthPx = width,
                 heightPx = height,
@@ -90,13 +118,12 @@ internal class AndroidCaptureOwner(
         }
 
         override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
-            if (apiBand != AndroidCaptureApiBand.Api34To37 || !callbackAuthorityOpen.get()) return
-            val provenance = callbackProvenance.get() ?: return
-            val sequence = nextCallbackSequence() ?: return
+            val currentness = authoritativeApi34To37CallbackCurrentness() ?: return
+            val callbackOccurrence = nextExactCallbackOccurrence(currentness) ?: return
             factSink.publish(
                 AndroidCaptureFact.CapturedContentVisibilityChanged(
-                    provenance = provenance,
-                    callbackSequence = sequence,
+                    provenance = callbackOccurrence.currentness.provenance,
+                    callbackSequence = callbackOccurrence.sequence,
                     sampleNanos = clock.nowNanos(),
                     isVisible = isVisible,
                 ),
@@ -104,13 +131,12 @@ internal class AndroidCaptureOwner(
         }
 
         override fun onStop() {
-            if (!callbackAuthorityOpen.get()) return
-            val provenance = callbackProvenance.get() ?: return
-            val sequence = nextCallbackSequence() ?: return
+            val currentness = authoritativeCallbackCurrentness() ?: return
+            val callbackOccurrence = nextExactCallbackOccurrence(currentness) ?: return
             factSink.publish(
                 AndroidCaptureFact.CaptureEnded(
-                    provenance = provenance,
-                    callbackSequence = sequence,
+                    provenance = callbackOccurrence.currentness.provenance,
+                    callbackSequence = callbackOccurrence.sequence,
                     sampleNanos = clock.nowNanos(),
                 ),
             )
@@ -202,7 +228,7 @@ internal class AndroidCaptureOwner(
             check(
                 ownerBag.port.withListener { surfaceTexture, listener ->
                     surfaceTexture.setOnFrameAvailableListener(listener, handler)
-                },
+                } == TargetPortUseOutcome.BodyReturned,
             )
         }
     }
@@ -231,7 +257,13 @@ internal class AndroidCaptureOwner(
         val port = target.registerProducerPort(identity.operationIdentity, TargetProducerOperationKind.VirtualDisplayCreation) ?: return null
         val returnedOwnerCell = AndroidVirtualDisplayReturnedOwnerCell()
         val evidence = AndroidVirtualDisplayCreationEvidence(returnedOwnerCell)
-        val applicationCandidate = AndroidAttachedVirtualDisplay(returnedOwnerCell, target, port, evidence)
+        val initialLogicalTuple = AndroidVirtualDisplayLogicalTuple(widthPx, heightPx, densityDpi)
+        val applicationCandidate = AndroidAttachedVirtualDisplay(
+            returnedOwnerCell,
+            target,
+            port,
+            evidence,
+        )
         val operation = finiteOccurrence(
             identity = identity,
             evidence = evidence,
@@ -239,9 +271,7 @@ internal class AndroidCaptureOwner(
                 projection = projection,
                 target = target,
                 port = port,
-                widthPx = widthPx,
-                heightPx = heightPx,
-                densityDpi = densityDpi,
+                initialLogicalTuple = initialLogicalTuple,
                 applicationCandidate = applicationCandidate,
             ),
         )
@@ -303,13 +333,16 @@ internal class AndroidCaptureOwner(
                 }
                 if (createdDisplay != null) {
                     val returnedOwnerRooted = operation.settlementGate.withLock {
-                        operation.returnCell.evidence.rootReturnedVirtualDisplayLocked(createdDisplay)
+                        operation.returnCell.evidence.rootReturnedVirtualDisplayLocked(createdDisplay) &&
+                                ownerBag.applicationCandidate.mechanicalState.recordCreationReturnedLocked(
+                                    ownerBag.initialLogicalTuple,
+                                )
                     }
                     check(returnedOwnerRooted)
                 }
                 returnedDisplay = createdDisplay
             }
-            check(rawCallEntered)
+            check(rawCallEntered == TargetPortUseOutcome.BodyReturned)
             val directCreateFailure = directCreateOutOfMemoryError
             if (directCreateFailure != null) {
                 publishVirtualDisplayCreationThrown(operation, directCreateFailure)
@@ -374,155 +407,6 @@ internal class AndroidCaptureOwner(
         }
     }
 
-    internal fun createVirtualDisplayResizeOperation(
-        widthPx: Int,
-        heightPx: Int,
-        densityDpi: Int,
-        identity: AndroidFiniteOperationIdentity,
-    ): OperationOccurrence<AndroidVirtualDisplayResizeEvidence>? {
-        val ownership = virtualDisplayOwner.get() as? AndroidAttachedVirtualDisplay ?: return null
-        return finiteOccurrence(
-            identity = identity,
-            evidence = AndroidVirtualDisplayResizeEvidence(),
-            ownerBag = AndroidVirtualDisplayResizeOwnerBag(ownership, widthPx, heightPx, densityDpi),
-        )
-    }
-
-    internal fun submitVirtualDisplayResize(
-        operation: OperationOccurrence<AndroidVirtualDisplayResizeEvidence>,
-    ): Boolean {
-        val ownerBag = operation.ownerBag as AndroidVirtualDisplayResizeOwnerBag
-        return submitToLane(
-            operation = operation,
-            postRejectionMessage = "Android VirtualDisplay resize rejected",
-        ) {
-            check(virtualDisplayOwner.get() === ownerBag.ownership)
-            ownerBag.virtualDisplay.resize(ownerBag.widthPx, ownerBag.heightPx, ownerBag.densityDpi)
-        }
-    }
-
-    internal fun createVirtualDisplayAttachOperation(
-        target: CurrentTarget,
-        identity: AndroidFiniteOperationIdentity,
-    ): OperationOccurrence<AndroidVirtualDisplayAttachEvidence>? {
-        if (!target.isProducerAttachmentPermitted) return null
-        val ownership = virtualDisplayOwner.get() as? AndroidMechanicallyDetachedVirtualDisplay ?: return null
-        val port = target.registerProducerPort(identity.operationIdentity, TargetProducerOperationKind.VirtualDisplayAttachment) ?: return null
-        val evidence = AndroidVirtualDisplayAttachEvidence()
-        val applicationCandidate = AndroidAttachedVirtualDisplay(ownership.virtualDisplay, target, port, evidence)
-        val operation = finiteOccurrence(
-            identity = identity,
-            evidence = evidence,
-            ownerBag = AndroidVirtualDisplayAttachOwnerBag(ownership, target, port, applicationCandidate),
-        )
-        check(applicationCandidate.bindProducerOperation(operation))
-        check(target.prepareProducerApplicationCandidates(port, operation))
-        return operation
-    }
-
-    internal fun submitVirtualDisplayAttach(
-        operation: OperationOccurrence<AndroidVirtualDisplayAttachEvidence>,
-    ): Boolean {
-        val ownerBag = operation.ownerBag as AndroidVirtualDisplayAttachOwnerBag
-        return submitToLane(
-            operation = operation,
-            postRejectionMessage = "Android VirtualDisplay attach rejected",
-        ) {
-            check(virtualDisplayOwner.get() === ownerBag.previousOwnership)
-            check(ownerBag.port.withSurface { surface -> ownerBag.virtualDisplay.surface = surface })
-        }
-    }
-
-    internal fun applyVirtualDisplayAttachTargetFact(
-        operation: OperationOccurrence<AndroidVirtualDisplayAttachEvidence>,
-        fact: TargetProducerApplicationFact,
-    ): Boolean {
-        val ownerBag = operation.ownerBag as? AndroidVirtualDisplayAttachOwnerBag ?: return false
-        val evidence = operation.returnCell.evidence
-        val candidate = ownerBag.applicationCandidate
-        return operation.settlementGate.withLock {
-            if (evidence.appliedTargetFact != null || !matchesProducerFact(fact, operation, ownerBag.target, ownerBag.port)) {
-                return@withLock false
-            }
-            if (!evidence.recordAppliedTargetFactLocked(fact)) return@withLock false
-            if (virtualDisplayOwner.get() !== ownerBag.previousOwnership) {
-                if (!evidence.recordCollisionLocked(virtualDisplayOwner.get())) return@withLock false
-                return@withLock false
-            }
-            when (fact) {
-                is TargetNoProducerEvidence -> true
-                is TargetProducerEvidence -> {
-                    if (operation.returnCell.disposition != OperationReturnDisposition.Normal) return@withLock false
-                    if (virtualDisplayOwner.compareAndSet(ownerBag.previousOwnership, candidate)) {
-                        true
-                    } else {
-                        if (!evidence.recordCollisionLocked(virtualDisplayOwner.get())) return@withLock false
-                        false
-                    }
-                }
-            }
-        }
-    }
-
-    internal fun createVirtualDisplayDetachOperation(
-        identity: AndroidFiniteOperationIdentity,
-    ): OperationOccurrence<AndroidVirtualDisplayDetachEvidence>? {
-        val ownership = virtualDisplayOwner.get() as? AndroidAttachedVirtualDisplay ?: return null
-        val port = ownership.target.registerSetSurfaceDetachPort(identity.operationIdentity) ?: return null
-        val evidence = AndroidVirtualDisplayDetachEvidence()
-        val applicationCandidate = AndroidMechanicallyDetachedVirtualDisplay(ownership, port, evidence)
-        val operation = finiteOccurrence(
-            identity = identity,
-            evidence = evidence,
-            ownerBag = AndroidVirtualDisplayDetachOwnerBag(ownership, port, applicationCandidate),
-        )
-        check(applicationCandidate.bindDetachOperation(operation))
-        val ownerBag = operation.ownerBag as AndroidVirtualDisplayDetachOwnerBag
-        check(ownerBag.target.prepareProducerDetachApplicationCandidate(ownerBag.port, operation))
-        return operation
-    }
-
-    internal fun submitVirtualDisplayDetach(
-        operation: OperationOccurrence<AndroidVirtualDisplayDetachEvidence>,
-    ): Boolean {
-        val ownerBag = operation.ownerBag as AndroidVirtualDisplayDetachOwnerBag
-        return submitToLane(
-            operation = operation,
-            postRejectionMessage = "Android VirtualDisplay detach rejected",
-        ) {
-            check(virtualDisplayOwner.get() === ownerBag.ownership)
-            ownerBag.virtualDisplay.surface = null
-        }
-    }
-
-    internal fun applyVirtualDisplayDetachTargetFact(
-        operation: OperationOccurrence<AndroidVirtualDisplayDetachEvidence>,
-        fact: TargetProducerDetachReceipt,
-    ): Boolean {
-        val ownerBag = operation.ownerBag as? AndroidVirtualDisplayDetachOwnerBag ?: return false
-        val evidence = operation.returnCell.evidence
-        val candidate = ownerBag.applicationCandidate
-        return operation.settlementGate.withLock {
-            if (operation.returnCell.disposition != OperationReturnDisposition.Normal ||
-                evidence.appliedTargetFact != null ||
-                !matchesDetachFact(fact, operation, ownerBag.target, ownerBag.port)
-            ) {
-                return@withLock false
-            }
-            if (!evidence.recordAppliedTargetFactLocked(fact)) return@withLock false
-            if (virtualDisplayOwner.get() !== ownerBag.ownership) {
-                if (!evidence.recordCollisionLocked(virtualDisplayOwner.get())) return@withLock false
-                return@withLock false
-            }
-            if (virtualDisplayOwner.compareAndSet(ownerBag.ownership, candidate)) {
-                true
-            } else {
-                if (!evidence.recordCollisionLocked(virtualDisplayOwner.get())) return@withLock false
-                false
-            }
-        }
-    }
-
     internal fun createTargetListenerRemovalOperation(
         target: CurrentTarget,
         operationIdentity: Long,
@@ -550,7 +434,11 @@ internal class AndroidCaptureOwner(
             postRejectionMessage = "Android target-listener removal rejected",
             publishNormalReturn = false,
         ) { handler ->
-            check(ownerBag.port.withSurfaceTexture { surfaceTexture -> surfaceTexture.setOnFrameAvailableListener(null, handler) })
+            check(
+                ownerBag.port.withSurfaceTexture { surfaceTexture ->
+                    surfaceTexture.setOnFrameAvailableListener(null, handler)
+                } == TargetPortUseOutcome.BodyReturned,
+            )
             val removalReturnRecorded = operation.settlementGate.withLock {
                 operation.returnCell.evidence.recordListenerRemovalReturnLocked()
             }
@@ -653,25 +541,32 @@ internal class AndroidCaptureOwner(
             noPlatformEntryFact = virtualDisplayCreationNoPlatformEntryProven,
         )
         if (virtualDisplayCreationNoPlatformEntryProven.get() || !virtualDisplayCreationReturned.get()) return null
-        val ownership = virtualDisplayOwner.get() ?: return null
-        val mode = when (ownership) {
-            is AndroidAttachedVirtualDisplay -> AndroidVirtualDisplayReleaseMode.Attached(
-                ownership,
-                ownership.target.registerVirtualDisplayReleasePort(operationIdentity) ?: return null,
-            )
+        if (!virtualDisplayReleasePreparationClaimed.compareAndSet(false, true)) return null
+        var retained = false
+        try {
+            val ownership = virtualDisplayOwner.get() ?: return null
+            val mode = when (ownership) {
+                is AndroidAttachedVirtualDisplay -> AndroidVirtualDisplayReleaseMode.Attached(
+                    ownership,
+                    ownership.target.registerVirtualDisplayReleasePort(operationIdentity) ?: return null,
+                )
 
-            is AndroidMechanicallyDetachedVirtualDisplay ->
-                AndroidVirtualDisplayReleaseMode.MechanicallyDetached(ownership)
+                is AndroidMechanicallyDetachedVirtualDisplay ->
+                    AndroidVirtualDisplayReleaseMode.MechanicallyDetached(ownership)
+            }
+            val operation = cleanupOccurrence(
+                identity = operationIdentity,
+                evidence = AndroidVirtualDisplayReleaseEvidence(),
+                ownerBag = AndroidVirtualDisplayReleaseOwnerBag(mode),
+            )
+            if (mode is AndroidVirtualDisplayReleaseMode.Attached) {
+                check(mode.ownership.target.prepareProducerDetachApplicationCandidate(mode.targetPort, operation))
+            }
+            retained = virtualDisplayReleaseOperation.compareAndSet(null, operation)
+            return if (retained) operation else null
+        } finally {
+            if (!retained) virtualDisplayReleasePreparationClaimed.set(false)
         }
-        val operation = cleanupOccurrence(
-            identity = operationIdentity,
-            evidence = AndroidVirtualDisplayReleaseEvidence(),
-            ownerBag = AndroidVirtualDisplayReleaseOwnerBag(mode),
-        )
-        if (mode is AndroidVirtualDisplayReleaseMode.Attached) {
-            check(mode.ownership.target.prepareProducerDetachApplicationCandidate(mode.targetPort, operation))
-        }
-        return if (virtualDisplayReleaseOperation.compareAndSet(null, operation)) operation else null
     }
 
     internal fun submitVirtualDisplayRelease(operation: OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>): Boolean {
@@ -770,6 +665,44 @@ internal class AndroidCaptureOwner(
 
     internal val isLaneQuitReady: Boolean
         get() = projectionStopReturned.get()
+
+    private fun authoritativeApi34To37CallbackCurrentness(): AndroidProjectionCallbackCurrentness? =
+        when (Build.VERSION.SDK_INT) {
+            in Build.VERSION_CODES.UPSIDE_DOWN_CAKE..Build.VERSION_CODES.CINNAMON_BUN ->
+                authoritativeCallbackCurrentness()
+
+            else -> null
+        }
+
+    private fun authoritativeCallbackCurrentness(): AndroidProjectionCallbackCurrentness? {
+        if (!callbackAuthorityOpen.get() || !callbackRegistered.get()) return null
+        val registrationOperation = callbackRegistrationOperation.get() ?: return null
+        val provenance = callbackProvenance.get() ?: return null
+        return AndroidProjectionCallbackCurrentness(
+            owner = this,
+            projection = projection,
+            registrationOperation = registrationOperation,
+            callback = projectionCallback,
+            provenance = provenance,
+        )
+    }
+
+    private fun isExactCallbackCurrent(currentness: AndroidProjectionCallbackCurrentness): Boolean =
+        currentness.owner === this &&
+                currentness.projection === projection &&
+                currentness.callback === projectionCallback &&
+                callbackAuthorityOpen.get() &&
+                callbackRegistered.get() &&
+                callbackRegistrationOperation.get() === currentness.registrationOperation &&
+                callbackProvenance.get() === currentness.provenance
+
+    private fun nextExactCallbackOccurrence(
+        currentness: AndroidProjectionCallbackCurrentness,
+    ): AndroidProjectionCallbackOccurrence? {
+        val sequence = nextCallbackSequence() ?: return null
+        if (!isExactCallbackCurrent(currentness)) return null
+        return AndroidProjectionCallbackOccurrence(currentness, sequence)
+    }
 
     private fun nextCallbackSequence(): Long? {
         while (true) {

@@ -12,6 +12,10 @@ import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.PrivateExecutorSubmissionResult
 import io.screenstream.engine.internal.settlement.isHandedOff
 import io.screenstream.engine.internal.target.CurrentTarget
+import io.screenstream.engine.internal.target.TargetEnteredFact
+import io.screenstream.engine.internal.target.TargetFrameEntryResult
+import io.screenstream.engine.internal.target.TargetFrameRejectedBySealOrStaleEpochFact
+import io.screenstream.engine.internal.target.TargetPortUseOutcome
 import io.screenstream.engine.internal.target.TargetPorts
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -46,8 +50,26 @@ internal class GlFrameHandle internal constructor(
     private val stateProbeFacts: GlProbeFacts = GlProbeFacts()
     private val drawReadProbeFacts: GlProbeFacts = GlProbeFacts()
 
+    @Volatile
+    override var targetFrameEntryResult: TargetFrameEntryResult? = null
+        private set
+
     private fun execute() {
         try {
+            val entryResult = targetPort.enter()
+            targetFrameEntryResult = entryResult
+            when (entryResult) {
+                is TargetFrameRejectedBySealOrStaleEpochFact -> {
+                    evidence.result = GlOperationResult.TargetAdmissionRejected
+                    evidence.contextIntegrity = owner.contextIntegrity
+                    if (!releaseCarrierLease()) return
+                    occurrence.publishNormalReturn()
+                    target.retireGlFramePortAfterSettlement(targetPort, occurrence)
+                    return
+                }
+
+                is TargetEnteredFact -> Unit
+            }
             if (owner.renderFrame(
                     targetPort = targetPort,
                     renderState = renderState,
@@ -147,24 +169,6 @@ internal class GlColorActionFacts internal constructor(
     }
 }
 
-internal class GlFrameReconciliationFacts internal constructor(
-    logicalInverseTransform: FloatArray,
-    internal val colorMode: ColorMode,
-) {
-    private val ownedLogicalInverseTransform: FloatArray = logicalInverseTransform.copyOf()
-
-    init {
-        require(ownedLogicalInverseTransform.size == 16)
-        require(ownedLogicalInverseTransform.all(Float::isFinite))
-    }
-
-    internal fun copyLogicalInverseTransformTo(destination: FloatArray): Boolean {
-        if (destination.size != ownedLogicalInverseTransform.size) return false
-        ownedLogicalInverseTransform.copyInto(destination)
-        return true
-    }
-}
-
 internal class GlProbeFacts internal constructor() {
     internal var preprobeErrorCode: Int = GLES20.GL_NO_ERROR
         private set
@@ -203,6 +207,7 @@ internal class GlFramePipeline internal constructor(
     private val owner: GlPipelineOwner,
 ) {
     private val oesTransform: FloatArray = FloatArray(16)
+    private val logicalInverseTransform: FloatArray = FloatArray(16)
     private val positionBuffer: FloatBuffer = directFloatBuffer(floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f))
     private val textureCoordinateBuffer: FloatBuffer = directFloatBuffer(floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f, 1f, 1f))
 
@@ -215,7 +220,10 @@ internal class GlFramePipeline internal constructor(
         drawReadProbeFacts: GlProbeFacts,
         colorActionFacts: GlColorActionCell,
     ): Boolean {
-        if (!owner.isInstalledRenderState(renderState)) return false
+        val actualState = owner.frameActualStateSnapshot(renderState)
+        val desiredState = actualState?.reconciliationFacts ?: renderState.bootstrapDesiredState
+        val colorActions = actualState?.colorActions ?: renderState.bootstrapColorActions
+        check(desiredState.copyLogicalInverseTransformTo(logicalInverseTransform))
         val renderTarget = renderState.owner
         val program = owner.currentProgram ?: return false
         var targetHandlesEntered = false
@@ -248,8 +256,8 @@ internal class GlFramePipeline internal constructor(
                 } else {
                     0
                 }
-                val colorAction = renderState.actionFor(dataSpace)
-                val changedColorAction = renderState.lastColorAction !== colorAction
+                val colorAction = colorActions.actionFor(dataSpace, desiredState.colorMode)
+                val changedColorAction = owner.isChangedColorAction(renderState, actualState, colorAction)
                 if (!owner.glesGroupAfterCurrent(evidence, stateProbeFacts) {
                         owner.outward { GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, renderState.framebufferName) }
                         owner.outward { GLES20.glUseProgram(program.programName) }
@@ -259,7 +267,7 @@ internal class GlFramePipeline internal constructor(
                         owner.outward { GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, oesTextureName) }
                         owner.outward { GLES20.glUniform1i(program.samplerLocation, 0) }
                         owner.outward { GLES20.glUniformMatrix4fv(program.oesMatrixLocation, 1, false, oesTransform, 0) }
-                        owner.outward { GLES20.glUniformMatrix4fv(program.imageMatrixLocation, 1, false, renderState.logicalInverseTransform, 0) }
+                        owner.outward { GLES20.glUniformMatrix4fv(program.imageMatrixLocation, 1, false, logicalInverseTransform, 0) }
                         owner.outward {
                             GLES20.glUniform1f(
                                 program.colorActionLocation,
@@ -306,12 +314,14 @@ internal class GlFramePipeline internal constructor(
                 rangeExited = true
                 if (changedColorAction) {
                     owner.checkFatalFence()
-                    renderState.lastColorAction = colorAction
-                    colorActionFacts.value = colorAction
+                    if (owner.recordColorAction(renderState, actualState, colorAction)) {
+                        colorActionFacts.value = colorAction
+                    }
                 }
             }
             owner.checkFatalFence()
-            return targetUpdated && targetHandlesEntered && exactRange != null && rangeExited && evidence.contextIntegrity == ContextIntegrity.Intact
+            return targetUpdated == TargetPortUseOutcome.BodyReturned &&
+                    targetHandlesEntered && exactRange != null && rangeExited && evidence.contextIntegrity == ContextIntegrity.Intact
         } catch (error: Error) {
             throw error
         } catch (exception: Exception) {

@@ -8,18 +8,18 @@ import io.screenstream.engine.internal.JpegRuntimeOwner
 import io.screenstream.engine.internal.android.AndroidCaptureFactSink
 import io.screenstream.engine.internal.android.AndroidCaptureOwner
 import io.screenstream.engine.internal.android.AndroidLaneStartupResult
+import io.screenstream.engine.internal.android.CaptureMetricsIngressPort
 import io.screenstream.engine.internal.android.CaptureMetricsOwner
 import io.screenstream.engine.internal.gl.GlFiniteOperationIdentity
 import io.screenstream.engine.internal.gl.GlPipelineOwner
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.PrivateExecutorStartupDisposition
 import io.screenstream.engine.internal.settlement.SettlementSignal
-import java.util.concurrent.locks.ReentrantLock
 
 internal class SessionMetricsConstructionCommand internal constructor(
     internal val applicationContext: Context,
     internal val source: CaptureMetricsSource?,
-    internal val sessionGate: ReentrantLock,
+    internal val ingress: CaptureMetricsIngressPort,
     internal val clock: EngineClock,
     internal val signal: SettlementSignal,
     internal val attachmentIdentity: Long,
@@ -67,7 +67,7 @@ internal object SessionStartupTopology {
     internal fun constructMetrics(command: SessionMetricsConstructionCommand): CaptureMetricsOwner = CaptureMetricsOwner(
         applicationContext = command.applicationContext,
         configuredSource = command.source,
-        sessionGate = command.sessionGate,
+        ingressPort = command.ingress,
         clock = command.clock,
         settlementSignal = command.signal,
         attachmentIdentity = command.attachmentIdentity,
