@@ -1,218 +1,37 @@
 package io.screenstream.engine.internal.android
 
-import android.view.Display
-import io.screenstream.engine.CaptureMetrics
 import io.screenstream.engine.CaptureMetricsObserver
 import io.screenstream.engine.CaptureMetricsSource
 import io.screenstream.engine.CaptureMetricsSubscription
-import io.screenstream.engine.internal.settlement.OperationEntryDisposition
+import io.screenstream.engine.internal.settlement.ControlWakeLink
+import io.screenstream.engine.internal.settlement.DeadlineOccurrence
 import io.screenstream.engine.internal.settlement.OperationEvidence
+import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationOwnerBag
 import io.screenstream.engine.internal.settlement.OperationReceipt
-import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
-import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
-import io.screenstream.engine.internal.settlement.PrivateExecutorSubmissionResult
+import io.screenstream.engine.internal.settlement.PrivateExecutorOperation
+import java.util.concurrent.locks.ReentrantLock
 
-internal enum class CaptureMetricsReadinessOutcome {
-    Timely,
-    Expired,
-    ProviderCompletedBeforeReadiness,
-    ProviderFailedBeforeReadiness,
-    AvailabilityLostBeforeActive,
-    AttachmentSubmissionRejected,
-    AttachmentSubmissionException,
-    AttachmentSubmissionDirectFatal,
-    AttachmentException,
-    AttachmentDirectFatal,
-    NullHandle,
-    SequenceExhausted,
-    DeadlineWakeRejected,
-    DeadlineGuardFailed,
-}
-
-internal enum class CaptureMetricsReadinessDeadlineRelation {
-    Unarmed,
-    JointEvidenceTimely,
-    Expired,
-    RetiredWithoutJointReadiness,
-}
-
-internal class CaptureMetricsReadinessMechanicalFact internal constructor(
-    internal val source: CaptureMetricsSource,
+/** Precreated exact attachment authority inspected only while its settlement gate is nested under Session. */
+internal class CaptureMetricsAttachmentAccess internal constructor(
     internal val observationIdentity: Long,
     internal val deadlineIdentity: Long,
+    internal val sourceProvenance: CaptureMetricsSourceProvenance,
+    internal val occurrence: OperationOccurrence<CaptureMetricsAttachmentEvidence>,
+    internal val deadline: DeadlineOccurrence,
+    internal val wakeLink: ControlWakeLink,
 ) {
-    internal var outcome: CaptureMetricsReadinessOutcome? = null
-        private set
+    internal var readinessGuardFailure: Throwable? = null
 
-    internal var cause: Throwable? = null
-        private set
+    internal val settlementGate: ReentrantLock
+        get() = occurrence.settlementGate
 
-    internal var ingressSequence: Long = 0L
-        private set
-
-    internal var sampleNanos: Long = Long.MIN_VALUE
-        private set
-
-    internal var metrics: CaptureMetrics? = null
-        private set
-
-    internal var display: Display? = null
-        private set
-
-    internal var displayEpoch: Long = 0L
-        private set
-
-    internal var deadlineStartNanos: Long = Long.MIN_VALUE
-        private set
-
-    internal var deadlineNanos: Long = Long.MIN_VALUE
-        private set
-
-    internal var deadlineRelation: CaptureMetricsReadinessDeadlineRelation =
-        CaptureMetricsReadinessDeadlineRelation.Unarmed
-        private set
-
-    internal var arbitrationNanos: Long = Long.MIN_VALUE
-        private set
-
-    internal var attachmentSubmissionResult: PrivateExecutorSubmissionResult? = null
-        private set
-
-    internal var attachmentSubmissionDisposition: OperationSubmissionDisposition = OperationSubmissionDisposition.None
-        private set
-
-    internal var attachmentSubmissionFailure: Exception? = null
-        private set
-
-    internal var attachmentSubmissionAmbiguousFatal: Throwable? = null
-        private set
-
-    internal var attachmentEntryDisposition: OperationEntryDisposition = OperationEntryDisposition.Unentered
-        private set
-
-    internal var attachmentReturnDisposition: OperationReturnDisposition = OperationReturnDisposition.Empty
-        private set
-
-    internal var handleDisposition: CaptureMetricsHandleDisposition = CaptureMetricsHandleDisposition.Pending
-        private set
-
-    internal var handleSettlementNanos: Long = Long.MIN_VALUE
-        private set
-
-    internal var subscriptionOwner: CaptureMetricsSubscriptionOwner? = null
-        private set
-
-    internal var terminalKind: CaptureMetricsTerminalKind? = null
-        private set
-
-    internal var terminalCause: Throwable? = null
-        private set
-
-    internal var terminalSequence: Long = 0L
-        private set
-
-    internal var terminalPhase: CaptureMetricsTerminalPhase? = null
-        private set
-
-    internal val isClaimed: Boolean
-        get() = outcome != null
-
-    internal fun commitLocked(
-        outcome: CaptureMetricsReadinessOutcome,
-        cause: Throwable?,
-        ingressSequence: Long,
-        sampleNanos: Long,
-        metrics: CaptureMetrics?,
-        display: Display?,
-        displayEpoch: Long,
-        deadlineStartNanos: Long,
-        deadlineNanos: Long,
-        deadlineRelation: CaptureMetricsReadinessDeadlineRelation,
-        arbitrationNanos: Long,
-        attachmentSubmissionResult: PrivateExecutorSubmissionResult?,
-        attachmentSubmissionDisposition: OperationSubmissionDisposition,
-        attachmentSubmissionFailure: Exception?,
-        attachmentSubmissionAmbiguousFatal: Throwable?,
-        attachmentEntryDisposition: OperationEntryDisposition,
-        attachmentReturnDisposition: OperationReturnDisposition,
-        handleDisposition: CaptureMetricsHandleDisposition,
-        handleSettlementNanos: Long,
-        subscriptionOwner: CaptureMetricsSubscriptionOwner?,
-        terminalKind: CaptureMetricsTerminalKind?,
-        terminalCause: Throwable?,
-        terminalSequence: Long,
-        terminalPhase: CaptureMetricsTerminalPhase?,
-    ): Boolean {
-        if (isClaimed) return false
-        this.cause = cause
-        this.ingressSequence = ingressSequence
-        this.sampleNanos = sampleNanos
-        this.metrics = metrics
-        this.display = display
-        this.displayEpoch = displayEpoch
-        this.deadlineStartNanos = deadlineStartNanos
-        this.deadlineNanos = deadlineNanos
-        this.deadlineRelation = deadlineRelation
-        this.arbitrationNanos = arbitrationNanos
-        this.attachmentSubmissionResult = attachmentSubmissionResult
-        this.attachmentSubmissionDisposition = attachmentSubmissionDisposition
-        this.attachmentSubmissionFailure = attachmentSubmissionFailure
-        this.attachmentSubmissionAmbiguousFatal = attachmentSubmissionAmbiguousFatal
-        this.attachmentEntryDisposition = attachmentEntryDisposition
-        this.attachmentReturnDisposition = attachmentReturnDisposition
-        this.handleDisposition = handleDisposition
-        this.handleSettlementNanos = handleSettlementNanos
-        this.subscriptionOwner = subscriptionOwner
-        this.terminalKind = terminalKind
-        this.terminalCause = terminalCause
-        this.terminalSequence = terminalSequence
-        this.terminalPhase = terminalPhase
-        this.outcome = outcome
-        return true
+    init {
+        require(observationIdentity > 0L)
+        require(deadlineIdentity > 0L)
+        check(deadline.identity == deadlineIdentity)
     }
-}
-
-internal enum class CaptureMetricsIngressPublishResult {
-    Published,
-    Duplicate,
-    Closed,
-    SequenceExhausted,
-}
-
-internal class CaptureMetricsClaimedValue(
-    internal val source: CaptureMetricsSource,
-    internal val observationIdentity: Long,
-    internal val sequence: Long,
-    internal val metrics: CaptureMetrics?,
-    internal val display: Display?,
-    internal val displayEpoch: Long,
-    internal val isAvailable: Boolean,
-)
-
-internal enum class CaptureMetricsTerminalKind {
-    Completed,
-    Failed,
-}
-
-internal enum class CaptureMetricsTerminalPhase {
-    BeforeJointReadiness,
-    AfterJointReadiness,
-}
-
-internal enum class CaptureMetricsTerminalArbitration {
-    None,
-    CompletedBeforeReadiness,
-    CompletedAfterReadiness,
-    FailedBeforeReadiness,
-    FailedAfterReadiness,
-}
-
-internal enum class CaptureMetricsHandleDisposition {
-    Pending,
-    Adopted,
-    NullReturned,
 }
 
 internal object CaptureMetricsAttachmentReceipt : OperationReceipt
@@ -222,7 +41,6 @@ internal class CaptureMetricsSubscriptionOwner : OperationReturnedOwner {
 
     internal val subscription: CaptureMetricsSubscription
         get() = checkNotNull(fixedSubscription)
-
     internal val isBound: Boolean
         get() = fixedSubscription != null
 
@@ -234,36 +52,40 @@ internal class CaptureMetricsSubscriptionOwner : OperationReturnedOwner {
     }
 }
 
+/** The handle result only; generic submission, entry, and return remain owned by OperationOccurrence. */
+internal sealed interface CaptureMetricsHandleResult {
+    internal object Pending : CaptureMetricsHandleResult
+
+    internal class Adopted internal constructor(
+        internal val owner: CaptureMetricsSubscriptionOwner,
+    ) : CaptureMetricsHandleResult
+
+    internal object StructurallyAbsent : CaptureMetricsHandleResult
+}
+
 internal class CaptureMetricsAttachmentEvidence : OperationEvidence {
     internal val subscriptionOwner = CaptureMetricsSubscriptionOwner()
-
-    internal var handleDisposition: CaptureMetricsHandleDisposition = CaptureMetricsHandleDisposition.Pending
+    internal var handleResult: CaptureMetricsHandleResult = CaptureMetricsHandleResult.Pending
         private set
-
     internal var handleSettlementNanos: Long = Long.MIN_VALUE
         private set
 
     override val receipt: OperationReceipt?
-        get() = if (handleDisposition == CaptureMetricsHandleDisposition.Adopted) {
-            CaptureMetricsAttachmentReceipt
-        } else {
-            null
-        }
-
+        get() = if (handleResult is CaptureMetricsHandleResult.Adopted) CaptureMetricsAttachmentReceipt else null
     override val returnedOwner: OperationReturnedOwner?
-        get() = if (handleDisposition == CaptureMetricsHandleDisposition.Adopted) subscriptionOwner else null
+        get() = (handleResult as? CaptureMetricsHandleResult.Adopted)?.owner
 
     internal fun recordReturnedHandleLocked(
         subscription: CaptureMetricsSubscription?,
         settlementNanos: Long,
     ): Boolean {
-        if (handleDisposition != CaptureMetricsHandleDisposition.Pending) return false
+        if (handleResult !== CaptureMetricsHandleResult.Pending) return false
         handleSettlementNanos = settlementNanos
-        if (subscription == null) {
-            handleDisposition = CaptureMetricsHandleDisposition.NullReturned
+        handleResult = if (subscription == null) {
+            CaptureMetricsHandleResult.StructurallyAbsent
         } else {
             check(subscriptionOwner.bind(subscription))
-            handleDisposition = CaptureMetricsHandleDisposition.Adopted
+            CaptureMetricsHandleResult.Adopted(subscriptionOwner)
         }
         return true
     }
@@ -273,6 +95,49 @@ internal class CaptureMetricsAttachmentOwnerBag(
     internal val source: CaptureMetricsSource,
     internal val observer: CaptureMetricsObserver,
 ) : OperationOwnerBag
+
+internal sealed interface CaptureMetricsAttachmentResidue {
+    val exactCause: Throwable
+
+    internal class ReturnedFailure internal constructor(
+        override val exactCause: Throwable,
+    ) : CaptureMetricsAttachmentResidue
+
+    internal class SubmissionFailure internal constructor(
+        override val exactCause: Throwable,
+    ) : CaptureMetricsAttachmentResidue
+
+    internal class EndpointPoison internal constructor(
+        override val exactCause: Throwable,
+    ) : CaptureMetricsAttachmentResidue
+}
+
+internal sealed interface CaptureMetricsObservationOutcome {
+    internal class Observing internal constructor(
+        internal val owner: CaptureMetricsSubscriptionOwner,
+    ) : CaptureMetricsObservationOutcome
+
+    internal object StructurallyNoHandle : CaptureMetricsObservationOutcome
+
+    internal class AttachmentResidue internal constructor(
+        internal val residue: CaptureMetricsAttachmentResidue,
+    ) : CaptureMetricsObservationOutcome
+}
+
+/** Coordinator ownership progression; it deliberately does not restate operation entry/return. */
+internal sealed interface CaptureMetricsAttachmentProgress {
+    internal class Prepared internal constructor(
+        internal val endpointOperation: PrivateExecutorOperation<CaptureMetricsAttachmentEvidence>,
+    ) : CaptureMetricsAttachmentProgress
+
+    internal class Active internal constructor(
+        internal val endpointOperation: PrivateExecutorOperation<CaptureMetricsAttachmentEvidence>,
+    ) : CaptureMetricsAttachmentProgress
+
+    internal class Settled internal constructor(
+        internal val outcome: CaptureMetricsObservationOutcome,
+    ) : CaptureMetricsAttachmentProgress
+}
 
 internal object CaptureMetricsRefreshReceipt : OperationReceipt
 
@@ -285,10 +150,37 @@ internal class CaptureMetricsRefreshOwnerBag(
     internal val attachment: BuiltInCaptureMetricsAttachment,
 ) : OperationOwnerBag
 
-internal object CaptureMetricsCloseReceipt : OperationReceipt
+internal sealed interface CaptureMetricsRefreshSealReason {
+    internal object CloseRequested : CaptureMetricsRefreshSealReason
+    internal object NoBuiltInAttachment : CaptureMetricsRefreshSealReason
+    internal object AttachmentFailed : CaptureMetricsRefreshSealReason
 
-internal class CaptureMetricsCloseEvidence : OperationEvidence {
-    override val receipt: OperationReceipt = CaptureMetricsCloseReceipt
+    internal class ExactFailure internal constructor(
+        internal val cause: Throwable,
+    ) : CaptureMetricsRefreshSealReason
+}
+
+internal sealed interface CaptureMetricsRefreshProgress {
+    internal object ClosedBeforeAttach : CaptureMetricsRefreshProgress
+    internal object Idle : CaptureMetricsRefreshProgress
+    internal object Dirty : CaptureMetricsRefreshProgress
+
+    internal class InFlight internal constructor(
+        internal val occurrence: OperationOccurrence<CaptureMetricsRefreshEvidence>,
+        internal val endpointOperation: PrivateExecutorOperation<CaptureMetricsRefreshEvidence>,
+    ) : CaptureMetricsRefreshProgress
+
+    internal class Sealed internal constructor(
+        internal val reason: CaptureMetricsRefreshSealReason,
+    ) : CaptureMetricsRefreshProgress
+}
+
+internal class CaptureMetricsCloseReceipt internal constructor() : OperationReceipt
+
+internal class CaptureMetricsCloseEvidence(
+    internal val exactReceipt: CaptureMetricsCloseReceipt,
+) : OperationEvidence {
+    override val receipt: OperationReceipt = exactReceipt
     override val returnedOwner: OperationReturnedOwner? = null
 }
 
@@ -296,184 +188,62 @@ internal class CaptureMetricsCloseOwnerBag(
     internal val subscriptionOwner: CaptureMetricsSubscriptionOwner,
 ) : OperationOwnerBag
 
-internal class CaptureMetricsIngressSummary(
-    internal val source: CaptureMetricsSource,
-    internal val observationIdentity: Long,
-    private val sequenceExhaustionCause: Throwable,
-) {
-    internal var ingressOpen: Boolean = true
-        private set
+internal sealed interface CaptureMetricsCloseProgress {
+    internal object Open : CaptureMetricsCloseProgress
+    internal object Requested : CaptureMetricsCloseProgress
 
-    internal var nextSequence: Long = 1L
-        private set
+    internal class InFlight internal constructor(
+        internal val occurrence: OperationOccurrence<CaptureMetricsCloseEvidence>,
+        internal val endpointOperation: PrivateExecutorOperation<CaptureMetricsCloseEvidence>,
+    ) : CaptureMetricsCloseProgress
 
-    internal var earliestPositiveSequence: Long = 0L
-        private set
+    internal class Normal internal constructor(
+        internal val receipt: CaptureMetricsCloseReceipt,
+    ) : CaptureMetricsCloseProgress
 
-    internal var earliestPositiveSampleNanos: Long = Long.MIN_VALUE
-        private set
+    internal class ReturnedFailure internal constructor(
+        internal val exactCause: Throwable,
+    ) : CaptureMetricsCloseProgress
 
-    internal var earliestPositiveMetrics: CaptureMetrics? = null
-        private set
+    internal class PoisonSubmissionFailure internal constructor(
+        internal val exactCause: Throwable,
+    ) : CaptureMetricsCloseProgress
+}
 
-    internal var earliestPositiveDisplay: Display? = null
-        private set
+/** Exact owner retained until its one physical close outcome becomes part of whole Metrics termination. */
+internal sealed interface CaptureMetricsCloseObligation {
+    val owner: CaptureMetricsSubscriptionOwner
 
-    internal var earliestPositiveDisplayEpoch: Long = 0L
-        private set
+    internal class AdoptedHandle internal constructor(
+        override val owner: CaptureMetricsSubscriptionOwner,
+    ) : CaptureMetricsCloseObligation
 
-    internal var latestSequence: Long = 0L
-        private set
+    internal class RetainedAfterAttachmentFailure internal constructor(
+        override val owner: CaptureMetricsSubscriptionOwner,
+        internal val attachmentResidue: CaptureMetricsAttachmentResidue,
+    ) : CaptureMetricsCloseObligation
+}
 
-    internal var latestSource: CaptureMetricsSource? = null
-        private set
+/** Immutable closed observation result consumed by R3 beside, never instead of, endpoint termination. */
+internal sealed interface CaptureMetricsObservationSettlement {
+    internal class ExactCloseReceipt internal constructor(
+        internal val obligation: CaptureMetricsCloseObligation,
+        internal val receipt: CaptureMetricsCloseReceipt,
+    ) : CaptureMetricsObservationSettlement
 
-    internal var latestObservationIdentity: Long = 0L
-        private set
+    internal object StructurallyNoHandle : CaptureMetricsObservationSettlement
 
-    internal var latestAvailable: Boolean = false
-        private set
+    internal class ExactAttachmentResidue internal constructor(
+        internal val residue: CaptureMetricsAttachmentResidue,
+    ) : CaptureMetricsObservationSettlement
 
-    internal var latestMetrics: CaptureMetrics? = null
-        private set
+    internal class ReturnedCloseFailureResidue internal constructor(
+        internal val obligation: CaptureMetricsCloseObligation,
+        internal val exactCause: Throwable,
+    ) : CaptureMetricsObservationSettlement
 
-    internal var latestDisplay: Display? = null
-        private set
-
-    internal var latestDisplayEpoch: Long = 0L
-        private set
-
-    internal var latestValueAvailable: Boolean = false
-        private set
-
-    internal var latestClaimedSequence: Long = 0L
-        private set
-
-    internal var postValidLossBeforeActive: Boolean = false
-        private set
-
-    internal var jointReadinessCommitted: Boolean = false
-        private set
-
-    internal var firstActiveCommitted: Boolean = false
-        private set
-
-    internal var terminalKind: CaptureMetricsTerminalKind? = null
-        private set
-
-    internal var terminalCause: Throwable? = null
-        private set
-
-    internal var terminalSequence: Long = 0L
-        private set
-
-    internal var terminalPhase: CaptureMetricsTerminalPhase? = null
-        private set
-
-    internal var sequenceExhausted: Boolean = false
-        private set
-
-    internal fun publishMetricsLocked(
-        metrics: CaptureMetrics?,
-        sampleNanos: Long,
-        display: Display?,
-        displayEpoch: Long,
-    ): CaptureMetricsIngressPublishResult {
-        if (!ingressOpen) return CaptureMetricsIngressPublishResult.Closed
-        val sequence = reserveSequenceLocked()
-        if (sequence == 0L) return CaptureMetricsIngressPublishResult.SequenceExhausted
-        val available = metrics != null
-        if (latestAvailable &&
-            latestSource === source &&
-            latestObservationIdentity == observationIdentity &&
-            latestMetrics == metrics &&
-            latestDisplay === display &&
-            latestDisplayEpoch == displayEpoch &&
-            latestValueAvailable == available
-        ) {
-            return CaptureMetricsIngressPublishResult.Duplicate
-        }
-        if (metrics != null && earliestPositiveMetrics == null) {
-            earliestPositiveSequence = sequence
-            earliestPositiveSampleNanos = sampleNanos
-            earliestPositiveMetrics = metrics
-            earliestPositiveDisplay = display
-            earliestPositiveDisplayEpoch = displayEpoch
-        } else if (metrics == null && earliestPositiveMetrics != null && !firstActiveCommitted) {
-            postValidLossBeforeActive = true
-        }
-        latestSequence = sequence
-        latestSource = source
-        latestObservationIdentity = observationIdentity
-        latestMetrics = metrics
-        latestDisplay = display
-        latestDisplayEpoch = displayEpoch
-        latestValueAvailable = available
-        latestAvailable = true
-        return CaptureMetricsIngressPublishResult.Published
-    }
-
-    internal fun publishTerminalLocked(
-        kind: CaptureMetricsTerminalKind,
-        cause: Throwable?,
-    ): CaptureMetricsIngressPublishResult {
-        if (!ingressOpen || terminalKind != null) return CaptureMetricsIngressPublishResult.Closed
-        val sequence = reserveSequenceLocked()
-        if (sequence == 0L) return CaptureMetricsIngressPublishResult.SequenceExhausted
-        terminalKind = kind
-        terminalCause = cause
-        terminalSequence = sequence
-        terminalPhase = if (jointReadinessCommitted) {
-            CaptureMetricsTerminalPhase.AfterJointReadiness
-        } else {
-            CaptureMetricsTerminalPhase.BeforeJointReadiness
-        }
-        ingressOpen = false
-        return CaptureMetricsIngressPublishResult.Published
-    }
-
-    internal fun closeIngressLocked(): Boolean {
-        if (!ingressOpen) return false
-        ingressOpen = false
-        return true
-    }
-
-    internal fun commitJointReadinessLocked(): Boolean {
-        if (jointReadinessCommitted) return false
-        jointReadinessCommitted = true
-        return true
-    }
-
-    internal fun commitFirstActiveLocked(): Boolean {
-        if (firstActiveCommitted || !jointReadinessCommitted) return false
-        firstActiveCommitted = true
-        return true
-    }
-
-    internal fun claimLatestLocked(): Boolean {
-        if (!latestAvailable || latestClaimedSequence == latestSequence) return false
-        latestClaimedSequence = latestSequence
-        return true
-    }
-
-    private fun reserveSequenceLocked(): Long {
-        if (nextSequence <= 0L || nextSequence == Long.MAX_VALUE) {
-            sequenceExhausted = true
-            if (terminalKind == null) {
-                terminalKind = CaptureMetricsTerminalKind.Failed
-                terminalCause = sequenceExhaustionCause
-                terminalSequence = Long.MAX_VALUE
-                terminalPhase = if (jointReadinessCommitted) {
-                    CaptureMetricsTerminalPhase.AfterJointReadiness
-                } else {
-                    CaptureMetricsTerminalPhase.BeforeJointReadiness
-                }
-            }
-            ingressOpen = false
-            return 0L
-        }
-        val reserved = nextSequence
-        nextSequence += 1L
-        return reserved
-    }
+    internal class PoisonSubmissionResidue internal constructor(
+        internal val obligation: CaptureMetricsCloseObligation,
+        internal val exactCause: Throwable,
+    ) : CaptureMetricsObservationSettlement
 }

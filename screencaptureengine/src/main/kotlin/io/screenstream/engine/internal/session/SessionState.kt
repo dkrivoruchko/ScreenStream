@@ -5,8 +5,6 @@ import io.screenstream.engine.ScreenCaptureEffectiveParameters
 import io.screenstream.engine.ScreenCaptureParameters
 import io.screenstream.engine.ScreenCaptureProblem
 import io.screenstream.engine.ScreenCaptureStopReason
-import io.screenstream.engine.internal.android.CaptureMetricsSampleIngressFact
-import io.screenstream.engine.internal.android.CaptureMetricsTerminalIngressFact
 import io.screenstream.engine.internal.delivery.DeliveryHandoffRecord
 import io.screenstream.engine.internal.delivery.DeliveryRegistration
 import io.screenstream.engine.internal.session.cleanup.SessionCleanupTransfer
@@ -38,7 +36,6 @@ internal class SessionState internal constructor(
     internal val terminalWinner: SessionTerminalWinner? = null,
     internal val cleanupTransfer: SessionCleanupTransfer? = null,
     internal val cleanupReceipts: io.screenstream.engine.internal.session.cleanup.SessionCleanupReceipts? = null,
-    internal val metricsIngress: SessionMetricsIngressState = SessionMetricsIngressState(),
     internal val startup: SessionStartupState? = null,
     internal val nextIdentity: Long = 1L,
     internal val terminalCutoffApplied: Boolean = false,
@@ -58,7 +55,6 @@ internal fun SessionState.copy(
     terminalWinner: SessionTerminalWinner? = this.terminalWinner,
     cleanupTransfer: SessionCleanupTransfer? = this.cleanupTransfer,
     cleanupReceipts: io.screenstream.engine.internal.session.cleanup.SessionCleanupReceipts? = this.cleanupReceipts,
-    metricsIngress: SessionMetricsIngressState = this.metricsIngress,
     startup: SessionStartupState? = this.startup,
     nextIdentity: Long = this.nextIdentity,
     terminalCutoffApplied: Boolean = this.terminalCutoffApplied,
@@ -76,20 +72,10 @@ internal fun SessionState.copy(
     terminalWinner = terminalWinner,
     cleanupTransfer = cleanupTransfer,
     cleanupReceipts = cleanupReceipts,
-    metricsIngress = metricsIngress,
     startup = startup,
     nextIdentity = nextIdentity,
     terminalCutoffApplied = terminalCutoffApplied,
     controlShutdownRequested = controlShutdownRequested,
-)
-
-internal class SessionMetricsIngressState internal constructor(
-    internal val observationIdentity: Long = 0L,
-    internal val lastSequence: Long = 0L,
-    internal val earliestPositive: CaptureMetricsSampleIngressFact? = null,
-    internal val firstPostPositiveUnavailable: CaptureMetricsSampleIngressFact? = null,
-    internal val latestSample: CaptureMetricsSampleIngressFact? = null,
-    internal val firstTerminal: CaptureMetricsTerminalIngressFact? = null,
 )
 
 internal class SessionStartupState internal constructor(

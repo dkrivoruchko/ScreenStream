@@ -6,6 +6,7 @@ import android.os.Looper
 import io.screenstream.engine.internal.settlement.DirectFatalSlot
 import io.screenstream.engine.internal.settlement.FatalThrowablePolicy
 import io.screenstream.engine.internal.settlement.OperationDisposition
+import io.screenstream.engine.internal.settlement.OperationDomain
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
 import io.screenstream.engine.internal.settlement.OperationEntryResult
 import io.screenstream.engine.internal.settlement.OperationEvidence
@@ -18,6 +19,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.LockSupport
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 internal sealed class AndroidLaneStartupResult {
     object Pending : AndroidLaneStartupResult()
@@ -102,6 +105,12 @@ internal enum class AndroidPostResult {
     NotSubmitted,
 }
 
+internal enum class AndroidPostFailureExposure {
+    None,
+    AuthoritativeRejection,
+    AcceptanceAmbiguous,
+}
+
 internal fun interface AndroidEnteredWork {
     fun run(handler: Handler)
 }
@@ -113,6 +122,120 @@ internal sealed interface AndroidNoPlatformEntryProof<R : OperationEvidence> {
 internal class AndroidOccurrenceNoPlatformEntryProof<R : OperationEvidence> internal constructor(
     override val operation: OperationOccurrence<R>,
 ) : AndroidNoPlatformEntryProof<R>
+
+internal class AndroidReturnedWithoutPlatformEntryProof<R : OperationEvidence> internal constructor(
+    internal val ticket: AndroidPostTicket<R>,
+    override val operation: OperationOccurrence<R>,
+) : AndroidNoPlatformEntryProof<R> {
+    private val activated = AtomicBoolean(false)
+
+    internal fun activateLocked(): Boolean {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        if (activated.get()) return true
+        if (ticket.occurrence !== operation ||
+            ticket.physicalState != AndroidPostPhysicalDisposition.Returned ||
+            operation.entryDisposition != OperationEntryDisposition.Cancelled ||
+            operation.returnCell.disposition != OperationReturnDisposition.Empty
+        ) return false
+        val exactSubmission = operation.submissionDisposition == OperationSubmissionDisposition.Accepted &&
+            ticket.postFailureResidue == null && operation.submissionFailure == null &&
+            operation.submissionAmbiguousFatal == null &&
+            ticket.failureExposure == AndroidPostFailureExposure.None
+        return exactSubmission && activated.compareAndSet(false, true)
+    }
+}
+
+internal class AndroidLanePostCutoffProof<R : OperationEvidence> internal constructor(
+    internal val ticket: AndroidPostTicket<R>,
+    override val operation: OperationOccurrence<R>,
+) : AndroidNoPlatformEntryProof<R> {
+    private val cutoffObserved = AtomicBoolean(false)
+    private val activated = AtomicBoolean(false)
+
+    internal fun recordCutoff(): Boolean = cutoffObserved.compareAndSet(false, true)
+
+    internal fun activateLocked(): Boolean {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        if (activated.get()) return true
+        if (!cutoffObserved.get() || ticket.occurrence !== operation ||
+            ticket.physicalState != AndroidPostPhysicalDisposition.NotOnStack ||
+            ticket.postFailureResidue != null ||
+            operation.submissionDisposition != OperationSubmissionDisposition.None ||
+            operation.entryDisposition != OperationEntryDisposition.Unentered ||
+            operation.returnCell.disposition != OperationReturnDisposition.Empty ||
+            !operation.settleInertBeforeEntryLocked()
+        ) return false
+        return activated.compareAndSet(false, true)
+    }
+
+    internal val isActivatedExact: Boolean
+        get() = activated.get()
+
+    internal val isCutoffObservedExact: Boolean
+        get() = cutoffObserved.get()
+}
+
+internal class AndroidWorkAdmissionCutoff internal constructor() {
+    private sealed interface State {
+        data class Open(internal val reservations: Int) : State
+        data class Closed(internal val reservations: Int) : State
+    }
+
+    private val state = AtomicReference<State>(State.Open(0))
+
+    internal fun reserve(): Boolean {
+        while (true) {
+            val exact = state.get()
+            if (exact !is State.Open || exact.reservations == Int.MAX_VALUE) return false
+            if (state.compareAndSet(exact, State.Open(exact.reservations + 1))) return true
+        }
+    }
+
+    internal fun release() {
+        while (true) {
+            val exact = state.get()
+            val replacement = when (exact) {
+                is State.Open -> State.Open(exact.reservations - 1).also { check(exact.reservations > 0) }
+                is State.Closed -> State.Closed(exact.reservations - 1).also { check(exact.reservations > 0) }
+            }
+            if (state.compareAndSet(exact, replacement)) return
+        }
+    }
+
+    internal fun close(): Boolean {
+        while (true) {
+            val exact = state.get()
+            if (exact is State.Closed) return false
+            check(exact is State.Open)
+            if (state.compareAndSet(exact, State.Closed(exact.reservations))) return true
+        }
+    }
+
+    internal val isClosedAndUnreserved: Boolean
+        get() = state.get() == State.Closed(0)
+}
+
+internal class AndroidOwnerPostCutoffProof<R : OperationEvidence> internal constructor(
+    private val cutoff: AndroidWorkAdmissionCutoff,
+    internal val ticket: AndroidPostTicket<R>,
+    override val operation: OperationOccurrence<R>,
+) : AndroidNoPlatformEntryProof<R> {
+    private val activated = AtomicBoolean(false)
+
+    internal fun activateLocked(): Boolean {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        if (activated.get()) return true
+        if (!cutoff.isClosedAndUnreserved || ticket.occurrence !== operation ||
+            ticket.physicalState != AndroidPostPhysicalDisposition.NotOnStack ||
+            ticket.postFailureResidue != null ||
+            operation.submissionDisposition != OperationSubmissionDisposition.None ||
+            operation.entryDisposition != OperationEntryDisposition.Unentered ||
+            operation.returnCell.disposition != OperationReturnDisposition.Empty ||
+            !operation.settleInertBeforeEntryLocked()
+        ) return false
+        return activated.compareAndSet(false, true)
+    }
+}
 
 internal class AndroidFinalLaneNoEntryProof<R : OperationEvidence> private constructor(
     internal val lane: AndroidLaneRuntime,
@@ -151,6 +274,7 @@ internal class AndroidPostTicket<R : OperationEvidence> internal constructor(
     internal val operationIdentity: Long = occurrence.identity
     private val physicalDisposition = AtomicReference(AndroidPostPhysicalDisposition.NotOnStack)
     private val rawPostFailure = AtomicReference<Throwable?>(null)
+    private val postFailureExposure = AtomicReference(AndroidPostFailureExposure.None)
 
     internal val finalLaneNoEntryProof: AndroidFinalLaneNoEntryProof<R> =
         AndroidFinalLaneNoEntryProof.create(
@@ -160,6 +284,8 @@ internal class AndroidPostTicket<R : OperationEvidence> internal constructor(
             ticket = this,
             operation = occurrence,
         )
+    internal val authoritativePostCutoffProof = AndroidLanePostCutoffProof(this, occurrence)
+    internal val returnedWithoutPlatformEntryProof = AndroidReturnedWithoutPlatformEntryProof(this, occurrence)
 
     internal val runnable = Runnable { lane.runTicket(this) }
 
@@ -169,7 +295,14 @@ internal class AndroidPostTicket<R : OperationEvidence> internal constructor(
     internal val postFailureResidue: Throwable?
         get() = rawPostFailure.get()
 
-    internal fun recordPostFailure(raw: Throwable): Boolean = rawPostFailure.compareAndSet(null, raw)
+    internal val failureExposure: AndroidPostFailureExposure
+        get() = postFailureExposure.get()
+
+    internal fun recordPostFailure(raw: Throwable, exposure: AndroidPostFailureExposure): Boolean {
+        if (!rawPostFailure.compareAndSet(null, raw)) return false
+        check(postFailureExposure.compareAndSet(AndroidPostFailureExposure.None, exposure))
+        return true
+    }
 
     internal fun markOnStack(): Boolean =
         physicalDisposition.compareAndSet(
@@ -182,6 +315,320 @@ internal class AndroidPostTicket<R : OperationEvidence> internal constructor(
             AndroidPostPhysicalDisposition.OnStack,
             AndroidPostPhysicalDisposition.Returned,
         )
+}
+
+internal enum class AndroidListenerSentinelSubmissionDisposition {
+    None,
+    Submitting,
+    Accepted,
+    Rejected,
+}
+
+private enum class AndroidListenerSentinelLinearState {
+    Idle,
+    CutoffBeforeSubmission,
+    Submitting,
+    Accepted,
+    OnStackWhileSubmitting,
+    EnteredWhileSubmitting,
+    ReturnedWhileSubmitting,
+    ReturnedBeforeEntryWhileSubmitting,
+    OnStackAccepted,
+    EnteredAccepted,
+    ReturnedAccepted,
+    ReturnedBeforeEntryAccepted,
+    RejectedFinal,
+    RejectedOnStackFinal,
+    RejectedReturnedFinal,
+    RejectedAwaitingEntry,
+    OnStackAwaitingEntry,
+    EnteredAfterRejection,
+    ReturnedAfterRejection,
+    ReturnedBeforeEntryAfterRejection,
+}
+
+internal enum class AndroidListenerSentinelMechanicalDisposition {
+    Pending,
+    Accepted,
+    RejectedFinal,
+    AwaitingEntry,
+    DefinitelyUnentered,
+}
+
+internal fun interface AndroidListenerSentinelFinalWork {
+    fun run(disposition: AndroidListenerSentinelMechanicalDisposition, postFailureResidue: Throwable?)
+}
+
+internal class AndroidListenerSentinelTicket internal constructor(
+    internal val lane: AndroidLaneRuntime,
+    internal val workerIdentity: AndroidLaneWorkerIdentity,
+    internal val terminationReceipt: AndroidLaneTerminationReceipt,
+    internal val operationIdentity: Long,
+    internal val postRejectedCause: RejectedExecutionException,
+    internal val enteredWork: AndroidEnteredWork,
+    private val finalWork: AndroidListenerSentinelFinalWork,
+) {
+    private val stateGate = ReentrantLock()
+    private var linearState = AndroidListenerSentinelLinearState.Idle
+    private var rawPostFailure: Throwable? = null
+    private var postFailureExposure = AndroidPostFailureExposure.None
+    private var rawExecutionFailure: Throwable? = null
+    private var finalWorkDispatched: Boolean = false
+
+    internal val runnable = Runnable { lane.runListenerSentinel(this) }
+    internal val submissionDisposition: AndroidListenerSentinelSubmissionDisposition
+        get() = stateGate.withLock { when (linearState) {
+            AndroidListenerSentinelLinearState.Idle,
+            AndroidListenerSentinelLinearState.CutoffBeforeSubmission,
+                -> AndroidListenerSentinelSubmissionDisposition.None
+            AndroidListenerSentinelLinearState.Submitting,
+            AndroidListenerSentinelLinearState.OnStackWhileSubmitting,
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryWhileSubmitting,
+                -> AndroidListenerSentinelSubmissionDisposition.Submitting
+            AndroidListenerSentinelLinearState.Accepted,
+            AndroidListenerSentinelLinearState.EnteredWhileSubmitting,
+            AndroidListenerSentinelLinearState.ReturnedWhileSubmitting,
+            AndroidListenerSentinelLinearState.OnStackAccepted,
+            AndroidListenerSentinelLinearState.EnteredAccepted,
+            AndroidListenerSentinelLinearState.ReturnedAccepted,
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryAccepted,
+            AndroidListenerSentinelLinearState.EnteredAfterRejection,
+            AndroidListenerSentinelLinearState.ReturnedAfterRejection,
+                -> AndroidListenerSentinelSubmissionDisposition.Accepted
+            AndroidListenerSentinelLinearState.RejectedFinal,
+            AndroidListenerSentinelLinearState.RejectedOnStackFinal,
+            AndroidListenerSentinelLinearState.RejectedReturnedFinal,
+            AndroidListenerSentinelLinearState.RejectedAwaitingEntry,
+            AndroidListenerSentinelLinearState.OnStackAwaitingEntry,
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryAfterRejection,
+                -> AndroidListenerSentinelSubmissionDisposition.Rejected
+        } }
+    internal val mechanicalDisposition: AndroidListenerSentinelMechanicalDisposition
+        get() = stateGate.withLock { when (linearState) {
+            AndroidListenerSentinelLinearState.Idle,
+            AndroidListenerSentinelLinearState.Submitting,
+            AndroidListenerSentinelLinearState.OnStackWhileSubmitting,
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryWhileSubmitting,
+                -> AndroidListenerSentinelMechanicalDisposition.Pending
+            AndroidListenerSentinelLinearState.CutoffBeforeSubmission ->
+                AndroidListenerSentinelMechanicalDisposition.DefinitelyUnentered
+            AndroidListenerSentinelLinearState.Accepted,
+            AndroidListenerSentinelLinearState.EnteredWhileSubmitting,
+            AndroidListenerSentinelLinearState.ReturnedWhileSubmitting,
+            AndroidListenerSentinelLinearState.OnStackAccepted,
+            AndroidListenerSentinelLinearState.EnteredAccepted,
+            AndroidListenerSentinelLinearState.ReturnedAccepted,
+            AndroidListenerSentinelLinearState.EnteredAfterRejection,
+            AndroidListenerSentinelLinearState.ReturnedAfterRejection,
+                -> AndroidListenerSentinelMechanicalDisposition.Accepted
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryAccepted,
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryAfterRejection,
+                -> AndroidListenerSentinelMechanicalDisposition.DefinitelyUnentered
+            AndroidListenerSentinelLinearState.RejectedFinal,
+            AndroidListenerSentinelLinearState.RejectedOnStackFinal,
+            AndroidListenerSentinelLinearState.RejectedReturnedFinal,
+                ->
+                AndroidListenerSentinelMechanicalDisposition.RejectedFinal
+            AndroidListenerSentinelLinearState.RejectedAwaitingEntry,
+            AndroidListenerSentinelLinearState.OnStackAwaitingEntry,
+                ->
+                AndroidListenerSentinelMechanicalDisposition.AwaitingEntry
+        } }
+    internal val physicalState: AndroidPostPhysicalDisposition
+        get() = stateGate.withLock { when (linearState) {
+            AndroidListenerSentinelLinearState.Idle,
+            AndroidListenerSentinelLinearState.CutoffBeforeSubmission,
+            AndroidListenerSentinelLinearState.Submitting,
+            AndroidListenerSentinelLinearState.Accepted,
+            AndroidListenerSentinelLinearState.RejectedFinal,
+            AndroidListenerSentinelLinearState.RejectedAwaitingEntry,
+                -> AndroidPostPhysicalDisposition.NotOnStack
+            AndroidListenerSentinelLinearState.OnStackWhileSubmitting,
+            AndroidListenerSentinelLinearState.OnStackAccepted,
+            AndroidListenerSentinelLinearState.RejectedOnStackFinal,
+            AndroidListenerSentinelLinearState.OnStackAwaitingEntry,
+            AndroidListenerSentinelLinearState.EnteredWhileSubmitting,
+            AndroidListenerSentinelLinearState.EnteredAccepted,
+            AndroidListenerSentinelLinearState.EnteredAfterRejection,
+                -> AndroidPostPhysicalDisposition.OnStack
+            AndroidListenerSentinelLinearState.ReturnedWhileSubmitting,
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryWhileSubmitting,
+            AndroidListenerSentinelLinearState.ReturnedAccepted,
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryAccepted,
+            AndroidListenerSentinelLinearState.RejectedReturnedFinal,
+            AndroidListenerSentinelLinearState.ReturnedAfterRejection,
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryAfterRejection,
+                -> AndroidPostPhysicalDisposition.Returned
+        } }
+    internal val postFailureResidue: Throwable?
+        get() = stateGate.withLock { rawPostFailure }
+    internal val failureExposure: AndroidPostFailureExposure
+        get() = stateGate.withLock { postFailureExposure }
+    internal val enteredLane: Boolean
+        get() = stateGate.withLock { when (linearState) {
+            AndroidListenerSentinelLinearState.EnteredWhileSubmitting,
+            AndroidListenerSentinelLinearState.ReturnedWhileSubmitting,
+            AndroidListenerSentinelLinearState.EnteredAccepted,
+            AndroidListenerSentinelLinearState.ReturnedAccepted,
+            AndroidListenerSentinelLinearState.EnteredAfterRejection,
+            AndroidListenerSentinelLinearState.ReturnedAfterRejection,
+                -> true
+            else -> false
+        } }
+    internal val executionFailure: Throwable?
+        get() = stateGate.withLock { rawExecutionFailure }
+
+    internal fun beginSubmission(): Boolean = stateGate.withLock {
+        if (linearState != AndroidListenerSentinelLinearState.Idle) return@withLock false
+        linearState = AndroidListenerSentinelLinearState.Submitting
+        true
+    }
+
+    internal fun recordCutoffBeforeSubmission(): Boolean = stateGate.withLock {
+        if (linearState != AndroidListenerSentinelLinearState.Idle) return@withLock false
+        linearState = AndroidListenerSentinelLinearState.CutoffBeforeSubmission
+        true
+    }
+
+    internal fun publishAccepted(): Boolean = stateGate.withLock {
+        linearState = when (linearState) {
+            AndroidListenerSentinelLinearState.Submitting -> AndroidListenerSentinelLinearState.Accepted
+            AndroidListenerSentinelLinearState.OnStackWhileSubmitting ->
+                AndroidListenerSentinelLinearState.OnStackAccepted
+            AndroidListenerSentinelLinearState.EnteredWhileSubmitting ->
+                AndroidListenerSentinelLinearState.EnteredAccepted
+            AndroidListenerSentinelLinearState.ReturnedWhileSubmitting ->
+                AndroidListenerSentinelLinearState.ReturnedAccepted
+            AndroidListenerSentinelLinearState.ReturnedBeforeEntryWhileSubmitting ->
+                AndroidListenerSentinelLinearState.ReturnedBeforeEntryAccepted
+            else -> return@withLock false
+        }
+        true
+    }
+
+    internal fun recordPostFailure(raw: Throwable, exposure: AndroidPostFailureExposure): Boolean {
+        return stateGate.withLock {
+            if (rawPostFailure != null) return@withLock false
+            val updated = when (linearState) {
+                AndroidListenerSentinelLinearState.Submitting ->
+                    if (exposure == AndroidPostFailureExposure.AuthoritativeRejection) {
+                        AndroidListenerSentinelLinearState.RejectedFinal
+                    } else {
+                        AndroidListenerSentinelLinearState.RejectedAwaitingEntry
+                    }
+                AndroidListenerSentinelLinearState.OnStackWhileSubmitting ->
+                    if (exposure == AndroidPostFailureExposure.AuthoritativeRejection) {
+                        AndroidListenerSentinelLinearState.RejectedOnStackFinal
+                    } else {
+                        AndroidListenerSentinelLinearState.OnStackAwaitingEntry
+                    }
+                AndroidListenerSentinelLinearState.EnteredWhileSubmitting ->
+                    AndroidListenerSentinelLinearState.EnteredAfterRejection
+                AndroidListenerSentinelLinearState.ReturnedWhileSubmitting ->
+                    AndroidListenerSentinelLinearState.ReturnedAfterRejection
+                AndroidListenerSentinelLinearState.ReturnedBeforeEntryWhileSubmitting ->
+                    AndroidListenerSentinelLinearState.ReturnedBeforeEntryAfterRejection
+                else -> return@withLock false
+            }
+            rawPostFailure = raw
+            postFailureExposure = exposure
+            linearState = updated
+            true
+        }
+    }
+
+    internal fun markOnStack(): Boolean = stateGate.withLock {
+        linearState = when (linearState) {
+            AndroidListenerSentinelLinearState.Submitting ->
+                AndroidListenerSentinelLinearState.OnStackWhileSubmitting
+            AndroidListenerSentinelLinearState.Accepted -> AndroidListenerSentinelLinearState.OnStackAccepted
+            AndroidListenerSentinelLinearState.RejectedAwaitingEntry ->
+                AndroidListenerSentinelLinearState.OnStackAwaitingEntry
+            else -> return@withLock false
+        }
+        true
+    }
+
+    internal fun markEntered(): Boolean = stateGate.withLock {
+        linearState = when (linearState) {
+            AndroidListenerSentinelLinearState.OnStackWhileSubmitting ->
+                AndroidListenerSentinelLinearState.EnteredWhileSubmitting
+            AndroidListenerSentinelLinearState.OnStackAccepted -> AndroidListenerSentinelLinearState.EnteredAccepted
+            AndroidListenerSentinelLinearState.OnStackAwaitingEntry ->
+                AndroidListenerSentinelLinearState.EnteredAfterRejection
+            else -> return@withLock false
+        }
+        true
+    }
+
+    internal fun recordExecutionFailure(raw: Throwable): Boolean = stateGate.withLock {
+        if (rawExecutionFailure != null) return@withLock false
+        rawExecutionFailure = raw
+        true
+    }
+
+    internal fun markReturned(): Boolean = stateGate.withLock {
+        linearState = when (linearState) {
+            AndroidListenerSentinelLinearState.EnteredWhileSubmitting ->
+                AndroidListenerSentinelLinearState.ReturnedWhileSubmitting
+            AndroidListenerSentinelLinearState.EnteredAccepted -> AndroidListenerSentinelLinearState.ReturnedAccepted
+            AndroidListenerSentinelLinearState.EnteredAfterRejection ->
+                AndroidListenerSentinelLinearState.ReturnedAfterRejection
+            AndroidListenerSentinelLinearState.OnStackWhileSubmitting ->
+                AndroidListenerSentinelLinearState.ReturnedBeforeEntryWhileSubmitting
+            AndroidListenerSentinelLinearState.OnStackAccepted ->
+                AndroidListenerSentinelLinearState.ReturnedBeforeEntryAccepted
+            AndroidListenerSentinelLinearState.OnStackAwaitingEntry ->
+                AndroidListenerSentinelLinearState.ReturnedBeforeEntryAfterRejection
+            AndroidListenerSentinelLinearState.RejectedOnStackFinal ->
+                AndroidListenerSentinelLinearState.RejectedReturnedFinal
+            else -> return@withLock false
+        }
+        true
+    }
+
+    internal fun dispatchFinalWork() {
+        var exactDisposition: AndroidListenerSentinelMechanicalDisposition? = null
+        var exactFailure: Throwable? = null
+        stateGate.withLock {
+            if (finalWorkDispatched) return
+            exactDisposition = when (linearState) {
+                AndroidListenerSentinelLinearState.ReturnedBeforeEntryAccepted,
+                AndroidListenerSentinelLinearState.ReturnedBeforeEntryAfterRejection,
+                    -> AndroidListenerSentinelMechanicalDisposition.DefinitelyUnentered
+                AndroidListenerSentinelLinearState.ReturnedAccepted,
+                AndroidListenerSentinelLinearState.ReturnedAfterRejection,
+                    -> AndroidListenerSentinelMechanicalDisposition.Accepted
+                else -> return
+            }
+            exactFailure = rawPostFailure
+            finalWorkDispatched = true
+        }
+        val disposition = exactDisposition ?: return
+        finalWork.run(disposition, exactFailure)
+    }
+
+    internal fun foldFinalLaneNoEntry(receipt: AndroidLaneTerminationReceipt): Boolean {
+        if (receipt !== terminationReceipt || receipt.lane !== lane ||
+            !receipt.matchesWorker(workerIdentity) || !lane.acceptsTerminationReceipt(receipt)
+        ) return false
+        val folded = stateGate.withLock {
+            linearState = when (linearState) {
+                AndroidListenerSentinelLinearState.Accepted,
+                AndroidListenerSentinelLinearState.OnStackAccepted,
+                    -> AndroidListenerSentinelLinearState.ReturnedBeforeEntryAccepted
+                AndroidListenerSentinelLinearState.RejectedAwaitingEntry,
+                AndroidListenerSentinelLinearState.OnStackAwaitingEntry,
+                    -> AndroidListenerSentinelLinearState.ReturnedBeforeEntryAfterRejection
+                AndroidListenerSentinelLinearState.ReturnedBeforeEntryAccepted,
+                AndroidListenerSentinelLinearState.ReturnedBeforeEntryAfterRejection -> return@withLock true
+                else -> return@withLock false
+            }
+            true
+        }
+        if (folded) dispatchFinalWork()
+        return folded
+    }
 }
 
 internal class AndroidLaneRuntime(
@@ -202,6 +649,8 @@ internal class AndroidLaneRuntime(
     private val ownedTerminationReceipt = AndroidLaneTerminationReceipt.create(this, ownedWorkerIdentity)
     private val publishedTerminationReceipt = AtomicReference<AndroidLaneTerminationReceipt?>(null)
     private val quitOutcome = AtomicReference<AndroidLaneQuitOutcome?>(null)
+    private val quitReturnedAccepted = AndroidLaneQuitOutcome.Returned(true)
+    private val quitReturnedRejected = AndroidLaneQuitOutcome.Returned(false)
     private val quitFailure = AndroidLaneQuitOutcome.Thrown()
     private val ordinaryLaneFailure = AtomicReference<Exception?>(null)
     private val fatalSlot = DirectFatalSlot()
@@ -314,6 +763,21 @@ internal class AndroidLaneRuntime(
         enteredWork = enteredWork,
     )
 
+    internal fun listenerSentinelTicket(
+        operationIdentity: Long,
+        postRejectionMessage: String,
+        enteredWork: AndroidEnteredWork,
+        finalWork: AndroidListenerSentinelFinalWork,
+    ): AndroidListenerSentinelTicket = AndroidListenerSentinelTicket(
+        lane = this,
+        workerIdentity = ownedWorkerIdentity,
+        terminationReceipt = ownedTerminationReceipt,
+        operationIdentity = operationIdentity,
+        postRejectedCause = RejectedExecutionException(postRejectionMessage),
+        enteredWork = enteredWork,
+        finalWork = finalWork,
+    )
+
     internal fun <R : OperationEvidence> proveFinalLaneNoEntryLocked(
         receipt: AndroidLaneTerminationReceipt,
         ticket: AndroidPostTicket<R>,
@@ -345,18 +809,70 @@ internal class AndroidLaneRuntime(
             ticket.finalLaneNoEntryProof.workerIdentity !== ownedWorkerIdentity ||
             ticket.finalLaneNoEntryProof.terminationReceipt !== receipt ||
             ticket.physicalState != AndroidPostPhysicalDisposition.NotOnStack ||
-            ticket.postFailureResidue != null ||
-            operation.submissionDisposition != OperationSubmissionDisposition.Accepted ||
-            operation.submissionFailure != null ||
             operation.submissionAmbiguousFatal != null ||
             operation.entryDisposition != OperationEntryDisposition.Unentered ||
-            (operation.disposition != OperationDisposition.Pending &&
-                    operation.disposition != OperationDisposition.Cleanup) ||
+            !acceptsFinalNoEntrySubmission(ticket, operation) ||
             operation.returnCell.disposition != OperationReturnDisposition.Empty
         ) {
             return null
         }
         return ticket.finalLaneNoEntryProof
+    }
+
+    internal fun <R : OperationEvidence> proveFinalLaneNoEntryAfterCancellationLocked(
+        receipt: AndroidLaneTerminationReceipt,
+        ticket: AndroidPostTicket<R>,
+        operation: OperationOccurrence<R>,
+    ): AndroidFinalLaneNoEntryProof<R>? {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        val exactSubmission = when (operation.submissionDisposition) {
+            OperationSubmissionDisposition.Accepted ->
+                ticket.postFailureResidue == null && ticket.failureExposure == AndroidPostFailureExposure.None &&
+                    operation.submissionFailure == null && operation.submissionAmbiguousFatal == null &&
+                    (operation.disposition == OperationDisposition.Cancelled ||
+                        operation.disposition == OperationDisposition.DeadlineGuardFailed)
+
+            OperationSubmissionDisposition.Rejected ->
+                ticket.postFailureResidue != null &&
+                    operation.submissionFailure === ticket.postFailureResidue &&
+                    operation.submissionAmbiguousFatal == null &&
+                    operation.disposition == OperationDisposition.SchedulerRejected
+
+            else -> false
+        }
+        if (!exactSubmission || publishedTerminationReceipt.get() !== receipt ||
+            !acceptsTerminationReceipt(receipt) || ticket.lane !== this ||
+            ticket.workerIdentity !== ownedWorkerIdentity || ticket.terminationReceipt !== receipt ||
+            ticket.occurrence !== operation || ticket.operationIdentity != operation.identity ||
+            ticket.finalLaneNoEntryProof.operation !== operation ||
+            ticket.finalLaneNoEntryProof.operationIdentity != operation.identity ||
+            ticket.finalLaneNoEntryProof.ticket !== ticket || ticket.finalLaneNoEntryProof.lane !== this ||
+            ticket.finalLaneNoEntryProof.workerIdentity !== ownedWorkerIdentity ||
+            ticket.finalLaneNoEntryProof.terminationReceipt !== receipt ||
+            ticket.physicalState != AndroidPostPhysicalDisposition.NotOnStack ||
+            operation.entryDisposition != OperationEntryDisposition.Cancelled ||
+            operation.returnCell.disposition != OperationReturnDisposition.Empty
+        ) return null
+        return ticket.finalLaneNoEntryProof
+    }
+
+    private fun acceptsFinalNoEntrySubmission(
+        ticket: AndroidPostTicket<*>,
+        operation: OperationOccurrence<*>,
+    ): Boolean = when (operation.submissionDisposition) {
+        OperationSubmissionDisposition.Accepted ->
+            ticket.postFailureResidue == null && operation.submissionFailure == null &&
+                    (operation.disposition == OperationDisposition.Pending ||
+                            operation.disposition == OperationDisposition.Cleanup)
+
+        OperationSubmissionDisposition.Rejected ->
+            ticket.postFailureResidue != null && operation.submissionFailure === ticket.postFailureResidue &&
+                    (operation.domain == OperationDomain.Active &&
+                            operation.disposition == OperationDisposition.SchedulerRejected ||
+                            operation.domain == OperationDomain.Cleanup &&
+                            operation.disposition == OperationDisposition.Cleanup)
+
+        else -> false
     }
 
     internal fun proveNeverStarted(): AndroidLaneRuntimeNeverStartedProof? =
@@ -367,7 +883,9 @@ internal class AndroidLaneRuntime(
         }
 
     internal fun post(ticket: AndroidPostTicket<*>): AndroidPostResult {
-        if (ticket.lane !== this || !reservePostTransition()) {
+        if (ticket.lane !== this) return AndroidPostResult.NotSubmitted
+        if (!reservePostTransition()) {
+            ticket.authoritativePostCutoffProof.recordCutoff()
             return AndroidPostResult.NotSubmitted
         }
         val submissionStarted = try {
@@ -382,7 +900,7 @@ internal class AndroidLaneRuntime(
             val failure = (startup.get() as? AndroidLaneStartupResult.Failed)?.cause
                 ?: ticket.postRejectedCause
             if (failure is Exception) {
-                failClosePostException(ticket, failure)
+                failClosePostException(ticket, failure, AndroidPostFailureExposure.AuthoritativeRejection)
                 signalBestEffort()
             } else {
                 publishFatalFirst(failure)
@@ -398,12 +916,16 @@ internal class AndroidLaneRuntime(
                 signalBestEffort()
                 AndroidPostResult.Accepted
             } else {
-                failClosePostException(ticket, ticket.postRejectedCause)
+                failClosePostException(
+                    ticket,
+                    ticket.postRejectedCause,
+                    AndroidPostFailureExposure.AuthoritativeRejection,
+                )
                 signalBestEffort()
                 AndroidPostResult.Rejected
             }
         } catch (failure: Exception) {
-            failClosePostException(ticket, failure)
+            failClosePostException(ticket, failure, AndroidPostFailureExposure.AcceptanceAmbiguous)
             signalBestEffort()
             AndroidPostResult.Rejected
         } catch (raw: Throwable) {
@@ -414,12 +936,71 @@ internal class AndroidLaneRuntime(
         }
     }
 
+    internal fun post(ticket: AndroidListenerSentinelTicket): AndroidPostResult {
+        if (ticket.lane !== this) return AndroidPostResult.NotSubmitted
+        if (!reservePostTransition()) {
+            ticket.recordCutoffBeforeSubmission()
+            return AndroidPostResult.NotSubmitted
+        }
+        val submissionStarted = try {
+            ticket.beginSubmission()
+        } finally {
+            releaseTransitionReservation()
+        }
+        if (!submissionStarted) return AndroidPostResult.NotSubmitted
+
+        val handler = (startup.get() as? AndroidLaneStartupResult.Ready)?.handler
+        if (handler == null) {
+            val failure = (startup.get() as? AndroidLaneStartupResult.Failed)?.cause
+                ?: ticket.postRejectedCause
+            if (failure is Exception) {
+                failCloseSentinelPostException(ticket, failure, AndroidPostFailureExposure.AuthoritativeRejection)
+            } else {
+                publishFatalFirst(failure)
+                failCloseSentinelPostFatal(ticket, failure)
+            }
+            ticket.dispatchFinalWork()
+            signalBestEffort()
+            return AndroidPostResult.Rejected
+        }
+
+        return try {
+            if (handler.post(ticket.runnable)) {
+                check(ticket.publishAccepted())
+                ticket.dispatchFinalWork()
+                signalBestEffort()
+                AndroidPostResult.Accepted
+            } else {
+                failCloseSentinelPostException(
+                    ticket,
+                    ticket.postRejectedCause,
+                    AndroidPostFailureExposure.AuthoritativeRejection,
+                )
+                ticket.dispatchFinalWork()
+                signalBestEffort()
+                AndroidPostResult.Rejected
+            }
+        } catch (failure: Exception) {
+            failCloseSentinelPostException(ticket, failure, AndroidPostFailureExposure.AcceptanceAmbiguous)
+            ticket.dispatchFinalWork()
+            signalBestEffort()
+            AndroidPostResult.Rejected
+        } catch (raw: Throwable) {
+            publishFatalFirst(raw)
+            failCloseSentinelPostFatal(ticket, raw)
+            ticket.dispatchFinalWork()
+            signalBestEffort()
+            FatalThrowablePolicy.rethrow(raw)
+        }
+    }
+
     internal fun requestQuitSafely(): Boolean {
         if (!quitRequested.compareAndSet(false, true)) return false
         closeAdmission()
         return try {
             val requested = handlerThread.quitSafely()
-            quitOutcome.compareAndSet(null, AndroidLaneQuitOutcome.Returned(requested))
+            val returned = if (requested) quitReturnedAccepted else quitReturnedRejected
+            quitOutcome.compareAndSet(null, returned)
             signalBestEffort()
             requested
         } catch (raw: Throwable) {
@@ -458,8 +1039,12 @@ internal class AndroidLaneRuntime(
                 }
 
                 OperationEntryResult.InvalidDeadline,
-                OperationEntryResult.NotCurrent,
-                    -> signalBestEffort()
+                    -> {
+                        ticket.occurrence.settleInertBeforeEntry()
+                        signalBestEffort()
+                    }
+
+                OperationEntryResult.NotCurrent -> signalBestEffort()
             }
         } catch (failure: Exception) {
             ticket.occurrence.publishThrownReturn(failure)
@@ -472,6 +1057,39 @@ internal class AndroidLaneRuntime(
             FatalThrowablePolicy.rethrow(raw)
         } finally {
             ticket.markReturned()
+            signalBestEffort()
+        }
+    }
+
+    internal fun runListenerSentinel(ticket: AndroidListenerSentinelTicket) {
+        if (ticket.lane !== this || !ticket.markOnStack()) return
+        try {
+            if (!reserveEntryTransition()) {
+                awaitPoisonIfClosing()
+                signalBestEffort()
+                return
+            }
+            try {
+                if (!ticket.markEntered()) return
+            } finally {
+                releaseTransitionReservation()
+            }
+            val handler = (startup.get() as? AndroidLaneStartupResult.Ready)?.handler
+            checkNotNull(handler)
+            ticket.enteredWork.run(handler)
+            signalBestEffort()
+        } catch (failure: Exception) {
+            ticket.recordExecutionFailure(failure)
+            signalBestEffort()
+        } catch (raw: Throwable) {
+            publishFatalFirst(raw)
+            ticket.recordExecutionFailure(raw)
+            failCloseLane()
+            signalBestEffort()
+            FatalThrowablePolicy.rethrow(raw)
+        } finally {
+            ticket.markReturned()
+            ticket.dispatchFinalWork()
             signalBestEffort()
         }
     }
@@ -532,11 +1150,15 @@ internal class AndroidLaneRuntime(
         awaitPoisonIfClosing()
     }
 
-    private fun failClosePostException(ticket: AndroidPostTicket<*>, failure: Exception) {
+    private fun failClosePostException(
+        ticket: AndroidPostTicket<*>,
+        failure: Exception,
+        exposure: AndroidPostFailureExposure,
+    ) {
         val leader = beginFailClosing()
         if (leader) {
             awaitReservationDrain()
-            ticket.recordPostFailure(failure)
+            ticket.recordPostFailure(failure, exposure)
             try {
                 ticket.occurrence.publishSubmissionFailed(failure)
             } finally {
@@ -545,7 +1167,7 @@ internal class AndroidLaneRuntime(
             return
         }
 
-        ticket.recordPostFailure(failure)
+        ticket.recordPostFailure(failure, exposure)
         ticket.occurrence.publishSubmissionFailed(failure)
         awaitPoisonIfClosing()
     }
@@ -555,7 +1177,7 @@ internal class AndroidLaneRuntime(
         val leader = beginFailClosing()
         if (leader) {
             awaitReservationDrain()
-            ticket.recordPostFailure(raw)
+            ticket.recordPostFailure(raw, AndroidPostFailureExposure.AcceptanceAmbiguous)
             try {
                 ticket.occurrence.publishSubmissionAmbiguousFatal(raw)
             } finally {
@@ -564,8 +1186,37 @@ internal class AndroidLaneRuntime(
             return
         }
 
-        ticket.recordPostFailure(raw)
+        ticket.recordPostFailure(raw, AndroidPostFailureExposure.AcceptanceAmbiguous)
         ticket.occurrence.publishSubmissionAmbiguousFatal(raw)
+        awaitPoisonIfClosing()
+    }
+
+    private fun failCloseSentinelPostException(
+        ticket: AndroidListenerSentinelTicket,
+        failure: Exception,
+        exposure: AndroidPostFailureExposure,
+    ) {
+        val leader = beginFailClosing()
+        if (leader) {
+            awaitReservationDrain()
+            ticket.recordPostFailure(failure, exposure)
+            publishPoisoned()
+            return
+        }
+        ticket.recordPostFailure(failure, exposure)
+        awaitPoisonIfClosing()
+    }
+
+    private fun failCloseSentinelPostFatal(ticket: AndroidListenerSentinelTicket, raw: Throwable) {
+        require(FatalThrowablePolicy.isDirectFatal(raw))
+        val leader = beginFailClosing()
+        if (leader) {
+            awaitReservationDrain()
+            ticket.recordPostFailure(raw, AndroidPostFailureExposure.AcceptanceAmbiguous)
+            publishPoisoned()
+            return
+        }
+        ticket.recordPostFailure(raw, AndroidPostFailureExposure.AcceptanceAmbiguous)
         awaitPoisonIfClosing()
     }
 

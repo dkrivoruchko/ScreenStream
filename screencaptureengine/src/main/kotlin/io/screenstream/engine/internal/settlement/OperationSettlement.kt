@@ -11,6 +11,10 @@ internal interface OperationEvidence {
 
 internal interface OperationOwnerBag
 
+internal class OperationDirectCleanupAdmissionProof internal constructor(
+    internal val occurrence: OperationOccurrence<*>,
+)
+
 internal interface OperationReceipt
 
 internal interface OperationReturnedOwner
@@ -60,6 +64,13 @@ internal enum class OperationEntryResult {
     Entered,
     NotCurrent,
     InvalidDeadline,
+}
+
+private enum class OutwardCallAuthorization {
+    NotRequired,
+    Awaiting,
+    Authorized,
+    Denied,
 }
 
 internal enum class OperationSubmissionRejectionResult {
@@ -151,6 +162,7 @@ internal class OperationOccurrence<R : OperationEvidence>(
     initialWakeGeneration: Long = deadlineIdentity ?: 0L,
     timeoutCause: Throwable? = null,
     wakeSignal: SettlementSignal? = null,
+    private val deferDeadlineArmUntilOutwardCall: Boolean = false,
 ) {
     internal val settlementGate: ReentrantLock = ReentrantLock(false)
 
@@ -181,11 +193,15 @@ internal class OperationOccurrence<R : OperationEvidence>(
         private set
 
     private var cleanupEntryAllowed: Boolean = false
+    private val directCleanupAdmissionProof = OperationDirectCleanupAdmissionProof(this)
+    private var sealedDirectCleanupAdmissionProof: OperationDirectCleanupAdmissionProof? = null
+    private var outwardCallAuthorization: OutwardCallAuthorization = OutwardCallAuthorization.NotRequired
 
     init {
         require((deadlineIdentity == null) == (deadlineDurationNanos == null))
         require((deadlineIdentity == null) == (timeoutCause == null))
         require((deadlineIdentity == null) == (wakeSignal == null))
+        require(!deferDeadlineArmUntilOutwardCall || deadlineIdentity != null)
         deadlineOccurrence = if (deadlineIdentity == null) {
             null
         } else {
@@ -214,6 +230,7 @@ internal class OperationOccurrence<R : OperationEvidence>(
                 cleanupEntryAllowed &&
                 disposition == OperationDisposition.Cleanup
         if (!submissionAllowed ||
+            sealedDirectCleanupAdmissionProof != null ||
             submissionDisposition != OperationSubmissionDisposition.None ||
             entryDisposition != OperationEntryDisposition.Unentered ||
             returnCell.disposition != OperationReturnDisposition.Empty
@@ -221,6 +238,45 @@ internal class OperationOccurrence<R : OperationEvidence>(
             return false
         }
         submissionDisposition = OperationSubmissionDisposition.Submitting
+        return true
+    }
+
+    internal val directCleanupAdmissionCandidate: OperationDirectCleanupAdmissionProof
+        get() = directCleanupAdmissionProof
+
+    internal fun sealDirectCleanupAdmissionFromNoSubmissionLocked(
+        exactProof: OperationDirectCleanupAdmissionProof,
+    ): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (exactProof !== directCleanupAdmissionProof || exactProof.occurrence !== this) return false
+        sealedDirectCleanupAdmissionProof?.let { return it === exactProof }
+        if (domain != OperationDomain.Cleanup || !cleanupEntryAllowed ||
+            disposition != OperationDisposition.Cleanup ||
+            submissionDisposition != OperationSubmissionDisposition.None ||
+            submissionFailure != null || submissionAmbiguousFatal != null || submissionExecutionObserved ||
+            entryDisposition != OperationEntryDisposition.Unentered ||
+            returnCell.disposition != OperationReturnDisposition.Empty
+        ) return false
+        sealedDirectCleanupAdmissionProof = directCleanupAdmissionProof
+        return true
+    }
+
+    internal fun tryEnterDirectCleanupFromNoSubmissionLocked(
+        exactProof: OperationDirectCleanupAdmissionProof,
+    ): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (exactProof !== directCleanupAdmissionProof ||
+            sealedDirectCleanupAdmissionProof !== exactProof ||
+            exactProof.occurrence !== this || domain != OperationDomain.Cleanup || !cleanupEntryAllowed ||
+            disposition != OperationDisposition.Cleanup ||
+            submissionDisposition != OperationSubmissionDisposition.None ||
+            submissionFailure != null || submissionAmbiguousFatal != null || submissionExecutionObserved ||
+            entryDisposition != OperationEntryDisposition.Unentered ||
+            returnCell.disposition != OperationReturnDisposition.Empty
+        ) return false
+        entryDisposition = OperationEntryDisposition.Entered
+        beginOutwardCallAuthorizationLocked()
+        deadlineOccurrence?.retireLocked()
         return true
     }
 
@@ -329,13 +385,15 @@ internal class OperationOccurrence<R : OperationEvidence>(
         }
 
         val deadline = deadlineOccurrence
-        if (domain == OperationDomain.Active && deadline != null) {
-            when (deadline.armLocked(clock.nowNanos())) {
-                DeadlineArmResult.Armed -> Unit
-                DeadlineArmResult.AlreadySettled -> return OperationEntryResult.NotCurrent
-                DeadlineArmResult.InvalidClockOrOverflow -> {
-                    disposition = OperationDisposition.DeadlineGuardFailed
-                    return OperationEntryResult.InvalidDeadline
+        if (domain == OperationDomain.Active) {
+            if (deadline != null && !deferDeadlineArmUntilOutwardCall) {
+                when (deadline.armLocked(clock.nowNanos())) {
+                    DeadlineArmResult.Armed -> Unit
+                    DeadlineArmResult.AlreadySettled -> return OperationEntryResult.NotCurrent
+                    DeadlineArmResult.InvalidClockOrOverflow -> {
+                        disposition = OperationDisposition.DeadlineGuardFailed
+                        return OperationEntryResult.InvalidDeadline
+                    }
                 }
             }
         } else {
@@ -343,17 +401,78 @@ internal class OperationOccurrence<R : OperationEvidence>(
         }
 
         entryDisposition = OperationEntryDisposition.Entered
+        beginOutwardCallAuthorizationLocked()
         return OperationEntryResult.Entered
     }
 
+    /** Consumes deferred authorization; the caller performs the outward call only after releasing its gates. */
+    internal fun authorizeOutwardCallLocked(): OperationEntryResult {
+        check(settlementGate.isHeldByCurrentThread)
+        if (outwardCallAuthorization != OutwardCallAuthorization.Awaiting) {
+            return OperationEntryResult.NotCurrent
+        }
+        if (entryDisposition != OperationEntryDisposition.Entered ||
+            returnCell.disposition != OperationReturnDisposition.Empty
+        ) {
+            outwardCallAuthorization = OutwardCallAuthorization.Denied
+            return OperationEntryResult.NotCurrent
+        }
+        val authorizationIsCurrent = when (domain) {
+            OperationDomain.Active -> disposition == OperationDisposition.Pending
+            OperationDomain.Cleanup -> disposition == OperationDisposition.Cleanup
+        }
+        if (!authorizationIsCurrent) {
+            outwardCallAuthorization = OutwardCallAuthorization.Denied
+            return OperationEntryResult.NotCurrent
+        }
+
+        val deadline = checkNotNull(deadlineOccurrence)
+        if (domain == OperationDomain.Cleanup) {
+            deadline.retireLocked()
+            outwardCallAuthorization = OutwardCallAuthorization.Authorized
+            return OperationEntryResult.Entered
+        }
+        return when (deadline.armLocked(clock.nowNanos())) {
+            DeadlineArmResult.Armed -> {
+                outwardCallAuthorization = OutwardCallAuthorization.Authorized
+                OperationEntryResult.Entered
+            }
+
+            DeadlineArmResult.AlreadySettled -> {
+                outwardCallAuthorization = OutwardCallAuthorization.Denied
+                OperationEntryResult.NotCurrent
+            }
+
+            DeadlineArmResult.InvalidClockOrOverflow -> {
+                outwardCallAuthorization = OutwardCallAuthorization.Denied
+                disposition = OperationDisposition.DeadlineGuardFailed
+                OperationEntryResult.InvalidDeadline
+            }
+        }
+    }
+
     internal fun publishNormalReturn(): Boolean = settlementGate.withLock {
-        if (entryDisposition != OperationEntryDisposition.Entered) return@withLock false
-        returnCell.publishNormalLocked(settlementSampleLocked())
+        publishNormalReturnLocked()
+    }
+
+    internal fun publishNormalReturnLocked(): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (entryDisposition != OperationEntryDisposition.Entered || !outwardCallReturnAllowedLocked()) {
+            return false
+        }
+        return returnCell.publishNormalLocked(settlementSampleLocked())
     }
 
     internal fun publishThrownReturn(thrown: Exception): Boolean = settlementGate.withLock {
-        if (entryDisposition != OperationEntryDisposition.Entered) return@withLock false
-        returnCell.publishThrownLocked(settlementSampleLocked(), thrown)
+        publishThrownReturnLocked(thrown)
+    }
+
+    internal fun publishThrownReturnLocked(thrown: Exception): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (entryDisposition != OperationEntryDisposition.Entered || !outwardCallReturnAllowedLocked()) {
+            return false
+        }
+        return returnCell.publishThrownLocked(settlementSampleLocked(), thrown)
     }
 
     internal fun publishDirectFatalReturn(raw: Throwable): Boolean = settlementGate.withLock {
@@ -363,7 +482,7 @@ internal class OperationOccurrence<R : OperationEvidence>(
     internal fun publishDirectFatalReturnLocked(raw: Throwable): Boolean {
         check(settlementGate.isHeldByCurrentThread)
         require(raw !is Exception)
-        if (entryDisposition != OperationEntryDisposition.Entered) return false
+        if (entryDisposition != OperationEntryDisposition.Entered || !outwardCallReturnAllowedLocked()) return false
         return returnCell.publishThrownLocked(settlementSampleLocked(), raw)
     }
 
@@ -386,47 +505,90 @@ internal class OperationOccurrence<R : OperationEvidence>(
         return true
     }
 
+    /**
+     * Authorizes the same mandatory-cleanup occurrence at its predeclared alternate direct site after the
+     * Android Handler submission was authoritatively rejected. The rejection and its exact throwable remain
+     * durable; this is neither a second submission nor a retry of an entered platform call.
+     */
+    internal fun tryEnterAlternateDirectAfterRejectedCleanupSubmissionLocked(
+        exactRejection: Exception,
+    ): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        if (domain != OperationDomain.Cleanup || !cleanupEntryAllowed ||
+            disposition != OperationDisposition.Cleanup ||
+            submissionDisposition != OperationSubmissionDisposition.Rejected ||
+            submissionFailure !== exactRejection || submissionAmbiguousFatal != null ||
+            submissionExecutionObserved || entryDisposition != OperationEntryDisposition.Unentered ||
+            returnCell.disposition != OperationReturnDisposition.Empty
+        ) {
+            return false
+        }
+        entryDisposition = OperationEntryDisposition.Entered
+        beginOutwardCallAuthorizationLocked()
+        deadlineOccurrence?.retireLocked()
+        return true
+    }
+
     internal fun arbitrate(): OperationArbitration = settlementGate.withLock {
         arbitrateLocked()
     }
 
     internal fun arbitrateTerminal(mandatoryCleanup: Boolean): OperationTerminalArbitration =
         settlementGate.withLock {
-            if (returnCell.disposition != OperationReturnDisposition.Empty &&
-                returnCell.use == OperationReturnUse.Unclaimed
-            ) {
-                val arbitration = terminalArbitration(arbitrateLocked())
-                if (arbitration != OperationTerminalArbitration.Transferred) return@withLock arbitration
-            }
-            if (returnCell.use != OperationReturnUse.Unclaimed) {
-                return@withLock OperationTerminalArbitration.AlreadySettled
-            }
-            if (!mandatoryCleanup && entryDisposition == OperationEntryDisposition.Cancelled) {
-                return@withLock OperationTerminalArbitration.CancelledUnentered
-            }
-
-            domain = OperationDomain.Cleanup
-            if (mandatoryCleanup && entryDisposition == OperationEntryDisposition.Unentered) {
-                cleanupEntryAllowed = true
-            }
-            deadlineOccurrence?.retireLocked()
-            if (!cleanupEntryAllowed &&
-                submissionDisposition != OperationSubmissionDisposition.Submitting &&
-                entryDisposition == OperationEntryDisposition.Unentered &&
-                returnCell.disposition == OperationReturnDisposition.Empty
-            ) {
-                entryDisposition = OperationEntryDisposition.Cancelled
-                submissionDisposition = OperationSubmissionDisposition.Cancelled
-                if (disposition == OperationDisposition.Pending || disposition == OperationDisposition.Cleanup) {
-                    disposition = OperationDisposition.Cancelled
-                }
-                return@withLock OperationTerminalArbitration.CancelledUnentered
-            }
-            if (disposition == OperationDisposition.Pending) {
-                disposition = OperationDisposition.Cleanup
-            }
-            OperationTerminalArbitration.Transferred
+            arbitrateTerminalLocked(mandatoryCleanup)
         }
+
+    internal fun arbitrateTerminalLocked(mandatoryCleanup: Boolean): OperationTerminalArbitration {
+        check(settlementGate.isHeldByCurrentThread)
+        if (returnCell.disposition != OperationReturnDisposition.Empty &&
+            returnCell.use == OperationReturnUse.Unclaimed
+        ) {
+            val arbitration = terminalArbitration(arbitrateLocked())
+            if (arbitration != OperationTerminalArbitration.Transferred) return arbitration
+        }
+        if (returnCell.use != OperationReturnUse.Unclaimed) {
+            return OperationTerminalArbitration.AlreadySettled
+        }
+        if (!mandatoryCleanup && entryDisposition == OperationEntryDisposition.Cancelled) {
+            return OperationTerminalArbitration.CancelledUnentered
+        }
+
+        domain = OperationDomain.Cleanup
+        if (mandatoryCleanup && entryDisposition == OperationEntryDisposition.Unentered) {
+            cleanupEntryAllowed = true
+        }
+        deadlineOccurrence?.retireLocked()
+        if (!cleanupEntryAllowed &&
+            submissionDisposition != OperationSubmissionDisposition.Submitting &&
+            entryDisposition == OperationEntryDisposition.Unentered &&
+            returnCell.disposition == OperationReturnDisposition.Empty
+        ) {
+            entryDisposition = OperationEntryDisposition.Cancelled
+            submissionDisposition = OperationSubmissionDisposition.Cancelled
+            if (disposition == OperationDisposition.Pending || disposition == OperationDisposition.Cleanup) {
+                disposition = OperationDisposition.Cancelled
+            }
+            return OperationTerminalArbitration.CancelledUnentered
+        }
+        if (disposition == OperationDisposition.Pending) {
+            disposition = OperationDisposition.Cleanup
+        }
+        return OperationTerminalArbitration.Transferred
+    }
+
+    private fun beginOutwardCallAuthorizationLocked() {
+        check(settlementGate.isHeldByCurrentThread)
+        if (deferDeadlineArmUntilOutwardCall) {
+            check(outwardCallAuthorization == OutwardCallAuthorization.NotRequired)
+            outwardCallAuthorization = OutwardCallAuthorization.Awaiting
+        }
+    }
+
+    private fun outwardCallReturnAllowedLocked(): Boolean {
+        check(settlementGate.isHeldByCurrentThread)
+        return outwardCallAuthorization == OutwardCallAuthorization.NotRequired ||
+                outwardCallAuthorization == OutwardCallAuthorization.Authorized
+    }
 
     private fun cancelSafelyUnenteredCleanupLocked() {
         if (domain != OperationDomain.Cleanup || cleanupEntryAllowed || entryDisposition != OperationEntryDisposition.Unentered ||

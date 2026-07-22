@@ -7,10 +7,8 @@ import io.screenstream.engine.internal.android.AndroidCaptureFact
 import io.screenstream.engine.internal.android.AndroidCaptureFactSink
 import io.screenstream.engine.internal.android.CaptureMetricsIngressPort
 import io.screenstream.engine.internal.android.CaptureMetricsIngressResult
-import io.screenstream.engine.internal.android.CaptureMetricsIngressSummaryFact
-import io.screenstream.engine.internal.android.CaptureMetricsSampleIngressFact
-import io.screenstream.engine.internal.android.CaptureMetricsTerminalIngressFact
-import io.screenstream.engine.internal.android.CaptureMetricsReadinessOutcome
+import io.screenstream.engine.internal.android.CaptureMetricsAttachmentAccess
+import io.screenstream.engine.internal.android.CaptureMetricsDisplayAssociation
 import io.screenstream.engine.internal.android.AndroidProjectionCallbackRegistrationReceipt
 import io.screenstream.engine.internal.delivery.DeliveryAuthorityPort
 import io.screenstream.engine.internal.delivery.DeliveryEntryRequest
@@ -35,6 +33,7 @@ import io.screenstream.engine.internal.session.transitions.TerminalTransitions
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.atomic.AtomicBoolean
 import io.screenstream.engine.internal.settlement.OperationArbitration
+import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.gl.GlOperationKind
 import io.screenstream.engine.internal.gl.GlOperationResult
 import io.screenstream.engine.internal.gl.ContextIntegrity
@@ -55,8 +54,7 @@ import io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationRe
 import io.screenstream.engine.internal.target.TargetProducerEvidence
 import io.screenstream.engine.internal.session.reconciliation.ReconciliationTargetTopologyFacts
 import io.screenstream.engine.internal.target.TargetMode
-import io.screenstream.engine.internal.android.CaptureMetricsTerminalKind
-import io.screenstream.engine.internal.android.CaptureMetricsTerminalPhase
+import io.screenstream.engine.internal.settlement.EngineClock
 import kotlin.concurrent.withLock
 
 /** The sole Session lifecycle/currentness/publication/terminal commit authority. */
@@ -67,8 +65,15 @@ internal class SessionAuthority internal constructor(
     private val sessionGate = ReentrantLock(false)
     private val inbox = SessionFactInbox()
     private var state = SessionState()
-    private var diagnosticSequence = 1L
+    private val metricsStage = SessionMetricsRawStage()
+    private var diagnosticSequence: DiagnosticSequenceState = DiagnosticSequenceState.Available(1L)
     private val ownerStopRequested = AtomicBoolean(false)
+    private val metricsSemanticExhaustionCause =
+        IllegalStateException("Capture metrics semantic order or clock exhausted")
+    private val metricsPhysicalClockFailureCause =
+        IllegalStateException("Capture metrics physical observation clock failed")
+    private val diagnosticSequenceExhaustionCause =
+        IllegalStateException("Session diagnostic sequence exhausted")
 
     init {
         runtime.bind(this, this, this, this, ::drainFacts)
@@ -92,7 +97,6 @@ internal class SessionAuthority internal constructor(
                 desired = SessionDesiredParameters(first + 1L, request.parameters),
                 currentness = decision.currentness,
                 admissions = SessionAdmissions.Closed,
-                metricsIngress = SessionMetricsIngressState(observationIdentity = first + 4L),
                 startup = SessionStartupState(
                     identities = runtimeIdentityPlan(first),
                     stage = SessionStartupStage.AwaitingRuntime,
@@ -110,7 +114,13 @@ internal class SessionAuthority internal constructor(
                 ),
             )
             val installed = sessionGate.withLock {
-                if (state !== observed) false else true.also { state = nextState }
+                if (state !== observed) {
+                    false
+                } else {
+                    SessionMetricsReducer.beginLocked(metricsStage, first + 4L)
+                    state = nextState
+                    true
+                }
             }
             if (!installed) continue
             execute(committed.turn)
@@ -127,7 +137,6 @@ internal class SessionAuthority internal constructor(
 
     override fun publishRuntimeStarted(fact: SessionRuntimeStartedFact) = offer(fact)
     override fun publishRuntimeStartupFailed(fact: SessionRuntimeStartupFailedFact) = offer(fact)
-    override fun publishMetricsReadiness(fact: SessionMetricsReadinessFact) = offer(fact)
     override fun publishControlWakeSchedule(fact: SessionControlWakeScheduleFact) = offer(fact)
     override fun publishControlWakeCancellation(fact: SessionControlWakeCancellationFact) = offer(fact)
     override fun publishProjectionCallbackRegistration(fact: SessionProjectionCallbackRegistrationFact) = offer(fact)
@@ -159,178 +168,232 @@ internal class SessionAuthority internal constructor(
         runtime.signal()
     }
 
-    override fun publishMetricsSummary(fact: CaptureMetricsIngressSummaryFact): CaptureMetricsIngressResult {
-        while (true) {
-            val observed = sessionGate.withLock { state }
-            val plan = planMetricsSummary(observed, fact)
-            val installed = sessionGate.withLock {
-                if (state !== observed || state.metricsIngress !== observed.metricsIngress) {
-                    false
-                } else if (plan.candidate != null &&
-                    (state.terminalCutoffApplied || state.metricsIngress.observationIdentity != fact.observationIdentity)
-                ) {
-                    false
+    override fun publishMetricsSample(
+        attachment: CaptureMetricsAttachmentAccess,
+        metrics: io.screenstream.engine.CaptureMetrics?,
+        displayAssociation: CaptureMetricsDisplayAssociation?,
+        clock: EngineClock,
+    ): CaptureMetricsIngressResult {
+        sessionGate.lock()
+        var signal = false
+        var result: CaptureMetricsIngressResult
+        try {
+            val validation = validateMetricsCallbackLocked(metricsStage, attachment)
+            if (validation != null) {
+                result = validation
+            } else {
+                consumeMetricsAttachmentNestedLocked(metricsStage, attachment, clock, null, null, null)
+                val sampledAtNanos = clock.nowNanos()
+                if (sampledAtNanos < 0L || metricsStage.semanticOrdinal == Long.MAX_VALUE) {
+                    SessionMetricsReducer.stageClockFailureLocked(
+                        metricsStage,
+                        metricsSemanticExhaustionCause,
+                    )
+                    result = CaptureMetricsIngressResult.SequenceExhausted
                 } else {
-                    plan.candidate?.let { state = it }
-                    true
+                    val ordinal = metricsStage.semanticOrdinal + 1L
+                    metricsStage.semanticOrdinal = ordinal
+                    val published = SessionMetricsReducer.foldSampleLocked(
+                        stage = metricsStage,
+                        preActive = state.lifecycle is SessionLifecycle.Starting,
+                        ordinal = ordinal,
+                        sampledAtNanos = sampledAtNanos,
+                        metrics = metrics,
+                        association = displayAssociation,
+                    )
+                    consumeMetricsAttachmentNestedLocked(metricsStage, attachment, clock, null, null, null)
+                    result = if (published) {
+                        CaptureMetricsIngressResult.Published
+                    } else {
+                        CaptureMetricsIngressResult.Duplicate
+                    }
+                }
+                if (!advanceMetricsVersionLocked()) {
+                    result = CaptureMetricsIngressResult.SequenceExhausted
+                }
+                signal = true
+            }
+        } finally {
+            sessionGate.unlock()
+        }
+        if (signal) runtime.signal()
+        return result
+    }
+
+    override fun publishMetricsCompleted(
+        attachment: CaptureMetricsAttachmentAccess,
+        clock: EngineClock,
+    ): CaptureMetricsIngressResult = publishMetricsTerminal(attachment, clock, completed = true, cause = null)
+
+    override fun publishMetricsFailed(
+        attachment: CaptureMetricsAttachmentAccess,
+        cause: Throwable,
+        clock: EngineClock,
+    ): CaptureMetricsIngressResult = publishMetricsTerminal(attachment, clock, completed = false, cause = cause)
+
+    override fun pollMetricsPhysical(
+        attachment: CaptureMetricsAttachmentAccess,
+        clock: EngineClock,
+        endpointFailure: Throwable?,
+        refreshFailure: Throwable?,
+        closeFailure: Throwable?,
+    ): CaptureMetricsIngressResult {
+        sessionGate.lock()
+        var signal = false
+        var result: CaptureMetricsIngressResult
+        try {
+            val provenanceBefore = metricsStage.sourceProvenance
+            val validation = validateMetricsIngressLocked(metricsStage, attachment)
+            if (validation != null) {
+                result = validation
+            } else {
+                val physicalChanged = consumeMetricsAttachmentNestedLocked(
+                    metricsStage, attachment, clock, endpointFailure, refreshFailure, closeFailure,
+                )
+                val changed = physicalChanged || provenanceBefore != metricsStage.sourceProvenance
+                result = CaptureMetricsIngressResult.Published
+                if (changed) {
+                    if (!advanceMetricsVersionLocked()) {
+                        result = CaptureMetricsIngressResult.SequenceExhausted
+                    }
+                    signal = true
                 }
             }
-            if (!installed) continue
-            if (plan.result == CaptureMetricsIngressResult.Published) runtime.signal()
-            return plan.result
+        } finally {
+            sessionGate.unlock()
         }
+        if (signal) runtime.signal()
+        return result
     }
 
-    private fun planMetricsSummary(
-        observed: SessionState,
-        fact: CaptureMetricsIngressSummaryFact,
-    ): MetricsIngressPlan {
-        if (observed.terminalCutoffApplied) return MetricsIngressPlan(null, CaptureMetricsIngressResult.Closed)
-        val ingress = observed.metricsIngress
-        if (ingress.observationIdentity == 0L) {
-            return MetricsIngressPlan(null, CaptureMetricsIngressResult.RejectedAdmission)
-        }
-        if (fact.observationIdentity != ingress.observationIdentity) {
-            return MetricsIngressPlan(null, CaptureMetricsIngressResult.RejectedCurrentness)
-        }
-        if (!isWellFormedMetricsSummary(fact)) {
-            return MetricsIngressPlan(null, CaptureMetricsIngressResult.RejectedCurrentness)
-        }
-        if (fact.lastSequence <= ingress.lastSequence) {
-            return MetricsIngressPlan(
-                candidate = null,
-                result = if (summaryIsAlreadyMerged(ingress, fact)) {
-                    CaptureMetricsIngressResult.Duplicate
+    private fun publishMetricsTerminal(
+        attachment: CaptureMetricsAttachmentAccess,
+        clock: EngineClock,
+        completed: Boolean,
+        cause: Throwable?,
+    ): CaptureMetricsIngressResult {
+        sessionGate.lock()
+        var signal = false
+        var result: CaptureMetricsIngressResult
+        try {
+            val validation = validateMetricsCallbackLocked(metricsStage, attachment)
+            if (validation != null) {
+                result = validation
+            } else {
+                consumeMetricsAttachmentNestedLocked(metricsStage, attachment, clock, null, null, null)
+                val observedAtNanos = clock.nowNanos()
+                if (observedAtNanos < 0L || metricsStage.semanticOrdinal == Long.MAX_VALUE) {
+                    SessionMetricsReducer.stageClockFailureLocked(
+                        metricsStage,
+                        metricsSemanticExhaustionCause,
+                    )
+                    result = CaptureMetricsIngressResult.SequenceExhausted
                 } else {
-                    CaptureMetricsIngressResult.RejectedCurrentness
-                },
-            )
+                    val ordinal = metricsStage.semanticOrdinal + 1L
+                    metricsStage.semanticOrdinal = ordinal
+                    SessionMetricsReducer.foldTerminalLocked(
+                        stage = metricsStage,
+                        ordinal = ordinal,
+                        observedAtNanos = observedAtNanos,
+                        kind = if (completed) {
+                            SessionMetricsTerminalKind.Completed
+                        } else {
+                            SessionMetricsTerminalKind.Failed
+                        },
+                        cause = cause,
+                    )
+                    consumeMetricsAttachmentNestedLocked(metricsStage, attachment, clock, null, null, null)
+                    result = CaptureMetricsIngressResult.Published
+                }
+                if (!advanceMetricsVersionLocked()) {
+                    result = CaptureMetricsIngressResult.SequenceExhausted
+                }
+                signal = true
+            }
+        } finally {
+            sessionGate.unlock()
         }
-        if (!cumulativeMetricsHistoryMatches(ingress, fact)) {
-            return MetricsIngressPlan(null, CaptureMetricsIngressResult.RejectedCurrentness)
-        }
-        val nextIngress = SessionMetricsIngressState(
-            observationIdentity = ingress.observationIdentity,
-            lastSequence = fact.lastSequence,
-            earliestPositive = fact.earliestPositive ?: ingress.earliestPositive,
-            firstPostPositiveUnavailable =
-                fact.firstPostPositiveUnavailable ?: ingress.firstPostPositiveUnavailable,
-            latestSample = newerSample(ingress.latestSample, fact.latestSample),
-            firstTerminal = fact.firstTerminal ?: ingress.firstTerminal,
-        )
-        return MetricsIngressPlan(
-            observed.copy(metricsIngress = nextIngress),
-            CaptureMetricsIngressResult.Published,
-        )
+        if (signal) runtime.signal()
+        return result
     }
 
-    private fun isWellFormedMetricsSummary(fact: CaptureMetricsIngressSummaryFact): Boolean {
-        val earliest = fact.earliestPositive
-        val firstLoss = fact.firstPostPositiveUnavailable
-        val latest = fact.latestSample
-        val terminal = fact.firstTerminal
-        if (earliest != null && (!earliest.isAvailable || earliest.sequence > fact.lastSequence)) return false
-        if (firstLoss != null && (firstLoss.isAvailable || earliest == null ||
-                    firstLoss.sequence <= earliest.sequence || firstLoss.sequence > fact.lastSequence)
-        ) return false
-        if (latest != null && latest.sequence > fact.lastSequence) return false
-        if (terminal != null && terminal.sequence != fact.lastSequence) return false
+    private fun validateMetricsCallbackLocked(
+        stage: SessionMetricsRawStage,
+        attachment: CaptureMetricsAttachmentAccess,
+    ): CaptureMetricsIngressResult? {
+        val identity = validateMetricsIdentityLocked(stage, attachment)
+        if (identity != null) return identity
+        return if (stage.hasFirstTerminal || stage.phase == SessionMetricsSemanticPhase.FailurePending ||
+            stage.phase == SessionMetricsSemanticPhase.CompletionPending ||
+            stage.phase == SessionMetricsSemanticPhase.ClosedRetainingLast ||
+            stage.phase == SessionMetricsSemanticPhase.Cutoff
+        ) CaptureMetricsIngressResult.Closed else null
+    }
+
+    private fun validateMetricsIngressLocked(
+        stage: SessionMetricsRawStage,
+        attachment: CaptureMetricsAttachmentAccess,
+    ): CaptureMetricsIngressResult? = validateMetricsIdentityLocked(stage, attachment)
+
+    private fun validateMetricsIdentityLocked(
+        stage: SessionMetricsRawStage,
+        attachment: CaptureMetricsAttachmentAccess,
+    ): CaptureMetricsIngressResult? {
+        if (state.terminalCutoffApplied) return CaptureMetricsIngressResult.Closed
+        if (stage.observationIdentity == 0L) return CaptureMetricsIngressResult.RejectedAdmission
+        if (stage.observationIdentity != attachment.observationIdentity ||
+            state.startup?.identities?.metricsReadinessDeadline != attachment.deadlineIdentity ||
+            stage.sourceProvenance != null && stage.sourceProvenance != attachment.sourceProvenance
+        ) return CaptureMetricsIngressResult.RejectedCurrentness
+        if (stage.sourceProvenance == null) stage.sourceProvenance = attachment.sourceProvenance
+        return null
+    }
+
+    private fun consumeMetricsAttachmentNestedLocked(
+        stage: SessionMetricsRawStage,
+        attachment: CaptureMetricsAttachmentAccess,
+        clock: EngineClock,
+        endpointFailure: Throwable?,
+        refreshFailure: Throwable?,
+        closeFailure: Throwable?,
+        foldMode: MetricsAttachmentFoldMode = MetricsAttachmentFoldMode.Active,
+    ): Boolean {
+        var changed = false
+        attachment.settlementGate.lock()
+        try {
+            val observedAtNanos = clock.nowNanos()
+            if (observedAtNanos < 0L) {
+                val phaseBefore = stage.phase
+                val causeBefore = stage.failureCause
+                SessionMetricsReducer.stageClockFailureLocked(stage, metricsPhysicalClockFailureCause)
+                changed = stage.phase != phaseBefore || stage.failureCause !== causeBefore
+            } else {
+                changed = SessionMetricsReducer.foldAttachmentLocked(
+                    stage = stage,
+                    attachment = attachment,
+                    observedAtNanos = observedAtNanos,
+                    endpointFailure = endpointFailure,
+                    refreshFailure = refreshFailure,
+                    closeFailure = closeFailure,
+                )
+            }
+            if (foldMode == MetricsAttachmentFoldMode.TerminalCutoff) attachment.deadline.retireLocked()
+        } finally {
+            attachment.settlementGate.unlock()
+        }
+        return changed
+    }
+
+    private fun advanceMetricsVersionLocked(): Boolean {
+        val current = metricsStage.version
+        if (current <= 0L || current >= Long.MAX_VALUE - 1L) {
+            metricsStage.version = Long.MAX_VALUE
+            SessionMetricsReducer.stageClockFailureLocked(metricsStage, metricsSemanticExhaustionCause)
+            return false
+        }
+        metricsStage.version = current + 1L
         return true
     }
-
-    private fun summaryIsAlreadyMerged(
-        ingress: SessionMetricsIngressState,
-        fact: CaptureMetricsIngressSummaryFact,
-    ): Boolean = summarySampleIsRetained(ingress.earliestPositive, fact.earliestPositive) &&
-            summarySampleIsRetained(
-                ingress.firstPostPositiveUnavailable,
-                fact.firstPostPositiveUnavailable,
-            ) &&
-            summarySampleIsRetained(ingress.latestSample, fact.latestSample) &&
-            summaryTerminalIsRetained(ingress.firstTerminal, fact.firstTerminal)
-
-    private fun cumulativeMetricsHistoryMatches(
-        ingress: SessionMetricsIngressState,
-        fact: CaptureMetricsIngressSummaryFact,
-    ): Boolean {
-        val latest = fact.latestSample
-        return retainsExistingSample(ingress.earliestPositive, fact.earliestPositive) &&
-                retainsExistingSample(
-                    ingress.firstPostPositiveUnavailable,
-                    fact.firstPostPositiveUnavailable,
-                ) &&
-                retainsExistingTerminal(ingress.firstTerminal, fact.firstTerminal) &&
-                (latest == null || sameOptionalMetricsSample(ingress.latestSample, latest) ||
-                        latest.sequence > ingress.lastSequence)
-    }
-
-    private fun summarySampleIsRetained(
-        retained: CaptureMetricsSampleIngressFact?,
-        offered: CaptureMetricsSampleIngressFact?,
-    ): Boolean = offered == null || sameOptionalMetricsSample(retained, offered)
-
-    private fun summaryTerminalIsRetained(
-        retained: CaptureMetricsTerminalIngressFact?,
-        offered: CaptureMetricsTerminalIngressFact?,
-    ): Boolean = offered == null || sameOptionalMetricsTerminal(retained, offered)
-
-    private fun retainsExistingSample(
-        existing: CaptureMetricsSampleIngressFact?,
-        cumulative: CaptureMetricsSampleIngressFact?,
-    ): Boolean = existing == null || sameOptionalMetricsSample(existing, cumulative)
-
-    private fun retainsExistingTerminal(
-        existing: CaptureMetricsTerminalIngressFact?,
-        cumulative: CaptureMetricsTerminalIngressFact?,
-    ): Boolean = existing == null || sameOptionalMetricsTerminal(existing, cumulative)
-
-    private fun newerSample(
-        existing: CaptureMetricsSampleIngressFact?,
-        candidate: CaptureMetricsSampleIngressFact?,
-    ): CaptureMetricsSampleIngressFact? = when {
-        candidate == null -> existing
-        existing == null || candidate.sequence > existing.sequence -> candidate
-        else -> existing
-    }
-
-    private fun sameOptionalMetricsSample(
-        previous: CaptureMetricsSampleIngressFact?,
-        current: CaptureMetricsSampleIngressFact?,
-    ): Boolean = previous == null && current == null ||
-            previous != null && current != null && sameMetricsSample(previous, current)
-
-    private fun sameMetricsSample(
-        previous: CaptureMetricsSampleIngressFact?,
-        current: CaptureMetricsSampleIngressFact,
-    ): Boolean {
-        if (previous == null || previous.observationIdentity != current.observationIdentity ||
-            previous.sequence != current.sequence || previous.sampledAtNanos != current.sampledAtNanos ||
-            previous.sourceProvenance != current.sourceProvenance
-        ) return false
-        val previousAssociation = previous.displayAssociation
-        val currentAssociation = current.displayAssociation
-        return previous.isAvailable == current.isAvailable &&
-                previous.metrics == current.metrics &&
-                previousAssociation?.displayId == currentAssociation?.displayId &&
-                previousAssociation?.associationIdentity == currentAssociation?.associationIdentity &&
-                previousAssociation?.validityEpoch == currentAssociation?.validityEpoch
-    }
-
-    private fun sameMetricsTerminal(
-        previous: CaptureMetricsTerminalIngressFact,
-        current: CaptureMetricsTerminalIngressFact,
-    ): Boolean = previous.observationIdentity == current.observationIdentity &&
-            previous.sequence == current.sequence &&
-            previous.observedAtNanos == current.observedAtNanos &&
-            previous.kind == current.kind &&
-            previous.phase == current.phase &&
-            previous.cause === current.cause
-
-    private fun sameOptionalMetricsTerminal(
-        previous: CaptureMetricsTerminalIngressFact?,
-        current: CaptureMetricsTerminalIngressFact?,
-    ): Boolean = previous == null && current == null ||
-            previous != null && current != null && sameMetricsTerminal(previous, current)
 
     override fun validateAcceptedEntry(request: DeliveryEntryRequest) {
         sessionGate.withLock {
@@ -348,17 +411,107 @@ internal class SessionAuthority internal constructor(
         val stopRequested = ownerStopRequested.getAndSet(false)
         val terminalWallClockMillis = wallClockMillis()
         while (true) {
-            val observed = sessionGate.withLock { state }
-            val observedDiagnosticSequence = sessionGate.withLock { diagnosticSequence }
-            val reduction = reduce(observed, batch, stopRequested, terminalWallClockMillis, observedDiagnosticSequence)
+            // Capture only existing references/scalars. The unlocked reduction never reaches back into metricsStage.
+            var observed: SessionState
+            var observedDiagnosticSequence: DiagnosticSequenceState
+            var observedMetricsObservationIdentity: Long
+            var observedMetricsVersion: Long
+            var observedMetricsSourceProvenance: io.screenstream.engine.internal.android.CaptureMetricsSourceProvenance?
+            var observedMetricsDecision: SessionMetricsControlDecision
+            var observedMetricsProblem: ScreenCaptureProblem?
+            var observedMetricsCause: Throwable?
+            var observedMetricsValue: io.screenstream.engine.CaptureMetrics?
+            sessionGate.lock()
+            try {
+                observed = state
+                observedDiagnosticSequence = diagnosticSequence
+                observedMetricsObservationIdentity = metricsStage.observationIdentity
+                observedMetricsVersion = metricsStage.version
+                observedMetricsSourceProvenance = metricsStage.sourceProvenance
+                observedMetricsDecision = SessionMetricsReducer.decisionLocked(metricsStage)
+                observedMetricsProblem = metricsStage.failureProblem
+                observedMetricsCause = metricsStage.failureCause
+                observedMetricsValue = metricsStage.earliestPositiveMetrics
+            } finally {
+                sessionGate.unlock()
+            }
+            val reduction = reduce(
+                observed = observed,
+                batch = batch,
+                stopRequested = stopRequested,
+                terminalWallClockMillis = terminalWallClockMillis,
+                firstDiagnosticSequence = observedDiagnosticSequence,
+                metricsObservationIdentity = observedMetricsObservationIdentity,
+                metricsDecision = observedMetricsDecision,
+                metricsValue = observedMetricsValue,
+                metricsProblem = observedMetricsProblem,
+                metricsCause = observedMetricsCause,
+            )
+            val appliesTerminalCutoff = !observed.terminalCutoffApplied && reduction.state.terminalCutoffApplied
+            val terminalMetricsOwner = if (appliesTerminalCutoff) {
+                reduction.state.runtimeOwnership?.metrics
+                    ?: batch.runtimeStarted?.ownership?.metrics
+                    ?: batch.runtimeStartupFailed?.residue?.metrics
+            } else {
+                null
+            }
+            val terminalAttachment = if (terminalMetricsOwner != null) {
+                runtime.metricsAttachmentAccess(terminalMetricsOwner)
+            } else {
+                null
+            }
+            val terminalClock = if (terminalAttachment != null) runtime.engineClock else null
             val installed = sessionGate.withLock {
-                if (state !== observed || diagnosticSequence != observedDiagnosticSequence) false
-                else true.also {
-                    state = reduction.state
-                    diagnosticSequence = reduction.nextDiagnosticSequence
+                // State identity revalidates lifecycle/currentness/owners; the raw version fences every ingress fold.
+                if (state !== observed || diagnosticSequence !== observedDiagnosticSequence ||
+                    metricsStage.observationIdentity != observedMetricsObservationIdentity ||
+                    metricsStage.version != observedMetricsVersion ||
+                    metricsStage.sourceProvenance != observedMetricsSourceProvenance
+                ) {
+                    false
+                } else {
+                    val terminalFoldChanged = if (appliesTerminalCutoff && terminalAttachment != null &&
+                        terminalClock != null &&
+                        terminalAttachment.observationIdentity == observedMetricsObservationIdentity
+                    ) {
+                        consumeMetricsAttachmentNestedLocked(
+                            metricsStage,
+                            terminalAttachment,
+                            terminalClock,
+                            null,
+                            null,
+                            null,
+                            MetricsAttachmentFoldMode.TerminalCutoff,
+                        )
+                    } else {
+                        false
+                    }
+                    if (terminalFoldChanged) {
+                        advanceMetricsVersionLocked()
+                        false
+                    } else {
+                        if (reduction.metricsDecision != SessionMetricsControlDecision.None ||
+                            appliesTerminalCutoff
+                        ) {
+                            SessionMetricsReducer.applyControlCommitLocked(
+                                metricsStage,
+                                reduction.metricsDecision,
+                                appliesTerminalCutoff,
+                            )
+                        }
+                        state = reduction.state
+                        diagnosticSequence = reduction.nextDiagnosticSequence
+                        true
+                    }
                 }
             }
-            if (!installed) continue
+            if (!installed) {
+                continue
+            }
+            reduction.metricsCompletion?.let { completion ->
+                runtime.requestMetricsClose(completion.observationIdentity)
+                completion.diagnostic?.let(runtime.observationOwner::tryEmitDiagnostic)
+            }
             reduction.turns.forEach(::execute)
             return
         }
@@ -369,11 +522,57 @@ internal class SessionAuthority internal constructor(
         batch: SessionFactBatch,
         stopRequested: Boolean,
         terminalWallClockMillis: Long,
-        firstDiagnosticSequence: Long,
+        firstDiagnosticSequence: DiagnosticSequenceState,
+        metricsObservationIdentity: Long,
+        metricsDecision: SessionMetricsControlDecision,
+        metricsValue: io.screenstream.engine.CaptureMetrics?,
+        metricsProblem: ScreenCaptureProblem?,
+        metricsCause: Throwable?,
     ): SessionReduction {
         var nextState = observed
         var nextDiagnosticSequence = firstDiagnosticSequence
         val turns = ArrayList<CommittedTurn>(4)
+        var metricsCompletion: MetricsCompletionEffect? = null
+        var completionSequenceExhausted = false
+        var appliedMetricsDecision = SessionMetricsControlDecision.None
+        if (!observed.terminalCutoffApplied && metricsDecision == SessionMetricsControlDecision.Readiness) {
+            SessionMetricsReducer.readinessCandidate(nextState, metricsValue)?.let {
+                nextState = it
+                appliedMetricsDecision = SessionMetricsControlDecision.Readiness
+            }
+        }
+        if (!observed.terminalCutoffApplied && metricsDecision == SessionMetricsControlDecision.Completion) {
+            SessionMetricsReducer.readinessCandidate(nextState, metricsValue)?.let { nextState = it }
+            when (val reservation = reserveDiagnosticSequence(
+                nextDiagnosticSequence,
+                DiagnosticAttempt.MetricsCompletion,
+            )) {
+                is DiagnosticSequenceReservation.Reserved -> {
+                    nextDiagnosticSequence = reservation.next
+                    metricsCompletion = MetricsCompletionEffect(
+                        observationIdentity = metricsObservationIdentity,
+                        diagnostic = metricsCompletionDiagnostic(terminalWallClockMillis, reservation.sequence),
+                    )
+                }
+
+                DiagnosticSequenceReservation.Exhausted -> {
+                    completionSequenceExhausted = true
+                    metricsCompletion = MetricsCompletionEffect(metricsObservationIdentity, null)
+                }
+            }
+            appliedMetricsDecision = SessionMetricsControlDecision.Completion
+        }
+        if (!observed.terminalCutoffApplied && metricsDecision == SessionMetricsControlDecision.Failure &&
+            metricsProblem != null
+        ) {
+            nextState = nextState.copy(
+                terminalContenders = TerminalTransitions.record(
+                    nextState.terminalContenders,
+                    TerminalTransitions.failure(metricsProblem, metricsCause),
+                ),
+            )
+            appliedMetricsDecision = SessionMetricsControlDecision.Failure
+        }
         batch.capturedContentVisibility?.takeIf {
             !nextState.terminalCutoffApplied && isExactNextAndroidCallback(nextState, it)
         }?.let { fact ->
@@ -388,28 +587,14 @@ internal class SessionAuthority internal constructor(
             )
         }
         var contenders = nextState.terminalContenders
-            if (nextState.lifecycle is SessionLifecycle.Starting) {
-                nextState.metricsIngress.firstPostPositiveUnavailable?.let {
-                    contenders = TerminalTransitions.record(
-                        contenders,
-                        TerminalTransitions.failure(ScreenCaptureProblem.CaptureUnavailable, null),
-                    )
-                }
-                nextState.metricsIngress.firstTerminal?.let { terminal ->
-                    when {
-                        terminal.kind == CaptureMetricsTerminalKind.Failed ->
-                            contenders = TerminalTransitions.record(
-                                contenders,
-                                TerminalTransitions.failure(ScreenCaptureProblem.InternalFailure, terminal.cause),
-                            )
-                        terminal.phase == CaptureMetricsTerminalPhase.BeforeJointReadiness ->
-                            contenders = TerminalTransitions.record(
-                                contenders,
-                                TerminalTransitions.failure(ScreenCaptureProblem.CaptureUnavailable, null),
-                            )
-                        else -> Unit
-                    }
-                }
+            if (nextState.terminalWinner == null && completionSequenceExhausted) {
+                contenders = TerminalTransitions.record(
+                    contenders,
+                    TerminalTransitions.failure(
+                        ScreenCaptureProblem.InternalFailure,
+                        diagnosticSequenceExhaustionCause,
+                    ),
+                )
             }
             if (nextState.terminalWinner == null && batch.captureEnded != null &&
                 isExactNextAndroidCallback(nextState, batch.captureEnded)
@@ -486,7 +671,11 @@ internal class SessionAuthority internal constructor(
                         is RuntimeStartedDecision.Accepted -> {
                             val startup = nextState.startup
                             if (startup?.stage == SessionStartupStage.AwaitingRuntime) {
-                                nextState = nextState.copy(
+                                val metricsAlreadyReady =
+                                    (metricsDecision == SessionMetricsControlDecision.Readiness ||
+                                            metricsDecision == SessionMetricsControlDecision.Completion) &&
+                                            metricsValue != null
+                                val runtimeStartedState = nextState.copy(
                                     runtimeOwnership = decision.ownership,
                                     startup = SessionStartupState(
                                         identities = startup.identities,
@@ -494,6 +683,20 @@ internal class SessionAuthority internal constructor(
                                         laneReadiness = decision.laneReadiness,
                                     ),
                                 )
+                                if (metricsAlreadyReady) {
+                                    val readinessState = SessionMetricsReducer.readinessCandidate(
+                                        runtimeStartedState,
+                                        metricsValue,
+                                    )
+                                    if (readinessState != null) {
+                                        nextState = readinessState
+                                        appliedMetricsDecision = metricsDecision
+                                    } else {
+                                        nextState = runtimeStartedState
+                                    }
+                                } else {
+                                    nextState = runtimeStartedState
+                                }
                             }
                         }
                         RuntimeStartedDecision.Rejected -> Unit
@@ -724,51 +927,6 @@ internal class SessionAuthority internal constructor(
                         TerminalTransitions.failure(ScreenCaptureProblem.CaptureUnavailable, fact.cause),
                     )
                     nextState = nextState.copy(terminalContenders = contenders)
-                }
-            }
-            batch.metricsReadiness?.let { fact ->
-                val startup = nextState.startup
-                val ownership = nextState.runtimeOwnership
-                if (nextState.terminalWinner == null && startup?.stage == SessionStartupStage.AwaitingMetrics &&
-                    ownership?.startupIdentity == fact.startupIdentity && ownership.metrics === fact.owner
-                ) {
-                    val mechanical = fact.mechanical
-                    val earliest = nextState.metricsIngress.earliestPositive
-                    val validTimely = mechanical.outcome == CaptureMetricsReadinessOutcome.Timely &&
-                            fact.timelyReceipt != null && earliest != null && earliest.isAvailable &&
-                            mechanical.ingressSequence == earliest.sequence &&
-                            mechanical.sampleNanos == earliest.sampledAtNanos &&
-                            mechanical.metrics == earliest.metrics
-                    if (validTimely) {
-                        val metrics = checkNotNull(mechanical.metrics)
-                        val geometry = CaptureGeometry.create(metrics.widthPx, metrics.heightPx, metrics.densityDpi)
-                        nextState = nextState.copy(
-                            startup = SessionStartupState(
-                                identities = startup.identities,
-                                stage = SessionStartupStage.AwaitingProjectionCallbackRegistration,
-                                laneReadiness = startup.laneReadiness,
-                                metricsReadiness = fact.timelyReceipt,
-                                captureGeometry = geometry,
-                            ),
-                        )
-                        turns += CommittedTurn(
-                            runtimeAction = SessionRuntimeAction.RegisterProjectionCallback(fact.startupIdentity),
-                        )
-                    } else {
-                        val problem = when (mechanical.outcome) {
-                            CaptureMetricsReadinessOutcome.Expired,
-                            CaptureMetricsReadinessOutcome.ProviderCompletedBeforeReadiness,
-                            CaptureMetricsReadinessOutcome.AvailabilityLostBeforeActive,
-                                -> ScreenCaptureProblem.CaptureUnavailable
-
-                            else -> ScreenCaptureProblem.InternalFailure
-                        }
-                        contenders = TerminalTransitions.record(
-                            contenders,
-                            TerminalTransitions.failure(problem, mechanical.cause),
-                        )
-                        nextState = nextState.copy(terminalContenders = contenders)
-                    }
                 }
             }
             batch.controlWakeSchedule?.let { fact ->
@@ -1059,7 +1217,13 @@ internal class SessionAuthority internal constructor(
             val cleanup = consumeCleanupFacts(nextState, batch)
             nextState = cleanup.state
             cleanup.turn?.let(turns::add)
-        return SessionReduction(nextState, nextDiagnosticSequence, turns)
+        return SessionReduction(
+            nextState,
+            nextDiagnosticSequence,
+            turns,
+            metricsCompletion,
+            appliedMetricsDecision,
+        )
     }
 
     private fun consumeCleanupFacts(current: SessionState, batch: SessionFactBatch): SessionStateTurn {
@@ -1116,12 +1280,17 @@ internal class SessionAuthority internal constructor(
         current: SessionState,
         startupResidue: io.screenstream.engine.internal.session.runtime.SessionRuntimeResidue? = null,
         terminalWallClockMillis: Long,
-        diagnosticSequence: Long,
+        diagnosticSequence: DiagnosticSequenceState,
     ): TerminalReduction {
         if (current.terminalWinner != null) return TerminalReduction(current, diagnosticSequence, CommittedTurn.None)
         val contenders = current.terminalContenders
         val winner = TerminalTransitions.chooseWinner(contenders, current.lifecycle, current.desired?.parameters)
             ?: return TerminalReduction(current, diagnosticSequence, CommittedTurn.None)
+        val terminalReservation = reserveDiagnosticSequence(
+            diagnosticSequence,
+            DiagnosticAttempt.SessionTerminal,
+        )
+        check(terminalReservation is DiagnosticSequenceReservation.Reserved)
         val transfer = when {
             current.runtimeOwnership != null -> TerminalTransitions.transferRuntime(checkNotNull(current.runtimeOwnership))
             startupResidue?.control != null -> TerminalTransitions.transferResidue(startupResidue)
@@ -1141,20 +1310,28 @@ internal class SessionAuthority internal constructor(
             SessionTerminalKind.OwnerStop,
                 -> SessionPublicationAction(
                 finalStats = ObservationStatsSnapshot.Zero,
-                terminalDiagnostic = terminalDiagnostic(winner, terminalWallClockMillis, diagnosticSequence),
+                terminalDiagnostic = terminalDiagnostic(
+                    winner,
+                    terminalWallClockMillis,
+                    terminalReservation.sequence,
+                ),
                 stopped = ObservationStateSnapshot.Stopped(
                     checkNotNull(winner.stopReason), winner.requestedParameters, winner.lastEffectiveParameters,
                 ),
             )
             SessionTerminalKind.Failed -> SessionPublicationAction(
                 finalStats = ObservationStatsSnapshot.Zero,
-                terminalDiagnostic = terminalDiagnostic(winner, terminalWallClockMillis, diagnosticSequence),
+                terminalDiagnostic = terminalDiagnostic(
+                    winner,
+                    terminalWallClockMillis,
+                    terminalReservation.sequence,
+                ),
                 failed = ObservationStateSnapshot.Failed(
                     checkNotNull(winner.problem), winner.requestedParameters, winner.lastEffectiveParameters,
                 ),
             )
         }
-        return TerminalReduction(nextState, diagnosticSequence + 1L, CommittedTurn(
+        return TerminalReduction(nextState, terminalReservation.next, CommittedTurn(
             publication = terminalState,
             cleanupTransfer = transfer,
             runtimeAction = transfer?.let { SessionRuntimeAction.BeginCleanup(it) },
@@ -1196,6 +1373,43 @@ internal class SessionAuthority internal constructor(
             cause = winner.cause,
         )
     }
+
+    private fun reserveDiagnosticSequence(
+        current: DiagnosticSequenceState,
+        attempt: DiagnosticAttempt,
+    ): DiagnosticSequenceReservation {
+        if (current !is DiagnosticSequenceState.Available) {
+            return DiagnosticSequenceReservation.Exhausted
+        }
+        val sequence = current.next
+        if (attempt == DiagnosticAttempt.MetricsCompletion && sequence == Long.MAX_VALUE) {
+            // Preserve the last representable value for the InternalFailure SessionTerminal attempt.
+            return DiagnosticSequenceReservation.Exhausted
+        }
+        val next = if (sequence == Long.MAX_VALUE) {
+            DiagnosticSequenceState.Exhausted
+        } else {
+            DiagnosticSequenceState.Available(Math.addExact(sequence, 1L))
+        }
+        return DiagnosticSequenceReservation.Reserved(sequence, next)
+    }
+
+    private fun metricsCompletionDiagnostic(
+        timestampEpochMillis: Long,
+        sequence: Long,
+    ): ObservationDiagnosticRequest = ObservationDiagnosticRequest(
+        sequence = sequence,
+        timestampEpochMillis = timestampEpochMillis,
+        source = "MetricsSource",
+        label = "CapabilityCheck",
+        site = ObservationDiagnosticSite.CapabilityBoundary,
+        payload = ObservationDiagnosticPayload.Decision(
+            boundary = "CapabilityCheck",
+            decision = "CompletedAfterReadiness",
+            action = "RetainLastValidAndClose",
+        ),
+        cause = null,
+    )
 
     private fun execute(turn: CommittedTurn) {
         turn.publication?.let { publication ->
@@ -1334,7 +1548,6 @@ internal class SessionAuthority internal constructor(
 
     private fun offer(fact: SessionRuntimeStartedFact) { inbox.offer(fact); runtime.signal() }
     private fun offer(fact: SessionRuntimeStartupFailedFact) { inbox.offer(fact); runtime.signal() }
-    private fun offer(fact: SessionMetricsReadinessFact) { inbox.offer(fact); runtime.signal() }
     private fun offer(fact: SessionControlWakeScheduleFact) { inbox.offer(fact); runtime.signal() }
     private fun offer(fact: SessionControlWakeCancellationFact) { inbox.offer(fact); runtime.signal() }
     private fun offer(fact: SessionProjectionCallbackRegistrationFact) { inbox.offer(fact); runtime.signal() }
@@ -1366,22 +1579,47 @@ internal sealed interface SessionStartAdmission {
 
 private class SessionReduction(
     val state: SessionState,
-    val nextDiagnosticSequence: Long,
+    val nextDiagnosticSequence: DiagnosticSequenceState,
     val turns: List<CommittedTurn>,
-)
-
-private class MetricsIngressPlan(
-    val candidate: SessionState?,
-    val result: CaptureMetricsIngressResult,
+    val metricsCompletion: MetricsCompletionEffect?,
+    val metricsDecision: SessionMetricsControlDecision,
 )
 
 private class SessionStateTurn(val state: SessionState, val turn: CommittedTurn)
 
 private class TerminalReduction(
     val state: SessionState,
-    val nextDiagnosticSequence: Long,
+    val nextDiagnosticSequence: DiagnosticSequenceState,
     val turn: CommittedTurn,
 )
+
+private class MetricsCompletionEffect(
+    val observationIdentity: Long,
+    val diagnostic: ObservationDiagnosticRequest?,
+)
+
+private enum class MetricsAttachmentFoldMode { Active, TerminalCutoff }
+
+private enum class DiagnosticAttempt { MetricsCompletion, SessionTerminal }
+
+private sealed interface DiagnosticSequenceState {
+    class Available(val next: Long) : DiagnosticSequenceState {
+        init {
+            require(next > 0L)
+        }
+    }
+
+    object Exhausted : DiagnosticSequenceState
+}
+
+private sealed interface DiagnosticSequenceReservation {
+    class Reserved(
+        val sequence: Long,
+        val next: DiagnosticSequenceState,
+    ) : DiagnosticSequenceReservation
+
+    object Exhausted : DiagnosticSequenceReservation
+}
 
 private fun SessionCleanupReceipts.copy(
     metrics: io.screenstream.engine.internal.session.runtime.MetricsTerminationReceipt? = this.metrics,

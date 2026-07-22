@@ -15,7 +15,6 @@ import io.screenstream.engine.internal.session.runtime.StorageRetirementReceipt
 import io.screenstream.engine.internal.session.runtime.TargetRetirementReceipt
 import io.screenstream.engine.internal.session.cleanup.ExternalFactsSettledReceipt
 import io.screenstream.engine.internal.session.cleanup.SessionControlResidueSettledProof
-import io.screenstream.engine.internal.android.CaptureMetricsReadinessMechanicalFact
 import io.screenstream.engine.internal.android.AndroidProjectionCallbackRegistrationEvidence
 import io.screenstream.engine.internal.settlement.ControlWakeLink
 import io.screenstream.engine.internal.settlement.ControlWakeScheduleAction
@@ -23,8 +22,6 @@ import io.screenstream.engine.internal.settlement.ControlWakeCancellationAction
 import io.screenstream.engine.internal.settlement.OperationArbitration
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.session.runtime.AndroidRuntimeOwnership
-import io.screenstream.engine.internal.session.runtime.MetricsJointReadinessReceipt
-import io.screenstream.engine.internal.session.runtime.MetricsRuntimeOwnership
 import io.screenstream.engine.internal.session.runtime.GlRuntimeOwnership
 import io.screenstream.engine.internal.gl.GlClaimedOperationFacts
 import io.screenstream.engine.internal.gl.GlCapabilityFacts
@@ -100,18 +97,6 @@ internal class SessionControlExceptionFact internal constructor(
     internal val ownership: SessionRuntimeOwnership?,
     internal val cause: Throwable,
 )
-
-internal class SessionMetricsReadinessFact internal constructor(
-    internal val startupIdentity: Long,
-    internal val owner: MetricsRuntimeOwnership,
-    internal val mechanical: CaptureMetricsReadinessMechanicalFact,
-    internal val timelyReceipt: MetricsJointReadinessReceipt?,
-) {
-    init {
-        require(startupIdentity > 0L)
-        check(timelyReceipt == null || timelyReceipt.owner === owner)
-    }
-}
 
 internal class SessionControlWakeScheduleFact internal constructor(
     internal val startupIdentity: Long,

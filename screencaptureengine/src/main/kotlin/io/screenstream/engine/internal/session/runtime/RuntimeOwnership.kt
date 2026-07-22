@@ -30,7 +30,9 @@ internal interface SessionRuntimeOwnership : SessionRuntimeResidue {
 internal interface ControlRuntimeOwnership {
     val terminationReceipt: ControlTerminationReceipt
 }
-internal interface MetricsRuntimeOwnership
+internal interface MetricsRuntimeOwnership {
+    val jointReadinessReceipt: MetricsJointReadinessReceipt
+}
 internal interface AndroidRuntimeOwnership {
     val apiBand: io.screenstream.engine.internal.android.AndroidCaptureApiBand
         get() = io.screenstream.engine.internal.android.AndroidCaptureApiBand.Unsupported
@@ -76,7 +78,11 @@ internal class RuntimeLaneReadiness internal constructor(
     internal val delivery: DeliveryLaneReadyReceipt,
 )
 
-internal interface MetricsTerminationReceipt { val owner: MetricsRuntimeOwnership }
+internal interface MetricsTerminationReceipt {
+    val owner: MetricsRuntimeOwnership
+    val observationSettlement: io.screenstream.engine.internal.android.CaptureMetricsObservationSettlement
+    val endpointTerminationReceipt: io.screenstream.engine.internal.android.CaptureMetricsEndpointTerminationReceipt
+}
 internal interface AndroidTerminationReceipt {
     val owner: AndroidRuntimeOwnership
     val projectionClosureReceipt: io.screenstream.engine.internal.android.AndroidProjectionClosureReceipt?
@@ -96,7 +102,6 @@ internal interface ControlTerminationReceipt {
 internal interface SessionRuntimeFactPort {
     fun publishRuntimeStarted(fact: io.screenstream.engine.internal.session.SessionRuntimeStartedFact)
     fun publishRuntimeStartupFailed(fact: io.screenstream.engine.internal.session.SessionRuntimeStartupFailedFact)
-    fun publishMetricsReadiness(fact: io.screenstream.engine.internal.session.SessionMetricsReadinessFact)
     fun publishControlWakeSchedule(fact: io.screenstream.engine.internal.session.SessionControlWakeScheduleFact)
     fun publishControlWakeCancellation(fact: io.screenstream.engine.internal.session.SessionControlWakeCancellationFact)
     fun publishProjectionCallbackRegistration(

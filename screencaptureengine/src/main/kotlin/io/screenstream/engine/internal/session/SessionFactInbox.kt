@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicReference
 internal class SessionFactInbox internal constructor() {
     private val runtimeStarted = AtomicReference<SessionRuntimeStartedFact?>(null)
     private val runtimeStartupFailed = AtomicReference<SessionRuntimeStartupFailedFact?>(null)
-    private val metricsReadiness = AtomicReference<SessionMetricsReadinessFact?>(null)
     private val controlWakeSchedule = AtomicReference<SessionControlWakeScheduleFact?>(null)
     private val controlWakeCancellation = AtomicReference<SessionControlWakeCancellationFact?>(null)
     private val projectionCallbackRegistration =
@@ -40,7 +39,6 @@ internal class SessionFactInbox internal constructor() {
 
     internal fun offer(fact: SessionRuntimeStartedFact): Boolean = runtimeStarted.compareAndSet(null, fact)
     internal fun offer(fact: SessionRuntimeStartupFailedFact): Boolean = runtimeStartupFailed.compareAndSet(null, fact)
-    internal fun offer(fact: SessionMetricsReadinessFact): Boolean = metricsReadiness.compareAndSet(null, fact)
     internal fun offer(fact: SessionControlWakeScheduleFact): Boolean = controlWakeSchedule.compareAndSet(null, fact)
     internal fun offer(fact: SessionControlWakeCancellationFact): Boolean = controlWakeCancellation.compareAndSet(null, fact)
     internal fun offer(fact: SessionProjectionCallbackRegistrationFact): Boolean =
@@ -84,7 +82,6 @@ internal class SessionFactInbox internal constructor() {
     internal fun drain(): SessionFactBatch = SessionFactBatch(
         runtimeStarted = runtimeStarted.getAndSet(null),
         runtimeStartupFailed = runtimeStartupFailed.getAndSet(null),
-        metricsReadiness = metricsReadiness.getAndSet(null),
         controlWakeSchedule = controlWakeSchedule.getAndSet(null),
         controlWakeCancellation = controlWakeCancellation.getAndSet(null),
         projectionCallbackRegistration = projectionCallbackRegistration.getAndSet(null),
@@ -118,7 +115,6 @@ internal class SessionFactInbox internal constructor() {
 internal class SessionFactBatch internal constructor(
     internal val runtimeStarted: SessionRuntimeStartedFact?,
     internal val runtimeStartupFailed: SessionRuntimeStartupFailedFact?,
-    internal val metricsReadiness: SessionMetricsReadinessFact?,
     internal val controlWakeSchedule: SessionControlWakeScheduleFact?,
     internal val controlWakeCancellation: SessionControlWakeCancellationFact?,
     internal val projectionCallbackRegistration: SessionProjectionCallbackRegistrationFact?,

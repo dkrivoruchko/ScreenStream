@@ -20,6 +20,9 @@ import io.screenstream.engine.internal.target.TargetNoProducerReason
 import io.screenstream.engine.internal.target.TargetProducerApplicationFact
 import io.screenstream.engine.internal.target.TargetProducerDetachReceipt
 import io.screenstream.engine.internal.target.TargetProducerEvidence
+import io.screenstream.engine.internal.target.TargetProducerPortCommittedFact
+import io.screenstream.engine.internal.target.TargetProducerPortRetiredUnusedFact
+import io.screenstream.engine.internal.target.TargetProducerPreparationRetiredUnusedFact
 import io.screenstream.engine.internal.target.TargetStagedDetachPortCommittedFact
 import io.screenstream.engine.internal.target.TargetStagedDetachPortRetiredFact
 import io.screenstream.engine.internal.target.TargetStagedDetachPortSettledFact
@@ -31,6 +34,8 @@ import io.screenstream.engine.internal.target.TargetStagedProducerPortRetiredFac
 import io.screenstream.engine.internal.target.TargetStagedProducerPortSettledFact
 import io.screenstream.engine.internal.target.TargetStagedProducerPortUnusedFact
 import io.screenstream.engine.internal.target.TargetFrameQuiescedFact
+import io.screenstream.engine.internal.target.TargetInitialReleasePortCommittedFact
+import io.screenstream.engine.internal.target.TargetInitialReleasePortRetiredUnusedFact
 import java.util.concurrent.atomic.AtomicReference
 
 internal const val initialCapturedResizeReadinessNanos: Long = 5_000_000_000L
@@ -110,10 +115,13 @@ internal sealed interface AndroidVirtualDisplayProducerApplicationEvidence {
 internal class AndroidAttachedVirtualDisplay private constructor(
     override val mechanicalState: AndroidVirtualDisplayMechanicalState,
     internal val target: CurrentTarget,
-    internal val producerPort: TargetPorts.AndroidSurfacePort,
-    private val producerEvidence: AndroidVirtualDisplayProducerApplicationEvidence,
+    producerPort: TargetPorts.AndroidSurfacePort,
+    producerEvidence: AndroidVirtualDisplayProducerApplicationEvidence,
 ) : AndroidVirtualDisplayOwnership {
-    private var exactProducerOperation: OperationOccurrence<*>? = null
+    @Volatile private var retainedProducerPort: TargetPorts.AndroidSurfacePort? = producerPort
+    @Volatile private var retainedProducerEvidence: AndroidVirtualDisplayProducerApplicationEvidence? = producerEvidence
+    @Volatile private var exactProducerOperation: OperationOccurrence<*>? = null
+    @Volatile private var compactAppliedTargetFact: TargetProducerEvidence? = null
 
     internal constructor(
         returnedOwnerCell: AndroidVirtualDisplayReturnedOwnerCell,
@@ -137,28 +145,43 @@ internal class AndroidAttachedVirtualDisplay private constructor(
     override val virtualDisplay: VirtualDisplay
         get() = mechanicalState.virtualDisplay
 
-    internal val producerOperation: OperationOccurrence<*>
-        get() = checkNotNull(exactProducerOperation)
-
     internal val appliedTargetFact: TargetProducerEvidence
-        get() = checkNotNull(producerEvidence.appliedProducerFact)
+        get() = compactAppliedTargetFact
+            ?: checkNotNull(retainedProducerEvidence?.appliedProducerFact)
 
     internal val targetGeneration: Long
         get() = appliedTargetFact.targetGeneration
 
     internal fun bindProducerOperation(operation: OperationOccurrence<*>): Boolean {
-        if (exactProducerOperation != null || operation.identity != producerPort.operationIdentity) return false
+        if (exactProducerOperation != null || operation.identity != retainedProducerPort?.operationIdentity) return false
         exactProducerOperation = operation
+        return true
+    }
+
+    internal fun compactAfterApplication(
+        operation: OperationOccurrence<*>,
+        fact: TargetProducerEvidence,
+    ): Boolean {
+        if (exactProducerOperation !== operation || retainedProducerEvidence?.appliedProducerFact !== fact ||
+            compactAppliedTargetFact != null
+        ) return false
+        compactAppliedTargetFact = fact
+        retainedProducerPort = null
+        retainedProducerEvidence = null
+        exactProducerOperation = null
         return true
     }
 }
 
 internal class AndroidMechanicallyDetachedVirtualDisplay(
     internal val attached: AndroidAttachedVirtualDisplay,
-    internal val detachPort: TargetPorts.AndroidDetachPort,
-    private val detachEvidence: AndroidVirtualDisplayDetachEvidence,
+    detachPort: TargetPorts.AndroidDetachPort,
+    detachEvidence: AndroidVirtualDisplayDetachEvidence,
 ) : AndroidVirtualDisplayOwnership {
-    private var exactDetachOperation: OperationOccurrence<*>? = null
+    @Volatile private var retainedDetachPort: TargetPorts.AndroidDetachPort? = detachPort
+    @Volatile private var retainedDetachEvidence: AndroidVirtualDisplayDetachEvidence? = detachEvidence
+    @Volatile private var exactDetachOperation: OperationOccurrence<*>? = null
+    @Volatile private var compactAppliedTargetFact: TargetProducerDetachReceipt? = null
 
     override val virtualDisplay: VirtualDisplay
         get() = attached.virtualDisplay
@@ -166,15 +189,27 @@ internal class AndroidMechanicallyDetachedVirtualDisplay(
     override val mechanicalState: AndroidVirtualDisplayMechanicalState
         get() = attached.mechanicalState
 
-    internal val detachOperation: OperationOccurrence<*>
-        get() = checkNotNull(exactDetachOperation)
-
     internal val appliedTargetFact: TargetProducerDetachReceipt
-        get() = checkNotNull(detachEvidence.appliedTargetFact)
+        get() = compactAppliedTargetFact
+            ?: checkNotNull(retainedDetachEvidence?.appliedTargetFact)
 
     internal fun bindDetachOperation(operation: OperationOccurrence<*>): Boolean {
-        if (exactDetachOperation != null || operation.identity != detachPort.operationIdentity) return false
+        if (exactDetachOperation != null || operation.identity != retainedDetachPort?.operationIdentity) return false
         exactDetachOperation = operation
+        return true
+    }
+
+    internal fun compactAfterApplication(
+        operation: OperationOccurrence<*>,
+        fact: TargetProducerDetachReceipt,
+    ): Boolean {
+        if (exactDetachOperation !== operation || retainedDetachEvidence?.appliedTargetFact !== fact ||
+            compactAppliedTargetFact != null
+        ) return false
+        compactAppliedTargetFact = fact
+        retainedDetachPort = null
+        retainedDetachEvidence = null
+        exactDetachOperation = null
         return true
     }
 }
@@ -345,6 +380,8 @@ internal class AndroidVirtualDisplayCreationOwnerBag(
     internal val initialLogicalTuple: AndroidVirtualDisplayLogicalTuple,
     internal val applicationCandidate: AndroidAttachedVirtualDisplay,
 ) : OperationOwnerBag {
+    internal val directCreateOutOfMemoryRecordFailure: IllegalStateException =
+        IllegalStateException("Android VirtualDisplay direct OOME evidence was already recorded")
     private var fixedBinding: AndroidTargetOperationBinding? = null
     private var fixedProducerResult: AndroidTargetPlatformResult.ProducerAttached? = null
     private var fixedReturnedWithoutProducerResult: AndroidTargetPlatformResult.ProducerUnavailable? = null
@@ -355,6 +392,8 @@ internal class AndroidVirtualDisplayCreationOwnerBag(
         AndroidOccurrenceNoPlatformEntryProof<AndroidVirtualDisplayCreationEvidence>? = null
     private val fixedPostTicket =
         AtomicReference<AndroidPostTicket<AndroidVirtualDisplayCreationEvidence>?>(null)
+    private val fixedTargetCommit =
+        AtomicReference<io.screenstream.engine.internal.target.TargetProducerPortCommitResult?>(null)
 
     internal val binding: AndroidTargetOperationBinding
         get() = checkNotNull(fixedBinding)
@@ -370,12 +409,26 @@ internal class AndroidVirtualDisplayCreationOwnerBag(
         get() = checkNotNull(fixedSettledResult)
     internal val occurrenceNoEntryProof: AndroidOccurrenceNoPlatformEntryProof<AndroidVirtualDisplayCreationEvidence>
         get() = checkNotNull(fixedOccurrenceNoEntryProof)
-    internal val postTicket: AndroidPostTicket<AndroidVirtualDisplayCreationEvidence>?
-        get() = fixedPostTicket.get()
+    internal val postTicket: AndroidPostTicket<AndroidVirtualDisplayCreationEvidence>
+        get() = checkNotNull(fixedPostTicket.get())
+
+    internal val targetCommit: io.screenstream.engine.internal.target.TargetProducerPortCommitResult?
+        get() = fixedTargetCommit.get()
 
     internal fun bindPostTicket(ticket: AndroidPostTicket<AndroidVirtualDisplayCreationEvidence>): Boolean {
         if (ticket.occurrence !== occurrenceNoEntryProof.operation) return false
         return fixedPostTicket.compareAndSet(null, ticket)
+    }
+
+    internal fun recordTargetCommit(
+        result: io.screenstream.engine.internal.target.TargetProducerPortCommitResult,
+    ): Boolean {
+        val bindingMatches = when (result) {
+            is TargetProducerPortCommittedFact -> result === port.bindingFact
+            is TargetProducerPortRetiredUnusedFact -> result.bindingFact === port.bindingFact
+            else -> false
+        }
+        return bindingMatches && fixedTargetCommit.compareAndSet(null, result)
     }
 
     internal fun bindOperation(operation: OperationOccurrence<AndroidVirtualDisplayCreationEvidence>): Boolean {
@@ -409,6 +462,22 @@ internal class AndroidVirtualDisplayCreationOwnerBag(
 
     internal val densityDpi: Int
         get() = initialLogicalTuple.densityDpi
+}
+
+internal sealed interface AndroidVirtualDisplayCreationPreparationResult {
+    class Ready(
+        internal val operation: OperationOccurrence<AndroidVirtualDisplayCreationEvidence>,
+        internal val targetCommit: TargetProducerPortCommittedFact,
+    ) : AndroidVirtualDisplayCreationPreparationResult
+
+    class RetiredUnused(
+        internal val operation: OperationOccurrence<AndroidVirtualDisplayCreationEvidence>,
+        internal val targetFact: TargetProducerPortRetiredUnusedFact,
+    ) : AndroidVirtualDisplayCreationPreparationResult
+
+    class TargetPreparationFailed(
+        internal val targetFact: TargetProducerPreparationRetiredUnusedFact,
+    ) : AndroidVirtualDisplayCreationPreparationResult
 }
 
 internal object AndroidVirtualDisplayAttachReceipt : OperationReceipt
@@ -466,7 +535,7 @@ internal class AndroidVirtualDisplayAttachEvidence : OperationEvidence, AndroidV
         val factMatchesOutcome = when (outcome) {
             is AndroidTargetPostOutcome.PostExposed -> fact is TargetStagedPortPostExposedFact
             is AndroidTargetPostOutcome.DefinitelyUnentered -> fact is TargetStagedProducerPortRetiredFact
-            is AndroidTargetPostOutcome.RetiredUnused -> fact is TargetStagedProducerPortRetiredFact
+            is AndroidTargetPostOutcome.RetiredUnused -> fact is TargetStagedProducerPortUnusedFact
         }
         if (!factMatchesOutcome || existing != null && !replacingPostExposed ||
             fact.operationIdentity != outcome.targetFact.operationIdentity ||
@@ -590,17 +659,24 @@ internal class AndroidVirtualDisplayResizeOwnerBag(
 ) : OperationOwnerBag {
     private var fixedAppliedResult: AndroidVirtualDisplayResizeResult.Applied? = null
     private var fixedFailedResult: AndroidVirtualDisplayResizeResult.Failed? = null
+    private var fixedPostTicket: AndroidPostTicket<AndroidVirtualDisplayResizeEvidence>? = null
     private var fixedTerminalTransfer: AndroidVirtualDisplayMutationTerminalTransfer.Resize? = null
 
     internal val appliedResult: AndroidVirtualDisplayResizeResult.Applied
         get() = checkNotNull(fixedAppliedResult)
     internal val failedResult: AndroidVirtualDisplayResizeResult.Failed
         get() = checkNotNull(fixedFailedResult)
+    internal val postTicket: AndroidPostTicket<AndroidVirtualDisplayResizeEvidence>
+        get() = checkNotNull(fixedPostTicket)
     internal val terminalTransfer: AndroidVirtualDisplayMutationTerminalTransfer.Resize
         get() = checkNotNull(fixedTerminalTransfer)
 
-    internal fun bindOperation(operation: OperationOccurrence<AndroidVirtualDisplayResizeEvidence>): Boolean {
+    internal fun bindOperation(
+        operation: OperationOccurrence<AndroidVirtualDisplayResizeEvidence>,
+        ticket: AndroidPostTicket<AndroidVirtualDisplayResizeEvidence>,
+    ): Boolean {
         if (fixedAppliedResult != null) return false
+        if (ticket.occurrence !== operation) return false
         fixedAppliedResult = AndroidVirtualDisplayResizeResult.Applied(
             operation.identity,
             command.reconfigurationIdentity,
@@ -610,7 +686,8 @@ internal class AndroidVirtualDisplayResizeOwnerBag(
             operation.identity,
             command.reconfigurationIdentity,
         )
-        fixedTerminalTransfer = AndroidVirtualDisplayMutationTerminalTransfer.Resize(operation)
+        fixedPostTicket = ticket
+        fixedTerminalTransfer = AndroidVirtualDisplayMutationTerminalTransfer.Resize(operation, ticket)
         return true
     }
 }
@@ -631,20 +708,49 @@ internal sealed interface AndroidVirtualDisplayResizeResult {
     ) : AndroidVirtualDisplayResizeResult
 }
 
-internal sealed class AndroidVirtualDisplayMutationTerminalTransfer(
-    internal val operation: OperationOccurrence<*>,
-) {
+internal sealed interface AndroidVirtualDisplayMutationTerminalTransfer {
+    val operationIdentity: Long
+
     class Resize(
-        operation: OperationOccurrence<AndroidVirtualDisplayResizeEvidence>,
-    ) : AndroidVirtualDisplayMutationTerminalTransfer(operation)
+        internal val operation: OperationOccurrence<AndroidVirtualDisplayResizeEvidence>,
+        internal val ticket: AndroidPostTicket<AndroidVirtualDisplayResizeEvidence>,
+    ) : AndroidVirtualDisplayMutationTerminalTransfer {
+        override val operationIdentity: Long = operation.identity
+    }
 
     class Detach(
-        operation: OperationOccurrence<AndroidVirtualDisplayDetachEvidence>,
-    ) : AndroidVirtualDisplayMutationTerminalTransfer(operation)
+        internal val operation: OperationOccurrence<AndroidVirtualDisplayDetachEvidence>,
+        internal val ticket: AndroidPostTicket<AndroidVirtualDisplayDetachEvidence>,
+    ) : AndroidVirtualDisplayMutationTerminalTransfer {
+        override val operationIdentity: Long = operation.identity
+    }
 
     class Attach(
-        operation: OperationOccurrence<AndroidVirtualDisplayAttachEvidence>,
-    ) : AndroidVirtualDisplayMutationTerminalTransfer(operation)
+        internal val operation: OperationOccurrence<AndroidVirtualDisplayAttachEvidence>,
+        internal val ticket: AndroidPostTicket<AndroidVirtualDisplayAttachEvidence>,
+    ) : AndroidVirtualDisplayMutationTerminalTransfer {
+        override val operationIdentity: Long = operation.identity
+    }
+}
+
+internal sealed interface AndroidVirtualDisplayMutationUnusedRoot {
+    val operationIdentity: Long
+
+    class Detach(
+        internal val operation: OperationOccurrence<AndroidVirtualDisplayDetachEvidence>,
+        internal val ticket: AndroidPostTicket<AndroidVirtualDisplayDetachEvidence>,
+        internal val outcome: AndroidTargetPostOutcome.RetiredUnused,
+    ) : AndroidVirtualDisplayMutationUnusedRoot {
+        override val operationIdentity: Long = operation.identity
+    }
+
+    class Attach(
+        internal val operation: OperationOccurrence<AndroidVirtualDisplayAttachEvidence>,
+        internal val ticket: AndroidPostTicket<AndroidVirtualDisplayAttachEvidence>,
+        internal val outcome: AndroidTargetPostOutcome.RetiredUnused,
+    ) : AndroidVirtualDisplayMutationUnusedRoot {
+        override val operationIdentity: Long = operation.identity
+    }
 }
 
 internal class AndroidVirtualDisplayResizeCommand(
@@ -832,12 +938,13 @@ internal class AndroidVirtualDisplayDetachOwnerBag(
     internal val committedFact: TargetStagedDetachPortCommittedFact
         get() = stagedPort.commitCorrelation
 
-    internal val postTicket: AndroidPostTicket<AndroidVirtualDisplayDetachEvidence>?
-        get() = fixedPostTicket
+    internal val postTicket: AndroidPostTicket<AndroidVirtualDisplayDetachEvidence>
+        get() = checkNotNull(fixedPostTicket)
 
     internal fun bindPostTicket(ticket: AndroidPostTicket<AndroidVirtualDisplayDetachEvidence>): Boolean {
-        if (fixedPostTicket != null) return false
+        if (fixedPostTicket != null || ticket.occurrence.identity != stagedPort.port.operationIdentity) return false
         fixedPostTicket = ticket
+        fixedTerminalTransfer = AndroidVirtualDisplayMutationTerminalTransfer.Detach(ticket.occurrence, ticket)
         return true
     }
 
@@ -875,7 +982,6 @@ internal class AndroidVirtualDisplayDetachOwnerBag(
         fixedPlatformResult = AndroidTargetPlatformResult.ProducerDetached(binding)
         fixedSettledResult = AndroidTargetPlatformResult.DetachPortSettled(binding)
         fixedDetachedCandidate = detachedCandidate
-        fixedTerminalTransfer = AndroidVirtualDisplayMutationTerminalTransfer.Detach(operation)
         return true
     }
 }
@@ -900,12 +1006,13 @@ internal class AndroidVirtualDisplayAttachOwnerBag(
     internal val committedFact: TargetStagedProducerPortCommittedFact
         get() = stagedPort.commitCorrelation
 
-    internal val postTicket: AndroidPostTicket<AndroidVirtualDisplayAttachEvidence>?
-        get() = fixedPostTicket
+    internal val postTicket: AndroidPostTicket<AndroidVirtualDisplayAttachEvidence>
+        get() = checkNotNull(fixedPostTicket)
 
     internal fun bindPostTicket(ticket: AndroidPostTicket<AndroidVirtualDisplayAttachEvidence>): Boolean {
-        if (fixedPostTicket != null) return false
+        if (fixedPostTicket != null || ticket.occurrence.identity != stagedPort.port.operationIdentity) return false
         fixedPostTicket = ticket
+        fixedTerminalTransfer = AndroidVirtualDisplayMutationTerminalTransfer.Attach(ticket.occurrence, ticket)
         return true
     }
 
@@ -946,7 +1053,6 @@ internal class AndroidVirtualDisplayAttachOwnerBag(
             stagedPort.port,
             evidence,
         )
-        fixedTerminalTransfer = AndroidVirtualDisplayMutationTerminalTransfer.Attach(operation)
         return true
     }
 }
@@ -959,7 +1065,7 @@ internal sealed interface AndroidVirtualDisplayDetachPreparationResult {
     class RetiredUnused(
         internal val operation: OperationOccurrence<AndroidVirtualDisplayDetachEvidence>,
         internal val outcome: AndroidTargetPostOutcome.RetiredUnused,
-        internal val terminalTransfer: AndroidVirtualDisplayMutationTerminalTransfer.Detach,
+        internal val unusedRoot: AndroidVirtualDisplayMutationUnusedRoot.Detach,
     ) : AndroidVirtualDisplayDetachPreparationResult
 }
 
@@ -971,7 +1077,11 @@ internal sealed interface AndroidVirtualDisplayAttachPreparationResult {
     class RetiredUnused(
         internal val operation: OperationOccurrence<AndroidVirtualDisplayAttachEvidence>,
         internal val outcome: AndroidTargetPostOutcome.RetiredUnused,
-        internal val terminalTransfer: AndroidVirtualDisplayMutationTerminalTransfer.Attach,
+        internal val unusedRoot: AndroidVirtualDisplayMutationUnusedRoot.Attach,
+    ) : AndroidVirtualDisplayAttachPreparationResult
+
+    class TargetPreparationFailed(
+        internal val targetFact: TargetProducerPreparationRetiredUnusedFact,
     ) : AndroidVirtualDisplayAttachPreparationResult
 }
 
@@ -1029,12 +1139,12 @@ internal sealed interface AndroidVirtualDisplayReleaseMode {
 
     class Attached(
         override val ownership: AndroidAttachedVirtualDisplay,
-        internal val targetPort: TargetPorts.AndroidDetachPort,
+        internal val targetCandidate: TargetPorts.DetachedInitialReleasePort,
     ) : AndroidVirtualDisplayReleaseMode
 
     class AttachmentUncertain(
         override val ownership: AndroidAttachmentUncertainVirtualDisplay,
-        internal val targetPort: TargetPorts.AndroidDetachPort,
+        internal val targetCandidate: TargetPorts.DetachedInitialReleasePort,
     ) : AndroidVirtualDisplayReleaseMode
 
     class MechanicallyDetached(
@@ -1050,22 +1160,60 @@ internal class AndroidVirtualDisplayReleaseOwnerBag(
 
     private var fixedBinding: AndroidTargetOperationBinding? = null
     private var fixedResult: AndroidTargetPlatformResult.ProducerDetached? = null
+    private var fixedOperationIdentity: Long = 0L
+    private val fixedPostTicket = AtomicReference<AndroidPostTicket<AndroidVirtualDisplayReleaseEvidence>?>(null)
+    private val fixedTargetCommit = AtomicReference<io.screenstream.engine.internal.target.TargetInitialReleasePortCommitResult?>(null)
 
     internal val binding: AndroidTargetOperationBinding
         get() = checkNotNull(fixedBinding)
     internal val result: AndroidTargetPlatformResult.ProducerDetached
         get() = checkNotNull(fixedResult)
+    internal val postTicket: AndroidPostTicket<AndroidVirtualDisplayReleaseEvidence>
+        get() = checkNotNull(fixedPostTicket.get())
+    internal val targetCommit: io.screenstream.engine.internal.target.TargetInitialReleasePortCommitResult?
+        get() = fixedTargetCommit.get()
 
-    internal fun bindOperation(operation: OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>): Boolean {
-        val port = when (val exactMode = mode) {
-            is AndroidVirtualDisplayReleaseMode.Attached -> exactMode.targetPort
-            is AndroidVirtualDisplayReleaseMode.AttachmentUncertain -> exactMode.targetPort
+    internal fun bindPostTicket(ticket: AndroidPostTicket<AndroidVirtualDisplayReleaseEvidence>): Boolean =
+        ticket.operationIdentity == fixedOperationIdentity && fixedPostTicket.compareAndSet(null, ticket)
+
+    internal fun recordTargetCommit(
+        result: io.screenstream.engine.internal.target.TargetInitialReleasePortCommitResult,
+    ): Boolean {
+        val candidate = when (val exactMode = mode) {
+            is AndroidVirtualDisplayReleaseMode.Attached -> exactMode.targetCandidate
+            is AndroidVirtualDisplayReleaseMode.AttachmentUncertain -> exactMode.targetCandidate
             is AndroidVirtualDisplayReleaseMode.MechanicallyDetached -> return false
         }
-        if (fixedBinding != null) return false
+        val matches = when (result) {
+            is TargetInitialReleasePortCommittedFact -> result === candidate.committedFact
+            is TargetInitialReleasePortRetiredUnusedFact -> result === candidate.retiredUnusedFact
+            else -> false
+        }
+        return matches && fixedTargetCommit.compareAndSet(null, result)
+    }
+
+    internal fun bindOperation(operation: OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>): Boolean {
+        if (fixedOperationIdentity != 0L) return false
+        fixedOperationIdentity = operation.identity
+        val port = when (val exactMode = mode) {
+            is AndroidVirtualDisplayReleaseMode.Attached -> exactMode.targetCandidate.port
+            is AndroidVirtualDisplayReleaseMode.AttachmentUncertain -> exactMode.targetCandidate.port
+            is AndroidVirtualDisplayReleaseMode.MechanicallyDetached -> return true
+        }
         val binding = AndroidTargetOperationBinding.create(port.bindingFact, operation)
         fixedBinding = binding
         fixedResult = AndroidTargetPlatformResult.ProducerDetached(binding)
         return true
     }
+}
+
+internal sealed interface AndroidVirtualDisplayReleasePreparationResult {
+    class Ready(
+        internal val operation: OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>,
+    ) : AndroidVirtualDisplayReleasePreparationResult
+
+    class RetiredUnused(
+        internal val operation: OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>,
+        internal val targetFact: TargetInitialReleasePortRetiredUnusedFact,
+    ) : AndroidVirtualDisplayReleasePreparationResult
 }

@@ -11,13 +11,17 @@ import io.screenstream.engine.internal.android.AndroidLaneTerminationReceipt
 import io.screenstream.engine.internal.android.AndroidLaneStartupResult
 import io.screenstream.engine.internal.android.AndroidProjectionStopEvidence
 import io.screenstream.engine.internal.android.AndroidProjectionStopObligation
+import io.screenstream.engine.internal.android.AndroidProjectionStopOwnerBindingToken
+import io.screenstream.engine.internal.android.AndroidProjectionStopOwnerConstructionClaim
 import io.screenstream.engine.internal.android.AndroidProjectionClosureReceipt
 import io.screenstream.engine.internal.android.AndroidFinalProjectionStopAction
 import io.screenstream.engine.internal.android.AndroidFinalProjectionStopOutcome
 import io.screenstream.engine.internal.android.AndroidFiniteOperationIdentity
 import io.screenstream.engine.internal.android.AndroidProjectionCallbackRegistrationEvidence
-import io.screenstream.engine.internal.android.CaptureMetricsReadinessOutcome
 import io.screenstream.engine.internal.android.CaptureMetricsIngressPort
+import io.screenstream.engine.internal.android.CaptureMetricsAttachmentAccess
+import io.screenstream.engine.internal.android.CaptureMetricsEndpointTerminationReceipt
+import io.screenstream.engine.internal.android.CaptureMetricsObservationSettlement
 import io.screenstream.engine.internal.android.CaptureMetricsOwner
 import io.screenstream.engine.internal.delivery.DeliveryAuthorityPort
 import io.screenstream.engine.internal.delivery.DeliveryEndpointStartResult
@@ -34,7 +38,6 @@ import io.screenstream.engine.internal.session.SessionExternalFactsSettledFact
 import io.screenstream.engine.internal.session.SessionControlResidueSettledFact
 import io.screenstream.engine.internal.session.SessionRuntimeStartedFact
 import io.screenstream.engine.internal.session.SessionRuntimeStartupFailedFact
-import io.screenstream.engine.internal.session.SessionMetricsReadinessFact
 import io.screenstream.engine.internal.session.SessionControlWakeScheduleFact
 import io.screenstream.engine.internal.session.SessionControlWakeCancellationFact
 import io.screenstream.engine.internal.session.SessionProjectionCallbackRegistrationFact
@@ -64,6 +67,8 @@ import io.screenstream.engine.internal.settlement.ControlWakeScheduleAction
 import io.screenstream.engine.internal.settlement.ControlWakeResidueSettledProof
 import io.screenstream.engine.internal.settlement.PrivateExecutorStartupDisposition
 import io.screenstream.engine.internal.settlement.PrivateExecutorTerminationReceipt
+import io.screenstream.engine.internal.settlement.PrivateExecutorSubmissionResult
+import io.screenstream.engine.internal.settlement.isHandedOff
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import io.screenstream.engine.internal.settlement.DeadlineDisposition
 import io.screenstream.engine.internal.target.PreparedTarget
@@ -188,6 +193,7 @@ internal class SessionRuntimeIdentityPlan internal constructor(
 /** Owns concrete leaves and executes already-selected commands. It owns no lifecycle or product policy. */
 internal interface SessionRuntimeCommandPort {
     val observationOwner: ObservationOwner
+    val engineClock: EngineClock
     fun bind(
         factPort: SessionRuntimeFactPort,
         metricsIngress: CaptureMetricsIngressPort,
@@ -198,7 +204,9 @@ internal interface SessionRuntimeCommandPort {
     fun signal()
     fun start(request: SessionRuntimeStartRequest, startupIdentity: Long, identities: SessionRuntimeIdentityPlan)
     fun beginCleanup(transfer: SessionCleanupTransfer)
+    fun requestMetricsClose(observationIdentity: Long)
     fun collectMechanicalFacts()
+    fun metricsAttachmentAccess(owner: MetricsRuntimeOwnership): CaptureMetricsAttachmentAccess?
     fun requestControlShutdown(proof: SessionControlResidueSettledProof)
     fun registerProjectionCallback(startupIdentity: Long)
     fun scheduleControlWake(fact: SessionControlWakeScheduleFact)
@@ -234,6 +242,8 @@ internal class SessionRuntime internal constructor(
     )
 
     override val observationOwner: ObservationOwner = ObservationOwner()
+    override val engineClock: EngineClock
+        get() = clock
 
     override fun bind(
         factPort: SessionRuntimeFactPort,
@@ -247,6 +257,24 @@ internal class SessionRuntime internal constructor(
 
     override fun signal() = control.signal()
 
+    override fun requestMetricsClose(observationIdentity: Long) {
+        val metrics = currentMetricsRoot() ?: return
+        if (metrics.attachmentAccess.observationIdentity != observationIdentity ||
+            metrics.owner.requestClose().not()
+        ) return
+        metrics.owner.submitPendingClose()
+        control.signal()
+    }
+
+    override fun metricsAttachmentAccess(owner: MetricsRuntimeOwnership): CaptureMetricsAttachmentAccess? {
+        val metrics = currentMetricsRoot() ?: return null
+        return if (metrics === owner) metrics.attachmentAccess else null
+    }
+
+    /** The second live read closes the partial-to-runtime publication race. */
+    private fun currentMetricsRoot(): MetricsRoot? =
+        runtime.get()?.metrics ?: partial.get()?.metricsRoot ?: runtime.get()?.metrics
+
     override fun start(
         request: SessionRuntimeStartRequest,
         startupIdentity: Long,
@@ -256,8 +284,9 @@ internal class SessionRuntime internal constructor(
         val bound = checkNotNull(ports.get())
         val signal = SettlementSignal(control::signal)
         request.configureProjectionStop(identities.androidStop, clock, signal)
+        val pendingAndroid = PendingAndroidRoot(request)
         val residue = PartialRuntimeRoots(startupIdentity, ControlRoot(control)).also {
-            it.androidOwnership = PendingAndroidRoot(request)
+            check(it.installPendingAndroid(pendingAndroid))
         }
         check(partial.compareAndSet(null, residue))
         when (val controlResult = control.start()) {
@@ -290,25 +319,54 @@ internal class SessionRuntime internal constructor(
                     readinessTimeoutCause = IllegalStateException("Capture metrics readiness expired"),
                     closeOperationIdentity = identities.metricsClose,
                 ),
-            ).also { residue.metricsRoot = it }
+            ).also { check(residue.publishMetricsRoot(it)) }
             val projectionStop = request.consumeProjection()
-            residue.androidOwnership = TransferredProjectionRoot(projectionStop)
-            val android = AndroidRoot(
-                AndroidCaptureOwner(
+            val transferredProjection = TransferredProjectionRoot(projectionStop)
+            check(residue.transferAndroidProjection(pendingAndroid, transferredProjection))
+            val androidConstructionClaim = projectionStop.precreateOwnerConstructionClaim()
+            val constructingAndroid = ConstructingProjectionRoot(
+                projectionStop,
+                androidConstructionClaim,
+            )
+            check(residue.publishAndroidConstruction(transferredProjection, constructingAndroid))
+            check(projectionStop.claimOwnerConstruction(androidConstructionClaim))
+            val androidOwner = AndroidCaptureOwner(
                     projectionStopObligation = projectionStop,
+                    projectionConstructionClaim = androidConstructionClaim,
+                    projection = projectionStop.projectionForClaimedOwnerConstruction(androidConstructionClaim),
                     projectionOwnerEpoch = identities.androidProjectionEpoch,
                     callbackIdentity = identities.androidCallback,
                     clock = clock,
                     settlementSignal = signal,
                     factSink = bound.androidFacts,
-                ),
+                )
+            val androidBinding = projectionStop.precreateAndroidOwnerBindingToken(
+                androidConstructionClaim,
+                androidOwner,
+                androidOwner.projectionBindingLane,
+            )
+            val android = AndroidRoot(
+                androidOwner,
                 identities.androidStop,
-            ).also { residue.androidOwnership = it }
+                projectionStop,
+                androidBinding,
+            )
+            check(residue.publishAndroidCandidate(constructingAndroid, android))
+            check(android.commitProjectionBinding())
             val gl = GlRoot(GlPipelineOwner(clock, signal, "ScreenCaptureEngine-GL")).also { residue.glRoot = it }
             val jpeg = JpegRoot(JpegRuntimeOwner(clock, signal)).also { residue.jpegRoot = it }
             val delivery = DeliveryRoot(DeliveryOwner(bound.deliveryAuthority, signal)).also { residue.deliveryRoot = it }
 
             check(metrics.owner.prestartEndpoint() == PrivateExecutorStartupDisposition.Ready)
+            var metricsAttachmentResult = PrivateExecutorSubmissionResult.NotSubmitted
+            val metricsAttachmentAdmitted = startupAdmission.runIfOpen {
+                metricsAttachmentResult = metrics.owner.attach()
+            }
+            if (!metricsAttachmentAdmitted || !metricsAttachmentResult.isHandedOff) {
+                throw MetricsAttachmentStartupFailure(metricsAttachmentResult)
+            }
+
+            check(android.claimLaneStart())
             val androidLaneStarted = android.owner.startLane()
             check(androidLaneStarted && android.owner.laneStartupResult is AndroidLaneStartupResult.Ready)
             check(gl.owner.prestartLane() == PrivateExecutorStartupDisposition.Ready)
@@ -317,7 +375,8 @@ internal class SessionRuntime internal constructor(
 
             val roots = RuntimeRoots(startupIdentity, residue.controlRoot, metrics, android, gl, jpeg, delivery)
             check(runtime.compareAndSet(null, roots))
-            check(startupMechanical.compareAndSet(null, StartupMechanicalProgress(roots, identities, control::signal)))
+            val startupProgress = StartupMechanicalProgress(roots, identities, control::signal)
+            check(startupMechanical.compareAndSet(null, startupProgress))
             partial.compareAndSet(residue, null)
             val externalMetrics = MetricsExternalProducer(metrics)
             check(metricsExternalProducer.compareAndSet(null, externalMetrics))
@@ -332,11 +391,7 @@ internal class SessionRuntime internal constructor(
                     ),
                 ),
             )
-            if (!startupAdmission.runIfOpen { metrics.owner.attach() }) {
-                val closeMetrics = metrics.owner.requestCloseLocked()
-                metrics.owner.applyCloseRequestEffectsUnlocked(closeMetrics)
-                metrics.owner.submitPendingClose()
-            }
+            check(startupProgress.openAfterRuntimeStartedPublication())
             control.signal()
         } catch (raw: Throwable) {
             bound.factPort.publishRuntimeStartupFailed(
@@ -365,8 +420,7 @@ internal class SessionRuntime internal constructor(
             val jpeg = roots.jpeg as? JpegRoot
             val delivery = roots.delivery as? DeliveryRoot
             metrics?.owner?.let { owner ->
-                val closeMetrics = owner.requestCloseLocked()
-                owner.applyCloseRequestEffectsUnlocked(closeMetrics)
+                owner.requestClose()
                 owner.submitPendingClose()
             }
             android?.owner?.closeProjectionCallbackAuthority()
@@ -407,9 +461,15 @@ internal class SessionRuntime internal constructor(
                 progressStartupCleanup(progress, roots, android, gl, bound.factPort)
             }
             metrics?.owner?.requestEndpointShutdown()
-            metrics?.owner?.endpointTerminationReceipt?.let { raw ->
+            val metricsObservation = metrics?.owner?.observationSettlement
+            val metricsEndpoint = metrics?.owner?.endpointTerminationReceipt
+            if (metrics != null && metricsObservation != null && metricsEndpoint != null) {
                 if (progress.metricsPublished.compareAndSet(false, true)) {
-                    bound.factPort.publishMetricsCleanupSettled(MetricsCleanupSettledFact(MetricsTerminated(metrics, raw)))
+                    bound.factPort.publishMetricsCleanupSettled(
+                        MetricsCleanupSettledFact(
+                            MetricsWholeRootSettled(metrics, metricsObservation, metricsEndpoint),
+                        ),
+                    )
                     metricsExternalProducer.get()?.let(externalLedger::close)
                 }
             }
@@ -1399,20 +1459,14 @@ internal class SessionRuntime internal constructor(
 
     private fun collectStartupFacts() {
         val progress = startupMechanical.get() ?: return
+        if (!progress.runtimeStartedWasPublished) return
         val bound = ports.get() ?: return
+        // Control is the sole successor driver: release the prior occurrence, then submit at most one dirty refresh
+        // or the single close ticket. A dirty edge raised during a read remains sticky for the next drain.
+        progress.roots.metrics.owner.drivePendingWork()
         val metricsWakeLink = progress.roots.metrics.owner.readinessWakeLink
         publishStartupWakeIfAdmitted(progress, metricsWakeLink, progress.metricsWakeAction, bound.factPort)
-        val readiness = progress.roots.metrics.owner.claimReadinessFoldLocked()
-        if (readiness != null && progress.metricsReadinessPublished.compareAndSet(false, true)) {
-            val receipt = if (readiness.outcome == CaptureMetricsReadinessOutcome.Timely) {
-                MetricsJointReady(progress.roots.metrics)
-            } else {
-                null
-            }
-            bound.factPort.publishMetricsReadiness(
-                SessionMetricsReadinessFact(progress.roots.startupIdentity, progress.roots.metrics, readiness, receipt),
-            )
-        }
+        progress.roots.metrics.owner.pollPhysical()
         val operation = progress.projectionRegistrationOperation.get() ?: return
         val wakeLink = operation.controlWakeLink
         publishStartupWakeIfAdmitted(progress, wakeLink, progress.projectionWakeAction, bound.factPort)
@@ -1621,19 +1675,43 @@ private class PartialRuntimeRoots(
     override val startupIdentity: Long,
     val controlRoot: ControlRoot,
 ) : SessionRuntimeResidue {
-    var metricsRoot: MetricsRoot? = null
-    var androidOwnership: AndroidRuntimeOwnership? = null
+    private val metricsOwnership = AtomicReference<MetricsRoot?>(null)
+    private val androidOwnership = AtomicReference<AndroidRuntimeOwnership?>(null)
     var glRoot: GlRoot? = null
     var jpegRoot: JpegRoot? = null
     var deliveryRoot: DeliveryRoot? = null
     override val control: ControlRuntimeOwnership get() = controlRoot
-    override val metrics: MetricsRuntimeOwnership? get() = metricsRoot
-    override val android: AndroidRuntimeOwnership? get() = androidOwnership
+    val metricsRoot: MetricsRoot?
+        get() = metricsOwnership.get()
+    override val metrics: MetricsRuntimeOwnership?
+        get() = metricsOwnership.get()
+    override val android: AndroidRuntimeOwnership? get() = androidOwnership.get()
     override val target: TargetRuntimeOwnership? get() = null
     override val gl: GlRuntimeOwnership? get() = glRoot
     override val jpeg: JpegRuntimeOwnership? get() = jpegRoot
     override val storage: StorageRuntimeOwnership? get() = null
     override val delivery: DeliveryRuntimeOwnership? get() = deliveryRoot
+
+    fun publishMetricsRoot(metrics: MetricsRoot): Boolean =
+        metricsOwnership.compareAndSet(null, metrics)
+
+    fun installPendingAndroid(pending: PendingAndroidRoot): Boolean =
+        androidOwnership.compareAndSet(null, pending)
+
+    fun transferAndroidProjection(
+        pending: PendingAndroidRoot,
+        transferred: TransferredProjectionRoot,
+    ): Boolean = androidOwnership.compareAndSet(pending, transferred)
+
+    fun publishAndroidConstruction(
+        transferred: TransferredProjectionRoot,
+        constructing: ConstructingProjectionRoot,
+    ): Boolean = androidOwnership.compareAndSet(transferred, constructing)
+
+    fun publishAndroidCandidate(
+        constructing: ConstructingProjectionRoot,
+        candidate: AndroidRoot,
+    ): Boolean = androidOwnership.compareAndSet(constructing, candidate)
 }
 
 private class RuntimeRoots(
@@ -1656,7 +1734,11 @@ private class RuntimeRoots(
 private class ControlRoot(coordinator: ControlCoordinator) : ControlRuntimeOwnership {
     override val terminationReceipt: ControlTerminationReceipt = coordinator.bindCleanupOwner(this)
 }
-private class MetricsRoot(val owner: CaptureMetricsOwner) : MetricsRuntimeOwnership
+private class MetricsRoot(val owner: CaptureMetricsOwner) : MetricsRuntimeOwnership {
+    val attachmentAccess: CaptureMetricsAttachmentAccess
+        get() = owner.attachmentAccess
+    override val jointReadinessReceipt: MetricsJointReadinessReceipt = MetricsJointReady(this)
+}
 private interface AndroidProjectionCleanupRoot : AndroidRuntimeOwnership {
     fun sealTerminalContext(cutoffIdentity: Any, workManifestIdentity: Any)
     fun prepareFinalStopAction(): AndroidFinalProjectionStopAction?
@@ -1666,18 +1748,60 @@ private interface AndroidProjectionCleanupRoot : AndroidRuntimeOwnership {
 private class AndroidRoot(
     val owner: AndroidCaptureOwner,
     val stopIdentity: Long,
+    private val projectionStop: AndroidProjectionStopObligation,
+    private val bindingToken: AndroidProjectionStopOwnerBindingToken,
 ) : AndroidProjectionCleanupRoot {
+    fun commitProjectionBinding(): Boolean =
+        bindingToken.obligation === projectionStop && bindingToken.owner === owner &&
+            bindingToken.lane === owner.projectionBindingLane &&
+            projectionStop.commitAndroidOwnerBinding(bindingToken)
+
+    fun claimLaneStart(): Boolean =
+        commitProjectionBinding() && projectionStop.claimAndroidLaneStart(bindingToken)
+
     override val apiBand: AndroidCaptureApiBand
         get() = owner.apiBand
     override fun matchesCallbackProvenance(
         provenance: io.screenstream.engine.internal.android.AndroidCallbackProvenance,
     ): Boolean = provenance.owner === owner
-    override fun sealTerminalContext(cutoffIdentity: Any, workManifestIdentity: Any) =
-        owner.sealProjectionStopTerminalContext(cutoffIdentity, workManifestIdentity)
+    override fun sealTerminalContext(cutoffIdentity: Any, workManifestIdentity: Any) {
+        if (commitProjectionBinding()) {
+            owner.sealProjectionStopTerminalContext(cutoffIdentity, workManifestIdentity)
+        } else {
+            val cutoff = projectionStop.sealTerminalCutoff(cutoffIdentity)
+            projectionStop.sealWorkManifest(cutoff, workManifestIdentity)
+        }
+    }
 
-    override fun prepareFinalStopAction(): AndroidFinalProjectionStopAction? = owner.prepareFinalProjectionStopAction()
+    override fun prepareFinalStopAction(): AndroidFinalProjectionStopAction? {
+        return if (commitProjectionBinding()) {
+            owner.prepareFinalProjectionStopAction()
+        } else {
+            projectionStop.prepareFinalActionWithoutAndroidOwner(bindingToken.constructionClaim)
+        }
+    }
 
-    override fun closureReceipt(): AndroidProjectionClosureReceipt? = owner.projectionClosureReceipt
+    override fun closureReceipt(): AndroidProjectionClosureReceipt? = projectionStop.closureReceipt()
+}
+
+private class ConstructingProjectionRoot(
+    private val projectionStop: AndroidProjectionStopObligation,
+    private val constructionClaim: AndroidProjectionStopOwnerConstructionClaim,
+) : AndroidProjectionCleanupRoot {
+    override fun sealTerminalContext(cutoffIdentity: Any, workManifestIdentity: Any) {
+        check(projectionStop.claimOwnerConstruction(constructionClaim))
+        val cutoff = projectionStop.sealTerminalCutoff(cutoffIdentity)
+        projectionStop.sealWorkManifest(cutoff, workManifestIdentity)
+    }
+
+    override fun prepareFinalStopAction(): AndroidFinalProjectionStopAction? {
+        if (!projectionStop.claimOwnerConstruction(constructionClaim)) {
+            return projectionStop.prepareFinalActionWithoutAndroidOwner(constructionClaim)
+        }
+        return projectionStop.prepareFinalActionWithoutAndroidOwner(constructionClaim)
+    }
+
+    override fun closureReceipt(): AndroidProjectionClosureReceipt? = projectionStop.closureReceipt()
 }
 
 private class PendingAndroidRoot(private val request: SessionRuntimeStartRequest) : AndroidProjectionCleanupRoot {
@@ -1719,7 +1843,15 @@ private class GlReady(override val owner: GlRuntimeOwnership) : GlLaneReadyRecei
 private class JpegReady(override val owner: JpegRuntimeOwnership) : JpegLaneReadyReceipt
 private class DeliveryReady(override val owner: DeliveryRuntimeOwnership) : DeliveryLaneReadyReceipt
 
-private class MetricsTerminated(override val owner: MetricsRuntimeOwnership, val raw: PrivateExecutorTerminationReceipt) : MetricsTerminationReceipt
+private class MetricsWholeRootSettled(
+    override val owner: MetricsRuntimeOwnership,
+    override val observationSettlement: CaptureMetricsObservationSettlement,
+    override val endpointTerminationReceipt: CaptureMetricsEndpointTerminationReceipt,
+) : MetricsTerminationReceipt
+
+private class MetricsAttachmentStartupFailure(
+    internal val submissionResult: PrivateExecutorSubmissionResult,
+) : IllegalStateException("Capture metrics attachment was not handed off: $submissionResult")
 private class AndroidTerminated(
     override val owner: AndroidRuntimeOwnership,
     val raw: io.screenstream.engine.internal.android.AndroidLaneTerminationReceipt?,
@@ -1859,7 +1991,14 @@ private class StartupMechanicalProgress(
     val identities: SessionRuntimeIdentityPlan,
     signal: () -> Unit,
 ) {
-    val metricsReadinessPublished = AtomicBoolean(false)
+    /** Keeps attachment-originated Control signals from driving successor work before RuntimeStarted is offered. */
+    private val runtimeStartedPublished = AtomicBoolean(false)
+    val runtimeStartedWasPublished: Boolean
+        get() = runtimeStartedPublished.get()
+
+    fun openAfterRuntimeStartedPublication(): Boolean =
+        runtimeStartedPublished.compareAndSet(false, true)
+
     val metricsWakeAction = AtomicReference<ControlWakeScheduleAction?>(null)
     val projectionRegistrationRequested = AtomicBoolean(false)
     val projectionRegistrationOperation =

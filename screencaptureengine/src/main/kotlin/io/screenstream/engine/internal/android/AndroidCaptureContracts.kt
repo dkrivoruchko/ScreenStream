@@ -169,6 +169,39 @@ internal class AndroidTargetListenerInstallationUnboundClaimRetiredProof private
     }
 }
 
+internal class AndroidTargetListenerInstallationAdmissionCutoff internal constructor()
+
+internal class AndroidTargetListenerInstallationBoundNeverSubmittedProof internal constructor(
+    internal val operation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
+    internal val ticket: AndroidPostTicket<AndroidTargetListenerInstallationEvidence>,
+    private val exactCutoff: AndroidTargetListenerInstallationAdmissionCutoff,
+) {
+    private val activation = AtomicReference<TargetListenerInstallationBindingCommittedFact?>(null)
+
+    internal val committedFact: TargetListenerInstallationBindingCommittedFact?
+        get() = activation.get()
+
+    internal fun activateLocked(
+        fact: TargetListenerInstallationBindingCommittedFact,
+        cutoff: AndroidTargetListenerInstallationAdmissionCutoff,
+    ): Boolean {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        if (activation.get() === fact) return true
+        if (cutoff !== exactCutoff || fact.binding.operationIdentity != operation.identity || ticket.occurrence !== operation ||
+            ticket.physicalState != AndroidPostPhysicalDisposition.NotOnStack ||
+            ticket.postFailureResidue != null ||
+            operation.submissionDisposition !=
+            io.screenstream.engine.internal.settlement.OperationSubmissionDisposition.None ||
+            operation.entryDisposition !=
+            io.screenstream.engine.internal.settlement.OperationEntryDisposition.Unentered ||
+            operation.returnCell.disposition !=
+            io.screenstream.engine.internal.settlement.OperationReturnDisposition.Empty ||
+            !operation.settleInertBeforeEntryLocked()
+        ) return false
+        return activation.compareAndSet(null, fact)
+    }
+}
+
 internal sealed class AndroidTargetListenerInstallationNoPlatformEntryOutcome(
     internal open val binding: AndroidTargetOperationBinding,
     internal open val operation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
@@ -176,39 +209,6 @@ internal sealed class AndroidTargetListenerInstallationNoPlatformEntryOutcome(
     internal open val schedulerOutcome: AndroidPostResult,
 ) {
     internal abstract fun isActivatedExactLocked(): Boolean
-
-    internal class NotSubmitted internal constructor(
-        override val binding: AndroidTargetOperationBinding,
-        override val operation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
-        override val ticket: AndroidPostTicket<AndroidTargetListenerInstallationEvidence>,
-    ) : AndroidTargetListenerInstallationNoPlatformEntryOutcome(
-        binding,
-        operation,
-        ticket,
-        AndroidPostResult.NotSubmitted,
-    ) {
-        private val activated = java.util.concurrent.atomic.AtomicBoolean(false)
-
-        internal fun activateLocked(): Boolean {
-            check(operation.settlementGate.isHeldByCurrentThread)
-            if (!matchesFrozenNoEntryLocked() ||
-                operation.submissionDisposition !=
-                io.screenstream.engine.internal.settlement.OperationSubmissionDisposition.None ||
-                operation.submissionFailure != null || ticket.postFailureResidue != null ||
-                operation.disposition != io.screenstream.engine.internal.settlement.OperationDisposition.Cancelled
-            ) {
-                return false
-            }
-            return activated.compareAndSet(false, true)
-        }
-
-        override fun isActivatedExactLocked(): Boolean =
-            activated.get() && matchesFrozenNoEntryLocked() &&
-                operation.submissionDisposition ==
-                io.screenstream.engine.internal.settlement.OperationSubmissionDisposition.None &&
-                operation.submissionFailure == null && ticket.postFailureResidue == null &&
-                operation.disposition == io.screenstream.engine.internal.settlement.OperationDisposition.Cancelled
-    }
 
     internal class Rejected internal constructor(
         override val binding: AndroidTargetOperationBinding,
@@ -227,7 +227,7 @@ internal sealed class AndroidTargetListenerInstallationNoPlatformEntryOutcome(
 
         internal fun activateLocked(failure: Exception): Boolean {
             check(operation.settlementGate.isHeldByCurrentThread)
-            if (!matchesFrozenNoEntryLocked() || ticket.postFailureResidue !== failure ||
+            if (!matchesFrozenNoEntryLocked(allowReturned = true) || ticket.postFailureResidue !== failure ||
                 operation.submissionDisposition !=
                 io.screenstream.engine.internal.settlement.OperationSubmissionDisposition.Rejected ||
                 operation.submissionFailure !== failure ||
@@ -241,7 +241,7 @@ internal sealed class AndroidTargetListenerInstallationNoPlatformEntryOutcome(
 
         override fun isActivatedExactLocked(): Boolean {
             val exactFailure = activation.get() ?: return false
-            return matchesFrozenNoEntryLocked() && ticket.postFailureResidue === exactFailure &&
+            return matchesFrozenNoEntryLocked(allowReturned = true) && ticket.postFailureResidue === exactFailure &&
                 operation.submissionDisposition ==
                 io.screenstream.engine.internal.settlement.OperationSubmissionDisposition.Rejected &&
                 operation.submissionFailure === exactFailure &&
@@ -250,16 +250,55 @@ internal sealed class AndroidTargetListenerInstallationNoPlatformEntryOutcome(
         }
     }
 
-    protected fun matchesFrozenNoEntryLocked(): Boolean {
+    internal class AcceptedInert internal constructor(
+        override val binding: AndroidTargetOperationBinding,
+        override val operation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
+        override val ticket: AndroidPostTicket<AndroidTargetListenerInstallationEvidence>,
+    ) : AndroidTargetListenerInstallationNoPlatformEntryOutcome(
+        binding,
+        operation,
+        ticket,
+        AndroidPostResult.Accepted,
+    ) {
+        private val activation = AtomicReference<AndroidReturnedWithoutPlatformEntryProof<AndroidTargetListenerInstallationEvidence>?>(null)
+
+        internal fun activateLocked(
+            proof: AndroidReturnedWithoutPlatformEntryProof<AndroidTargetListenerInstallationEvidence>,
+        ): Boolean {
+            check(operation.settlementGate.isHeldByCurrentThread)
+            if (!matchesFrozenNoEntryLocked(allowReturned = true) ||
+                ticket.physicalState != AndroidPostPhysicalDisposition.Returned ||
+                proof.ticket !== ticket || proof.operation !== operation || !proof.activateLocked() ||
+                operation.submissionDisposition !=
+                io.screenstream.engine.internal.settlement.OperationSubmissionDisposition.Accepted ||
+                operation.disposition != io.screenstream.engine.internal.settlement.OperationDisposition.Cancelled &&
+                operation.disposition != io.screenstream.engine.internal.settlement.OperationDisposition.DeadlineGuardFailed
+            ) return false
+            return activation.compareAndSet(null, proof)
+        }
+
+        override fun isActivatedExactLocked(): Boolean {
+            val proof = activation.get() ?: return false
+            return matchesFrozenNoEntryLocked(allowReturned = true) &&
+                ticket.physicalState == AndroidPostPhysicalDisposition.Returned &&
+                proof.ticket === ticket && proof.operation === operation &&
+                operation.submissionDisposition ==
+                io.screenstream.engine.internal.settlement.OperationSubmissionDisposition.Accepted &&
+                (operation.disposition == io.screenstream.engine.internal.settlement.OperationDisposition.Cancelled ||
+                    operation.disposition == io.screenstream.engine.internal.settlement.OperationDisposition.DeadlineGuardFailed)
+        }
+    }
+
+    protected fun matchesFrozenNoEntryLocked(allowReturned: Boolean): Boolean {
         check(operation.settlementGate.isHeldByCurrentThread)
         return binding.operationIdentity == operation.identity && ticket.occurrence === operation &&
                 ticket.operationIdentity == operation.identity &&
-                ticket.physicalState == AndroidPostPhysicalDisposition.NotOnStack &&
+                (ticket.physicalState == AndroidPostPhysicalDisposition.NotOnStack ||
+                        allowReturned && ticket.physicalState == AndroidPostPhysicalDisposition.Returned) &&
                 operation.entryDisposition ==
                 io.screenstream.engine.internal.settlement.OperationEntryDisposition.Cancelled &&
                 operation.returnCell.disposition ==
-                io.screenstream.engine.internal.settlement.OperationReturnDisposition.Empty &&
-                operation.submissionAmbiguousFatal == null
+                io.screenstream.engine.internal.settlement.OperationReturnDisposition.Empty
     }
 }
 
@@ -269,13 +308,16 @@ internal class AndroidTargetListenerInstallationBoundRoot private constructor(
     internal val ownerBag: AndroidTargetListenerInstallationOwnerBag,
     internal val operation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
     internal val ticket: AndroidPostTicket<AndroidTargetListenerInstallationEvidence>,
-    internal val notSubmittedOutcome: AndroidTargetListenerInstallationNoPlatformEntryOutcome.NotSubmitted,
+    internal val admissionCutoff: AndroidTargetListenerInstallationAdmissionCutoff,
     internal val rejectedOutcome: AndroidTargetListenerInstallationNoPlatformEntryOutcome.Rejected,
+    internal val acceptedInertOutcome: AndroidTargetListenerInstallationNoPlatformEntryOutcome.AcceptedInert,
 ) {
     internal val binding: AndroidTargetOperationBinding = ownerBag.binding
     internal val result: AndroidTargetPlatformResult.ListenerInstalled = ownerBag.result
     private val committedCapability = AtomicReference<TargetListenerInstallationBindingCommittedFact?>(null)
     private val submissionClaimed = java.util.concurrent.atomic.AtomicBoolean(false)
+    internal val boundNeverSubmittedProof =
+        AndroidTargetListenerInstallationBoundNeverSubmittedProof(operation, ticket, admissionCutoff)
 
     init {
         check(ownerBag.target === target)
@@ -284,10 +326,11 @@ internal class AndroidTargetListenerInstallationBoundRoot private constructor(
         check(ownerBag.postTicket === ticket)
         check(ticket.occurrence === operation)
         check(binding.operationIdentity == operation.identity)
-        check(notSubmittedOutcome.binding === binding && notSubmittedOutcome.operation === operation &&
-            notSubmittedOutcome.ticket === ticket)
         check(rejectedOutcome.binding === binding && rejectedOutcome.operation === operation &&
             rejectedOutcome.ticket === ticket)
+        check(acceptedInertOutcome.binding === binding && acceptedInertOutcome.operation === operation &&
+            acceptedInertOutcome.ticket === ticket)
+        check(boundNeverSubmittedProof.operation === operation && boundNeverSubmittedProof.ticket === ticket)
     }
 
     internal fun retainCommittedCapability(
@@ -311,8 +354,8 @@ internal class AndroidTargetListenerInstallationBoundRoot private constructor(
 
     internal fun activatedNoPlatformEntryOutcomeLocked():
         AndroidTargetListenerInstallationNoPlatformEntryOutcome? = when {
-        notSubmittedOutcome.isActivatedExactLocked() -> notSubmittedOutcome
         rejectedOutcome.isActivatedExactLocked() -> rejectedOutcome
+        acceptedInertOutcome.isActivatedExactLocked() -> acceptedInertOutcome
         else -> null
     }
 
@@ -323,6 +366,7 @@ internal class AndroidTargetListenerInstallationBoundRoot private constructor(
             ownerBag: AndroidTargetListenerInstallationOwnerBag,
             operation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
             ticket: AndroidPostTicket<AndroidTargetListenerInstallationEvidence>,
+            admissionCutoff: AndroidTargetListenerInstallationAdmissionCutoff,
         ): AndroidTargetListenerInstallationBoundRoot {
             val binding = ownerBag.binding
             return AndroidTargetListenerInstallationBoundRoot(
@@ -331,8 +375,9 @@ internal class AndroidTargetListenerInstallationBoundRoot private constructor(
                 ownerBag,
                 operation,
                 ticket,
-                AndroidTargetListenerInstallationNoPlatformEntryOutcome.NotSubmitted(binding, operation, ticket),
+                admissionCutoff,
                 AndroidTargetListenerInstallationNoPlatformEntryOutcome.Rejected(binding, operation, ticket),
+                AndroidTargetListenerInstallationNoPlatformEntryOutcome.AcceptedInert(binding, operation, ticket),
             )
         }
     }
@@ -351,6 +396,7 @@ internal sealed interface AndroidListenerSentinelPostOutcome {
     class PostExposed(
         override val binding: AndroidTargetOperationBinding,
     ) : AndroidListenerSentinelPostOutcome
+
 }
 
 internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {
@@ -361,6 +407,8 @@ internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {
         private set
 
     internal var sentinelPostOutcome: AndroidListenerSentinelPostOutcome? = null
+        private set
+    internal var sentinelPostFailureResidue: Throwable? = null
         private set
 
     internal var removalReturnedTargetResult:
@@ -377,9 +425,27 @@ internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {
         return true
     }
 
-    internal fun recordSentinelPostOutcomeLocked(outcome: AndroidListenerSentinelPostOutcome): Boolean {
+    internal fun recordSentinelPostOutcomeLocked(
+        outcome: AndroidListenerSentinelPostOutcome,
+        exactFailureResidue: Throwable?,
+    ): Boolean {
         if (sentinelPostOutcome != null) return false
         sentinelPostOutcome = outcome
+        sentinelPostFailureResidue = exactFailureResidue
+        return true
+    }
+
+    internal fun refineSentinelPostOutcomeToDefinitelyUnenteredLocked(
+        expectedPostExposed: AndroidListenerSentinelPostOutcome.PostExposed,
+        definitelyUnentered: AndroidListenerSentinelPostOutcome.DefinitelyUnentered,
+        exactFailureResidue: Throwable?,
+    ): Boolean {
+        val current = sentinelPostOutcome
+        if (current !== expectedPostExposed ||
+            current.binding !== definitelyUnentered.binding ||
+            sentinelPostFailureResidue !== exactFailureResidue
+        ) return false
+        sentinelPostOutcome = definitelyUnentered
         return true
     }
 
@@ -400,44 +466,37 @@ internal class AndroidTargetListenerRemovalEvidence : OperationEvidence {
     }
 }
 
-internal object AndroidListenerSentinelReceipt : OperationReceipt
-
-internal class AndroidListenerSentinelEvidence : OperationEvidence {
-    override val receipt: AndroidListenerSentinelReceipt = AndroidListenerSentinelReceipt
-    override val returnedOwner: OperationReturnedOwner? = null
-
-    internal var observedTargetResult:
-        io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.ListenerSentinelObserved? = null
-        private set
-
-    internal fun recordObservedTargetResultLocked(
-        result: io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.ListenerSentinelObserved,
-    ): Boolean {
-        if (observedTargetResult != null) return false
-        observedTargetResult = result
-        return true
-    }
-}
-
 internal class AndroidTargetListenerRemovalOwnerBag(
     internal val target: CurrentTarget,
-    internal val port: TargetPorts.AndroidListenerRemovalPort,
+    internal val operationIdentity: Long,
 ) : OperationOwnerBag {
+    private var fixedPort: TargetPorts.AndroidListenerRemovalPort? = null
+    private var fixedRemovalTicket: AndroidPostTicket<AndroidTargetListenerRemovalEvidence>? = null
     private var fixedRemovalBinding: AndroidTargetOperationBinding? = null
     private var fixedSentinelBinding: AndroidTargetOperationBinding? = null
-    private var fixedSentinelTicket: AndroidPostTicket<AndroidListenerSentinelEvidence>? = null
+    private var fixedSentinelTicket: AndroidListenerSentinelTicket? = null
     private var fixedRemovalReturnedResult: AndroidTargetPlatformResult.ListenerRemovalReturned? = null
     private var fixedRemovalSettledResult: AndroidTargetPlatformResult.ListenerRemovalSettled? = null
     private var fixedSentinelObservedResult: AndroidTargetPlatformResult.ListenerSentinelObserved? = null
     private var fixedSentinelDefinitelyUnentered: AndroidListenerSentinelPostOutcome.DefinitelyUnentered? = null
     private var fixedSentinelPostExposed: AndroidListenerSentinelPostOutcome.PostExposed? = null
+    private val sentinelObservedApplication = AtomicReference<
+        io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.ListenerSentinelObserved?
+    >(null)
 
     internal val removalBinding: AndroidTargetOperationBinding
         get() = checkNotNull(fixedRemovalBinding)
+    internal val port: TargetPorts.AndroidListenerRemovalPort
+        get() = checkNotNull(fixedPort)
+    internal val removalTicket: AndroidPostTicket<AndroidTargetListenerRemovalEvidence>
+        get() = checkNotNull(fixedRemovalTicket)
     internal val sentinelBinding: AndroidTargetOperationBinding
         get() = checkNotNull(fixedSentinelBinding)
-    internal val sentinelTicket: AndroidPostTicket<AndroidListenerSentinelEvidence>
+    internal val sentinelTicket: AndroidListenerSentinelTicket
         get() = checkNotNull(fixedSentinelTicket)
+    internal val sentinelObservedApplicationResult:
+        io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.ListenerSentinelObserved?
+        get() = sentinelObservedApplication.get()
 
     internal val removalReturnedResult: AndroidTargetPlatformResult.ListenerRemovalReturned
         get() = checkNotNull(fixedRemovalReturnedResult)
@@ -450,13 +509,20 @@ internal class AndroidTargetListenerRemovalOwnerBag(
     internal val sentinelPostExposed: AndroidListenerSentinelPostOutcome.PostExposed
         get() = checkNotNull(fixedSentinelPostExposed)
 
+    internal fun bindTargetPort(port: TargetPorts.AndroidListenerRemovalPort): Boolean {
+        if (fixedPort != null || port.targetIdentity !== target.identity ||
+            port.operationIdentity != operationIdentity
+        ) return false
+        fixedPort = port
+        return true
+    }
+
     internal fun bindOperations(
         removalOperation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidTargetListenerRemovalEvidence>,
-        sentinelOperation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidListenerSentinelEvidence>,
     ): Boolean {
         if (fixedRemovalBinding != null || fixedSentinelBinding != null) return false
         val removalBinding = AndroidTargetOperationBinding.create(port.bindingFact, removalOperation)
-        val sentinelBinding = AndroidTargetOperationBinding.create(port.bindingFact, sentinelOperation)
+        val sentinelBinding = AndroidTargetOperationBinding.create(port.bindingFact, removalOperation)
         fixedRemovalBinding = removalBinding
         fixedSentinelBinding = sentinelBinding
         fixedRemovalReturnedResult = AndroidTargetPlatformResult.ListenerRemovalReturned(removalBinding)
@@ -467,9 +533,59 @@ internal class AndroidTargetListenerRemovalOwnerBag(
         return true
     }
 
-    internal fun bindSentinelTicket(ticket: AndroidPostTicket<AndroidListenerSentinelEvidence>): Boolean {
-        if (fixedSentinelTicket != null) return false
+    internal fun bindSentinelTicket(ticket: AndroidListenerSentinelTicket): Boolean {
+        if (fixedSentinelTicket != null || ticket.operationIdentity != operationIdentity) return false
         fixedSentinelTicket = ticket
         return true
     }
+
+    internal fun recordSentinelObservedApplicationResult(
+        result: io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.ListenerSentinelObserved,
+    ): Boolean = sentinelObservedApplication.compareAndSet(null, result)
+
+    internal fun bindRemovalTicket(ticket: AndroidPostTicket<AndroidTargetListenerRemovalEvidence>): Boolean {
+        if (fixedRemovalTicket != null || ticket.operationIdentity != operationIdentity) return false
+        fixedRemovalTicket = ticket
+        return true
+    }
+}
+
+internal enum class AndroidTargetListenerRemovalRootDisposition {
+    Preparing,
+    TargetBound,
+    TargetRejected,
+}
+
+internal class AndroidTargetListenerRemovalRoot(
+    internal val ownerBag: AndroidTargetListenerRemovalOwnerBag,
+    internal val removalOperation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidTargetListenerRemovalEvidence>,
+    internal val sentinelTicket: AndroidListenerSentinelTicket,
+) {
+    private val disposition = AtomicReference(AndroidTargetListenerRemovalRootDisposition.Preparing)
+
+    internal val currentDisposition: AndroidTargetListenerRemovalRootDisposition
+        get() = disposition.get()
+
+    internal fun recordTargetBound(): Boolean =
+        disposition.compareAndSet(
+            AndroidTargetListenerRemovalRootDisposition.Preparing,
+            AndroidTargetListenerRemovalRootDisposition.TargetBound,
+        )
+
+    internal fun recordTargetRejected(): Boolean =
+        disposition.compareAndSet(
+            AndroidTargetListenerRemovalRootDisposition.Preparing,
+            AndroidTargetListenerRemovalRootDisposition.TargetRejected,
+        )
+}
+
+internal sealed interface AndroidTargetListenerRemovalPreparationResult {
+    class Ready(
+        internal val operation: io.screenstream.engine.internal.settlement.OperationOccurrence<AndroidTargetListenerRemovalEvidence>,
+        internal val root: AndroidTargetListenerRemovalRoot,
+    ) : AndroidTargetListenerRemovalPreparationResult
+
+    class TargetRejected(
+        internal val root: AndroidTargetListenerRemovalRoot,
+    ) : AndroidTargetListenerRemovalPreparationResult
 }
