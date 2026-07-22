@@ -1,6 +1,6 @@
 package io.screenstream.engine
 
-public class ImageRect internal constructor(
+public class ImageRect private constructor(
     public val left: Int,
     public val top: Int,
     public val right: Int,
@@ -22,9 +22,15 @@ public class ImageRect internal constructor(
     }
 
     public override fun toString(): String = "ImageRect(left=$left, top=$top, right=$right, bottom=$bottom)"
+
+    internal companion object {
+        @JvmSynthetic
+        internal fun create(left: Int, top: Int, right: Int, bottom: Int): ImageRect =
+            ImageRect(left, top, right, bottom)
+    }
 }
 
-public class CaptureGeometry internal constructor(
+public class CaptureGeometry private constructor(
     public val widthPx: Int,
     public val heightPx: Int,
     public val densityDpi: Int,
@@ -45,9 +51,15 @@ public class CaptureGeometry internal constructor(
 
     public override fun toString(): String =
         "CaptureGeometry(widthPx=$widthPx, heightPx=$heightPx, densityDpi=$densityDpi)"
+
+    internal companion object {
+        @JvmSynthetic
+        internal fun create(widthPx: Int, heightPx: Int, densityDpi: Int): CaptureGeometry =
+            CaptureGeometry(widthPx, heightPx, densityDpi)
+    }
 }
 
-public class ImageSize internal constructor(
+public class ImageSize private constructor(
     public val widthPx: Int,
     public val heightPx: Int,
 ) {
@@ -70,79 +82,101 @@ public class ImageSize internal constructor(
     }
 
     public override fun toString(): String = "ImageSize(widthPx=$widthPx, heightPx=$heightPx)"
+
+    internal companion object {
+        @JvmSynthetic
+        internal fun create(widthPx: Int, heightPx: Int): ImageSize = ImageSize(widthPx, heightPx)
+    }
 }
 
-public class ScreenCaptureEffectiveParameters internal constructor(
+public class ScreenCaptureEffectiveParameters private constructor(
+    public val appliedParameters: ScreenCaptureParameters,
     public val captureGeometry: CaptureGeometry,
-    public val sourceRegion: SourceRegion,
-    public val crop: CropInsetsPx,
     public val appliedSourceRect: ImageRect,
-    public val outputSize: OutputSize,
     public val finalImageSize: ImageSize,
-    public val rotation: Rotation,
-    public val mirror: Mirror,
-    public val colorMode: ColorMode,
-    public val frameRate: FrameRate,
-    public val frameRepeatIntervalMillis: Long?,
-    public val jpegQuality: Int,
 ) {
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ScreenCaptureEffectiveParameters) return false
 
-        return captureGeometry == other.captureGeometry &&
-                sourceRegion == other.sourceRegion &&
-                crop == other.crop &&
+        return appliedParameters == other.appliedParameters &&
+                captureGeometry == other.captureGeometry &&
                 appliedSourceRect == other.appliedSourceRect &&
-                outputSize == other.outputSize &&
-                finalImageSize == other.finalImageSize &&
-                rotation == other.rotation &&
-                mirror == other.mirror &&
-                colorMode == other.colorMode &&
-                frameRate == other.frameRate &&
-                frameRepeatIntervalMillis == other.frameRepeatIntervalMillis &&
-                jpegQuality == other.jpegQuality
+                finalImageSize == other.finalImageSize
     }
 
     public override fun hashCode(): Int {
-        var result: Int = captureGeometry.hashCode()
-        result = 31 * result + sourceRegion.hashCode()
-        result = 31 * result + crop.hashCode()
+        var result: Int = appliedParameters.hashCode()
+        result = 31 * result + captureGeometry.hashCode()
         result = 31 * result + appliedSourceRect.hashCode()
-        result = 31 * result + outputSize.hashCode()
         result = 31 * result + finalImageSize.hashCode()
-        result = 31 * result + rotation.hashCode()
-        result = 31 * result + mirror.hashCode()
-        result = 31 * result + colorMode.hashCode()
-        result = 31 * result + frameRate.hashCode()
-        result = 31 * result + (frameRepeatIntervalMillis?.hashCode() ?: 0)
-        result = 31 * result + jpegQuality.hashCode()
         return result
     }
 
     public override fun toString(): String =
         "ScreenCaptureEffectiveParameters(" +
+                "appliedParameters=$appliedParameters, " +
                 "captureGeometry=$captureGeometry, " +
-                "sourceRegion=$sourceRegion, " +
-                "crop=$crop, " +
                 "appliedSourceRect=$appliedSourceRect, " +
-                "outputSize=$outputSize, " +
-                "finalImageSize=$finalImageSize, " +
-                "rotation=$rotation, " +
-                "mirror=$mirror, " +
-                "colorMode=$colorMode, " +
-                "frameRate=$frameRate, " +
-                "frameRepeatIntervalMillis=$frameRepeatIntervalMillis, " +
-                "jpegQuality=$jpegQuality)"
+                "finalImageSize=$finalImageSize)"
+
+    internal companion object {
+        @JvmSynthetic
+        internal fun create(
+            appliedParameters: ScreenCaptureParameters,
+            captureGeometry: CaptureGeometry,
+            appliedSourceRect: ImageRect,
+            finalImageSize: ImageSize,
+        ): ScreenCaptureEffectiveParameters = ScreenCaptureEffectiveParameters(
+            appliedParameters = appliedParameters,
+            captureGeometry = captureGeometry,
+            appliedSourceRect = appliedSourceRect,
+            finalImageSize = finalImageSize,
+        )
+    }
 }
 
-public interface EncodedImageFrame {
+public class EncodedImageFrame private constructor(
+    private val readByteCount: () -> Int,
+    private val readEffectiveParameters: () -> ScreenCaptureEffectiveParameters,
+    private val readSequence: () -> Long,
+    private val readTimestampElapsedRealtimeNanos: () -> Long,
+    private val copyToOperation: (ByteArray, Int) -> Int,
+    private val copyBytesOperation: () -> ByteArray,
+) {
     public val byteCount: Int
-    public val imageSize: ImageSize
+        get() = readByteCount()
+
+    public val effectiveParameters: ScreenCaptureEffectiveParameters
+        get() = readEffectiveParameters()
+
     public val sequence: Long
+        get() = readSequence()
+
     public val timestampElapsedRealtimeNanos: Long
+        get() = readTimestampElapsedRealtimeNanos()
 
-    public fun copyTo(destination: ByteArray, destinationOffset: Int = 0): Int
+    public fun copyTo(destination: ByteArray, destinationOffset: Int = 0): Int =
+        copyToOperation(destination, destinationOffset)
 
-    public fun copyBytes(): ByteArray
+    public fun copyBytes(): ByteArray = copyBytesOperation()
+
+    internal companion object {
+        @JvmSynthetic
+        internal fun create(
+            readByteCount: () -> Int,
+            readEffectiveParameters: () -> ScreenCaptureEffectiveParameters,
+            readSequence: () -> Long,
+            readTimestampElapsedRealtimeNanos: () -> Long,
+            copyTo: (ByteArray, Int) -> Int,
+            copyBytes: () -> ByteArray,
+        ): EncodedImageFrame = EncodedImageFrame(
+            readByteCount = readByteCount,
+            readEffectiveParameters = readEffectiveParameters,
+            readSequence = readSequence,
+            readTimestampElapsedRealtimeNanos = readTimestampElapsedRealtimeNanos,
+            copyToOperation = copyTo,
+            copyBytesOperation = copyBytes,
+        )
+    }
 }

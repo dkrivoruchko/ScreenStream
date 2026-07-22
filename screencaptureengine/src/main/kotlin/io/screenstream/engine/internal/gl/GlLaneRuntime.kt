@@ -97,11 +97,21 @@ internal class GlLaneRuntime internal constructor(
     internal fun ownsTeardown(owner: GlTeardownOwner): Boolean =
         glGate.withLock { activeTeardownOwner === owner }
 
+    internal fun ownsTeardownLocked(owner: GlTeardownOwner): Boolean {
+        check(glGate.isHeldByCurrentThread)
+        return activeTeardownOwner === owner
+    }
+
     internal fun releaseTeardown(owner: GlTeardownOwner): Boolean = glGate.withLock {
+        releaseTeardownLocked(owner)
+    }
+
+    internal fun releaseTeardownLocked(owner: GlTeardownOwner): Boolean {
+        check(glGate.isHeldByCurrentThread)
         checkFatalLocked()
-        if (activeTeardownOwner !== owner) return@withLock false
+        if (activeTeardownOwner !== owner) return false
         activeTeardownOwner = null
-        true
+        return true
     }
 
     internal fun hasActiveTeardownLocked(): Boolean {

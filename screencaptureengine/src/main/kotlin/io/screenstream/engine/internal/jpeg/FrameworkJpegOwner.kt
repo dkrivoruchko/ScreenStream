@@ -2,6 +2,7 @@ package io.screenstream.engine.internal.jpeg
 
 import android.graphics.Bitmap
 import io.screenstream.engine.ImageSize
+import io.screenstream.engine.ScreenCaptureEffectiveParameters
 import io.screenstream.engine.internal.EncodedStorageOwner
 import io.screenstream.engine.internal.JpegRuntimeOwner
 import io.screenstream.engine.internal.settlement.EngineClock
@@ -149,9 +150,6 @@ internal class FrameworkJpegOwner private constructor(
         return true
     }
 
-    internal fun encodeUseIsReleased(occurrence: FrameworkEncodeOccurrence): Boolean =
-        activeEncode !== occurrence && bitmapUseCount == 0
-
     internal fun reserveRecycle(occurrence: FrameworkBitmapRecycleOccurrence): Boolean {
         if (activeCreation != null || activeRecycle != null || activeEncode != null || bitmapUseCount != 0) return false
         activeRecycle = occurrence
@@ -181,7 +179,7 @@ internal class FrameworkJpegOwner private constructor(
         expectedProduct: JpegRuntimeProduct.FrameworkOnNativeCarrier,
         expectedLease: NativeMallocCarrierLease,
         storage: EncodedStorageOwner,
-        quality: Int,
+        effectiveParameters: ScreenCaptureEffectiveParameters,
         desiredRevision: Long,
         geometryGeneration: Long,
         lifecycleEpoch: Long,
@@ -191,7 +189,7 @@ internal class FrameworkJpegOwner private constructor(
         expectedProduct = expectedProduct,
         expectedLease = expectedLease,
         storage = storage,
-        quality = quality,
+        effectiveParameters = effectiveParameters,
         desiredRevision = desiredRevision,
         geometryGeneration = geometryGeneration,
         lifecycleEpoch = lifecycleEpoch,
@@ -202,7 +200,7 @@ internal class FrameworkJpegOwner private constructor(
         expectedProduct: JpegRuntimeProduct.FrameworkOnManagedCarrier,
         expectedLease: ManagedDirectCarrierLease,
         storage: EncodedStorageOwner,
-        quality: Int,
+        effectiveParameters: ScreenCaptureEffectiveParameters,
         desiredRevision: Long,
         geometryGeneration: Long,
         lifecycleEpoch: Long,
@@ -212,22 +210,18 @@ internal class FrameworkJpegOwner private constructor(
         expectedProduct = expectedProduct,
         expectedLease = expectedLease,
         storage = storage,
-        quality = quality,
+        effectiveParameters = effectiveParameters,
         desiredRevision = desiredRevision,
         geometryGeneration = geometryGeneration,
         lifecycleEpoch = lifecycleEpoch,
         identity = identity,
     )
 
-    internal fun settleEncode(
+    internal fun claimEncode(
         occurrence: FrameworkEncodeOccurrence,
-        storage: EncodedStorageOwner,
-        retainCommittedFrame: Boolean,
-    ): FrameworkEncodeSettlement = settleFrameworkEncode(
+    ): FrameworkEncodeClaimFact? = claimFrameworkEncode(
         owner = this,
         occurrence = occurrence,
-        storage = storage,
-        retainCommittedFrame = retainCommittedFrame,
     )
 
     internal fun beginIncompatibleRecycle(

@@ -18,7 +18,6 @@ internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown
         failure
     }
     if (blockFailure != null) {
-        abortIfPossible(transaction)
         val selectedFailure = when {
             thrown != null && thrown !is Exception -> thrown
             blockFailure !is Exception -> blockFailure
@@ -39,7 +38,6 @@ internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown
     val commonCountsValid = produced in 0L..Int.MAX_VALUE.toLong() && adopted in 0L..produced
 
     if (!evidence.carrierUseResolved || !evidence.resultChannelArmed || !knownStatus || !commonCountsValid) {
-        abortIfPossible(transaction)
         return classifyMalformedThrowable(occurrence, thrown)
     }
 
@@ -47,9 +45,8 @@ internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown
         NATIVE_STATUS_TRANSFER_COMPLETE -> {
             val valid = thrown == null && produced > 0L && adopted == produced && transaction.failure == null
             if (!valid) {
-                abortIfPossible(transaction)
                 classifyMalformedThrowable(occurrence, thrown)
-            } else if (transaction.commit(bag.descriptor.imageSize)) {
+            } else if (transaction.commit(bag.descriptor.effectiveParameters)) {
                 publishReturnedResult(occurrence, NativeEncodeSettlement.Success, null)
             } else {
                 val transactionCause = transaction.failureCause
@@ -71,7 +68,6 @@ internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown
 
         NATIVE_STATUS_SAFE_COMPRESSOR_ALLOCATION_FAILURE -> {
             val valid = thrown == null && adopted == 0L && transaction.failure == null
-            abortIfPossible(transaction)
             if (valid) {
                 publishReturnedResult(occurrence, NativeEncodeSettlement.SafeNativeAllocationFailure, null)
             } else {
@@ -81,7 +77,6 @@ internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown
 
         NATIVE_STATUS_OUT_OF_MEMORY -> {
             val valid = thrown == null && adopted == 0L && transaction.failure == null
-            abortIfPossible(transaction)
             if (valid) {
                 publishReturnedResult(occurrence, NativeEncodeSettlement.ResourceExhausted, null)
             } else {
@@ -90,12 +85,10 @@ internal fun decodeNativeEncodeResult(occurrence: NativeEncodeOccurrence, thrown
         }
 
         NATIVE_STATUS_INTERNAL_FAILURE -> {
-            abortIfPossible(transaction)
             classifyInternalThrowable(occurrence, thrown)
         }
 
         NATIVE_STATUS_JAVA_THROWABLE -> {
-            abortIfPossible(transaction)
             val throwableEvidenceValid = thrown != null && produced > 0L &&
                     (transaction.failureCause == null || transaction.failureCause === thrown)
             if (throwableEvidenceValid) {
@@ -168,10 +161,6 @@ private fun publishThrownResult(occurrence: NativeEncodeOccurrence, result: Nati
 private fun rethrowFatal(occurrence: NativeEncodeOccurrence, fatal: Throwable): Nothing {
     occurrence.operation.publishDirectFatalReturn(fatal)
     throw fatal
-}
-
-private fun abortIfPossible(transaction: EncodedStorageOwner.NativeTransaction) {
-    if (!transaction.isCommitted && !transaction.isAborted) transaction.abort()
 }
 
 private const val NATIVE_STATUS_TRANSFER_COMPLETE: Long = 0L

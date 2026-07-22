@@ -5,9 +5,13 @@ import android.os.HandlerThread
 import android.os.Looper
 import io.screenstream.engine.internal.settlement.DirectFatalSlot
 import io.screenstream.engine.internal.settlement.FatalThrowablePolicy
+import io.screenstream.engine.internal.settlement.OperationDisposition
+import io.screenstream.engine.internal.settlement.OperationEntryDisposition
 import io.screenstream.engine.internal.settlement.OperationEntryResult
 import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationOccurrence
+import io.screenstream.engine.internal.settlement.OperationReturnDisposition
+import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
@@ -52,10 +56,37 @@ internal sealed class AndroidLaneQuitOutcome {
 
 internal class AndroidLaneTerminationReceipt private constructor(
     internal val lane: AndroidLaneRuntime,
+    private val workerIdentity: AndroidLaneWorkerIdentity,
 ) {
     internal companion object {
-        internal fun create(lane: AndroidLaneRuntime): AndroidLaneTerminationReceipt =
-            AndroidLaneTerminationReceipt(lane)
+        internal fun create(
+            lane: AndroidLaneRuntime,
+            workerIdentity: AndroidLaneWorkerIdentity,
+        ): AndroidLaneTerminationReceipt = AndroidLaneTerminationReceipt(lane, workerIdentity)
+    }
+
+    internal fun matchesWorker(identity: AndroidLaneWorkerIdentity): Boolean =
+        workerIdentity === identity && identity.lane === lane
+}
+
+internal class AndroidLaneWorkerIdentity private constructor(
+    internal val lane: AndroidLaneRuntime,
+) {
+    internal companion object {
+        internal fun create(lane: AndroidLaneRuntime): AndroidLaneWorkerIdentity =
+            AndroidLaneWorkerIdentity(lane)
+    }
+}
+
+internal class AndroidLaneRuntimeNeverStartedProof private constructor(
+    internal val lane: AndroidLaneRuntime,
+    internal val workerIdentity: AndroidLaneWorkerIdentity,
+) {
+    internal companion object {
+        internal fun create(
+            lane: AndroidLaneRuntime,
+            workerIdentity: AndroidLaneWorkerIdentity,
+        ): AndroidLaneRuntimeNeverStartedProof = AndroidLaneRuntimeNeverStartedProof(lane, workerIdentity)
     }
 }
 
@@ -75,14 +106,60 @@ internal fun interface AndroidEnteredWork {
     fun run(handler: Handler)
 }
 
+internal sealed interface AndroidNoPlatformEntryProof<R : OperationEvidence> {
+    val operation: OperationOccurrence<R>
+}
+
+internal class AndroidOccurrenceNoPlatformEntryProof<R : OperationEvidence> internal constructor(
+    override val operation: OperationOccurrence<R>,
+) : AndroidNoPlatformEntryProof<R>
+
+internal class AndroidFinalLaneNoEntryProof<R : OperationEvidence> private constructor(
+    internal val lane: AndroidLaneRuntime,
+    internal val workerIdentity: AndroidLaneWorkerIdentity,
+    internal val terminationReceipt: AndroidLaneTerminationReceipt,
+    internal val ticket: AndroidPostTicket<R>,
+    internal val operationIdentity: Long,
+    override val operation: OperationOccurrence<R>,
+) : AndroidNoPlatformEntryProof<R> {
+    internal companion object {
+        internal fun <R : OperationEvidence> create(
+            lane: AndroidLaneRuntime,
+            workerIdentity: AndroidLaneWorkerIdentity,
+            terminationReceipt: AndroidLaneTerminationReceipt,
+            ticket: AndroidPostTicket<R>,
+            operation: OperationOccurrence<R>,
+        ): AndroidFinalLaneNoEntryProof<R> = AndroidFinalLaneNoEntryProof(
+            lane = lane,
+            workerIdentity = workerIdentity,
+            terminationReceipt = terminationReceipt,
+            ticket = ticket,
+            operationIdentity = operation.identity,
+            operation = operation,
+        )
+    }
+}
+
 internal class AndroidPostTicket<R : OperationEvidence> internal constructor(
     internal val lane: AndroidLaneRuntime,
+    internal val workerIdentity: AndroidLaneWorkerIdentity,
+    internal val terminationReceipt: AndroidLaneTerminationReceipt,
     internal val occurrence: OperationOccurrence<R>,
     internal val postRejectedCause: RejectedExecutionException,
     internal val enteredWork: AndroidEnteredWork,
 ) {
+    internal val operationIdentity: Long = occurrence.identity
     private val physicalDisposition = AtomicReference(AndroidPostPhysicalDisposition.NotOnStack)
     private val rawPostFailure = AtomicReference<Throwable?>(null)
+
+    internal val finalLaneNoEntryProof: AndroidFinalLaneNoEntryProof<R> =
+        AndroidFinalLaneNoEntryProof.create(
+            lane = lane,
+            workerIdentity = workerIdentity,
+            terminationReceipt = terminationReceipt,
+            ticket = this,
+            operation = occurrence,
+        )
 
     internal val runnable = Runnable { lane.runTicket(this) }
 
@@ -112,13 +189,17 @@ internal class AndroidLaneRuntime(
     threadName: String = "ScreenCaptureEngine-Android",
 ) {
     private val startRequested = AtomicBoolean(false)
+    private val threadRunEntered = AtomicBoolean(false)
+    private val startFailedBeforeRun = AtomicBoolean(false)
     private val quitRequested = AtomicBoolean(false)
     private val startup = AtomicReference<AndroidLaneStartupResult>(AndroidLaneStartupResult.Pending)
     private val startupReady = AndroidLaneStartupResult.Ready()
     private val startFailure = AndroidLaneStartupResult.Failed()
     private val looperFailure = AndroidLaneStartupResult.Failed()
     private val threadReturnCauseCell = AtomicReference<Throwable?>(null)
-    private val ownedTerminationReceipt = AndroidLaneTerminationReceipt.create(this)
+    private val ownedWorkerIdentity = AndroidLaneWorkerIdentity.create(this)
+    private val ownedNeverStartedProof = AndroidLaneRuntimeNeverStartedProof.create(this, ownedWorkerIdentity)
+    private val ownedTerminationReceipt = AndroidLaneTerminationReceipt.create(this, ownedWorkerIdentity)
     private val publishedTerminationReceipt = AtomicReference<AndroidLaneTerminationReceipt?>(null)
     private val quitOutcome = AtomicReference<AndroidLaneQuitOutcome?>(null)
     private val quitFailure = AndroidLaneQuitOutcome.Thrown()
@@ -148,6 +229,7 @@ internal class AndroidLaneRuntime(
         }
 
         override fun run() {
+            threadRunEntered.set(true)
             var escaped: Throwable? = null
             try {
                 super.run()
@@ -195,7 +277,9 @@ internal class AndroidLaneRuntime(
         get() = if (terminationReceipt != null) threadReturnCauseCell.get() else null
 
     internal fun acceptsTerminationReceipt(receipt: AndroidLaneTerminationReceipt): Boolean =
-        receipt === ownedTerminationReceipt && receipt.lane === this
+        receipt === ownedTerminationReceipt &&
+                receipt.lane === this &&
+                receipt.matchesWorker(ownedWorkerIdentity)
 
     internal val observedQuitOutcome: AndroidLaneQuitOutcome?
         get() = quitOutcome.get()
@@ -205,6 +289,7 @@ internal class AndroidLaneRuntime(
         try {
             handlerThread.start()
         } catch (raw: Throwable) {
+            startFailedBeforeRun.set(true)
             publishFatalFirst(raw)
             startFailure.record(raw)
             startup.compareAndSet(AndroidLaneStartupResult.Pending, startFailure)
@@ -222,10 +307,64 @@ internal class AndroidLaneRuntime(
         enteredWork: AndroidEnteredWork,
     ): AndroidPostTicket<R> = AndroidPostTicket(
         lane = this,
+        workerIdentity = ownedWorkerIdentity,
+        terminationReceipt = ownedTerminationReceipt,
         occurrence = occurrence,
         postRejectedCause = RejectedExecutionException(postRejectionMessage),
         enteredWork = enteredWork,
     )
+
+    internal fun <R : OperationEvidence> proveFinalLaneNoEntryLocked(
+        receipt: AndroidLaneTerminationReceipt,
+        ticket: AndroidPostTicket<R>,
+        operation: OperationOccurrence<R>,
+    ): AndroidFinalLaneNoEntryProof<R>? {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        val proof = observeFinalLaneNoEntryLocked(receipt, ticket, operation) ?: return null
+        if (!operation.settleInertBeforeEntryLocked()) return null
+        return proof
+    }
+
+    internal fun <R : OperationEvidence> observeFinalLaneNoEntryLocked(
+        receipt: AndroidLaneTerminationReceipt,
+        ticket: AndroidPostTicket<R>,
+        operation: OperationOccurrence<R>,
+    ): AndroidFinalLaneNoEntryProof<R>? {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        if (publishedTerminationReceipt.get() !== receipt ||
+            !acceptsTerminationReceipt(receipt) ||
+            ticket.lane !== this ||
+            ticket.workerIdentity !== ownedWorkerIdentity ||
+            ticket.terminationReceipt !== receipt ||
+            ticket.occurrence !== operation ||
+            ticket.operationIdentity != operation.identity ||
+            ticket.finalLaneNoEntryProof.operation !== operation ||
+            ticket.finalLaneNoEntryProof.operationIdentity != operation.identity ||
+            ticket.finalLaneNoEntryProof.ticket !== ticket ||
+            ticket.finalLaneNoEntryProof.lane !== this ||
+            ticket.finalLaneNoEntryProof.workerIdentity !== ownedWorkerIdentity ||
+            ticket.finalLaneNoEntryProof.terminationReceipt !== receipt ||
+            ticket.physicalState != AndroidPostPhysicalDisposition.NotOnStack ||
+            ticket.postFailureResidue != null ||
+            operation.submissionDisposition != OperationSubmissionDisposition.Accepted ||
+            operation.submissionFailure != null ||
+            operation.submissionAmbiguousFatal != null ||
+            operation.entryDisposition != OperationEntryDisposition.Unentered ||
+            (operation.disposition != OperationDisposition.Pending &&
+                    operation.disposition != OperationDisposition.Cleanup) ||
+            operation.returnCell.disposition != OperationReturnDisposition.Empty
+        ) {
+            return null
+        }
+        return ticket.finalLaneNoEntryProof
+    }
+
+    internal fun proveNeverStarted(): AndroidLaneRuntimeNeverStartedProof? =
+        if (!threadRunEntered.get() && (!startRequested.get() || startFailedBeforeRun.get())) {
+            ownedNeverStartedProof
+        } else {
+            null
+        }
 
     internal fun post(ticket: AndroidPostTicket<*>): AndroidPostResult {
         if (ticket.lane !== this || !reservePostTransition()) {

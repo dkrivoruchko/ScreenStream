@@ -33,12 +33,14 @@ internal val PrivateExecutorSubmissionResult.isHandedOff: Boolean
     get() = this == PrivateExecutorSubmissionResult.Accepted ||
             this == PrivateExecutorSubmissionResult.EntryWon
 
+internal class PrivateExecutorTerminationIdentity internal constructor()
+
 internal class PrivateExecutorTerminationReceipt private constructor(
-    internal val endpoint: PrivateExecutorRuntime,
+    internal val identity: PrivateExecutorTerminationIdentity,
 ) {
     internal companion object {
-        internal fun create(endpoint: PrivateExecutorRuntime): PrivateExecutorTerminationReceipt =
-            PrivateExecutorTerminationReceipt(endpoint)
+        internal fun create(identity: PrivateExecutorTerminationIdentity): PrivateExecutorTerminationReceipt =
+            PrivateExecutorTerminationReceipt(identity)
     }
 }
 
@@ -96,8 +98,9 @@ internal class PrivateExecutorRuntime(
     private val startupFailure = AtomicReference<Throwable?>(null)
     private val poisoned = AtomicBoolean(false)
     private val shutdownRequested = AtomicBoolean(false)
+    private val terminationIdentity = PrivateExecutorTerminationIdentity()
     private val ownedTerminationReceipt: PrivateExecutorTerminationReceipt =
-        PrivateExecutorTerminationReceipt.create(this)
+        PrivateExecutorTerminationReceipt.create(terminationIdentity)
     private val publishedTerminationReceipt = AtomicReference<PrivateExecutorTerminationReceipt?>(null)
     private val fatalSlot = DirectFatalSlot()
     private val executor: OwnedExecutor
@@ -168,7 +171,7 @@ internal class PrivateExecutorRuntime(
         get() = publishedTerminationReceipt.get()
 
     internal fun acceptsTerminationReceipt(receipt: PrivateExecutorTerminationReceipt): Boolean =
-        receipt === ownedTerminationReceipt && receipt.endpoint === this
+        receipt === ownedTerminationReceipt && receipt.identity === terminationIdentity
 
     internal val hasUnsettledOperation: Boolean
         get() = activeOperation.get() != null

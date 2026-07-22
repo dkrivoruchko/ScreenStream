@@ -1,4 +1,4 @@
-package io.screenstream.engine.internal.controller
+package io.screenstream.engine.internal.session.control
 
 import io.screenstream.engine.internal.settlement.ControlAfterExecutePortDisposition
 import io.screenstream.engine.internal.settlement.ControlPoisonAuthority
@@ -11,6 +11,8 @@ import io.screenstream.engine.internal.settlement.ControlSchedulerTerminationEvi
 import io.screenstream.engine.internal.settlement.ControlScheduledRunner
 import io.screenstream.engine.internal.settlement.ControlScheduledTaskRecord
 import io.screenstream.engine.internal.settlement.FatalThrowablePolicy
+import io.screenstream.engine.internal.session.runtime.ControlRuntimeOwnership
+import io.screenstream.engine.internal.session.runtime.ControlTerminationReceipt
 import java.util.concurrent.Delayed
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.RejectedExecutionHandler
@@ -44,13 +46,22 @@ private object SessionControlRejectionHandler : RejectedExecutionHandler {
 internal class SessionControlTerminationReceipt internal constructor(
     override val runtimeIdentity: SessionControlRuntimeOwner,
     internal val exactRoot: SessionControlTerminationRoot,
-) : ControlSchedulerTerminationEvidence {
+) : ControlSchedulerTerminationEvidence, ControlTerminationReceipt {
     private val releaseThread = AtomicReference<Thread?>(null)
+    private val cleanupOwner = AtomicReference<ControlRuntimeOwnership?>(null)
+
+    override val owner: ControlRuntimeOwnership
+        get() = checkNotNull(cleanupOwner.get())
+
+    override val released: Boolean
+        get() = isReleasePublished()
 
     internal val exactReleaseThread: Thread?
         get() = if (isReleasePublished()) releaseThread.get() else null
 
     internal fun bindReleaseThread(thread: Thread): Boolean = releaseThread.compareAndSet(null, thread)
+
+    internal fun bindCleanupOwner(owner: ControlRuntimeOwnership): Boolean = cleanupOwner.compareAndSet(null, owner)
 
     override fun isReleasePublished(): Boolean = exactRoot.observeReleasedReceipt() === this
 }
@@ -342,6 +353,32 @@ internal enum class SessionControlDrainerSubmissionDisposition {
     Rejected,
 }
 
+internal enum class SessionControlDrainerTaskDisposition {
+    Empty,
+    Running,
+    Returned,
+    Thrown,
+    Inert,
+}
+
+internal class SessionControlDrainerResidueSettlement internal constructor(
+    internal val record: SessionControlDrainerTaskRecord,
+    internal val generation: Long,
+    internal val submissionDisposition: SessionControlDrainerSubmissionDisposition,
+    internal val physicalDisposition: SessionControlDrainerPhysicalDisposition,
+    internal val taskDisposition: SessionControlDrainerTaskDisposition,
+    internal val afterExecuteApplied: Boolean,
+)
+
+/** The one currently executing drainer that carries proof consumption and terminal shutdown. */
+internal class SessionControlFinalCarrierProof internal constructor(
+    internal val record: SessionControlDrainerTaskRecord,
+    internal val generation: Long,
+    internal val submissionDisposition: SessionControlDrainerSubmissionDisposition,
+    internal val physicalDisposition: SessionControlDrainerPhysicalDisposition,
+    internal val taskDisposition: SessionControlDrainerTaskDisposition,
+)
+
 internal class SessionControlDrainerTaskRecord internal constructor(
     private val controlPoison: ControlPoisonAuthority,
     private val delegate: Runnable,
@@ -396,6 +433,65 @@ internal class SessionControlDrainerTaskRecord internal constructor(
 
     internal val submissionDisposition: SessionControlDrainerSubmissionDisposition
         get() = submissionDisposition(submission.get())
+
+    internal val currentGeneration: Long
+        get() = generation.get()
+
+    internal fun residueSettlement(): SessionControlDrainerResidueSettlement? = synchronized(submissionFence) {
+        val physical = physicalDisposition(physical.get())
+        val bridgeApplied = bridge.get() == BRIDGE_APPLIED
+        if (!bridgeApplied || physical != SessionControlDrainerPhysicalDisposition.Unused &&
+            physical != SessionControlDrainerPhysicalDisposition.Returned &&
+            physical != SessionControlDrainerPhysicalDisposition.NotSubmitted
+        ) {
+            return@synchronized null
+        }
+        SessionControlDrainerResidueSettlement(
+            record = this,
+            generation = generation.get(),
+            submissionDisposition = submissionDisposition(submission.get()),
+            physicalDisposition = physical,
+            taskDisposition = taskDisposition(taskReturn.get()),
+            afterExecuteApplied = true,
+        )
+    }
+
+    internal fun finalCarrierProof(expectedGeneration: Long): SessionControlFinalCarrierProof? =
+        synchronized(submissionFence) {
+            val submission = submissionDisposition(submission.get())
+            if (generation.get() != expectedGeneration ||
+                physicalDisposition(physical.get()) != SessionControlDrainerPhysicalDisposition.OnStack ||
+                taskDisposition(taskReturn.get()) != SessionControlDrainerTaskDisposition.Running ||
+                bridge.get() != BRIDGE_PENDING ||
+                submission != SessionControlDrainerSubmissionDisposition.Admitted &&
+                submission != SessionControlDrainerSubmissionDisposition.Accepted &&
+                submission != SessionControlDrainerSubmissionDisposition.AcceptanceAmbiguous
+            ) {
+                return@synchronized null
+            }
+            SessionControlFinalCarrierProof(
+                this,
+                expectedGeneration,
+                submission,
+                SessionControlDrainerPhysicalDisposition.OnStack,
+                SessionControlDrainerTaskDisposition.Running,
+            )
+        }
+
+    internal fun acceptsFinalCarrierProof(proof: SessionControlFinalCarrierProof): Boolean =
+        synchronized(submissionFence) {
+            val currentSubmission = submissionDisposition(submission.get())
+            proof.record === this && proof.generation == generation.get() &&
+                    (proof.submissionDisposition == currentSubmission ||
+                            proof.submissionDisposition == SessionControlDrainerSubmissionDisposition.Admitted &&
+                            (currentSubmission == SessionControlDrainerSubmissionDisposition.Accepted ||
+                                    currentSubmission == SessionControlDrainerSubmissionDisposition.AcceptanceAmbiguous)) &&
+                    proof.physicalDisposition == SessionControlDrainerPhysicalDisposition.OnStack &&
+                    physicalDisposition(physical.get()) == SessionControlDrainerPhysicalDisposition.OnStack &&
+                    proof.taskDisposition == SessionControlDrainerTaskDisposition.Running &&
+                    taskDisposition(taskReturn.get()) == SessionControlDrainerTaskDisposition.Running &&
+                    bridge.get() == BRIDGE_PENDING
+        }
 
     internal fun prepare(nextGeneration: Long): Boolean = synchronized(submissionFence) {
         if (nextGeneration <= 0L) return@synchronized false
@@ -662,6 +758,14 @@ internal class SessionControlDrainerTaskRecord internal constructor(
         SUBMISSION_REJECTION_RECEIPTED -> SessionControlDrainerSubmissionDisposition.RejectionReceipted
         SUBMISSION_REJECTED -> SessionControlDrainerSubmissionDisposition.Rejected
         else -> SessionControlDrainerSubmissionDisposition.None
+    }
+
+    private fun taskDisposition(value: Int): SessionControlDrainerTaskDisposition = when (value) {
+        TASK_RUNNING -> SessionControlDrainerTaskDisposition.Running
+        TASK_RETURNED -> SessionControlDrainerTaskDisposition.Returned
+        TASK_THROWN -> SessionControlDrainerTaskDisposition.Thrown
+        TASK_INERT -> SessionControlDrainerTaskDisposition.Inert
+        else -> SessionControlDrainerTaskDisposition.Empty
     }
 
     private companion object {

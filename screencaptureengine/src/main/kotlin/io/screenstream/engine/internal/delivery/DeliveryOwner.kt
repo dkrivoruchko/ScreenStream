@@ -1,732 +1,12 @@
 package io.screenstream.engine.internal.delivery
 
 import io.screenstream.engine.EncodedImageFrame
-import io.screenstream.engine.ImageSize
 import io.screenstream.engine.internal.EncodedStorageOwner
 import io.screenstream.engine.internal.settlement.OperationDomain
 import io.screenstream.engine.internal.settlement.SettlementSignal
-import java.util.concurrent.ArrayBlockingQueue
-import java.util.concurrent.ThreadFactory
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-
-internal enum class HandoffState {
-    Prepared,
-    Submitting,
-    AcceptedUnentered,
-    DetachedPreEntry,
-    Entered,
-    Resolved,
-    Quarantined,
-}
-
-internal enum class DeliveryEndpointDisposition {
-    Absent,
-    Starting,
-    Ready,
-    Poisoned,
-    ShutdownRequested,
-    Terminated,
-    Failed,
-}
-
-internal enum class DeliveryEndpointStartResult {
-    Ready,
-    AlreadyReady,
-    Starting,
-    Failed,
-}
-
-internal enum class DeliverySubmissionResult {
-    Attempted,
-    NotCurrent,
-}
-
-internal enum class DeliveryCommandResult {
-    Applied,
-    AlreadyApplied,
-    NotCurrent,
-}
-
-internal enum class DeliveryTerminalTransferResult {
-    Settled,
-    Transferred,
-    NotCurrent,
-}
-
-internal enum class DeliveryShutdownResult {
-    Requested,
-    AlreadyRequested,
-    EndpointAbsent,
-    TicketUnsettled,
-    ThrownException,
-}
-
-internal enum class DeliveryShutdownDisposition {
-    Empty,
-    InCall,
-    Returned,
-    ThrownException,
-    ThrownFatal,
-}
-
-internal enum class DeliverySubmissionDisposition {
-    Empty,
-    InCall,
-    Returned,
-    ThrownException,
-    ThrownFatal,
-}
-
-internal enum class DeliveryEntryDisposition {
-    Empty,
-    Entered,
-    Inert,
-}
-
-internal enum class DeliveryCallbackDisposition {
-    Empty,
-    Returned,
-    ThrownException,
-    ThrownFatal,
-}
-
-internal enum class DeliveryRunnableDisposition {
-    Empty,
-    Returned,
-    ThrownFatal,
-}
-
-internal enum class DeliveryNoCallbackDisposition {
-    Empty,
-    FailedBeforeEntry,
-    FailedAfterEntry,
-}
-
-internal enum class DeliveryLeaseDisposition {
-    Owned,
-    Releasing,
-    Released,
-    ReleaseConflict,
-}
-
-internal enum class DeliveryFactUse {
-    Unclaimed,
-    Active,
-    Cleanup,
-}
-
-internal enum class DeliveryFailureKind {
-    EndpointStartupException,
-    SubmissionException,
-    AdmissionPortException,
-    RunnableException,
-    ShutdownException,
-    ShutdownFatal,
-    DirectFatal,
-}
-
-/**
- * The aggregate implementation must validate Session, registration generation and delivery admission while
- * holding its sole Session gate. It then calls [DeliveryEntryRequest.commit] before releasing that gate. The
- * request performs only the leaf-local ticket/endpoint checks and settlement-gate entry commit.
- */
-internal interface DeliveryAuthorityPort {
-    fun admit(request: DeliveryEntryRequest): DeliveryEntryDisposition
-
-    fun failClosed(notice: DeliveryFailureNotice)
-}
-
-internal class DeliveryFailureNotice internal constructor(
-    internal val kind: DeliveryFailureKind,
-    internal val owner: DeliveryOwner,
-    internal val handoff: DeliveryHandoffRecord?,
-) {
-    private val publicationClaimed = AtomicBoolean(false)
-
-    internal val exactThrowable: Throwable?
-        get() = when (kind) {
-            DeliveryFailureKind.EndpointStartupException -> owner.endpointStartupFailure
-            DeliveryFailureKind.SubmissionException -> handoff?.submissionCell?.throwable
-            DeliveryFailureKind.AdmissionPortException,
-            DeliveryFailureKind.RunnableException,
-                -> handoff?.runnableCell?.handledException
-
-            DeliveryFailureKind.ShutdownException,
-            DeliveryFailureKind.ShutdownFatal,
-                -> owner.startupEndpointRoot?.shutdownCell?.throwable
-
-            DeliveryFailureKind.DirectFatal -> handoff?.exactFatal ?: owner.exactFatal
-        }
-
-    internal fun claimPublication(): Boolean = publicationClaimed.compareAndSet(false, true)
-}
-
-internal class DeliveryRegistration internal constructor(
-    private val owner: DeliveryOwner,
-    internal val generation: Long,
-    callback: (EncodedImageFrame) -> Unit,
-) {
-    init {
-        require(generation > 0L)
-    }
-
-    private var retainedCallback: ((EncodedImageFrame) -> Unit)? = callback
-
-    internal val hasCallback: Boolean
-        get() = retainedCallback != null
-
-    internal fun callback(): ((EncodedImageFrame) -> Unit)? = retainedCallback
-
-    internal fun clearCallback(): Boolean {
-        if (retainedCallback == null) return false
-        retainedCallback = null
-        return true
-    }
-
-    internal fun belongsTo(expectedOwner: DeliveryOwner): Boolean = owner === expectedOwner
-}
-
-internal class DeliverySubmissionCell internal constructor() {
-    internal var disposition: DeliverySubmissionDisposition = DeliverySubmissionDisposition.Empty
-        private set
-
-    internal var returnedValue: Unit? = null
-        private set
-
-    internal var throwable: Throwable? = null
-        private set
-
-    internal var use: DeliveryFactUse = DeliveryFactUse.Unclaimed
-        private set
-
-    internal fun beginLocked(): Boolean {
-        if (disposition != DeliverySubmissionDisposition.Empty) return false
-        disposition = DeliverySubmissionDisposition.InCall
-        return true
-    }
-
-    internal fun publishReturnedLocked(): Boolean {
-        if (disposition != DeliverySubmissionDisposition.InCall) return false
-        returnedValue = Unit
-        disposition = DeliverySubmissionDisposition.Returned
-        return true
-    }
-
-    internal fun publishThrownLocked(raw: Throwable): Boolean {
-        if (disposition != DeliverySubmissionDisposition.InCall) return false
-        throwable = raw
-        disposition = if (raw is Exception) {
-            DeliverySubmissionDisposition.ThrownException
-        } else {
-            DeliverySubmissionDisposition.ThrownFatal
-        }
-        return true
-    }
-
-    internal fun claimLocked(domain: OperationDomain): Boolean {
-        val incomplete = (disposition == DeliverySubmissionDisposition.Empty) ||
-                (disposition == DeliverySubmissionDisposition.InCall)
-        if (incomplete || use != DeliveryFactUse.Unclaimed) {
-            return false
-        }
-        use = domain.toFactUse()
-        return true
-    }
-}
-
-internal class DeliveryEntryCell internal constructor() {
-    internal var disposition: DeliveryEntryDisposition = DeliveryEntryDisposition.Empty
-        private set
-
-    internal var callbackThread: Thread? = null
-        private set
-
-    internal var use: DeliveryFactUse = DeliveryFactUse.Unclaimed
-        private set
-
-    internal fun publishLocked(result: DeliveryEntryDisposition): Boolean {
-        require(result != DeliveryEntryDisposition.Empty)
-        if (disposition != DeliveryEntryDisposition.Empty) return false
-        disposition = result
-        return true
-    }
-
-    internal fun publishCallbackThreadLocked(thread: Thread): Boolean {
-        if (disposition != DeliveryEntryDisposition.Entered || callbackThread != null) return false
-        callbackThread = thread
-        return true
-    }
-
-    internal fun clearCallbackThreadLocked() {
-        callbackThread = null
-    }
-
-    internal fun claimLocked(domain: OperationDomain): Boolean {
-        if (disposition == DeliveryEntryDisposition.Empty || use != DeliveryFactUse.Unclaimed) return false
-        use = domain.toFactUse()
-        return true
-    }
-}
-
-internal class DeliveryCallbackCell internal constructor() {
-    internal var disposition: DeliveryCallbackDisposition = DeliveryCallbackDisposition.Empty
-        private set
-
-    internal var returnedValue: Unit? = null
-        private set
-
-    internal var throwable: Throwable? = null
-        private set
-
-    internal var use: DeliveryFactUse = DeliveryFactUse.Unclaimed
-        private set
-
-    internal fun publishLocked(raw: Throwable?): Boolean {
-        if (disposition != DeliveryCallbackDisposition.Empty) return false
-        if (raw == null) {
-            returnedValue = Unit
-            disposition = DeliveryCallbackDisposition.Returned
-        } else {
-            throwable = raw
-            disposition = if (raw is Exception) {
-                DeliveryCallbackDisposition.ThrownException
-            } else {
-                DeliveryCallbackDisposition.ThrownFatal
-            }
-        }
-        return true
-    }
-
-    internal fun claimLocked(domain: OperationDomain): Boolean {
-        if (disposition == DeliveryCallbackDisposition.Empty || use != DeliveryFactUse.Unclaimed) return false
-        use = domain.toFactUse()
-        return true
-    }
-}
-
-internal class DeliveryRunnableCell internal constructor() {
-    internal var disposition: DeliveryRunnableDisposition = DeliveryRunnableDisposition.Empty
-        private set
-
-    internal var returnedValue: Unit? = null
-        private set
-
-    internal var throwable: Throwable? = null
-        private set
-
-    internal var handledException: Exception? = null
-        private set
-
-    internal var use: DeliveryFactUse = DeliveryFactUse.Unclaimed
-        private set
-
-    internal fun publishReturnedLocked(handledFailure: Exception? = null): Boolean {
-        if (disposition != DeliveryRunnableDisposition.Empty) return false
-        handledException = handledFailure
-        returnedValue = Unit
-        disposition = DeliveryRunnableDisposition.Returned
-        return true
-    }
-
-    internal fun publishFatalLocked(raw: Throwable): Boolean {
-        require(raw !is Exception)
-        if (disposition != DeliveryRunnableDisposition.Empty) return false
-        throwable = raw
-        disposition = DeliveryRunnableDisposition.ThrownFatal
-        return true
-    }
-
-    internal fun claimLocked(domain: OperationDomain): Boolean {
-        if (disposition == DeliveryRunnableDisposition.Empty || use != DeliveryFactUse.Unclaimed) return false
-        use = domain.toFactUse()
-        return true
-    }
-}
-
-internal class DeliveryNoCallbackCell internal constructor() {
-    internal var disposition: DeliveryNoCallbackDisposition = DeliveryNoCallbackDisposition.Empty
-        private set
-
-    internal var throwable: Throwable? = null
-        private set
-
-    internal var use: DeliveryFactUse = DeliveryFactUse.Unclaimed
-        private set
-
-    internal fun publishLocked(
-        afterEntry: Boolean,
-        raw: Throwable,
-    ): Boolean {
-        if (disposition != DeliveryNoCallbackDisposition.Empty) return false
-        throwable = raw
-        disposition = if (afterEntry) {
-            DeliveryNoCallbackDisposition.FailedAfterEntry
-        } else {
-            DeliveryNoCallbackDisposition.FailedBeforeEntry
-        }
-        return true
-    }
-
-    internal fun claimLocked(domain: OperationDomain): Boolean {
-        if (disposition == DeliveryNoCallbackDisposition.Empty || use != DeliveryFactUse.Unclaimed) return false
-        use = domain.toFactUse()
-        return true
-    }
-}
-
-internal class DeliveryShutdownCell internal constructor() {
-    private val atomicDisposition = AtomicReference(DeliveryShutdownDisposition.Empty)
-
-    internal var returnedValue: Unit? = null
-        private set
-
-    internal var throwable: Throwable? = null
-        private set
-
-    internal val disposition: DeliveryShutdownDisposition
-        get() = atomicDisposition.get()
-
-    internal fun begin(): Boolean = atomicDisposition.compareAndSet(
-        DeliveryShutdownDisposition.Empty,
-        DeliveryShutdownDisposition.InCall,
-    )
-
-    internal fun publishReturned() {
-        returnedValue = Unit
-        check(
-            atomicDisposition.compareAndSet(
-                DeliveryShutdownDisposition.InCall,
-                DeliveryShutdownDisposition.Returned,
-            ),
-        )
-    }
-
-    internal fun publishThrown(raw: Throwable) {
-        throwable = raw
-        val terminal = if (raw is Exception) {
-            DeliveryShutdownDisposition.ThrownException
-        } else {
-            DeliveryShutdownDisposition.ThrownFatal
-        }
-        check(atomicDisposition.compareAndSet(DeliveryShutdownDisposition.InCall, terminal))
-    }
-}
-
-internal class DeliveryLeaseSlot internal constructor(
-    lease: EncodedStorageOwner.EncodedPayloadLease,
-) {
-    internal var lease: EncodedStorageOwner.EncodedPayloadLease? = lease
-        private set
-
-    internal var disposition: DeliveryLeaseDisposition = DeliveryLeaseDisposition.Owned
-        private set
-
-    internal fun claimReleaseLocked(): EncodedStorageOwner.EncodedPayloadLease? {
-        if (disposition != DeliveryLeaseDisposition.Owned) return null
-        val current = lease ?: return null
-        disposition = DeliveryLeaseDisposition.Releasing
-        return current
-    }
-
-    internal fun publishReleaseLocked(released: Boolean): Boolean {
-        if (disposition != DeliveryLeaseDisposition.Releasing) return false
-        disposition = if (released) DeliveryLeaseDisposition.Released else DeliveryLeaseDisposition.ReleaseConflict
-        return true
-    }
-
-    internal fun clearConsumedLocked(expectedLease: EncodedStorageOwner.EncodedPayloadLease): Boolean {
-        if (disposition != DeliveryLeaseDisposition.Released &&
-            disposition != DeliveryLeaseDisposition.ReleaseConflict ||
-            lease !== expectedLease
-        ) {
-            return false
-        }
-        lease = null
-        return true
-    }
-}
-
-internal class BorrowedEncodedImageFrame internal constructor(
-    lease: EncodedStorageOwner.EncodedPayloadLease,
-    private val settlementGate: ReentrantLock,
-) : EncodedImageFrame {
-    private var retainedLease: EncodedStorageOwner.EncodedPayloadLease? = lease
-    private var callbackThread: Thread? = null
-    private var authorityOpen: Boolean = false
-
-    private val wrongThreadFailure = IllegalStateException("EncodedImageFrame is valid only on its callback thread.")
-    private val closedAuthorityFailure = IllegalStateException("EncodedImageFrame is valid only during its callback body.")
-
-    override val byteCount: Int
-        get() = checkedLease().byteCount
-
-    override val imageSize: ImageSize
-        get() = checkedLease().imageSize
-
-    override val sequence: Long
-        get() = checkedLease().sequence
-
-    override val timestampElapsedRealtimeNanos: Long
-        get() = checkedLease().timestampElapsedRealtimeNanos
-
-    override fun copyTo(destination: ByteArray, destinationOffset: Int): Int =
-        checkedLease().copyTo(destination, destinationOffset)
-
-    override fun copyBytes(): ByteArray = checkedLease().copyBytes()
-
-    internal fun openLocked(thread: Thread): Boolean {
-        if (authorityOpen || retainedLease == null) return false
-        callbackThread = thread
-        authorityOpen = true
-        return true
-    }
-
-    internal fun closeLocked() {
-        authorityOpen = false
-        callbackThread = null
-        retainedLease = null
-    }
-
-    private fun checkedLease(): EncodedStorageOwner.EncodedPayloadLease = settlementGate.withLock {
-        if (Thread.currentThread() !== callbackThread) throw wrongThreadFailure
-        if (!authorityOpen) throw closedAuthorityFailure
-        retainedLease ?: throw closedAuthorityFailure
-    }
-}
-
-internal class DeliveryTerminationReceipt private constructor(
-    internal val endpoint: DeliveryEndpoint,
-) {
-    internal companion object {
-        internal fun create(endpoint: DeliveryEndpoint): DeliveryTerminationReceipt =
-            DeliveryTerminationReceipt(endpoint)
-    }
-}
-
-internal class DeliveryTicket internal constructor(
-    internal val endpoint: DeliveryEndpoint,
-    internal val identity: Long,
-) {
-    init {
-        require(identity > 0L)
-    }
-
-    private val installedHandoff = AtomicReference<DeliveryHandoffRecord?>(null)
-
-    internal val handoff: DeliveryHandoffRecord?
-        get() = installedHandoff.get()
-
-    internal fun install(record: DeliveryHandoffRecord): Boolean = installedHandoff.compareAndSet(null, record)
-}
-
-internal class DeliveryEndpoint internal constructor(
-    internal val owner: DeliveryOwner,
-    threadName: String,
-    private val signal: SettlementSignal,
-) {
-    private class OwnedExecutor(
-        endpoint: DeliveryEndpoint,
-        threadFactory: ThreadFactory,
-    ) : ThreadPoolExecutor(
-        1,
-        1,
-        0L,
-        TimeUnit.NANOSECONDS,
-        ArrayBlockingQueue(1),
-        threadFactory,
-        AbortPolicy(),
-    ) {
-        private val retainedEndpoint = endpoint
-
-        override fun terminated() {
-            retainedEndpoint.publishTerminated()
-        }
-    }
-
-    private val workerSequence = AtomicLong(0L)
-    private val poisoned = AtomicBoolean(false)
-    private val termination = DeliveryTerminationReceipt.create(this)
-    private val publishedTermination = AtomicReference<DeliveryTerminationReceipt?>(null)
-    internal val shutdownCell = DeliveryShutdownCell()
-    private val executor: OwnedExecutor
-
-    init {
-        val threadFactory = ThreadFactory { runnable ->
-            Thread(runnable, "$threadName-${workerSequence.incrementAndGet()}").apply {
-                isDaemon = false
-            }
-        }
-        executor = OwnedExecutor(this, threadFactory)
-    }
-
-    internal val isPoisoned: Boolean
-        get() = poisoned.get()
-
-    internal val isShutdownRequested: Boolean
-        get() = shutdownCell.disposition != DeliveryShutdownDisposition.Empty
-
-    internal val terminationReceipt: DeliveryTerminationReceipt?
-        get() = publishedTermination.get()
-
-    internal fun prestart(): Int = executor.prestartAllCoreThreads()
-
-    internal fun execute(runnable: Runnable) {
-        executor.execute(runnable)
-    }
-
-    internal fun poison() {
-        poisoned.set(true)
-    }
-
-    internal fun requestShutdown(): DeliveryShutdownDisposition {
-        if (!shutdownCell.begin()) return shutdownCell.disposition
-        try {
-            executor.shutdown()
-        } catch (raw: Throwable) {
-            shutdownCell.publishThrown(raw)
-            throw raw
-        }
-        shutdownCell.publishReturned()
-        return DeliveryShutdownDisposition.Returned
-    }
-
-    internal fun accepts(receipt: DeliveryTerminationReceipt): Boolean =
-        receipt === termination && receipt.endpoint === this
-
-    private fun publishTerminated() {
-        if (!publishedTermination.compareAndSet(null, termination)) return
-        owner.publishEndpointTerminated(this)
-        if (shutdownCell.disposition == DeliveryShutdownDisposition.InCall) return
-        try {
-            signal.signal()
-        } catch (_: Throwable) {
-            // The release-published receipt remains authoritative.
-        }
-    }
-}
-
-internal class DeliveryEntryRequest internal constructor(
-    private val owner: DeliveryOwner,
-    internal val handoff: DeliveryHandoffRecord,
-    internal val registration: DeliveryRegistration,
-    internal val registrationGeneration: Long,
-    internal val ticket: DeliveryTicket,
-    internal val endpoint: DeliveryEndpoint,
-) {
-    /** Called exactly once by the aggregate admission port while its Session gate is held. */
-    internal fun commit(aggregateAdmitted: Boolean): DeliveryEntryDisposition =
-        owner.commitEntry(this, aggregateAdmitted)
-}
-
-internal class DeliveryTerminalResidue internal constructor(
-    internal val handoff: DeliveryHandoffRecord,
-    internal val endpoint: DeliveryEndpoint,
-    internal val ticket: DeliveryTicket,
-    internal val submissionCell: DeliverySubmissionCell,
-    internal val entryCell: DeliveryEntryCell,
-    internal val callbackCell: DeliveryCallbackCell,
-    internal val runnableCell: DeliveryRunnableCell,
-    internal val noCallbackCell: DeliveryNoCallbackCell,
-    internal val shutdownCell: DeliveryShutdownCell,
-    internal val leaseSlot: DeliveryLeaseSlot,
-    internal val borrowedFrame: BorrowedEncodedImageFrame,
-    internal val runnable: Runnable,
-)
-
-internal class DeliveryHandoffRecord internal constructor(
-    private val owner: DeliveryOwner,
-    internal val registration: DeliveryRegistration,
-    internal val identity: Long,
-    internal val ticket: DeliveryTicket,
-    internal val callback: (EncodedImageFrame) -> Unit,
-    lease: EncodedStorageOwner.EncodedPayloadLease,
-) {
-    init {
-        require(identity > 0L)
-    }
-
-    internal val settlementGate: ReentrantLock = ReentrantLock(false)
-    internal val submissionCell = DeliverySubmissionCell()
-    internal val entryCell = DeliveryEntryCell()
-    internal val callbackCell = DeliveryCallbackCell()
-    internal val runnableCell = DeliveryRunnableCell()
-    internal val noCallbackCell = DeliveryNoCallbackCell()
-    internal val leaseSlot = DeliveryLeaseSlot(lease)
-    internal val borrowedFrame = BorrowedEncodedImageFrame(lease, settlementGate)
-    internal val entryRequest = DeliveryEntryRequest(
-        owner = owner,
-        handoff = this,
-        registration = registration,
-        registrationGeneration = registration.generation,
-        ticket = ticket,
-        endpoint = ticket.endpoint,
-    )
-    internal val submissionExceptionNotice = DeliveryFailureNotice(
-        kind = DeliveryFailureKind.SubmissionException,
-        owner = owner,
-        handoff = this,
-    )
-    internal val admissionExceptionNotice = DeliveryFailureNotice(
-        kind = DeliveryFailureKind.AdmissionPortException,
-        owner = owner,
-        handoff = this,
-    )
-    internal val runnableExceptionNotice = DeliveryFailureNotice(
-        kind = DeliveryFailureKind.RunnableException,
-        owner = owner,
-        handoff = this,
-    )
-    internal val directFatalNotice = DeliveryFailureNotice(
-        kind = DeliveryFailureKind.DirectFatal,
-        owner = owner,
-        handoff = this,
-    )
-    internal val runnable: Runnable = Runnable { owner.runHandoffRunnable(this) }
-    internal val terminalResidue = DeliveryTerminalResidue(
-        handoff = this,
-        endpoint = ticket.endpoint,
-        ticket = ticket,
-        submissionCell = submissionCell,
-        entryCell = entryCell,
-        callbackCell = callbackCell,
-        runnableCell = runnableCell,
-        noCallbackCell = noCallbackCell,
-        shutdownCell = ticket.endpoint.shutdownCell,
-        leaseSlot = leaseSlot,
-        borrowedFrame = borrowedFrame,
-        runnable = runnable,
-    )
-
-    internal var state: HandoffState = HandoffState.Prepared
-    internal var domain: OperationDomain = OperationDomain.Active
-        private set
-    internal var admissionOpen: Boolean = true
-    internal var callbackInvocationStarted: Boolean = false
-    internal var exactFatal: Throwable? = null
-
-    internal fun transferToCleanupLocked() {
-        check(settlementGate.isHeldByCurrentThread)
-        domain = OperationDomain.Cleanup
-    }
-
-    internal fun belongsTo(expectedOwner: DeliveryOwner): Boolean = owner === expectedOwner
-}
-
-internal sealed interface DeliveryHandoffPreparation {
-    class Prepared internal constructor(
-        internal val handoff: DeliveryHandoffRecord,
-    ) : DeliveryHandoffPreparation
-
-    object EndpointUnavailable : DeliveryHandoffPreparation
-
-    object Busy : DeliveryHandoffPreparation
-}
 
 internal class DeliveryOwner internal constructor(
     private val authorityPort: DeliveryAuthorityPort,
@@ -734,8 +14,12 @@ internal class DeliveryOwner internal constructor(
     private val deliveryThreadName: String = "ScreenCaptureEngine-Delivery",
 ) {
     private val endpointDisposition = AtomicReference(DeliveryEndpointDisposition.Absent)
+    private val endpointTerminationGate = ReentrantLock()
     private val constructedEndpointRoot = AtomicReference<DeliveryEndpoint?>(null)
+    private val endpointTerminationOwner = AtomicReference<DeliveryEndpointTerminationOwner?>(null)
+    private val releasedEndpointRoot = AtomicReference<DeliveryEndpointRootReleaseReceipt?>(null)
     private val readyEndpointSlot = AtomicReference<DeliveryEndpoint?>(null)
+    private val activeRegistration = AtomicReference<DeliveryRegistration?>(null)
     private val activeTicket = AtomicReference<DeliveryTicket?>(null)
     private val fatalSlot = AtomicReference<Throwable?>(null)
     private val startupFailureSlot = AtomicReference<Throwable?>(null)
@@ -761,12 +45,6 @@ internal class DeliveryOwner internal constructor(
         handoff = null,
     )
 
-    internal val endpointState: DeliveryEndpointDisposition
-        get() = endpointDisposition.get()
-
-    internal val endpoint: DeliveryEndpoint?
-        get() = readyEndpointSlot.get()
-
     internal val startupEndpointRoot: DeliveryEndpoint?
         get() = constructedEndpointRoot.get()
 
@@ -776,16 +54,45 @@ internal class DeliveryOwner internal constructor(
     internal val exactFatal: Throwable?
         get() = fatalSlot.get()
 
-    internal val currentTicket: DeliveryTicket?
-        get() = activeTicket.get()
-
     internal val terminationReceipt: DeliveryTerminationReceipt?
-        get() = constructedEndpointRoot.get()?.terminationReceipt
+        get() = releasedEndpointRoot.get()?.terminationReceipt
 
     internal fun prepareRegistration(
         generation: Long,
         callback: (EncodedImageFrame) -> Unit,
-    ): DeliveryRegistration = DeliveryRegistration(this, generation, callback)
+    ): DeliveryRegistrationPreparation {
+        if (activeRegistration.get() != null) return DeliveryRegistrationPreparation.Busy
+        val registration = DeliveryRegistration(this, generation, callback)
+        return DeliveryRegistrationPreparation.Prepared(this, registration)
+    }
+
+    /** Allocation-free physical install after the aggregate has committed registration admission. */
+    internal fun commitPreparedRegistration(
+        preparation: DeliveryRegistrationPreparation.Prepared,
+    ): DeliveryCommandResult {
+        val registration = preparation.registration
+        if (!preparation.belongsTo(this) || !registration.belongsTo(this)) return DeliveryCommandResult.NotCurrent
+        if (preparation.state == DeliveryPreparationState.Installed && activeRegistration.get() === registration) {
+            return DeliveryCommandResult.AlreadyApplied
+        }
+        if (!preparation.beginCommit()) return DeliveryCommandResult.NotCurrent
+        if (!activeRegistration.compareAndSet(null, registration)) {
+            check(preparation.restorePrepared())
+            return DeliveryCommandResult.NotCurrent
+        }
+        check(preparation.publishInstalled())
+        return DeliveryCommandResult.Applied
+    }
+
+    /** Closes the exact never-installed preparation; it cannot affect an installed registration. */
+    internal fun discardPreparedRegistration(
+        preparation: DeliveryRegistrationPreparation.Prepared,
+    ): DeliveryCommandResult {
+        if (!preparation.belongsTo(this)) return DeliveryCommandResult.NotCurrent
+        if (!preparation.discard()) return DeliveryCommandResult.NotCurrent
+        preparation.registration.clearCallback()
+        return DeliveryCommandResult.Applied
+    }
 
     internal fun startEndpoint(): DeliveryEndpointStartResult {
         when (endpointDisposition.get()) {
@@ -809,7 +116,9 @@ internal class DeliveryOwner internal constructor(
         var constructed: DeliveryEndpoint? = null
         try {
             constructed = DeliveryEndpoint(this, deliveryThreadName, settlementSignal)
+            val terminationOwner = DeliveryEndpointTerminationOwner(this, constructed)
             check(constructedEndpointRoot.compareAndSet(null, constructed))
+            check(endpointTerminationOwner.compareAndSet(null, terminationOwner))
             if (constructed.prestart() != 1) {
                 startupFailureSlot.compareAndSet(null, PRESTART_DID_NOT_START)
                 constructed.poison()
@@ -863,10 +172,13 @@ internal class DeliveryOwner internal constructor(
     internal fun prepareHandoff(
         registration: DeliveryRegistration,
         handoffIdentity: Long,
+        outputKind: DeliveryOutputKind,
         preparedLease: EncodedStorageOwner.EncodedPayloadLease,
     ): DeliveryHandoffPreparation {
         require(handoffIdentity > 0L)
-        if (!registration.belongsTo(this) || !registration.hasCallback) {
+        if (!registration.belongsTo(this) || activeRegistration.get() !== registration ||
+            !registration.hasCallback || preparedLease.isReleased
+        ) {
             return DeliveryHandoffPreparation.EndpointUnavailable
         }
         val currentEndpoint = readyEndpointSlot.get()
@@ -876,28 +188,75 @@ internal class DeliveryOwner internal constructor(
             return DeliveryHandoffPreparation.EndpointUnavailable
         }
 
+        if (activeTicket.get() != null) return DeliveryHandoffPreparation.Busy
+        val callback = registration.callback() ?: return DeliveryHandoffPreparation.EndpointUnavailable
         val ticket = DeliveryTicket(currentEndpoint, handoffIdentity)
-        if (!activeTicket.compareAndSet(null, ticket)) return DeliveryHandoffPreparation.Busy
-        try {
-            val callback = registration.callback()
-            if (callback == null) {
-                activeTicket.compareAndSet(ticket, null)
-                return DeliveryHandoffPreparation.EndpointUnavailable
-            }
-            val handoff = DeliveryHandoffRecord(
-                owner = this,
-                registration = registration,
-                identity = handoffIdentity,
-                ticket = ticket,
-                callback = callback,
-                lease = preparedLease,
-            )
-            check(ticket.install(handoff))
-            return DeliveryHandoffPreparation.Prepared(handoff)
-        } catch (raw: Throwable) {
-            activeTicket.compareAndSet(ticket, null)
-            throw raw
+        val handoff = DeliveryHandoffRecord(
+            owner = this,
+            registration = registration,
+            identity = handoffIdentity,
+            outputKind = outputKind,
+            ticket = ticket,
+            callback = callback,
+            lease = preparedLease,
+        )
+        return DeliveryHandoffPreparation.Prepared(this, handoff)
+    }
+
+    /** Allocation-free physical install after the aggregate has committed this exact handoff admission. */
+    internal fun commitPreparedHandoff(
+        preparation: DeliveryHandoffPreparation.Prepared,
+    ): DeliveryCommandResult {
+        val handoff = preparation.handoff
+        val registration = handoff.registration
+        val endpoint = handoff.ticket.endpoint
+        if (!preparation.belongsTo(this) || !handoff.belongsTo(this)) return DeliveryCommandResult.NotCurrent
+        if (preparation.state == DeliveryPreparationState.Installed && activeTicket.get() === handoff.ticket) {
+            return DeliveryCommandResult.AlreadyApplied
         }
+        if (activeRegistration.get() !== registration || registration.callback() !== handoff.callback ||
+            readyEndpointSlot.get() !== endpoint || endpointDisposition.get() != DeliveryEndpointDisposition.Ready ||
+            endpoint.isPoisoned || endpoint.isShutdownRequested || preparedLeaseUnavailable(handoff)
+        ) {
+            return DeliveryCommandResult.NotCurrent
+        }
+        if (!preparation.beginCommit()) return DeliveryCommandResult.NotCurrent
+        val installed = endpointTerminationGate.withLock {
+            val terminationOwner = endpointTerminationOwner.get()
+            if (terminationOwner == null || terminationOwner.endpoint !== endpoint ||
+                terminationOwner.shutdownAction.state != DeliveryEndpointShutdownActionState.Prepared ||
+                endpoint.isShutdownRequested || !activeTicket.compareAndSet(null, handoff.ticket)
+            ) {
+                false
+            } else {
+                check(handoff.ticket.install(handoff))
+                check(preparation.publishInstalled())
+                true
+            }
+        }
+        if (!installed) {
+            check(preparation.restorePrepared())
+            return DeliveryCommandResult.NotCurrent
+        }
+        return DeliveryCommandResult.Applied
+    }
+
+    /** Releases and returns the exact never-installed handoff lease to its storage-consumption path. */
+    internal fun discardPreparedHandoff(
+        preparation: DeliveryHandoffPreparation.Prepared,
+    ): EncodedStorageOwner.EncodedPayloadLease? {
+        if (!preparation.belongsTo(this) || !preparation.discard()) return null
+        val handoff = preparation.handoff
+        val lease = handoff.settlementGate.withLock {
+            handoff.borrowedAuthority.closeAndDetachLocked()
+            handoff.leaseSlot.claimReleaseLocked()
+        } ?: return null
+        val released = lease.release()
+        handoff.settlementGate.withLock {
+            check(handoff.leaseSlot.publishReleaseLocked(released))
+        }
+        signalBestEffort()
+        return lease
     }
 
     internal fun submitHandoff(handoff: DeliveryHandoffRecord): DeliverySubmissionResult {
@@ -946,7 +305,7 @@ internal class DeliveryOwner internal constructor(
             publishEndpointPoisonedUnlessTerminated()
             failClosedBestEffort(handoff.directFatalNotice)
             signalBestEffort()
-            throw (fatalSlot.get() ?: raw)
+            throw raw
         }
 
         handoff.settlementGate.withLock {
@@ -961,7 +320,11 @@ internal class DeliveryOwner internal constructor(
         return DeliverySubmissionResult.Attempted
     }
 
-    internal fun closeAdmission(handoff: DeliveryHandoffRecord): DeliveryCommandResult {
+    /**
+     * Revokes an already-accepted handoff only for unsubscribe or terminal cutoff. Reconfiguration pause must
+     * never call this: a queued accepted handoff is grandfathered and remains eligible to enter.
+     */
+    internal fun revokeHandoffAdmission(handoff: DeliveryHandoffRecord): DeliveryCommandResult {
         if (!handoff.belongsTo(this) || activeTicket.get() !== handoff.ticket) {
             return DeliveryCommandResult.NotCurrent
         }
@@ -1013,8 +376,9 @@ internal class DeliveryOwner internal constructor(
     ): EncodedStorageOwner.EncodedPayloadLease? {
         if (!handoff.belongsTo(this)) return null
         return handoff.settlementGate.withLock {
-            if (handoff.leaseSlot.disposition != DeliveryLeaseDisposition.Released &&
-                handoff.leaseSlot.disposition != DeliveryLeaseDisposition.ReleaseConflict
+            if ((handoff.leaseSlot.disposition != DeliveryLeaseDisposition.Released &&
+                        handoff.leaseSlot.disposition != DeliveryLeaseDisposition.ReleaseConflict) ||
+                handoff.leaseSlot.lease == null
             ) {
                 return@withLock null
             }
@@ -1035,25 +399,6 @@ internal class DeliveryOwner internal constructor(
         return DeliveryCommandResult.Applied
     }
 
-    internal fun claimCompleteFacts(
-        handoff: DeliveryHandoffRecord,
-    ): DeliveryCommandResult {
-        if (!handoff.belongsTo(this) || activeTicket.get() !== handoff.ticket) {
-            return DeliveryCommandResult.NotCurrent
-        }
-        val claimedAny = handoff.settlementGate.withLock {
-            val domain = handoff.domain
-            var changed = false
-            changed = handoff.submissionCell.claimLocked(domain) || changed
-            changed = handoff.entryCell.claimLocked(domain) || changed
-            changed = handoff.callbackCell.claimLocked(domain) || changed
-            changed = handoff.runnableCell.claimLocked(domain) || changed
-            changed = handoff.noCallbackCell.claimLocked(domain) || changed
-            changed
-        }
-        return if (claimedAny) DeliveryCommandResult.Applied else DeliveryCommandResult.AlreadyApplied
-    }
-
     internal fun releaseRetainedNoCallbackAuthority(
         handoff: DeliveryHandoffRecord,
     ): DeliveryCommandResult {
@@ -1064,7 +409,6 @@ internal class DeliveryOwner internal constructor(
             handoff.domain == OperationDomain.Cleanup &&
                     handoff.entryCell.disposition == DeliveryEntryDisposition.Entered &&
                     handoff.noCallbackCell.disposition == DeliveryNoCallbackDisposition.FailedAfterEntry &&
-                    handoff.noCallbackCell.use != DeliveryFactUse.Unclaimed &&
                     handoff.callbackCell.disposition == DeliveryCallbackDisposition.Empty &&
                     !handoff.callbackInvocationStarted &&
                     handoff.leaseSlot.disposition == DeliveryLeaseDisposition.Owned
@@ -1084,19 +428,58 @@ internal class DeliveryOwner internal constructor(
             handoff.state = HandoffState.Resolved
             true
         }
-        if (!settled || !activeTicket.compareAndSet(handoff.ticket, null)) {
+        var pendingShutdownAction: DeliveryEndpointShutdownAction? = null
+        val retired = settled && endpointTerminationGate.withLock {
+            if (!activeTicket.compareAndSet(handoff.ticket, null)) {
+                false
+            } else {
+                pendingShutdownAction = endpointTerminationOwner.get()
+                    ?.claimPendingShutdownAfterRetirement(handoff.ticket)
+                true
+            }
+        }
+        if (!retired) {
             return DeliveryCommandResult.NotCurrent
         }
         signalBestEffort()
+        pendingShutdownAction?.let(::performClaimedPendingShutdown)
         return DeliveryCommandResult.Applied
     }
 
-    internal fun retireRegistration(registration: DeliveryRegistration): DeliveryCommandResult {
-        if (!registration.belongsTo(this)) return DeliveryCommandResult.NotCurrent
+    /** Immediately closes future handoff creation for the registration. Existing records retain their callback. */
+    internal fun closeRegistrationAdmission(registration: DeliveryRegistration): DeliveryCommandResult {
+        if (!registration.belongsTo(this) || activeRegistration.get() !== registration) {
+            return DeliveryCommandResult.NotCurrent
+        }
         return if (registration.clearCallback()) {
             DeliveryCommandResult.Applied
         } else {
             DeliveryCommandResult.AlreadyApplied
+        }
+    }
+
+    /** Mechanical input for the aggregate's shared unsubscribe result; this method never completes a waiter. */
+    internal fun registrationSettlement(registration: DeliveryRegistration): DeliveryRegistrationSettlement {
+        if (!registration.belongsTo(this) || activeRegistration.get() !== registration) {
+            return DeliveryRegistrationSettlement.NotOwned
+        }
+        if (!registration.isAdmissionClosed) return DeliveryRegistrationSettlement.Open
+        return if (activeTicket.get()?.handoff?.registration === registration) {
+            DeliveryRegistrationSettlement.Closing
+        } else {
+            DeliveryRegistrationSettlement.Settled
+        }
+    }
+
+    /** Clears replacement exclusion only after exact successful mechanical unsubscribe settlement. */
+    internal fun retireSettledRegistration(registration: DeliveryRegistration): DeliveryCommandResult {
+        if (registrationSettlement(registration) != DeliveryRegistrationSettlement.Settled) {
+            return DeliveryCommandResult.NotCurrent
+        }
+        return if (activeRegistration.compareAndSet(registration, null)) {
+            DeliveryCommandResult.Applied
+        } else {
+            DeliveryCommandResult.NotCurrent
         }
     }
 
@@ -1108,52 +491,161 @@ internal class DeliveryOwner internal constructor(
     }
 
     internal fun requestShutdown(): DeliveryShutdownResult {
-        if (activeTicket.get() != null) return DeliveryShutdownResult.TicketUnsettled
-        val currentEndpoint = constructedEndpointRoot.get() ?: return DeliveryShutdownResult.EndpointAbsent
-        if (currentEndpoint.shutdownCell.disposition != DeliveryShutdownDisposition.Empty) {
-            return DeliveryShutdownResult.AlreadyRequested
+        return when (val eligibility = requestedShutdownEligibility()) {
+            is DeliveryEndpointShutdownEligibility.EndpointRootAbsent -> DeliveryShutdownResult.EndpointAbsent
+            is DeliveryEndpointShutdownEligibility.WaitingForHandoffSettlement ->
+                DeliveryShutdownResult.TicketUnsettled
+
+            is DeliveryEndpointShutdownEligibility.Eligible ->
+                enterShutdown(eligibility.action)
+
+            is DeliveryEndpointShutdownEligibility.ActionAlreadyEntered ->
+                shutdownResult(eligibility.outcome, repeated = true)
         }
-        val shutdownDisposition = try {
-            currentEndpoint.requestShutdown()
+    }
+
+    private fun requestedShutdownEligibility(): DeliveryEndpointShutdownEligibility {
+        val terminationOwner = endpointTerminationOwner.get()
+            ?: return DeliveryEndpointShutdownEligibility.EndpointRootAbsent(this)
+        return evaluateEndpointShutdownEligibility(terminationOwner, retainPendingDemand = true)
+    }
+
+    private fun evaluateEndpointShutdownEligibility(
+        terminationOwner: DeliveryEndpointTerminationOwner,
+        retainPendingDemand: Boolean = false,
+    ): DeliveryEndpointShutdownEligibility = endpointTerminationGate.withLock {
+        if (endpointTerminationOwner.get() !== terminationOwner) {
+            return@withLock DeliveryEndpointShutdownEligibility.EndpointRootAbsent(this)
+        }
+        val action = terminationOwner.shutdownAction
+        val observed = action.outcome
+        if (action.state != DeliveryEndpointShutdownActionState.Prepared) {
+            return@withLock DeliveryEndpointShutdownEligibility.ActionAlreadyEntered(
+                terminationOwner.provenance,
+                observed ?: action.enteredOutcome,
+            )
+        }
+        val ticket = activeTicket.get()
+        if (ticket != null) {
+            if (retainPendingDemand) terminationOwner.retainPendingShutdown(ticket)
+            DeliveryEndpointShutdownEligibility.WaitingForHandoffSettlement(
+                terminationOwner.provenance,
+                ticket,
+            )
+        } else {
+            DeliveryEndpointShutdownEligibility.Eligible(terminationOwner.provenance, action)
+        }
+    }
+
+    internal fun enterExactEndpointShutdown(
+        terminationOwner: DeliveryEndpointTerminationOwner,
+        action: DeliveryEndpointShutdownAction,
+    ): DeliveryEndpointShutdownActionOutcome {
+        val immediate = endpointTerminationGate.withLock {
+            check(
+                endpointTerminationOwner.get() === terminationOwner &&
+                        terminationOwner.shutdownAction === action,
+            )
+            val ticket = activeTicket.get()
+            if (ticket != null) {
+                terminationOwner.retainPendingShutdown(ticket)
+                return@withLock DeliveryEndpointShutdownActionOutcome.NotEntered(action, ticket)
+            }
+            if (!terminationOwner.claimShutdownEntry()) {
+                return@withLock action.outcome ?: action.enteredOutcome
+            }
+            null
+        }
+        return immediate ?: action.performEnteredCall()
+    }
+
+    private fun performClaimedPendingShutdown(action: DeliveryEndpointShutdownAction) {
+        try {
+            action.performEnteredCall()
         } catch (raw: Throwable) {
-            currentEndpoint.poison()
+            if (raw !is Exception) throw raw
+        }
+    }
+
+    internal fun performExactEndpointShutdown(
+        terminationOwner: DeliveryEndpointTerminationOwner,
+        action: DeliveryEndpointShutdownAction,
+    ): DeliveryShutdownDisposition {
+        val currentEndpoint = constructedEndpointRoot.get()
+        check(
+            endpointTerminationOwner.get() === terminationOwner &&
+                    terminationOwner.endpoint === currentEndpoint &&
+                    terminationOwner.shutdownAction === action,
+        )
+        try {
+            val shutdownDisposition = checkNotNull(currentEndpoint).requestShutdown()
+            check(shutdownDisposition == DeliveryShutdownDisposition.Returned)
+            publishShutdownRequestedUnlessTerminated()
+            signalBestEffort()
+            return shutdownDisposition
+        } catch (raw: Throwable) {
+            checkNotNull(currentEndpoint).poison()
             if (raw is Exception) {
                 publishEndpointPoisonedUnlessTerminated()
                 failClosedBestEffort(shutdownExceptionNotice)
                 signalBestEffort()
-                return DeliveryShutdownResult.ThrownException
+                throw raw
             }
             fatalSlot.compareAndSet(null, raw)
             publishEndpointPoisonedUnlessTerminated()
-            val winner = fatalSlot.get() ?: raw
             failClosedBestEffort(shutdownFatalNotice)
             signalBestEffort()
-            throw winner
+            throw raw
         }
-        if (shutdownDisposition != DeliveryShutdownDisposition.Returned) {
-            return DeliveryShutdownResult.AlreadyRequested
-        }
-        publishShutdownRequestedUnlessTerminated()
-        signalBestEffort()
-        return DeliveryShutdownResult.Requested
     }
 
     internal fun acceptsTerminationReceipt(receipt: DeliveryTerminationReceipt): Boolean =
-        constructedEndpointRoot.get()?.accepts(receipt) == true
+        constructedEndpointRoot.get()?.accepts(receipt) == true ||
+                releasedEndpointRoot.get()?.terminationReceipt === receipt
 
     internal fun releaseTerminatedEndpoint(
         receipt: DeliveryTerminationReceipt,
     ): DeliveryCommandResult {
-        val terminatedEndpoint = constructedEndpointRoot.get() ?: return DeliveryCommandResult.NotCurrent
-        if (!terminatedEndpoint.accepts(receipt) || terminatedEndpoint.terminationReceipt !== receipt) {
-            return DeliveryCommandResult.NotCurrent
+        val terminationOwner = endpointTerminationOwner.get()
+        if (terminationOwner == null) {
+            return if (releasedEndpointRoot.get()?.terminationReceipt === receipt) {
+                DeliveryCommandResult.AlreadyApplied
+            } else {
+                DeliveryCommandResult.NotCurrent
+            }
+        }
+        return when (terminationOwner.releaseEndpointRoot(receipt)) {
+            is DeliveryEndpointRootSettlement.Released -> DeliveryCommandResult.Applied
+            is DeliveryEndpointRootSettlement.Retained -> DeliveryCommandResult.NotCurrent
+        }
+    }
+
+    internal fun releaseExactEndpointRoot(
+        terminationOwner: DeliveryEndpointTerminationOwner,
+        receipt: DeliveryTerminationReceipt,
+    ): Boolean {
+        val terminatedEndpoint = constructedEndpointRoot.get() ?: return false
+        if (endpointTerminationOwner.get() !== terminationOwner || terminationOwner.endpoint !== terminatedEndpoint ||
+            !terminatedEndpoint.accepts(receipt) || terminatedEndpoint.terminationReceipt !== receipt
+        ) {
+            return false
         }
         readyEndpointSlot.compareAndSet(terminatedEndpoint, null)
-        return if (constructedEndpointRoot.compareAndSet(terminatedEndpoint, null)) {
-            DeliveryCommandResult.Applied
-        } else {
-            DeliveryCommandResult.NotCurrent
-        }
+        if (!constructedEndpointRoot.compareAndSet(terminatedEndpoint, null)) return false
+        check(endpointTerminationOwner.compareAndSet(terminationOwner, null))
+        return true
+    }
+
+    internal fun publishEndpointRootReleased(
+        terminationOwner: DeliveryEndpointTerminationOwner,
+        receipt: DeliveryEndpointRootReleaseReceipt,
+    ) {
+        check(
+            terminationOwner.owner === this &&
+                    receipt.terminationReceipt === terminationOwner.endpoint.ownedTerminationReceipt &&
+                    receipt.terminationReceipt.identity === terminationOwner.endpoint.terminationIdentity,
+        )
+        check(releasedEndpointRoot.compareAndSet(null, receipt))
     }
 
     internal fun runHandoffRunnable(handoff: DeliveryHandoffRecord) {
@@ -1200,7 +692,7 @@ internal class DeliveryOwner internal constructor(
                 failClosedBestEffort(handoff.directFatalNotice)
             }
             signalBestEffort()
-            throw (fatalSlot.get() ?: raw)
+            throw raw
         }
         handoff.settlementGate.withLock {
             handoff.runnableCell.publishReturnedLocked()
@@ -1210,7 +702,7 @@ internal class DeliveryOwner internal constructor(
 
     internal fun commitEntry(
         request: DeliveryEntryRequest,
-        aggregateAdmitted: Boolean,
+        acceptedHandoffStillAdmitted: Boolean,
     ): DeliveryEntryDisposition {
         val handoff = request.handoff
         if (!handoff.belongsTo(this) || request.registration !== handoff.registration ||
@@ -1220,7 +712,7 @@ internal class DeliveryOwner internal constructor(
             return DeliveryEntryDisposition.Inert
         }
         return handoff.settlementGate.withLock {
-            val result = if (aggregateAdmitted && activeTicket.get() === handoff.ticket &&
+            val result = if (acceptedHandoffStillAdmitted && activeTicket.get() === handoff.ticket &&
                 readyEndpointSlot.get() === request.endpoint && endpointDisposition.get() == DeliveryEndpointDisposition.Ready &&
                 !request.endpoint.isPoisoned && !request.endpoint.isShutdownRequested &&
                 handoff.domain == OperationDomain.Active && handoff.admissionOpen &&
@@ -1245,12 +737,48 @@ internal class DeliveryOwner internal constructor(
         if (constructedEndpointRoot.get() !== terminatedEndpoint) return
         readyEndpointSlot.compareAndSet(terminatedEndpoint, null)
         endpointDisposition.set(DeliveryEndpointDisposition.Terminated)
+        val terminationOwner = endpointTerminationOwner.get() ?: return
+        if (terminationOwner.endpoint !== terminatedEndpoint) return
+        val receipt = terminatedEndpoint.terminationReceipt ?: return
+        terminationOwner.releaseEndpointRoot(receipt)
     }
 
+    private fun enterShutdown(action: DeliveryEndpointShutdownAction): DeliveryShutdownResult = try {
+        shutdownResult(action.enter(), repeated = false)
+    } catch (raw: Throwable) {
+        if (raw is Exception) DeliveryShutdownResult.ThrownException else throw raw
+    }
+
+    private fun shutdownResult(
+        outcome: DeliveryEndpointShutdownActionOutcome,
+        repeated: Boolean,
+    ): DeliveryShutdownResult =
+        when (outcome) {
+            is DeliveryEndpointShutdownActionOutcome.Entered -> DeliveryShutdownResult.AlreadyRequested
+            is DeliveryEndpointShutdownActionOutcome.NotEntered -> DeliveryShutdownResult.TicketUnsettled
+            is DeliveryEndpointShutdownActionOutcome.Returned -> when (outcome.disposition) {
+                DeliveryShutdownDisposition.Returned -> if (repeated) {
+                    DeliveryShutdownResult.AlreadyRequested
+                } else {
+                    DeliveryShutdownResult.Requested
+                }
+                DeliveryShutdownDisposition.Empty,
+                DeliveryShutdownDisposition.InCall,
+                    -> DeliveryShutdownResult.AlreadyRequested
+
+                DeliveryShutdownDisposition.ThrownException -> DeliveryShutdownResult.ThrownException
+                DeliveryShutdownDisposition.ThrownFatal -> throw checkNotNull(outcome.action.provenance.endpoint.shutdownCell.throwable)
+            }
+
+            is DeliveryEndpointShutdownActionOutcome.Thrown -> {
+                if (outcome.rawThrowable is Exception) DeliveryShutdownResult.ThrownException else throw outcome.rawThrowable
+            }
+        }
+
     private fun runHandoffBody(handoff: DeliveryHandoffRecord) {
-        val admitted = authorityPort.admit(handoff.entryRequest)
+        authorityPort.validateAcceptedEntry(handoff.entryRequest)
         val committed = handoff.settlementGate.withLock { handoff.entryCell.disposition }
-        if (admitted != committed || committed == DeliveryEntryDisposition.Empty) {
+        if (committed == DeliveryEntryDisposition.Empty) {
             throw ADMISSION_PORT_DID_NOT_COMMIT
         }
         signalBestEffort()
@@ -1262,7 +790,7 @@ internal class DeliveryOwner internal constructor(
         val callbackThread = Thread.currentThread()
         val opened = handoff.settlementGate.withLock {
             handoff.entryCell.publishCallbackThreadLocked(callbackThread) &&
-                    handoff.borrowedFrame.openLocked(callbackThread).also { openedAuthority ->
+                    handoff.borrowedAuthority.openLocked(callbackThread).also { openedAuthority ->
                         if (openedAuthority) handoff.callbackInvocationStarted = true
                     }
         }
@@ -1270,13 +798,13 @@ internal class DeliveryOwner internal constructor(
 
         var callbackFailure: Throwable? = null
         try {
-            handoff.callback(handoff.borrowedFrame)
+            handoff.callback(handoff.borrowedAuthority.frame)
         } catch (raw: Throwable) {
             callbackFailure = raw
         }
         handoff.settlementGate.withLock {
             handoff.callbackCell.publishLocked(callbackFailure)
-            handoff.borrowedFrame.closeLocked()
+            handoff.borrowedAuthority.closeAndDetachLocked()
             handoff.entryCell.clearCallbackThreadLocked()
             if (callbackFailure != null && callbackFailure !is Exception) {
                 if (handoff.exactFatal == null) handoff.exactFatal = callbackFailure
@@ -1290,7 +818,7 @@ internal class DeliveryOwner internal constructor(
             publishEndpointPoisonedUnlessTerminated()
             failClosedBestEffort(handoff.directFatalNotice)
             signalBestEffort()
-            throw (fatalSlot.get() ?: exactFailure)
+            throw exactFailure
         }
         releaseLeaseOnce(handoff, signalAfter = false)
         signalBestEffort()
@@ -1301,7 +829,7 @@ internal class DeliveryOwner internal constructor(
         signalAfter: Boolean = true,
     ) {
         val lease = handoff.settlementGate.withLock {
-            handoff.borrowedFrame.closeLocked()
+            handoff.borrowedAuthority.closeAndDetachLocked()
             handoff.leaseSlot.claimReleaseLocked()
         } ?: return
         val released = lease.release()
@@ -1310,6 +838,12 @@ internal class DeliveryOwner internal constructor(
         }
         if (signalAfter) signalBestEffort()
     }
+
+    private fun preparedLeaseUnavailable(handoff: DeliveryHandoffRecord): Boolean =
+        handoff.settlementGate.withLock {
+            handoff.leaseSlot.disposition != DeliveryLeaseDisposition.Owned ||
+                    handoff.leaseSlot.lease?.isReleased != false
+        }
 
     private fun isMechanicallySettledLocked(handoff: DeliveryHandoffRecord): Boolean {
         val submission = handoff.submissionCell.disposition
@@ -1340,19 +874,8 @@ internal class DeliveryOwner internal constructor(
         val leaseSettled = handoff.leaseSlot.lease == null &&
                 (handoff.leaseSlot.disposition == DeliveryLeaseDisposition.Released ||
                         handoff.leaseSlot.disposition == DeliveryLeaseDisposition.ReleaseConflict)
-        val submissionConsumed = submission == DeliverySubmissionDisposition.Empty ||
-                handoff.submissionCell.use != DeliveryFactUse.Unclaimed
-        val entryConsumed = entry == DeliveryEntryDisposition.Empty ||
-                handoff.entryCell.use != DeliveryFactUse.Unclaimed
-        val callbackConsumed = handoff.callbackCell.disposition == DeliveryCallbackDisposition.Empty ||
-                handoff.callbackCell.use != DeliveryFactUse.Unclaimed
-        val runnableConsumed = handoff.runnableCell.disposition == DeliveryRunnableDisposition.Empty ||
-                handoff.runnableCell.use != DeliveryFactUse.Unclaimed
-        val noCallbackConsumed = handoff.noCallbackCell.disposition == DeliveryNoCallbackDisposition.Empty ||
-                handoff.noCallbackCell.use != DeliveryFactUse.Unclaimed
         return submission != DeliverySubmissionDisposition.InCall && entrySettled && callbackSettled &&
-                runnableSettled && leaseSettled && submissionConsumed && entryConsumed &&
-                callbackConsumed && runnableConsumed && noCallbackConsumed
+                runnableSettled && leaseSettled
     }
 
     private fun publishEndpointPoisonedUnlessTerminated() {
@@ -1416,6 +939,3 @@ internal class DeliveryOwner internal constructor(
             IllegalStateException("Delivery callback authority could not be opened")
     }
 }
-
-private fun OperationDomain.toFactUse(): DeliveryFactUse =
-    if (this == OperationDomain.Active) DeliveryFactUse.Active else DeliveryFactUse.Cleanup

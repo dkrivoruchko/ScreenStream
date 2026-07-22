@@ -40,11 +40,20 @@ private enum class TargetConstructionAdmission {
     Admitted,
 }
 
+private enum class TargetConstructionCleanupDisposition {
+    Preterminal,
+    Terminal,
+}
+
 internal class TargetConstructionEvidence private constructor(
-    operationIdentity: Long,
+    internal val constructionProvenance: TargetConstructionProvenance,
+    internal val entryProvenance: TargetConstructionEntryProvenance,
 ) : OperationEvidence {
     internal val glEvidence: GlOperationEvidence =
-        GlOperationEvidence(operationIdentity, GlOperationKind.TargetConstruction)
+        GlOperationEvidence(
+            constructionProvenance.constructionOperationIdentity,
+            GlOperationKind.TargetConstruction,
+        )
 
     override val receipt = glEvidence.receipt
     override val returnedOwner: OperationReturnedOwner? = null
@@ -58,16 +67,23 @@ internal class TargetConstructionEvidence private constructor(
         internal fun create(
             targetOwner: TargetOwner,
             constructionProof: () -> Unit,
-            operationIdentity: Long,
+            constructionProvenance: TargetConstructionProvenance,
         ): TargetConstructionEvidence {
             check(targetOwner.acceptsConstructionProof(constructionProof))
-            return TargetConstructionEvidence(operationIdentity)
+            return TargetConstructionEvidence(
+                constructionProvenance,
+                TargetConstructionEntryProvenance.create(
+                    targetOwner,
+                    constructionProof,
+                    constructionProvenance,
+                ),
+            )
         }
     }
 }
 
 private class TargetConstructionOwnerBag(
-    var candidate: CurrentTarget?,
+    val candidate: CurrentTarget,
     val evidence: TargetConstructionEvidence,
 ) : OperationOwnerBag
 
@@ -106,26 +122,54 @@ internal class PreparedTargetQuarantineEvidence private constructor(
     }
 }
 
-internal class PreparedTargetRetiredFact private constructor(
+internal class PreparedTargetMechanicallyRetiredFact private constructor(
     internal val requestedIdentity: TargetRequestedIdentity,
-    internal val targetGeneration: Long,
+    override val targetGeneration: Long,
     internal val retiredTarget: PreparedTarget,
-) {
+) : TargetPredecessorRetiredFact {
     init {
         require(targetGeneration > 0L)
         check(retiredTarget.requestedIdentity === requestedIdentity)
         check(retiredTarget.targetGeneration == targetGeneration)
     }
     internal companion object {
-        internal fun create(
+        internal fun precreate(
             targetOwner: TargetOwner,
             constructionProof: () -> Unit,
-            requestedIdentity: TargetRequestedIdentity,
-            targetGeneration: Long,
             retiredTarget: PreparedTarget,
-        ): PreparedTargetRetiredFact {
+        ): PreparedTargetMechanicallyRetiredFact {
             check(targetOwner.acceptsConstructionProof(constructionProof))
-            return PreparedTargetRetiredFact(requestedIdentity, targetGeneration, retiredTarget)
+            return PreparedTargetMechanicallyRetiredFact(
+                retiredTarget.requestedIdentity,
+                retiredTarget.targetGeneration,
+                retiredTarget,
+            )
+        }
+    }
+}
+
+internal class PreparedTargetTerminalRetiredFact private constructor(
+    internal val requestedIdentity: TargetRequestedIdentity,
+    internal val targetGeneration: Long,
+    internal val retiredTarget: PreparedTarget,
+) {
+    init {
+        check(retiredTarget.requestedIdentity === requestedIdentity)
+        check(retiredTarget.targetGeneration == targetGeneration)
+    }
+
+    internal companion object {
+        internal fun precreate(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            retiredTarget: PreparedTarget,
+        ): PreparedTargetTerminalRetiredFact {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return PreparedTargetTerminalRetiredFact(
+                retiredTarget.requestedIdentity,
+                retiredTarget.targetGeneration,
+                retiredTarget,
+            )
         }
     }
 }
@@ -156,6 +200,32 @@ internal class PreparedTargetAdmissionFact private constructor(
                 targetGeneration,
                 preparedTarget,
                 disposition,
+            )
+        }
+    }
+}
+
+internal class PreparedTargetTerminalCleanupClosedFact private constructor(
+    internal val preparedTarget: PreparedTarget,
+    internal val requestedIdentity: TargetRequestedIdentity,
+    internal val targetGeneration: Long,
+) {
+    init {
+        check(preparedTarget.requestedIdentity === requestedIdentity)
+        check(preparedTarget.targetGeneration == targetGeneration)
+    }
+
+    internal companion object {
+        internal fun precreate(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            preparedTarget: PreparedTarget,
+        ): PreparedTargetTerminalCleanupClosedFact {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return PreparedTargetTerminalCleanupClosedFact(
+                preparedTarget,
+                preparedTarget.requestedIdentity,
+                preparedTarget.targetGeneration,
             )
         }
     }
@@ -209,6 +279,7 @@ internal class PreparedTarget private constructor(
     internal val targetGeneration: Long,
     internal val requestedIdentity: TargetRequestedIdentity,
     internal val plan: TargetPlan,
+    internal val constructionProvenance: TargetConstructionProvenance,
     private val targetGate: ReentrantLock,
     private val predecessorGeneration: Long,
     private val constructionIdentity: GlFiniteOperationIdentity,
@@ -233,7 +304,8 @@ internal class PreparedTarget private constructor(
     private var foldSelected: Boolean = false
     private var foldApplied: Boolean = false
     private var resultFactClaimed: Boolean = false
-    private var terminalCleanup: Boolean = false
+    private var cleanupDisposition: TargetConstructionCleanupDisposition =
+        TargetConstructionCleanupDisposition.Preterminal
     internal var claimedAdmissionDisposition: TargetConstructionAdmissionDisposition? = null
         private set
     internal var selectedFoldDisposition: TargetConstructionFoldDisposition? = null
@@ -243,13 +315,42 @@ internal class PreparedTarget private constructor(
     private var pendingSurface: Surface? = null
     private val foldToken: TargetConstructionFoldToken = TargetConstructionFoldToken.precreate(
         preparedTarget = this,
-        candidate = checkNotNull(ownerBag.candidate),
+        candidate = ownerBag.candidate,
         requestedIdentity = requestedIdentity,
         constructionIdentity = constructionIdentity,
         predecessorGeneration = predecessorGeneration,
         targetGeneration = targetGeneration,
         plan = plan,
     )
+    private val installedResultFact: TargetConstructionInstalledFact =
+        ownerBag.candidate.precreateInstalledConstructionFact(
+            constructionProvenance,
+            ownerBag.evidence.glEvidence.receipt,
+        )
+    private val failureResultFact: TargetConstructionFailureFact =
+        ownerBag.candidate.precreateConstructionFailureFact(constructionProvenance)
+    private val activeAdmissionFact: PreparedTargetAdmissionFact = PreparedTargetAdmissionFact.create(
+        targetOwner,
+        constructionProof,
+        requestedIdentity,
+        targetGeneration,
+        this,
+        TargetConstructionAdmissionDisposition.Active,
+    )
+    private val terminalAdmissionFact: PreparedTargetAdmissionFact = PreparedTargetAdmissionFact.create(
+        targetOwner,
+        constructionProof,
+        requestedIdentity,
+        targetGeneration,
+        this,
+        TargetConstructionAdmissionDisposition.Terminal,
+    )
+    private val terminalCleanupClosedFact: PreparedTargetTerminalCleanupClosedFact =
+        PreparedTargetTerminalCleanupClosedFact.precreate(targetOwner, constructionProof, this)
+    private val mechanicallyRetiredFact: PreparedTargetMechanicallyRetiredFact =
+        PreparedTargetMechanicallyRetiredFact.precreate(targetOwner, constructionProof, this)
+    private val terminalRetiredFact: PreparedTargetTerminalRetiredFact =
+        PreparedTargetTerminalRetiredFact.precreate(targetOwner, constructionProof, this)
 
     init {
         check(targetOwner.acceptsConstructionProof(constructionProof))
@@ -257,10 +358,23 @@ internal class PreparedTarget private constructor(
         require(predecessorGeneration in 0L..<Long.MAX_VALUE)
         require(targetGeneration == predecessorGeneration + 1L)
         require(constructionOccurrence.identity == constructionIdentity.operationIdentity)
+        check(constructionProvenance.requestedIdentity === requestedIdentity)
+        check(constructionProvenance.plan === plan)
+        check(constructionProvenance.predecessorGeneration == predecessorGeneration)
+        check(constructionProvenance.targetGeneration == targetGeneration)
+        check(constructionProvenance.constructionOperationIdentity == constructionIdentity.operationIdentity)
+        check(ownerBag.evidence.constructionProvenance === constructionProvenance)
+        check(ownerBag.evidence.entryProvenance.constructionProvenance === constructionProvenance)
     }
+
+    internal val constructionOperationIdentity: Long
+        get() = constructionIdentity.operationIdentity
 
     internal val constructionGlEvidence: GlOperationEvidence
         get() = ownerBag.evidence.glEvidence
+
+    internal val constructionEntryProvenance: TargetConstructionEntryProvenance
+        get() = ownerBag.evidence.entryProvenance
 
     internal val constructionSettlementGate: ReentrantLock
         get() = constructionOccurrence.settlementGate
@@ -268,10 +382,68 @@ internal class PreparedTarget private constructor(
     internal val currentDisposition: PreparedTargetDisposition
         get() = targetGate.withLock { disposition }
 
+    internal fun isNonterminalCleanupComplete(): Boolean {
+        if (!isCleanupComplete()) return false
+        return targetGate.withLock {
+            foldApplied && disposition == PreparedTargetDisposition.CleanupClaimed &&
+                    cleanupDisposition == TargetConstructionCleanupDisposition.Preterminal
+        }
+    }
+
+    internal fun nonterminalRetirementFactLocked(): PreparedTargetMechanicallyRetiredFact? {
+        check(targetGate.isHeldByCurrentThread)
+        return mechanicallyRetiredFact.takeIf {
+            foldApplied && disposition == PreparedTargetDisposition.CleanupClaimed &&
+                    cleanupDisposition == TargetConstructionCleanupDisposition.Preterminal &&
+                    ownerBag.candidate.isFullyRetired
+        }
+    }
+
+    internal fun terminalRetirementFactLocked(): PreparedTargetTerminalRetiredFact? {
+        check(targetGate.isHeldByCurrentThread)
+        return terminalRetiredFact.takeIf {
+            foldApplied && disposition == PreparedTargetDisposition.CleanupClaimed &&
+                    cleanupDisposition == TargetConstructionCleanupDisposition.Terminal &&
+                    ownerBag.candidate.isFullyRetired
+        }
+    }
+
+    internal fun admissionFact(
+        disposition: TargetConstructionAdmissionDisposition,
+    ): PreparedTargetAdmissionFact = when (disposition) {
+        TargetConstructionAdmissionDisposition.Active -> activeAdmissionFact
+        TargetConstructionAdmissionDisposition.Terminal -> terminalAdmissionFact
+    }
+
+    /**
+     * Idempotently closes an already-applied uninstalled construction cleanup for Session-terminal use.
+     * It does not replay the fold or claim any absent resource receipt.
+     */
+    internal fun closeConstructionCleanupForTerminal(): PreparedTargetTerminalCleanupClosedFact? {
+        val fact = targetGate.withLock {
+            if (!foldApplied || disposition != PreparedTargetDisposition.CleanupClaimed) {
+                return@withLock null
+            }
+            if (targetOwner.closeConstructionAdmissionForPreparedTerminalCleanup(this) == null) {
+                return@withLock null
+            }
+            cleanupDisposition = TargetConstructionCleanupDisposition.Terminal
+            terminalCleanupClosedFact
+        } ?: return null
+        if (ownerBag.candidate.convertCleanupBaseOccurrencesForTerminal() == null) return null
+        return fact
+    }
+
+    internal fun belongsTo(
+        expectedOwner: TargetOwner,
+        expectedConstructionProof: () -> Unit,
+    ): Boolean = targetOwner === expectedOwner && constructionProof === expectedConstructionProof &&
+            expectedOwner.acceptsConstructionProof(expectedConstructionProof)
+
     internal val surfaceReleaseOccurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>
         get() {
             check(currentDisposition == PreparedTargetDisposition.CleanupClaimed)
-            return checkNotNull(ownerBag.candidate).surfaceReleaseOccurrence
+            return ownerBag.candidate.surfaceReleaseOccurrence
         }
 
     internal val constructionDeadlineWakeLink: ControlWakeLink =
@@ -337,17 +509,17 @@ internal class PreparedTarget private constructor(
             if (!foldApplied || disposition != PreparedTargetDisposition.CleanupClaimed) {
                 return@withLock false
             }
-            terminalConversionRequired = terminalCleanup
+            terminalConversionRequired = cleanupDisposition == TargetConstructionCleanupDisposition.Terminal
             isConstructionMechanicallySettledLocked().also { mechanicallySettled ->
                 if (mechanicallySettled) moveEvidenceToPendingLocked()
             }
         }
         if (settled) {
-            val candidate = checkNotNull(ownerBag.candidate)
+            val candidate = ownerBag.candidate
             applyPendingResources(candidate)
             candidate.settleConstructionResourceObligations()
             if (terminalConversionRequired) {
-                candidate.convertConstructionCleanupOccurrencesForTerminal()
+                candidate.convertCleanupBaseOccurrencesForTerminal()
             }
         }
         return settled
@@ -359,7 +531,7 @@ internal class PreparedTarget private constructor(
 
     internal fun prepareCleanupSurfaceReleaseOperation(): TargetRetirement.SurfaceReleaseOperation? {
         if (!isConstructionMechanicallySettledForCleanup()) return null
-        return checkNotNull(ownerBag.candidate)
+        return ownerBag.candidate
             .prepareUninstalledSurfaceReleaseOperation(constructionSettled = true)
     }
 
@@ -368,15 +540,15 @@ internal class PreparedTarget private constructor(
         namespaceIdentity: GlFiniteOperationIdentity,
     ): TargetRetirement.TargetScopeDestructionGraph? {
         if (!isConstructionMechanicallySettledForCleanup()) return null
-        return checkNotNull(ownerBag.candidate)
+        return ownerBag.candidate
             .prepareTargetScopeDestructionGraph(targetIdentity, namespaceIdentity)
     }
 
     internal fun isCleanupComplete(): Boolean =
-        isConstructionMechanicallySettledForCleanup() && checkNotNull(ownerBag.candidate).isFullyRetired
+        isConstructionMechanicallySettledForCleanup() && ownerBag.candidate.isFullyRetired
 
     internal fun quarantineEvidence(): PreparedTargetQuarantineEvidence {
-        val candidate = checkNotNull(ownerBag.candidate)
+        val candidate = ownerBag.candidate
         val suffix = if (isConstructionMechanicallySettledForCleanup()) {
             candidate.retirementSuffixEvidence()
         } else {
@@ -415,7 +587,8 @@ internal class PreparedTarget private constructor(
                 deadline.timeoutCause === constructionIdentity.timeoutCause &&
                 constructionOccurrence.ownerBag === ownerBag &&
                 constructionOccurrence.returnCell.evidence === ownerBag.evidence &&
-                ownerBag.candidate?.matchesPrecreatedIdentity(
+                ownerBag.evidence.entryProvenance.constructionProvenance === constructionProvenance &&
+                ownerBag.candidate.matchesPrecreatedIdentity(
                     expectedPlan = plan,
                     expectedRequestedIdentity = requestedIdentity,
                     expectedGeneration = targetGeneration,
@@ -426,8 +599,8 @@ internal class PreparedTarget private constructor(
                     surfaceReleaseTimeoutCause = surfaceReleaseTimeoutCause,
                     targetDestructionIdentity = targetDestructionIdentity,
                     namespaceDestructionIdentity = namespaceDestructionIdentity,
-                ) == true &&
-                ownerBag.candidate?.usesTargetGate(targetGate) == true &&
+                ) &&
+                ownerBag.candidate.usesTargetGate(targetGate) &&
                 constructionOccurrence.domain == OperationDomain.Active &&
                 constructionOccurrence.submissionDisposition ==
                 OperationSubmissionDisposition.None &&
@@ -481,7 +654,7 @@ internal class PreparedTarget private constructor(
             constructionOccurrence.arbitrateTerminal(mandatoryCleanup = false)
             constructionResultClaimed = true
             claimedAdmissionDisposition = admissionDisposition
-            terminalCleanup = true
+            cleanupDisposition = TargetConstructionCleanupDisposition.Terminal
             installEligible = false
             selectedFoldDisposition = TargetConstructionFoldDisposition.CleanupTerminal
             moveEvidenceToPendingLocked()
@@ -492,7 +665,7 @@ internal class PreparedTarget private constructor(
 
         constructionResultClaimed = true
         claimedAdmissionDisposition = admissionDisposition
-        terminalCleanup = false
+        cleanupDisposition = TargetConstructionCleanupDisposition.Preterminal
         installEligible = when (arbitration) {
             OperationArbitration.TimelyNormal -> {
                 val glEvidence = ownerBag.evidence.glEvidence
@@ -562,8 +735,9 @@ internal class PreparedTarget private constructor(
         } else {
             selectedFoldDisposition = selected
         }
-        terminalCleanup = terminalCleanup ||
-                selectedFoldDisposition == TargetConstructionFoldDisposition.CleanupTerminal
+        if (selectedFoldDisposition == TargetConstructionFoldDisposition.CleanupTerminal) {
+            cleanupDisposition = TargetConstructionCleanupDisposition.Terminal
+        }
         foldSelected = true
         return selectedFoldDisposition
     }
@@ -575,7 +749,7 @@ internal class PreparedTarget private constructor(
             return false
         }
         selectedFoldDisposition = TargetConstructionFoldDisposition.CleanupTerminal
-        terminalCleanup = true
+        cleanupDisposition = TargetConstructionCleanupDisposition.Terminal
         return true
     }
 
@@ -600,7 +774,7 @@ internal class PreparedTarget private constructor(
     private fun hasExactConstructionBindingLocked(): Boolean {
         check(constructionSettlementGate.isHeldByCurrentThread)
         val deadline = constructionOccurrence.deadlineOccurrence ?: return false
-        val candidate = ownerBag.candidate ?: return false
+        val candidate = ownerBag.candidate
         return foldToken.preparedTarget === this && foldToken.candidate === candidate &&
                 foldToken.constructionIdentity === constructionIdentity &&
                 constructionOccurrence.identity == constructionIdentity.operationIdentity &&
@@ -610,6 +784,7 @@ internal class PreparedTarget private constructor(
                 deadline.timeoutCause === constructionIdentity.timeoutCause &&
                 constructionOccurrence.ownerBag === ownerBag &&
                 constructionOccurrence.returnCell.evidence === ownerBag.evidence &&
+                ownerBag.evidence.entryProvenance.constructionProvenance === constructionProvenance &&
                 candidate.matchesPrecreatedIdentity(
                     expectedPlan = plan,
                     expectedRequestedIdentity = requestedIdentity,
@@ -669,7 +844,7 @@ internal class PreparedTarget private constructor(
                 return@withLock false
             }
             val selected = checkNotNull(selectedFoldDisposition)
-            val candidate = checkNotNull(ownerBag.candidate)
+            val candidate = ownerBag.candidate
             applyPendingResourcesLocked(candidate)
             val installed = selected == TargetConstructionFoldDisposition.Install
             candidate.finishConstructionOwnership(installed)
@@ -690,11 +865,10 @@ internal class PreparedTarget private constructor(
             checkNotNull(selectedFoldDisposition)
         } ?: return null
         return if (selected == TargetConstructionFoldDisposition.Install) {
-            checkNotNull(ownerBag.candidate).installedConstructionFact(
+            ownerBag.candidate.claimInstalledConstructionFact(
                 targetOwner,
                 constructionProof,
-                constructionIdentity.operationIdentity,
-                ownerBag.evidence.glEvidence.receipt,
+                installedResultFact,
             )
         } else {
             constructionFailureFact(token, selected)
@@ -714,10 +888,10 @@ internal class PreparedTarget private constructor(
             failure = constructionOccurrence.returnCell.throwable
             stage = ownerBag.evidence.stage
         }
-        return checkNotNull(ownerBag.candidate).constructionFailureFact(
+        return ownerBag.candidate.bindConstructionFailureFact(
             requester = targetOwner,
             proof = constructionProof,
-            constructionOperationIdentity = constructionIdentity.operationIdentity,
+            precreatedFact = failureResultFact,
             disposition = selected,
             returnDisposition = returnDisposition,
             failure = failure,
@@ -750,6 +924,7 @@ internal class PreparedTarget private constructor(
             predecessorGeneration: Long,
             plan: TargetPlan,
             requestedIdentity: TargetRequestedIdentity,
+            constructionProvenance: TargetConstructionProvenance,
             constructionIdentity: GlFiniteOperationIdentity,
             listenerInstallationOperationIdentity: Long,
             sourceSignal: TargetSourceSignal,
@@ -765,7 +940,7 @@ internal class PreparedTarget private constructor(
             val evidence = TargetConstructionEvidence.create(
                 targetOwner,
                 constructionProof,
-                constructionIdentity.operationIdentity,
+                constructionProvenance,
             )
             val candidate = CurrentTarget.precreateCandidate(
                 targetOwner = targetOwner,
@@ -803,6 +978,7 @@ internal class PreparedTarget private constructor(
                 targetGeneration,
                 requestedIdentity,
                 plan,
+                constructionProvenance,
                 targetGate,
                 predecessorGeneration,
                 constructionIdentity,

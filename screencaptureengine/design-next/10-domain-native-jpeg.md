@@ -28,7 +28,7 @@ fallback and errors remain [PROD-060](02-product-contract.md#prod-060--state-and
 - [NJPEG-CONST-001](#njpeg-const-001--jpeg-entered-operation-interval)
 - [NJPEG-WIRE-001](#njpeg-wire-001--fixed-native-result-codes)
 - [NJPEG-PKG-001](#njpeg-pkg-001--native-build-and-artifacts)
-- [NJPEG-110](#njpeg-110--forbidden-alternatives)
+- [NJPEG-110](#njpeg-110--safety-boundaries)
 - [NJPEG-120](#njpeg-120--executable-obligations)
 
 ## NJPEG-001 — Files, binary identity, and authority
@@ -405,9 +405,9 @@ The same call never publishes partial bytes. Unsafe nonreturn or uncertain carri
 or adoption ownership is terminal `InternalFailure` and roots the exact occurrence. Native fallback never changes
 Target or Direct-readback health.
 
-Native publishes only typed diagnostic-trigger facts. Source/label selection, the sole JPEG timeout-source
-matrix, construction, and emission are [`DEL-OBS-020`](12-domain-delivery-observation.md#del-obs-020--diagnostic-construction-and-emission)
-and have no control authority.
+Native publishes only typed diagnostic-site facts. `CTRL-300` selects source/label/cause and timeout mapping;
+[`DEL-OBS-020`](12-domain-delivery-observation.md#del-obs-020--diagnostic-construction-and-emission) only constructs
+and attempts emission. Neither step gives Native control authority.
 
 ## NJPEG-100 — Cleanup and late return
 
@@ -487,30 +487,26 @@ four-ABI, exports, weak undefined symbol/guard, direct `DT_NEEDED` on `jnigraphi
 configuration-argument coverage, DSO isolation, and alignment evidence; connected execution proves only its
 actual ABI.
 
-## NJPEG-110 — Forbidden alternatives
+## NJPEG-110 — Safety boundaries
 
-- executing-ABI inference or runtime ABI-selection axis;
-- stored compressor pointer, platform-library handle, dynamic symbol ownership, or compressor cleanup;
-- managed carrier with Native enabled, second Session health cell, per-frame capability cache, or device allowlist;
-- same-frame Framework retry, precreated Framework resources while Native is healthy, or Target/GL fallback coupling;
-- result classification before all writer/JNI/adoption/ownership evidence, or compressor result outranking faults;
-- a cross-return native writer owner, second writer-cleanup JNI boundary, struct/pointer aliasing of the result
-  block, or unknown native-status acceptance;
-- JNI from the writer callback, retained temporary segment view, grouped native segments, native-backed published
-  payload, or publication outside [`STORE-050`](11-domain-encoded-storage.md#store-050--commit-immutable-payload-and-caller-copies);
-- loader/bootstrap retry after a fixed result, managed fallback after load OOM/poison, or owner creation in
-  static initialization/`JNI_OnLoad`;
-- treating cancellation, closure, quarantine, poison, shutdown request, queue state, worker return, or non-owned
-  runtime progress as the JPEG endpoint's `terminated()` receipt;
-- suspension or any cross-return asynchronous continuation inside a JPEG owner Runnable;
-- timeout as release, late return as active authority, duplicate free/native close, or fabricated managed
-  reclamation receipt.
+Native selection uses the frozen loader/capability result, one Session health cell, a legal carrier product, and
+complete writer/JNI/adoption/ownership evidence. The compressor pointer and writer remain call-scoped; managed
+publication occurs only through [`STORE-050`](11-domain-encoded-storage.md#store-050--commit-immutable-payload-and-caller-copies).
+The fixed result block is decoded by exact status/count truth table after native close evidence.
+
+The runtime performs no ABI/device selection, loader retry, stored compressor ownership, same-frame Framework
+retry, JNI from the writer callback, cross-return writer continuation, or unknown-status acceptance. Timeout and
+late return are not release or active authority; only real free/close/endpoint-termination evidence retires their
+matching obligations.
 
 ## NJPEG-120 — Executable obligations
 
 Closed packet membership is in [router §5](01-authority-router.md#5-closed-implementation-packets); runners,
 shared closure/routing and test namespaces are in [Document 04](04-verification.md), and canonical test source sets are in
 [router §7](01-authority-router.md#7-test-manifest). Exact native rows are:
+
+Every Native diagnostic row exposes only the typed site/cause fact and proves routing to `CTRL-300`; it neither
+selects public vocabulary nor bypasses `DEL-OBS-020` construction/emission.
 
 | Tests | Required proof |
 | --- | --- |

@@ -23,8 +23,8 @@ Private decomposition creates no additional Android lane, gate, owner, or state 
 - [AND-MET-001](#and-met-001--source-identity-and-observation-ownership)
 - [AND-MET-010](#and-met-010--exact-api-band-reads-and-authority)
 - [AND-MET-011](#and-met-011--epoch-invalidation-and-latest-geometry)
-- [AND-MET-020](#and-met-020--provider-observation-and-active-ordering)
-- [AND-MET-021](#and-met-021--provider-mechanical-outcome-partition)
+- [AND-MET-020](#and-met-020--source-observation-and-active-ordering)
+- [AND-MET-021](#and-met-021--source-mechanical-outcome-partition)
 - [AND-MET-030](#and-met-030--built-in-close-and-residue)
 - [AND-CAP-001](#and-cap-001--android-lane-and-startup-sequence)
 - [AND-CAP-010](#and-cap-010--projection-and-virtualdisplay-calls)
@@ -33,7 +33,7 @@ Private decomposition creates no additional Android lane, gate, owner, or state 
 - [AND-CAP-040](#and-cap-040--android-deadlines-and-call-policy)
 - [AND-CAP-050](#and-cap-050--domain-interfaces)
 - [AND-CAP-060](#and-cap-060--exact-androidmetrics-verification)
-- [AND-CAP-070](#and-cap-070--closed-alternatives)
+- [AND-CAP-070](#and-cap-070--safety-boundaries)
 
 ## AND-MET-001 — Source identity and observation ownership
 
@@ -42,13 +42,11 @@ Null configuration creates one Session-private built-in source for the default-d
 exact supplied `Display` object and ID. Both retain a normalized application Context and its `DisplayManager`;
 the explicit policy never substitutes another Display, including one with the same ID. The default policy may
 select a different current `Display.DEFAULT_DISPLAY` object after the prior selection is removed. A configured
-custom `CaptureMetricsProvider` retains its exact identity and owns its Activity/window/dynamic-display policy.
+custom `CaptureMetricsSource` retains its exact identity and owns its Activity/window/dynamic-display policy.
 
-`CaptureMetricsProvider` is the externally implementable direct subtype of the sealed `CaptureMetricsSource`;
-application implementations are therefore indirect source implementations. A built-in source is an
-engine-defined direct subtype and cannot be confused with a custom provider by reflection, wrapper identity, or
-factory provenance. The Session branches only on these closed source kinds and calls custom `subscribe` exactly
-once.
+`CaptureMetricsSource` is the single externally implementable repeatable-subscription extension point. Built-in
+factories return private source implementations. Each Session attachment calls that source's `subscribe`
+exactly once and owns the returned observation independently.
 
 Every built-in observation attachment creates an independent listener, coalesced-refresh bit, authority fence,
 epoch-invalidated bit, selected epoch, window-object cache, and unregister obligation. Direct, repeated,
@@ -109,13 +107,16 @@ The full authority key offered to that controller contains observation/source id
 continuous-validity epoch or projection owner, availability phase, and every authoritative field. Repeated
 unavailable and an equal full key are no-ops after ingress consumption. First valid, availability transition,
 new epoch/owner, or field change is real; unavailable followed by historically equal valid fields is recovery.
+After first Active, every real geometry/metrics change requiring mechanics enters the common `CTRL-120` pause;
+availability loss may keep the more precise `Suspended(CaptureUnavailable)` cause while using the same
+Production/frame-Delivery close and relevant-predecessor/Target drain.
 
-## AND-MET-020 — Provider observation and Active ordering
+## AND-MET-020 — Source observation and Active ordering
 
 Accepted startup creates one identity-fenced observation with bounded readiness, handle-adoption, attachment,
 and close ownership, then submits it under `CORE-EXEC-1`. After entry it publishes checked start/deadline samples
 before exactly one outward observation-start call. That call is custom
-`provider.subscribe(observer)` or the built-in attach/register equivalent. Thus `S,D` are visible before any
+`source.subscribe(observer)` or the built-in attach/register equivalent. Thus `S,D` are visible before any
 inline callback. Observer calls may be synchronous before return, inline/reentrant, concurrent, or later on
 arbitrary source-owned threads; no callback-thread ordering is assumed.
 
@@ -140,11 +141,11 @@ Normal `onComplete` before joint readiness—including valid-before-handle—clo
 diagnostic. If the observation-start call later returns a normal nonnull handle, the engine adopts it and makes
 it the exact pending close obligation. Normal
 `onComplete` after joint readiness, including after readiness but before first Active, closes ingress, retains
-the last valid tuple, requests the one null-cause completion diagnostic, and does not prevent startup from
+the last valid tuple, offers the one completion-after-readiness fact to `CTRL-300`, and does not prevent startup from
 continuing. `onFailure` retains its ordinary pre-/post-readiness `InternalFailure` behavior. The first terminal
 callback remains the only terminal occurrence.
 
-Source ingress and first `Running(Active)` are ordered by the same `sessionGate`. Before Active, the controller
+Source ingress and first `Active` are ordered by the same `sessionGate`. Before Active, the controller
 folds every represented earlier sequence and rechecks the observation fence, joint-readiness commit, sticky loss,
 terminal phase, and latest tuple. After Active, the latest nullable cell and first terminal follow `PROD-020`.
 Duplicate determination uses the full authority key in `CTRL-100`: a duplicate still consumes its ingress
@@ -163,29 +164,26 @@ observer, possible future handle, owner bag, and close obligation intact. Only e
 evidence that no handle exists makes close structurally inapplicable. Metrics `terminated()` remains a distinct
 endpoint/thread receipt.
 
-## AND-MET-021 — Provider mechanical outcome partition
+## AND-MET-021 — Source mechanical outcome partition
 
 | Mechanical outcome | Exact outbound fact/ownership route |
 | --- | --- |
 | timely first valid positive tuple and its normal nonnull handle are jointly committed before prior loss/terminal/expiry | readiness success plus the complete tuple; full attachment-ticket settlement may be later, and observation remains owned |
-| normal completion before joint readiness, including valid-before-handle | startup `CaptureUnavailable`; no completion diagnostic; a later normal nonnull handle is adopted for exact close |
-| first-readiness expiry | readiness-expired fact with its fixed cause; observation ownership remains mechanical |
+| normal completion before joint readiness, including valid-before-handle | startup `CaptureUnavailable`; offer no completion-after-readiness fact; a later normal nonnull handle is adopted for exact close |
+| first-readiness expiry | readiness-expired fact with its precreated failure evidence; observation ownership remains mechanical and `CTRL-300` selects any public diagnostic cause |
 | observation-start throws `Exception` or returns a null interop handle while unresolved | authoritative source-observation `InternalFailure` over staged callbacks, with the raw cause when present |
 | observer reports `onFailure` | source-observation failure with the raw cause and exact joint-readiness phase; first terminal wins |
 | observation-start throws `Error` or another direct non-`Exception` throwable | exact raw fatal settlement and engine-boundary rethrow under `CORE-FATAL-1` |
-| adopted-handle `close` throws `Exception` while still active | provider-close-failure fact with the raw cause; a prior terminal transfer remains authoritative |
+| adopted-handle `close` throws `Exception` while still active | source-close-failure fact with the raw cause; a prior terminal transfer remains authoritative |
 | required tuple becomes null/invalid | availability-loss fact with readiness/Active phase and raw nullable cause |
 | normal completion after joint readiness, including before first Active | one completion-after-readiness fact; ingress closes and last valid tuple remains mechanically available |
 | later valid tuple while nonterminal | one new complete combined tuple fact |
 | result after active-to-cleanup transfer | reduce only the same metrics residue; publish no geometry or lifecycle fact |
 
-The completion-after-readiness fact requests exactly one normal observation-completion diagnostic for that
-matching observation lifetime: source `MetricsProvider`, label `CapabilityCheck`, and `cause = null`. Pre-readiness
-completion, provider failure, and duplicate terminal delivery create no such event; the one observation lifetime
-can never request it twice. The request is routed through
-[CTRL-300](05-domain-controller-reconciliation.md#ctrl-300--cross-domain-commit-rules), which retains diagnostic
-sequence authority, and [DEL-OBS-020](12-domain-delivery-observation.md#del-obs-020--diagnostic-construction-and-emission)
-for unlocked construction/emission.
+The completion-after-readiness fact is offered once for that matching observation lifetime. Pre-readiness
+completion, source failure, and duplicate terminal delivery offer none. `CTRL-300` alone selects its
+`MetricsSource`/`CapabilityCheck`/null-cause request; `DEL-OBS-020` only constructs and emits the accepted
+immutable snapshot.
 
 [PROD-020](02-product-contract.md#prod-020--configuration-and-metrics) owns visible source-observation outcomes;
 [CTRL-030](05-domain-controller-reconciliation.md#ctrl-030--lifecycle-and-terminal-application) and
@@ -210,10 +208,12 @@ read, publication, and lifecycle calls.
 
 ## AND-CAP-001 — Android lane and startup sequence
 
-Each accepted Session owns one `HandlerThread` and `Handler`. `AndroidCaptureOwner` alone uses that Handler for
-every `MediaProjection` callback registration/unregistration and callback, VirtualDisplay create/resize/
-setSurface/release, target-listener Android-side call, and projection stop. Callback bodies carry the Session
-epoch and publish immutable facts; they do not mutate controller, Target, or GL state.
+Each accepted Session owns one `HandlerThread` and `Handler`. `AndroidCaptureOwner` alone retains
+`MediaProjection` and `VirtualDisplay` ownership and normally uses that Handler for every projection callback
+registration/unregistration and callback, display create/resize/setSurface/release, target-listener Android-side
+call, and projection stop. Its sole alternate execution site is the opaque one-shot final-Control cleanup action
+admitted by `AND-CAP-030`; it creates no lane, executor, or controller projection authority. Callback bodies
+carry the Session epoch and publish immutable facts; they do not mutate controller, Target, or GL state.
 
 Every engine-originated Android Runnable has a typed post/entry ticket. `Handler.post(runnable) == true` is
 acceptance only, not entry, execution, return, release, or thread-liveness receipt. `false` or an outward throw is
@@ -246,8 +246,8 @@ startup prerequisites in this order:
 
 VirtualDisplay creation uses the current valid `W,H,D` under the API-band geometry and provisional/admission
 policy in [PROD-020](02-product-contract.md#prod-020--configuration-and-metrics). On API 34–37 the Android lane
-settles the first resize before step 5. Initial-resize expiry publishes its fixed cause and
-`MediaProjection/CapabilityCheck` diagnostic request; [CTRL-030](05-domain-controller-reconciliation.md#ctrl-030--lifecycle-and-terminal-application)
+settles the first resize before step 5. Initial-resize expiry publishes its fixed site/cause fact for
+`CTRL-300` selection; [CTRL-030](05-domain-controller-reconciliation.md#ctrl-030--lifecycle-and-terminal-application)
 owns the startup result. An earlier resize retains its actual settlement time even if VirtualDisplay publication
 occurs later.
 
@@ -267,7 +267,7 @@ return records its exact actual applied tuple; only a timely current normal resu
 | target attach/detach | `virtualDisplay.setSurface(surface)` / `virtualDisplay.setSurface(null)` once per admitted occurrence | Normal attach/detach publishes the exact platform result consumed by `TGT-040`; throw/timeout supplies no producer, no-producer, or detach proof. |
 | callback unregister | At most once in cleanup: `mediaProjection.unregisterCallback(callback)` | Normal return releases callback registration. Returned `Exception` is recorded and cleanup continues; direct fatal follows `CORE-FATAL-1`; nonreturn blocks this serial suffix. |
 | display release | At most once in cleanup: `virtualDisplay.release()` | Normal return releases the display and may supply the matching `TGT-040` detach receipt. Returned `Exception` is recorded and cleanup continues; direct fatal follows `CORE-FATAL-1`; nonreturn blocks the suffix. |
-| projection stop | At most once after display cleanup outcome: `mediaProjection.stop()` | Normal return releases projection ownership. It creates no `CaptureEnded` fact. |
+| projection stop | One shared Android-owned occurrence may enter at most once after its exact cleanup prerequisites: `mediaProjection.stop()`. It normally enters on the Android Handler; `AND-CAP-030` alone admits the final-Control path. | Only actual normal return is the projection-closure receipt. Throw, nonreturn, or ambiguity retains the exact occurrence and owner. No path creates a `CaptureEnded` fact. |
 
 The VirtualDisplay always retains authoritative logical `W x H` and density `D`, uses automatic-mirroring, and
 passes a nonnull Target Surface with null VirtualDisplay callback and Handler. The flag is a request, not a
@@ -297,9 +297,9 @@ For Target-port calls, this domain consumes only the inaccessible installed-Targ
 | listener install/remove | registered one-operation listener port bound to CurrentTarget, target generation, operation identity/kind, and provenance | exact platform settlement and sentinel-post/observation facts for `TGT-050` |
 | display create/attach | registered counted one-shot Android Surface port/lease with the same bindings | exact platform result offered to `TGT-040` after complete settlement |
 | display detach/release | registered one-shot detach port | exact normal/throw result offered to `TGT-040` |
-| retained display resize | controller-authorized `CTRL-120` command bound to the exact retained occurrence and sealed Target epoch | exact normal/throw result and actual applied `(W,H,D)` offered to the controller |
+| display resize | controller-authorized `CTRL-120` mutation bound to the one serialized reconfiguration cycle and quiesced Target | exact normal/throw result and actual applied `(W,H,D)` offered to the controller |
 
-Target prepares the port, provenance, and evidence; the Controller supplies the exact `Replacement` identity.
+Target prepares the port, provenance, and evidence; the Controller supplies the exact reconfiguration correlation.
 Before Target commits registration, Android binds its post/operation/root and result evidence to both identities.
 A commit loser is `RetiredUnused`; a committed graph is `PostExposed` unless Android proves
 `DefinitelyUnentered`. Physical Runnable entry and later platform-operation entry remain distinct. Android alone
@@ -314,14 +314,14 @@ exactly one Android-owned proof:
 
 Either entry winning or acceptance ambiguity yields `PostExposed`. Post return/throw, direct fatal, poison,
 queue observation, shutdown request, or caller result alone does not prove no-entry. Without one listed proof,
-terminal transfers the whole graph; one Replacement graph proves nothing about the other.
+terminal transfers the whole graph; detach and producer graphs prove nothing about each other.
 
 Each committed Target-port owner bag retains its exact port, provenance, occurrence, ticket, outcomes, and root
 through physical ticket return and until Target consumes the applicable outcome or cleanup adopts the intact
 graph, even when Target-port inert retirement has become safe; it invokes only that operation.
 Port binding, raw-handle exposure, lease accounting, and uninstalled-Target exclusion remain solely
 [TGT-020](07-domain-target.md#tgt-020--preparation-and-single-disposition) and
-[TGT-030](07-domain-target.md#tgt-030--currenttarget-ports-leases-and-provenance). Retained resize instead consumes
+[TGT-030](07-domain-target.md#tgt-030--currenttarget-ports-leases-and-provenance). Display resize instead consumes
 only its listed controller command and holds no Target port. Each result goes only to the typed consumer listed above;
 Android neither synthesizes nor interprets producer authority.
 
@@ -334,11 +334,11 @@ this domain owns only the listed Android Handler calls and their physical outcom
 
 ## AND-CAP-030 — Mutation, currentness, and cleanup
 
-For any [CTRL-120](05-domain-controller-reconciliation.md#ctrl-120--destructive-transition-order) retained
-occurrence, including combined density plus GL changes, Android performs exactly one resize iff its accepted
-`(W,H,D)` differs. Every normal return retains the exact nonpublic actual applied tuple and occurrence, including
-safe stale success; the latest sealed occurrence alone selects compensation before reopen. Android owns no
-Session currentness, effective/public state, compensation, or reopen decision. An incompatible dimension or target-health change follows
+For any [CTRL-120](05-domain-controller-reconciliation.md#ctrl-120--destructive-transition-order) serialized
+mutation, including density plus GL changes, Android performs exactly one resize iff its accepted `(W,H,D)`
+differs. Every normal return retains the exact nonpublic actual applied tuple and operation identity, including a
+safe result after the desire changed. Android owns no Session currentness, effective/public state, successor, or
+reopen decision. An incompatible dimension or target-health change follows
 [CTRL-120](05-domain-controller-reconciliation.md#ctrl-120--destructive-transition-order): detach and retire the
 old Target before replacement. Android publishes only the matching typed physical facts;
 [CTRL-100](05-domain-controller-reconciliation.md#ctrl-100--currentness-identities),
@@ -350,25 +350,36 @@ Terminal transfers every submitted, ambiguous, entered, or unproved `PostExposed
 No-entry remains exclusively the three `AND-CAP-020` proofs. Each Android root remains live through physical
 ticket return and until Target consumes its sealed outcome or cleanup transfer becomes durable.
 
-Local Android cleanup order is fixed:
+Android cleanup first settles the exact callback-unregister and VirtualDisplay cleanup outcomes, including
+structurally inapplicable or retained-residue states, before the one shared projection-stop arbitration. The
+normal path enters stop on the Android Handler before lane shutdown. A returned `Exception` is recorded and the
+next reachable step is attempted; direct fatal follows `CORE-FATAL-1`, and nonreturn blocks only its serial
+suffix.
 
-```text
-projection callback unregister -> VirtualDisplay release -> MediaProjection stop
-```
+The direct path is admitted only after terminal cutoff and the bounded Android work set are sealed, every
+callback/VirtualDisplay prerequisite and all other physical cleanup roots have settled, and typed evidence proves
+either that the Android lane never started or that the exact bound worker finally returned with the stop
+occurrence definitely unentered. These are also the eligibility proofs after lane fatal or poison. The shared
+arbitration admits direct execution only while the normal occurrence is definitely unentered; an entered or
+acceptance-ambiguous normal attempt transfers intact and is never retried. Android retains the projection and
+exposes only the opaque one-shot action and outcome to the final Control turn.
 
-A returned `Exception` is recorded and the next reachable step is attempted; direct fatal follows
-`CORE-FATAL-1`, and nonreturn blocks only its serial suffix.
+The direct stop is the final physical cleanup action. Actual normal return on either path is the sole projection-
+closure receipt. Throw, nonreturn, or ambiguity quarantines the exact occurrence, action, and Android owner;
+Control's root remains live and unshut. No stop outcome changes the terminal winner or creates a callback fact.
+
 Target release remains the separate dependency graph in
 [TGT-060](07-domain-target.md#tgt-060--mutually-exclusive-retirement-readiness),
 [TGT-070](07-domain-target.md#tgt-070--surface-and-targetscope-destruction), and
 [TGT-090](07-domain-target.md#tgt-090--successor-admission-cleanup-and-nonreturn), so unrelated cleanup roots, metrics
 unregister, Android-thread shutdown eligibility, and other Sessions progress whenever their own prerequisites
-permit. `AndroidCaptureOwner` calls `HandlerThread.quitSafely()` only after every Android-owned operation,
+permit. `AndroidCaptureOwner` calls `HandlerThread.quitSafely()` only after every Handler-reachable operation,
 callback, Target Android-side dependency, and cleanup suffix settles, except an intact terminal-transferred
-never-entered ticket/occurrence graph may remain as an exact lane-termination dependency. No active, ambiguous,
-or platform-entered graph qualifies. Final thread return plus its exact state may then produce
-`DefinitelyUnentered`; its `finally` publishes the sole lane-return cell. Lane shutdown and every terminal-origin
-or terminal-converted cleanup call have no watchdog.
+never-entered ticket/occurrence graph may remain as an exact lane-termination dependency. Projection stop is
+normally part of that suffix; only the fully qualified direct path makes final lane return a prerequisite to
+stop. No active, ambiguous, or platform-entered graph qualifies. Final thread return plus its exact state may
+then produce `DefinitelyUnentered`; its `finally` publishes the sole lane-return cell. Lane shutdown and every
+terminal-origin or terminal-converted cleanup call have no watchdog.
 
 ## AND-CAP-040 — Android deadlines and call policy
 
@@ -378,33 +389,33 @@ These private `Long` nanosecond values are implementation policy, not public SLA
 
 | Constant | Value | One occurrence |
 | --- | ---: | --- |
-| `firstMetricsReadinessNanos` | `5_000_000_000L` | Under attachment `settlementGate`, arm `S,D` after attachment-Runnable entry and immediately before the one observation-start call. Joint readiness requires a positive observer sample `T < D` plus normal nonnull exact-handle adoption before prior loss/terminal/expiry. Long-lived observation and exact close have no readiness watchdog. |
-| `initialCapturedResizeReadinessNanos` | `5_000_000_000L` | API 34–37 only, from atomic publication of `S,D` with the nonnull VirtualDisplay owner through first valid resize. API 24–33 create zero such occurrence. |
+| `firstMetricsPositiveSafetyNanos` | `5_000_000_000L` | Under attachment `settlementGate`, arm `S,D` after attachment-Runnable entry and immediately before the one observation-start call. Joint readiness requires a positive observer sample `T < D` plus normal nonnull exact-handle adoption before prior loss/terminal/expiry. Long-lived observation and exact close have no readiness watchdog. |
+| `initialResizeSafetyNanos` | `5_000_000_000L` | API 34–37 only, from atomic publication of `S,D` with the nonnull VirtualDisplay owner through first valid resize. API 24–33 create zero such occurrence. |
 | `androidEnteredOperationSafetyNanos` | `5_000_000_000L` | One preterminal projection registration, VirtualDisplay create/resize/setSurface, target-listener install/remove, or typed Surface-release occurrence after its prerequisites. GL-070 executes the Surface call; this row owns only its deadline and result-classification policy. It is never one window for a compound sequence. |
 
-For an occurrence governed by this policy, timely normal/throw keeps its exact boundary classification. Expiry
-or late return is `InternalFailure` when it wins active arbitration; a real late receipt may advance only
-physical cleanup. Terminal-before-entry converts a mandatory call to the same one-shot no-watchdog cleanup;
+For any listed occurrence, timely normal/throw keeps its exact boundary classification. Winning expiry of
+`firstMetricsPositiveSafetyNanos` or `initialResizeSafetyNanos` is `CaptureUnavailable`; winning expiry of
+`androidEnteredOperationSafetyNanos` is terminal `InternalFailure`. A real late handle, resize, or operation
+receipt may advance only its matching physical cleanup and cannot revise that classification.
+Terminal-before-entry converts a mandatory call to the same one-shot no-watchdog cleanup;
 terminal after entry retires the deadline and transfers the intact occurrence. Queued work has no start
 watchdog, scheduler nonprogress is not a return, and no boundary is retried.
 
-When an active timeout wins, diagnostic source is `MediaProjection` for callback registration/create,
-`VirtualDisplay` for resize/setSurface, and `SurfaceTarget` for Target listener/Surface calls; label is
-`CapabilityCheck` and the request carries the fixed cause. [CTRL-300](05-domain-controller-reconciliation.md#ctrl-300--cross-domain-commit-rules)
-owns acceptance/ordering, including any `SessionTerminal` request, and
-[DEL-OBS-020](12-domain-delivery-observation.md#del-obs-020--diagnostic-construction-and-emission) owns construction/emission.
+The leaf reports the exact timed-out occurrence family, mechanical boundary-site fact, and raw failure evidence.
+`CTRL-300` owns public source, label, site/cause selection and ordering, including any `SessionTerminal` request;
+`DEL-OBS-020` only constructs/emits the accepted immutable event.
 A higher-priority terminal winner leaves the timeout cleanup-only.
 
 ## AND-CAP-050 — Domain interfaces
 
 | Direction | Typed interface/fact | Authority/use |
 | --- | --- | --- |
-| product -> metrics | exact `CaptureMetricsSource`, custom provider, built-in policy, and nullable observer values | `PROD-020` defines public meaning; `AND-MET-*` owns observation mechanics. |
+| product -> metrics | exact `CaptureMetricsSource`, custom source, built-in policy, and nullable observer values | `PROD-020` defines public meaning; `AND-MET-*` owns observation mechanics. |
 | metrics -> controller | selected-source observation outcome, complete combined tuple, exact close receipt, and Metrics-endpoint termination receipt | `CTRL-030`, `CTRL-100`, and `CTRL-130` own lifecycle/currentness/application. |
-| controller -> Android | retained-resize command or exact Controller-owned Replacement correlation naming the independent old-detach/new-producer graphs | Android executes only the matching physical mutation and owns no Session decision. |
+| controller -> Android | one serialized mutation command or exact reconfiguration correlation naming independent old-detach/new-producer graphs | Android executes only the matching physical mutation and owns no Session decision. |
 | Target -> Android | installed CurrentTarget staged Android-operation port/lease and provenance bound to the exact Android occurrence/ticket/root | `TGT-010`/`TGT-030` own identity, exposure, and Target-state authority. |
 | Android -> Target | sealed bound `AndroidTargetPostOutcome` plus exact physical listener settlement/sentinel, producer-call result, or detach result | Target consumes only the typed outcome/result and reads no occurrence/ticket internals; `TGT-040`/`TGT-050`/`TGT-060` alone create and interpret Target facts. |
-| Android -> controller | callback registration/create/mutation facts, resize/visibility/stop facts, Android lane receipt | `CTRL-030`/`CTRL-100`/`CTRL-120`/`CTRL-130`/`CTRL-300` arbitrate; this leaf owns physical result classification. |
+| Android -> controller | callback registration/create/mutation facts, resize/visibility facts, opaque normal/direct stop outcome, and Android lane receipt | `CTRL-030`/`CTRL-100`/`CTRL-120`/`CTRL-130`/`CTRL-300` arbitrate; this leaf retains projection ownership and physical result classification. |
 | cleanup -> Android/metrics | intact occurrence/ticket/root/owner bag in Cleanup domain | `CORE-CLEAN-1`, `CORE-CLEAN-2`, and `CTRL-400` own transfer; this leaf owns local suffix and residue. |
 
 ## AND-CAP-060 — Exact Android/metrics verification
@@ -418,7 +429,7 @@ matrix, not six devices. The complete required vectors are:
 
 1. Factory/identity: null default present/missing/remove/same-ID replacement/add; explicit exact Display
    invalid/recover/same-ID-other-object/unrelated changes; custom identity. Assert one Session `subscribe` call,
-   independent built-in observations, exact source/provider identity, normalized Context, and zero public default
+   independent built-in observations, exact source identity, normalized Context, and zero public default
    factory.
 2. Reads: exact API-band calls, one epoch WindowContext pair, one fresh density Context per read, complete-tuple
    publication, zero frame-path reads, and no guarded post-24 API call outside its branch.
@@ -436,22 +447,28 @@ matrix, not six devices. The complete required vectors are:
    recovery; attachment submission/entry/Runnable-return settlement before one close ticket; closePending during
    attachment; poisoned/nonreturn residue with no second endpoint or fabricated close; callback versus first
    Active; raw fatal-slot identity, direct-Error thread-top identity, runtime-shaped custom-Throwable thread-top,
-   and reported Error as data; late callback/return. Normal completion after joint readiness requests exactly one
-   `MetricsProvider`/`CapabilityCheck` event with null cause for that observation lifetime; pre-readiness
-   completion, provider failure, and duplicates request none.
+   and reported Error as data; late callback/return. Normal completion after joint readiness offers exactly one
+   completion fact for that observation lifetime; `CTRL-300` selects the `MetricsSource`/`CapabilityCheck`/null-cause
+   snapshot, while pre-readiness completion, source failure, and duplicates offer none.
 5. Projection: exact registration order/Handler and sole create arguments; null, SecurityException, direct OOM,
    IllegalStateException, unexpected throw, nonreturn, and late owner; API 34–37 resize-before-display-return,
-   readiness `D-1/D/D+1`, missing resize, runtime and combined density+GL resize, stale-success/A-to-B-to-A
-   actual-state compensation, visibility, onStop, stale epoch, and terminal facts.
-6. Finite-call policy: each governed call at `D-1`, `D`, `D+1`, empty-at-D, rejection, throw, nonreturn,
-   terminal-before/after-entry, and late return. Assert one call, exact receipt, current-only application, and no
+   readiness `D-1/D/D+1`, missing resize, runtime and combined density+GL resize, desire change during
+   submitted/entered resize with exact actual-state settlement before any next serial cycle, visibility, onStop,
+   stale epoch, and terminal facts.
+6. Finite-call policy: each readiness and entered-operation occurrence at `D-1`, `D`, `D+1`, empty-at-D,
+   rejection, throw, nonreturn, terminal-before/after-entry, and late return. Assert readiness expiry is
+   `CaptureUnavailable`, entered-operation expiry is terminal `InternalFailure`, a real late result is matching
+   cleanup-only, plus one call, exact receipt, current-only application, and no
    fabricated lifecycle/producer fact. For Surface release this row verifies only the `AND-CAP-040` deadline and
    result partition; `A-GL` verifies its GL-lane submission and invocation.
 7. Cleanup/isolation: callback fence before signal close/unregister, captured late Main callback after unregister
-   and after Android-thread shutdown, unregister throw/nonreturn, each Android suffix throw/nonreturn, lane
-   completion, independent roots, and another Session.
+   and after Android-thread shutdown, unregister throw/nonreturn, each Android suffix throw/nonreturn, and normal
+   Handler stop. Cross lane-never-started and exact worker-bound final-lane/no-entry eligibility, fatal/poison
+   before final evidence, entered or acceptance-ambiguous normal exclusion, one shared normal/direct arbitration,
+   actual normal-return closure, direct-final ordering, and throw/nonreturn retention of projection and Control.
+   Also cover lane completion, independent roots, and another Session.
 8. Target integration: only installed CurrentTarget registered ports/leases reach Android calls; exact
-   identity/provenance, one-shot counts, and independent Replacement correlations. Cross commit-lost/no-post,
+   identity/provenance, one-shot counts, and independent detach/producer correlations. Cross commit-lost/no-post,
    accepted-before-entry, authoritative rejected-before-ticket-entry plus exact nonentered occurrence, physical
    ticket entry before post return/throw, direct fatal/acceptance ambiguity, accepted → poison/closing →
    entered-inert → occurrence-cancelled-before-platform-entry →
@@ -466,21 +483,15 @@ Tests use deterministic barriers and injected elapsed time, never sleeps or log 
 documented Main-Looper routing plus the dedicated Metrics endpoint/thread, and no device matrix. This domain
 introduces no image vector or numeric tolerance.
 
-## AND-CAP-070 — Closed alternatives
+## AND-CAP-070 — Safety boundaries
 
-- no second Android lane, per-call thread, Target listener on the metrics Main Handler, or built-in metrics
-  callback on the Session HandlerThread;
-- no `DisplayMetrics` snapshot, Resources cache, WindowMetricsCalculator policy, per-change WindowContext,
-  cross-read tuple merge, event queue, parallel read, or frame-path metrics polling;
-- no implicit Activity/window following in `fromDisplay`, Display-ID substitution for its exact Display, or use
-  of metrics Display as capture-source proof;
-- no provisional API 34–37 frame, visibility-driven policy, VirtualDisplay callback, `ImageReader`, rotation
-  mutation, duplicate VirtualDisplay, or lifecycle inference from explicit release/stop;
-- no Android access outside [TGT-030](07-domain-target.md#tgt-030--currenttarget-ports-leases-and-provenance) or
-  interpretation outside [TGT-040](07-domain-target.md#tgt-040--producer-evidence); Target-specific forbidden
-  alternatives remain solely [TGT-098](07-domain-target.md#tgt-098--forbidden-alternatives);
-- no post false/return/throw, poison, shutdown request, queue absence, dropped root, cancellation intent, first
-  tuple, or deadline expiry treated alone as no-entry, detach, or mechanical settlement proof.
+Metrics uses complete same-epoch reads on its dedicated endpoint; `fromDisplay` preserves exact Display identity,
+and the metrics Display is geometry authority only. Capture uses one Android lane, one projection, one
+VirtualDisplay, and installed Target ports. API 34–37 frame admission begins with authoritative captured resize.
+
+No post result, poison, shutdown request, queue observation, cancellation intent, tuple, or expiry alone proves
+no-entry, detach, or mechanical settlement. Exact Target evidence remains owned by
+[TGT-098](07-domain-target.md#tgt-098--safety-boundaries).
 
 ## Official platform references
 

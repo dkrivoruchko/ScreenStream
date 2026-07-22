@@ -148,6 +148,63 @@ internal class TargetRetirementCompleteEvidence private constructor(
     }
 }
 
+/** Exact proof for terminal conversion of only the precreated Surface and TargetScope occurrences. */
+internal class TargetTerminalCleanupBaseOccurrencesFact private constructor(
+    internal val targetIdentity: TargetIdentity,
+    internal val surfaceOccurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>,
+    internal val targetScopeOccurrence: OperationOccurrence<GlDestructionEvidence>,
+) {
+    init {
+        check(targetIdentity.matches(targetIdentity.target))
+    }
+
+    internal companion object {
+        internal fun precreate(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            targetIdentity: TargetIdentity,
+            surfaceOccurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>,
+            targetScopeOccurrence: OperationOccurrence<GlDestructionEvidence>,
+        ): TargetTerminalCleanupBaseOccurrencesFact {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return TargetTerminalCleanupBaseOccurrencesFact(
+                targetIdentity,
+                surfaceOccurrence,
+                targetScopeOccurrence,
+            )
+        }
+    }
+}
+
+/** Exact proof that the selected precreated ContextNamespace occurrence was terminalized in place. */
+internal class TargetTerminalCleanupNamespaceOccurrenceFact private constructor(
+    internal val targetIdentity: TargetIdentity,
+    internal val graph: TargetRetirement.TargetScopeDestructionGraph,
+    internal val namespaceOccurrence: OperationOccurrence<GlDestructionEvidence>,
+) {
+    init {
+        check(targetIdentity.matches(targetIdentity.target))
+        check(graph.targetGeneration == targetIdentity.generation)
+        check(namespaceOccurrence === graph.namespaceOccurrence)
+    }
+
+    internal companion object {
+        internal fun precreate(
+            targetOwner: TargetOwner,
+            constructionProof: () -> Unit,
+            targetIdentity: TargetIdentity,
+            graph: TargetRetirement.TargetScopeDestructionGraph,
+        ): TargetTerminalCleanupNamespaceOccurrenceFact {
+            check(targetOwner.acceptsConstructionProof(constructionProof))
+            return TargetTerminalCleanupNamespaceOccurrenceFact(
+                targetIdentity,
+                graph,
+                graph.namespaceOccurrence,
+            )
+        }
+    }
+}
+
 /**
  * Exact passive evidence for cleanup adoption. The [owner] remains the physical owner; this evidence never
  * transfers ownership or stands in for the permanent Session quarantine-root commit.
@@ -495,8 +552,12 @@ internal class TargetRetirement private constructor(
     private lateinit var surfaceReleaseSuffixEvidence: TargetSurfaceReleaseSuffixEvidence
     private lateinit var targetScopeSuffixEvidence: TargetScopeSuffixEvidence
     private lateinit var namespaceSuffixEvidence: TargetNamespaceSuffixEvidence
+    private lateinit var terminalCleanupBaseOccurrencesFact: TargetTerminalCleanupBaseOccurrencesFact
+    private lateinit var terminalCleanupNamespaceOccurrenceFact: TargetTerminalCleanupNamespaceOccurrenceFact
     private val retirementCompleteEvidence: TargetRetirementCompleteEvidence =
         TargetRetirementCompleteEvidence.create(targetOwner, constructionProof, target.identity)
+    internal val precreatedRetirementCompleteEvidence: TargetRetirementCompleteEvidence
+        get() = retirementCompleteEvidence
     internal lateinit var surfaceReleaseOccurrence: OperationOccurrence<TargetSurfaceReleaseEvidence>
         private set
     internal val surfaceReleaseOperation: SurfaceReleaseOperation = SurfaceReleaseOperation(this)
@@ -509,7 +570,9 @@ internal class TargetRetirement private constructor(
     private var contextNamespaceReceipt: GlDestructionSuccessReceipt? = null
     private var installed: Boolean = false
     private var cleanup: Boolean = false
-    private var terminalCleanupOccurrencesConverted: Boolean = false
+    private var terminalSurfaceCleanupConversion: TerminalCleanupConversion = TerminalCleanupConversion.Preterminal
+    private var terminalTargetScopeCleanupConversion: TerminalCleanupConversion = TerminalCleanupConversion.Preterminal
+    private var terminalNamespaceCleanupConversion: TerminalCleanupConversion = TerminalCleanupConversion.Preterminal
     private var ownedOesTextureName: Int = 0
     private var ownedSurfaceTexture: SurfaceTexture? = null
     private var ownedSurface: Surface? = null
@@ -554,6 +617,13 @@ internal class TargetRetirement private constructor(
                                 surfaceTextureObligation == TargetResourceObligation.Inapplicable) && oesSettled)
             surfaceSettled && targetScopeSettled
         }
+
+    internal fun isExactMechanicalRetirementLocked(evidence: TargetRetirementCompleteEvidence): Boolean {
+        check(targetGate.isHeldByCurrentThread)
+        return evidence === retirementCompleteEvidence &&
+                evidence.targetIdentity === target.identity &&
+                retirementSuffixEvidenceLocked() === retirementCompleteEvidence
+    }
 
     internal fun retirementSuffixEvidence(): TargetRetirementSuffixEvidence = targetGate.withLock {
         retirementSuffixEvidenceLocked()
@@ -655,6 +725,20 @@ internal class TargetRetirement private constructor(
             targetScopeDestructionGraph,
             targetScopeDestructionGraph.namespaceOccurrence,
         )
+        terminalCleanupBaseOccurrencesFact = TargetTerminalCleanupBaseOccurrencesFact.precreate(
+            targetOwner,
+            constructionProof,
+            target.identity,
+            surfaceReleaseOccurrence,
+            targetScopeDestructionGraph.targetOccurrence,
+        )
+        terminalCleanupNamespaceOccurrenceFact =
+            TargetTerminalCleanupNamespaceOccurrenceFact.precreate(
+                targetOwner,
+                constructionProof,
+                target.identity,
+                targetScopeDestructionGraph,
+            )
     }
 
     private fun beginUninstalledSurfaceReleaseSubmissionReadiness(constructionSettled: Boolean): Boolean {
@@ -847,6 +931,7 @@ internal class TargetRetirement private constructor(
 
     internal fun settleConstructionResourceObligations(): Boolean {
         var surfaceInapplicable = false
+        var targetScopeInapplicable = false
         val settled = targetGate.withLock {
             if (!cleanup ||
                 surfaceObligation != TargetResourceObligation.AwaitingSettlement ||
@@ -875,31 +960,114 @@ internal class TargetRetirement private constructor(
                     TargetOesObligation.Required
                 }
             surfaceInapplicable = surfaceObligation == TargetResourceObligation.Inapplicable
+            targetScopeInapplicable =
+                surfaceTextureObligation == TargetResourceObligation.Inapplicable &&
+                        oesTextureObligation == TargetOesObligation.Inapplicable
             true
         }
         if (settled && surfaceInapplicable) {
-            surfaceReleaseOccurrence.arbitrateTerminal(mandatoryCleanup = false)
+            surfaceReleaseOccurrence.settleInertBeforeEntry()
+        }
+        if (settled && targetScopeInapplicable) {
+            targetScopeDestructionGraph.targetOccurrence.settleInertBeforeEntry()
+            targetScopeDestructionGraph.namespaceOccurrence.settleInertBeforeEntry()
         }
         return settled
     }
 
-    internal fun convertConstructionCleanupOccurrencesForTerminal(): Boolean {
-        val obligation = targetGate.withLock {
-            if (!cleanup ||
-                terminalCleanupOccurrencesConverted ||
-                surfaceObligation == TargetResourceObligation.AwaitingSettlement ||
-                surfaceTextureObligation == TargetResourceObligation.AwaitingSettlement ||
-                oesTextureObligation == TargetOesObligation.AwaitingSettlement
+    internal fun convertCleanupBaseOccurrencesForTerminal(): TargetTerminalCleanupBaseOccurrencesFact? {
+        var convertSurface = false
+        var convertTargetScope = false
+        var eligible = false
+        var conversionInFlight = false
+        targetGate.withLock {
+            if (!cleanup && !target.retirementAdmissionClosed) return@withLock
+            eligible = true
+            if (terminalSurfaceCleanupConversion == TerminalCleanupConversion.Converting ||
+                terminalTargetScopeCleanupConversion == TerminalCleanupConversion.Converting
             ) {
-                return@withLock null
+                conversionInFlight = true
+                return@withLock
             }
-            terminalCleanupOccurrencesConverted = true
-            surfaceObligation
-        } ?: return false
-        surfaceReleaseOccurrence.arbitrateTerminal(
-            mandatoryCleanup = obligation == TargetResourceObligation.Required
-        )
-        return true
+            if (terminalSurfaceCleanupConversion == TerminalCleanupConversion.Preterminal) {
+                terminalSurfaceCleanupConversion = TerminalCleanupConversion.Converting
+                convertSurface = true
+            }
+            if (terminalTargetScopeCleanupConversion == TerminalCleanupConversion.Preterminal) {
+                terminalTargetScopeCleanupConversion = TerminalCleanupConversion.Converting
+                convertTargetScope = true
+            }
+        }
+        if (!eligible || conversionInFlight) return null
+        if (convertSurface) surfaceReleaseOccurrence.arbitrateTerminal(mandatoryCleanup = true)
+        if (convertTargetScope) {
+            targetScopeDestructionGraph.targetOccurrence.arbitrateTerminal(mandatoryCleanup = true)
+        }
+        return targetGate.withLock {
+            if (convertSurface) terminalSurfaceCleanupConversion = TerminalCleanupConversion.Terminal
+            if (convertTargetScope) terminalTargetScopeCleanupConversion = TerminalCleanupConversion.Terminal
+            terminalCleanupBaseOccurrencesFact
+        }
+    }
+
+    internal fun convertSelectedNamespaceOccurrenceForTerminal():
+            TargetTerminalCleanupNamespaceOccurrenceFact? {
+        var convertNamespace = false
+        val eligible = targetGate.withLock {
+            if ((!cleanup && !target.retirementAdmissionClosed) ||
+                !targetScopeDestructionGraph.isFrozen() ||
+                !targetScopeDestructionGraph.isNamespaceTransferSelected()
+            ) {
+                return@withLock false
+            }
+            when (terminalNamespaceCleanupConversion) {
+                TerminalCleanupConversion.Preterminal -> {
+                    terminalNamespaceCleanupConversion = TerminalCleanupConversion.Converting
+                    convertNamespace = true
+                    true
+                }
+
+                TerminalCleanupConversion.Converting -> false
+                TerminalCleanupConversion.Terminal -> true
+            }
+        }
+        if (!eligible) return null
+        if (convertNamespace) {
+            targetScopeDestructionGraph.namespaceOccurrence.arbitrateTerminal(mandatoryCleanup = true)
+        }
+        return targetGate.withLock {
+            if (convertNamespace) terminalNamespaceCleanupConversion = TerminalCleanupConversion.Terminal
+            terminalCleanupNamespaceOccurrenceFact.takeIf {
+                terminalNamespaceCleanupConversion == TerminalCleanupConversion.Terminal &&
+                        targetScopeDestructionGraph.isFrozen() &&
+                        targetScopeDestructionGraph.isNamespaceTransferSelected()
+            }
+        }
+    }
+
+    internal fun selectedNamespaceOccurrenceForSubmission(
+        graph: TargetScopeDestructionGraph,
+        terminalFact: TargetTerminalCleanupNamespaceOccurrenceFact?,
+    ): OperationOccurrence<GlDestructionEvidence>? = targetGate.withLock {
+        if (graph !== targetScopeDestructionGraph || !graph.isFrozen() ||
+            !graph.isNamespaceTransferSelected()
+        ) {
+            return@withLock null
+        }
+        val stableAdmission = when {
+            terminalSurfaceCleanupConversion == TerminalCleanupConversion.Preterminal &&
+                    terminalTargetScopeCleanupConversion == TerminalCleanupConversion.Preterminal &&
+                    terminalNamespaceCleanupConversion == TerminalCleanupConversion.Preterminal ->
+                terminalFact == null
+
+            terminalSurfaceCleanupConversion == TerminalCleanupConversion.Terminal &&
+                    terminalTargetScopeCleanupConversion == TerminalCleanupConversion.Terminal &&
+                    terminalNamespaceCleanupConversion == TerminalCleanupConversion.Terminal ->
+                terminalFact === terminalCleanupNamespaceOccurrenceFact
+
+            else -> false
+        }
+        graph.namespaceOccurrence.takeIf { stableAdmission }
     }
 
     private fun destructionOccurrence(
@@ -920,6 +1088,12 @@ internal class TargetRetirement private constructor(
         )
 
     internal companion object {
+        private enum class TerminalCleanupConversion {
+            Preterminal,
+            Converting,
+            Terminal,
+        }
+
         internal fun create(
             targetOwner: TargetOwner,
             constructionProof: () -> Unit,

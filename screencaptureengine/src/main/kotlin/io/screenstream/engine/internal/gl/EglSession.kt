@@ -55,8 +55,26 @@ internal class GlSessionConstructionHandle internal constructor(
     private val occurrence: OperationOccurrence<GlOperationEvidence> = owner.operationOccurrence(identity, evidence, ownerBag)
     private val claimedFacts: GlClaimedOperationFacts = GlClaimedOperationFacts.precreate(evidence)
     private val endpointOperation = owner.endpointOperation(occurrence, Runnable { execute() })
-    private val partialCleanupEvidence: GlDestructionEvidence =
-        GlDestructionEvidence(partialCleanupIdentity.operationIdentity, GlDestructionKind.ContextNamespace)
+    private val partialCleanupNamespace: ContextNamespace = ContextNamespace.createForPartialStartup(
+        owner = owner,
+        triggerOperationIdentity = partialCleanupIdentity.operationIdentity,
+    )
+    private val partialCleanupRetirementReceipt: GlDestructionSuccessReceipt = GlDestructionSuccessReceipt(
+        operationIdentity = partialCleanupIdentity.operationIdentity,
+        destructionKind = GlDestructionKind.ContextNamespace,
+    )
+    private val partialCleanupRetiredOutcome: GlPhysicalResourceReturnOutcome.ContextNamespaceRetired =
+        GlPhysicalResourceReturnOutcome.ContextNamespaceRetired(
+            namespace = partialCleanupNamespace,
+            receipt = partialCleanupRetirementReceipt,
+        )
+    private val partialCleanupEvidence: GlDestructionEvidence = GlDestructionEvidence(
+        operationIdentity = partialCleanupIdentity.operationIdentity,
+        destructionKind = GlDestructionKind.ContextNamespace,
+        precreatedPhysicalRetirementReceipt = partialCleanupRetirementReceipt,
+        physicalRetirementReceiptInitiallyAuthorized = false,
+        precreatedContextNamespaceRetired = partialCleanupRetiredOutcome,
+    )
     private val partialCleanupOwnerBag: GlOwnerBag = GlOwnerBag(owner)
     private val partialCleanupOccurrence: OperationOccurrence<GlDestructionEvidence> =
         owner.destructionOccurrence(partialCleanupIdentity, partialCleanupEvidence, partialCleanupOwnerBag)
@@ -67,6 +85,15 @@ internal class GlSessionConstructionHandle internal constructor(
     private var primaryEndpointReleased: Boolean = false
     private var partialCleanupNamespaceConsumed: Boolean = false
     private var partialCleanupSuffixSucceeded: Boolean = false
+    private var partialCleanupSuffixReturned: Boolean = false
+    private var partialCleanupEndpointReleased: Boolean = false
+    private var partialCleanupReturnFailed: Boolean = false
+    private var partialCleanupPhysicalRetirementClaimed: Boolean = false
+    private val partialCleanupWork: GlTerminalCleanupWork = GlTerminalCleanupWork.create(
+        partialCleanupOccurrence.identity,
+        GlTerminalCleanupOrigin.TerminalConverted,
+    )
+    private var partialCleanupConversion: GlTerminalCleanupConversion? = null
 
     private fun setPartialCleanupReady(ready: Boolean) = owner.glGate.withLock {
         partialCleanupReady = ready
@@ -112,6 +139,7 @@ internal class GlSessionConstructionHandle internal constructor(
 
     override fun submit(): Boolean {
         val result = owner.submit(endpointOperation)
+        if (!result.isHandedOff) closeUnusedPartialCleanup()
         return result.isHandedOff
     }
 
@@ -122,19 +150,17 @@ internal class GlSessionConstructionHandle internal constructor(
 
     private fun executePartialCleanup() {
         try {
-            val contextRetired = if (owner.context == EGL14.EGL_NO_CONTEXT) {
+            val structurallyNoContext = owner.context == EGL14.EGL_NO_CONTEXT
+            val contextRetired = if (structurallyNoContext) {
                 owner.checkFatalFence()
                 owner.unbindStep.requireMutable()
                 owner.unbindStep.applicability = EglStepApplicability.Inapplicable
-                owner.unbindStep.receiptPresent = true
                 owner.unbindStep.freeze()
                 owner.inverseCurrentStep.requireMutable()
                 owner.inverseCurrentStep.applicability = EglStepApplicability.Inapplicable
-                owner.inverseCurrentStep.receiptPresent = true
                 owner.inverseCurrentStep.freeze()
                 owner.contextDestructionStep.requireMutable()
                 owner.contextDestructionStep.applicability = EglStepApplicability.Inapplicable
-                owner.contextDestructionStep.receiptPresent = true
                 owner.contextDestructionStep.freeze()
                 owner.glGate.withLock {
                     if (!owner.contextUnbound || !owner.contextDestroyed) {
@@ -143,13 +169,17 @@ internal class GlSessionConstructionHandle internal constructor(
                         owner.commitRenderCurrentnessMutationLocked()
                     }
                 }
-                true
+                false
             } else {
+                check(owner.bindPartialStartupContextNamespace(partialCleanupNamespace))
+                partialCleanupEvidence.bindPhysicalRetirementCandidate(partialCleanupNamespace, owner.context)
                 owner.unbindAndDestroyContext(this, partialCleanupEvidence)
             }
             if (contextRetired) {
                 owner.checkFatalFence()
-                partialCleanupEvidence.result = GlOperationResult.Success
+            } else if (structurallyNoContext) {
+                owner.checkFatalFence()
+                partialCleanupEvidence.result = GlOperationResult.StructurallyNoContext
                 partialCleanupEvidence.contextIntegrity = owner.contextIntegrity
             }
             owner.checkFatalFence()
@@ -173,17 +203,20 @@ internal class GlSessionConstructionHandle internal constructor(
             owner.recordUnreachableSuffixResidue()
             false
         }
-        if (suffixSucceeded) {
-            recordPartialCleanupSuffixSuccess()
-        } else {
-            owner.signalSettlement()
-        }
+        recordPartialCleanupSuffixReturn(suffixSucceeded)
     }
 
     override fun submitPartialCleanup(): Boolean {
-        if (!isPartialCleanupReady() || !releasePrimaryEndpoint() ||
-            !owner.claimTeardown(this)
-        ) {
+        if (!isPartialCleanupReady()) return false
+        val conversion = partialCleanupConversion ?: partialCleanupOccurrence
+            .toGlTerminalCleanup(partialCleanupWork)
+            .also { partialCleanupConversion = it }
+        if (conversion !is GlTerminalCleanupConversion.Ready) return false
+        if (!releasePrimaryEndpoint() || !owner.claimTeardown(this)) {
+            return false
+        }
+        if (!owner.retainPartialStartupCleanupHandle(this)) {
+            owner.releaseTeardown(this)
             return false
         }
         val result = owner.submit(partialCleanupEndpointOperation, this)
@@ -193,24 +226,60 @@ internal class GlSessionConstructionHandle internal constructor(
     override fun claimPartialCleanup(): GlClaimedDestructionFacts? {
         if (!isPartialCleanupReady()) return null
         val facts = owner.claimDestruction(partialCleanupOccurrence, partialCleanupClaimedFacts)
-        owner.releaseSettledOperation(partialCleanupEndpointOperation)
-        if (facts?.result == GlOperationResult.Success && facts.receipt === partialCleanupEvidence.receipt) {
-            if (!recordPartialCleanupNamespaceConsumed()) return null
+        val returnedPhysicalFailure = facts != null && facts.returnOutcome is
+                GlPhysicalResourceReturnOutcome.ContextNamespaceRetired &&
+                (!facts.normalReturn || facts.returnThrowable != null || facts.throwable != null ||
+                        facts.result != GlOperationResult.Success)
+        if (returnedPhysicalFailure) owner.glGate.withLock { partialCleanupReturnFailed = true }
+        when (val outcome = facts?.returnOutcome) {
+            is GlPhysicalResourceReturnOutcome.ContextNamespaceRetired -> {
+                if (outcome.namespace !== partialCleanupNamespace ||
+                    facts.receipt !== partialCleanupEvidence.physicalRetirementReceiptOrNull()
+                ) {
+                    return null
+                }
+                owner.glGate.withLock { partialCleanupPhysicalRetirementClaimed = true }
+                if (!recordPartialCleanupNamespaceConsumed()) return null
+            }
+
+            is GlPhysicalResourceReturnOutcome.StructurallyNoContext -> {
+                if (facts.result != GlOperationResult.StructurallyNoContext || facts.receipt != null ||
+                    outcome.operationIdentity != partialCleanupOccurrence.identity ||
+                    !recordPartialCleanupStructuralReduction()
+                ) {
+                    return null
+                }
+            }
+
+            else -> if (facts?.result == GlOperationResult.Success ||
+                facts?.result == GlOperationResult.StructurallyNoContext
+            ) {
+                return null
+            }
+        }
+        if (!returnedPhysicalFailure && owner.releaseSettledOperation(partialCleanupEndpointOperation)) {
+            owner.glGate.withLock { partialCleanupEndpointReleased = true }
         }
         return facts
     }
 
     private fun recordPartialCleanupNamespaceConsumed(): Boolean {
         val consumed = owner.glGate.withLock {
-            owner.checkFatalLocked()
+            if (!partialCleanupReturnFailed) owner.checkFatalLocked()
             check(!partialCleanupNamespaceConsumed)
-            if (partialCleanupSuffixSucceeded && !owner.ownsTeardown(this)) {
+            if (partialCleanupSuffixSucceeded && !owner.ownsTeardownLocked(this)) {
                 return@withLock false
             }
-            if (!owner.consumePartialContextNamespaceLocked()) return@withLock false
+            if (!owner.consumePartialContextNamespaceLocked(
+                    expectedNamespace = partialCleanupNamespace,
+                    authorizedPhysicalRetirementEvidence = partialCleanupEvidence,
+                )
+            ) {
+                return@withLock false
+            }
             partialCleanupNamespaceConsumed = true
-            if (partialCleanupSuffixSucceeded) {
-                check(owner.releaseTeardown(this))
+            if (partialCleanupSuffixSucceeded && !partialCleanupReturnFailed) {
+                check(owner.releaseTeardownLocked(this))
             }
             true
         }
@@ -218,19 +287,68 @@ internal class GlSessionConstructionHandle internal constructor(
         return consumed
     }
 
-    private fun recordPartialCleanupSuffixSuccess() {
+    internal fun retryClaimedPartialCleanupReduction(): Boolean {
+        if (owner.glGate.withLock {
+                !partialCleanupPhysicalRetirementClaimed || partialCleanupNamespaceConsumed
+            }
+        ) {
+            return true
+        }
+        return recordPartialCleanupNamespaceConsumed()
+    }
+
+    private fun recordPartialCleanupStructuralReduction(): Boolean {
+        val reduced = owner.glGate.withLock {
+            owner.checkFatalLocked()
+            check(!partialCleanupNamespaceConsumed)
+            if (partialCleanupSuffixSucceeded && !owner.ownsTeardownLocked(this)) {
+                return@withLock false
+            }
+            if (!owner.reduceStructurallyAbsentPartialContextLocked()) return@withLock false
+            partialCleanupNamespaceConsumed = true
+            if (partialCleanupSuffixSucceeded) {
+                check(owner.releaseTeardownLocked(this))
+            }
+            true
+        }
+        owner.signalSettlement()
+        return reduced
+    }
+
+    private fun recordPartialCleanupSuffixReturn(succeeded: Boolean) {
         owner.glGate.withLock {
             owner.checkFatalLocked()
-            check(!partialCleanupSuffixSucceeded)
-            if (partialCleanupNamespaceConsumed && !owner.ownsTeardown(this)) {
+            check(!partialCleanupSuffixReturned)
+            if (succeeded && !partialCleanupReturnFailed && partialCleanupNamespaceConsumed &&
+                !owner.ownsTeardownLocked(this)
+            ) {
                 return@withLock
             }
-            partialCleanupSuffixSucceeded = true
-            if (partialCleanupNamespaceConsumed) {
-                check(owner.releaseTeardown(this))
+            partialCleanupSuffixReturned = true
+            partialCleanupSuffixSucceeded = succeeded
+            if (succeeded && !partialCleanupReturnFailed && partialCleanupNamespaceConsumed) {
+                check(owner.releaseTeardownLocked(this))
             }
         }
         owner.signalSettlement()
+    }
+
+    internal fun unresolvedPartialCleanupEndpoint(): Boolean = owner.glGate.withLock {
+        partialCleanupReturnFailed || !partialCleanupNamespaceConsumed ||
+                !partialCleanupSuffixReturned || !partialCleanupSuffixSucceeded
+    }
+
+    internal fun releasePartialCleanupEndpointAfterSuffix(): Boolean {
+        if (owner.glGate.withLock {
+                partialCleanupReturnFailed || !partialCleanupNamespaceConsumed || !partialCleanupSuffixSucceeded
+            }
+        ) {
+            return false
+        }
+        if (owner.glGate.withLock { partialCleanupEndpointReleased }) return true
+        if (!owner.releaseSettledOperation(partialCleanupEndpointOperation)) return false
+        owner.glGate.withLock { partialCleanupEndpointReleased = true }
+        return true
     }
 
     override val deadlineWakeLink: ControlWakeLink = checkNotNull(occurrence.controlWakeLink)
@@ -255,9 +373,15 @@ internal class GlSessionConstructionHandle internal constructor(
 internal class GlEglRuntime internal constructor(
     private val owner: GlPipelineOwner,
 ) {
-    internal fun glesGroup(evidence: GlOperationEvidence, commands: () -> Boolean): Boolean {
+    internal fun glesGroup(evidence: GlOperationEvidence, commands: () -> Boolean): Boolean =
+        glesGroupCompletion(evidence, commands).commandsSucceeded
+
+    internal fun glesGroupCompletion(
+        evidence: GlOperationEvidence,
+        commands: () -> Boolean,
+    ): GlGlesGroupCompletion {
         try {
-            if (!requireCurrent(evidence)) return false
+            if (!requireCurrent(evidence)) return GlGlesGroupCompletion.FailedClosed
         } catch (exception: Exception) {
             owner.markContextUnknown()
             evidence.throwable = exception
@@ -265,11 +389,20 @@ internal class GlEglRuntime internal constructor(
             evidence.contextIntegrity = ContextIntegrity.Unknown
             throw exception
         }
-        return glesGroupAfterCurrent(evidence, commands = commands)
+        return glesGroupAfterCurrentCompletion(evidence, commands = commands)
     }
 
-    internal fun glesGroupAfterCurrent(evidence: GlOperationEvidence, probeFacts: GlProbeFacts? = null, commands: () -> Boolean): Boolean {
-        owner.lastGroupCleanPostprobe = false
+    internal fun glesGroupAfterCurrent(
+        evidence: GlOperationEvidence,
+        probeFacts: GlProbeFacts? = null,
+        commands: () -> Boolean,
+    ): Boolean = glesGroupAfterCurrentCompletion(evidence, probeFacts, commands).commandsSucceeded
+
+    private fun glesGroupAfterCurrentCompletion(
+        evidence: GlOperationEvidence,
+        probeFacts: GlProbeFacts? = null,
+        commands: () -> Boolean,
+    ): GlGlesGroupCompletion {
         val preprobe = owner.outward { GLES20.glGetError() }
         owner.checkFatalFence()
         probeFacts?.recordPreprobe(preprobe)
@@ -278,7 +411,7 @@ internal class GlEglRuntime internal constructor(
         if (preprobe != GLES20.GL_NO_ERROR) {
             probeFacts?.freezeAfterPreprobe()
             recordGlError(evidence, preprobe, preprobe = true)
-            return false
+            return GlGlesGroupCompletion.FailedClosed
         }
         val logicalSuccess = try {
             commands()
@@ -296,16 +429,15 @@ internal class GlEglRuntime internal constructor(
         evidence.postprobeErrorCodePresent = true
         if (postprobe != GLES20.GL_NO_ERROR) {
             recordGlError(evidence, postprobe, preprobe = false)
-            return false
+            return GlGlesGroupCompletion.FailedClosed
         }
-        owner.lastGroupCleanPostprobe = true
         if (!logicalSuccess) {
             evidence.contextIntegrity = ContextIntegrity.Intact
             evidence.result = GlOperationResult.InternalFailure
-            return false
+            return GlGlesGroupCompletion.LogicalFailureAfterCleanPostprobe
         }
         evidence.contextIntegrity = ContextIntegrity.Intact
-        return true
+        return GlGlesGroupCompletion.Success
     }
 
     internal fun glesGroup(evidence: GlDestructionEvidence, commands: () -> Boolean): Boolean {
@@ -318,7 +450,6 @@ internal class GlEglRuntime internal constructor(
             evidence.contextIntegrity = ContextIntegrity.Unknown
             throw exception
         }
-        owner.lastGroupCleanPostprobe = false
         val preprobe = owner.outward { GLES20.glGetError() }
         owner.checkFatalFence()
         evidence.preprobeErrorCode = preprobe
@@ -344,7 +475,6 @@ internal class GlEglRuntime internal constructor(
             recordGlError(evidence, postprobe, preprobe = false)
             return false
         }
-        owner.lastGroupCleanPostprobe = true
         if (!logicalSuccess) {
             evidence.contextIntegrity = ContextIntegrity.Intact
             evidence.result = GlOperationResult.InternalFailure
@@ -539,6 +669,9 @@ internal class GlEglRuntime internal constructor(
             val destroyed = try {
                 owner.checkFatalFence()
                 val returned = EGL14.eglDestroyContext(owner.display, owner.context)
+                if (returned) {
+                    evidence.recordPrecreatedPhysicalRetirementSuccess(owner.contextIntegrity)
+                }
                 owner.contextDestructionStep.outcome = if (returned) EglStepOutcome.ReturnedTrue else EglStepOutcome.ReturnedFalse
                 owner.contextDestructionStep.receiptPresent = returned
                 if (returned) {
@@ -595,7 +728,6 @@ internal class GlEglRuntime internal constructor(
         } else if (!owner.pbufferDestroyed) {
             owner.pbufferSuffix.requireMutable()
             owner.pbufferSuffix.applicability = EglStepApplicability.Inapplicable
-            owner.pbufferSuffix.receiptPresent = true
             owner.glGate.withLock {
                 if (!owner.pbufferDestroyed) {
                     owner.pbufferDestroyed = true

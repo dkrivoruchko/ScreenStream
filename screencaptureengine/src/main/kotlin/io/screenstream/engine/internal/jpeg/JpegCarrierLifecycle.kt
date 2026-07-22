@@ -69,27 +69,6 @@ internal sealed class JpegRuntimeProduct(
     }
 }
 
-internal enum class JpegCarrierAllocationKind {
-    NativeMalloc,
-    ManagedDirect,
-}
-
-internal class JpegCarrierAllocationFact internal constructor(
-    internal val carrier: RgbaCarrier,
-    internal val kind: JpegCarrierAllocationKind,
-    internal val byteCount: Int,
-    internal val structurallyFreeable: Boolean,
-    internal val ready: Boolean,
-    internal val failure: Throwable?,
-)
-
-internal class JpegCarrierLeaseFact internal constructor(
-    internal val topologyIdentity: JpegRuntimeTopologySnapshot,
-    internal val product: JpegRuntimeProduct,
-    internal val carrier: RgbaCarrier,
-    internal val lease: RgbaCarrierLease,
-)
-
 internal enum class ManagedCarrierRetirementOrigin {
     Installed,
     UninstalledReturn,
@@ -118,8 +97,6 @@ internal sealed class RgbaCarrier(
         @Volatile
         var state: AttachmentState = AttachmentState.Empty
         var buffer: ByteBuffer? = null
-        var structurallyFreeable: Boolean = false
-        var failure: Throwable? = null
     }
 
     private val attachment: AttachmentShell = AttachmentShell()
@@ -136,22 +113,6 @@ internal sealed class RgbaCarrier(
     private var completedPhysicalReleaseFact: NativeCarrierPhysicalReleaseFact? = null
     @Volatile
     private var completedManagedRetirementFact: ManagedCarrierRetirementFact? = null
-
-    internal fun allocationFact(): JpegCarrierAllocationFact? {
-        val state = attachment.state
-        if (state != AttachmentState.Ready && state != AttachmentState.Rejected) return null
-        return JpegCarrierAllocationFact(
-            carrier = this,
-            kind = when (this) {
-                is NativeMallocCarrier -> JpegCarrierAllocationKind.NativeMalloc
-                is ManagedDirectCarrier -> JpegCarrierAllocationKind.ManagedDirect
-            },
-            byteCount = byteCount,
-            structurallyFreeable = attachment.structurallyFreeable,
-            ready = state == AttachmentState.Ready,
-            failure = attachment.failure,
-        )
-    }
 
     internal fun physicalReleaseFactFor(occurrence: NativeCarrierFreeOccurrence): NativeCarrierPhysicalReleaseFact? =
         completedPhysicalReleaseFact?.takeIf { it.occurrence === occurrence }
@@ -173,8 +134,6 @@ internal sealed class RgbaCarrier(
         check(settlementGate.isHeldByCurrentThread)
         if (attachment.state != AttachmentState.Attached) return false
 
-        attachment.structurallyFreeable = validation.structurallyFreeable
-        attachment.failure = validation.failure
         attachment.state = if (validation.ready) AttachmentState.Ready else AttachmentState.Rejected
         return true
     }
@@ -266,26 +225,6 @@ internal sealed class RgbaCarrier(
 
     internal fun isCurrentTopology(expectedTopology: JpegRuntimeTopologySnapshot): Boolean =
         topologyState.get() === expectedTopology
-
-    internal fun currentLeaseFact(
-        expectedTopology: JpegRuntimeTopologySnapshot,
-        expectedProduct: JpegRuntimeProduct,
-        expectedLease: RgbaCarrierLease,
-    ): JpegCarrierLeaseFact? = leaseGate.withLock {
-        if (topologyState.get() !== expectedTopology || installedProduct !== expectedProduct ||
-            attachedLease !== expectedLease || detached || !expectedLease.matchesAttachedProductLocked(expectedProduct) ||
-            !expectedLease.matchesCurrentTopologyLocked()
-        ) {
-            return@withLock null
-        }
-
-        JpegCarrierLeaseFact(
-            topologyIdentity = expectedTopology,
-            product = expectedProduct,
-            carrier = this,
-            lease = expectedLease,
-        )
-    }
 
     internal fun releaseLease(lease: RgbaCarrierLease): Boolean = leaseGate.withLock {
         if (attachedLease !== lease || retainedOperationLease != null || enteredUses != 0 || !lease.releaseLocked()) {

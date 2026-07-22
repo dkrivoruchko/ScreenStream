@@ -1,6 +1,6 @@
 package io.screenstream.engine.internal
 
-import io.screenstream.engine.ImageSize
+import io.screenstream.engine.ScreenCaptureEffectiveParameters
 import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
@@ -17,6 +17,231 @@ internal class EncodedStorageOwner {
     internal enum class TransactionFailure {
         ResourceExhausted,
         InternalFailure,
+    }
+
+    internal enum class RoleTransitionDisposition {
+        Pending,
+        Applied,
+        Rejected,
+    }
+
+    internal enum class RetirementDisposition {
+        Pending,
+        Retired,
+        Failed,
+    }
+
+    internal class CommittedProductionRoleReceipt internal constructor() {
+        internal var disposition: RoleTransitionDisposition = RoleTransitionDisposition.Pending
+            private set
+
+        private var unpublishedPayloadSlot: UnpublishedEncodedPayload? = null
+
+        internal val unpublishedPayload: UnpublishedEncodedPayload?
+            get() = unpublishedPayloadSlot
+
+        private var failureSlot: Throwable? = null
+
+        internal val failure: Throwable?
+            get() = failureSlot
+
+        internal fun complete(
+            disposition: RoleTransitionDisposition,
+            unpublishedPayload: UnpublishedEncodedPayload?,
+            failure: Throwable?,
+        ) {
+            check(this.disposition == RoleTransitionDisposition.Pending)
+            check((disposition == RoleTransitionDisposition.Applied) == (unpublishedPayload != null))
+            this.disposition = disposition
+            unpublishedPayloadSlot = unpublishedPayload
+            failureSlot = failure
+        }
+    }
+
+    internal class ProductionRetirementRoleReceipt internal constructor() {
+        internal var disposition: RoleTransitionDisposition = RoleTransitionDisposition.Pending
+            private set
+
+        private var transactionSlot: SegmentedTransaction? = null
+
+        internal val transaction: SegmentedTransaction?
+            get() = transactionSlot
+
+        private var failureSlot: Throwable? = null
+
+        internal val failure: Throwable?
+            get() = failureSlot
+
+        internal fun complete(
+            disposition: RoleTransitionDisposition,
+            transaction: SegmentedTransaction?,
+            failure: Throwable?,
+        ) {
+            check(this.disposition == RoleTransitionDisposition.Pending)
+            check((disposition == RoleTransitionDisposition.Applied) == (transaction != null))
+            this.disposition = disposition
+            transactionSlot = transaction
+            failureSlot = failure
+        }
+    }
+
+    internal class StorageRetirementReceipt internal constructor() {
+        internal var disposition: RetirementDisposition = RetirementDisposition.Pending
+            private set
+
+        private var failureSlot: Throwable? = null
+
+        internal val failure: Throwable?
+            get() = failureSlot
+
+        internal fun complete(disposition: RetirementDisposition, failure: Throwable?) {
+            check(this.disposition == RetirementDisposition.Pending)
+            check(disposition != RetirementDisposition.Pending)
+            this.disposition = disposition
+            failureSlot = failure
+        }
+    }
+
+    /**
+     * Precreated identity-fenced command. Session applies it while holding its aggregate gate after it has
+     * classified a successful encode claim. The command performs no allocation and owns no currentness policy.
+     */
+    internal class ClaimCommittedProductionCommand internal constructor(
+        private val owner: EncodedStorageOwner,
+        internal val expectedTransaction: SegmentedTransaction,
+    ) {
+        internal val receipt: CommittedProductionRoleReceipt = CommittedProductionRoleReceipt()
+
+        internal fun executeUnderSessionGate(): CommittedProductionRoleReceipt {
+            if (receipt.disposition != RoleTransitionDisposition.Pending) return receipt
+
+            val transaction = expectedTransaction
+            val payload = if (owner.productionTransaction === transaction &&
+                owner.unpublishedPayload == null && transaction.isCommitted
+            ) {
+                transaction.takeCommittedPayload()
+            } else {
+                null
+            }
+            if (payload == null) {
+                receipt.complete(RoleTransitionDisposition.Rejected, null, ROLE_IDENTITY_MISMATCH)
+                return receipt
+            }
+
+            owner.productionTransaction = null
+            owner.unpublishedPayload = payload
+            receipt.complete(RoleTransitionDisposition.Applied, payload, null)
+            return receipt
+        }
+    }
+
+    /**
+     * Precreated identity-fenced command. Session applies it under its aggregate gate for an encode that must
+     * not publish. It transfers the still-unretired transaction out of the Storage production role; physical
+     * transaction retirement remains an explicit unlocked command.
+     */
+    internal class ClaimProductionForRetirementCommand internal constructor(
+        private val owner: EncodedStorageOwner,
+        internal val expectedTransaction: SegmentedTransaction,
+    ) {
+        internal val receipt: ProductionRetirementRoleReceipt = ProductionRetirementRoleReceipt()
+
+        internal fun executeUnderSessionGate(): ProductionRetirementRoleReceipt {
+            if (receipt.disposition != RoleTransitionDisposition.Pending) return receipt
+
+            val transaction = expectedTransaction
+            if (owner.productionTransaction !== transaction || transaction.isCommitted) {
+                receipt.complete(RoleTransitionDisposition.Rejected, null, ROLE_IDENTITY_MISMATCH)
+                return receipt
+            }
+
+            owner.productionTransaction = null
+            receipt.complete(RoleTransitionDisposition.Applied, transaction, null)
+            return receipt
+        }
+    }
+
+    /** Unlocked logical cleanup for a transaction already transferred out of the production role. */
+    internal class RetireClaimedTransactionCommand internal constructor(
+        private val roleReceipt: ProductionRetirementRoleReceipt,
+    ) {
+        internal val receipt: StorageRetirementReceipt = StorageRetirementReceipt()
+
+        internal fun executeUnlocked(): StorageRetirementReceipt {
+            if (receipt.disposition != RetirementDisposition.Pending) return receipt
+            val transaction = roleReceipt.transaction
+            if (roleReceipt.disposition != RoleTransitionDisposition.Applied || transaction == null) {
+                receipt.complete(RetirementDisposition.Failed, ROLE_RECEIPT_NOT_APPLIED)
+                return receipt
+            }
+
+            try {
+                if (!transaction.isAborted) transaction.abort()
+            } catch (failure: Exception) {
+                receipt.complete(RetirementDisposition.Failed, failure)
+                return receipt
+            } catch (fatal: Throwable) {
+                receipt.complete(RetirementDisposition.Failed, fatal)
+                throw fatal
+            }
+            if (!transaction.isAborted) {
+                receipt.complete(RetirementDisposition.Failed, TRANSACTION_RETIREMENT_FAILED)
+                return receipt
+            }
+            receipt.complete(RetirementDisposition.Retired, null)
+            return receipt
+        }
+    }
+
+    /** Unlocked logical cleanup for a committed payload already transferred into the unpublished role. */
+    internal class RetireClaimedUnpublishedCommand internal constructor(
+        private val owner: EncodedStorageOwner,
+        private val roleReceipt: CommittedProductionRoleReceipt,
+    ) {
+        internal val receipt: StorageRetirementReceipt = StorageRetirementReceipt()
+
+        internal fun executeUnlocked(): StorageRetirementReceipt {
+            if (receipt.disposition != RetirementDisposition.Pending) return receipt
+            val payload = roleReceipt.unpublishedPayload
+            if (roleReceipt.disposition != RoleTransitionDisposition.Applied || payload == null) {
+                receipt.complete(RetirementDisposition.Failed, ROLE_RECEIPT_NOT_APPLIED)
+                return receipt
+            }
+
+            val retired = try {
+                owner.retireUnpublished(payload)
+            } catch (failure: Exception) {
+                receipt.complete(RetirementDisposition.Failed, failure)
+                return receipt
+            } catch (fatal: Throwable) {
+                receipt.complete(RetirementDisposition.Failed, fatal)
+                throw fatal
+            }
+            if (!retired) {
+                receipt.complete(RetirementDisposition.Failed, ROLE_IDENTITY_MISMATCH)
+                return receipt
+            }
+            receipt.complete(RetirementDisposition.Retired, null)
+            return receipt
+        }
+    }
+
+    internal class EncodeSettlementCommands internal constructor(
+        internal val claimCommittedProduction: ClaimCommittedProductionCommand,
+        internal val claimProductionForRetirement: ClaimProductionForRetirementCommand,
+        internal val retireClaimedTransaction: RetireClaimedTransactionCommand,
+        internal val retireClaimedUnpublished: RetireClaimedUnpublishedCommand,
+    )
+
+    internal fun precreateEncodeSettlementCommands(transaction: SegmentedTransaction): EncodeSettlementCommands {
+        val committed = ClaimCommittedProductionCommand(this, transaction)
+        val retirement = ClaimProductionForRetirementCommand(this, transaction)
+        return EncodeSettlementCommands(
+            claimCommittedProduction = committed,
+            claimProductionForRetirement = retirement,
+            retireClaimedTransaction = RetireClaimedTransactionCommand(retirement.receipt),
+            retireClaimedUnpublished = RetireClaimedUnpublishedCommand(this, committed.receipt),
+        )
     }
 
     internal abstract class SegmentedTransaction {
@@ -46,7 +271,10 @@ internal class EncodedStorageOwner {
         internal val isAborted: Boolean
             get() = state == TransactionState.Aborted
 
-        internal fun commit(imageSize: ImageSize): Boolean {
+        internal val committedPayloadIdentity: UnpublishedEncodedPayload?
+            get() = if (state == TransactionState.Committed) committedPayload else null
+
+        internal fun commit(effectiveParameters: ScreenCaptureEffectiveParameters): Boolean {
             when (state) {
                 TransactionState.Faulted -> return false
                 TransactionState.Open,
@@ -57,8 +285,8 @@ internal class EncodedStorageOwner {
                 TransactionState.Aborted -> error("transaction is aborted")
             }
 
-            if (imageSize.widthPx <= 0 || imageSize.heightPx <= 0) {
-                recordFailure(failure = TransactionFailure.InternalFailure, cause = INVALID_IMAGE_SIZE)
+            if (effectiveParameters.finalImageSize.widthPx <= 0 || effectiveParameters.finalImageSize.heightPx <= 0) {
+                recordFailure(failure = TransactionFailure.InternalFailure, cause = INVALID_EFFECTIVE_PARAMETERS)
                 return false
             }
             if (acceptedByteCount == 0) {
@@ -69,7 +297,7 @@ internal class EncodedStorageOwner {
             val unpublishedPayload: UnpublishedEncodedPayload = try {
                 val immutableSegments = freezeSegmentsForCommit(segments)
                 val payload = ImmutableEncodedPayload(segments = immutableSegments, byteCount = acceptedByteCount)
-                UnpublishedEncodedPayload(payload = payload, imageSize = imageSize)
+                UnpublishedEncodedPayload(payload = payload, effectiveParameters = effectiveParameters)
             } catch (allocationFailure: OutOfMemoryError) {
                 recordFailure(TransactionFailure.ResourceExhausted, allocationFailure)
                 return false
@@ -412,12 +640,12 @@ internal class EncodedStorageOwner {
 
     internal class UnpublishedEncodedPayload internal constructor(
         internal val payload: ImmutableEncodedPayload,
-        internal val imageSize: ImageSize,
+        internal val effectiveParameters: ScreenCaptureEffectiveParameters,
     ) {
         internal fun preparePublication(sequence: Long, timestampElapsedRealtimeNanos: Long): PublishedEncodedPayload =
             PublishedEncodedPayload(
                 payload = payload,
-                imageSize = imageSize,
+                effectiveParameters = effectiveParameters,
                 sequence = sequence,
                 timestampElapsedRealtimeNanos = timestampElapsedRealtimeNanos,
             )
@@ -425,7 +653,7 @@ internal class EncodedStorageOwner {
 
     internal class PublishedEncodedPayload internal constructor(
         internal val payload: ImmutableEncodedPayload,
-        internal val imageSize: ImageSize,
+        internal val effectiveParameters: ScreenCaptureEffectiveParameters,
         internal val sequence: Long,
         internal val timestampElapsedRealtimeNanos: Long,
     ) {
@@ -434,10 +662,14 @@ internal class EncodedStorageOwner {
             require(timestampElapsedRealtimeNanos >= 0L)
         }
 
-        internal fun prepareRepeat(sequence: Long, timestampElapsedRealtimeNanos: Long): PublishedEncodedPayload =
+        internal fun prepareRepeat(
+            effectiveParameters: ScreenCaptureEffectiveParameters,
+            sequence: Long,
+            timestampElapsedRealtimeNanos: Long,
+        ): PublishedEncodedPayload =
             PublishedEncodedPayload(
                 payload = payload,
-                imageSize = imageSize,
+                effectiveParameters = effectiveParameters,
                 sequence = sequence,
                 timestampElapsedRealtimeNanos = timestampElapsedRealtimeNanos,
             )
@@ -458,8 +690,8 @@ internal class EncodedStorageOwner {
         internal val byteCount: Int
             get() = publishedPayload.payload.byteCount
 
-        internal val imageSize: ImageSize
-            get() = publishedPayload.imageSize
+        internal val effectiveParameters: ScreenCaptureEffectiveParameters
+            get() = publishedPayload.effectiveParameters
 
         internal val sequence: Long
             get() = publishedPayload.sequence
@@ -511,18 +743,7 @@ internal class EncodedStorageOwner {
         return true
     }
 
-    internal fun replaceCommittedProduction(transaction: SegmentedTransaction): UnpublishedEncodedPayload? {
-        if (productionTransaction !== transaction || !transaction.isCommitted || unpublishedPayload != null) {
-            return null
-        }
-
-        val completedPayload = transaction.takeCommittedPayload() ?: return null
-        productionTransaction = null
-        unpublishedPayload = completedPayload
-        return completedPayload
-    }
-
-    internal fun detachAbortedProduction(transaction: SegmentedTransaction): Boolean {
+    internal fun rollbackAbortedAdmission(transaction: SegmentedTransaction): Boolean {
         if (productionTransaction !== transaction || !transaction.isAborted) return false
 
         productionTransaction = null
@@ -603,14 +824,20 @@ internal class EncodedStorageOwner {
     }
 
     private fun PublishedEncodedPayload.matches(unpublished: UnpublishedEncodedPayload): Boolean =
-        payload === unpublished.payload && imageSize === unpublished.imageSize
+        payload === unpublished.payload && effectiveParameters === unpublished.effectiveParameters
 
     private fun PublishedEncodedPayload.matches(other: PublishedEncodedPayload): Boolean =
-        payload === other.payload && imageSize === other.imageSize
+        payload === other.payload
 
     private companion object {
-        private val INVALID_IMAGE_SIZE: IllegalArgumentException =
-            IllegalArgumentException("imageSize must be positive")
+        private val ROLE_IDENTITY_MISMATCH: IllegalStateException =
+            IllegalStateException("encoded storage role identity mismatch")
+        private val ROLE_RECEIPT_NOT_APPLIED: IllegalStateException =
+            IllegalStateException("encoded storage role command was not applied")
+        private val TRANSACTION_RETIREMENT_FAILED: IllegalStateException =
+            IllegalStateException("encoded storage transaction retirement failed")
+        private val INVALID_EFFECTIVE_PARAMETERS: IllegalArgumentException =
+            IllegalArgumentException("effectiveParameters.finalImageSize must be positive")
         private val EMPTY_ENCODED_PAYLOAD: IllegalStateException =
             IllegalStateException("encoded payload must not be empty")
         private val PRODUCER_CLOSED: IllegalStateException =

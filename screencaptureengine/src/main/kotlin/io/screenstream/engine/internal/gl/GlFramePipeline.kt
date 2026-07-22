@@ -42,13 +42,24 @@ internal class GlFrameHandle internal constructor(
     private val evidence: GlOperationEvidence = GlOperationEvidence(identity.operationIdentity, GlOperationKind.Frame)
     private val ownerBag: GlOwnerBag = GlOwnerBag(renderTarget)
     private val occurrence: OperationOccurrence<GlOperationEvidence> = owner.operationOccurrence(identity, evidence, ownerBag)
-    private val claimedFacts: GlClaimedOperationFacts = GlClaimedOperationFacts.precreate(evidence)
+    private val claimedFacts: GlClaimedOperationFacts = GlClaimedOperationFacts.precreateFrame(
+        evidence = evidence,
+        targetIdentity = targetPort.targetIdentity,
+        renderTargetOwner = renderTarget,
+    )
     private val endpointOperation = owner.endpointOperation(occurrence, Runnable { execute() })
     private var lease: RgbaCarrierLease? = lease
     private var leaseReleased: Boolean = false
     private val colorActionFacts: GlColorActionCell = GlColorActionCell()
     private val stateProbeFacts: GlProbeFacts = GlProbeFacts()
     private val drawReadProbeFacts: GlProbeFacts = GlProbeFacts()
+
+    init {
+        check(targetPort.operationIdentity == evidence.operationIdentity)
+        check(targetPort.targetIdentity === target.identity)
+        check(renderState.owner === renderTarget)
+        check(renderState.targetGeneration == target.generation)
+    }
 
     @Volatile
     override var targetFrameEntryResult: TargetFrameEntryResult? = null
@@ -329,6 +340,10 @@ internal class GlFramePipeline internal constructor(
                 owner.checkFatalFence()
                 check(lease.exitExactRange())
             }
+            owner.markContextUnknown()
+            evidence.throwable = exception
+            evidence.result = GlOperationResult.InternalFailure
+            evidence.contextIntegrity = ContextIntegrity.Unknown
             throw exception
         }
     }

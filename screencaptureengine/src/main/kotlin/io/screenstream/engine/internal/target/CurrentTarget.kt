@@ -3,14 +3,20 @@ package io.screenstream.engine.internal.target
 import android.graphics.SurfaceTexture
 import android.view.Surface
 import io.screenstream.engine.internal.TargetQuarantineChild
+import io.screenstream.engine.internal.android.AndroidTargetPostOutcome
+import io.screenstream.engine.internal.android.AndroidTargetOperationBinding
+import io.screenstream.engine.internal.android.AndroidTargetPlatformResult
+import io.screenstream.engine.internal.android.AndroidFinalLaneNoEntryProof
+import io.screenstream.engine.internal.android.AndroidTargetListenerInstallationEvidence
+import io.screenstream.engine.internal.android.AndroidTargetListenerInstallationNoPlatformEntryOutcome
+import io.screenstream.engine.internal.android.AndroidTargetListenerInstallationUnboundClaimRetiredProof
+import io.screenstream.engine.internal.gl.GlDestructionEvidence
 import io.screenstream.engine.internal.gl.GlFiniteOperationIdentity
 import io.screenstream.engine.internal.gl.GlOperationSuccessReceipt
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationReturnDisposition
 import io.screenstream.engine.internal.settlement.SettlementSignal
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -47,21 +53,23 @@ internal class CurrentTarget private constructor(
     internal val identity: TargetIdentity =
         TargetIdentity.create(targetOwner, constructionProof, this, generation)
     internal val quarantineChild: TargetQuarantineChild.Current = TargetQuarantineChild.Current(this)
-    private val latestPendingSource: AtomicBoolean = AtomicBoolean(false)
-    private val currentnessVersion: AtomicLong = AtomicLong(1L)
     internal var expectedListenerRemovalOperationIdentity: Long = NO_OPERATION_IDENTITY
         private set
     internal var expectedSetSurfaceDetachOperationIdentity: Long = NO_OPERATION_IDENTITY
         private set
     internal var expectedVirtualDisplayReleaseOperationIdentity: Long = NO_OPERATION_IDENTITY
         private set
-    internal var armedListenerSentinelOperationIdentity: Long = NO_OPERATION_IDENTITY
-        private set
     internal var observedListenerSentinelOperationIdentity: Long = NO_OPERATION_IDENTITY
         private set
     internal var producerState: TargetProducerState = TargetProducerState.AwaitingEvidence
         private set
     internal var listenerInstalled: Boolean = false
+        private set
+    internal var listenerInstallationObligation: TargetListenerInstallationObligation =
+        TargetListenerInstallationObligation.PendingInstallation
+        private set
+    internal var listenerInstallationRequestAdmission: TargetListenerInstallationRequestAdmission =
+        TargetListenerInstallationRequestAdmission.AwaitingRequest
         private set
     internal var sourceSignalsAccepted: Boolean = false
         private set
@@ -78,6 +86,10 @@ internal class CurrentTarget private constructor(
     private var retirementAdmissionClosedFact: TargetRetirementAdmissionClosedFact? = null
     private var workDrainedFact: TargetWorkDrainedFact? = null
     private var generationFencedFact: TargetGenerationFencedFact? = null
+    private var listenerNeverInstalledFact: TargetListenerNeverInstalledFact? = null
+    private var listenerNeverRequestedFact: TargetListenerInstallationNeverRequestedFact? = null
+    private var listenerClaimRetiredFact: TargetListenerInstallationClaimRetiredFact? = null
+    private var listenerNoPlatformEntryFact: TargetListenerInstallationNoPlatformEntryFact? = null
     private var frameAdmissionDisposition: TargetFrameAdmissionDisposition = TargetFrameAdmissionDisposition.Open
     private var frameAdmissionEpoch: Long = 1L
     private var frameAdmissionPredecessor: TargetEnteredFact? = null
@@ -87,14 +99,11 @@ internal class CurrentTarget private constructor(
     private var retainedGlAdmittedFact: TargetRetainedGlAdmittedFact? = null
     private var retainedGlSettledFact: TargetRetainedGlSettledFact? = null
 
+    private val listenerTargetIdentity: TargetIdentity = identity
     private val frameAvailableListener: SurfaceTexture.OnFrameAvailableListener =
         SurfaceTexture.OnFrameAvailableListener {
-            publishSourceAvailable()
+            publishSourceAvailable(listenerTargetIdentity)
         }
-
-    private val listenerSentinelRunnable: Runnable = Runnable {
-        publishListenerSentinel()
-    }
 
     private val retirement: TargetRetirement =
         TargetRetirement.create(
@@ -125,9 +134,24 @@ internal class CurrentTarget private constructor(
             settlementSignal,
             retirement,
         )
+    private val precreatedMechanicallyRetiredFact: CurrentTargetMechanicallyRetiredFact =
+        CurrentTargetMechanicallyRetiredFact.precreate(
+            targetOwner,
+            constructionProof,
+            identity,
+            retirement.precreatedRetirementCompleteEvidence,
+        )
 
     private val precreatedSourceAvailableFact: TargetSourceAvailableFact =
         TargetSourceAvailableFact.create(targetOwner, constructionProof, identity)
+    private val pendingSourceLatch: TargetPendingSourceLatch =
+        TargetPendingSourceLatch.create(
+            targetOwner,
+            constructionProof,
+            identity,
+            precreatedSourceAvailableFact,
+            frameAdmissionEpoch,
+        )
     private val precreatedRetirementAdmissionClosedFact: TargetRetirementAdmissionClosedFact =
         TargetRetirementAdmissionClosedFact.create(targetOwner, constructionProof, identity)
     private val precreatedWorkDrainedFact: TargetWorkDrainedFact =
@@ -164,70 +188,16 @@ internal class CurrentTarget private constructor(
             OperationOccurrence<TargetSurfaceReleaseEvidence>
         get() = retirement.surfaceReleaseOccurrence
 
-    internal val hasPendingSource: Boolean
-        get() = targetGate.withLock {
-            retirement.installedResources &&
-                    !generationFenced &&
-                    latestPendingSource.get()
-        }
-
     internal val activeLeaseCount: Int
         get() = ports.activeLeaseCount
 
-    internal val isProducerAttachmentPermitted: Boolean
-        get() = targetGate.withLock {
-            retirement.installedResources && listenerInstalled && !generationFenced &&
-                    producerState == TargetProducerState.AwaitingEvidence && !ports.hasProducerPortLocked
+    internal fun claimMechanicallyRetiredFact(
+        evidence: TargetRetirementCompleteEvidence,
+    ): CurrentTargetMechanicallyRetiredFact? = targetGate.withLock {
+        precreatedMechanicallyRetiredFact.takeIf {
+            it.retirementEvidence === evidence && retirement.isExactMechanicalRetirementLocked(evidence)
         }
-
-    internal val currentProducerState: TargetProducerState
-        get() = targetGate.withLock { producerState }
-
-    internal fun currentnessFact(): TargetCurrentnessFact {
-        var listener = false
-        var producer = TargetProducerState.AwaitingEvidence
-        var fenced = false
-        var admissionEpoch = 0L
-        var sealedFact: TargetFrameAdmissionSealedFact? = null
-        var quiescedFact: TargetFrameQuiescedFact? = null
-        var admissionRetirementClosed = false
-        var version = 0L
-        var versionExhausted = false
-        targetGate.withLock {
-            listener = listenerInstalled
-            producer = producerState
-            fenced = generationFenced
-            admissionEpoch = frameAdmissionEpoch
-            sealedFact = frameAdmissionSealedFact
-            quiescedFact = frameQuiescedFact
-            admissionRetirementClosed = frameAdmissionDisposition == TargetFrameAdmissionDisposition.RetirementClosed
-            version = currentnessVersion.get()
-            versionExhausted = version == Long.MAX_VALUE
-        }
-        return TargetCurrentnessFact.create(
-            targetOwner,
-            constructionProof,
-            identity,
-            plan,
-            listener,
-            producer,
-            fenced,
-            admissionEpoch,
-            sealedFact,
-            quiescedFact,
-            admissionRetirementClosed,
-            version,
-            versionExhausted,
-        )
     }
-
-    internal fun isCurrentnessVersion(expected: Long): Boolean {
-        val current = currentnessVersion.get()
-        return current != Long.MAX_VALUE && current == expected
-    }
-
-    internal val currentnessVersionExhausted: Boolean
-        get() = currentnessVersion.get() == Long.MAX_VALUE
 
     internal fun surfaceReleaseReadyFact(): TargetSurfaceReleaseReadyFact? = targetGate.withLock {
         if (!isSurfaceReleaseReadyLocked()) return@withLock null
@@ -237,49 +207,118 @@ internal class CurrentTarget private constructor(
 
     private fun isSurfaceReleaseReadyLocked(): Boolean {
         check(targetGate.isHeldByCurrentThread)
+        val listenerReady = when (listenerInstallationObligation) {
+            TargetListenerInstallationObligation.PendingInstallation -> false
+            TargetListenerInstallationObligation.NeverInstalled ->
+                listenerInstallationRequestAdmission == TargetListenerInstallationRequestAdmission.Bound &&
+                        listenerNeverInstalledFact?.targetIdentity === identity &&
+                        expectedListenerRemovalOperationIdentity == NO_OPERATION_IDENTITY &&
+                        !listenerRemoved && !listenerRemovalSettled &&
+                        observedListenerSentinelOperationIdentity == NO_OPERATION_IDENTITY
+            TargetListenerInstallationObligation.NeverRequested ->
+                listenerNeverRequestedFact?.let { fact ->
+                    listenerInstallationRequestAdmission ==
+                            TargetListenerInstallationRequestAdmission.NeverRequested &&
+                            fact.targetIdentity === identity &&
+                            fact.requestedIdentity === requestedIdentity &&
+                            fact.cutoffFact === retirementAdmissionClosedFact &&
+                            fact.workDrainedFact === workDrainedFact &&
+                            fact.generationFencedFact === generationFencedFact
+                } == true && expectedListenerRemovalOperationIdentity == NO_OPERATION_IDENTITY &&
+                        !listenerRemoved && !listenerRemovalSettled &&
+                        observedListenerSentinelOperationIdentity == NO_OPERATION_IDENTITY
+            TargetListenerInstallationObligation.ClaimRetiredBeforeBinding ->
+                listenerInstallationRequestAdmission ==
+                        TargetListenerInstallationRequestAdmission.RetiredBeforeBinding &&
+                        listenerClaimRetiredFact?.let { fact ->
+                            fact.targetIdentity === identity && fact.cutoffFact === retirementAdmissionClosedFact &&
+                                    fact.workDrainedFact === workDrainedFact &&
+                                    fact.generationFencedFact === generationFencedFact
+                        } == true &&
+                        expectedListenerRemovalOperationIdentity == NO_OPERATION_IDENTITY &&
+                        !listenerRemoved && !listenerRemovalSettled &&
+                        observedListenerSentinelOperationIdentity == NO_OPERATION_IDENTITY
+            TargetListenerInstallationObligation.NoPlatformEntry ->
+                listenerInstallationRequestAdmission == TargetListenerInstallationRequestAdmission.Bound &&
+                        listenerNoPlatformEntryFact?.let { fact ->
+                            fact.targetIdentity === identity && fact.cutoffFact === retirementAdmissionClosedFact &&
+                                    fact.workDrainedFact === workDrainedFact &&
+                                    fact.generationFencedFact === generationFencedFact
+                        } == true &&
+                        expectedListenerRemovalOperationIdentity == NO_OPERATION_IDENTITY &&
+                        !listenerRemoved && !listenerRemovalSettled &&
+                        observedListenerSentinelOperationIdentity == NO_OPERATION_IDENTITY
+            TargetListenerInstallationObligation.Installed ->
+                listenerInstallationRequestAdmission == TargetListenerInstallationRequestAdmission.Bound &&
+                        listenerRemoved && listenerRemovalSettled &&
+                        expectedListenerRemovalOperationIdentity != NO_OPERATION_IDENTITY &&
+                        observedListenerSentinelOperationIdentity == expectedListenerRemovalOperationIdentity
+        }
+        val producerReady = producerState == TargetProducerState.NoProducer ||
+                producerState == TargetProducerState.Detached
         return retirement.installedResources &&
                 retirementAdmissionClosed &&
                 enteredTargetWorkDrained &&
                 generationFenced &&
-                listenerRemoved &&
-                listenerRemovalSettled &&
-                expectedListenerRemovalOperationIdentity != NO_OPERATION_IDENTITY &&
-                observedListenerSentinelOperationIdentity == expectedListenerRemovalOperationIdentity &&
-                (producerState == TargetProducerState.NoProducer ||
-                        producerState == TargetProducerState.Detached) &&
+                listenerReady && producerReady &&
                 !ports.hasGlFramePortLocked &&
                 ports.leaseCountLocked == 0
     }
 
-    internal fun installedConstructionFact(
-        requester: TargetOwner,
-        proof: () -> Unit,
-        constructionOperationIdentity: Long,
+    internal fun precreateInstalledConstructionFact(
+        constructionProvenance: TargetConstructionProvenance,
         constructionReceipt: GlOperationSuccessReceipt,
-    ): TargetConstructionInstalledFact? {
-        if (!matchesConstructionProof(requester, proof)) return null
-        require(constructionOperationIdentity > 0L)
-        val listenerPort = registerListenerInstallationPort(listenerInstallationOperationIdentity) ?: return null
-        val exactInstalled = targetGate.withLock {
-            retirement.installedResources && !generationFenced && listenerPort.targetIdentity === identity
-        }
-        if (!exactInstalled) return null
+    ): TargetConstructionInstalledFact {
+        val listenerPort = checkNotNull(ports.listenerInstallationPortForConstructionClosure(
+            listenerInstallationOperationIdentity,
+        ))
         return TargetConstructionInstalledFact.create(
             targetOwner = targetOwner,
             constructionProof = constructionProof,
             requestedIdentity = requestedIdentity,
             targetIdentity = identity,
-            constructionOperationIdentity = constructionOperationIdentity,
+            constructionOperationIdentity = constructionProvenance.constructionOperationIdentity,
+            constructionProvenance = constructionProvenance,
             constructionReceipt = constructionReceipt,
             plan = plan,
             listenerInstallationPort = listenerPort,
         )
     }
 
-    internal fun constructionFailureFact(
+    internal fun claimInstalledConstructionFact(
         requester: TargetOwner,
         proof: () -> Unit,
-        constructionOperationIdentity: Long,
+        precreatedFact: TargetConstructionInstalledFact,
+    ): TargetConstructionInstalledFact? {
+        if (!matchesConstructionProof(requester, proof)) return null
+        val listenerPort = ports.listenerInstallationPortForConstructionFact(
+            listenerInstallationOperationIdentity,
+        ) ?: return null
+        val exactInstalled = targetGate.withLock {
+            retirement.installedResources && !generationFenced && listenerPort.targetIdentity === identity &&
+                    precreatedFact.targetIdentity === identity &&
+                    precreatedFact.constructionProvenance.targetGeneration == generation &&
+                    precreatedFact.listenerInstallationPort === listenerPort
+        }
+        return precreatedFact.takeIf { exactInstalled }
+    }
+
+    internal fun precreateConstructionFailureFact(
+        constructionProvenance: TargetConstructionProvenance,
+    ): TargetConstructionFailureFact = TargetConstructionFailureFact.precreate(
+        targetOwner = targetOwner,
+        constructionProof = constructionProof,
+        requestedIdentity = requestedIdentity,
+        targetIdentity = identity,
+        constructionOperationIdentity = constructionProvenance.constructionOperationIdentity,
+        constructionProvenance = constructionProvenance,
+        cleanupTarget = this,
+    )
+
+    internal fun bindConstructionFailureFact(
+        requester: TargetOwner,
+        proof: () -> Unit,
+        precreatedFact: TargetConstructionFailureFact,
         disposition: TargetConstructionFoldDisposition,
         returnDisposition: OperationReturnDisposition,
         failure: Throwable?,
@@ -287,21 +326,18 @@ internal class CurrentTarget private constructor(
     ): TargetConstructionFailureFact? {
         if (!matchesConstructionProof(requester, proof)) return null
         val exactFailure = targetGate.withLock {
-            !retirement.installedResources && disposition != TargetConstructionFoldDisposition.Install
+            !retirement.installedResources && disposition != TargetConstructionFoldDisposition.Install &&
+                    precreatedFact.targetIdentity === identity &&
+                    precreatedFact.constructionProvenance.targetGeneration == generation
         }
         if (!exactFailure) return null
-        return TargetConstructionFailureFact.create(
-            targetOwner = targetOwner,
-            constructionProof = constructionProof,
-            requestedIdentity = requestedIdentity,
-            targetIdentity = identity,
-            constructionOperationIdentity = constructionOperationIdentity,
+        precreatedFact.bind(
             disposition = disposition,
-            cleanupTarget = this,
             returnDisposition = returnDisposition,
             failure = failure,
             stage = stage,
         )
+        return precreatedFact
     }
 
     internal fun appliedSurfaceReleaseReceipt(): TargetSurfaceReleaseReceipt? =
@@ -364,77 +400,219 @@ internal class CurrentTarget private constructor(
                 namespaceDestructionIdentity.timeoutCause
     }
 
-    internal fun registerListenerInstallationPort(operationIdentity: Long): TargetPorts.AndroidListenerInstallationPort? =
-        ports.registerListenerInstallationPort(operationIdentity)
+    /** Android must claim this request before it creates an occurrence or binding. */
+    internal fun claimListenerInstallationRequest(
+        operationIdentity: Long,
+    ): TargetListenerInstallationRequestClaim? =
+        ports.claimListenerInstallationRequest(operationIdentity)
 
-    internal fun applyListenerInstallationReceipt(
-        port: TargetPorts.AndroidListenerInstallationPort,
-        operation: OperationOccurrence<*>,
-    ): TargetListenerInstalledFact? = ports.applyListenerInstallationReceipt(port, operation)
-
-    internal fun registerProducerPort(
+    internal fun prepareProducerPort(
         operationIdentity: Long,
         operationKind: TargetProducerOperationKind,
-    ): TargetPorts.AndroidSurfacePort? =
-        ports.registerProducerPort(operationIdentity, operationKind)
+    ): TargetProducerPortPreparationResult =
+        ports.prepareProducerPort(operationIdentity, operationKind)
 
     internal fun prepareStagedProducerPort(
         operationIdentity: Long,
         retargetOccurrenceIdentity: Long,
-    ): TargetPorts.StagedAndroidSurfacePort =
+    ): TargetProducerPortPreparationResult =
         ports.prepareStagedProducerPort(operationIdentity, retargetOccurrenceIdentity)
 
-    internal fun prepareStagedProducerApplicationCandidates(
+    internal fun consumeAndroidTargetPostOutcome(
+        outcome: AndroidTargetPostOutcome,
+    ): TargetStagedPortFact? = ports.consumeAndroidPostOutcome(outcome)
+
+    internal fun bindAndroidTargetOperation(
         stagedPort: TargetPorts.StagedAndroidSurfacePort,
-        operation: OperationOccurrence<*>,
-    ): Boolean = ports.prepareStagedProducerApplicationCandidates(stagedPort, operation)
+        binding: AndroidTargetOperationBinding,
+    ): Boolean = ports.bindAndroidOperation(stagedPort, binding)
+
+    internal fun bindAndroidTargetOperation(
+        stagedPort: TargetPorts.StagedAndroidDetachPort,
+        binding: AndroidTargetOperationBinding,
+    ): Boolean = ports.bindAndroidOperation(stagedPort, binding)
+
+    internal fun bindAndroidTargetOperation(
+        port: TargetPorts.AndroidSurfacePort,
+        binding: AndroidTargetOperationBinding,
+    ): TargetProducerPortCommitResult? = ports.bindAndroidOperation(port, binding)
+
+    internal fun bindAndroidTargetOperation(
+        port: TargetPorts.AndroidDetachPort,
+        binding: AndroidTargetOperationBinding,
+    ): Boolean = ports.bindAndroidOperation(port, binding)
+
+    internal fun bindAndroidTargetOperation(
+        claim: TargetListenerInstallationRequestClaim,
+        binding: AndroidTargetOperationBinding,
+    ): TargetListenerInstallationBindingCommittedFact? =
+        ports.commitListenerInstallationBinding(claim, binding)
+
+    internal fun recoverListenerInstallationBindingCommittedFact(
+        claim: TargetListenerInstallationRequestClaim,
+        binding: AndroidTargetOperationBinding,
+    ): TargetListenerInstallationBindingCommittedFact? =
+        ports.recoverListenerInstallationBindingCommittedFact(claim, binding)
+
+    internal fun bindAndroidListenerRemovalOperations(
+        port: TargetPorts.AndroidListenerRemovalPort,
+        removalBinding: AndroidTargetOperationBinding,
+        sentinelBinding: AndroidTargetOperationBinding,
+    ): Boolean = ports.bindAndroidListenerRemovalOperations(port, removalBinding, sentinelBinding)
+
+    internal fun consumeAndroidTargetPlatformResult(
+        result: AndroidTargetPlatformResult,
+    ): TargetAndroidPlatformApplicationResult? = ports.consumeAndroidPlatformResult(result)
+
+    internal fun applyListenerInstallationNeverInstalled(
+        proof: AndroidFinalLaneNoEntryProof<AndroidTargetListenerInstallationEvidence>,
+    ): TargetAndroidPlatformApplicationResult.ListenerNeverInstalled? =
+        ports.applyListenerInstallationNeverInstalled(proof)
+
+    internal fun applyListenerInstallationNeverRequested(
+        cutoffFact: TargetRetirementAdmissionClosedFact,
+        drainedFact: TargetWorkDrainedFact,
+        fencedFact: TargetGenerationFencedFact,
+    ): TargetListenerInstallationNeverRequestedApplicationResult? {
+        if (cutoffFact.targetIdentity !== identity || drainedFact.targetIdentity !== identity ||
+            drainedFact.admissionClosedFact !== cutoffFact || fencedFact.targetIdentity !== identity ||
+            fencedFact.workDrainedFact !== drainedFact
+        ) {
+            return null
+        }
+        val candidate = TargetListenerInstallationNeverRequestedFact.precreate(
+            targetOwner = targetOwner,
+            constructionProof = constructionProof,
+            targetIdentity = identity,
+            requestedIdentity = requestedIdentity,
+            operationIdentity = listenerInstallationOperationIdentity,
+            cutoffFact = cutoffFact,
+            workDrainedFact = drainedFact,
+            generationFencedFact = fencedFact,
+        )
+        val result = TargetListenerInstallationNeverRequestedApplicationResult.precreate(candidate)
+        return targetGate.withLock {
+            if (!retirement.installedResources || !retirementAdmissionClosed || !enteredTargetWorkDrained ||
+                !generationFenced || retirementAdmissionClosedFact !== cutoffFact ||
+                workDrainedFact !== drainedFact || generationFencedFact !== fencedFact ||
+                listenerInstallationRequestAdmission !=
+                TargetListenerInstallationRequestAdmission.AwaitingRequest ||
+                listenerInstallationObligation != TargetListenerInstallationObligation.PendingInstallation ||
+                listenerInstalled || sourceSignalsAccepted || listenerNeverInstalledFact != null ||
+                listenerNeverRequestedFact != null || listenerClaimRetiredFact != null ||
+                listenerNoPlatformEntryFact != null || expectedListenerRemovalOperationIdentity != NO_OPERATION_IDENTITY ||
+                listenerRemoved || listenerRemovalSettled ||
+                observedListenerSentinelOperationIdentity != NO_OPERATION_IDENTITY ||
+                !ports.hasNeverRequestedListenerInstallationLocked
+            ) {
+                return@withLock null
+            }
+            listenerInstallationRequestAdmission = TargetListenerInstallationRequestAdmission.NeverRequested
+            listenerInstallationObligation = TargetListenerInstallationObligation.NeverRequested
+            listenerNeverRequestedFact = candidate
+            ports.retireNeverRequestedListenerInstallationLocked()
+            result
+        }
+    }
+
+    internal fun applyListenerInstallationClaimRetiredBeforeBinding(
+        claim: TargetListenerInstallationRequestClaim,
+        androidProof: AndroidTargetListenerInstallationUnboundClaimRetiredProof,
+        cutoffFact: TargetRetirementAdmissionClosedFact,
+        drainedFact: TargetWorkDrainedFact,
+        fencedFact: TargetGenerationFencedFact,
+    ): TargetListenerInstallationClaimRetiredApplicationResult? {
+        if (claim.targetIdentity !== identity || androidProof.claim !== claim || cutoffFact.targetIdentity !== identity ||
+            drainedFact.targetIdentity !== identity || drainedFact.admissionClosedFact !== cutoffFact ||
+            fencedFact.targetIdentity !== identity || fencedFact.workDrainedFact !== drainedFact
+        ) {
+            return null
+        }
+        val candidate = TargetListenerInstallationClaimRetiredFact.precreate(
+            targetOwner,
+            constructionProof,
+            claim,
+            androidProof,
+            cutoffFact,
+            drainedFact,
+            fencedFact,
+        )
+        val result = TargetListenerInstallationClaimRetiredApplicationResult.precreate(candidate)
+        return targetGate.withLock {
+            if (!hasExactListenerAbsenceEvidenceLocked(cutoffFact, drainedFact, fencedFact) ||
+                listenerInstallationRequestAdmission != TargetListenerInstallationRequestAdmission.Claimed ||
+                listenerInstallationObligation != TargetListenerInstallationObligation.PendingInstallation ||
+                listenerClaimRetiredFact != null || listenerNoPlatformEntryFact != null ||
+                !ports.canRetireClaimedListenerInstallationLocked(claim)
+            ) {
+                return@withLock null
+            }
+            listenerInstallationRequestAdmission = TargetListenerInstallationRequestAdmission.RetiredBeforeBinding
+            listenerInstallationObligation = TargetListenerInstallationObligation.ClaimRetiredBeforeBinding
+            listenerClaimRetiredFact = candidate
+            ports.retireClaimedListenerInstallationLocked(claim)
+            result
+        }
+    }
+
+    internal fun applyListenerInstallationNoPlatformEntry(
+        bindingFact: TargetListenerInstallationBindingCommittedFact,
+        outcome: AndroidTargetListenerInstallationNoPlatformEntryOutcome,
+        cutoffFact: TargetRetirementAdmissionClosedFact,
+        drainedFact: TargetWorkDrainedFact,
+        fencedFact: TargetGenerationFencedFact,
+    ): TargetListenerInstallationNoPlatformEntryApplicationResult? {
+        if (bindingFact.claim.targetIdentity !== identity || outcome.binding !== bindingFact.binding ||
+            cutoffFact.targetIdentity !== identity || drainedFact.targetIdentity !== identity ||
+            drainedFact.admissionClosedFact !== cutoffFact || fencedFact.targetIdentity !== identity ||
+            fencedFact.workDrainedFact !== drainedFact
+        ) {
+            return null
+        }
+        val candidate = TargetListenerInstallationNoPlatformEntryFact.precreate(
+            targetOwner,
+            constructionProof,
+            bindingFact,
+            outcome,
+            cutoffFact,
+            drainedFact,
+            fencedFact,
+        )
+        val result = TargetListenerInstallationNoPlatformEntryApplicationResult.precreate(candidate)
+        return targetGate.withLock {
+            if (!hasExactListenerAbsenceEvidenceLocked(cutoffFact, drainedFact, fencedFact) ||
+                listenerInstallationRequestAdmission != TargetListenerInstallationRequestAdmission.Bound ||
+                listenerInstallationObligation != TargetListenerInstallationObligation.PendingInstallation ||
+                listenerClaimRetiredFact != null || listenerNoPlatformEntryFact != null ||
+                !ports.canRetireBoundListenerWithoutPlatformEntryLocked(bindingFact, outcome)
+            ) {
+                return@withLock null
+            }
+            listenerInstallationObligation = TargetListenerInstallationObligation.NoPlatformEntry
+            listenerNoPlatformEntryFact = candidate
+            ports.retireBoundListenerWithoutPlatformEntryLocked(bindingFact, outcome)
+            result
+        }
+    }
+
+    private fun hasExactListenerAbsenceEvidenceLocked(
+        cutoffFact: TargetRetirementAdmissionClosedFact,
+        drainedFact: TargetWorkDrainedFact,
+        fencedFact: TargetGenerationFencedFact,
+    ): Boolean {
+        check(targetGate.isHeldByCurrentThread)
+        return retirement.installedResources && retirementAdmissionClosed && enteredTargetWorkDrained &&
+                generationFenced && retirementAdmissionClosedFact === cutoffFact &&
+                workDrainedFact === drainedFact && generationFencedFact === fencedFact &&
+                !listenerInstalled && !sourceSignalsAccepted && listenerNeverInstalledFact == null &&
+                listenerNeverRequestedFact == null && expectedListenerRemovalOperationIdentity == NO_OPERATION_IDENTITY &&
+                !listenerRemoved && !listenerRemovalSettled &&
+                observedListenerSentinelOperationIdentity == NO_OPERATION_IDENTITY
+    }
 
     internal fun commitStagedProducerPort(
         stagedPort: TargetPorts.StagedAndroidSurfacePort,
     ): TargetStagedProducerPortCommitResult? = ports.commitStagedProducerPort(stagedPort)
-
-    internal fun markStagedProducerPostAcceptedOrAmbiguous(
-        stagedPort: TargetPorts.StagedAndroidSurfacePort,
-    ): TargetStagedPortPostExposedFact? = ports.markStagedProducerPostAcceptedOrAmbiguous(stagedPort)
-
-    internal fun retireCommittedStagedProducerPortDefinitelyUnentered(
-        stagedPort: TargetPorts.StagedAndroidSurfacePort,
-    ): TargetStagedProducerPortRetiredFact? =
-        ports.retireCommittedStagedProducerPortDefinitelyUnentered(stagedPort)
-
-    internal fun retireUnusedStagedProducerPortTerminalInapplicable(
-        stagedPort: TargetPorts.StagedAndroidSurfacePort,
-    ): TargetStagedProducerPortRetiredFact? =
-        ports.retireUnusedStagedProducerPortTerminalInapplicable(stagedPort)
-
-    internal fun applyStagedProducerTerminalApplication(
-        stagedPort: TargetPorts.StagedAndroidSurfacePort,
-    ): TargetProducerApplicationFact? = ports.applyStagedProducerTerminalApplication(stagedPort)
-
-    internal fun producerApplicationCandidateAfterSettlement(
-        port: TargetPorts.AndroidSurfacePort,
-        operation: OperationOccurrence<*>,
-    ): TargetProducerApplicationCandidate? =
-        ports.producerApplicationCandidateAfterSettlement(port, operation)
-
-    internal fun applyProducerApplication(candidate: TargetProducerApplicationCandidate): TargetProducerApplicationFact? =
-        ports.applyProducerApplication(candidate)
-
-    internal fun prepareProducerApplicationCandidates(port: TargetPorts.AndroidSurfacePort, operation: OperationOccurrence<*>): Boolean =
-        ports.prepareProducerApplicationCandidates(port, operation)
-
-    internal fun producerDetachApplicationCandidateAfterSettlement(
-        port: TargetPorts.AndroidDetachPort,
-        operation: OperationOccurrence<*>,
-    ): TargetProducerDetachApplicationCandidate? =
-        ports.producerDetachApplicationCandidateAfterSettlement(port, operation)
-
-    internal fun applyProducerDetachApplication(
-        candidate: TargetProducerDetachApplicationCandidate,
-    ): TargetProducerDetachReceipt? = ports.applyProducerDetachApplication(candidate)
-
-    internal fun prepareProducerDetachApplicationCandidate(port: TargetPorts.AndroidDetachPort, operation: OperationOccurrence<*>): Boolean =
-        ports.prepareProducerDetachApplicationCandidate(port, operation)
 
     internal fun detachedGlFramePort(operationIdentity: Long): TargetPorts.GlFramePort? =
         ports.detachedGlFramePort(operationIdentity)
@@ -520,10 +698,10 @@ internal class CurrentTarget private constructor(
                 return@withLock null
             }
             ports.rejectReservedFrameForSealLocked()
+            pendingSourceLatch.seal(epoch)
             frameAdmissionDisposition = TargetFrameAdmissionDisposition.Sealed
             frameAdmissionSealedFact = sealedFact
             frameQuiescedFact = null
-            bumpCurrentnessLocked()
             sealedFact
         }
     }
@@ -539,7 +717,6 @@ internal class CurrentTarget private constructor(
             }
             frameQuiescedFact ?: candidate.also {
                 frameQuiescedFact = it
-                bumpCurrentnessLocked()
             }
         }
     }
@@ -577,7 +754,6 @@ internal class CurrentTarget private constructor(
             retainedGlReservation = candidate
             retainedGlAdmittedFact = null
             retainedGlSettledFact = null
-            bumpCurrentnessLocked()
             candidate.reservedFact
         }
     }
@@ -601,7 +777,6 @@ internal class CurrentTarget private constructor(
             }
             if (inertReason != null) return@withLock reservation.inertFact(inertReason)
             retainedGlAdmittedFact = reservation.admittedFact
-            bumpCurrentnessLocked()
             reservation.admittedFact
         }
     }
@@ -620,7 +795,6 @@ internal class CurrentTarget private constructor(
             val settled = retainedGlSettledFact
             if (settled != null) return@withLock settled
             retainedGlSettledFact = reservation.settledFact
-            bumpCurrentnessLocked()
             reservation.settledFact
         }
     }
@@ -678,6 +852,7 @@ internal class CurrentTarget private constructor(
             reopenedEpoch,
             retainedReconfigurationIdentity,
         )
+        val reopenedPendingSourceEpoch = pendingSourceLatch.prepareEpoch(reopenedEpoch)
         var secondPhaseRejection = TargetFrameAdmissionReopenRejectionReason.StaleFact
         val applied = targetGate.withLock {
             val rejection = when {
@@ -706,7 +881,7 @@ internal class CurrentTarget private constructor(
             retainedGlReservation = null
             retainedGlAdmittedFact = null
             retainedGlSettledFact = null
-            bumpCurrentnessLocked()
+            pendingSourceLatch.reopen(currentEpoch, reopenedPendingSourceEpoch)
             true
         }
         return if (applied) {
@@ -722,12 +897,15 @@ internal class CurrentTarget private constructor(
         }
     }
 
-    internal fun consumePendingSource(): Boolean = targetGate.withLock {
-        if (!retirement.installedResources || retirementAdmissionClosed || generationFenced) {
-            return@withLock false
-        }
-        latestPendingSource.getAndSet(false)
-    }
+    internal fun claimPendingSource(
+        expectedTargetIdentity: TargetIdentity,
+        expectedFrameAdmissionEpoch: Long,
+    ): TargetPendingSourceClaim? =
+        pendingSourceLatch.claim(expectedTargetIdentity, expectedFrameAdmissionEpoch)
+
+    internal fun commitPendingSource(
+        claim: TargetPendingSourceClaim,
+    ): TargetPendingSourceCommitResult = pendingSourceLatch.commit(claim)
 
     internal fun closeRetirementAdmission(): TargetRetirementAdmissionClosedFact? = targetGate.withLock {
         if (!retirement.installedResources || retirementAdmissionClosed) {
@@ -738,7 +916,8 @@ internal class CurrentTarget private constructor(
         frameAdmissionSealedFact = null
         frameQuiescedFact = null
         retirementAdmissionClosed = true
-        bumpCurrentnessLocked()
+        sourceSignalsAccepted = false
+        pendingSourceLatch.closeForRetirement()
         precreatedRetirementAdmissionClosedFact.also { retirementAdmissionClosedFact = it }
     }
 
@@ -753,7 +932,6 @@ internal class CurrentTarget private constructor(
             return@withLock null
         }
         enteredTargetWorkDrained = true
-        bumpCurrentnessLocked()
         precreatedWorkDrainedFact.also { workDrainedFact = it }
     }
 
@@ -765,8 +943,7 @@ internal class CurrentTarget private constructor(
         }
         sourceSignalsAccepted = false
         generationFenced = true
-        bumpCurrentnessLocked()
-        latestPendingSource.set(false)
+        pendingSourceLatch.fenceGeneration()
         precreatedGenerationFencedFact.also { generationFencedFact = it }
     }
 
@@ -779,44 +956,26 @@ internal class CurrentTarget private constructor(
     internal fun registerVirtualDisplayReleasePort(operationIdentity: Long): TargetPorts.AndroidDetachPort? =
         ports.registerVirtualDisplayReleasePort(operationIdentity)
 
+    internal fun prepareInitialVirtualDisplayReleasePort(
+        operationIdentity: Long,
+    ): TargetPorts.DetachedInitialReleasePort =
+        ports.prepareInitialVirtualDisplayReleasePort(operationIdentity)
+
+    internal fun commitInitialVirtualDisplayReleasePort(
+        candidate: TargetPorts.DetachedInitialReleasePort,
+        binding: AndroidTargetOperationBinding,
+    ): TargetInitialReleasePortCommitResult? =
+        ports.commitInitialVirtualDisplayReleasePort(candidate, binding)
+
     internal fun prepareStagedDetachPort(
         operationIdentity: Long,
         retargetOccurrenceIdentity: Long,
     ): TargetPorts.StagedAndroidDetachPort =
         ports.prepareStagedDetachPort(operationIdentity, retargetOccurrenceIdentity)
 
-    internal fun prepareStagedDetachApplicationCandidate(
-        stagedPort: TargetPorts.StagedAndroidDetachPort,
-        operation: OperationOccurrence<*>,
-    ): Boolean = ports.prepareStagedDetachApplicationCandidate(stagedPort, operation)
-
     internal fun commitStagedDetachPort(
         stagedPort: TargetPorts.StagedAndroidDetachPort,
     ): TargetStagedDetachPortCommitResult? = ports.commitStagedDetachPort(stagedPort)
-
-    internal fun markStagedDetachPostAcceptedOrAmbiguous(
-        stagedPort: TargetPorts.StagedAndroidDetachPort,
-    ): TargetStagedPortPostExposedFact? = ports.markStagedDetachPostAcceptedOrAmbiguous(stagedPort)
-
-    internal fun retireCommittedStagedDetachPortDefinitelyUnentered(
-        stagedPort: TargetPorts.StagedAndroidDetachPort,
-    ): TargetStagedDetachPortRetiredFact? = ports.retireCommittedStagedDetachPortDefinitelyUnentered(stagedPort)
-
-    internal fun applyStagedDetachTerminalApplication(
-        stagedPort: TargetPorts.StagedAndroidDetachPort,
-    ): TargetProducerDetachReceipt? = ports.applyStagedDetachTerminalApplication(stagedPort)
-
-    internal fun armListenerSentinelAfterRemovalReturn(operationIdentity: Long): Runnable? =
-        ports.armListenerSentinelAfterRemovalReturn(operationIdentity)
-
-    internal fun recordListenerRemovalReturn(port: TargetPorts.AndroidListenerRemovalPort): Boolean =
-        ports.recordListenerRemovalReturn(port)
-
-    internal fun applyListenerRemovalSettlement(
-        port: TargetPorts.AndroidListenerRemovalPort,
-        operation: OperationOccurrence<*>,
-    ): TargetListenerRemovalSettledFact? =
-        ports.applyListenerRemovalSettlement(port, operation)
 
     internal fun prepareSurfaceReleaseOperation(
         readinessFact: TargetSurfaceReleaseReadyFact,
@@ -864,12 +1023,24 @@ internal class CurrentTarget private constructor(
     internal fun settleConstructionResourceObligations(): Boolean =
         retirement.settleConstructionResourceObligations()
 
-    internal fun convertConstructionCleanupOccurrencesForTerminal(): Boolean =
-        retirement.convertConstructionCleanupOccurrencesForTerminal()
+    internal fun convertCleanupBaseOccurrencesForTerminal(): TargetTerminalCleanupBaseOccurrencesFact? =
+        retirement.convertCleanupBaseOccurrencesForTerminal()
+
+    internal fun convertSelectedNamespaceOccurrenceForTerminal():
+            TargetTerminalCleanupNamespaceOccurrenceFact? =
+        retirement.convertSelectedNamespaceOccurrenceForTerminal()
+
+    internal fun selectedNamespaceOccurrenceForSubmission(
+        graph: TargetRetirement.TargetScopeDestructionGraph,
+        terminalFact: TargetTerminalCleanupNamespaceOccurrenceFact?,
+    ): OperationOccurrence<GlDestructionEvidence>? =
+        retirement.selectedNamespaceOccurrenceForSubmission(graph, terminalFact)
 
     internal fun claimListenerRemovalIdentityLocked(operationIdentity: Long): TargetRegistrationClaim {
         check(targetGate.isHeldByCurrentThread)
-        if (!retirement.installedResources || !generationFenced) {
+        if (!retirement.installedResources || !generationFenced ||
+            listenerInstallationObligation != TargetListenerInstallationObligation.Installed
+        ) {
             return TargetRegistrationClaim.Denied
         }
         if (expectedListenerRemovalOperationIdentity != NO_OPERATION_IDENTITY) {
@@ -888,29 +1059,100 @@ internal class CurrentTarget private constructor(
 
     internal fun canRegisterListenerInstallationLocked(operationIdentity: Long, portAlreadyRegistered: Boolean): Boolean {
         check(targetGate.isHeldByCurrentThread)
-        return retirement.installedResources && !generationFenced && !portAlreadyRegistered && operationIdentity == listenerInstallationOperationIdentity
+        return retirement.installedResources && !retirementAdmissionClosed && !generationFenced &&
+                listenerInstallationObligation == TargetListenerInstallationObligation.PendingInstallation &&
+                !portAlreadyRegistered && operationIdentity == listenerInstallationOperationIdentity
+    }
+
+    internal fun claimListenerInstallationRequestLocked(
+        exactPort: Boolean,
+        operationIdentity: Long,
+    ): Boolean {
+        check(targetGate.isHeldByCurrentThread)
+        if (!exactPort || operationIdentity != listenerInstallationOperationIdentity ||
+            !retirement.installedResources || retirementAdmissionClosed || generationFenced ||
+            listenerInstallationRequestAdmission != TargetListenerInstallationRequestAdmission.AwaitingRequest ||
+            listenerInstallationObligation != TargetListenerInstallationObligation.PendingInstallation ||
+            listenerInstalled || sourceSignalsAccepted
+        ) {
+            return false
+        }
+        listenerInstallationRequestAdmission = TargetListenerInstallationRequestAdmission.Claimed
+        return true
+    }
+
+    internal fun commitListenerInstallationBindingLocked(
+        exactClaim: Boolean,
+        operationIdentity: Long,
+    ): Boolean {
+        check(targetGate.isHeldByCurrentThread)
+        if (!exactClaim || operationIdentity != listenerInstallationOperationIdentity ||
+            !retirement.installedResources || retirementAdmissionClosed || generationFenced ||
+            listenerInstallationRequestAdmission != TargetListenerInstallationRequestAdmission.Claimed ||
+            listenerInstallationObligation != TargetListenerInstallationObligation.PendingInstallation ||
+            listenerInstalled || sourceSignalsAccepted
+        ) {
+            return false
+        }
+        listenerInstallationRequestAdmission = TargetListenerInstallationRequestAdmission.Bound
+        return true
+    }
+
+    internal fun isListenerInstallationRequestBoundLocked(operationIdentity: Long): Boolean {
+        check(targetGate.isHeldByCurrentThread)
+        return operationIdentity == listenerInstallationOperationIdentity &&
+                listenerInstallationRequestAdmission == TargetListenerInstallationRequestAdmission.Bound
     }
 
     internal fun applyListenerInstallationLocked(exactPort: Boolean, operationIdentity: Long): Boolean {
         check(targetGate.isHeldByCurrentThread)
-        if (!exactPort || operationIdentity != listenerInstallationOperationIdentity || listenerInstalled || generationFenced) {
+        if (!exactPort || operationIdentity != listenerInstallationOperationIdentity || listenerInstalled || generationFenced ||
+            listenerInstallationObligation != TargetListenerInstallationObligation.PendingInstallation ||
+            listenerInstallationRequestAdmission != TargetListenerInstallationRequestAdmission.Bound
+        ) {
             return false
         }
         listenerInstalled = true
+        listenerInstallationObligation = TargetListenerInstallationObligation.Installed
         sourceSignalsAccepted = true
-        bumpCurrentnessLocked()
         return true
+    }
+
+    internal fun canApplyListenerNeverInstalledLocked(fact: TargetListenerNeverInstalledFact): Boolean {
+        check(targetGate.isHeldByCurrentThread)
+        return retirement.installedResources && retirementAdmissionClosed && enteredTargetWorkDrained &&
+                generationFenced &&
+                listenerInstallationRequestAdmission == TargetListenerInstallationRequestAdmission.Bound &&
+                listenerInstallationObligation == TargetListenerInstallationObligation.PendingInstallation &&
+                !listenerInstalled && !sourceSignalsAccepted && listenerNeverInstalledFact == null &&
+                fact.targetIdentity === identity && fact.targetGeneration == generation &&
+                fact.operationIdentity == listenerInstallationOperationIdentity &&
+                expectedListenerRemovalOperationIdentity == NO_OPERATION_IDENTITY && !listenerRemoved &&
+                !listenerRemovalSettled && observedListenerSentinelOperationIdentity == NO_OPERATION_IDENTITY &&
+                producerState == TargetProducerState.AwaitingEvidence
+    }
+
+    internal fun recordListenerNeverInstalledLocked(fact: TargetListenerNeverInstalledFact) {
+        check(targetGate.isHeldByCurrentThread)
+        check(canApplyListenerNeverInstalledLocked(fact))
+        listenerInstallationObligation = TargetListenerInstallationObligation.NeverInstalled
+        listenerNeverInstalledFact = fact
     }
 
     internal fun canRegisterProducerPortLocked(portAlreadyRegistered: Boolean): Boolean {
         check(targetGate.isHeldByCurrentThread)
-        return retirement.installedResources && listenerInstalled && !generationFenced && !portAlreadyRegistered &&
+        return retirement.installedResources &&
+                !retirementAdmissionClosed &&
+                listenerInstallationObligation == TargetListenerInstallationObligation.Installed &&
+                listenerInstalled && !generationFenced && !portAlreadyRegistered &&
                 producerState == TargetProducerState.AwaitingEvidence
     }
 
     internal fun listenerForInstallationPortLocked(): SurfaceTexture.OnFrameAvailableListener {
         check(targetGate.isHeldByCurrentThread)
-        check(retirement.installedResources && !generationFenced && !listenerInstalled)
+        check(retirement.installedResources && !generationFenced && !listenerInstalled &&
+                listenerInstallationRequestAdmission == TargetListenerInstallationRequestAdmission.Bound &&
+                listenerInstallationObligation == TargetListenerInstallationObligation.PendingInstallation)
         return frameAvailableListener
     }
 
@@ -928,13 +1170,12 @@ internal class CurrentTarget private constructor(
             evidence.operationIdentity != portOperationIdentity ||
             evidence.operationKind != portOperationKind ||
             evidence.provenance !== portProvenance ||
-            generationFenced ||
+            generationFenced && !retirementAdmissionClosed ||
             producerState != TargetProducerState.AwaitingEvidence
         ) {
             return false
         }
         producerState = TargetProducerState.ProducerAttached
-        bumpCurrentnessLocked()
         return true
     }
 
@@ -952,57 +1193,22 @@ internal class CurrentTarget private constructor(
             evidence.operationIdentity != portOperationIdentity ||
             evidence.operationKind != portOperationKind ||
             evidence.provenance !== portProvenance ||
-            generationFenced ||
+            generationFenced && !retirementAdmissionClosed ||
             producerState != TargetProducerState.AwaitingEvidence ||
+            evidence.reason == TargetNoProducerReason.Inapplicable && !retirementAdmissionClosed ||
             (evidence.reason == TargetNoProducerReason.ReturnedWithoutProducer &&
                     evidence.operationKind != TargetProducerOperationKind.VirtualDisplayCreation)
         ) {
             return false
         }
         producerState = TargetProducerState.NoProducer
-        bumpCurrentnessLocked()
-        return true
-    }
-
-    /** Terminal/cleanup-only reduction for the exact staged attachment occurrence. */
-    internal fun applyStagedProducerTerminalFactLocked(
-        fact: TargetProducerApplicationFact,
-        exactEvidence: Boolean,
-        portOperationIdentity: Long,
-        portProvenance: TargetOperationProvenance,
-        retargetOccurrenceIdentity: Long,
-    ): Boolean {
-        check(targetGate.isHeldByCurrentThread)
-        val retargetFact = fact as? TargetRetargetProducerApplicationFact ?: return false
-        if (!retirement.installedResources || !retirementAdmissionClosed || !exactEvidence ||
-            fact.targetGeneration != generation || fact.targetIdentity !== identity ||
-            fact.operationIdentity != portOperationIdentity ||
-            fact.operationKind != TargetProducerOperationKind.VirtualDisplayAttachment ||
-            fact.provenance !== portProvenance ||
-            retargetFact.retargetOccurrenceIdentity != retargetOccurrenceIdentity ||
-            producerState != TargetProducerState.AwaitingEvidence
-        ) {
-            return false
-        }
-        producerState = when (fact) {
-            is TargetProducerEvidence -> TargetProducerState.ProducerAttached
-            is TargetNoProducerEvidence -> {
-                if (fact.reason != TargetNoProducerReason.Unentered &&
-                    fact.reason != TargetNoProducerReason.Inapplicable
-                ) {
-                    return false
-                }
-                TargetProducerState.NoProducer
-            }
-            else -> return false
-        }
-        bumpCurrentnessLocked()
         return true
     }
 
     internal fun claimDetachIdentityLocked(operationIdentity: Long, detachKind: TargetProducerDetachKind): TargetRegistrationClaim {
         check(targetGate.isHeldByCurrentThread)
-        if (!retirement.installedResources || !generationFenced || producerState != TargetProducerState.ProducerAttached) {
+        val producerCanDetach = producerState == TargetProducerState.ProducerAttached
+        if (!retirement.installedResources || !generationFenced || !producerCanDetach) {
             return TargetRegistrationClaim.Denied
         }
         val expectedIdentity = when (detachKind) {
@@ -1064,22 +1270,6 @@ internal class CurrentTarget private constructor(
         }
     }
 
-    internal fun armListenerSentinelLocked(operationIdentity: Long): Runnable? {
-        check(targetGate.isHeldByCurrentThread)
-        if (!retirement.installedResources ||
-            !generationFenced ||
-            expectedListenerRemovalOperationIdentity == NO_OPERATION_IDENTITY ||
-            operationIdentity != expectedListenerRemovalOperationIdentity ||
-            !listenerRemoved ||
-            armedListenerSentinelOperationIdentity != NO_OPERATION_IDENTITY ||
-            observedListenerSentinelOperationIdentity != NO_OPERATION_IDENTITY
-        ) {
-            return null
-        }
-        armedListenerSentinelOperationIdentity = operationIdentity
-        return listenerSentinelRunnable
-    }
-
     internal fun recordListenerRemovalReturnLocked(exactPort: Boolean, operationIdentity: Long): Boolean {
         check(targetGate.isHeldByCurrentThread)
         if (!retirement.installedResources || !generationFenced ||
@@ -1090,7 +1280,6 @@ internal class CurrentTarget private constructor(
             return false
         }
         listenerRemoved = true
-        bumpCurrentnessLocked()
         return true
     }
 
@@ -1098,7 +1287,19 @@ internal class CurrentTarget private constructor(
         check(targetGate.isHeldByCurrentThread)
         if (!exactPort || !listenerRemoved || listenerRemovalSettled) return false
         listenerRemovalSettled = true
-        bumpCurrentnessLocked()
+        return true
+    }
+
+    internal fun applyListenerSentinelObservedLocked(operationIdentity: Long): Boolean {
+        check(targetGate.isHeldByCurrentThread)
+        if (!retirement.installedResources || !generationFenced || !listenerRemoved ||
+            expectedListenerRemovalOperationIdentity == NO_OPERATION_IDENTITY ||
+            operationIdentity != expectedListenerRemovalOperationIdentity ||
+            observedListenerSentinelOperationIdentity != NO_OPERATION_IDENTITY
+        ) {
+            return false
+        }
+        observedListenerSentinelOperationIdentity = operationIdentity
         return true
     }
 
@@ -1129,40 +1330,19 @@ internal class CurrentTarget private constructor(
             return false
         }
         producerState = TargetProducerState.Detached
-        bumpCurrentnessLocked()
         return true
     }
 
-    private fun publishSourceAvailable() {
-        val published = targetGate.withLock {
-            if (!retirement.installedResources || !sourceSignalsAccepted || generationFenced) {
-                return@withLock false
-            }
-            latestPendingSource.set(true)
-            true
-        }
-        if (published) sourceSignal.signal(precreatedSourceAvailableFact)
-    }
-
-    private fun bumpCurrentnessLocked() {
-        check(targetGate.isHeldByCurrentThread)
-        currentnessVersion.updateAndGet { current -> if (current == Long.MAX_VALUE) Long.MAX_VALUE else current + 1L }
-    }
-
-    private fun publishListenerSentinel() {
-        val published = targetGate.withLock {
-            val armedIdentity = armedListenerSentinelOperationIdentity
-            if (!retirement.installedResources || !generationFenced || armedIdentity == NO_OPERATION_IDENTITY ||
-                armedIdentity != expectedListenerRemovalOperationIdentity ||
-                !listenerRemoved || observedListenerSentinelOperationIdentity != NO_OPERATION_IDENTITY
+    private fun publishSourceAvailable(callbackTargetIdentity: TargetIdentity) {
+        val publishedFact = targetGate.withLock {
+            if (!retirement.installedResources || !sourceSignalsAccepted || retirementAdmissionClosed ||
+                generationFenced || callbackTargetIdentity !== identity || !callbackTargetIdentity.matches(this)
             ) {
-                return@withLock false
+                return@withLock null
             }
-            armedListenerSentinelOperationIdentity = NO_OPERATION_IDENTITY
-            observedListenerSentinelOperationIdentity = armedIdentity
-            true
+            pendingSourceLatch.offer(callbackTargetIdentity)
         }
-        if (published) settlementSignal.signal()
+        if (publishedFact != null) sourceSignal.signal(publishedFact)
     }
 
     internal companion object {

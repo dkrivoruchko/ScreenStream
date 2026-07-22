@@ -1,6 +1,7 @@
 package io.screenstream.engine.internal.jpeg
 
 import android.graphics.Bitmap
+import io.screenstream.engine.ScreenCaptureEffectiveParameters
 import io.screenstream.engine.internal.EncodedStorageOwner
 import io.screenstream.engine.internal.settlement.OperationDisposition
 import io.screenstream.engine.internal.settlement.OperationDomain
@@ -10,28 +11,29 @@ import io.screenstream.engine.internal.settlement.OperationReturnUse
 import io.screenstream.engine.internal.settlement.OperationSubmissionDisposition
 import kotlin.concurrent.withLock
 
-internal fun settleFrameworkEncode(
+internal fun claimFrameworkEncode(
     owner: FrameworkJpegOwner,
     occurrence: FrameworkEncodeOccurrence,
-    storage: EncodedStorageOwner,
-    retainCommittedFrame: Boolean,
-): FrameworkEncodeSettlement {
-    if (frameworkFatalCleanupCompleted(owner, occurrence)) {
-        return FrameworkEncodeSettlement.FatalCleanupCompleted
+): FrameworkEncodeClaimFact? {
+    if (!owner.ownsEncode(occurrence)) return null
+    val claim = occurrence.claim
+    if (claim.frameworkOwnerIdentity !== owner || claim.storageIdentity !== occurrence.ownerBag.storageOwner ||
+        claim.transactionIdentity !== occurrence.ownerBag.transaction
+    ) {
+        return null
     }
-    if (!owner.ownsEncode(occurrence)) return FrameworkEncodeSettlement.NotSettled
+    if (claim.isPublished) return claim
     if (!owner.jpegRuntimeOwner.releaseJpegIoOperation(occurrence)) {
-        return FrameworkEncodeSettlement.NotSettled
+        return null
     }
     val operation = occurrence.operation
     val gate = operation.settlementGate
     var settledResult = FrameworkEncodeSettlement.NotSettled
     var bitmapUseResolved = false
-    var timelyNormal = false
-    gate.withLock {
+    val published = gate.withLock {
         val ownerBag = occurrence.ownerBag
-        if (ownerBag.bitmapUseOwner !== owner || ownerBag.storageOwner != null && ownerBag.storageOwner !== storage) {
-            return FrameworkEncodeSettlement.NotSettled
+        if (ownerBag.bitmapUseOwner !== owner || ownerBag.claim !== claim || claim.isPublished) {
+            return@withLock claim.isPublished
         }
 
         if (operation.returnCell.use == OperationReturnUse.Unclaimed) operation.arbitrate()
@@ -47,111 +49,201 @@ internal fun settleFrameworkEncode(
                     bitmapUseResolved = true
                 }
 
-                else -> return FrameworkEncodeSettlement.NotSettled
+                else -> return@withLock false
             }
         } else {
             val evidence = operation.returnCell.evidence
-            settledResult = evidence.result
+            val raw = operation.returnCell.throwable
+            settledResult = if (raw != null && raw !is Exception) {
+                FrameworkEncodeSettlement.DirectFatal
+            } else {
+                evidence.result
+            }
             bitmapUseResolved = evidence.bitmapUseResolved
-            timelyNormal = operation.returnCell.use == OperationReturnUse.Timely && operation.returnCell.disposition == OperationReturnDisposition.Normal
         }
-        if (ownerBag.retainCommittedFrame == null) {
-            ownerBag.retainCommittedFrame = retainCommittedFrame && timelyNormal && settledResult == FrameworkEncodeSettlement.Success
-        }
-    }
+        if (settledResult == FrameworkEncodeSettlement.NotSettled) return@withLock false
 
-    var retainedLease: RgbaCarrierLease? = null
-    gate.withLock {
-        if (bitmapUseResolved) retainedLease = occurrence.ownerBag.retainedOperationLease
-    }
-    val exactRetainedLease = retainedLease
-    if (exactRetainedLease != null && exactRetainedLease.releaseFromOperation()) {
-        gate.withLock {
-            if (occurrence.ownerBag.retainedOperationLease === exactRetainedLease) {
-                occurrence.ownerBag.retainedOperationLease = null
-            }
+        val transaction = ownerBag.transaction ?: return@withLock false
+        val payload = transaction.committedPayloadIdentity
+        var claimFailure = operation.returnCell.evidence.failureCause ?: operation.submissionFailure
+        if (settledResult == FrameworkEncodeSettlement.Success &&
+            (payload == null || payload.effectiveParameters !== claim.effectiveParameters ||
+                    payload.payload.byteCount != transaction.byteCount)
+        ) {
+            settledResult = FrameworkEncodeSettlement.InternalFailure
+            claimFailure = FrameworkJpegOwner.MALFORMED_FRAMEWORK_TRANSACTION
+        } else if (settledResult == FrameworkEncodeSettlement.InternalFailure && claimFailure == null) {
+            claimFailure = FrameworkJpegOwner.FRAMEWORK_ENCODE_ADMISSION_FAILED
         }
+        claim.publishLocked(
+            result = settledResult,
+            returnUse = operation.returnCell.use,
+            returnDisposition = operation.returnCell.disposition,
+            settlementElapsedRealtimeNanos = if (operation.returnCell.disposition == OperationReturnDisposition.Empty) {
+                JpegEncodeClaimFact.NO_RETURN_SETTLEMENT_NANOS
+            } else {
+                operation.returnCell.settlementNanos
+            },
+            encodedByteCount = transaction.byteCount,
+            payloadIdentity = payload,
+            failureCause = claimFailure,
+            rawThrowable = operation.returnCell.throwable,
+            carrierUseResolved = bitmapUseResolved,
+        )
     }
-
-    var transaction: EncodedStorageOwner.FrameworkTransaction? = null
-    var storageOwner: EncodedStorageOwner? = null
-    var retainPayload = false
-    gate.withLock {
-        transaction = occurrence.ownerBag.transaction
-        storageOwner = occurrence.ownerBag.storageOwner
-        retainPayload = occurrence.ownerBag.retainCommittedFrame == true
-    }
-    val exactTransaction = transaction
-    val exactStorage = storageOwner
-    if (exactTransaction != null && exactStorage != null) {
-        if (exactTransaction.isCommitted && settledResult == FrameworkEncodeSettlement.Success) {
-            val unpublished = exactStorage.replaceCommittedProduction(exactTransaction)
-            if (unpublished != null) {
-                gate.withLock {
-                    if (occurrence.ownerBag.transaction === exactTransaction && occurrence.ownerBag.storageOwner === exactStorage) {
-                        if (!retainPayload) occurrence.ownerBag.unpublishedToRetire = unpublished
-                        occurrence.ownerBag.transaction = null
-                    }
-                }
-            }
-        } else {
-            if (!exactTransaction.isCommitted && !exactTransaction.isAborted) exactTransaction.abort()
-            if (exactTransaction.isAborted && exactStorage.detachAbortedProduction(exactTransaction)) {
-                gate.withLock {
-                    if (occurrence.ownerBag.transaction === exactTransaction && occurrence.ownerBag.storageOwner === exactStorage) {
-                        occurrence.ownerBag.transaction = null
-                    }
-                }
-            }
-        }
-    }
-
-    var unpublished: EncodedStorageOwner.UnpublishedEncodedPayload? = null
-    gate.withLock {
-        unpublished = occurrence.ownerBag.unpublishedToRetire
-    }
-    val exactUnpublished = unpublished
-    if (exactUnpublished != null && exactStorage != null && exactStorage.retireUnpublished(exactUnpublished)) {
-        gate.withLock {
-            if (occurrence.ownerBag.unpublishedToRetire === exactUnpublished && occurrence.ownerBag.storageOwner === exactStorage) {
-                occurrence.ownerBag.unpublishedToRetire = null
-            }
-        }
-    }
-
-    val mechanicsSettled = gate.withLock {
-        val ownerBag = occurrence.ownerBag
-        if (ownerBag.transaction == null && ownerBag.unpublishedToRetire == null) ownerBag.storageOwner = null
-        ownerBag.retainedOperationLease == null && ownerBag.storageOwner == null && ownerBag.transaction == null && ownerBag.unpublishedToRetire == null
-    }
-    if (!mechanicsSettled || !bitmapUseResolved) {
-        return FrameworkEncodeSettlement.NotSettled
-    }
-    if (!owner.releaseEncodeUse(occurrence)) return FrameworkEncodeSettlement.NotSettled
-    val aliasesCleared = gate.withLock { occurrence.clearSettledReferencesLocked(owner) }
-    if (!aliasesCleared) return FrameworkEncodeSettlement.NotSettled
-    if (!owner.clearEncode(occurrence)) return FrameworkEncodeSettlement.NotSettled
-    return if (frameworkFatalCleanupCompleted(owner, occurrence)) {
-        FrameworkEncodeSettlement.FatalCleanupCompleted
-    } else {
-        settledResult
-    }
+    return if (published || claim.isPublished) claim else null
 }
 
-private fun frameworkFatalCleanupCompleted(
-    owner: FrameworkJpegOwner,
-    occurrence: FrameworkEncodeOccurrence,
-): Boolean {
-    val operation = occurrence.operation
-    return operation.settlementGate.withLock {
-        val raw = operation.returnCell.throwable
-        occurrence.endpointReleased && operation.returnCell.disposition == OperationReturnDisposition.Thrown &&
-                operation.returnCell.use != OperationReturnUse.Unclaimed && raw != null &&
-                raw === owner.jpegRuntimeOwner.jpegFatal &&
-                operation.returnCell.evidence.result == FrameworkEncodeSettlement.NotSettled &&
-                operation.returnCell.evidence.bitmapUseResolved &&
-                occurrence.hasNoRetainedAliasesLocked() && owner.encodeUseIsReleased(occurrence)
+internal fun executeFrameworkEncodeFinalization(
+    command: FrameworkEncodeFinalizationCommand,
+    disposition: JpegEncodeFinalizationDisposition,
+): JpegEncodeFinalizationReceipt {
+    val receipt = command.receipt
+    if (receipt.result != JpegEncodeFinalizationResult.Pending) return receipt
+    val owner = command.owner
+    val occurrence = command.occurrence
+    val claim = command.claim
+    if (!claim.isPublished || occurrence.claim !== claim || claim.frameworkOwnerIdentity !== owner) {
+        receipt.complete(
+            result = JpegEncodeFinalizationResult.UnsafeResidue,
+            carrierLeaseReleased = false,
+            storageRetired = false,
+            producerUseReleased = false,
+            failure = FRAMEWORK_CLAIM_NOT_PUBLISHED,
+        )
+        return receipt
     }
+    if (claim.result == FrameworkEncodeSettlement.DirectFatal &&
+        (claim.rawThrowable == null || claim.rawThrowable is Exception ||
+                claim.rawThrowable !== owner.jpegRuntimeOwner.jpegFatal)
+    ) {
+        receipt.complete(
+            result = JpegEncodeFinalizationResult.UnsafeResidue,
+            carrierLeaseReleased = false,
+            storageRetired = false,
+            producerUseReleased = false,
+            failure = FRAMEWORK_FATAL_EVIDENCE_MISMATCH,
+        )
+        return receipt
+    }
+
+    val commands = claim.storageCommands
+    val roleApplied = when (disposition) {
+        JpegEncodeFinalizationDisposition.KeepCommittedUnpublished,
+        JpegEncodeFinalizationDisposition.RetireCommittedUnpublished,
+            -> commands.claimCommittedProduction.receipt.let {
+            it.disposition == EncodedStorageOwner.RoleTransitionDisposition.Applied &&
+                    it.unpublishedPayload === claim.payloadIdentity
+        }
+
+        JpegEncodeFinalizationDisposition.RetireTransaction ->
+            commands.claimProductionForRetirement.receipt.let {
+                it.disposition == EncodedStorageOwner.RoleTransitionDisposition.Applied &&
+                        it.transaction === claim.transactionIdentity
+            }
+    }
+    if (!roleApplied) {
+        receipt.complete(
+            result = JpegEncodeFinalizationResult.UnsafeResidue,
+            carrierLeaseReleased = false,
+            storageRetired = false,
+            producerUseReleased = false,
+            failure = FRAMEWORK_STORAGE_ROLE_NOT_TRANSFERRED,
+        )
+        return receipt
+    }
+    if (!claim.carrierUseResolved) {
+        receipt.complete(
+            result = JpegEncodeFinalizationResult.UnsafeResidue,
+            carrierLeaseReleased = false,
+            storageRetired = false,
+            producerUseReleased = false,
+            failure = FrameworkJpegOwner.BITMAP_USE_RESOLUTION_FAILED,
+        )
+        return receipt
+    }
+
+    val storageFinalized = when (disposition) {
+        JpegEncodeFinalizationDisposition.KeepCommittedUnpublished -> true
+        JpegEncodeFinalizationDisposition.RetireCommittedUnpublished ->
+            commands.retireClaimedUnpublished.executeUnlocked().disposition == EncodedStorageOwner.RetirementDisposition.Retired
+
+        JpegEncodeFinalizationDisposition.RetireTransaction ->
+            commands.retireClaimedTransaction.executeUnlocked().disposition == EncodedStorageOwner.RetirementDisposition.Retired
+    }
+    if (!storageFinalized) {
+        receipt.complete(
+            result = JpegEncodeFinalizationResult.UnsafeResidue,
+            carrierLeaseReleased = false,
+            storageRetired = false,
+            producerUseReleased = false,
+            failure = FRAMEWORK_STORAGE_RETIREMENT_FAILED,
+        )
+        return receipt
+    }
+    val storageRetired = disposition != JpegEncodeFinalizationDisposition.KeepCommittedUnpublished
+
+    val gate = occurrence.operation.settlementGate
+    val exactLease = gate.withLock {
+        if (occurrence.ownerBag.transaction !== claim.transactionIdentity ||
+            occurrence.ownerBag.storageOwner !== claim.storageIdentity
+        ) {
+            return@withLock null
+        }
+        occurrence.ownerBag.transaction = null
+        occurrence.ownerBag.storageOwner = null
+        occurrence.ownerBag.retainedOperationLease
+    }
+    if (exactLease == null) {
+        receipt.complete(
+            result = JpegEncodeFinalizationResult.UnsafeResidue,
+            carrierLeaseReleased = false,
+            storageRetired = storageRetired,
+            producerUseReleased = false,
+            failure = FrameworkJpegOwner.BITMAP_USE_RESOLUTION_FAILED,
+        )
+        return receipt
+    }
+    val leaseReleased = try {
+        exactLease.releaseFromOperation()
+    } catch (fatal: Throwable) {
+        receipt.complete(
+            result = JpegEncodeFinalizationResult.UnsafeResidue,
+            carrierLeaseReleased = false,
+            storageRetired = storageRetired,
+            producerUseReleased = false,
+            failure = fatal,
+        )
+        throw fatal
+    }
+    if (!leaseReleased) {
+        receipt.complete(
+            result = JpegEncodeFinalizationResult.UnsafeResidue,
+            carrierLeaseReleased = false,
+            storageRetired = storageRetired,
+            producerUseReleased = false,
+            failure = FRAMEWORK_CARRIER_LEASE_RELEASE_FAILED,
+        )
+        return receipt
+    }
+    gate.withLock {
+        if (occurrence.ownerBag.retainedOperationLease === exactLease) {
+            occurrence.ownerBag.retainedOperationLease = null
+        }
+    }
+
+    val useReleased = owner.releaseEncodeUse(occurrence)
+    val aliasesCleared = useReleased && gate.withLock { occurrence.clearSettledReferencesLocked(owner) }
+    val occurrenceCleared = aliasesCleared && owner.clearEncode(occurrence)
+    val completed = useReleased && aliasesCleared && occurrenceCleared
+    receipt.complete(
+        result = if (completed) JpegEncodeFinalizationResult.Completed else JpegEncodeFinalizationResult.UnsafeResidue,
+        carrierLeaseReleased = true,
+        storageRetired = storageRetired,
+        producerUseReleased = useReleased,
+        failure = if (completed) null else FRAMEWORK_FINALIZATION_FAILED,
+    )
+    return receipt
 }
 
 private fun transferExactRgbaToBitmap(owner: FrameworkJpegOwner, lease: RgbaCarrierLease): Boolean {
@@ -204,8 +296,8 @@ private fun transferExactRgbaToBitmap(owner: FrameworkJpegOwner, lease: RgbaCarr
         }
     }
 
-    if (transferFailure is Error) throw transferFailure
-    if (exitFailure is Error) throw exitFailure
+    if (transferFailure != null && transferFailure !is Exception) throw transferFailure
+    if (exitFailure != null && exitFailure !is Exception) throw exitFailure
     if (exitFailure != null || !exactRangeUseResolved) throw FrameworkJpegOwner.CARRIER_USE_RESOLUTION_FAILED
     if (transferFailure != null) throw transferFailure
     return transferred
@@ -216,28 +308,36 @@ internal fun beginFrameworkEncode(
     expectedProduct: JpegRuntimeProduct,
     expectedLease: RgbaCarrierLease,
     storage: EncodedStorageOwner,
-    quality: Int,
+    effectiveParameters: ScreenCaptureEffectiveParameters,
     desiredRevision: Long,
     geometryGeneration: Long,
     lifecycleEpoch: Long,
     identity: JpegFiniteOperationIdentity,
 ): FrameworkEncodeOccurrence? {
     val topology = owner.jpegRuntimeOwner.stableTopologySnapshot() ?: return null
-    if (quality !in 0..100 || expectedProduct.carrier !== expectedLease.carrier ||
+    if (effectiveParameters.appliedParameters.jpegQuality !in 0..100 ||
+        expectedProduct.carrier !== expectedLease.carrier ||
         expectedProduct.carrier.byteCount != owner.pixelByteCount || topology.product !== expectedProduct ||
-        topology.lease !== expectedLease || !owner.hasCompleteResources()
+        topology.lease !== expectedLease || effectiveParameters.finalImageSize != owner.imageSize ||
+        !owner.hasCompleteResources()
     ) {
         return null
     }
 
+    val transaction = EncodedStorageOwner.FrameworkTransaction()
+    val storageCommands = storage.precreateEncodeSettlementCommands(transaction)
     val occurrence = FrameworkEncodeOccurrence.create(
         desiredRevision = desiredRevision,
         geometryGeneration = geometryGeneration,
         lifecycleEpoch = lifecycleEpoch,
         bitmapUseOwner = owner,
+        topologyIdentity = topology,
         capturedProduct = expectedProduct,
         carrierLease = expectedLease,
-        quality = quality,
+        storage = storage,
+        transaction = transaction,
+        storageCommands = storageCommands,
+        effectiveParameters = effectiveParameters,
         identity = identity,
         clock = owner.clock,
         signal = owner.jpegRuntimeOwner.jpegIoSettlementSignal,
@@ -246,6 +346,11 @@ internal fun beginFrameworkEncode(
     )
 
     if (!owner.reserveEncodeUse(occurrence)) {
+        transaction.abort()
+        occurrence.operation.settlementGate.withLock {
+            occurrence.ownerBag.transaction = null
+            occurrence.ownerBag.storageOwner = null
+        }
         check(occurrence.operation.settlementGate.withLock { occurrence.clearSettledReferencesLocked(owner) })
         return null
     }
@@ -258,17 +363,6 @@ internal fun beginFrameworkEncode(
     }
     occurrence.operation.settlementGate.withLock {
         occurrence.ownerBag.retainedOperationLease = expectedLease
-    }
-
-    val transaction = try {
-        EncodedStorageOwner.FrameworkTransaction()
-    } catch (failure: Throwable) {
-        unwindEncodeAdmission(owner, occurrence)
-        throw failure
-    }
-    occurrence.operation.settlementGate.withLock {
-        occurrence.ownerBag.storageOwner = storage
-        occurrence.ownerBag.transaction = transaction
     }
 
     val attached = try {
@@ -309,7 +403,7 @@ private fun unwindEncodeAdmission(owner: FrameworkJpegOwner, occurrence: Framewo
     if (exactTransaction != null) {
         if (!exactTransaction.isCommitted && !exactTransaction.isAborted) exactTransaction.abort()
         val detached = exactStorage?.production !== exactTransaction ||
-                exactTransaction.isAborted && exactStorage.detachAbortedProduction(exactTransaction)
+                exactTransaction.isAborted && exactStorage.rollbackAbortedAdmission(exactTransaction)
         if (exactTransaction.isAborted && detached) {
             gate.withLock {
                 if (occurrence.ownerBag.transaction === exactTransaction && occurrence.ownerBag.storageOwner === exactStorage) {
@@ -361,7 +455,7 @@ private fun executeFrameworkEncode(occurrence: FrameworkEncodeOccurrence) {
     var result = FrameworkEncodeSettlement.InternalFailure
     var resultCause: Throwable? = null
     var unexpectedBoundaryFailure = false
-    var fatalFailure: Error? = null
+    var fatalFailure: Throwable? = null
     try {
         val transferred = transferExactRgbaToBitmap(owner, occurrence.ownerBag.carrierLease)
         if (!transferred) {
@@ -384,7 +478,7 @@ private fun executeFrameworkEncode(occurrence: FrameworkEncodeOccurrence) {
                 resultCause = failure
                 unexpectedBoundaryFailure = true
                 null
-            } catch (fatal: Error) {
+            } catch (fatal: Throwable) {
                 fatalFailure = fatal
                 null
             }
@@ -407,11 +501,10 @@ private fun executeFrameworkEncode(occurrence: FrameworkEncodeOccurrence) {
                     }
 
                     !compressed -> {
-                        transaction.abort()
                         result = FrameworkEncodeSettlement.CompressionRejected
                     }
 
-                    transaction.commit(owner.imageSize) -> {
+                    transaction.commit(occurrence.effectiveParameters) -> {
                         result = FrameworkEncodeSettlement.Success
                     }
 
@@ -437,7 +530,7 @@ private fun executeFrameworkEncode(occurrence: FrameworkEncodeOccurrence) {
         result = FrameworkEncodeSettlement.InternalFailure
         resultCause = failure
         unexpectedBoundaryFailure = true
-    } catch (fatal: Error) {
+    } catch (fatal: Throwable) {
         fatalFailure = fatal
     } finally {
         occurrence.operation.returnCell.evidence.bitmapUseResolved = true
@@ -463,9 +556,6 @@ private fun executeFrameworkEncode(occurrence: FrameworkEncodeOccurrence) {
             result = FrameworkEncodeSettlement.ResourceExhausted
             resultCause = storageCause
         }
-    }
-    if (result != FrameworkEncodeSettlement.Success && transaction != null && !transaction.isCommitted && !transaction.isAborted) {
-        transaction.abort()
     }
     if (!occurrence.operation.returnCell.evidence.bitmapUseResolved) {
         result = FrameworkEncodeSettlement.InternalFailure
@@ -506,7 +596,7 @@ private fun executeFrameworkEncode(occurrence: FrameworkEncodeOccurrence) {
 private fun publishFrameworkEncodeFatalAndRethrow(
     owner: FrameworkJpegOwner,
     occurrence: FrameworkEncodeOccurrence,
-    fatal: Error,
+    fatal: Throwable,
 ): Nothing {
     if (occurrence.operation.publishDirectFatalReturn(fatal)) {
         owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
@@ -549,3 +639,16 @@ private fun unenteredEncodeFailureLocked(occurrence: FrameworkEncodeOccurrence):
             operation.returnCell.disposition == OperationReturnDisposition.Empty &&
             operation.returnCell.use == OperationReturnUse.Unclaimed
 }
+
+private val FRAMEWORK_CLAIM_NOT_PUBLISHED: IllegalStateException =
+    IllegalStateException("Framework encode claim is not published")
+private val FRAMEWORK_FATAL_EVIDENCE_MISMATCH: IllegalStateException =
+    IllegalStateException("Framework fatal encode evidence does not match the endpoint authority")
+private val FRAMEWORK_STORAGE_ROLE_NOT_TRANSFERRED: IllegalStateException =
+    IllegalStateException("Framework encode storage role was not transferred by Session")
+private val FRAMEWORK_STORAGE_RETIREMENT_FAILED: IllegalStateException =
+    IllegalStateException("Framework encode storage retirement failed")
+private val FRAMEWORK_CARRIER_LEASE_RELEASE_FAILED: IllegalStateException =
+    IllegalStateException("Framework encode carrier lease release failed")
+private val FRAMEWORK_FINALIZATION_FAILED: IllegalStateException =
+    IllegalStateException("Framework encode finalization did not settle every owner")

@@ -51,7 +51,7 @@ ownership proof.
 
 One Session owns exactly six runtime threads: the Control `ScheduledThreadPoolExecutor` thread, the Metrics
 `ThreadPoolExecutor` thread, one Android `HandlerThread`, and the GL, JPEG, and Delivery `ThreadPoolExecutor`
-threads. Main Looper threads, provider-owned callback threads, Flow collector threads, platform/native callback
+threads. Main Looper threads, metrics-source-owned callback threads, Flow collector threads, platform/native callback
 threads, and any other caller/runtime threads are not Session-owned and are outside this count.
 
 Controller rules are routed without restatement:
@@ -168,7 +168,7 @@ is no queue-start watchdog, worker replacement recovery, or second endpoint.
 ## CORE-FATAL-1 — Direct fatal throwable policy
 
 Only an `OutOfMemoryError` thrown at an explicitly enumerated allocation boundary may receive that boundary's
-ordinary `ResourceExhausted` or optional-fallback classification. At every other engine, platform, provider, or
+ordinary `ResourceExhausted` or optional-fallback classification. At every other engine, platform, source, or
 application boundary, an outwardly thrown `Exception` follows the boundary's stated ordinary failure partition;
 an outwardly thrown `Error` or custom direct `Throwable` that is not an `Exception` is fatal.
 
@@ -190,8 +190,8 @@ fence in `NJPEG-040` still proves clean unavailability. Control's scheduled-task
 
 For a positive duration `C` and nonnegative start `S`, finite occurrences require
 `S <= Long.MAX_VALUE-C` and compute `D=Math.addExact(S,C)`. Guard failure is existing checked-arithmetic
-`InternalFailure`. The domain leaf owns `C`, its exact start point, result classification, diagnostic source, and
-whether an operation is finite.
+`InternalFailure`. The domain leaf owns `C`, its exact start point, result classification, mechanical boundary-site
+fact, and whether an operation is finite; `CTRL-300` selects every public diagnostic source/label/site/cause.
 
 | Observation under `settlementGate` | Exact authority |
 | --- | --- |
@@ -318,7 +318,7 @@ not promise progress through vendor-global locks or non-owned application/runtim
 - controller commit, cutoff, sequence, and decision authority:
   [CTRL-200](05-domain-controller-reconciliation.md#ctrl-200--policy-attempt-counter-and-observation-authority) and
   [CTRL-300](05-domain-controller-reconciliation.md#ctrl-300--cross-domain-commit-rules);
-- unlocked coherent State construction, Stats construction/cadence, and diagnostic construction/emission:
+- unlocked coherent State construction, Stats construction/cadence, and diagnostic construction/emission only:
   [DEL-OBS-001](12-domain-delivery-observation.md#del-obs-001--coherent-state-and-publication-order),
   [DEL-OBS-010](12-domain-delivery-observation.md#del-obs-010--stats-accounting-and-cadence), and
   [DEL-OBS-020](12-domain-delivery-observation.md#del-obs-020--diagnostic-construction-and-emission).
@@ -332,11 +332,13 @@ independent cleanup-root record before public terminal assignment.
 Cleanup is a forest. Each domain leaf defines its local receipt order; a returned failure is recorded and every
 independent reachable root continues. A nonreturn blocks only that call's physical dependents and serial suffix,
 not unrelated roots or another Session. Cleanup never blocks an owner thread waiting for another; completion
-arrives through its precreated fact. Healthy Control is the receive-only last Session lane after terminal: it
-remains alive until every other owned lane/thread termination receipt and every externally produced late fact or
-controller-consumed dependency has settled. A nonreturning external producer therefore retains Control as a
-quarantine dependency. Only the final Control turn may close remaining successor authority and request its one
-orderly shutdown.
+arrives through its precreated fact. After terminal, healthy Control is the cleanup-only last Session lane. It
+admits no active or successor work and remains alive until every other owned lane/thread termination receipt,
+externally produced late fact, controller-consumed dependency, and every other independent physical cleanup root has
+settled. Its sole physical leaf action is the opaque Android-owned one-shot final projection stop admitted by
+[AND-CAP-030](06-domain-android-capture-metrics.md#and-cap-030--mutation-currentness-and-cleanup); when present it
+runs last. Only its actual normal return permits the final Control turn to request orderly shutdown. An external
+nonreturn or that action's throw or nonreturn retains Control as a quarantine dependency.
 
 Each root retains the exact unresolved occurrence evidence, worker when applicable, and transitive resources it
 may still use or own. Logical active-to-cleanup transfer follows the normal gate order; physical release runs
@@ -371,7 +373,8 @@ Only a late return can produce the ordinary native cleanup evidence defined by `
 No cleanup/quarantine fact may revive a Session, reopen admission, install a replacement, publish stale bytes,
 change backend health, add active counters, or rewrite the terminal winner. Resolution before an actual root
 mutation emits no quarantine-change event; a real attach/reduction/removal requests the one best-effort diagnostic
-defined by [DEL-OBS-020](12-domain-delivery-observation.md#del-obs-020--diagnostic-construction-and-emission).
+selected by `CTRL-300` and constructed/emitted by
+[DEL-OBS-020](12-domain-delivery-observation.md#del-obs-020--diagnostic-construction-and-emission).
 
 Rare ambiguity may retain substantial memory or threads until process death. A new Session with fresh consent may
 still be attempted, but it receives no guarantee that opaque process/driver damage from an earlier Session has
@@ -385,5 +388,5 @@ publishes. Reusable CPU storage is cleared as required after its last lease befo
 
 Only caller-requested `copyBytes`/`copyTo` transfers JPEG bytes into caller ownership. Allocator, gralloc,
 driver, OS, and JVM zeroization/reclamation are outside the engine contract. Diagnostics and text representations
-never expose raw pixels, encoded bytes, raw handles, tokens, callback/provider objects, or copied
+never expose raw pixels, encoded bytes, raw handles, tokens, callback/source objects, or copied
 Throwable text.

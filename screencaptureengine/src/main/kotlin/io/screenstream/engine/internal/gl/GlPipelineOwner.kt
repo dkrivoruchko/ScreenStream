@@ -105,8 +105,7 @@ internal class GlPipelineOwner(
     internal val glGate: ReentrantLock = ReentrantLock(false)
     internal var installedRenderTarget: GlRenderTargetState? = null
     internal var contextRenderTarget: GlRenderTargetState? = null
-    private var renderCurrentnessVersion: Long = 1L
-    private var renderCurrentnessVersionExhausted: Boolean = false
+    private val currentnessReporter: GlCurrentnessReporter = GlCurrentnessReporter(this)
 
     internal var display: EGLDisplay = EGL14.EGL_NO_DISPLAY
     internal var config: EGLConfig? = null
@@ -114,16 +113,18 @@ internal class GlPipelineOwner(
     internal var pbuffer: EGLSurface = EGL14.EGL_NO_SURFACE
     internal var contextIntegrity: ContextIntegrity = ContextIntegrity.Unknown
         private set
-    internal var lastGroupCleanPostprobe: Boolean = false
-    private var capabilities: GlCapabilityFacts? = null
-    private val capabilityCandidate: GlCapabilityFacts = GlCapabilityFacts()
-    private var stagedPrecision: GlFragmentPrecision? = null
+    private val capabilityOwner: GlCapabilityOwner = GlCapabilityOwner(this)
     private val program: GlProgram = GlProgram(this)
     private var programDestructionHandle: GlDestructionHandle? = null
+    private var contextNamespaceDestructionHandle: GlDestructionHandle? = null
+    private var targetScopeNamespaceDestructionHandle: GlTargetScopeDestructionHandle? = null
+    private var partialStartupCleanupHandle: GlSessionConstructionHandle? = null
     private val framePipeline: GlFramePipeline = GlFramePipeline(this)
     private val eglRuntime: GlEglRuntime = GlEglRuntime(this)
     private val claimArbitrator: GlClaimArbitrator = GlClaimArbitrator(this)
     internal var contextNamespaceTransferredTarget: TargetRetirement.TargetScopeDestructionGraph? = null
+    internal var contextNamespace: ContextNamespace? = null
+        private set
     internal var contextUnbound: Boolean = false
     internal var contextDestroyed: Boolean = false
     internal var pbufferDestroyed: Boolean = false
@@ -135,10 +136,6 @@ internal class GlPipelineOwner(
     internal val pbufferSuffix: EglStepCell = EglStepCell()
     internal val releaseThreadSuffix: EglStepCell = EglStepCell()
 
-    private val maxTextureSize: IntArray = IntArray(1)
-    private val maxViewportDims: IntArray = IntArray(2)
-    private val highFloatRange: IntArray = IntArray(2)
-    private val highFloatPrecision: IntArray = IntArray(1)
     internal val generatedNames: IntArray = IntArray(1)
     internal val eglMajor: IntArray = IntArray(1)
     internal val eglMinor: IntArray = IntArray(1)
@@ -161,70 +158,24 @@ internal class GlPipelineOwner(
     internal val currentProgram: GlProgram.State?
         get() = program.current
 
-    internal fun renderCurrentnessFact(expected: GlRenderTargetOwner): GlRenderCurrentnessFact? = glGate.withLock {
-        val state = installedRenderTarget ?: return@withLock null
-        if (state.owner !== expected) return@withLock null
-        val fatal = laneRuntime.observedFatal
-        val poisoned = laneRuntime.isPoisoned
-        val pipelineComplete = renderPipelineCompleteLocked(state)
-        val destructionClaimed = state.destructionClaimedLocked(this)
-        val exhausted = renderCurrentnessVersionExhausted
-        GlRenderCurrentnessFact(
-            renderTargetOwner = state.owner,
-            renderGeneration = state.owner.renderGeneration,
-            compatibilityFacts = state.owner.compatibilityFacts,
-            actualState = state.actualStateLocked(this),
-            contextIntegrity = contextIntegrity,
-            pipelineComplete = pipelineComplete,
-            destructionClaimed = destructionClaimed,
-            lanePoisoned = poisoned,
-            observedFatal = fatal,
-            version = renderCurrentnessVersion,
-            versionExhausted = exhausted,
-            reusable = !exhausted && pipelineComplete && !destructionClaimed &&
-                    contextIntegrity == ContextIntegrity.Intact && !poisoned && fatal == null,
-        )
-    }
+    internal fun renderCurrentnessFact(expected: GlRenderTargetOwner): GlRenderCurrentnessFact? =
+        currentnessReporter.snapshot(expected)
 
-    internal fun isRenderCurrentnessVersion(fact: GlRenderCurrentnessFact): Boolean = glGate.withLock {
-        val state = installedRenderTarget ?: return@withLock false
-        val fatal = laneRuntime.observedFatal
-        val poisoned = laneRuntime.isPoisoned
-        val pipelineComplete = renderPipelineCompleteLocked(state)
-        val destructionClaimed = state.destructionClaimedLocked(this)
-        val reusable = pipelineComplete && !destructionClaimed && contextIntegrity == ContextIntegrity.Intact &&
-                !poisoned && fatal == null
-        !renderCurrentnessVersionExhausted && !fact.versionExhausted &&
-                fact.version == renderCurrentnessVersion && fact.renderTargetOwner === state.owner &&
-                fact.renderGeneration == state.owner.renderGeneration &&
-                fact.compatibilityFacts === state.owner.compatibilityFacts &&
-                fact.actualState === state.actualStateLocked(this) &&
-                fact.contextIntegrity == contextIntegrity &&
-                fact.pipelineComplete == pipelineComplete && fact.destructionClaimed == destructionClaimed &&
-                fact.lanePoisoned == poisoned && fact.observedFatal === fatal && fact.reusable == reusable
-    }
+    internal fun isRenderCurrentnessVersion(fact: GlRenderCurrentnessFact): Boolean =
+        currentnessReporter.stillMatches(fact)
 
     internal val isRenderCurrentnessVersionExhausted: Boolean
-        get() = glGate.withLock { renderCurrentnessVersionExhausted }
+        get() = currentnessReporter.isExhausted
 
     internal fun commitRenderCurrentnessMutationLocked() {
-        check(glGate.isHeldByCurrentThread)
-        if (renderCurrentnessVersionExhausted) return
-        if (renderCurrentnessVersion == Long.MAX_VALUE) {
-            renderCurrentnessVersionExhausted = true
-        } else {
-            renderCurrentnessVersion += 1L
-            if (renderCurrentnessVersion == Long.MAX_VALUE) {
-                renderCurrentnessVersionExhausted = true
-            }
-        }
+        currentnessReporter.recordMutationLocked()
     }
 
     internal fun commitRenderCurrentnessMutation() {
         glGate.withLock { commitRenderCurrentnessMutationLocked() }
     }
 
-    private fun renderPipelineCompleteLocked(state: GlRenderTargetState): Boolean {
+    internal fun renderPipelineCompleteLocked(state: GlRenderTargetState): Boolean {
         check(glGate.isHeldByCurrentThread)
         return installedRenderTarget === state && state.textureName != 0 && state.framebufferName != 0 &&
                 program.current != null && sessionEglStarted && context != EGL14.EGL_NO_CONTEXT &&
@@ -234,8 +185,7 @@ internal class GlPipelineOwner(
     internal fun frameReconciliationPipelineClosedLocked(state: GlRenderTargetState): Boolean {
         check(glGate.isHeldByCurrentThread)
         return contextIntegrity != ContextIntegrity.Intact || state.destructionClaimedLocked(this) ||
-                !renderPipelineCompleteLocked(state) || renderCurrentnessVersionExhausted ||
-                renderCurrentnessVersion == Long.MAX_VALUE
+                !renderPipelineCompleteLocked(state) || currentnessReporter.isExhaustedLocked()
     }
 
     internal fun frameReconciliationEndpointPoisonedLocked(): Boolean {
@@ -273,7 +223,7 @@ internal class GlPipelineOwner(
     }
 
     internal val capabilityFacts: GlCapabilityFacts?
-        get() = capabilities
+        get() = capabilityOwner.facts
 
     internal val observedFatal: Throwable?
         get() = laneRuntime.observedFatal
@@ -295,17 +245,50 @@ internal class GlPipelineOwner(
     private val orderlyShutdownCapability: GlOrderlyShutdownCapability = GlOrderlyShutdownCapability(this)
     internal val laneRuntime: GlLaneRuntime = GlLaneRuntime(glGate, settlementSignal, threadName)
 
-    internal fun prepareOrderlyShutdown(): OrderlyShutdownCommand? = glGate.withLock {
-        if (installedRenderTarget != null || contextRenderTarget != null ||
-            program.current != null || context != EGL14.EGL_NO_CONTEXT ||
-            pbuffer != EGL14.EGL_NO_SURFACE || contextNamespaceTransferredTarget != null ||
-            display != EGL14.EGL_NO_DISPLAY || config != null || program.hasOwnedNames ||
-            laneRuntime.observedFatal != null || laneRuntime.hasUnsettledOperation ||
-            laneRuntime.hasActiveTeardownLocked()
-        ) {
-            return@withLock null
+    internal fun prepareOrderlyShutdown(): OrderlyShutdownCommand? {
+        partialStartupCleanupHandle?.let { handle ->
+            if (!handle.retryClaimedPartialCleanupReduction()) return null
+            if (handle.unresolvedPartialCleanupEndpoint()) return null
+            if (handle.releasePartialCleanupEndpointAfterSuffix()) {
+                glGate.withLock {
+                    if (partialStartupCleanupHandle === handle) partialStartupCleanupHandle = null
+                }
+            }
         }
-        orderlyShutdownCapability
+        targetScopeNamespaceDestructionHandle?.let { handle ->
+            if (handle.unresolvedNamespaceEndpoint()) return null
+            if (handle.releaseNamespaceEndpointAfterSuffix()) {
+                glGate.withLock {
+                    if (targetScopeNamespaceDestructionHandle === handle) {
+                        targetScopeNamespaceDestructionHandle = null
+                    }
+                }
+            }
+        }
+        contextNamespaceDestructionHandle?.let { handle ->
+            if (!handle.retryClaimedContextNamespaceReduction()) return null
+            if (handle.unresolvedContextNamespaceProgress() != null) return null
+            if (handle.releaseContextNamespaceEndpointAfterSuffix()) {
+                glGate.withLock {
+                    if (contextNamespaceDestructionHandle === handle) contextNamespaceDestructionHandle = null
+                }
+            }
+        }
+        return glGate.withLock {
+            if (installedRenderTarget != null || contextRenderTarget != null ||
+                program.current != null || context != EGL14.EGL_NO_CONTEXT ||
+                pbuffer != EGL14.EGL_NO_SURFACE || contextNamespace != null ||
+                contextNamespaceTransferredTarget != null ||
+                partialStartupCleanupHandle != null || targetScopeNamespaceDestructionHandle != null ||
+                contextNamespaceDestructionHandle != null ||
+                display != EGL14.EGL_NO_DISPLAY || config != null || program.hasOwnedNames ||
+                laneRuntime.observedFatal != null || laneRuntime.hasUnsettledOperation ||
+                laneRuntime.hasActiveTeardownLocked()
+            ) {
+                return@withLock null
+            }
+            orderlyShutdownCapability
+        }
     }
 
     internal fun requestOrderlyShutdown(command: OrderlyShutdownCommand): Boolean {
@@ -314,7 +297,10 @@ internal class GlPipelineOwner(
         val stillEligible = glGate.withLock {
             installedRenderTarget == null && contextRenderTarget == null &&
                     program.current == null && context == EGL14.EGL_NO_CONTEXT &&
-                    pbuffer == EGL14.EGL_NO_SURFACE && contextNamespaceTransferredTarget == null &&
+                    pbuffer == EGL14.EGL_NO_SURFACE && contextNamespace == null &&
+                    contextNamespaceTransferredTarget == null &&
+                    partialStartupCleanupHandle == null && targetScopeNamespaceDestructionHandle == null &&
+                    contextNamespaceDestructionHandle == null &&
                     display == EGL14.EGL_NO_DISPLAY && config == null && !program.hasOwnedNames &&
                     laneRuntime.observedFatal == null && !laneRuntime.hasUnsettledOperation &&
                     !laneRuntime.hasActiveTeardownLocked()
@@ -350,11 +336,20 @@ internal class GlPipelineOwner(
 
     internal fun ownsTeardown(owner: GlTeardownOwner): Boolean = laneRuntime.ownsTeardown(owner)
 
+    internal fun ownsTeardownLocked(owner: GlTeardownOwner): Boolean = laneRuntime.ownsTeardownLocked(owner)
+
     internal fun releaseTeardown(owner: GlTeardownOwner): Boolean = laneRuntime.releaseTeardown(owner)
+
+    internal fun releaseTeardownLocked(owner: GlTeardownOwner): Boolean = laneRuntime.releaseTeardownLocked(owner)
 
     internal fun requireCurrent(evidence: GlOperationEvidence): Boolean = eglRuntime.requireCurrent(evidence)
 
     internal fun glesGroup(evidence: GlOperationEvidence, commands: () -> Boolean): Boolean = eglRuntime.glesGroup(evidence, commands)
+
+    internal fun glesGroupCompletion(
+        evidence: GlOperationEvidence,
+        commands: () -> Boolean,
+    ): GlGlesGroupCompletion = eglRuntime.glesGroupCompletion(evidence, commands)
 
     internal fun glesGroupAfterCurrent(evidence: GlOperationEvidence, probeFacts: GlProbeFacts? = null, commands: () -> Boolean): Boolean =
         eglRuntime.glesGroupAfterCurrent(evidence, probeFacts, commands)
@@ -367,6 +362,7 @@ internal class GlPipelineOwner(
 
     internal fun recordContextIntegrity(integrity: ContextIntegrity) {
         glGate.withLock {
+            if (contextIntegrity == ContextIntegrity.PoisonedByOutOfMemory) return@withLock
             if (contextIntegrity == integrity) return@withLock
             contextIntegrity = integrity
             commitRenderCurrentnessMutationLocked()
@@ -375,10 +371,62 @@ internal class GlPipelineOwner(
 
     internal fun bindContextNamespace(graph: TargetRetirement.TargetScopeDestructionGraph): Boolean = glGate.withLock {
         checkFatalLocked()
-        if (contextNamespaceTransferredTarget != null && contextNamespaceTransferredTarget !== graph) {
+        if (contextNamespace != null ||
+            contextNamespaceTransferredTarget != null && contextNamespaceTransferredTarget !== graph
+        ) {
             return@withLock false
         }
         contextNamespaceTransferredTarget = graph
+        true
+    }
+
+    internal fun bindPartialStartupContextNamespace(namespace: ContextNamespace): Boolean = glGate.withLock {
+        checkFatalLocked()
+        if (!namespace.matches(this) || namespace.triggerKind != GlDestructionKind.ContextNamespace ||
+            context == EGL14.EGL_NO_CONTEXT || contextNamespaceTransferredTarget != null ||
+            contextNamespace != null && contextNamespace !== namespace
+        ) {
+            return@withLock false
+        }
+        contextNamespace = namespace
+        true
+    }
+
+    internal fun retainTargetScopeNamespaceHandle(handle: GlTargetScopeDestructionHandle): Boolean = glGate.withLock {
+        val existing = targetScopeNamespaceDestructionHandle
+        if (partialStartupCleanupHandle != null || contextNamespaceDestructionHandle != null ||
+            existing != null && existing !== handle
+        ) {
+            return@withLock false
+        }
+        targetScopeNamespaceDestructionHandle = handle
+        true
+    }
+
+    internal fun releaseTargetScopeNamespaceHandle(handle: GlTargetScopeDestructionHandle): Boolean = glGate.withLock {
+        if (targetScopeNamespaceDestructionHandle !== handle) return@withLock false
+        targetScopeNamespaceDestructionHandle = null
+        true
+    }
+
+    internal fun retainPartialStartupCleanupHandle(handle: GlSessionConstructionHandle): Boolean = glGate.withLock {
+        val existing = partialStartupCleanupHandle
+        if (targetScopeNamespaceDestructionHandle != null || contextNamespaceDestructionHandle != null ||
+            existing != null && existing !== handle
+        ) {
+            return@withLock false
+        }
+        partialStartupCleanupHandle = handle
+        true
+    }
+
+    internal fun activateAndBindProgramContextNamespace(namespace: ContextNamespace): Boolean = glGate.withLock {
+        checkFatalLocked()
+        if (!namespace.matches(this)) return@withLock false
+        if (!ContextNamespace.activateProgramLocked(namespace, contextIntegrity)) return@withLock false
+        val existing = contextNamespace
+        if (existing != null && existing !== namespace) return@withLock false
+        contextNamespace = namespace
         true
     }
 
@@ -402,50 +450,14 @@ internal class GlPipelineOwner(
 
     internal fun constructSession(evidence: GlOperationEvidence): Boolean {
         if (!eglRuntime.construct(evidence)) return false
-        val precision = capabilities?.fragmentPrecision?.selectedPrecision ?: return false
+        val precision = capabilityOwner.facts?.fragmentPrecision?.selectedPrecision ?: return false
         val constructed = program.construct(evidence, precision)
         if (constructed) commitRenderCurrentnessMutation()
         return constructed
     }
 
-    internal fun queryCapabilities(evidence: GlOperationEvidence): Boolean {
-        stagedPrecision = null
-        val clean = glesGroup(evidence) {
-            outward { GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE, maxTextureSize, 0) }
-            outward { GLES20.glGetIntegerv(GLES20.GL_MAX_VIEWPORT_DIMS, maxViewportDims, 0) }
-            outward { GLES20.glGetShaderPrecisionFormat(GLES20.GL_FRAGMENT_SHADER, GLES20.GL_HIGH_FLOAT, highFloatRange, 0, highFloatPrecision, 0) }
-            val precision = when {
-                highFloatRange[0] > 0 && highFloatRange[1] > 0 && highFloatPrecision[0] > 0 -> GlFragmentPrecision.Highp
-                highFloatRange[0] == 0 && highFloatRange[1] == 0 && highFloatPrecision[0] == 0 -> GlFragmentPrecision.Mediump
-                else -> return@glesGroup false
-            }
-            if (maxTextureSize[0] <= 0 || maxViewportDims[0] <= 0 || maxViewportDims[1] <= 0) {
-                return@glesGroup false
-            }
-            stagedPrecision = precision
-            true
-        }
-        if (!clean) {
-            stagedPrecision = null
-            return false
-        }
-        checkFatalFence()
-        val precision = checkNotNull(stagedPrecision)
-        check(
-            capabilityCandidate.freeze(
-                maxTextureSize = maxTextureSize[0],
-                maxViewportWidth = maxViewportDims[0],
-                maxViewportHeight = maxViewportDims[1],
-                rangeLow = highFloatRange[0],
-                rangeHigh = highFloatRange[1],
-                precisionBits = highFloatPrecision[0],
-                selectedPrecision = precision,
-            )
-        )
-        capabilities = capabilityCandidate
-        stagedPrecision = null
-        return true
-    }
+    internal fun queryCapabilities(evidence: GlOperationEvidence): Boolean =
+        capabilityOwner.query(evidence)
 
     internal fun prepareSurfaceRelease(readinessFact: TargetSurfaceReleaseReadyFact): SurfaceReleaseCommand? {
         checkFatalFence()
@@ -465,7 +477,7 @@ internal class GlPipelineOwner(
 
     internal fun constructTarget(preparedTarget: PreparedTarget, localEvidence: GlOperationEvidence): Boolean {
         val plan = preparedTarget.plan
-        val facts = capabilities ?: return false
+        val facts = capabilityOwner.facts ?: return false
         if (plan.targetWidthPx > facts.maxTextureSize || plan.targetHeightPx > facts.maxTextureSize ||
             plan.targetWidthPx > facts.maxViewportWidth || plan.targetHeightPx > facts.maxViewportHeight
         ) {
@@ -511,7 +523,7 @@ internal class GlPipelineOwner(
         targetGeneration: Long,
         reconciliationFacts: GlFrameDesiredState,
     ): RenderTargetConstructionCommand? {
-        val facts = capabilities ?: return null
+        val facts = capabilityOwner.facts ?: return null
         val size = compatibilityFacts.imageSize
         if (size.widthPx > facts.maxTextureSize || size.heightPx > facts.maxTextureSize ||
             size.widthPx > facts.maxViewportWidth || size.heightPx > facts.maxViewportHeight
@@ -575,6 +587,7 @@ internal class GlPipelineOwner(
     ): FrameCommand? {
         val renderState = glGate.withLock {
             val state = installedRenderTarget ?: return@withLock null
+            if (state.targetGeneration != target.generation) return@withLock null
             val actualState = state.actualStateLocked(this)
             if (actualState != null &&
                 (actualState.targetIdentity !== target.identity || actualState.targetGeneration != target.generation)
@@ -646,18 +659,44 @@ internal class GlPipelineOwner(
         state.claimDestruction(this, installed = true)
     }
 
-    internal fun prepareProgramDestruction(identity: GlFiniteOperationIdentity): DestructionCommand? = glGate.withLock {
-        if (!program.hasOwnedNames) return@withLock null
-        val existing = programDestructionHandle
-        if (existing != null) return@withLock existing
-        GlDestructionHandle(
-            this,
-            identity,
-            GlDestructionAction.Program,
-            null,
-            null,
+    internal fun prepareProgramDestruction(identity: GlFiniteOperationIdentity): DestructionCommand? {
+        glGate.withLock {
+            if (!program.hasOwnedNames) return null
+            programDestructionHandle?.let { return it }
+        }
+        val integrity = glGate.withLock { contextIntegrity }
+        val namespaceCandidate = ContextNamespace.createForProgram(this, identity.operationIdentity)
+        val namespace = if (integrity == ContextIntegrity.Intact) {
+            null
+        } else {
+            namespaceCandidate
+        }
+        val handle = GlDestructionHandle(
+            owner = this,
+            identity = identity,
+            action = if (namespace == null) GlDestructionAction.Program else GlDestructionAction.ProgramNamespace,
+            renderTarget = null,
+            renderState = null,
             installedRenderTargetDestruction = false,
-        ).also { programDestructionHandle = it }
+            contextNamespace = namespace,
+            programFallbackNamespace = namespaceCandidate,
+            terminalCleanupOrigin = GlTerminalCleanupOrigin.TerminalOrigin,
+        )
+        return glGate.withLock {
+            val existing = programDestructionHandle
+            if (existing != null) return@withLock existing
+            if (!program.hasOwnedNames || contextIntegrity != integrity ||
+                namespace == null && contextNamespace != null ||
+                namespace != null && contextNamespace != null && contextNamespace !== namespace
+            ) {
+                return@withLock null
+            }
+            if (namespace != null) {
+                if (!ContextNamespace.activateProgramLocked(namespace, integrity)) return@withLock null
+                contextNamespace = namespace
+            }
+            handle.also { programDestructionHandle = it }
+        }
     }
 
     internal fun clearProgramDestruction(handle: GlDestructionHandle): Boolean = glGate.withLock {
@@ -674,24 +713,33 @@ internal class GlPipelineOwner(
     }
 
     internal fun prepareHealthySessionDestruction(identity: GlFiniteOperationIdentity): DestructionCommand? {
+        val namespace = glGate.withLock { contextNamespace }
         val handle = GlDestructionHandle(
-            this,
-            identity,
-            GlDestructionAction.Session,
-            null,
-            null,
+            owner = this,
+            identity = identity,
+            action = if (namespace == null) GlDestructionAction.Session else GlDestructionAction.ContextNamespace,
+            renderTarget = null,
+            renderState = null,
             installedRenderTargetDestruction = false,
+            contextNamespace = namespace,
+            terminalCleanupOrigin = GlTerminalCleanupOrigin.TerminalOrigin,
         )
         return glGate.withLock {
-            if (contextIntegrity != ContextIntegrity.Intact || installedRenderTarget != null ||
-                contextRenderTarget != null || program.hasOwnedNames || contextNamespaceTransferredTarget != null ||
+            val healthyEligible = namespace == null && contextIntegrity == ContextIntegrity.Intact && !program.hasOwnedNames
+            val namespaceEligible = namespace != null && contextNamespace === namespace &&
+                    namespace.matches(this)
+            if ((!healthyEligible && !namespaceEligible) ||
+                healthyEligible && (installedRenderTarget != null || contextRenderTarget != null) ||
+                contextNamespaceTransferredTarget != null ||
                 display == EGL14.EGL_NO_DISPLAY || config == null || context == EGL14.EGL_NO_CONTEXT ||
                 pbuffer == EGL14.EGL_NO_SURFACE || contextUnbound || contextDestroyed ||
                 pbufferDestroyed || threadReleased
             ) {
                 return@withLock false
             }
-            handle.claimSessionTeardown()
+            if (!handle.claimSessionTeardown()) return@withLock false
+            if (namespace != null) contextNamespaceDestructionHandle = handle
+            true
         }.let { claimed -> handle.takeIf { claimed } }
     }
 
@@ -761,7 +809,9 @@ internal class GlPipelineOwner(
     internal fun consumeContextNamespaceLocked(graph: TargetRetirement.TargetScopeDestructionGraph): Boolean {
         check(glGate.isHeldByCurrentThread)
         checkFatalLocked()
-        if (contextNamespaceTransferredTarget !== graph || context != EGL14.EGL_NO_CONTEXT || !contextDestroyed) {
+        if (contextNamespace != null || contextNamespaceTransferredTarget !== graph ||
+            context != EGL14.EGL_NO_CONTEXT || !contextDestroyed
+        ) {
             return false
         }
         val contextState = contextRenderTarget
@@ -777,15 +827,40 @@ internal class GlPipelineOwner(
         installedRenderTarget = null
         contextRenderTarget = null
         program.consumeNamespaceLocked()
+        programDestructionHandle = null
         contextNamespaceTransferredTarget = null
+        contextNamespace = null
         commitRenderCurrentnessMutationLocked()
         return true
     }
 
-    internal fun consumePartialContextNamespaceLocked(): Boolean {
+    internal fun consumePartialContextNamespaceLocked(
+        expectedNamespace: ContextNamespace? = null,
+        authorizedPhysicalRetirementEvidence: GlDestructionEvidence? = null,
+    ): Boolean {
         check(glGate.isHeldByCurrentThread)
-        checkFatalLocked()
+        val authorizedPhysicalRetirement = if (authorizedPhysicalRetirementEvidence != null) {
+            val exactNamespace = expectedNamespace ?: return false
+            if (!authorizedPhysicalRetirementEvidence.canonicalizeRetiredOwnerContextLocked(this, exactNamespace)) {
+                return false
+            }
+            true
+        } else {
+            false
+        }
+        if (!authorizedPhysicalRetirement) checkFatalLocked()
+        if (authorizedPhysicalRetirement && expectedNamespace != null && contextNamespace == null) {
+            return installedRenderTarget == null && contextRenderTarget == null &&
+                    program.current == null && !program.hasOwnedNames && programDestructionHandle == null &&
+                    context == EGL14.EGL_NO_CONTEXT && contextDestroyed &&
+                    contextNamespaceTransferredTarget == null
+        }
         if (context != EGL14.EGL_NO_CONTEXT || !contextDestroyed || contextNamespaceTransferredTarget != null) {
+            return false
+        }
+        if (expectedNamespace != null && contextNamespace !== expectedNamespace ||
+            expectedNamespace == null && contextNamespace != null
+        ) {
             return false
         }
         val contextState = contextRenderTarget
@@ -794,14 +869,32 @@ internal class GlPipelineOwner(
         if (installedState != null && installedState !== contextState && !installedState.canConsumeNamespaceLocked(this)) {
             return false
         }
-        if (contextState != null && !contextState.consumeNamespaceLocked(this)) return false
-        if (installedState != null && installedState !== contextState && !installedState.consumeNamespaceLocked(this)) {
+        if (contextState != null && !contextState.consumeNamespaceLocked(this, authorizedPhysicalRetirement)) return false
+        if (installedState != null && installedState !== contextState &&
+            !installedState.consumeNamespaceLocked(this, authorizedPhysicalRetirement)
+        ) {
             return false
         }
         installedRenderTarget = null
         contextRenderTarget = null
-        program.consumeNamespaceLocked()
+        program.consumeNamespaceLocked(authorizedPhysicalRetirement)
+        programDestructionHandle = null
         commitRenderCurrentnessMutationLocked()
+        contextNamespace = null
+        return true
+    }
+
+    internal fun reduceStructurallyAbsentPartialContextLocked(): Boolean {
+        check(glGate.isHeldByCurrentThread)
+        checkFatalLocked()
+        if (context != EGL14.EGL_NO_CONTEXT || pbuffer != EGL14.EGL_NO_SURFACE ||
+            !contextDestroyed || !contextUnbound ||
+            contextNamespace != null || contextNamespaceTransferredTarget != null ||
+            installedRenderTarget != null || contextRenderTarget != null ||
+            program.current != null || program.hasOwnedNames
+        ) {
+            return false
+        }
         return true
     }
 

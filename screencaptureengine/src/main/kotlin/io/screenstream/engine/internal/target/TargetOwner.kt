@@ -10,16 +10,23 @@ import kotlin.concurrent.withLock
 internal class TargetOwner {
     private val targetGate: ReentrantLock = ReentrantLock(false)
     private val constructionProof: () -> Unit = {}
+    private val constructionAdmissionClosedFact: TargetConstructionAdmissionClosedFact =
+        TargetConstructionAdmissionClosedFact.create(this, constructionProof)
 
     private var preparedTarget: PreparedTarget? = null
     private var admissionCandidate: PreparedTarget? = null
+    private var installedTarget: CurrentTarget? = null
+    private var latestPredecessorRetiredFact: TargetPredecessorRetiredFact? = null
     private var lastTargetGeneration: Long = 0L
     private var constructionAdmissionOpen: Boolean = true
+    private var lastPreparationOutcome: TargetPreparationOutcome? = null
+    private var preparationInFlight: Boolean = false
 
     internal fun acceptsConstructionProof(proof: () -> Unit): Boolean =
         constructionProof === proof
 
     internal fun prepareTarget(
+        predecessorRetiredFact: TargetPredecessorRetiredFact?,
         plan: TargetPlan,
         requestedIdentity: TargetRequestedIdentity,
         constructionIdentity: GlFiniteOperationIdentity,
@@ -33,49 +40,124 @@ internal class TargetOwner {
         surfaceReleaseTimeoutCause: Throwable,
         targetDestructionIdentity: GlFiniteOperationIdentity,
         namespaceDestructionIdentity: GlFiniteOperationIdentity,
-    ): PreparedTarget? {
+    ): TargetPreparationOutcome? {
         require(listenerInstallationOperationIdentity > 0L)
         require(surfaceReleaseOperationIdentity > 0L)
         require(surfaceReleaseDeadlineIdentity > 0L)
         require(surfaceReleaseDeadlineWakeGeneration > 0L)
         require(targetDestructionIdentity.operationIdentity > 0L)
         require(namespaceDestructionIdentity.operationIdentity > 0L)
+        require(namespaceDestructionIdentity.operationIdentity != targetDestructionIdentity.operationIdentity)
 
         var predecessorGeneration = 0L
         var targetGeneration = 0L
         val generationReserved = targetGate.withLock {
-            if (!constructionAdmissionOpen || preparedTarget != null || admissionCandidate != null ||
+            val exactPredecessor = if (lastTargetGeneration == 0L) {
+                predecessorRetiredFact == null && latestPredecessorRetiredFact == null
+            } else {
+                predecessorRetiredFact === latestPredecessorRetiredFact &&
+                        predecessorRetiredFact?.targetGeneration == lastTargetGeneration
+            }
+            if (!constructionAdmissionOpen || preparationInFlight || lastPreparationOutcome != null ||
+                preparedTarget != null || admissionCandidate != null ||
+                installedTarget != null || !exactPredecessor ||
                 lastTargetGeneration == Long.MAX_VALUE
             ) {
                 return@withLock false
             }
             predecessorGeneration = lastTargetGeneration
             targetGeneration = predecessorGeneration + 1L
+            if (predecessorGeneration != 0L) latestPredecessorRetiredFact = null
             lastTargetGeneration = targetGeneration
+            preparationInFlight = true
             true
         }
         if (!generationReserved) return null
 
-        return PreparedTarget.precreate(
-            targetOwner = this,
-            constructionProof = constructionProof,
-            targetGate = targetGate,
-            targetGeneration = targetGeneration,
-            predecessorGeneration = predecessorGeneration,
-            plan = plan,
-            requestedIdentity = requestedIdentity,
-            constructionIdentity = constructionIdentity,
-            listenerInstallationOperationIdentity = listenerInstallationOperationIdentity,
-            sourceSignal = sourceSignal,
-            clock = clock,
-            settlementSignal = settlementSignal,
-            surfaceReleaseOperationIdentity = surfaceReleaseOperationIdentity,
-            surfaceReleaseDeadlineIdentity = surfaceReleaseDeadlineIdentity,
-            surfaceReleaseDeadlineWakeGeneration = surfaceReleaseDeadlineWakeGeneration,
-            surfaceReleaseTimeoutCause = surfaceReleaseTimeoutCause,
-            targetDestructionIdentity = targetDestructionIdentity,
-            namespaceDestructionIdentity = namespaceDestructionIdentity,
-        )
+        val constructionProvenance: TargetConstructionProvenance
+        val preparedOutcome: TargetPreparationOutcome.Prepared
+        val structurallyAbsentOutcome: TargetPreparationOutcome.StructurallyAbsent
+        try {
+            constructionProvenance = TargetConstructionProvenance.create(
+                targetOwner = this,
+                constructionProof = constructionProof,
+                requestedIdentity = requestedIdentity,
+                plan = plan,
+                predecessorGeneration = predecessorGeneration,
+                targetGeneration = targetGeneration,
+                constructionOperationIdentity = constructionIdentity.operationIdentity,
+            )
+            preparedOutcome = TargetPreparationOutcome.Prepared.precreate(
+                targetOwner = this,
+                constructionProof = constructionProof,
+                constructionProvenance = constructionProvenance,
+            )
+            structurallyAbsentOutcome = TargetPreparationOutcome.StructurallyAbsent.precreate(
+                targetOwner = this,
+                constructionProof = constructionProof,
+                constructionProvenance = constructionProvenance,
+            )
+        } catch (failure: Throwable) {
+            targetGate.withLock {
+                check(preparationInFlight)
+                preparationInFlight = false
+            }
+            throw failure
+        }
+
+        val outcome = try {
+            val target = PreparedTarget.precreate(
+                targetOwner = this,
+                constructionProof = constructionProof,
+                targetGate = targetGate,
+                targetGeneration = targetGeneration,
+                predecessorGeneration = predecessorGeneration,
+                plan = plan,
+                requestedIdentity = requestedIdentity,
+                constructionProvenance = constructionProvenance,
+                constructionIdentity = constructionIdentity,
+                listenerInstallationOperationIdentity = listenerInstallationOperationIdentity,
+                sourceSignal = sourceSignal,
+                clock = clock,
+                settlementSignal = settlementSignal,
+                surfaceReleaseOperationIdentity = surfaceReleaseOperationIdentity,
+                surfaceReleaseDeadlineIdentity = surfaceReleaseDeadlineIdentity,
+                surfaceReleaseDeadlineWakeGeneration = surfaceReleaseDeadlineWakeGeneration,
+                surfaceReleaseTimeoutCause = surfaceReleaseTimeoutCause,
+                targetDestructionIdentity = targetDestructionIdentity,
+                namespaceDestructionIdentity = namespaceDestructionIdentity,
+            )
+            check(target.belongsTo(this, constructionProof))
+            preparedOutcome.bindPreparedTarget(target)
+            preparedOutcome
+        } catch (failure: Throwable) {
+            structurallyAbsentOutcome.recordPrecreationFailure(failure)
+            structurallyAbsentOutcome
+        }
+        return targetGate.withLock {
+            check(preparationInFlight)
+            lastPreparationOutcome = outcome
+            preparationInFlight = false
+            outcome
+        }
+    }
+
+    /** Lock-published diagnostic/consumption view; the returned immutable outcome grants no authority. */
+    internal fun preparationOutcome(
+        requestedIdentity: TargetRequestedIdentity,
+        targetGeneration: Long,
+    ): TargetPreparationOutcome? = targetGate.withLock {
+        lastPreparationOutcome?.takeIf {
+            it.requestedIdentity === requestedIdentity && it.targetGeneration == targetGeneration
+        }
+    }
+
+    internal fun retireStructurallyAbsentPreparation(
+        outcome: TargetPreparationOutcome.StructurallyAbsent,
+    ): Boolean = targetGate.withLock {
+        if (lastPreparationOutcome !== outcome) return@withLock false
+        lastPreparationOutcome = null
+        true
     }
 
     internal fun admitPreparedTarget(
@@ -83,10 +165,15 @@ internal class TargetOwner {
         currentRequestedIdentity: TargetRequestedIdentity,
         currentPlan: TargetPlan,
     ): PreparedTargetAdmissionFact? {
+        if (!prospectiveTarget.belongsTo(this, constructionProof)) return null
         val predecessorGeneration = prospectiveTarget.targetGeneration - 1L
         val reservedGeneration = targetGate.withLock {
-            if (!constructionAdmissionOpen || preparedTarget != null || admissionCandidate != null ||
-                lastTargetGeneration != prospectiveTarget.targetGeneration
+            val preparation = lastPreparationOutcome as? TargetPreparationOutcome.Prepared
+            if (preparedTarget != null || admissionCandidate != null ||
+                lastTargetGeneration != prospectiveTarget.targetGeneration ||
+                preparation == null || preparation.preparedTarget !== prospectiveTarget ||
+                preparation.requestedIdentity !== prospectiveTarget.requestedIdentity ||
+                preparation.plan !== prospectiveTarget.plan
             ) {
                 return@withLock false
             }
@@ -127,6 +214,7 @@ internal class TargetOwner {
             }
             preparedTarget = prospectiveTarget
             admissionCandidate = null
+            lastPreparationOutcome = null
             true
         }
         if (!committed) {
@@ -138,14 +226,7 @@ internal class TargetOwner {
             }
             return null
         }
-        return PreparedTargetAdmissionFact.create(
-            targetOwner = this,
-            constructionProof = constructionProof,
-            requestedIdentity = prospectiveTarget.requestedIdentity,
-            targetGeneration = prospectiveTarget.targetGeneration,
-            preparedTarget = prospectiveTarget,
-            disposition = admissionDisposition,
-        )
+        return prospectiveTarget.admissionFact(admissionDisposition)
     }
 
     internal fun claimPreparedTargetResult(
@@ -211,7 +292,7 @@ internal class TargetOwner {
         } ?: return null
         targetGate.withLock {
             if (selected == TargetConstructionFoldDisposition.CleanupTerminal) {
-                constructionAdmissionOpen = false
+                closeConstructionAdmissionLocked()
             }
         }
         return selected
@@ -236,13 +317,16 @@ internal class TargetOwner {
             }
             if (selected == TargetConstructionFoldDisposition.Install &&
                 (!constructionAdmissionOpen || preparedTarget !== token.preparedTarget ||
-                        lastTargetGeneration != token.targetGeneration)
+                        installedTarget != null || lastTargetGeneration != token.targetGeneration)
             ) {
                 return@withLock false
             }
             if (!token.preparedTarget.applyFold(token)) return@withLock false
-            if (selected == TargetConstructionFoldDisposition.Install) preparedTarget = null
-            if (selected == TargetConstructionFoldDisposition.CleanupTerminal) constructionAdmissionOpen = false
+            if (selected == TargetConstructionFoldDisposition.Install) {
+                preparedTarget = null
+                installedTarget = token.candidate
+            }
+            if (selected == TargetConstructionFoldDisposition.CleanupTerminal) closeConstructionAdmissionLocked()
             true
         }
         if (!applied && selected != TargetConstructionFoldDisposition.CleanupTerminal) {
@@ -255,7 +339,7 @@ internal class TargetOwner {
                 selected = TargetConstructionFoldDisposition.CleanupTerminal
                 applied = targetGate.withLock {
                     if (!token.preparedTarget.applyFold(token)) return@withLock false
-                    constructionAdmissionOpen = false
+                    closeConstructionAdmissionLocked()
                     true
                 }
             }
@@ -264,43 +348,79 @@ internal class TargetOwner {
         return token.claimResultFact()
     }
 
-    internal fun closeConstructionAdmission(): TargetConstructionAdmissionClosedFact? {
-        var closedGeneration = 0L
-        val closed = targetGate.withLock {
-            if (!constructionAdmissionOpen) return@withLock false
-            constructionAdmissionOpen = false
-            closedGeneration = lastTargetGeneration
-            true
+    internal fun closeConstructionAdmission(): TargetConstructionAdmissionClosedFact = targetGate.withLock {
+        closeConstructionAdmissionLocked()
+    }
+
+    internal fun closeConstructionAdmissionForPreparedTerminalCleanup(
+        target: PreparedTarget,
+    ): TargetConstructionAdmissionClosedFact? = targetGate.withLock {
+        if (preparedTarget !== target || target.targetGeneration != lastTargetGeneration) {
+            return@withLock null
         }
-        return if (closed) {
-            TargetConstructionAdmissionClosedFact.create(this, constructionProof, closedGeneration)
-        } else {
-            null
+        closeConstructionAdmissionLocked()
+    }
+
+    private fun closeConstructionAdmissionLocked(): TargetConstructionAdmissionClosedFact {
+        check(targetGate.isHeldByCurrentThread)
+        constructionAdmissionOpen = false
+        latestPredecessorRetiredFact = null
+        constructionAdmissionClosedFact.recordClosureLocked(lastTargetGeneration)
+        return constructionAdmissionClosedFact
+    }
+
+    internal fun retireMechanicallyCompletedNonterminalPreparedTarget(
+        target: PreparedTarget,
+    ): PreparedTargetMechanicallyRetiredFact? {
+        if (!target.isNonterminalCleanupComplete()) return null
+        return targetGate.withLock {
+            if (preparedTarget !== target || !constructionAdmissionOpen || installedTarget != null) {
+                return@withLock null
+            }
+            val fact = target.nonterminalRetirementFactLocked() ?: return@withLock null
+            preparedTarget = null
+            latestPredecessorRetiredFact = fact
+            fact
         }
     }
 
-    internal fun retireMechanicallyCompletedPreparedTarget(target: PreparedTarget): PreparedTargetRetiredFact? {
+    internal fun retireMechanicallyCompletedTerminalPreparedTarget(
+        target: PreparedTarget,
+    ): PreparedTargetTerminalRetiredFact? {
+        if (target.closeConstructionCleanupForTerminal() == null) return null
         if (target.currentDisposition != PreparedTargetDisposition.CleanupClaimed || !target.isCleanupComplete()) {
             return null
         }
-        val retired = targetGate.withLock {
-            if (preparedTarget !== target) return@withLock false
+        return targetGate.withLock {
+            if (preparedTarget !== target || constructionAdmissionOpen) return@withLock null
+            val fact = target.terminalRetirementFactLocked() ?: return@withLock null
             preparedTarget = null
-            true
+            fact
         }
-        if (!retired) return null
-        return PreparedTargetRetiredFact.create(
-            targetOwner = this,
-            constructionProof = constructionProof,
-            requestedIdentity = target.requestedIdentity,
-            targetGeneration = target.targetGeneration,
-            retiredTarget = target,
-        )
     }
 
-    internal fun hasPendingSource(target: CurrentTarget): Boolean = target.hasPendingSource
+    internal fun retireMechanicallyCompletedCurrentTarget(
+        target: CurrentTarget,
+        retirementEvidence: TargetRetirementCompleteEvidence,
+    ): CurrentTargetMechanicallyRetiredFact? = targetGate.withLock {
+        if (installedTarget !== target || target.identity.generation != lastTargetGeneration) {
+            return@withLock null
+        }
+        val fact = target.claimMechanicallyRetiredFact(retirementEvidence) ?: return@withLock null
+        installedTarget = null
+        latestPredecessorRetiredFact = fact.takeIf { constructionAdmissionOpen }
+        fact
+    }
 
-    internal fun consumePendingSource(target: CurrentTarget): Boolean = target.consumePendingSource()
+    internal fun claimPendingSource(
+        targetIdentity: TargetIdentity,
+        expectedFrameAdmissionEpoch: Long,
+    ): TargetPendingSourceClaim? =
+        targetIdentity.target.claimPendingSource(targetIdentity, expectedFrameAdmissionEpoch)
+
+    internal fun commitPendingSource(
+        claim: TargetPendingSourceClaim,
+    ): TargetPendingSourceCommitResult = claim.targetIdentity.target.commitPendingSource(claim)
 
     internal fun detachedGlFramePort(
         target: CurrentTarget,

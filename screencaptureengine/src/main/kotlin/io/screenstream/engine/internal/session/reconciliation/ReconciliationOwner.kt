@@ -1,4 +1,4 @@
-package io.screenstream.engine.internal.controller
+package io.screenstream.engine.internal.session.reconciliation
 
 import io.screenstream.engine.CaptureGeometry
 import io.screenstream.engine.ContentMode
@@ -17,6 +17,18 @@ import io.screenstream.engine.internal.gl.GlRenderTargetCompatibilityFacts
 import io.screenstream.engine.internal.target.TargetMode
 import io.screenstream.engine.internal.target.TargetPlan
 import kotlin.math.floor
+
+internal class TopologyStamp internal constructor(
+    internal val desiredRevision: Long,
+    internal val geometryGeneration: Long,
+    internal val lifecycleEpoch: Long,
+) {
+    init {
+        require(desiredRevision > 0L)
+        require(geometryGeneration > 0L)
+        require(lifecycleEpoch > 0L)
+    }
+}
 
 internal sealed interface ReconciliationInput {
     val stamp: TopologyStamp

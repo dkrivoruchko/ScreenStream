@@ -9,6 +9,7 @@ import io.screenstream.engine.internal.AndroidLaneQuitAction
 import io.screenstream.engine.internal.settlement.DeadlineOccurrence
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationDisposition
+import io.screenstream.engine.internal.settlement.OperationDomain
 import io.screenstream.engine.internal.settlement.OperationEntryDisposition
 import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationOccurrence
@@ -20,6 +21,8 @@ import io.screenstream.engine.internal.settlement.OperationTerminalArbitration
 import io.screenstream.engine.internal.settlement.SettlementSignal
 import io.screenstream.engine.internal.target.CurrentTarget
 import io.screenstream.engine.internal.target.TargetNoProducerEvidence
+import io.screenstream.engine.internal.target.TargetListenerInstallationBindingCommittedFact
+import io.screenstream.engine.internal.target.TargetListenerInstallationRequestClaim
 import io.screenstream.engine.internal.target.TargetPortUseOutcome
 import io.screenstream.engine.internal.target.TargetPorts
 import io.screenstream.engine.internal.target.TargetProducerApplicationFact
@@ -30,6 +33,7 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 private data class AndroidCapturedContentSize(
@@ -51,7 +55,7 @@ private class AndroidProjectionCallbackOccurrence(
 )
 
 internal class AndroidCaptureOwner(
-    private val projection: MediaProjection,
+    private val projectionStopObligation: AndroidProjectionStopObligation,
     private val projectionOwnerEpoch: Long,
     private val callbackIdentity: Long,
     private val clock: EngineClock,
@@ -67,29 +71,50 @@ internal class AndroidCaptureOwner(
     }
 
     private val laneRuntime = AndroidLaneRuntime(settlementSignal)
+    private val projection: MediaProjection = projectionStopObligation.bindAndroidOwner(this, laneRuntime)
     private val callbackRegistrationOperation =
         AtomicReference<OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>?>(null)
     private val callbackProvenance = AtomicReference<AndroidCallbackProvenance?>(null)
     private val callbackSequence = AtomicLong(0L)
     private val lastCapturedContentSize = AtomicReference<AndroidCapturedContentSize?>(null)
-    private val callbackRegistrationNoPlatformEntryProven = AtomicBoolean(false)
+    private val callbackRegistrationNoPlatformEntryProof =
+        AtomicReference<AndroidNoPlatformEntryProof<AndroidProjectionCallbackRegistrationEvidence>?>(null)
     private val callbackRegistrationReturned = AtomicBoolean(false)
     private val callbackRegistered = AtomicBoolean(false)
     private val callbackAuthorityOpen = AtomicBoolean(true)
+    private val callbackCleanupOutcome =
+        AtomicReference<AndroidProjectionCallbackCleanupOutcome?>(null)
     private val callbackUnregistrationOperation =
         AtomicReference<OperationOccurrence<AndroidProjectionCallbackUnregistrationEvidence>?>(null)
     private val callbackUnregisterReturned = AtomicBoolean(false)
     private val virtualDisplayCreationOperation =
         AtomicReference<OperationOccurrence<AndroidVirtualDisplayCreationEvidence>?>(null)
-    private val virtualDisplayCreationNoPlatformEntryProven = AtomicBoolean(false)
+    private val virtualDisplayCreationNoPlatformEntryProof =
+        AtomicReference<AndroidNoPlatformEntryProof<AndroidVirtualDisplayCreationEvidence>?>(null)
     private val virtualDisplayCreationReturned = AtomicBoolean(false)
+    private val targetListenerInstallationClaim =
+        AtomicReference<TargetListenerInstallationRequestClaim?>(null)
+    private val targetListenerInstallationBoundRoot =
+        AtomicReference<AndroidTargetListenerInstallationBoundRoot?>(null)
+    private val targetListenerInstallationUnboundClaimRetiredProof =
+        AtomicReference<AndroidTargetListenerInstallationUnboundClaimRetiredProof?>(null)
+    private val targetListenerInstallationFinalLaneNoEntryProof =
+        AtomicReference<AndroidFinalLaneNoEntryProof<AndroidTargetListenerInstallationEvidence>?>(null)
+    private val targetListenerInstallationAdmissionGate = ReentrantLock()
+    private var targetListenerInstallationAdmissionOpen: Boolean = true
+    private var targetListenerInstallationInFlight: Int = 0
     private val virtualDisplayOwner = AtomicReference<AndroidVirtualDisplayOwnership?>(null)
     private val virtualDisplayReleasePreparationClaimed = AtomicBoolean(false)
     private val virtualDisplayReleaseOperation =
         AtomicReference<OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>?>(null)
     private val virtualDisplayReleaseReturned = AtomicBoolean(false)
+    internal val virtualDisplayMutations = AndroidVirtualDisplayMutator(
+        ownership = virtualDisplayOwner,
+        lane = laneRuntime,
+        clock = clock,
+        settlementSignal = settlementSignal,
+    )
     private val projectionStopOperation = AtomicReference<OperationOccurrence<AndroidProjectionStopEvidence>?>(null)
-    private val projectionStopReturned = AtomicBoolean(false)
 
     private val projectionCallback: MediaProjection.Callback = object : MediaProjection.Callback() {
         override fun onCapturedContentResize(width: Int, height: Int) {
@@ -177,11 +202,13 @@ internal class AndroidCaptureOwner(
     internal fun createProjectionCallbackRegistrationOperation(
         identity: AndroidFiniteOperationIdentity,
     ): OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>? {
+        val ownerBag = AndroidProjectionCallbackRegistrationOwnerBag(projection, projectionCallback)
         val operation = finiteOccurrence(
             identity = identity,
             evidence = AndroidProjectionCallbackRegistrationEvidence(),
-            ownerBag = AndroidProjectionCallbackRegistrationOwnerBag(projection, projectionCallback),
+            ownerBag = ownerBag,
         )
+        check(ownerBag.bindOperation(operation))
         val provenance = AndroidCallbackProvenance(
             owner = this,
             projectionOwnerEpoch = projectionOwnerEpoch,
@@ -195,42 +222,210 @@ internal class AndroidCaptureOwner(
 
     internal fun submitProjectionCallbackRegistration(
         operation: OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>,
-    ): Boolean = submitToLane(
-        operation = operation,
-        postRejectionMessage = "Android projection callback registration rejected",
-        onReturnedThrow = { callbackRegistrationReturned.set(true) },
-    ) {
-        projection.registerCallback(projectionCallback, it)
-        callbackRegistered.set(true)
-        callbackRegistrationReturned.set(true)
+    ): Boolean {
+        val ownerBag = operation.ownerBag as AndroidProjectionCallbackRegistrationOwnerBag
+        return submitToLane(
+            operation = operation,
+            postRejectionMessage = "Android projection callback registration rejected",
+            onReturnedThrow = { callbackRegistrationReturned.set(true) },
+            onTicketCreated = { check(ownerBag.bindPostTicket(it)) },
+            onPostOutcome = { outcome ->
+                check(ownerBag.bindSchedulerOutcome(outcome))
+                if (outcome == AndroidPostResult.NotSubmitted) {
+                    operation.settleInertBeforeEntry()
+                    signalBestEffort()
+                }
+            },
+        ) {
+            projection.registerCallback(projectionCallback, it)
+            callbackRegistered.set(true)
+            callbackRegistrationReturned.set(true)
+        }
     }
 
     internal fun createTargetListenerInstallationOperation(
         target: CurrentTarget,
         identity: AndroidFiniteOperationIdentity,
     ): OperationOccurrence<AndroidTargetListenerInstallationEvidence>? {
-        val port = target.registerListenerInstallationPort(identity.operationIdentity) ?: return null
-        return finiteOccurrence(
-            identity = identity,
-            evidence = AndroidTargetListenerInstallationEvidence(),
-            ownerBag = AndroidTargetListenerInstallationOwnerBag(target, port),
-        )
+        if (!reserveTargetListenerInstallationAdmission()) return null
+        try {
+            if (targetListenerInstallationClaim.get() != null ||
+                targetListenerInstallationBoundRoot.get() != null
+            ) {
+                return null
+            }
+            val claim = target.claimListenerInstallationRequest(identity.operationIdentity) ?: return null
+            targetListenerInstallationClaim.set(claim)
+            val ownerBag = AndroidTargetListenerInstallationOwnerBag(target, claim)
+            val operation = finiteOccurrence(
+                identity = identity,
+                evidence = AndroidTargetListenerInstallationEvidence(),
+                ownerBag = ownerBag,
+            )
+            check(ownerBag.bindOperation(operation))
+            val ticket = laneRuntime.ticket(
+                occurrence = operation,
+                postRejectionMessage = "Android target-listener installation rejected",
+                enteredWork = AndroidEnteredWork { handler ->
+                    try {
+                        check(
+                            ownerBag.port.withListener { surfaceTexture, listener ->
+                                surfaceTexture.setOnFrameAvailableListener(listener, handler)
+                            } == TargetPortUseOutcome.BodyReturned,
+                        )
+                        operation.publishNormalReturn()
+                    } catch (failure: Exception) {
+                        operation.publishThrownReturn(failure)
+                    }
+                    signalBestEffort()
+                },
+            )
+            check(ownerBag.bindPostTicket(ticket))
+            val boundRoot = AndroidTargetListenerInstallationBoundRoot.create(
+                target,
+                claim,
+                ownerBag,
+                operation,
+                ticket,
+            )
+            check(targetListenerInstallationBoundRoot.compareAndSet(null, boundRoot))
+            val committedFact = try {
+                target.bindAndroidTargetOperation(claim, ownerBag.binding)
+            } catch (raw: Throwable) {
+                try {
+                    if (boundRoot.exactCommittedCapability() == null) {
+                        targetListenerInstallationBoundRoot.compareAndSet(boundRoot, null)
+                    }
+                } finally {
+                    throw raw
+                }
+            }
+            if (committedFact == null) {
+                val recovered = boundRoot.exactCommittedCapability()
+                if (recovered != null) return operation
+                check(targetListenerInstallationBoundRoot.compareAndSet(boundRoot, null))
+                return null
+            }
+            check(boundRoot.retainCommittedCapability(committedFact))
+            return operation
+        } finally {
+            releaseTargetListenerInstallationAdmission()
+        }
     }
 
     internal fun submitTargetListenerInstallation(
         operation: OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
     ): Boolean {
-        val ownerBag = operation.ownerBag as AndroidTargetListenerInstallationOwnerBag
-        return submitToLane(
-            operation = operation,
-            postRejectionMessage = "Android target-listener installation rejected",
-        ) { handler ->
-            check(
-                ownerBag.port.withListener { surfaceTexture, listener ->
-                    surfaceTexture.setOnFrameAvailableListener(listener, handler)
-                } == TargetPortUseOutcome.BodyReturned,
-            )
+        val boundRoot = targetListenerInstallationBoundRoot.get()
+            ?.takeIf { it.operation === operation } ?: return false
+        if (boundRoot.exactCommittedCapability() == null) return false
+        if (!boundRoot.claimSubmission()) return false
+        if (!reserveTargetListenerInstallationAdmission()) {
+            check(settleTargetListenerInstallationNoPlatformEntry(
+                boundRoot,
+                AndroidPostResult.NotSubmitted,
+            ) != null)
+            signalBestEffort()
+            return false
         }
+        return try {
+            when (val schedulerOutcome = laneRuntime.post(boundRoot.ticket)) {
+                AndroidPostResult.Accepted -> true
+                AndroidPostResult.NotSubmitted,
+                AndroidPostResult.Rejected,
+                    -> {
+                        check(settleTargetListenerInstallationNoPlatformEntry(
+                            boundRoot,
+                            schedulerOutcome,
+                        ) != null)
+                        signalBestEffort()
+                        false
+                    }
+            }
+        } finally {
+            releaseTargetListenerInstallationAdmission()
+        }
+    }
+
+    internal fun claimTargetListenerInstallationResult(
+        operation: OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
+    ): AndroidTargetPlatformResult.ListenerInstalled? = operation.settlementGate.withLock {
+        val boundRoot = targetListenerInstallationBoundRoot.get()
+            ?.takeIf { it.operation === operation } ?: return@withLock null
+        val committedFact = boundRoot.exactCommittedCapability() ?: return@withLock null
+        boundRoot.result.takeIf {
+            committedFact.claim === boundRoot.claim && committedFact.binding === boundRoot.binding &&
+                operation.returnCell.disposition == OperationReturnDisposition.Normal
+        }
+    }
+
+    internal fun recordTargetListenerInstallationApplied(
+        operation: OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
+        result: io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.ListenerInstalled,
+    ): Boolean = operation.settlementGate.withLock {
+        val ownerBag = operation.ownerBag as? AndroidTargetListenerInstallationOwnerBag ?: return@withLock false
+        val fact = result.fact
+        if (operation.returnCell.disposition != OperationReturnDisposition.Normal ||
+            fact.targetIdentity !== ownerBag.port.targetIdentity || fact.operationIdentity != operation.identity ||
+            fact.provenance !== ownerBag.port.provenance
+        ) {
+            return@withLock false
+        }
+        operation.returnCell.evidence.recordAppliedTargetResultLocked(result)
+    }
+
+    internal fun closeTargetListenerInstallationAdmission(): Boolean {
+        val closed = targetListenerInstallationAdmissionGate.withLock {
+            if (!targetListenerInstallationAdmissionOpen) return@withLock false
+            targetListenerInstallationAdmissionOpen = false
+            true
+        }
+        if (closed) signalBestEffort()
+        return closed
+    }
+
+    internal fun acceptsTargetListenerInstallationUnboundClaimRetiredProofCreation(
+        claim: TargetListenerInstallationRequestClaim,
+    ): Boolean = targetListenerInstallationAdmissionGate.withLock {
+        !targetListenerInstallationAdmissionOpen && targetListenerInstallationInFlight == 0 &&
+            targetListenerInstallationClaim.get() === claim &&
+            targetListenerInstallationBoundRoot.get() == null &&
+            targetListenerInstallationFinalLaneNoEntryProof.get() == null
+    }
+
+    internal fun targetListenerInstallationUnboundClaimRetiredProof():
+        AndroidTargetListenerInstallationUnboundClaimRetiredProof? =
+        targetListenerInstallationAdmissionGate.withLock {
+            if (targetListenerInstallationAdmissionOpen || targetListenerInstallationInFlight != 0) {
+                return@withLock null
+            }
+            targetListenerInstallationUnboundClaimRetiredProof.get()?.let { return@withLock it }
+            val claim = targetListenerInstallationClaim.get() ?: return@withLock null
+            if (targetListenerInstallationBoundRoot.get() != null ||
+                targetListenerInstallationFinalLaneNoEntryProof.get() != null
+            ) {
+                return@withLock null
+            }
+            val proof = AndroidTargetListenerInstallationUnboundClaimRetiredProof.create(this, claim)
+            targetListenerInstallationUnboundClaimRetiredProof.compareAndSet(null, proof)
+            targetListenerInstallationUnboundClaimRetiredProof.get()
+        }
+
+    internal fun targetListenerInstallationBindingCommittedFact(
+        operation: OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
+    ): TargetListenerInstallationBindingCommittedFact? {
+        val boundRoot = targetListenerInstallationBoundRoot.get()
+            ?.takeIf { it.operation === operation } ?: return null
+        return boundRoot.exactCommittedCapability()
+    }
+
+    internal fun targetListenerInstallationNoPlatformEntryOutcome(
+        operation: OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
+    ): AndroidTargetListenerInstallationNoPlatformEntryOutcome? {
+        val boundRoot = targetListenerInstallationBoundRoot.get()
+            ?.takeIf { it.operation === operation } ?: return null
+        if (boundRoot.exactCommittedCapability() == null) return null
+        return recoverTargetListenerInstallationNoPlatformEntry(boundRoot)
     }
 
     internal fun createVirtualDisplayCreationOperation(
@@ -264,18 +459,21 @@ internal class AndroidCaptureOwner(
             port,
             evidence,
         )
+        val ownerBag = AndroidVirtualDisplayCreationOwnerBag(
+            projection = projection,
+            target = target,
+            port = port,
+            initialLogicalTuple = initialLogicalTuple,
+            applicationCandidate = applicationCandidate,
+        )
         val operation = finiteOccurrence(
             identity = identity,
             evidence = evidence,
-            ownerBag = AndroidVirtualDisplayCreationOwnerBag(
-                projection = projection,
-                target = target,
-                port = port,
-                initialLogicalTuple = initialLogicalTuple,
-                applicationCandidate = applicationCandidate,
-            ),
+            ownerBag = ownerBag,
         )
         check(applicationCandidate.bindProducerOperation(operation))
+        check(ownerBag.bindOperation(operation))
+        check(target.bindAndroidTargetOperation(port, ownerBag.binding))
         if (initialResizeDeadlineIdentity != null) {
             val initialResizeDeadlineOccurrence = DeadlineOccurrence(
                 identity = initialResizeDeadlineIdentity.deadlineIdentity,
@@ -292,7 +490,6 @@ internal class AndroidCaptureOwner(
             }
             check(deadlineBound)
         }
-        check(target.prepareProducerApplicationCandidates(port, operation))
         return if (virtualDisplayCreationOperation.compareAndSet(null, operation)) operation else null
     }
 
@@ -308,6 +505,7 @@ internal class AndroidCaptureOwner(
             publishNormalReturn = false,
             onReturnedThrow = { virtualDisplayCreationReturned.set(true) },
             onThrownSettlement = { thrown -> publishVirtualDisplayCreationThrown(operation, thrown) },
+            onTicketCreated = { check(ownerBag.bindPostTicket(it)) },
         ) {
             var returnedDisplay: VirtualDisplay? = null
             var directCreateOutOfMemoryError: OutOfMemoryError? = null
@@ -355,54 +553,127 @@ internal class AndroidCaptureOwner(
         }
     }
 
-    internal fun applyVirtualDisplayCreationTargetFact(
+    internal fun claimVirtualDisplayCreationPlatformResult(
         operation: OperationOccurrence<AndroidVirtualDisplayCreationEvidence>,
-        fact: TargetProducerApplicationFact,
+    ): AndroidTargetPlatformResult? = operation.settlementGate.withLock {
+        val ownerBag = operation.ownerBag as? AndroidVirtualDisplayCreationOwnerBag ?: return@withLock null
+        val evidence = operation.returnCell.evidence
+        evidence.selectedPlatformResult?.let { return@withLock it }
+        val finalLaneNoEntryProof =
+            virtualDisplayCreationNoPlatformEntryProof.get() as? AndroidFinalLaneNoEntryProof<*>
+        val result = when {
+            operation.returnCell.disposition == OperationReturnDisposition.Empty &&
+                    virtualDisplayCreationOperation.get() === operation &&
+                    finalLaneNoEntryProof?.operation === operation ->
+                ownerBag.unenteredResult
+
+            operation.returnCell.disposition == OperationReturnDisposition.Normal && evidence.returnedVirtualDisplay != null ->
+                ownerBag.producerResult
+
+            operation.returnCell.disposition == OperationReturnDisposition.Normal ->
+                ownerBag.returnedWithoutProducerResult
+
+            operation.returnCell.disposition == OperationReturnDisposition.Thrown &&
+                    evidence.returnedVirtualDisplay == null ->
+                ownerBag.settledResult
+
+            operation.returnCell.disposition == OperationReturnDisposition.Empty &&
+                    operation.entryDisposition != OperationEntryDisposition.Entered &&
+                    (operation.submissionFailure != null ||
+                            operation.disposition == OperationDisposition.SchedulerRejected ||
+                            operation.disposition == OperationDisposition.DeadlineGuardFailed) ->
+                ownerBag.unenteredResult
+
+            operation.returnCell.disposition == OperationReturnDisposition.Empty &&
+                    operation.domain == OperationDomain.Cleanup &&
+                    operation.entryDisposition == OperationEntryDisposition.Cancelled &&
+                    operation.disposition == OperationDisposition.Cancelled &&
+                    operation.submissionFailure == null && operation.submissionAmbiguousFatal == null ->
+                ownerBag.inapplicableResult
+
+            else -> null
+        } ?: return@withLock null
+        check(evidence.recordSelectedPlatformResultLocked(result))
+        result
+    }
+
+    internal fun applyVirtualDisplayCreationTargetResult(
+        operation: OperationOccurrence<AndroidVirtualDisplayCreationEvidence>,
+        result: io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult,
     ): Boolean {
         val ownerBag = operation.ownerBag as? AndroidVirtualDisplayCreationOwnerBag ?: return false
         val evidence = operation.returnCell.evidence
         val candidate = ownerBag.applicationCandidate
         return operation.settlementGate.withLock {
             if (virtualDisplayCreationOperation.get() !== operation ||
-                evidence.appliedTargetFact != null ||
-                !matchesProducerFact(fact, operation, ownerBag.target, ownerBag.port)
+                evidence.selectedPlatformResult == null ||
+                evidence.appliedTargetFact != null || evidence.settledTargetResult != null
             ) {
                 return@withLock false
             }
-            when (fact) {
-                is TargetNoProducerEvidence -> {
-                    if (evidence.returnedOwnerDisposition != AndroidVirtualDisplayReturnedOwnerDisposition.Empty ||
-                        evidence.returnedVirtualDisplay != null
+            when (result) {
+                is io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.InitialProducerPortSettledOrAmbiguous -> {
+                    val fact = result.fact
+                    if (operation.returnCell.disposition != OperationReturnDisposition.Thrown ||
+                        evidence.returnedOwnerDisposition != AndroidVirtualDisplayReturnedOwnerDisposition.Empty ||
+                        evidence.returnedVirtualDisplay != null || evidence.selectedPlatformResult !== ownerBag.settledResult ||
+                        fact.targetIdentity !== ownerBag.port.targetIdentity || fact.operationIdentity != operation.identity ||
+                        fact.provenance !== ownerBag.port.provenance
                     ) {
                         return@withLock false
                     }
-                    if (!evidence.recordAppliedTargetFactLocked(fact)) return@withLock false
-                    val existingOwnership = virtualDisplayOwner.get()
-                    if (existingOwnership == null) {
-                        true
-                    } else {
-                        if (!evidence.recordCollisionLocked(existingOwnership)) return@withLock false
-                        false
+                    evidence.recordSettledTargetResultLocked(result)
+                }
+
+                is io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.Producer -> {
+                    when (val fact = result.fact) {
+                        is TargetNoProducerEvidence -> {
+                            if (!matchesProducerFact(fact, operation, ownerBag.target, ownerBag.port)) {
+                                return@withLock false
+                            }
+                            if (evidence.returnedOwnerDisposition != AndroidVirtualDisplayReturnedOwnerDisposition.Empty ||
+                                evidence.returnedVirtualDisplay != null ||
+                                (evidence.selectedPlatformResult as? AndroidTargetPlatformResult.ProducerUnavailable)?.reason != fact.reason
+                            ) {
+                                return@withLock false
+                            }
+                            if (!evidence.recordAppliedTargetFactLocked(fact)) return@withLock false
+                            val existingOwnership = virtualDisplayOwner.get()
+                            if (existingOwnership == null) {
+                                true
+                            } else {
+                                if (!evidence.recordCollisionLocked(existingOwnership)) return@withLock false
+                                false
+                            }
+                        }
+
+                        is TargetProducerEvidence -> {
+                            if (!matchesProducerFact(fact, operation, ownerBag.target, ownerBag.port)) {
+                                return@withLock false
+                            }
+                            val returnedDisplay = evidence.returnedVirtualDisplay ?: return@withLock false
+                            if (operation.returnCell.disposition != OperationReturnDisposition.Normal ||
+                                evidence.selectedPlatformResult !== ownerBag.producerResult ||
+                                evidence.returnedOwnerDisposition != AndroidVirtualDisplayReturnedOwnerDisposition.Rooted
+                            ) {
+                                return@withLock false
+                            }
+                            if (candidate.virtualDisplay !== returnedDisplay ||
+                                !evidence.recordAppliedTargetFactLocked(fact)
+                            ) {
+                                return@withLock false
+                            }
+                            if (virtualDisplayOwner.compareAndSet(null, candidate)) {
+                                evidence.recordInstalledLocked()
+                            } else {
+                                if (!evidence.recordCollisionLocked(virtualDisplayOwner.get())) return@withLock false
+                                false
+                            }
+                        }
                     }
                 }
 
-                is TargetProducerEvidence -> {
-                    val returnedDisplay = evidence.returnedVirtualDisplay ?: return@withLock false
-                    if (operation.returnCell.disposition != OperationReturnDisposition.Normal ||
-                        evidence.returnedOwnerDisposition != AndroidVirtualDisplayReturnedOwnerDisposition.Rooted
-                    ) {
-                        return@withLock false
-                    }
-                    if (candidate.virtualDisplay !== returnedDisplay || !evidence.recordAppliedTargetFactLocked(fact)) {
-                        return@withLock false
-                    }
-                    if (virtualDisplayOwner.compareAndSet(null, candidate)) {
-                        evidence.recordInstalledLocked()
-                    } else {
-                        if (!evidence.recordCollisionLocked(virtualDisplayOwner.get())) return@withLock false
-                        false
-                    }
-                }
+                else -> false
             }
         }
     }
@@ -414,21 +685,41 @@ internal class AndroidCaptureOwner(
     ): OperationOccurrence<AndroidTargetListenerRemovalEvidence>? {
         require(operationIdentity > 0L)
         require(finiteIdentity == null || finiteIdentity.operationIdentity == operationIdentity)
-        val evidence = AndroidTargetListenerRemovalEvidence()
         val port = target.registerListenerRemovalPort(operationIdentity) ?: return null
+        val evidence = AndroidTargetListenerRemovalEvidence()
         val ownerBag = AndroidTargetListenerRemovalOwnerBag(target, port)
         val operation = if (finiteIdentity == null) {
             cleanupOccurrence(operationIdentity, evidence, ownerBag)
         } else {
             finiteOccurrence(finiteIdentity, evidence, ownerBag)
         }
+        val sentinelOperation = cleanupOccurrence(
+            operationIdentity,
+            AndroidListenerSentinelEvidence(),
+            ownerBag,
+        )
+        check(ownerBag.bindOperations(operation, sentinelOperation))
+        check(target.bindAndroidListenerRemovalOperations(port, ownerBag.removalBinding, ownerBag.sentinelBinding))
+        val sentinelTicket = laneRuntime.ticket(
+            sentinelOperation,
+            "Android target-listener sentinel rejected",
+            AndroidEnteredWork {
+                val targetResult = checkNotNull(
+                    ownerBag.target.consumeAndroidTargetPlatformResult(ownerBag.sentinelObservedResult),
+                ) as io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.ListenerSentinelObserved
+                check(sentinelOperation.settlementGate.withLock {
+                    sentinelOperation.returnCell.evidence.recordObservedTargetResultLocked(targetResult)
+                })
+                sentinelOperation.publishNormalReturn()
+                signalBestEffort()
+            },
+        )
+        check(ownerBag.bindSentinelTicket(sentinelTicket))
         return operation
     }
 
     internal fun submitTargetListenerRemoval(operation: OperationOccurrence<AndroidTargetListenerRemovalEvidence>): Boolean {
         val ownerBag = operation.ownerBag as AndroidTargetListenerRemovalOwnerBag
-        val sentinelArmFailure = IllegalStateException("Android target-listener sentinel could not be armed")
-        val sentinelPostRejection = RejectedExecutionException("Android target-listener sentinel rejected")
         return submitToLane(
             operation = operation,
             postRejectionMessage = "Android target-listener removal rejected",
@@ -443,58 +734,103 @@ internal class AndroidCaptureOwner(
                 operation.returnCell.evidence.recordListenerRemovalReturnLocked()
             }
             check(removalReturnRecorded)
-            check(ownerBag.target.recordListenerRemovalReturn(ownerBag.port))
-            val sentinel = ownerBag.target.armListenerSentinelAfterRemovalReturn(operation.identity)
-            if (sentinel == null) {
-                val rejectionRecorded = operation.settlementGate.withLock {
-                    operation.returnCell.evidence.recordSentinelSubmissionLocked(
-                        AndroidListenerSentinelSubmissionDisposition.Rejected,
-                        sentinelArmFailure,
-                    )
-                }
-                check(rejectionRecorded)
-                operation.publishThrownReturn(sentinelArmFailure)
-                return@submitToLane
-            }
-            val sentinelAccepted = try {
-                handler.post(sentinel)
+            val removalTargetResult = checkNotNull(
+                ownerBag.target.consumeAndroidTargetPlatformResult(ownerBag.removalReturnedResult),
+            ) as io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.ListenerRemovalReturned
+            check(operation.settlementGate.withLock {
+                operation.returnCell.evidence.recordRemovalReturnedTargetResultLocked(removalTargetResult)
+            })
+            val settledTargetResult = checkNotNull(
+                ownerBag.target.consumeAndroidTargetPlatformResult(ownerBag.removalSettledResult),
+            ) as io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.ListenerRemovalSettled
+            check(operation.settlementGate.withLock {
+                operation.returnCell.evidence.recordSettledTargetResultLocked(settledTargetResult)
+            })
+            val sentinelPostResult = try {
+                laneRuntime.post(ownerBag.sentinelTicket)
             } catch (raw: Throwable) {
-                val rejectionRecorded = operation.settlementGate.withLock {
-                    operation.returnCell.evidence.recordSentinelSubmissionLocked(
-                        AndroidListenerSentinelSubmissionDisposition.AmbiguousThrowable,
-                        raw,
-                    )
-                }
-                check(rejectionRecorded)
+                check(operation.settlementGate.withLock {
+                    operation.returnCell.evidence.recordSentinelPostOutcomeLocked(ownerBag.sentinelPostExposed)
+                })
                 if (raw is Exception) {
                     operation.publishThrownReturn(raw)
                     return@submitToLane
                 }
                 throw raw
             }
-            if (!sentinelAccepted) {
-                val rejectionRecorded = operation.settlementGate.withLock {
-                    operation.returnCell.evidence.recordSentinelSubmissionLocked(
-                        AndroidListenerSentinelSubmissionDisposition.Rejected,
-                        sentinelPostRejection,
-                    )
-                }
-                check(rejectionRecorded)
-                operation.publishThrownReturn(sentinelPostRejection)
-                return@submitToLane
+            val sentinelOutcome = if (sentinelPostResult == AndroidPostResult.Accepted ||
+                ownerBag.sentinelTicket.occurrence.entryDisposition == OperationEntryDisposition.Entered ||
+                ownerBag.sentinelTicket.occurrence.submissionDisposition == OperationSubmissionDisposition.Accepted
+            ) {
+                ownerBag.sentinelPostExposed
+            } else {
+                ownerBag.sentinelDefinitelyUnentered
             }
-            val acceptanceRecorded = operation.settlementGate.withLock {
-                operation.returnCell.evidence.recordSentinelSubmissionLocked(
-                    AndroidListenerSentinelSubmissionDisposition.Accepted,
-                    null,
-                )
-            }
-            check(acceptanceRecorded)
-            operation.publishNormalReturn()
+            check(operation.settlementGate.withLock {
+                operation.returnCell.evidence.recordSentinelPostOutcomeLocked(sentinelOutcome)
+            })
+            if (sentinelPostResult == AndroidPostResult.Accepted) operation.publishNormalReturn()
+            else operation.publishThrownReturn(ownerBag.sentinelTicket.postRejectedCause)
         }
     }
 
     internal fun closeProjectionCallbackAuthority(): Boolean = callbackAuthorityOpen.compareAndSet(true, false)
+
+    internal fun foldFinalLaneTerminationReceipt(receipt: AndroidLaneTerminationReceipt) {
+        foldFinalLaneNoEntry(
+            receipt = receipt,
+            operation = callbackRegistrationOperation.get(),
+            retainedOperation = callbackRegistrationOperation,
+            noPlatformEntryProof = callbackRegistrationNoPlatformEntryProof,
+            ticket = { ownerBag ->
+                (ownerBag as? AndroidProjectionCallbackRegistrationOwnerBag)?.postTicket
+            },
+        )
+        foldFinalLaneNoEntry(
+            receipt = receipt,
+            operation = virtualDisplayCreationOperation.get(),
+            retainedOperation = virtualDisplayCreationOperation,
+            noPlatformEntryProof = virtualDisplayCreationNoPlatformEntryProof,
+            ticket = { ownerBag ->
+                (ownerBag as? AndroidVirtualDisplayCreationOwnerBag)?.postTicket
+            },
+        )
+        foldFinalListenerInstallationNoEntry(
+            receipt = receipt,
+            operation = targetListenerInstallationBoundRoot.get()?.operation,
+        )
+    }
+
+    internal fun finalLaneListenerInstallationNoEntryProof(
+        operation: OperationOccurrence<AndroidTargetListenerInstallationEvidence>,
+    ): AndroidFinalLaneNoEntryProof<AndroidTargetListenerInstallationEvidence>? {
+        val boundRoot = targetListenerInstallationBoundRoot.get()
+            ?.takeIf { it.operation === operation } ?: return null
+        val proof = targetListenerInstallationFinalLaneNoEntryProof.get() ?: return null
+        return operation.settlementGate.withLock {
+            proof.takeIf {
+                targetListenerInstallationBoundRoot.get() === boundRoot &&
+                    boundRoot.activatedNoPlatformEntryOutcomeLocked() == null &&
+                    boundRoot.exactCommittedCapability() != null &&
+                    boundRoot.ticket === it.ticket &&
+                    it.operation === operation &&
+                    it.operationIdentity == operation.identity &&
+                    it.ticket.occurrence === operation &&
+                    it.ticket.operationIdentity == operation.identity &&
+                    it.lane === laneRuntime &&
+                    laneRuntime.terminationReceipt === it.terminationReceipt &&
+                    laneRuntime.acceptsTerminationReceipt(it.terminationReceipt) &&
+                    it.ticket.physicalState == AndroidPostPhysicalDisposition.NotOnStack &&
+                    it.ticket.postFailureResidue == null &&
+                    operation.submissionDisposition == OperationSubmissionDisposition.Accepted &&
+                    operation.submissionFailure == null &&
+                    operation.submissionAmbiguousFatal == null &&
+                    operation.entryDisposition == OperationEntryDisposition.Cancelled &&
+                    operation.disposition == OperationDisposition.Cancelled &&
+                    operation.returnCell.disposition == OperationReturnDisposition.Empty
+            }
+        }
+    }
 
     internal fun createProjectionCallbackUnregistrationOperation(
         operationIdentity: Long,
@@ -505,9 +841,11 @@ internal class AndroidCaptureOwner(
         publishNoPlatformEntryIfProven(
             operation = registrationOperation,
             retainedOperation = callbackRegistrationOperation,
-            noPlatformEntryFact = callbackRegistrationNoPlatformEntryProven,
+            noPlatformEntryProof = callbackRegistrationNoPlatformEntryProof,
+            occurrenceProof = (registrationOperation.ownerBag as AndroidProjectionCallbackRegistrationOwnerBag)
+                .occurrenceNoEntryProof,
         )
-        if (callbackRegistrationNoPlatformEntryProven.get() || !callbackRegistrationReturned.get()) return null
+        if (callbackRegistrationNoPlatformEntryProof.get() != null || !callbackRegistrationReturned.get()) return null
 
         val operation = cleanupOccurrence(
             identity = operationIdentity,
@@ -515,6 +853,91 @@ internal class AndroidCaptureOwner(
             ownerBag = AndroidProjectionCallbackUnregistrationOwnerBag(projection, projectionCallback),
         )
         return if (callbackUnregistrationOperation.compareAndSet(null, operation)) operation else null
+    }
+
+    internal fun projectionCallbackCleanupOutcome(
+        registrationOperation: OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>?,
+    ): AndroidProjectionCallbackCleanupOutcome? {
+        callbackCleanupOutcome.get()?.let { outcome ->
+            return outcome.takeIf { acceptsProjectionCallbackCleanupOutcome(it, registrationOperation) }
+        }
+        if (callbackAuthorityOpen.get()) return null
+        if (registrationOperation == null) {
+            if (callbackRegistrationOperation.get() != null) return null
+            val outcome = AndroidProjectionCallbackCleanupOutcome.StructurallyInapplicable(this)
+            callbackCleanupOutcome.compareAndSet(null, outcome)
+            return callbackCleanupOutcome.get()
+                ?.takeIf { acceptsProjectionCallbackCleanupOutcome(it, registrationOperation) }
+        }
+        if (callbackRegistrationOperation.get() !== registrationOperation) return null
+        val ownerBag = registrationOperation.ownerBag as? AndroidProjectionCallbackRegistrationOwnerBag
+            ?: return null
+        if (ownerBag.projection !== projection || ownerBag.callback !== projectionCallback ||
+            ownerBag.occurrenceNoEntryProof.operation !== registrationOperation ||
+            registrationOperation.returnCell.evidence.receipt !== AndroidProjectionCallbackRegistrationReceipt
+        ) {
+            return null
+        }
+
+        publishNoPlatformEntryIfProven(
+            operation = registrationOperation,
+            retainedOperation = callbackRegistrationOperation,
+            noPlatformEntryProof = callbackRegistrationNoPlatformEntryProof,
+            occurrenceProof = ownerBag.occurrenceNoEntryProof,
+        )?.let { proof ->
+            val route = registrationOperation.settlementGate.withLock {
+                exactProjectionCallbackNoEntryRouteLocked(registrationOperation, ownerBag, proof)
+            } ?: return null
+            val outcome = AndroidProjectionCallbackCleanupOutcome.RegistrationDidNotEnterPlatform(
+                owner = this,
+                operation = registrationOperation,
+                ownerBag = ownerBag,
+                proof = proof,
+                route = route,
+            )
+            callbackCleanupOutcome.compareAndSet(null, outcome)
+            return callbackCleanupOutcome.get()
+                ?.takeIf { acceptsProjectionCallbackCleanupOutcome(it, registrationOperation) }
+        }
+
+        val unregistration = callbackUnregistrationOperation.get() ?: return null
+        val unregistrationOwnerBag = unregistration.ownerBag
+            as? AndroidProjectionCallbackUnregistrationOwnerBag ?: return null
+        val returnDisposition = registrationOperation.settlementGate.withLock {
+            if (callbackRegistrationOperation.get() !== registrationOperation ||
+                registrationOperation.entryDisposition != OperationEntryDisposition.Entered ||
+                registrationOperation.returnCell.disposition == OperationReturnDisposition.Empty ||
+                registrationOperation.returnCell.evidence.receipt !== AndroidProjectionCallbackRegistrationReceipt ||
+                !callbackRegistrationReturned.get()
+            ) {
+                return@withLock null
+            }
+            unregistration.settlementGate.withLock {
+                if (callbackUnregistrationOperation.get() !== unregistration ||
+                    unregistrationOwnerBag.projection !== projection ||
+                    unregistrationOwnerBag.callback !== projectionCallback ||
+                    unregistration.entryDisposition != OperationEntryDisposition.Entered ||
+                    unregistration.returnCell.disposition == OperationReturnDisposition.Empty ||
+                    unregistration.returnCell.evidence.receipt !== AndroidProjectionCallbackUnregistrationReceipt ||
+                    !callbackUnregisterReturned.get()
+                ) {
+                    null
+                } else {
+                    unregistration.returnCell.disposition
+                }
+            }
+        } ?: return null
+        val outcome = AndroidProjectionCallbackCleanupOutcome.UnregistrationReturned(
+            owner = this,
+            registrationOperation = registrationOperation,
+            registrationOwnerBag = ownerBag,
+            unregistrationOperation = unregistration,
+            unregistrationOwnerBag = unregistrationOwnerBag,
+            returnDisposition = returnDisposition,
+        )
+        callbackCleanupOutcome.compareAndSet(null, outcome)
+        return callbackCleanupOutcome.get()
+            ?.takeIf { acceptsProjectionCallbackCleanupOutcome(it, registrationOperation) }
     }
 
     internal fun submitProjectionCallbackUnregistration(
@@ -533,14 +956,20 @@ internal class AndroidCaptureOwner(
         operationIdentity: Long,
     ): OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>? {
         require(operationIdentity > 0L)
-        if (!isProjectionCallbackCleanupComplete() || virtualDisplayReleaseReturned.get()) return null
+        if (!isProjectionCallbackCleanupComplete() || virtualDisplayMutations.hasUnsettledOperation ||
+            virtualDisplayReleaseReturned.get()
+        ) {
+            return null
+        }
         val creationOperation = virtualDisplayCreationOperation.get() ?: return null
         publishNoPlatformEntryIfProven(
             operation = creationOperation,
             retainedOperation = virtualDisplayCreationOperation,
-            noPlatformEntryFact = virtualDisplayCreationNoPlatformEntryProven,
+            noPlatformEntryProof = virtualDisplayCreationNoPlatformEntryProof,
+            occurrenceProof = (creationOperation.ownerBag as AndroidVirtualDisplayCreationOwnerBag)
+                .occurrenceNoEntryProof,
         )
-        if (virtualDisplayCreationNoPlatformEntryProven.get() || !virtualDisplayCreationReturned.get()) return null
+        if (virtualDisplayCreationNoPlatformEntryProof.get() != null || !virtualDisplayCreationReturned.get()) return null
         if (!virtualDisplayReleasePreparationClaimed.compareAndSet(false, true)) return null
         var retained = false
         try {
@@ -551,16 +980,32 @@ internal class AndroidCaptureOwner(
                     ownership.target.registerVirtualDisplayReleasePort(operationIdentity) ?: return null,
                 )
 
+                is AndroidAttachmentUncertainVirtualDisplay -> AndroidVirtualDisplayReleaseMode.AttachmentUncertain(
+                    ownership,
+                    ownership.target.registerVirtualDisplayReleasePort(operationIdentity) ?: return null,
+                )
+
                 is AndroidMechanicallyDetachedVirtualDisplay ->
                     AndroidVirtualDisplayReleaseMode.MechanicallyDetached(ownership)
             }
+            val ownerBag = AndroidVirtualDisplayReleaseOwnerBag(mode)
             val operation = cleanupOccurrence(
                 identity = operationIdentity,
                 evidence = AndroidVirtualDisplayReleaseEvidence(),
-                ownerBag = AndroidVirtualDisplayReleaseOwnerBag(mode),
+                ownerBag = ownerBag,
             )
-            if (mode is AndroidVirtualDisplayReleaseMode.Attached) {
-                check(mode.ownership.target.prepareProducerDetachApplicationCandidate(mode.targetPort, operation))
+            when (mode) {
+                is AndroidVirtualDisplayReleaseMode.Attached -> {
+                    check(ownerBag.bindOperation(operation))
+                    check(mode.ownership.target.bindAndroidTargetOperation(mode.targetPort, ownerBag.binding))
+                }
+
+                is AndroidVirtualDisplayReleaseMode.AttachmentUncertain -> {
+                    check(ownerBag.bindOperation(operation))
+                    check(mode.ownership.target.bindAndroidTargetOperation(mode.targetPort, ownerBag.binding))
+                }
+
+                is AndroidVirtualDisplayReleaseMode.MechanicallyDetached -> Unit
             }
             retained = virtualDisplayReleaseOperation.compareAndSet(null, operation)
             return if (retained) operation else null
@@ -582,27 +1027,48 @@ internal class AndroidCaptureOwner(
         }
     }
 
-    internal fun applyAttachedVirtualDisplayReleaseTargetFact(
+    internal fun claimVirtualDisplayReleasePlatformResult(
         operation: OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>,
-        fact: TargetProducerDetachReceipt,
+    ): AndroidTargetPlatformResult.ProducerDetached? = operation.settlementGate.withLock {
+        val ownerBag = operation.ownerBag as? AndroidVirtualDisplayReleaseOwnerBag ?: return@withLock null
+        if (operation.returnCell.disposition != OperationReturnDisposition.Normal ||
+            ownerBag.mode is AndroidVirtualDisplayReleaseMode.MechanicallyDetached
+        ) {
+            return@withLock null
+        }
+        operation.returnCell.evidence.selectedPlatformResult?.let { return@withLock it }
+        ownerBag.result.also { check(operation.returnCell.evidence.recordSelectedPlatformResultLocked(it)) }
+    }
+
+    internal fun applyAttachedVirtualDisplayReleaseTargetResult(
+        operation: OperationOccurrence<AndroidVirtualDisplayReleaseEvidence>,
+        result: io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult,
     ): Boolean = operation.settlementGate.withLock {
         val ownerBag = operation.ownerBag as? AndroidVirtualDisplayReleaseOwnerBag ?: return@withLock false
-        val mode = ownerBag.mode as? AndroidVirtualDisplayReleaseMode.Attached ?: return@withLock false
+        val targetResult = result as? io.screenstream.engine.internal.target.TargetAndroidPlatformApplicationResult.Detach
+            ?: return@withLock false
+        val fact = targetResult.receipt
+        val targetPort = when (val mode = ownerBag.mode) {
+            is AndroidVirtualDisplayReleaseMode.Attached -> mode.targetPort
+            is AndroidVirtualDisplayReleaseMode.AttachmentUncertain -> mode.targetPort
+            is AndroidVirtualDisplayReleaseMode.MechanicallyDetached -> return@withLock false
+        }
         val evidence = operation.returnCell.evidence
         if (virtualDisplayReleaseOperation.get() !== operation ||
             operation.returnCell.disposition != OperationReturnDisposition.Normal ||
+            evidence.selectedPlatformResult !== ownerBag.result ||
             evidence.appliedTargetFact != null ||
-            !matchesDetachFact(fact, operation, mode.ownership.target, mode.targetPort)
+            fact.operationIdentity != operation.identity || fact.provenance !== targetPort.provenance
         ) {
             return@withLock false
         }
-        if (!evidence.recordAppliedTargetFactLocked(fact)) return@withLock false
-        if (virtualDisplayOwner.get() !== mode.ownership) {
+        if (virtualDisplayOwner.get() !== ownerBag.mode.ownership) {
             if (!evidence.recordCollisionLocked(virtualDisplayOwner.get())) return@withLock false
             return@withLock false
         }
-        if (virtualDisplayOwner.compareAndSet(mode.ownership, null)) {
-            evidence.recordClearedLocked(mode.ownership)
+        if (virtualDisplayOwner.compareAndSet(ownerBag.mode.ownership, null)) {
+            check(evidence.recordAppliedTargetFactLocked(fact))
+            evidence.recordClearedLocked(ownerBag.mode.ownership)
         } else {
             if (!evidence.recordCollisionLocked(virtualDisplayOwner.get())) return@withLock false
             false
@@ -636,35 +1102,100 @@ internal class AndroidCaptureOwner(
 
     internal fun createProjectionStopOperation(operationIdentity: Long): OperationOccurrence<AndroidProjectionStopEvidence>? {
         require(operationIdentity > 0L)
-        if (!isProjectionCallbackCleanupComplete() || !isVirtualDisplayCleanupComplete() || projectionStopReturned.get()) {
+        if (!projectionStopObligation.hasSealedTerminalContext ||
+            !isProjectionCallbackCleanupComplete() || !isVirtualDisplayCleanupComplete() ||
+            projectionStopObligation.closureReceipt() != null
+        ) {
             return null
         }
-        val operation = cleanupOccurrence(
-            identity = operationIdentity,
-            evidence = AndroidProjectionStopEvidence(),
-            ownerBag = AndroidProjectionStopOwnerBag(projection),
-        )
+        val operation = projectionStopObligation.createOperation()
+        check(operation.identity == operationIdentity)
         return if (projectionStopOperation.compareAndSet(null, operation)) operation else null
     }
 
     internal fun submitProjectionStop(
         operation: OperationOccurrence<AndroidProjectionStopEvidence>,
-    ): Boolean = submitToLane(
-        operation = operation,
-        postRejectionMessage = "Android projection stop rejected",
-        onReturnedThrow = { projectionStopReturned.set(true) },
-    ) {
-        projection.stop()
-        projectionStopReturned.set(true)
+    ): Boolean {
+        if (projectionStopOperation.get() !== operation) return false
+        val ticket = laneRuntime.ticket(
+            occurrence = operation,
+            postRejectionMessage = "Android projection stop rejected",
+            enteredWork = AndroidEnteredWork { projectionStopObligation.invokeNormal(operation, checkNotNull(
+                (operation.ownerBag as AndroidProjectionStopOwnerBag).normalTicket,
+            )) },
+        )
+        check(projectionStopObligation.bindNormalTicket(operation, ticket))
+        return laneRuntime.post(ticket) == AndroidPostResult.Accepted
     }
 
     internal fun requestLaneQuitSafely(): Boolean {
-        if (!projectionStopReturned.get()) return false
+        val operation = projectionStopOperation.get() ?: return false
+        val stopReturned = operation.settlementGate.withLock {
+            operation.returnCell.disposition != OperationReturnDisposition.Empty
+        }
+        if (!stopReturned && projectionStopObligation.laneNeverStartedProof() == null &&
+            laneTerminationReceipt == null
+        ) return false
         return laneRuntime.requestQuitSafely()
     }
 
     internal val isLaneQuitReady: Boolean
-        get() = projectionStopReturned.get()
+        get() = projectionStopOperation.get() != null
+
+    internal val projectionClosureReceipt: AndroidProjectionClosureReceipt?
+        get() = projectionStopObligation.closureReceipt()
+
+    internal fun sealProjectionStopTerminalContext(
+        cutoffIdentity: Any,
+        workManifestIdentity: Any,
+    ) {
+        val cutoff = projectionStopObligation.sealTerminalCutoff(cutoffIdentity)
+        projectionStopObligation.sealWorkManifest(cutoff, workManifestIdentity)
+    }
+
+    internal fun prepareFinalProjectionStopAction(): AndroidFinalProjectionStopAction? {
+        if (!isProjectionCallbackCleanupComplete() || !isVirtualDisplayCleanupComplete()) return null
+        val exactOperation = projectionStopOperation.get() ?: projectionStopObligation.createOperation().also {
+            projectionStopOperation.compareAndSet(null, it)
+        }
+        if (projectionStopOperation.get() !== exactOperation) return null
+        val prerequisites = AndroidProjectionStopPrerequisitesProof(
+            projectionStopObligation,
+            this,
+            currentCallbackCleanupEvidenceIdentity(),
+            currentVirtualDisplayCleanupEvidenceIdentity(),
+        )
+        val neverStarted = projectionStopObligation.laneNeverStartedProof()
+        val finalLaneNoEntry = if (neverStarted == null) {
+            val receipt = laneTerminationReceipt ?: return null
+            val ownerBag = exactOperation.ownerBag as? AndroidProjectionStopOwnerBag ?: return null
+            val ticket = ownerBag.normalTicket ?: return null
+            exactOperation.settlementGate.withLock {
+                laneRuntime.observeFinalLaneNoEntryLocked(receipt, ticket, exactOperation)
+            }
+        } else {
+            null
+        }
+        return projectionStopObligation.prepareFinalAction(prerequisites, neverStarted, finalLaneNoEntry)
+    }
+
+    internal fun acceptsProjectionStopPrerequisites(
+        proof: AndroidProjectionStopPrerequisitesProof,
+    ): Boolean = proof.obligation === projectionStopObligation && proof.androidOwner === this &&
+            isProjectionCallbackCleanupComplete() && isVirtualDisplayCleanupComplete() &&
+            proof.callbackEvidenceIdentity === currentCallbackCleanupEvidenceIdentity() &&
+            proof.virtualDisplayEvidenceIdentity === currentVirtualDisplayCleanupEvidenceIdentity()
+
+    private fun currentCallbackCleanupEvidenceIdentity(): Any = callbackCleanupOutcome.get()
+        ?: callbackUnregistrationOperation.get()
+        ?: callbackRegistrationNoPlatformEntryProof.get()
+        ?: callbackRegistrationOperation.get()
+        ?: this
+
+    private fun currentVirtualDisplayCleanupEvidenceIdentity(): Any = virtualDisplayReleaseOperation.get()
+        ?: virtualDisplayCreationNoPlatformEntryProof.get()
+        ?: virtualDisplayCreationOperation.get()
+        ?: this
 
     private fun authoritativeApi34To37CallbackCurrentness(): AndroidProjectionCallbackCurrentness? =
         when (Build.VERSION.SDK_INT) {
@@ -718,24 +1249,119 @@ internal class AndroidCaptureOwner(
     }
 
     private fun isProjectionCallbackCleanupComplete(): Boolean {
-        val operation = callbackRegistrationOperation.get() ?: return true
-        publishNoPlatformEntryIfProven(
-            operation = operation,
-            retainedOperation = callbackRegistrationOperation,
-            noPlatformEntryFact = callbackRegistrationNoPlatformEntryProven,
-        )
-        return callbackRegistrationNoPlatformEntryProven.get() || callbackUnregisterReturned.get()
+        return projectionCallbackCleanupOutcome(callbackRegistrationOperation.get()) != null
+    }
+
+    private fun exactProjectionCallbackNoEntryRouteLocked(
+        operation: OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>,
+        ownerBag: AndroidProjectionCallbackRegistrationOwnerBag,
+        proof: AndroidNoPlatformEntryProof<AndroidProjectionCallbackRegistrationEvidence>,
+    ): AndroidProjectionCallbackNoPlatformEntryRoute? {
+        check(operation.settlementGate.isHeldByCurrentThread)
+        if (callbackRegistrationOperation.get() !== operation || proof.operation !== operation ||
+            operation.returnCell.disposition != OperationReturnDisposition.Empty ||
+            operation.submissionAmbiguousFatal != null
+        ) {
+            return null
+        }
+        val ticket = ownerBag.postTicket
+        return when (ownerBag.schedulerOutcome) {
+            null -> AndroidProjectionCallbackNoPlatformEntryRoute.PreparedButNeverSubmitted.takeIf {
+                ticket == null && operation.submissionDisposition == OperationSubmissionDisposition.Cancelled &&
+                    operation.submissionFailure == null &&
+                    operation.entryDisposition == OperationEntryDisposition.Cancelled &&
+                    operation.disposition == OperationDisposition.Cancelled &&
+                    proof === ownerBag.occurrenceNoEntryProof
+            }
+
+            AndroidPostResult.NotSubmitted -> AndroidProjectionCallbackNoPlatformEntryRoute.SchedulerNotSubmitted
+                .takeIf {
+                    exactProjectionCallbackTicket(ticket, operation) &&
+                        ticket?.physicalState == AndroidPostPhysicalDisposition.NotOnStack &&
+                        ticket?.postFailureResidue == null &&
+                        operation.submissionDisposition == OperationSubmissionDisposition.None &&
+                        operation.submissionFailure == null &&
+                        operation.entryDisposition == OperationEntryDisposition.Cancelled &&
+                        operation.disposition == OperationDisposition.Cancelled &&
+                        proof === ownerBag.occurrenceNoEntryProof
+                }
+
+            AndroidPostResult.Rejected -> AndroidProjectionCallbackNoPlatformEntryRoute.SchedulerRejected.takeIf {
+                exactProjectionCallbackTicket(ticket, operation) &&
+                    ticket?.physicalState == AndroidPostPhysicalDisposition.NotOnStack &&
+                    ticket?.postFailureResidue != null &&
+                    operation.submissionDisposition == OperationSubmissionDisposition.Rejected &&
+                    operation.submissionFailure === ticket?.postFailureResidue &&
+                    operation.entryDisposition == OperationEntryDisposition.Unentered &&
+                    operation.disposition == OperationDisposition.SchedulerRejected &&
+                    proof === ownerBag.occurrenceNoEntryProof
+            }
+
+            AndroidPostResult.Accepted -> AndroidProjectionCallbackNoPlatformEntryRoute.AcceptedDefinitelyUnentered
+                .takeIf {
+                    exactProjectionCallbackTicket(ticket, operation) && ticket?.postFailureResidue == null &&
+                        operation.submissionFailure == null &&
+                        operation.entryDisposition != OperationEntryDisposition.Entered &&
+                        (operation.entryDisposition == OperationEntryDisposition.Cancelled &&
+                            operation.disposition == OperationDisposition.Cancelled ||
+                            operation.entryDisposition == OperationEntryDisposition.Unentered &&
+                            operation.disposition == OperationDisposition.DeadlineGuardFailed) &&
+                        when (proof) {
+                            is AndroidFinalLaneNoEntryProof ->
+                                ticket === proof.ticket && proof.operationIdentity == operation.identity &&
+                                    proof.lane === laneRuntime &&
+                                    proof.workerIdentity === ticket?.workerIdentity &&
+                                    laneRuntime.terminationReceipt === proof.terminationReceipt &&
+                                    laneRuntime.acceptsTerminationReceipt(proof.terminationReceipt) &&
+                                    ticket?.physicalState == AndroidPostPhysicalDisposition.NotOnStack &&
+                                    operation.submissionDisposition == OperationSubmissionDisposition.Accepted
+
+                            else -> proof === ownerBag.occurrenceNoEntryProof
+                        }
+                }
+        }
+    }
+
+    private fun exactProjectionCallbackTicket(
+        ticket: AndroidPostTicket<AndroidProjectionCallbackRegistrationEvidence>?,
+        operation: OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>,
+    ): Boolean = ticket != null && ticket.lane === laneRuntime && ticket.occurrence === operation &&
+            ticket.operationIdentity == operation.identity && ticket.workerIdentity.lane === laneRuntime &&
+            ticket.terminationReceipt.lane === laneRuntime &&
+            ticket.terminationReceipt.matchesWorker(ticket.workerIdentity)
+
+    private fun acceptsProjectionCallbackCleanupOutcome(
+        outcome: AndroidProjectionCallbackCleanupOutcome,
+        registrationOperation: OperationOccurrence<AndroidProjectionCallbackRegistrationEvidence>?,
+    ): Boolean = when (outcome) {
+        is AndroidProjectionCallbackCleanupOutcome.StructurallyInapplicable ->
+            outcome.owner === this && registrationOperation == null && callbackRegistrationOperation.get() == null
+
+        is AndroidProjectionCallbackCleanupOutcome.RegistrationDidNotEnterPlatform ->
+            outcome.owner === this && outcome.operation === registrationOperation &&
+                callbackRegistrationOperation.get() === outcome.operation &&
+                outcome.ownerBag === outcome.operation.ownerBag && outcome.proof.operation === outcome.operation
+
+        is AndroidProjectionCallbackCleanupOutcome.UnregistrationReturned ->
+            outcome.owner === this && outcome.registrationOperation === registrationOperation &&
+                callbackRegistrationOperation.get() === outcome.registrationOperation &&
+                callbackUnregistrationOperation.get() === outcome.unregistrationOperation &&
+                outcome.registrationOwnerBag === outcome.registrationOperation.ownerBag &&
+                outcome.unregistrationOwnerBag === outcome.unregistrationOperation.ownerBag
     }
 
     private fun isVirtualDisplayCleanupComplete(): Boolean {
+        if (virtualDisplayMutations.hasUnsettledOperation) return false
         val creationOperation = virtualDisplayCreationOperation.get() ?: return true
         publishNoPlatformEntryIfProven(
             operation = creationOperation,
             retainedOperation = virtualDisplayCreationOperation,
-            noPlatformEntryFact = virtualDisplayCreationNoPlatformEntryProven,
+            noPlatformEntryProof = virtualDisplayCreationNoPlatformEntryProof,
+            occurrenceProof = (creationOperation.ownerBag as AndroidVirtualDisplayCreationOwnerBag)
+                .occurrenceNoEntryProof,
         )
-        if (!virtualDisplayCreationNoPlatformEntryProven.get() && !virtualDisplayCreationReturned.get()) return false
-        if (virtualDisplayCreationNoPlatformEntryProven.get()) return true
+        if (virtualDisplayCreationNoPlatformEntryProof.get() == null && !virtualDisplayCreationReturned.get()) return false
+        if (virtualDisplayCreationNoPlatformEntryProof.get() != null) return true
 
         val releaseOperation = virtualDisplayReleaseOperation.get()
             ?: return creationOperation.settlementGate.withLock {
@@ -759,6 +1385,9 @@ internal class AndroidCaptureOwner(
                         is AndroidVirtualDisplayReleaseMode.Attached ->
                             evidence.appliedTargetFact != null && ownershipSettled
 
+                        is AndroidVirtualDisplayReleaseMode.AttachmentUncertain ->
+                            evidence.appliedTargetFact != null && ownershipSettled
+
                         is AndroidVirtualDisplayReleaseMode.MechanicallyDetached -> ownershipSettled
                     }
                 }
@@ -769,15 +1398,19 @@ internal class AndroidCaptureOwner(
     private fun <R : OperationEvidence> publishNoPlatformEntryIfProven(
         operation: OperationOccurrence<R>,
         retainedOperation: AtomicReference<OperationOccurrence<R>?>,
-        noPlatformEntryFact: AtomicBoolean,
-    ): Boolean {
-        if (retainedOperation.get() !== operation) return false
+        noPlatformEntryProof: AtomicReference<AndroidNoPlatformEntryProof<R>?>,
+        occurrenceProof: AndroidOccurrenceNoPlatformEntryProof<R>,
+    ): AndroidNoPlatformEntryProof<R>? {
+        noPlatformEntryProof.get()?.let { return it }
+        if (retainedOperation.get() !== operation || occurrenceProof.operation !== operation) return null
 
         return operation.settlementGate.withLock {
+            noPlatformEntryProof.get()?.let { return@withLock it }
             if (retainedOperation.get() !== operation ||
+                occurrenceProof.operation !== operation ||
                 operation.returnCell.disposition != OperationReturnDisposition.Empty
             ) {
-                return@withLock false
+                return@withLock null
             }
 
             val noPlatformEntryProven = when (operation.entryDisposition) {
@@ -800,9 +1433,47 @@ internal class AndroidCaptureOwner(
 
                 OperationEntryDisposition.Entered -> false
             }
-            if (!noPlatformEntryProven) return@withLock false
+            if (!noPlatformEntryProven) return@withLock null
 
-            noPlatformEntryFact.compareAndSet(false, true)
+            noPlatformEntryProof.compareAndSet(null, occurrenceProof)
+            noPlatformEntryProof.get()
+        }
+    }
+
+    private fun <R : OperationEvidence> foldFinalLaneNoEntry(
+        receipt: AndroidLaneTerminationReceipt,
+        operation: OperationOccurrence<R>?,
+        retainedOperation: AtomicReference<OperationOccurrence<R>?>,
+        noPlatformEntryProof: AtomicReference<AndroidNoPlatformEntryProof<R>?>,
+        ticket: (OperationOwnerBag) -> AndroidPostTicket<R>?,
+    ) {
+        if (operation == null || retainedOperation.get() !== operation || noPlatformEntryProof.get() != null) return
+        val retainedTicket = ticket(operation.ownerBag) ?: return
+        operation.settlementGate.withLock {
+            if (retainedOperation.get() !== operation || noPlatformEntryProof.get() != null) return@withLock
+            val proof = laneRuntime.proveFinalLaneNoEntryLocked(receipt, retainedTicket, operation) ?: return@withLock
+            noPlatformEntryProof.compareAndSet(null, proof)
+        }
+    }
+
+    private fun foldFinalListenerInstallationNoEntry(
+        receipt: AndroidLaneTerminationReceipt,
+        operation: OperationOccurrence<AndroidTargetListenerInstallationEvidence>?,
+    ) {
+        if (operation == null || targetListenerInstallationFinalLaneNoEntryProof.get() != null) return
+        val boundRoot = targetListenerInstallationBoundRoot.get()
+            ?.takeIf { it.operation === operation } ?: return
+        val retainedTicket = boundRoot.ticket
+        operation.settlementGate.withLock {
+            if (targetListenerInstallationBoundRoot.get() !== boundRoot ||
+                boundRoot.activatedNoPlatformEntryOutcomeLocked() != null ||
+                boundRoot.exactCommittedCapability() == null ||
+                targetListenerInstallationFinalLaneNoEntryProof.get() != null
+            ) {
+                return@withLock
+            }
+            val proof = laneRuntime.proveFinalLaneNoEntryLocked(receipt, retainedTicket, operation) ?: return@withLock
+            targetListenerInstallationFinalLaneNoEntryProof.compareAndSet(null, proof)
         }
     }
 
@@ -891,6 +1562,8 @@ internal class AndroidCaptureOwner(
         publishNormalReturn: Boolean = true,
         onReturnedThrow: (Throwable) -> Unit = {},
         onThrownSettlement: (Exception) -> Boolean = operation::publishThrownReturn,
+        onTicketCreated: (AndroidPostTicket<R>) -> Unit = {},
+        onPostOutcome: (AndroidPostResult) -> Unit = {},
         call: (Handler) -> Unit,
     ): Boolean {
         val ticket = laneRuntime.ticket(
@@ -913,7 +1586,91 @@ internal class AndroidCaptureOwner(
                 signalBestEffort()
             },
         )
-        return laneRuntime.post(ticket) == AndroidPostResult.Accepted
+        onTicketCreated(ticket)
+        val outcome = laneRuntime.post(ticket)
+        onPostOutcome(outcome)
+        return outcome == AndroidPostResult.Accepted
+    }
+
+    private fun reserveTargetListenerInstallationAdmission(): Boolean =
+        targetListenerInstallationAdmissionGate.withLock {
+            if (!targetListenerInstallationAdmissionOpen || targetListenerInstallationInFlight == Int.MAX_VALUE) {
+                return@withLock false
+            }
+            targetListenerInstallationInFlight += 1
+            true
+        }
+
+    private fun releaseTargetListenerInstallationAdmission() {
+        targetListenerInstallationAdmissionGate.withLock {
+            check(targetListenerInstallationInFlight > 0)
+            targetListenerInstallationInFlight -= 1
+        }
+        signalBestEffort()
+    }
+
+    private fun settleTargetListenerInstallationNoPlatformEntry(
+        boundRoot: AndroidTargetListenerInstallationBoundRoot,
+        schedulerOutcome: AndroidPostResult,
+    ): AndroidTargetListenerInstallationNoPlatformEntryOutcome? {
+        if (targetListenerInstallationBoundRoot.get() !== boundRoot ||
+            boundRoot.exactCommittedCapability() == null || !boundRoot.hasClaimedSubmission
+        ) return null
+        val operation = boundRoot.operation
+        return operation.settlementGate.withLock {
+            boundRoot.activatedNoPlatformEntryOutcomeLocked()?.let { return@withLock it }
+            if (operation.entryDisposition == OperationEntryDisposition.Unentered) {
+                if (!operation.settleInertBeforeEntryLocked()) return@withLock null
+            }
+            when (schedulerOutcome) {
+                AndroidPostResult.NotSubmitted ->
+                    boundRoot.notSubmittedOutcome.takeIf { it.activateLocked() }
+
+                AndroidPostResult.Rejected -> {
+                    val failure = boundRoot.ticket.postFailureResidue as? Exception ?: return@withLock null
+                    boundRoot.rejectedOutcome.takeIf { it.activateLocked(failure) }
+                }
+
+                AndroidPostResult.Accepted -> null
+            }
+        }
+    }
+
+    private fun recoverTargetListenerInstallationNoPlatformEntry(
+        boundRoot: AndroidTargetListenerInstallationBoundRoot,
+    ): AndroidTargetListenerInstallationNoPlatformEntryOutcome? {
+        val operation = boundRoot.operation
+        return operation.settlementGate.withLock {
+            boundRoot.activatedNoPlatformEntryOutcomeLocked()?.let { return@withLock it }
+            when (operation.submissionDisposition) {
+                OperationSubmissionDisposition.Rejected -> {
+                    if (operation.entryDisposition == OperationEntryDisposition.Unentered &&
+                        !operation.settleInertBeforeEntryLocked()
+                    ) return@withLock null
+                    val failure = boundRoot.ticket.postFailureResidue as? Exception ?: return@withLock null
+                    boundRoot.rejectedOutcome.takeIf { it.activateLocked(failure) }
+                }
+
+                OperationSubmissionDisposition.None -> {
+                    val admissionClosedAndDrained = targetListenerInstallationAdmissionGate.withLock {
+                        !targetListenerInstallationAdmissionOpen && targetListenerInstallationInFlight == 0
+                    }
+                    if (!admissionClosedAndDrained) return@withLock null
+                    if (!boundRoot.hasClaimedSubmission && !boundRoot.claimSubmission()) {
+                        return@withLock null
+                    }
+                    if (operation.entryDisposition == OperationEntryDisposition.Unentered &&
+                        !operation.settleInertBeforeEntryLocked()
+                    ) return@withLock null
+                    boundRoot.notSubmittedOutcome.takeIf { it.activateLocked() }
+                }
+
+                OperationSubmissionDisposition.Submitting,
+                OperationSubmissionDisposition.Accepted,
+                OperationSubmissionDisposition.Cancelled,
+                    -> null
+            }
+        }
     }
 
     private fun signalBestEffort() {

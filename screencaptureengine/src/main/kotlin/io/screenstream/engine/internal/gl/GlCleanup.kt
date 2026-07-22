@@ -3,12 +3,19 @@ package io.screenstream.engine.internal.gl
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import io.screenstream.engine.internal.settlement.ControlWakeLink
+import io.screenstream.engine.internal.settlement.DeadlineDisposition
 import io.screenstream.engine.internal.settlement.OperationArbitration
+import io.screenstream.engine.internal.settlement.OperationDisposition
+import io.screenstream.engine.internal.settlement.OperationDomain
+import io.screenstream.engine.internal.settlement.OperationEntryDisposition
 import io.screenstream.engine.internal.settlement.OperationOccurrence
 import io.screenstream.engine.internal.settlement.OperationOwnerBag
+import io.screenstream.engine.internal.settlement.OperationReturnDisposition
+import io.screenstream.engine.internal.settlement.OperationReturnUse
 import io.screenstream.engine.internal.settlement.OperationReturnedOwner
 import io.screenstream.engine.internal.settlement.isHandedOff
 import io.screenstream.engine.internal.target.TargetPortUseOutcome
+import io.screenstream.engine.internal.target.TargetIdentity
 import io.screenstream.engine.internal.target.TargetRetirement
 import io.screenstream.engine.internal.target.TargetSurfaceReleaseReceipt
 import kotlin.concurrent.withLock
@@ -20,6 +27,8 @@ internal class GlOwnerBag internal constructor(
 internal class GlClaimedOperationFacts private constructor(
     internal val operationIdentity: Long,
     internal val operationKind: GlOperationKind,
+    private val frameTargetIdentity: TargetIdentity?,
+    private val frameRenderTargetOwner: GlPipelineOwner.GlRenderTargetOwner?,
 ) {
     internal lateinit var result: GlOperationResult
         private set
@@ -45,9 +54,29 @@ internal class GlClaimedOperationFacts private constructor(
         private set
     internal var drawReadProbeFacts: GlProbeFacts? = null
         private set
+    internal var readbackTimingFact: GlReadbackTimingFact? = null
+        private set
     internal var timely: Boolean = false
         private set
     private var frozen: Boolean = false
+
+    init {
+        require(operationIdentity > 0L)
+        check(
+            (operationKind == GlOperationKind.Frame) ==
+                    (frameTargetIdentity != null && frameRenderTargetOwner != null)
+        )
+    }
+
+    private fun createReadbackTimingFact(durationNanos: Long): GlReadbackTimingFact? {
+        if (frozen || operationKind != GlOperationKind.Frame || durationNanos < 0L) return null
+        return GlReadbackTimingFact.create(
+            operationIdentity = operationIdentity,
+            targetIdentity = frameTargetIdentity ?: return null,
+            renderTargetOwner = frameRenderTargetOwner ?: return null,
+            durationNanos = durationNanos,
+        )
+    }
 
     private fun freeze(
         evidence: GlOperationEvidence,
@@ -56,10 +85,25 @@ internal class GlClaimedOperationFacts private constructor(
         colorActionFacts: GlColorActionFacts?,
         stateProbeFacts: GlProbeFacts?,
         drawReadProbeFacts: GlProbeFacts?,
+        readbackTimingFact: GlReadbackTimingFact?,
     ): GlClaimedOperationFacts? {
         if (frozen) return null
         val exactResult = evidence.result ?: return null
         val successful = timely && normal && exactResult == GlOperationResult.Success && evidence.contextIntegrity == ContextIntegrity.Intact
+        val exactFrameTargetIdentity = frameTargetIdentity
+        val exactFrameRenderTargetOwner = frameRenderTargetOwner
+        val acceptedReadbackTimingFact = if (successful && operationKind == GlOperationKind.Frame &&
+            exactFrameTargetIdentity != null && exactFrameRenderTargetOwner != null &&
+            readbackTimingFact?.matches(
+                operationIdentity = operationIdentity,
+                targetIdentity = exactFrameTargetIdentity,
+                renderTargetOwner = exactFrameRenderTargetOwner,
+            ) == true
+        ) {
+            readbackTimingFact
+        } else {
+            null
+        }
         result = exactResult
         receipt = if (successful) evidence.receipt else null
         returnedOwner = evidence.returnedOwner
@@ -72,14 +116,41 @@ internal class GlClaimedOperationFacts private constructor(
         this.colorActionFacts = colorActionFacts
         this.stateProbeFacts = stateProbeFacts
         this.drawReadProbeFacts = drawReadProbeFacts
+        this.readbackTimingFact = acceptedReadbackTimingFact
         this.timely = timely
         frozen = true
         return this
     }
 
     internal companion object {
-        internal fun precreate(evidence: GlOperationEvidence): GlClaimedOperationFacts =
-            GlClaimedOperationFacts(evidence.operationIdentity, evidence.operationKind)
+        internal fun precreate(evidence: GlOperationEvidence): GlClaimedOperationFacts {
+            check(evidence.operationKind != GlOperationKind.Frame)
+            return GlClaimedOperationFacts(
+                operationIdentity = evidence.operationIdentity,
+                operationKind = evidence.operationKind,
+                frameTargetIdentity = null,
+                frameRenderTargetOwner = null,
+            )
+        }
+
+        internal fun precreateFrame(
+            evidence: GlOperationEvidence,
+            targetIdentity: TargetIdentity,
+            renderTargetOwner: GlPipelineOwner.GlRenderTargetOwner,
+        ): GlClaimedOperationFacts {
+            check(evidence.operationKind == GlOperationKind.Frame)
+            return GlClaimedOperationFacts(
+                operationIdentity = evidence.operationIdentity,
+                operationKind = evidence.operationKind,
+                frameTargetIdentity = targetIdentity,
+                frameRenderTargetOwner = renderTargetOwner,
+            )
+        }
+
+        internal fun createReadbackTimingFact(
+            facts: GlClaimedOperationFacts,
+            durationNanos: Long,
+        ): GlReadbackTimingFact? = facts.createReadbackTimingFact(durationNanos)
 
         internal fun freeze(
             facts: GlClaimedOperationFacts,
@@ -89,8 +160,17 @@ internal class GlClaimedOperationFacts private constructor(
             colorActionFacts: GlColorActionFacts? = null,
             stateProbeFacts: GlProbeFacts? = null,
             drawReadProbeFacts: GlProbeFacts? = null,
+            readbackTimingFact: GlReadbackTimingFact? = null,
         ): GlClaimedOperationFacts? =
-            facts.freeze(evidence, normal, timely, colorActionFacts, stateProbeFacts, drawReadProbeFacts)
+            facts.freeze(
+                evidence,
+                normal,
+                timely,
+                colorActionFacts,
+                stateProbeFacts,
+                drawReadProbeFacts,
+                readbackTimingFact,
+            )
     }
 }
 
@@ -104,6 +184,10 @@ internal class GlClaimedDestructionFacts private constructor(
         private set
     internal var throwable: Throwable? = null
         private set
+    internal var returnThrowable: Throwable? = null
+        private set
+    internal var normalReturn: Boolean = false
+        private set
     internal var preprobeErrorCode: Int = GLES20.GL_NO_ERROR
         private set
     internal var preprobeErrorCodePresent: Boolean = false
@@ -114,22 +198,55 @@ internal class GlClaimedDestructionFacts private constructor(
         private set
     internal var contextIntegrity: ContextIntegrity = ContextIntegrity.Unknown
         private set
+    internal var returnOutcome: GlPhysicalResourceReturnOutcome? = null
+        private set
     internal var timely: Boolean = false
         private set
     private var frozen: Boolean = false
 
-    private fun freeze(evidence: GlDestructionEvidence, normal: Boolean, timely: Boolean): GlClaimedDestructionFacts? {
+    private fun freeze(
+        evidence: GlDestructionEvidence,
+        normal: Boolean,
+        timely: Boolean,
+        returnThrowable: Throwable?,
+    ): GlClaimedDestructionFacts? {
         if (frozen) return null
         val exactResult = evidence.result ?: return null
         result = exactResult
-        receipt = if (normal && exactResult == GlOperationResult.Success &&
+        val durableNamespaceRetirement = evidence.durablyRetiredContextNamespaceOrNull()
+        val exactReceipt = durableNamespaceRetirement?.receipt ?: if (normal && exactResult == GlOperationResult.Success &&
             (evidence.contextIntegrity == ContextIntegrity.Intact || evidence.destructionKind == GlDestructionKind.ContextNamespace)
         ) {
-            evidence.receipt
+            evidence.physicalRetirementReceiptOrNull()
         } else {
             null
         }
+        receipt = exactReceipt
+        val namespace = evidence.contextNamespace
+        returnOutcome = when {
+            durableNamespaceRetirement != null -> durableNamespaceRetirement
+
+            normal && exactResult == GlOperationResult.StructurallyNoContext &&
+                    evidence.destructionKind == GlDestructionKind.ContextNamespace && exactReceipt == null ->
+                evidence.structurallyNoContextOutcome()
+
+            evidence.destructionKind == GlDestructionKind.ContextNamespace && namespace == null -> null
+
+            normal && exactReceipt != null && evidence.contextIntegrity == ContextIntegrity.Intact ->
+                GlPhysicalResourceReturnOutcome.HealthyContextDeleted(exactReceipt)
+
+            evidence.destructionKind == GlDestructionKind.Program && namespace != null ->
+                GlPhysicalResourceReturnOutcome.ContextNamespaceRequired(namespace)
+
+            else -> GlPhysicalResourceReturnOutcome.ReturnedFailure(
+                destructionKind = evidence.destructionKind,
+                integrity = evidence.contextIntegrity,
+                namespace = namespace,
+            )
+        }
         throwable = evidence.throwable
+        this.returnThrowable = returnThrowable
+        normalReturn = normal
         preprobeErrorCode = evidence.preprobeErrorCode
         preprobeErrorCodePresent = evidence.preprobeErrorCodePresent
         postprobeErrorCode = evidence.postprobeErrorCode
@@ -144,8 +261,13 @@ internal class GlClaimedDestructionFacts private constructor(
         internal fun precreate(evidence: GlDestructionEvidence): GlClaimedDestructionFacts =
             GlClaimedDestructionFacts(evidence.operationIdentity, evidence.destructionKind)
 
-        internal fun freeze(facts: GlClaimedDestructionFacts, evidence: GlDestructionEvidence, normal: Boolean, timely: Boolean): GlClaimedDestructionFacts? =
-            facts.freeze(evidence, normal, timely)
+        internal fun freeze(
+            facts: GlClaimedDestructionFacts,
+            evidence: GlDestructionEvidence,
+            normal: Boolean,
+            timely: Boolean,
+            returnThrowable: Throwable?,
+        ): GlClaimedDestructionFacts? = facts.freeze(evidence, normal, timely, returnThrowable)
     }
 }
 
@@ -173,7 +295,9 @@ internal class TargetSurfaceReleaseClaim private constructor(
 internal enum class GlDestructionAction {
     RenderTarget,
     Program,
+    ProgramNamespace,
     Session,
+    ContextNamespace,
 }
 
 private class GlSessionTeardownOwner : GlTeardownOwner
@@ -185,43 +309,166 @@ internal class GlDestructionHandle internal constructor(
     renderTarget: GlPipelineOwner.GlRenderTargetOwner?,
     private val renderState: GlRenderTargetState?,
     internal var installedRenderTargetDestruction: Boolean,
+    private val contextNamespace: ContextNamespace? = null,
+    private val programFallbackNamespace: ContextNamespace? = null,
+    terminalCleanupOrigin: GlTerminalCleanupOrigin? = null,
 ) : GlPipelineOwner.DestructionCommand {
     private val kind: GlDestructionKind = when (action) {
         GlDestructionAction.RenderTarget -> GlDestructionKind.RenderTarget
         GlDestructionAction.Program -> GlDestructionKind.Program
+        GlDestructionAction.ProgramNamespace -> GlDestructionKind.Program
         GlDestructionAction.Session -> GlDestructionKind.Session
+        GlDestructionAction.ContextNamespace -> GlDestructionKind.ContextNamespace
     }
-    private val evidence: GlDestructionEvidence = GlDestructionEvidence(identity.operationIdentity, kind)
+    private val precreatedRetirementReceipt: GlDestructionSuccessReceipt =
+        GlDestructionSuccessReceipt(identity.operationIdentity, kind)
+    private val precreatedContextNamespaceRetired: GlPhysicalResourceReturnOutcome.ContextNamespaceRetired? =
+        if (action == GlDestructionAction.ContextNamespace) {
+            GlPhysicalResourceReturnOutcome.ContextNamespaceRetired(
+                namespace = checkNotNull(contextNamespace),
+                receipt = precreatedRetirementReceipt,
+            )
+        } else {
+            null
+        }
+    private val evidence: GlDestructionEvidence = GlDestructionEvidence(
+        operationIdentity = identity.operationIdentity,
+        destructionKind = kind,
+        precreatedPhysicalRetirementReceipt = precreatedRetirementReceipt,
+        precreatedContextNamespaceRetired = precreatedContextNamespaceRetired,
+    )
     override val occurrence: OperationOccurrence<GlDestructionEvidence> =
-        owner.destructionOccurrence(identity = identity, evidence = evidence, ownerBag = GlOwnerBag(renderTarget))
+        owner.destructionOccurrence(
+            identity = identity,
+            evidence = evidence,
+            ownerBag = GlOwnerBag(renderTarget ?: owner),
+        )
     private val claimedFacts: GlClaimedDestructionFacts = GlClaimedDestructionFacts.precreate(evidence)
     private val endpointOperation = owner.endpointOperation(occurrence, Runnable { execute() })
     private val sessionTeardownOwner: GlTeardownOwner? =
-        if (action == GlDestructionAction.Session) GlSessionTeardownOwner() else null
+        if (action == GlDestructionAction.Session || action == GlDestructionAction.ContextNamespace) {
+            GlSessionTeardownOwner()
+        } else {
+            null
+        }
+    private val terminalCleanupWork: GlTerminalCleanupWork? = terminalCleanupOrigin?.let { origin ->
+        GlTerminalCleanupWork.create(occurrence.identity, origin)
+    }
+    private val terminalCleanupConversion: GlTerminalCleanupConversion? =
+        terminalCleanupWork?.let { work -> occurrence.toGlTerminalCleanup(work) }
+    private val terminalResidue: GlPhysicalRetirementResidue? = terminalCleanupWork?.let { work ->
+        GlPhysicalRetirementResidue(owner, work, kind, contextNamespace)
+    }
+    private val cleanupUnenteredProgress: GlPhysicalRetirementProgress.CleanupUnentered? =
+        terminalCleanupWork?.let { work -> GlPhysicalRetirementProgress.CleanupUnentered(work) }
+    private val enteredNonreturnProgress: GlPhysicalRetirementProgress.CleanupEnteredNonreturnResidue? =
+        terminalResidue?.let { residue -> GlPhysicalRetirementProgress.CleanupEnteredNonreturnResidue(residue) }
+    private val quarantineProgress: GlPhysicalRetirementProgress.QuarantineRequired? =
+        terminalResidue?.let { residue -> GlPhysicalRetirementProgress.QuarantineRequired(residue) }
+    private val returnedSuffixFailureProgress: GlPhysicalRetirementProgress.ReturnedSuffixFailure? =
+        terminalResidue?.let { residue -> GlPhysicalRetirementProgress.ReturnedSuffixFailure(residue) }
+    private var namespaceConsumed: Boolean = false
+    private var namespaceSuffixSucceeded: Boolean = false
+    private var namespaceSuffixReturned: Boolean = false
+    private var contextNamespaceEndpointReleased: Boolean = false
+    private var contextNamespaceReturnFailed: Boolean = false
+    private var contextNamespaceRetirementClaimed: Boolean = false
+
+    init {
+        if (terminalCleanupOrigin != null) {
+            check(terminalCleanupConversion is GlTerminalCleanupConversion.Ready)
+        }
+        check((action == GlDestructionAction.ProgramNamespace || action == GlDestructionAction.ContextNamespace) ==
+                (contextNamespace != null))
+        check((action == GlDestructionAction.Program || action == GlDestructionAction.ProgramNamespace) ==
+                (programFallbackNamespace != null))
+    }
 
     private fun execute() {
         try {
             val success = when (action) {
                 GlDestructionAction.RenderTarget -> owner.destroyRenderTarget(checkNotNull(renderState), installedRenderTargetDestruction, evidence)
-                GlDestructionAction.Program -> owner.destroyProgram(evidence)
+                GlDestructionAction.Program -> owner.destroyProgram(evidence).also { destroyed ->
+                    if (!destroyed && owner.contextIntegrity != ContextIntegrity.Intact) {
+                        val namespace = checkNotNull(programFallbackNamespace)
+                        if (owner.activateAndBindProgramContextNamespace(namespace)) {
+                            evidence.contextNamespace = namespace
+                        }
+                    }
+                }
+                GlDestructionAction.ProgramNamespace -> {
+                    val namespace = checkNotNull(contextNamespace)
+                    check(namespace === programFallbackNamespace)
+                    if (owner.activateAndBindProgramContextNamespace(namespace)) {
+                        evidence.contextNamespace = namespace
+                    }
+                    evidence.contextIntegrity = namespace.integrityAtTransfer
+                    evidence.result = GlOperationResult.InternalFailure
+                    false
+                }
                 GlDestructionAction.Session -> owner.destroyHealthySession(checkNotNull(sessionTeardownOwner), evidence)
+                GlDestructionAction.ContextNamespace -> executeContextNamespace()
             }
             owner.checkFatalFence()
             if (success) evidence.result = GlOperationResult.Success
             owner.checkFatalFence()
             owner.closeNormalResult(evidence)
             occurrence.publishNormalReturn()
+            if (action == GlDestructionAction.ContextNamespace) owner.signalSettlement()
         } catch (exception: Exception) {
             owner.checkFatalFence()
             owner.markContextUnknown()
             evidence.throwable = exception
             evidence.result = GlOperationResult.InternalFailure
             evidence.contextIntegrity = ContextIntegrity.Unknown
+            if ((action == GlDestructionAction.Program || action == GlDestructionAction.ProgramNamespace) &&
+                evidence.contextNamespace == null
+            ) {
+                val namespace = checkNotNull(programFallbackNamespace)
+                if (owner.activateAndBindProgramContextNamespace(namespace)) {
+                    evidence.contextNamespace = namespace
+                }
+            }
             occurrence.publishThrownReturn(exception)
+            if (action == GlDestructionAction.ContextNamespace) owner.signalSettlement()
         }
+        if (action == GlDestructionAction.ContextNamespace) progressContextNamespaceSuffix()
+    }
+
+    private fun executeContextNamespace(): Boolean {
+        val namespace = checkNotNull(contextNamespace)
+        evidence.bindPhysicalRetirementCandidate(namespace, owner.context)
+        val retired = owner.unbindAndDestroyContext(checkNotNull(sessionTeardownOwner), evidence)
+        if (retired) {
+            evidence.contextIntegrity = namespace.integrityAtTransfer
+        }
+        return retired
+    }
+
+    private fun progressContextNamespaceSuffix() {
+        val succeeded = if (owner.contextUnbound) {
+            owner.destroyPbufferAndReleaseThread()
+        } else {
+            owner.recordUnreachableSuffixResidue()
+            false
+        }
+        if (!succeeded) {
+            owner.glGate.withLock { namespaceSuffixReturned = true }
+            owner.signalSettlement()
+            return
+        }
+        owner.glGate.withLock {
+            namespaceSuffixReturned = true
+            namespaceSuffixSucceeded = true
+            if (namespaceConsumed && !contextNamespaceReturnFailed) {
+                check(owner.releaseTeardownLocked(checkNotNull(sessionTeardownOwner)))
+            }
+        }
+        owner.signalSettlement()
     }
 
     override fun submit(): Boolean =
+        (terminalCleanupConversion == null || terminalCleanupConversion is GlTerminalCleanupConversion.Ready) &&
         owner.submit(
             endpointOperation,
             teardownOwner = sessionTeardownOwner,
@@ -234,7 +481,17 @@ internal class GlDestructionHandle internal constructor(
 
     override fun claim(): GlClaimedDestructionFacts? {
         val facts = owner.claimDestruction(occurrence, claimedFacts)
-        owner.releaseSettledOperation(endpointOperation)
+        val returnedPhysicalFailure = action == GlDestructionAction.ContextNamespace && facts != null &&
+                facts.returnOutcome is GlPhysicalResourceReturnOutcome.ContextNamespaceRetired &&
+                (!facts.normalReturn || facts.returnThrowable != null || facts.throwable != null ||
+                        facts.result != GlOperationResult.Success)
+        if (returnedPhysicalFailure) {
+            owner.glGate.withLock { contextNamespaceReturnFailed = true }
+        }
+        val endpointReleased = !returnedPhysicalFailure && owner.releaseSettledOperation(endpointOperation)
+        if (action == GlDestructionAction.ContextNamespace && endpointReleased) {
+            owner.glGate.withLock { contextNamespaceEndpointReleased = true }
+        }
         if (facts == null) return null
         if (action == GlDestructionAction.RenderTarget && installedRenderTargetDestruction &&
             facts.result == GlOperationResult.Success && facts.receipt === evidence.receipt
@@ -264,12 +521,95 @@ internal class GlDestructionHandle internal constructor(
         ) {
             return null
         }
+        if (action == GlDestructionAction.Program && facts.contextIntegrity != ContextIntegrity.Intact) {
+            val namespaceOutcome = facts.returnOutcome as? GlPhysicalResourceReturnOutcome.ContextNamespaceRequired
+                ?: return null
+            if (namespaceOutcome.namespace !== programFallbackNamespace) return null
+        }
+        if (action == GlDestructionAction.ProgramNamespace) {
+            val namespaceOutcome = facts.returnOutcome as? GlPhysicalResourceReturnOutcome.ContextNamespaceRequired
+                ?: return null
+            if (namespaceOutcome.namespace !== contextNamespace) return null
+        }
+        if (action == GlDestructionAction.ContextNamespace) {
+            val outcome = facts.returnOutcome as? GlPhysicalResourceReturnOutcome.ContextNamespaceRetired
+            if (outcome != null) {
+                if (facts.receipt !== outcome.receipt || outcome.namespace !== contextNamespace) return null
+                owner.glGate.withLock { contextNamespaceRetirementClaimed = true }
+                if (!recordContextNamespaceConsumed()) return null
+            }
+            if (outcome == null && facts.receipt != null) return null
+        }
         if (action == GlDestructionAction.Session &&
             facts.result == GlOperationResult.Success && facts.receipt === evidence.receipt
         ) {
             check(owner.releaseTeardown(checkNotNull(sessionTeardownOwner)))
         }
         return facts
+    }
+
+    private fun recordContextNamespaceConsumed(): Boolean = owner.glGate.withLock {
+        check(!namespaceConsumed)
+        if (!owner.consumePartialContextNamespaceLocked(
+                expectedNamespace = checkNotNull(contextNamespace),
+                authorizedPhysicalRetirementEvidence = evidence,
+            )
+        ) {
+            return@withLock false
+        }
+        namespaceConsumed = true
+        if (namespaceSuffixSucceeded && !contextNamespaceReturnFailed) {
+            check(owner.releaseTeardownLocked(checkNotNull(sessionTeardownOwner)))
+        }
+        true
+    }.also { consumed ->
+        if (consumed) owner.signalSettlement()
+    }
+
+    internal fun retryClaimedContextNamespaceReduction(): Boolean {
+        if (action != GlDestructionAction.ContextNamespace) return true
+        if (owner.glGate.withLock { !contextNamespaceRetirementClaimed || namespaceConsumed }) return true
+        return recordContextNamespaceConsumed()
+    }
+
+    internal fun releaseContextNamespaceEndpointAfterSuffix(): Boolean {
+        if (action != GlDestructionAction.ContextNamespace ||
+            !owner.glGate.withLock {
+                namespaceConsumed && namespaceSuffixSucceeded && !contextNamespaceReturnFailed
+            }
+        ) {
+            return false
+        }
+        if (owner.glGate.withLock { contextNamespaceEndpointReleased }) return true
+        if (!owner.releaseSettledOperation(endpointOperation)) return false
+        owner.glGate.withLock { contextNamespaceEndpointReleased = true }
+        return true
+    }
+
+    internal fun unresolvedContextNamespaceProgress(): GlPhysicalRetirementProgress? {
+        if (action != GlDestructionAction.ContextNamespace) return null
+        val entryProgress = occurrence.settlementGate.withLock {
+            if (occurrence.domain != OperationDomain.Cleanup ||
+                occurrence.returnCell.disposition != OperationReturnDisposition.Empty
+            ) {
+                return@withLock null
+            }
+            when (occurrence.entryDisposition) {
+                OperationEntryDisposition.Unentered -> cleanupUnenteredProgress
+                OperationEntryDisposition.Entered -> enteredNonreturnProgress
+                OperationEntryDisposition.Cancelled -> null
+            }
+        }
+        if (entryProgress != null) return entryProgress
+        return owner.glGate.withLock {
+            when {
+                contextNamespaceReturnFailed -> returnedSuffixFailureProgress
+                !namespaceSuffixReturned -> quarantineProgress
+                !namespaceSuffixSucceeded -> returnedSuffixFailureProgress
+                !namespaceConsumed -> quarantineProgress
+                else -> null
+            }
+        }
     }
 }
 
@@ -288,6 +628,12 @@ internal class GlTargetScopeDestructionHandle internal constructor(
     private var namespaceAdmitted: Boolean = false
     private var namespaceConsumed: Boolean = false
     private var namespaceSuffixSucceeded: Boolean = false
+    private var namespaceSuffixReturned: Boolean = false
+    private var namespaceEndpointReleased: Boolean = false
+
+    private fun bindTransferredNamespace() {
+        check(owner.bindContextNamespace(graph))
+    }
 
     private fun executeTargetScope() {
         var oesPhaseEntered = false
@@ -317,13 +663,13 @@ internal class GlTargetScopeDestructionHandle internal constructor(
                             owner.checkFatalFence()
                             graph.recordNamespaceTransfer()
                             owner.checkFatalFence()
-                            check(owner.bindContextNamespace(graph))
+                            bindTransferredNamespace()
                         }
                     } else {
                         owner.checkFatalFence()
                         graph.recordNamespaceTransfer()
                         owner.checkFatalFence()
-                        check(owner.bindContextNamespace(graph))
+                        bindTransferredNamespace()
                     }
                 }
             }
@@ -359,7 +705,7 @@ internal class GlTargetScopeDestructionHandle internal constructor(
             ) {
                 graph.recordNamespaceTransfer()
                 owner.checkFatalFence()
-                check(owner.bindContextNamespace(graph))
+                bindTransferredNamespace()
             }
             evidence.throwable = exception
             evidence.result = GlOperationResult.InternalFailure
@@ -399,11 +745,7 @@ internal class GlTargetScopeDestructionHandle internal constructor(
             owner.recordUnreachableSuffixResidue()
             false
         }
-        if (suffixSucceeded) {
-            recordNamespaceSuffixSuccess()
-        } else {
-            owner.signalSettlement()
-        }
+        recordNamespaceSuffixReturn(suffixSucceeded)
     }
 
     override fun submit(): Boolean =
@@ -415,9 +757,15 @@ internal class GlTargetScopeDestructionHandle internal constructor(
         if (facts == null) return null
         owner.checkFatalFence()
         val namespaceSelected = graph.isNamespaceTransferSelected()
-        if (namespaceSelected && !owner.claimTeardown(this)) return null
+        if (namespaceSelected && (!owner.claimTeardown(this) || !owner.retainTargetScopeNamespaceHandle(this))) {
+            if (owner.ownsTeardown(this)) owner.releaseTeardown(this)
+            return null
+        }
         if (!graph.applyTargetProjection()) {
-            if (namespaceSelected) owner.releaseTeardown(this)
+            if (namespaceSelected) {
+                owner.releaseTargetScopeNamespaceHandle(this)
+                owner.releaseTeardown(this)
+            }
             return null
         }
         namespaceAdmitted = graph.isNamespaceTransferSelected()
@@ -431,7 +779,9 @@ internal class GlTargetScopeDestructionHandle internal constructor(
 
     override fun claimNamespaceRetirement(): GlClaimedDestructionFacts? {
         val facts = owner.claimDestruction(namespaceOccurrence, namespaceClaimedFacts)
-        owner.releaseSettledOperation(namespaceEndpointOperation)
+        if (owner.releaseSettledOperation(namespaceEndpointOperation)) {
+            owner.glGate.withLock { namespaceEndpointReleased = true }
+        }
         if (facts == null) return null
         owner.checkFatalFence()
         if (!namespaceAdmitted || !graph.applyNamespaceProjection()) return null
@@ -443,13 +793,13 @@ internal class GlTargetScopeDestructionHandle internal constructor(
         val consumed = owner.glGate.withLock {
             owner.checkFatalLocked()
             check(!namespaceConsumed)
-            if (namespaceSuffixSucceeded && !owner.ownsTeardown(this)) {
+            if (namespaceSuffixSucceeded && !owner.ownsTeardownLocked(this)) {
                 return@withLock false
             }
             if (!owner.consumeContextNamespaceLocked(graph)) return@withLock false
             namespaceConsumed = true
             if (namespaceSuffixSucceeded) {
-                check(owner.releaseTeardown(this))
+                check(owner.releaseTeardownLocked(this))
             }
             true
         }
@@ -457,19 +807,37 @@ internal class GlTargetScopeDestructionHandle internal constructor(
         return consumed
     }
 
-    private fun recordNamespaceSuffixSuccess() {
+    private fun recordNamespaceSuffixReturn(succeeded: Boolean) {
         owner.glGate.withLock {
             owner.checkFatalLocked()
-            check(!namespaceSuffixSucceeded)
-            if (namespaceConsumed && !owner.ownsTeardown(this)) {
+            check(!namespaceSuffixReturned)
+            if (succeeded && namespaceConsumed && !owner.ownsTeardownLocked(this)) {
                 return@withLock
             }
-            namespaceSuffixSucceeded = true
-            if (namespaceConsumed) {
-                check(owner.releaseTeardown(this))
+            namespaceSuffixReturned = true
+            namespaceSuffixSucceeded = succeeded
+            if (succeeded && namespaceConsumed) {
+                check(owner.releaseTeardownLocked(this))
             }
         }
         owner.signalSettlement()
+    }
+
+    internal fun unresolvedNamespaceEndpoint(): Boolean = owner.glGate.withLock {
+        !namespaceAdmitted || !namespaceConsumed || !namespaceSuffixReturned || !namespaceSuffixSucceeded
+    }
+
+    internal fun releaseNamespaceEndpointAfterSuffix(): Boolean {
+        if (owner.glGate.withLock {
+                !namespaceAdmitted || !namespaceConsumed || !namespaceSuffixSucceeded
+            }
+        ) {
+            return false
+        }
+        if (owner.glGate.withLock { namespaceEndpointReleased }) return true
+        if (!owner.releaseSettledOperation(namespaceEndpointOperation)) return false
+        owner.glGate.withLock { namespaceEndpointReleased = true }
+        return true
     }
 
     override val deadlineWakeLink: ControlWakeLink = checkNotNull(occurrence.controlWakeLink)
@@ -493,6 +861,12 @@ internal class GlClaimArbitrator internal constructor(
         drawReadProbeFacts: GlProbeFacts? = null,
     ): GlClaimedOperationFacts? {
         owner.checkFatalFence()
+        val readbackTimingFact = deriveReadbackTimingFactBeforeClaim(
+            occurrence = occurrence,
+            facts = facts,
+            drawReadProbeFacts = drawReadProbeFacts,
+        )
+        owner.checkFatalFence()
         val arbitration = occurrence.arbitrate()
         owner.checkFatalFence()
         val claimed = when (arbitration) {
@@ -504,6 +878,7 @@ internal class GlClaimArbitrator internal constructor(
                 colorActionFacts,
                 stateProbeFacts,
                 drawReadProbeFacts,
+                readbackTimingFact,
             )
 
             OperationArbitration.TimelyThrown -> GlClaimedOperationFacts.freeze(
@@ -546,28 +921,84 @@ internal class GlClaimArbitrator internal constructor(
         return claimed
     }
 
+    private fun deriveReadbackTimingFactBeforeClaim(
+        occurrence: OperationOccurrence<GlOperationEvidence>,
+        facts: GlClaimedOperationFacts,
+        drawReadProbeFacts: GlProbeFacts?,
+    ): GlReadbackTimingFact? {
+        var durationNanos = NO_DURATION
+        occurrence.settlementGate.withLock {
+            val evidence = occurrence.returnCell.evidence
+            val deadline = occurrence.deadlineOccurrence ?: return@withLock
+            val startNanos = deadline.startNanos
+            val settlementNanos = occurrence.returnCell.settlementNanos
+            if (occurrence.identity != facts.operationIdentity ||
+                evidence.operationIdentity != facts.operationIdentity ||
+                facts.operationKind != GlOperationKind.Frame ||
+                evidence.operationKind != GlOperationKind.Frame ||
+                occurrence.domain != OperationDomain.Active ||
+                occurrence.disposition != OperationDisposition.Pending ||
+                occurrence.returnCell.disposition != OperationReturnDisposition.Normal ||
+                occurrence.returnCell.use != OperationReturnUse.Unclaimed ||
+                evidence.result != GlOperationResult.Success ||
+                evidence.contextIntegrity != ContextIntegrity.Intact ||
+                deadline.disposition != DeadlineDisposition.Armed ||
+                drawReadProbeFacts == null ||
+                !drawReadProbeFacts.preprobePresent ||
+                drawReadProbeFacts.preprobeErrorCode != GLES20.GL_NO_ERROR ||
+                !drawReadProbeFacts.postprobePresent ||
+                drawReadProbeFacts.postprobeErrorCode != GLES20.GL_NO_ERROR ||
+                startNanos < 0L ||
+                settlementNanos < startNanos ||
+                settlementNanos >= deadline.deadlineNanos
+            ) {
+                return@withLock
+            }
+            durationNanos = settlementNanos - startNanos
+        }
+        if (durationNanos < 0L) return null
+        // Allocate the immutable derived value only after settlement/gate release and before arbitrate() makes
+        // the return-use claim irreversible.
+        return GlClaimedOperationFacts.createReadbackTimingFact(facts, durationNanos)
+    }
+
     internal fun claimDestruction(occurrence: OperationOccurrence<GlDestructionEvidence>, facts: GlClaimedDestructionFacts): GlClaimedDestructionFacts? {
-        owner.checkFatalFence()
+        val evidence = occurrence.returnCell.evidence
+        val durableNamespaceRetirement = evidence.durablyRetiredContextNamespaceOrNull() != null
+        if (!durableNamespaceRetirement) owner.checkFatalFence()
         val arbitration = occurrence.arbitrate()
-        owner.checkFatalFence()
+        if (!durableNamespaceRetirement) owner.checkFatalFence()
+        val returnThrowable = occurrence.returnCell.throwable
         val claimed = when (arbitration) {
             OperationArbitration.TimelyNormal ->
-                GlClaimedDestructionFacts.freeze(facts, occurrence.returnCell.evidence, normal = true, timely = true)
+                GlClaimedDestructionFacts.freeze(
+                    facts, evidence, normal = true, timely = true, returnThrowable = returnThrowable,
+                )
 
             OperationArbitration.TimelyThrown ->
-                GlClaimedDestructionFacts.freeze(facts, occurrence.returnCell.evidence, normal = false, timely = true)
+                GlClaimedDestructionFacts.freeze(
+                    facts, evidence, normal = false, timely = true, returnThrowable = returnThrowable,
+                )
 
             OperationArbitration.ExpiredNormal,
             OperationArbitration.CleanupNormal,
-                -> GlClaimedDestructionFacts.freeze(facts, occurrence.returnCell.evidence, normal = true, timely = false)
+                -> GlClaimedDestructionFacts.freeze(
+                    facts, evidence, normal = true, timely = false, returnThrowable = returnThrowable,
+                )
 
             OperationArbitration.ExpiredThrown,
             OperationArbitration.CleanupThrown,
-                -> GlClaimedDestructionFacts.freeze(facts, occurrence.returnCell.evidence, normal = false, timely = false)
+                -> GlClaimedDestructionFacts.freeze(
+                    facts, evidence, normal = false, timely = false, returnThrowable = returnThrowable,
+                )
 
             else -> null
         }
-        owner.checkFatalFence()
+        if (!durableNamespaceRetirement) owner.checkFatalFence()
         return claimed
+    }
+
+    private companion object {
+        private const val NO_DURATION: Long = -1L
     }
 }

@@ -1,5 +1,7 @@
 package io.screenstream.engine.internal.gl
 
+import android.opengl.EGL14
+import android.opengl.EGLContext
 import android.opengl.GLES20
 import io.screenstream.engine.ColorMode
 import io.screenstream.engine.ImageSize
@@ -478,6 +480,7 @@ internal enum class ContextIntegrity {
 
 internal enum class GlOperationResult {
     Success,
+    StructurallyNoContext,
     TargetAdmissionRejected,
     ResourceExhausted,
     InternalFailure,
@@ -491,6 +494,55 @@ internal class GlOperationSuccessReceipt internal constructor(
 
     init {
         require(operationIdentity > 0L)
+    }
+}
+
+/**
+ * Immutable mechanical duration for one timely successful GL frame readback. Session owns currentness,
+ * eligibility for Stats, and accumulation; this fact only preserves the exact GL identities and duration sample.
+ */
+internal class GlReadbackTimingFact private constructor(
+    internal val operationIdentity: Long,
+    internal val targetIdentity: TargetIdentity,
+    internal val targetGeneration: Long,
+    internal val renderTargetOwner: GlPipelineOwner.GlRenderTargetOwner,
+    internal val renderGeneration: Long,
+    internal val durationNanos: Long,
+) {
+    init {
+        require(operationIdentity > 0L)
+        require(targetGeneration > 0L)
+        require(renderGeneration > 0L)
+        require(durationNanos >= 0L)
+        check(targetIdentity.generation == targetGeneration)
+        check(renderTargetOwner.renderGeneration == renderGeneration)
+    }
+
+    internal fun matches(
+        operationIdentity: Long,
+        targetIdentity: TargetIdentity,
+        renderTargetOwner: GlPipelineOwner.GlRenderTargetOwner,
+    ): Boolean =
+        this.operationIdentity == operationIdentity &&
+                this.targetIdentity === targetIdentity &&
+                targetGeneration == targetIdentity.generation &&
+                this.renderTargetOwner === renderTargetOwner &&
+                renderGeneration == renderTargetOwner.renderGeneration
+
+    internal companion object {
+        internal fun create(
+            operationIdentity: Long,
+            targetIdentity: TargetIdentity,
+            renderTargetOwner: GlPipelineOwner.GlRenderTargetOwner,
+            durationNanos: Long,
+        ): GlReadbackTimingFact = GlReadbackTimingFact(
+            operationIdentity = operationIdentity,
+            targetIdentity = targetIdentity,
+            targetGeneration = targetIdentity.generation,
+            renderTargetOwner = renderTargetOwner,
+            renderGeneration = renderTargetOwner.renderGeneration,
+            durationNanos = durationNanos,
+        )
     }
 }
 
@@ -519,7 +571,7 @@ internal class GlOperationEvidence internal constructor(
 internal class GlDestructionSuccessReceipt internal constructor(
     internal val operationIdentity: Long,
     internal val destructionKind: GlDestructionKind,
-) : OperationReceipt {
+) : GlPhysicalResourceRetirementReceipt {
     init {
         require(operationIdentity > 0L)
     }
@@ -528,8 +580,23 @@ internal class GlDestructionSuccessReceipt internal constructor(
 internal class GlDestructionEvidence internal constructor(
     internal val operationIdentity: Long,
     internal val destructionKind: GlDestructionKind,
+    private val precreatedPhysicalRetirementReceipt: GlDestructionSuccessReceipt =
+        GlDestructionSuccessReceipt(operationIdentity, destructionKind),
+    physicalRetirementReceiptInitiallyAuthorized: Boolean = true,
+    private val precreatedContextNamespaceRetired: GlPhysicalResourceReturnOutcome.ContextNamespaceRetired? = null,
 ) : OperationEvidence {
-    override val receipt: GlDestructionSuccessReceipt = GlDestructionSuccessReceipt(operationIdentity, destructionKind)
+    private var physicalRetirementReceiptAuthorized: Boolean = physicalRetirementReceiptInitiallyAuthorized
+    private var physicalRetirementSuccessRecorded: Boolean = false
+    private var physicalRetirementContext: EGLContext? = null
+    private var ownerContextBookkeepingCanonicalized: Boolean = false
+    private val precreatedStructurallyNoContext: GlPhysicalResourceReturnOutcome.StructurallyNoContext? =
+        if (destructionKind == GlDestructionKind.ContextNamespace) {
+            GlPhysicalResourceReturnOutcome.StructurallyNoContext(operationIdentity)
+        } else {
+            null
+        }
+    override val receipt: GlDestructionSuccessReceipt
+        get() = checkNotNull(physicalRetirementReceiptOrNull())
 
     override val returnedOwner: OperationReturnedOwner? = null
 
@@ -540,8 +607,77 @@ internal class GlDestructionEvidence internal constructor(
     internal var postprobeErrorCode: Int = GLES20.GL_NO_ERROR
     internal var postprobeErrorCodePresent: Boolean = false
     internal var contextIntegrity: ContextIntegrity = ContextIntegrity.Unknown
+    internal var contextNamespace: ContextNamespace? = null
+
+    internal fun bindPhysicalRetirementCandidate(namespace: ContextNamespace, context: EGLContext) {
+        check(!physicalRetirementSuccessRecorded)
+        check(contextNamespace == null || contextNamespace === namespace)
+        check(physicalRetirementContext == null)
+        check(destructionKind == GlDestructionKind.ContextNamespace)
+        check(context != EGL14.EGL_NO_CONTEXT)
+        contextNamespace = namespace
+        physicalRetirementContext = context
+    }
+
+    /** Allocation-free success publication immediately after the outward destruction call returns true. */
+    internal fun recordPrecreatedPhysicalRetirementSuccess(integrity: ContextIntegrity) {
+        if (!physicalRetirementReceiptAuthorized) {
+            checkNotNull(contextNamespace)
+            checkNotNull(physicalRetirementContext)
+            physicalRetirementReceiptAuthorized = true
+        }
+        physicalRetirementSuccessRecorded = true
+        result = GlOperationResult.Success
+        contextIntegrity = integrity
+    }
+
+    internal fun physicalRetirementReceiptOrNull(): GlDestructionSuccessReceipt? =
+        if (physicalRetirementReceiptAuthorized) precreatedPhysicalRetirementReceipt else null
+
+    internal fun durablyRetiredContextNamespaceOrNull(): GlPhysicalResourceReturnOutcome.ContextNamespaceRetired? =
+        if (physicalRetirementSuccessRecorded) precreatedContextNamespaceRetired else null
+
+    internal fun structurallyNoContextOutcome(): GlPhysicalResourceReturnOutcome.StructurallyNoContext =
+        checkNotNull(precreatedStructurallyNoContext)
+
+    /** Canonicalizes only the exact pre-bound context after its physical retirement was durably recorded. */
+    internal fun canonicalizeRetiredOwnerContextLocked(
+        owner: GlPipelineOwner,
+        namespace: ContextNamespace,
+    ): Boolean {
+        check(owner.glGate.isHeldByCurrentThread)
+        val outcome = durablyRetiredContextNamespaceOrNull() ?: return false
+        val boundContext = physicalRetirementContext ?: return false
+        if (!physicalRetirementReceiptAuthorized || outcome.namespace !== namespace ||
+            outcome.receipt !== precreatedPhysicalRetirementReceipt || contextNamespace !== namespace ||
+            !namespace.matches(owner) || destructionKind != GlDestructionKind.ContextNamespace
+        ) {
+            return false
+        }
+        if (ownerContextBookkeepingCanonicalized) {
+            return owner.context == EGL14.EGL_NO_CONTEXT && owner.contextDestroyed &&
+                    (owner.contextNamespace === namespace || owner.contextNamespace == null)
+        }
+        if (owner.contextNamespace !== namespace) return false
+        when {
+            owner.context === boundContext -> {
+                owner.contextDestroyed = true
+                owner.context = EGL14.EGL_NO_CONTEXT
+                owner.commitRenderCurrentnessMutationLocked()
+            }
+
+            owner.context == EGL14.EGL_NO_CONTEXT && owner.contextDestroyed -> Unit
+            else -> return false
+        }
+        ownerContextBookkeepingCanonicalized = true
+        return true
+    }
 
     init {
         require(operationIdentity > 0L)
+        require(precreatedPhysicalRetirementReceipt.operationIdentity == operationIdentity)
+        require(precreatedPhysicalRetirementReceipt.destructionKind == destructionKind)
+        require(precreatedContextNamespaceRetired == null ||
+                precreatedContextNamespaceRetired.receipt === precreatedPhysicalRetirementReceipt)
     }
 }

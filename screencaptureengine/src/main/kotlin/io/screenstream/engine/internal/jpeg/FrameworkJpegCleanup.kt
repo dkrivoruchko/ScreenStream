@@ -200,13 +200,22 @@ private fun executeFrameworkRecycle(
         }
     } catch (failure: Exception) {
         occurrence.operation.publishThrownReturn(failure)
-    } catch (fatal: Error) {
+    } catch (fatal: Throwable) {
         publishRecycleFatalAndRethrow(occurrence, owner, fatal)
     }
     if (published) owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
 }
 
-private fun publishRecycleFatalAndRethrow(occurrence: FrameworkBitmapRecycleOccurrence, owner: FrameworkJpegOwner, fatal: Error): Nothing = throw fatal
+private fun publishRecycleFatalAndRethrow(
+    occurrence: FrameworkBitmapRecycleOccurrence,
+    owner: FrameworkJpegOwner,
+    fatal: Throwable,
+): Nothing {
+    if (occurrence.operation.publishDirectFatalReturn(fatal)) {
+        owner.jpegRuntimeOwner.jpegIoSettlementSignal.signal()
+    }
+    throw fatal
+}
 
 private fun unenteredFrameworkRecycleFailureLocked(occurrence: FrameworkBitmapRecycleOccurrence): Boolean {
     val operation = occurrence.operation

@@ -93,7 +93,7 @@ internal class GlProgram internal constructor(
             GlFragmentPrecision.Highp -> FRAGMENT_SHADER_HIGHP
             GlFragmentPrecision.Mediump -> FRAGMENT_SHADER_MEDIUMP
         }
-        val clean = owner.glesGroup(evidence) {
+        val completion = owner.glesGroupCompletion(evidence) {
             val vertexShader = owner.outwardAdopt(adopt = { shader -> if (shader != 0) partialVertexShaderName = shader }) {
                 GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
             }
@@ -176,12 +176,12 @@ internal class GlProgram internal constructor(
             candidate.stateReady = true
             true
         }
-        if (owner.lastGroupCleanPostprobe) {
+        if (completion.cleanPostprobeObserved) {
             owner.glGate.withLock {
                 consumeCleanDeletionsLocked()
             }
         }
-        if (!clean) {
+        if (!completion.commandsSucceeded) {
             candidate.clearTransient()
             return false
         }
@@ -234,9 +234,9 @@ internal class GlProgram internal constructor(
         return deleted
     }
 
-    internal fun consumeNamespaceLocked() {
+    internal fun consumeNamespaceLocked(authorizedPhysicalRetirement: Boolean = false) {
         check(owner.glGate.isHeldByCurrentThread)
-        owner.checkFatalLocked()
+        if (!authorizedPhysicalRetirement) owner.checkFatalLocked()
         current = null
         partialProgramName = 0
         partialVertexShaderName = 0

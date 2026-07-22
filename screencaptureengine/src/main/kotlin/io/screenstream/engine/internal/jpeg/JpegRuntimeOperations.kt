@@ -1,7 +1,8 @@
 package io.screenstream.engine.internal.jpeg
 
-import io.screenstream.engine.ImageSize
+import io.screenstream.engine.ScreenCaptureEffectiveParameters
 import io.screenstream.engine.internal.EncodedStorageOwner
+import io.screenstream.engine.internal.JpegRuntimeOwner
 import io.screenstream.engine.internal.settlement.EngineClock
 import io.screenstream.engine.internal.settlement.OperationEvidence
 import io.screenstream.engine.internal.settlement.OperationOccurrence
@@ -35,12 +36,7 @@ internal enum class NativeEncodeSettlement {
     ResourceExhausted,
     InternalFailure,
     CancelledWithoutReturn,
-}
-
-internal enum class NativeEncodeFatalCleanupSettlement {
-    NotReady,
-    Reduced,
-    UnsafeResidue,
+    DirectFatal,
 }
 
 internal enum class NoReturnedCarrierSettlement {
@@ -379,13 +375,19 @@ internal class ManagedDirectCarrierReplacementAllocationOccurrence private const
 }
 
 internal class NativeFrameDescriptor internal constructor(
-    internal val width: Int,
-    internal val height: Int,
     internal val stride: Int,
     internal val pixelByteCount: Long,
-    internal val quality: Int,
-    internal val imageSize: ImageSize,
-)
+    internal val effectiveParameters: ScreenCaptureEffectiveParameters,
+) {
+    internal val width: Int
+        get() = effectiveParameters.finalImageSize.widthPx
+
+    internal val height: Int
+        get() = effectiveParameters.finalImageSize.heightPx
+
+    internal val quality: Int
+        get() = effectiveParameters.appliedParameters.jpegQuality
+}
 
 internal enum class NativeEncodeAdmissionDisposition {
     Preparing,
@@ -408,7 +410,93 @@ internal class NativeEncodeEvidence internal constructor() : OperationEvidence {
     internal var resultChannelArmed: Boolean = false
     internal var carrierUseResolved: Boolean = false
     internal var nativeCallReturned: Boolean = false
-    internal var fatalCleanupReduced: Boolean = false
+}
+
+internal class NativeEncodeClaimFact internal constructor(
+    operationIdentity: Long,
+    desiredRevision: Long,
+    geometryGeneration: Long,
+    lifecycleEpoch: Long,
+    topologyIdentity: JpegRuntimeTopologySnapshot,
+    productIdentity: JpegRuntimeProduct.NativeEnabled,
+    carrierLeaseIdentity: NativeMallocCarrierLease,
+    storageIdentity: EncodedStorageOwner,
+    transactionIdentity: EncodedStorageOwner.NativeTransaction,
+    effectiveParameters: ScreenCaptureEffectiveParameters,
+    storageCommands: EncodedStorageOwner.EncodeSettlementCommands,
+) : JpegEncodeClaimFact<NativeEncodeSettlement>(
+    operationIdentity = operationIdentity,
+    desiredRevision = desiredRevision,
+    geometryGeneration = geometryGeneration,
+    lifecycleEpoch = lifecycleEpoch,
+    backendIdentity = JpegEncodeBackendIdentity.Native,
+    topologyIdentity = topologyIdentity,
+    productIdentity = productIdentity,
+    carrierIdentity = productIdentity.nativeCarrier,
+    carrierLeaseIdentity = carrierLeaseIdentity,
+    storageIdentity = storageIdentity,
+    transactionIdentity = transactionIdentity,
+    effectiveParameters = effectiveParameters,
+    healthIdentity = NativeJpegHealth.Enabled,
+    storageCommands = storageCommands,
+) {
+    internal var nativeStatus: Long = NATIVE_RESULT_PENDING
+        private set
+
+    internal var nativeProducedByteCount: Long = NATIVE_RESULT_PENDING
+        private set
+
+    internal var managedAdoptedByteCount: Int = 0
+        private set
+
+    internal var resultChannelArmed: Boolean = false
+        private set
+
+    internal var nativeCallReturned: Boolean = false
+        private set
+
+    internal fun publishNativeEvidenceLocked(
+        result: NativeEncodeSettlement,
+        returnUse: io.screenstream.engine.internal.settlement.OperationReturnUse,
+        returnDisposition: io.screenstream.engine.internal.settlement.OperationReturnDisposition,
+        settlementElapsedRealtimeNanos: Long,
+        encodedByteCount: Int,
+        payloadIdentity: EncodedStorageOwner.UnpublishedEncodedPayload?,
+        failureCause: Throwable?,
+        rawThrowable: Throwable?,
+        carrierUseResolved: Boolean,
+        evidence: NativeEncodeEvidence,
+    ): Boolean {
+        if (isPublished) return false
+        nativeStatus = evidence.nativeStatus
+        nativeProducedByteCount = evidence.nativeProducedByteCount
+        managedAdoptedByteCount = evidence.managedAdoptedByteCount
+        resultChannelArmed = evidence.resultChannelArmed
+        nativeCallReturned = evidence.nativeCallReturned
+        val published = publishLocked(
+            result = result,
+            returnUse = returnUse,
+            returnDisposition = returnDisposition,
+            settlementElapsedRealtimeNanos = settlementElapsedRealtimeNanos,
+            encodedByteCount = encodedByteCount,
+            payloadIdentity = payloadIdentity,
+            failureCause = failureCause,
+            rawThrowable = rawThrowable,
+            carrierUseResolved = carrierUseResolved,
+        )
+        return published
+    }
+}
+
+internal class NativeEncodeFinalizationCommand internal constructor(
+    internal val owner: JpegRuntimeOwner,
+    internal val occurrence: NativeEncodeOccurrence,
+    internal val claim: NativeEncodeClaimFact,
+) {
+    internal val receipt: JpegEncodeFinalizationReceipt = JpegEncodeFinalizationReceipt()
+
+    internal fun executeUnlocked(disposition: JpegEncodeFinalizationDisposition): JpegEncodeFinalizationReceipt =
+        owner.executeNativeEncodeFinalization(this, disposition)
 }
 
 internal class NativeEncodeOwnerBag internal constructor(
@@ -423,8 +511,7 @@ internal class NativeEncodeOwnerBag internal constructor(
     internal var storageOwner: EncodedStorageOwner? = null,
     internal var transaction: EncodedStorageOwner.NativeTransaction? = null,
     internal var segmentSink: EncodedStorageOwner.NativeSegmentSink? = null,
-    internal var unpublishedToRetire: EncodedStorageOwner.UnpublishedEncodedPayload? = null,
-    internal var retainCommittedFrame: Boolean? = null,
+    internal val claim: NativeEncodeClaimFact,
     internal var admissionDisposition: NativeEncodeAdmissionDisposition = NativeEncodeAdmissionDisposition.Preparing,
     internal var admissionFailureCause: Throwable? = null,
 ) : OperationOwnerBag {
@@ -486,9 +573,21 @@ internal class NativeEncodeOccurrence private constructor(
 ) : JpegEndpointOccurrence {
     override var endpointReleased: Boolean = false
     private var capturedProductSlot: JpegRuntimeProduct.NativeEnabled? = capturedProduct
+    private var finalizationCommandSlot: NativeEncodeFinalizationCommand? = null
 
     internal val capturedProduct: JpegRuntimeProduct.NativeEnabled
         get() = checkNotNull(capturedProductSlot)
+
+    internal val claim: NativeEncodeClaimFact
+        get() = ownerBag.claim
+
+    internal val finalizationCommand: NativeEncodeFinalizationCommand
+        get() = checkNotNull(finalizationCommandSlot)
+
+    internal fun bindFinalizationCommand(command: NativeEncodeFinalizationCommand) {
+        check(finalizationCommandSlot == null)
+        finalizationCommandSlot = command
+    }
 
     internal fun clearCapturedProductLocked(settlementGate: ReentrantLock, expectedProduct: JpegRuntimeProduct.NativeEnabled): Boolean {
         check(settlementGate.isHeldByCurrentThread)
@@ -514,6 +613,9 @@ internal class NativeEncodeOccurrence private constructor(
             sourceTopology: JpegRuntimeTopologySnapshot,
             topologyState: AtomicReference<JpegRuntimeTopologyState>,
             descriptor: NativeFrameDescriptor,
+            storage: EncodedStorageOwner,
+            transaction: EncodedStorageOwner.NativeTransaction,
+            storageCommands: EncodedStorageOwner.EncodeSettlementCommands,
             clock: EngineClock,
             signal: SettlementSignal,
             endpoint: PrivateExecutorRuntime,
@@ -537,6 +639,19 @@ internal class NativeEncodeOccurrence private constructor(
             val resultBlock = ByteBuffer.allocateDirect(NATIVE_RESULT_BLOCK_BYTE_COUNT).order(ByteOrder.nativeOrder())
             resultBlock.putLong(NATIVE_STATUS_OFFSET, NATIVE_RESULT_PENDING)
             resultBlock.putLong(NATIVE_PRODUCED_BYTE_COUNT_OFFSET, NATIVE_RESULT_PENDING)
+            val encodeClaim = NativeEncodeClaimFact(
+                operationIdentity = identity.operationIdentity,
+                desiredRevision = desiredRevision,
+                geometryGeneration = geometryGeneration,
+                lifecycleEpoch = lifecycleEpoch,
+                topologyIdentity = sourceTopology,
+                productIdentity = capturedProduct,
+                carrierLeaseIdentity = carrierLease,
+                storageIdentity = storage,
+                transactionIdentity = transaction,
+                effectiveParameters = descriptor.effectiveParameters,
+                storageCommands = storageCommands,
+            )
             val bag = NativeEncodeOwnerBag(
                 product = capturedProduct,
                 transitionProduct = transitionProduct,
@@ -545,6 +660,10 @@ internal class NativeEncodeOccurrence private constructor(
                 descriptor = descriptor,
                 carrierLease = carrierLease,
                 resultBlock = resultBlock,
+                storageOwner = storage,
+                transaction = transaction,
+                segmentSink = transaction.segmentSink,
+                claim = encodeClaim,
             )
             val operation = OperationOccurrence(
                 identity = identity.operationIdentity,

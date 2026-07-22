@@ -31,6 +31,9 @@ Documents 01–12 bind product/external outcomes, semantic authority and domain 
 security, platform/binary invariants, critical safety order, and verification outcomes. Private layout, names,
 helper/test decomposition, and equivalent algorithms are orientation unless explicitly marked as public,
 JNI/ABI, build, source-set, platform, or safety anchors.
+In particular, private occurrence, owner, port, receipt-helper, and collaborator names plus non-ABI field/layout
+choices are navigational vocabulary rather than required declarations; their semantic authority, ownership,
+cardinality, ordering, copy bounds, and safety evidence remain normative.
 
 A semantic owner remains the sole decision, linearization, commit, and resource-lifecycle authority while using
 cohesive private calculation, action, execution, settlement, cleanup, or publication collaborators. They create
@@ -125,8 +128,8 @@ requirements. Verification-only domain anchors appear only in testing supplement
 | --- | --- |
 | Product/public | `PUB:ScreenCaptureEngine.kt`, `PUB:ScreenCaptureConfig.kt`, `PUB:ScreenCaptureParameters.kt`, `PUB:ScreenCaptureOutput.kt`, `PUB:ScreenCaptureObservations.kt` |
 | Shared runtime | `SET:` plus the Session cleanup authority under `INT:` |
-| Controller/reconciliation | `CTR:`; `SessionController` remains the sole `sessionGate` and commit authority |
-| Android/metrics | `AND:` plus public source/provider declarations in `PUB:ScreenCaptureConfig.kt` |
+| Controller/reconciliation | `CTR:`; `CTRL-*` remains the sole Session lifecycle, reconfiguration, and commit authority |
+| Android/metrics | `AND:` plus public source/observer/subscription declarations in `PUB:ScreenCaptureConfig.kt` |
 | Target | `TGT:` |
 | GL | `GL:` |
 | Framework JPEG | Framework-owned declarations under `JPG:` |
@@ -138,13 +141,9 @@ requirements. Verification-only domain anchors appear only in testing supplement
 Semantic ownership is ID-based. A production path appearing in more than one packet slice denotes physical
 co-location only and does not create duplicate authority.
 
-Private decomposition follows §2 and stays shallow, domain-oriented, and cohesive: no flat ownership dump,
-package/file-per-method split, mechanical extension layer, or generic `utils`/`common`. Controller state remains
-one Session aggregate; physical domain resources and operation cells retain their canonical owner and gate.
-
-The source layout contains no additional executor, scheduler, `HandlerThread`, lane, gate, lock, fatal slot, or
-resource-lifetime machine. Exact runtime topology and endpoint rules remain solely in `CORE-001`, `CORE-EXEC-1`,
-`CTRL-040`, and `AND-CAP-001`; gates and lock order remain their canonical domain/shared-runtime definitions.
+Private decomposition is domain-oriented and may vary while Session lifecycle/commit authority and each physical
+resource/operation owner remain singular. Exact runtime topology, endpoints, gates, and lock order are owned only
+by `CORE-001`, `CORE-EXEC-1`, `CTRL-040`, and `AND-CAP-001`.
 
 Domain-specific deadline constants stay with their domain; generic deadline machinery stays settlement-owned.
 Encoded storage remains one semantic state machine under its exact binary anchors.
@@ -187,9 +186,9 @@ Exact runner/task/module bindings are solely in
 | --- | --- | --- |
 | Controller/reconciliation | immutable owners/facts/receipts exposed by each leaf's typed-boundary section | `CTRL-040`, `CTRL-100`, `CTRL-110`, `CTRL-120`, `CTRL-130`, `CTRL-200`, `CTRL-300`, `CTRL-400` |
 | Session scheduler | controller-drainer submission plus deadline, pacing/repeat, and Stats wake commands from `CORE-WAKE-2`, `CTRL-010`, `CTRL-200`, `DEL-PACE-010`, `DEL-OBS-010` | `CTRL-040` |
-| Android capture | Target-owned staged ports/leases/provenance from `TGT-030`; exact Controller-owned retained command or positive Replacement correlation from `CTRL-120` | `AND-CAP-020`, `AND-CAP-030` |
-| GL | Target ports/leases from `TGT-030`, `TGT-070`; retained-reconciliation command from `CTRL-120` with the exact `TargetFrameQuiescedFact`; exact carrier lease from `NJPEG-030` | `GL-001`, `GL-050`, `GL-060`, `GL-070` |
-| Target | exact Controller-owned Replacement correlation from `CTRL-120`; Android-owned bound `RetiredUnused | DefinitelyUnentered | PostExposed` outcome and exact platform result from `AND-CAP-020`, `AND-CAP-030`; GL construction/destruction/namespace evidence from `GL-050`, `GL-070` | `TGT-010`, `TGT-040`, `TGT-050`, `TGT-060`, `TGT-070`, `TGT-080` |
+| Android capture | Target-owned staged ports/leases/provenance from `TGT-030`; one Controller-authorized serialized mutation from `CTRL-120` | `AND-CAP-020`, `AND-CAP-030` |
+| GL | Target ports/leases from `TGT-030`, `TGT-070`; Controller-authorized mutation from `CTRL-120` with the exact `TargetFrameQuiescedFact`; exact carrier lease from `NJPEG-030` | `GL-001`, `GL-050`, `GL-060`, `GL-070` |
+| Target | one Controller reconfiguration correlation from `CTRL-120`; Android-owned bound `RetiredUnused | DefinitelyUnentered | PostExposed` outcome and exact platform result from `AND-CAP-020`, `AND-CAP-030`; GL construction/destruction/namespace evidence from `GL-050`, `GL-070` | `TGT-010`, `TGT-040`, `TGT-050`, `TGT-060`, `TGT-070`, `TGT-080` |
 | Framework JPEG | carrier lease from `NJPEG-020`, `NJPEG-030`; transaction from `STORE-030`, `STORE-040`, `STORE-050`; selection/currentness from `CTRL-100`, `CTRL-110`, `CTRL-130`, `CTRL-300` | `FJPEG-010` |
 | Native JPEG | GL range/metadata from `GL-060`; transaction/adoption endpoint from `STORE-010`, `STORE-030`, `STORE-060`; selection/currentness from `CTRL-100`, `CTRL-110`, `CTRL-130` | `NJPEG-010` |
 | Storage | producer facts from `FJPEG-010`, `FJPEG-050`, `NJPEG-010`, `NJPEG-080`; role commands from `CTRL-200`, `CTRL-300` | `STORE-010` |

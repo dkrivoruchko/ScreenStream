@@ -55,7 +55,7 @@ public object ScreenCaptureEngine {
     ): ScreenCaptureSession
 }
 
-public interface ScreenCaptureSession {
+public class ScreenCaptureSession private constructor(/* engine-owned arguments */) {
     public suspend fun start(
         mediaProjection: MediaProjection,
         initialParameters: ScreenCaptureParameters = ScreenCaptureParameters(),
@@ -68,7 +68,7 @@ public interface ScreenCaptureSession {
     public val diagnosticEvents: SharedFlow<ScreenCaptureDiagnosticEvent>
 }
 
-public interface FrameSubscription {
+public class FrameSubscription private constructor(/* engine-owned arguments */) {
     public suspend fun unsubscribe(): Unit
 }
 ```
@@ -81,9 +81,9 @@ At creation, State is `NotStarted`, every Stats/drop field is zero, and no platf
 
 | Operation | Caller-visible contract |
 | --- | --- |
-| `start` | Starts exactly once with fresh authority. Success returns only after `Running(Active)` is visible; it does not wait for the first JPEG. |
-| `updateParameters` | Synchronously validates and accepts the latest unequal desire in a nonterminal Running state. Return acknowledges desire, not output convergence. Equal desire is a no-op. |
-| `onFrame` | Registers the one current consumer path and returns its identity-based subscription. It performs no capture work by itself. |
+| `start` | Starts exactly once with fresh authority. Success returns only after `Active` is visible; it does not wait for the first JPEG. |
+| `updateParameters` | Synchronously validates and accepts the latest unequal desire in a nonterminal Running state, logically committing that requested value with `Reconfiguring`. Return acknowledges desire, not publication delivery or output convergence. Equality with the current requested value is an absolute no-op, including while reconfiguring. |
+| `onFrame` | Registers the one current consumer path and returns its identity-based subscription. Registration may exist while Reconfiguring or Suspended, but creates no cached-first offer or new handoff until Active. It performs no capture work by itself. |
 | `unsubscribe` | Immediately closes new delivery for that registration, then waits for its entire outstanding handoff to settle. It never stops capture. |
 | `stop` | Idempotently fixes owner stop and closes all new public work before returning. Terminal observation and physical cleanup may follow asynchronously. |
 
@@ -113,8 +113,8 @@ Local parameter validation always precedes the state decision. Therefore a local
 | `start` in Starting, any Running, or terminal | Throw `IllegalStateException`; allocate and touch nothing for the losing projection. |
 | `stop` in `NotStarted` | Fix `OwnerStop`; terminal `requestedParameters` is ordinary default `ScreenCaptureParameters()` and `lastEffectiveParameters == null`. Create no desired revision or runtime lane. Every later `start` loses and does not touch its projection. |
 | `updateParameters` in NotStarted, Starting, or terminal, after local validation | Throw `IllegalStateException`; publish no desire/revision and perform no resource work. |
-| legal update structurally equal to current requested parameters | Return `Unit`; requested value and revision remain unchanged. |
-| legal unequal update | Replace the latest desired value/revision and return `Unit`; intermediate accepted desires may be conflated in observation. Revision exhaustion fails terminally with `InternalFailure` before reuse and throws its `ScreenCaptureException`. |
+| legal update structurally equal to current requested parameters | Return `Unit`; requested value, revision, current Running value, admission cutoffs, and mechanics remain unchanged, including while reconfiguring. |
+| legal unequal update | Replace the latest desired value/revision and logically commit `Reconfiguring(requested, lastEffective, lastKnownGeometry, visibility)` during the call. State assignment is ordered before the first outward reconfiguration effect, but synchronous collector delivery or observation before setter return is not guaranteed. Intermediate accepted desires may be conflated. Revision exhaustion fails terminally with `InternalFailure` before reuse and throws its `ScreenCaptureException`. |
 | `onFrame` in NotStarted, Starting, or nonterminal Running with no unresolved registration | Register one consumer. A Suspended Session waits for later valid output. |
 | `onFrame` while a prior registration has not successfully unsubscribed, or after terminal | Throw `IllegalStateException`; create no generation, handoff, lease, or worker. |
 | unresolved `unsubscribe` when `Failed(problem)` wins/is visible | Throw `ScreenCaptureException(problem)`; unresolved residue remains retained and replacement remains forbidden. |
@@ -135,9 +135,7 @@ public class ScreenCaptureConfig(
 
 public enum class JpegBackendPolicy { Auto, FrameworkOnly }
 
-public sealed interface CaptureMetricsSource
-
-public fun interface CaptureMetricsProvider : CaptureMetricsSource {
+public fun interface CaptureMetricsSource {
     public fun subscribe(observer: CaptureMetricsObserver): CaptureMetricsSubscription
 }
 
@@ -163,18 +161,17 @@ public object CaptureMetricsSources {
 ```
 
 `CaptureMetrics` requires three positive values; null means that the selected source's currently associated
-geometry is unavailable. `CaptureMetricsSource` is closed to engine-defined source kinds. The public
-`CaptureMetricsProvider` direct subtype is deliberately externally implementable, so application providers are
-indirect implementations of the sealed source contract. `subscribe` establishes one explicit observation and
+geometry is unavailable. `CaptureMetricsSource` is externally implementable and supports independent repeated
+subscriptions. Built-in sources returned by `CaptureMetricsSources` are private implementations. `subscribe` establishes one explicit observation and
 returns its exact close handle. Observer calls may occur synchronously before `subscribe` returns and may arrive
-from arbitrary provider threads; their adoption, ordering, and closure are defined by
-[AND-MET-020](06-domain-android-capture-metrics.md#and-met-020--provider-observation-and-active-ordering).
+from arbitrary source-owned threads; their adoption, ordering, and closure are defined by
+[AND-MET-020](06-domain-android-capture-metrics.md#and-met-020--source-observation-and-active-ordering).
 
 | Configuration | Contract |
 | --- | --- |
 | `captureMetricsSource == null` | Create one Session-private built-in source that follows `Display.DEFAULT_DISPLAY` through application `DisplayManager`. |
 | `fromDisplay(context, display)` | Return an immutable reusable built-in definition fixed to that exact logical `Display` object. A provably missing/invalid association at construction throws `IllegalArgumentException`; later loss emits null and the same exact association may recover. |
-| custom provider | Preserve that exact provider object and its Activity/window/dynamic-display/caller-lifecycle policy. |
+| custom source | Preserve that exact source object and its Activity/window/dynamic-display/caller-lifecycle policy. |
 | `jpegBackendPolicy == Auto` | Use Native when every documented capability check succeeds; otherwise Framework. Safely returned Native failure disables Native monotonically for later frames. |
 | `jpegBackendPolicy == FrameworkOnly` | Never attempt the platform Native compressor. |
 
@@ -198,12 +195,12 @@ Metrics-source outcomes are closed:
 | --- | --- |
 | normal completion before joint readiness, including after a timely valid value but before handle adoption | startup `Failed(CaptureUnavailable)` and matching start exception; no completion diagnostic |
 | no joint readiness before expiry | startup `Failed(CaptureUnavailable)` and matching start exception |
-| subscribe `Exception`, invalid returned handle, or reported provider failure before joint readiness | startup `Failed(InternalFailure)` and matching start exception; subscribe `Exception`/invalid handle is authoritative over staged callbacks while readiness remains unresolved |
+| subscribe `Exception`, invalid returned handle, or reported source failure before joint readiness | startup `Failed(InternalFailure)` and matching start exception; subscribe `Exception`/invalid handle is authoritative over staged callbacks while readiness remains unresolved |
 | loss of required metrics after a valid value but before first Active | startup `Failed(CaptureUnavailable)` and matching start exception |
-| normal completion after joint readiness, including before first Active | close ingress, retain the last valid metrics, allow startup to continue, and attempt exactly one normal observation-completion `MetricsProvider`/`CapabilityCheck` diagnostic with null cause for that observation lifetime |
-| subscribe failure or reported provider failure after a valid value | terminal `Failed(InternalFailure)` |
+| normal completion after joint readiness, including before first Active | close ingress, retain the last valid metrics, allow startup to continue, and attempt exactly one normal observation-completion `MetricsSource`/`CapabilityCheck` diagnostic with null cause for that observation lifetime |
+| subscribe failure or reported source failure after a valid value | terminal `Failed(InternalFailure)` |
 | subscription-close `Exception` while the Session remains nonterminal | terminal `Failed(InternalFailure)` |
-| null/unusable runtime value after first Active | `Running(Suspended(CaptureUnavailable))`, retaining last committed geometry as historical observation |
+| null/unusable runtime value after first Active | `Suspended(CaptureUnavailable)`, retaining last committed geometry as historical observation |
 | later valid runtime value | reconcile and potentially resume Active |
 
 A positive tuple incompatible with the requested region/crop is `InvalidRequest`, not `CaptureUnavailable`.
@@ -212,6 +209,8 @@ attachment's normally returned nonnull exact handle coexist before prior loss, t
 outcome/adoption is distinct from full attachment-ticket settlement. Pre-return callbacks are staging only;
 null return, throw, nonreturn, expiry, or Session terminal cannot be converted into success. A first post-valid
 availability loss before first Active remains startup `CaptureUnavailable` even if a later staged value is valid.
+Expiry of first-positive metrics readiness or API-34+ initial-resize readiness is `CaptureUnavailable`; any real
+late handle or resize result is adopted or applied only to its matching cleanup residue and cannot revive startup.
 
 ## PROD-030 — Capture parameters
 
@@ -319,42 +318,34 @@ evidence use the documented best-effort SDR actions. Tests never become runtime 
 ## PROD-040 — Effective output and borrowed frame
 
 ```kotlin
-public class ImageRect internal constructor(
+public class ImageRect private constructor(
     public val left: Int,
     public val top: Int,
     public val right: Int,
     public val bottom: Int,
 )
 
-public class CaptureGeometry internal constructor(
+public class CaptureGeometry private constructor(
     public val widthPx: Int,
     public val heightPx: Int,
     public val densityDpi: Int,
 )
 
-public class ImageSize internal constructor(
+public class ImageSize private constructor(
     public val widthPx: Int,
     public val heightPx: Int,
 )
 
-public class ScreenCaptureEffectiveParameters internal constructor(
+public class ScreenCaptureEffectiveParameters private constructor(
+    public val appliedParameters: ScreenCaptureParameters,
     public val captureGeometry: CaptureGeometry,
-    public val sourceRegion: SourceRegion,
-    public val crop: CropInsetsPx,
     public val appliedSourceRect: ImageRect,
-    public val outputSize: OutputSize,
     public val finalImageSize: ImageSize,
-    public val rotation: Rotation,
-    public val mirror: Mirror,
-    public val colorMode: ColorMode,
-    public val frameRate: FrameRate,
-    public val frameRepeatIntervalMillis: Long?,
-    public val jpegQuality: Int,
 )
 
-public interface EncodedImageFrame {
+public class EncodedImageFrame private constructor(/* engine-owned arguments */) {
     public val byteCount: Int
-    public val imageSize: ImageSize
+    public val effectiveParameters: ScreenCaptureEffectiveParameters
     public val sequence: Long
     public val timestampElapsedRealtimeNanos: Long
     public fun copyTo(destination: ByteArray, destinationOffset: Int = 0): Int
@@ -362,11 +353,13 @@ public interface EncodedImageFrame {
 }
 ```
 
-`CaptureGeometry` is the authoritative source geometry of the last committed startup/reconciliation. `ImageRect`
+`CaptureGeometry` is the authoritative source geometry of the committed startup/reconciliation. `ImageRect`
 is a left/top-inclusive, right/bottom-exclusive rectangle in that source. `ScreenCaptureEffectiveParameters`
-reports that committed startup/reconciliation and is observation, not reusable configuration.
+contains the exact immutable applied parameter snapshot and its resolved output geometry; it is observation, not
+reusable configuration.
 
-Every produced frame has exact JPEG byte count and positive image size. Sequence is Session-local, starts at one,
+Every produced frame has the exact immutable effective descriptor of its output/handoff generation and a positive
+`effectiveParameters.finalImageSize`. Sequence is Session-local, starts at one,
 and fails terminally before reuse. Timestamp is the elapsed-realtime sample at output commit; equality is allowed.
 `copyTo` validates the complete destination range, throws `IndexOutOfBoundsException` without copying on invalid
 input, and otherwise copies exactly `byteCount`. `copyBytes` returns one exact caller-owned array.
@@ -390,15 +383,27 @@ An entered callback `Exception` increments `byCallbackFailure`, resolves its cal
 Internal Delivery-lane submission failure is a Session failure, not a delivery drop. Results committed after
 terminal transfer change only cleanup residue and no public counter, diagnostic problem, or State.
 
-After successful registration, the current valid cached JPEG is offered immediately when available. It preserves
-the original bytes, sequence, timestamp, and image size; it performs no capture/encode/copy, does not increment
-`framesProduced`, and is not delayed by MaxFps or repeat pacing. It uses the same handoff and unsubscribe rules.
+Pause closes creation/admission of new frame handoffs; it does not revoke a handoff whose admission commit won
+first. That grandfathered handoff may enter its callback while State already reports
+`Reconfiguring`, and it completes normally as draining delivery of the immutable old output and registration
+generation. Its frame retains that old generation's exact effective descriptor even if callback entry follows a
+newer `Active` commit. Reconfiguration neither cancels nor waits for the callback; serial Delivery prevents a
+later post-resume callback from overlapping it.
+
+After successful registration while Active, the current valid cached JPEG is offered immediately when available. It preserves
+the original bytes, sequence, timestamp, and effective descriptor; it performs no capture/encode/copy, does not increment
+`framesProduced`, and is not delayed by MaxFps or repeat pacing. A registration created while Reconfiguring or Suspended persists,
+but it creates no cached-first offer or handoff until Active. This does not suppress a grandfathered handoff from
+the preceding Active interval. All delivery uses the same handoff and unsubscribe rules.
 
 Repeat republishes the latest valid immutable JPEG with new sequence/timestamp, performs no capture/GL/JPEG/copy,
-and increments `framesProduced` but not `framesEncoded`. Fresh output wins a tie. Suspension, untrusted source,
-image-affecting change, fallback, target/output rebuild, or terminal invalidates cache/repeat. A healthy retained
-target is not replaced solely for freshness, and the first buffer after resume may predate the resume; V1 makes no
-post-resume freshness guarantee.
+and increments `framesProduced` but not `framesEncoded`. Fresh output wins a tie. During any suspension the cache
+is unavailable and no materialization, repeat, cached-first offer, or new frame handoff is admitted. A callback
+entry belonging to a handoff admitted before the pause is draining delivery, not new output. An image-,
+backend-, or topology-affecting change invalidates it; an exact-compatible policy-only
+change may preserve its bytes subject to currentness at resume. Untrusted source, fallback, target/output rebuild,
+or terminal invalidates it. A healthy target is not replaced solely for freshness, and the first buffer after
+resume may predate the resume; V1 makes no post-resume freshness guarantee.
 
 ## PROD-060 — State and errors
 
@@ -406,32 +411,40 @@ post-resume freshness guarantee.
 public sealed interface ScreenCaptureState {
     public object NotStarted : ScreenCaptureState
     public object Starting : ScreenCaptureState
-    public class Running internal constructor(
-        public val requestedParameters: ScreenCaptureParameters,
-        public val runningState: ScreenCaptureRunningState,
-        public val capturedContentVisible: Boolean?,
-    ) : ScreenCaptureState
-    public class Stopped internal constructor(
+    public sealed interface Running : ScreenCaptureState {
+        public val requestedParameters: ScreenCaptureParameters
+        public val capturedContentVisible: Boolean?
+    }
+    public class Active private constructor(
+        public val effectiveParameters: ScreenCaptureEffectiveParameters,
+        override public val capturedContentVisible: Boolean?,
+    ) : Running {
+        override public val requestedParameters: ScreenCaptureParameters
+            get() = effectiveParameters.appliedParameters
+    }
+    public class Reconfiguring private constructor(
+        override public val requestedParameters: ScreenCaptureParameters,
+        public val lastEffectiveParameters: ScreenCaptureEffectiveParameters,
+        public val lastKnownCaptureGeometry: CaptureGeometry?,
+        override public val capturedContentVisible: Boolean?,
+    ) : Running
+    public class Suspended private constructor(
+        override public val requestedParameters: ScreenCaptureParameters,
+        public val problem: ScreenCaptureProblem,
+        public val lastEffectiveParameters: ScreenCaptureEffectiveParameters,
+        public val lastKnownCaptureGeometry: CaptureGeometry?,
+        override public val capturedContentVisible: Boolean?,
+    ) : Running
+    public class Stopped private constructor(
         public val reason: ScreenCaptureStopReason,
         public val requestedParameters: ScreenCaptureParameters,
         public val lastEffectiveParameters: ScreenCaptureEffectiveParameters?,
     ) : ScreenCaptureState
-    public class Failed internal constructor(
+    public class Failed private constructor(
         public val problem: ScreenCaptureProblem,
         public val requestedParameters: ScreenCaptureParameters,
         public val lastEffectiveParameters: ScreenCaptureEffectiveParameters?,
     ) : ScreenCaptureState
-}
-
-public sealed interface ScreenCaptureRunningState {
-    public class Active internal constructor(
-        public val effectiveParameters: ScreenCaptureEffectiveParameters,
-    ) : ScreenCaptureRunningState
-    public class Suspended internal constructor(
-        public val problem: ScreenCaptureProblem,
-        public val lastEffectiveParameters: ScreenCaptureEffectiveParameters,
-        public val lastKnownCaptureGeometry: CaptureGeometry?,
-    ) : ScreenCaptureRunningState
 }
 
 public enum class ScreenCaptureStopReason { OwnerStop, CaptureEnded }
@@ -439,31 +452,35 @@ public enum class ScreenCaptureStopReason { OwnerStop, CaptureEnded }
 public enum class ScreenCaptureProblem {
     InvalidRequest,
     CaptureUnavailable,
-    Reconfiguring,
     ResourceExhausted,
     InternalFailure,
 }
 
-public class ScreenCaptureException internal constructor(
+public class ScreenCaptureException private constructor(
     public val problem: ScreenCaptureProblem,
     cause: Throwable? = null,
 ) : Exception(problem.name, cause)
 ```
 
-Active is valid only while a healthy compatible live output topology is actually owned. Historical effective
-parameters cannot make retired output Active. Every Running value is one immutable requested/running/visibility
-snapshot. Terminal values freeze final requested and last committed effective parameters (`null` if none).
-`lastKnownCaptureGeometry` is historical observation, never current availability proof.
+`Active` is valid only while a healthy compatible live output topology is owned, and its requested parameters
+are its effective descriptor's applied snapshot. `Reconfiguring` truthfully reports a serialized mutation.
+`Suspended` reports recoverable unavailability while retaining the latest desire. Every Running value is one
+immutable requested/visibility snapshot. The direct variant identity carries lifecycle meaning;
+`capturedContentVisible` is only the latest nullable observation. During `Reconfiguring` or `Suspended`, requested parameters may differ
+from `lastEffectiveParameters.appliedParameters`. Terminal values freeze final requested and last committed
+effective parameters (`null` if none). `lastKnownCaptureGeometry` is historical observation, never current
+availability proof.
 
 | Problem | Meaning |
 | --- | --- |
 | `InvalidRequest` | Current geometry and parameters cannot produce the requested result. |
 | `CaptureUnavailable` | Projection, source, or required metrics are unavailable. |
-| `Reconfiguring` | Output is unavailable after irreversible retirement and before a current replacement/result, including retirement of a poisoned private GL context. It admits no output, fallback, or retry. Startup remains Starting rather than publishing this state. |
 | `ResourceExhausted` | A clean deterministic capacity or required allocation/creation boundary denied the request. |
 | `InternalFailure` | Platform, GL/JPEG, ownership, or engine evidence became unsafe or inconsistent. |
 
-Startup has no Suspended outcome. During Running, invalid geometry and missing capture authority suspend and may
+`lastEffectiveParameters` in `Reconfiguring` and `Suspended` is historical last committed Active output.
+`Suspended.problem` is engine-constructed and is exactly recoverable `InvalidRequest`, `CaptureUnavailable`, or
+pre-retirement `ResourceExhausted`; startup has no Suspended outcome. During Running, invalid geometry and missing capture authority suspend and may
 recover. A deterministic mandatory denial before irreversible retirement suspends with `ResourceExhausted` and
 retains the desire. A required current allocation/creation failure after retirement is terminal
 `ResourceExhausted`. Startup deterministic denial or required allocation/creation failure is likewise terminal
@@ -482,7 +499,7 @@ continue or retain unresolved resources until process death; the public API expo
 ## PROD-070 — Stats
 
 ```kotlin
-public class ScreenCaptureStats internal constructor(
+public class ScreenCaptureStats private constructor(
     public val framesEncoded: Long,
     public val framesProduced: Long,
     public val droppedFrames: ScreenCaptureFrameDropStats,
@@ -494,17 +511,16 @@ public class ScreenCaptureStats internal constructor(
     public val averageEncodedByteCount: Int,
 )
 
-public class ScreenCaptureFrameDropStats internal constructor(
-    public val byRateLimit: Long,
+public class ScreenCaptureFrameDropStats private constructor(
     public val byPipelineBusy: Long,
     public val byStaleWork: Long,
     public val byFailure: Long,
 ) {
     public val total: Long
-        get() = saturatingSum(byRateLimit, byPipelineBusy, byStaleWork, byFailure)
+        get() = saturatingSum(byPipelineBusy, byStaleWork, byFailure)
 }
 
-public class ScreenCaptureDeliveryDropStats internal constructor(
+public class ScreenCaptureDeliveryDropStats private constructor(
     public val byConsumerBusy: Long,
     public val byCallbackFailure: Long,
 ) {
@@ -514,15 +530,15 @@ public class ScreenCaptureDeliveryDropStats internal constructor(
 ```
 
 All fields start at zero. Counters and totals saturate at `Long.MAX_VALUE`. `droppedFrames.total` is the
-saturating sum of `byRateLimit + byPipelineBusy + byStaleWork + byFailure`;
+saturating sum of `byPipelineBusy + byStaleWork + byFailure`;
 `droppedDeliveries.total` is the saturating sum of
 `byConsumerBusy + byCallbackFailure`. Each total is derived from its components, never an
 independently updated counter. `framesEncoded` counts mechanically successful fresh JPEG encodes, including a
 result later suppressed as stale. `framesProduced` counts fresh and repeat output commits whether or not a
 consumer exists; cached-first delivery counts neither.
 
-An early paced source remains one unmaterialized pending source, so V1 `byRateLimit` remains zero. A materialized
-attempt dropped because the production slot changed is `byPipelineBusy`. A mechanically returned production
+Rate limiting retains one unmaterialized pending source and is not a drop. A materialized attempt dropped because
+the production slot changed is `byPipelineBusy`. A mechanically returned production
 failure is `byFailure` even if its work identity became stale; `byStaleWork` is reserved for otherwise successful
 work suppressed solely by stale identity. Terminal retirement of unclassified/unpublished/transferred work adds
 no frame-drop count.
@@ -547,8 +563,10 @@ nonpositive first-to-last elapsed interval; otherwise it is
 inside that interval. Public Doubles are always finite: invalid mean updates retain the last finite mean,
 nonfinite FPS clamps to the greatest finite Double, and saturation freezes the affected derived value.
 
-Ordinary dirty Stats publish no more often than once per 1,000 ms of engine elapsed time, without catch-up.
-Lifecycle, suspension/resume, rebuild/fallback, and terminal changes publish immediately. Final Stats is assigned
+Session creation publishes the all-zero Stats value. Accepted start preserves that same snapshot and performs no
+Stats assignment or wake. Stats become dirty only when an authoritative public field changes. Ordinary dirty Stats publish no more often
+than once per 1,000 ms of engine elapsed time, without catch-up; structurally unchanged Stats are not assigned
+for reconfiguration alone. Final Stats is assigned
 immediately before terminal State. State and Stats remain separate Flows, not an atomic combined value.
 Controller eligibility, accounting, and cutoff commits are owned by
 [CTRL-200](05-domain-controller-reconciliation.md#ctrl-200--policy-attempt-counter-and-observation-authority);
@@ -558,7 +576,7 @@ unlocked Stats construction and publication are owned by
 ## PROD-080 — Diagnostics
 
 ```kotlin
-public class ScreenCaptureDiagnosticEvent internal constructor(
+public class ScreenCaptureDiagnosticEvent private constructor(
     public val sequence: Long,
     public val timestampEpochMillis: Long,
     public val source: String,
@@ -574,12 +592,13 @@ makes one best-effort attempt. Sequence starts at one and advances per attempt; 
 Message wording is noncontractual but short and semantically identifies the decision/action. Throwable text is
 not copied into the message; raw cause remains a separate reference whose retention policy belongs to the app.
 
-Allowed sources are exactly `Session`, `MetricsProvider`, `MediaProjection`, `VirtualDisplay`, `SurfaceTarget`,
+V1 engine-emitted sources are `Session`, `MetricsSource`, `MediaProjection`, `VirtualDisplay`, `SurfaceTarget`,
 `GlPipeline`, `FrameworkJpeg`, `NativeJpeg`, `FrameConsumer`, `Controller`, `ColorPipeline`, and `Cleanup`.
+Source and label remain extensible strings rather than enums; callers handle unknown future values.
 
-| Label | Allowed source and required observation |
+| Label | V1 source and required observation |
 | --- | --- |
-| `CapabilityCheck` | Applicable boundary source for each top-level capability selection or failure; message names boundary, decision, and action and carries the exact raw cause when present. Additionally, exactly one normal post-readiness `MetricsProvider` observation-completion event per observation lifetime names the retained-last-valid action and has null cause. Pre-readiness completion, failure, and duplicate terminal delivery create no completion event. |
+| `CapabilityCheck` | Applicable boundary source for each top-level capability selection or failure; message names boundary, decision, and action and carries the exact raw cause when present. Additionally, exactly one normal post-readiness `MetricsSource` observation-completion event per observation lifetime names the retained-last-valid action and has null cause. Pre-readiness completion, failure, and duplicate terminal delivery create no completion event. |
 | `RuntimeProfile` | `Session`, once for initial Running modes. |
 | `RuntimeModeChanged` | `SurfaceTarget`, `FrameworkJpeg`, or `NativeJpeg` for an actual mode change/fallback. |
 | `DeliveryProblem` | `FrameConsumer` for a committed callback `Exception`. |
@@ -597,13 +616,18 @@ frame production require no event.
 Public API uses ordinary classes, never data classes. Parameters, parameter values, metrics, geometry,
 `ImageSize`, State, effective parameters, Stats, and drop vectors have manual structural equality/hash and a
 bounded `toString()` containing the class name and documented scalar/enum/value fields. It excludes buffers,
-bytes, callbacks, sources, providers, observers, and Throwable graphs. Config, metrics source/provider/observer,
-metrics subscription, Session, frame subscription, frame lease, diagnostic event, and exception retain identity
+bytes, callbacks, sources, observers, and Throwable graphs. Config, metrics source/observer,
+metrics subscription, Session, frame subscription, frame, diagnostic event, and exception retain identity
 semantics unless stated otherwise.
 
-Only caller-input models have public constructors. Engine-produced geometry, output, State, Stats, diagnostics,
-frame, subscription, and exception values cannot be constructed by callers. Kotlin/JVM null checks retain normal
-behavior.
+The supported caller API is Kotlin-only; Java interoperability and source ergonomics are best effort. Only
+caller-input models and genuine extension points are caller-constructible. Engine-produced geometry, output,
+State, Stats, diagnostics, Session, frame, subscription, and exception values are closed facade classes with
+private Kotlin constructors. Engine construction uses `internal` `@JvmSynthetic` Kotlin factories. External
+Kotlin source modules can neither call those constructors nor call those factories. Constructor arguments,
+factory names, compiler-generated synthetic accessors, and private representation remain implementation freedom;
+schematic constructor comments in the API blocks omit engine-owned argument lists and do not denote no-argument
+constructors. Kotlin/JVM null checks retain normal behavior.
 
 Caller-input public constructors, `ScreenCaptureEngine.create`, and the State, Stats, and diagnostic Flow getters
 are callable from any thread. They perform only bounded validation or snapshot access: no Handler/Looper or
@@ -615,8 +639,15 @@ reenter an operation that waits on publication. `Main.immediate` is supported fo
 collection; Unconfined collection is unsupported where it creates reentry/liveness risk.
 
 Private readiness and entered-operation boundaries are positive finite implementation policy, not public SLAs.
-They cannot change product classification, ownership, lifecycle priority, support, or runtime selection. The only
-fixed public timing value is the 1,000 ms ordinary Stats cadence.
+They cannot change product classification, ownership, lifecycle priority, support, or runtime selection.
+
+The 1,000 ms ordinary Stats cadence is the only unconditional engine-owned publication cadence; caller-selected
+`SampleEvery`, `MaxFps`, and repeat timing remain the parameter ranges in `PROD-030`, not additional unconditional
+publication schedules.
+
+No synchronous setter-return or collector-resumption oracle exists. An accepted update has logically committed
+its desire and reconfiguration state even when a caller reading or collecting the Flow has not yet observed that
+value.
 
 ## PROD-100 — Explicit V1 boundaries
 

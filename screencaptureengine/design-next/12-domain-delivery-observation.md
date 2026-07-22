@@ -14,15 +14,15 @@
 - [DEL-OBS-001](#del-obs-001--coherent-state-and-publication-order)
 - [DEL-OBS-010](#del-obs-010--stats-accounting-and-cadence)
 - [DEL-OBS-020](#del-obs-020--diagnostic-construction-and-emission)
-- [Timeout source matrix](#timeout-source-matrix)
 - [Structural bounds](#2-structural-bounds)
 - [Exact verification rows](#3-exact-verification-rows)
-- [DEL-900](#del-900--forbidden-alternatives)
+- [DEL-900](#del-900--safety-boundaries)
+- [Official sources](#4-official-sources)
 
 ## 1. Scope and interfaces
 
 This leaf owns pacing calculation and wake execution over the `TGT-050` signal and sole `STORE-020` production
-role, delegated repeat/cache mechanics, the physical frame-consumer handoff, subscribe/unsubscribe mechanics,
+role, delegated repeat/cache mechanics, paused-admission enforcement, the physical frame-consumer handoff, subscribe/unsubscribe mechanics,
 and unlocked immutable State/Stats/diagnostic construction and publication. Public frame, State, Stats, and
 diagnostic schema stay respectively in
 [PROD-040](02-product-contract.md#prod-040--effective-output-and-borrowed-frame),
@@ -66,7 +66,8 @@ Each Target generation owns one conflated pending-source indication. A current l
 lossless drainer; repetitions are neither attempts nor drops, and retired generations are inert. Only a
 controller-authorized consume may clear it, when currentness, topology, cadence, and the sole production slot
 permit one fresh attempt. A signal racing after that consume remains pending for a later scan; deferral never
-loses it. Retirement/suspension/rebuild/terminal may discard unmaterialized work without a counter.
+loses it. While paused there is no consume, materialization, or production submission. Retirement, suspension,
+reconfiguration, or terminal may discard unmaterialized work without a counter.
 
 The production slot stays occupied through tentative storage/JPEG work and a completed-unpublished JPEG until
 one final disposition: output/cache commit, one classified drop, or terminal transfer. One pending bit may coexist
@@ -82,7 +83,7 @@ with the occupied slot, but no second attempt and no JPEG queue exist.
 | successful current cache/output commit | success; no frame drop |
 | terminal retires unclassified attempt, unpublished JPEG, or whole unresolved occurrence | no frame-drop increment |
 
-`byRateLimit` remains zero: cadence retention is pre-materialization, never a classified drop.
+Cadence retention is pre-materialization and therefore creates no drop.
 
 ## DEL-PACE-010 — Clock, cadence, and one wake
 
@@ -126,28 +127,31 @@ checked arithmetic to positive representable nanoseconds; no sentinel deadline s
 
 Repeat is a best-effort target maximum-silence interval, not an execution deadline, and is inactive until a
 current fresh JPEG has published. When due it reuses the current immutable encoded
-payload, creates new sequence/timestamp metadata and a lease transition, and performs no capture, GL, readback,
+payload, creates new sequence/timestamp metadata with the current committed effective descriptor and a lease transition, and performs no capture, GL, readback,
 JPEG, or payload copy. Fresh unpublished output wins a tie; `MaxFps` may delay either because it caps all output.
 
-`PacingOwner` calculates cache currentness from one controller snapshot as the conjunction of current
+`PacingOwner` calculates cache currentness from one controller snapshot as the conjunction of Active lifecycle and current
 image-affecting plan (geometry, region, crop, output size, rotation, mirror, color, JPEG quality),
 Target/render/JPEG generations, and absence of invalidation since
-publication. `CTRL-200` alone accepts that calculation and commits the storage action. Pause, suspension,
-untrusted source, Target replacement, render/JPEG rebuild or fallback, and terminal invalidate it. Frame-rate and
-repeat-policy changes alone do not.
+publication. `CTRL-200` alone accepts that calculation and commits the storage action. Cache is unavailable
+during every pause or suspension. Image-, backend-, or topology-affecting change, untrusted source, Target
+replacement, render/JPEG rebuild, fallback, and terminal invalidate it. An exact-compatible frame-rate or
+repeat-policy-only update may preserve the immutable bytes, but cached-first/repeat eligibility is rechecked only
+at resume.
 
-When the controller commits the Native-disable switching fence, this leaf admits no new fresh work, repeat,
-cached-first offer, encode, or delivery until a complete Framework owner is installed. The switching frame has
-already received its one disposition; there is no same-frame retry. This leaf applies that controller fact but
-does not select backend health, fallback, or lifecycle state.
-
-Each controller-committed fresh/repeat output receives the next nonreused Session sequence and current
+The `CTRL-120` Running value and admission cutoffs govern every reconciliation. This leaf admits no fresh
+materialization, repeat, cached-first offer, encode, or new handoff until Active; `PROD-050` owns the caller
+effect and `DEL-HO-001`/`DEL-HO-010` own the already-admitted handoff race. Each
+controller-committed fresh/repeat output receives the next nonreused Session sequence and current
 `EngineClock` sample; equal timestamps are valid. Sequence exhaustion fails terminally before reuse. A
 fresh/repeat commit increments
 `framesProduced`; fresh JPEG success also increments `framesEncoded` and encode-size samples before later stale
-suppression. A successful registration atomically checks current cache while claiming the normal handoff. A
-current cache is offered with original bytes/sequence/timestamp/size and changes neither encode/production
-counters nor pacing phase; absent/stale cache creates no waiting record.
+suppression. A successful Active registration atomically checks current cache while claiming the normal handoff.
+A registration created in Reconfiguring or Suspended persists without a cache check or waiting record. When
+Active is restored, ordinary
+currentness/admission decides whether preserved bytes may be offered. A current cache is offered with original
+bytes/sequence/timestamp/effective descriptor and changes neither encode/production counters nor pacing phase; absent/stale cache
+creates no waiting record.
 
 ## DEL-HO-001 — One registration and one handoff
 
@@ -159,28 +163,35 @@ submitted-not-fully-settled ticket exists. Callbacks, cache offers, repeats, and
 worker or delivery queue. A generation must reach exact successful unsubscribe before replacement; old and new
 callbacks never overlap.
 
-Each handoff independently settles submission, entry, callback return, and Runnable return under one occurrence.
-It owns borrowed-frame authority and the encoded lease until callback settlement or proven no-entry. Admission
-closure can make unentered work inert, while entered callback work may finish. Full resolution requires every
-applicable side; terminal transfers only unresolved sides. Callback settlement releases callback authority and
+Registration may be created or remain current while paused, but creates no new handoff until Active. A handoff
+whose creation/admission commit won before pause is grandfathered and may enter during
+`Reconfiguring`; it remains bound to its immutable old output, effective descriptor, and registration generation.
+This is draining delivery, not a new output. Each handoff independently settles submission, entry, callback
+return, and Runnable return under one occurrence. It owns borrowed-frame authority and the encoded lease until
+callback settlement or proven no-entry. Reconfiguration neither cancels nor waits for its app callback, so
+callback duration does not block capture/production/Target resource drain; terminal still tracks callback/lease
+residue. Full resolution requires every applicable side; terminal transfers only unresolved sides. Callback settlement releases callback authority and
 lease immediately even when submission or Runnable return still keeps the handoff occupied. No callback
-deadline exists.
+deadline exists. The one registration, one outstanding handoff, and serial Delivery lane prevent any later
+post-resume callback from overlapping a grandfathered callback; existing storage bounds, backpressure, and drop
+classification are unchanged.
 
 ## DEL-HO-010 — Submission, entry, callback, and classification
 
 Submission follows `CORE-EXEC-1`. The Runnable's first domain action uses
-`sessionGate -> settlementGate` to validate Session, registration, ticket, endpoint health, and admission, then
-commits entered or inert before unlocking. Only an entered winner invokes the callback, and no external call or
-callback runs under either gate.
+`sessionGate -> settlementGate` to validate the committed handoff admission, registration generation, ticket,
+endpoint health, and unsubscribe/terminal cutoff, then commits entered or inert before unlocking. A later
+reconfiguration pause does not invalidate an otherwise-current admitted handoff. Only an entered winner invokes
+the callback, and no external call or callback runs under either gate.
 
 | Winning mechanical fact | Controller application under `CTRL-200`/`CTRL-300` |
 | --- | --- |
 | Runnable enters before `execute` outcome | entry owns callback classification; later submission outcome settles its own side and may poison/fail-close the endpoint |
-| normal `execute` return before entry | `AcceptedUnentered`; acceptance creates no execution receipt or deadline |
+| normal `execute` return before entry | the admitted handoff remains eligible to enter without an execution receipt or deadline; pause alone does not make it inert |
 | `execute` throws `Exception` before entry | poison Delivery; controller commits terminal `InternalFailure`; no delivery drop or retry |
 | `execute` throws `Error` or other direct non-`Exception` throwable | poison Delivery, retain exact raw fatal authority, and rethrow directly from the engine owner-Runnable boundary under `CORE-FATAL-1` |
 | callback normal return before terminal transfer | release callback authority/lease; no delivery drop |
-| callback throws `Exception` before terminal transfer | release callback authority/lease; controller increments `byCallbackFailure` and requests `DeliveryProblem`; registration remains active |
+| callback throws `Exception` before terminal transfer | release callback authority/lease and report the exact callback-failure fact; controller increments `byCallbackFailure` and alone selects any diagnostic snapshot; registration remains active |
 | callback throws `Error` or other direct non-`Exception` throwable | release only through fatal settlement, poison Delivery, fail-close, and directly rethrow the exact raw object from the engine owner-Runnable boundary; no delivery drop |
 | new opportunity while any required record side remains occupied | controller increments `byConsumerBusy`; create no record/worker/submission |
 | scheduling rejection after another disposition | cleanup-only |
@@ -200,6 +211,10 @@ records its thread before invocation. Every property, `copyTo`, and `copyBytes` 
 still-open callback authority. Callback return/throw closes authority synchronously before releasing the lease.
 Wrong-thread or post-return access throws `IllegalStateException`; invalid `copyTo` range throws
 `IndexOutOfBoundsException` and modifies no destination byte. Only caller-created copies may outlive the callback.
+
+The frame exposes the exact immutable effective descriptor captured by handoff admission. Fresh and repeat
+handoffs use their committed output descriptor; cached-first uses the cached output's original descriptor; a
+grandfathered handoff retains its old descriptor even if callback entry follows a newer `Active` commit.
 
 Delivery never exposes raw storage, partial/tentative bytes, mutable buffers, or an unleased payload. It does not
 retain caller callback data beyond the current registration and exact unresolved handoff.
@@ -222,8 +237,9 @@ Controller terminal arbitration folds every complete callback cell through ordin
 complete callback side releases its authority/lease; an unresolved submission side transfers only its
 ticket/endpoint residue. If the callback cell is empty, the writable cell, callback occurrence, borrowed authority and lease
 transfer whole. Later facts can reduce only that exact cleanup/quarantine child and cannot change counters,
-`DeliveryProblem`, unsubscribe result, State, or terminal winner. `QuarantineChanged` is attempted only after an
-actual root mutation; cleanup completed before attachment emits none.
+diagnostic selection, unsubscribe result, State, or terminal winner. A quarantine-mutation fact is offered only
+after an actual root mutation; `CTRL-300` alone selects any `QuarantineChanged` snapshot, and cleanup completed
+before attachment offers none.
 
 Delivery cleanup owns record/cells/ticket/endpoint and encoded-lease retirement. It fabricates no submission,
 entry, callback, Runnable-return, endpoint-termination, or release fact. After the final ticket settles, Delivery
@@ -237,10 +253,16 @@ shape and late reduction remain `CORE-CLEAN-1`/`CORE-CLEAN-2`.
 
 At turn end, after authoritative state and cleanup scheduling are fixed, the controller passes one immutable
 snapshot to `ObservationOwner`. It builds and assigns outside all gates and retains no state. Requested
-parameters, running/effective state, and visibility form one immutable Running value; rapid updates may conflate
+parameters, direct Running variant fields, and visibility form one immutable Running value; rapid updates may conflate
 whole equal values but never mix fields from commits. Startup succeeds only after Running assignment.
 
-Terminal publishes final Stats, then makes the one `SessionTerminal` attempt, then assigns terminal State. State
+An accepted unequal update logically commits its latest requested value with `Reconfiguring` during the public
+call. State assignment occurs before the first outward reconfiguration effect, but may occur after setter return
+and collector resumption is never a synchronous oracle. During reconciliation the last effective value is
+historical last committed Active output, not a claim that output remains available. Ordinary Stats is assigned only when
+one of its public fields changes.
+
+Terminal publishes final Stats, then emits the one controller-selected `SessionTerminal` attempt, then assigns terminal State. State
 and Stats remain separate StateFlows, not an atomic pair. Supported collectors are nonblocking and non-reentrant;
 their execution owns no resource or progress receipt. Publication delay cannot alter already-committed control.
 There is no observation worker, observer queue, or helper-owned dispatcher: assignment/emission is direct at the
@@ -251,7 +273,7 @@ latest-value conflation; diagnostics follows the configuration in
 Publication input is already fenced by the controller's Session lifecycle, desired revision, topology/work
 identity, and terminal cutoff. `ObservationOwner` neither joins asynchronous sources nor rechecks/reinterprets
 epochs. Native-disable and previously Running GL-poison gaps therefore publish the controller-selected
-`Running(Suspended(Reconfiguring))`; startup remains `Starting`. GL namespace retirement may publish the selected
+`Reconfiguring`; startup remains `Starting`. GL namespace retirement may publish the selected
 `ResourceExhausted` only after its successful aggregate receipt; ambiguity publishes `InternalFailure`, and a
 prior higher-priority terminal remains final.
 
@@ -268,12 +290,13 @@ Each ordered eligible duration or encoded-byte sample updates its matching contr
 Production commits retain their first and latest `EngineClock` samples for the FPS projection.
 `ObservationOwner` projects these inputs exactly as specified by
 [PROD-070](02-product-contract.md#prod-070--stats), including its sample calculation, ordered-mean,
-empty-sample, unit-conversion, rounding, finite, and saturation rules; each visibility-worthy protection requests
-one `StatsProblem` with null cause.
+empty-sample, unit-conversion, rounding, finite, and saturation rules; each visibility-worthy protection reports
+one typed protection fact, from which `CTRL-300` alone selects any `StatsProblem`/null-cause snapshot.
 
-Accepted start publishes the initial all-zero runtime snapshot immediately. Lifecycle, suspension/resume,
-rebuild/fallback, and terminal changes publish dirty Stats immediately. Other dirty
-facts coalesce behind one identity-fenced Stats wake link anchored at the previous publication; its physical
+Session creation publishes the initial all-zero Stats snapshot. Accepted start preserves that same value and
+performs no Stats assignment or wake; a Stats fact becomes dirty only when an authoritative public field changes.
+Reconfiguration alone does not assign an equal value. Dirty facts coalesce
+behind one identity-fenced Stats wake link anchored at the previous publication; its physical
 submission, cancellation, fire, termination fallback, and successor settlement are solely `CORE-WAKE-2`. The
 earliest next ordinary
 publication follows the ordinary Stats cadence defined by
@@ -291,43 +314,15 @@ are cleanup-only and cannot revise final Stats.
 
 The Session owns the exact diagnostic `MutableSharedFlow` configuration defined by
 [PROD-080](02-product-contract.md#prod-080--diagnostics). After the triggering fact is durable and gates are
-released, the controller assigns the next nonreused Session sequence (first is 1), samples wall-clock
-`timestampEpochMillis`, and requests one typed constructor. `ObservationOwner` builds a short semantic message
-without Throwable text and calls `tryEmit` once. Gaps are valid; wall time may repeat or move.
+released, `CTRL-300` supplies one complete immutable snapshot containing its selected sequence, timestamp,
+source, label, site/message inputs, and cause. `ObservationOwner` constructs the public event, builds the short
+semantic message without Throwable text, and calls `tryEmit` once. It never selects or revises any field.
+Gaps are valid; wall time may repeat or move.
 Allocation/emission failure, loss, collector state, and raw cause retention never control the engine. Sequence
 exhaustion fails terminally before wrap or reuse.
 
-| Label | Exact source/site and payload rule |
-| --- | --- |
-| `CapabilityCheck` | For each top-level capability selection/failure, use the boundary source; message names the boundary, decision, and action and the payload carries the exact raw cause when present. Separately, exactly one normal post-readiness `MetricsProvider` completion event per exact observation lifetime names the retained-last-valid action and has null cause. Pre-readiness completion, provider failure, and duplicate terminal delivery create no completion event. |
-| `RuntimeProfile` | `Session`, once at initial Running; name selected Target, Direct readback/precision, JPEG/transfer/color modes; null cause. |
-| `RuntimeModeChanged` | `SurfaceTarget` for safe Downscaled -> Full, `FrameworkJpeg` for actual transfer-mode change, or `NativeJpeg` for Native -> Framework disablement; name old/new/action and carry a safe returned cause when present; never emit for timeout, stale cleanup, or a considered-only change. |
-| `DeliveryProblem` | `FrameConsumer` only for a callback `Exception` committed before terminal transfer; exact throwable. Busy and internal submission failure are not DeliveryProblem events. |
-| `StatsProblem` | `Controller` for finite retention/clamp/freeze; null cause. |
-| `ColorAction` | `ColorPipeline` once per Target and on actual classification/action change; null cause. |
-| `QuarantineChanged` | `Cleanup` only after attaching/reducing/removing an exact root child; raw cleanup cause when present. |
-| `SessionTerminal` | `Session`, once for winning terminal after final Stats and before terminal State; name reason/problem and last modes. Owner/capture stop and pre-Active valid-then-invalid metrics use null cause; another Failure carries its selected raw cause when defined; timeout reuses its `CapabilityCheck` cause. |
-
-Routine geometry, visibility, rebuild, consumer lifecycle, and frame production require no event. Source/callback
-faults keep the boundary source. All allowed source strings and the public six-field event schema are owned by
-[PROD-080](02-product-contract.md#prod-080--diagnostics).
-
-### Timeout source matrix
-
-This is the sole cross-domain timeout-to-diagnostic table. The referenced domain owns each interval and injected
-boundary cases; `CTRL-300` owns request selection/source/cause, while this leaf only constructs/emits its accepted
-immutable request.
-
-| Family | `CapabilityCheck` source | Winning active result / terminal event |
-| --- | --- | --- |
-| first metrics readiness ([AND-CAP-040](06-domain-android-capture-metrics.md#and-cap-040--android-deadlines-and-call-policy)) | `MetricsProvider` | `CaptureUnavailable`; `SessionTerminal` reuses the same timeout-cause object |
-| initial captured resize readiness, API 34–37 ([AND-CAP-040](06-domain-android-capture-metrics.md#and-cap-040--android-deadlines-and-call-policy)) | `MediaProjection` | `CaptureUnavailable`; same cause object |
-| Android entered operation ([AND-CAP-040](06-domain-android-capture-metrics.md#and-cap-040--android-deadlines-and-call-policy)) | `MediaProjection` for callback registration/create; `VirtualDisplay` for resize/setSurface; `SurfaceTarget` for listener/Surface calls | `InternalFailure`; same cause object |
-| GL entered operation ([GL-040](08-domain-gl.md#gl-040--fail-closed-gles-groups-and-context-integrity)) | `GlPipeline` | `InternalFailure`; same cause object |
-| JPEG entered operation ([FJPEG-090](09-domain-framework-jpeg.md#fjpeg-090--exact-operation-deadline-policy), [NJPEG-CONST-001](10-domain-native-jpeg.md#njpeg-const-001--jpeg-entered-operation-interval)) | `FrameworkJpeg` for Framework creation/encode/recycle/managed replacement; `NativeJpeg` for Native preparation/encode/free/native replacement | `InternalFailure`; same cause object |
-
-A higher-priority terminal makes expiry cleanup-only and emits no timeout event. Timeout creates no fallback,
-retry, runtime-mode change, duration telemetry, aggregate, or new public field.
+The public vocabulary and schema remain `PROD-080`; source/label/cause/site and timeout selection remain solely
+`CTRL-300`. Routine facts produce an event only when that controller mapping selects one.
 
 ## 2. Structural bounds
 
@@ -348,9 +343,9 @@ leaf's local executable proofs; controller authority remains `CTRL-200`/`CTRL-30
 
 | Tests | Required matrix |
 | --- | --- |
-| `H-PS` | source exchange and retired generation; Auto/MaxFps/SampleEvery boundaries; early retention and occupied/unpublished-slot coalescing; common wake matrix for pacing/repeat and Stats; no burst, stranding, or fabricated progress; rational phases; repeat/cache/cached-first; all production dispositions; terminal cutoff; Stats formulas/cadence/saturation/finite protection |
-| `H-DL` | Delivery prestart and one-ticket bound; submission normal/throw/fatal/nonreturn crossed with entry, callback, unsubscribe, and terminal; unresolved submission retains only its exact residue and blocks successor/unsubscribe completion after callback authority and lease release; accepted-unentered and detached inert entry; poison and fatal identity/rethrow; shared unsubscribe result, cancellation, self-call, replacement exclusion, one shutdown/termination receipt, and exact lease/root reduction |
-| `H-OB` | coherent Running snapshots, StateFlow conflation, startup/terminal order, all-zero initial Stats, exact formulas and finite guards, immediate/periodic/final publication, all eight categories/sites, ordinary CapabilityCheck boundary/decision/action plus exact cause, exactly one normal post-readiness MetricsProvider completion event per exact observation lifetime with null cause/retained-last-valid action and none for pre-readiness/failure/duplicate, cause identity, first/overflow sequence, wall-clock movement, no-emission/noncontrol and terminal cutoff |
+| `H-PS` | source exchange and retired generation; Auto/MaxFps/SampleEvery boundaries; early retention and occupied/unpublished-slot coalescing; common wake matrix for pacing/repeat and Stats; zero materialization/repeat/cached-first/new-handoff admission while paused; exact-compatible policy-only cache preservation versus image/backend/topology invalidation and resume currentness; no burst, stranding, or fabricated progress; rational phases; all production dispositions; terminal cutoff; Stats formulas/cadence/saturation/finite protection |
+| `H-DL` | Delivery prestart/one-ticket mechanics and the `DEL-HO-001`/`DEL-HO-010` admission-first versus pause-first matrix, crossed with submission, callback, unsubscribe, terminal, poison/fatal, shutdown and exact lease/root settlement; `PROD-050` and `CTRL-120` remain the caller/lifecycle oracles |
+| `H-OB` | coherent direct Running snapshots, logical requested/Reconfiguring commit and State order; creation-time all-zero Stats with no accepted-start assignment/wake, field-change-only dirty publication and final publication; faithful construction/one-shot emission of each `CTRL-300`-selected immutable diagnostic snapshot, sequence/cause identity, gaps/wall-clock movement, and noncontrol |
 | `A-SES` | dedicated Delivery callback thread and borrowed-frame access/range/lifetime; cached-first metadata; registration replacement; main-safe unsubscribe and exact public exception mapping |
 | `H-OS`, `A-CL` | generic gate/deadline and whole-occurrence terminal-transfer mechanics by reference; late delivery facts shrink only exact residue and never revise observations |
 
@@ -361,6 +356,8 @@ Required delivery interleavings:
 | `execute` Exception -> entry | unentered record resolves into internal terminal cleanup; Delivery is poisoned; no delivery drop |
 | entry -> late `execute` throw | callback outcome remains classified; Delivery is still poisoned and fail-closes; no delivery drop |
 | callback return -> `execute` return | state stays `Entered`; callback authority/lease become zero immediately; only record/ticket/submission residue remains, next opportunity is `byConsumerBusy`, unsubscribe waits, and resolution occurs only after submission settles |
+| handoff admission -> pause -> Runnable entry | the grandfathered old-generation handoff enters normally during Reconfiguring as draining delivery; reconfiguration does not wait for it, and serial Delivery prevents a later callback from overlapping it |
+| pause -> handoff admission attempt | no handoff, submission, lease, or user-code entry is created; registration may persist until Active |
 | unsubscribe/stop -> Runnable entry | detached/inert self-rejection, no user code; exact record resolves or remains root residue |
 | Runnable entry -> unsubscribe/stop | entered callback may finish after stop return; no later admission |
 | callback fact commit -> terminal transfer | fold normal/throw once into final Stats; transfer only unresolved sides |
@@ -374,24 +371,18 @@ sample-before-gate pause, expiry/return orders, terminal transfer, and late fact
 executor/scheduler seams, fixed slots, and ownership ledgers are required; no real sleep, scheduler luck, log
 parsing, or repetition-until-race is an oracle.
 
-## DEL-900 — Forbidden alternatives
+## DEL-900 — Safety boundaries
 
-- No per-signal attempt, rate-limit drop, producer-timestamp authority, JPEG queue, timer queue, catch-up burst,
-  or second production slot.
-- No helper-owned lifecycle, policy, phase, attempt identity, counter, public value, sequence, arbitration, or
-  commit; controller facts are never reinterpreted locally.
-- No callback execution under gates, configurable callback dispatcher, coroutine delivery wrapper, parallel
-  Delivery endpoint, retry queue, or immediate resubmission of a rejected record.
-- No submission-call, queued-callback, or entered-callback watchdog, fabricated cancellation/return/release, callback interruption,
-  or replacement before complete shared unsubscribe success.
-- No borrowed-frame escape, raw/tentative storage exposure, post-return access, payload copy for repeat, or
-  cached-first production/pacing mutation.
-- No post-terminal counter, `DeliveryProblem`, State, terminal-winner, or unsubscribe-result change from a late
-  fact; cleanup owns only exact transferred residue.
-- No combined State/Stats snapshot claim, blocking publication under gates, diagnostic retry/reliability/control,
-  generic public label constructor, Throwable-text parsing, routine per-frame event, or wall-clock ordering.
+Delivery uses one pending indication, production slot, registration, handoff, encoded lease, and serial callback
+endpoint. Controller facts remain the sole policy/counter/publication authority. Pause closes new output and
+handoff admission while preserving an already-admitted handoff; terminal transfers only exact unresolved residue.
 
-## 5. Official sources
+The safety oracle retains these critical absences: no callback under gates, interruption, or watchdog; no
+fabricated cancellation/return/release; no raw, tentative, unleased, or post-return frame access; no post-terminal
+observation mutation; and no diagnostic or wall-clock control. Replacement requires complete shared unsubscribe
+success, and repeat never copies payload bytes.
+
+## 4. Official sources
 
 - Java 17 [`ThreadPoolExecutor`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html),
   [`ArrayBlockingQueue`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ArrayBlockingQueue.html),

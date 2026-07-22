@@ -3,6 +3,7 @@ package io.screenstream.engine
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.view.Display
+import io.screenstream.engine.internal.android.subscribeToBuiltInCaptureMetrics
 
 public class ScreenCaptureConfig(
     public val captureMetricsSource: CaptureMetricsSource? = null,
@@ -14,9 +15,7 @@ public enum class JpegBackendPolicy {
     FrameworkOnly,
 }
 
-public sealed interface CaptureMetricsSource
-
-public fun interface CaptureMetricsProvider : CaptureMetricsSource {
+public fun interface CaptureMetricsSource {
     public fun subscribe(observer: CaptureMetricsObserver): CaptureMetricsSubscription
 }
 
@@ -85,4 +84,7 @@ internal class BuiltInCaptureMetricsDefinition(
             }
         }
     }
+
+    override fun subscribe(observer: CaptureMetricsObserver): CaptureMetricsSubscription =
+        subscribeToBuiltInCaptureMetrics(this, observer)
 }

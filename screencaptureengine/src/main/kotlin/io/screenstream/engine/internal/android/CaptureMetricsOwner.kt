@@ -10,7 +10,6 @@ import android.view.WindowManager
 import io.screenstream.engine.BuiltInCaptureMetricsDefinition
 import io.screenstream.engine.CaptureMetrics
 import io.screenstream.engine.CaptureMetricsObserver
-import io.screenstream.engine.CaptureMetricsProvider
 import io.screenstream.engine.CaptureMetricsSource
 import io.screenstream.engine.CaptureMetricsSubscription
 import io.screenstream.engine.internal.MetricsEndpointShutdownAction
@@ -36,7 +35,7 @@ import kotlin.concurrent.withLock
 private const val firstMetricsReadinessNanos: Long = 5_000_000_000L
 
 internal fun interface BuiltInCaptureMetricsSink {
-    fun publish(metrics: CaptureMetrics?, display: Display?, displayEpoch: Long)
+    fun publish(metrics: CaptureMetrics?, displayAssociation: CaptureMetricsDisplayAssociation?)
 }
 
 internal class CaptureMetricsOwner(
@@ -61,10 +60,20 @@ internal class CaptureMetricsOwner(
 
     private val source: CaptureMetricsSource =
         configuredSource ?: BuiltInCaptureMetricsDefinition(applicationContext)
+    private val sourceProvenance: CaptureMetricsSourceProvenance = when (val fixedSource = source) {
+        is BuiltInCaptureMetricsDefinition -> if (fixedSource.fixedDisplay == null) {
+            CaptureMetricsSourceProvenance.BuiltInDefaultDisplay
+        } else {
+            CaptureMetricsSourceProvenance.BuiltInFixedDisplay
+        }
+
+        else -> CaptureMetricsSourceProvenance.Custom
+    }
+    private val sequenceExhaustionCause = IllegalStateException("Capture metrics ingress sequence exhausted")
     private val summary = CaptureMetricsIngressSummary(
         source = source,
         observationIdentity = attachmentIdentity,
-        sequenceExhaustionCause = IllegalStateException("Capture metrics ingress sequence exhausted"),
+        sequenceExhaustionCause = sequenceExhaustionCause,
     )
     private val readinessFact = CaptureMetricsReadinessMechanicalFact(
         source = source,
@@ -77,8 +86,8 @@ internal class CaptureMetricsOwner(
     private val attachmentEvidence = CaptureMetricsAttachmentEvidence()
     private val closeEvidence = CaptureMetricsCloseEvidence()
     private val closeOwnerBag = CaptureMetricsCloseOwnerBag(attachmentEvidence.subscriptionOwner)
-    private val builtInSink = BuiltInCaptureMetricsSink { metrics, display, displayEpoch ->
-        publishMetricsIngress(metrics, display, displayEpoch)
+    private val builtInSink = BuiltInCaptureMetricsSink { metrics, displayAssociation ->
+        publishMetricsIngress(metrics, displayAssociation)
     }
     private val builtInAttachment: BuiltInCaptureMetricsAttachment? =
         (source as? BuiltInCaptureMetricsDefinition)?.let { definition ->
@@ -110,13 +119,10 @@ internal class CaptureMetricsOwner(
     private var closeSettled = false
     private var readinessGuardFailed = false
     private var attachmentSubmissionResult: PrivateExecutorSubmissionResult? = null
-    private var claimedLatestSource: CaptureMetricsSource? = null
-    private var claimedLatestObservationIdentity = 0L
-    private var claimedLatestSequence = 0L
-    private var claimedLatestMetrics: CaptureMetrics? = null
-    private var claimedLatestDisplay: Display? = null
-    private var claimedLatestDisplayEpoch = 0L
-    private var claimedLatestAvailable = false
+    private var ingressEarliestPositive: CaptureMetricsSampleIngressFact? = null
+    private var ingressFirstPostPositiveUnavailable: CaptureMetricsSampleIngressFact? = null
+    private var ingressLatestSample: CaptureMetricsSampleIngressFact? = null
+    private var ingressFirstTerminal: CaptureMetricsTerminalIngressFact? = null
 
     init {
         attachmentOperation = OperationOccurrence(
@@ -357,29 +363,6 @@ internal class CaptureMetricsOwner(
         return summary.commitFirstActiveLocked()
     }
 
-    internal fun claimLatestLocked(): Boolean {
-        if (!summary.claimLatestLocked()) return false
-        claimedLatestSource = summary.latestSource
-        claimedLatestObservationIdentity = summary.latestObservationIdentity
-        claimedLatestSequence = summary.latestSequence
-        claimedLatestMetrics = summary.latestMetrics
-        claimedLatestDisplay = summary.latestDisplay
-        claimedLatestDisplayEpoch = summary.latestDisplayEpoch
-        claimedLatestAvailable = summary.latestValueAvailable
-        return true
-    }
-
-    internal fun materializeLatestClaimUnlocked(): CaptureMetricsClaimedValue =
-        CaptureMetricsClaimedValue(
-            source = checkNotNull(claimedLatestSource),
-            observationIdentity = claimedLatestObservationIdentity,
-            sequence = claimedLatestSequence,
-            metrics = claimedLatestMetrics,
-            display = claimedLatestDisplay,
-            displayEpoch = claimedLatestDisplayEpoch,
-            isAvailable = claimedLatestAvailable,
-        )
-
     internal fun claimTerminalLocked(): CaptureMetricsTerminalArbitration {
         if (terminalClaimed) return CaptureMetricsTerminalArbitration.None
         val phase = summary.terminalPhase ?: return CaptureMetricsTerminalArbitration.None
@@ -402,35 +385,6 @@ internal class CaptureMetricsOwner(
                     CaptureMetricsTerminalArbitration.FailedAfterReadiness
             }
         }
-    }
-
-    internal fun commitMetricsSampleIngressLocked(
-        expectedObservationIdentity: Long,
-        metrics: CaptureMetrics?,
-        sampleNanos: Long,
-        display: Display?,
-        displayEpoch: Long,
-    ): CaptureMetricsIngressResult {
-        if (expectedObservationIdentity != summary.observationIdentity) {
-            return CaptureMetricsIngressResult.RejectedCurrentness
-        }
-        return summary.publishMetricsLocked(
-            metrics = metrics,
-            sampleNanos = sampleNanos,
-            display = display,
-            displayEpoch = displayEpoch,
-        ).toIngressResult()
-    }
-
-    internal fun commitMetricsTerminalIngressLocked(
-        expectedObservationIdentity: Long,
-        kind: CaptureMetricsTerminalKind,
-        cause: Throwable?,
-    ): CaptureMetricsIngressResult {
-        if (expectedObservationIdentity != summary.observationIdentity) {
-            return CaptureMetricsIngressResult.RejectedCurrentness
-        }
-        return summary.publishTerminalLocked(kind, cause).toIngressResult()
     }
 
     internal fun submitPendingRefresh(operationIdentity: Long): PrivateExecutorSubmissionResult {
@@ -554,8 +508,8 @@ internal class CaptureMetricsOwner(
         signalBestEffort()
 
         val returnedSubscription: CaptureMetricsSubscription? = when (val selectedSource = source) {
-            is CaptureMetricsProvider -> selectedSource.subscribe(observer)
             is BuiltInCaptureMetricsDefinition -> checkNotNull(builtInAttachment).attachOnMetricsLane()
+            else -> selectedSource.subscribe(observer)
         }
         attachmentOperation.settlementGate.withLock {
             val handleSettlementNanos = clock.nowNanos()
@@ -601,39 +555,162 @@ internal class CaptureMetricsOwner(
 
     private inner class MetricsObserver : CaptureMetricsObserver {
         override fun onMetricsChanged(metrics: CaptureMetrics?) {
-            publishMetricsIngress(metrics, display = null, displayEpoch = 0L)
+            publishMetricsIngress(metrics, displayAssociation = null)
         }
 
         override fun onComplete() {
-            val result = ingressPort.publishMetricsTerminal(
-                expectedOwner = this@CaptureMetricsOwner,
-                expectedObservationIdentity = summary.observationIdentity,
-                kind = CaptureMetricsTerminalKind.Completed,
-                cause = null,
-            )
+            val result = publishTerminalIngress(CaptureMetricsTerminalKind.Completed, null)
             signalIngressResult(result)
         }
 
         override fun onFailure(cause: Throwable) {
-            val result = ingressPort.publishMetricsTerminal(
-                expectedOwner = this@CaptureMetricsOwner,
-                expectedObservationIdentity = summary.observationIdentity,
-                kind = CaptureMetricsTerminalKind.Failed,
-                cause = cause,
-            )
+            val result = publishTerminalIngress(CaptureMetricsTerminalKind.Failed, cause)
             signalIngressResult(result)
         }
     }
 
-    private fun publishMetricsIngress(metrics: CaptureMetrics?, display: Display?, displayEpoch: Long) {
-        val result = ingressPort.publishMetricsSample(
-            expectedOwner = this,
-            expectedObservationIdentity = summary.observationIdentity,
+    private fun publishMetricsIngress(
+        metrics: CaptureMetrics?,
+        displayAssociation: CaptureMetricsDisplayAssociation?,
+    ) {
+        val sampleFact = CaptureMetricsSampleIngressFact(
+            observationIdentity = summary.observationIdentity,
+            sourceProvenance = sourceProvenance,
             metrics = metrics,
-            display = display,
-            displayEpoch = displayEpoch,
+            displayAssociation = displayAssociation,
         )
+        val exhaustionFact = CaptureMetricsTerminalIngressFact(
+            observationIdentity = summary.observationIdentity,
+            kind = CaptureMetricsTerminalKind.Failed,
+            cause = sequenceExhaustionCause,
+        )
+        val cumulativeFact = CaptureMetricsIngressSummaryFact(summary.observationIdentity)
+        val localResult = attachmentOperation.settlementGate.withLock {
+            val sequence = summary.nextSequence
+            val sampledAtNanos = clock.nowNanos()
+            val result = summary.publishMetricsLocked(
+                metrics = metrics,
+                sampleNanos = sampledAtNanos,
+                display = null,
+                displayEpoch = displayAssociation?.validityEpoch ?: 0L,
+            )
+            when (result) {
+                CaptureMetricsIngressPublishResult.Published,
+                CaptureMetricsIngressPublishResult.Duplicate,
+                    -> {
+                        sampleFact.fix(sequence, sampledAtNanos)
+                        if (sampleFact.isAvailable && ingressEarliestPositive == null) {
+                            ingressEarliestPositive = sampleFact
+                        } else if (!sampleFact.isAvailable &&
+                            ingressEarliestPositive != null &&
+                            ingressFirstPostPositiveUnavailable == null
+                        ) {
+                            ingressFirstPostPositiveUnavailable = sampleFact
+                        }
+                        ingressLatestSample = sampleFact
+                        cumulativeFact.fix(
+                            lastSequence = sequence,
+                            earliestPositive = ingressEarliestPositive,
+                            firstPostPositiveUnavailable = ingressFirstPostPositiveUnavailable,
+                            latestSample = ingressLatestSample,
+                            firstTerminal = ingressFirstTerminal,
+                        )
+                    }
+
+                CaptureMetricsIngressPublishResult.SequenceExhausted -> {
+                    exhaustionFact.fix(
+                        sequence = Long.MAX_VALUE,
+                        observedAtNanos = sampledAtNanos,
+                        phase = checkNotNull(summary.terminalPhase),
+                    )
+                    ingressFirstTerminal = exhaustionFact
+                    cumulativeFact.fix(
+                        lastSequence = Long.MAX_VALUE,
+                        earliestPositive = ingressEarliestPositive,
+                        firstPostPositiveUnavailable = ingressFirstPostPositiveUnavailable,
+                        latestSample = ingressLatestSample,
+                        firstTerminal = exhaustionFact,
+                    )
+                }
+
+                CaptureMetricsIngressPublishResult.Closed -> Unit
+            }
+            result
+        }
+        val result = when (localResult) {
+            CaptureMetricsIngressPublishResult.Published,
+            CaptureMetricsIngressPublishResult.Duplicate,
+                -> ingressPort.publishMetricsSummary(cumulativeFact)
+
+            CaptureMetricsIngressPublishResult.Closed -> CaptureMetricsIngressResult.Closed
+            CaptureMetricsIngressPublishResult.SequenceExhausted -> {
+                ingressPort.publishMetricsSummary(cumulativeFact)
+                CaptureMetricsIngressResult.SequenceExhausted
+            }
+        }
         signalIngressResult(result)
+    }
+
+    private fun publishTerminalIngress(
+        kind: CaptureMetricsTerminalKind,
+        cause: Throwable?,
+    ): CaptureMetricsIngressResult {
+        val terminalFact = CaptureMetricsTerminalIngressFact(
+            observationIdentity = summary.observationIdentity,
+            kind = kind,
+            cause = cause,
+        )
+        val exhaustionFact = CaptureMetricsTerminalIngressFact(
+            observationIdentity = summary.observationIdentity,
+            kind = CaptureMetricsTerminalKind.Failed,
+            cause = sequenceExhaustionCause,
+        )
+        val cumulativeFact = CaptureMetricsIngressSummaryFact(summary.observationIdentity)
+        val localResult = attachmentOperation.settlementGate.withLock {
+            val sequence = summary.nextSequence
+            val observedAtNanos = clock.nowNanos()
+            val result = summary.publishTerminalLocked(kind, cause)
+            if (result == CaptureMetricsIngressPublishResult.Published) {
+                terminalFact.fix(
+                    sequence = sequence,
+                    observedAtNanos = observedAtNanos,
+                    phase = checkNotNull(summary.terminalPhase),
+                )
+                ingressFirstTerminal = terminalFact
+                cumulativeFact.fix(
+                    lastSequence = sequence,
+                    earliestPositive = ingressEarliestPositive,
+                    firstPostPositiveUnavailable = ingressFirstPostPositiveUnavailable,
+                    latestSample = ingressLatestSample,
+                    firstTerminal = terminalFact,
+                )
+            } else if (result == CaptureMetricsIngressPublishResult.SequenceExhausted) {
+                exhaustionFact.fix(
+                    sequence = Long.MAX_VALUE,
+                    observedAtNanos = observedAtNanos,
+                    phase = checkNotNull(summary.terminalPhase),
+                )
+                ingressFirstTerminal = exhaustionFact
+                cumulativeFact.fix(
+                    lastSequence = Long.MAX_VALUE,
+                    earliestPositive = ingressEarliestPositive,
+                    firstPostPositiveUnavailable = ingressFirstPostPositiveUnavailable,
+                    latestSample = ingressLatestSample,
+                    firstTerminal = exhaustionFact,
+                )
+            }
+            result
+        }
+        return when (localResult) {
+            CaptureMetricsIngressPublishResult.Published -> ingressPort.publishMetricsSummary(cumulativeFact)
+
+            CaptureMetricsIngressPublishResult.Duplicate -> CaptureMetricsIngressResult.Duplicate
+            CaptureMetricsIngressPublishResult.Closed -> CaptureMetricsIngressResult.Closed
+            CaptureMetricsIngressPublishResult.SequenceExhausted -> {
+                ingressPort.publishMetricsSummary(cumulativeFact)
+                CaptureMetricsIngressResult.SequenceExhausted
+            }
+        }
     }
 
     private fun signalIngressResult(result: CaptureMetricsIngressResult) {
@@ -653,13 +730,6 @@ internal class CaptureMetricsOwner(
     }
 }
 
-private fun CaptureMetricsIngressPublishResult.toIngressResult(): CaptureMetricsIngressResult = when (this) {
-    CaptureMetricsIngressPublishResult.Published -> CaptureMetricsIngressResult.Published
-    CaptureMetricsIngressPublishResult.Duplicate -> CaptureMetricsIngressResult.Duplicate
-    CaptureMetricsIngressPublishResult.Closed -> CaptureMetricsIngressResult.Closed
-    CaptureMetricsIngressPublishResult.SequenceExhausted -> CaptureMetricsIngressResult.SequenceExhausted
-}
-
 internal class BuiltInCaptureMetricsAttachment(
     private val definition: BuiltInCaptureMetricsDefinition,
     private val observer: CaptureMetricsObserver,
@@ -675,10 +745,14 @@ internal class BuiltInCaptureMetricsAttachment(
     private val reusableRealSizePoint = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) Point() else null
     private val mainHandler = Handler(Looper.getMainLooper())
     private val epochExhaustionCause = IllegalStateException("Capture metrics display epoch exhausted")
+    private val associationExhaustionCause =
+        IllegalStateException("Capture metrics display association identity exhausted")
 
     private var currentEpochDisplay: Display? = null
-    private var currentEpochIdentity = 0L
+    private var currentEpochAssociation: CaptureMetricsDisplayAssociation? = null
     private var lastEpochIdentity = 0L
+    private var lastAssociatedDisplay: Display? = null
+    private var lastAssociationIdentity = 0L
     private var currentEpochWindowContext: Context? = null
     private var currentEpochWindowManager: WindowManager? = null
 
@@ -717,20 +791,19 @@ internal class BuiltInCaptureMetricsAttachment(
     internal fun performPendingRefresh() {
         if (!callbacksOpen.get() || !refreshDirty.getAndSet(false)) return
         if (epochInvalidated.getAndSet(false)) {
-            val retiredDisplay = currentEpochDisplay
-            val retiredEpoch = currentEpochIdentity
+            val retiredAssociation = currentEpochAssociation
             retireCurrentEpoch()
-            sink.publish(null, retiredDisplay, retiredEpoch)
+            sink.publish(null, retiredAssociation)
             requestRefresh()
             return
         }
 
         val selectedDisplay = resolveSelectedDisplay()
         if (selectedDisplay == null || !selectedDisplay.isValid) {
-            val retiredDisplay = currentEpochDisplay
-            val retiredEpoch = currentEpochIdentity
+            val retiredAssociation = currentEpochAssociation
             retireCurrentEpoch()
-            sink.publish(null, retiredDisplay ?: selectedDisplay, retiredEpoch)
+            val unavailableAssociation = retiredAssociation ?: selectedDisplay?.let(::unavailableAssociationFor)
+            sink.publish(null, unavailableAssociation)
             return
         }
         if (currentEpochDisplay !== selectedDisplay) {
@@ -739,20 +812,20 @@ internal class BuiltInCaptureMetricsAttachment(
         }
 
         val epochDisplay = currentEpochDisplay ?: return
-        val epochIdentity = currentEpochIdentity
+        val epochAssociation = checkNotNull(currentEpochAssociation)
         if (!selectionStillMatches(epochDisplay) || !epochDisplay.isValid) {
             retireCurrentEpoch()
-            sink.publish(null, epochDisplay, epochIdentity)
+            sink.publish(null, epochAssociation)
             return
         }
         val candidate = readCompleteMetrics(epochDisplay)
         if (!selectionStillMatches(epochDisplay) || !epochDisplay.isValid || epochInvalidated.get()) {
             retireCurrentEpoch()
-            sink.publish(null, epochDisplay, epochIdentity)
+            sink.publish(null, epochAssociation)
             requestRefresh()
             return
         }
-        sink.publish(candidate, epochDisplay, epochIdentity)
+        sink.publish(candidate, epochAssociation)
     }
 
     internal fun fenceCallbacks(): Boolean = callbacksOpen.compareAndSet(true, false)
@@ -795,6 +868,7 @@ internal class BuiltInCaptureMetricsAttachment(
             observer.onFailure(epochExhaustionCause)
             return false
         }
+        val associationIdentity = associationIdentityFor(epochDisplay) ?: return false
         val epochIdentity = lastEpochIdentity + 1L
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val windowContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -813,9 +887,34 @@ internal class BuiltInCaptureMetricsAttachment(
             }
         }
         currentEpochDisplay = epochDisplay
-        currentEpochIdentity = epochIdentity
+        currentEpochAssociation = CaptureMetricsDisplayAssociation(
+            displayId = epochDisplay.displayId,
+            associationIdentity = associationIdentity,
+            validityEpoch = epochIdentity,
+        )
         lastEpochIdentity = epochIdentity
         return true
+    }
+
+    private fun unavailableAssociationFor(display: Display): CaptureMetricsDisplayAssociation? {
+        val associationIdentity = associationIdentityFor(display) ?: return null
+        return CaptureMetricsDisplayAssociation(
+            displayId = display.displayId,
+            associationIdentity = associationIdentity,
+            validityEpoch = 0L,
+        )
+    }
+
+    private fun associationIdentityFor(display: Display): Long? {
+        if (lastAssociatedDisplay === display) return lastAssociationIdentity
+        if (lastAssociationIdentity == Long.MAX_VALUE) {
+            fenceCallbacks()
+            observer.onFailure(associationExhaustionCause)
+            return null
+        }
+        lastAssociatedDisplay = display
+        lastAssociationIdentity += 1L
+        return lastAssociationIdentity
     }
 
     @Suppress("DEPRECATION")
@@ -844,7 +943,7 @@ internal class BuiltInCaptureMetricsAttachment(
 
     private fun retireCurrentEpoch() {
         currentEpochDisplay = null
-        currentEpochIdentity = 0L
+        currentEpochAssociation = null
         currentEpochWindowContext = null
         currentEpochWindowManager = null
     }

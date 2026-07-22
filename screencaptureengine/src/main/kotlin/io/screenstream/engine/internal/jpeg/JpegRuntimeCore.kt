@@ -1,8 +1,6 @@
 package io.screenstream.engine.internal.jpeg
 
 import io.screenstream.engine.internal.settlement.PrivateExecutorOperation
-import io.screenstream.engine.internal.settlement.PrivateExecutorStartupDisposition
-import io.screenstream.engine.internal.settlement.PrivateExecutorTerminationReceipt
 import java.util.concurrent.atomic.AtomicReference
 
 internal const val jpegEnteredOperationSafetyNanos: Long = 15_000_000_000L
@@ -30,64 +28,68 @@ internal class JpegProducerCurrentnessFact internal constructor(
     internal val operationIdentity: Long,
 )
 
-internal class JpegRuntimeTopologyFact internal constructor(
-    internal val runtimeIdentity: JpegRuntimeIdentity,
-    internal val topologyIdentity: JpegRuntimeTopologySnapshot,
-    internal val carrierMode: JpegCarrierMode?,
-    internal val nativeHealth: NativeJpegHealth?,
-    internal val product: JpegRuntimeProduct?,
-    internal val replacementSource: JpegRuntimeProduct?,
-    internal val carrierAllocation: JpegCarrierAllocationFact?,
-    internal val carrierLease: JpegCarrierLeaseFact?,
-)
-
 internal class JpegEndpointConstructionFact internal constructor(
     internal val runtimeIdentity: JpegRuntimeIdentity,
     internal val endpointIdentity: JpegEndpointIdentity,
 )
 
-internal class JpegEndpointPrestartFact internal constructor(
-    internal val endpointIdentity: JpegEndpointIdentity,
-    internal val disposition: PrivateExecutorStartupDisposition,
-    internal val ready: Boolean,
-    internal val failure: Throwable?,
-)
+internal enum class JpegEndpointShutdownDisposition {
+    Prepared,
+    InCall,
+    Requested,
+    AlreadyRequested,
+    Thrown,
+}
 
 internal class JpegEndpointShutdownFact internal constructor(
     internal val endpointIdentity: JpegEndpointIdentity,
-    internal val returnedNormally: Boolean,
-    internal val accepted: Boolean,
-    internal val throwable: Throwable?,
-)
+    internal val action: JpegEndpointShutdownAction,
+) {
+    private val dispositionSlot = AtomicReference(JpegEndpointShutdownDisposition.Prepared)
+    private val throwableSlot = AtomicReference<Throwable?>(null)
 
-internal class JpegEndpointTerminationFact internal constructor(
-    internal val endpointIdentity: JpegEndpointIdentity,
-    internal val receipt: PrivateExecutorTerminationReceipt,
-    internal val accepted: Boolean,
-)
+    internal val disposition: JpegEndpointShutdownDisposition
+        get() = dispositionSlot.get()
+    internal val result: JpegEndpointShutdownReturn?
+        get() = when (disposition) {
+            JpegEndpointShutdownDisposition.Requested -> JpegEndpointShutdownReturn.Requested
+            JpegEndpointShutdownDisposition.AlreadyRequested -> JpegEndpointShutdownReturn.AlreadyRequested
+            JpegEndpointShutdownDisposition.Prepared,
+            JpegEndpointShutdownDisposition.InCall,
+            JpegEndpointShutdownDisposition.Thrown,
+                -> null
+        }
+    internal val throwable: Throwable?
+        get() = throwableSlot.get()
+
+    internal fun begin(): Boolean = dispositionSlot.compareAndSet(
+        JpegEndpointShutdownDisposition.Prepared,
+        JpegEndpointShutdownDisposition.InCall,
+    )
+
+    internal fun publishReturned(accepted: Boolean) {
+        val result = if (accepted) {
+            JpegEndpointShutdownDisposition.Requested
+        } else {
+            JpegEndpointShutdownDisposition.AlreadyRequested
+        }
+        check(dispositionSlot.compareAndSet(JpegEndpointShutdownDisposition.InCall, result))
+    }
+
+    internal fun publishThrown(raw: Throwable) {
+        check(throwableSlot.compareAndSet(null, raw))
+        check(
+            dispositionSlot.compareAndSet(
+                JpegEndpointShutdownDisposition.InCall,
+                JpegEndpointShutdownDisposition.Thrown,
+            ),
+        )
+    }
+}
 
 internal class JpegEndpointTicketFact internal constructor(
     internal val endpointIdentity: JpegEndpointIdentity,
     internal val ticket: PrivateExecutorOperation<*>,
-)
-
-internal class JpegEndpointTerminationResidueFact internal constructor(
-    internal val endpointIdentity: JpegEndpointIdentity,
-    internal val failedPrestart: JpegEndpointPrestartFact?,
-    internal val unsettledTicket: JpegEndpointTicketFact?,
-    internal val shutdown: JpegEndpointShutdownFact?,
-    internal val termination: JpegEndpointTerminationFact?,
-    internal val fatal: Throwable?,
-)
-
-internal class JpegEndpointLifecycleFact internal constructor(
-    internal val construction: JpegEndpointConstructionFact,
-    internal val prestart: JpegEndpointPrestartFact?,
-    internal val currentTicket: JpegEndpointTicketFact?,
-    internal val shutdown: JpegEndpointShutdownFact?,
-    internal val termination: JpegEndpointTerminationFact?,
-    internal val fatal: Throwable?,
-    internal val terminationResidue: JpegEndpointTerminationResidueFact?,
 )
 
 internal interface JpegEndpointOccurrence {

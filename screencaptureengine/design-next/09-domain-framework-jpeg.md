@@ -19,7 +19,7 @@ linked rather than repeated.
 - [FJPEG-080](#fjpeg-080--efficiency-privacy-and-diagnostics)
 - [FJPEG-090](#fjpeg-090--exact-operation-deadline-policy)
 - [FJPEG-100](#fjpeg-100--executable-obligations)
-- [FJPEG-110](#fjpeg-110--forbidden-alternatives)
+- [FJPEG-110](#fjpeg-110--safety-boundaries)
 - [Official platform references](#official-platform-references)
 
 ## FJPEG-001 — Source and file boundary
@@ -63,8 +63,9 @@ Exactly one `FrameworkResourceCreationOccurrence` may exist for a topology key. 
 true: Session nonterminal; key current; Framework selected; Native `Disabled`; checked fixed shape available; no
 healthy compatible installed owner; and no extant creation occurrence. `FrameworkOnly` and clean Native
 ineligibility reach this point after carrier/backend selection. A safe runtime Native disable does not: its
-switching frame ends once as `byFailure`, performs no Framework allocation or retry, and later reconciliation
-stays `Running(Suspended(Reconfiguring))` until a complete Framework owner is installed.
+switching frame ends once as `byFailure`, performs no Framework allocation or retry, and enters the common
+`CTRL-120` pause lifecycle. One later serialized cycle keeps `Reconfiguring` until a complete
+Framework owner is installed and then resumes.
 
 One creation occurrence on the JPEG endpoint creates at most one requested mutable software sRGB `ARGB_8888`
 Bitmap, adopts it immediately, validates actual metadata, selects the compatible transfer mode, allocates only
@@ -110,8 +111,9 @@ remains held through encode settlement.
 | `RowConversion` | Convert tight RGBA to opaque logical `ARGB_8888` one row at a time through retained row scratch. There is no full-frame temporary array. |
 
 Mode is selected from the built Bitmap's actual metadata, not predicted from requested shape. The mandatory
-diagnostic records actual `rowBytes`, expected `R`, and selected mode; an actual mode change emits the
-`FrameworkJpeg` `RuntimeModeChanged` observation defined by `PROD-080`. Transfer failure cannot select another
+diagnostic-site fact records actual `rowBytes`, expected `R`, and selected mode; an actual mode change offers a
+typed mode-change fact to `CTRL-300`, which alone selects the public `FrameworkJpeg`/`RuntimeModeChanged`
+snapshot defined by `PROD-080`. Transfer failure cannot select another
 mode or retry the frame.
 
 ## FJPEG-050 — Framework encode and transaction
@@ -184,10 +186,10 @@ Raw carrier pixels, mutable Bitmap content, and tentative JPEG bytes remain behi
 Only a committed immutable `STORE-050` payload transferred under `STORE-070` can reach delivery; stale, partial,
 failed, or unleased data cannot.
 
-Initial Running includes the actual Framework transfer mode in `RuntimeProfile`. Actual transfer-mode change uses
-`RuntimeModeChanged`; creation, encode, preterminal recycle, and managed-carrier-allocation timeouts use
-`CapabilityCheck` source `FrameworkJpeg`, and a winning timeout's `SessionTerminal` reuses the same cause identity.
-Diagnostics never control retry, fallback, timeout, cleanup, or State.
+The leaf reports the actual initial Framework transfer mode, transfer-mode changes, operation-timeout sites, and
+exact causes as typed facts. `CTRL-300` alone selects the corresponding `RuntimeProfile`, `RuntimeModeChanged`,
+`CapabilityCheck`, `FrameworkJpeg` source, and any winning-timeout `SessionTerminal` cause reuse. Diagnostics
+never control retry, fallback, timeout, cleanup, or State.
 
 ## FJPEG-090 — Exact operation deadline policy
 
@@ -213,12 +215,12 @@ image score are not assertions. Exact Framework matrices remain below without re
 
 | Test ID | Framework-specific obligations |
 | --- | --- |
-| `H-RC` | exact eligibility, complete-owner installation before Active, compatible identity reuse, recycle-to-fresh-recheck replacement, target-retention, A-to-B-to-A and safe Native-disable sequencing |
+| `H-RC` | exact eligibility, complete-owner installation before Active, compatible identity reuse, recycle-to-fresh-recheck replacement, target retention, desire change during submitted/entered work with exact settlement before a next cycle, and common-pause Native-disable sequencing |
 | `H-OS` | creation/encode/recycle occurrences at rejection, inline entry/return, `D-1`/`D`/`D+1`, empty-at-`D`, gate pauses, commit-before-signal, terminal transfer, late return, OOM/throw/malformed/nonreturn, and exact owner-bag cleanup |
 | `H-PS` | transaction abort/commit, partial-byte nonpublication, storage allocation/copy failures, mechanical-success and currentness/Stats partition |
 | `A-FJ` | real Bitmap/API-band metadata, both carrier transfer modes, real `Bitmap.compress`, transaction, decode, quality forwarding and the shared JPEG oracle |
 | `A-CL` | creation partial owners, held uses preventing recycle, nonreturn/quarantine isolation, logical scratch drop, exact late reduction and cross-Session progress |
-| `H-OB` | Framework diagnostic source/label/cause identity and noncontrol behavior |
+| `H-OB` | Framework typed diagnostic-site facts route to `CTRL-300`; selected source/label/cause identity and emission remain noncontrolling |
 
 The creation matrix crosses Bitmap return with optional-scratch success/OOM/throw/malformed/nonreturn for
 current, stale, expired, late, and terminal results. API cases are exactly 24, 25, 26, and 37: API 24–25 prove
@@ -226,17 +228,16 @@ zero API-26 metadata-helper invocation; API 26+ exercises the guarded color-spac
 exercise both paths, select only one per transfer, retain no full-frame temporary, and cover both Native/Managed carrier leases. Recycle tests
 hold each use open, require one normal receipt before replacement, and cover return-versus-terminal transfer.
 
-## FJPEG-110 — Forbidden alternatives
+## FJPEG-110 — Safety boundaries
 
-- Framework Bitmap/scratch creation while Native remains `Enabled`, or on the safe switching frame.
-- Same-frame Native-to-Framework retry, encode retry, creation retry, or recycle retry.
-- A separate transfer adapter owner/lifecycle, carrier copy owner, full-frame `IntArray`, `IntBuffer`, or second
-  raw-frame-sized buffer.
-- Shape-predicted transfer mode, byte-order-based mode selection, or a device allowlist.
-- Bitmap reuse after unresolved use, expiry, failed recycle, or ambiguous ownership.
-- Treating cancellation, timeout, request success, managed reference drop, or GC timing as a recycle receipt.
-- Partial/stale byte publication, fallback after mandatory Framework failure, or diagnostics as control authority.
-- Predictive memory accounting, Bitmap-specific settlement state, extra runtime axes, or a new numeric constant.
+Framework installs one validated exact-shape Bitmap owner and only its selected row scratch, then reuses it until
+settled retirement and a real recycle receipt permit replacement. Native disable installs Framework in a later
+serialized cycle; the switching frame is never retried. Transfer uses the installed metadata-selected mode and
+one carrier lease, with no second raw-frame-sized copy.
+
+Cancellation, timeout, reference drop, and GC timing are not recycle receipts. Partial/stale bytes never publish,
+mandatory Framework failure never falls back, and diagnostics/predicted memory/device identity never control the
+backend.
 
 ## Official platform references
 

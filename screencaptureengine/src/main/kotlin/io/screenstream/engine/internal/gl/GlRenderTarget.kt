@@ -1,5 +1,6 @@
 package io.screenstream.engine.internal.gl
 
+import android.annotation.TargetApi
 import android.hardware.DataSpace
 import android.os.Build
 import io.screenstream.engine.ColorMode
@@ -122,32 +123,53 @@ internal class GlColorActionSet internal constructor(
     private val nominalGrayscale: GlColorActionFacts =
         GlColorActionFacts(targetGeneration, GlColorClassification.NominalSdr, ColorMode.Grayscale)
 
-    internal fun actionFor(dataSpace: Int, colorMode: ColorMode): GlColorActionFacts = when {
-        dataSpace == DataSpace.DATASPACE_SRGB -> when (colorMode) {
-            ColorMode.Color -> srgbColor
-            ColorMode.Grayscale -> srgbGrayscale
+    internal fun actionFor(dataSpace: Int, colorMode: ColorMode): GlColorActionFacts {
+        val classification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Api33DataSpace.classify(dataSpace)
+        } else {
+            GlColorClassification.NominalSdr
         }
+        return when (classification) {
+            GlColorClassification.Srgb -> when (colorMode) {
+                ColorMode.Color -> srgbColor
+                ColorMode.Grayscale -> srgbGrayscale
+            }
 
-        dataSpace == DataSpace.DATASPACE_DISPLAY_P3 -> when (colorMode) {
-            ColorMode.Color -> displayP3Color
-            ColorMode.Grayscale -> displayP3Grayscale
+            GlColorClassification.DisplayP3 -> when (colorMode) {
+                ColorMode.Color -> displayP3Color
+                ColorMode.Grayscale -> displayP3Grayscale
+            }
+
+            GlColorClassification.Scrgb -> when (colorMode) {
+                ColorMode.Color -> scrgbColor
+                ColorMode.Grayscale -> scrgbGrayscale
+            }
+
+            GlColorClassification.HdrTransfer -> when (colorMode) {
+                ColorMode.Color -> hdrColor
+                ColorMode.Grayscale -> hdrGrayscale
+            }
+
+            GlColorClassification.NominalSdr -> when (colorMode) {
+                ColorMode.Color -> nominalColor
+                ColorMode.Grayscale -> nominalGrayscale
+            }
         }
+    }
 
-        dataSpace == DataSpace.DATASPACE_SCRGB || dataSpace == DataSpace.DATASPACE_SCRGB_LINEAR -> when (colorMode) {
-            ColorMode.Color -> scrgbColor
-            ColorMode.Grayscale -> scrgbGrayscale
-        }
+    @TargetApi(Build.VERSION_CODES.TIRAMISU)
+    private object Api33DataSpace {
+        fun classify(dataSpace: Int): GlColorClassification = when {
+            dataSpace == DataSpace.DATASPACE_SRGB -> GlColorClassification.Srgb
+            dataSpace == DataSpace.DATASPACE_DISPLAY_P3 -> GlColorClassification.DisplayP3
+            dataSpace == DataSpace.DATASPACE_SCRGB || dataSpace == DataSpace.DATASPACE_SCRGB_LINEAR ->
+                GlColorClassification.Scrgb
 
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                (DataSpace.getTransfer(dataSpace) == DataSpace.TRANSFER_ST2084 ||
-                        DataSpace.getTransfer(dataSpace) == DataSpace.TRANSFER_HLG) -> when (colorMode) {
-            ColorMode.Color -> hdrColor
-            ColorMode.Grayscale -> hdrGrayscale
-        }
+            DataSpace.getTransfer(dataSpace) == DataSpace.TRANSFER_ST2084 ||
+                    DataSpace.getTransfer(dataSpace) == DataSpace.TRANSFER_HLG ->
+                GlColorClassification.HdrTransfer
 
-        else -> when (colorMode) {
-            ColorMode.Color -> nominalColor
-            ColorMode.Grayscale -> nominalGrayscale
+            else -> GlColorClassification.NominalSdr
         }
     }
 }
@@ -176,9 +198,12 @@ internal class GlRenderTargetState private constructor(
         true
     }
 
-    internal fun consumeNamespaceLocked(owner: GlPipelineOwner): Boolean {
+    internal fun consumeNamespaceLocked(
+        owner: GlPipelineOwner,
+        authorizedPhysicalRetirement: Boolean = false,
+    ): Boolean {
         check(owner.glGate.isHeldByCurrentThread)
-        owner.checkFatalLocked()
+        if (!authorizedPhysicalRetirement) owner.checkFatalLocked()
         if (!canConsumeNamespaceLocked(owner)) return false
         framebufferName = 0
         textureName = 0

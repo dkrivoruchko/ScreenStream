@@ -28,7 +28,7 @@ and `CORE-PRIV-1`.
 - [STORE-080](#store-080--failure-terminal-and-cleanup)
 - [STORE-090](#store-090--structural-memory-and-copy-policy)
 - [STORE-100](#store-100--executable-obligations)
-- [STORE-110](#store-110--forbidden-alternatives)
+- [STORE-110](#store-110--safety-boundaries)
 - [Official implementation references](#official-implementation-references)
 
 ## STORE-001 — File and authority boundary
@@ -52,7 +52,7 @@ Delivery handoff, or the public frame wrapper.
 | --- | --- | --- |
 | inbound from `FJPEG-050` | one attached `FrameworkTransaction` and its private checked `OutputStream` | accept only validated ordered writes; commit or abort one transaction |
 | inbound from `NJPEG-080` | one attached `NativeTransaction`, its exact `NativeSegmentSink`, and one synchronous exact-range invocation | validate and copy the invocation into managed transaction state; retain no native view/backing or native cleanup fact |
-| inbound from `CTRL-200`, `CTRL-300` | expected role identities, positive `ImageSize`, output sequence and elapsed-realtime timestamp | perform the commanded identity-fenced role transition under `sessionGate`; never decide currentness, publication policy, or counters |
+| inbound from `CTRL-200`, `CTRL-300` | expected role identities, exact immutable `ScreenCaptureEffectiveParameters`, output sequence and elapsed-realtime timestamp | perform the commanded identity-fenced role transition under `sessionGate`; never decide currentness, publication policy, or counters |
 | outbound to `CTRL-200`, `CTRL-300` | `UnpublishedEncodedPayload`, `PublishedEncodedPayload`, and exact transition success/failure | expose only complete immutable payload/role facts for controller arbitration |
 | outbound to `DEL-PACE-020`, `DEL-HO-001`, `DEL-HO-020` | exact published-payload metadata and one `EncodedPayloadLease` | preserve backing ownership; delivery gets only the counted lease and its copy surface |
 | outbound to `CTRL-400`, `CORE-CLEAN-1`, `CORE-CLEAN-2` | exact transaction, tentative managed segments, payload role, or encoded-lease obligation | detach managed ownership only after exact producer/delivery facts permit it; claim no physical managed-free receipt |
@@ -69,7 +69,7 @@ The storage authority contains exactly these mutually constrained semantic roles
 | Role | Maximum | Contents and transition |
 | --- | ---: | --- |
 | production | 1 | either one tentative attached transaction or its one completed unpublished payload, never payloads for two attempts |
-| latest | 1 | last published immutable payload plus its image size, sequence, and timestamp |
+| latest | 1 | last published immutable payload plus its exact effective descriptor, sequence, and timestamp |
 | displaced | 1 | former latest retained only because the sole delivery lease still references it |
 | delivery lease | 1 | counted one-shot lease over latest or the one displaced payload |
 
@@ -108,24 +108,26 @@ semantics and roots the exact still-owned occurrence residue.
 ## STORE-040 — Framework producer algorithm
 
 The private `OutputStream` is the sole Framework producer facade. Every write validates writable state and the
-complete new cumulative `Int` total before its first mutation.
+complete new cumulative `Int` total before its first mutation. The segment/tail description is orientation; an
+equivalent private algorithm may vary its layout while preserving ownership, mutation atomicity, allocation
+cardinality, copy bounds, byte order, and structural capacity bounds.
 
 - `write(value)` appends only the low eight bits and allocates no temporary one-byte array.
 - `write(source, offset, count)` first validates the entire source range with overflow-safe arithmetic. A valid
   zero count is an allocation-free no-op. Source mutation after return cannot affect accepted bytes.
-- The call fills any available tail first. If bytes remain, it creates at most one new tail and copies the
-  remaining source bytes once. Existing full segments are never copied.
+- A write copies each accepted source byte into tentative managed storage once, allocates at most one new backing
+  range, and never recopies an already accepted full prefix.
 
-New-tail capacity is derived from accepted and remaining bytes with checked managed bounds, never a tuning
-constant. Growth is segmented and bounded, existing full segments are not recopied, and each write adds at most
-one tail. Any allocation/copy/append failure makes the whole transaction sticky-failed; no partial transaction
+New writable capacity is derived from accepted and remaining bytes with checked managed bounds, never a tuning
+constant. Any allocation/copy/append failure makes the whole transaction sticky-failed; no partial transaction
 can commit or publish.
 
 ## STORE-050 — Commit, immutable payload, and caller copies
 
-Framework commit rejects an empty encoder success. A full final tail transfers without copying; a partially used
-tail of `U > 0` is copied once into exact `ByteArray(U)`. Only after successful tail trim and immutable ordered
-reference freeze does the transaction publish one `ImmutableEncodedPayload`; commit never concatenates segments.
+Framework commit rejects an empty encoder success. Exact-size backing ranges transfer without copying; at most
+one partially used final range of `U > 0` is copied once into exact `ByteArray(U)`. Only after successful
+exact-size normalization and immutable ordered-reference freeze does the transaction publish one
+`ImmutableEncodedPayload`; commit never concatenates segments. Equivalent layouts retain these bounds.
 Native transactions already hold exact sealed managed segments and freeze only their ordered references.
 
 An immutable payload owns nonempty private `ByteArray` segments and one positive exact total `J` equal to their
@@ -136,7 +138,7 @@ checked sum. No array, mutable builder, view, segment container, or native backi
 | `copyTo(destination, destinationOffset)` | validate the entire `[destinationOffset, destinationOffset + J)` range before copying; invalid input throws `IndexOutOfBoundsException` with zero copy; valid input traverses segments directly once and returns `J` |
 | `copyBytes()` | allocate one exact caller-owned `ByteArray(J)`, perform the same ordered traversal, and return it |
 
-Allocation failure while trim/freeze creates the sticky transaction failure and permits abort. Caller-demand
+Allocation failure while normalization/freeze creates the sticky transaction failure and permits abort. Caller-demand
 `copyBytes()` allocation failure does not corrupt, replace, or retire the engine payload. A callback-side public
 copy additionally requires the thread/token validity owned by `DEL-HO-020` and `PROD-040`.
 
@@ -162,8 +164,8 @@ Controller commits role transitions under `sessionGate`; payload-reference retir
 
 | Action | Storage transition |
 | --- | --- |
-| fresh publication | move expected unpublished payload to latest with new positive Session sequence, commit-time elapsed timestamp, and positive image size; displace an old leased latest first |
-| repeat | replace expected latest metadata with a new sequence/timestamp while retaining identical immutable payload and image size; allocate/copy/encode no bytes |
+| fresh publication | move expected unpublished payload to latest with new positive Session sequence, commit-time elapsed timestamp, and the current committed effective descriptor; displace an old leased latest first |
+| repeat | replace expected latest metadata with a new sequence/timestamp and the current committed effective descriptor while retaining identical immutable payload; allocate/copy/encode no bytes |
 | cached-first lease command | attach the sole lease only when it is fresh and names the exact current latest; `DEL-PACE-020`/`DEL-HO-001` own whether and how that lease is offered |
 | stale completed success | retire only its expected unpublished payload; it cannot replace latest |
 | cache invalidation/terminal | retire expected unpublished/latest; preserve any exact displaced leased payload until lease settlement |
@@ -196,8 +198,8 @@ and lease-release facts. `CORE-CLEAN-1`/`CORE-CLEAN-2` alone define root transfe
 
 The storage policy uses actual owned ranges, never predictive memory accounting or an encoded-size cap.
 
-For Framework bytes `J > 0`, open segment capacity is at most `2J`; trimming a partial tail temporarily retains
-`J + C < 2J`; persistent committed capacity is exact `J`. For one Native sink invocation of size `s`, storage
+For Framework bytes `J > 0`, open backing capacity is at most `2J`; exact-size normalization temporarily retains
+less than `2J`; persistent committed capacity is exact `J`. For one Native sink invocation of size `s`, storage
 adds one exact managed `ByteArray(s)` to already adopted managed bytes only after checked cumulative acceptance.
 `NJPEG-080` owns native source-segment lifetime, native/managed duplication, order, and release equations.
 
@@ -230,8 +232,8 @@ closure/routing and test namespaces are in [Document 04](04-verification.md), an
 | Test ID | Exact proof |
 | --- | --- |
 | `H-PS` / transaction | every legal/illegal write, flush, close, commit, committed-payload transfer, and abort sequence; attach identity; first-fault stickiness; empty commit; payload visibility and exact owner detachment |
-| `H-PS` / Framework growth | symbolic inputs covering first tail, old-tail fill, new/full/partial tail, single-byte and mixed writes, valid/invalid/zero bulk ranges, checked limits, and source mutation; derived bounded capacity and byte order with no tuning literal |
-| `H-PS`, `A-FJ` | injected tail allocation, copy, list append, trim, container/freeze, and caller-flatten allocation results; exact storage classification/abortability, zero partial publication, ordered `copyTo`, persistent `J`, and symbolic managed bounds |
+| `H-PS` / Framework growth | symbolic inputs covering empty/nonempty backing, available/exhausted capacity, exact/partial final range, single-byte and mixed writes, valid/invalid/zero bulk ranges, checked limits, and source mutation; derived bounded capacity/copy cardinality and byte order with no tuning literal or required private layout |
+| `H-PS`, `A-FJ` | injected backing allocation, copy, append, exact-size normalization, container/freeze, and caller-flatten allocation results; exact storage classification/abortability, zero partial publication, ordered `copyTo`, persistent `J`, and symbolic managed bounds |
 | `H-PS`, `H-DL` | production/latest/displaced/lease identity transitions; accepted fresh/repeat/cache/invalidating/terminal commands; exact release fact; at most one displaced payload and no duplicate detach/copy; `DEL-PACE-020`, `DEL-HO-001`, `DEL-HO-020`, and `DEL-HO-040` own physical use/handoff ordering |
 | `N-JPEG` | storage-side exact positive direct-range validation, checked cumulative boundary, one managed segment per valid invocation, ordered bytes, view non-retention, and allocation/copy throwable identity; every adoption asserts the exact pre-copy, transient-copy, post-free, one-segment `2J`, and final `J` ledgers owned by `NJPEG-080`, while `NJPEG-120` owns invocation and native release/close order |
 | `A-CL` | held transaction or encoded lease preserves only exact managed storage roles; accepted late facts detach only matching roles; no tentative/stale bytes or backing container escape; generic root/cross-Session mechanics remain `CORE-CLEAN-1`/`CORE-CLEAN-2` |
@@ -242,18 +244,16 @@ live-role inventory, per-adoption and final-state ledgers, and call/owner counts
 encoded-size prediction, performance, or a numeric storage tolerance. This domain introduces no private numeric
 constant or image tolerance.
 
-## STORE-110 — Forbidden alternatives
+## STORE-110 — Safety boundaries
 
-- a second transaction machine, production slot, payload representation, cache, displaced generation, or lease;
-- chunk/tuning constants, arbitrary encoded-size caps, pooling, predictive memory admission, or allocator probes;
-- partial/zero/stale transaction publication, same-frame retry, or storage-selected backend fallback;
-- flatten-on-commit, concatenated persistent arrays, copying existing full Framework segments, native-backed
-  cache, grouped native adoption, or retained segment views;
-- mixed Framework/native producers, range validation after mutation, unchecked narrowing/addition, or first-fault
-  overwrite;
-- treating abort, timeout, cancellation, reference drop, GC, or late result as a physical release receipt;
-- exposing segments/builders/containers, diagnostics containing encoded bytes, or any authority outside exact
-  owners, identities, leases, and receipts.
+Storage uses one transaction family, production/latest/displaced role set, immutable segmented representation,
+and counted lease. Full-range validation precedes mutation, first fault is sticky, and only a complete committed
+payload can become latest. Framework growth preserves accepted full prefixes without recopy; Native adoption copies each ordered segment
+once into managed ownership and retains no native view.
+
+Partial, zero, stale, uncommitted, or native-backed bytes never publish. Abort, timeout, cancellation, reference
+drop, GC, and late results are not physical release receipts; segments/builders/containers and encoded diagnostic
+content remain private.
 
 ## Official implementation references
 

@@ -688,6 +688,37 @@ internal class ControlWakeTaskRecord private constructor(
             -> false
     }
 
+    internal fun isResidueSettled(): Boolean {
+        if (detachedSettlement.get() == DETACHED_PENDING) return false
+        return when (currentDisposition()) {
+            ControlWakePhysicalDisposition.Unused,
+            ControlWakePhysicalDisposition.Prepared,
+            ControlWakePhysicalDisposition.Removed,
+            ControlWakePhysicalDisposition.NotSubmitted,
+            ControlWakePhysicalDisposition.TerminationSettled,
+                -> true
+
+            ControlWakePhysicalDisposition.Returned -> afterExecuteBridge.get() == AFTER_EXECUTE_APPLIED
+            ControlWakePhysicalDisposition.Pending,
+            ControlWakePhysicalDisposition.OnStack,
+            ControlWakePhysicalDisposition.Stale,
+                -> false
+        }
+    }
+
+    internal fun residueSettlement(): ControlWakeTaskResidueSettlement =
+        ControlWakeTaskResidueSettlement(
+            record = this,
+            generation = generation(),
+            physicalDisposition = currentDisposition(),
+            afterExecuteApplied = afterExecuteBridge.get() == AFTER_EXECUTE_APPLIED,
+            detachedAcceptanceDisposition = when (detachedSettlement.get()) {
+                DETACHED_PENDING -> ControlWakeDetachedAcceptanceDisposition.Settling
+                DETACHED_SETTLED -> ControlWakeDetachedAcceptanceDisposition.Settled
+                else -> ControlWakeDetachedAcceptanceDisposition.None
+            },
+        )
+
     private fun physicalDisposition(state: Long): ControlWakePhysicalDisposition {
         if (state == 0L) return ControlWakePhysicalDisposition.Unused
         return when (state and CONTROL_WAKE_PHASE_MASK) {
@@ -1024,6 +1055,39 @@ internal class ControlWakeCancellationAction internal constructor(
         owner.claimRemoveInvocation(this, controlPoison)
 }
 
+/** Exact, inspectable closure of one physical Control-wake wrapper slot. */
+internal class ControlWakeTaskResidueSettlement internal constructor(
+    internal val record: ControlWakeTaskRecord,
+    internal val generation: Long,
+    internal val physicalDisposition: ControlWakePhysicalDisposition,
+    internal val afterExecuteApplied: Boolean,
+    internal val detachedAcceptanceDisposition: ControlWakeDetachedAcceptanceDisposition,
+)
+
+/**
+ * Monotonic proof that one complete wake link has no Control work left to submit, cancel, run, or
+ * bridge through `afterExecute`. The exact link revalidates this proof before terminal use.
+ */
+internal class ControlWakeResidueSettledProof internal constructor(
+    internal val link: ControlWakeLink,
+    internal val generation: Long,
+    internal val identity: ControlWakeIdentity,
+    internal val submissionDisposition: ControlWakeSubmissionDisposition,
+    internal val scheduleInvocationDisposition: ControlWakeScheduleInvocationDisposition,
+    internal val scheduleAction: ControlWakeScheduleAction,
+    internal val scheduleActions: List<ControlWakeScheduleAction>,
+    internal val cancellationDisposition: ControlWakeCancellationDisposition,
+    internal val cancellationAction: ControlWakeCancellationAction,
+    internal val cancelInvocationDisposition: ControlWakeInvocationDisposition,
+    internal val removeInvocationDisposition: ControlWakeInvocationDisposition,
+    internal val fireDisposition: ControlWakeFireDisposition,
+    internal val bodyDisposition: ControlWakeBodyDisposition,
+    internal val schedulerRuntimeIdentity: ControlSchedulerRuntimeIdentity?,
+    internal val schedulerTerminationReceipt: ControlSchedulerTerminationEvidence?,
+    internal val callbackState: Long,
+    internal val physicalSettlements: List<ControlWakeTaskResidueSettlement>,
+)
+
 internal class FiniteDeadlineEarlySuccessorHandle internal constructor(
     private val occurrence: DeadlineOccurrence,
 ) {
@@ -1033,7 +1097,7 @@ internal class FiniteDeadlineEarlySuccessorHandle internal constructor(
 
 /**
  * Generic one-shot Control wake mechanics. It deliberately has no scheduler reference and performs no
- * schedule/cancel/remove call. SessionController executes the claimed actions and publishes their exact results.
+ * schedule/cancel/remove call. SessionAuthority executes the claimed actions and publishes their exact results.
  */
 internal class ControlWakeLink internal constructor(
     initialGeneration: Long,
@@ -1763,6 +1827,91 @@ internal class ControlWakeLink internal constructor(
     internal fun isPhysicalWrapperSettledLocked(): Boolean {
         check(parentGate.isHeldByCurrentThread)
         return taskRecords[0].isPhysicallySettled() && taskRecords[1].isPhysicallySettled()
+    }
+
+    internal fun residueSettledProof(): ControlWakeResidueSettledProof? = parentGate.withLock {
+        if (!isEngineOperationallySettledLocked() || !isResiduePhysicallySettledLocked() ||
+            submissionDisposition == ControlWakeSubmissionDisposition.Requested ||
+            cancellationDisposition == ControlWakeCancellationDisposition.Requested &&
+            !hasDetachedSubmittingSettlementLocked() ||
+            cancellationDisposition == ControlWakeCancellationDisposition.Cancelling ||
+            bodyDisposition == ControlWakeBodyDisposition.Running ||
+            scheduleActions.any {
+                it.detachedAcceptanceDisposition == ControlWakeDetachedAcceptanceDisposition.Returned ||
+                        it.detachedAcceptanceDisposition == ControlWakeDetachedAcceptanceDisposition.Settling
+            }
+        ) {
+            return@withLock null
+        }
+        ControlWakeResidueSettledProof(
+            link = this,
+            generation = generation,
+            identity = identity,
+            submissionDisposition = submissionDisposition,
+            scheduleInvocationDisposition = scheduleInvocationDisposition,
+            scheduleAction = scheduleActionFor(generation),
+            scheduleActions = scheduleActions.toList(),
+            cancellationDisposition = cancellationDisposition,
+            cancellationAction = cancellationAction,
+            cancelInvocationDisposition = cancelInvocationDisposition,
+            removeInvocationDisposition = removeInvocationDisposition,
+            fireDisposition = fireDisposition,
+            bodyDisposition = bodyDisposition,
+            schedulerRuntimeIdentity = schedulerRuntimeIdentity,
+            schedulerTerminationReceipt = schedulerTerminationReceipt,
+            callbackState = callbackState.get(),
+            physicalSettlements = taskRecords.map { it.residueSettlement() },
+        )
+    }
+
+    internal fun acceptsResidueSettledProof(proof: ControlWakeResidueSettledProof): Boolean =
+        parentGate.withLock {
+            proof.link === this && proof.generation == generation && proof.identity === identity &&
+                    proof.submissionDisposition == submissionDisposition &&
+                    proof.scheduleInvocationDisposition == scheduleInvocationDisposition &&
+                    proof.scheduleAction === scheduleActionFor(generation) &&
+                    proof.cancellationAction === cancellationAction &&
+                    proof.cancellationDisposition == cancellationDisposition &&
+                    proof.cancelInvocationDisposition == cancelInvocationDisposition &&
+                    proof.removeInvocationDisposition == removeInvocationDisposition &&
+                    proof.fireDisposition == fireDisposition && proof.bodyDisposition == bodyDisposition &&
+                    proof.schedulerRuntimeIdentity === schedulerRuntimeIdentity &&
+                    proof.schedulerTerminationReceipt === schedulerTerminationReceipt &&
+                    proof.callbackState == callbackState.get() &&
+                    proof.scheduleActions.size == scheduleActions.size &&
+                    proof.scheduleActions.indices.all { proof.scheduleActions[it] === scheduleActions[it] } &&
+                    proof.physicalSettlements.size == taskRecords.size &&
+                    proof.physicalSettlements.indices.all {
+                        val current = taskRecords[it].residueSettlement()
+                        val frozen = proof.physicalSettlements[it]
+                        frozen.record === taskRecords[it] && frozen.generation == current.generation &&
+                                frozen.physicalDisposition == current.physicalDisposition &&
+                                frozen.afterExecuteApplied == current.afterExecuteApplied &&
+                                frozen.detachedAcceptanceDisposition == current.detachedAcceptanceDisposition
+                    } && isEngineOperationallySettledLocked() && isResiduePhysicallySettledLocked() &&
+                    submissionDisposition != ControlWakeSubmissionDisposition.Requested &&
+                    (cancellationDisposition != ControlWakeCancellationDisposition.Requested ||
+                            hasDetachedSubmittingSettlementLocked()) &&
+                    cancellationDisposition != ControlWakeCancellationDisposition.Cancelling &&
+                    bodyDisposition != ControlWakeBodyDisposition.Running &&
+                    scheduleActions.none {
+                        it.detachedAcceptanceDisposition == ControlWakeDetachedAcceptanceDisposition.Returned ||
+                                it.detachedAcceptanceDisposition == ControlWakeDetachedAcceptanceDisposition.Settling
+                    }
+        }
+
+    private fun isResiduePhysicallySettledLocked(): Boolean {
+        check(parentGate.isHeldByCurrentThread)
+        return taskRecords.all(ControlWakeTaskRecord::isResidueSettled)
+    }
+
+    private fun hasDetachedSubmittingSettlementLocked(): Boolean {
+        check(parentGate.isHeldByCurrentThread)
+        val action = scheduleActionFor(generation)
+        return submissionDisposition == ControlWakeSubmissionDisposition.Submitting &&
+                schedulingFailure != null &&
+                action.returnPublicationOutcome == ControlWakeScheduleReturnPublicationOutcome.Detached &&
+                action.detachedAcceptanceDisposition == ControlWakeDetachedAcceptanceDisposition.Settled
     }
 
     internal fun currentPhysicalDispositionLocked(): ControlWakePhysicalDisposition {

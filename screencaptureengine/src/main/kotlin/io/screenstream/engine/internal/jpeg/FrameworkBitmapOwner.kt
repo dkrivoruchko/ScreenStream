@@ -15,7 +15,7 @@ internal fun executeResourceCreation(occurrence: FrameworkResourceCreationOccurr
     } catch (failure: Exception) {
         publishCreationFailure(occurrence, FrameworkResourceCreationResult.InternalFailure, failure)
         return
-    } catch (fatal: Error) {
+    } catch (fatal: Throwable) {
         publishCreationFatalAndRethrow(occurrence, fatal)
     }
 
@@ -122,7 +122,7 @@ internal fun executeResourceCreation(occurrence: FrameworkResourceCreationOccurr
         }
     } catch (failure: Exception) {
         publishCreationFailure(occurrence, FrameworkResourceCreationResult.InternalFailure, failure)
-    } catch (fatal: Error) {
+    } catch (fatal: Throwable) {
         publishCreationFatalAndRethrow(occurrence, fatal)
     }
 }
@@ -152,7 +152,7 @@ private fun publishCreationFailure(
     }
 }
 
-private fun publishCreationFatalAndRethrow(occurrence: FrameworkResourceCreationOccurrence, fatal: Error): Nothing {
+private fun publishCreationFatalAndRethrow(occurrence: FrameworkResourceCreationOccurrence, fatal: Throwable): Nothing {
     if (occurrence.operation.publishDirectFatalReturn(fatal)) {
         occurrence.ownerBag.candidateOwner?.jpegRuntimeOwner?.jpegIoSettlementSignal?.signal()
     }

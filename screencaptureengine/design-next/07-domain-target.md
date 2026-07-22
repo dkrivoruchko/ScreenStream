@@ -24,7 +24,7 @@ deadline, ownership, and quarantine mechanics are [CORE-SET-1](03-shared-runtime
 - [TGT-080](#tgt-080--context-poison-transfer)
 - [TGT-090](#tgt-090--successor-admission-cleanup-and-nonreturn)
 - [TGT-095](#tgt-095--concurrency-and-publication)
-- [TGT-098](#tgt-098--forbidden-alternatives)
+- [TGT-098](#tgt-098--safety-boundaries)
 - [TGT-100](#tgt-100--executable-obligations)
 
 ## TGT-001 — Files and private declarations
@@ -34,8 +34,9 @@ registers ports and leases, binds provenance, and issues Target receipts; privat
 Target state machine. `TargetMode` remains exactly `Full | Downscaled` with positive planned dimensions, while
 plan selection, geometry, reuse, and fallback remain controller authority.
 
-One Session has at most one active occurrence-owned `PreparedTarget` or installed `CurrentTarget`. Older exact
-residue may coexist only after real transfer to cleanup ownership under [TGT-090](#tgt-090--successor-admission-cleanup-and-nonreturn).
+One Session has at most one active occurrence-owned `PreparedTarget` or installed `CurrentTarget`. Nonterminal
+replacement begins only after the predecessor is mechanically retired with all required receipts. Terminal
+cleanup may retain older exact residue, but the Session then has no active successor or resume authority.
 A Target generation is positive, strictly increasing, never reused, and may contain gaps. `TargetOwner` refuses
 reuse on exhaustion; [CTRL-100](05-domain-controller-reconciliation.md#ctrl-100--currentness-identities) accepts
 only the resulting nonreused identity at its owning transition.
@@ -47,8 +48,8 @@ operation kind, and referential provenance.
 
 | Direction | Exact boundary | Target-domain obligation |
 | --- | --- | --- |
-| inbound from `CTRL-100`–`CTRL-130` | current reconciliation key, immutable `TargetPlan`, exact Controller-owned Replacement identity, construction/install or cleanup command | Reserve one generation, bind the positive Replacement correlation, and arbitrate the matching `PreparedTarget` occurrence once; stale safe completion cleans only itself. |
-| inbound from `AND-CAP-020`/`AND-CAP-030` | sealed Android-owned `AndroidTargetPostOutcome = RetiredUnused | DefinitelyUnentered | PostExposed` plus exact platform result | Validate only the bound Target identity/provenance and Replacement correlation, then create/apply the matching Target-owned producer/no-producer/detach or port-retirement fact; never bind or inspect `OperationOccurrence`, `AndroidPostTicket`, Handler, or lane internals. |
+| inbound from `CTRL-100`–`CTRL-130` | current reconciliation key, immutable `TargetPlan`, exact serialized reconfiguration correlation, construction/install or cleanup command | Reserve one generation, bind that correlation when construction is required, and arbitrate the matching `PreparedTarget` occurrence once; stale safe completion cleans only itself. |
+| inbound from `AND-CAP-020`/`AND-CAP-030` | sealed Android-owned `AndroidTargetPostOutcome = RetiredUnused | DefinitelyUnentered | PostExposed` plus exact platform result | Validate only the bound Target identity/provenance and reconfiguration correlation, then create/apply the matching Target-owned producer/no-producer/detach or port-retirement fact; never bind or inspect `OperationOccurrence`, `AndroidPostTicket`, Handler, or lane internals. |
 | inbound from `GL-050`/`GL-070` | adopted OES/`SurfaceTexture`/`Surface` construction result; exact Surface-release outcome; canonical `GlDestructionSuccessReceipt`; exclusive `ContextNamespace` transfer/receipt | Adopt each returned owner immediately; validate and consume only matching Surface, TargetScope, or namespace evidence. |
 | outbound to `AND-CAP-020` | `AndroidListenerInstallationPort`, `AndroidSurfacePort`, `AndroidDetachPort`, or `AndroidListenerRemovalPort`; each raw-handle port includes its counted lease | Expose only the minimum listener, `SurfaceTexture`, or `Surface` needed by that operation; the evidence-only detach port exposes no Target handle. |
 | outbound to `GL-050`/`GL-070` | `GlFramePort`, `SurfaceReleasePort`, or `TargetScopeDestructionGraph` command plus its counted lease | Expose only the matching `Surface`, `SurfaceTexture`, and/or OES name for that operation; retain Target ownership. |
@@ -100,7 +101,7 @@ or consumer owner. Repeated use, mismatched provenance, stale generation, wrong 
 returns no authority and changes no Target state.
 
 Producer and detach ports are separately prepared with Target-owned port, provenance, and fixed Target evidence.
-The Controller owns and supplies the exact Replacement identity; Android binds its own staged post outcomes and
+The Controller owns and supplies the exact reconfiguration correlation; Android binds its own staged post outcomes and
 root to both already-existing identities under `AND-CAP-020`. Allocation-free registration under `targetGate`
 installs only that rooted binding. The Target API receives only sealed `AndroidTargetPostOutcome`; it neither
 binds nor reads the `OperationOccurrence`, `AndroidPostTicket`, or Android root. `RetiredUnused` is valid only
@@ -114,7 +115,7 @@ detach. `PostExposed` normally closes the inert route; Target may accept a later
 the exact Android-owned outcome authorized by one closed proof in `AND-CAP-020`/`AND-CAP-030`.
 Otherwise the unresolved bound graph must settle through a later exact Android platform result or transfer
 intact. Target creates only its own application/retirement facts after validating the sealed outcome's bound
-Target identity, provenance, and Replacement correlation.
+Target identity, provenance, and reconfiguration correlation.
 
 The designated Android or GL owner receives only the handle(s) needed by the call. The Target increments the
 lease count before exposure, releases its private gate, invokes the supplied operation body, and releases exactly
@@ -213,7 +214,7 @@ Producer timestamps likewise have no admission/currentness authority.
 
 ## TGT-060 — Mutually exclusive retirement readiness
 
-Reversible `TargetFrameQuiescedFact` is not retirement readiness and authorizes no detach, listener removal,
+`TargetFrameQuiescedFact` is not retirement readiness and authorizes no detach, listener removal,
 Surface release, generation fence, or successor. An installed `CurrentTarget` becomes Surface-release-ready only
 after all of these facts hold:
 
@@ -304,11 +305,11 @@ terminal application remains [CTRL-130](05-domain-controller-reconciliation.md#c
 
 ## TGT-090 — Successor admission, cleanup, and nonreturn
 
-A successor Target is admitted only after the predecessor is mechanically retired or its exact unresolved work,
-ports/leases, and transitive dependencies have been adopted by a real cleanup child under the permanent Session
-quarantine root through
-[CTRL-400](05-domain-controller-reconciliation.md#ctrl-400--cleanuproot-handoff). Until that transfer is durable, an
-unsafe nonreturn retains the predecessor `PreparedTarget` or `CurrentTarget` and blocks successor admission.
+A nonterminal successor Target is admitted only after the predecessor is mechanically retired and every required
+producer/detach/listener/lease/Surface/TargetScope receipt has settled. Cleanup-root adoption under
+[CTRL-400](05-domain-controller-reconciliation.md#ctrl-400--cleanuproot-handoff) occurs only after terminal cutoff:
+it preserves unresolved work, ports/leases, and transitive dependencies and never authorizes an active successor
+or lifecycle resume. Unsafe nonreturn therefore either blocks nonterminal replacement or remains terminal residue.
 
 Cleanup and late results are occurrence-fenced. A late normal receipt may reduce only its matching Target child;
 it cannot install a Target, allocate a successor, enable Downscaled fallback, reopen admission, publish source
@@ -342,18 +343,17 @@ later exact Android outcome settles it.
 `TargetOwner.currentTarget` and reconciliation currentness remain controller-owned under `sessionGate`;
 `targetGate` cannot install, replace, or declare a Target current by itself.
 
-## TGT-098 — Forbidden alternatives
+## TGT-098 — Safety boundaries
 
-- public or general raw-handle getters, copied handle/name facts, or unregistered owner access;
-- reusable/cross-operation ports, uncounted leases, or evidence lacking exact provenance;
-- listener, producer, frame, or lease work on an uninstalled `PreparedTarget`;
-- Target installation by stale/late completion or by allocation after promotion;
-- a callback-drain/freshness meaning for the listener sentinel or producer timestamp;
-- a bare Boolean/generation as producer, detach, sealing, quiescence, reopening, adoption, destruction, or cleanup evidence;
-- replacement before mechanical retirement or real cleanup-owner adoption;
-- fabricated Surface, `SurfaceTexture`, OES, detach, or namespace receipts;
-- retry, fallback, replacement, or lifecycle revision after unsafe ambiguity/nonreturn;
-- a Target-local GL receipt type, compatibility bridge, second Target state machine, or resource registry.
+Target authority flows through installed identity-bound one-operation ports, counted leases, exact provenance, and
+typed producer/detach/quiescence/destruction evidence. Replacement follows mechanical retirement or real cleanup
+receipt completion. Terminal cleanup adoption preserves residue without active-successor authority; stale and
+late results clean only their own owners.
+
+Raw handles, names, Booleans, generations, listener sentinels, and producer timestamps are never ownership,
+freshness, detach, or release receipts. The domain fabricates no Surface, `SurfaceTexture`, OES, detach, or
+namespace receipt. The Target leaf reports unsafe ambiguity/nonreturn with its exact residue; the Controller alone
+selects and commits terminal classification. Such evidence authorizes no retry, fallback, or replacement.
 
 ## TGT-100 — Executable obligations
 
@@ -366,10 +366,10 @@ commit, Android calls, GL execution, and pacing materialization remain with thei
 | --- | --- |
 | `H-RC` | Generation and reversible-epoch gaps/no reuse/exhaustion; complete current install versus partial/stale cleanup claim; unsafe construction nonreturn and successor exclusion; Target replacement while compatible output owners retain identity. |
 | `H-OS` | Construction, listener, Surface, and TargetScope occurrences at timely/equality/late boundaries; rejection, throw, nonreturn, terminal transfer and cleanup-only late facts; reservation-first, seal-first and delayed old-epoch entry, typed inert settlement, sole predecessor occurrence settlement plus port retirement, stable quiescence, exact reopen, and terminal at every boundary; exact owner-bag provenance. |
-| `H-PS` | Target-side current/retired-generation admission and fence seam; reversible Production/Target sealing; `DEL-PACE-001` owns exchange/coalescing/deferral and attempt/drop assertions. |
+| `H-PS` | Target-side current/retired-generation admission and fence seam; paused Production plus Target-local seal/quiescence/reopen; `DEL-PACE-001` owns exchange/coalescing/deferral and attempt/drop assertions. |
 | `A-CAP` | Inaccessible construction; only installed `CurrentTarget` crosses listener/VirtualDisplay boundaries; allocation-free registration of separately prepared producer/detach bindings; exact consumption of `RetiredUnused`, `DefinitelyUnentered`, `PostExposed`, settled-result, or terminal-transfer input without Android-internal inspection; exact one-operation ports/leases and producer/no-producer/detach evidence, including new-surface producer-only evidence versus null-surface old detach; listener-generation and sentinel races; mutually exclusive release readiness. Android post/entry interleavings remain solely `AND-CAP-060`. |
 | `A-GL` | Partial resource adoption; exact GL frame/Surface-release/TargetScope ports; zero uninstalled GL/frame work; one GL-lane Surface release followed by the SurfaceTexture/OES chain; canonical TargetScope receipt or exclusive namespace transfer. |
-| `A-CL` | Every held prerequisite and partial bag; terminal no-watchdog conversion; exact unresolved residue; real cleanup adoption before successor; namespace transitive retirement; independent-root and cross-Session progress. |
+| `A-CL` | Every held prerequisite and partial bag; terminal no-watchdog conversion; exact unresolved residue; mechanical receipt completion before nonterminal successor; terminal cleanup adoption with no active successor/resume authority; namespace transitive retirement; independent-root and cross-Session progress. |
 
 Every port test checks Target/generation/operation/kind/provenance mismatch, second use, counted lease increment/
 release or fatal retention for raw-handle ports, reversible epoch/seal/currentness, exact evidence-only detach behavior, absence of a general getter,
