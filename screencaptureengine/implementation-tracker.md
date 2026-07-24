@@ -6,7 +6,7 @@
 
 The accepted documents are current authority, not irrevocable final decisions. If implementation exposes a concrete platform conflict, disproportionate practical complexity or a materially simpler solution that preserves product intent, stop work at that boundary and present the evidence, trade-offs and proposed documentation change for explicit user approval. Continue under the existing authority until that change is approved.
 
-Existing production code is evidence, not presumed-correct architecture. The current gate is Agreed implementation plan step 1; production editing opens only after user approval of its refactor map.
+Existing production code is evidence, not presumed-correct architecture. The refactor map and foundation are consumed; Native/Auto JPEG and API 32–37 Downscaled Target are source-review closed. The accepted V1 decision is no automatic Target-mode health downgrade or Downscaled-to-Full fallback. This closed source boundary is the current intermediate commit boundary; the next production gate is the pacing/cache packet recorded in the final plan section. Tests, test sources, builds, runtime/device work and `build.gradle.kts` remain explicitly deferred; their accepted final obligations remain recorded but do not gate later Kotlin/C++ source progress.
 
 ## Working model
 
@@ -89,32 +89,47 @@ Large boundaries are divided by end-to-end causal scenarios rather than arbitrar
 
 ## Agreed implementation plan
 
-The goal is the fastest practical path to the complete accepted product without lowering correctness, reliability, maintainability, efficiency, verification or critical-review standards. Adjust local sequencing as implementation evidence reveals real dependencies or a simpler route. Root records those plan changes and continues; material course or authority changes require the user-agreement procedure.
+The goal is the fastest practical path to the complete accepted product without lowering correctness, reliability, maintainability, efficiency, verification or critical-review standards. Local packet boundaries may change when dependencies or implementation evidence make a different split simpler; material authority or product changes still require user agreement.
 
-### 1. Conformance inventory and refactor map — current
+### 1. Conformance inventory and refactor map — approved and consumed
 
-Use up to three bounded read-only agents in parallel over complementary inventory scopes: ownership/concurrency, product/platform/JNI/ABI/build anchors, and simplicity/performance/file decomposition. This is source mapping, not critical closure review.
+The generic legacy ownership graph has been replaced by the direct typed architecture: one public facade, one Front Door and `sessionGate`, finite Bootstrap, Control/Capture Handler lanes, separate Metrics/JPEG/Delivery permits, four permanent capsules, one Control-owned `FrameStore`, and no compatibility bridge to the removed graph.
 
-The merged map classifies current code as retain, locally correct, move/split, replace, delete, or missing. It defines package/file ownership, large-file responsibility splits, preserved external anchors, dependency order, coherent implementation slices, useful parallel work and expected temporary noncompilation boundaries. Root presents the map and stops for user approval before production editing.
+Fixed external anchors remain: public package/API identity and explicit API mode; SDK 24–37 and JVM 17; Native source paths, NDK/ABI/DSO/JNI descriptors and order, 16-byte result wire, frozen sink upcall, exports and alignment; empty manifest and shrinker boundary. Authority-08 compilation, runtime, ABI, package and artifact evidence remains deferred rather than satisfied.
 
-### 2. Foundation and first internal vertical slice
+### 2. Foundation and first vertical slice — source-review closed
 
-Establish the real foundational owners and execution boundaries, remove superseded authority as its replacement becomes connected, and implement the smallest truthful internal path from start through capture, Framework JPEG and storage/delivery to normal stop. Use disjoint dependency-ready parallel work and validate the resulting coherent causal boundary through the applicable verification and replicated-review procedure. This slice validates the architecture early but does not reduce the required final capability set.
+The connected production path covers facade/start, Metrics readiness, Full + Direct capture, retained EGL rendering, Framework JPEG, segmented immutable storage, fresh Delivery, State/Stats/diagnostics, reconfiguration fencing, terminal ownership transfer and normal stop. The superseded Kotlin graph is removed. The Display-P3 transform is one fused shader pass with `highp` preferred and `mediump` best effort.
 
-### 3. Standalone capability completion
+The foundation causal review closed with three `PASS` verdicts. Source-only IDE diagnostics over all 47 production Kotlin files reported zero errors and zero timeouts. This is source evidence only, not build, runtime or package proof.
 
-Complete every remaining routed domain obligation, including platform lifecycle, Metrics, rendering, Framework and Native/Auto JPEG, fallback, storage, pacing, delivery, observation, reconfiguration, failure and terminal behavior. Continue through local packets without user stops while accepted authority remains sufficient and course-health rules remain satisfied.
+### 3. Standalone capability completion — in progress
+
+Source-review-closed packets:
+
+- Native/Auto JPEG: one legal carrier/backend product, Native compression without the Framework Bitmap copy, exact JNI/wire/adoption boundaries, Session-wide Native health, later Framework reconciliation and exact stale/terminal ownership.
+- API 32–37 Downscaled Target: exact Full/Downscaled planner, logical display versus physical Target separation, provisional API 34+ Full, Target retention/replacement, truthful mode observation, whole-production drain and revision-safe reconciliation.
+
+The accepted V1 decision is no automatic Target-mode health downgrade or Downscaled-to-Full fallback. A Target denial follows the existing `Suspended` or terminal failure contract; a later revision selects Target mode only from its current eligibility. This decision is owned by Product, Architecture and Capture authority and requires no production rollback path.
+
+Remaining source work, in order:
+
+1. Pacing/cache packet: cache unchanged plan and Metrics decisions, remove incidental Control-turn allocations, and complete MaxFps, repeat and cached-first behavior with truthful Stats/diagnostics and backpressure.
+2. Broader reconciliation packet: finish parameter/geometry/visibility/subscription changes, stale/late result handling, recoverable suspension/resume and terminal races not already closed by the existing packets.
+3. Standalone source closure: complete any remaining public-facade/factory wiring, remove obsolete production paths, run source diagnostics and replicated critical review over the complete standalone causal surface.
+
+Exact next procedure after the intermediate commit is to reread this tracker and the authority router, inventory the pacing/cache producers, owners and consumers in Product `01`, Architecture `02` and Delivery/Observation `07`, then assign disjoint Kotlin production ownership. Continue to ignore tests, test sources, Gradle/CMake, builds, runtime/device/package/performance and Git unless the user explicitly reopens them.
 
 ### 4. Standalone closure
 
-Complete the standalone public facade/factory and its acceptance evidence. Restore compilation, apply the relevant verification matrix, remove obsolete paths, run replicated critical review over coherent standalone scenarios, repair and recheck every material finding, then stop for user review before standalone freeze.
+After source capability completion, close the standalone public boundary and its source-only acceptance evidence, then stop for user review. Compilation, tests, runtime and artifact evidence remain deferred under the current constraint.
 
 ### 5. Application integration
 
-Integrate the frozen standalone library into application modes and wiring as a separate gate. Preserve required product variants and perform the approved integration verification without reopening library authority absent concrete evidence.
+Integrate the source-closed standalone library into application modes and wiring as a separate gate while preserving product variants. Perform only the source work and review allowed by the active user constraint.
 
-### 6. Final verification and efficiency closure
+### 6. Final source and efficiency closure
 
-Complete the applicable [`design/08-verification.md`](design/08-verification.md) end-to-end scenarios, required product variants, repository-wide obsolete-path check, evidence-led CPU/GPU/memory work and final replicated critical review. Repair and recheck every material finding, then stop for user review before final freeze.
+Complete the source-applicable parts of Authority-08, the repository obsolete-path check, evidence-led CPU/GPU/memory review and final replicated critical review. Build, test, runtime, ABI, AAR and package proof remains an explicit deferred gap until the user reopens it.
 
-The mandatory user stops are the step-1 refactor map, standalone freeze readiness and final integration freeze readiness. Add a stop only for a material authority/course decision, repeated structural defect or blocker requiring user choice.
+The next mandatory stop is standalone source-freeze readiness; later stops remain application-integration readiness and final source closure. Add a stop only for a material authority/course decision, repeated structural defect or blocker requiring user choice.

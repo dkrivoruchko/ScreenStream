@@ -308,10 +308,12 @@ state before reconciliation continues. Ownership ambiguity, malformed evidence, 
 the Session even when stale; staleness never downgrades it. A late or terminal result cannot reopen admission,
 publish bytes, change fallback health, add active counters, or revive lifecycle.
 
-Native encoder health, Target-mode health, and rendering health are independent monotone axes. A safely returned
-optional-axis failure may disable only its own axis for later production. It never causes a second encode or
-render attempt for the same frame. Mandatory fallback production resumes only after its full current ownership
-is installed.
+Native encoder health and rendering health are independent monotone axes. V1 has no mutable Target-mode health
+axis and no automatic Downscaled-to-Full fallback: each reconciliation selects Target mode only from its current
+plan eligibility, and a Target denial follows its required failure semantics without disabling a later
+Downscaled selection. A safely returned optional Native-axis failure may disable only Native for later
+production. It never causes a second encode attempt for the same frame. Mandatory Native fallback production
+resumes only after its full current ownership is installed.
 
 ## Time, allocation, failure, and data safety
 

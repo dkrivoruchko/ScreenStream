@@ -266,6 +266,18 @@ public class ScreenCaptureStats private constructor(
     public val lastEncodedByteCount: Int,
     public val averageEncodedByteCount: Int,
 ) {
+    init {
+        require(framesEncoded >= 0L)
+        require(framesProduced >= 0L)
+        require(averageProducedFps.isFinite() && averageProducedFps >= 0.0)
+        require(averageEncodeMs.isFinite() && averageEncodeMs >= 0.0)
+        require(averageReadbackMs.isFinite() && averageReadbackMs >= 0.0)
+        require(lastEncodedByteCount >= 0)
+        require(averageEncodedByteCount >= 0)
+        require((framesEncoded == 0L) == (lastEncodedByteCount == 0))
+        require((framesEncoded == 0L) == (averageEncodedByteCount == 0))
+    }
+
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ScreenCaptureStats) return false
@@ -337,6 +349,12 @@ public class ScreenCaptureFrameDropStats private constructor(
     public val byStaleWork: Long,
     public val byFailure: Long,
 ) {
+    init {
+        require(byPipelineBusy >= 0L)
+        require(byStaleWork >= 0L)
+        require(byFailure >= 0L)
+    }
+
     public val total: Long
         get() = saturatingAdd(saturatingAdd(byPipelineBusy, byStaleWork), byFailure)
 
@@ -376,6 +394,11 @@ public class ScreenCaptureDeliveryDropStats private constructor(
     public val byConsumerBusy: Long,
     public val byCallbackFailure: Long,
 ) {
+    init {
+        require(byConsumerBusy >= 0L)
+        require(byCallbackFailure >= 0L)
+    }
+
     public val total: Long
         get() = saturatingAdd(byConsumerBusy, byCallbackFailure)
 
@@ -414,6 +437,10 @@ public class ScreenCaptureDiagnosticEvent private constructor(
     public val message: String,
     public val cause: Throwable?,
 ) {
+    init {
+        require(sequence > 0L)
+    }
+
     internal companion object {
         @JvmSynthetic
         internal fun create(

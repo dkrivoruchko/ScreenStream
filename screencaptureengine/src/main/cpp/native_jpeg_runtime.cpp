@@ -94,6 +94,23 @@ namespace screenstream::jpeg {
             }
             accepting_ = false;
             frozen_ = true;
+
+            std::int64_t remainingByteCount = producedByteCount_;
+            NativeSegment *last = nullptr;
+            for (NativeSegment *segment = head_; segment != nullptr; segment = segment->next) {
+                if (segment->bytes == nullptr || segment->byteCount <= 0 ||
+                    segment->byteCount > remainingByteCount) {
+                    recordInternalFailure();
+                    return false;
+                }
+                remainingByteCount -= segment->byteCount;
+                last = segment;
+            }
+            if (remainingByteCount != 0 || last != tail_ ||
+                ((head_ == nullptr) != (tail_ == nullptr))) {
+                recordInternalFailure();
+                return false;
+            }
             return true;
         } catch (...) {
             recordInternalFailure();
@@ -106,7 +123,9 @@ namespace screenstream::jpeg {
     }
 
     bool WriterCapsule::releaseFront(NativeSegment *expected) noexcept {
-        if (!frozen_ || closed_ || expected == nullptr || head_ != expected) {
+        if (!frozen_ || closed_ || expected == nullptr || head_ != expected ||
+            expected->bytes == nullptr || expected->byteCount <= 0 ||
+            ((expected->next == nullptr) != (tail_ == expected))) {
             recordInternalFailure();
             return false;
         }
@@ -124,6 +143,7 @@ namespace screenstream::jpeg {
         tail_ = nullptr;
         while (segment != nullptr) {
             NativeSegment *next = segment->next;
+            if (segment->bytes == nullptr || segment->byteCount <= 0) recordInternalFailure();
             std::free(segment->bytes);
             segment->bytes = nullptr;
             std::free(segment);
@@ -132,7 +152,11 @@ namespace screenstream::jpeg {
     }
 
     bool WriterCapsule::close() noexcept {
-        if (closed_) return head_ == nullptr && tail_ == nullptr;
+        if (closed_) {
+            const bool empty = head_ == nullptr && tail_ == nullptr;
+            if (!empty) recordInternalFailure();
+            return empty;
+        }
         accepting_ = false;
         frozen_ = true;
         releaseAll();
@@ -141,7 +165,15 @@ namespace screenstream::jpeg {
     }
 
     WriterFault WriterCapsule::fault() const noexcept {
-        return static_cast<WriterFault>(fault_.load(std::memory_order_relaxed));
+        switch (static_cast<WriterFault>(fault_.load(std::memory_order_relaxed))) {
+            case WriterFault::None:
+                return WriterFault::None;
+            case WriterFault::NativeOutOfMemory:
+                return WriterFault::NativeOutOfMemory;
+            case WriterFault::InternalFailure:
+                return WriterFault::InternalFailure;
+        }
+        return WriterFault::InternalFailure;
     }
 
     std::int64_t WriterCapsule::producedByteCount() const noexcept {

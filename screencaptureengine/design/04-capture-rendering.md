@@ -172,7 +172,8 @@ is closed:
   eligibility.
 - A target-size request, either half-region, any crop, API outside 32–37, or `k == g` selects `Full`.
 - A selected Downscaled plan that is later denied by a deterministic limit or actual allocation does not fall
-  back to Full for that attempt.
+  back to Full for that attempt or disable Downscaled for later reconciliation. V1 has no Target-mode health or
+  automatic Downscaled-to-Full fallback.
 
 The exact planner is:
 
@@ -425,8 +426,11 @@ colorimetric claim.
 Capture applies the Display-P3 and grayscale transforms owned by
 [Product §5](01-product-contract.md#5-dimensions-transform-color-and-jpeg-semantics) exactly once. The selected
 fragment shader fuses the applicable Product transform after source sampling and before readback, uses no extra
-FBO, and forces opaque alpha in that same pass. Capture does not restate or independently vary Product's matrix,
-evaluation order, clamp, encoding, quantization, or gamma-coded grayscale rule.
+FBO, and forces opaque alpha in that same pass. Fragment `highp` is preferred; the already-selected `mediump`
+shader is the best-effort fallback when `highp` is unavailable. Capture does not restate or independently vary
+Product's matrix, evaluation order, clamp, encoding, quantization, or gamma-coded grayscale rule, but neither
+precision promises binary64 evaluation or cross-GPU bit-exact output. Verification owns the precision-specific
+visual tolerances.
 
 ### Canonical frame and carrier use
 

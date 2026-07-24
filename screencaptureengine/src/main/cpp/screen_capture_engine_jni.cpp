@@ -29,6 +29,7 @@ namespace {
 
     constexpr std::int32_t kBootstrapSuccess = JNI_OK;
     constexpr std::int32_t kBootstrapInternalFailure = 3;
+    constexpr jint kRuntimeMethodCount = 4;
     constexpr jlong kResultBlockByteCount = 16;
     constexpr std::size_t kStatusOffset = 0;
     constexpr std::size_t kProducedByteCountOffset = 8;
@@ -38,7 +39,7 @@ namespace {
     class ResultChannel final {
     public:
         ResultChannel(JNIEnv *env, jobject resultBlock) noexcept {
-            if (env == nullptr || resultBlock == nullptr) return;
+            if (env == nullptr || env->ExceptionCheck() || resultBlock == nullptr) return;
             void *address = env->GetDirectBufferAddress(resultBlock);
             if (env->ExceptionCheck() || address == nullptr) return;
             const jlong capacity = env->GetDirectBufferCapacity(resultBlock);
@@ -71,16 +72,9 @@ namespace {
         env->DeleteLocalRef(exceptionClass);
     }
 
-    CompressorFunction resolveCompressor() noexcept {
-        if (__builtin_available(android 30, *)) {
-            auto compressor = &AndroidBitmap_compress;
-            if (compressor != nullptr) return compressor;
-        }
-        return nullptr;
-    }
-
     jobject nativeAllocateCarrier(JNIEnv *env, jobject, jlong byteCount) noexcept {
         try {
+            if (env == nullptr || env->ExceptionCheck()) return nullptr;
             if (byteCount <= 0 || static_cast<std::uint64_t>(byteCount) > std::numeric_limits<std::size_t>::max()) {
                 throwNew(env, "java/lang/IllegalArgumentException", "native carrier byte count is invalid");
                 return nullptr;
@@ -112,6 +106,7 @@ namespace {
 
     void nativeFreeCarrier(JNIEnv *env, jobject, jobject pixels) noexcept {
         try {
+            if (env == nullptr || env->ExceptionCheck()) return;
             if (pixels == nullptr) {
                 throwNew(env, "java/lang/IllegalArgumentException", "native carrier is missing");
                 return;
@@ -136,10 +131,16 @@ namespace {
         }
     }
 
-    jboolean nativeHasWeakCompressor(JNIEnv *, jobject) noexcept {
+    jboolean nativeHasWeakCompressor(JNIEnv *env, jobject) noexcept {
         try {
-            return resolveCompressor() != nullptr ? JNI_TRUE : JNI_FALSE;
+            if (env == nullptr || env->ExceptionCheck()) return JNI_FALSE;
+            if (__builtin_available(android 30, *)) {
+                auto compressor = &AndroidBitmap_compress;
+                if (compressor != nullptr) return JNI_TRUE;
+            }
+            return JNI_FALSE;
         } catch (...) {
+            throwNew(env, "java/lang/IllegalStateException", "native compressor capability failed internally");
             return JNI_FALSE;
         }
     }
@@ -173,85 +174,17 @@ namespace {
                pixelByteCount <= std::numeric_limits<std::int32_t>::max();
     }
 
-    void nativeCompress(
+    void compressResolved(
             JNIEnv *env,
-            jobject,
-            jobject pixels,
-            jlong pixelByteCount,
-            jint width,
-            jint height,
-            jint stride,
-            jint format,
-            jlong flags,
-            jint dataspace,
-            jint compressFormat,
-            jint quality,
             jobject sink,
-            jobject resultBlock
+            jmethodID adoptMethod,
+            NativeFrameDescriptor descriptor,
+            CompressorFunction compressor,
+            ResultChannel &result
     ) noexcept {
-        ResultChannel result(env, resultBlock);
-        if (!result.armed()) return;
-
         std::int64_t producedByteCount = 0;
         try {
-            if (!validateDescriptor(
-                    pixels,
-                    pixelByteCount,
-                    width,
-                    height,
-                    stride,
-                    format,
-                    flags,
-                    dataspace,
-                    compressFormat,
-                    quality,
-                    sink
-            )) {
-                result.complete(NativeStatus::InternalFailure, 0);
-                return;
-            }
-
-            void *pixelAddress = env->GetDirectBufferAddress(pixels);
-            if (env->ExceptionCheck() || pixelAddress == nullptr) {
-                result.complete(NativeStatus::InternalFailure, 0);
-                return;
-            }
-            const jlong pixelCapacity = env->GetDirectBufferCapacity(pixels);
-            if (env->ExceptionCheck() || pixelCapacity != pixelByteCount) {
-                result.complete(NativeStatus::InternalFailure, 0);
-                return;
-            }
-
-            jclass sinkClass = env->GetObjectClass(sink);
-            if (sinkClass == nullptr || env->ExceptionCheck()) {
-                if (sinkClass != nullptr) env->DeleteLocalRef(sinkClass);
-                result.complete(NativeStatus::InternalFailure, 0);
-                return;
-            }
-            jmethodID adoptMethod = env->GetMethodID(sinkClass, kSinkMethodName, kSinkMethodDescriptor);
-            env->DeleteLocalRef(sinkClass);
-            if (adoptMethod == nullptr || env->ExceptionCheck()) {
-                result.complete(NativeStatus::InternalFailure, 0);
-                return;
-            }
-
-            CompressorFunction compressor = resolveCompressor();
-            if (compressor == nullptr) {
-                result.complete(NativeStatus::InternalFailure, 0);
-                return;
-            }
-
             WriterCapsule capsule;
-            NativeFrameDescriptor descriptor{};
-            descriptor.bitmapInfo.width = static_cast<std::uint32_t>(width);
-            descriptor.bitmapInfo.height = static_cast<std::uint32_t>(height);
-            descriptor.bitmapInfo.stride = static_cast<std::uint32_t>(stride);
-            descriptor.bitmapInfo.format = static_cast<std::int32_t>(format);
-            descriptor.bitmapInfo.flags = static_cast<std::uint32_t>(flags);
-            descriptor.dataspace = dataspace;
-            descriptor.compressFormat = compressFormat;
-            descriptor.quality = quality;
-            descriptor.pixels = pixelAddress;
             descriptor.writerFunction = &WriterCapsule::write;
             descriptor.writerContext = &capsule;
 
@@ -309,7 +242,9 @@ namespace {
             }
 
             const bool closed = capsule.close() && capsule.closed();
-            if (!closed) finalStatus = NativeStatus::InternalFailure;
+            if (!closed || capsule.fault() == WriterFault::InternalFailure) {
+                finalStatus = NativeStatus::InternalFailure;
+            }
             result.complete(finalStatus, producedByteCount);
         } catch (const std::bad_alloc &) {
             result.complete(NativeStatus::InternalFailure, producedByteCount);
@@ -318,7 +253,94 @@ namespace {
         }
     }
 
-    JNINativeMethod kRuntimeMethods[] = {
+    void nativeCompress(
+            JNIEnv *env,
+            jobject,
+            jobject pixels,
+            jlong pixelByteCount,
+            jint width,
+            jint height,
+            jint stride,
+            jint format,
+            jlong flags,
+            jint dataspace,
+            jint compressFormat,
+            jint quality,
+            jobject sink,
+            jobject resultBlock
+    ) noexcept {
+        ResultChannel result(env, resultBlock);
+        if (!result.armed()) return;
+
+        try {
+            if (!validateDescriptor(
+                    pixels,
+                    pixelByteCount,
+                    width,
+                    height,
+                    stride,
+                    format,
+                    flags,
+                    dataspace,
+                    compressFormat,
+                    quality,
+                    sink
+            )) {
+                result.complete(NativeStatus::InternalFailure, 0);
+                return;
+            }
+
+            void *pixelAddress = env->GetDirectBufferAddress(pixels);
+            if (env->ExceptionCheck() || pixelAddress == nullptr) {
+                result.complete(NativeStatus::InternalFailure, 0);
+                return;
+            }
+            const jlong pixelCapacity = env->GetDirectBufferCapacity(pixels);
+            if (env->ExceptionCheck() || pixelCapacity != pixelByteCount) {
+                result.complete(NativeStatus::InternalFailure, 0);
+                return;
+            }
+
+            jclass sinkClass = env->GetObjectClass(sink);
+            if (sinkClass == nullptr || env->ExceptionCheck()) {
+                if (sinkClass != nullptr) env->DeleteLocalRef(sinkClass);
+                result.complete(NativeStatus::InternalFailure, 0);
+                return;
+            }
+            jmethodID adoptMethod = env->GetMethodID(sinkClass, kSinkMethodName, kSinkMethodDescriptor);
+            env->DeleteLocalRef(sinkClass);
+            if (adoptMethod == nullptr || env->ExceptionCheck()) {
+                result.complete(NativeStatus::InternalFailure, 0);
+                return;
+            }
+
+            NativeFrameDescriptor descriptor{};
+            descriptor.bitmapInfo.width = static_cast<std::uint32_t>(width);
+            descriptor.bitmapInfo.height = static_cast<std::uint32_t>(height);
+            descriptor.bitmapInfo.stride = static_cast<std::uint32_t>(stride);
+            descriptor.bitmapInfo.format = static_cast<std::int32_t>(format);
+            descriptor.bitmapInfo.flags = static_cast<std::uint32_t>(flags);
+            descriptor.dataspace = static_cast<std::int32_t>(dataspace);
+            descriptor.compressFormat = static_cast<std::int32_t>(compressFormat);
+            descriptor.quality = static_cast<std::int32_t>(quality);
+            descriptor.pixels = pixelAddress;
+
+            if (__builtin_available(android 30, *)) {
+                auto compressor = &AndroidBitmap_compress;
+                if (compressor != nullptr) {
+                    compressResolved(env, sink, adoptMethod, descriptor, compressor, result);
+                    return;
+                }
+            }
+            result.complete(NativeStatus::InternalFailure, 0);
+        } catch (const std::bad_alloc &) {
+            result.complete(NativeStatus::InternalFailure, 0);
+        } catch (...) {
+            result.complete(NativeStatus::InternalFailure, 0);
+        }
+    }
+
+    const JNINativeMethod kRuntimeMethods[] = {
             {
                     const_cast<char *>("nativeAllocateCarrier"),
                     const_cast<char *>("(J)Ljava/nio/ByteBuffer;"),
@@ -343,6 +365,10 @@ namespace {
                     reinterpret_cast<void *>(nativeCompress),
             },
     };
+    static_assert(
+            sizeof(kRuntimeMethods) / sizeof(kRuntimeMethods[0]) ==
+            static_cast<std::size_t>(kRuntimeMethodCount)
+    );
 
 }  // namespace
 
@@ -369,7 +395,7 @@ Java_io_screenstream_engine_internal_jpeg_NativeJpegProcess_nativeBootstrap(
         const jint registration = env->RegisterNatives(
                 receiverClass,
                 kRuntimeMethods,
-                static_cast<jint>(sizeof(kRuntimeMethods) / sizeof(kRuntimeMethods[0]))
+                kRuntimeMethodCount
         );
         env->DeleteLocalRef(receiverClass);
         if (registration != JNI_OK || env->ExceptionCheck()) return kBootstrapInternalFailure;

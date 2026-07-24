@@ -1,61 +1,70 @@
 package io.screenstream.engine.internal.delivery
 
 import io.screenstream.engine.EncodedImageFrame
-import io.screenstream.engine.internal.EncodedStorageOwner
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
+import io.screenstream.engine.EncodedImageFrameAccess
+import io.screenstream.engine.ScreenCaptureEffectiveParameters
+import io.screenstream.engine.internal.storage.EncodedPayloadLease
+import io.screenstream.engine.internal.storage.EncodedPayloadLeaseRelease
 
-/**
- * Sole callback-scoped authority behind one public frame facade.
- *
- * All six public operations enter [checkedLease]. Closing clears both the callback thread and the retained lease
- * before the physical lease release is attempted, so no callback facade can keep storage authority alive.
- */
+/** Sole callback-scoped access authority behind one public borrowed frame. */
 internal class BorrowedFrameAuthority internal constructor(
-    lease: EncodedStorageOwner.EncodedPayloadLease,
-    private val settlementGate: ReentrantLock,
-) {
-    private var retainedLease: EncodedStorageOwner.EncodedPayloadLease? = lease
+    lease: EncodedPayloadLease,
+) : EncodedImageFrameAccess {
+    private val accessGate = Any()
+    private var retainedLease: EncodedPayloadLease? = lease
     private var callbackThread: Thread? = null
-    private var open: Boolean = false
+    private var open = false
 
-    internal val frame: EncodedImageFrame = EncodedImageFrame.create(
-        readByteCount = { checkedLease().byteCount },
-        readEffectiveParameters = { checkedLease().effectiveParameters },
-        readSequence = { checkedLease().sequence },
-        readTimestampElapsedRealtimeNanos = { checkedLease().timestampElapsedRealtimeNanos },
-        copyTo = { destination, destinationOffset ->
-            checkedLease().copyTo(destination, destinationOffset)
-        },
-        copyBytes = { checkedLease().copyBytes() },
-    )
+    internal val frame: EncodedImageFrame = EncodedImageFrame.create(this)
 
-    internal fun openLocked(thread: Thread): Boolean {
-        check(settlementGate.isHeldByCurrentThread)
-        if (open || retainedLease == null) return false
-        callbackThread = thread
-        open = true
-        return true
+    internal fun openOn(thread: Thread) {
+        synchronized(accessGate) {
+            check(!open && callbackThread == null && retainedLease != null)
+            callbackThread = thread
+            open = true
+        }
     }
 
-    /** Returns the retained lease after revoking every public frame operation. */
-    internal fun closeAndDetachLocked(): EncodedStorageOwner.EncodedPayloadLease? {
-        check(settlementGate.isHeldByCurrentThread)
-        open = false
-        callbackThread = null
-        return retainedLease.also { retainedLease = null }
+    /** Revokes public access before producing the exact one-shot storage release fact. */
+    internal fun closeAndRelease(): EncodedPayloadLeaseRelease? {
+        val lease = synchronized(accessGate) {
+            check(open)
+            open = false
+            callbackThread = null
+            retainedLease.also { retainedLease = null }
+        }
+        return lease?.release()
     }
 
-    private fun checkedLease(): EncodedStorageOwner.EncodedPayloadLease = settlementGate.withLock {
-        if (!open || retainedLease == null) throw CLOSED_AUTHORITY
-        if (Thread.currentThread() !== callbackThread) throw WRONG_THREAD
+    /** Used for cutoff/rejection before callback entry. */
+    internal fun releaseWithoutOpening(): EncodedPayloadLeaseRelease? {
+        val lease = synchronized(accessGate) {
+            check(!open && callbackThread == null)
+            retainedLease.also { retainedLease = null }
+        }
+        return lease?.release()
+    }
+
+    override fun byteCount(): Int = checkedLease().byteCount
+
+    override fun effectiveParameters(): ScreenCaptureEffectiveParameters = checkedLease().effectiveParameters
+
+    override fun sequence(): Long = checkedLease().sequence
+
+    override fun timestampElapsedRealtimeNanos(): Long = checkedLease().timestampElapsedRealtimeNanos
+
+    override fun copyTo(destination: ByteArray, destinationOffset: Int): Int =
+        checkedLease().copyTo(destination, destinationOffset)
+
+    override fun copyBytes(): ByteArray = checkedLease().copyBytes()
+
+    private fun checkedLease(): EncodedPayloadLease = synchronized(accessGate) {
+        if (!open || retainedLease == null) {
+            throw IllegalStateException("EncodedImageFrame is valid only during its callback body")
+        }
+        if (Thread.currentThread() !== callbackThread) {
+            throw IllegalStateException("EncodedImageFrame is valid only on its callback thread")
+        }
         checkNotNull(retainedLease)
-    }
-
-    private companion object {
-        private val WRONG_THREAD: IllegalStateException =
-            IllegalStateException("EncodedImageFrame is valid only on its callback thread")
-        private val CLOSED_AUTHORITY: IllegalStateException =
-            IllegalStateException("EncodedImageFrame is valid only during its callback body")
     }
 }

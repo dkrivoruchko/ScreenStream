@@ -270,8 +270,8 @@ Display-P3 is converted to sRGB; exact scRGB/scRGB-linear and ST2084/HLG transfe
 8-bit best effort; every other value uses nominal-SDR best effort. Display capability is not source-buffer
 evidence, and V1 exposes neither an HDR flag nor an HDR colorimetric guarantee.
 
-The exact Display-P3 conversion decodes each gamma-coded channel, applies this D65 linear transform in written
-order, clamps each linear result to `[0,1]`, and encodes sRGB:
+The Display-P3 reference conversion decodes each gamma-coded channel, applies this D65 linear transform in
+written order, clamps each linear result to `[0,1]`, and encodes sRGB:
 
 ```text
 decode(c) = c/12.92                         if c <= 0.04045
@@ -283,9 +283,12 @@ encode(c) = 12.92c                          if c <= 0.0031308
             1.055*c^(1/2.4)-0.055           otherwise
 ```
 
-Exact 8-bit input starts as `c8/255.0`; binary64 evaluation follows the written order and final output quantizes
-as `min(255,max(0,floor(255*c+0.5)))`. After source color handling, grayscale uses the gamma-coded rule
-`Y=(77R+150G+29B+128)>>8`, assigns `R=G=B=Y`, and forces alpha 255. It is not linear-light Rec.709.
+The selected fragment shader applies this reference once before readback. It prefers fragment `highp` and uses
+`mediump` as a best-effort fallback when `highp` is unavailable. The written formula, matrix order, clamp and
+final `min(255,max(0,floor(255*c+0.5)))` describe the semantic result, but shader evaluation is not required to
+use binary64 and V1 makes no cross-GPU bit-exact color guarantee. The exact precision-specific visual bounds
+belong to Verification's GL image oracle. After source color handling, grayscale uses the gamma-coded reference
+rule `Y=(77R+150G+29B+128)>>8`, assigns `R=G=B=Y`, and forces alpha 255. It is not linear-light Rec.709.
 
 Committed bytes are a complete immutable JPEG payload; partial, failed, stale, or tentative bytes never
 publish. `jpegQuality` is a quality hint rather than a byte-for-byte encoder guarantee. Early Downscale may
@@ -519,6 +522,11 @@ suspends with `ResourceExhausted`. A required current creation/allocation failur
 `ResourceExhausted`. Startup deterministic denial or required creation/allocation failure is terminal
 `ResourceExhausted`. Required raw-pixel-carrier or encoded-storage failure during Running is terminal
 `ResourceExhausted`, not optional fallback.
+
+V1 has no automatic Target-mode downgrade or Downscaled-to-Full fallback. A deterministic Target denial or
+required Target creation/allocation failure follows the `Suspended` or terminal rules above and does not disable
+Downscaled for a later reconciliation. A later revision selects Full or Downscaled only from its current API,
+geometry and parameter eligibility.
 
 At the sole virtual-display creation boundary, a null or security denial is `CaptureUnavailable`, a direct
 `OutOfMemoryError` is `ResourceExhausted`, and `IllegalStateException` or another unexpected `Exception` is

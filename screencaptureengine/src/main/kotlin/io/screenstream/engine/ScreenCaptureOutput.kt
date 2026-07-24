@@ -6,6 +6,13 @@ public class ImageRect private constructor(
     public val right: Int,
     public val bottom: Int,
 ) {
+    init {
+        require(left >= 0) { "left must be non-negative" }
+        require(top >= 0) { "top must be non-negative" }
+        require(right > left) { "right must be greater than left" }
+        require(bottom > top) { "bottom must be greater than top" }
+    }
+
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ImageRect) return false
@@ -35,6 +42,12 @@ public class CaptureGeometry private constructor(
     public val heightPx: Int,
     public val densityDpi: Int,
 ) {
+    init {
+        require(widthPx > 0) { "widthPx must be positive" }
+        require(heightPx > 0) { "heightPx must be positive" }
+        require(densityDpi > 0) { "densityDpi must be positive" }
+    }
+
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CaptureGeometry) return false
@@ -95,6 +108,15 @@ public class ScreenCaptureEffectiveParameters private constructor(
     public val appliedSourceRect: ImageRect,
     public val finalImageSize: ImageSize,
 ) {
+    init {
+        require(appliedSourceRect.right <= captureGeometry.widthPx) {
+            "appliedSourceRect.right must not exceed capture width"
+        }
+        require(appliedSourceRect.bottom <= captureGeometry.heightPx) {
+            "appliedSourceRect.bottom must not exceed capture height"
+        }
+    }
+
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ScreenCaptureEffectiveParameters) return false
@@ -137,46 +159,42 @@ public class ScreenCaptureEffectiveParameters private constructor(
 }
 
 public class EncodedImageFrame private constructor(
-    private val readByteCount: () -> Int,
-    private val readEffectiveParameters: () -> ScreenCaptureEffectiveParameters,
-    private val readSequence: () -> Long,
-    private val readTimestampElapsedRealtimeNanos: () -> Long,
-    private val copyToOperation: (ByteArray, Int) -> Int,
-    private val copyBytesOperation: () -> ByteArray,
+    private val access: EncodedImageFrameAccess,
 ) {
     public val byteCount: Int
-        get() = readByteCount()
+        get() = access.byteCount()
 
     public val effectiveParameters: ScreenCaptureEffectiveParameters
-        get() = readEffectiveParameters()
+        get() = access.effectiveParameters()
 
     public val sequence: Long
-        get() = readSequence()
+        get() = access.sequence()
 
     public val timestampElapsedRealtimeNanos: Long
-        get() = readTimestampElapsedRealtimeNanos()
+        get() = access.timestampElapsedRealtimeNanos()
 
     public fun copyTo(destination: ByteArray, destinationOffset: Int = 0): Int =
-        copyToOperation(destination, destinationOffset)
+        access.copyTo(destination, destinationOffset)
 
-    public fun copyBytes(): ByteArray = copyBytesOperation()
+    public fun copyBytes(): ByteArray = access.copyBytes()
 
     internal companion object {
         @JvmSynthetic
-        internal fun create(
-            readByteCount: () -> Int,
-            readEffectiveParameters: () -> ScreenCaptureEffectiveParameters,
-            readSequence: () -> Long,
-            readTimestampElapsedRealtimeNanos: () -> Long,
-            copyTo: (ByteArray, Int) -> Int,
-            copyBytes: () -> ByteArray,
-        ): EncodedImageFrame = EncodedImageFrame(
-            readByteCount = readByteCount,
-            readEffectiveParameters = readEffectiveParameters,
-            readSequence = readSequence,
-            readTimestampElapsedRealtimeNanos = readTimestampElapsedRealtimeNanos,
-            copyToOperation = copyTo,
-            copyBytesOperation = copyBytes,
-        )
+        internal fun create(access: EncodedImageFrameAccess): EncodedImageFrame = EncodedImageFrame(access)
     }
+}
+
+/** One callback-scoped authority backs every operation of one borrowed public frame. */
+internal interface EncodedImageFrameAccess {
+    fun byteCount(): Int
+
+    fun effectiveParameters(): ScreenCaptureEffectiveParameters
+
+    fun sequence(): Long
+
+    fun timestampElapsedRealtimeNanos(): Long
+
+    fun copyTo(destination: ByteArray, destinationOffset: Int): Int
+
+    fun copyBytes(): ByteArray
 }
