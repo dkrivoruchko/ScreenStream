@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
@@ -195,6 +196,7 @@ public class AdMob(private val context: Context) {
             runCatching {
                 val initializationConfig = InitializationConfig.Builder(appId)
                     .apply { requestConfiguration?.let(::setRequestConfiguration) }
+                    .setExtras(Bundle().apply { putBoolean(InitializationConfig.FORCE_CRONET_KEY, true) })
                     .build()
                 MobileAds.initialize(context, initializationConfig) {
                     CoroutineScope(Dispatchers.Main).launch {
