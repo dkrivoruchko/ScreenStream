@@ -1,0 +1,242 @@
+package info.dvkr.screenstream.vnc
+
+import android.app.ActivityManager
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.os.Looper
+import androidx.annotation.MainThread
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.module.StreamingModule
+import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
+import info.dvkr.screenstream.vnc.internal.VncEvent
+import info.dvkr.screenstream.vnc.internal.VncStreamingService
+import info.dvkr.screenstream.vnc.ui.VncMainScreenUI
+import info.dvkr.screenstream.vnc.ui.VncState
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import org.koin.core.parameter.parametersOf
+import kotlin.uuid.Uuid
+
+public class VncStreamingModule : StreamingModule {
+
+    public companion object {
+        public val Id: StreamingModule.Id = StreamingModule.Id("VNC")
+    }
+
+    private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
+    private val _vncStateFlow: MutableStateFlow<VncState> = MutableStateFlow(VncState())
+    private var startToken: String? = null
+    private var streamingService: VncStreamingService? = null
+
+    override val id: StreamingModule.Id = Id
+    override val priority: Int = 40
+
+    override val isRunning: Flow<Boolean>
+        get() = _streamingServiceState.map { it is StreamingModule.State.Running }
+
+    override val isStreaming: Flow<Boolean>
+        get() = _vncStateFlow.map { it.isStreaming }
+
+    override val hasActiveConsumer: Flow<Boolean>
+        get() = _vncStateFlow.map { state -> state.clients.isNotEmpty() }.distinctUntilChanged()
+
+    override val requiresLocalNetworkPermission: Boolean = true
+
+    override val nameResource: Int = R.string.vnc_stream_mode
+    override val descriptionResource: Int = R.string.vnc_stream_mode_description
+    override val detailsResource: Int = R.string.vnc_stream_mode_details
+
+    @Composable
+    override fun StreamUIContent(
+        windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+        modifier: Modifier
+    ): Unit =
+        VncMainScreenUI(
+            vncStateFlow = _vncStateFlow.asStateFlow(),
+            sendEvent = ::sendEvent,
+            onProjectionGranted = ::startProjection,
+            windowWidthSizeClass = windowWidthSizeClass,
+            modifier = modifier
+        )
+
+    @MainThread
+    override fun startModule(context: Context) {
+        XLog.d(getLog("startModule"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (val state = _streamingServiceState.value) {
+            StreamingModule.State.Initiated -> {
+                startToken = Uuid.random().toString()
+                _streamingServiceState.value = StreamingModule.State.PendingStart
+                val intent = VncEvent.Intentable.StartService(startToken!!).toIntent(context)
+                try {
+                    VncModuleService.startService(context, intent)
+                } catch (error: Throwable) {
+                    startToken = null
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    if (error.isStreamingModuleStartBlocked()) {
+                        val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+                        throw StreamingModule.StartBlockedException(id, importance, error)
+                    }
+                    throw error
+                }
+            }
+
+            StreamingModule.State.PendingStart ->
+                XLog.i(getLog("startModule", "Already starting (PendingStart). Ignoring."))
+
+            is StreamingModule.State.Running ->
+                XLog.w(getLog("startModule", "Already running. Ignoring."), RuntimeException("Unexpected state: $state"))
+
+            StreamingModule.State.PendingStop ->
+                XLog.w(getLog("startModule", "Stopping (PendingStop). Ignoring."), RuntimeException("Unexpected state: $state"))
+        }
+    }
+
+    @MainThread
+    internal fun onServiceStart(service: Service, token: String) {
+        XLog.d(getLog("onServiceStart", "Service: $service"))
+
+        when (val state = _streamingServiceState.value) {
+            StreamingModule.State.PendingStart -> {
+                if (token != startToken) {
+                    XLog.w(getLog("onServiceStart", "Invalid token. Ignoring."))
+                    return
+                }
+                startToken = null
+                val scope = VncKoinScope().scope
+                try {
+                    val createdStreamingService = scope.get<VncStreamingService> { parametersOf(service, _vncStateFlow) }
+                    streamingService = createdStreamingService
+                    _streamingServiceState.value = StreamingModule.State.Running(scope)
+                    createdStreamingService.start()
+                } catch (t: Throwable) {
+                    streamingService = null
+                    scope.close()
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    throw t
+                }
+            }
+
+            StreamingModule.State.Initiated ->
+                XLog.w(getLog("onServiceStart", "Unexpected Initiated state. Ignoring."), RuntimeException("Unexpected state: $state"))
+
+            is StreamingModule.State.Running ->
+                XLog.w(getLog("onServiceStart", "Already running. Ignoring."), RuntimeException("Unexpected state: $state"))
+
+            StreamingModule.State.PendingStop ->
+                XLog.w(getLog("onServiceStart", "Stopping (PendingStop). Ignoring."), RuntimeException("Unexpected state: $state"))
+        }
+    }
+
+    @MainThread
+    override suspend fun stopModule() {
+        XLog.d(getLog("stopModule"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (val state = _streamingServiceState.value) {
+            StreamingModule.State.Initiated -> XLog.d(getLog("stopModule", "Already stopped (Initiated). Ignoring"))
+
+            StreamingModule.State.PendingStart -> {
+                XLog.d(getLog("stopModule", "Not started (PendingStart)"))
+                startToken = null
+                streamingService = null
+                _vncStateFlow.value = VncState()
+                _streamingServiceState.value = StreamingModule.State.Initiated
+            }
+
+            is StreamingModule.State.Running -> {
+                _streamingServiceState.value = StreamingModule.State.PendingStop
+                _vncStateFlow.value = VncState()
+                val activeStreamingService = streamingService
+                try {
+                    withContext(NonCancellable) {
+                        if (activeStreamingService != null) activeStreamingService.destroyService()
+                        else XLog.w(getLog("stopModule", "Running state without VncStreamingService"))
+                    }
+                } finally {
+                    streamingService = null
+                    _vncStateFlow.value = VncState()
+                    startToken = null
+                    state.scope.close()
+                    _streamingServiceState.value = StreamingModule.State.Initiated
+                }
+            }
+
+            StreamingModule.State.PendingStop -> XLog.d(getLog("stopModule", "Already stopping (PendingStop). Ignoring"))
+        }
+
+        XLog.d(getLog("stopModule", "Done"))
+    }
+
+    override fun stopStream(reason: String) {
+        XLog.d(getLog("stopStream", "reason: $reason"))
+        sendEvent(VncEvent.Intentable.StopStream(reason))
+    }
+
+    override fun recoverError() {
+        XLog.d(getLog("recoverError"))
+        sendEvent(VncEvent.Intentable.RecoverError)
+    }
+
+    @MainThread
+    internal fun startProjection(startAttemptId: String, intent: Intent) {
+        XLog.d(getLog("startProjection", "startAttemptId=$startAttemptId, intent=$intent"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (val state = _streamingServiceState.value) {
+            is StreamingModule.State.Running -> {
+                val activeStreamingService = streamingService
+                if (activeStreamingService != null) {
+                    if (activeStreamingService.prepareStartProjectionForeground(startAttemptId)) {
+                        val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
+                        activeStreamingService.sendEvent(
+                            VncEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError)
+                        )
+                    }
+                } else XLog.w(getLog("startProjection", "Running state without VncStreamingService"))
+            }
+
+            else -> XLog.i(getLog("startProjection", "Ignoring stale intent in state $state"))
+        }
+    }
+
+    @MainThread
+    internal fun sendEvent(event: VncEvent) {
+        XLog.d(getLog("sendEvent", "Event $event"))
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+
+        when (val state = _streamingServiceState.value) {
+            is StreamingModule.State.Running -> {
+                val activeStreamingService = streamingService
+                if (activeStreamingService != null) activeStreamingService.sendEvent(event)
+                else XLog.w(
+                    getLog("sendEvent", "Running state without VncStreamingService for event $event"),
+                    RuntimeException("Unexpected state: $state for event $event")
+                )
+            }
+            else -> when (event) {
+                is VncEvent.CastPermissionsDenied,
+                is VncEvent.StartProjection,
+                is VncEvent.Intentable.RecoverError,
+                is VncEvent.Intentable.StopStream,
+                is VncStreamingService.InternalEvent.StartStream ->
+                    XLog.i(getLog("sendEvent", "Ignoring stale event $event in state $state"))
+
+                else -> XLog.w(
+                    getLog("sendEvent", "Unexpected state: $state for event $event"),
+                    RuntimeException("Unexpected state: $state for event $event")
+                )
+            }
+        }
+    }
+}

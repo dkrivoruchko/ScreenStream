@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Purpose & Modes
-ScreenStream streams Android screen + audio. Modes: Local (MJPEG), Global (WebRTC), and RTSP. RTSP has two sub‑modes: server (default) hosts this device; client connects to an external RTSP media server. F‑Droid builds are ad‑free and exclude WebRTC; PlayStore builds include ads + WebRTC.
+ScreenStream streams Android screen + audio. Modes: Local (MJPEG), Global (WebRTC), RTSP, and VNC. RTSP and VNC each have two sub‑modes: server (default) hosts this device; client connects to an external RTSP media server or VNC viewer. F‑Droid builds are ad‑free and exclude WebRTC; PlayStore builds include ads + WebRTC.
 
 ## Project Structure & Modules
 - `app`: Compose UI shell, DI wiring, and flavors (`app/src/PlayStore` adds ads/WebRTC; `app/src/FDroid` strips them).

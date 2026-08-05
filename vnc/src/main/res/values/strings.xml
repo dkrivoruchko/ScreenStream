@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vnc_error_recover">Recover</string>
+    <string name="vnc_error_open_settings">Open settings</string>
+    <string name="vnc_error_start_screen_sharing">Start screen sharing</string>
+    <string name="vnc_close">Close</string>
+    <string name="vnc_error_local_network_permission_required">Local network access is required so devices can connect to your stream.</string>
+
+    <string name="vnc_stream_mode">VNC</string>
+    <string name="vnc_stream_mode_description">Stream over your local network</string>
+    <string name="vnc_stream_mode_details">
+- Uses the VNC protocol (RFB).\n
+- View-only, clients cannot control the device.\n
+- Video only, sent as framebuffer updates.\n
+- Works on your local network, no internet required.\n
+- Built-in VNC server on port 5900 by default.\n
+- Supports reverse connect to an external viewer.\n
+- Supports Wi-Fi, mobile networks, IPv4, and IPv6.\n
+- Highly configurable.
+</string>
+
+    <string name="vnc_mode_card_title">Select VNC mode:</string>
+    <string name="vnc_mode_server">Server</string>
+    <string name="vnc_mode_server_hint">Host this device as a VNC server</string>
+    <string name="vnc_mode_client">Client</string>
+    <string name="vnc_mode_client_hint">Connect to a remote VNC viewer</string>
+
+    <string name="vnc_server_parameters">Server settings</string>
+    <string name="vnc_client_parameters">Client settings</string>
+    <string name="vnc_encoding_parameters">Encoding settings</string>
+
+    <string name="vnc_stream_start">Start stream</string>
+    <string name="vnc_stream_stop">Stop stream</string>
+
+    <string name="vnc_mode_server_addresses">Device addresses:</string>
+    <string name="vnc_stream_no_address">No address found</string>
+    <string name="vnc_stream_interface">Interface:\n%1$s</string>
+    <string name="vnc_clients_connected">Clients: %1$d</string>
+    <string name="vnc_reverse_status_idle">Not connected</string>
+    <string name="vnc_reverse_status_connecting">Connecting…</string>
+    <string name="vnc_reverse_status_active">Connected</string>
+    <string name="vnc_reverse_status_reconnecting">Reconnecting…</string>
+    <string name="vnc_reverse_status_error">Connection error</string>
+
+    <string name="vnc_label_interface">%1$s · %2$s</string>
+    <string name="vnc_label_loopback">Loopback</string>
+    <string name="vnc_label_ipv6_ula">IPv6 ULA</string>
+    <string name="vnc_label_ipv4_lan">IPv4 LAN</string>
+    <string name="vnc_label_public_ipv6">Public IPv6</string>
+    <string name="vnc_label_public_ipv4">Public IPv4</string>
+    <string name="vnc_pref_filter_wifi">Wi-Fi</string>
+    <string name="vnc_pref_filter_mobile">Mobile</string>
+    <string name="vnc_pref_filter_ethernet">Ethernet</string>
+    <string name="vnc_pref_filter_vpn">VPN</string>
+    <string name="vnc_pref_filter_unknown">Unknown</string>
+
+    <string name="vnc_pref_server_port">Server port</string>
+    <string name="vnc_pref_server_port_summary">Port for incoming connections</string>
+    <string name="vnc_pref_server_port_text">Set server port for incoming connections.\nValues: 1025–65535\nDefault: 5900</string>
+
+    <string name="vnc_pref_interface_filter">Interface filter</string>
+    <string name="vnc_pref_interface_filter_summary">Select interfaces to run the server on</string>
+    <string name="vnc_pref_address_filter">Address filter</string>
+    <string name="vnc_pref_address_filter_summary">Select address types to run the server on</string>
+    <string name="vnc_pref_filter_no_restriction">No restriction</string>
+    <string name="vnc_pref_address_filter_private">Private address</string>
+    <string name="vnc_pref_address_filter_localhost">Localhost</string>
+    <string name="vnc_pref_address_filter_public">Public address</string>
+
+    <string name="vnc_pref_enable_ipv4">Enable IPv4 support</string>
+    <string name="vnc_pref_enable_ipv4_summary">Run server on IPv4 addresses</string>
+    <string name="vnc_pref_enable_ipv6">Enable IPv6 support</string>
+    <string name="vnc_pref_enable_ipv6_summary">Run server on IPv6 addresses</string>
+
+    <string name="vnc_pref_reverse_host">Viewer address</string>
+    <string name="vnc_pref_reverse_host_summary">Address of the VNC viewer to connect to</string>
+    <string name="vnc_pref_reverse_host_text">Set the viewer address in reverse connect mode.\nUse the IP address or hostname of the machine running the VNC viewer in listening mode.</string>
+    <string name="vnc_pref_reverse_port">Viewer port</string>
+    <string name="vnc_pref_reverse_port_summary">Port of the VNC viewer to connect to</string>
+    <string name="vnc_pref_reverse_port_text">Set the viewer port for outgoing connections.\nValues: 1–65535\nDefault: 5900</string>
+    <string name="vnc_pref_reconnect_delay">Reconnect delay</string>
+    <string name="vnc_pref_reconnect_delay_summary">Delay before reconnecting to the viewer</string>
+    <string name="vnc_pref_reconnect_delay_text">Set the delay in seconds before trying to reconnect.\nValues: 1–120\nDefault: 5</string>
+
+    <string name="vnc_pref_max_fps">Maximum frame rate</string>
+    <string name="vnc_pref_max_fps_summary">Limit framebuffer updates per second</string>
+    <string name="vnc_pref_max_fps_text">Set the maximum frame rate for framebuffer updates.\nValues: 1–60\nDefault: 15</string>
+    <string name="vnc_pref_zlib">Use zlib encoding</string>
+    <string name="vnc_pref_zlib_summary">Compress framebuffer updates when possible</string>
+
+    <string name="vnc_error_ip_address_not_found">IP address not found</string>
+    <string name="vnc_error_port_in_use">Port is already in use</string>
+    <string name="vnc_error_invalid_media_projection">Failed to start screen sharing</string>
+    <string name="vnc_error_screen_capture_start_blocked">Screen capture start is blocked</string>
+    <string name="vnc_error_projection_acquire_rejected">Screen sharing request was rejected</string>
+    <string name="vnc_error_unspecified">VNC stream error</string>
+    <string name="vnc_error_notification_permission_required">Notification permission is required to stream</string>
+</resources>

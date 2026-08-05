@@ -130,6 +130,7 @@ dependencies {
 
     implementation(projects.mjpeg)
     implementation(projects.rtsp)
+    implementation(projects.vnc)
 
     "PlayStoreImplementation"(projects.webrtc)
     "PlayStoreImplementation"(libs.play.app.update)

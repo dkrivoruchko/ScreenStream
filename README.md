@@ -1,10 +1,10 @@
 ![](docs/images/hero.png)
 # ScreenStream
 
-ScreenStream is an open-source Android application for streaming your device screen and audio. Use Local mode (MJPEG) or Global mode (WebRTC) to view the stream in a web browser, or use RTSP mode with a compatible RTSP client, server, or player.
+ScreenStream is an open-source Android application for streaming your device screen and audio. Use Local mode (MJPEG) or Global mode (WebRTC) to view the stream in a web browser, use RTSP mode with a compatible RTSP client, server, or player, or use VNC mode with a VNC viewer.
 
-The Google Play version supports all modes: **Global mode (WebRTC)**, **Local mode (MJPEG)**, and **RTSP mode**, with ads included.<br>
-F-Droid versions are ad-free and support only **Local mode (MJPEG)** and **RTSP mode**.
+The Google Play version supports all modes: **Global mode (WebRTC)**, **Local mode (MJPEG)**, **RTSP mode**, and **VNC mode**, with ads included.<br>
+F-Droid versions are ad-free and support **Local mode (MJPEG)**, **RTSP mode**, and **VNC mode**.
 
 <a href='https://play.google.com/store/apps/details?id=info.dvkr.screenstream'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png' height="100"/></a> <a href="https://f-droid.org/packages/info.dvkr.screenstream/" target="_blank"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"/></a>
 
@@ -24,15 +24,16 @@ For direct on-chain transfers:
 
 ## Stream modes
 
-ScreenStream offers three stream modes: **Global mode (WebRTC)** (available only in the [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version), **Local mode (MJPEG)**, and **RTSP mode**. All modes stream the Android device screen, but they function differently. Audio support is available in **Global mode (WebRTC)** and **RTSP mode** only. The modes are independent of each other and have different capabilities, restrictions, and customization options.
+ScreenStream offers four stream modes: **Global mode (WebRTC)** (available only in the [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version), **Local mode (MJPEG)**, **RTSP mode**, and **VNC mode**. All modes stream the Android device screen, but they function differently. Audio support is available in **Global mode (WebRTC)** and **RTSP mode** only. The modes are independent of each other and have different capabilities, restrictions, and customization options.
 
 | Mode                     | Delivery                     | Video                     | Audio                 | Internet required              | Connection model                                                       | Security                                     |
 |--------------------------|------------------------------|---------------------------|--------------------|--------------------------------|------------------------------------------------------------------------|----------------------------------------------|
 | **Local mode (MJPEG)**   | MJPEG over HTTP              | JPEG images               | No                 | No                             | Built-in HTTP server                                                   | Optional 4–6 digit PIN                       |
 | **Global mode (WebRTC)** | WebRTC                       | WebRTC video              | Microphone / internal audio | Yes                            | Public signaling service at [screenstream.io](https://screenstream.io) | End-to-end encryption + password             |
 | **RTSP mode**            | RTSP/RTP over TCP or UDP     | H.264 / H.265             | OPUS / AAC / G.711 | No (server) / Depends (client) | Built-in server (server mode) / External server (client mode)          | Client mode supports RTSP auth + RTSPS (TLS) |
+| **VNC mode**             | RFB over TCP                 | Raw / zlib framebuffer    | No                 | No                             | Built-in server (server mode) / Reverse connect (client mode)           | No encryption                               |
 
-In **Global mode (WebRTC)** and **Local mode (MJPEG)**, the number of clients is not directly limited, but each client uses CPU resources and separate bandwidth.
+In **Global mode (WebRTC)**, **Local mode (MJPEG)**, and **VNC mode**, the number of clients is not directly limited, but each client uses CPU resources and separate bandwidth.
 
 ScreenStream uses Android's [MediaProjection](https://developer.android.com/reference/android/media/projection/MediaProjection) API and requires Android 7.0 or higher.
 
@@ -40,7 +41,7 @@ ScreenStream uses Android's [MediaProjection](https://developer.android.com/refe
 >
 > - **High traffic on mobile networks:** Streaming over 3G/4G/5G/LTE can consume a large amount of data.
 >
-> - **Streaming delay:** Latency depends on the selected mode, device performance, and network conditions. RTSP and WebRTC are generally better suited for lower-latency streaming, while Local mode prioritizes broad browser compatibility.
+> - **Streaming delay:** Latency depends on the selected mode, device performance, and network conditions. RTSP and WebRTC are generally better suited for lower-latency streaming, while Local mode prioritizes broad browser compatibility and VNC mode offers simple view-only access for VNC viewers.
 >
 > - **Video playback:** Streaming quality depends on the selected mode, resolution, device encoders, available bandwidth, and CPU load.
 
@@ -144,15 +145,35 @@ For optimal performance, a fast and stable network connection is recommended due
   <img src="docs/images/rtsp-5.png" alt="RTSP mode audio settings" width="290" />
 </p>
 
+### VNC mode
+
+VNC mode uses the RFB protocol and supports two sub-modes. Server mode (default) hosts the Android device as a VNC server so compatible VNC viewers can connect directly. Client mode uses reverse connect: the app dials out to a remote VNC viewer that is listening for incoming connections.
+
+- Uses RFB 3.8 over TCP.
+- Server mode hosts the device as a VNC server on a configurable port (default 5900).
+- Client mode connects to a remote VNC viewer (reverse connect) with a configurable reconnect delay.
+- View-only: keyboard, pointer, and cut-text messages from viewers are ignored.
+- Raw and zlib framebuffer encodings, with a configurable frame rate (default 15 FPS).
+- Server mode adds port, interface/address filters, and IPv4/IPv6 settings.
+- No encryption or password protection.
+- Requires a VNC client or viewer for viewing.
+
+> [!NOTE]
+>
+> - VNC mode is view-only and unencrypted; use it only on trusted networks.
+>
+> - Client mode requires a VNC viewer that can accept inbound reverse connections.
+
 ## Contribution
 
-To contribute a translation, translate the following five files:
+To contribute a translation, translate the following files:
 
 1. [app/src/main/res/values/strings.xml](app/src/main/res/values/strings.xml)
 1. [common/src/main/res/values/strings.xml](common/src/main/res/values/strings.xml)
 1. [mjpeg/src/main/res/values/strings.xml](mjpeg/src/main/res/values/strings.xml)
 1. [webrtc/src/main/res/values/strings.xml](webrtc/src/main/res/values/strings.xml)
 1. [rtsp/src/main/res/values/strings.xml](rtsp/src/main/res/values/strings.xml)
+1. [vnc/src/main/res/values/strings.xml](vnc/src/main/res/values/strings.xml)
 
 Keep the same key order and blank-line placement as the English source files, and preserve all formatting placeholders such as `%1$s` and `%1$d`.
 
