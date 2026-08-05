@@ -206,19 +206,6 @@
       }
     }
   </style>
-  <script>
-    "use strict";
-
-    window.DD_LOGS && DD_LOGS.init({
-      clientToken: "pub26fc6543f9239240ed8ae545593f921f",
-      site: "datadoghq.com",
-      forwardConsoleLogs: ["info", "warn", "error"],
-      forwardReports: "all",
-      service: '%DD_SERVICE%'
-    });
-    window.DD_LOGS && DD_LOGS.logger.setHandler(DD_HANDLER);
-    window.DD_LOGS && DD_LOGS.setGlobalContextProperty('version', '%APP_VERSION%');
-  </script>
 </head>
 
 <body data-keep-image-on-reconnect="%KEEP_IMAGE_ON_RECONNECT%">
@@ -272,7 +259,6 @@
     "use strict";
 
     var clientId = RandomString(16);
-    window.DD_LOGS && DD_LOGS.setGlobalContextProperty("clientId", clientId);
 
     var buttonsDiv = document.getElementById("buttonsDiv");
     var buttonPiP = document.getElementById("PiP");
@@ -436,8 +422,6 @@
             var message = JSON.parse(msg.data);
             if (message.type === "HEARTBEAT") return;
 
-            window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", { data: msg.data });
-
             if (message.type === "STREAM_ADDRESS") {
                 pinDiv.style.visibility = "hidden";
                 blockedDiv.style.visibility = "hidden";
@@ -486,8 +470,6 @@
                 document.body.dataset.keepImageOnReconnect = keepImageOnReconnect;
                 return;
             }
-
-            window.DD_LOGS && DD_LOGS.logger.error("websocket.onmessage. Unknown data:", { message: e.data });
         };
     }
 
@@ -501,7 +483,6 @@
         clearTimeout(showStreamTimeoutId);
 
         new Promise(function (resolve, reject) {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", streamAddress: url });
             stream.onload = function () {
                 stream.onload = null;stream.onerror = null;resolve();
             };
@@ -514,9 +495,7 @@
             hasStreamImage = true;
             streamDiv.style.visibility = "visible";
             hideReconnectBar();
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "ok" });
         })["catch"](function (error) {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "error" });
             MJPEGErrorCounter++;
             if (MJPEGErrorCounter > 5) {
                 streamDiv.style.visibility = "visible";
@@ -580,7 +559,6 @@
                 videoElement.addEventListener("loadedmetadata", function () {
                     videoElement.requestPictureInPicture()["catch"](function (error) {
                         clearTimeout(drawTimeoutId);
-                        window.DD_LOGS && DD_LOGS.logger.error("PiP.requestPictureInPicture:", { message: error });
                         while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
                         buttonPiP.style.display = "none";
                         videoElement.srcObject = null;
