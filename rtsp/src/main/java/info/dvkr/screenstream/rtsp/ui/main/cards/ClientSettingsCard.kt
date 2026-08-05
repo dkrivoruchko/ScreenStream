@@ -9,12 +9,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.ui.ExpandableCard
@@ -54,11 +60,24 @@ internal fun ClientSettingsCard(
         },
         modifier = modifier
     ) {
+        var serverAddressValue by remember {
+            mutableStateOf(TextFieldValue(text = settings.serverAddress, selection = TextRange(settings.serverAddress.length)))
+        }
+        LaunchedEffect(settings.serverAddress) {
+            if (settings.serverAddress != serverAddressValue.text) {
+                serverAddressValue = TextFieldValue(
+                    text = settings.serverAddress,
+                    selection = TextRange(settings.serverAddress.length)
+                )
+            }
+        }
+
         OutlinedTextField(
-            value = settings.serverAddress,
+            value = serverAddressValue,
             onValueChange = { serverAddress ->
-                if (settings.serverAddress != serverAddress) {
-                    updateSettings { copy(serverAddress = serverAddress) }
+                serverAddressValue = serverAddress
+                if (settings.serverAddress != serverAddress.text) {
+                    updateSettings { copy(serverAddress = serverAddress.text) }
                 }
             },
             modifier = Modifier
@@ -68,7 +87,8 @@ internal fun ClientSettingsCard(
             label = { Text(text = stringResource(R.string.rtsp_server_address)) },
             isError = serverAddressError,
             keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Uri
+                keyboardType = KeyboardType.Uri,
+                autoCorrectEnabled = false
             ),
             singleLine = true
         )
