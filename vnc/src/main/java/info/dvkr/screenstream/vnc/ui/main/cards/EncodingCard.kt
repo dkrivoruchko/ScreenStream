@@ -22,6 +22,8 @@ import info.dvkr.screenstream.vnc.settings.VncSettings
 import info.dvkr.screenstream.vnc.ui.main.settings.common.VncSettingModal
 import info.dvkr.screenstream.vnc.ui.main.settings.encoding.MaxFpsEditor
 import info.dvkr.screenstream.vnc.ui.main.settings.encoding.MaxFpsRow
+import info.dvkr.screenstream.vnc.ui.main.settings.encoding.ScaleFactorEditor
+import info.dvkr.screenstream.vnc.ui.main.settings.encoding.ScaleFactorRow
 import info.dvkr.screenstream.vnc.ui.main.settings.encoding.ZlibEncodingRow
 
 @Composable
@@ -68,6 +70,13 @@ internal fun EncodingCard(
             }
         }
 
+        HorizontalDivider()
+
+        ScaleFactorRow(
+            enabled = enabled,
+            scaleFactor = settings.scaleFactor
+        ) { selectedSheet = EncodingSettingSheet.ScaleFactor }
+
         selectedSheet?.let { sheet ->
             VncSettingModal(
                 windowWidthSizeClass = windowWidthSizeClass,
@@ -81,7 +90,8 @@ internal fun EncodingCard(
 }
 
 private enum class EncodingSettingSheet(@get:StringRes val titleRes: Int) {
-    MaxFps(R.string.vnc_pref_max_fps)
+    MaxFps(R.string.vnc_pref_max_fps),
+    ScaleFactor(R.string.vnc_pref_scale)
 }
 
 @Composable
@@ -95,6 +105,15 @@ private fun EncodingSettingSheet.Editor(
             onValueChange = { value ->
                 if (settings.maxFPS != value) {
                     updateSettings { copy(maxFPS = value) }
+                }
+            }
+        )
+
+        EncodingSettingSheet.ScaleFactor -> ScaleFactorEditor(
+            scaleFactor = settings.scaleFactor,
+            onValueChange = { value ->
+                if (settings.scaleFactor != value) {
+                    updateSettings { copy(scaleFactor = value) }
                 }
             }
         )

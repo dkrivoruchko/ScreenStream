@@ -88,6 +88,12 @@
     <string name="vnc_pref_zlib">Use zlib encoding</string>
     <string name="vnc_pref_zlib_summary">Compress framebuffer updates when possible</string>
 
+    <string name="vnc_pref_scale">Scaling</string>
+    <string name="vnc_pref_scale_summary">Scale the framebuffer before sending</string>
+    <string name="vnc_pref_scale_value" translatable="false">%1$d%%</string>
+    <string name="vnc_pref_scale_text" translatable="false">Set the framebuffer scale factor in percent.\nValues: 10–100\nDefault: 100\nScreen size: %1$dx%2$d</string>
+    <string name="vnc_pref_scale_result" translatable="false">Resulting size: %1$dx%2$d</string>
+
     <string name="vnc_error_ip_address_not_found">IP address not found</string>
     <string name="vnc_error_port_in_use">Port is already in use</string>
     <string name="vnc_error_invalid_media_projection">Failed to start screen sharing</string>

@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.PorterDuff
+import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.Image
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 internal class BitmapCapture(
     private val serviceContext: Context,
     private val maxFps: () -> Int,
+    private val scaleFactor: () -> Int,
     private val mediaProjection: MediaProjection,
     private val bitmapStateFlow: MutableStateFlow<Bitmap>,
     private val onError: (VncError) -> Unit
@@ -242,14 +244,18 @@ internal class BitmapCapture(
             reusableBitmap!!
         }
 
-        if (outputBitmap == null || outputBitmap!!.width != fullWidth || outputBitmap!!.height != fullHeight) {
+        val percent = scaleFactor().coerceIn(10, 100)
+        val targetWidth = fullWidth * percent / 100
+        val targetHeight = fullHeight * percent / 100
+
+        if (outputBitmap == null || outputBitmap!!.width != targetWidth || outputBitmap!!.height != targetHeight) {
             outputBitmap?.recycle()
-            outputBitmap = createBitmap(fullWidth, fullHeight, Bitmap.Config.ARGB_8888)
+            outputBitmap = createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
         }
 
         val canvas = Canvas(outputBitmap!!)
         canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-        canvas.drawBitmap(tmpBitmap, 0f, 0f, paint)
+        canvas.drawBitmap(tmpBitmap, null, Rect(0, 0, targetWidth, targetHeight), paint)
 
         return outputBitmap!!.copy(outputBitmap!!.config ?: Bitmap.Config.ARGB_8888, false)
     }

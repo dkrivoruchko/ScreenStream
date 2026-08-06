@@ -24,6 +24,7 @@ public interface VncSettings {
 
         public val MAX_FPS: Preferences.Key<Int> = intPreferencesKey("MAX_FPS")
         public val ZLIB_ENCODING: Preferences.Key<Boolean> = booleanPreferencesKey("ZLIB_ENCODING")
+        public val SCALE_FACTOR: Preferences.Key<Int> = intPreferencesKey("SCALE_FACTOR")
 
         public val INTERFACE_FILTER: Preferences.Key<Int> = intPreferencesKey("INTERFACE_FILTER")
         public val ADDRESS_FILTER: Preferences.Key<Int> = intPreferencesKey("ADDRESS_FILTER")
@@ -45,6 +46,7 @@ public interface VncSettings {
 
         public const val MAX_FPS: Int = 15
         public const val ZLIB_ENCODING: Boolean = true
+        public const val SCALE_FACTOR: Int = 100
 
         public const val INTERFACE_FILTER: Int = Values.INTERFACE_WIFI or Values.INTERFACE_ETHERNET
         public const val ADDRESS_FILTER: Int = Values.ADDRESS_PRIVATE
@@ -90,6 +92,7 @@ public interface VncSettings {
 
         public val maxFPS: Int = Default.MAX_FPS,
         public val zlibEncoding: Boolean = Default.ZLIB_ENCODING,
+        public val scaleFactor: Int = Default.SCALE_FACTOR,
 
         public val interfaceFilter: Int = Default.INTERFACE_FILTER,
         public val addressFilter: Int = Default.ADDRESS_FILTER,

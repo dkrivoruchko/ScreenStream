@@ -77,6 +77,9 @@ internal class VncSettingsImpl(context: Context) : VncSettings {
                 if (newSettings.zlibEncoding != VncSettings.Default.ZLIB_ENCODING)
                     set(VncSettings.Key.ZLIB_ENCODING, newSettings.zlibEncoding)
 
+                if (newSettings.scaleFactor != VncSettings.Default.SCALE_FACTOR)
+                    set(VncSettings.Key.SCALE_FACTOR, newSettings.scaleFactor)
+
                 if (newSettings.interfaceFilter != VncSettings.Default.INTERFACE_FILTER)
                     set(VncSettings.Key.INTERFACE_FILTER, newSettings.interfaceFilter)
 
@@ -106,6 +109,7 @@ internal class VncSettingsImpl(context: Context) : VncSettings {
         reconnectDelaySeconds = this[VncSettings.Key.RECONNECT_DELAY_SECONDS] ?: VncSettings.Default.RECONNECT_DELAY_SECONDS,
         maxFPS = this[VncSettings.Key.MAX_FPS] ?: VncSettings.Default.MAX_FPS,
         zlibEncoding = this[VncSettings.Key.ZLIB_ENCODING] ?: VncSettings.Default.ZLIB_ENCODING,
+        scaleFactor = this[VncSettings.Key.SCALE_FACTOR] ?: VncSettings.Default.SCALE_FACTOR,
         interfaceFilter = this[VncSettings.Key.INTERFACE_FILTER] ?: VncSettings.Default.INTERFACE_FILTER,
         addressFilter = this[VncSettings.Key.ADDRESS_FILTER] ?: VncSettings.Default.ADDRESS_FILTER,
         enableIPv4 = this[VncSettings.Key.ENABLE_IPV4] ?: VncSettings.Default.ENABLE_IPV4,

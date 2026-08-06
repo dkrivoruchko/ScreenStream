@@ -525,6 +525,7 @@ internal class VncStreamingService(
                         val bitmapCapture = BitmapCapture(
                             serviceContext = service,
                             maxFps = { vncSettings.data.value.maxFPS },
+                            scaleFactor = { vncSettings.data.value.scaleFactor },
                             mediaProjection = mediaProjection,
                             bitmapStateFlow = bitmapStateFlow
                         ) { error -> sendEvent(InternalEvent.Error(error)) }
