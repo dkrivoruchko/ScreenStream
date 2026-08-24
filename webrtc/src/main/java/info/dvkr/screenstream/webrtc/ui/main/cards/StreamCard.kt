@@ -93,7 +93,7 @@ internal fun StreamCard(
                 )
             }
 
-            val fullAddress = state.signalingServerUrl + "/?id=${state.streamId}&p=${state.streamPassword}"
+            val fullAddress = state.signalingServerUrl + "/?id=${state.streamId}#p=${state.streamPassword}"
             val context = LocalContext.current
 
             Text(
