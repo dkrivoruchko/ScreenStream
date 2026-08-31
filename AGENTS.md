@@ -9,6 +9,7 @@ ScreenStream streams Android screen + audio. Modes: Local (MJPEG), Global (WebRT
 - `mjpeg`: embedded Ktor HTTP server for local MJPEG streaming.
 - `rtsp`: RTSP server/client implementation and settings.
 - `webrtc`: WebRTC streaming (PlayStore flavor only).
+- `screen-capture-engine`: embeddable Android screen-to-JPEG capture library.
 
 ## Build & SDK Baseline
 - Kotlin `explicitApi()` with JVM toolchain 17.
@@ -21,7 +22,7 @@ ScreenStream streams Android screen + audio. Modes: Local (MJPEG), Global (WebRT
 ## Coding Style & Naming Conventions
 Kotlin follows the official style (`kotlin.code.style=official`) and uses explicit API mode in the app module; keep public APIs explicit and well-typed.
 Prefer 4-space indentation and Android Studio formatting.
-Product flavors are PascalCase (`FDroid`, `PlayStore`), and module names are lowercase (`common`, `mjpeg`, `rtsp`, `webrtc`).
+Product flavors are PascalCase (`FDroid`, `PlayStore`), and module names are lowercase (`common`, `mjpeg`, `rtsp`, `webrtc`, `screen-capture-engine`).
 
 ## Localization Rules (Strings)
 - English `values/strings.xml` is the source of truth for **key order and blank lines**.
