@@ -12,6 +12,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 internal class SerialTaskSlotContractTest {
+    @Test
+    fun enteredWrapperCannotRunBodyWhenDispatchLaterRejectsOrThrows() {
+        exerciseEnteredWrapperRejection(dispatchFailure = null)
+        exerciseEnteredWrapperRejection(dispatchFailure = IllegalStateException("dispatch failed after wrapper entry"))
+    }
+
     // Verification: RUN-01
     @Test
     fun rejectionAndThrownExceptionReleaseTheExactAttempt() {
@@ -121,5 +127,89 @@ internal class SerialTaskSlotContractTest {
                 slot.trySubmit(task = { fail("successor entered after uncontained failure") }),
             )
         }
+    }
+
+    private fun exerciseEnteredWrapperRejection(dispatchFailure: Exception?) {
+        val dispatcher = EnteredBeforeRejectingDispatcher(dispatchFailure)
+        val slot = SerialTaskSlot(dispatcher)
+        val rejectedBodyEntered = AtomicBoolean(false)
+
+        val rejected = slot.trySubmit(task = { rejectedBodyEntered.set(true) }) as SerialTaskSlot.Submission.Rejected
+        dispatcher.awaitRejectedWrapperCompletion()
+
+        assertFalse(rejectedBodyEntered.get())
+        if (dispatchFailure == null) {
+            assertNull(rejected.cause)
+        } else {
+            assertSame(dispatchFailure, rejected.cause)
+        }
+
+        val successorEntered = AtomicBoolean(false)
+        assertSame(
+            SerialTaskSlot.Submission.Accepted,
+            slot.trySubmit(task = { successorEntered.set(true) }),
+        )
+        dispatcher.enterAcceptedAndAwaitCompletion()
+        assertTrue(successorEntered.get())
+    }
+
+    private class EnteredBeforeRejectingDispatcher(
+        private val dispatchFailure: Exception?,
+    ) : NonInlineDispatcher {
+        private var dispatchCount = 0
+        private var rejectedWrapperThread: Thread? = null
+        private var acceptedTask: Runnable? = null
+
+        override fun tryDispatch(task: Runnable): Boolean {
+            if (dispatchCount++ == 0) {
+                val thread = Thread(task, "SerialTaskSlot-Rejected-Wrapper").apply { isDaemon = true }
+                rejectedWrapperThread = thread
+                thread.start()
+                awaitWrapperPending(thread)
+                dispatchFailure?.let { throw it }
+                return false
+            }
+            check(acceptedTask == null) { "Successor task was already retained" }
+            acceptedTask = task
+            return true
+        }
+
+        fun awaitRejectedWrapperCompletion() {
+            boundedJoin(checkNotNull(rejectedWrapperThread), "rejected wrapper")
+        }
+
+        fun enterAcceptedAndAwaitCompletion() {
+            val task = checkNotNull(acceptedTask)
+            acceptedTask = null
+            val thread = Thread(task, "SerialTaskSlot-Accepted-Successor").apply { isDaemon = true }
+            thread.start()
+            boundedJoin(thread, "accepted successor")
+        }
+
+        private fun awaitWrapperPending(thread: Thread) {
+            val deadlineNanos = System.nanoTime() + THREAD_TIMEOUT_NANOS
+            while (thread.state != Thread.State.WAITING) {
+                if (!thread.isAlive) throw AssertionError("Rejected wrapper returned before dispatch resolution")
+                if (System.nanoTime() >= deadlineNanos) {
+                    throw AssertionError("Rejected wrapper did not await dispatch resolution")
+                }
+                Thread.yield()
+            }
+        }
+
+        private fun boundedJoin(thread: Thread, description: String) {
+            try {
+                thread.join(THREAD_TIMEOUT_MILLIS)
+            } catch (failure: InterruptedException) {
+                Thread.currentThread().interrupt()
+                throw AssertionError("Interrupted while joining $description", failure)
+            }
+            if (thread.isAlive) throw AssertionError("$description did not complete before the bounded join expired")
+        }
+    }
+
+    private companion object {
+        private const val THREAD_TIMEOUT_MILLIS = 5_000L
+        private const val THREAD_TIMEOUT_NANOS = 5_000_000_000L
     }
 }

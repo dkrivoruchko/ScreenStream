@@ -239,15 +239,17 @@ internal class EncoderRuntime private constructor(
             return when (nativeJpeg.resolveAvailability()) {
                 NativeJpegProcess.Availability.Available -> {
                     if (existingHealthCell != null) {
-                        EncoderBackendPreparation.NativeCarrier(existingHealthCell)
+                        when (existingHealthCell.state) {
+                            NativeHealthCell.State.Enabled -> EncoderBackendPreparation.NativeCarrier(existingHealthCell)
+                            NativeHealthCell.State.Disabled -> EncoderBackendPreparation.ManagedCarrier(existingHealthCell)
+                        }
                     } else {
                         try {
-                            val healthState = if (nativeJpeg.hasWeakCompressor()) {
-                                NativeHealthCell.State.Enabled
+                            if (nativeJpeg.hasWeakCompressor()) {
+                                EncoderBackendPreparation.NativeCarrier(NativeHealthCell(NativeHealthCell.State.Enabled))
                             } else {
-                                NativeHealthCell.State.Disabled
+                                EncoderBackendPreparation.ManagedCarrier(NativeHealthCell(NativeHealthCell.State.Disabled))
                             }
-                            EncoderBackendPreparation.NativeCarrier(NativeHealthCell(healthState))
                         } catch (failure: Exception) {
                             EncoderBackendPreparation.Failed(
                                 nativeHealthCell = null,

@@ -321,6 +321,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
         }
     }
 
+    // Verification: DEL-02
     // Verification: UNR-06
     @Test
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
@@ -397,6 +398,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
         }
     }
 
+    // Verification: DEL-02
     // Verification: UNR-06
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
@@ -471,6 +473,45 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
                 callbackMayReturn.countDown()
                 callbackTask.awaitCompletion()
                 unregister.cancelAndJoin()
+            }
+        }
+    }
+
+    // Verification: DEL-02
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun cachedFirstDispatchRejectionFailsSessionWithoutCallbackEntry() = runTest {
+        val platform = HappyCapturePlatform()
+        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+
+        SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.N,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+        ).use { harness ->
+            try {
+                startActiveSession(harness, platform, parameters)
+                primeCachedFrame(harness, platform, rgbaSeed = 47)
+                drainAcceptedSessionWork(harness)
+
+                val callbackEntries = AtomicInteger()
+                harness.workerDispatcher.enqueueReject()
+                harness.session.registerFrameConsumer {
+                    callbackEntries.incrementAndGet()
+                }
+                check(harness.enterNextControlTask()) { "Cached-first delivery was not offered" }
+                driveControlUntil(harness) { harness.session.state.value is ScreenCaptureState.Failed }
+
+                val failed = harness.session.state.value as ScreenCaptureState.Failed
+                assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
+                assertEquals(0, callbackEntries.get())
+            } finally {
+                stopAndDrainSession(harness)
             }
         }
     }

@@ -262,131 +262,77 @@ internal class SessionLifecycleStateMachineTest {
     // Verification: API-03
     // Verification: SES-02
     @Test
-    fun failureThenRequestedUpgradesAndSettlesStartFromRequestedDecision() = runTest {
-        val lifecycle = SessionLifecycle()
-        lifecycle.acceptStart(acceptedStartNanos = 10L, deadlineNanos = 20L)
-        val failedDecision = SessionLifecycle.TerminalDecision.Failed(
+    fun incumbentChallengerMatrixKeepsPriorityAndSettlesNonFailureWinnersAsCaptureUnavailable() = runTest {
+        val invalidRequestFailure = SessionLifecycle.TerminalDecision.Failed(
             ScreenCaptureProblem.InvalidRequest,
-            IllegalStateException("first failure"),
+            IllegalStateException("first invalid-request failure"),
         )
-
-        val failed = lifecycle.offerTerminal(failedDecision)
-        assertTrue((failed as SessionLifecycle.TerminalOffer.Accepted).closesOrdinaryAdmission)
-        assertFalse(lifecycle.isOrdinaryAdmissionOpen)
-        val failedPreparation = lifecycle.prepareTerminal() ?: error("failure contender was not prepared")
-        assertTrue(failedPreparation.decision is SessionLifecycle.TerminalDecision.Failed)
-        assertSame(
-            ScreenCaptureProblem.InvalidRequest,
-            (failedPreparation.decision as SessionLifecycle.TerminalDecision.Failed).problem,
-        )
-
-        val requested = lifecycle.offerTerminal(SessionLifecycle.TerminalDecision.Requested)
-        assertFalse((requested as SessionLifecycle.TerminalOffer.Accepted).closesOrdinaryAdmission)
-        assertFalse(lifecycle.isTerminalPreparationCurrent(failedPreparation))
-
-        val preparation = lifecycle.prepareTerminal() ?: error("requested contender was not prepared")
-        assertSame(SessionLifecycle.TerminalDecision.Requested, preparation.decision)
-        assertTrue(lifecycle.isTerminalPreparationCurrent(preparation))
-        lifecycle.commitTerminal(preparation)
-
-        assertClaimIsIrreversible(lifecycle)
-        checkNotNull(preparation.startSettlement).complete()
-        assertStartFails(lifecycle, ScreenCaptureProblem.CaptureUnavailable)
-    }
-
-    // Verification: API-03
-    // Verification: SES-02
-    @Test
-    fun failureThenProjectionStoppedUpgradesAndSettlesStartFromProjectionDecision() = runTest {
-        val lifecycle = SessionLifecycle()
-        lifecycle.acceptStart(acceptedStartNanos = 10L, deadlineNanos = 20L)
-        val failedDecision = SessionLifecycle.TerminalDecision.Failed(
+        val resourceExhaustedFailure = SessionLifecycle.TerminalDecision.Failed(
             ScreenCaptureProblem.ResourceExhausted,
-            IllegalArgumentException("first failure"),
+            IllegalArgumentException("first resource-exhausted failure"),
         )
-
-        val failed = lifecycle.offerTerminal(failedDecision)
-        assertTrue((failed as SessionLifecycle.TerminalOffer.Accepted).closesOrdinaryAdmission)
-        assertFalse(lifecycle.isOrdinaryAdmissionOpen)
-        val failedPreparation = lifecycle.prepareTerminal() ?: error("failure contender was not prepared")
-        assertTrue(failedPreparation.decision is SessionLifecycle.TerminalDecision.Failed)
-        assertSame(
-            ScreenCaptureProblem.ResourceExhausted,
-            (failedPreparation.decision as SessionLifecycle.TerminalDecision.Failed).problem,
-        )
-
-        val projectionStopped = lifecycle.offerTerminal(SessionLifecycle.TerminalDecision.ProjectionStopped)
-        assertFalse((projectionStopped as SessionLifecycle.TerminalOffer.Accepted).closesOrdinaryAdmission)
-        assertFalse(lifecycle.isTerminalPreparationCurrent(failedPreparation))
-
-        val preparation = lifecycle.prepareTerminal() ?: error("projection-stopped contender was not prepared")
-        assertSame(SessionLifecycle.TerminalDecision.ProjectionStopped, preparation.decision)
-        assertTrue(lifecycle.isTerminalPreparationCurrent(preparation))
-        lifecycle.commitTerminal(preparation)
-
-        assertClaimIsIrreversible(lifecycle)
-        checkNotNull(preparation.startSettlement).complete()
-        assertStartFails(lifecycle, ScreenCaptureProblem.CaptureUnavailable)
-    }
-
-    // Verification: API-03
-    // Verification: SES-02
-    @Test
-    fun requestedRejectsLowerPriorityFailureAndSettlesStartFromRequestedDecision() = runTest {
-        val lifecycle = SessionLifecycle()
-        lifecycle.acceptStart(acceptedStartNanos = 10L, deadlineNanos = 20L)
-
-        val requested = lifecycle.offerTerminal(SessionLifecycle.TerminalDecision.Requested)
-        assertTrue((requested as SessionLifecycle.TerminalOffer.Accepted).closesOrdinaryAdmission)
-        assertFalse(lifecycle.isOrdinaryAdmissionOpen)
-        assertSame(
-            SessionLifecycle.TerminalOffer.Rejected,
-            lifecycle.offerTerminal(
-                SessionLifecycle.TerminalDecision.Failed(
-                    ScreenCaptureProblem.InvalidRequest,
-                    IllegalStateException("rejected failure"),
-                ),
+        val cases = listOf(
+            TerminalContest(
+                incumbent = invalidRequestFailure,
+                challenger = SessionLifecycle.TerminalDecision.Requested,
+                winner = SessionLifecycle.TerminalDecision.Requested,
+                challengerAccepted = true,
+            ),
+            TerminalContest(
+                incumbent = resourceExhaustedFailure,
+                challenger = SessionLifecycle.TerminalDecision.ProjectionStopped,
+                winner = SessionLifecycle.TerminalDecision.ProjectionStopped,
+                challengerAccepted = true,
+            ),
+            TerminalContest(
+                incumbent = SessionLifecycle.TerminalDecision.Requested,
+                challenger = invalidRequestFailure,
+                winner = SessionLifecycle.TerminalDecision.Requested,
+                challengerAccepted = false,
+            ),
+            TerminalContest(
+                incumbent = SessionLifecycle.TerminalDecision.ProjectionStopped,
+                challenger = resourceExhaustedFailure,
+                winner = SessionLifecycle.TerminalDecision.ProjectionStopped,
+                challengerAccepted = false,
             ),
         )
 
-        val preparation = lifecycle.prepareTerminal() ?: error("requested contender was not prepared")
-        assertSame(SessionLifecycle.TerminalDecision.Requested, preparation.decision)
-        assertTrue(lifecycle.isTerminalPreparationCurrent(preparation))
-        lifecycle.commitTerminal(preparation)
+        cases.forEach { contest ->
+            val lifecycle = SessionLifecycle()
+            lifecycle.acceptStart(acceptedStartNanos = 10L, deadlineNanos = 20L)
 
-        assertClaimIsIrreversible(lifecycle)
-        checkNotNull(preparation.startSettlement).complete()
-        assertStartFails(lifecycle, ScreenCaptureProblem.CaptureUnavailable)
-    }
+            val incumbentOffer = lifecycle.offerTerminal(contest.incumbent)
+            assertTrue((incumbentOffer as SessionLifecycle.TerminalOffer.Accepted).closesOrdinaryAdmission)
+            assertFalse(lifecycle.isOrdinaryAdmissionOpen)
+            val incumbentPreparation = lifecycle.prepareTerminal()
+                ?: error("terminal incumbent was not prepared")
+            assertSame(contest.incumbent, incumbentPreparation.decision)
+            (contest.incumbent as? SessionLifecycle.TerminalDecision.Failed)?.let { firstFailure ->
+                val preparedFailure = incumbentPreparation.decision as SessionLifecycle.TerminalDecision.Failed
+                assertSame(firstFailure.problem, preparedFailure.problem)
+                assertSame(firstFailure.cause, preparedFailure.cause)
+            }
 
-    // Verification: API-03
-    // Verification: SES-02
-    @Test
-    fun projectionStopSettlesStartOverFailure() = runTest {
-        val lifecycle = SessionLifecycle()
-        lifecycle.acceptStart(acceptedStartNanos = 10L, deadlineNanos = 20L)
+            val challengerOffer = lifecycle.offerTerminal(contest.challenger)
+            if (contest.challengerAccepted) {
+                assertFalse((challengerOffer as SessionLifecycle.TerminalOffer.Accepted).closesOrdinaryAdmission)
+                assertFalse(lifecycle.isTerminalPreparationCurrent(incumbentPreparation))
+            } else {
+                assertSame(SessionLifecycle.TerminalOffer.Rejected, challengerOffer)
+                assertTrue(lifecycle.isTerminalPreparationCurrent(incumbentPreparation))
+            }
 
-        val projectionStopped = lifecycle.offerTerminal(SessionLifecycle.TerminalDecision.ProjectionStopped)
-        assertTrue((projectionStopped as SessionLifecycle.TerminalOffer.Accepted).closesOrdinaryAdmission)
-        assertFalse(lifecycle.isOrdinaryAdmissionOpen)
-        assertSame(
-            SessionLifecycle.TerminalOffer.Rejected,
-            lifecycle.offerTerminal(
-                SessionLifecycle.TerminalDecision.Failed(
-                    ScreenCaptureProblem.ResourceExhausted,
-                    IllegalArgumentException("rejected failure"),
-                ),
-            ),
-        )
+            val winnerPreparation = lifecycle.prepareTerminal()
+                ?: error("terminal winner was not prepared")
+            assertSame(contest.winner, winnerPreparation.decision)
+            assertTrue(lifecycle.isTerminalPreparationCurrent(winnerPreparation))
+            lifecycle.commitTerminal(winnerPreparation)
 
-        val preparation = lifecycle.prepareTerminal() ?: error("projection-stopped contender was not prepared")
-        assertSame(SessionLifecycle.TerminalDecision.ProjectionStopped, preparation.decision)
-        assertTrue(lifecycle.isTerminalPreparationCurrent(preparation))
-        lifecycle.commitTerminal(preparation)
-
-        assertClaimIsIrreversible(lifecycle)
-        checkNotNull(preparation.startSettlement).complete()
-        assertStartFails(lifecycle, ScreenCaptureProblem.CaptureUnavailable)
+            assertClaimIsIrreversible(lifecycle)
+            checkNotNull(winnerPreparation.startSettlement).complete()
+            assertStartFails(lifecycle, ScreenCaptureProblem.CaptureUnavailable)
+        }
     }
 
     // Verification: API-03
@@ -456,6 +402,13 @@ internal class SessionLifecycleStateMachineTest {
             lifecycle.offerTerminal(SessionLifecycle.TerminalDecision.ProjectionStopped),
         )
     }
+
+    private class TerminalContest(
+        val incumbent: SessionLifecycle.TerminalDecision,
+        val challenger: SessionLifecycle.TerminalDecision,
+        val winner: SessionLifecycle.TerminalDecision,
+        val challengerAccepted: Boolean,
+    )
 
     private suspend fun assertStartFails(
         lifecycle: SessionLifecycle,

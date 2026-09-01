@@ -1867,12 +1867,6 @@ internal class SessionCoordinator(
                     postedRepeatWake = logical
                     wakeToPost = logical
                 }
-
-                posted !== logical -> {
-                    postedRepeatWake = logical
-                    removeExisting = true
-                    wakeToPost = logical
-                }
             }
         }
         val executor = controlExecutor

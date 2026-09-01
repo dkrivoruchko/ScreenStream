@@ -1,6 +1,6 @@
 # Testing and verification
 
-This is the canonical verification guide for ScreenStream Capture Engine. It defines finite contract oracles and evidence availability, not stored execution results. Run commands from the repository root and use the smallest environment that can observe the oracle.
+This is the canonical testing guide for ScreenStream Capture Engine. It defines verification contracts, their executable contributors, and the evidence boundaries of each test environment. Run commands from the repository root and use the smallest environment that can observe the contract.
 
 ## Commands and prerequisites
 
@@ -18,10 +18,9 @@ Gradle must be able to provision the configured JDK 21 runtime. Host-native chec
 
 ## Environment and evidence boundaries
 
-- JVM and Robolectric tests can establish deterministic values, state transitions, ownership effects, injected schedules, and fault mapping at exercised seams. They cannot establish real framework, graphics-driver, packaged-JNI, or target-ABI behavior. See Android's [local-test](https://developer.android.com/training/testing/local-tests) and [Robolectric](https://developer.android.com/training/testing/local-tests/robolectric) guidance.
-- Host-C++ tests can establish exercised native protocol, bounds, cleanup, and sanitizer behavior. They cannot establish Android ABI packaging, registered-JNI loading, Android Bitmap behavior, or target-device execution.
-
-The checked-in audit uses `Automated` for an executable test that directly asserts the oracle, `Static` for bounded source/build inspection, and `Missing` when the required checked-in executable procedure does not yet exist. Device, GPU, artifact, and external-consumer runtime evidence is outside this audit and is not claimed here.
+- JVM and Robolectric tests cover deterministic values, state transitions, ownership, injected schedules, and fault mapping at exercised seams. They do not prove real framework, graphics-driver, packaged-JNI, or target-ABI behavior. See Android's [local-test](https://developer.android.com/training/testing/local-tests) and [Robolectric](https://developer.android.com/training/testing/local-tests/robolectric) guidance.
+- Host-C++ tests cover exercised native protocol, bounds, cleanup, and sanitizer behavior. They do not prove Android ABI packaging, registered-JNI loading, Android Bitmap behavior, or target-device execution.
+- `Automated` means a checked-in executable test directly asserts the contract. `Static` means bounded source or build-configuration inspection. `Missing` means that the required checked-in procedure does not exist. Device, GPU, artifact, and external-consumer evidence must be established separately.
 
 ## Traceability markers
 
@@ -36,38 +35,20 @@ fun concurrentStartLoserIsRejected() {
 }
 ```
 
-- Place the marker immediately above the narrowest executable test or C++ test function that contributes direct evidence. A class-level marker is acceptable only when every executable test in that cohesive class contributes to the same row.
-- Repeat an ID at every contributing scope when its oracle spans multiple tests or classes. Stack separate marker lines when one test contributes to multiple rows; do not add suffixes to an ID.
-- Do not mark fixtures, mocks, helpers, production code, C++ registration tables, or `main()`. A marker identifies evidence; it is not itself an assertion or a run result.
-- A marker in instrumentation source identifies a checked-in procedure; assembly alone does not establish device behavior.
+- Put a marker immediately above the narrowest contributing test or C++ test function. Use a class-level marker only when every test in that class contributes to the same contract.
+- Repeat an ID at every contributing scope and stack separate marker lines when one test contributes to multiple contracts. Do not add suffixes.
+- Do not mark fixtures, mocks, helpers, production code, registration tables, or `main()`. A marker identifies a direct oracle; it is not evidence by itself. An instrumentation marker identifies a checked-in procedure, not a device result.
 
-Find exact executable contributors with `rg -n -F '// Verification: <ID>' screen-capture-engine/src/test screen-capture-engine/src/androidTest`. During review, compare the table and source markers so that every Automated ID has at least one marker and every marker names an ID in one of the tables. This lightweight check deliberately avoids a generated index or custom build task; reviewers still verify that each marker is attached to a direct oracle.
-
-## Run records and status semantics
-
-Evidence availability in the table is not a stored execution result. Record the revision, date, exact command or manual procedure, relevant environment and tool/device details, result, failure or skip reason, and useful retained output. A result applies only to the exercised code, path, schedule, API, ABI, capability, and environment.
-
-| Result | Meaning |
-| --- | --- |
-| `Pass` | The check ran in the recorded environment and met its oracle. |
-| `Fail` | The check ran and did not meet its oracle. |
-| `Partial` | Only named parts, schedules, API bands, ABIs, capabilities, or environments were checked; record the remaining gap. |
-| `Not run` | No current result exists. Missing evidence is never a pass. |
-| `Blocked` | The check cannot currently run; record the missing capability or environment. |
-| `Deferred` | The check is intentionally postponed; record the reason. |
-| `Not applicable` | The check does not apply to this candidate; record why. |
-
-An optional unsupported capability may be `Not applicable`; an unavailable required environment is `Blocked`. Uncertainty is `Deferred`, never `Pass`.
+Find contributors with `rg -n -F '// Verification: <ID>' screen-capture-engine/src/test screen-capture-engine/src/androidTest`. Every `Automated` ID must have a direct contributor and every marker must name a listed contract.
 
 ## Contract-test rules
 
-- Give a cohesive test file a focused preamble when its scheduling controls, injected faults, or forbidden implementation observations are not obvious from its verification IDs and test names. Simple tests need no package-wide boilerplate. Assert values, typed problems, State/Stats, callback results, immutable bytes, exact resource settlement, bounded ownership, and documented ordering.
-- Fakes, mocks, injected faults, schedulers, and harnesses may arrange input, schedule, or failure. Their incidental calls, private structure, or call order are not the verdict unless that boundary interaction is itself the maintained owner contract. Prefer an existing faithful seam; otherwise add the smallest cohesive test fixture. Do not add a production seam solely for observation.
+- Document non-obvious scheduling controls, injected faults, and forbidden observations close to the affected tests. Assert product values, outcomes, immutable data, ownership, resource settlement, and documented ordering.
+- Fakes, mocks, schedulers, and harnesses may arrange input, timing, or failure, but their incidental calls and structure are not the verdict. Prefer an existing faithful seam and do not add production seams solely for observation.
 - For competing actions, assert the permitted winner and the invariant preserved by either winner; do not promise every interleaving.
-- Coroutine tests may use `runTest`, test dispatchers, `runCurrent`, `advanceUntilIdle`, and virtual time only to arrange execution. Assert the contract effect, not dispatcher or `Job` internals. Before designing or editing such a test, read Android's [coroutine-test guide](https://developer.android.com/kotlin/coroutines/test) and the current [`kotlinx-coroutines-test` API](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/). Do not use sleeps, unsupported `Job` inheritance, incidental `isActive`/checkpoint counts, or scheduler-step counts as proof.
-- Task acceptance, timeout, terminal State, diagnostic emission, reference release, or garbage collection is not proof that a callback returned or a resource settled.
-- Do not require private fields, locks, classes, checkpoints, line-level call order, exact queue size, or helper structure unless it directly expresses a maintained owner bound. Do not add reflection or artificial state solely to exhaust counters such as `Long.MAX_VALUE`.
-- Do not demand every seam or race, Cartesian device/input matrices, cross-Flow atomic snapshots, byte-identical JPEGs, encoded-size monotonicity, performance targets, or cleanup inferred from timeout/GC.
+- Use coroutine-test dispatchers and virtual time only to arrange execution; assert product effects rather than dispatcher or `Job` internals. Follow Android's [coroutine-test guide](https://developer.android.com/kotlin/coroutines/test) and the current [`kotlinx-coroutines-test` API](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/). Do not use sleeps or scheduler-step counts as proof.
+- Task acceptance, timeout, terminal state, diagnostic emission, reference release, or garbage collection does not prove callback return or resource settlement. Do not observe private structure unless it is itself a maintained contract.
+- Prefer the smallest representative case set that distinguishes the contract. Avoid exhaustive race or input matrices and implementation-specific assertions that add no independent product evidence.
 
 ## Reproducible image fixtures and tolerances
 
@@ -81,7 +62,7 @@ Generate this top-down, opaque `5 x 3` RGBA fixture in test code; do not add it 
 #0000FF  #7030B0  #26994D  #008080  #FFFF00
 ```
 
-The source row and total byte ranges are exactly 20 and 60 bytes. A CPU oracle must independently implement the documented geometry, sampling, quantization, and grayscale rules and compare every output pixel. Exercise LeftHalf columns 0-1, RightHalf columns 2-4, crop `(1,0,1,1)` to `3 x 2`, every rotation/mirror combination including non-square 90-degree cases, `ScaleFactor(2.0)` to `10 x 6`, Stretch to `8 x 8`, AspectFit to `8 x 5`, eligible Downscaled input from `10 x 6` to `5 x 3`, and each Full Target case in which frame admission is closed, including provisional API 34-37 geometry.
+The source row and total byte ranges are exactly 20 and 60 bytes. The checked-in `IMG-01` procedure drives the real listener, Target, OES texture, GLES renderer, and readback path when the producer already equals the Target; its independent CPU oracle implements the documented geometry, sampling, quantization, and grayscale rules and compares every output pixel. Its 25 raw-render cases are 23 Full cases, one producer-already-target Downscaled case, and one provisional-Full case. They cover LeftHalf columns 0-1, RightHalf columns 2-4, crop `(1,0,1,1)` to `3 x 2`, every rotation/mirror combination including non-square 90-degree cases, `ScaleFactor(2.0)` to `10 x 6`, Stretch to `8 x 8`, and AspectFit to `8 x 5`. Real API 32+ `MediaProjection` scaling into a smaller Surface is not covered by this procedure and requires validation on a physical device with asymmetric orientation landmarks.
 
 ### JPEG fixture
 
@@ -93,7 +74,7 @@ The Framework/Native JPEG fixture is top-down opaque RGBA, `64 x 48`, quality 80
 #2040E0  #7030B0  #26994D  #E0C020
 ```
 
-The checked-in androidTest fixtures are designed to encode and decode these pixels through Framework JPEG and, on eligible API 30+ devices, the registered-JNI Native path. Separate real-renderer androidTest evidence passes the raw fixture through production GLES readback and preserves asymmetric orientation landmarks for Downscaled cases. Checked-in instrumentation source and assembly are procedures, not claimed device results.
+The checked-in androidTest fixtures are designed to encode and decode these pixels through Framework JPEG and, on eligible API 30+ devices, the registered-JNI Native path. The separate real-renderer androidTest is a checked-in procedure that passes the raw fixture through the real listener, Target, OES texture, production GLES renderer, and readback path when the producer already equals the Target. The JVM/Robolectric Framework Bitmap owner test asserts exact visible pixels after padded-row transfer; real Framework JPEG fidelity remains owned by the instrumentation procedure. Checked-in instrumentation source and assembly are procedures, not claimed device results.
 
 ### Numeric bounds
 
@@ -101,16 +82,12 @@ The checked-in androidTest fixtures are designed to encode and decode these pixe
 | --- | --- | --- |
 | Raw nominal-sRGB, high precision / medium precision | dimensions, mapping, top-down order, alpha 255 for every pixel | maximum absolute RGB error `2` / `6` |
 | Raw grayscale, high precision / medium precision | every pixel and `R == G == B` | maximum absolute RGB error from integer Y `2` / `6` |
-| Raw early Downscaled | every output pixel | maximum absolute RGB error `12` |
+| Raw producer-already-target Downscaled, high precision / medium precision | every output pixel | maximum absolute RGB error `2` / `6` |
 | Framework or Native JPEG | decoded dimensions, tile orientation, alpha 255; each half-open tile interior `[16c+4,16c+12) x [16r+4,16r+12)` | channel interior MAE at most `24`; per-row MAE at most `36`; grayscale mean spread at most `8`; gray means strictly increase with adjacent separation at least `32` |
 
 Do not use JPEG byte equality, decoded backend-to-backend equality, encoded size, quality monotonicity, an aggregate score, or performance as a correctness oracle. If a device reports no high-precision fragment capability, record the medium-precision path and mark the high-precision case `Not applicable` for that device.
 
-Any future real-device spatial check must use realistic rotated content with asymmetric orientation landmarks, record horizontal and vertical landmark displacement separately before alignment, and ensure registration does not translate or warp away that displacement. Record the spatial result as `Deferred` until the product owner defines a numeric per-axis bound; color/JPEG tolerance or successful execution alone cannot supply that bound.
-
-## Checked-in verification audit
-
-The 53 rows below audit 52 Automated, one Static, and zero Missing checked-in obligations.
+## Verification contracts
 
 The exact executable contributors to an Automated row are the source locations marked `// Verification: <ID>`.
 Generic `RUN-01` evidence for a shared runtime primitive cannot replace each owner's typed outcome, resource-settlement, and lost-wake evidence.
@@ -132,24 +109,29 @@ Generic `RUN-01` evidence for a shared runtime primitive cannot replace each own
 | `SES-07` | Produced, failed, consumer-busy, and callback-failure outcomes update finite Stats; the terminal fold contains no later ordinary updates. | Automated |
 | `MET-01` | Session metrics subscribes once, conflates the latest snapshot, fences completion/failure, and closes its exact handle at most once. | Automated |
 | `MET-02` | Built-in metrics registration, refresh, callback fencing, and unregister settle the exact listener once without waiting for unrelated callbacks. | Automated |
+| `MET-03` | Coordinator custom-Metrics folding covers five cells: an open-admission source failure selects terminal `InternalFailure` and the same exact start failure; pre-Active completion without Metrics fails startup as `CaptureUnavailable` after settled close; pre-Active completion with positive Metrics reaches first `Active` after settled close; post-Active positive completion preserves the current `Active`; and post-Active `null -> Suspended(CaptureUnavailable) -> completion/settled close` remains nonterminal and preserves that suspension. | Automated |
 | `CAP-01` | Projection ownership adopts at most one display, reports null/security/stop outcomes exactly, and retires the owned projection/display resources at most once. | Automated |
-| `CAP-02` | Source reservation and region/layout validation preserve checked dimensions, current source identity, and exact reservation settlement. | Automated |
+| `CAP-02` | Source reservation and Capture-facing RGBA layout validation preserve checked dimensions, current source identity, and exact reservation settlement. | Automated |
 | `CAP-03` | EGL setup failure, context/surface ownership, quarantine, and dependency-ordered teardown preserve the exact owned-resource outcome. | Automated |
 | `CAP-04` | Direct RGBA renderer readback, carrier range validation, and local GL failure quarantine preserve the exact local outcome. | Automated |
-| `CAP-05` | An exact matching Capture-owner read return settles its carrier once; read retirement makes stale, mismatched, or late returns cleanup-only and forbids reuse. | Automated |
+| `CAP-05` | An exact matching Capture return settles its carrier once; an accepted-but-unentered return remains rooted until exact entry; retirement fences it to `CutoffInert`; and post-retirement submission is rejected. This row does not claim a carrier-lifecycle sweep. | Automated |
 | `CAP-06` | The generic Capture callback boundary forwards one ordinary `Exception` with its exact callback identity and cause, locally contains an ordinary `Exception` thrown by that boundary, and propagates non-`Exception` throwables unchanged without invoking the boundary. | Automated |
-| `IMG-01` | A checked-in real-listener-driven renderer/readback androidTest and an independent CPU pixel oracle verify the raw fixture's transform, sampling, quantization, grayscale, orientation, and required Full and Downscaled Target behavior. | Automated |
+| `IMG-01` | A checked-in androidTest drives the real listener, Target, OES texture, GLES renderer, and readback path when the producer already equals the Target; an independent CPU oracle verifies the raw fixture's transform, sampling, quantization, grayscale, orientation, 23 Full cases, one Downscaled case, and one provisional-Full case. | Automated |
 | `ENC-01` | A successful encode settles one input loan and transaction once, exposes one committed immutable payload, and uses the shared checked duration rule: nonnegative timestamp ordering succeeds and regressed ordering is rejected. | Automated |
 | `ENC-02` | Auto/Native selection and backend health produce the exact typed outcome without same-frame Framework fallback. | Automated |
 | `ENC-03` | Before submission, a contained transaction-construction `OutOfMemoryError` settles the ready input as `ResourceExhausted`, and an ordinary production-construction `Exception` settles it as an internal failure; an uncontained `Error` or non-`Exception` propagates while the unproved loan remains retained. No case creates a task or exposes partial output. | Automated |
 | `ENC-04` | Managed/native wire decoding and host C++ encode paths preserve status values, bounds, pending-Throwable behavior, partial-output rejection, cleanup, and JNI result layout. | Automated |
 | `ENC-05` | Encoding-owner reconcile and production submission preserve their exact callback and input identity across reuse, definitive rejection, accepted cutoff, failure, and later recovery, without inferring an owner outcome from the runtime slot alone. | Automated |
-| `ENC-06` | Managed direct-carrier and Framework Bitmap/scratch allocation, validation, adoption, failure-residue, and retirement preserve the exact classified outcome and owned roots. | Automated |
-| `ENC-07` | Transaction commit, abort, and fault paths expose immutable bytes only after a valid commit and never publish tentative bytes from a failed or aborted transaction. | Automated |
+| `ENC-06` | Managed direct-carrier allocation classification and no-residue outcomes, linear loan ownership and retirement, plus Framework Bitmap/scratch validation, adoption, and residue preserve the exact classified outcome and owned roots. | Automated |
+| `ENC-07` | Exercised transaction commit, abort, and ordinary fault paths expose immutable bytes only after a valid commit and never publish tentative bytes from a failed or aborted transaction; this row does not dynamically cover allocation-exhaustion paths. | Automated |
+| `ENC-08` | Static source inspection of managed transaction segment allocation, tail normalization, and payload construction verifies that their `OutOfMemoryError` catches map to `ResourceExhausted` and publish no payload. It does not dynamically exercise exhaustion and has no executable marker or seam. | Static |
+| `ENC-09` | Native-malloc allocation maps `OutOfMemoryError` to `ResourceExhausted` and ordinary `Exception` to `InternalFailure` with no residue; a malformed direct range is retained then freed exactly once; an ordinary free `Exception` is attempted once and leaves `Retained` with its exact stable carrier-local cause; and a non-`Exception` propagates identically after pre-call quarantine, then remains `Retained` without retry. The existing successful exact-free case closes once. | Automated |
+| `ABI-01` | Static source and build-configuration inspection verifies the `screen_capture_engine` DSO name; `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64` filters; the weak-API flag; `jnigraphics`; hidden visibility; the version map with sole global `JNI_OnLoad`; P7-08 CMake `LINK_DEPENDS` and link options; exact C++ registration names; and consumer keep rules. It does not inspect emitted ELF, AAR, or APK artifacts, run R8 or an external consumer, prove packaged-ABI or device-load behavior, or prove 16-KiB-page behavior. | Static |
 | `STO-01` | Segmented payload construction and range copy validate before mutation and expose immutable ordered bytes; cache, repeat, and callback handoff preserve observable frame bytes and metadata. | Automated |
-| `DEL-01` | Delivery has one bounded handoff occupancy; borrow access is callback-thread-only and revoked before return; rejection/failure/nonreturn preserve their exact roots and accounting. | Automated |
-| `DEL-02` | Session handoff correlation accepts only the exact request/token facts; cutoff makes a retained queued entry inert, and late or terminal-frozen facts are stale or cleanup-only. | Automated |
-| `OBS-01` | State, Stats, and bounded replay-free diagnostics publish complete values; diagnostic delivery, loss, or failure never changes the lifecycle outcome. | Automated |
+| `DEL-01` | Delivery preserves one bounded physical occupancy and callback-thread-only borrow; dispatch rejection, revocation, callback failure or nonreturn, fact staging/readiness, and roots required while the borrow can still be used have exact outcomes. | Automated |
+| `DEL-02` | Session Delivery preserves exact registration, cached-first, offer/result, and fact correlation; forwards deferred unregister actions once; settles terminal registrations exactly after the retirement entry fence without waiting for callback return; and treats late or frozen facts as cleanup-only. | Automated |
+| `DEL-03` | Static inspection of `runControlTurn -> executePendingUnregisterAction -> claimPendingUnregisterAction` proves that deferred unregister reaches one exact `Complete` or `RequestCutoff` action. It does not claim that the publication race ran. | Static |
+| `OBS-01` | State and Stats publish complete current values; bounded replay-free diagnostic delivery is optional and may be lost. A caught ordinary `Exception` during diagnostic publication cannot block terminal State. A non-`Exception` is not promised containment: it may propagate after final Stats assignment while State remains at its prior value. | Automated |
 | `RUN-01` | A submitted task distinguishes rejection, accepted entry, accepted-never-entry, and real return while retaining the exact task roots until settlement. | Automated |
 | `TST-01` | Deterministic test-infrastructure dispatcher, delayed scheduler, completion, and clock controls faithfully expose acceptance, explicit entry, completion, rejection, throwing, submission order, and set/advance behavior without becoming product verdicts. | Automated |
 | `BSP-01` | If the Control lane thread cannot start, startup terminates with the mapped failure and releases the accepted projection once. | Automated |
@@ -170,5 +152,6 @@ Generic `RUN-01` evidence for a shared runtime primitive cannot replace each own
 | `TERM-01` | Terminal freeze while one Capture read and its Encoding input loan are outstanding detaches ordinary publication; the real late return discards once and requests no ordinary wake. | Automated |
 | `TGT-01` | A Target replacement failure proven pre-attachment or fully rolled back preserves the old usable Target and reports the exact local failure. | Automated |
 | `TGT-02` | An ambiguous `setSurface` or incomplete Target rollback poisons the owner: neither candidate nor old graph is reused, and retirement retains the required roots. | Automated |
+| `TGT-03` | Full mode reuses an exact matching Target/source; Downscaled mode reuses when the producer shrinks within the existing Target and replaces when growth exceeds it. | Automated |
 
-Update an audit row only when its contract or accepted evidence changes. A marker is not a run result, and a broad test class does not implicitly cover another oracle.
+Update a contract entry only when its contract or evidence changes. A marker is not a test result, and a broad test class does not implicitly cover another contract.

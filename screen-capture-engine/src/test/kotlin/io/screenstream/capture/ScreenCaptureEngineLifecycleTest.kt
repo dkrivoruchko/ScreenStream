@@ -1,6 +1,9 @@
 package io.screenstream.capture
 
-import android.app.Application
+import android.content.Context
+import io.mockk.Called
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -9,7 +12,6 @@ import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration
@@ -27,10 +29,11 @@ internal class ScreenCaptureEngineLifecycleTest {
             AutoCloseable {}
         }
         val config = ScreenCaptureConfig(captureMetricsSource = metricsSource)
-        val application: Application = RuntimeEnvironment.getApplication()
+        val context: Context = mockk(relaxed = false)
 
-        val session = ScreenCaptureEngine.createSession(application, config)
-        val otherSession = ScreenCaptureEngine.createSession(application, config)
+        val session = ScreenCaptureEngine.createSession(context, config)
+        val otherSession = ScreenCaptureEngine.createSession(context, config)
+        verify { context wasNot Called }
 
         assertNotSame(session, otherSession)
         assertEquals(0, subscriptionCount.get())

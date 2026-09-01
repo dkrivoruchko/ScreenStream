@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * Injected platform outcomes and manual task entry only arrange the scenario. The oracles are public start/state
  * outcomes and exact projection ownership settlement, never private Bootstrap checkpoints, queue shape, or call
- * ordering.
+ * ordering. HandlerThread quit calls prove request cardinality only, never thread termination or cleanup.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [36])
@@ -46,7 +46,11 @@ internal class ScreenCaptureSessionBootstrapTest {
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun controlThreadStartFailureFailsPublicStartAndReleasesProjectionOnce() = runTest {
-        assertFatalBootstrapFault(SessionStartHarness.BootstrapFault.ControlThreadStartThrows)
+        assertFatalBootstrapFault(
+            fault = SessionStartHarness.BootstrapFault.ControlThreadStartThrows,
+            expectedControlQuitRequests = 1,
+            expectedCaptureQuitRequests = 0,
+        )
     }
 
     // Verification: SES-01
@@ -54,7 +58,11 @@ internal class ScreenCaptureSessionBootstrapTest {
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun missingControlLooperFailsPublicStartAndReleasesProjectionOnce() = runTest {
-        assertFatalBootstrapFault(SessionStartHarness.BootstrapFault.ControlLooperReturnsNull)
+        assertFatalBootstrapFault(
+            fault = SessionStartHarness.BootstrapFault.ControlLooperReturnsNull,
+            expectedControlQuitRequests = 1,
+            expectedCaptureQuitRequests = 0,
+        )
     }
 
     // Verification: SES-01
@@ -62,7 +70,11 @@ internal class ScreenCaptureSessionBootstrapTest {
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun controlHandlerConstructionFailureFailsPublicStartAndReleasesProjectionOnce() = runTest {
-        assertFatalBootstrapFault(SessionStartHarness.BootstrapFault.ControlHandlerConstructionThrows)
+        assertFatalBootstrapFault(
+            fault = SessionStartHarness.BootstrapFault.ControlHandlerConstructionThrows,
+            expectedControlQuitRequests = 1,
+            expectedCaptureQuitRequests = 0,
+        )
     }
 
     // Verification: SES-01
@@ -125,6 +137,8 @@ internal class ScreenCaptureSessionBootstrapTest {
                 assertEquals(terminal, harness.session.state.value)
                 assertEquals(terminalStats, harness.session.stats.value)
                 platforms.verifyUntouched()
+                verify(exactly = 1) { harness.controlThread().quitSafely() }
+                verify(exactly = 1) { harness.captureThread().quitSafely() }
                 verify(exactly = 1) { projection.stop() }
                 confirmVerified(projection)
             } finally {
@@ -142,7 +156,11 @@ internal class ScreenCaptureSessionBootstrapTest {
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun thrownFirstControlPostFailsPublicStartAndReleasesProjectionOnce() = runTest {
-        assertFatalBootstrapFault(SessionStartHarness.BootstrapFault.FirstControlPostThrows)
+        assertFatalBootstrapFault(
+            fault = SessionStartHarness.BootstrapFault.FirstControlPostThrows,
+            expectedControlQuitRequests = 1,
+            expectedCaptureQuitRequests = 1,
+        )
     }
 
     // Verification: SES-01
@@ -321,6 +339,7 @@ internal class ScreenCaptureSessionBootstrapTest {
     }
 
     // Verification: SES-01
+    // Verification: MET-01
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun stopDuringMetricsSubscribeClosesLateHandleOnce() = runTest {
@@ -385,7 +404,11 @@ internal class ScreenCaptureSessionBootstrapTest {
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private suspend fun TestScope.assertFatalBootstrapFault(fault: SessionStartHarness.BootstrapFault) {
+    private suspend fun TestScope.assertFatalBootstrapFault(
+        fault: SessionStartHarness.BootstrapFault,
+        expectedControlQuitRequests: Int,
+        expectedCaptureQuitRequests: Int,
+    ) {
         val platforms = CapturePlatformProbes()
         SessionStartHarness(
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
@@ -422,6 +445,8 @@ internal class ScreenCaptureSessionBootstrapTest {
                 val startFailure = start.await() as ScreenCaptureException
                 assertSame(ScreenCaptureProblem.InternalFailure, startFailure.problem)
                 platforms.verifyUntouched()
+                verify(exactly = expectedControlQuitRequests) { harness.controlThread().quitSafely() }
+                verify(exactly = expectedCaptureQuitRequests) { harness.captureThread().quitSafely() }
                 verify(exactly = 1) { projection.stop() }
                 confirmVerified(projection)
             } finally {

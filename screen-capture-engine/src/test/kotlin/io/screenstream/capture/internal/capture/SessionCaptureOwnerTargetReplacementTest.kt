@@ -18,19 +18,20 @@ import android.view.Surface
 import io.mockk.every
 import io.mockk.mockk
 import io.screenstream.capture.ColorMode
-import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.ImageRect
 import io.screenstream.capture.Mirror
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.ScreenCaptureProblem
-import io.screenstream.capture.SourceRegion
 import io.screenstream.capture.internal.Rgba8888Layout
 import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import io.screenstream.capture.internal.runtime.HandlerTaskPoster
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -71,6 +72,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         EglSentinelAccess.setNoSurface(savedNoSurface)
     }
 
+    // Verification: CAP-02
     // Verification: TGT-01
     @Test
     fun preAttachmentResourceDenialRollsBackCandidateAndPreservesOldTarget() {
@@ -133,6 +135,85 @@ internal class SessionCaptureOwnerTargetReplacementTest {
 
     // Verification: TGT-02
     @Test
+    fun rawOomeEscapesAtEachOpenSeamAndRetainsTheExactAcquiredPrefix() {
+        for (seam in TargetOpenSeam.entries) {
+            val failure = OutOfMemoryError("raw OOME at $seam")
+            val fixture = RawTargetFixture(seam, failure)
+
+            val thrown = assertThrows(OutOfMemoryError::class.java) {
+                fixture.target.open(fixture.plan)
+            }
+
+            assertSame(failure, thrown)
+            assertEquals(TargetOpenSeam.entries.take(seam.ordinal + 1), fixture.platform.enteredSeams)
+            assertEquals(INITIAL_OES_TEXTURE, fixture.target.requireOesTextureName())
+            if (seam == TargetOpenSeam.CreateSurfaceTexture) {
+                assertThrows(IllegalStateException::class.java) { fixture.target.requireSurfaceTexture() }
+            } else {
+                assertSame(fixture.surfaceTexture, fixture.target.requireSurfaceTexture())
+            }
+            assertNull(fixture.target.retirementSurface)
+            assertTrue(fixture.platform.releasedSurfaceTextures.isEmpty())
+            assertTrue(fixture.gles.deletedTextures.isEmpty())
+
+            val rollback = fixture.target.rollbackUnattached()
+            assertNull(rollback.cleanupFailure)
+            assertNull(rollback.residue)
+            assertEquals(
+                if (seam == TargetOpenSeam.CreateSurfaceTexture) emptyList() else listOf(fixture.surfaceTexture),
+                fixture.platform.releasedSurfaceTextures,
+            )
+            assertEquals(listOf(INITIAL_OES_TEXTURE), fixture.gles.deletedTextures)
+
+            val eglRetirement = fixture.eglOwner.close()
+            assertNull(eglRetirement.cleanupFailure)
+            assertNull(eglRetirement.residue)
+        }
+    }
+
+    // Verification: TGT-02
+    @Test
+    fun candidateSurfaceDenialWithFailedTextureRollbackInvalidatesOwnerAndRetainsResidue() {
+        val fixture = OwnerFixture()
+        fixture.open()
+        val denial = Surface.OutOfResourcesException("candidate Surface denied")
+        val releaseFailure = IllegalStateException("candidate SurfaceTexture release failed")
+        fixture.targetPlatform.candidateSurfaceCreationFailure = denial
+        fixture.targetPlatform.candidateSurfaceTextureReleaseFailure = releaseFailure
+
+        assertTrue(fixture.owner.apply(fixture.replacementPlan))
+        fixture.enterAcceptedWork()
+
+        val result = fixture.factPort.applyResults.single() as? CaptureApplyResult.Failed
+            ?: error("Unsettled candidate rollback did not invalidate the owner")
+        assertSame(ScreenCaptureProblem.InternalFailure, result.problem)
+        assertSame(denial, result.cause)
+        assertSame(CaptureFailureScope.OwnerInvalidated, result.scope)
+        assertEquals(1, fixture.targetPlatform.candidateSurfaceTextureReleaseAttemptCount)
+        assertSame(
+            fixture.candidateSurfaceTexture,
+            fixture.targetPlatform.surfaceTextureReleaseAttempts.single(),
+        )
+        assertFalse(fixture.targetPlatform.releasedSurfaceTextures.contains(fixture.candidateSurfaceTexture))
+        assertFalse(fixture.gles.deletedTextures.contains(CANDIDATE_OES_TEXTURE))
+        assertSame(fixture.initialSurface, fixture.projectionPlatform.platformAttachedSurface)
+
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+
+        assertEquals(1, fixture.targetPlatform.candidateSurfaceTextureReleaseAttemptCount)
+        assertEquals(listOf(fixture.initialSurface), fixture.targetPlatform.releasedSurfaces)
+        assertEquals(listOf(fixture.initialSurfaceTexture), fixture.targetPlatform.releasedSurfaceTextures)
+        assertFalse(fixture.gles.deletedTextures.contains(CANDIDATE_OES_TEXTURE))
+        assertEquals(0, fixture.egl.unbindCount)
+        assertEquals(0, fixture.egl.destroyContextCount)
+        assertEquals(0, fixture.egl.destroySurfaceCount)
+        assertEquals(0, fixture.egl.releaseThreadCount)
+        assertEquals(1, fixture.captureThreadQuitCount)
+    }
+
+    // Verification: TGT-02
+    @Test
     fun ambiguousSurfaceReplacementWithUnprovedDisplayReleaseQuarantinesBothTargets() {
         val fixture = OwnerFixture()
         fixture.open()
@@ -185,9 +266,193 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         assertTrue(fixture.factPort.sourceIdentities.isEmpty())
     }
 
-    private class OwnerFixture {
-        val initialPlan: CapturePlan = capturePlan(sourceWidthPx = 4, sourceHeightPx = 4)
-        val replacementPlan: CapturePlan = capturePlan(sourceWidthPx = 6, sourceHeightPx = 4)
+    // Verification: TGT-03
+    @Test
+    fun fullCompatibleApplyReusesExactTargetAndSource() {
+        val fixture = OwnerFixture()
+        val opened = fixture.open()
+        val compatiblePlan = capturePlan(
+            sourceWidthPx = 4,
+            sourceHeightPx = 4,
+            rotation = Rotation.Degrees180,
+        )
+
+        assertTrue(fixture.owner.apply(compatiblePlan))
+        fixture.enterAcceptedWork()
+
+        val applied = fixture.factPort.applyResults.single() as? CaptureApplyResult.Applied
+            ?: error("Full-compatible apply did not succeed")
+        assertSame(compatiblePlan, applied.plan)
+        assertSame(opened.sourceIdentity, applied.sourceIdentity)
+        assertSame(fixture.initialSurface, fixture.projectionPlatform.platformAttachedSurface)
+        assertEquals(listOf(INITIAL_OES_TEXTURE), fixture.targetPlatform.createdOesTextureNames)
+        assertEquals(0, fixture.projectionPlatform.replacementSurfaceCount)
+
+        fixture.deliverSourceFrame(fixture.initialSurfaceTexture)
+        assertSame(opened.sourceIdentity, fixture.factPort.sourceIdentities.single())
+
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+    }
+
+    // Verification: TGT-03
+    @Test
+    fun downscaledShrinkReusesThenGrowthReplacesTargetAndSourceIdentity() {
+        val initialPlan = capturePlan(
+            sourceWidthPx = 8,
+            sourceHeightPx = 8,
+            targetMode = CaptureTargetMode.Downscaled,
+            targetWidthPx = 4,
+            targetHeightPx = 4,
+        )
+        val fixture = OwnerFixture(initialPlan = initialPlan)
+        val opened = fixture.open()
+        val shrinkPlan = capturePlan(
+            sourceWidthPx = 8,
+            sourceHeightPx = 8,
+            targetMode = CaptureTargetMode.Downscaled,
+            targetWidthPx = 2,
+            targetHeightPx = 2,
+        )
+
+        assertTrue(fixture.owner.apply(shrinkPlan))
+        fixture.enterAcceptedWork()
+
+        val shrink = fixture.factPort.applyResults.single() as? CaptureApplyResult.Applied
+            ?: error("Downscaled shrink did not succeed")
+        assertSame(shrinkPlan, shrink.plan)
+        assertSame(opened.sourceIdentity, shrink.sourceIdentity)
+        assertSame(fixture.initialSurface, fixture.projectionPlatform.platformAttachedSurface)
+        assertEquals(listOf(INITIAL_OES_TEXTURE), fixture.targetPlatform.createdOesTextureNames)
+
+        val growthPlan = capturePlan(
+            sourceWidthPx = 8,
+            sourceHeightPx = 8,
+            targetMode = CaptureTargetMode.Downscaled,
+            targetWidthPx = 6,
+            targetHeightPx = 6,
+        )
+        assertTrue(fixture.owner.apply(growthPlan))
+        fixture.enterAcceptedWork()
+
+        val growth = fixture.factPort.applyResults.last() as? CaptureApplyResult.Applied
+            ?: error("Downscaled growth replacement did not succeed")
+        assertSame(growthPlan, growth.plan)
+        assertNotSame(opened.sourceIdentity, growth.sourceIdentity)
+        assertSame(fixture.candidateSurface, fixture.projectionPlatform.platformAttachedSurface)
+        assertEquals(
+            listOf(INITIAL_OES_TEXTURE, CANDIDATE_OES_TEXTURE),
+            fixture.targetPlatform.createdOesTextureNames,
+        )
+        assertEquals(1, fixture.projectionPlatform.replacementSurfaceCount)
+        assertEquals(listOf(fixture.initialSurface), fixture.targetPlatform.releasedSurfaces)
+        assertEquals(listOf(fixture.initialSurfaceTexture), fixture.targetPlatform.releasedSurfaceTextures)
+
+        fixture.deliverSourceFrame(fixture.candidateSurfaceTexture)
+        assertSame(growth.sourceIdentity, fixture.factPort.sourceIdentities.single())
+
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+    }
+
+    private enum class TargetOpenSeam {
+        CreateSurfaceTexture,
+        SetDefaultBufferSize,
+        CreateSurface,
+    }
+
+    private class RawTargetFixture(
+        seam: TargetOpenSeam,
+        failure: OutOfMemoryError,
+    ) {
+        val plan: CapturePlan = capturePlan(sourceWidthPx = 4, sourceHeightPx = 4)
+        val surfaceTexture: SurfaceTexture = mockk()
+        val gles = RecordingGlesPlatform()
+        private val egl = RecordingEglPlatform()
+        val eglOwner = EglOwner(egl.platform, gles.platform)
+        val platform = RawOomeTargetPlatform(seam, failure, surfaceTexture)
+        val target: TargetOwner
+
+        init {
+            eglOwner.open()
+            target = TargetOwner(
+                captureHandler = Handler(Looper.getMainLooper()),
+                eglOwner = eglOwner,
+                sourceSink = TargetOwner.SourceSink { error("Unexpected source callback") },
+                callbackBoundary = object : CaptureCallbackBoundary {
+                    override fun onCallbackException(identity: CaptureCallbackIdentity, failure: Exception) {
+                        error("Unexpected callback failure: $failure")
+                    }
+                },
+                platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+                platform = platform,
+            )
+        }
+    }
+
+    private class RawOomeTargetPlatform(
+        private val failingSeam: TargetOpenSeam,
+        private val failure: OutOfMemoryError,
+        private val surfaceTexture: SurfaceTexture,
+    ) : TargetPlatform {
+        private val surface: Surface = mockk()
+        val enteredSeams = mutableListOf<TargetOpenSeam>()
+        val releasedSurfaceTextures = mutableListOf<SurfaceTexture>()
+
+        override fun createSurfaceTexture(oesTextureName: Int): SurfaceTexture {
+            check(oesTextureName == INITIAL_OES_TEXTURE)
+            enter(TargetOpenSeam.CreateSurfaceTexture)
+            return surfaceTexture
+        }
+
+        override fun setDefaultBufferSize(surfaceTexture: SurfaceTexture, widthPx: Int, heightPx: Int) {
+            check(surfaceTexture === this.surfaceTexture)
+            enter(TargetOpenSeam.SetDefaultBufferSize)
+        }
+
+        override fun createSurface(surfaceTexture: SurfaceTexture): Surface {
+            check(surfaceTexture === this.surfaceTexture)
+            enter(TargetOpenSeam.CreateSurface)
+            return surface
+        }
+
+        override fun setFrameListener(
+            surfaceTexture: SurfaceTexture,
+            listener: SurfaceTexture.OnFrameAvailableListener,
+            handler: Handler,
+        ) = error("Listener installation was not expected")
+
+        override fun clearFrameListener(surfaceTexture: SurfaceTexture) =
+            error("Listener removal was not expected")
+
+        override fun updateTexImage(surfaceTexture: SurfaceTexture) =
+            error("Frame update was not expected")
+
+        override fun getTransformMatrix(surfaceTexture: SurfaceTexture, destination: FloatArray) =
+            error("Transform read was not expected")
+
+        override fun dataSpace(surfaceTexture: SurfaceTexture): Int =
+            error("DataSpace read was not expected")
+
+        override fun releaseSurface(surface: Surface) {
+            error("No Surface was returned from the failing seam")
+        }
+
+        override fun releaseSurfaceTexture(surfaceTexture: SurfaceTexture) {
+            check(surfaceTexture === this.surfaceTexture)
+            releasedSurfaceTextures += surfaceTexture
+        }
+
+        private fun enter(seam: TargetOpenSeam) {
+            enteredSeams += seam
+            if (seam == failingSeam) throw failure
+        }
+    }
+
+    private class OwnerFixture(
+        val initialPlan: CapturePlan = capturePlan(sourceWidthPx = 4, sourceHeightPx = 4),
+        val replacementPlan: CapturePlan = capturePlan(sourceWidthPx = 6, sourceHeightPx = 4),
+    ) {
         val projection: MediaProjection = mockk()
         val virtualDisplay: VirtualDisplay = mockk()
         val initialSurfaceTexture: SurfaceTexture = mockk()
@@ -387,9 +652,14 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         private val candidateSurface: Surface,
     ) : TargetPlatform {
         var candidateSurfaceCreationFailure: Surface.OutOfResourcesException? = null
+        var candidateSurfaceTextureReleaseFailure: Exception? = null
+        val createdOesTextureNames = mutableListOf<Int>()
         val releasedSurfaces = mutableListOf<Surface>()
+        val surfaceTextureReleaseAttempts = mutableListOf<SurfaceTexture>()
         val releasedSurfaceTextures = mutableListOf<SurfaceTexture>()
         val updatedSurfaceTextures = mutableListOf<SurfaceTexture>()
+        var candidateSurfaceTextureReleaseAttemptCount = 0
+            private set
         var initialListenerRemovalCount = 0
             private set
         var candidateListenerRemovalCount = 0
@@ -397,10 +667,13 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         private var initialListener: SurfaceTexture.OnFrameAvailableListener? = null
         private var candidateListener: SurfaceTexture.OnFrameAvailableListener? = null
 
-        override fun createSurfaceTexture(oesTextureName: Int): SurfaceTexture = when (oesTextureName) {
-            INITIAL_OES_TEXTURE -> initialSurfaceTexture
-            CANDIDATE_OES_TEXTURE -> candidateSurfaceTexture
-            else -> error("Unexpected OES texture name")
+        override fun createSurfaceTexture(oesTextureName: Int): SurfaceTexture {
+            createdOesTextureNames += oesTextureName
+            return when (oesTextureName) {
+                INITIAL_OES_TEXTURE -> initialSurfaceTexture
+                CANDIDATE_OES_TEXTURE -> candidateSurfaceTexture
+                else -> error("Unexpected OES texture name")
+            }
         }
 
         override fun setDefaultBufferSize(surfaceTexture: SurfaceTexture, widthPx: Int, heightPx: Int) = Unit
@@ -454,6 +727,11 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         }
 
         override fun releaseSurfaceTexture(surfaceTexture: SurfaceTexture) {
+            surfaceTextureReleaseAttempts += surfaceTexture
+            if (surfaceTexture === candidateSurfaceTexture) {
+                candidateSurfaceTextureReleaseAttemptCount += 1
+                candidateSurfaceTextureReleaseFailure?.let { throw it }
+            }
             releasedSurfaceTextures += surfaceTexture
         }
 
@@ -598,19 +876,24 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         private const val READBACK_START_NANOS = 10L
         private const val READBACK_DURATION_NANOS = 7L
 
-        private fun capturePlan(sourceWidthPx: Int, sourceHeightPx: Int): CapturePlan = CapturePlan(
-            sourceRegion = SourceRegion.Full,
-            crop = CropInsetsPx.ZERO,
+        private fun capturePlan(
+            sourceWidthPx: Int,
+            sourceHeightPx: Int,
+            targetMode: CaptureTargetMode = CaptureTargetMode.Full,
+            targetWidthPx: Int = sourceWidthPx,
+            targetHeightPx: Int = sourceHeightPx,
+            rotation: Rotation = Rotation.Degrees0,
+        ): CapturePlan = CapturePlan(
             appliedSourceRect = ImageRect.create(0, 0, sourceWidthPx, sourceHeightPx),
-            rotation = Rotation.Degrees0,
+            rotation = rotation,
             mirror = Mirror.None,
             colorMode = ColorMode.Color,
             sourceWidthPx = sourceWidthPx,
             sourceHeightPx = sourceHeightPx,
             densityDpi = 320,
-            targetMode = CaptureTargetMode.Full,
-            targetWidthPx = sourceWidthPx,
-            targetHeightPx = sourceHeightPx,
+            targetMode = targetMode,
+            targetWidthPx = targetWidthPx,
+            targetHeightPx = targetHeightPx,
             rgbaLayout = Rgba8888Layout.create(widthPx = 2, heightPx = 2),
         )
     }

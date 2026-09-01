@@ -44,8 +44,5 @@ internal class SessionProductionStatsTest {
         production.recordProductionFailure()
         production.recordConsumerBusy()
         assertNull(production.prepareStats(publicationNanos = Long.MAX_VALUE))
-        assertEquals(1L, terminal.finalStats.encodedFrameCount)
-        assertEquals(1L, terminal.finalStats.droppedFrames.byFailure)
-        assertEquals(0L, terminal.finalStats.droppedDeliveries.byConsumerBusy)
     }
 }

@@ -18,12 +18,10 @@ import android.view.Surface
 import io.mockk.every
 import io.mockk.mockk
 import io.screenstream.capture.ColorMode
-import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.ImageRect
 import io.screenstream.capture.Mirror
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.ScreenCaptureProblem
-import io.screenstream.capture.SourceRegion
 import io.screenstream.capture.internal.Rgba8888Layout
 import io.screenstream.capture.internal.encoding.CarrierDisposition
 import io.screenstream.capture.internal.encoding.EncodingInput
@@ -85,8 +83,17 @@ internal class SessionCaptureOwnerReadbackTest {
 
     // Verification: P3-01
     @Test
-    fun exactDisplayP3ReturnsConsumedOperationLocalFailure() {
-        val fixture = OwnerFixture()
+    fun exactDisplayP3ConsumesSourceThenSuccessorSrgbReusesOwner() {
+        val clockReads = AtomicInteger()
+        val fixture = OwnerFixture(
+            readbackClock = ElapsedRealtimeClock {
+                when (clockReads.getAndIncrement()) {
+                    0 -> 100L
+                    1 -> 109L
+                    else -> throw AssertionError("Unexpected readback clock sample")
+                }
+            },
+        )
         val carrier = ByteBuffer.allocateDirect(fixture.plan.rgbaCarrierByteCount)
         repeat(carrier.capacity()) { index -> carrier.put(index, CARRIER_SENTINEL) }
         val bytesBefore = carrierBytes(carrier)
@@ -98,7 +105,8 @@ internal class SessionCaptureOwnerReadbackTest {
             ?: error("Capture owner did not open")
 
         fixture.deliverSourceFrame()
-        assertSame(opened.sourceIdentity, fixture.factPort.sourceIdentity.get())
+        assertEquals(1, fixture.factPort.sourceIdentityEvents.size)
+        assertSame(opened.sourceIdentity, fixture.factPort.sourceIdentityEvents.single())
         val returned = AtomicReference<CaptureReadResult?>()
         assertTrue(
             fixture.owner.read(fixture.plan, opened.sourceIdentity, carrier) { result ->
@@ -115,16 +123,126 @@ internal class SessionCaptureOwnerReadbackTest {
         assertArrayEquals(bytesBefore, carrierBytes(carrier))
         assertEquals(0, carrier.position())
         assertEquals(carrier.capacity(), carrier.limit())
+        assertEquals(0, clockReads.get())
         assertNull(fixture.factPort.captureFailure.get())
+        assertEquals(1, fixture.factPort.sourceIdentityEvents.size)
+        assertSame(opened.sourceIdentity, fixture.factPort.sourceIdentityEvents.single())
+
+        fixture.dataSpace = DataSpace.DATASPACE_SRGB
+        fixture.deliverSourceFrame()
+        assertEquals(2, fixture.factPort.sourceIdentityEvents.size)
+        assertSame(opened.sourceIdentity, fixture.factPort.sourceIdentityEvents[0])
+        assertSame(opened.sourceIdentity, fixture.factPort.sourceIdentityEvents[1])
+        val successor = AtomicReference<CaptureReadResult?>()
+        assertTrue(
+            fixture.owner.read(fixture.plan, opened.sourceIdentity, carrier) { result ->
+                check(successor.compareAndSet(null, result))
+            },
+        )
+        fixture.enterPostedCommands()
+
+        val filled = successor.get() as? CaptureReadResult.Filled
+            ?: error("Successor sRGB read did not return Filled")
+        assertEquals(9L, filled.readbackDurationNanos)
+        assertEquals(2, clockReads.get())
+        assertNull(fixture.factPort.captureFailure.get())
+        assertEquals(2, fixture.factPort.sourceIdentityEvents.size)
+        assertSame(opened.sourceIdentity, fixture.factPort.sourceIdentityEvents[0])
+        assertSame(opened.sourceIdentity, fixture.factPort.sourceIdentityEvents[1])
 
         fixture.owner.retire()
         fixture.enterPostedCommands()
         assertNull(fixture.factPort.captureFailure.get())
     }
 
+    // Verification: CAP-03
+    // Verification: CAP-04
+    @Test
+    fun glReadFailureConsumesSourcePoisonsOwnerAndRetiresNamespaceOnce() {
+        val readFailure = IllegalStateException("expected glReadPixels failure")
+        val fixture = OwnerFixture(
+            dataSpace = DataSpace.DATASPACE_SRGB,
+            readbackClock = ElapsedRealtimeClock { CONSTANT_READBACK_TIME_NANOS },
+            readPixelsFailure = readFailure,
+        )
+        val carrier = ByteBuffer.allocateDirect(fixture.plan.rgbaCarrierByteCount)
+        repeat(carrier.capacity()) { index -> carrier.put(index, CARRIER_SENTINEL) }
+        val bytesBefore = carrierBytes(carrier)
+
+        fixture.owner.adoptProjection(fixture.projection)
+        assertTrue(fixture.owner.open(fixture.plan))
+        fixture.enterPostedCommands()
+        val opened = fixture.factPort.openResult.get() as? CaptureOpenResult.Opened
+            ?: error("Capture owner did not open")
+
+        fixture.deliverSourceFrame()
+        val first = AtomicReference<CaptureReadResult?>()
+        assertTrue(
+            fixture.owner.read(fixture.plan, opened.sourceIdentity, carrier) { result ->
+                check(first.compareAndSet(null, result))
+            },
+        )
+        fixture.enterPostedCommands()
+
+        val poisoned = first.get() as? CaptureReadResult.Failed
+            ?: error("GL read failure did not return Failed")
+        assertSame(ScreenCaptureProblem.InternalFailure, poisoned.problem)
+        assertSame(readFailure, poisoned.cause)
+        assertTrue(poisoned.sourceConsumed)
+        assertSame(CaptureFailureScope.OwnerInvalidated, poisoned.scope)
+        assertEquals(1, fixture.readPixelsCount)
+        assertArrayEquals(bytesBefore, carrierBytes(carrier))
+
+        fixture.deliverSourceFrame()
+        val reuse = AtomicReference<CaptureReadResult?>()
+        assertTrue(
+            fixture.owner.read(fixture.plan, opened.sourceIdentity, carrier) { result ->
+                check(reuse.compareAndSet(null, result))
+            },
+        )
+        fixture.enterPostedCommands()
+        val rejectedReuse = reuse.get() as? CaptureReadResult.Failed
+            ?: error("Poisoned owner reuse did not return Failed")
+        assertSame(ScreenCaptureProblem.InternalFailure, rejectedReuse.problem)
+        assertFalse(rejectedReuse.sourceConsumed)
+        assertSame(CaptureFailureScope.OwnerInvalidated, rejectedReuse.scope)
+        assertEquals(1, fixture.readPixelsCount)
+
+        val deletionsBeforeRetirement = fixture.glNameDeletionCount
+        fixture.retirementEvents.clear()
+        fixture.owner.retire()
+        fixture.enterPostedCommands()
+
+        assertEquals(deletionsBeforeRetirement, fixture.glNameDeletionCount)
+        assertEquals(
+            listOf(
+                "listener-fence",
+                "display-detach",
+                "display-release",
+                "surface-release",
+                "surface-texture-release",
+                "egl-unbind",
+                "egl-context-destroy",
+                "egl-surface-destroy",
+                "egl-thread-release",
+                "projection-callback-unregister",
+                "projection-stop",
+            ),
+            fixture.retirementEvents,
+        )
+        assertNull(fixture.factPort.captureFailure.get())
+        assertThrows(IllegalStateException::class.java) {
+            fixture.owner.read(fixture.plan, opened.sourceIdentity, carrier) { }
+        }
+        val retiredEvents = fixture.retirementEvents.toList()
+        fixture.owner.retire()
+        fixture.enterPostedCommands()
+        assertEquals(retiredEvents, fixture.retirementEvents)
+    }
+
     // Verification: CAP-05
     @Test
-    fun exactReadSettlesOnlyItsInputOnceAndRetirementMakesTheLateReturnCleanupOnly() {
+    fun acceptedUnenteredReadReturnsCutoffOnceAndRetirementRejectsReuse() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             fun createCarrier(): ManagedDirectCarrier {
                 val candidate = ManagedDirectCarrier(capturePlan().rgbaLayout)
@@ -138,13 +256,11 @@ internal class SessionCaptureOwnerReadbackTest {
                 readbackClock = ElapsedRealtimeClock { CONSTANT_READBACK_TIME_NANOS },
             )
             val encodingOwner = EncodingOwner(dispatcher, MutableElapsedRealtimeClock())
-            val firstCarrier = createCarrier()
-            val firstInput = firstCarrier.lend(encodingOwner) { } ?: error("First carrier did not lend")
-            val foreignCarrier = createCarrier()
-            val foreignInput = foreignCarrier.lend(encodingOwner) { } ?: error("Foreign carrier did not lend")
-            val firstReturnCount = AtomicInteger()
-            val firstResult = AtomicReference<CaptureReadResult?>()
-            val firstSettlement = AtomicReference<EncodingInput?>()
+            val carrier = createCarrier()
+            val input = carrier.lend(encodingOwner) { } ?: error("Capture carrier did not lend")
+            val returnCount = AtomicInteger()
+            val result = AtomicReference<CaptureReadResult?>()
+            val settlement = AtomicReference<EncodingInput?>()
 
             try {
                 fixture.owner.adoptProjection(fixture.projection)
@@ -153,63 +269,28 @@ internal class SessionCaptureOwnerReadbackTest {
                 val opened = fixture.factPort.openResult.get() as? CaptureOpenResult.Opened
                     ?: error("Capture owner did not open")
 
-                assertNull(firstCarrier.settle(foreignInput, CarrierDisposition.Discarded))
-                assertTrue(firstCarrier.ownsCaptureLoan(firstInput))
                 fixture.deliverSourceFrame()
                 assertTrue(
-                    fixture.owner.read(fixture.plan, opened.sourceIdentity, firstInput.writableView) { result ->
-                        firstReturnCount.incrementAndGet()
-                        check(firstResult.compareAndSet(null, result))
-                        check(firstSettlement.compareAndSet(null, firstCarrier.settle(firstInput, CarrierDisposition.Filled)))
-                    },
-                )
-                fixture.enterPostedCommands()
-
-                val filled = firstResult.get() as? CaptureReadResult.Filled
-                    ?: error("Exact sRGB Capture read did not return Filled")
-                assertEquals(0L, filled.readbackDurationNanos)
-                assertEquals(1, firstReturnCount.get())
-                assertSame(firstInput, firstSettlement.get())
-                assertTrue(firstCarrier.ownsReadyLoan(firstInput))
-                assertNull(firstCarrier.settle(firstInput, CarrierDisposition.Filled))
-                assertSame(firstInput, firstCarrier.discardReady(firstInput))
-                assertSame(foreignInput, foreignCarrier.settle(foreignInput, CarrierDisposition.Discarded))
-                assertSame(EncodingRetirement.Closed, firstCarrier.retireIfIdle())
-                assertSame(EncodingRetirement.Closed, foreignCarrier.retireIfIdle())
-                assertNull(firstCarrier.lend(encodingOwner) { })
-
-                fixture.deliverSourceFrame()
-                val lateCarrier = createCarrier()
-                val lateInput = lateCarrier.lend(encodingOwner) { } ?: error("Late carrier did not lend")
-                val lateReturnCount = AtomicInteger()
-                val lateResult = AtomicReference<CaptureReadResult?>()
-                val lateSettlement = AtomicReference<EncodingInput?>()
-                assertTrue(
-                    fixture.owner.read(fixture.plan, opened.sourceIdentity, lateInput.writableView) { result ->
-                        lateReturnCount.incrementAndGet()
-                        check(lateResult.compareAndSet(null, result))
-                        check(lateSettlement.compareAndSet(null, lateCarrier.settle(lateInput, CarrierDisposition.Discarded)))
+                    fixture.owner.read(fixture.plan, opened.sourceIdentity, input.writableView) { returned ->
+                        returnCount.incrementAndGet()
+                        check(result.compareAndSet(null, returned))
+                        check(settlement.compareAndSet(null, carrier.settle(input, CarrierDisposition.Discarded)))
                     },
                 )
 
                 fixture.owner.retire()
-                val retained = lateCarrier.retireIfIdle() as EncodingRetirement.Retained
+                val retained = carrier.retireIfIdle() as EncodingRetirement.Retained
                 assertNull(retained.cause)
-                assertTrue(lateCarrier.ownsCaptureLoan(lateInput))
-                assertNull(lateResult.get())
+                assertTrue(carrier.ownsCaptureLoan(input))
+                assertNull(result.get())
                 fixture.enterPostedCommands()
 
-                assertSame(CaptureReadResult.CutoffInert, lateResult.get())
-                assertEquals(1, lateReturnCount.get())
-                assertSame(lateInput, lateSettlement.get())
-                assertFalse(lateCarrier.ownsCaptureLoan(lateInput))
-                assertTrue(lateCarrier.isIdle)
-                assertNull(lateCarrier.settle(lateInput, CarrierDisposition.Discarded))
-                assertNull(lateCarrier.settle(foreignInput, CarrierDisposition.Discarded))
-                assertSame(EncodingRetirement.Closed, lateCarrier.retireIfIdle())
-                assertNull(lateCarrier.lend(encodingOwner) { })
+                assertSame(CaptureReadResult.CutoffInert, result.get())
+                assertEquals(1, returnCount.get())
+                assertSame(input, settlement.get())
+                assertFalse(carrier.ownsCaptureLoan(input))
                 assertThrows(IllegalStateException::class.java) {
-                    fixture.owner.read(fixture.plan, opened.sourceIdentity, lateInput.writableView) { }
+                    fixture.owner.read(fixture.plan, opened.sourceIdentity, input.writableView) { }
                 }
                 assertNull(fixture.factPort.captureFailure.get())
             } finally {
@@ -220,13 +301,19 @@ internal class SessionCaptureOwnerReadbackTest {
     }
 
     private class OwnerFixture(
-        private val dataSpace: Int = DataSpace.DATASPACE_DISPLAY_P3,
+        var dataSpace: Int = DataSpace.DATASPACE_DISPLAY_P3,
         readbackClock: ElapsedRealtimeClock =
             ElapsedRealtimeClock { throw AssertionError("Display P3 read sampled the readback clock") },
+        private val readPixelsFailure: Exception? = null,
     ) {
         val plan = capturePlan()
         val projection: MediaProjection = mockk()
         val factPort = RecordingFactPort()
+        val retirementEvents = mutableListOf<String>()
+        var readPixelsCount = 0
+            private set
+        var glNameDeletionCount = 0
+            private set
         private val mainHandler = Handler(Looper.getMainLooper())
         private val captureThread: HandlerThread = mockk()
         private val projectionPlatform: ProjectionPlatform = mockk(relaxed = true)
@@ -288,6 +375,18 @@ internal class SessionCaptureOwnerReadbackTest {
 
         private fun configureProjection() {
             every { projectionPlatform.createVirtualDisplay(projection, any(), any(), any(), surface) } returns virtualDisplay
+            every { projectionPlatform.setSurface(virtualDisplay, null) } answers {
+                retirementEvents += "display-detach"
+            }
+            every { projectionPlatform.release(virtualDisplay) } answers {
+                retirementEvents += "display-release"
+            }
+            every { projectionPlatform.unregisterCallback(projection, any()) } answers {
+                retirementEvents += "projection-callback-unregister"
+            }
+            every { projectionPlatform.stop(projection) } answers {
+                retirementEvents += "projection-stop"
+            }
         }
 
         private fun configureEgl() {
@@ -311,6 +410,7 @@ internal class SessionCaptureOwnerReadbackTest {
             every { eglPlatform.makeCurrent(eglDisplay, any(), any()) } answers {
                 val returnedContext = thirdArg<EGLContext>()
                 if (returnedContext === EGL14.EGL_NO_CONTEXT) {
+                    retirementEvents += "egl-unbind"
                     currentDisplay = EGL14.EGL_NO_DISPLAY
                     currentContext = EGL14.EGL_NO_CONTEXT
                     currentSurface = EGL14.EGL_NO_SURFACE
@@ -321,9 +421,18 @@ internal class SessionCaptureOwnerReadbackTest {
                 }
                 true
             }
-            every { eglPlatform.destroyContext(eglDisplay, eglContext) } returns true
-            every { eglPlatform.destroySurface(eglDisplay, eglSurface) } returns true
-            every { eglPlatform.releaseThread() } returns true
+            every { eglPlatform.destroyContext(eglDisplay, eglContext) } answers {
+                retirementEvents += "egl-context-destroy"
+                true
+            }
+            every { eglPlatform.destroySurface(eglDisplay, eglSurface) } answers {
+                retirementEvents += "egl-surface-destroy"
+                true
+            }
+            every { eglPlatform.releaseThread() } answers {
+                retirementEvents += "egl-thread-release"
+                true
+            }
             every { eglPlatform.getError() } returns EGL14.EGL_SUCCESS
         }
 
@@ -352,6 +461,22 @@ internal class SessionCaptureOwnerReadbackTest {
             every { glesPlatform.getProgramStatus(any(), any()) } answers { secondArg<IntArray>()[0] = GLES20.GL_TRUE }
             every { glesPlatform.getUniformLocation(any(), any()) } returns 1
             every { glesPlatform.checkFramebufferStatus() } returns GLES20.GL_FRAMEBUFFER_COMPLETE
+            every { glesPlatform.readPixels(any(), any(), any()) } answers {
+                readPixelsCount += 1
+                readPixelsFailure?.let { throw it }
+            }
+            every { glesPlatform.deleteTextures(any()) } answers {
+                glNameDeletionCount += 1
+            }
+            every { glesPlatform.deleteFramebuffers(any()) } answers {
+                glNameDeletionCount += 1
+            }
+            every { glesPlatform.deleteProgram(any()) } answers {
+                glNameDeletionCount += 1
+            }
+            every { glesPlatform.deleteShader(any()) } answers {
+                glNameDeletionCount += 1
+            }
         }
 
         private fun configureTarget() {
@@ -359,6 +484,10 @@ internal class SessionCaptureOwnerReadbackTest {
             every { targetPlatform.createSurface(surfaceTexture) } returns surface
             every { targetPlatform.setFrameListener(surfaceTexture, any(), any()) } answers {
                 frameListener = secondArg()
+            }
+            every { targetPlatform.clearFrameListener(surfaceTexture) } answers {
+                frameListener = null
+                retirementEvents += "listener-fence"
             }
             every { targetPlatform.getTransformMatrix(surfaceTexture, any()) } answers {
                 val matrix = secondArg<FloatArray>()
@@ -368,13 +497,19 @@ internal class SessionCaptureOwnerReadbackTest {
                 matrix[10] = 1f
                 matrix[15] = 1f
             }
-            every { targetPlatform.dataSpace(surfaceTexture) } returns dataSpace
+            every { targetPlatform.dataSpace(surfaceTexture) } answers { dataSpace }
+            every { targetPlatform.releaseSurface(surface) } answers {
+                retirementEvents += "surface-release"
+            }
+            every { targetPlatform.releaseSurfaceTexture(surfaceTexture) } answers {
+                retirementEvents += "surface-texture-release"
+            }
         }
     }
 
     private class RecordingFactPort : SessionCaptureFactPort {
         val openResult = AtomicReference<CaptureOpenResult?>()
-        val sourceIdentity = AtomicReference<CaptureSourceIdentity?>()
+        val sourceIdentityEvents = mutableListOf<CaptureSourceIdentity>()
         val captureFailure = AtomicReference<Exception?>()
 
         override fun onOpenReturned(result: CaptureOpenResult) {
@@ -384,9 +519,7 @@ internal class SessionCaptureOwnerReadbackTest {
         override fun onApplyReturned(result: CaptureApplyResult) = error("Unexpected Capture apply")
 
         override fun onSourceAvailable(sourceIdentity: CaptureSourceIdentity) {
-            val existing = this.sourceIdentity.get()
-            check(existing == null || existing === sourceIdentity)
-            this.sourceIdentity.set(sourceIdentity)
+            sourceIdentityEvents += sourceIdentity
         }
 
         override fun onProjectionStopped(projectionIdentity: CaptureProjectionIdentity) = error("Unexpected projection stop")
@@ -409,8 +542,6 @@ internal class SessionCaptureOwnerReadbackTest {
             ByteArray(carrier.capacity()) { index -> carrier.get(index) }
 
         private fun capturePlan(): CapturePlan = CapturePlan(
-            sourceRegion = SourceRegion.Full,
-            crop = CropInsetsPx.ZERO,
             appliedSourceRect = ImageRect.create(0, 0, 2, 1),
             rotation = Rotation.Degrees0,
             mirror = Mirror.None,

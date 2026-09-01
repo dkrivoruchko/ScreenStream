@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -21,6 +22,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /*
  * Public Session Stats accounting evidence through the real Coordinator, Production, and Delivery.
@@ -83,6 +85,7 @@ internal class ScreenCaptureSessionStatsTest {
     }
 
     // Verification: SES-07
+    // Verification: DEL-02
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -109,12 +112,21 @@ internal class ScreenCaptureSessionStatsTest {
 
             val callbackEntered = CountDownLatch(1)
             val callbackReturned = CountDownLatch(1)
+            val callbackEntries = AtomicInteger()
             harness.session.registerFrameConsumer {
-                callbackEntered.countDown()
-                try {
-                    throw IllegalStateException("expected callback failure")
-                } finally {
-                    callbackReturned.countDown()
+                when (callbackEntries.incrementAndGet()) {
+                    1 -> {
+                        callbackEntered.countDown()
+                        try {
+                            throw IllegalStateException("expected callback failure")
+                        } finally {
+                            callbackReturned.countDown()
+                        }
+                    }
+
+                    2 -> Unit
+
+                    else -> throw AssertionError("Unexpected callback entry")
                 }
             }
             harness.enterNextControlTask()
@@ -126,6 +138,31 @@ internal class ScreenCaptureSessionStatsTest {
             check(callbackReturned.await(5L, TimeUnit.SECONDS)) {
                 "Frame callback did not return"
             }
+            harness.clock.setDefaultNanos(1L * 1_000_000_000L)
+            harness.driveUntil {
+                harness.session.stats.value.droppedDeliveries.byCallbackFailure ==
+                        statsBeforeCallback.droppedDeliveries.byCallbackFailure + 1L
+            }
+
+            val statsAfterFailure = harness.session.stats.value
+            assertTrue(harness.session.state.value is ScreenCaptureState.Active)
+            assertEquals(1, callbackEntries.get())
+            assertEquals(
+                statsBeforeCallback.droppedDeliveries.byCallbackFailure + 1L,
+                statsAfterFailure.droppedDeliveries.byCallbackFailure,
+            )
+
+            platform.deliverSourceFrame(rgbaSeed = 79)
+            harness.driveUntil { callbackEntries.get() == 2 }
+            drainAcceptedSessionWork(harness)
+
+            val statsAfterSecondDelivery = harness.session.stats.value
+            assertTrue(harness.session.state.value is ScreenCaptureState.Active)
+            assertEquals(2, callbackEntries.get())
+            assertEquals(
+                statsAfterFailure.droppedDeliveries.byCallbackFailure,
+                statsAfterSecondDelivery.droppedDeliveries.byCallbackFailure,
+            )
 
             harness.session.stop()
             driveControlUntil(harness) { harness.session.state.value is ScreenCaptureState.Stopped }
@@ -134,7 +171,7 @@ internal class ScreenCaptureSessionStatsTest {
             val finalStats = harness.session.stats.value
             assertSame(ScreenCaptureStopReason.Requested, stopped.reason)
             assertEquals(
-                statsBeforeCallback.droppedDeliveries.byCallbackFailure + 1L,
+                statsAfterSecondDelivery.droppedDeliveries.byCallbackFailure,
                 finalStats.droppedDeliveries.byCallbackFailure,
             )
         }

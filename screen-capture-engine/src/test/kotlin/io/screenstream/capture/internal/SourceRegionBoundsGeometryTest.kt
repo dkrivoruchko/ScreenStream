@@ -7,7 +7,6 @@ import org.junit.Test
 
 internal class SourceRegionBoundsGeometryTest {
     // Verification: SES-04
-    // Verification: CAP-02
     @Test
     fun fullRegionOwnsTheOnlyColumnOfAOnePixelSource() {
         val bounds = requireBounds(SourceRegion.Full, sourceWidthPx = 1)
@@ -18,7 +17,6 @@ internal class SourceRegionBoundsGeometryTest {
     }
 
     // Verification: SES-04
-    // Verification: CAP-02
     @Test
     fun halfRegionsSplitTheMinimumEvenWidthWithoutOverlap() {
         val left = requireBounds(SourceRegion.LeftHalf, sourceWidthPx = 2)
@@ -33,7 +31,6 @@ internal class SourceRegionBoundsGeometryTest {
     }
 
     // Verification: SES-04
-    // Verification: CAP-02
     @Test
     fun oddWidthAssignsTheFinalColumnToTheRightHalf() {
         val left = requireBounds(SourceRegion.LeftHalf, sourceWidthPx = 5)
@@ -48,7 +45,6 @@ internal class SourceRegionBoundsGeometryTest {
     }
 
     // Verification: SES-04
-    // Verification: CAP-02
     @Test
     fun nonpositiveSourcesAndOnePixelHalfRegionsAreUnavailable() {
         listOf(0, -1).forEach { sourceWidthPx ->

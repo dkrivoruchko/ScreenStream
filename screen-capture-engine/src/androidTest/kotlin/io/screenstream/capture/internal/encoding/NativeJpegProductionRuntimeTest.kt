@@ -25,13 +25,6 @@ internal class NativeJpegProductionRuntimeTest {
         assumeTrue(Build.VERSION.SDK_INT < Build.VERSION_CODES.R)
         assertSame(NativeJpegProcess.Availability.Available, NativeJpegProcess.resolveAvailability())
         assertFalse(NativeJpegProcess.hasWeakCompressor())
-        val preparation = EncoderRuntime.prepareBackend(
-            backendPolicy = JpegBackendPolicy.Auto,
-            existingHealthCell = null,
-            nativeJpeg = NativeJpegProcess,
-        ) as? EncoderBackendPreparation.NativeCarrier
-            ?: error("Auto did not retain the packaged native carrier capability")
-        assertSame(NativeHealthCell.State.Disabled, preparation.nativeHealthCell.state)
 
         val dispatcher = QueuedNonInlineDispatcher()
         val owner = EncodingOwner(dispatcher, TwoSampleClock())

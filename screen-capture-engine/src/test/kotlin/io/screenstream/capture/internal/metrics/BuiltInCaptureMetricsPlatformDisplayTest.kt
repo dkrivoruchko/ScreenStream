@@ -32,6 +32,7 @@ import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowDisplayManager
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -74,34 +75,43 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             assertEquals(2, observer.changes().size)
             assertNotNull(observer.changes().last())
 
-            val expectedRoute = when (Build.VERSION.SDK_INT) {
-                in Build.VERSION_CODES.N until Build.VERSION_CODES.R -> listOf(
-                    ROUTE_REAL_SIZE,
-                    ROUTE_DISPLAY_CONTEXT,
-                    ROUTE_REAL_SIZE,
-                    ROUTE_DISPLAY_CONTEXT,
+            val routeEvents = fixture.platform.routeEvents()
+            val expectedRouteCounts = when (Build.VERSION.SDK_INT) {
+                in Build.VERSION_CODES.N until Build.VERSION_CODES.R -> mapOf(
+                    ROUTE_REAL_SIZE to 2,
+                    ROUTE_DISPLAY_CONTEXT to 2,
                 )
 
-                Build.VERSION_CODES.R -> listOf(
-                    ROUTE_DISPLAY_CONTEXT,
-                    ROUTE_API_30_WINDOW_CONTEXT,
-                    ROUTE_WINDOW_MANAGER,
-                    ROUTE_MAXIMUM_BOUNDS,
-                    ROUTE_DISPLAY_CONTEXT,
-                    ROUTE_MAXIMUM_BOUNDS,
-                    ROUTE_DISPLAY_CONTEXT,
+                Build.VERSION_CODES.R -> mapOf(
+                    ROUTE_DISPLAY_CONTEXT to 3,
+                    ROUTE_API_30_WINDOW_CONTEXT to 1,
+                    ROUTE_WINDOW_MANAGER to 1,
+                    ROUTE_MAXIMUM_BOUNDS to 2,
                 )
 
-                else -> listOf(
-                    ROUTE_API_31_WINDOW_CONTEXT,
-                    ROUTE_WINDOW_MANAGER,
-                    ROUTE_MAXIMUM_BOUNDS,
-                    ROUTE_DISPLAY_CONTEXT,
-                    ROUTE_MAXIMUM_BOUNDS,
-                    ROUTE_DISPLAY_CONTEXT,
+                else -> mapOf(
+                    ROUTE_API_31_WINDOW_CONTEXT to 1,
+                    ROUTE_WINDOW_MANAGER to 1,
+                    ROUTE_MAXIMUM_BOUNDS to 2,
+                    ROUTE_DISPLAY_CONTEXT to 2,
                 )
             }
-            assertEquals(expectedRoute, fixture.platform.routeEvents())
+            assertEquals(expectedRouteCounts, routeEvents.groupingBy { it }.eachCount())
+            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+                assertTrue(
+                    routeEvents.indexOf(ROUTE_DISPLAY_CONTEXT) < routeEvents.indexOf(ROUTE_API_30_WINDOW_CONTEXT),
+                )
+                assertTrue(routeEvents.indexOf(ROUTE_API_30_WINDOW_CONTEXT) < routeEvents.indexOf(ROUTE_WINDOW_MANAGER))
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                assertTrue(routeEvents.indexOf(ROUTE_API_31_WINDOW_CONTEXT) < routeEvents.indexOf(ROUTE_WINDOW_MANAGER))
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val windowManagerIndex = routeEvents.indexOf(ROUTE_WINDOW_MANAGER)
+                assertTrue(
+                    routeEvents.withIndex().filter { it.value == ROUTE_MAXIMUM_BOUNDS }
+                        .all { it.index > windowManagerIndex },
+                )
+            }
             assertTrue(fixture.platform.routeDisplays().all { it === fixture.display })
 
             val displayContexts = fixture.platform.displayContexts()
@@ -251,6 +261,72 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     // Verification: MET-02
     @Test
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.N])
+    fun fixedDisplayRecoveryRequiresMatchingAddAndRetainsReadTarget() {
+        val application: Application = RuntimeEnvironment.getApplication()
+        val displayManager = checkNotNull(application.getSystemService(DisplayManager::class.java))
+        val retainedDisplayId = ShadowDisplayManager.addDisplay(DISPLAY_QUALIFIERS)
+        val retainedDisplay = checkNotNull(displayManager.getDisplay(retainedDisplayId))
+        val replacementDisplayId = ShadowDisplayManager.addDisplay(REPLACEMENT_DISPLAY_QUALIFIERS)
+        val replacementDisplay = checkNotNull(displayManager.getDisplay(replacementDisplayId))
+        assertNotSame(retainedDisplay, replacementDisplay)
+
+        val retainedValid = AtomicBoolean(true)
+        val associatedDisplay = AtomicReference(retainedDisplay)
+        val platform = RecordingPlatform().apply {
+            displayIdOverride = { display ->
+                if (display === replacementDisplay) retainedDisplayId else AndroidBuiltInCaptureMetricsPlatform.displayId(display)
+            }
+            isValidOverride = { display ->
+                if (display === retainedDisplay) retainedValid.get() else AndroidBuiltInCaptureMetricsPlatform.isValid(display)
+            }
+            getDisplayOverride = { _, displayId ->
+                if (displayId == retainedDisplayId) associatedDisplay.get() else null
+            }
+        }
+
+        ControlledNonInlineDispatcher().use { dispatcher ->
+            val observer = RecordingObserver()
+            val source = BuiltInCaptureMetricsSource.forFixedDisplay(
+                context = application,
+                display = retainedDisplay,
+                workerDispatcher = dispatcher,
+                platform = platform,
+            )
+            val handle = source.subscribe(observer)
+
+            enterOne(dispatcher)
+            assertEquals(listOf(CaptureMetrics(640, 480, 160)), observer.changes())
+
+            retainedValid.set(false)
+            platform.triggerRemoved(retainedDisplayId)
+            enterOne(dispatcher)
+            enterOne(dispatcher)
+            assertEquals(listOf(CaptureMetrics(640, 480, 160), null), observer.changes())
+
+            retainedValid.set(true)
+            associatedDisplay.set(replacementDisplay)
+            val submissionsBeforeAdds = dispatcher.submissions().size
+            platform.triggerAdded(replacementDisplayId)
+            assertEquals(submissionsBeforeAdds, dispatcher.submissions().size)
+            assertEquals(listOf(CaptureMetrics(640, 480, 160), null), observer.changes())
+
+            platform.triggerAdded(retainedDisplayId)
+            enterOne(dispatcher)
+            enterOne(dispatcher)
+
+            assertEquals(
+                listOf(CaptureMetrics(640, 480, 160), null, CaptureMetrics(640, 480, 160)),
+                observer.changes(),
+            )
+            assertTrue(platform.routeDisplays().all { it === retainedDisplay })
+            assertTrue(observer.failures().isEmpty())
+            handle.close()
+        }
+    }
+
+    // Verification: MET-02
+    @Test
     @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
     fun concurrentCloseSharesUnregisterFailure() {
         ControlledNonInlineDispatcher().use { dispatcher ->
@@ -361,6 +437,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
         }
     }
 
+    // Verification: MET-01
     // Verification: MET-02
     @Test
     @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
@@ -703,6 +780,15 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
         @Volatile
         var maximumBoundsHook: (() -> Unit)? = null
 
+        @Volatile
+        var displayIdOverride: ((Display) -> Int)? = null
+
+        @Volatile
+        var isValidOverride: ((Display) -> Boolean)? = null
+
+        @Volatile
+        var getDisplayOverride: ((DisplayManager, Int) -> Display?)? = null
+
         override val sdkInt: Int
             get() = Build.VERSION.SDK_INT
 
@@ -711,12 +797,14 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             return returnedMainHandler
         }
 
-        override fun displayId(display: Display): Int = delegate.displayId(display)
+        override fun displayId(display: Display): Int =
+            displayIdOverride?.invoke(display) ?: delegate.displayId(display)
 
-        override fun isValid(display: Display): Boolean = delegate.isValid(display)
+        override fun isValid(display: Display): Boolean =
+            isValidOverride?.invoke(display) ?: delegate.isValid(display)
 
         override fun getDisplay(displayManager: DisplayManager, displayId: Int): Display? =
-            delegate.getDisplay(displayManager, displayId)
+            getDisplayOverride?.invoke(displayManager, displayId) ?: delegate.getDisplay(displayManager, displayId)
 
         override fun registerDisplayListener(
             displayManager: DisplayManager,
@@ -791,6 +879,10 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             checkNotNull(registeredListener).onDisplayChanged(displayId)
         }
 
+        fun triggerAdded(displayId: Int) {
+            checkNotNull(registeredListener).onDisplayAdded(displayId)
+        }
+
         fun triggerRemoved(displayId: Int) {
             checkNotNull(registeredListener).onDisplayRemoved(displayId)
         }
@@ -819,6 +911,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     private companion object {
         const val DISPLAY_QUALIFIERS = "w640dp-h480dp-mdpi"
+        const val REPLACEMENT_DISPLAY_QUALIFIERS = "w320dp-h240dp-hdpi"
         const val ROUTE_REAL_SIZE = "getRealSize"
         const val ROUTE_DISPLAY_CONTEXT = "createDisplayContext"
         const val ROUTE_API_30_WINDOW_CONTEXT = "createApi30WindowContext"

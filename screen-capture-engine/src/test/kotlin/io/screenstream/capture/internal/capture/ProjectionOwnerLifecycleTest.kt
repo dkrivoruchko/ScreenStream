@@ -14,12 +14,10 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verifySequence
 import io.screenstream.capture.ColorMode
-import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.ImageRect
 import io.screenstream.capture.Mirror
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.ScreenCaptureProblem
-import io.screenstream.capture.SourceRegion
 import io.screenstream.capture.internal.Rgba8888Layout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -256,8 +254,6 @@ internal class ProjectionOwnerLifecycleTest {
         heightPx: Int = 1920,
         densityDpi: Int = 420,
     ): CapturePlan = CapturePlan(
-        sourceRegion = SourceRegion.Full,
-        crop = CropInsetsPx.ZERO,
         appliedSourceRect = ImageRect.create(leftPx = 0, topPx = 0, rightPx = widthPx, bottomPx = heightPx),
         rotation = Rotation.Degrees0,
         mirror = Mirror.None,

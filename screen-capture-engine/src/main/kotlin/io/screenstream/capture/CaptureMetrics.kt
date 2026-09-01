@@ -5,6 +5,14 @@ import android.view.Display
 import io.screenstream.capture.internal.metrics.BuiltInCaptureMetricsSource
 import io.screenstream.capture.internal.runtime.ProductionRuntime
 import java.lang.AutoCloseable
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Exception
+import kotlin.IllegalArgumentException
+import kotlin.Int
+import kotlin.String
+import kotlin.Throwable
+import kotlin.require
 
 /**
  * Supplies the dimensions and density used to configure capture geometry.
@@ -95,9 +103,9 @@ public fun interface CaptureMetricsSource {
 /**
  * Immutable positive capture dimensions and density reported by a [CaptureMetricsSource].
  *
- * On supported API levels 24 through 33, these dimensions and density are authoritative capture geometry. On
- * supported API levels 34 through 37, the dimensions are provisional until the first valid projection resize, while
- * density remains source-provided. Instances use structural equality and hashing.
+ * On API levels 24 through 33, these dimensions and density are authoritative capture geometry. On API level 34 and
+ * later, the dimensions are provisional until the first valid projection resize, while density remains
+ * source-provided. Instances use structural equality and hashing.
  *
  * @property widthPx positive source width in pixels.
  * @property heightPx positive source height in pixels.

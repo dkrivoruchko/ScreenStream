@@ -51,7 +51,7 @@ The engine does not build a general event queue. Examples of bounded state inclu
 - one source-opportunity bit rather than a queue of source frames;
 - one pending/fact slot for each bounded Capture or Encoding operation;
 - one callback-failure fact and one staged/ready `Closed` fact for the current handoff;
-- one current pacing wake and one current repeat wake; and
+- one exact pacing wake, replaceable only by a strictly earlier target, and one exact repeat wake, which entry or suppression must clear before rearm; stale wake identities are inert; and
 - one in-flight ordinary publication.
 
 The `Closed` delivery fact has two physical phases. The Link stages the exact fact before it is consumable. After Delivery releases its `current` handoff, the retained stage marks that same fact ready and requests Control. Terminal freeze may detach a staged fact; a late `ready()` then becomes cleanup-only and emits no wake.

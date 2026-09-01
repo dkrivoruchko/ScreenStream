@@ -1,12 +1,10 @@
 package io.screenstream.capture.internal.capture
 
 import io.screenstream.capture.ColorMode
-import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.ImageRect
 import io.screenstream.capture.Mirror
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.ScreenCaptureProblem
-import io.screenstream.capture.SourceRegion
 import io.screenstream.capture.internal.Rgba8888Layout
 
 internal class CapturePhysicalException(message: String) : Exception(message)
@@ -16,8 +14,6 @@ internal class CaptureBoundaryFailure(internal val problem: ScreenCaptureProblem
 internal enum class CaptureTargetMode { Full, Downscaled, }
 
 internal class CapturePlan(
-    internal val sourceRegion: SourceRegion,
-    internal val crop: CropInsetsPx,
     internal val appliedSourceRect: ImageRect,
     internal val rotation: Rotation,
     internal val mirror: Mirror,
@@ -40,8 +36,7 @@ internal class CapturePlan(
         get() = rgbaLayout.byteCount
 
     internal fun hasSameCaptureConfigurationAs(other: CapturePlan): Boolean =
-        (sourceRegion == other.sourceRegion) && (crop == other.crop) &&
-                (appliedSourceRect == other.appliedSourceRect) &&
+        (appliedSourceRect == other.appliedSourceRect) &&
                 (rotation == other.rotation) && (mirror == other.mirror) && (colorMode == other.colorMode) &&
                 (sourceWidthPx == other.sourceWidthPx) && (sourceHeightPx == other.sourceHeightPx) &&
                 (densityDpi == other.densityDpi) && (targetMode == other.targetMode) &&

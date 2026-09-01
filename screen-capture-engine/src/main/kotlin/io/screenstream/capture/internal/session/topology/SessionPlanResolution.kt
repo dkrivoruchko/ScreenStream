@@ -32,8 +32,6 @@ internal sealed interface SessionPlanResolution {
     ) : SessionPlanResolution
 
     companion object {
-        private const val MAX_DOWNSCALED_TARGET_SDK_INT = 37
-
         internal fun resolve(
             parameters: ScreenCaptureParameters,
             widthPx: Int,
@@ -100,7 +98,7 @@ internal sealed interface SessionPlanResolution {
                 rgbaLayout = Rgba8888Layout.create(finalImageSize.widthPx, finalImageSize.heightPx)
 
                 val scaleFactor = parameters.outputSize as? OutputSize.ScaleFactor
-                val isDownscaledTargetEligible = (platformSdkInt in (VERSION_CODES.S_V2..MAX_DOWNSCALED_TARGET_SDK_INT)) &&
+                val isDownscaledTargetEligible = (platformSdkInt >= VERSION_CODES.S_V2) &&
                         sourceDimensionsAreAuthoritative && (parameters.sourceRegion == SourceRegion.Full) &&
                         (crop == CropInsetsPx.ZERO) &&
                         (scaleFactor != null) && (scaleFactor.factor < 1.0)
@@ -175,8 +173,6 @@ internal sealed interface SessionPlanResolution {
                 val appliedSourceRect = ImageRect.create(sourceLeftPx, sourceTopPx, sourceRightPx, sourceBottomPx)
                 Resolved(
                     capturePlan = CapturePlan(
-                        sourceRegion = parameters.sourceRegion,
-                        crop = parameters.crop,
                         appliedSourceRect = appliedSourceRect,
                         rotation = parameters.rotation,
                         mirror = parameters.mirror,

@@ -1,8 +1,13 @@
 package io.screenstream.capture
 
+import android.media.projection.MediaProjection
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import io.mockk.Called
+import io.mockk.confirmVerified
+import io.mockk.mockk
+import io.mockk.verify
 import io.screenstream.capture.internal.metrics.SessionMetricsSourceSelection
 import io.screenstream.capture.internal.runtime.HandlerTaskPoster
 import io.screenstream.capture.internal.runtime.HandlerThreadPlatform
@@ -20,7 +25,6 @@ import java.util.concurrent.CancellationException
 import kotlin.time.Duration
 
 internal class ScreenCaptureSessionShutdownTest {
-    // Verification: API-04
     // Verification: UNR-01
     @Test
     fun preStartConsumerAdmissionUnregisterReplacementAndUpdateArePlatformFree() = runTest {
@@ -73,6 +77,11 @@ internal class ScreenCaptureSessionShutdownTest {
         assertThrows(IllegalStateException::class.java) {
             session.updateParameters(ScreenCaptureParameters.DEFAULT)
         }
+        val freshProjection: MediaProjection = mockk()
+        val restartFailure = runCatching { session.start(freshProjection) }.exceptionOrNull()
+        assertEquals(IllegalStateException::class.java, restartFailure?.javaClass)
+        verify { freshProjection wasNot Called }
+        confirmVerified(freshProjection)
         assertSame(terminalState, session.state.value)
     }
 

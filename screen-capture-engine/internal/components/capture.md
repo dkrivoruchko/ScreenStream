@@ -19,7 +19,7 @@ Capture does not own parameter revisions, geometry authority, production identit
 
 Session issues four operations: one-shot open, plan apply, direct read, and retirement. The command root is installed before posting to the Capture handler. A rejected post proves non-entry; an accepted post may enter immediately, later, or never. The owner therefore retains every accepted command until real entry and return. Retirement fences a queued command but never relabels an entered command as skipped.
 
-An immutable `CapturePlan` fixes source dimensions and density, selected/cropped source rectangle, rotation, mirror, color mode, Target dimensions and mode, output dimensions, and checked RGBA byte count. Plan identity is physical correlation, not semantic currentness. A source identity similarly names one Target's conflated candidate; it is not a general "frame available" boolean.
+An immutable `CapturePlan` fixes source dimensions and density, the resolved source rectangle, rotation, mirror, color mode, Target dimensions and mode, output dimensions, and checked RGBA byte count. Capture-plan equivalence compares that complete physical configuration. Different raw source-region or crop requests therefore do not force plan Apply when they resolve to the same rectangle and every other physical fact matches; those raw requests remain Session metadata rather than Capture configuration. Plan identity is physical correlation, not semantic currentness. A source identity similarly names one Target's conflated candidate; it is not a general "frame available" boolean.
 
 At steady state the owner has at most one Target, one display, one renderer/output, and one read. During replacement it may additionally retain one unattached candidate and the old Target being retired. These bounds are central to the module's memory and ambiguity containment.
 
@@ -29,7 +29,7 @@ Open registers [`MediaProjection.Callback`](https://developer.android.com/refere
 
 There is exactly one `createVirtualDisplay` call per projection. Reconfiguration uses [`VirtualDisplay.resize`](https://developer.android.com/reference/android/hardware/display/VirtualDisplay#resize(int,%20int,%20int)) and, when the Target changes, [`VirtualDisplay.setSurface`](https://developer.android.com/reference/android/hardware/display/VirtualDisplay#setSurface(android.view.Surface)); it never creates a second display. This preserves Android 14+ single-use projection consent semantics.
 
-`onStop` fences duplicate projection callbacks, reports the exact projection-stopped fact, and requests Capture-lane retirement. It performs no EGL work and chooses no public terminal result. On API 34–37, positive captured-content resize callbacks supply authoritative physical source dimensions; visibility callbacks remain optional information. On older APIs, the session resolves source dimensions from [Metrics](metrics.md).
+`onStop` fences duplicate projection callbacks, reports the exact projection-stopped fact, and requests Capture-lane retirement. It performs no EGL work and chooses no public terminal result. On API 34+, positive captured-content resize callbacks supply authoritative physical source dimensions; visibility callbacks remain optional information. On older APIs, the session resolves source dimensions from [Metrics](metrics.md).
 
 ## Target and source arrival
 
@@ -37,7 +37,7 @@ A Target configures one external OES texture for linear, clamp-to-edge sampling,
 
 Candidate state is linear: unavailable, available, reserved by one read, then available again only if settlement proves that the source was not consumed. Because listener dispatch and reads share the Capture handler, a callback dispatched before read settlement belongs to the reserved opportunity. Only a later callback can create a successor. `SurfaceTexture.updateTexImage()` consumes the producer's most recent image, so counting callbacks would imply a precision the platform does not provide.
 
-The resolved `CapturePlan` selects Full or Downscaled Target mode under the [Image pipeline contract](../contracts/image-pipeline.md). Capture implements Downscaled mode only on API 32–37, where Android specifies uniform fit and centering into a smaller Surface. API 34+ provisional dimensions remain Full until projection resize establishes authority.
+The resolved `CapturePlan` selects Full or Downscaled Target mode under the [Image pipeline contract](../contracts/image-pipeline.md). Capture implements Downscaled mode on API 32+, where Android specifies uniform fit and centering into a smaller Surface. API 34+ provisional dimensions remain Full until projection resize establishes authority.
 
 A healthy Full Target is reused while Full remains selected. A healthy downscaled Target is reused while still eligible and large enough on both rotation-aware axes; it is not rebuilt solely to shrink. The optimization changes producer resolution, never crop or transform semantics.
 

@@ -72,10 +72,13 @@ internal class BuiltInCaptureMetricsSourceLifecycleTest {
             assertEquals(listOf(true), observer.changes().map { it != null })
             assertEquals(listOf(DENSITY_DPI), observer.changes().mapNotNull { it?.densityDpi })
 
-            ShadowDisplayManager.changeDisplay(displayId, CHANGED_QUALIFIERS)
+            ShadowDisplayManager.changeDisplay(displayId, WINDOW_CHANGED_QUALIFIERS)
             enterOne(dispatcher)
             assertEquals(listOf(true, true), observer.changes().map { it != null })
-            assertEquals(listOf(DENSITY_DPI, DENSITY_DPI), observer.changes().mapNotNull { it?.densityDpi })
+            assertEquals(
+                listOf(DENSITY_DPI, CHANGED_DENSITY_DPI),
+                observer.changes().mapNotNull { it?.densityDpi },
+            )
 
             ShadowDisplayManager.removeDisplay(displayId)
             drain(dispatcher)
@@ -201,9 +204,11 @@ internal class BuiltInCaptureMetricsSourceLifecycleTest {
     private companion object {
         const val INITIAL_QUALIFIERS = "w640dp-h480dp-mdpi"
         const val CHANGED_QUALIFIERS = "w800dp-h600dp-mdpi"
+        const val WINDOW_CHANGED_QUALIFIERS = "w800dp-h600dp-hdpi"
         const val DEFAULT_INITIAL_QUALIFIERS = "w360dp-h640dp-mdpi"
         const val DEFAULT_CHANGED_QUALIFIERS = "w480dp-h800dp-mdpi"
         const val DENSITY_DPI = 160
+        const val CHANGED_DENSITY_DPI = 240
 
         val INITIAL_METRICS = CaptureMetrics(widthPx = 640, heightPx = 480, densityDpi = DENSITY_DPI)
         val CHANGED_METRICS = CaptureMetrics(widthPx = 800, heightPx = 600, densityDpi = DENSITY_DPI)

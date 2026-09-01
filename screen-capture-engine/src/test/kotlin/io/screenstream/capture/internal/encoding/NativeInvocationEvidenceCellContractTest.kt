@@ -1,5 +1,7 @@
 package io.screenstream.capture.internal.encoding
 
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.nio.ByteBuffer
@@ -88,16 +90,61 @@ internal class NativeInvocationEvidenceCellContractTest {
 
     // Verification: ENC-04
     @Test
-    fun javaOutOfMemoryWithoutExactTransactionOwnedCauseRemainsUnsafe() {
-        assertEquals(
-            NativeJpegDisposition.Returned.UnsafeInternalFailure,
-            classify(
-                transaction = closedEmptyTransaction(),
-                block = resultBlock(producedByteCount = 0L, wireStatus = 4L),
-                thrown = OutOfMemoryError("not owned by the transaction"),
+    fun javaThrowableRequiresOrdinaryExceptionOrExactTransactionOwnedOutOfMemory() {
+        val ordinaryFailure = IllegalStateException("Injected transaction storage failure")
+        val ownedOutOfMemory = OutOfMemoryError("Injected transaction-owned storage exhaustion")
+        val foreignOutOfMemory = OutOfMemoryError("Injected foreign storage exhaustion")
+        val cases = listOf(
+            JavaThrowableCase(
+                name = "ordinary Exception",
+                thrown = ordinaryFailure,
+                transactionOwnedOutOfMemory = null,
+                expected = NativeJpegDisposition.Returned.RequiredResourceExhaustion,
+            ),
+            JavaThrowableCase(
+                name = "exact transaction-owned OutOfMemoryError",
+                thrown = ownedOutOfMemory,
+                transactionOwnedOutOfMemory = ownedOutOfMemory,
+                expected = NativeJpegDisposition.Returned.RequiredResourceExhaustion,
+            ),
+            JavaThrowableCase(
+                name = "foreign OutOfMemoryError",
+                thrown = foreignOutOfMemory,
+                transactionOwnedOutOfMemory = ownedOutOfMemory,
+                expected = NativeJpegDisposition.Returned.UnsafeInternalFailure,
             ),
         )
+
+        cases.forEach { case ->
+            assertEquals(
+                case.name,
+                case.expected,
+                classify(
+                    transaction = mockResourceExhaustedTransaction(case.transactionOwnedOutOfMemory),
+                    block = resultBlock(producedByteCount = 0L, wireStatus = 4L),
+                    thrown = case.thrown,
+                ),
+            )
+        }
     }
+
+    private fun mockResourceExhaustedTransaction(
+        ownedOutOfMemory: OutOfMemoryError?,
+    ): NativeEncodedTransaction = mockk {
+        every { byteCount } returns 0
+        every { state } returns ManagedEncodedTransaction.State.Faulted
+        every { failureKind } returns ManagedEncodedTransaction.FailureKind.ResourceExhausted
+        every { hasFaultedResourceExhaustionCause(any()) } answers {
+            firstArg<OutOfMemoryError>() === ownedOutOfMemory
+        }
+    }
+
+    private class JavaThrowableCase(
+        val name: String,
+        val thrown: Throwable,
+        val transactionOwnedOutOfMemory: OutOfMemoryError?,
+        val expected: NativeJpegDisposition.Returned,
+    )
 
     // Verification: ENC-04
     @Test

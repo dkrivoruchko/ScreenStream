@@ -1,7 +1,6 @@
 package io.screenstream.capture.internal.encoding
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.ColorSpace
 import android.os.Build
 import io.mockk.every
@@ -20,7 +19,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.nio.ByteBuffer
-import kotlin.math.abs
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [36])
@@ -77,9 +75,9 @@ internal class FrameworkBitmapOwnerLifecycleTest {
         assertFailure(IllegalStateException("row scratch allocation failed"), ScreenCaptureProblem.InternalFailure)
     }
 
-    // Verification: ENC-01
+    // Verification: ENC-06
     @Test
-    fun paddedRgbaTransferPreservesVisiblePixelsThroughFrameworkJpeg() {
+    fun paddedRgbaTransferPreservesExactVisibleBitmapPixels() {
         val layout = Rgba8888Layout.create(widthPx = WIDTH_PX, heightPx = HEIGHT_PX)
         val paddedRowByteCount = layout.rowByteCount + Rgba8888Layout.BYTES_PER_PIXEL
         val paddedByteCount = paddedRowByteCount * layout.heightPx
@@ -88,12 +86,10 @@ internal class FrameworkBitmapOwnerLifecycleTest {
         every { bitmap.byteCount } returns paddedByteCount
         every { bitmap.allocationByteCount } returns paddedByteCount
         val owner = FrameworkBitmapOwner(layout)
-        val transaction = FrameworkEncodedTransaction()
         val carrier = ByteBuffer.allocateDirect(layout.byteCount)
         fillTilePattern(carrier, layout)
         assertExactCarrierShape(carrier, layout)
         var useFinished = false
-        var transactionCommitted = false
 
         try {
             val creationResult = owner.allocateIntoPendingOwner(
@@ -110,18 +106,10 @@ internal class FrameworkBitmapOwnerLifecycleTest {
             assertExactCarrierShape(carrier, layout)
             assertExactVisiblePixels(bitmap, layout)
 
-            assertTrue(owner.compressOnce(JPEG_QUALITY, transaction))
-            transaction.outputStream.close()
             assertTrue(owner.finishUse())
             useFinished = true
-            assertTrue(transaction.commit())
-            transactionCommitted = true
-            val payload = checkNotNull(transaction.committedPayload)
-            assertTrue(transaction.transferCommittedPayload(payload))
-            assertDecodedTilePattern(payload.toByteArray(), layout)
         } finally {
             if (!useFinished) owner.finishUse()
-            if (!transactionCommitted) transaction.abort()
             assertSame(EncodingRetirement.Closed, owner.retireIfIdle())
         }
         assertTrue(bitmap.isRecycled)
@@ -252,45 +240,6 @@ internal class FrameworkBitmapOwnerLifecycleTest {
         }
     }
 
-    private fun assertDecodedTilePattern(jpeg: ByteArray, layout: Rgba8888Layout) {
-        val decoded = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size)
-            ?: error("Robolectric BitmapFactory rejected the Framework JPEG")
-        try {
-            assertEquals(layout.widthPx, decoded.width)
-            assertEquals(layout.heightPx, decoded.height)
-            val pixels = IntArray(layout.widthPx * layout.heightPx)
-            decoded.getPixels(pixels, 0, layout.widthPx, 0, 0, layout.widthPx, layout.heightPx)
-            for (tileRow in TILE_COLORS.indices) {
-                for (tileColumn in TILE_COLORS[tileRow].indices) {
-                    val expected = TILE_COLORS[tileRow][tileColumn]
-                    val expectedChannels = intArrayOf(expected ushr 16, (expected ushr 8) and 0xFF, expected and 0xFF)
-                    val channelErrors = LongArray(3)
-                    var sampleCount = 0
-                    for (interiorY in INTERIOR_START_PX until INTERIOR_END_EXCLUSIVE_PX) {
-                        val y = (tileRow * TILE_SIZE_PX) + interiorY
-                        for (interiorX in INTERIOR_START_PX until INTERIOR_END_EXCLUSIVE_PX) {
-                            val x = (tileColumn * TILE_SIZE_PX) + interiorX
-                            val actual = pixels[(y * layout.widthPx) + x]
-                            val actualChannels = intArrayOf((actual ushr 16) and 0xFF, (actual ushr 8) and 0xFF, actual and 0xFF)
-                            for (channel in 0..2) {
-                                channelErrors[channel] += abs(actualChannels[channel] - expectedChannels[channel]).toLong()
-                            }
-                            sampleCount += 1
-                        }
-                    }
-                    for (channel in 0..2) {
-                        assertTrue(
-                            "tile=($tileColumn,$tileRow), channel=$channel exceeded interior MAE",
-                            channelErrors[channel].toDouble() / sampleCount <= MAX_INTERIOR_MAE,
-                        )
-                    }
-                }
-            }
-        } finally {
-            decoded.recycle()
-        }
-    }
-
     private class InvalidBitmapCase(
         val name: String,
         val createBitmap: () -> Bitmap,
@@ -300,10 +249,6 @@ internal class FrameworkBitmapOwnerLifecycleTest {
         private const val WIDTH_PX: Int = 64
         private const val HEIGHT_PX: Int = 48
         private const val TILE_SIZE_PX: Int = 16
-        private const val INTERIOR_START_PX: Int = 4
-        private const val INTERIOR_END_EXCLUSIVE_PX: Int = 12
-        private const val JPEG_QUALITY: Int = 80
-        private const val MAX_INTERIOR_MAE: Double = 24.0
         private const val OPAQUE_ALPHA_MASK: Int = -0x1000000
 
         private val TILE_COLORS: Array<IntArray> = arrayOf(

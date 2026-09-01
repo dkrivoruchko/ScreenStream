@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.time.Duration
@@ -172,8 +173,8 @@ internal class SessionObservationPublisherLifecycleTest {
     // Verification: SES-02
     // Verification: OBS-01
     @Test
-    fun diagnosticExceptionCannotBlockTerminalState() {
-        val publisher = SessionObservationPublisher { throw IllegalStateException("diagnostic clock failure") }
+    fun caughtOrdinaryDiagnosticExceptionCannotBlockTerminalState() {
+        val publisher = SessionObservationPublisher { throw IllegalStateException("ordinary diagnostic exception") }
         val finalStats = stats(lastEncodedByteCount = 3, averageEncodedByteCount = 3)
         val terminalState = ScreenCaptureState.Stopped.create(
             reason = ScreenCaptureStopReason.ProjectionStopped,
@@ -195,6 +196,38 @@ internal class SessionObservationPublisherLifecycleTest {
 
         assertSame(finalStats, publisher.stats.value)
         assertSame(terminalState, publisher.state.value)
+    }
+
+    // Verification: OBS-01
+    @Test
+    fun diagnosticErrorEscapesAfterFinalStatsWhileStateStaysPrior() {
+        val sentinel = SentinelDiagnosticError()
+        val publisher = SessionObservationPublisher { throw sentinel }
+        val finalStats = stats(lastEncodedByteCount = 5, averageEncodedByteCount = 5)
+        val priorState = ScreenCaptureState.Starting
+        val terminalState = ScreenCaptureState.Stopped.create(
+            reason = ScreenCaptureStopReason.Requested,
+            requestedParameters = ScreenCaptureParameters.DEFAULT,
+            lastEffectiveParameters = null,
+        )
+        publisher.publishState(priorState)
+
+        val escaped = assertThrows(SentinelDiagnosticError::class.java) {
+            publisher.publishTerminal(
+                finalStats = finalStats,
+                diagnosticRequest = SessionObservationPublisher.DiagnosticRequest(
+                    source = "Session",
+                    eventName = "Terminal",
+                    message = "terminal diagnostic",
+                    cause = null,
+                ),
+                terminalState = terminalState,
+            )
+        }
+
+        assertSame(sentinel, escaped)
+        assertSame(finalStats, publisher.stats.value)
+        assertSame(priorState, publisher.state.value)
     }
 
     private fun stats(
@@ -223,4 +256,6 @@ internal class SessionObservationPublisherLifecycleTest {
         message = message,
         cause = cause,
     )
+
+    private class SentinelDiagnosticError : Error()
 }

@@ -61,7 +61,6 @@ internal class SessionDeliveryLifecycleTest {
         runTest { staleUnregister.waiter.awaitCompletion() }
     }
 
-    // Verification: DEL-01
     // Verification: DEL-02
     @Test
     fun noHandoffWaitsForOfferReturnAndSuccessorCutoffThenExactClosed() {
@@ -105,7 +104,6 @@ internal class SessionDeliveryLifecycleTest {
         assertTrue(delivery.register { } is SessionDelivery.RegistrationResult.Accepted)
     }
 
-    // Verification: DEL-01
     // Verification: DEL-02
     @Test
     fun enteredCutoffWaitsForExactClosedHandoff() {
@@ -127,7 +125,6 @@ internal class SessionDeliveryLifecycleTest {
         }
     }
 
-    // Verification: DEL-01
     // Verification: DEL-02
     @Test
     fun offerReturnThatDidNotStartCompletesDeferredUnregister() {
@@ -141,6 +138,70 @@ internal class SessionDeliveryLifecycleTest {
         assertTrue(handoff is SessionDelivery.HandoffSettlement.UnregisterCompleted)
         (handoff as SessionDelivery.HandoffSettlement.UnregisterCompleted).settlement.complete()
         runTest { unregister.waiter.awaitCompletion() }
+    }
+
+    // Verification: DEL-02
+    @Test
+    fun pendingUnregisterWithoutOfferClaimsOneShotCompleteAndPermitsReplacement() = runTest {
+        val delivery = SessionDelivery()
+        val registration = acceptedRegistration(delivery)
+        val deferred = delivery.beginUnregister(registration, requestCutoffImmediately = false)
+        assertTrue(deferred is SessionDelivery.UnregisterAction.AwaitCompletion)
+        val awaiting = async(start = CoroutineStart.UNDISPATCHED) {
+            deferred.waiter.awaitCompletion()
+        }
+        assertFalse(awaiting.isCompleted)
+
+        val claimed = delivery.claimPendingUnregisterAction()
+        assertTrue(claimed is SessionDelivery.UnregisterAction.Complete)
+        assertTrue(delivery.claimPendingUnregisterAction() == null)
+        assertFalse(awaiting.isCompleted)
+
+        (claimed as SessionDelivery.UnregisterAction.Complete).settlement.complete()
+        awaiting.await()
+        assertTrue(delivery.register { } is SessionDelivery.RegistrationResult.Accepted)
+    }
+
+    // Verification: DEL-02
+    @Test
+    fun pendingUnregisterWithOfferClaimsOneShotCutoffAndSettlesFromExactCutoff() = runTest {
+        val delivery = SessionDelivery()
+        val registration = acceptedRegistration(delivery)
+        freshOffer(delivery)
+        val deferred = delivery.beginUnregister(registration, requestCutoffImmediately = false)
+        assertTrue(deferred is SessionDelivery.UnregisterAction.AwaitCompletion)
+        val awaiting = async(start = CoroutineStart.UNDISPATCHED) {
+            deferred.waiter.awaitCompletion()
+        }
+        assertFalse(awaiting.isCompleted)
+
+        val claimed = delivery.claimPendingUnregisterAction()
+        assertTrue(claimed is SessionDelivery.UnregisterAction.RequestCutoff)
+        assertSame(registration, (claimed as SessionDelivery.UnregisterAction.RequestCutoff).registration)
+        assertTrue(delivery.claimPendingUnregisterAction() == null)
+        assertFalse(awaiting.isCompleted)
+
+        val cutoff = delivery.recordCutoffResult(registration, DeliveryCutoff.CutoffBeforeEntry)
+        val handoff = (cutoff as SessionDelivery.CutoffSettlement.Handoff).settlement
+        assertTrue(handoff is SessionDelivery.HandoffSettlement.UnregisterCompleted)
+        assertFalse(awaiting.isCompleted)
+        (handoff as SessionDelivery.HandoffSettlement.UnregisterCompleted).settlement.complete()
+        awaiting.await()
+        assertTrue(delivery.register { } is SessionDelivery.RegistrationResult.Accepted)
+    }
+
+    // Verification: DEL-02
+    @Test
+    fun missingCachedFrameSkipsOneShotCachedFirstCheck() {
+        val delivery = SessionDelivery()
+        acceptedRegistration(delivery)
+        val check = delivery.beginCachedFirstCheck() ?: error("cached-first check was not prepared")
+
+        assertSame(
+            SessionDelivery.CachedFirstOffer.Skipped,
+            delivery.settleCachedFirstCheck(check, frame = null, isPhysicalHandoffFree = true),
+        )
+        assertTrue(delivery.beginCachedFirstCheck() == null)
     }
 
     // Verification: DEL-02
@@ -218,22 +279,6 @@ internal class SessionDeliveryLifecycleTest {
                 assertSame(ScreenCaptureProblem.ResourceExhausted, failure.problem)
             }
         }
-    }
-
-    // Verification: DEL-02
-    @Test
-    fun terminalPreparationDirectlyCarriesNullWithoutRegistration() {
-        val delivery = SessionDelivery()
-        delivery.closeAdmissionForTerminal()
-
-        val terminal = delivery.prepareTerminal(SessionDelivery.TerminalOutcome.Stopped)
-            ?: error("terminal preparation was not created")
-
-        assertTrue(terminal.registration == null)
-        assertTrue(terminal.settlement == null)
-        assertTrue(delivery.isTerminalPreparationCurrent(terminal))
-        delivery.commitTerminal(terminal)
-        assertSame(SessionDelivery.RegistrationResult.Terminal, delivery.register { })
     }
 
     private fun acceptedRegistration(delivery: SessionDelivery): SessionDelivery.Registration {

@@ -417,9 +417,7 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
 
     internal fun armRepeatWake(targetNanos: Long, configRevision: Long): WakeIdentity.Repeat? {
         require((targetNanos >= 0L) && (configRevision > 0L))
-        if (terminalCommitted) return null
-        val installed = repeatWake
-        if ((installed != null) && (installed.targetNanos <= targetNanos)) return null
+        if (terminalCommitted || (repeatWake != null)) return null
         val wake = WakeIdentity.Repeat(targetNanos, configRevision)
         repeatWake = wake
         changed()

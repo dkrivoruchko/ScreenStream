@@ -121,8 +121,6 @@ internal class TargetOwner(
         }
         val createdSurfaceTexture = try {
             platform.createSurfaceTexture(oesTextureName)
-        } catch (failure: OutOfMemoryError) {
-            throw CaptureBoundaryFailure(ScreenCaptureProblem.ResourceExhausted, failure)
         } catch (failure: Surface.OutOfResourcesException) {
             throw CaptureBoundaryFailure(ScreenCaptureProblem.ResourceExhausted, failure)
         } catch (failure: Exception) {
@@ -131,15 +129,11 @@ internal class TargetOwner(
         surfaceTexture = createdSurfaceTexture
         try {
             platform.setDefaultBufferSize(createdSurfaceTexture, plan.targetWidthPx, plan.targetHeightPx)
-        } catch (failure: OutOfMemoryError) {
-            throw CaptureBoundaryFailure(ScreenCaptureProblem.ResourceExhausted, failure)
         } catch (failure: Exception) {
             throw CaptureBoundaryFailure(ScreenCaptureProblem.InternalFailure, failure)
         }
         val createdSurface = try {
             platform.createSurface(createdSurfaceTexture)
-        } catch (failure: OutOfMemoryError) {
-            throw CaptureBoundaryFailure(ScreenCaptureProblem.ResourceExhausted, failure)
         } catch (failure: Surface.OutOfResourcesException) {
             throw CaptureBoundaryFailure(ScreenCaptureProblem.ResourceExhausted, failure)
         } catch (failure: Exception) {

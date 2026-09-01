@@ -18,6 +18,8 @@ import io.screenstream.capture.internal.runtime.NonInlineDispatcher
 import io.screenstream.capture.internal.storage.ImmutableEncodedPayload
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -81,7 +83,7 @@ internal class SessionProductionStateTest {
     // Verification: SES-06
     // Verification: STO-01
     @Test
-    fun freshAndRepeatCandidatesAllocateSequenceOnlyWhenExactCandidateCommits() {
+    fun freshAndRepeatCandidatesPreserveExactIdentityAndAllocateSequenceOnlyOnCommit() {
         InputFixture().use { inputs ->
             val production = SessionProduction(creationElapsedRealtimeNanos = 0L)
             val current = production.materializeCurrent(inputs, configRevision = 1L, grantNanos = 10L)
@@ -102,22 +104,53 @@ internal class SessionProductionStateTest {
             assertEquals(1L, fresh.sequence)
             assertNull(production.commitFreshOutput(duplicateCandidate))
 
+            val repeatEffectiveParameters = ScreenCaptureEffectiveParameters.create(
+                appliedParameters = EFFECTIVE_PARAMETERS.appliedParameters.copy(jpegQuality = 74),
+                captureGeometry = EFFECTIVE_PARAMETERS.captureGeometry,
+                appliedSourceRect = EFFECTIVE_PARAMETERS.appliedSourceRect,
+                finalImageSize = EFFECTIVE_PARAMETERS.finalImageSize,
+            )
+            assertNotEquals(fresh.effectiveParameters, repeatEffectiveParameters)
+
+            val materializedFresh = production.materializeCurrent(inputs, configRevision = 2L, grantNanos = 30L)
+            assertSame(
+                SessionProduction.RepeatDecision.Missing,
+                production.prepareRepeat(
+                    repeatEffectiveParameters,
+                    FrameRate.Auto,
+                    repeatInterval = 1.milliseconds,
+                    nowNanos = 1_000_020L,
+                ),
+            )
+            assertSame(
+                materializedFresh.record,
+                production.clearProduction(materializedFresh.read, materializedFresh.record),
+            )
+
             val firstRepeat = production.prepareRepeat(
-                EFFECTIVE_PARAMETERS,
+                repeatEffectiveParameters,
                 FrameRate.Auto,
                 repeatInterval = 1.milliseconds,
                 nowNanos = 1_000_020L,
             ) as SessionProduction.RepeatDecision.Candidate
             val duplicateRepeat = production.prepareRepeat(
-                EFFECTIVE_PARAMETERS,
+                repeatEffectiveParameters,
                 FrameRate.Auto,
                 repeatInterval = 1.milliseconds,
                 nowNanos = 1_000_020L,
             ) as SessionProduction.RepeatDecision.Candidate
+            assertSame(fresh, firstRepeat.previousFrame)
+            assertNotSame(fresh, firstRepeat.frame)
+            assertSame(fresh.payload, firstRepeat.frame.payload)
+            assertSame(repeatEffectiveParameters, firstRepeat.frame.effectiveParameters)
+            assertSame(repeatEffectiveParameters, duplicateRepeat.frame.effectiveParameters)
+            assertNotSame(fresh.effectiveParameters, firstRepeat.frame.effectiveParameters)
             assertEquals(2L, firstRepeat.frame.sequence)
+            assertEquals(1_000_020L, firstRepeat.frame.timestampElapsedRealtimeNanos)
             assertEquals(2L, duplicateRepeat.frame.sequence)
 
             val repeated = production.commitRepeat(firstRepeat) ?: error("repeat candidate was not committed")
+            assertSame(firstRepeat.frame, repeated)
             assertEquals(2L, repeated.sequence)
             assertSame(fresh.payload, repeated.payload)
             assertNull(production.commitRepeat(duplicateRepeat))
@@ -239,7 +272,7 @@ internal class SessionProductionStateTest {
 
     // Verification: SES-05
     @Test
-    fun wakeReplacementKeepsEarlierExactIdentityAndRejectsStaleClear() {
+    fun pacingReplacementKeepsEarlierIdentityWhileRepeatRetainsOnePendingIdentity() {
         val production = SessionProduction(creationElapsedRealtimeNanos = 0L)
 
         val pacing = production.armPacingWake(targetNanos = 100L, configRevision = 1L)
@@ -255,10 +288,10 @@ internal class SessionProductionStateTest {
 
         val repeat = production.armRepeatWake(targetNanos = 200L, configRevision = 3L)
             ?: error("first repeat wake was not armed")
-        val earlierRepeat = production.armRepeatWake(targetNanos = 150L, configRevision = 4L)
-            ?: error("earlier repeat wake did not replace the installed wake")
-        assertFalse(production.clearWake(repeat))
-        assertTrue(production.clearWake(earlierRepeat))
+        assertNull(production.armRepeatWake(targetNanos = 150L, configRevision = 4L))
+        assertSame(repeat, production.currentRepeatWake())
+        assertFalse(production.clearWake(SessionProduction.WakeIdentity.Repeat(200L, 3L)))
+        assertTrue(production.clearWake(repeat))
         assertNull(production.currentRepeatWake())
     }
 

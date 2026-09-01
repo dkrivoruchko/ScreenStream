@@ -40,17 +40,25 @@ The component stores no callback queue, sample history, source sequence, or stic
 
 A built-in observation registers one [`DisplayManager.DisplayListener`](https://developer.android.com/reference/android/hardware/display/DisplayManager.DisplayListener) on the main-looper handler before its initial refresh is dispatched. Matching add, remove, and change callbacks only invalidate or dirty the observation; the platform geometry read and observer call run through the coalesced owner/worker turn. A removal publishes unavailable and allows a later valid association to recover.
 
+The caller-visible failure split is exact:
+
+- Listener-registration failure is reported through `Observer.onFailure`; the returned observation is already automatically closed.
+- Initial refresh dispatch rejection or an ordinary dispatch `Exception` unregisters the listener and escapes `subscribe` with that exact failure.
+- After `subscribe` has returned, later dispatch rejection, dispatch `Exception`, or refresh `Exception` is reported through `Observer.onFailure` and closes the observation.
+
+These paths share the same one-attempt unregister settlement; they do not turn a later asynchronous failure into a throw from the completed `subscribe` call.
+
 The SDK band is selected once for the observation:
 
 | API level | Dimension read for the selected display | Density read |
 | --- | --- | --- |
 | 24–29 | [`Display.getRealSize(Point)`](https://developer.android.com/reference/android/view/Display#getRealSize(android.graphics.Point)) | configuration from a fresh display context |
 | 30 | [`WindowManager.getMaximumWindowMetrics`](https://developer.android.com/reference/android/view/WindowManager#getMaximumWindowMetrics()) from a window context created by [`Context.createDisplayContext`](https://developer.android.com/reference/android/content/Context#createDisplayContext(android.view.Display)), then that display context's [`createWindowContext(type, options)`](https://developer.android.com/reference/android/content/Context#createWindowContext(int,android.os.Bundle)) | configuration from a fresh display context |
-| 31–37 | [`WindowManager.getMaximumWindowMetrics`](https://developer.android.com/reference/android/view/WindowManager#getMaximumWindowMetrics()) from [`Context.createWindowContext`](https://developer.android.com/reference/android/content/Context#createWindowContext(android.view.Display,int,android.os.Bundle)) | configuration from a fresh display context |
+| 31+ | [`WindowManager.getMaximumWindowMetrics`](https://developer.android.com/reference/android/view/WindowManager#getMaximumWindowMetrics()) from [`Context.createWindowContext`](https://developer.android.com/reference/android/content/Context#createWindowContext(android.view.Display,int,android.os.Bundle)) | configuration from a fresh display context |
 
 Dimensions and density are sequential reads of the same validated display identity, not an atomic Android snapshot. Density uses a newly created display context on every refresh because resources from an earlier display context can be stale. If invalidation is admitted while a refresh is reading, the tuple is suppressed and a successor refresh is requested rather than publishing mixed-epoch data.
 
-On API 34–37 the width and height remain provisional until Capture reports the first valid projection resize; density continues to come from Metrics. The session owns that merge. This is why Metrics must not infer captured content from display selection.
+On API 34+ the width and height remain provisional until Capture reports the first valid projection resize; density continues to come from Metrics. The session owns that merge. This is why Metrics must not infer captured content from display selection.
 
 ## Readiness and cross-component flow
 

@@ -37,6 +37,27 @@ internal class ManagedEncodedTransactionLifecycleTest {
 
     // Verification: ENC-07
     @Test
+    fun writeAfterProducerClosedFaultsAndCannotCommitPayload() {
+        val transaction = FrameworkEncodedTransaction()
+        val output = transaction.outputStream
+        output.write(1)
+        output.close()
+
+        assertEquals(ManagedEncodedTransaction.State.ProducerClosed, transaction.state)
+        assertThrows(RuntimeException::class.java) {
+            output.write(2)
+        }
+
+        assertEquals(ManagedEncodedTransaction.State.Faulted, transaction.state)
+        assertEquals(ManagedEncodedTransaction.FailureKind.InternalFailure, transaction.failureKind)
+        assertFalse(transaction.commit())
+        assertNull(transaction.committedPayload)
+        assertTrue(transaction.abort())
+        assertEquals(ManagedEncodedTransaction.State.Aborted, transaction.state)
+    }
+
+    // Verification: ENC-07
+    @Test
     fun openCommitAndInvalidWriteFaultWithoutPublishingPartialBytes() {
         val open = FrameworkEncodedTransaction()
         assertFalse(open.commit())
@@ -75,8 +96,8 @@ internal class ManagedEncodedTransactionLifecycleTest {
 
         assertTrue(transaction.commit())
         val payload = transaction.committedPayload ?: error("native commit did not expose payload")
-        assertArrayEquals(byteArrayOf(1, 2, 3, 4, 5), payload.toByteArray())
         assertSame(payload, transaction.committedPayload)
+        assertArrayEquals(byteArrayOf(1, 2, 3, 4, 5), payload.toByteArray())
         assertTrue(transaction.transferCommittedPayload(payload))
         assertFalse(transaction.transferCommittedPayload(payload))
     }

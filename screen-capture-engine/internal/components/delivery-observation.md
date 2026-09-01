@@ -4,7 +4,7 @@ Delivery and Observation are separate per-session components. Delivery performs 
 
 ## Delivery responsibility and owned roots
 
-`DeliveryOwner` is the sole physical callback authority. It owns one queue-less handoff, its non-inline task, callback, immutable `PublishedFrame`, borrowed public facade, entry/return state, and every root required by a late or nonreturning callback. There is at most one admitted or executing handoff. A busy consumer drops a later delivery at the session policy layer; Delivery never queues it.
+`DeliveryOwner` is the sole physical callback authority. It owns one queue-less handoff, its non-inline task, callback, borrowed public facade, entry/return state, and the immutable `PublishedFrame` roots required while that borrow can still be used. There is at most one admitted or executing handoff. A busy consumer drops a later delivery at the session policy layer; Delivery never queues it.
 
 The session owns consumer registration, cached-first eligibility, semantic offer admission, unregister waiters, drop accounting, and terminal settlement. `SessionDeliveryLink` carries bounded identity correlation between one pre-minted `DeliveryHandoffToken`, its offer return, and physical facts. Delivery reports facts but never decides whether they remain current or which public counter changes.
 
@@ -14,7 +14,7 @@ Offer admission installs the complete handoff under Delivery's private gate befo
 
 On callback entry, Delivery records the exact executing thread and opens one `EncodedImageFrame` borrow over the retained immutable frame. It revokes that borrow in a nonthrowing suffix on every actual callback exit, before fallible fact publication. Property access, copy behavior, wrong-thread rejection, and caller-owned lifetime are defined by [Frame ownership and delivery](../contracts/frame-ownership-and-delivery.md#borrowed-callback-frame) and the public [copy guidance](../../docs/usage.md#choose-how-to-copy-jpeg-data).
 
-Callback `Exception`s produce at most one callback-failure fact after borrow revocation. Uncontained throwables still revoke the borrow but do not fabricate task release or closure. A callback that never returns keeps its callback, frame, payload, and serial occupancy rooted; elapsed time and terminal state are not return evidence.
+Callback `Exception`s produce at most one callback-failure fact after borrow revocation. Uncontained throwables still revoke the borrow but do not fabricate task release or closure. A callback that never returns keeps its callback, frame, payload, and serial occupancy rooted; elapsed time and terminal state are not return evidence. After an actual abnormal exit, unresolved physical occupancy is distinct from payload retention: neither continued payload retention nor reclamation timing is promised once the borrow is revoked.
 
 ## Closure handoff and queue-less progress
 
@@ -34,6 +34,8 @@ Only one registration exists at a time. Registering a replacement is legal after
 | ready `Closed` | The exact handoff reached its physical return suffix. |
 
 An ordinary unregister may complete from exact pre-entry cutoff or exact closure. If cutoff observes no handoff while the offer call is unlocked, session state waits for that offer return and may issue one identity-matched successor cutoff. An entered callback is never interrupted. Self-unregister is recognized from the exact entered callback thread so session policy can avoid waiting on itself while retaining authoritative settlement.
+
+If unregister begins while ordinary publication is in flight, Session defers the physical action and requests Control work. The next admitted `runControlTurn` calls `executePendingUnregisterAction`, which claims at most one exact action from `SessionDelivery.claimPendingUnregisterAction`: either complete immediately when no offer remains or request cutoff for the exact outstanding offer. This documented forwarding path is a bounded static guarantee; it does not claim that the publication race has executed in a test.
 
 Terminal handling uses a stronger entry fence and a weaker completion promise. Before terminal claim, Session calls Delivery's idempotent retirement fence outside session locks. Normal return prevents any queued callback from later entering. Terminal claim then freezes link correlation and logically detaches the registration, but terminal publication does not wait for callback return, task release, or `Closed`. Any real late return is owner-local cleanup only and cannot reopen registration or delivery admission. The shared terminal distinction is defined in [Failures and terminal semantics](../contracts/failures-and-terminal-semantics.md).
 

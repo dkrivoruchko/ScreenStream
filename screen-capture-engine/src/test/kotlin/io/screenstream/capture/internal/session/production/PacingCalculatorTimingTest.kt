@@ -64,32 +64,34 @@ internal class PacingCalculatorTimingTest {
 
     // Verification: SES-05
     @Test
-    fun repeatOutputUsesTheLaterOfRepeatAndMaxFpsGates() {
+    fun maxFpsRepeatDefersToRepeatBoundaryAfterWrappedCadenceIsEligible() {
         val history = CadenceHistory(
-            lastGrantNanos = 0L,
+            lastGrantNanos = 666_666_666L,
             phase = 0,
-            requiredGapNanos = 500_000_000L,
+            requiredGapNanos = 333_333_334L,
         )
 
         val early = PacingCalculator.repeatOutput(
-            frameRate = FrameRate.MaxFps(2),
-            repeatInterval = 1_500.milliseconds,
-            nowNanos = 100_000_000L,
-            lastOutputGrantNanos = 0L,
+            frameRate = FrameRate.MaxFps(3),
+            repeatInterval = 1_000.milliseconds,
+            nowNanos = 1_000_000_000L,
+            lastOutputGrantNanos = 666_666_666L,
             outputHistory = history,
         )
         assertTrue(early is PacingDecision.Deferred)
-        assertEquals(1_500_000_000L, (early as PacingDecision.Deferred).eligibleAtNanos)
+        assertEquals(1_666_666_666L, (early as PacingDecision.Deferred).eligibleAtNanos)
 
-        assertTrue(
-            PacingCalculator.repeatOutput(
-                frameRate = FrameRate.MaxFps(2),
-                repeatInterval = 1_500.milliseconds,
-                nowNanos = 1_500_000_000L,
-                lastOutputGrantNanos = 0L,
-                outputHistory = history,
-            ) is PacingDecision.Eligible,
+        val successor = PacingCalculator.repeatOutput(
+            frameRate = FrameRate.MaxFps(3),
+            repeatInterval = 1_000.milliseconds,
+            nowNanos = 1_666_666_666L,
+            lastOutputGrantNanos = 666_666_666L,
+            outputHistory = history,
         )
+        assertTrue(successor is PacingDecision.Eligible)
+        successor as PacingDecision.Eligible
+        assertEquals(1, successor.nextPhase)
+        assertEquals(333_333_333L, successor.nextRequiredGapNanos)
     }
 
     // Verification: SES-05

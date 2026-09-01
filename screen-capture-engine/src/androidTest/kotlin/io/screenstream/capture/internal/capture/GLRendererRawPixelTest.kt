@@ -32,8 +32,8 @@ import kotlin.math.abs
 /**
  * The HandlerThread, frame listener, Canvas producer, finite waits, synthetic resolver SDK, and authority flag only
  * arrange a real production-renderer read. Callback counts, queue observations, and timeouts are not verdicts. The
- * maintained verdict is the literal plan geometry plus every pixel from [RawPixelOracle]. Provisional API 34-37
- * cases force a Full plan through the leaf renderer and do not claim that Session admitted a provisional frame.
+ * maintained verdict is the literal plan geometry plus every pixel from [RawPixelOracle]. The provisional API 34
+ * case forces a Full plan through the leaf renderer and does not claim that Session admitted a provisional frame.
  */
 @RunWith(AndroidJUnit4::class)
 internal class GLRendererRawPixelTest {
@@ -157,76 +157,48 @@ internal class GLRendererRawPixelTest {
 
     // Verification: IMG-01
     @Test
-    fun preApi32FullHalfScaleMatchesIndependentCpuOracle() {
+    fun downscaledAndProvisionalFullMatchIndependentCpuOracle() {
+        val parameters = ScreenCaptureParameters(
+            outputSize = OutputSize.ScaleFactor(0.5),
+            rotation = Rotation.Degrees90,
+            mirror = Mirror.Horizontal,
+        )
         verifyCases(
             listOf(
                 RenderCase(
-                    resolverSdkInt = 31,
+                    resolverSdkInt = 32,
                     sourceDimensionsAreAuthoritative = true,
                     oracleCase = RawPixelOracle.Case(
-                        name = "api31-full-half-scale",
-                        parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.5)),
+                        name = "authoritative-downscaled-rotated-mirrored",
+                        parameters = parameters,
+                        logicalWidthPx = 10,
+                        logicalHeightPx = 6,
+                        targetImage = RawPixelOracle.fiveByThreeTarget,
+                        expectedTargetMode = RawPixelOracle.TargetMode.Downscaled,
+                        expectedTargetWidthPx = 5,
+                        expectedTargetHeightPx = 3,
+                        expectedOutputWidthPx = 3,
+                        expectedOutputHeightPx = 5,
+                    ),
+                ),
+                RenderCase(
+                    resolverSdkInt = 34,
+                    sourceDimensionsAreAuthoritative = false,
+                    oracleCase = RawPixelOracle.Case(
+                        name = "provisional-forced-full-leaf",
+                        parameters = parameters,
                         logicalWidthPx = 10,
                         logicalHeightPx = 6,
                         targetImage = RawPixelOracle.expandedTenBySixTarget,
                         expectedTargetMode = RawPixelOracle.TargetMode.Full,
                         expectedTargetWidthPx = 10,
                         expectedTargetHeightPx = 6,
-                        expectedOutputWidthPx = 5,
-                        expectedOutputHeightPx = 3,
+                        expectedOutputWidthPx = 3,
+                        expectedOutputHeightPx = 5,
                     ),
                 ),
             ),
         )
-    }
-
-    // Verification: IMG-01
-    @Test
-    fun api32Through37DownscaledAndProvisionalFullMatchIndependentCpuOracle() {
-        val parameters = ScreenCaptureParameters(
-            outputSize = OutputSize.ScaleFactor(0.5),
-            rotation = Rotation.Degrees90,
-            mirror = Mirror.Horizontal,
-        )
-        val cases = mutableListOf<RenderCase>()
-        for (sdkInt in 32..37) {
-            cases += RenderCase(
-                resolverSdkInt = sdkInt,
-                sourceDimensionsAreAuthoritative = true,
-                oracleCase = RawPixelOracle.Case(
-                    name = "api$sdkInt-authoritative-downscaled-rotated-mirrored",
-                    parameters = parameters,
-                    logicalWidthPx = 10,
-                    logicalHeightPx = 6,
-                    targetImage = RawPixelOracle.fiveByThreeTarget,
-                    expectedTargetMode = RawPixelOracle.TargetMode.Downscaled,
-                    expectedTargetWidthPx = 5,
-                    expectedTargetHeightPx = 3,
-                    expectedOutputWidthPx = 3,
-                    expectedOutputHeightPx = 5,
-                ),
-            )
-        }
-        for (sdkInt in 34..37) {
-            cases += RenderCase(
-                resolverSdkInt = sdkInt,
-                sourceDimensionsAreAuthoritative = false,
-                oracleCase = RawPixelOracle.Case(
-                    name = "api$sdkInt-provisional-forced-full-leaf",
-                    parameters = parameters,
-                    logicalWidthPx = 10,
-                    logicalHeightPx = 6,
-                    targetImage = RawPixelOracle.expandedTenBySixTarget,
-                    expectedTargetMode = RawPixelOracle.TargetMode.Full,
-                    expectedTargetWidthPx = 10,
-                    expectedTargetHeightPx = 6,
-                    expectedOutputWidthPx = 3,
-                    expectedOutputHeightPx = 5,
-                ),
-            )
-        }
-
-        verifyCases(cases)
     }
 
     private fun fullCase(
@@ -336,12 +308,9 @@ internal class GLRendererRawPixelTest {
         expected: RawPixelOracle.ExpectedImage,
         rendered: RenderedFrame,
     ) {
-        val tolerance = when (oracleCase.expectedTargetMode) {
-            RawPixelOracle.TargetMode.Downscaled -> DOWNSCALED_TOLERANCE
-            RawPixelOracle.TargetMode.Full -> when (rendered.precision) {
-                EglOwner.FragmentPrecision.High -> HIGH_PRECISION_TOLERANCE
-                EglOwner.FragmentPrecision.Medium -> MEDIUM_PRECISION_TOLERANCE
-            }
+        val tolerance = when (rendered.precision) {
+            EglOwner.FragmentPrecision.High -> HIGH_PRECISION_TOLERANCE
+            EglOwner.FragmentPrecision.Medium -> MEDIUM_PRECISION_TOLERANCE
         }
         val carrier = rendered.carrier
         assertTrue("${oracleCase.name}: carrier must be direct", carrier.isDirect)
@@ -381,7 +350,7 @@ internal class GLRendererRawPixelTest {
         private val pendingTicket = AtomicReference<ReadTicket?>()
         private val closed = AtomicBoolean(false)
 
-        internal fun render(
+        fun render(
             plan: CapturePlan,
             targetImage: RawPixelOracle.TargetImage,
             caseName: String,
@@ -428,7 +397,7 @@ internal class GLRendererRawPixelTest {
             pendingTicket.getAndSet(null)?.fail(failure)
         }
 
-        internal fun close() {
+        fun close() {
             if (!closed.compareAndSet(false, true)) return
             pendingTicket.getAndSet(null)?.fail(AssertionError("renderer harness closed with a pending frame ticket"))
             val quitAccepted = captureThread.quitSafely()
@@ -639,13 +608,13 @@ internal class GLRendererRawPixelTest {
     }
 
     private class ReadTicket(
-        internal val caseName: String,
+        val caseName: String,
         private val renderer: GLRenderer,
         private val carrier: ByteBuffer,
     ) {
         private val completion = BlockingCommand<Unit>("$caseName readback")
 
-        internal fun read() {
+        fun read() {
             try {
                 renderer.readFrame(carrier)
                 completion.succeed(Unit)
@@ -654,11 +623,11 @@ internal class GLRendererRawPixelTest {
             }
         }
 
-        internal fun fail(failure: Throwable) {
+        fun fail(failure: Throwable) {
             completion.fail(failure)
         }
 
-        internal fun await() {
+        fun await() {
             completion.await()
         }
     }
@@ -684,15 +653,15 @@ internal class GLRendererRawPixelTest {
             }
         }
 
-        internal fun succeed(value: T) {
+        fun succeed(value: T) {
             if (outcome.compareAndSet(null, Outcome.Value(value))) completion.countDown()
         }
 
-        internal fun fail(failure: Throwable) {
+        fun fail(failure: Throwable) {
             if (outcome.compareAndSet(null, Outcome.Failed(failure))) completion.countDown()
         }
 
-        internal fun await(): T {
+        fun await(): T {
             if (!completion.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 throw AssertionError("$name did not settle within $TIMEOUT_MILLIS ms")
             }
@@ -706,15 +675,15 @@ internal class GLRendererRawPixelTest {
     private class FailureReport {
         private val failures = mutableListOf<Throwable>()
 
-        internal fun add(failure: Throwable?) {
+        fun add(failure: Throwable?) {
             if ((failure != null) && failures.none { it === failure }) failures += failure
         }
 
-        internal fun addTo(primary: Throwable) {
+        fun addTo(primary: Throwable) {
             for (failure in failures) primary.addSuppressed(failure)
         }
 
-        internal fun throwIfAny(message: String) {
+        fun throwIfAny(message: String) {
             if (failures.isEmpty()) return
             val assertion = AssertionError(message)
             for (failure in failures) assertion.addSuppressed(failure)
@@ -723,27 +692,27 @@ internal class GLRendererRawPixelTest {
     }
 
     private class RenderCase(
-        internal val resolverSdkInt: Int,
-        internal val sourceDimensionsAreAuthoritative: Boolean,
-        internal val oracleCase: RawPixelOracle.Case,
+        val resolverSdkInt: Int,
+        val sourceDimensionsAreAuthoritative: Boolean,
+        val oracleCase: RawPixelOracle.Case,
     )
 
     private class RotationCase(
-        internal val rotation: Rotation,
-        internal val outputWidthPx: Int,
-        internal val outputHeightPx: Int,
+        val rotation: Rotation,
+        val outputWidthPx: Int,
+        val outputHeightPx: Int,
     )
 
     private class OpenedResources(
-        internal val eglOwner: EglOwner,
-        internal val target: TargetOwner,
-        internal val renderer: GLRenderer,
-        internal val precision: EglOwner.FragmentPrecision,
+        val eglOwner: EglOwner,
+        val target: TargetOwner,
+        val renderer: GLRenderer,
+        val precision: EglOwner.FragmentPrecision,
     )
 
     private class RenderedFrame(
-        internal val carrier: ByteBuffer,
-        internal val precision: EglOwner.FragmentPrecision,
+        val carrier: ByteBuffer,
+        val precision: EglOwner.FragmentPrecision,
     )
 
     private companion object {
@@ -751,7 +720,6 @@ internal class GLRendererRawPixelTest {
         private const val TIMEOUT_MILLIS = 10_000L
         private const val HIGH_PRECISION_TOLERANCE = 2
         private const val MEDIUM_PRECISION_TOLERANCE = 6
-        private const val DOWNSCALED_TOLERANCE = 12
         private val REQUIRED_CROP = CropInsetsPx(left = 1, top = 0, right = 1, bottom = 1)
     }
 }

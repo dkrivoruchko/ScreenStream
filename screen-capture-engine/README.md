@@ -14,7 +14,7 @@ ScreenStream Capture Engine is an embeddable Kotlin Android library that turns A
 
 - **Avoid unnecessary CPU and GPU work.** The engine keeps only the newest screen image waiting for processing and applies frame-rate limits before GPU pixel readback and JPEG encoding.
 - **Process each fresh output in one GPU pass.** One OpenGL ES draw applies crop, rotation, mirroring, output sizing, and color or grayscale processing, then reads only the final-size pixels needed by the JPEG encoder.
-- **Capture fewer pixels when possible.** On [API 32–37](https://developer.android.com/media/grow/media-projection#surface), a compatible full-source downscale can feed fewer pixels into the graphics path; see the [one final-size processing path](docs/architecture.md#one-final-size-processing-path).
+- **Capture fewer pixels when possible.** On [API 32+](https://developer.android.com/media/grow/media-projection#surface), a compatible full-source downscale can feed fewer pixels into the graphics path; see the [one final-size processing path](docs/architecture.md#one-final-size-processing-path).
 - **Reuse compatible resources.** Capture targets, GPU resources, and encoding storage are reused across frames and setting changes when their size and format remain compatible, reducing repeated setup and allocation.
 - **Keep callback delivery bounded.** Each session runs or schedules at most one frame callback for its current consumer at a time; if the app is still handling it, later delivery opportunities are counted as drops instead of building a memory-consuming queue.
 - **Copy JPEG bytes only when requested.** Receiving a frame does not allocate an app-owned JPEG copy. `copyTo()` writes into app-provided storage, while `toByteArray()` creates an independent contiguous copy.
@@ -44,7 +44,7 @@ Continue with [Usage](docs/usage.md) for integration steps and operational behav
 ## Requirements
 
 - The supported public API is Kotlin.
-- The library supports Android API 24 through 37 and is currently compiled against SDK 37.
+- The library supports Android API 24 and later and is currently compiled against SDK 37.
 - Complete the [Android host prerequisites](docs/usage.md#android-host-prerequisites) before starting capture.
 
 ## Quick start

@@ -93,7 +93,7 @@ Each stage passes forward one defined result: source geometry, applied output, p
 
 `CaptureMetricsSource` supplies the width, height, and density used for capture geometry. It can follow the current display or another host-selected source; the user-approved `MediaProjection` supplies the screen content.
 
-On API 24–33, the selected metrics source supplies all three geometry values. On API 34–37, those initial dimensions are provisional: startup and frame admission wait for Android's first valid authoritative [`onCapturedContentResize()`](https://developer.android.com/reference/android/media/projection/MediaProjection.Callback#onCapturedContentResize(int,%20int)) width and height, while the selected source continues to supply density. The selected content can therefore differ from the host display dimensions while density continues to come from the metrics source.
+On API 24–33, the selected metrics source supplies all three geometry values. On API 34+, those initial dimensions are provisional: startup and frame admission wait for Android's first valid authoritative [`onCapturedContentResize()`](https://developer.android.com/reference/android/media/projection/MediaProjection.Callback#onCapturedContentResize(int,%20int)) width and height, while the selected source continues to supply density. The selected content can therefore differ from the host display dimensions while density continues to come from the metrics source.
 
 When dimensions or density change, the session resolves new output before fresh JPEG production continues.
 
@@ -214,7 +214,7 @@ Only one fresh image proceeds through readback and encoding at a time. Parameter
 
 One OpenGL ES draw combines source selection, crop, rotation, mirroring, output sizing, and color conversion. Rendering at final output dimensions means JPEG encoding reads only those pixels, avoiding full-size intermediate images for individual transforms.
 
-On API 32–37, Android can [scale captured content into the supplied surface while preserving its aspect ratio](https://developer.android.com/media/grow/media-projection#surface). For a compatible full-source, same-aspect downscale, the engine uses that platform behavior and supplies smaller buffer dimensions through [`SurfaceTexture.setDefaultBufferSize()`](https://developer.android.com/reference/kotlin/android/graphics/SurfaceTexture#setdefaultbuffersize). The `VirtualDisplay` remains source-sized. This reduces the number of pixels entering the graphics path while preserving the source geometry in the output description.
+On API 32+, Android can [scale captured content into the supplied surface while preserving its aspect ratio](https://developer.android.com/media/grow/media-projection#surface). For a compatible full-source, same-aspect downscale, the engine uses that platform behavior and supplies smaller buffer dimensions through [`SurfaceTexture.setDefaultBufferSize()`](https://developer.android.com/reference/kotlin/android/graphics/SurfaceTexture#setdefaultbuffersize). The `VirtualDisplay` remains source-sized. This reduces the number of pixels entering the graphics path while preserving the source geometry in the output description.
 
 ### Reuse resources and encoded data
 

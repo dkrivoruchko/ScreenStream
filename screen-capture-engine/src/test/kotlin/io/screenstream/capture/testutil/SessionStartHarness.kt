@@ -38,7 +38,8 @@ internal class SessionStartHarness(
     workerThreadCount: Int = 1,
     bootstrapMode: BootstrapMode = BootstrapMode.FailFast,
     bootstrapFault: BootstrapFault = BootstrapFault.None,
-    metrics: CaptureMetrics = CaptureMetrics(100, 200, 300),
+    delayedControlOutcome: DelayedControlOutcome = DelayedControlOutcome.FailFast,
+    metrics: CaptureMetrics? = CaptureMetrics(100, 200, 300),
     platformSdkInt: Int = 36,
     projectionPlatform: ProjectionPlatform = AndroidProjectionPlatform,
     eglPlatform: EglPlatform = AndroidEglPlatform,
@@ -60,6 +61,12 @@ internal class SessionStartHarness(
         ControlHandlerConstructionThrows,
         FirstControlPostReturnsFalse,
         FirstControlPostThrows,
+    }
+
+    internal enum class DelayedControlOutcome {
+        FailFast,
+        Accept,
+        Reject,
     }
 
     private sealed interface ClockOutcome {
@@ -216,11 +223,13 @@ internal class SessionStartHarness(
 
     private class ManualHandlerTaskPoster(
         private val bootstrapFault: BootstrapFault,
+        private val delayedControlOutcome: DelayedControlOutcome,
         private val recordFault: (BootstrapFault) -> Unit,
     ) : HandlerTaskPoster {
         private val gate = Any()
         private val controlTasks = ArrayDeque<Runnable>()
         private val captureTasks = ArrayDeque<Runnable>()
+        private val delayedControlTasks = ArrayDeque<Runnable>()
         private var controlHandler: Handler? = null
         private var captureHandler: Handler? = null
         private var controlPosts = 0
@@ -274,12 +283,25 @@ internal class SessionStartHarness(
             true
         }
 
-        override fun postDelayed(handler: Handler, task: Runnable, delayMillis: Long): Boolean =
-            error("Handler delayed post was not expected")
+        override fun postDelayed(handler: Handler, task: Runnable, delayMillis: Long): Boolean = synchronized(gate) {
+            if (handler !== controlHandler) {
+                throw AssertionError("Delayed task was posted to an unknown Handler")
+            }
+            when (delayedControlOutcome) {
+                DelayedControlOutcome.FailFast -> throw AssertionError("Handler delayed post was not expected")
+                DelayedControlOutcome.Accept -> {
+                    delayedControlTasks.addLast(task)
+                    true
+                }
+
+                DelayedControlOutcome.Reject -> false
+            }
+        }
 
         override fun removeCallbacks(handler: Handler, task: Runnable) = synchronized(gate) {
             check(handler === controlHandler)
             controlTasks.removeAll { it === task }
+            delayedControlTasks.removeAll { it === task }
             removals += 1
         }
 
@@ -292,6 +314,13 @@ internal class SessionStartHarness(
             it.run()
             true
         } ?: false
+
+        fun enterNextDelayedControl(): Boolean = takeNext(delayedControlTasks)?.let {
+            it.run()
+            true
+        } ?: false
+
+        fun claimNextCapture(): Runnable? = takeNext(captureTasks)
 
         fun runBeforeNextControlPost(action: () -> Unit) = synchronized(gate) {
             check(beforeNextControlPost == null) { "A before-Control-post action is already armed" }
@@ -334,6 +363,7 @@ internal class SessionStartHarness(
     private val metricsSubscribeEntered = CountDownLatch(1)
     private val metricsSubscribeMayReturn = CountDownLatch(1)
     private val metricsCloseHandle = RecordingCloseHandle()
+    private val metricsObserver = AtomicReference<CaptureMetricsSource.Observer?>()
     private val handlerPlatformStates = ArrayList<ScreenCaptureState>()
     private val consumedBootstrapFault = AtomicReference<BootstrapFault?>()
     private val failFastHandlerThreadPlatform = FailFastHandlerThreadPlatform()
@@ -350,7 +380,11 @@ internal class SessionStartHarness(
         val controlledBootstrap = (bootstrapMode != BootstrapMode.FailFast) || (bootstrapFault != BootstrapFault.None)
         val handlerThreadPlatform = if (controlledBootstrap) {
             val recordFault: (BootstrapFault) -> Unit = consumedBootstrapFault::set
-            val poster = ManualHandlerTaskPoster(bootstrapFault, recordFault).also { manualHandlerTaskPoster = it }
+            val poster = ManualHandlerTaskPoster(
+                bootstrapFault = bootstrapFault,
+                delayedControlOutcome = delayedControlOutcome,
+                recordFault = recordFault,
+            ).also { manualHandlerTaskPoster = it }
             ManualHandlerThreadPlatform(
                 bootstrapFault = bootstrapFault,
                 recordFault = recordFault,
@@ -377,6 +411,7 @@ internal class SessionStartHarness(
         }
         val metricsSource = CaptureMetricsSource { observer ->
             metricsSubscriptions.incrementAndGet()
+            check(metricsObserver.compareAndSet(null, observer)) { "Metrics observer was installed more than once" }
             when (bootstrapMode) {
                 BootstrapMode.FailFast -> throw AssertionError("Metrics subscription was not expected")
                 BootstrapMode.ImmediateMetrics -> observer.onMetricsChanged(metrics)
@@ -417,6 +452,18 @@ internal class SessionStartHarness(
 
     internal fun metricsHandleCloseCount(): Int = metricsCloseHandle.closeCount()
 
+    internal fun emitMetrics(metrics: CaptureMetrics?) {
+        checkNotNull(metricsObserver.get()) { "Metrics observer is not attached" }.onMetricsChanged(metrics)
+    }
+
+    internal fun completeMetrics() {
+        checkNotNull(metricsObserver.get()) { "Metrics observer is not attached" }.onComplete()
+    }
+
+    internal fun failMetrics(cause: Throwable) {
+        checkNotNull(metricsObserver.get()) { "Metrics observer is not attached" }.onFailure(cause)
+    }
+
     internal fun consumedBootstrapFault(): BootstrapFault? = consumedBootstrapFault.get()
 
     internal fun awaitMetricsSubscribeEntered(): Boolean = metricsSubscribeEntered.await(5L, TimeUnit.SECONDS)
@@ -450,6 +497,18 @@ internal class SessionStartHarness(
     internal fun enterNextControlTask(): Boolean = checkNotNull(manualHandlerTaskPoster).enterNextControl()
 
     internal fun enterNextCaptureTask(): Boolean = checkNotNull(manualHandlerTaskPoster).enterNextCapture()
+
+    internal fun enterNextDelayedControlTask(): Boolean =
+        checkNotNull(manualHandlerTaskPoster).enterNextDelayedControl()
+
+    internal fun claimNextCaptureTask(): Runnable? = checkNotNull(manualHandlerTaskPoster).claimNextCapture()
+
+    internal fun enterNextDelayedEntry(): ManualDelayedEntryScheduler.TaskHandle? {
+        val handle = delayedEntryScheduler.scheduledTasks().firstOrNull { task ->
+            task.state == ScheduledTaskState.Accepted
+        } ?: return null
+        return handle.takeIf(delayedEntryScheduler::enter)
+    }
 
     internal fun runBeforeNextControlPost(action: () -> Unit) {
         checkNotNull(manualHandlerTaskPoster).runBeforeNextControlPost(action)

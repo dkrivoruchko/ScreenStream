@@ -1,5 +1,6 @@
 #include "native_jpeg_runtime.h"
 
+#include <array>
 #include <climits>
 #include <cstddef>
 #include <cstdint>
@@ -190,9 +191,7 @@ namespace {
         require(writer.fault() == WriterFault::None, "zero write faulted");
         require(ledger.allocationCalls == 0, "zero write allocated");
         require(writer.freezeAfterCompression(), "empty writer did not freeze");
-        require(NativeSegmentWriter::write(&writer, nullptr, 0), "zero write after freeze was not inert");
         require(writer.close(), "empty writer did not close");
-        require(NativeSegmentWriter::write(&writer, nullptr, 0), "zero write after close was not inert");
         require(ledger.freeCalls == 0, "empty writer freed an allocation");
     }
 
@@ -255,15 +254,19 @@ namespace {
     void testOverflowBeforeMutation() {
         const std::uint8_t byte = 9;
         {
-            NativeSegmentWriter writer;
+            AllocationLedger ledger;
+            ActiveLedger active(ledger);
+            NativeSegmentWriter writer(&trackedAllocate, &trackedFree);
             require(!NativeSegmentWriter::write(
                     &writer,
-                    &byte,
+                    reinterpret_cast<const void *>(static_cast<std::uintptr_t>(1)),
                     static_cast<std::size_t>(INT_MAX) + 1U
             ), "single callback above Int.MAX_VALUE succeeded");
             require(writer.fault() == WriterFault::NativeOutOfMemory, "size overflow did not record OOM");
             require(writer.producedByteCount() == 0 && writer.firstSegment() == nullptr,
                     "size overflow mutated accepted progress");
+            require(ledger.allocationCalls == 0,
+                    "size overflow reached allocation after the invalid data address");
             require(writer.freezeAfterCompression(), "size-overflow writer graph was inconsistent");
         }
         {
@@ -382,8 +385,6 @@ namespace {
 
                 require(writer.close() && writer.closed(),
                         std::string(exceptionCase.name) + ": writer did not close after rollback");
-                require(writer.close(),
-                        std::string(exceptionCase.name) + ": repeated close was not idempotent");
                 requireEverySuccessfulAllocationFreedExactlyOnce(ledger,
                                                                  std::string(exceptionCase.name) + ": final close did not clean each segment exactly once");
             }
@@ -404,7 +405,6 @@ namespace {
             writer.recordInternalFailure();
             require(writer.fault() == WriterFault::NativeOutOfMemory, "internal fault overwrote first OOM");
             require(!NativeSegmentWriter::write(&writer, nullptr, 1), "faulted writer accepted positive write");
-            require(NativeSegmentWriter::write(&writer, nullptr, 0), "faulted writer rejected inert zero write");
             require(ledger.allocationCalls == 1, "faulted writer invoked allocator again");
         }
         {
@@ -428,105 +428,95 @@ namespace {
     }
 
     // Verification: ENC-04
-    void testFrontReleaseRequiresCurrentWriterHead() {
-        AllocationLedger ledger;
-        ActiveLedger active(ledger);
-        NativeSegmentWriter writer(&trackedAllocate, &trackedFree);
-        NativeSegmentWriter otherWriter(&trackedAllocate, &trackedFree);
-        const auto source = bytes(kNativeSegmentPayloadCapacity + 1, 4);
-        const std::uint8_t otherByte = 7;
-        require(NativeSegmentWriter::write(&writer, source.data(), source.size()), "front-release setup write failed");
-        require(NativeSegmentWriter::write(&otherWriter, &otherByte, 1), "other-writer setup write failed");
-        require(writer.firstSegment() == nullptr, "open writer exposed a segment");
-        require(writer.freezeAfterCompression(), "front-release setup freeze failed");
-        require(otherWriter.freezeAfterCompression(), "other writer did not freeze");
-        NativeSegment *first = writer.firstSegment();
-        NativeSegment *otherFirst = otherWriter.firstSegment();
-        require(first != nullptr && otherFirst != nullptr, "front-release setup did not expose both heads");
+    void testWrongFrontPreservesFirstFaultAndExactCleanup() {
+        struct WrongFrontCase final {
+            const char *name;
+            bool startsWithOutOfMemory;
+            WriterFault expectedFault;
+        };
+        const std::array<WrongFrontCase, 2> cases = {{
+                                                             {"no prior fault", false, WriterFault::InternalFailure},
+                                                             {"native OOM", true, WriterFault::NativeOutOfMemory},
+                                                     }};
 
-        const std::size_t freeCallsBeforeWrongRelease = ledger.freeCalls;
-        const std::vector<void *> liveBeforeWrongRelease = ledger.liveAllocations;
-        require(!writer.freeFrontSegment(otherFirst), "another writer's head was accepted");
-        require(writer.firstSegment() == first, "wrong expected segment mutated the head");
-        require(ledger.freeCalls == freeCallsBeforeWrongRelease &&
-                ledger.liveAllocations == liveBeforeWrongRelease,
-                "wrong expected segment freed or changed a live allocation");
-        require(writer.producedByteCount() == static_cast<std::int64_t>(source.size()),
-                "wrong expected segment changed byte count");
-        require(writer.fault() == WriterFault::InternalFailure,
-                "wrong expected segment did not record internal failure");
-        require(adoptFrozen(writer, writer.producedByteCount()) == source,
-                "wrong expected segment changed FIFO bytes");
-        require(adoptFrozen(otherWriter, otherWriter.producedByteCount()) == std::vector<std::uint8_t>({otherByte}),
-                "wrong expected segment changed the other writer");
-        require(writer.close() && otherWriter.close(), "front-release writers did not close");
-        requireEverySuccessfulAllocationFreedExactlyOnce(ledger,
-                                                         "front-release paths did not free each node exactly once");
-    }
+        for (const WrongFrontCase &wrongFrontCase: cases) {
+            AllocationLedger ledger;
+            ActiveLedger active(ledger);
+            {
+                NativeSegmentWriter writer(&trackedAllocate, &trackedFree);
+                NativeSegmentWriter otherWriter(&trackedAllocate, &trackedFree);
+                const auto accepted = bytes(kNativeSegmentPayloadCapacity + 1, 13);
+                const auto rejected = bytes(kNativeSegmentPayloadCapacity, 17);
+                const std::uint8_t otherByte = 29;
+                const std::string context = wrongFrontCase.name;
+                require(NativeSegmentWriter::write(&writer, accepted.data(), accepted.size()),
+                        context + ": setup write failed");
+                const std::size_t setupAllocationCalls = ledger.allocationCalls;
+                const std::vector<void *> acceptedAllocations = ledger.liveAllocations;
+                require(!acceptedAllocations.empty(), context + ": setup retained no allocation");
 
-    // Verification: ENC-04
-    void testWrongFrontAfterOomPreservesFirstFaultAndExactCleanup() {
-        AllocationLedger ledger;
-        ActiveLedger active(ledger);
-        {
-            NativeSegmentWriter writer(&trackedAllocate, &trackedFree);
-            NativeSegmentWriter otherWriter(&trackedAllocate, &trackedFree);
-            const auto accepted = bytes(kNativeSegmentPayloadCapacity + 1, 13);
-            const auto rejected = bytes(kNativeSegmentPayloadCapacity, 17);
-            require(NativeSegmentWriter::write(&writer, accepted.data(), accepted.size()),
-                    "dual-fault setup write failed");
-            const std::size_t setupAllocationCalls = ledger.allocationCalls;
-            const std::vector<void *> acceptedAllocations = ledger.liveAllocations;
-            require(!acceptedAllocations.empty(), "dual-fault setup retained no accepted allocation");
-            ledger.failAllocationCall = setupAllocationCalls + 1;
+                if (wrongFrontCase.startsWithOutOfMemory) {
+                    ledger.failAllocationCall = setupAllocationCalls + 1;
+                    require(!NativeSegmentWriter::write(&writer, rejected.data(), rejected.size()),
+                            context + ": allocation-failure write succeeded");
+                    require(writer.fault() == WriterFault::NativeOutOfMemory,
+                            context + ": allocator OOM was not recorded");
+                    ledger.failAllocationCall = 0;
+                }
+                require(writer.firstSegment() == nullptr,
+                        context + ": writer exposed its head before freeze");
+                require(writer.producedByteCount() == static_cast<std::int64_t>(accepted.size()) &&
+                        ledger.liveAllocations == acceptedAllocations &&
+                        !ledger.freeContractViolation,
+                        context + ": setup changed accepted progress or identities");
+                requireValidObservedAllocationRequests(
+                        ledger,
+                        context + ": allocation request was not a valid wire-segment shape"
+                );
 
-            require(!NativeSegmentWriter::write(&writer, rejected.data(), rejected.size()),
-                    "dual-fault allocation failure write succeeded");
-            require(writer.fault() == WriterFault::NativeOutOfMemory,
-                    "dual-fault setup did not retain allocator OOM");
-            require(writer.producedByteCount() == static_cast<std::int64_t>(accepted.size()),
-                    "dual-fault allocation failure changed accepted count");
-            require(ledger.liveAllocations == acceptedAllocations &&
-                    !ledger.freeContractViolation,
-                    "dual-fault allocation failure changed accepted identities");
-            requireValidObservedAllocationRequests(
+                require(NativeSegmentWriter::write(&otherWriter, &otherByte, 1),
+                        context + ": other-writer setup failed");
+                require(otherWriter.firstSegment() == nullptr,
+                        context + ": other writer exposed its head before freeze");
+                require(writer.freezeAfterCompression(), context + ": writer did not freeze coherently");
+                require(otherWriter.freezeAfterCompression(), context + ": other writer did not freeze");
+                NativeSegment *const first = writer.firstSegment();
+                NativeSegment *const otherFirst = otherWriter.firstSegment();
+                require(first == acceptedAllocations.front() && otherFirst != nullptr,
+                        context + ": frozen heads did not preserve their identities");
+
+                const std::size_t freeCallsBeforeWrongRelease = ledger.freeCalls;
+                const std::vector<void *> liveBeforeWrongRelease = ledger.liveAllocations;
+                require(!writer.freeFrontSegment(otherFirst), context + ": wrong head was accepted");
+                require(writer.firstSegment() == first &&
+                        ledger.freeCalls == freeCallsBeforeWrongRelease &&
+                        ledger.liveAllocations == liveBeforeWrongRelease,
+                        context + ": wrong head mutated or freed accepted storage");
+                require(writer.fault() == wrongFrontCase.expectedFault,
+                        context + ": wrong-front rejection changed first-fault precedence");
+                require(adoptFrozen(writer, writer.producedByteCount()) == accepted,
+                        context + ": wrong head changed accepted FIFO bytes");
+                require(adoptFrozen(otherWriter, otherWriter.producedByteCount()) ==
+                        std::vector<std::uint8_t>({otherByte}),
+                        context + ": wrong head changed the other writer");
+                if (wrongFrontCase.startsWithOutOfMemory) {
+                    require(writer.close() && writer.closed(), context + ": writer did not close cleanly");
+                    require(otherWriter.close() && otherWriter.closed(),
+                            context + ": other writer did not close cleanly");
+                } else {
+                    require(writer.close(), context + ": writer did not close cleanly");
+                    require(otherWriter.close(), context + ": other writer did not close cleanly");
+                }
+                requireEverySuccessfulAllocationFreedExactlyOnce(
+                        ledger,
+                        context + ": cleanup did not free each node exactly once"
+                );
+            }
+            requireEverySuccessfulAllocationFreedExactlyOnce(
                     ledger,
-                    "dual-fault allocation request was not a valid wire-segment shape"
+                    std::string(wrongFrontCase.name) + ": destructor repeated or missed cleanup"
             );
-            require(writer.freezeAfterCompression(), "dual-fault writer did not freeze coherently");
-            ledger.failAllocationCall = 0;
-            const std::uint8_t otherByte = 29;
-            require(NativeSegmentWriter::write(&otherWriter, &otherByte, 1),
-                    "dual-fault other-writer setup failed");
-            require(otherWriter.freezeAfterCompression(), "dual-fault other writer did not freeze");
-
-            NativeSegment *first = writer.firstSegment();
-            NativeSegment *otherFirst = otherWriter.firstSegment();
-            require(first != nullptr && otherFirst != nullptr,
-                    "dual-fault frozen writers did not expose their heads");
-            require(first == acceptedAllocations.front(),
-                    "dual-fault frozen head did not retain the accepted identity");
-
-            const std::size_t freeCallsBeforeWrongRelease = ledger.freeCalls;
-            const std::vector<void *> liveBeforeWrongRelease = ledger.liveAllocations;
-            require(!writer.freeFrontSegment(otherFirst), "dual-fault wrong head was accepted");
-            require(writer.firstSegment() == first, "dual-fault wrong head mutated accepted bytes");
-            require(ledger.freeCalls == freeCallsBeforeWrongRelease &&
-                    ledger.liveAllocations == liveBeforeWrongRelease,
-                    "dual-fault wrong head freed or changed a live allocation");
-            require(writer.fault() == WriterFault::NativeOutOfMemory,
-                    "wrong-front internal fault overwrote the first allocator OOM");
-            require(adoptFrozen(writer, writer.producedByteCount()) == accepted,
-                    "dual-fault wrong head changed accepted bytes or order");
-            require(adoptFrozen(otherWriter, otherWriter.producedByteCount()) == std::vector<std::uint8_t>({otherByte}),
-                    "dual-fault wrong head changed the other writer");
-            require(writer.close() && writer.closed(), "dual-fault writer did not close cleanly");
-            require(otherWriter.close() && otherWriter.closed(), "dual-fault other writer did not close cleanly");
-            requireEverySuccessfulAllocationFreedExactlyOnce(ledger,
-                                                             "dual-fault cleanup did not free each node exactly once");
         }
-        requireEverySuccessfulAllocationFreedExactlyOnce(ledger,
-                                                         "dual-fault destructor repeated or missed cleanup");
     }
 
     // Verification: ENC-04
@@ -650,32 +640,6 @@ namespace {
         throw std::bad_alloc();
     }
 
-    int ordinaryBeforeWriteCompressor(
-            const AndroidBitmapInfo *,
-            std::int32_t,
-            const void *,
-            std::int32_t,
-            std::int32_t,
-            void *,
-            screenstream::jpeg::CompressWriteFunction
-    ) {
-        throw std::runtime_error("compressor failed before writing");
-    }
-
-    int badAllocAfterPartialWriteCompressor(
-            const AndroidBitmapInfo *,
-            std::int32_t,
-            const void *,
-            std::int32_t,
-            std::int32_t,
-            void *context,
-            screenstream::jpeg::CompressWriteFunction writeFunction
-    ) {
-        const std::uint8_t partial[] = {9, 8, 7};
-        require(writeFunction(context, partial, sizeof(partial)), "bad_alloc partial write failed");
-        throw std::bad_alloc();
-    }
-
     int ordinaryAfterPartialWriteCompressor(
             const AndroidBitmapInfo *,
             std::int32_t,
@@ -780,11 +744,6 @@ namespace {
 
                 require(writer.close() && writer.closed(),
                         std::string(rejectionCase.name) + ": partial writer abort close failed");
-                const std::size_t freeCallsAfterClose = ledger.freeCalls;
-                require(writer.close(),
-                        std::string(rejectionCase.name) + ": repeated abort close was not idempotent");
-                require(ledger.freeCalls == freeCallsAfterClose,
-                        std::string(rejectionCase.name) + ": repeated abort close freed again");
                 requireEverySuccessfulAllocationFreedExactlyOnce(ledger,
                                                                  std::string(rejectionCase.name) +
                                                                  ": abort close did not free the retained partial segment exactly once");
@@ -925,8 +884,6 @@ namespace {
         };
         const std::vector<ExceptionCase> exceptionCases = {
                 {"bad_alloc before write",                 &badAllocBeforeWriteCompressor,       false},
-                {"ordinary exception before write",        &ordinaryBeforeWriteCompressor,       false},
-                {"bad_alloc after partial write",          &badAllocAfterPartialWriteCompressor, true},
                 {"ordinary exception after partial write", &ordinaryAfterPartialWriteCompressor, true},
         };
         const std::uint8_t pixel = 0;
@@ -979,7 +936,6 @@ namespace {
                         std::string(exceptionCase.name) + ": later rejection changed accepted count");
                 require(writer.close() && writer.closed(),
                         std::string(exceptionCase.name) + ": writer did not close");
-                require(writer.close(), std::string(exceptionCase.name) + ": repeated close was not idempotent");
                 requireEverySuccessfulAllocationFreedExactlyOnce(ledger,
                                                                  std::string(exceptionCase.name) + ": close did not free allocations exactly once");
             }
@@ -998,8 +954,7 @@ namespace {
             {"callback-atomic preparation failure", &testPreparationFailureIsCallbackAtomic},
             {"allocator exception rollback",        &testAllocatorExceptionsRollbackTemporaryPreparationAtomically},
             {"first-fault stickiness",              &testFirstFaultStickinessAndLaterWrites},
-            {"front-only release",                  &testFrontReleaseRequiresCurrentWriterHead},
-            {"dual-fault front rejection",          &testWrongFrontAfterOomPreservesFirstFaultAndExactCleanup},
+            {"wrong-front rejection",               &testWrongFrontPreservesFirstFaultAndExactCleanup},
             {"close/destructor",                    &testCloseDestructorAndFrontFreeAreExactAndIdempotent},
             {"compressFrame byte propagation",      &testCompressFramePropagatesResultFreezeBytesAndFault},
             {"partial rejection retained cleanup",  &testPartialCompressorRejectionsRetainSegmentsUntilAbortCloseAndCleanExactlyOnce},

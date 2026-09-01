@@ -49,6 +49,7 @@ internal class EncodingOwnerAutoLifecycleTest {
 
                 val frameworkLayout = Rgba8888Layout.create(widthPx = 3, heightPx = 2)
                 reconcileReady(owner, dispatcher, frameworkLayout)
+                nativeJpeg.assertOneCarrierAllocation()
                 val frameworkResult = AtomicReference<EncodingResult?>()
                 unsettledInput = requireInput(owner) { result ->
                     check(frameworkResult.compareAndSet(null, result))
@@ -76,6 +77,7 @@ internal class EncodingOwnerAutoLifecycleTest {
     }
 
     // Verification: ENC-02
+    // Verification: ENC-09
     @Test
     fun retirementWaitsForNativeCarrierLoanAndFreesItOnce() {
         ControlledNonInlineDispatcher().use { dispatcher ->
@@ -220,6 +222,11 @@ internal class EncodingOwnerAutoLifecycleTest {
         @Synchronized
         fun assertOneCompressionEffect() {
             assertEquals(1, compressionEffectCount)
+        }
+
+        @Synchronized
+        fun assertOneCarrierAllocation() {
+            assertEquals(1, allocatedCarriers.size)
         }
 
         @Synchronized

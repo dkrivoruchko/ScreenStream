@@ -1,6 +1,7 @@
 package io.screenstream.capture
 
 import android.os.Build
+import io.mockk.verify
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
 import io.screenstream.capture.testutil.SessionStartHarness
 import kotlinx.coroutines.async
@@ -27,7 +28,7 @@ import org.robolectric.annotation.LooperMode
 @Config(manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class ScreenCaptureSessionTopologyTest {
-    // Verification: API-03
+    // Verification: SES-01
     // Verification: SES-03
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
@@ -140,21 +141,20 @@ internal class ScreenCaptureSessionTopologyTest {
         val metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320)
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
         val platform = HappyCapturePlatform()
+        val metricsSource = ControllableMetricsSource()
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
-            metrics = metrics,
+        CoordinatorMetricsHarness(
+            source = metricsSource,
+            platform = platform,
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
-            projectionPlatform = platform.projectionPlatform,
-            eglPlatform = platform.eglPlatform,
-            glesPlatform = platform.glesPlatform,
-            targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
                 harness.session.start(platform.projection, parameters)
                 harness.session.state.value
             }
 
+            harness.driveUntil(metricsSource::isSubscribed)
+            metricsSource.emit(metrics)
             harness.driveUntil(platform::initialVirtualDisplayReturned)
             platform.deliverCapturedContentResize(widthPx = 8, heightPx = 6)
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
@@ -183,8 +183,35 @@ internal class ScreenCaptureSessionTopologyTest {
             assertEquals(4, effective.finalImageSize.heightPx)
             assertEquals(initialActive.isCapturedContentVisible, resizedActive.isCapturedContentVisible)
 
-            platform.verifyInitialProjectionBoundaries(widthPx = 8, heightPx = 6, densityDpi = 320)
+            metricsSource.emit(CaptureMetrics(widthPx = 10, heightPx = 7, densityDpi = 320))
+            harness.settleNextMetricsChange()
+
+            assertEquals(resizedActive, harness.session.state.value)
+            verify(exactly = 1) {
+                platform.projectionPlatform.resize(any(), any(), any(), any())
+                platform.projectionPlatform.setSurface(any(), any())
+            }
             platform.verifyAuthoritativeResizeBoundaries(widthPx = 6, heightPx = 4, densityDpi = 320)
+
+            metricsSource.emit(CaptureMetrics(widthPx = 10, heightPx = 7, densityDpi = 480))
+            harness.driveUntil {
+                val state = harness.session.state.value
+                (state is ScreenCaptureState.Active) &&
+                        (state.effectiveParameters.captureGeometry.densityDpi == 480)
+            }
+
+            val densityUpdated = harness.session.state.value as ScreenCaptureState.Active
+            assertEquals(6, densityUpdated.effectiveParameters.captureGeometry.widthPx)
+            assertEquals(4, densityUpdated.effectiveParameters.captureGeometry.heightPx)
+            assertEquals(480, densityUpdated.effectiveParameters.captureGeometry.densityDpi)
+            verify(exactly = 1) {
+                platform.projectionPlatform.resize(any(), 6, 4, 480)
+            }
+            verify(exactly = 2) {
+                platform.projectionPlatform.resize(any(), any(), any(), any())
+            }
+
+            platform.verifyInitialProjectionBoundaries(widthPx = 8, heightPx = 6, densityDpi = 320)
         }
     }
 

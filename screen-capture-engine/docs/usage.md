@@ -80,7 +80,7 @@ val config = ScreenCaptureConfig(
 val session = ScreenCaptureEngine.createSession(context, config)
 ```
 
-On API 34–37, the metrics source's initial width and height are provisional. Android reports the accurate captured-content size through [`MediaProjection.Callback.onCapturedContentResize()`](https://developer.android.com/reference/kotlin/android/media/projection/MediaProjection.Callback#oncapturedcontentresize); startup and frame admission wait for the first valid resize dimensions, while the selected source continues to provide density.
+On API 34+, the metrics source's initial width and height are provisional. Android reports the accurate captured-content size through [`MediaProjection.Callback.onCapturedContentResize()`](https://developer.android.com/reference/kotlin/android/media/projection/MediaProjection.Callback#oncapturedcontentresize); startup and frame admission wait for the first valid resize dimensions, while the selected source continues to provide density.
 
 ## Stop capture
 

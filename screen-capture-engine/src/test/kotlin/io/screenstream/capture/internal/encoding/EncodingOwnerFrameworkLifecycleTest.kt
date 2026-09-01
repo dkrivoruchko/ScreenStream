@@ -1,7 +1,14 @@
 package io.screenstream.capture.internal.encoding
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
+import io.mockk.clearMocks
+import io.mockk.every
+import io.mockk.mockkStatic
+import io.mockk.spyk
+import io.mockk.unmockkStatic
+import io.mockk.verify
 import io.screenstream.capture.JpegBackendPolicy
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.internal.Rgba8888Layout
@@ -19,6 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -73,6 +81,241 @@ internal class EncodingOwnerFrameworkLifecycleTest {
 
     // Verification: ENC-05
     @Test
+    fun equalFrameworkReconcileReturnsReadyTwiceAndPreservesSettledCarrierIdentity() {
+        ControlledNonInlineDispatcher().use { dispatcher ->
+            val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
+            val owner = EncodingOwner(
+                dispatcher,
+                clock = ElapsedRealtimeClock { throw AssertionError("reconcile read the production clock") },
+            )
+            val firstPort = RecordingReconcilePort()
+            assertSame(
+                EncodingReconcileSubmission.Accepted,
+                owner.reconcile(layout, JpegBackendPolicy.FrameworkOnly, firstPort),
+            )
+            enterOne(dispatcher)
+            firstPort.assertReturnedExactlyOnce(EncodingReconcileResult.Ready)
+
+            val firstInput = requireInput(owner) { fail("discarded first input returned a production result") }
+            assertExactCarrier(firstInput, layout)
+            assertSame(EncodingInputSettlement.Settled, firstInput.discard())
+
+            val secondPort = RecordingReconcilePort()
+            assertSame(
+                EncodingReconcileSubmission.Accepted,
+                owner.reconcile(layout, JpegBackendPolicy.FrameworkOnly, secondPort),
+            )
+            enterOne(dispatcher)
+            secondPort.assertReturnedExactlyOnce(EncodingReconcileResult.Ready)
+
+            val secondInput = requireInput(owner) { fail("discarded second input returned a production result") }
+            assertSame(firstInput.carrier, secondInput.carrier)
+            assertSame(firstInput.writableView, secondInput.writableView)
+            assertExactCarrier(secondInput, layout)
+            assertSame(EncodingInputSettlement.Settled, secondInput.discard())
+            retireReadyOwner(owner, dispatcher)
+        }
+    }
+
+    // Verification: ENC-05
+    // Verification: ENC-06
+    @Test
+    fun invalidBitmapReconcileRetainsRootsUntilRetirementAndThenRecovers() {
+        val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
+        val invalidBitmap = spyk(Bitmap.createBitmap(layout.widthPx + 1, layout.heightPx, Bitmap.Config.ARGB_8888))
+        val validBitmap = spyk(Bitmap.createBitmap(layout.widthPx, layout.heightPx, Bitmap.Config.ARGB_8888))
+        var staticMockInstalled = false
+        try {
+            mockkStatic(Bitmap::class)
+            staticMockInstalled = true
+            val allocationIndex = AtomicInteger()
+            every { Bitmap.createBitmap(layout.widthPx, layout.heightPx, Bitmap.Config.ARGB_8888) } answers {
+                when (allocationIndex.getAndIncrement()) {
+                    0 -> invalidBitmap
+                    1 -> validBitmap
+                    else -> throw AssertionError("Framework recovery allocated an unexpected Bitmap")
+                }
+            }
+
+            ControlledNonInlineDispatcher().use { dispatcher ->
+                val owner = EncodingOwner(
+                    dispatcher,
+                    clock = ElapsedRealtimeClock { throw AssertionError("reconcile read the production clock") },
+                )
+                val failedPort = RecordingReconcilePort()
+                assertSame(
+                    EncodingReconcileSubmission.Accepted,
+                    owner.reconcile(layout, JpegBackendPolicy.FrameworkOnly, failedPort),
+                )
+                enterOne(dispatcher)
+
+                val failed = failedPort.returnedExactlyOnce() as? EncodingReconcileResult.Failed
+                    ?: error("Invalid Bitmap reconcile did not fail")
+                assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
+                assertTrue(failed.cause is IllegalStateException)
+                assertInputFailedInternal(owner.acquireInput { fail("invalid Bitmap owner exposed an input") })
+                assertFalse(invalidBitmap.isRecycled)
+                verify(exactly = 0) { invalidBitmap.recycle() }
+
+                val recoveredPort = RecordingReconcilePort()
+                assertSame(
+                    EncodingReconcileSubmission.Accepted,
+                    owner.reconcile(layout, JpegBackendPolicy.FrameworkOnly, recoveredPort),
+                )
+                enterOne(dispatcher)
+
+                recoveredPort.assertReturnedExactlyOnce(EncodingReconcileResult.Ready)
+                assertEquals(2, allocationIndex.get())
+                assertTrue(invalidBitmap.isRecycled)
+                verify(exactly = 1) { invalidBitmap.recycle() }
+                val recoveredInput = requireInput(owner) { fail("discarded recovered input returned a production result") }
+                assertExactCarrier(recoveredInput, layout)
+                assertSame(EncodingInputSettlement.Settled, recoveredInput.discard())
+
+                retireReadyOwner(owner, dispatcher)
+                assertTrue(validBitmap.isRecycled)
+                verify(exactly = 1) {
+                    invalidBitmap.recycle()
+                    validBitmap.recycle()
+                }
+            }
+        } finally {
+            if (staticMockInstalled) unmockkStatic(Bitmap::class)
+            if (!invalidBitmap.isRecycled) invalidBitmap.recycle()
+            if (!validBitmap.isRecycled) validBitmap.recycle()
+        }
+    }
+
+    // Verification: ENC-06
+    @Test
+    fun bitmapRecycleExceptionBlocksShapeReplacementAndIsNotRetried() {
+        val initialLayout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
+        val replacementLayout = Rgba8888Layout.create(widthPx = 3, heightPx = 2)
+        val bitmap = spyk(Bitmap.createBitmap(initialLayout.widthPx, initialLayout.heightPx, Bitmap.Config.ARGB_8888))
+        val recycleFailure = IllegalStateException("Bitmap recycle failed")
+        var staticMockInstalled = false
+        try {
+            every { bitmap.recycle() } throws recycleFailure
+            mockkStatic(Bitmap::class)
+            staticMockInstalled = true
+            every {
+                Bitmap.createBitmap(initialLayout.widthPx, initialLayout.heightPx, Bitmap.Config.ARGB_8888)
+            } returns bitmap
+
+            ControlledNonInlineDispatcher().use { dispatcher ->
+                val owner = EncodingOwner(
+                    dispatcher,
+                    clock = ElapsedRealtimeClock { throw AssertionError("reconcile read the production clock") },
+                )
+                reconcileReady(owner, dispatcher, initialLayout)
+                val replacementPort = RecordingReconcilePort()
+                assertSame(
+                    EncodingReconcileSubmission.Accepted,
+                    owner.reconcile(replacementLayout, JpegBackendPolicy.FrameworkOnly, replacementPort),
+                )
+                enterOne(dispatcher)
+
+                val failed = replacementPort.returnedExactlyOnce() as? EncodingReconcileResult.Failed
+                    ?: error("Failed Bitmap retirement did not fail replacement reconcile")
+                assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
+                assertSame(recycleFailure, failed.cause)
+                assertInputFailedInternal(owner.acquireInput { fail("failed replacement exposed an input") })
+                verify(exactly = 1) {
+                    Bitmap.createBitmap(any(), any(), Bitmap.Config.ARGB_8888)
+                    bitmap.recycle()
+                }
+
+                owner.retire()
+                enterOne(dispatcher)
+                assertRetired(owner)
+                verify(exactly = 1) {
+                    Bitmap.createBitmap(any(), any(), Bitmap.Config.ARGB_8888)
+                    bitmap.recycle()
+                }
+            }
+        } finally {
+            if (staticMockInstalled) unmockkStatic(Bitmap::class)
+            clearMocks(bitmap, answers = true)
+            if (!bitmap.isRecycled) bitmap.recycle()
+        }
+    }
+
+    // Verification: ENC-07
+    // Verification: FWK-01
+    @Test
+    fun swallowedCompressionStreamFaultIsInternalAndAbortsBeforeCarrierRecovery() {
+        val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
+        val bitmap = spyk(Bitmap.createBitmap(layout.widthPx, layout.heightPx, Bitmap.Config.ARGB_8888))
+        val partialBytes = byteArrayOf(0x50, 0x41, 0x52, 0x54)
+        val recoveredBytes = byteArrayOf(0x4A, 0x50, 0x45, 0x47)
+        val compressionAttempt = AtomicInteger()
+        var staticMockInstalled = false
+        try {
+            every { bitmap.compress(Bitmap.CompressFormat.JPEG, any(), any()) } answers {
+                val output = thirdArg<OutputStream>()
+                if (compressionAttempt.getAndIncrement() == 0) {
+                    output.write(partialBytes)
+                    try {
+                        output.write(partialBytes, -1, 1)
+                    } catch (_: Exception) {
+                    }
+                    false
+                } else {
+                    output.write(recoveredBytes)
+                    true
+                }
+            }
+            mockkStatic(Bitmap::class)
+            staticMockInstalled = true
+            every { Bitmap.createBitmap(layout.widthPx, layout.heightPx, Bitmap.Config.ARGB_8888) } returns bitmap
+
+            ControlledNonInlineDispatcher().use { dispatcher ->
+                val productionFactory = RecordingFrameworkProductionFactory()
+                val owner = EncodingOwner(
+                    dispatcher,
+                    clock = ThreeSampleClock(firstStartNanos = 10L, secondStartNanos = 20L, secondFinishNanos = 31L),
+                    nativeJpeg = FailFastNativeJpegFacade,
+                    productionFactory = productionFactory,
+                )
+                reconcileReady(owner, dispatcher, layout)
+                val failedPort = RecordingProductionPort()
+                val failedInput = requireInput(owner, failedPort)
+                fillOpaqueRgba(failedInput)
+                assertSame(EncodingInputSettlement.Accepted, failedInput.encode(jpegQuality = 80))
+                enterOne(dispatcher)
+
+                val failed = failedPort.returnedExactlyOnce() as? EncodingResult.Failed
+                    ?: error("Faulted Framework transaction was treated as a benign frame rejection")
+                assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
+                assertNull(failed.cause)
+                val aborted = checkNotNull(productionFactory.firstTransaction)
+                assertEquals(partialBytes.size, aborted.byteCount)
+                assertSame(ManagedEncodedTransaction.State.Aborted, aborted.state)
+                assertNull(aborted.committedPayload)
+
+                val recoveredPort = RecordingProductionPort()
+                val recoveredInput = requireInput(owner, recoveredPort)
+                assertSame(failedInput.carrier, recoveredInput.carrier)
+                assertSame(failedInput.writableView, recoveredInput.writableView)
+                fillOpaqueRgba(recoveredInput)
+                assertSame(EncodingInputSettlement.Accepted, recoveredInput.encode(jpegQuality = 80))
+                enterOne(dispatcher)
+
+                val encoded = recoveredPort.returnedExactlyOnce() as? EncodingResult.Encoded
+                    ?: error("Framework owner did not recover after the faulted transaction")
+                assertArrayEquals(recoveredBytes, encoded.payload.toByteArray())
+                assertEquals(11L, encoded.encodeDurationNanos)
+                assertEquals(2, compressionAttempt.get())
+                retireReadyOwner(owner, dispatcher)
+            }
+        } finally {
+            if (staticMockInstalled) unmockkStatic(Bitmap::class)
+            if (!bitmap.isRecycled) bitmap.recycle()
+        }
+    }
+
+    // Verification: ENC-05
+    @Test
     fun unenteredReconcileIsCutOffOnRetire() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
@@ -113,6 +356,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
     }
 
     // Verification: ENC-01
+    // Verification: ENC-02
     @Test
     @Config(
         manifest = Config.NONE,
@@ -209,7 +453,6 @@ internal class EncodingOwnerFrameworkLifecycleTest {
                 assertEquals(11L, encoded.encodeDurationNanos)
                 val encodedBytes = encoded.payload.toByteArray()
                 assertArrayEquals(bitmapFixture.successfulJpegBytes, encodedBytes)
-                assertFalse(encodedBytes.copyOf(bitmapFixture.partialBytes.size).contentEquals(bitmapFixture.partialBytes))
 
                 retireReadyOwner(owner, dispatcher)
             }
@@ -407,6 +650,11 @@ internal class EncodingOwnerFrameworkLifecycleTest {
             assertEquals(1, callbackCount.get())
             assertSame(expected, returned.get())
         }
+
+        fun returnedExactlyOnce(): EncodingReconcileResult {
+            assertEquals(1, callbackCount.get())
+            return checkNotNull(returned.get())
+        }
     }
 
     private class RecordingProductionPort : EncodingProductionReturnPort {
@@ -426,6 +674,11 @@ internal class EncodingOwnerFrameworkLifecycleTest {
         fun assertReturnedExactlyOnce(expected: EncodingResult) {
             assertEquals(1, callbackCount.get())
             assertSame(expected, returned.get())
+        }
+
+        fun returnedExactlyOnce(): EncodingResult {
+            assertEquals(1, callbackCount.get())
+            return checkNotNull(returned.get())
         }
     }
 

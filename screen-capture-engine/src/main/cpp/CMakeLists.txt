@@ -13,6 +13,7 @@ add_library(screen_capture_engine SHARED
 
 set_target_properties(screen_capture_engine PROPERTIES
         CXX_VISIBILITY_PRESET hidden
+        LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/screen_capture_engine.map.txt"
         VISIBILITY_INLINES_HIDDEN YES
 )
 

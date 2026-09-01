@@ -74,6 +74,10 @@ internal class Rgba8888LayoutValidationTest {
             ByteBuffer.allocateDirect(expectedByteCount).apply { limit(expectedByteCount - 1) }
                 .isExactWritableRgbaCarrier(expectedByteCount),
         )
+        assertFalse(
+            ByteBuffer.allocateDirect(expectedByteCount + 1).apply { limit(expectedByteCount) }
+                .isExactWritableRgbaCarrier(expectedByteCount),
+        )
         assertFalse(ByteBuffer.allocateDirect(expectedByteCount + 1).isExactWritableRgbaCarrier(expectedByteCount))
         assertFalse(ByteBuffer.allocateDirect(expectedByteCount).isExactWritableRgbaCarrier(0))
         assertFalse(ByteBuffer.allocateDirect(expectedByteCount).isExactWritableRgbaCarrier(-1))

@@ -31,6 +31,7 @@ internal class ManagedDirectCarrierLifecycleTest {
     }
 
     // Verification: ENC-01
+    // Verification: ENC-06
     @Test
     fun exactDirectRangeHasOneLinearLoanAndRejectsStaleOrDuplicateSettlement() {
         ControlledNonInlineDispatcher().use { dispatcher ->
@@ -76,6 +77,7 @@ internal class ManagedDirectCarrierLifecycleTest {
     }
 
     // Verification: ENC-01
+    // Verification: ENC-06
     @Test
     fun retirementRetainsLiveLoanUntilItsRealSettlement() {
         ControlledNonInlineDispatcher().use { dispatcher ->

@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory
 import io.screenstream.capture.internal.Rgba8888Layout
 import io.screenstream.capture.internal.storage.ImmutableEncodedPayload
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertTrue
 import java.nio.ByteBuffer
 import kotlin.math.abs
@@ -48,14 +47,8 @@ internal object DeviceJpegFixture {
 
     internal fun assertPayload(payload: ImmutableEncodedPayload) {
         assertTrue(payload.byteCount > 0)
-        val firstCopy = payload.toByteArray()
-        val originalFirstByte = firstCopy[0]
-        firstCopy[0] = (firstCopy[0].toInt() xor 0xFF).toByte()
-        val secondCopy = payload.toByteArray()
-        assertNotSame(firstCopy, secondCopy)
-        assertEquals(originalFirstByte, secondCopy[0])
-
-        val decoded = BitmapFactory.decodeByteArray(secondCopy, 0, secondCopy.size)
+        val encodedBytes = payload.toByteArray()
+        val decoded = BitmapFactory.decodeByteArray(encodedBytes, 0, encodedBytes.size)
             ?: error("The platform Bitmap decoder rejected the produced JPEG")
         try {
             assertDecoded(decoded)

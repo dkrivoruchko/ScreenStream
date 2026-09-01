@@ -61,7 +61,13 @@ internal class SessionCaptureOwner(
         class Returned(val outcome: RetirementOutcome) : RetirementState
     }
 
-    private class RetirementOutcome(val cleanupFailure: Throwable?, val unsafeResidue: Throwable?)
+    private class RetirementOutcome(
+        val cleanupFailure: Throwable?,
+        val unsafeResidue: Throwable?,
+        val projectionResidue: Throwable?,
+        val retainedProjectionOwner: ProjectionOwner?,
+        val retainedProjectionIdentity: CaptureProjectionIdentity?,
+    )
 
     private class CleanupAttempt<T>(val value: T?, val failure: Throwable?)
 
@@ -482,9 +488,9 @@ internal class SessionCaptureOwner(
 
     private fun retireOrReuse(command: Command): RetirementOutcome? =
         when (val current = retirement) {
-            RetirementState.Available -> retirePhysical(command)
+            RetirementState.Available -> retirePhysical(command).also(::enforceProjectionResidueRetention)
             RetirementState.Entered -> null
-            is RetirementState.Returned -> current.outcome
+            is RetirementState.Returned -> current.outcome.also(::enforceProjectionResidueRetention)
         }
 
     private fun retirePhysical(command: Command): RetirementOutcome {
@@ -493,6 +499,7 @@ internal class SessionCaptureOwner(
         check(retirement === RetirementState.Available)
         retirement = RetirementState.Entered
         val projection = projectionOwner
+        val projectionIdentityAtEntry = projectionIdentity
         val currentTarget = targetOwner
         val candidate = targetCandidate
         val oldTarget = retiringTarget
@@ -605,7 +612,8 @@ internal class SessionCaptureOwner(
             unsafeResidue = unsafeResidue ?: eglRetirement.value?.residue
         }
         unsafeResidue = unsafeResidue ?: eglRetirement.failure
-        unsafeResidue = unsafeResidue ?: projectionRetirement.failure ?: projectionRetirement.value?.residue
+        val projectionResidue = projectionRetirement.failure ?: projectionRetirement.value?.residue
+        unsafeResidue = unsafeResidue ?: projectionResidue
 
         if (unsafeResidue == null) {
             projectionOwner = null
@@ -621,9 +629,30 @@ internal class SessionCaptureOwner(
             installedPlan = null
         }
 
-        val outcome = RetirementOutcome(cleanupFailure, unsafeResidue)
+        val outcome = RetirementOutcome(
+            cleanupFailure = cleanupFailure,
+            unsafeResidue = unsafeResidue,
+            projectionResidue = projectionResidue,
+            retainedProjectionOwner = projection.takeIf { projectionResidue != null },
+            retainedProjectionIdentity = projectionIdentityAtEntry.takeIf { projectionResidue != null },
+        )
         retirement = RetirementState.Returned(outcome)
         return outcome
+    }
+
+    private fun enforceProjectionResidueRetention(outcome: RetirementOutcome) {
+        if (outcome.projectionResidue == null) return
+        val retainedProjection = checkNotNull(outcome.retainedProjectionOwner) {
+            "Projection retirement residue has no retained owner"
+        }
+        val retainedIdentity = checkNotNull(outcome.retainedProjectionIdentity) {
+            "Projection retirement residue has no retained identity"
+        }
+        check(projectionOwner === retainedProjection) { "Projection retirement residue lost its exact owner" }
+        check(projectionIdentity === retainedIdentity) { "Projection retirement residue lost its exact identity" }
+        check(retainedIdentity.names(this, retainedProjection.token)) {
+            "Retained projection identity does not match its owner"
+        }
     }
 
     private inline fun <T> attemptCleanup(action: () -> T?): CleanupAttempt<T> = try {

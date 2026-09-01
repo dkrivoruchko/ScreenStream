@@ -2,7 +2,10 @@
 #include <android/data_space.h>
 #include <jni.h>
 
+#include "native_jpeg_runtime.h"
+
 #include <array>
+#include <climits>
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
@@ -31,6 +34,8 @@ namespace {
     constexpr std::size_t kWireStatusOffset = 8;
     constexpr std::int64_t kPendingWord = -1;
     constexpr std::int64_t kCompleteStatus = 0;
+    constexpr std::int64_t kSafeCompressorRejectionStatus = 1;
+    constexpr std::int64_t kNativeOutOfMemoryStatus = 2;
     constexpr std::int64_t kInternalFailureStatus = 3;
     constexpr std::int64_t kJavaThrowableStatus = 4;
 
@@ -61,6 +66,7 @@ namespace {
         std::vector<std::unique_ptr<FakeReference>> references;
         std::vector<RegisteredMethod> registeredMethods;
         std::vector<std::uint8_t> adoptedBytes;
+        std::vector<std::size_t> adoptedSegmentByteCounts;
 
         std::string lastFoundClassName;
         std::string lastMethodName;
@@ -76,10 +82,10 @@ namespace {
         jthrowable pendingThrowable = nullptr;
         jthrowable failNextDirectViewWith = nullptr;
         jthrowable sinkThrowable = nullptr;
-        jthrowable compressorThrowable = nullptr;
-        bool sinkThrows = false;
-        bool compressorLeavesThrowable = false;
+        bool compressorRequestsOversizedWrite = false;
         bool forbiddenCallWhilePending = false;
+        std::size_t adoptionCalls = 0;
+        std::size_t failAdoptionCall = 0;
 
         std::vector<std::uint8_t> compressorBytes = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
         std::int32_t compressorResult = ANDROID_BITMAP_RESULT_SUCCESS;
@@ -227,16 +233,18 @@ namespace {
         if (sinkReference == nullptr || sinkReference->kind != ReferenceKind::Sink ||
             method != &adoptMethodId || bufferReference == nullptr ||
             bufferReference->kind != ReferenceKind::Buffer || !bufferReference->active ||
-            byteCount <= 0 || bufferReference->address == nullptr || bufferReference->capacity < byteCount) {
+            byteCount <= 0 || bufferReference->address == nullptr || bufferReference->capacity != byteCount) {
             state.forbiddenCallWhilePending = true;
             return;
         }
-        if (state.sinkThrows) {
+        ++state.adoptionCalls;
+        if (state.adoptionCalls == state.failAdoptionCall) {
             state.pendingThrowable = state.sinkThrowable;
             return;
         }
         const auto *first = static_cast<const std::uint8_t *>(bufferReference->address);
         state.adoptedBytes.insert(state.adoptedBytes.end(), first, first + byteCount);
+        state.adoptedSegmentByteCounts.push_back(static_cast<std::size_t>(byteCount));
     }
 
     jint fakeRegisterNatives(
@@ -665,6 +673,12 @@ namespace {
     // Verification: ENC-04
     void testCompressTransfersExactBytesAndCompletesWire() {
         CompressionFixture fixture;
+        fixture.harness.state.compressorBytes.resize(
+                2 * screenstream::jpeg::kNativeSegmentPayloadCapacity + 17
+        );
+        for (std::size_t index = 0; index < fixture.harness.state.compressorBytes.size(); ++index) {
+            fixture.harness.state.compressorBytes[index] = static_cast<std::uint8_t>(index * 31U + 7U);
+        }
         const std::vector<std::uint8_t> expected = fixture.harness.state.compressorBytes;
         fixture.invoke();
 
@@ -672,6 +686,13 @@ namespace {
                 "owner entry changed the maintained compressor descriptor");
         require(fixture.harness.state.compressorWriteSucceeded, "fake compressor output was rejected");
         require(fixture.harness.state.adoptedBytes == expected, "sink bytes were not exact FIFO output");
+        require(fixture.harness.state.adoptionCalls == 3 &&
+                fixture.harness.state.adoptedSegmentByteCounts == std::vector<std::size_t>({
+                                                                                                   screenstream::jpeg::kNativeSegmentPayloadCapacity,
+                                                                                                   screenstream::jpeg::kNativeSegmentPayloadCapacity,
+                                                                                                   17,
+                                                                                           }),
+                "successful transfer did not adopt the exact three-segment FIFO");
         require(fixture.producedByteCount() == static_cast<std::int64_t>(expected.size()),
                 "produced byte count mismatch");
         require(fixture.status() == kCompleteStatus, "successful transfer did not complete the wire");
@@ -682,63 +703,93 @@ namespace {
         requireCleanLocalsAndJniUse(fixture.harness.state, "successful compression");
     }
 
-    enum class ThrowableOrigin {
-        Compressor,
-        DirectView,
-        Sink,
-    };
+    // Verification: ENC-04
+    void testSecondAdoptionFailureStopsTransferAndPreservesThrowable() {
+        CompressionFixture fixture;
+        fixture.harness.state.compressorBytes.resize(
+                2 * screenstream::jpeg::kNativeSegmentPayloadCapacity + 17
+        );
+        for (std::size_t index = 0; index < fixture.harness.state.compressorBytes.size(); ++index) {
+            fixture.harness.state.compressorBytes[index] = static_cast<std::uint8_t>(index * 17U + 3U);
+        }
+        const jthrowable original = fixture.harness.state.makeThrowable("java/lang/RuntimeException");
+        fixture.harness.state.sinkThrowable = original;
+        fixture.harness.state.failAdoptionCall = 2;
+
+        fixture.invoke();
+
+        require(sameReference(fixture.harness.state.pendingThrowable, original),
+                "second-adoption Throwable was replaced or cleared");
+        require(fixture.status() == kJavaThrowableStatus,
+                "second-adoption Throwable did not use JavaThrowable wire status");
+        require(fixture.producedByteCount() ==
+                static_cast<std::int64_t>(fixture.harness.state.compressorBytes.size()),
+                "second-adoption failure changed produced-byte evidence");
+        require(fixture.harness.state.adoptionCalls == 2,
+                "transfer continued after the second adoption failed");
+        require(fixture.harness.state.adoptedSegmentByteCounts == std::vector<std::size_t>({
+                                                                                                   screenstream::jpeg::kNativeSegmentPayloadCapacity,
+                                                                                           }), "second-adoption failure adopted more than the first segment");
+        require(fixture.harness.state.adoptedBytes == std::vector<std::uint8_t>(
+                fixture.harness.state.compressorBytes.begin(),
+                fixture.harness.state.compressorBytes.begin() +
+                static_cast<std::ptrdiff_t>(screenstream::jpeg::kNativeSegmentPayloadCapacity)
+        ), "second-adoption failure changed the first adopted segment");
+        requireCleanLocalsAndJniUse(fixture.harness.state, "second-adoption failure");
+    }
 
     // Verification: ENC-04
-    void testCompressPreservesPendingThrowableAndCleansOwnedState() {
-        const std::array<std::pair<ThrowableOrigin, const char *>, 3> cases = {{
-                                                                                       {ThrowableOrigin::Compressor, "compressor"},
-                                                                                       {ThrowableOrigin::DirectView, "direct view"},
-                                                                                       {ThrowableOrigin::Sink, "sink"},
-                                                                               }};
-        for (const auto &testCase: cases) {
+    void testCompressorRejectionAndCallbackOverflowDoNotAdopt() {
+        {
             CompressionFixture fixture;
-            const jthrowable original = fixture.harness.state.makeThrowable("java/lang/RuntimeException");
-            switch (testCase.first) {
-                case ThrowableOrigin::Compressor:
-                    fixture.harness.state.compressorThrowable = original;
-                    fixture.harness.state.compressorLeavesThrowable = true;
-                    fixture.harness.state.compressorResult = ANDROID_BITMAP_RESULT_JNI_EXCEPTION;
-                    break;
-                case ThrowableOrigin::DirectView:
-                    fixture.harness.state.failNextDirectViewWith = original;
-                    break;
-                case ThrowableOrigin::Sink:
-                    fixture.harness.state.sinkThrowable = original;
-                    fixture.harness.state.sinkThrows = true;
-                    break;
-            }
-
+            fixture.harness.state.compressorResult = ANDROID_BITMAP_RESULT_ALLOCATION_FAILED;
             fixture.invoke();
 
-            const std::string context = testCase.second;
-            require(sameReference(fixture.harness.state.pendingThrowable, original),
-                    context + ": pending Throwable was replaced or cleared");
-            require(fixture.status() == kJavaThrowableStatus,
-                    context + ": pending Throwable did not use JavaThrowable wire status");
+            require(fixture.harness.state.compressorWriteSucceeded,
+                    "clean rejecting compressor did not write its partial bytes");
             require(fixture.producedByteCount() ==
-                    static_cast<std::int64_t>(fixture.harness.state.compressorBytes.size()),
-                    context + ": produced byte evidence changed during cleanup");
-            require(fixture.harness.state.adoptedBytes.empty(), context + ": failing call published bytes");
-            requireCleanLocalsAndJniUse(fixture.harness.state, context);
+                    static_cast<std::int64_t>(fixture.harness.state.compressorBytes.size()) &&
+                    fixture.status() == kSafeCompressorRejectionStatus,
+                    "clean compressor rejection did not preserve status and byte evidence");
+            require(fixture.harness.state.adoptionCalls == 0 &&
+                    fixture.harness.state.adoptedBytes.empty(),
+                    "clean compressor rejection adopted a native segment");
+            require(fixture.harness.state.pendingThrowable == nullptr,
+                    "clean compressor rejection left a Throwable");
+            requireCleanLocalsAndJniUse(fixture.harness.state, "clean compressor rejection");
+        }
+        {
+            CompressionFixture fixture;
+            fixture.harness.state.compressorRequestsOversizedWrite = true;
+            fixture.harness.state.compressorResult = ANDROID_BITMAP_RESULT_ALLOCATION_FAILED;
+            fixture.invoke();
+
+            require(!fixture.harness.state.compressorWriteSucceeded,
+                    "oversized compressor callback was accepted");
+            require(fixture.producedByteCount() == 0 && fixture.status() == kNativeOutOfMemoryStatus,
+                    "oversized callback did not fail before accepting bytes");
+            require(fixture.harness.state.adoptionCalls == 0 &&
+                    fixture.harness.state.adoptedBytes.empty(),
+                    "oversized callback adopted a native segment");
+            require(fixture.harness.state.pendingThrowable == nullptr,
+                    "oversized callback left a Throwable");
+            requireCleanLocalsAndJniUse(fixture.harness.state, "oversized callback");
         }
     }
 
     using TestFunction = void (*)();
 
-    const std::array<std::pair<const char *, TestFunction>, 5> tests = {{
+    const std::array<std::pair<const char *, TestFunction>, 6> tests = {{
                                                                                 {"JNI_OnLoad packet/failures",
                                                                                  &testOnLoadRegistersFrozenPacketAndFailuresReturnJniErr},
                                                                                 {"carrier/capability/pending entries",
                                                                                  &testCarrierCapabilityAndPreexistingThrowableEntries},
                                                                                 {"compress malformed inputs", &testCompressMalformedInputsDoNotPublish},
                                                                                 {"compress exact transfer", &testCompressTransfersExactBytesAndCompletesWire},
-                                                                                {"compress pending Throwable cleanup",
-                                                                                 &testCompressPreservesPendingThrowableAndCleansOwnedState},
+                                                                                {"second-adoption Throwable cleanup",
+                                                                                 &testSecondAdoptionFailureStopsTransferAndPreservesThrowable},
+                                                                                {"compress rejection/overflow",
+                                                                                 &testCompressorRejectionAndCallbackOverflowDoNotAdopt},
                                                                         }};
 
 }
@@ -769,6 +820,15 @@ extern "C" int AndroidBitmap_compress(
             function != nullptr;
     if (!state.compressorDescriptorMatched) return ANDROID_BITMAP_RESULT_BAD_PARAMETER;
 
+    if (state.compressorRequestsOversizedWrite) {
+        state.compressorWriteSucceeded = function(
+                userContext,
+                reinterpret_cast<const void *>(static_cast<std::uintptr_t>(1)),
+                static_cast<std::size_t>(INT_MAX) + 1U
+        );
+        return state.compressorResult;
+    }
+
     const std::size_t midpoint = state.compressorBytes.size() / 2;
     const bool firstAccepted = function(userContext, state.compressorBytes.data(), midpoint);
     const bool secondAccepted = function(
@@ -777,7 +837,6 @@ extern "C" int AndroidBitmap_compress(
             state.compressorBytes.size() - midpoint
     );
     state.compressorWriteSucceeded = firstAccepted && secondAccepted;
-    if (state.compressorLeavesThrowable) state.pendingThrowable = state.compressorThrowable;
     return state.compressorResult;
 }
 

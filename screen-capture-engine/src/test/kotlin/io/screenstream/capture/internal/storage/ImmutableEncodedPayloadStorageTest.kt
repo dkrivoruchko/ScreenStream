@@ -67,5 +67,15 @@ internal class ImmutableEncodedPayloadStorageTest {
         assertThrows(IllegalArgumentException::class.java) {
             ImmutableEncodedPayload(arrayOf(byteArrayOf(1, 2)), byteCount = 1)
         }
+        assertThrows(IllegalArgumentException::class.java) {
+            ImmutableEncodedPayload(arrayOf(byteArrayOf(1)), byteCount = 2)
+        }
+
+        val oneMiBSegment = ByteArray(1 shl 20)
+        val aliasedSegments = Array(4_097) { oneMiBSegment }
+        assertEquals((1L shl 32) + oneMiBSegment.size, aliasedSegments.sumOf { it.size.toLong() })
+        assertThrows(IllegalArgumentException::class.java) {
+            ImmutableEncodedPayload(segments = aliasedSegments, byteCount = oneMiBSegment.size)
+        }
     }
 }

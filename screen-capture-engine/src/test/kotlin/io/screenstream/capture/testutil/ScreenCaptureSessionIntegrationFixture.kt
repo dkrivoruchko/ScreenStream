@@ -333,7 +333,10 @@ internal object ScreenCaptureSessionIntegrationFixture {
         private var sourceFrameHandler: Handler? = null
         private val sourceRgbaSeed = AtomicInteger()
         private val sourceDataSpace = AtomicInteger(DataSpace.DATASPACE_UNKNOWN)
+        private val sourceUpdates = AtomicInteger()
         private val nextReadbackAction = AtomicReference<((ByteBuffer) -> Unit)?>(null)
+        private val nextSourceUpdateFailure = AtomicReference<Exception?>(null)
+        private val nextReplacementSurfaceTextureDenial = AtomicReference<Surface.OutOfResourcesException?>(null)
         private var didReturnInitialVirtualDisplay = false
 
         init {
@@ -364,6 +367,10 @@ internal object ScreenCaptureSessionIntegrationFixture {
             }
         }
 
+        fun deliverProjectionStopped() {
+            deliverProjectionCallback(MediaProjection.Callback::onStop)
+        }
+
         fun deliverSourceFrame(rgbaSeed: Int, dataSpace: Int = DataSpace.DATASPACE_UNKNOWN) {
             val listener = checkNotNull(sourceFrameListener)
             val handler = checkNotNull(sourceFrameHandler)
@@ -375,6 +382,21 @@ internal object ScreenCaptureSessionIntegrationFixture {
 
         fun runOnceDuringNextReadback(action: (ByteBuffer) -> Unit) {
             check(nextReadbackAction.compareAndSet(null, action)) { "A readback action is already armed" }
+        }
+
+        fun failNextSourceUpdate(failure: Exception) {
+            check(nextSourceUpdateFailure.compareAndSet(null, failure)) { "A source-update failure is already armed" }
+        }
+
+        fun sourceUpdateCount(): Int = sourceUpdates.get()
+
+        fun denyNextReplacementSurfaceTextureAllocation() {
+            check(
+                nextReplacementSurfaceTextureDenial.compareAndSet(
+                    null,
+                    Surface.OutOfResourcesException("Injected replacement SurfaceTexture allocation denial"),
+                ),
+            ) { "A replacement SurfaceTexture allocation denial is already armed" }
         }
 
         fun verifyOpenBoundaries(widthPx: Int, heightPx: Int, densityDpi: Int) {
@@ -569,7 +591,10 @@ internal object ScreenCaptureSessionIntegrationFixture {
 
         private fun configureTarget() {
             every { targetPlatform.createSurfaceTexture(initialOesTextureName) } returns initialSurfaceTexture
-            every { targetPlatform.createSurfaceTexture(replacementOesTextureName) } returns replacementSurfaceTexture
+            every { targetPlatform.createSurfaceTexture(replacementOesTextureName) } answers {
+                nextReplacementSurfaceTextureDenial.getAndSet(null)?.let { throw it }
+                replacementSurfaceTexture
+            }
             every { targetPlatform.setDefaultBufferSize(refEq(initialSurfaceTexture), any(), any()) } just Runs
             every { targetPlatform.setDefaultBufferSize(refEq(replacementSurfaceTexture), any(), any()) } just Runs
             every { targetPlatform.createSurface(refEq(initialSurfaceTexture)) } returns initialSurface
@@ -579,7 +604,10 @@ internal object ScreenCaptureSessionIntegrationFixture {
                 sourceFrameHandler = thirdArg()
             }
             every { targetPlatform.setFrameListener(refEq(replacementSurfaceTexture), any(), any()) } just Runs
-            every { targetPlatform.updateTexImage(refEq(initialSurfaceTexture)) } just Runs
+            every { targetPlatform.updateTexImage(refEq(initialSurfaceTexture)) } answers {
+                sourceUpdates.incrementAndGet()
+                nextSourceUpdateFailure.getAndSet(null)?.let { throw it }
+            }
             every { targetPlatform.dataSpace(refEq(initialSurfaceTexture)) } answers { sourceDataSpace.get() }
             every { targetPlatform.getTransformMatrix(refEq(initialSurfaceTexture), any()) } answers {
                 val matrix = secondArg<FloatArray>()

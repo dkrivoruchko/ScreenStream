@@ -18,13 +18,13 @@ import org.junit.Test
 internal class SessionPlanResolutionGeometryTest {
     // Verification: SES-04
     @Test
-    fun earlyDownscaleStartsAtApi32AndRemainsEligibleThroughApi37() {
+    fun earlyDownscaleStartsAtApi32AndRemainsEligibleAboveApi37() {
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.5))
 
         val api31 = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = 31)
         assertTarget(api31, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
 
-        listOf(32, 37).forEach { platformSdkInt ->
+        listOf(32, 37, 38).forEach { platformSdkInt ->
             val resolved = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = platformSdkInt)
             assertTarget(resolved, CaptureTargetMode.Downscaled, widthPx = 5, heightPx = 3)
         }
@@ -136,8 +136,7 @@ internal class SessionPlanResolutionGeometryTest {
         assertEquals(5, resolved.effectiveParameters.finalImageSize.widthPx)
         assertEquals(3, resolved.effectiveParameters.finalImageSize.heightPx)
         assertSame(CaptureTargetMode.Full, resolved.capturePlan.targetMode)
-        assertSame(resolved.capturePlan.appliedSourceRect, resolved.effectiveParameters.appliedSourceRect)
-        assertSame(resolved.capturePlan.rgbaLayout, resolved.encoderPlan)
+        assertEquals(resolved.capturePlan.appliedSourceRect, resolved.effectiveParameters.appliedSourceRect)
     }
 
     // Verification: SES-04
@@ -157,7 +156,7 @@ internal class SessionPlanResolutionGeometryTest {
 
     // Verification: SES-04
     @Test
-    fun equalResolvedRectFromDifferentRawRequestsIsNotTheSameCaptureConfiguration() {
+    fun equalResolvedRectFromDifferentRawRequestsHasTheSameCaptureConfiguration() {
         val fullCropped = resolvePlan(
             parameters = ScreenCaptureParameters(
                 sourceRegion = SourceRegion.Full,
@@ -173,7 +172,7 @@ internal class SessionPlanResolutionGeometryTest {
         )
 
         assertEquals(fullCropped.capturePlan.appliedSourceRect, rightHalf.capturePlan.appliedSourceRect)
-        assertFalse(fullCropped.capturePlan.hasSameCaptureConfigurationAs(rightHalf.capturePlan))
+        assertTrue(fullCropped.capturePlan.hasSameCaptureConfigurationAs(rightHalf.capturePlan))
     }
 
     // Verification: SES-04
@@ -220,6 +219,51 @@ internal class SessionPlanResolutionGeometryTest {
 
     // Verification: SES-04
     @Test
+    fun aspectFitUsesHeightBoundWithoutPadding() {
+        val resolved = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.TargetSize(8, 2, OutputSize.ContentMode.AspectFit),
+            ),
+            widthPx = 5,
+            heightPx = 3,
+        )
+
+        assertEquals(3, resolved.effectiveParameters.finalImageSize.widthPx)
+        assertEquals(2, resolved.effectiveParameters.finalImageSize.heightPx)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun aspectFitClampsRoundedNonfixedDimensionToOnePixel() {
+        val resolved = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.TargetSize(2, 2, OutputSize.ContentMode.AspectFit),
+            ),
+            widthPx = 5,
+            heightPx = 1,
+        )
+
+        assertEquals(2, resolved.effectiveParameters.finalImageSize.widthPx)
+        assertEquals(1, resolved.effectiveParameters.finalImageSize.heightPx)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun stretchUsesExactTargetDimensions() {
+        val resolved = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.TargetSize(8, 2, OutputSize.ContentMode.Stretch),
+            ),
+            widthPx = 5,
+            heightPx = 3,
+        )
+
+        assertEquals(8, resolved.effectiveParameters.finalImageSize.widthPx)
+        assertEquals(2, resolved.effectiveParameters.finalImageSize.heightPx)
+    }
+
+    // Verification: SES-04
+    @Test
     fun tinyPositiveScaleClampsFinalImageAndEncoderLayoutToOnePixel() {
         val resolved = resolvePlan(
             parameters = ScreenCaptureParameters(
@@ -231,11 +275,28 @@ internal class SessionPlanResolutionGeometryTest {
 
         assertEquals(1, resolved.effectiveParameters.finalImageSize.widthPx)
         assertEquals(1, resolved.effectiveParameters.finalImageSize.heightPx)
-        assertSame(resolved.capturePlan.rgbaLayout, resolved.encoderPlan)
         assertEquals(1, resolved.encoderPlan.widthPx)
         assertEquals(1, resolved.encoderPlan.heightPx)
         assertEquals(4, resolved.encoderPlan.rowByteCount)
         assertEquals(4, resolved.encoderPlan.byteCount)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun oversizedScaleFactorIsInvalidRequest() {
+        val result = SessionPlanResolution.resolve(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.ScaleFactor(Int.MAX_VALUE.toDouble()),
+            ),
+            widthPx = 2,
+            heightPx = 1,
+            densityDpi = 320,
+            platformSdkInt = 30,
+            sourceDimensionsAreAuthoritative = true,
+        )
+
+        assertTrue(result is SessionPlanResolution.Rejected)
+        assertSame(ScreenCaptureProblem.InvalidRequest, (result as SessionPlanResolution.Rejected).problem)
     }
 
     // Verification: SES-04

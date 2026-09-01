@@ -14,12 +14,10 @@ import android.os.Looper
 import android.view.Surface
 import io.mockk.mockk
 import io.screenstream.capture.ColorMode
-import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.ImageRect
 import io.screenstream.capture.Mirror
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.ScreenCaptureProblem
-import io.screenstream.capture.SourceRegion
 import io.screenstream.capture.internal.Rgba8888Layout
 import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import org.junit.After
@@ -158,6 +156,46 @@ internal class GLRendererReadbackTest {
         }
     }
 
+    // Verification: CAP-04
+    @Test
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.TIRAMISU])
+    fun nonfiniteTransformPoisonsGraphBeforeDrawOrReadAndPreservesCarrier() {
+        RendererFixture(dataSpace = DataSpace.DATASPACE_SRGB).use { fixture ->
+            fixture.fillCarrier(CARRIER_SENTINEL)
+            val bytesBefore = fixture.carrierBytes()
+            val positionBefore = fixture.carrier.position()
+            val limitBefore = fixture.carrier.limit()
+            val capacityBefore = fixture.carrier.capacity()
+            fixture.targetPlatform.nonfiniteTransformIndex = 6
+
+            val failure = assertThrows(CaptureBoundaryFailure::class.java) {
+                fixture.renderer.readFrame(fixture.carrier)
+            }
+
+            assertSame(ScreenCaptureProblem.InternalFailure, failure.problem)
+            assertEquals(1, fixture.targetPlatform.updateCount)
+            assertEquals(1, fixture.targetPlatform.transformCount)
+            assertEquals(0, fixture.targetPlatform.dataSpaceCount)
+            assertEquals(0, fixture.gl.drawCount)
+            assertEquals(0, fixture.gl.readPixelsCount)
+            assertEquals(1, fixture.gl.postprobeCount)
+            assertEquals(0, fixture.clock.readCount)
+            assertArrayEquals(bytesBefore, fixture.carrierBytes())
+            assertEquals(positionBefore, fixture.carrier.position())
+            assertEquals(limitBefore, fixture.carrier.limit())
+            assertEquals(capacityBefore, fixture.carrier.capacity())
+            assertFalse(fixture.renderer.sourceRestorableAfterLastReadFailure)
+            assertFalse(fixture.eglOwner.isHealthy)
+
+            assertThrows(CaptureBoundaryFailure::class.java) {
+                fixture.renderer.readFrame(fixture.carrier)
+            }
+            assertEquals(1, fixture.targetPlatform.updateCount)
+            assertEquals(0, fixture.gl.drawCount)
+            assertEquals(0, fixture.gl.readPixelsCount)
+        }
+    }
+
     private class RendererFixture(dataSpace: Int) : AutoCloseable {
         val events = SemanticEventRecorder()
         val eglPlatform = HappyEglPlatform()
@@ -215,15 +253,11 @@ internal class GLRendererReadbackTest {
         override fun close() {
             val rendererRetirement = renderer.close()
             assertNull(rendererRetirement.cleanupFailure)
-            assertNull(rendererRetirement.residue)
-            assertNull(rendererRetirement.glNameResidue)
 
             val listenerRemoval = targetOwner.fenceAndRemoveListener()
             assertNull(listenerRemoval.failure)
             val targetRetirement = targetOwner.releaseKnownUnattached(listenerRemoval.proof)
             assertNull(targetRetirement.cleanupFailure)
-            assertNull(targetRetirement.residue)
-            assertNull(targetRetirement.glNameResidue)
             assertEquals(1, targetPlatform.surfaceReleaseCount)
             assertEquals(1, targetPlatform.surfaceTextureReleaseCount)
 
@@ -234,6 +268,19 @@ internal class GLRendererReadbackTest {
             assertEquals(1, eglPlatform.destroyContextCount)
             assertEquals(1, eglPlatform.destroySurfaceCount)
             assertEquals(1, eglPlatform.releaseThreadCount)
+            val namespaceProof = checkNotNull(eglRetirement.namespaceDestroyedProof)
+            if (rendererRetirement.residue == null) {
+                assertNull(rendererRetirement.glNameResidue)
+            } else {
+                assertTrue(namespaceProof.retires(checkNotNull(rendererRetirement.glNameResidue)))
+                assertTrue(renderer.retireGLNamesAfterContextDestroyed(namespaceProof))
+            }
+            if (targetRetirement.residue == null) {
+                assertNull(targetRetirement.glNameResidue)
+            } else {
+                assertTrue(namespaceProof.retires(checkNotNull(targetRetirement.glNameResidue)))
+                assertTrue(targetOwner.retireOesTextureNameAfterContextDestroyed(namespaceProof))
+            }
         }
     }
 
@@ -287,6 +334,7 @@ internal class GLRendererReadbackTest {
             private set
         var surfaceTextureReleaseCount = 0
             private set
+        var nonfiniteTransformIndex: Int? = null
 
         fun clearFrameEvidence() {
             updateCount = 0
@@ -327,6 +375,7 @@ internal class GLRendererReadbackTest {
             destination[5] = 1f
             destination[10] = 1f
             destination[15] = 1f
+            nonfiniteTransformIndex?.let { destination[it] = Float.NaN }
             transformCount += 1
             events.record("transform")
         }
@@ -559,8 +608,6 @@ internal class GLRendererReadbackTest {
         private const val CARRIER_SENTINEL: Byte = 0x5A
 
         private fun capturePlan(): CapturePlan = CapturePlan(
-            sourceRegion = SourceRegion.Full,
-            crop = CropInsetsPx.ZERO,
             appliedSourceRect = ImageRect.create(0, 0, 2, 1),
             rotation = Rotation.Degrees0,
             mirror = Mirror.None,

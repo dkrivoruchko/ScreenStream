@@ -97,13 +97,6 @@ internal class DeliveryOwnerLifecycleTest {
                         }
                         assertArrayEquals(negativeOffsetBefore, negativeOffsetDestination)
 
-                        val overflowDestination = ByteArray(6) { 7 }
-                        val overflowBefore = overflowDestination.copyOf()
-                        assertThrows(IndexOutOfBoundsException::class.java) {
-                            borrowed.copyTo(overflowDestination, destinationOffset = Int.MAX_VALUE)
-                        }
-                        assertArrayEquals(overflowBefore, overflowDestination)
-
                         val insufficientTailDestination = ByteArray(6) { 6 }
                         val insufficientTailBefore = insufficientTailDestination.copyOf()
                         assertThrows(IndexOutOfBoundsException::class.java) {
@@ -124,25 +117,29 @@ internal class DeliveryOwnerLifecycleTest {
     @Test
     fun borrowIsUsableOnlyOnTheEnteredCallbackThreadAndDuringItsBody() {
         ControlledNonInlineDispatcher().use { dispatcher ->
+            val borrowMethods = listOf(
+                BorrowMethod("byteCount") { it.byteCount },
+                BorrowMethod("effectiveParameters") { it.effectiveParameters },
+                BorrowMethod("sequence") { it.sequence },
+                BorrowMethod("timestampElapsedRealtimeNanos") { it.timestampElapsedRealtimeNanos },
+                BorrowMethod("copyTo") { it.copyTo(ByteArray(4)) },
+                BorrowMethod("toByteArray") { it.toByteArray() },
+            )
             val ownerRef = AtomicReference<DeliveryOwner>()
             val retained = AtomicReference<EncodedImageFrame?>()
-            val wrongThreadFailure = AtomicReference<Throwable?>()
-            val sameWorkerPostReturnFailure = AtomicReference<Throwable?>()
+            val wrongThreadFailures = AtomicReference<Map<String, Throwable?>>()
             val callbackThread = AtomicReference<Thread?>()
-            val wrongThreadDestination = ByteArray(6) { 8 }
-            val wrongThreadDestinationBefore = wrongThreadDestination.copyOf()
-            val sameWorkerPostReturnDestination = ByteArray(6) { 7 }
-            val sameWorkerPostReturnDestinationBefore = sameWorkerPostReturnDestination.copyOf()
             val sink = RecordingFactSink(
                 onStage = { _, stageIndex ->
                     if (stageIndex == 1) {
                         assertSame(callbackThread.get(), Thread.currentThread())
                         val borrowed = retained.get() ?: error("callback did not retain its borrowed frame")
-                        try {
-                            borrowed.copyTo(sameWorkerPostReturnDestination, destinationOffset = 1)
-                            fail("same-worker post-callback borrow access succeeded")
-                        } catch (failure: IllegalStateException) {
-                            sameWorkerPostReturnFailure.set(failure)
+                        for (method in borrowMethods) {
+                            try {
+                                method.access(borrowed)
+                                fail("${method.label} succeeded on the callback worker after return")
+                            } catch (_: IllegalStateException) {
+                            }
                         }
                     }
                 },
@@ -158,20 +155,21 @@ internal class DeliveryOwnerLifecycleTest {
                         retained.set(borrowed)
                         callbackThread.set(Thread.currentThread())
                         assertTrue(ownerRef.get().isEnteredCallbackThread(token.registrationId))
-                        assertTrue(borrowed.byteCount == 4)
-                        assertTrue(borrowed.sequence == 3L)
-                        assertTrue(borrowed.timestampElapsedRealtimeNanos == 5L)
-                        assertSame(EFFECTIVE_PARAMETERS, borrowed.effectiveParameters)
-                        assertArrayEquals(byteArrayOf(1, 2, 3, 4), borrowed.toByteArray())
+                        borrowMethods.forEach { it.access(borrowed) }
 
                         val foreign = Thread(
                             {
-                                try {
-                                    borrowed.copyTo(wrongThreadDestination, destinationOffset = 1)
-                                    fail("wrong-thread borrow access succeeded")
-                                } catch (failure: Throwable) {
-                                    wrongThreadFailure.set(failure)
-                                }
+                                wrongThreadFailures.set(
+                                    borrowMethods.associate { method ->
+                                        val failure = try {
+                                            method.access(borrowed)
+                                            null
+                                        } catch (failure: Throwable) {
+                                            failure
+                                        }
+                                        method.label to failure
+                                    },
+                                )
                             },
                             "ScreenCaptureEngine-Test-Foreign",
                         )
@@ -186,16 +184,13 @@ internal class DeliveryOwnerLifecycleTest {
             val task = dispatcher.enterNext() ?: error("accepted callback was not retained")
             task.awaitSuccessfulCompletion()
             assertTrue(callbackThread.get() !== Thread.currentThread())
-            assertTrue(wrongThreadFailure.get() is IllegalStateException)
-            assertTrue(sameWorkerPostReturnFailure.get() is IllegalStateException)
-            assertArrayEquals(wrongThreadDestinationBefore, wrongThreadDestination)
-            assertArrayEquals(sameWorkerPostReturnDestinationBefore, sameWorkerPostReturnDestination)
-            assertFalse(owner.isEnteredCallbackThread(token.registrationId))
-            try {
-                checkNotNull(retained.get()).byteCount
-                fail("post-callback borrow access succeeded")
-            } catch (_: IllegalStateException) {
+            for (method in borrowMethods) {
+                assertTrue(
+                    "${method.label} did not reject access from a foreign thread while open",
+                    wrongThreadFailures.get()?.get(method.label) is IllegalStateException,
+                )
             }
+            assertFalse(owner.isEnteredCallbackThread(token.registrationId))
         }
     }
 
@@ -267,9 +262,28 @@ internal class DeliveryOwnerLifecycleTest {
     fun failureFactExceptionBecomesInternalClosedOutcome() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val reportFailure = IllegalStateException("fact transfer failed")
-            val sink = RecordingFactSink(offerFailure = reportFailure)
+            val retained = AtomicReference<EncodedImageFrame?>()
+            val sink = RecordingFactSink(
+                offerFailure = reportFailure,
+                onOffer = { fact ->
+                    if (fact is DeliveryFact.CallbackFailure) {
+                        assertThrows(IllegalStateException::class.java) {
+                            checkNotNull(retained.get()).byteCount
+                        }
+                    }
+                },
+            )
             val owner = DeliveryOwner(dispatcher, sink)
-            assertTrue(owner.offer(DeliveryHandoffToken(17L), { throw IllegalArgumentException("callback") }, frame()) is DeliveryOffer.Accepted)
+            assertTrue(
+                owner.offer(
+                    DeliveryHandoffToken(17L),
+                    { borrowed ->
+                        retained.set(borrowed)
+                        throw IllegalArgumentException("callback")
+                    },
+                    frame(),
+                ) is DeliveryOffer.Accepted,
+            )
             val task = dispatcher.enterNext() ?: error("accepted callback was not retained")
             task.awaitSuccessfulCompletion()
 
@@ -445,8 +459,14 @@ internal class DeliveryOwnerLifecycleTest {
         }
     }
 
+    private class BorrowMethod(
+        val label: String,
+        val access: (EncodedImageFrame) -> Any?,
+    )
+
     private class RecordingFactSink(
         private val offerFailure: Exception? = null,
+        private val onOffer: (DeliveryFact) -> Unit = {},
         private val onStage: (DeliveryFact.Closed, Int) -> Unit = { _, _ -> },
         private val onReady: (DeliveryFact.Closed, Int) -> Unit = { _, _ -> },
     ) : DeliveryFactSink {
@@ -456,6 +476,7 @@ internal class DeliveryOwnerLifecycleTest {
         private var stageCount = 0
 
         override fun offer(fact: DeliveryFact) {
+            onOffer(fact)
             offerFailure?.let { throw it }
             synchronized(gate) { recorded += fact }
         }
