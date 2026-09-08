@@ -43,6 +43,10 @@ internal class NativeInvocationEvidenceCellContractTest {
             NativeJpegDisposition.Returned.SafeCompressorRejection,
             classify(transaction, resultBlock(producedByteCount = 17L, wireStatus = 1L)),
         )
+        assertEquals(
+            NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            classify(transaction, resultBlock(producedByteCount = Int.MAX_VALUE.toLong() + 1L, wireStatus = 1L)),
+        )
     }
 
     // Verification: ENC-04

@@ -1,5 +1,6 @@
 package io.screenstream.capture.internal.metrics
 
+import android.content.ComponentCallbacks
 import android.content.Context
 import android.graphics.Point
 import android.graphics.Rect
@@ -35,6 +36,10 @@ internal interface BuiltInCaptureMetricsPlatform {
     fun createApi30WindowContext(displayContext: Context): Context
 
     fun createApi31WindowContext(applicationContext: Context, display: Display): Context
+
+    fun registerWindowContextCallback(windowContext: Context, callback: ComponentCallbacks)
+
+    fun unregisterWindowContextCallback(windowContext: Context, callback: ComponentCallbacks)
 
     fun windowManager(windowContext: Context): WindowManager
 
@@ -77,6 +82,14 @@ internal object AndroidBuiltInCaptureMetricsPlatform : BuiltInCaptureMetricsPlat
     @RequiresApi(Build.VERSION_CODES.S)
     override fun createApi31WindowContext(applicationContext: Context, display: Display): Context =
         applicationContext.createWindowContext(display, WindowManager.LayoutParams.TYPE_APPLICATION, null)
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    override fun registerWindowContextCallback(windowContext: Context, callback: ComponentCallbacks) =
+        windowContext.registerComponentCallbacks(callback)
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    override fun unregisterWindowContextCallback(windowContext: Context, callback: ComponentCallbacks) =
+        windowContext.unregisterComponentCallbacks(callback)
 
     override fun windowManager(windowContext: Context): WindowManager =
         requireNotNull(windowContext.getSystemService(WindowManager::class.java)) {

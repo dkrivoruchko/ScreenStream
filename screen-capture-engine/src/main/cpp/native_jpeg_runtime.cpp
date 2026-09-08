@@ -3,15 +3,9 @@
 #include <climits>
 #include <cstdlib>
 #include <cstring>
-#include <limits>
 #include <new>
 
 namespace screenstream::jpeg {
-
-    static_assert(
-            kNativeSegmentPayloadCapacity <=
-            std::numeric_limits<std::size_t>::max() - sizeof(NativeSegment)
-    );
 
     void NativeSegmentWriter::defaultFree(void *allocation) noexcept {
         std::free(allocation);
@@ -82,13 +76,14 @@ namespace screenstream::jpeg {
             const std::size_t requiredSegmentCount = bytesAfterTail == 0 ? 0 :
                                                      1 + ((bytesAfterTail - 1) / kNativeSegmentPayloadCapacity);
             for (std::size_t index = 0; index < requiredSegmentCount; ++index) {
-                void *allocation = allocateFunction_(sizeof(NativeSegment) + kNativeSegmentPayloadCapacity);
+                void *allocation = allocateFunction_(sizeof(NativeSegment));
                 if (allocation == nullptr) {
                     recordOutOfMemory();
                     releasePrepared();
                     return false;
                 }
-                auto *segment = ::new(allocation) NativeSegment{};
+                // Default initialization keeps metadata defaults without zero-filling payload bytes.
+                auto *segment = ::new(allocation) NativeSegment;
                 if (preparedTail == nullptr) {
                     preparedHead = segment;
                 } else {

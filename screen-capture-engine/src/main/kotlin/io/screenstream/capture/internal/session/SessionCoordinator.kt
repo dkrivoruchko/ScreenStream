@@ -136,6 +136,22 @@ internal class SessionCoordinator(
     private val delivery = SessionDelivery()
     private val bootstrapOwnership = BootstrapOwnership()
 
+    private val bootstrap = SessionBootstrap(
+        coordinator = this,
+        ownership = bootstrapOwnership,
+        workerDispatcher = workerDispatcher,
+        handlerThreadPlatform = handlerThreadPlatform,
+        handlerTaskPoster = handlerTaskPoster,
+        metricsSourceSelection = metricsSourceSelection,
+        executionClock = executionClock,
+        platformSdkInt = platformSdkInt,
+        projectionPlatform = projectionPlatform,
+        eglPlatform = eglPlatform,
+        glesPlatform = glesPlatform,
+        targetPlatform = targetPlatform,
+        nativeJpeg = nativeJpeg,
+    )
+
     private var controlExecutor: SessionControlExecutor? = null
     private var controlWorkPending = false
     private var pendingControlWake: ImmediateControlWake? = null
@@ -143,8 +159,6 @@ internal class SessionCoordinator(
     private var ordinaryPublication: OrdinaryPublication? = null
     private var postedPacingWake: SessionProduction.WakeIdentity.Pacing? = null
     private var postedRepeatWake: SessionProduction.WakeIdentity.Repeat? = null
-    private var bootstrap: SessionBootstrap? = null
-
     private lateinit var captureLink: SessionCaptureLink
     private lateinit var metricsOwner: SessionMetricsOwner
     private lateinit var encodingLink: SessionEncodingLink
@@ -154,54 +168,80 @@ internal class SessionCoordinator(
     internal val stats: StateFlow<ScreenCaptureStats> = observations.stats
     internal val diagnosticEvents: SharedFlow<ScreenCaptureDiagnosticEvent> = observations.diagnosticEvents
 
-    internal suspend fun start(mediaProjection: MediaProjection, initialParameters: ScreenCaptureParameters) {
+    internal fun adoptProjection(mediaProjection: MediaProjection) {
+        synchronized(sessionGate) {
+            check(!lifecycle.isTerminal) { "A terminal Session cannot adopt a projection" }
+            bootstrapOwnership.adoptAcceptedProjection(mediaProjection)
+        }
+    }
+
+    internal suspend fun start(initialParameters: ScreenCaptureParameters) {
         val callerContext = currentCoroutineContext()
-        callerContext.ensureActive()
+        var cancellationBeforeAdmission: CancellationException? = null
+        var cancellationProgress: TerminalProgress? = null
+        serializePublication {
+            synchronized(sessionGate) {
+                try {
+                    callerContext.ensureActive()
+                } catch (cancellation: CancellationException) {
+                    if (lifecycle.isFreshStartEligible) {
+                        cancellationProgress = offerTerminalProgressLocked(SessionLifecycle.TerminalDecision.Requested)
+                    }
+                    cancellationBeforeAdmission = cancellation
+                }
+            }
+        }
+        if (cancellationBeforeAdmission != null) {
+            continueTerminalProgress(cancellationProgress)
+            throw cancellationBeforeAdmission
+        }
         val acceptedNanos = checkedNowNanos()
         val deadlineNanos = try {
             Math.addExact(acceptedNanos, STARTUP_WINDOW_NANOS)
         } catch (failure: ArithmeticException) {
             throw ScreenCaptureException.create(ScreenCaptureProblem.InternalFailure, failure)
         }
-        val sessionBootstrap = SessionBootstrap(
-            coordinator = this,
-            ownership = bootstrapOwnership,
-            workerDispatcher = workerDispatcher,
-            handlerThreadPlatform = handlerThreadPlatform,
-            handlerTaskPoster = handlerTaskPoster,
-            metricsSourceSelection = metricsSourceSelection,
-            executionClock = executionClock,
-            platformSdkInt = platformSdkInt,
-            projectionPlatform = projectionPlatform,
-            eglPlatform = eglPlatform,
-            glesPlatform = glesPlatform,
-            targetPlatform = targetPlatform,
-            nativeJpeg = nativeJpeg,
-        )
         var startingPublication: OrdinaryPublication.State? = null
         val deadline = serializePublication {
-            callerContext.ensureActive()
             val acceptedDeadline = synchronized(sessionGate) {
-                callerContext.ensureActive()
-                check(bootstrap == null)
+                try {
+                    callerContext.ensureActive()
+                } catch (cancellation: CancellationException) {
+                    if (lifecycle.isFreshStartEligible) {
+                        cancellationProgress = offerTerminalProgressLocked(SessionLifecycle.TerminalDecision.Requested)
+                    }
+                    cancellationBeforeAdmission = cancellation
+                    return@synchronized null
+                }
                 val candidate = lifecycle.acceptStart(acceptedNanos, deadlineNanos)
                 topology.initialize(initialParameters)
-                bootstrapOwnership.adoptAcceptedProjection(mediaProjection)
-                bootstrap = sessionBootstrap
                 startingPublication = reserveStateLocked(ScreenCaptureState.Starting)
                 candidate
             }
             acceptedDeadline
         }
-        if (publishOrdinary(checkNotNull(startingPublication)).canContinueOrdinaryWork) {
-            armStartupDeadline(deadline)
-            try {
-                sessionBootstrap.dispatch()
-            } catch (failure: Exception) {
-                onBootstrapFailure(bootstrapOwnership, failure)
-            }
+        if (cancellationBeforeAdmission != null) {
+            continueTerminalProgress(cancellationProgress)
+            throw cancellationBeforeAdmission
         }
-        awaitStart(lifecycle.startWaiter)
+        try {
+            if (publishOrdinary(checkNotNull(startingPublication)).canContinueOrdinaryWork) {
+                armStartupDeadline(checkNotNull(deadline))
+                try {
+                    bootstrap.dispatch()
+                } catch (failure: Exception) {
+                    onBootstrapFailure(bootstrapOwnership, failure)
+                }
+            }
+            awaitStart(lifecycle.startWaiter)
+        } catch (cancellation: CancellationException) {
+            try {
+                callerContext.ensureActive()
+            } catch (_: CancellationException) {
+                stop()
+            }
+            throw cancellation
+        }
     }
 
     internal fun updateParameters(parameters: ScreenCaptureParameters) {
@@ -245,6 +285,8 @@ internal class SessionCoordinator(
                         controlWorkPending = true
                         wake = requestControlWakeLocked()
                         registration = result.registration
+                        result.registration.installDetachAction { token -> detachDeliveryAfterProof(result.registration, token) }
+                        result.registration.installBeginUnregisterAction { unregister(result.registration) }
                     }
 
                     SessionDelivery.RegistrationResult.Occupied -> error("Only one unresolved frame registration is allowed")
@@ -261,7 +303,14 @@ internal class SessionCoordinator(
         continueTerminalProgress(progress)
         selectedFailure?.let { throw it }
         val accepted = checkNotNull(registration)
-        return { unregister(accepted) }
+        return { accepted.awaitUnregister() }
+    }
+
+    private fun detachDeliveryAfterProof(registration: SessionDelivery.Registration, token: io.screenstream.capture.internal.delivery.DeliveryHandoffToken) {
+        synchronized(sessionGate) {
+            delivery.detachAfterProof(registration, token)
+        }
+        registration.completeIfReady()
     }
 
     internal fun stop() = offerTerminal(SessionLifecycle.TerminalDecision.Requested)
@@ -498,14 +547,12 @@ internal class SessionCoordinator(
         var committed = false
         var metricsFailure: Throwable? = null
         var revisionFailure: Exception? = null
-        var requireCompletionCloseSettlement = false
         serializePublication {
             synchronized(sessionGate) {
                 if (!lifecycle.isOrdinaryAdmissionOpen) return@synchronized
                 val snapshot = metricsOwner.readSnapshot()
                 consumedSnapshot = snapshot
-                requireCompletionCloseSettlement = lifecycle.isFirstActiveRequired
-                when (val decision = topology.prepareMetrics(snapshot, platformSdkInt, requireCompletionCloseSettlement)) {
+                when (val decision = topology.prepareMetrics(snapshot, platformSdkInt)) {
                     SessionTopology.MetricsDecision.Duplicate -> return@synchronized
                     SessionTopology.MetricsDecision.BlockedByPendingIngress -> {
                         controlWorkPending = true
@@ -565,9 +612,9 @@ internal class SessionCoordinator(
         if (paused != null) invalidateCache()
         if (shouldSuspend) publishSuspended()
         if (snapshot.lifecycle == MetricsAttachmentLifecycle.Completed && snapshot.handleAdopted) {
-            if (snapshot.metrics == null && snapshot.completionCloseSettled && synchronized(sessionGate) { lifecycle.isFirstActiveRequired }) {
+            if (snapshot.metrics == null && synchronized(sessionGate) { lifecycle.isFirstActiveRequired }) {
                 offerFailure(ScreenCaptureProblem.CaptureUnavailable, null)
-            } else if (snapshot.isReady(requireCompletionCloseSettlement) && synchronized(sessionGate) { topology.claimMetricsCompletionDiagnostic() }
+            } else if (snapshot.isReady() && synchronized(sessionGate) { topology.claimMetricsCompletionDiagnostic() }
             ) {
                 emitDiagnostic("MetricsSource", "CapabilityCheck", null) { "Metrics source completed after readiness" }
             }
@@ -680,9 +727,7 @@ internal class SessionCoordinator(
     }
 
     private fun resolvePlanAndConverge() {
-        when (val decision = synchronized(sessionGate) {
-            topology.resolvePlan(platformSdkInt, lifecycle.isFirstActiveRequired)
-        }) {
+        when (val decision = synchronized(sessionGate) { topology.resolvePlan(platformSdkInt) }) {
             SessionTopology.PlanDecision.Suspended,
             SessionTopology.PlanDecision.WaitingForIngress,
             SessionTopology.PlanDecision.WaitingForMetrics,
@@ -955,7 +1000,7 @@ internal class SessionCoordinator(
         val candidate = synchronized(sessionGate) {
             val snapshot = metricsOwner.readSnapshot()
             isFirstActive = lifecycle.isFirstActiveRequired
-            val assessment = topology.assessActivePublication(platformSdkInt, snapshot, isFirstActive) as?
+            val assessment = topology.assessActivePublication(platformSdkInt, snapshot) as?
                     SessionTopology.ActiveAssessment.Candidate ?: return@synchronized null
             if (!lifecycle.activePublicationMayProceed(isFirstActive)) return@synchronized null
             if (isFirstActive) {
@@ -1254,18 +1299,20 @@ internal class SessionCoordinator(
     private fun consumeRead(read: SessionReadBridge) {
         val result = read.requireClaimedResult()
         var semanticCurrent = false
+        var ordinaryAdmissionOpen: Boolean
         var shouldEncode = false
         var beganSettlement = false
         var settlementBeginFailure: EncodingInputSettlement.Failed? = null
         synchronized(sessionGate) {
-            semanticCurrent = lifecycle.canRunProduction(
-                sessionReady = topology.isActiveFor(read.record.configRevision),
-                revisionCurrent = topology.acceptsSettledRevision(read.record.configRevision),
-            ) && production.currentRecordMatches(read.record) && production.currentReadMatches(read)
+            val sessionReady = topology.isActiveFor(read.record.configRevision)
+            val revisionCurrent = topology.acceptsSettledRevision(read.record.configRevision)
+            val productionCurrent = production.currentRecordMatches(read.record) && production.currentReadMatches(read)
+            semanticCurrent = sessionReady && revisionCurrent && productionCurrent
+            ordinaryAdmissionOpen = lifecycle.canRunProduction(sessionReady = sessionReady, revisionCurrent = revisionCurrent) && productionCurrent
             when (result) {
                 is CaptureReadResult.Filled -> {
                     production.recordReadback(result.readbackDurationNanos)
-                    if (semanticCurrent) {
+                    if (ordinaryAdmissionOpen) {
                         if (!production.clearReadKeepProduction(read, read.record)) {
                             settlementBeginFailure = EncodingInputSettlement.Failed(
                                 problem = ScreenCaptureProblem.InternalFailure,
@@ -1283,7 +1330,7 @@ internal class SessionCoordinator(
                             }
                         }
                     } else {
-                        production.recordStaleWork()
+                        if (!semanticCurrent) production.recordStaleWork()
                         beganSettlement = encodingLink.beginSettlementLocked(read.record, read.input, shouldEncode = false)
                         if (!beganSettlement) {
                             settlementBeginFailure = EncodingInputSettlement.Failed(
@@ -1399,13 +1446,15 @@ internal class SessionCoordinator(
                     production.recordStaleWork()
                     return
                 }
-                val isCurrent = synchronized(sessionGate) {
-                    lifecycle.canRunProduction(
-                        sessionReady = topology.isActiveFor(record.configRevision),
-                        revisionCurrent = topology.acceptsSettledRevision(record.configRevision),
-                    )
+                val (semanticCurrent, ordinaryAdmissionOpen) = synchronized(sessionGate) {
+                    val sessionReady = topology.isActiveFor(record.configRevision)
+                    val revisionCurrent = topology.acceptsSettledRevision(record.configRevision)
+                    (sessionReady && revisionCurrent) to lifecycle.canRunProduction(sessionReady = sessionReady, revisionCurrent = revisionCurrent)
                 }
-                if (!isCurrent) discardStaleOutput(record, output)
+                when {
+                    !semanticCurrent -> discardStaleOutput(record, output)
+                    !ordinaryAdmissionOpen -> discardUnadmittedOutput(record, output)
+                }
             }
 
             EncodingResult.FrameFailed -> {
@@ -1417,9 +1466,9 @@ internal class SessionCoordinator(
                 var publication: OrdinaryPublication.State? = null
                 serializePublication {
                     synchronized(sessionGate) {
-                        if (!lifecycle.isOrdinaryAdmissionOpen) return@synchronized
                         production.recordProductionFailure()
                         production.clearProduction(null, record)
+                        if (!lifecycle.isOrdinaryAdmissionOpen) return@synchronized
                         val invalidatesActivePlan = topology.invalidateEncodingReadiness()
                         production.prepareCache()?.let(production::invalidateCache)
                         if (invalidatesActivePlan) {
@@ -1470,6 +1519,11 @@ internal class SessionCoordinator(
         production.discardUnpublishedOutput(output)
         production.clearProduction(null, record)
         production.recordStaleWork()
+    }
+
+    private fun discardUnadmittedOutput(record: SessionProductionRecord, output: SessionProduction.UnpublishedOutput) {
+        production.discardUnpublishedOutput(output)
+        production.clearProduction(null, record)
     }
 
     private fun processCompletedFreshOutput() {
@@ -1552,6 +1606,7 @@ internal class SessionCoordinator(
                         )
                         if (!isCurrent || !isCacheCurrent || !decision.isCurrent(production)) return@synchronized
                         frame = production.commitRepeat(decision)
+                        if (frame != null) controlWorkPending = true
                     }
                 }
                 frame?.let { offerPublishedFrame(readiness, it) }
@@ -1607,7 +1662,7 @@ internal class SessionCoordinator(
 
     private fun executeDeliveryOffer(offer: SessionDelivery.Offer) {
         val request = synchronized(sessionGate) {
-            deliveryLink.prepareOfferLocked(offer.registration.id, offer.callback, offer.frame)
+            deliveryLink.prepareOfferLocked(offer.handoff, offer.completion, offer.callback, offer.frame)
         }
         val result = try {
             deliveryLink.executeOffer(request)
@@ -1623,6 +1678,22 @@ internal class SessionCoordinator(
             current
         }
         if (!recorded) {
+            if (terminalPublicationAlreadyClaimed) {
+                when (result) {
+                    is DeliveryOffer.Accepted -> when (synchronized(sessionGate) {
+                        delivery.settleAcceptedOffer(offer, result.handoff)
+                    }) {
+                        SessionDelivery.AcceptedOfferSettlement.RequestCutoff -> executeCutoff(offer.registration, offer.handoff)
+                        SessionDelivery.AcceptedOfferSettlement.Stale,
+                        SessionDelivery.AcceptedOfferSettlement.Retained,
+                            -> Unit
+                    }
+
+                    is DeliveryOffer.Rejected -> settleOfferThatDidNotStart(offer, result.handoff)
+                    DeliveryOffer.Occupied,
+                    DeliveryOffer.Cutoff -> settleOfferThatDidNotStart(offer)
+                }
+            }
             if (!terminalPublicationAlreadyClaimed) {
                 offerFailure(ScreenCaptureProblem.InternalFailure, IllegalStateException("Delivery offer identity mismatch"))
             }
@@ -1630,10 +1701,10 @@ internal class SessionCoordinator(
         }
         when (result) {
             is DeliveryOffer.Accepted -> when (synchronized(sessionGate) {
-                delivery.settleAcceptedOffer(offer)
+                delivery.settleAcceptedOffer(offer, result.handoff)
             }) {
                 SessionDelivery.AcceptedOfferSettlement.Stale, SessionDelivery.AcceptedOfferSettlement.Retained -> Unit
-                SessionDelivery.AcceptedOfferSettlement.RequestCutoff -> executeCutoff(offer.registration)
+                SessionDelivery.AcceptedOfferSettlement.RequestCutoff -> executeCutoff(offer.registration, offer.handoff)
             }
 
             is DeliveryOffer.Rejected -> {
@@ -1641,7 +1712,7 @@ internal class SessionCoordinator(
                     problem = ScreenCaptureProblem.InternalFailure,
                     cause = result.cause ?: IllegalStateException("Delivery callback dispatch was rejected"),
                 )
-                settleOfferThatDidNotStart(offer)
+                settleOfferThatDidNotStart(offer, result.handoff)
             }
 
             DeliveryOffer.Occupied -> {
@@ -1653,8 +1724,11 @@ internal class SessionCoordinator(
         }
     }
 
-    private fun settleOfferThatDidNotStart(offer: SessionDelivery.Offer) {
-        val settlement = synchronized(sessionGate) { delivery.settleOfferThatDidNotStart(offer) }
+    private fun settleOfferThatDidNotStart(
+        offer: SessionDelivery.Offer,
+        returnedToken: io.screenstream.capture.internal.delivery.DeliveryHandoffToken = offer.handoff,
+    ) {
+        val settlement = synchronized(sessionGate) { delivery.settleOfferThatDidNotStart(offer, returnedToken) }
         completeHandoffSettlement(settlement)
     }
 
@@ -1714,7 +1788,7 @@ internal class SessionCoordinator(
         when (action) {
             is SessionDelivery.UnregisterAction.AwaitCompletion -> Unit
             is SessionDelivery.UnregisterAction.Complete -> action.settlement.complete()
-            is SessionDelivery.UnregisterAction.RequestCutoff -> executeCutoff(action.registration)
+            is SessionDelivery.UnregisterAction.RequestCutoff -> executeCutoff(action.registration, action.token)
         }
         action.waiter.awaitCompletion()
     }
@@ -1723,20 +1797,23 @@ internal class SessionCoordinator(
         when (val pending = synchronized(sessionGate) { delivery.claimPendingUnregisterAction() } ?: return) {
             is SessionDelivery.UnregisterAction.AwaitCompletion -> Unit
             is SessionDelivery.UnregisterAction.Complete -> pending.settlement.complete()
-            is SessionDelivery.UnregisterAction.RequestCutoff -> executeCutoff(pending.registration)
+            is SessionDelivery.UnregisterAction.RequestCutoff -> executeCutoff(pending.registration, pending.token)
         }
     }
 
-    private fun executeCutoff(registration: SessionDelivery.Registration) {
+    private fun executeCutoff(
+        registration: SessionDelivery.Registration,
+        token: io.screenstream.capture.internal.delivery.DeliveryHandoffToken,
+    ) {
         val cutoff = try {
-            deliveryLink.executeCutoff(registration.id)
+            deliveryLink.executeCutoff(token)
         } catch (failure: Exception) {
             offerFailure(ScreenCaptureProblem.InternalFailure, failure)
             return
         }
-        when (val settlement = synchronized(sessionGate) { delivery.recordCutoffResult(registration, cutoff) }) {
+        when (val settlement = synchronized(sessionGate) { delivery.recordCutoffResult(registration, token, cutoff) }) {
             is SessionDelivery.CutoffSettlement.Handoff -> completeHandoffSettlement(settlement.settlement)
-            SessionDelivery.CutoffSettlement.RequestSuccessor -> executeCutoff(registration)
+            SessionDelivery.CutoffSettlement.RequestSuccessor -> executeCutoff(registration, token)
         }
     }
 
@@ -1975,7 +2052,7 @@ internal class SessionCoordinator(
 
                     val lifecyclePreparation = lifecycle.prepareTerminal() ?: return@synchronized null
                     val topologyEvidence = topology.prepareTerminalEvidence()
-                    val deliveryPreparation = delivery.prepareTerminal(deliveryOutcome(lifecyclePreparation.decision)) ?: return@synchronized null
+                    val deliveryPreparation = delivery.prepareTerminal() ?: return@synchronized null
                     val productionSnapshot = production.prepareTerminal()
                     val preparation = TerminalPublicationCandidate(
                         lifecycle = lifecyclePreparation,
@@ -2035,9 +2112,10 @@ internal class SessionCoordinator(
             )
             terminalPublication.lifecycle.startSettlement?.complete()
             terminalPublication.delivery.settlement?.complete()
+            delivery.completeTerminalRegistration(terminalPublication.delivery)
             controlExecutor?.removeCallbacks(pacingWakeTask)
             controlExecutor?.removeCallbacks(repeatWakeTask)
-            bootstrap?.requestPrefixRetirement()
+            bootstrap.requestPrefixRetirement()
             if (::metricsOwner.isInitialized) {
                 metricsOwner.retire()
             }
@@ -2092,14 +2170,6 @@ internal class SessionCoordinator(
             cause = decision.cause,
         )
     }
-
-    private fun deliveryOutcome(decision: SessionLifecycle.TerminalDecision): SessionDelivery.TerminalOutcome =
-        when (decision) {
-            SessionLifecycle.TerminalDecision.Requested, SessionLifecycle.TerminalDecision.ProjectionStopped ->
-                SessionDelivery.TerminalOutcome.Stopped
-
-            is SessionLifecycle.TerminalDecision.Failed -> SessionDelivery.TerminalOutcome.Failed(decision.problem, decision.cause)
-        }
 
     private fun offerFailure(problem: ScreenCaptureProblem, cause: Throwable?) =
         offerTerminal(SessionLifecycle.TerminalDecision.Failed(problem, cause))
@@ -2265,11 +2335,10 @@ internal class SessionCoordinator(
     }
 
     private suspend fun awaitStart(waiter: SessionLifecycle.StartWaiter) {
-        try {
-            waiter.awaitCompletion()
-        } catch (cancellation: CancellationException) {
-            stop()
-            throw cancellation
+        when (val outcome = waiter.awaitCompletion()) {
+            SessionLifecycle.StartOutcome.Succeeded -> Unit
+            SessionLifecycle.StartOutcome.Cancelled -> throw CancellationException("Screen capture start was stopped")
+            is SessionLifecycle.StartOutcome.Failed -> throw outcome.failure
         }
     }
 

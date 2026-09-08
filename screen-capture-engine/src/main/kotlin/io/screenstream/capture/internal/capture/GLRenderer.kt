@@ -52,8 +52,16 @@ internal class GLRenderer(
     private var imageMatrixLocation = -1
     private var grayscaleLocation = -1
     private var sourceTextureLocation = -1
+    private var imageMinXLocation = -1
+    private var imageMaxXLocation = -1
+    private var imageMinYLocation = -1
+    private var imageMaxYLocation = -1
     private var outputLayout: Rgba8888Layout? = null
     private var colorMode: ColorMode = ColorMode.Color
+    private var imageMinX = 0f
+    private var imageMaxX = 1f
+    private var imageMinY = 0f
+    private var imageMaxY = 1f
     private var sourceRestorableAfterReadFailure = true
     private var retirement = Retirement.Live
     private var retirementFailure: Throwable? = null
@@ -64,8 +72,7 @@ internal class GLRenderer(
     internal fun open(plan: CapturePlan) {
         check((programName == 0) && (outputTextureName == 0) && (framebufferName == 0))
         eglOwner.validateTargetAndOutput(plan)
-        computeLogicalInverseMatrix(plan, logicalInverseMatrix)
-        colorMode = plan.colorMode
+        refreshImageParameters(plan)
         eglOwner.runGlesGroup { gl ->
             if (compileShader(gl, GLES20.GL_VERTEX_SHADER, VERTEX_SHADER) == 0) {
                 return@runGlesGroup false
@@ -89,8 +96,14 @@ internal class GLRenderer(
             imageMatrixLocation = gl.getUniformLocation(candidateProgram, IMAGE_MATRIX_UNIFORM_NAME)
             grayscaleLocation = gl.getUniformLocation(candidateProgram, GRAYSCALE_UNIFORM_NAME)
             sourceTextureLocation = gl.getUniformLocation(candidateProgram, SOURCE_TEXTURE_UNIFORM_NAME)
+            imageMinXLocation = gl.getUniformLocation(candidateProgram, IMAGE_MIN_X_UNIFORM_NAME)
+            imageMaxXLocation = gl.getUniformLocation(candidateProgram, IMAGE_MAX_X_UNIFORM_NAME)
+            imageMinYLocation = gl.getUniformLocation(candidateProgram, IMAGE_MIN_Y_UNIFORM_NAME)
+            imageMaxYLocation = gl.getUniformLocation(candidateProgram, IMAGE_MAX_Y_UNIFORM_NAME)
             if ((oesMatrixLocation < 0) || (imageMatrixLocation < 0) ||
-                (grayscaleLocation < 0) || (sourceTextureLocation < 0)
+                (grayscaleLocation < 0) || (sourceTextureLocation < 0) ||
+                (imageMinXLocation < 0) || (imageMaxXLocation < 0) ||
+                (imageMinYLocation < 0) || (imageMaxYLocation < 0)
             ) {
                 return@runGlesGroup false
             }
@@ -103,14 +116,11 @@ internal class GLRenderer(
 
     internal fun applyAfterPreflight(plan: CapturePlan) {
         val currentLayout = checkNotNull(outputLayout)
+        refreshImageParameters(plan)
         if ((currentLayout.widthPx == plan.rgbaLayout.widthPx) && (currentLayout.heightPx == plan.rgbaLayout.heightPx)) {
-            computeLogicalInverseMatrix(plan, logicalInverseMatrix)
-            colorMode = plan.colorMode
             outputLayout = plan.rgbaLayout
             return
         }
-        computeLogicalInverseMatrix(plan, logicalInverseMatrix)
-        colorMode = plan.colorMode
         check(pendingFramebufferName == 0)
         check(pendingOutputTextureName == 0)
         eglOwner.runGlesGroup { gl ->
@@ -180,6 +190,10 @@ internal class GLRenderer(
             gl.uniformMatrix4fv(oesMatrixLocation, surfaceTextureTransformMatrix)
             gl.uniformMatrix4fv(imageMatrixLocation, logicalInverseMatrix)
             gl.uniform1f(grayscaleLocation, if (colorMode == ColorMode.Grayscale) 1f else 0f)
+            gl.uniform1f(imageMinXLocation, imageMinX)
+            gl.uniform1f(imageMaxXLocation, imageMaxX)
+            gl.uniform1f(imageMinYLocation, imageMinY)
+            gl.uniform1f(imageMaxYLocation, imageMaxY)
             positionBuffer.position(0)
             textureCoordinateBuffer.position(0)
             gl.vertexAttribPointer(POSITION_ATTRIBUTE_INDEX, positionBuffer)
@@ -216,6 +230,34 @@ internal class GLRenderer(
             throw CaptureBoundaryFailure(ScreenCaptureProblem.InternalFailure, CapturePhysicalException("Readback clock moved backwards"))
         }
         return duration
+    }
+
+    private fun refreshImageParameters(plan: CapturePlan) {
+        computeLogicalInverseMatrix(plan, logicalInverseMatrix)
+        colorMode = plan.colorMode
+        val sourceWidthPx = plan.sourceWidthPx.toDouble()
+        val sourceHeightPx = plan.sourceHeightPx.toDouble()
+        val appliedSourceRect = plan.appliedSourceRect
+        imageMinX = if (appliedSourceRect.leftPx > 0) {
+            toFiniteFloat((appliedSourceRect.leftPx.toDouble() + 0.5) / sourceWidthPx)
+        } else {
+            0f
+        }
+        imageMaxX = if (appliedSourceRect.rightPx < plan.sourceWidthPx) {
+            toFiniteFloat((appliedSourceRect.rightPx.toDouble() - 0.5) / sourceWidthPx)
+        } else {
+            1f
+        }
+        imageMinY = if (appliedSourceRect.topPx > 0) {
+            toFiniteFloat((appliedSourceRect.topPx.toDouble() + 0.5) / sourceHeightPx)
+        } else {
+            0f
+        }
+        imageMaxY = if (appliedSourceRect.bottomPx < plan.sourceHeightPx) {
+            toFiniteFloat((appliedSourceRect.bottomPx.toDouble() - 0.5) / sourceHeightPx)
+        } else {
+            1f
+        }
     }
 
     internal fun close(): RetirementOutcome {
@@ -362,6 +404,10 @@ internal class GLRenderer(
         private const val IMAGE_MATRIX_UNIFORM_NAME = "uImageMatrix"
         private const val GRAYSCALE_UNIFORM_NAME = "uGrayscale"
         private const val SOURCE_TEXTURE_UNIFORM_NAME = "uSourceTexture"
+        private const val IMAGE_MIN_X_UNIFORM_NAME = "uImageMinX"
+        private const val IMAGE_MAX_X_UNIFORM_NAME = "uImageMaxX"
+        private const val IMAGE_MIN_Y_UNIFORM_NAME = "uImageMinY"
+        private const val IMAGE_MAX_Y_UNIFORM_NAME = "uImageMaxY"
 
         private fun directFloatBuffer(values: FloatArray): FloatBuffer =
             ByteBuffer.allocateDirect(values.size * Float.SIZE_BYTES)
@@ -502,27 +548,38 @@ internal class GLRenderer(
         }
 
         private const val VERTEX_SHADER: String = """
-            uniform mat4 $OES_MATRIX_UNIFORM_NAME;
             uniform mat4 $IMAGE_MATRIX_UNIFORM_NAME;
             attribute vec4 $POSITION_ATTRIBUTE_NAME;
             attribute vec4 $TEX_COORD_ATTRIBUTE_NAME;
-            varying vec2 vTexCoord;
+            varying vec2 vImageCoord;
             void main() {
                 gl_Position = $POSITION_ATTRIBUTE_NAME;
                 vec4 framebufferCoordinate = vec4($TEX_COORD_ATTRIBUTE_NAME.x, $TEX_COORD_ATTRIBUTE_NAME.y, 0.0, 1.0);
                 vec4 imageCoordinate = $IMAGE_MATRIX_UNIFORM_NAME * framebufferCoordinate;
-                imageCoordinate.y = 1.0 - imageCoordinate.y;
-                vTexCoord = ($OES_MATRIX_UNIFORM_NAME * imageCoordinate).xy;
+                vImageCoord = imageCoordinate.xy;
             }
         """
 
         private const val FRAGMENT_EXTENSION: String = "#extension GL_OES_EGL_image_external : require\n"
         private const val FRAGMENT_BODY: String = """
             uniform samplerExternalOES $SOURCE_TEXTURE_UNIFORM_NAME;
+            uniform mat4 $OES_MATRIX_UNIFORM_NAME;
             uniform float $GRAYSCALE_UNIFORM_NAME;
-            varying vec2 vTexCoord;
+            uniform float $IMAGE_MIN_X_UNIFORM_NAME;
+            uniform float $IMAGE_MAX_X_UNIFORM_NAME;
+            uniform float $IMAGE_MIN_Y_UNIFORM_NAME;
+            uniform float $IMAGE_MAX_Y_UNIFORM_NAME;
+            varying vec2 vImageCoord;
             void main() {
-                vec4 sampled = texture2D($SOURCE_TEXTURE_UNIFORM_NAME, vTexCoord);
+                vec2 imageCoordinate = clamp(
+                    vImageCoord,
+                    vec2($IMAGE_MIN_X_UNIFORM_NAME, $IMAGE_MIN_Y_UNIFORM_NAME),
+                    vec2($IMAGE_MAX_X_UNIFORM_NAME, $IMAGE_MAX_Y_UNIFORM_NAME)
+                );
+                vec4 oesCoordinate = $OES_MATRIX_UNIFORM_NAME * vec4(
+                    imageCoordinate.x, 1.0 - imageCoordinate.y, 0.0, 1.0
+                );
+                vec4 sampled = texture2D($SOURCE_TEXTURE_UNIFORM_NAME, oesCoordinate.xy);
                 vec3 color = clamp(sampled.rgb, 0.0, 1.0);
                 vec3 rgb8 = min(vec3(255.0), max(vec3(0.0), floor(255.0 * color + vec3(0.5))));
                 if ($GRAYSCALE_UNIFORM_NAME > 0.5) {

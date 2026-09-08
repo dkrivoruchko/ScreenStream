@@ -176,8 +176,38 @@ internal object RawPixelOracle {
                 val normalizedX = (sourceLeftPx + sourceX) / case.logicalWidthPx.toDouble()
                 val normalizedY = (sourceTopPx + sourceY) / case.logicalHeightPx.toDouble()
                 val outputOffset = ((outputY * outputSize[0]) + outputX) * RGBA_CHANNEL_COUNT
+                val retainedLeftPx: Int
+                val retainedTopPx: Int
+                val retainedRightPx: Int
+                val retainedBottomPx: Int
+                when (case.expectedTargetMode) {
+                    TargetMode.Full -> {
+                        retainedLeftPx = sourceLeftPx
+                        retainedTopPx = sourceTopPx
+                        retainedRightPx = sourceRightPx
+                        retainedBottomPx = sourceBottomPx
+                    }
+
+                    TargetMode.Downscaled -> {
+                        retainedLeftPx = 0
+                        retainedTopPx = 0
+                        retainedRightPx = case.targetImage.widthPx
+                        retainedBottomPx = case.targetImage.heightPx
+                    }
+                }
                 val quantized = IntArray(RGB_CHANNEL_COUNT) { channel ->
-                    quantize(sampleLinearClamp(case.targetImage, normalizedX, normalizedY, channel))
+                    quantize(
+                        sampleLinearClamp(
+                            target = case.targetImage,
+                            normalizedX = normalizedX,
+                            normalizedY = normalizedY,
+                            retainedLeftPx = retainedLeftPx,
+                            retainedTopPx = retainedTopPx,
+                            retainedRightPx = retainedRightPx,
+                            retainedBottomPx = retainedBottomPx,
+                            channel = channel,
+                        ),
+                    )
                 }
                 if (parameters.colorMode == ColorMode.Grayscale) {
                     val gray = ((77 * quantized[0]) + (150 * quantized[1]) + (29 * quantized[2]) + 128) shr 8
@@ -252,6 +282,10 @@ internal object RawPixelOracle {
         target: TargetImage,
         normalizedX: Double,
         normalizedY: Double,
+        retainedLeftPx: Int,
+        retainedTopPx: Int,
+        retainedRightPx: Int,
+        retainedBottomPx: Int,
         channel: Int,
     ): Double {
         val texelX = (normalizedX * target.widthPx) - 0.5
@@ -262,10 +296,10 @@ internal object RawPixelOracle {
         val y1 = y0 + 1
         val weightX = texelX - x0
         val weightY = texelY - y0
-        val clampedX0 = x0.coerceIn(0, target.widthPx - 1)
-        val clampedX1 = x1.coerceIn(0, target.widthPx - 1)
-        val clampedY0 = y0.coerceIn(0, target.heightPx - 1)
-        val clampedY1 = y1.coerceIn(0, target.heightPx - 1)
+        val clampedX0 = x0.coerceIn(retainedLeftPx, retainedRightPx - 1)
+        val clampedX1 = x1.coerceIn(retainedLeftPx, retainedRightPx - 1)
+        val clampedY0 = y0.coerceIn(retainedTopPx, retainedBottomPx - 1)
+        val clampedY1 = y1.coerceIn(retainedTopPx, retainedBottomPx - 1)
         val topLeft = target.channelAt(clampedX0, clampedY0, channel)
         val topRight = target.channelAt(clampedX1, clampedY0, channel)
         val bottomLeft = target.channelAt(clampedX0, clampedY1, channel)

@@ -1,6 +1,7 @@
 package io.screenstream.capture
 
 import android.media.projection.MediaProjection
+import android.os.Build
 import io.mockk.Called
 import io.mockk.Runs
 import io.mockk.confirmVerified
@@ -12,6 +13,8 @@ import io.screenstream.capture.internal.capture.EglPlatform
 import io.screenstream.capture.internal.capture.GlesPlatform
 import io.screenstream.capture.internal.capture.ProjectionPlatform
 import io.screenstream.capture.internal.capture.TargetPlatform
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.stopAndDrainSession
 import io.screenstream.capture.testutil.SessionStartHarness
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -21,6 +24,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,6 +32,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
+import java.util.concurrent.CancellationException
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /*
@@ -81,7 +87,7 @@ internal class ScreenCaptureSessionBootstrapTest {
     // Verification: BSP-04
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun rejectedFirstControlPostKeepsStartAndProjectionPendingUntilSeparateStop() = runTest {
+    fun rejectedFirstControlPostFailsStartAndRetiresProjectionWithoutSeparateStop() = runTest {
         val platforms = CapturePlatformProbes()
         SessionStartHarness(
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
@@ -95,14 +101,11 @@ internal class ScreenCaptureSessionBootstrapTest {
             every { projection.stop() } just Runs
             val initialStats = harness.session.stats.value
             val start = async {
-                runCatching { harness.session.start(projection) }.exceptionOrNull()
+                runCatching { harness.session.start() }.exceptionOrNull()
             }
 
             try {
                 testScheduler.runCurrent()
-                assertSame(ScreenCaptureState.Starting, harness.session.state.value)
-                assertFalse(start.isCompleted)
-
                 val bootstrapWorker = harness.enterNextWorker() ?: error("Accepted Bootstrap work was not retained")
                 bootstrapWorker.awaitSuccessfulCompletion()
                 testScheduler.runCurrent()
@@ -112,26 +115,15 @@ internal class ScreenCaptureSessionBootstrapTest {
                     SessionStartHarness.BootstrapFault.FirstControlPostReturnsFalse,
                     harness.consumedBootstrapFault(),
                 )
-                assertSame(ScreenCaptureState.Starting, harness.session.state.value)
-                assertFalse(start.isCompleted)
-                assertEquals(initialStats, harness.session.stats.value)
-                platforms.verifyUntouched()
-                verify { projection wasNot Called }
-
-                harness.session.stop()
-                testScheduler.runCurrent()
-
-                val terminal = harness.session.state.value as ScreenCaptureState.Stopped
+                val terminal = harness.session.state.value as ScreenCaptureState.Failed
                 val terminalStats = harness.session.stats.value
-                assertSame(ScreenCaptureStopReason.Requested, terminal.reason)
+                assertSame(ScreenCaptureProblem.InternalFailure, terminal.problem)
                 assertEquals(initialStats, terminalStats)
                 val startFailure = start.await() as ScreenCaptureException
-                assertSame(ScreenCaptureProblem.CaptureUnavailable, startFailure.problem)
+                assertSame(ScreenCaptureProblem.InternalFailure, startFailure.problem)
+                assertEquals(initialStats, harness.session.stats.value)
                 platforms.verifyUntouched()
-                verify { projection wasNot Called }
-
-                val retirementWorker = harness.enterNextWorker() ?: error("Bootstrap retirement work was not retained")
-                retirementWorker.awaitSuccessfulCompletion()
+                verify(exactly = 1) { projection.stop() }
                 harness.drainWorkerTasks()
 
                 assertEquals(terminal, harness.session.state.value)
@@ -139,8 +131,69 @@ internal class ScreenCaptureSessionBootstrapTest {
                 platforms.verifyUntouched()
                 verify(exactly = 1) { harness.controlThread().quitSafely() }
                 verify(exactly = 1) { harness.captureThread().quitSafely() }
-                verify(exactly = 1) { projection.stop() }
                 confirmVerified(projection)
+            } finally {
+                try {
+                    stopAndDrainAcceptedWork(harness)
+                } finally {
+                    start.cancelAndJoin()
+                }
+            }
+        }
+    }
+
+    // Verification: SES-01
+    // Verification: BSP-04
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun acceptedFirstControlPostMayEnterDuringCallAndRetiresProjectionOnce() = runTest {
+        val platform = HappyCapturePlatform()
+        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+        val projectionStopReturned = AtomicBoolean(false)
+        every { platform.projection.stop() } just Runs
+        every { platform.projectionPlatform.unregisterCallback(refEq(platform.projection), any()) } just Runs
+        every { platform.projectionPlatform.stop(refEq(platform.projection)) } answers {
+            projectionStopReturned.set(true)
+        }
+        SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            bootstrapFault = SessionStartHarness.BootstrapFault.FirstControlPostEntersDuringCall,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+        ).use { harness ->
+            val initialStats = harness.session.stats.value
+            val start = async(UnconfinedTestDispatcher(testScheduler)) {
+                runCatching { harness.session.start(parameters) }.exceptionOrNull()
+            }
+
+            try {
+                harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
+
+                assertSame(
+                    SessionStartHarness.BootstrapFault.FirstControlPostEntersDuringCall,
+                    harness.consumedBootstrapFault(),
+                )
+                assertTrue(start.isCompleted)
+                assertNull(start.await())
+                assertTrue(harness.session.state.value is ScreenCaptureState.Active)
+                assertEquals(initialStats, harness.session.stats.value)
+
+                harness.session.stop()
+                stopAndDrainSession(harness)
+
+                val terminal = harness.session.state.value as ScreenCaptureState.Stopped
+                val terminalStats = harness.session.stats.value
+                assertSame(ScreenCaptureStopReason.Requested, terminal.reason)
+                assertEquals(initialStats, terminalStats)
+                assertTrue("Projection stop did not return before capture retirement completed", projectionStopReturned.get())
+                verify(exactly = 1) { platform.projectionPlatform.stop(refEq(platform.projection)) }
+                verify(exactly = 1) { platform.projectionPlatform.unregisterCallback(refEq(platform.projection), any()) }
+                verify(exactly = 0) { platform.projection.stop() }
             } finally {
                 try {
                     stopAndDrainAcceptedWork(harness)
@@ -179,7 +232,7 @@ internal class ScreenCaptureSessionBootstrapTest {
             every { projection.stop() } just Runs
             val initialStats = harness.session.stats.value
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                runCatching { harness.session.start(projection) }.exceptionOrNull()
+                runCatching { harness.session.start() }.exceptionOrNull()
             }
 
             try {
@@ -195,10 +248,8 @@ internal class ScreenCaptureSessionBootstrapTest {
                 val terminalStats = harness.session.stats.value
                 assertSame(ScreenCaptureStopReason.Requested, terminal.reason)
                 assertEquals(initialStats, terminalStats)
-                val startFailure = start.await() as ScreenCaptureException
-                assertSame(ScreenCaptureProblem.CaptureUnavailable, startFailure.problem)
+                assertTrue(start.await() is CancellationException)
                 platforms.verifyUntouched()
-                verify { projection wasNot Called }
 
                 val lateWorker = harness.enterNextWorker() ?: error("Accepted bootstrap worker was not retained")
                 lateWorker.awaitSuccessfulCompletion()
@@ -234,7 +285,7 @@ internal class ScreenCaptureSessionBootstrapTest {
             every { projection.stop() } just Runs
             val initialStats = harness.session.stats.value
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                runCatching { harness.session.start(projection) }.exceptionOrNull()
+                runCatching { harness.session.start() }.exceptionOrNull()
             }
 
             try {
@@ -252,12 +303,12 @@ internal class ScreenCaptureSessionBootstrapTest {
                 val terminalStats = harness.session.stats.value
                 assertSame(ScreenCaptureStopReason.Requested, terminal.reason)
                 assertEquals(initialStats, terminalStats)
-                val startFailure = start.await() as ScreenCaptureException
-                assertSame(ScreenCaptureProblem.CaptureUnavailable, startFailure.problem)
+                assertTrue(start.await() is CancellationException)
                 platforms.verifyUntouched()
-                verify { projection wasNot Called }
 
                 check(harness.enterNextControlTask()) { "Accepted first Control work was not retained" }
+                val lateWorker = harness.enterNextWorker() ?: error("Accepted projection retirement was not retained")
+                lateWorker.awaitSuccessfulCompletion()
 
                 assertEquals(terminal, harness.session.state.value)
                 assertEquals(terminalStats, harness.session.stats.value)
@@ -291,7 +342,7 @@ internal class ScreenCaptureSessionBootstrapTest {
             platforms.allowProjectionCleanup(projection)
             val initialStats = harness.session.stats.value
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                runCatching { harness.session.start(projection) }.exceptionOrNull()
+                runCatching { harness.session.start() }.exceptionOrNull()
             }
 
             try {
@@ -316,12 +367,12 @@ internal class ScreenCaptureSessionBootstrapTest {
                 val terminalStats = harness.session.stats.value
                 assertSame(ScreenCaptureStopReason.Requested, terminal.reason)
                 assertEquals(initialStats, terminalStats)
-                val startFailure = start.await() as ScreenCaptureException
-                assertSame(ScreenCaptureProblem.CaptureUnavailable, startFailure.problem)
+                assertTrue(start.await() is CancellationException)
                 platforms.verifyUntouched()
-                verify { projection wasNot Called }
 
                 check(harness.enterNextCaptureTask()) { "Accepted Capture work was not retained" }
+                val lateWorker = harness.enterNextWorker() ?: error("Accepted projection retirement was not retained")
+                lateWorker.awaitSuccessfulCompletion()
 
                 assertEquals(terminal, harness.session.state.value)
                 assertEquals(terminalStats, harness.session.stats.value)
@@ -350,7 +401,7 @@ internal class ScreenCaptureSessionBootstrapTest {
             harness.session.registerFrameConsumer { callbackCount.incrementAndGet() }
             val initialStats = harness.session.stats.value
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                runCatching { harness.session.start(projection) }.exceptionOrNull()
+                runCatching { harness.session.start() }.exceptionOrNull()
             }
 
             try {
@@ -376,9 +427,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 assertEquals(initialStats, terminalStats)
                 assertEquals(0, harness.metricsHandleCloseCount())
                 assertEquals(0, callbackCount.get())
-                val startFailure = start.await() as ScreenCaptureException
-                assertSame(ScreenCaptureProblem.CaptureUnavailable, startFailure.problem)
-                verify { projection wasNot Called }
+                assertTrue(start.await() is CancellationException)
 
                 harness.releaseMetricsSubscribeReturn()
                 metricsTask.awaitSuccessfulCompletion()
@@ -422,7 +471,7 @@ internal class ScreenCaptureSessionBootstrapTest {
             every { projection.stop() } just Runs
             val initialStats = harness.session.stats.value
             val start = async {
-                runCatching { harness.session.start(projection) }.exceptionOrNull()
+                runCatching { harness.session.start() }.exceptionOrNull()
             }
 
             try {

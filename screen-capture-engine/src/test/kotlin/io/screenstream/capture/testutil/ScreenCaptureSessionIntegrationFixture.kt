@@ -5,6 +5,7 @@ import android.graphics.SurfaceTexture
 import android.hardware.DataSpace
 import android.hardware.display.VirtualDisplay
 import android.media.projection.MediaProjection
+import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLContext
 import android.opengl.EGLDisplay
@@ -52,11 +53,10 @@ import java.util.concurrent.atomic.AtomicReference
 internal object ScreenCaptureSessionIntegrationFixture {
     internal suspend fun startActiveSession(
         harness: SessionStartHarness,
-        platform: HappyCapturePlatform,
         parameters: ScreenCaptureParameters,
     ) = coroutineScope {
         val start = async(start = CoroutineStart.UNDISPATCHED) {
-            harness.session.start(platform.projection, parameters)
+            harness.session.start(parameters)
         }
         harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
         start.await()
@@ -169,14 +169,14 @@ internal object ScreenCaptureSessionIntegrationFixture {
 
     internal class SafeRejectingNativeJpegFacade(
         private val successfulCompressionCountBeforeRejection: Int = 0,
-        private val blockCompression: Boolean = false,
+        blockCompression: Boolean = false,
     ) : NativeJpegFacade, AutoCloseable {
         private val outstandingCarriers: MutableSet<ByteBuffer> =
-            Collections.newSetFromMap(IdentityHashMap<ByteBuffer, Boolean>())
+            Collections.newSetFromMap(IdentityHashMap())
         private val allocatedCarriers: MutableSet<ByteBuffer> =
-            Collections.newSetFromMap(IdentityHashMap<ByteBuffer, Boolean>())
+            Collections.newSetFromMap(IdentityHashMap())
         private val freedCarriers: MutableSet<ByteBuffer> =
-            Collections.newSetFromMap(IdentityHashMap<ByteBuffer, Boolean>())
+            Collections.newSetFromMap(IdentityHashMap())
         private val freeAttempts = ArrayList<ByteBuffer>()
         private val compressionEntered = CountDownLatch(1)
         private val compressionMayReturn = CountDownLatch(if (blockCompression) 1 else 0)
@@ -322,22 +322,73 @@ internal object ScreenCaptureSessionIntegrationFixture {
         private val initialSurface: Surface = mockk()
         private val replacementSurface: Surface = mockk()
         private val initialOesTextureName = 101
-        private val initialOutputTextureName = 102
-        private val replacementOesTextureName = 103
-        private val replacementOutputTextureName = 104
         private var generatedTextureCount = 0
         private var generatedFramebufferCount = 0
         private var projectionCallback: MediaProjection.Callback? = null
         private var projectionCallbackHandler: Handler? = null
-        private var sourceFrameListener: SurfaceTexture.OnFrameAvailableListener? = null
-        private var sourceFrameHandler: Handler? = null
+
+        private class FrameListenerRegistration(
+            val listener: SurfaceTexture.OnFrameAvailableListener,
+            val handler: Handler,
+        )
+
+        private val targetGate = Any()
+        private val frameListeners = IdentityHashMap<SurfaceTexture, FrameListenerRegistration>()
+        private val surfaceTexturesBySurface = IdentityHashMap<Surface, SurfaceTexture>()
+        private var attachedSurfaceTexture: SurfaceTexture? = null
         private val sourceRgbaSeed = AtomicInteger()
         private val sourceDataSpace = AtomicInteger(DataSpace.DATASPACE_UNKNOWN)
         private val sourceUpdates = AtomicInteger()
         private val nextReadbackAction = AtomicReference<((ByteBuffer) -> Unit)?>(null)
         private val nextSourceUpdateFailure = AtomicReference<Exception?>(null)
-        private val nextReplacementSurfaceTextureDenial = AtomicReference<Surface.OutOfResourcesException?>(null)
         private var didReturnInitialVirtualDisplay = false
+
+        // Robolectric may leave EGL14's opaque native sentinels null. Install identities once per sandbox
+        // so real EglOwner teardown can pass the same non-null NO_* handles through its Kotlin boundary.
+        private val noDisplay = EGL14.EGL_NO_DISPLAY ?: mockk<EGLDisplay>().also { EGL14.EGL_NO_DISPLAY = it }
+        private val noContext = EGL14.EGL_NO_CONTEXT ?: mockk<EGLContext>().also { EGL14.EGL_NO_CONTEXT = it }
+        private val noSurface = EGL14.EGL_NO_SURFACE ?: mockk<EGLSurface>().also { EGL14.EGL_NO_SURFACE = it }
+        private var currentDisplay: EGLDisplay = noDisplay
+        private var currentContext: EGLContext = noContext
+        private var currentSurface: EGLSurface = noSurface
+        private val createdSurfaceTextures = mutableListOf<SurfaceTexture>()
+        private val createdSurfaces = mutableListOf<Surface>()
+        private val createdTextures = mutableListOf<Int>()
+        private val createdFramebuffers = mutableListOf<Int>()
+        private val retiredTextures = mutableListOf<Int>()
+        private val retiredFramebuffers = mutableListOf<Int>()
+
+        fun verifySuccessfulRetirement() {
+            check(currentDisplay === EGL14.EGL_NO_DISPLAY)
+            check(currentContext === EGL14.EGL_NO_CONTEXT)
+            check(currentSurface === EGL14.EGL_NO_SURFACE)
+            verify(exactly = 1) {
+                projectionPlatform.unregisterCallback(refEq(projection), any())
+                projectionPlatform.stop(refEq(projection))
+                eglPlatform.destroyContext(refEq(eglDisplay), refEq(eglContext))
+                eglPlatform.destroySurface(refEq(eglDisplay), refEq(eglPbuffer))
+                eglPlatform.releaseDisplayInitialization(refEq(eglDisplay))
+                eglPlatform.releaseThread()
+                glesPlatform.deleteShader(301)
+                glesPlatform.deleteShader(302)
+                glesPlatform.deleteProgram(401)
+            }
+            if (didReturnInitialVirtualDisplay) verify(exactly = 1) { projectionPlatform.release(refEq(virtualDisplay)) }
+            createdSurfaceTextures.forEach { texture ->
+                verify(exactly = 1) {
+                    targetPlatform.clearFrameListener(refEq(texture))
+                    targetPlatform.releaseSurfaceTexture(refEq(texture))
+                }
+            }
+            createdSurfaces.forEach { surface -> verify(exactly = 1) { targetPlatform.releaseSurface(refEq(surface)) } }
+            assertEquals(createdTextures.sorted(), retiredTextures.sorted())
+            assertEquals(createdFramebuffers.sorted(), retiredFramebuffers.sorted())
+        }
+
+        fun failInitialSurfaceTextureRelease(failure: Exception) {
+            every { targetPlatform.releaseSurfaceTexture(refEq(initialSurfaceTexture)) } throws failure
+        }
+
 
         init {
             configureProjection()
@@ -372,12 +423,16 @@ internal object ScreenCaptureSessionIntegrationFixture {
         }
 
         fun deliverSourceFrame(rgbaSeed: Int, dataSpace: Int = DataSpace.DATASPACE_UNKNOWN) {
-            val listener = checkNotNull(sourceFrameListener)
-            val handler = checkNotNull(sourceFrameHandler)
             sourceRgbaSeed.set(rgbaSeed)
             sourceDataSpace.set(dataSpace)
-            check(handler.post { listener.onFrameAvailable(initialSurfaceTexture) })
-            shadowOf(handler.looper).idle()
+            val (surfaceTexture, registration) = synchronized(targetGate) {
+                val current = checkNotNull(attachedSurfaceTexture) { "The virtual display has no attached Target" }
+                current to checkNotNull(frameListeners[current]) {
+                    "The attached Target has no current frame listener"
+                }
+            }
+            check(registration.handler.post { registration.listener.onFrameAvailable(surfaceTexture) })
+            shadowOf(registration.handler.looper).idle()
         }
 
         fun runOnceDuringNextReadback(action: (ByteBuffer) -> Unit) {
@@ -389,15 +444,6 @@ internal object ScreenCaptureSessionIntegrationFixture {
         }
 
         fun sourceUpdateCount(): Int = sourceUpdates.get()
-
-        fun denyNextReplacementSurfaceTextureAllocation() {
-            check(
-                nextReplacementSurfaceTextureDenial.compareAndSet(
-                    null,
-                    Surface.OutOfResourcesException("Injected replacement SurfaceTexture allocation denial"),
-                ),
-            ) { "A replacement SurfaceTexture allocation denial is already armed" }
-        }
 
         fun verifyOpenBoundaries(widthPx: Int, heightPx: Int, densityDpi: Int) {
             verifyInitialProjectionBoundaries(widthPx, heightPx, densityDpi)
@@ -454,7 +500,7 @@ internal object ScreenCaptureSessionIntegrationFixture {
 
         fun verifyNoReplacementTargetWasCreated() {
             verify(exactly = 0) {
-                targetPlatform.createSurfaceTexture(replacementOesTextureName)
+                targetPlatform.createSurfaceTexture(match { it != initialOesTextureName })
             }
         }
 
@@ -474,18 +520,29 @@ internal object ScreenCaptureSessionIntegrationFixture {
             every {
                 projectionPlatform.createVirtualDisplay(refEq(projection), any(), any(), any(), refEq(initialSurface))
             } answers {
+                synchronized(targetGate) {
+                    attachedSurfaceTexture = checkNotNull(surfaceTexturesBySurface[initialSurface])
+                }
                 didReturnInitialVirtualDisplay = true
                 virtualDisplay
             }
+            every { projectionPlatform.unregisterCallback(refEq(projection), any()) } just Runs
+            every { projectionPlatform.stop(refEq(projection)) } just Runs
+            every { projectionPlatform.release(refEq(virtualDisplay)) } just Runs
             every { projectionPlatform.resize(refEq(virtualDisplay), any(), any(), any()) } just Runs
-            every { projectionPlatform.setSurface(refEq(virtualDisplay), any()) } just Runs
+            every { projectionPlatform.setSurface(refEq(virtualDisplay), any()) } answers {
+                val surface = secondArg<Surface>()
+                synchronized(targetGate) {
+                    attachedSurfaceTexture = checkNotNull(surfaceTexturesBySurface[surface])
+                }
+            }
         }
 
         private fun configureEgl() {
-            every { eglPlatform.currentDisplay } returns eglDisplay
-            every { eglPlatform.currentContext } returns eglContext
-            every { eglPlatform.currentReadSurface } returns eglPbuffer
-            every { eglPlatform.currentDrawSurface } returns eglPbuffer
+            every { eglPlatform.currentDisplay } answers { currentDisplay }
+            every { eglPlatform.currentContext } answers { currentContext }
+            every { eglPlatform.currentReadSurface } answers { currentSurface }
+            every { eglPlatform.currentDrawSurface } answers { currentSurface }
             every { eglPlatform.getDisplay() } returns eglDisplay
             every { eglPlatform.initialize(refEq(eglDisplay), any()) } answers {
                 secondArg<IntArray>()[0] = 1
@@ -499,7 +556,22 @@ internal object ScreenCaptureSessionIntegrationFixture {
             }
             every { eglPlatform.createContext(refEq(eglDisplay), refEq(eglConfig), any()) } returns eglContext
             every { eglPlatform.createPbufferSurface(refEq(eglDisplay), refEq(eglConfig), any()) } returns eglPbuffer
-            every { eglPlatform.makeCurrent(refEq(eglDisplay), refEq(eglPbuffer), refEq(eglContext)) } returns true
+            every { eglPlatform.makeCurrent(refEq(eglDisplay), refEq(eglPbuffer), refEq(eglContext)) } answers {
+                currentDisplay = eglDisplay
+                currentContext = eglContext
+                currentSurface = eglPbuffer
+                true
+            }
+            every { eglPlatform.makeCurrent(refEq(eglDisplay), EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT) } answers {
+                currentDisplay = EGL14.EGL_NO_DISPLAY
+                currentContext = EGL14.EGL_NO_CONTEXT
+                currentSurface = EGL14.EGL_NO_SURFACE
+                true
+            }
+            every { eglPlatform.destroyContext(refEq(eglDisplay), refEq(eglContext)) } returns true
+            every { eglPlatform.destroySurface(refEq(eglDisplay), refEq(eglPbuffer)) } returns true
+            every { eglPlatform.releaseDisplayInitialization(refEq(eglDisplay)) } returns true
+            every { eglPlatform.releaseThread() } returns true
         }
 
         private fun configureGles() {
@@ -522,26 +594,18 @@ internal object ScreenCaptureSessionIntegrationFixture {
                 secondArg<IntArray>().fill(0)
             }
             every { glesPlatform.genTextures(any()) } answers {
-                firstArg<IntArray>()[0] = when (generatedTextureCount++) {
-                    0 -> initialOesTextureName
-                    1 -> initialOutputTextureName
-                    2 -> replacementOesTextureName
-                    3 -> replacementOutputTextureName
-                    else -> error("Unexpected texture allocation")
-                }
+                firstArg<IntArray>()[0] = (initialOesTextureName + generatedTextureCount++)
+                    .also { createdTextures += it }
             }
             every { glesPlatform.bindTexture(any(), any()) } just Runs
             every { glesPlatform.texParameter(any(), any(), any()) } just Runs
             every { glesPlatform.texImage2D(any(), any()) } just Runs
             every { glesPlatform.genFramebuffers(any()) } answers {
-                firstArg<IntArray>()[0] = when (generatedFramebufferCount++) {
-                    0 -> 201
-                    1 -> 202
-                    else -> error("Unexpected framebuffer allocation")
-                }
+                firstArg<IntArray>()[0] = (201 + generatedFramebufferCount++)
+                    .also { createdFramebuffers += it }
             }
-            every { glesPlatform.deleteTextures(any()) } just Runs
-            every { glesPlatform.deleteFramebuffers(any()) } just Runs
+            every { glesPlatform.deleteTextures(any()) } answers { retiredTextures.addAll(firstArg<IntArray>().toList()) }
+            every { glesPlatform.deleteFramebuffers(any()) } answers { retiredFramebuffers.addAll(firstArg<IntArray>().toList()) }
             every { glesPlatform.bindFramebuffer(any()) } just Runs
             every { glesPlatform.framebufferTexture2D(any()) } just Runs
             every { glesPlatform.checkFramebufferStatus() } returns GLES20.GL_FRAMEBUFFER_COMPLETE
@@ -561,6 +625,9 @@ internal object ScreenCaptureSessionIntegrationFixture {
             }
             every { glesPlatform.getUniformLocation(any(), any()) } returns 1
             every { glesPlatform.detachShader(any(), any()) } just Runs
+            every { glesPlatform.deleteShader(301) } just Runs
+            every { glesPlatform.deleteShader(302) } just Runs
+            every { glesPlatform.deleteProgram(401) } just Runs
             every { glesPlatform.useProgram(any()) } just Runs
             every { glesPlatform.viewport(any(), any()) } just Runs
             every { glesPlatform.activeTexture(any()) } just Runs
@@ -590,26 +657,52 @@ internal object ScreenCaptureSessionIntegrationFixture {
         }
 
         private fun configureTarget() {
-            every { targetPlatform.createSurfaceTexture(initialOesTextureName) } returns initialSurfaceTexture
-            every { targetPlatform.createSurfaceTexture(replacementOesTextureName) } answers {
-                nextReplacementSurfaceTextureDenial.getAndSet(null)?.let { throw it }
-                replacementSurfaceTexture
+            every { targetPlatform.createSurfaceTexture(any()) } answers {
+                if (firstArg<Int>() == initialOesTextureName) {
+                    initialSurfaceTexture.also { createdSurfaceTextures += it }
+                } else {
+                    replacementSurfaceTexture.also { createdSurfaceTextures += it }
+                }
             }
             every { targetPlatform.setDefaultBufferSize(refEq(initialSurfaceTexture), any(), any()) } just Runs
             every { targetPlatform.setDefaultBufferSize(refEq(replacementSurfaceTexture), any(), any()) } just Runs
-            every { targetPlatform.createSurface(refEq(initialSurfaceTexture)) } returns initialSurface
-            every { targetPlatform.createSurface(refEq(replacementSurfaceTexture)) } returns replacementSurface
-            every { targetPlatform.setFrameListener(refEq(initialSurfaceTexture), any(), any()) } answers {
-                sourceFrameListener = secondArg()
-                sourceFrameHandler = thirdArg()
+            every { targetPlatform.createSurface(refEq(initialSurfaceTexture)) } answers {
+                synchronized(targetGate) { surfaceTexturesBySurface[initialSurface] = initialSurfaceTexture }
+                initialSurface.also { createdSurfaces += it }
             }
-            every { targetPlatform.setFrameListener(refEq(replacementSurfaceTexture), any(), any()) } just Runs
-            every { targetPlatform.updateTexImage(refEq(initialSurfaceTexture)) } answers {
+            every { targetPlatform.createSurface(refEq(replacementSurfaceTexture)) } answers {
+                synchronized(targetGate) { surfaceTexturesBySurface[replacementSurface] = replacementSurfaceTexture }
+                replacementSurface.also { createdSurfaces += it }
+            }
+            every { targetPlatform.setFrameListener(any(), any(), any()) } answers {
+                val surfaceTexture = firstArg<SurfaceTexture>()
+                synchronized(targetGate) {
+                    frameListeners[surfaceTexture] = FrameListenerRegistration(
+                        listener = secondArg<SurfaceTexture.OnFrameAvailableListener>(),
+                        handler = thirdArg<Handler>(),
+                    )
+                }
+            }
+            every { targetPlatform.updateTexImage(any()) } answers {
+                val surfaceTexture = firstArg<SurfaceTexture>()
+                synchronized(targetGate) {
+                    check(surfaceTexture === attachedSurfaceTexture) { "Readback targeted a detached SurfaceTexture" }
+                }
                 sourceUpdates.incrementAndGet()
                 nextSourceUpdateFailure.getAndSet(null)?.let { throw it }
             }
-            every { targetPlatform.dataSpace(refEq(initialSurfaceTexture)) } answers { sourceDataSpace.get() }
-            every { targetPlatform.getTransformMatrix(refEq(initialSurfaceTexture), any()) } answers {
+            every { targetPlatform.dataSpace(any()) } answers {
+                val surfaceTexture = firstArg<SurfaceTexture>()
+                synchronized(targetGate) {
+                    check(surfaceTexture === attachedSurfaceTexture) { "Dataspace queried from a detached SurfaceTexture" }
+                }
+                sourceDataSpace.get()
+            }
+            every { targetPlatform.getTransformMatrix(any(), any()) } answers {
+                val surfaceTexture = firstArg<SurfaceTexture>()
+                synchronized(targetGate) {
+                    check(surfaceTexture === attachedSurfaceTexture) { "Transform queried from a detached SurfaceTexture" }
+                }
                 val matrix = secondArg<FloatArray>()
                 matrix.fill(0f)
                 matrix[0] = 1f
@@ -617,7 +710,14 @@ internal object ScreenCaptureSessionIntegrationFixture {
                 matrix[10] = 1f
                 matrix[15] = 1f
             }
-            every { targetPlatform.clearFrameListener(refEq(initialSurfaceTexture)) } just Runs
+            every { targetPlatform.clearFrameListener(refEq(replacementSurfaceTexture)) } answers {
+                synchronized(targetGate) { frameListeners.remove(replacementSurfaceTexture) }
+            }
+            every { targetPlatform.releaseSurface(refEq(replacementSurface)) } just Runs
+            every { targetPlatform.releaseSurfaceTexture(refEq(replacementSurfaceTexture)) } just Runs
+            every { targetPlatform.clearFrameListener(refEq(initialSurfaceTexture)) } answers {
+                synchronized(targetGate) { frameListeners.remove(initialSurfaceTexture) }
+            }
             every { targetPlatform.releaseSurface(refEq(initialSurface)) } just Runs
             every { targetPlatform.releaseSurfaceTexture(refEq(initialSurfaceTexture)) } just Runs
         }

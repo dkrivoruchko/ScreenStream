@@ -1,18 +1,14 @@
 package io.screenstream.capture
 
-import android.media.projection.MediaProjection
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
-import io.mockk.Called
-import io.mockk.confirmVerified
 import io.mockk.mockk
-import io.mockk.verify
 import io.screenstream.capture.internal.metrics.SessionMetricsSourceSelection
 import io.screenstream.capture.internal.runtime.HandlerTaskPoster
 import io.screenstream.capture.internal.runtime.HandlerThreadPlatform
+import io.screenstream.capture.internal.runtime.NonInlineDispatcher
 import io.screenstream.capture.internal.session.SessionCoordinator
-import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -21,14 +17,13 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
-import java.util.concurrent.CancellationException
 import kotlin.time.Duration
 
 internal class ScreenCaptureSessionShutdownTest {
     // Verification: UNR-01
     @Test
     fun preStartConsumerAdmissionUnregisterReplacementAndUpdateArePlatformFree() = runTest {
-        val session = ScreenCaptureSession.create(coordinator())
+        val (session, dispatcher) = sessionWithDispatcher()
         val initialState = session.state.value
         val initialStats = session.stats.value
         val first = session.registerFrameConsumer { fail("pre-start consumer was invoked") }
@@ -41,6 +36,7 @@ internal class ScreenCaptureSessionShutdownTest {
         }
         assertSame(initialState, session.state.value)
         assertSame(initialStats, session.stats.value)
+        dispatcher.runAll()
 
         first.unregister()
         val replacement = session.registerFrameConsumer { fail("replacement pre-start consumer was invoked") }
@@ -54,22 +50,14 @@ internal class ScreenCaptureSessionShutdownTest {
     // Verification: SES-02
     @Test
     fun preStartStopSettlesRegistrationWithoutCancellingCallerAndRejectsLaterWork() = runTest {
-        val session = ScreenCaptureSession.create(coordinator())
+        val (session, dispatcher) = sessionWithDispatcher()
         val registration = session.registerFrameConsumer { fail("terminal consumer was invoked") }
 
         session.stop()
         val terminalState = session.state.value
         assertTrue(terminalState is ScreenCaptureState.Stopped)
 
-        val terminalCancellationCaught = async {
-            try {
-                registration.unregister()
-                false
-            } catch (_: CancellationException) {
-                true
-            }
-        }
-        assertTrue(terminalCancellationCaught.await())
+        registration.unregister()
 
         assertThrows(IllegalStateException::class.java) {
             session.registerFrameConsumer { fail("post-terminal consumer was invoked") }
@@ -77,19 +65,17 @@ internal class ScreenCaptureSessionShutdownTest {
         assertThrows(IllegalStateException::class.java) {
             session.updateParameters(ScreenCaptureParameters.DEFAULT)
         }
-        val freshProjection: MediaProjection = mockk()
-        val restartFailure = runCatching { session.start(freshProjection) }.exceptionOrNull()
+        val restartFailure = runCatching { session.start() }.exceptionOrNull()
         assertEquals(IllegalStateException::class.java, restartFailure?.javaClass)
-        verify { freshProjection wasNot Called }
-        confirmVerified(freshProjection)
         assertSame(terminalState, session.state.value)
+        dispatcher.runAll()
     }
 
     // Verification: SES-02
     // Verification: OBS-01
     @Test
     fun stopBeforeStartPublishesRequestedTerminalDefaultsAndIsIdempotent() {
-        val session = ScreenCaptureSession.create(coordinator())
+        val (session, dispatcher) = sessionWithDispatcher()
         val initialStats = session.stats.value
 
         assertSame(ScreenCaptureState.NotStarted, session.state.value)
@@ -108,16 +94,20 @@ internal class ScreenCaptureSessionShutdownTest {
 
         assertEquals(stopped, session.state.value)
         assertEquals(finalStats, session.stats.value)
+        dispatcher.runAll()
     }
 
-    private fun coordinator(): SessionCoordinator = SessionCoordinator(
+    private fun sessionWithDispatcher(): Pair<ScreenCaptureSession, QueuedDispatcher> {
+        val dispatcher = QueuedDispatcher()
+        return ScreenCaptureSession.create(coordinator(dispatcher)) to dispatcher
+    }
+
+    private fun coordinator(workerDispatcher: NonInlineDispatcher): SessionCoordinator = SessionCoordinator(
         metricsSourceSelection = SessionMetricsSourceSelection.Explicit {
             throw AssertionError("Metrics subscription was not expected")
         },
         jpegBackendPolicy = JpegBackendPolicy.FrameworkOnly,
-        workerDispatcher = {
-            throw AssertionError("Worker dispatch was not expected")
-        },
+        workerDispatcher = workerDispatcher,
         handlerThreadPlatform = FailFastHandlerThreadPlatform,
         handlerTaskPoster = FailFastHandlerTaskPoster,
         delayedEntryScheduler = { _, _ ->
@@ -126,7 +116,20 @@ internal class ScreenCaptureSessionShutdownTest {
         executionClock = { 0L },
         currentEpochMillis = { 0L },
         platformSdkInt = 36,
-    )
+    ).also { it.adoptProjection(mockk(relaxed = true)) }
+
+    private class QueuedDispatcher : NonInlineDispatcher {
+        private val tasks = ArrayDeque<Runnable>()
+
+        override fun tryDispatch(task: Runnable): Boolean {
+            tasks.addLast(task)
+            return true
+        }
+
+        fun runAll() {
+            while (tasks.isNotEmpty()) tasks.removeFirst().run()
+        }
+    }
 
     private fun assertZeroStats(stats: ScreenCaptureStats) {
         assertEquals(0L, stats.encodedFrameCount)

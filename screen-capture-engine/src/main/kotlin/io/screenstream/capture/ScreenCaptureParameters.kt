@@ -12,7 +12,9 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * Source selection, crop, rotation, mirror, and output sizing are applied in that order. Instances
  * use structural equality across every property, and all nested parameter values are immutable.
- * Pre-JPEG output is opaque, top-down SDR/sRGB RGBA, and JPEG rows retain that top-down orientation.
+ * Pre-JPEG output is opaque, top-down RGBA using a nominal SDR/sRGB interpretation, and JPEG rows
+ * retain that top-down orientation. See the
+ * [color assumptions and limits](../../../../../../docs/usage.md#color-assumptions-and-limits).
  *
  * @property sourceRegion source area selected before crop and transforms. Defaults to
  *     [SourceRegion.Full].
@@ -344,7 +346,9 @@ public enum class Mirror {
 }
 
 /**
- * Color conversion applied to the SDR/sRGB pre-JPEG image after source handling and output sizing.
+ * Color conversion applied after source handling and output sizing using the pre-JPEG image's
+ * nominal SDR/sRGB interpretation. See the
+ * [color assumptions and limits](../../../../../../docs/usage.md#color-assumptions-and-limits).
  *
  * Shader precision and lossy JPEG encoding do not promise bit-exact decoded channel values.
  */

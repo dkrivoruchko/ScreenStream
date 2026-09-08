@@ -23,7 +23,6 @@ import io.screenstream.capture.Mirror
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.internal.Rgba8888Layout
-import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import io.screenstream.capture.internal.runtime.HandlerTaskPoster
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -351,8 +350,131 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         fixture.deliverSourceFrame(fixture.candidateSurfaceTexture)
         assertSame(growth.sourceIdentity, fixture.factPort.sourceIdentities.single())
 
+        val carrier = ByteBuffer.allocateDirect(growthPlan.rgbaCarrierByteCount)
+        var readResult: CaptureReadResult? = null
+        assertTrue(
+            fixture.owner.read(growthPlan, growth.sourceIdentity, carrier) { returned ->
+                check(readResult == null)
+                readResult = returned
+            },
+        )
+        fixture.enterAcceptedWork()
+
+        val filled = readResult as? CaptureReadResult.Filled
+            ?: error("Candidate Target read did not return Filled")
+        assertEquals(READBACK_DURATION_NANOS, filled.readbackDurationNanos)
+        assertEquals(listOf(fixture.candidateSurfaceTexture), fixture.targetPlatform.updatedSurfaceTextures)
+        assertEquals(
+            listOf(
+                fixture.candidateSurfaceTexture,
+                fixture.candidateSurfaceTexture,
+                fixture.candidateSurfaceTexture,
+            ),
+            fixture.targetPlatform.frameAccessSurfaceTextures,
+        )
+        assertEquals(1, fixture.gles.readPixelsCount)
+
+        fixture.deliverSourceFrame(fixture.initialSurfaceTexture)
+        assertEquals(listOf(growth.sourceIdentity), fixture.factPort.sourceIdentities)
+
         fixture.owner.retire()
         fixture.enterAcceptedWork()
+
+        assertEquals(
+            listOf(fixture.initialSurface, fixture.candidateSurface),
+            fixture.targetPlatform.surfaceReleaseAttempts,
+        )
+        assertEquals(
+            listOf(fixture.initialSurface, fixture.candidateSurface),
+            fixture.targetPlatform.releasedSurfaces,
+        )
+        assertEquals(
+            listOf(fixture.initialSurfaceTexture, fixture.candidateSurfaceTexture),
+            fixture.targetPlatform.releasedSurfaceTextures,
+        )
+        assertEquals(1, fixture.projectionPlatform.detachSurfaceCount)
+        assertEquals(1, fixture.projectionPlatform.releaseCount)
+        assertEquals(1, fixture.projectionPlatform.unregisterCount)
+        assertEquals(1, fixture.projectionPlatform.stopCount)
+    }
+
+    // Verification: TGT-02
+    @Test
+    fun committedReplacementOldSurfaceReleaseFailureInvalidatesOwnerAndRetainsOldRoots() {
+        val fixture = OwnerFixture()
+        fixture.open()
+        val oldSurfaceReleaseFailure = IllegalStateException("old Surface release failed")
+        fixture.targetPlatform.initialSurfaceReleaseFailure = oldSurfaceReleaseFailure
+
+        assertTrue(fixture.owner.apply(fixture.replacementPlan))
+        fixture.enterAcceptedWork()
+
+        val result = fixture.factPort.applyResults.single() as? CaptureApplyResult.Failed
+            ?: error("Committed replacement failure did not return Failed")
+        assertSame(ScreenCaptureProblem.InternalFailure, result.problem)
+        assertSame(oldSurfaceReleaseFailure, result.cause)
+        assertSame(CaptureFailureScope.OwnerInvalidated, result.scope)
+        assertSame(fixture.candidateSurface, fixture.projectionPlatform.platformAttachedSurface)
+        assertEquals(1, fixture.projectionPlatform.replacementSurfaceCount)
+        assertEquals(
+            listOf(fixture.initialSurface),
+            fixture.targetPlatform.surfaceReleaseAttempts,
+        )
+        assertTrue(fixture.targetPlatform.releasedSurfaces.isEmpty())
+        assertTrue(fixture.targetPlatform.releasedSurfaceTextures.isEmpty())
+        assertTrue(fixture.targetPlatform.surfaceTextureReleaseAttempts.isEmpty())
+
+        fixture.deliverSourceFrame(fixture.candidateSurfaceTexture)
+        val candidateIdentity = fixture.factPort.sourceIdentities.single()
+        val carrier = ByteBuffer.allocateDirect(fixture.replacementPlan.rgbaCarrierByteCount)
+        var readResult: CaptureReadResult? = null
+        assertTrue(
+            fixture.owner.read(fixture.replacementPlan, candidateIdentity, carrier) { returned ->
+                check(readResult == null)
+                readResult = returned
+            },
+        )
+        fixture.enterAcceptedWork()
+
+        val rejectedRead = readResult as? CaptureReadResult.Failed
+            ?: error("Invalidated replacement owner reused a candidate read")
+        assertSame(ScreenCaptureProblem.InternalFailure, rejectedRead.problem)
+        assertFalse(rejectedRead.sourceConsumed)
+        assertEquals(0, fixture.gles.readPixelsCount)
+        assertTrue(fixture.targetPlatform.frameAccessSurfaceTextures.isEmpty())
+
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+
+        assertEquals(
+            listOf(fixture.initialSurface, fixture.candidateSurface),
+            fixture.targetPlatform.surfaceReleaseAttempts,
+        )
+        assertEquals(listOf(fixture.candidateSurface), fixture.targetPlatform.releasedSurfaces)
+        assertEquals(listOf(fixture.candidateSurfaceTexture), fixture.targetPlatform.releasedSurfaceTextures)
+        assertFalse(fixture.targetPlatform.releasedSurfaceTextures.contains(fixture.initialSurfaceTexture))
+        assertEquals(listOf(OUTPUT_TEXTURE, CANDIDATE_OES_TEXTURE), fixture.gles.deletedTextures)
+        assertFalse(fixture.gles.deletedTextures.contains(INITIAL_OES_TEXTURE))
+        assertEquals(1, fixture.projectionPlatform.detachSurfaceCount)
+        assertEquals(1, fixture.projectionPlatform.releaseCount)
+        assertEquals(1, fixture.projectionPlatform.unregisterCount)
+        assertEquals(1, fixture.projectionPlatform.stopCount)
+        assertEquals(0, fixture.egl.unbindCount)
+        assertEquals(0, fixture.egl.destroyContextCount)
+        assertEquals(0, fixture.egl.destroySurfaceCount)
+        assertEquals(0, fixture.egl.releaseThreadCount)
+        assertThrows(IllegalStateException::class.java) {
+            fixture.owner.read(fixture.replacementPlan, candidateIdentity, carrier) { }
+        }
+        assertThrows(IllegalStateException::class.java) {
+            fixture.owner.apply(fixture.replacementPlan)
+        }
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+        assertEquals(
+            listOf(fixture.initialSurface, fixture.candidateSurface),
+            fixture.targetPlatform.surfaceReleaseAttempts,
+        )
     }
 
     private enum class TargetOpenSeam {
@@ -378,7 +500,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
             target = TargetOwner(
                 captureHandler = Handler(Looper.getMainLooper()),
                 eglOwner = eglOwner,
-                sourceSink = TargetOwner.SourceSink { error("Unexpected source callback") },
+                sourceSink = { error("Unexpected source callback") },
                 callbackBoundary = object : CaptureCallbackBoundary {
                     override fun onCallbackException(identity: CaptureCallbackIdentity, failure: Exception) {
                         error("Unexpected callback failure: $failure")
@@ -500,7 +622,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
                 controlHandler = captureHandler,
                 handlerTaskPoster = poster,
                 factPort = factPort,
-                readbackClock = ElapsedRealtimeClock {
+                readbackClock = {
                     readbackTimeNanos.also { readbackTimeNanos += READBACK_DURATION_NANOS }
                 },
                 platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
@@ -654,10 +776,13 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         var candidateSurfaceCreationFailure: Surface.OutOfResourcesException? = null
         var candidateSurfaceTextureReleaseFailure: Exception? = null
         val createdOesTextureNames = mutableListOf<Int>()
+        val surfaceReleaseAttempts = mutableListOf<Surface>()
         val releasedSurfaces = mutableListOf<Surface>()
         val surfaceTextureReleaseAttempts = mutableListOf<SurfaceTexture>()
         val releasedSurfaceTextures = mutableListOf<SurfaceTexture>()
         val updatedSurfaceTextures = mutableListOf<SurfaceTexture>()
+        val frameAccessSurfaceTextures = mutableListOf<SurfaceTexture>()
+        var initialSurfaceReleaseFailure: Exception? = null
         var candidateSurfaceTextureReleaseAttemptCount = 0
             private set
         var initialListenerRemovalCount = 0
@@ -709,10 +834,12 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         }
 
         override fun updateTexImage(surfaceTexture: SurfaceTexture) {
+            frameAccessSurfaceTextures += surfaceTexture
             updatedSurfaceTextures += surfaceTexture
         }
 
         override fun getTransformMatrix(surfaceTexture: SurfaceTexture, destination: FloatArray) {
+            frameAccessSurfaceTextures += surfaceTexture
             destination.fill(0f)
             destination[0] = 1f
             destination[5] = 1f
@@ -720,9 +847,14 @@ internal class SessionCaptureOwnerTargetReplacementTest {
             destination[15] = 1f
         }
 
-        override fun dataSpace(surfaceTexture: SurfaceTexture): Int = DataSpace.DATASPACE_UNKNOWN
+        override fun dataSpace(surfaceTexture: SurfaceTexture): Int {
+            frameAccessSurfaceTextures += surfaceTexture
+            return DataSpace.DATASPACE_UNKNOWN
+        }
 
         override fun releaseSurface(surface: Surface) {
+            surfaceReleaseAttempts += surface
+            if (surface === initialSurface) initialSurfaceReleaseFailure?.let { throw it }
             releasedSurfaces += surface
         }
 
@@ -800,6 +932,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
                 destroySurfaceCount += 1
                 true
             }
+            every { platform.releaseDisplayInitialization(display) } returns true
             every { platform.releaseThread() } answers {
                 releaseThreadCount += 1
                 true

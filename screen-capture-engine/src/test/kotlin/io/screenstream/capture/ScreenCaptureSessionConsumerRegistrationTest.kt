@@ -14,6 +14,7 @@ import io.screenstream.capture.testutil.SessionStartHarness
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
@@ -60,12 +61,13 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
-            startActiveSession(harness, platform, parameters)
+            startActiveSession(harness, parameters)
             primeCachedFrame(harness, platform, rgbaSeed = 31)
 
             val callbackEntries = AtomicInteger()
@@ -114,12 +116,13 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
-            startActiveSession(harness, platform, parameters)
+            startActiveSession(harness, parameters)
             primeCachedFrame(harness, platform, rgbaSeed = 33)
 
             val callback = BlockingCallback()
@@ -144,9 +147,14 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
                 assertTrue(unregisterReturned.get())
 
                 registration.unregister()
-                val replacement = harness.session.registerFrameConsumer {
-                    fail("Replacement callback entered without a new source opportunity")
-                }
+                val replacementEntries = AtomicInteger()
+                val replacement = harness.session.registerFrameConsumer { replacementEntries.incrementAndGet() }
+                check(harness.enterNextControlTask()) { "Cached replacement delivery was not offered" }
+                val replacementTask = checkNotNull(harness.enterNextWorker())
+                replacementTask.awaitSuccessfulCompletion()
+                assertEquals(1, replacementEntries.get())
+                check(harness.enterNextControlTask()) { "Replacement callback closure was not offered to Control" }
+                runCurrent()
                 replacement.unregister()
                 assertEquals(1, callback.entryCount())
                 assertTrue(harness.session.state.value is ScreenCaptureState.Active)
@@ -156,6 +164,70 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
                 unregister.cancelAndJoin()
                 stopAndDrainSession(harness)
             }
+        }
+    }
+
+    // Verification: DEL-02
+    // Verification: UNR-03
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun sameCallbackWorkerCanRetryAndReplaceBeforePhysicalNotificationReturns() = runTest {
+        val platform = HappyCapturePlatform()
+        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+        SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+        ).use { harness ->
+            startActiveSession(harness, parameters)
+            primeCachedFrame(harness, platform, rgbaSeed = 34)
+
+            val entered = CountDownLatch(1)
+            val release = CountDownLatch(1)
+            val originalSequence = AtomicLong()
+            val originalWorker = AtomicReference<Thread>()
+            val replacementSequence = AtomicLong()
+            val replacementEntries = AtomicInteger()
+            val registration = harness.session.registerFrameConsumer { frame ->
+                originalWorker.set(Thread.currentThread())
+                originalSequence.set(frame.sequence)
+                entered.countDown()
+                check(release.await(5L, TimeUnit.SECONDS)) { "callback was not released" }
+            }
+            check(harness.enterNextControlTask()) { "Cached delivery was not offered" }
+            val callbackTask = checkNotNull(harness.enterNextWorker())
+            check(entered.await(5L, TimeUnit.SECONDS)) { "callback did not enter" }
+
+            val continuationWorker = AtomicReference<Thread>()
+            val replacementRef = AtomicReference<FrameConsumerRegistration>()
+            val unregister = async(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+                registration.unregister()
+                registration.unregister()
+                continuationWorker.set(Thread.currentThread())
+                replacementRef.set(harness.session.registerFrameConsumer { frame ->
+                    replacementEntries.incrementAndGet()
+                    replacementSequence.set(frame.sequence)
+                })
+            }
+            assertFalse(unregister.isCompleted)
+            release.countDown()
+            callbackTask.awaitSuccessfulCompletion()
+            unregister.await()
+
+            assertSame(callbackTask.enteredThread, continuationWorker.get())
+            assertSame(callbackTask.enteredThread, originalWorker.get())
+            assertEquals(0, replacementEntries.get())
+
+            harness.driveUntil { replacementEntries.get() == 1 }
+            assertEquals(originalSequence.get(), replacementSequence.get())
+            checkNotNull(replacementRef.get()).unregister()
+            stopAndDrainSession(harness)
         }
     }
 
@@ -171,12 +243,13 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
-            startActiveSession(harness, platform, parameters)
+            startActiveSession(harness, parameters)
             primeCachedFrame(harness, platform, rgbaSeed = 35)
 
             val registrationRef = AtomicReference<FrameConsumerRegistration>()
@@ -255,12 +328,13 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
-            startActiveSession(harness, platform, parameters)
+            startActiveSession(harness, parameters)
             primeCachedFrame(harness, platform, rgbaSeed = 39)
 
             val callback = BlockingCallback()
@@ -326,7 +400,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Test
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun terminalFailureSettlesOutstandingPublicUnregisterBeforeLateCallbackReturn() = runTest {
+    fun terminalFailureKeepsOutstandingPublicUnregisterPendingUntilLateCallbackReturn() = runTest {
         val platform = HappyCapturePlatform()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
@@ -334,12 +408,13 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
-            startActiveSession(harness, platform, parameters)
+            startActiveSession(harness, parameters)
             primeCachedFrame(harness, platform, rgbaSeed = 41)
 
             val callback = BlockingCallback()
@@ -349,14 +424,8 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             callback.awaitEntered()
             val unregisterSettled = AtomicBoolean()
             val unregister = async(start = CoroutineStart.UNDISPATCHED) {
-                val outcome = try {
-                    registration.unregister()
-                    null
-                } catch (failure: ScreenCaptureException) {
-                    failure
-                }
+                registration.unregister()
                 unregisterSettled.set(true)
-                outcome
             }
 
             try {
@@ -367,23 +436,15 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
 
                 val failed = harness.session.state.value as ScreenCaptureState.Failed
                 assertSame(ScreenCaptureProblem.UnsupportedColorSpace, failed.problem)
-                val unregisterOutcome = checkNotNull(unregister.await()) {
-                    "Terminal failure completed unregister successfully"
-                }
-                assertTrue(unregisterSettled.get())
-                assertSame(ScreenCaptureProblem.UnsupportedColorSpace, unregisterOutcome.problem)
-                val repeatedFailure = try {
-                    registration.unregister()
-                    throw AssertionError("Repeated unregister ignored terminal failure")
-                } catch (failure: ScreenCaptureException) {
-                    failure
-                }
-                assertSame(ScreenCaptureProblem.UnsupportedColorSpace, repeatedFailure.problem)
-                val frozenStats = harness.session.stats.value
-
+                assertFalse(unregister.isCompleted)
                 callback.release()
                 callbackTask.awaitSuccessfulCompletion()
                 callback.awaitReturned()
+                unregister.await()
+                assertTrue(unregisterSettled.get())
+                registration.unregister()
+                val frozenStats = harness.session.stats.value
+
                 drainAcceptedSessionWork(harness)
 
                 assertEquals(1, callback.entryCount())
@@ -403,7 +464,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun enteredCallbackDoesNotDelayRequestedTerminalOrTerminalUnregisterSettlement() = runTest {
+    fun enteredCallbackKeepsUnregisterPendingUntilActualReturnAfterTerminal() = runTest {
         val platform = HappyCapturePlatform()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
@@ -411,24 +472,44 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, parameters)
+                harness.session.start(parameters)
             }
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
             start.await()
             primeCachedFrame(harness, platform, rgbaSeed = 43)
 
             val callbackEntered = CountDownLatch(1)
+            val selfCallNow = CountDownLatch(1)
             val callbackMayReturn = CountDownLatch(1)
+            val selfCallCompleted = CountDownLatch(1)
             val callbackReturned = CountDownLatch(1)
-            val registration = harness.session.registerFrameConsumer {
+            val selfCallFailure = AtomicReference<Throwable>()
+            val borrowAfterSelfCall = AtomicBoolean()
+            val registrationRef = AtomicReference<FrameConsumerRegistration>()
+            val registration = harness.session.registerFrameConsumer { frame ->
                 callbackEntered.countDown()
                 try {
+                    check(selfCallNow.await(5L, TimeUnit.SECONDS)) { "self-call was not released" }
+                    try {
+                        val failure = try {
+                            runBlocking { registrationRef.get().unregister() }
+                            AssertionError("self-unregister unexpectedly succeeded")
+                        } catch (failure: Throwable) {
+                            failure
+                        }
+                        selfCallFailure.set(failure)
+                        frame.byteCount
+                        borrowAfterSelfCall.set(true)
+                    } finally {
+                        selfCallCompleted.countDown()
+                    }
                     check(callbackMayReturn.await(5L, TimeUnit.SECONDS)) {
                         "Entered callback was not released"
                     }
@@ -437,43 +518,136 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
                     callbackReturned.countDown()
                 }
             }
+            registrationRef.set(registration)
             harness.enterNextControlTask()
             val callbackTask = checkNotNull(harness.enterNextWorker())
             check(callbackEntered.await(5L, TimeUnit.SECONDS)) {
                 "Frame callback did not enter"
             }
 
-            val unregister = async(UnconfinedTestDispatcher(testScheduler)) {
-                try {
-                    registration.unregister()
-                    fail("Terminal stop completed an entered callback unregister successfully")
-                } catch (_: CancellationException) {
-                }
-            }
+            var unregister: Deferred<Unit>? = null
 
             try {
                 harness.session.stop()
                 driveControlUntil(harness) { harness.session.state.value is ScreenCaptureState.Stopped }
-                unregister.await()
 
                 val frozenState = harness.session.state.value as ScreenCaptureState.Stopped
                 val frozenStats = harness.session.stats.value
                 assertSame(ScreenCaptureStopReason.Requested, frozenState.reason)
+
+                selfCallNow.countDown()
+                check(selfCallCompleted.await(5L, TimeUnit.SECONDS)) { "self-call did not complete" }
+                assertTrue(selfCallFailure.get() is IllegalStateException)
+                assertTrue(borrowAfterSelfCall.get())
+
+                unregister = async(UnconfinedTestDispatcher(testScheduler)) {
+                    registration.unregister()
+                }
+                assertFalse(unregister.isCompleted)
 
                 callbackMayReturn.countDown()
                 callbackTask.awaitSuccessfulCompletion()
                 check(callbackReturned.await(5L, TimeUnit.SECONDS)) {
                     "Frame callback did not return"
                 }
+                unregister.await()
+                registration.unregister()
                 drainAcceptedSessionWork(harness)
 
                 assertEquals(frozenState, harness.session.state.value)
                 assertEquals(frozenStats, harness.session.stats.value)
             } finally {
+                selfCallNow.countDown()
                 callbackMayReturn.countDown()
                 callbackTask.awaitCompletion()
-                unregister.cancelAndJoin()
+                unregister?.cancelAndJoin()
             }
+        }
+    }
+
+    // Verification: DEL-02
+    // Verification: UNR-06
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun terminalHeldSessionCompletesItsRegistrationWithoutAControlTurnAndDoesNotAffectAnotherSession() = runTest {
+        val platformA = HappyCapturePlatform()
+        val platformB = HappyCapturePlatform()
+        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+        val harnessA = SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.N,
+            projection = platformA.projection,
+            projectionPlatform = platformA.projectionPlatform,
+            eglPlatform = platformA.eglPlatform,
+            glesPlatform = platformA.glesPlatform,
+            targetPlatform = platformA.targetPlatform,
+        )
+        val harnessB = SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.N,
+            projection = platformB.projection,
+            projectionPlatform = platformB.projectionPlatform,
+            eglPlatform = platformB.eglPlatform,
+            glesPlatform = platformB.glesPlatform,
+            targetPlatform = platformB.targetPlatform,
+        )
+        var callbackTaskA: ControlledNonInlineDispatcher.TaskHandle? = null
+        var callbackA: BlockingCallback? = null
+        var unregisterA: Deferred<Unit>? = null
+        try {
+            startActiveSession(harnessA, parameters)
+            primeCachedFrame(harnessA, platformA, rgbaSeed = 53)
+
+            val heldCallback = BlockingCallback()
+            callbackA = heldCallback
+            val registrationA = harnessA.session.registerFrameConsumer(heldCallback::invoke)
+            check(harnessA.enterNextControlTask()) { "Session A cached delivery was not offered" }
+            val heldTask = checkNotNull(harnessA.enterNextWorker())
+            callbackTaskA = heldTask
+            heldCallback.awaitEntered()
+
+            harnessA.session.stop()
+            driveControlUntil(harnessA) { harnessA.session.state.value is ScreenCaptureState.Stopped }
+            val frozenAState = harnessA.session.state.value
+            val frozenAStats = harnessA.session.stats.value
+
+            startActiveSession(harnessB, parameters)
+            val bFrames = AtomicInteger()
+            val bSequence = AtomicLong()
+            harnessB.session.registerFrameConsumer { frame ->
+                bFrames.incrementAndGet()
+                bSequence.set(frame.sequence)
+            }
+            platformB.deliverSourceFrame(rgbaSeed = 61)
+            harnessB.driveUntil { bFrames.get() == 1 }
+            val firstBSequence = bSequence.get()
+            assertTrue(harnessB.session.state.value is ScreenCaptureState.Active)
+
+            val unregisterHandle = async(start = CoroutineStart.UNDISPATCHED) { registrationA.unregister() }
+            unregisterA = unregisterHandle
+            assertFalse(unregisterHandle.isCompleted)
+
+            heldCallback.release()
+            heldTask.awaitSuccessfulCompletion()
+            unregisterHandle.await()
+            assertEquals(frozenAState, harnessA.session.state.value)
+            assertEquals(frozenAStats, harnessA.session.stats.value)
+
+            platformB.deliverSourceFrame(rgbaSeed = 67)
+            harnessB.driveUntil { bFrames.get() == 2 }
+            assertTrue(bSequence.get() > firstBSequence)
+            assertTrue(harnessB.session.state.value is ScreenCaptureState.Active)
+        } finally {
+            callbackA?.release()
+            callbackTaskA?.awaitCompletion()
+            unregisterA?.cancelAndJoin()
+            stopAndDrainSession(harnessA)
+            stopAndDrainSession(harnessB)
+            harnessA.close()
+            harnessB.close()
         }
     }
 
@@ -489,13 +663,14 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             try {
-                startActiveSession(harness, platform, parameters)
+                startActiveSession(harness, parameters)
                 primeCachedFrame(harness, platform, rgbaSeed = 47)
                 drainAcceptedSessionWork(harness)
 

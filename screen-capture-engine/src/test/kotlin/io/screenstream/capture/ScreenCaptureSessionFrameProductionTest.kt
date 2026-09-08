@@ -57,6 +57,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
                 bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
                 metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
                 platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+                projection = platform.projection,
                 projectionPlatform = platform.projectionPlatform,
                 eglPlatform = platform.eglPlatform,
                 glesPlatform = platform.glesPlatform,
@@ -64,7 +65,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
                 nativeJpeg = FailFastNativeJpegFacade,
             ).use { harness ->
                 val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                    harness.session.start(platform.projection, parameters)
+                    harness.session.start(parameters)
                     harness.session.state.value
                 }
                 harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
@@ -125,13 +126,14 @@ internal class ScreenCaptureSessionFrameProductionTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, parameters)
+                harness.session.start(parameters)
                 harness.session.state.value
             }
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
@@ -180,13 +182,14 @@ internal class ScreenCaptureSessionFrameProductionTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, initialParameters)
+                harness.session.start(initialParameters)
                 harness.session.state.value
             }
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
@@ -250,6 +253,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.R,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
@@ -259,7 +263,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
         ).use { harness ->
             try {
                 val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                    harness.session.start(platform.projection, parameters)
+                    harness.session.start(parameters)
                     harness.session.state.value
                 }
                 harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
@@ -338,6 +342,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.R,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
@@ -354,7 +359,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
             var blockedNativeTask: ControlledNonInlineDispatcher.TaskHandle? = null
             try {
                 val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                    harness.session.start(platform.projection, initialParameters)
+                    harness.session.start(initialParameters)
                     harness.session.state.value
                 }
                 harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }

@@ -48,9 +48,11 @@ internal object DeviceJpegFixture {
     internal fun assertPayload(payload: ImmutableEncodedPayload) {
         assertTrue(payload.byteCount > 0)
         val encodedBytes = payload.toByteArray()
-        val decoded = BitmapFactory.decodeByteArray(encodedBytes, 0, encodedBytes.size)
+        val decodeOptions = BitmapFactory.Options()
+        val decoded = BitmapFactory.decodeByteArray(encodedBytes, 0, encodedBytes.size, decodeOptions)
             ?: error("The platform Bitmap decoder rejected the produced JPEG")
         try {
+            assertEquals("image/jpeg", decodeOptions.outMimeType)
             assertDecoded(decoded)
         } finally {
             decoded.recycle()

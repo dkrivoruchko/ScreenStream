@@ -69,7 +69,7 @@ internal class NativeJpegProductionRuntimeTest {
         val nativeBoundary = TrackingNativeJpegFacade()
         val owner = EncodingOwner(
             dispatcher,
-            clock = ElapsedRealtimeClock { 0L },
+            clock = { 0L },
             nativeJpeg = nativeBoundary,
         )
         var cleanupInput: EncodingInput? = null

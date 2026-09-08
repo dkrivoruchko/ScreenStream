@@ -6,30 +6,26 @@ These instructions apply to work under `screen-capture-engine/`.
 
 - Caller-visible contracts belong in `README.md` and `docs/`. Maintainer-facing architecture, component boundaries, and invariants belong in `internal/`; use `internal/README.md` as its index.
 - Source and build files own current declarations, descriptors, native symbols, and packaging. Tests provide evidence; they do not redefine documented behavior.
-- Verify external-platform decisions against current official documentation; use other primary sources only for explicit gaps. Use the live repository for repository facts.
-- Update the owning public or internal document when its behavior or invariant changes.
+- Treat the current working code as authoritative. Leave unrelated user changes intact and do not investigate Git or staging state unless the user asks.
+- Verify external platform decisions against current official documentation. Update the owning public or internal document when behavior or an invariant changes.
 
-## Coordination
+## Changes and ownership
 
-- Root is the sole user-facing orchestrator; the developer owns product and scope decisions. Root assigns work, reconciles independent evidence, controls file ownership, verifies completion, and reports the result without taking over an active delegated assignment.
-- Give each subagent one bounded, self-contained assignment. Subagents do not spawn subagents, consult other models, intentionally read or edit `WORK_STATE.md`, or claim overall completion.
-- If a subagent accidentally sees isolated `WORK_STATE.md` content, it discloses and ignores it. Replace the agent only when that exposure materially compromised independence.
-- For nontrivial technical research or solution search, Root starts two independent `gpt-5.6-sol` subagents with `high` reasoning. Purely mechanical work skips the research panel.
-- Reuse a focused agent whose prior work was read-only, who has not seen conclusions for the current decision, and who has no role or file conflict. Use a fresh agent when context is stale, contaminated, overloaded, or mismatched; a new turn alone does not invalidate an agent.
-- Independent researchers receive the same neutral assignment with `fork_turns: "none"`. A failed, timed-out, or unavailable result is not a handoff: retry or replace it, or report the exact blocker. Resolve disagreement from repository evidence and authoritative sources, not by voting.
-- Each subagent performs two self-review passes before handoff. Root does the same before its final report and checks that synthesis preserves every material finding, objection, option, and limitation. Use a third pass only after material revision or when risk warrants it.
+- Keep changes within the user's requested scope and prefer the simplest correct solution.
+- Give concurrent writers disjoint files. Writers reread live files before editing and after relevant concurrent changes.
+- Do not modify public API contracts without user agreement.
 
-## Work state
+## Subagents and responsibilities
 
-- Root is the exclusive agent reader and writer of `WORK_STATE.md` and rereads it before substantial planning or after context loss.
-- Keep only unresolved state that must survive restarts: active work, decisions, material handoffs needed for continuation, pending authorization, blockers, validation gaps, deferred work, and continuation points.
-- Record material changes promptly. Remove completed, integrated, superseded, or obsolete detail; stable contracts belong in public or internal documentation.
+- Root stays user-facing, delegates bounded independent tasks, integrates results, and owns final verification. Root does not take over code assigned to an active writer.
+- Fresh Sol-High writers own assigned code, tests, and product documentation in disjoint files.
+- Substantive technical decisions use two independent Astra-High opinions before a direct cross-check. Two fresh independent Astra-High reviewers who did not write or prepare the implementation review it; the same coherent pair rechecks corrections.
+- Use self-contained assignments with `fork_turns: "none"`, no nested agents, and at most eight useful concurrent children. Follow the user's model choice and repository naming convention when provided.
+- Root controls shared build resources and resolves overlapping work. Do not fill slots or convene panels for mechanical work.
 
 ## Implementation and verification
 
-- Research and proposals remain read-only until the developer authorizes implementation. Do not change production source to enable testing without approval of the exact production change.
-- Git is read-only for every agent; authorized edits use non-Git tools and ignore staging state.
-- Give concurrent writers disjoint files. Writers reread live files before editing and after relevant concurrent changes.
 - Every test follows the canonical [contract-test rules](internal/testing.md#contract-test-rules). Before designing or editing a coroutine test, read the primary guidance linked there and explain why scheduler controls arrange execution without becoming the oracle.
-- A fresh nonparticipant reviews implementation read-only, including top-level Kotlin ownership decisions. The writer fixes findings, the same reviewer rechecks, and Root runs the smallest relevant verification.
-- Close when authorized work is integrated and reviewed, unresolved issues are deferred explicitly, and `WORK_STATE.md` contains only current unresolved state.
+- Use Android CLI for Android-specific work. Prefer a connected physical device for app runs; ask before launching an emulator when no device is connected.
+- Run the smallest verification that establishes the requested behavior, then broaden only when risk or a failure warrants it.
+- For instruction-only changes, check wording, links, and consistency. Builds or device tests are needed only when a changed claim requires them.

@@ -1,6 +1,6 @@
 # Native JPEG ABI contract
 
-The Native JPEG boundary is a process-lifetime packet between Kotlin, JNI, and C++. This page records the durable descriptor, status, ownership, export, and error rules. Backend policy and public failure meanings remain in the [public JPEG backend seam](../../docs/architecture.md#jpeg-backend-seam) and [failure/recovery guidance](../../docs/usage.md#handle-failures-and-recovery). Maintained policy and physical boundaries are in the [encoding component](../components/encoding.md#backend-selection-and-fallback) and [failures and terminal semantics](failures-and-terminal-semantics.md). This page does not duplicate build-tool inventories or a verification matrix. The [image pipeline](image-pipeline.md) defines the RGBA input semantics and the [frame ownership and delivery contract](frame-ownership-and-delivery.md) defines the immutable payload after commit. Component direction is in the [architecture overview](../architecture/overview.md).
+This contract defines the process-lifetime Kotlin/JNI/C++ packet: descriptors, statuses, ownership, exports, and error boundaries. [Encoding](../components/encoding.md#backend-selection-and-fallback) owns backend policy, the [image pipeline](image-pipeline.md) defines RGBA input, and [frame ownership](frame-ownership-and-delivery.md) defines the committed payload.
 
 ## Kotlin/JNI/C++ packet
 
@@ -15,6 +15,8 @@ JNI registers these private natives in this order:
 
 The compress arguments are, in order: direct carrier, pixel byte count, width, height, stride, format, flags, dataspace, JPEG format, quality, sink, and result block. Kotlin supplies tight top-down opaque RGBA (`stride = 4W`, `ANDROID_BITMAP_FORMAT_RGBA_8888`, opaque alpha, sRGB, JPEG, quality `0..100`). The sink callback is `adoptNativeSegment(Ljava/nio/ByteBuffer;I)V` and is called synchronously for each frozen native segment.
 
+The descriptor specifies [nominal-sRGB interpretation](image-pipeline.md#color-and-readback), not proof of upstream color conversion.
+
 The result block is a direct writable native-order buffer with exactly 16 bytes. Offset 0 is a signed 64-bit produced byte count; offset 8 is a signed 64-bit wire status. Both words begin at `-1` (`Pending`). A returning native path writes the produced count first and status last. The status values are `0` complete transfer, `1` safe compressor rejection, `2` native out-of-memory, `3` internal failure, and `4` pending Java throwable. Field-wise `memcpy` is used for the native words; the block is not a C++ struct or an aliasing cast. Status-last is a same-task completion marker, not a cross-thread fence.
 
 ## Ownership and transfer
@@ -23,7 +25,7 @@ The managed carrier is an exact direct writable range of `B` bytes. Native alloc
 
 After freeze, JNI exposes only the current segment as a temporary direct `ByteBuffer`, synchronously invokes the sink, deletes the local reference, and frees exactly that front node. Managed adoption copies each segment once into Encoding-owned transaction storage. A clean transfer requires positive matching produced/adopted byte counts and no pending Java throwable. Any partial or contradictory transfer is internal failure; only a committed immutable payload can leave Encoding.
 
-Native views never escape their JNI call, and the process-lifetime facade retains no Session or payload state.
+Temporary encoded-segment views never escape their synchronous sink call. The carrier view returned by `nativeAllocateCarrier` intentionally outlives that allocation call and remains valid until its exact owned allocation is safely freed; a Java direct-buffer reference alone does not extend the lifetime of freed native memory. This distinction follows the [JNI direct-buffer lifetime requirement](https://docs.oracle.com/en/java/javase/17/docs/specs/jni/functions.html#newdirectbytebuffer). The process-lifetime facade retains no Session or payload state.
 
 ## Export contract
 

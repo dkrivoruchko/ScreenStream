@@ -162,7 +162,7 @@ internal class SessionCaptureOwnerReadbackTest {
         val readFailure = IllegalStateException("expected glReadPixels failure")
         val fixture = OwnerFixture(
             dataSpace = DataSpace.DATASPACE_SRGB,
-            readbackClock = ElapsedRealtimeClock { CONSTANT_READBACK_TIME_NANOS },
+            readbackClock = { CONSTANT_READBACK_TIME_NANOS },
             readPixelsFailure = readFailure,
         )
         val carrier = ByteBuffer.allocateDirect(fixture.plan.rgbaCarrierByteCount)
@@ -253,7 +253,7 @@ internal class SessionCaptureOwnerReadbackTest {
 
             val fixture = OwnerFixture(
                 dataSpace = DataSpace.DATASPACE_SRGB,
-                readbackClock = ElapsedRealtimeClock { CONSTANT_READBACK_TIME_NANOS },
+                readbackClock = { CONSTANT_READBACK_TIME_NANOS },
             )
             val encodingOwner = EncodingOwner(dispatcher, MutableElapsedRealtimeClock())
             val carrier = createCarrier()
@@ -429,6 +429,7 @@ internal class SessionCaptureOwnerReadbackTest {
                 retirementEvents += "egl-surface-destroy"
                 true
             }
+            every { eglPlatform.releaseDisplayInitialization(eglDisplay) } returns true
             every { eglPlatform.releaseThread() } answers {
                 retirementEvents += "egl-thread-release"
                 true

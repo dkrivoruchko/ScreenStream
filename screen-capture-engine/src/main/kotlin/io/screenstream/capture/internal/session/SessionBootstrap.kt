@@ -180,7 +180,11 @@ internal class SessionBootstrap(
             throw failure
         }
         ownership.recordFirstControlPostResult(executor, firstControlTask, accepted)
-        if (accepted) coordinator.onFirstControlPostAccepted(ownership)
+        if (accepted) {
+            coordinator.onFirstControlPostAccepted(ownership)
+        } else {
+            coordinator.onBootstrapFailure(ownership, IllegalStateException("First Control post was rejected"))
+        }
         retireIfCutoff()
     }
 

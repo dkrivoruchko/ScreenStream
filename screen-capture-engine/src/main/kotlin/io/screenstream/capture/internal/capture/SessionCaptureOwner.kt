@@ -15,9 +15,10 @@ import java.nio.ByteBuffer
  * availability, direct readback, and retirement.
  *
  * Ordinary platform work is serialized on the Capture handler with at most one unresolved ordinary command. Posted
- * roots are installed before submission and retained until definite rejection or real entry. Results describe
- * owner-local physical settlement only; Session decides semantic currentness and lifecycle consequences after exact
- * Link correlation. Retirement fences new work but does not fabricate return of an entered or nonreturning read.
+ * roots are installed before submission and retained until definite rejection or command completion, before result
+ * publication. Results describe owner-local physical settlement only; Session decides semantic currentness and lifecycle
+ * consequences after exact Link correlation. Retirement fences new work but does not fabricate return of an entered or
+ * nonreturning read.
  */
 internal class SessionCaptureOwner(
     private val captureThread: HandlerThread,
@@ -486,6 +487,7 @@ internal class SessionCaptureOwner(
         }
     }
 
+    // Reuses a completed retirement outcome, not the retired resources.
     private fun retireOrReuse(command: Command): RetirementOutcome? =
         when (val current = retirement) {
             RetirementState.Available -> retirePhysical(command).also(::enforceProjectionResidueRetention)
@@ -535,10 +537,11 @@ internal class SessionCaptureOwner(
         }
 
         val egl = eglOwner
-        val blocksHealthyEglTeardown = (currentTarget?.blocksEglTeardown == true) || (candidate?.blocksEglTeardown == true) ||
-                (oldTarget?.blocksEglTeardown == true) || (rendererRetirement.value?.residue != null)
+        val blocksDisplayRelease =
+            (currentTarget?.blocksEglTeardown == true) || (candidate?.blocksEglTeardown == true) || (oldTarget?.blocksEglTeardown == true)
+        val blocksHealthyEglTeardown = blocksDisplayRelease || (rendererRetirement.value?.residue != null)
         val eglRetirement = if ((egl != null) && (!blocksHealthyEglTeardown || !egl.isHealthy)) {
-            attemptCleanup { egl.close() }
+            attemptCleanup { egl.close(allowDisplayRelease = !blocksDisplayRelease) }
         } else {
             CleanupAttempt<EglOwner.EglRetirementOutcome>(null, null)
         }

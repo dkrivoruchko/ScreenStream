@@ -21,6 +21,7 @@ internal sealed interface SessionPlanResolution {
     class Resolved(
         internal val capturePlan: CapturePlan,
         internal val effectiveParameters: ScreenCaptureEffectiveParameters,
+        internal val isProvisional: Boolean,
     ) : SessionPlanResolution {
         internal val encoderPlan: Rgba8888Layout
             get() = capturePlan.rgbaLayout
@@ -40,6 +41,9 @@ internal sealed interface SessionPlanResolution {
             platformSdkInt: Int,
             sourceDimensionsAreAuthoritative: Boolean,
         ): SessionPlanResolution {
+            if (!sourceDimensionsAreAuthoritative) {
+                return resolveProvisional(widthPx, heightPx, densityDpi)
+            }
             if ((widthPx <= 0) || (heightPx <= 0) || (densityDpi <= 0)) {
                 return Rejected(
                     problem = ScreenCaptureProblem.InvalidRequest,
@@ -99,9 +103,7 @@ internal sealed interface SessionPlanResolution {
 
                 val scaleFactor = parameters.outputSize as? OutputSize.ScaleFactor
                 val isDownscaledTargetEligible = (platformSdkInt >= VERSION_CODES.S_V2) &&
-                        sourceDimensionsAreAuthoritative && (parameters.sourceRegion == SourceRegion.Full) &&
-                        (crop == CropInsetsPx.ZERO) &&
-                        (scaleFactor != null) && (scaleFactor.factor < 1.0)
+                        (parameters.sourceRegion == SourceRegion.Full) && (crop == CropInsetsPx.ZERO) && (scaleFactor != null) && (scaleFactor.factor < 1.0)
                 if (isDownscaledTargetEligible) {
                     val width = widthPx.toLong()
                     val height = heightPx.toLong()
@@ -191,6 +193,57 @@ internal sealed interface SessionPlanResolution {
                         appliedSourceRect = appliedSourceRect,
                         finalImageSize = finalImageSize,
                     ),
+                    isProvisional = false,
+                )
+            } catch (failure: ArithmeticException) {
+                Rejected(ScreenCaptureProblem.ResourceExhausted, failure)
+            } catch (failure: Exception) {
+                Rejected(ScreenCaptureProblem.InternalFailure, failure)
+            }
+        }
+
+        private fun resolveProvisional(widthPx: Int, heightPx: Int, densityDpi: Int): SessionPlanResolution {
+            if ((widthPx <= 0) || (heightPx <= 0) || (densityDpi <= 0)) {
+                return Rejected(
+                    problem = ScreenCaptureProblem.InvalidRequest,
+                    cause = IllegalArgumentException("capture geometry must be positive"),
+                )
+            }
+            return try {
+                val preparationParameters = ScreenCaptureParameters(
+                    outputSize = OutputSize.TargetSize(
+                        widthPx = PROVISIONAL_OUTPUT_DIMENSION_PX,
+                        heightPx = PROVISIONAL_OUTPUT_DIMENSION_PX,
+                        contentMode = OutputSize.ContentMode.Stretch,
+                    ),
+                )
+                val geometry = CaptureGeometry.create(widthPx, heightPx, densityDpi)
+                val appliedSourceRect = ImageRect.create(0, 0, widthPx, heightPx)
+                val outputSize = ImageSize.create(PROVISIONAL_OUTPUT_DIMENSION_PX, PROVISIONAL_OUTPUT_DIMENSION_PX)
+                Resolved(
+                    capturePlan = CapturePlan(
+                        appliedSourceRect = appliedSourceRect,
+                        rotation = preparationParameters.rotation,
+                        mirror = preparationParameters.mirror,
+                        colorMode = preparationParameters.colorMode,
+                        sourceWidthPx = widthPx,
+                        sourceHeightPx = heightPx,
+                        densityDpi = densityDpi,
+                        targetMode = CaptureTargetMode.Full,
+                        targetWidthPx = widthPx,
+                        targetHeightPx = heightPx,
+                        rgbaLayout = Rgba8888Layout.create(
+                            PROVISIONAL_OUTPUT_DIMENSION_PX,
+                            PROVISIONAL_OUTPUT_DIMENSION_PX,
+                        ),
+                    ),
+                    effectiveParameters = ScreenCaptureEffectiveParameters.create(
+                        appliedParameters = preparationParameters,
+                        captureGeometry = geometry,
+                        appliedSourceRect = appliedSourceRect,
+                        finalImageSize = outputSize,
+                    ),
+                    isProvisional = true,
                 )
             } catch (failure: ArithmeticException) {
                 Rejected(ScreenCaptureProblem.ResourceExhausted, failure)
@@ -249,5 +302,6 @@ internal sealed interface SessionPlanResolution {
                 }
             }
 
+        private const val PROVISIONAL_OUTPUT_DIMENSION_PX: Int = 1
     }
 }

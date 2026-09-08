@@ -28,6 +28,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.OutputStream
 import java.nio.ByteBuffer
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -35,13 +37,91 @@ import java.util.concurrent.atomic.AtomicReference
 @Config(manifest = Config.NONE, sdk = [36])
 internal class EncodingOwnerFrameworkLifecycleTest {
     // Verification: ENC-05
+    // Verification: ENC-06
+    @Test
+    fun enteredFrameworkCompressionRetiresBitmapBeforeCarrierOnlyAfterOuterReturn() {
+        val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
+        val bitmap = spyk(Bitmap.createBitmap(layout.widthPx, layout.heightPx, Bitmap.Config.ARGB_8888))
+        val compressionEntered = CountDownLatch(1)
+        val compressionMayReturn = CountDownLatch(1)
+        try {
+            every { bitmap.compress(Bitmap.CompressFormat.JPEG, any(), any()) } answers {
+                compressionEntered.countDown()
+                assertTrue("Held Framework compression was not released", compressionMayReturn.await(5L, TimeUnit.SECONDS))
+                callOriginal()
+            }
+            mockkStatic(Bitmap::class)
+            every { Bitmap.createBitmap(layout.widthPx, layout.heightPx, Bitmap.Config.ARGB_8888) } returns bitmap
+            ControlledNonInlineDispatcher().use { dispatcher ->
+                val owner = EncodingOwner(dispatcher, { 0L }, FailFastNativeJpegFacade)
+                var task: ControlledNonInlineDispatcher.TaskHandle? = null
+                var unsettledInput: EncodingInput? = null
+                try {
+                    reconcileReady(owner, dispatcher, layout)
+                    val returned = RecordingProductionPort()
+                    val input = requireInput(owner, returned)
+                    unsettledInput = input
+                    every { bitmap.recycle() } answers {
+                        // Managed retirement drops its backing root: idle here proves that did not precede Bitmap retirement.
+                        assertTrue(input.carrier.isIdle)
+                        callOriginal()
+                    }
+                    fillOpaqueRgba(input)
+                    assertSame(EncodingInputSettlement.Accepted, input.encode(80))
+                    unsettledInput = null
+                    task = checkNotNull(dispatcher.enterNext())
+                    check(compressionEntered.await(5L, TimeUnit.SECONDS)) { "Framework compression did not enter" }
+                    owner.retire()
+                    returned.assertCallbackFree()
+                    assertFalse(bitmap.isRecycled)
+                    verify(exactly = 0) { bitmap.recycle() }
+                    assertFalse(input.carrier.isIdle)
+                    assertInputFailedInternal(owner.acquireInput { fail("held retired owner exposed a successor") })
+                    val successor = RecordingReconcilePort()
+                    assertReconcileRejected(owner.reconcile(layout, JpegBackendPolicy.FrameworkOnly, successor), null)
+                    successor.assertCallbackFree()
+
+                    compressionMayReturn.countDown()
+                    // Only the complete outer worker return establishes that production and its return port finished.
+                    task.awaitSuccessfulCompletion()
+                    returned.assertReturnedExactlyOnce(EncodingResult.CutoffInert)
+                    assertFalse(bitmap.isRecycled)
+                    assertTrue(input.carrier.isIdle)
+                    enterOne(dispatcher)
+                    assertTrue(bitmap.isRecycled)
+                    verify(exactly = 1) { bitmap.recycle() }
+                    assertFalse(input.carrier.isIdle)
+                    assertNull(input.carrier.lend(owner, returned))
+                    returned.assertReturnedExactlyOnce(EncodingResult.CutoffInert)
+                    successor.assertCallbackFree()
+                    assertRetired(owner)
+                } finally {
+                    compressionMayReturn.countDown()
+                    task?.awaitSuccessfulCompletion()
+                    unsettledInput?.discard()
+                    owner.retire()
+                    while (true) {
+                        val cleanup = dispatcher.enterNext() ?: break
+                        cleanup.awaitSuccessfulCompletion()
+                    }
+                }
+            }
+        } finally {
+            compressionMayReturn.countDown()
+            unmockkStatic(Bitmap::class)
+            clearMocks(bitmap, answers = true)
+            if (!bitmap.isRecycled) bitmap.recycle()
+        }
+    }
+
+    // Verification: ENC-05
     @Test
     fun reconcileDispatchRejectionIsCallbackFree() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
             val owner = EncodingOwner(
                 dispatcher,
-                clock = ElapsedRealtimeClock { throw AssertionError("reconcile read the production clock") },
+                clock = { throw AssertionError("reconcile read the production clock") },
             )
             val rejectedPort = RecordingReconcilePort()
             dispatcher.enqueueReject()
@@ -63,7 +143,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
             val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
             val owner = EncodingOwner(
                 dispatcher,
-                clock = ElapsedRealtimeClock { throw AssertionError("reconcile read the production clock") },
+                clock = { throw AssertionError("reconcile read the production clock") },
             )
             val failure = IllegalStateException("reconcile dispatch failed")
             val rejectedPort = RecordingReconcilePort()
@@ -86,7 +166,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
             val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
             val owner = EncodingOwner(
                 dispatcher,
-                clock = ElapsedRealtimeClock { throw AssertionError("reconcile read the production clock") },
+                clock = { throw AssertionError("reconcile read the production clock") },
             )
             val firstPort = RecordingReconcilePort()
             assertSame(
@@ -140,7 +220,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
             ControlledNonInlineDispatcher().use { dispatcher ->
                 val owner = EncodingOwner(
                     dispatcher,
-                    clock = ElapsedRealtimeClock { throw AssertionError("reconcile read the production clock") },
+                    clock = { throw AssertionError("reconcile read the production clock") },
                 )
                 val failedPort = RecordingReconcilePort()
                 assertSame(
@@ -205,7 +285,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
             ControlledNonInlineDispatcher().use { dispatcher ->
                 val owner = EncodingOwner(
                     dispatcher,
-                    clock = ElapsedRealtimeClock { throw AssertionError("reconcile read the production clock") },
+                    clock = { throw AssertionError("reconcile read the production clock") },
                 )
                 reconcileReady(owner, dispatcher, initialLayout)
                 val replacementPort = RecordingReconcilePort()
@@ -321,7 +401,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
             val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
             val owner = EncodingOwner(
                 dispatcher,
-                clock = ElapsedRealtimeClock { throw AssertionError("reconcile read the production clock") },
+                clock = { throw AssertionError("reconcile read the production clock") },
             )
             val acceptedPort = RecordingReconcilePort()
             assertSame(
@@ -466,7 +546,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
             val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
             val owner = EncodingOwner(
                 dispatcher,
-                clock = ElapsedRealtimeClock { throw AssertionError("cutoff production read the clock") },
+                clock = { throw AssertionError("cutoff production read the clock") },
             )
             reconcileReady(owner, dispatcher, layout)
             val returned = RecordingProductionPort()
@@ -530,7 +610,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
             val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
             val owner = EncodingOwner(
                 dispatcher,
-                clock = ElapsedRealtimeClock { throw AssertionError("rejected production read the clock") },
+                clock = { throw AssertionError("rejected production read the clock") },
             )
             reconcileReady(owner, dispatcher, layout)
             val returnPort = RecordingProductionPort()

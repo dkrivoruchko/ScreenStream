@@ -9,10 +9,12 @@ import kotlin.time.Duration
  * finite and nonnegative. Values use structural equality.
  *
  * A created session installs one all-zero snapshot; accepting start does not by itself assign another. Statistics
- * are not a periodic sampling service. Ordinary changed snapshots are eligible only while
- * [ScreenCaptureState.Active], at least 1,000 milliseconds after the previous ordinary assignment, and publish only
- * when other session activity gives the engine an opportunity. There is no statistics-only wake or catch-up;
- * changes remain pending during [ScreenCaptureState.Suspended]. Normal terminal publication assigns the final
+ * are not a periodic sampling service. Ordinary changed snapshots are eligible only on eligible activity while
+ * [ScreenCaptureState.Active], when the elapsed-realtime sample is at least 1,000 milliseconds after the sample
+ * used for the previous committed ordinary snapshot; the initial baseline is the Session-creation sample. Physical
+ * assignment and collector observation may occur later and have no minimum spacing guarantee. There is no
+ * statistics-only wake or catch-up; changes remain pending during [ScreenCaptureState.Suspended]. Normal terminal
+ * publication assigns the final
  * statistics before terminal state, but [ScreenCaptureSession.stats] and [ScreenCaptureSession.state] are separate
  * conflated flows with no cross-flow atomicity, collector ordering, or collector-progress guarantee.
  *

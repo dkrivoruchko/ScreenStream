@@ -3,7 +3,6 @@ package io.screenstream.capture.internal.encoding
 import io.screenstream.capture.JpegBackendPolicy
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.internal.Rgba8888Layout
-import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -165,13 +164,13 @@ internal class EncodingOwnerPreSubmissionFailureTest {
     ): EncodingOwner = when (policy) {
         JpegBackendPolicy.FrameworkOnly -> EncodingOwner(
             workerDispatcher = dispatcher,
-            clock = ElapsedRealtimeClock { 0L },
+            clock = { 0L },
             productionFactory = productionFactory,
         )
 
         JpegBackendPolicy.Auto -> EncodingOwner(
             workerDispatcher = dispatcher,
-            clock = ElapsedRealtimeClock { 0L },
+            clock = { 0L },
             nativeJpeg = AvailableNativeJpegFacade(),
             productionFactory = productionFactory,
         )

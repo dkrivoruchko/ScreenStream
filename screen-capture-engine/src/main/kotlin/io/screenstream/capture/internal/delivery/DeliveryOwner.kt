@@ -11,6 +11,12 @@ internal interface DeliveryFactSink {
     fun stageClosed(fact: DeliveryFact.Closed): DeliveryClosedStage
 }
 
+internal interface DeliveryHandoffCompletion {
+    fun callbackReturned(token: DeliveryHandoffToken)
+
+    fun cutoffBeforeEntry(token: DeliveryHandoffToken)
+}
+
 internal fun interface DeliveryClosedStage {
     fun ready()
 }
@@ -106,7 +112,12 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
         }
     }
 
-    private class Handoff(val token: DeliveryHandoffToken, callback: (EncodedImageFrame) -> Unit, frame: PublishedFrame) {
+    private class Handoff(
+        val token: DeliveryHandoffToken,
+        val completion: DeliveryHandoffCompletion?,
+        callback: (EncodedImageFrame) -> Unit,
+        frame: PublishedFrame,
+    ) {
         val borrow = BorrowedFrame(frame)
         var callback: ((EncodedImageFrame) -> Unit)? = callback
         var entry: Entry = Entry.Queued
@@ -119,8 +130,16 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
     private var retired = false
     private var current: Handoff? = null
 
-    internal fun offer(token: DeliveryHandoffToken, callback: (EncodedImageFrame) -> Unit, frame: PublishedFrame): DeliveryOffer {
-        val handoff = Handoff(token = token, callback = callback, frame = frame)
+    internal fun offer(token: DeliveryHandoffToken, callback: (EncodedImageFrame) -> Unit, frame: PublishedFrame): DeliveryOffer =
+        offer(token, completion = null, callback, frame)
+
+    internal fun offer(
+        token: DeliveryHandoffToken,
+        completion: DeliveryHandoffCompletion?,
+        callback: (EncodedImageFrame) -> Unit,
+        frame: PublishedFrame,
+    ): DeliveryOffer {
+        val handoff = Handoff(token = token, completion = completion, callback = callback, frame = frame)
         synchronized(ownerGate) {
             if (retired) return DeliveryOffer.Cutoff
             if (current != null) return DeliveryOffer.Occupied
@@ -149,14 +168,25 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
 
     internal fun cutoff(registrationId: Long): DeliveryCutoff {
         require(registrationId > 0L)
-        return synchronized(ownerGate) {
+        return cutoff { it.token.registrationId == registrationId }
+    }
+
+    internal fun cutoff(token: DeliveryHandoffToken): DeliveryCutoff =
+        cutoff { it.token === token }
+
+    private fun cutoff(matches: (Handoff) -> Boolean): DeliveryCutoff {
+        var completion: DeliveryHandoffCompletion? = null
+        var completedToken: DeliveryHandoffToken? = null
+        val result = synchronized(ownerGate) {
             val handoff = current
-            if ((handoff == null) || (handoff.token.registrationId != registrationId)) {
+            if ((handoff == null) || !matches(handoff)) {
                 DeliveryCutoff.NoHandoff
             } else {
                 when (handoff.entry) {
                     Entry.Queued -> {
                         handoff.entry = Entry.CutoffInert
+                        completion = handoff.completion
+                        completedToken = handoff.token
                         DeliveryCutoff.CutoffBeforeEntry
                     }
 
@@ -166,6 +196,10 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
                 }
             }
         }
+        if (result == DeliveryCutoff.CutoffBeforeEntry) {
+            completion?.cutoffBeforeEntry(checkNotNull(completedToken))
+        }
+        return result
     }
 
     internal fun isEnteredCallbackThread(registrationId: Long): Boolean {
@@ -176,18 +210,28 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
         }
     }
 
-    internal fun retire(): DeliveryCutoff = synchronized(ownerGate) {
-        retired = true
-        val handoff = current ?: return@synchronized DeliveryCutoff.NoHandoff
-        when (handoff.entry) {
-            Entry.Queued -> {
-                handoff.entry = Entry.CutoffInert
-                DeliveryCutoff.CutoffBeforeEntry
-            }
+    internal fun retire(): DeliveryCutoff {
+        var completion: DeliveryHandoffCompletion? = null
+        var token: DeliveryHandoffToken? = null
+        val result = synchronized(ownerGate) {
+            retired = true
+            val handoff = current ?: return@synchronized DeliveryCutoff.NoHandoff
+            when (handoff.entry) {
+                Entry.Queued -> {
+                    handoff.entry = Entry.CutoffInert
+                    completion = handoff.completion
+                    token = handoff.token
+                    DeliveryCutoff.CutoffBeforeEntry
+                }
 
-            Entry.CutoffInert -> DeliveryCutoff.CutoffBeforeEntry
-            Entry.Entered, Entry.Returned -> DeliveryCutoff.Entered
+                Entry.CutoffInert -> DeliveryCutoff.CutoffBeforeEntry
+                Entry.Entered, Entry.Returned -> DeliveryCutoff.Entered
+            }
         }
+        if (result == DeliveryCutoff.CutoffBeforeEntry) {
+            completion?.cutoffBeforeEntry(checkNotNull(token))
+        }
+        return result
     }
 
     private fun execute(handoff: Handoff) {
@@ -207,6 +251,7 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
         if (!entered) {
             handoff.borrow.revoke()
             handoff.closedOutcome = DeliveryFact.Closed.Outcome.CutoffBeforeEntry
+            handoff.completion?.cutoffBeforeEntry(handoff.token)
             return
         }
 
@@ -229,6 +274,7 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
                     handoff.entry = Entry.Returned
                 }
             }
+            handoff.completion?.callbackReturned(handoff.token)
             return
         }
 
@@ -242,6 +288,13 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
             handoff.borrow.revoke()
         }
         handoff.callback = null
+        synchronized(ownerGate) {
+            if ((current === handoff) && (handoff.entry == Entry.Entered)) {
+                handoff.callbackThread = null
+                handoff.entry = Entry.Returned
+            }
+        }
+        handoff.completion?.callbackReturned(handoff.token)
         handoff.closedOutcome = if (callbackFailure == null) {
             DeliveryFact.Closed.Outcome.CallbackReturned
         } else {
@@ -255,12 +308,6 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
                 DeliveryFact.Closed.Outcome.CallbackReturned
             } else {
                 DeliveryFact.Closed.Outcome.InternalFailure(factFailure)
-            }
-        }
-        synchronized(ownerGate) {
-            if ((current === handoff) && (handoff.entry == Entry.Entered)) {
-                handoff.callbackThread = null
-                handoff.entry = Entry.Returned
             }
         }
     }

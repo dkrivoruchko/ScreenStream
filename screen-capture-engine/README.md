@@ -2,7 +2,7 @@
 
 ## Overview
 
-ScreenStream Capture Engine is an embeddable Kotlin Android library that turns Android screen capture into JPEG images through an integrated graphics and encoding pipeline. Give it a [`MediaProjection`](https://developer.android.com/reference/android/media/projection/MediaProjection), Android's user-approved connection for screen capture, choose the image size and processing options, and receive complete JPEG frames ready for your app to save, analyze, or transport.
+ScreenStream Capture Engine is an embeddable Kotlin Android library that produces JPEG frames from a user-approved [`MediaProjection`](https://developer.android.com/reference/android/media/projection/MediaProjection). Choose image settings and receive complete frames to save, analyze, or transport.
 
 ### Capture Control
 
@@ -39,46 +39,30 @@ flowchart TB
     Deliver --> Value["JPEG frames ready for your app<br/>save · analyze · stream"]
 ```
 
-Continue with [Usage](docs/usage.md) for integration steps and operational behavior, or explore [Architecture](docs/architecture.md) for the complete pipeline, responsibility boundaries, and performance design.
+See [Usage](docs/usage.md) for integration and [Architecture](docs/architecture.md) for pipeline design and responsibility boundaries.
 
 ## Requirements
 
-- The supported public API is Kotlin.
-- The library supports Android API 24 and later and is currently compiled against SDK 37.
+- The supported public API is Kotlin 2.4 and later.
+- The library supports Android API 24 and later. Consuming projects must use `compileSdk` 37 or later.
 - Complete the [Android host prerequisites](docs/usage.md#android-host-prerequisites) before starting capture.
 
 ## Quick start
 
-Create a session, register a frame consumer (the function called for each delivered JPEG), and start it with a fresh `MediaProjection`. To capture again after stopping, create a new session and obtain a new `MediaProjection`.
+Create a session with a fresh `MediaProjection`, register a frame consumer (the function called for each delivered JPEG), then start capture. A successful factory call transfers projection ownership to the session. The lifecycle owner must call `stop()` when done, even if `start()` never runs. See [startup and ownership](docs/usage.md#start-a-capture-run).
 
 ```kotlin
-val session = ScreenCaptureEngine.createSession(context)
+val session = ScreenCaptureEngine.createSession(context, mediaProjection)
 
 session.registerFrameConsumer { frame: EncodedImageFrame ->
     // frame contains one complete JPEG and its output details.
     // Read or copy it only inside this callback.
 }
 
-session.start(mediaProjection)
+session.start()
 
 // When capture is no longer needed:
 session.stop()
-```
-
-```mermaid
-sequenceDiagram
-    participant App as Your app
-    participant Engine as ScreenStream Capture Engine
-    App->>Engine: Create a session
-    App->>Engine: Register for JPEG frames
-    App->>Engine: Start with MediaProjection
-    loop During capture
-        Engine-->>App: Deliver a complete JPEG frame
-        opt Settings change
-            App->>Engine: Update image settings
-        end
-    end
-    App->>Engine: Stop capture
 ```
 
 ### Work with JPEG frames
@@ -89,7 +73,7 @@ See [Detailed frame handling](docs/usage.md#work-with-jpeg-frames) for metadata,
 
 ## Capture parameters
 
-The defaults provide a ready path to complete JPEG output. Pass parameters at start or request updates while the same session is running.
+Pass parameters at start or update them while the session is running.
 
 | Parameter | Default | Purpose |
 | --- | --- | --- |
@@ -103,11 +87,11 @@ The defaults provide a ready path to complete JPEG output. Pass parameters at st
 | `frameRepeatInterval` | `null` | Optionally redelivers the latest JPEG after an interval with no output. |
 | `jpegQuality` | `80` | Sets the JPEG encoder quality hint. |
 
-See [All capture parameters and live updates](docs/usage.md#choose-and-update-capture-parameters) for every setting's available values, their processing order, live updates, and how to verify the settings applied to an output.
+See [Capture parameters and live updates](docs/usage.md#choose-and-update-capture-parameters) for choices, processing order, and applied-output details.
 
 ## Session configuration
 
-Session configuration contains session-level choices fixed when the session is created, separate from capture parameters that can be updated while it runs.
+Session configuration is fixed at creation; capture parameters can change while running.
 
 | Option | Default | Purpose |
 | --- | --- | --- |
@@ -118,7 +102,7 @@ See [Session configuration](docs/usage.md#configure-session-wide-behavior) for d
 
 ## Monitor capture
 
-A session exposes three read-only Kotlin Flows, which your app can collect to receive updates:
+A session exposes three read-only Kotlin Flows:
 
 | Signal | Use it for |
 | --- | --- |
@@ -126,13 +110,13 @@ A session exposes three read-only Kotlin Flows, which your app can collect to re
 | `session.stats` | Accumulates frame counts, processing time, JPEG size, and frame-production or delivery-drop counts. |
 | `session.diagnosticEvents` | Best-effort context for app logs, support reports, and troubleshooting. |
 
-Use `state` to show the current capture status and respond when capture stops or fails, `stats` to display or collect performance measurements, and `diagnosticEvents` to investigate individual notable events. These Flows update independently, so do not combine their latest values as if they formed one synchronized snapshot. See [Monitoring details](docs/usage.md#monitor-capture) for state values, fields, and collection behavior.
+The Flows update independently; their latest values do not form a synchronized snapshot. See [Monitoring](docs/usage.md#monitor-capture) for fields and collection rules.
 
 ## Behavior and responsibilities
 
 ### What the engine provides
 
-- Every delivered frame is one complete, fully opaque, top-down SDR/sRGB JPEG together with the settings and dimensions actually used to produce it.
+- Every delivered frame is one complete, opaque, top-down JPEG together with its exact output settings and dimensions. Color uses a nominal SDR/sRGB interpretation; see [color assumptions and limits](docs/usage.md#color-assumptions-and-limits).
 - Out-of-range parameter values are rejected. Requests that cannot produce valid output are reported through startup failure or session state rather than silently changed.
 
 ### What your app owns
@@ -144,6 +128,4 @@ Use `state` to show the current capture status and respond when capture stops or
 ### Practical limits
 
 - Capture, frame pacing, and repeat delivery are best effort rather than realtime guarantees. Explicit frame-rate controls set limits or sampling policies, not promised delivery rates.
-- A callback already running may continue after settings change or `stop()` is requested. If your app must wait for that callback, wait for the frame consumer's `unregister()` call to complete successfully before calling `stop()`.
-
-See [Detailed usage](docs/usage.md) for integration steps, app responsibilities, and operational limits.
+- A callback admitted before a settings change can still deliver its original output. A callback already running may outlive `stop()`. Await the registration's `unregister()` successfully before releasing resources used only by that callback; this wait remains available after the session ends.

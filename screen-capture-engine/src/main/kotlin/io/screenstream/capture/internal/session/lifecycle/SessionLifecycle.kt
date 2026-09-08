@@ -1,6 +1,5 @@
 package io.screenstream.capture.internal.session.lifecycle
 
-import io.screenstream.capture.ScreenCaptureException
 import io.screenstream.capture.ScreenCaptureProblem
 import kotlinx.coroutines.CompletableDeferred
 
@@ -47,43 +46,48 @@ internal class SessionLifecycle {
         internal val startSettlement: StartSettlement?,
     )
 
-    internal class StartWaiter(private val completion: CompletableDeferred<Unit>) {
-        internal suspend fun awaitCompletion() {
-            completion.await()
-        }
+    internal class StartWaiter(private val completion: CompletableDeferred<StartOutcome>) {
+        internal suspend fun awaitCompletion(): StartOutcome = completion.await()
+    }
+
+    internal sealed interface StartOutcome {
+        data object Succeeded : StartOutcome
+        data object Cancelled : StartOutcome
+        class Failed(internal val failure: io.screenstream.capture.ScreenCaptureException) : StartOutcome
     }
 
     internal class StartSettlement private constructor(
-        private val completion: CompletableDeferred<Unit>,
+        private val completion: CompletableDeferred<StartOutcome>,
         private val outcome: Outcome,
     ) {
         private sealed interface Outcome {
             data object Succeeded : Outcome
-            class Failed(val failure: ScreenCaptureException) : Outcome
+            data object Cancelled : Outcome
+            class Failed(val failure: io.screenstream.capture.ScreenCaptureException) : Outcome
         }
 
         internal fun complete() {
             try {
                 when (val selectedOutcome = outcome) {
-                    Outcome.Succeeded -> completion.complete(Unit)
-                    is Outcome.Failed -> completion.completeExceptionally(selectedOutcome.failure)
+                    Outcome.Succeeded -> completion.complete(StartOutcome.Succeeded)
+                    Outcome.Cancelled -> completion.complete(StartOutcome.Cancelled)
+                    is Outcome.Failed -> completion.complete(StartOutcome.Failed(selectedOutcome.failure))
                 }
             } catch (_: Exception) {
             }
         }
 
         internal companion object {
-            internal fun succeeded(completion: CompletableDeferred<Unit>): StartSettlement = StartSettlement(completion, Outcome.Succeeded)
+            internal fun succeeded(completion: CompletableDeferred<StartOutcome>): StartSettlement = StartSettlement(completion, Outcome.Succeeded)
 
-            internal fun failed(completion: CompletableDeferred<Unit>, decision: TerminalDecision): StartSettlement {
-                val failure = when (decision) {
-                    TerminalDecision.Requested, TerminalDecision.ProjectionStopped ->
-                        ScreenCaptureException.create(ScreenCaptureProblem.CaptureUnavailable)
-
-                    is TerminalDecision.Failed ->
-                        ScreenCaptureException.create(decision.problem, decision.cause)
+            internal fun failed(completion: CompletableDeferred<StartOutcome>, decision: TerminalDecision): StartSettlement {
+                val outcome = when (decision) {
+                    TerminalDecision.Requested, TerminalDecision.ProjectionStopped -> Outcome.Cancelled
+                    is TerminalDecision.Failed -> Outcome.Failed(
+                        io.screenstream.capture.ScreenCaptureException.create(decision.problem, decision.cause),
+                    )
                 }
-                return StartSettlement(completion, Outcome.Failed(failure))
+                return StartSettlement(completion, outcome)
             }
         }
     }
@@ -94,7 +98,7 @@ internal class SessionLifecycle {
 
     internal enum class BootstrapFactResult { Recorded, Ready, Stale, }
 
-    private val startCompletion = CompletableDeferred<Unit>()
+    private val startCompletion = CompletableDeferred<StartOutcome>()
     internal val startWaiter: StartWaiter = StartWaiter(startCompletion)
 
     private var phase = Phase.NotStarted
@@ -122,6 +126,9 @@ internal class SessionLifecycle {
             firstControlPostAccepted = false
         }
     }
+
+    internal val isFreshStartEligible: Boolean
+        get() = (phase == Phase.NotStarted) && (terminalDecision == null)
 
     internal fun recordBootstrapWorkerAccepted(): BootstrapFactResult = recordBootstrapFact(worker = true)
 

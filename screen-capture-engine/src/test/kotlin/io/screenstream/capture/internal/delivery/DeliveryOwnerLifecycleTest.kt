@@ -6,9 +6,14 @@ import io.screenstream.capture.ImageRect
 import io.screenstream.capture.ImageSize
 import io.screenstream.capture.ScreenCaptureEffectiveParameters
 import io.screenstream.capture.ScreenCaptureParameters
+import io.screenstream.capture.internal.session.delivery.SessionDelivery
 import io.screenstream.capture.internal.storage.ImmutableEncodedPayload
 import io.screenstream.capture.internal.storage.PublishedFrame
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -72,6 +77,31 @@ internal class DeliveryOwnerLifecycleTest {
             assertSame(token, closed.handoff)
             assertSame(DeliveryFact.Closed.Outcome.CutoffBeforeEntry, closed.outcome)
             assertSame(closed, sink.readyAttempts().single())
+        }
+    }
+
+    // Verification: DEL-01
+    // Verification: DEL-02
+    @Test
+    fun exactCompletionProofPrecedesPhysicalReleaseAndReportsBeforeCallbackFailure() {
+        ControlledNonInlineDispatcher().use { dispatcher ->
+            val completion = RecordingCompletion()
+            val ownerRef = AtomicReference<DeliveryOwner>()
+            val physicalOfferDuringReport = AtomicReference<DeliveryOffer>()
+            val sink = RecordingFactSink(
+                onOffer = {
+                    assertTrue(completion.callbackReturned.get())
+                    physicalOfferDuringReport.set(ownerRef.get().offer(DeliveryHandoffToken(9L), { }, frame()))
+                },
+            )
+            val owner = DeliveryOwner(dispatcher, sink)
+            ownerRef.set(owner)
+            val token = DeliveryHandoffToken(8L)
+            assertTrue(owner.offer(token, completion, { throw IllegalStateException("callback") }, frame()) is DeliveryOffer.Accepted)
+            val task = dispatcher.enterNext() ?: error("callback task was not retained")
+            task.awaitSuccessfulCompletion()
+            assertTrue(completion.callbackReturned.get())
+            assertSame(DeliveryOffer.Occupied, physicalOfferDuringReport.get())
         }
     }
 
@@ -414,6 +444,122 @@ internal class DeliveryOwnerLifecycleTest {
     // Verification: DEL-01
     // Verification: DEL-02
     @Test
+    fun durableRegistrationCompletionSurvivesReportStageAndReadyFailures() {
+        data class FailureCase(val label: String, val kind: Int)
+        listOf(
+            FailureCase("report", 1),
+            FailureCase("stage", 2),
+            FailureCase("ready", 3),
+        ).forEach { failureCase ->
+            ControlledNonInlineDispatcher().use { dispatcher ->
+                val reportFailure = IllegalStateException("${failureCase.label} report")
+                val stageFailure = IllegalStateException("${failureCase.label} stage")
+                val readyFailure = IllegalStateException("${failureCase.label} ready")
+                val ownerRef = AtomicReference<DeliveryOwner>()
+                val successorOffer = AtomicReference<DeliveryOffer?>()
+                val successorEntered = AtomicBoolean(false)
+                val sink = RecordingFactSink(
+                    offerFailure = reportFailure.takeIf { failureCase.kind == 1 },
+                    onStage = { _, index -> if ((failureCase.kind == 2) && (index == 1)) throw stageFailure },
+                    onReady = { _, index ->
+                        if ((failureCase.kind == 3) && (index == 1)) {
+                            successorOffer.set(
+                                ownerRef.get().offer(
+                                    DeliveryHandoffToken(28L),
+                                    { successorEntered.set(true) },
+                                    frame(),
+                                ),
+                            )
+                            throw readyFailure
+                        }
+                    },
+                )
+                val owner = DeliveryOwner(dispatcher, sink)
+                ownerRef.set(owner)
+                val delivery = SessionDelivery()
+                val registration = (delivery.register { } as SessionDelivery.RegistrationResult.Accepted).registration
+                val offer = (delivery.prepareFreshOffer(frame(), isPhysicalHandoffFree = true)
+                        as SessionDelivery.FreshOffer.Prepared).offer
+                val callbackFailure = IllegalArgumentException("callback")
+                assertTrue(
+                    owner.offer(
+                        offer.handoff,
+                        offer.completion,
+                        { throw callbackFailure },
+                        frame(),
+                    ) is DeliveryOffer.Accepted,
+                )
+                val task = dispatcher.enterNext() ?: error("callback was not retained")
+                task.awaitSuccessfulCompletion()
+
+                val closed = sink.facts().filterIsInstance<DeliveryFact.Closed>().single()
+                when (failureCase.kind) {
+                    1 -> {
+                        val outcome = closed.outcome as DeliveryFact.Closed.Outcome.InternalFailure
+                        assertSame(reportFailure, outcome.cause)
+                    }
+
+                    2 -> {
+                        assertSame(DeliveryFact.Closed.Outcome.CallbackReturned, closed.outcome)
+                        assertSame(
+                            DeliveryOffer.Occupied,
+                            owner.offer(DeliveryHandoffToken(29L), { fail("stage-failure successor entered") }, frame()),
+                        )
+                        assertTrue(sink.readyAttempts().isEmpty())
+                    }
+
+                    3 -> {
+                        assertSame(DeliveryFact.Closed.Outcome.CallbackReturned, closed.outcome)
+                        assertTrue(successorOffer.get() is DeliveryOffer.Accepted)
+                        val successorTask = dispatcher.enterNext() ?: error("ready-failure successor was not retained")
+                        successorTask.awaitSuccessfulCompletion()
+                        assertTrue(successorEntered.get())
+                    }
+                }
+                assertEquals(1, sink.facts().count { it === closed })
+                assertEquals(if (failureCase.kind == 2) 0 else 1, sink.readyAttempts().count { it === closed })
+
+                val unregister = delivery.beginUnregister(registration, requestCutoffImmediately = true)
+                assertTrue(unregister is SessionDelivery.UnregisterAction.Complete)
+                (unregister as SessionDelivery.UnregisterAction.Complete).settlement.complete()
+                runBlocking { registration.waiter.awaitCompletion() }
+                assertTrue("${failureCase.label} case did not record closure", sink.facts().any { it is DeliveryFact.Closed })
+            }
+        }
+    }
+
+    // Verification: DEL-01
+    // Verification: DEL-02
+    @Test
+    fun laterReportErrorPreservesReachedRegistrationProofWithoutPhysicalRelease() {
+        ControlledNonInlineDispatcher().use { dispatcher ->
+            val reportError = AssertionError("report escaped")
+            val sink = RecordingFactSink(
+                onOffer = { throw reportError },
+            )
+            val owner = DeliveryOwner(dispatcher, sink)
+            val delivery = SessionDelivery()
+            val registration = (delivery.register { } as SessionDelivery.RegistrationResult.Accepted).registration
+            val offer = (delivery.prepareFreshOffer(frame(), isPhysicalHandoffFree = true)
+                    as SessionDelivery.FreshOffer.Prepared).offer
+            assertTrue(
+                owner.offer(offer.handoff, offer.completion, { throw IllegalArgumentException("callback") }, frame())
+                        is DeliveryOffer.Accepted,
+            )
+            val task = dispatcher.enterNext() ?: error("callback was not retained")
+            assertSame(reportError, task.awaitCompletion())
+
+            val unregister = delivery.beginUnregister(registration, requestCutoffImmediately = true)
+            assertTrue(unregister is SessionDelivery.UnregisterAction.Complete)
+            (unregister as SessionDelivery.UnregisterAction.Complete).settlement.complete()
+            runBlocking { registration.waiter.awaitCompletion() }
+            assertSame(DeliveryOffer.Occupied, owner.offer(DeliveryHandoffToken(99L), { }, frame()))
+        }
+    }
+
+    // Verification: DEL-01
+    // Verification: DEL-02
+    @Test
     fun retireFencesQueuedAndFutureHandoffs() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val sink = RecordingFactSink()
@@ -434,11 +580,16 @@ internal class DeliveryOwnerLifecycleTest {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val sink = RecordingFactSink()
             val owner = DeliveryOwner(dispatcher, sink)
+            val delivery = SessionDelivery()
+            val registration = (delivery.register { } as SessionDelivery.RegistrationResult.Accepted).registration
+            val offer = (delivery.prepareFreshOffer(frame(), isPhysicalHandoffFree = true)
+                    as SessionDelivery.FreshOffer.Prepared).offer
             val failure = AssertionError("uncontained callback")
             val retained = AtomicReference<EncodedImageFrame?>()
             assertTrue(
                 owner.offer(
-                    DeliveryHandoffToken(41L),
+                    offer.handoff,
+                    offer.completion,
                     { borrowed ->
                         retained.set(borrowed)
                         throw failure
@@ -451,11 +602,30 @@ internal class DeliveryOwnerLifecycleTest {
             assertSame(failure, task.awaitCompletion())
             assertTrue(sink.facts().isEmpty())
             assertSame(DeliveryOffer.Occupied, owner.offer(DeliveryHandoffToken(42L), { }, frame()))
-            try {
-                checkNotNull(retained.get()).byteCount
-                fail("borrow remained open after uncontained callback error")
-            } catch (_: IllegalStateException) {
+            val unregister = delivery.beginUnregister(registration, requestCutoffImmediately = true)
+            assertTrue(unregister is SessionDelivery.UnregisterAction.RequestCutoff)
+            assertSame(DeliveryCutoff.Entered, owner.cutoff(offer.handoff))
+            assertTrue(
+                delivery.recordCutoffResult(registration, offer.handoff, DeliveryCutoff.Entered)
+                        is SessionDelivery.CutoffSettlement.Handoff,
+            )
+            runBlocking {
+                val waiting = async(start = CoroutineStart.UNDISPATCHED) { registration.waiter.awaitCompletion() }
+                assertFalse(waiting.isCompleted)
+                waiting.cancelAndJoin()
             }
+            val probeFailure = AtomicReference<Throwable?>()
+            assertTrue(dispatcher.tryDispatch {
+                try {
+                    assertSame(task.enteredThread, Thread.currentThread())
+                    assertThrows(IllegalStateException::class.java) { checkNotNull(retained.get()).byteCount }
+                } catch (failureOnProbe: Throwable) {
+                    probeFailure.set(failureOnProbe)
+                }
+            })
+            val probe = dispatcher.enterNext() ?: error("same-worker probe was not retained")
+            probe.awaitSuccessfulCompletion()
+            probeFailure.get()?.let { throw it }
         }
     }
 
@@ -463,6 +633,16 @@ internal class DeliveryOwnerLifecycleTest {
         val label: String,
         val access: (EncodedImageFrame) -> Any?,
     )
+
+    private class RecordingCompletion : DeliveryHandoffCompletion {
+        val callbackReturned = AtomicBoolean(false)
+
+        override fun callbackReturned(token: DeliveryHandoffToken) {
+            callbackReturned.set(true)
+        }
+
+        override fun cutoffBeforeEntry(token: DeliveryHandoffToken) = Unit
+    }
 
     private class RecordingFactSink(
         private val offerFailure: Exception? = null,

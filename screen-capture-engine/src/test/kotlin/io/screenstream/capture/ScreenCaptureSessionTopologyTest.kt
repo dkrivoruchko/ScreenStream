@@ -1,8 +1,12 @@
 package io.screenstream.capture
 
 import android.os.Build
+import io.mockk.every
 import io.mockk.verify
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.SafeRejectingNativeJpegFacade
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.drainAcceptedSessionWork
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.stopAndDrainSession
 import io.screenstream.capture.testutil.SessionStartHarness
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -42,13 +46,14 @@ internal class ScreenCaptureSessionTopologyTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = metrics,
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, parameters)
+                harness.session.start(parameters)
                 harness.session.state.value
             }
 
@@ -82,21 +87,25 @@ internal class ScreenCaptureSessionTopologyTest {
     @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun authoritativeInitialResizeKeepsStartPendingUntilResizedCaptureIsActive() = runTest {
-        val provisionalMetrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320)
-        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+        val provisionalMetrics = CaptureMetrics(widthPx = 2, heightPx = 2, densityDpi = 320)
+        val parameters = ScreenCaptureParameters(
+            crop = CropInsetsPx(left = 2, top = 0, right = 0, bottom = 0),
+            outputSize = OutputSize.ScaleFactor(1.0),
+        )
         val platform = HappyCapturePlatform()
 
         SessionStartHarness(
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = provisionalMetrics,
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, parameters)
+                harness.session.start(parameters)
                 harness.session.state.value
             }
 
@@ -120,16 +129,158 @@ internal class ScreenCaptureSessionTopologyTest {
             assertEquals(6, effective.captureGeometry.widthPx)
             assertEquals(4, effective.captureGeometry.heightPx)
             assertEquals(320, effective.captureGeometry.densityDpi)
-            assertEquals(0, effective.appliedSourceRect.leftPx)
+            assertEquals(2, effective.appliedSourceRect.leftPx)
             assertEquals(0, effective.appliedSourceRect.topPx)
             assertEquals(6, effective.appliedSourceRect.rightPx)
             assertEquals(4, effective.appliedSourceRect.bottomPx)
-            assertEquals(6, effective.finalImageSize.widthPx)
+            assertEquals(4, effective.finalImageSize.widthPx)
             assertEquals(4, effective.finalImageSize.heightPx)
             assertNull(active.isCapturedContentVisible)
 
-            platform.verifyInitialProjectionBoundaries(widthPx = 8, heightPx = 6, densityDpi = 320)
+            platform.verifyInitialProjectionBoundaries(widthPx = 2, heightPx = 2, densityDpi = 320)
             platform.verifyAuthoritativeResizeBoundaries(widthPx = 6, heightPx = 4, densityDpi = 320)
+        }
+    }
+
+    // Verification: SES-03
+    // Audit item: P4-T02
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun provisionalOpenUsesBoundedNeutralOutputAndDefersEncodingPreparation() = runTest {
+        val platform = HappyCapturePlatform()
+        val nativeJpeg = SafeRejectingNativeJpegFacade()
+        val parameters = ScreenCaptureParameters(
+            outputSize = OutputSize.TargetSize(64, 32, OutputSize.ContentMode.Stretch),
+        )
+        SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+            jpegBackendPolicy = JpegBackendPolicy.Auto,
+            nativeJpeg = nativeJpeg,
+        ).use { harness ->
+            try {
+                val start = async(UnconfinedTestDispatcher(testScheduler)) {
+                    harness.session.start(parameters)
+                }
+
+                harness.driveUntil(platform::initialVirtualDisplayReturned)
+                drainAcceptedSessionWork(harness)
+
+                assertSame(ScreenCaptureState.Starting, harness.session.state.value)
+                assertFalse(start.isCompleted)
+                verify(exactly = 1) { platform.glesPlatform.texImage2D(1, 1) }
+                verify(exactly = 1) { platform.glesPlatform.texImage2D(any(), any()) }
+                assertEquals(0, nativeJpeg.carrierSnapshot().allocationCount)
+                platform.verifyNoProjectionTopologyChanges()
+
+                platform.deliverCapturedContentResize(widthPx = 10, heightPx = 8)
+                harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
+                start.await()
+
+                val active = harness.session.state.value as ScreenCaptureState.Active
+                assertEquals(parameters, active.requestedParameters)
+                assertEquals(parameters, active.effectiveParameters.appliedParameters)
+                assertEquals(10, active.effectiveParameters.captureGeometry.widthPx)
+                assertEquals(8, active.effectiveParameters.captureGeometry.heightPx)
+                assertEquals(64, active.effectiveParameters.finalImageSize.widthPx)
+                assertEquals(32, active.effectiveParameters.finalImageSize.heightPx)
+                verify(exactly = 1) { platform.glesPlatform.texImage2D(64, 32) }
+                verify(exactly = 2) { platform.glesPlatform.texImage2D(any(), any()) }
+                assertEquals(1, nativeJpeg.carrierSnapshot().allocationCount)
+            } finally {
+                stopAndDrainSession(harness)
+                nativeJpeg.close()
+            }
+        }
+    }
+
+    // Verification: SES-03
+    // Audit item: P4-T02
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun authoritativeInvalidGeometryFailsStartupAfterNeutralOpen() = runTest {
+        val platform = HappyCapturePlatform()
+        val nativeJpeg = SafeRejectingNativeJpegFacade()
+        val parameters = ScreenCaptureParameters(
+            crop = CropInsetsPx(left = 2, top = 0, right = 0, bottom = 0),
+            outputSize = OutputSize.ScaleFactor(1.0),
+        )
+        SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(widthPx = 2, heightPx = 2, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+            jpegBackendPolicy = JpegBackendPolicy.Auto,
+            nativeJpeg = nativeJpeg,
+        ).use { harness ->
+            try {
+                val start = async(UnconfinedTestDispatcher(testScheduler)) {
+                    runCatching { harness.session.start(parameters) }.exceptionOrNull()
+                }
+                harness.driveUntil(platform::initialVirtualDisplayReturned)
+                platform.deliverCapturedContentResize(widthPx = 2, heightPx = 2)
+                harness.driveUntil { harness.session.state.value is ScreenCaptureState.Failed }
+
+                val failed = harness.session.state.value as ScreenCaptureState.Failed
+                assertSame(ScreenCaptureProblem.InvalidRequest, failed.problem)
+                assertEquals(parameters, failed.requestedParameters)
+                assertNull(failed.lastEffectiveParameters)
+                assertEquals(0, nativeJpeg.carrierSnapshot().allocationCount)
+                verify(exactly = 1) { platform.glesPlatform.texImage2D(1, 1) }
+                val startFailure = start.await() as ScreenCaptureException
+                assertSame(ScreenCaptureProblem.InvalidRequest, startFailure.problem)
+            } finally {
+                stopAndDrainSession(harness)
+                nativeJpeg.close()
+            }
+        }
+    }
+
+    // Verification: SES-03
+    // Audit item: P4-T02
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun genuineNeutralOpenFailureStillFailsStartup() = runTest {
+        val platform = HappyCapturePlatform()
+        every { platform.glesPlatform.texImage2D(1, 1) } throws IllegalStateException("Injected neutral output setup failure")
+        val parameters = ScreenCaptureParameters(outputSize = OutputSize.TargetSize(64, 32, OutputSize.ContentMode.Stretch))
+        SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+        ).use { harness ->
+            try {
+                val start = async(UnconfinedTestDispatcher(testScheduler)) {
+                    runCatching { harness.session.start(parameters) }.exceptionOrNull()
+                }
+                harness.driveUntil { harness.session.state.value is ScreenCaptureState.Failed }
+
+                val failed = harness.session.state.value as ScreenCaptureState.Failed
+                assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
+                assertNull(failed.lastEffectiveParameters)
+                val startFailure = start.await() as ScreenCaptureException
+                assertSame(ScreenCaptureProblem.InternalFailure, startFailure.problem)
+            } finally {
+                stopAndDrainSession(harness)
+            }
         }
     }
 
@@ -149,7 +300,7 @@ internal class ScreenCaptureSessionTopologyTest {
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, parameters)
+                harness.session.start(parameters)
                 harness.session.state.value
             }
 
@@ -228,13 +379,14 @@ internal class ScreenCaptureSessionTopologyTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = metrics,
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, parameters)
+                harness.session.start(parameters)
                 harness.session.state.value
             }
 

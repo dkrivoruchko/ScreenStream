@@ -5,7 +5,6 @@ import io.mockk.mockk
 import io.screenstream.capture.JpegBackendPolicy
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.internal.Rgba8888Layout
-import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -84,7 +83,7 @@ internal class EncodingOwnerAutoSelectionTest {
                 val productionFactory = ClassifiedNativeFailureProductionFactory(case.disposition)
                 val owner = EncodingOwner(
                     workerDispatcher = dispatcher,
-                    clock = ElapsedRealtimeClock { 0L },
+                    clock = { 0L },
                     nativeJpeg = nativeJpeg,
                     productionFactory = productionFactory,
                 )
@@ -123,7 +122,7 @@ internal class EncodingOwnerAutoSelectionTest {
         expectedCapabilityChecks: Int,
     ) {
         ControlledNonInlineDispatcher().use { dispatcher ->
-            val owner = EncodingOwner(dispatcher, ElapsedRealtimeClock { 0L }, facade)
+            val owner = EncodingOwner(dispatcher, { 0L }, facade)
             try {
                 val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
                 assertSame(EncodingReconcileResult.Ready, reconcile(owner, dispatcher, layout))
@@ -154,7 +153,7 @@ internal class EncodingOwnerAutoSelectionTest {
         expectedCause: Throwable?,
     ) {
         ControlledNonInlineDispatcher().use { dispatcher ->
-            val owner = EncodingOwner(dispatcher, ElapsedRealtimeClock { 0L }, facade)
+            val owner = EncodingOwner(dispatcher, { 0L }, facade)
             try {
                 val result = reconcile(owner, dispatcher, Rgba8888Layout.create(widthPx = 2, heightPx = 2))
                 val failed = result as? EncodingReconcileResult.Failed

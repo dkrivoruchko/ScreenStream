@@ -31,6 +31,9 @@ internal interface EglPlatform {
 
     fun destroySurface(display: EGLDisplay, surface: EGLSurface): Boolean
 
+    // Android initialization references require cooperating clients to balance only their own successful initialize.
+    fun releaseDisplayInitialization(display: EGLDisplay): Boolean
+
     fun releaseThread(): Boolean
 
     fun getError(): Int
@@ -68,6 +71,8 @@ internal object AndroidEglPlatform : EglPlatform {
 
     override fun destroySurface(display: EGLDisplay, surface: EGLSurface): Boolean =
         EGL14.eglDestroySurface(display, surface)
+
+    override fun releaseDisplayInitialization(display: EGLDisplay): Boolean = EGL14.eglTerminate(display)
 
     override fun releaseThread(): Boolean = EGL14.eglReleaseThread()
     override fun getError(): Int = EGL14.eglGetError()

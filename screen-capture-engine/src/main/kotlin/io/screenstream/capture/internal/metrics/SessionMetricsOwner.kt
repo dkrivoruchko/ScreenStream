@@ -21,10 +21,8 @@ internal class MetricsSnapshot(
     internal val completionCloseSettled: Boolean,
     internal val failure: Throwable?,
 ) {
-    internal fun isReady(requireCompletionCloseSettlement: Boolean): Boolean =
-        (metrics != null) && (handleAdopted) &&
-                (lifecycle != MetricsAttachmentLifecycle.Failed) && (lifecycle != MetricsAttachmentLifecycle.Retired) &&
-                ((lifecycle != MetricsAttachmentLifecycle.Completed) || (!requireCompletionCloseSettlement) || (completionCloseSettled))
+    internal fun isReady(): Boolean =
+        (metrics != null) && (handleAdopted) && (lifecycle != MetricsAttachmentLifecycle.Failed) && (lifecycle != MetricsAttachmentLifecycle.Retired)
 }
 
 /**

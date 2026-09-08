@@ -64,8 +64,7 @@ namespace {
     ) {
         require(ledger.allocationCalls == ledger.allocationRequestSizes.size(), message);
         for (const std::size_t requestSize: ledger.allocationRequestSizes) {
-            require(requestSize > sizeof(NativeSegment), message);
-            require(requestSize - sizeof(NativeSegment) <= static_cast<std::size_t>(INT_MAX), message);
+            require(requestSize == sizeof(NativeSegment), message);
         }
     }
 

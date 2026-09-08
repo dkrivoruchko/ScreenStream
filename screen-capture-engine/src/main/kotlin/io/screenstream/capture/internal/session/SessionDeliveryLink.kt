@@ -5,6 +5,7 @@ import io.screenstream.capture.internal.delivery.DeliveryClosedStage
 import io.screenstream.capture.internal.delivery.DeliveryCutoff
 import io.screenstream.capture.internal.delivery.DeliveryFact
 import io.screenstream.capture.internal.delivery.DeliveryFactSink
+import io.screenstream.capture.internal.delivery.DeliveryHandoffCompletion
 import io.screenstream.capture.internal.delivery.DeliveryHandoffToken
 import io.screenstream.capture.internal.delivery.DeliveryOffer
 import io.screenstream.capture.internal.delivery.DeliveryOwner
@@ -24,6 +25,7 @@ internal class SessionDeliveryLink(
 ) {
     internal class OfferRequest(
         internal val handoff: DeliveryHandoffToken,
+        internal val completion: DeliveryHandoffCompletion?,
         internal val callback: (EncodedImageFrame) -> Unit,
         internal val frame: PublishedFrame,
     )
@@ -54,18 +56,24 @@ internal class SessionDeliveryLink(
         registrationId: Long,
         callback: (EncodedImageFrame) -> Unit,
         frame: PublishedFrame,
+    ): OfferRequest = prepareOfferLocked(DeliveryHandoffToken(registrationId), null, callback, frame)
+
+    internal fun prepareOfferLocked(
+        handoff: DeliveryHandoffToken,
+        completion: DeliveryHandoffCompletion?,
+        callback: (EncodedImageFrame) -> Unit,
+        frame: PublishedFrame,
     ): OfferRequest {
         check(!terminalFrozen)
-        check((factPhase == FactPhase.Open) && (pendingOffer == null) && (handoff == null) && (callbackFailureFact == null) && (closedFact == null))
-        val token = DeliveryHandoffToken(registrationId)
-        return OfferRequest(token, callback, frame).also {
+        check((factPhase == FactPhase.Open) && (pendingOffer == null) && (this.handoff == null) && (callbackFailureFact == null) && (closedFact == null))
+        return OfferRequest(handoff, completion, callback, frame).also {
             pendingOffer = it
-            handoff = token
+            this.handoff = handoff
         }
     }
 
     internal fun executeOffer(request: OfferRequest): DeliveryOffer =
-        owner.offer(request.handoff, request.callback, request.frame)
+        owner.offer(request.handoff, request.completion, request.callback, request.frame)
 
     internal fun recordOfferReturnedLocked(request: OfferRequest, result: DeliveryOffer): Boolean {
         val expected = request.handoff
@@ -166,7 +174,7 @@ internal class SessionDeliveryLink(
         terminalFrozen = true
     }
 
-    internal fun executeCutoff(registrationId: Long): DeliveryCutoff = owner.cutoff(registrationId)
+    internal fun executeCutoff(token: DeliveryHandoffToken): DeliveryCutoff = owner.cutoff(token)
 
     internal fun isEnteredCallbackThread(registrationId: Long): Boolean = owner.isEnteredCallbackThread(registrationId)
 

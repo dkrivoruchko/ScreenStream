@@ -30,12 +30,26 @@ internal class BuiltInCaptureMetricsRealDisplayTest {
             .forFixedDisplay(applicationContext, display, firstDispatcher)
             .subscribe(firstObserver)
         try {
-            firstDispatcher.runNext()
+            var acceptedWork = 0
+            while ((firstObserver.publications.none { it != null }) && firstObserver.failures.isEmpty()) {
+                check(acceptedWork < MAX_ACCEPTED_WORK) {
+                    "Real-display Metrics did not produce a positive tuple or failure within the accepted-work bound"
+                }
+                check(firstDispatcher.pendingCount() > 0) {
+                    "Real-display Metrics had no accepted work before producing a positive tuple or failure"
+                }
+                firstDispatcher.runNext()
+                acceptedWork += 1
+            }
+            firstObserver.failures.singleOrNull()?.let { failure ->
+                throw AssertionError("Real-display Metrics failed before producing a positive tuple", failure)
+            }
+            val published = checkNotNull(firstObserver.publications.lastOrNull { it != null })
+            val publicationsBeforeClose = firstObserver.publications.toList()
             firstHandle.close()
             firstHandle.close()
             firstDispatcher.drain()
-            val published = firstObserver.publications.single()
-                ?: error("The current real display was published as unavailable")
+            assertEquals(publicationsBeforeClose, firstObserver.publications)
             assertTrue(published.widthPx > 0)
             assertTrue(published.heightPx > 0)
             assertTrue(published.densityDpi > 0)
@@ -86,5 +100,9 @@ internal class BuiltInCaptureMetricsRealDisplayTest {
         override fun onFailure(cause: Throwable) {
             failures.add(cause)
         }
+    }
+
+    private companion object {
+        const val MAX_ACCEPTED_WORK = 16
     }
 }

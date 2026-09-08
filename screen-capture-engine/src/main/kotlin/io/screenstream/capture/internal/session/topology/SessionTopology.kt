@@ -190,7 +190,6 @@ internal class SessionTopology {
             internal val revision: Long,
             internal val plan: SessionPlanResolution.Resolved,
             private val metricsSnapshot: MetricsSnapshot,
-            private val requireCompletionCloseSettlement: Boolean,
             internal val isCapturedContentVisible: Boolean?,
             private val platformSdkInt: Int,
         ) : ActiveAssessment {
@@ -199,7 +198,7 @@ internal class SessionTopology {
                         expectedOwner.activeReady(plan, revision, platformSdkInt) &&
                         (expectedOwner.isCapturedContentVisible == isCapturedContentVisible) &&
                         (expectedOwner.lastMetricsSnapshot === metricsSnapshot) &&
-                        metricsSnapshot.isReady(requireCompletionCloseSettlement)
+                        metricsSnapshot.isReady()
 
             internal fun acceptsSnapshot(expectedOwner: SessionTopology, snapshot: MetricsSnapshot): Boolean =
                 isCurrent(expectedOwner) && (metricsSnapshot === snapshot)
@@ -210,7 +209,7 @@ internal class SessionTopology {
 
             internal fun acceptsSettlementSnapshot(expectedOwner: SessionTopology, snapshot: MetricsSnapshot): Boolean =
                 wasReservedBy(expectedOwner) && (expectedOwner.isCapturedContentVisible == isCapturedContentVisible) &&
-                        (metricsSnapshot === snapshot) && snapshot.isReady(requireCompletionCloseSettlement) &&
+                        (metricsSnapshot === snapshot) && snapshot.isReady() &&
                         expectedOwner.activeReady(plan, revision, platformSdkInt)
 
         }
@@ -447,7 +446,7 @@ internal class SessionTopology {
         )
     }
 
-    internal fun prepareMetrics(snapshot: MetricsSnapshot, platformSdkInt: Int, requireCompletionCloseSettlement: Boolean): MetricsDecision {
+    internal fun prepareMetrics(snapshot: MetricsSnapshot, platformSdkInt: Int): MetricsDecision {
         if (snapshot === lastMetricsSnapshot) return MetricsDecision.Duplicate
         snapshot.failure?.let { return MetricsDecision.Failed(it) }
         val previousSnapshot = lastMetricsSnapshot
@@ -464,8 +463,8 @@ internal class SessionTopology {
             snapshot = snapshot,
             requiresTopologyRevision = requiresTopologyRevision,
             closesActiveAdmission = (publishedPlan != null) &&
-                    (previousSnapshot?.isReady(requireCompletionCloseSettlement) == true) &&
-                    (!snapshot.isReady(requireCompletionCloseSettlement)),
+                    (previousSnapshot?.isReady() == true) &&
+                    (!snapshot.isReady()),
             wasActive = publishedPlan != null,
             historicalEffectiveParameters = lastEffectiveParameters,
         )
@@ -496,11 +495,11 @@ internal class SessionTopology {
         return topologyRevision
     }
 
-    internal fun resolvePlan(platformSdkInt: Int, requireCompletionCloseSettlement: Boolean): PlanDecision {
+    internal fun resolvePlan(platformSdkInt: Int): PlanDecision {
         if (pendingRevision != desiredRevision) return PlanDecision.WaitingForIngress
         if (suspension?.revision == desiredRevision) return PlanDecision.Suspended
         if (currentPlan() != null) return PlanDecision.Current
-        val geometryInputs = resolvePlanGeometryInputs(platformSdkInt, requireCompletionCloseSettlement) ?: return PlanDecision.WaitingForMetrics
+        val geometryInputs = resolvePlanGeometryInputs(platformSdkInt) ?: return PlanDecision.WaitingForMetrics
         return when (val resolution = SessionPlanResolution.resolve(
             parameters = desiredParameters,
             widthPx = geometryInputs.widthPx,
@@ -540,6 +539,7 @@ internal class SessionTopology {
 
     internal fun nextConvergence(productionMaterialized: Boolean): ConvergenceStep {
         if (pendingRevision != desiredRevision) return ConvergenceStep.Waiting
+        if (suspension?.revision == desiredRevision) return ConvergenceStep.Waiting
         val plan = currentPlan() ?: return ConvergenceStep.Waiting
         if (productionMaterialized) return ConvergenceStep.Waiting
         if (captureOpenPending != null) return ConvergenceStep.Waiting
@@ -547,6 +547,7 @@ internal class SessionTopology {
             return ConvergenceStep.Open(this, generation, desiredRevision, plan.capturePlan)
         }
         if (!captureOpened) return ConvergenceStep.Waiting
+        if (plan.isProvisional) return ConvergenceStep.Waiting
         if (captureApplyPending != null) return ConvergenceStep.Waiting
         if (captureAppliedPlan?.hasSameCaptureConfigurationAs(plan.capturePlan) != true) {
             return ConvergenceStep.Apply(this, generation, desiredRevision, plan.capturePlan)
@@ -678,11 +679,10 @@ internal class SessionTopology {
     internal fun assessActivePublication(
         platformSdkInt: Int,
         snapshot: MetricsSnapshot,
-        requireCompletionCloseSettlement: Boolean,
     ): ActiveAssessment {
         if (active) return ActiveAssessment.AlreadyPublished
         val plan = currentPlan() ?: return ActiveAssessment.NotReady
-        if ((lastMetricsSnapshot !== snapshot) || (!snapshot.isReady(requireCompletionCloseSettlement))) {
+        if ((lastMetricsSnapshot !== snapshot) || (!snapshot.isReady())) {
             return ActiveAssessment.NotReady
         }
         if (!activeReady(plan, desiredRevision, platformSdkInt)) return ActiveAssessment.NotReady
@@ -692,7 +692,6 @@ internal class SessionTopology {
             revision = desiredRevision,
             plan = plan,
             metricsSnapshot = snapshot,
-            requireCompletionCloseSettlement = requireCompletionCloseSettlement,
             isCapturedContentVisible = isCapturedContentVisible,
             platformSdkInt = platformSdkInt,
         )
@@ -856,23 +855,21 @@ internal class SessionTopology {
         resolvedPlan?.takeIf { resolvedPlanRevision == desiredRevision }
 
     private fun productionReady(plan: SessionPlanResolution.Resolved): Boolean =
-        (currentPlan() === plan) && (encoderReadyPlan === plan.encoderPlan) && (encodingPending == null)
+        (!plan.isProvisional) && (currentPlan() === plan) &&
+                (encoderReadyPlan === plan.encoderPlan) && (encodingPending == null)
 
     private fun supportsAuthoritativeCapturedContentResize(platformSdkInt: Int): Boolean =
         platformSdkInt >= VERSION_CODES.UPSIDE_DOWN_CAKE
 
     private fun activeReady(plan: SessionPlanResolution.Resolved, revision: Long, platformSdkInt: Int): Boolean =
-        (currentPlan() === plan) && (acceptsSettledRevision(revision)) && (captureOpened) &&
+        (!plan.isProvisional) && (currentPlan() === plan) && (acceptsSettledRevision(revision)) && (captureOpened) &&
                 (captureApplyPending == null) &&
                 (captureAppliedPlan?.hasSameCaptureConfigurationAs(plan.capturePlan) == true) &&
                 (encoderReadyPlan === plan.encoderPlan) && (encodingPending == null) &&
                 (!supportsAuthoritativeCapturedContentResize(platformSdkInt) || capturedContentResize.hasAcceptedGeometry)
 
-    private fun resolvePlanGeometryInputs(
-        platformSdkInt: Int,
-        requireCompletionCloseSettlement: Boolean,
-    ): PlanGeometryInputs? {
-        val snapshot = lastMetricsSnapshot?.takeIf { it.isReady(requireCompletionCloseSettlement) } ?: return null
+    private fun resolvePlanGeometryInputs(platformSdkInt: Int): PlanGeometryInputs? {
+        val snapshot = lastMetricsSnapshot?.takeIf { it.isReady() } ?: return null
         val metrics = snapshot.metrics ?: return null
         val supportsResizeAuthority = supportsAuthoritativeCapturedContentResize(platformSdkInt)
         val resizeOwnsDimensions = (supportsResizeAuthority) && (capturedContentResize.hasAcceptedGeometry)

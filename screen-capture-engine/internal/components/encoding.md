@@ -1,6 +1,6 @@
 # Encoding
 
-Encoding owns the reusable RGBA carrier and turns a completed Capture read into one immutable JPEG payload. It contains backend selection, codec resources, mutable encoded assembly, and physical settlement. Session owns currentness and output publication; the [frame ownership contract](../contracts/frame-ownership-and-delivery.md#immutable-segmented-storage) owns the immutable payload shape after commit. The public backend seam is described in [JPEG backend seam](../../docs/architecture.md#jpeg-backend-seam). The component's position in the larger graph is shown in the [internal architecture overview](../architecture/overview.md).
+Encoding turns a completed Capture read into one immutable JPEG payload. It owns the reusable carrier, backend selection, codec resources, mutable assembly, and physical settlement. Session owns currentness and publication. See the public [JPEG backend seam](../../docs/architecture.md#jpeg-backend-seam) and [immutable payload contract](../contracts/frame-ownership-and-delivery.md#immutable-segmented-storage).
 
 ## Responsibility boundary and owned state
 
@@ -14,7 +14,7 @@ One `EncodingOwner` exists per session. It exclusively owns:
 - one mutable transaction per encode and every tentative segment; and
 - retirement obligations and late or nonreturning codec roots.
 
-Encoding does not own Capture, production revision, pacing, cache, sequence/timestamp assignment, Stats, delivery, or terminal policy. Its return values describe physical settlement only. The session links them to an exact semantic production and decides whether an otherwise successful payload is still current.
+Encoding does not own Capture, production revision, pacing, cache, sequence/timestamp assignment, Stats, delivery, or terminal policy. Its results describe physical settlement; Session correlates them to the exact production and checks currentness.
 
 ## Carrier loan and the Capture boundary
 
@@ -35,13 +35,13 @@ Framework JPEG uses Android's managed [`Bitmap.compress`](https://developer.andr
 
 A newly selected Framework runtime uses a managed direct carrier. A native-malloc carrier is retained only during an in-place safe fallback of an already-owned Native runtime.
 
-`Auto` uses only these exhaustive inputs: the requested backend policy; sticky process-wide DSO availability; platform compressor capability; the current compatible output plan, RGBA layout, and runtime; and the per-session monotone Native health cell (`NativeHealthCell`). It does not use device identity or allowlists, benchmarks, image scoring, diagnostics, memory prediction, or test results. This component is the single normative owner of those backend-selection inputs and outcomes; other documents may summarize them but do not add inputs.
+`Auto` uses only these inputs: the requested backend policy; sticky process-wide DSO availability; platform compressor capability; the current compatible output plan, RGBA layout, and runtime; and the per-session monotone Native health cell (`NativeHealthCell`). Device identity or allowlists, benchmarks, image scoring, diagnostics, memory prediction, and test results are excluded. This component owns the exhaustive selection policy; summaries elsewhere cannot add inputs.
 
 `Auto` distinguishes library-load unavailability from later failure. An exact `UnsatisfiedLinkError` or `SecurityException` from the narrow `System.loadLibrary` boundary is sticky clean unavailability and selects Framework. An ordinary `Exception` from that boundary poisons availability and fails selection. Other `Error` types, including `UnsatisfiedLinkError` subclasses, propagate without publication; capability and JNI failures occur after the load boundary and are never reclassified as clean unavailability. A normally returned unsupported compressor selects Framework. An available and supported compressor selects Native with a native-malloc carrier, and native backend health is lifetime-monotone: once disabled, it never becomes enabled again for that session.
 
 A coherent `SafeCompressorRejection` is the only runtime fallback signal. Encoding first aborts the exact transaction, settles codec/carrier resources as reusable, disables native backend health, and returns `ReadinessChanged`. The rejected frame is not retried. Session reconciliation prepares the Framework owner, and only a later admitted frame uses it. Generic JNI, wire, ownership, transaction, or cleanup failures never enable fallback.
 
-The Native DSO availability decision is process-wide and sticky after its first classified result, while native backend health and backend choice are per session. An uncontained load throwable publishes no result, so a later call retries. Keep process availability separate from Session native health: availability answers whether the packet can be used at all; health answers whether this session may continue using it.
+DSO availability is sticky after the first classified load result; backend choice and Native health remain per session. An uncontained load throwable publishes no result, so a later call retries.
 
 ## Framework and Native production
 
@@ -57,13 +57,17 @@ Framework production reuses one mutable software `ARGB_8888` Bitmap. Tight RGBA 
 
 Native production passes tight, top-down, opaque RGBA with sRGB dataspace to the weak [NDK Bitmap compressor](https://developer.android.com/ndk/reference/group/bitmap) on API 30 and later. API 24–29 do not invoke that compressor and use Framework production. The JNI call synchronously streams native segments into `NativeSegmentSink`; each temporary direct view is copied once into transaction-owned managed storage and never escapes the call. Managed code classifies the result only after normal or explicitly contained invocation exit, coherent result evidence, and carrier and transaction settlement.
 
-The exact JNI registration packet, result-block wire format, status meanings, exported symbol policy, and lookup-name boundary belong in [the Native ABI contract](../contracts/native-abi.md). Detailed native build and package inventory is not duplicated in this component page; exact build and source facts live in the module build files and native sources.
+Both backends interpret the carrier as sRGB; neither descriptor proves upstream conversion. The [image contract](../contracts/image-pipeline.md#color-and-readback) defines that shared interpretation and its fidelity limits.
+
+The [Native ABI contract](../contracts/native-abi.md) owns registration, wire format, statuses, exports, and lookup names; build files and native sources own exact packaging facts.
 
 ## Transactional segmented output
 
 Each encode owns one `ManagedEncodedTransaction`. Producer close ends write access but does not publish bytes. Commit requires a successful codec outcome, a closed producer, positive checked byte count, exact segment normalization, and successful construction of `ImmutableEncodedPayload`. Commit transfers exclusive segment ownership to Storage and removes all mutable producer references. Every other returned path aborts and exposes no tentative bytes.
 
-Framework writes grow positive `ByteArray` segments and normalize only a partially used final segment. Earlier full segments are never recopied or flattened. Native adoption creates one managed segment per frozen native writer segment. The resulting immutable payload remains segmented; flattening occurs only when a frame consumer explicitly calls a copy API. This is the main reason transaction commit and Storage ownership are separate boundaries.
+Encoding may commit a mechanically complete payload whose production has become stale. It neither decides currentness nor aborts a valid transaction by inferring it; Session separately admits only current results for publication.
+
+Framework writes grow positive `ByteArray` segments and normalize only a partially used final segment. Earlier full segments are never recopied or flattened. Native adoption creates one managed segment per frozen native writer segment. Commit transfers segmented storage without flattening; only an explicit consumer copy API flattens it.
 
 Transactions retain a sticky first fault and use checked cumulative `Int` length. A malformed write, contradictory range, or ownership mismatch is internal failure. Named carrier, Bitmap, scratch, segment, tail-normalization, and payload-construction allocation denials may become `ResourceExhausted` only after safe settlement is proved. Partial bytes never accompany a failure result.
 
@@ -71,7 +75,7 @@ Transactions retain a sticky first fault and use checked cumulative `Int` length
 
 Framework and Native production each construct their producer transaction before a `ProductionOperation` can be published or submitted. A contained transaction-constructor `OutOfMemoryError` becomes `ResourceExhausted` only after the exact ready input is settled through its own return path. An ordinary `Exception` from adjacent backend-production construction instead settles the input as an internal failure. An `Error` or other non-`Exception` from that adjacent boundary is not contained or reclassified: the identical throwable propagates and the owner retains the failed, unproved loan. None of these paths creates a production task, exposes tentative bytes, or invokes a production callback.
 
-Focused constructor-injection and near-miss evidence is mapped to `ENC-03` in the [checked-in verification audit](../testing.md#checked-in-verification-audit).
+Focused constructor-injection and near-miss evidence is mapped to `ENC-03` in the [verification contracts](../testing.md#verification-contracts).
 
 ## Reconciliation and operation results
 

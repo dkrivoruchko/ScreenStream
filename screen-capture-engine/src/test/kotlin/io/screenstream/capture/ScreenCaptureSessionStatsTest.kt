@@ -47,13 +47,14 @@ internal class ScreenCaptureSessionStatsTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             try {
-                startActiveSession(harness, platform, parameters)
+                startActiveSession(harness, parameters)
                 val baselineStats = harness.session.stats.value
                 harness.clock.setDefaultNanos(1L * 1_000_000_000L)
 
@@ -97,13 +98,14 @@ internal class ScreenCaptureSessionStatsTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, parameters)
+                harness.session.start(parameters)
             }
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
             start.await()
@@ -190,12 +192,13 @@ internal class ScreenCaptureSessionStatsTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
-            startActiveSession(harness, platform, parameters)
+            startActiveSession(harness, parameters)
             primeCachedFrame(harness, platform, rgbaSeed = 59)
             harness.clock.setDefaultNanos(1L * 1_000_000_000L)
 

@@ -196,7 +196,63 @@ internal class GLRendererReadbackTest {
         }
     }
 
-    private class RendererFixture(dataSpace: Int) : AutoCloseable {
+    // Verification: CAP-03
+    // Verification: CAP-04
+    @Test
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.TIRAMISU])
+    fun incompleteOutputFramebufferFailsSetupBeforeReadAndRetiresNamesByNamespaceProof() {
+        val fixture = RendererFixture(dataSpace = DataSpace.DATASPACE_SRGB, openRenderer = false)
+        fixture.gl.incompleteFramebuffer = true
+        fixture.fillCarrier(CARRIER_SENTINEL)
+        val bytesBefore = fixture.carrierBytes()
+
+        val failure = assertThrows(CaptureBoundaryFailure::class.java) {
+            fixture.openRenderer()
+        }
+
+        assertSame(ScreenCaptureProblem.InternalFailure, failure.problem)
+        assertTrue(failure.physicalCause is CapturePhysicalException)
+        assertFalse(fixture.eglOwner.isHealthy)
+        assertEquals(1, fixture.gl.postprobeCount)
+        assertEquals(0, fixture.gl.drawCount)
+        assertEquals(0, fixture.gl.readPixelsCount)
+        assertArrayEquals(bytesBefore, fixture.carrierBytes())
+        assertTrue(fixture.gl.deletedTextures.isEmpty())
+        assertTrue(fixture.gl.deletedFramebuffers.isEmpty())
+        assertTrue(fixture.gl.deletedShaders.isEmpty())
+        assertTrue(fixture.gl.deletedPrograms.isEmpty())
+        assertEquals(6, fixture.gl.generatedNames.size)
+
+        assertThrows(IllegalStateException::class.java) {
+            fixture.renderer.readFrame(fixture.carrier)
+        }
+        assertEquals(0, fixture.gl.drawCount)
+        assertEquals(0, fixture.gl.readPixelsCount)
+
+        val partialRetirement = fixture.renderer.close()
+        assertNull(partialRetirement.cleanupFailure)
+        assertTrue(partialRetirement.residue is CapturePhysicalException)
+        val rendererNameResidue = checkNotNull(partialRetirement.glNameResidue)
+        assertTrue(fixture.gl.deletedTextures.isEmpty())
+        assertTrue(fixture.gl.deletedFramebuffers.isEmpty())
+        assertTrue(fixture.gl.deletedShaders.isEmpty())
+        assertTrue(fixture.gl.deletedPrograms.isEmpty())
+
+        fixture.close()
+        val namespaceProof = checkNotNull(fixture.namespaceProof)
+        assertTrue(namespaceProof.matches(fixture.eglOwner))
+        assertTrue(namespaceProof.retires(rendererNameResidue))
+        assertTrue(fixture.rendererNamespaceRetired)
+        val repeatedRetirement = fixture.renderer.close()
+        assertNull(repeatedRetirement.cleanupFailure)
+        assertNull(repeatedRetirement.residue)
+        assertTrue(fixture.gl.deletedTextures.isEmpty())
+        assertTrue(fixture.gl.deletedFramebuffers.isEmpty())
+        assertTrue(fixture.gl.deletedShaders.isEmpty())
+        assertTrue(fixture.gl.deletedPrograms.isEmpty())
+    }
+
+    private class RendererFixture(dataSpace: Int, openRenderer: Boolean = true) : AutoCloseable {
         val events = SemanticEventRecorder()
         val eglPlatform = HappyEglPlatform()
         val gl = RecordingRendererGlesPlatform(events)
@@ -209,6 +265,10 @@ internal class GLRendererReadbackTest {
             private set
         var callbackBoundaryCount = 0
             private set
+        var namespaceProof: EglOwner.GLNamespaceDestroyedProof? = null
+            private set
+        var rendererNamespaceRetired = false
+            private set
 
         private val plan = capturePlan()
         private val targetOwner: TargetOwner
@@ -218,7 +278,7 @@ internal class GLRendererReadbackTest {
             targetOwner = TargetOwner(
                 captureHandler = Handler(Looper.getMainLooper()),
                 eglOwner = eglOwner,
-                sourceSink = TargetOwner.SourceSink { sourceCallbackCount += 1 },
+                sourceSink = { sourceCallbackCount += 1 },
                 callbackBoundary = object : CaptureCallbackBoundary {
                     override fun onCallbackException(identity: CaptureCallbackIdentity, failure: Exception) {
                         callbackBoundaryCount += 1
@@ -235,11 +295,15 @@ internal class GLRendererReadbackTest {
                 clock = clock,
                 platformSdkInt = Build.VERSION.SDK_INT,
             )
-            renderer.open(plan)
+            if (openRenderer) renderer.open(plan)
             events.clear()
             carrier = ByteBuffer.allocateDirect(plan.rgbaCarrierByteCount)
             gl.clearReadEvidence()
             targetPlatform.clearFrameEvidence()
+        }
+
+        fun openRenderer() {
+            renderer.open(plan)
         }
 
         fun fillCarrier(value: Byte) {
@@ -269,11 +333,13 @@ internal class GLRendererReadbackTest {
             assertEquals(1, eglPlatform.destroySurfaceCount)
             assertEquals(1, eglPlatform.releaseThreadCount)
             val namespaceProof = checkNotNull(eglRetirement.namespaceDestroyedProof)
+            this.namespaceProof = namespaceProof
             if (rendererRetirement.residue == null) {
                 assertNull(rendererRetirement.glNameResidue)
             } else {
                 assertTrue(namespaceProof.retires(checkNotNull(rendererRetirement.glNameResidue)))
-                assertTrue(renderer.retireGLNamesAfterContextDestroyed(namespaceProof))
+                rendererNamespaceRetired = renderer.retireGLNamesAfterContextDestroyed(namespaceProof)
+                assertTrue(rendererNamespaceRetired)
             }
             if (targetRetirement.residue == null) {
                 assertNull(targetRetirement.glNameResidue)
@@ -486,6 +552,8 @@ internal class GLRendererReadbackTest {
             return true
         }
 
+        override fun releaseDisplayInitialization(display: EGLDisplay): Boolean = true
+
         override fun releaseThread(): Boolean {
             releaseThreadCount += 1
             return true
@@ -504,6 +572,12 @@ internal class GLRendererReadbackTest {
             private set
         var postprobeCount = 0
             private set
+        var incompleteFramebuffer = false
+        val generatedNames = mutableListOf<Int>()
+        val deletedTextures = mutableListOf<Int>()
+        val deletedFramebuffers = mutableListOf<Int>()
+        val deletedShaders = mutableListOf<Int>()
+        val deletedPrograms = mutableListOf<Int>()
 
         fun clearReadEvidence() {
             drawCount = 0
@@ -542,23 +616,34 @@ internal class GLRendererReadbackTest {
 
         override fun genTextures(names: IntArray) {
             names[0] = nextName++
+            generatedNames += names[0]
         }
 
         override fun bindTexture(target: Int, texture: Int) = Unit
         override fun texParameter(target: Int, name: Int, value: Int) = Unit
         override fun texImage2D(width: Int, height: Int) = Unit
-        override fun deleteTextures(names: IntArray) = Unit
+        override fun deleteTextures(names: IntArray) {
+            deletedTextures += names[0]
+        }
 
         override fun genFramebuffers(names: IntArray) {
             names[0] = nextName++
+            generatedNames += names[0]
         }
 
         override fun bindFramebuffer(framebuffer: Int) = Unit
         override fun framebufferTexture2D(texture: Int) = Unit
-        override fun checkFramebufferStatus(): Int = GLES20.GL_FRAMEBUFFER_COMPLETE
-        override fun deleteFramebuffers(names: IntArray) = Unit
+        override fun checkFramebufferStatus(): Int = if (incompleteFramebuffer) {
+            GLES20.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT
+        } else {
+            GLES20.GL_FRAMEBUFFER_COMPLETE
+        }
 
-        override fun createShader(type: Int): Int = nextName++
+        override fun deleteFramebuffers(names: IntArray) {
+            deletedFramebuffers += names[0]
+        }
+
+        override fun createShader(type: Int): Int = nextName++.also { generatedNames += it }
         override fun shaderSource(shader: Int, source: String) = Unit
         override fun compileShader(shader: Int) = Unit
 
@@ -566,8 +651,11 @@ internal class GLRendererReadbackTest {
             status[0] = GLES20.GL_TRUE
         }
 
-        override fun deleteShader(shader: Int) = Unit
-        override fun createProgram(): Int = nextName++
+        override fun deleteShader(shader: Int) {
+            deletedShaders += shader
+        }
+
+        override fun createProgram(): Int = nextName++.also { generatedNames += it }
         override fun attachShader(program: Int, shader: Int) = Unit
         override fun bindAttribLocation(program: Int, index: Int, name: String) = Unit
         override fun linkProgram(program: Int) = Unit
@@ -578,7 +666,10 @@ internal class GLRendererReadbackTest {
 
         override fun getUniformLocation(program: Int, name: String): Int = nextName++
         override fun detachShader(program: Int, shader: Int) = Unit
-        override fun deleteProgram(program: Int) = Unit
+        override fun deleteProgram(program: Int) {
+            deletedPrograms += program
+        }
+
         override fun useProgram(program: Int) = Unit
         override fun viewport(width: Int, height: Int) = Unit
         override fun activeTexture(texture: Int) = Unit

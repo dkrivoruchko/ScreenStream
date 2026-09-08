@@ -52,12 +52,13 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.S_V2,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
-            startActiveSession(harness, platform, initialParameters)
+            startActiveSession(harness, initialParameters)
             val initialActive = harness.session.state.value as ScreenCaptureState.Active
             drainAcceptedSessionWork(harness)
 
@@ -103,13 +104,14 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             try {
-                startActiveSession(harness, platform, initialParameters)
+                startActiveSession(harness, initialParameters)
                 val initialActive = harness.session.state.value as ScreenCaptureState.Active
                 drainAcceptedSessionWork(harness)
 
@@ -156,13 +158,14 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = metrics,
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, initialParameters)
+                harness.session.start(initialParameters)
                 harness.session.state.value
             }
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
@@ -244,13 +247,14 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = metrics,
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, initialParameters)
+                harness.session.start(initialParameters)
                 harness.session.state.value
             }
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }

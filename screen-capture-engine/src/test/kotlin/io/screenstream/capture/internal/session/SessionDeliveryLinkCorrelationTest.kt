@@ -15,9 +15,13 @@ import io.screenstream.capture.internal.delivery.DeliveryOffer
 import io.screenstream.capture.internal.metrics.SessionMetricsSourceSelection
 import io.screenstream.capture.internal.runtime.HandlerTaskPoster
 import io.screenstream.capture.internal.runtime.HandlerThreadPlatform
+import io.screenstream.capture.internal.session.delivery.SessionDelivery
 import io.screenstream.capture.internal.storage.ImmutableEncodedPayload
 import io.screenstream.capture.internal.storage.PublishedFrame
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -52,6 +56,44 @@ internal class SessionDeliveryLinkCorrelationTest {
             assertTrue(link.markClosedReadyLocked(earlyClosed))
             assertSame(earlyClosed, link.takeClosedLocked())
             assertTrue(link.clearHandoffLocked(second.handoff))
+        }
+    }
+
+    // Verification: DEL-02
+    @Test
+    fun registrationCompletionAndLinkFactsFreezeAsOneRecord() = runTest {
+        LinkFixture().use { fixture ->
+            val link = fixture.link
+            val delivery = SessionDelivery()
+            val registration = (delivery.register { } as SessionDelivery.RegistrationResult.Accepted).registration
+            val offer = (delivery.prepareFreshOffer(frame(), isPhysicalHandoffFree = true)
+                    as SessionDelivery.FreshOffer.Prepared).offer
+            val request = link.prepareOfferLocked(offer.handoff, offer.completion, offer.callback, offer.frame)
+            assertTrue(link.recordOfferReturnedLocked(request, DeliveryOffer.Accepted(offer.handoff)))
+            assertSame(SessionDelivery.AcceptedOfferSettlement.Retained, delivery.settleAcceptedOffer(offer, offer.handoff))
+
+            val awaiting = async(start = CoroutineStart.UNDISPATCHED) {
+                registration.waiter.awaitCompletion()
+            }
+            assertFalse(awaiting.isCompleted)
+            offer.completion.callbackReturned(offer.handoff)
+            assertFalse(awaiting.isCompleted)
+
+            val closed = DeliveryFact.Closed(offer.handoff, DeliveryFact.Closed.Outcome.CallbackReturned)
+            assertSame(SessionDeliveryLink.FactAdmission.Recorded, link.recordFactLocked(closed))
+            assertTrue(link.takeClosedLocked() == null)
+
+            delivery.closeAdmissionForTerminal()
+            val terminal = checkNotNull(delivery.prepareTerminal())
+            link.freezeTerminalLocked()
+            delivery.commitTerminal(terminal)
+            delivery.completeTerminalRegistration(terminal)
+            awaiting.await()
+            assertFalse(link.markClosedReadyLocked(closed))
+            assertTrue(link.takeClosedLocked() == null)
+            assertSame(SessionDeliveryLink.FactAdmission.Stale, link.recordFactLocked(closed))
+            registration.waiter.awaitCompletion()
+            assertSame(SessionDelivery.RegistrationResult.Terminal, delivery.register { })
         }
     }
 

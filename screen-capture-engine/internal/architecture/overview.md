@@ -1,6 +1,6 @@
 # Internal architecture overview
 
-ScreenStream Capture Engine is one Android library module with a deliberately narrow public facade and a set of internal ownership boundaries. The public behavior is described in the reader-facing [Architecture](../../docs/architecture.md) and [Usage](../../docs/usage.md) documents. This document describes the implementation structure that preserves that behavior.
+This document defines the component model and ownership boundaries of the Android capture library. Caller-visible behavior is in [Architecture](../../docs/architecture.md) and [Usage](../../docs/usage.md).
 
 ## Component boundaries
 
@@ -23,7 +23,7 @@ The Session component divides semantic state among four exclusive owners:
 - `SessionLifecycle` owns start admission, startup eligibility, running/paused/terminal phase, terminal priority, and start settlement.
 - `SessionTopology` owns desired and applied configuration, configuration revisions, metrics identity, plan convergence, effective output, readiness, and captured-content visibility.
 - `SessionProduction` owns materialized production, cache, pacing and repeat schedules, output identity, and Stats.
-- `SessionDelivery` owns consumer registration, cached-first eligibility, the outstanding semantic offer, unregister, and waiter settlement.
+- `SessionDelivery` owns consumer registration admission, cached-first eligibility, the outstanding semantic offer, and unregister admission. The registration's completion responsibility survives Session terminal freeze, as defined in [Delivery](../components/delivery-observation.md#consumer-replacement-and-unregister).
 
 `SessionCoordinator` is the permanent transaction root around these owners. It joins cross-owner decisions, correlates leaf evidence, reserves publication, and authorizes effects after releasing its locks. It is not a fifth semantic store and must not mirror state owned by the four domains.
 
@@ -47,9 +47,9 @@ immutable intent or leaf evidence
   -> typed result ingress and revalidation
 ```
 
-Physical ownership stays in the leaf that can actually settle it. Capture owns projection and graphics roots; Encoding owns carriers, tentative bytes, and backend work; Delivery owns callback entry and the temporary borrow. Semantic close or terminal State never transfers those resources to Coordinator and never proves that a physical call returned.
+Physical ownership stays in the owner that can actually settle it. Session creation accepts the projection before capture starts; once Capture adopts it, Capture owns projection and graphics roots. Encoding owns carriers, tentative bytes, and backend work; Delivery owns callback entry and the temporary borrow. Semantic close or terminal State never transfers those resources to Coordinator and never proves that a physical call returned.
 
-`SessionBootstrap` and `BootstrapOwnership` cover only the accepted-start prefix. They root the projection and the constructed lanes until the exact first Control task either enters or becomes cutoff-inert. On entry, the projection passes directly to Capture and each lane passes to its owner. Bootstrap creates no alternate Session authority or publication route.
+Before Capture adopts the projection, the session must retain that exact root and its cleanup responsibility, including when `start` never enters. `SessionBootstrap` and `BootstrapOwnership` cover physical bootstrap: they retain every constructed, untransferred lane until the exact first Control task enters or becomes cutoff-inert. On entry, Capture adopts the projection and each lane passes to its owner. Bootstrap creates no alternate Session authority or publication route. The public acceptance boundary is defined in [Session creation and projection ownership](runtime.md#session-creation-and-projection-ownership).
 
 ## Dependency direction
 
@@ -81,7 +81,7 @@ flowchart TD
     DEL --> STORAGE
 ```
 
-Public contract types are dependency roots. Runtime and Storage contain no Session or leaf policy. Capture and Encoding do not call each other: a `SessionReadBridge` binds one Capture read return to the exact Encoding input loan. Observation accepts complete public values and does not understand the Session protocol.
+Public contract types are dependency roots. Capture and Encoding do not call each other: a `SessionReadBridge` binds one Capture read return to the exact Encoding input loan. Runtime and Storage contain no Session or leaf policy; Observation accepts complete public values without interpreting the Session protocol.
 
 ## Coordination identities
 
@@ -98,10 +98,10 @@ Checked numeric identities never wrap or repeat. Exhaustion makes no partial mut
 
 - Only Coordinator joins semantic owners, Link correlation, and public publication into one transaction.
 - Public State/Stats assignment, clocks, Android calls, codec work, callback invocation, payload copying, dispatch, cleanup, blocking, and waiting run outside both Session locks.
-- A leaf result is physically settled first, correlated second, and admitted semantically only after exact identity and currentness checks. Stale or terminal-frozen evidence cannot revive work.
+- A leaf result is physically settled first, correlated second, and admitted semantically only after exact identity and currentness checks. Stale or terminal-frozen evidence cannot revive Session work; exact callback-exit evidence may still settle independent registration completion.
 - Mutable pixels and tentative encoded bytes remain inside Capture and Encoding ownership. Only a complete immutable payload can become a `PublishedFrame`.
 - Delivery exposes frame access only during the exact callback and on the callback thread. Application-owned bytes exist only after a callback performs an explicit copy.
 - Work is bounded: one materialized fresh production, one unresolved physical delivery handoff, latest-value ingress where applicable, and no general event or frame queue.
 - A terminal claim closes semantic authority plus ordinary and alternate publication admission. The already-reserved terminal suffix remains the sole route for final Stats, the optional diagnostic, and terminal State. The claim does not assert callback return, task release, or physical resource cleanup.
 
-The operational consequences are detailed in [Runtime flows](runtime.md). The synchronization and progress limits are defined in [Concurrency and liveness](../contracts/concurrency-and-liveness.md); failure folding is defined in [Failures and terminal semantics](../contracts/failures-and-terminal-semantics.md).
+See [Runtime flows](runtime.md) for transitions, [Concurrency and liveness](../contracts/concurrency-and-liveness.md) for synchronization and progress, and [Failures and terminal semantics](../contracts/failures-and-terminal-semantics.md) for failure folding.

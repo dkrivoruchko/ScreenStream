@@ -10,6 +10,7 @@ import org.junit.Assert.fail
 import org.junit.Test
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 internal class SerialTaskSlotContractTest {
     @Test
@@ -159,10 +160,18 @@ internal class SerialTaskSlotContractTest {
         private var dispatchCount = 0
         private var rejectedWrapperThread: Thread? = null
         private var acceptedTask: Runnable? = null
+        private val rejectedWrapperFailure = AtomicReference<Throwable?>()
+        private val acceptedTaskFailure = AtomicReference<Throwable?>()
 
         override fun tryDispatch(task: Runnable): Boolean {
             if (dispatchCount++ == 0) {
-                val thread = Thread(task, "SerialTaskSlot-Rejected-Wrapper").apply { isDaemon = true }
+                val thread = Thread({
+                    try {
+                        task.run()
+                    } catch (failure: Throwable) {
+                        rejectedWrapperFailure.set(failure)
+                    }
+                }, "SerialTaskSlot-Rejected-Wrapper").apply { isDaemon = true }
                 rejectedWrapperThread = thread
                 thread.start()
                 awaitWrapperPending(thread)
@@ -176,14 +185,22 @@ internal class SerialTaskSlotContractTest {
 
         fun awaitRejectedWrapperCompletion() {
             boundedJoin(checkNotNull(rejectedWrapperThread), "rejected wrapper")
+            rejectedWrapperFailure.get()?.let { throw it }
         }
 
         fun enterAcceptedAndAwaitCompletion() {
             val task = checkNotNull(acceptedTask)
             acceptedTask = null
-            val thread = Thread(task, "SerialTaskSlot-Accepted-Successor").apply { isDaemon = true }
+            val thread = Thread({
+                try {
+                    task.run()
+                } catch (failure: Throwable) {
+                    acceptedTaskFailure.set(failure)
+                }
+            }, "SerialTaskSlot-Accepted-Successor").apply { isDaemon = true }
             thread.start()
             boundedJoin(thread, "accepted successor")
+            acceptedTaskFailure.get()?.let { throw it }
         }
 
         private fun awaitWrapperPending(thread: Thread) {

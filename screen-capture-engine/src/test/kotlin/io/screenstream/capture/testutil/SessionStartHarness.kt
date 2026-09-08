@@ -47,6 +47,7 @@ internal class SessionStartHarness(
     targetPlatform: TargetPlatform = AndroidTargetPlatform,
     jpegBackendPolicy: JpegBackendPolicy = JpegBackendPolicy.FrameworkOnly,
     nativeJpeg: NativeJpegFacade = NativeJpegProcess,
+    projection: MediaProjection? = null,
 ) : AutoCloseable {
     internal enum class BootstrapMode {
         FailFast,
@@ -60,6 +61,7 @@ internal class SessionStartHarness(
         ControlLooperReturnsNull,
         ControlHandlerConstructionThrows,
         FirstControlPostReturnsFalse,
+        FirstControlPostEntersDuringCall,
         FirstControlPostThrows,
     }
 
@@ -130,7 +132,6 @@ internal class SessionStartHarness(
             throw AssertionError("HandlerThread start was not expected")
         }
 
-        @Suppress("RedundantNullableReturnType")
         override fun looper(thread: HandlerThread): Looper? {
             calls.incrementAndGet()
             throw AssertionError("Looper access was not expected")
@@ -234,7 +235,6 @@ internal class SessionStartHarness(
         private var captureHandler: Handler? = null
         private var controlPosts = 0
         private var capturePosts = 0
-        private var removals = 0
         private var firstControlPostAttempted = false
         private var beforeNextControlPost: (() -> Unit)? = null
 
@@ -256,6 +256,12 @@ internal class SessionStartHarness(
                             BootstrapFault.FirstControlPostReturnsFalse -> {
                                 recordFault(bootstrapFault)
                                 return@synchronized false
+                            }
+
+                            BootstrapFault.FirstControlPostEntersDuringCall -> {
+                                recordFault(bootstrapFault)
+                                task.run()
+                                return@synchronized true
                             }
 
                             BootstrapFault.FirstControlPostThrows -> {
@@ -302,7 +308,7 @@ internal class SessionStartHarness(
             check(handler === controlHandler)
             controlTasks.removeAll { it === task }
             delayedControlTasks.removeAll { it === task }
-            removals += 1
+            Unit
         }
 
         fun enterNextControl(): Boolean = takeNext(controlTasks)?.let {
@@ -327,15 +333,11 @@ internal class SessionStartHarness(
             beforeNextControlPost = action
         }
 
-        fun pendingControlCount(): Int = synchronized(gate) { controlTasks.size }
-
         fun pendingCaptureCount(): Int = synchronized(gate) { captureTasks.size }
 
         fun controlPostCount(): Int = synchronized(gate) { controlPosts }
 
         fun capturePostCount(): Int = synchronized(gate) { capturePosts }
-
-        fun removalCount(): Int = synchronized(gate) { removals }
 
         private fun takeNext(tasks: ArrayDeque<Runnable>): Runnable? = synchronized(gate) {
             tasks.removeFirstOrNull()
@@ -367,6 +369,7 @@ internal class SessionStartHarness(
     private val handlerPlatformStates = ArrayList<ScreenCaptureState>()
     private val consumedBootstrapFault = AtomicReference<BootstrapFault?>()
     private val failFastHandlerThreadPlatform = FailFastHandlerThreadPlatform()
+    private val sessionProjection: MediaProjection
     private val failFastHandlerTaskPoster = FailFastHandlerTaskPoster()
     private var manualHandlerThreadPlatform: ManualHandlerThreadPlatform? = null
     private var manualHandlerTaskPoster: ManualHandlerTaskPoster? = null
@@ -440,13 +443,15 @@ internal class SessionStartHarness(
             targetPlatform = targetPlatform,
             nativeJpeg = nativeJpeg,
         )
+        sessionProjection = projection ?: mockk(relaxed = true)
+        coordinator.adoptProjection(sessionProjection)
         val createdSession = ScreenCaptureSession.create(coordinator)
         constructedSession = createdSession
         session = createdSession
         clock.resetReadCount()
     }
 
-    internal fun projection(): MediaProjection = mockk()
+    internal fun projection(): MediaProjection = sessionProjection
 
     internal fun metricsSubscriptionCount(): Int = metricsSubscriptions.get()
 
@@ -529,15 +534,11 @@ internal class SessionStartHarness(
         check(condition()) { "Controlled Session work did not reach the requested condition within the bounded drive" }
     }
 
-    internal fun pendingControlTaskCount(): Int = checkNotNull(manualHandlerTaskPoster).pendingControlCount()
-
     internal fun pendingCaptureTaskCount(): Int = checkNotNull(manualHandlerTaskPoster).pendingCaptureCount()
 
     internal fun controlPostCount(): Int = checkNotNull(manualHandlerTaskPoster).controlPostCount()
 
     internal fun capturePostCount(): Int = checkNotNull(manualHandlerTaskPoster).capturePostCount()
-
-    internal fun handlerRemovalCount(): Int = checkNotNull(manualHandlerTaskPoster).removalCount()
 
     internal fun controlThread(): HandlerThread = checkNotNull(manualHandlerThreadPlatform).controlThread
 

@@ -1,7 +1,9 @@
 package io.screenstream.capture.internal.metrics
 
 import android.app.Application
+import android.content.ComponentCallbacks
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Point
 import android.graphics.Rect
 import android.hardware.display.DisplayManager
@@ -91,6 +93,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
                 else -> mapOf(
                     ROUTE_API_31_WINDOW_CONTEXT to 1,
+                    ROUTE_CONTEXT_CALLBACK_REGISTER to 1,
                     ROUTE_WINDOW_MANAGER to 1,
                     ROUTE_MAXIMUM_BOUNDS to 2,
                     ROUTE_DISPLAY_CONTEXT to 2,
@@ -104,6 +107,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
                 assertTrue(routeEvents.indexOf(ROUTE_API_30_WINDOW_CONTEXT) < routeEvents.indexOf(ROUTE_WINDOW_MANAGER))
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 assertTrue(routeEvents.indexOf(ROUTE_API_31_WINDOW_CONTEXT) < routeEvents.indexOf(ROUTE_WINDOW_MANAGER))
+                assertTrue(routeEvents.indexOf(ROUTE_CONTEXT_CALLBACK_REGISTER) < routeEvents.indexOf(ROUTE_MAXIMUM_BOUNDS))
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val windowManagerIndex = routeEvents.indexOf(ROUTE_WINDOW_MANAGER)
@@ -132,6 +136,13 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             handle.close()
             assertEquals(1, fixture.platform.unregisterCount.get())
             assertSame(fixture.platform.registeredListener, fixture.platform.unregisteredListener)
+            val expectedCallbackCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 1 else 0
+            assertEquals(expectedCallbackCount, fixture.platform.contextCallbackRegisterCount.get())
+            assertEquals(expectedCallbackCount, fixture.platform.contextCallbackUnregisterCount.get())
+            if (expectedCallbackCount == 1) {
+                assertSame(fixture.platform.registeredContextCallback, fixture.platform.unregisteredContextCallback)
+                assertSame(fixture.platform.registeredWindowContext, fixture.platform.unregisteredWindowContext)
+            }
         }
     }
 
@@ -255,6 +266,192 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             assertEquals(1, fixture.platform.api31WindowContextCount())
             assertEquals(0, fixture.platform.unregisterCount.get())
             handle.close()
+            assertEquals(1, fixture.platform.unregisterCount.get())
+        }
+    }
+
+    // Verification: MET-02
+    @Test
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S])
+    fun windowContextConfigurationRefreshesCachedEpochWithoutDisplayEvent() {
+        ControlledNonInlineDispatcher().use { dispatcher ->
+            val fixture = Fixture(dispatcher)
+            val observer = RecordingObserver()
+            fixture.platform.maximumBoundsOverride = { Rect(0, 0, 640, 480) }
+            val handle = fixture.source.subscribe(observer)
+
+            enterOne(dispatcher)
+            val initial = checkNotNull(observer.changes().single())
+            val callback = checkNotNull(fixture.platform.registeredContextCallback)
+            val windowContext = checkNotNull(fixture.platform.registeredWindowContext)
+            assertEquals(CaptureMetrics(640, 480, initial.densityDpi), initial)
+            assertEquals(1, fixture.platform.contextCallbackRegisterCount.get())
+
+            fixture.platform.triggerChanged(fixture.displayId)
+            enterOne(dispatcher)
+
+            assertEquals(listOf(initial, initial), observer.changes())
+            assertEquals(0, dispatcher.pendingCount())
+            assertSame(callback, fixture.platform.registeredContextCallback)
+            assertSame(windowContext, fixture.platform.registeredWindowContext)
+            assertEquals(1, fixture.platform.api31WindowContextCount())
+            assertEquals(1, fixture.platform.contextCallbackRegisterCount.get())
+
+            fixture.platform.maximumBoundsOverride = { Rect(0, 0, 800, 600) }
+            fixture.platform.triggerContextConfigurationChanged(callback)
+            assertEquals(1, dispatcher.pendingCount())
+            enterOne(dispatcher)
+
+            assertEquals(
+                listOf(initial, initial, CaptureMetrics(800, 600, initial.densityDpi)),
+                observer.changes(),
+            )
+            assertSame(callback, fixture.platform.registeredContextCallback)
+            assertSame(windowContext, fixture.platform.registeredWindowContext)
+            assertEquals(1, fixture.platform.api31WindowContextCount())
+            assertEquals(1, fixture.platform.contextCallbackRegisterCount.get())
+            assertTrue(observer.failures().isEmpty())
+            handle.close()
+            assertEquals(listOf(callback), fixture.platform.unregisteredContextCallbacks())
+        }
+    }
+
+    // Verification: MET-02
+    @Test
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S])
+    fun sameDisplayChangedDuringReadSuppressesObsoleteTupleAndPublishesExactSuccessor() {
+        ControlledNonInlineDispatcher().use { dispatcher ->
+            val fixture = Fixture(dispatcher)
+            val observer = RecordingObserver()
+            fixture.platform.maximumBoundsOverride = { Rect(0, 0, 640, 480) }
+            val handle = fixture.source.subscribe(observer)
+            enterOne(dispatcher)
+            val initial = checkNotNull(observer.changes().single())
+
+            val readEntered = CountDownLatch(1)
+            val allowReadReturn = CountDownLatch(1)
+            fixture.platform.maximumBoundsOverride = {
+                readEntered.countDown()
+                check(allowReadReturn.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    "entered same-display Metrics read was not released"
+                }
+                Rect(0, 0, 700, 500)
+            }
+            fixture.platform.triggerChanged(fixture.displayId)
+            val heldTask = dispatcher.enterNext() ?: error("changed Metrics task was not retained")
+            assertTrue(readEntered.await(TIMEOUT_SECONDS, TimeUnit.SECONDS))
+            fixture.platform.maximumBoundsOverride = { Rect(0, 0, 900, 700) }
+            fixture.platform.triggerChanged(fixture.displayId)
+            allowReadReturn.countDown()
+            heldTask.awaitSuccessfulCompletion()
+
+            assertEquals(listOf(initial), observer.changes())
+            assertEquals(1, dispatcher.pendingCount())
+            enterOne(dispatcher)
+            assertEquals(
+                listOf(initial, CaptureMetrics(900, 700, initial.densityDpi)),
+                observer.changes(),
+            )
+            assertFalse(observer.changes().contains(CaptureMetrics(700, 500, initial.densityDpi)))
+            assertEquals(1, fixture.platform.contextCallbackRegisterCount.get())
+            assertTrue(observer.failures().isEmpty())
+            handle.close()
+        }
+    }
+
+    // Verification: MET-02
+    @Test
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S])
+    fun replacedAndClosedEpochCallbacksHaveNoAuthorityAndSettleExactIdentityOnce() {
+        ControlledNonInlineDispatcher().use { dispatcher ->
+            val fixture = Fixture(dispatcher)
+            val observer = RecordingObserver()
+            val handle = fixture.source.subscribe(observer)
+            enterOne(dispatcher)
+            val oldCallback = checkNotNull(fixture.platform.registeredContextCallback)
+
+            fixture.platform.triggerRemoved(fixture.displayId)
+            enterOne(dispatcher)
+            enterOne(dispatcher)
+            val currentCallback = checkNotNull(fixture.platform.registeredContextCallback)
+            assertNotSame(oldCallback, currentCallback)
+            assertEquals(listOf(oldCallback), fixture.platform.unregisteredContextCallbacks())
+
+            val submissionsAfterReplacement = dispatcher.submissions().size
+            fixture.platform.triggerContextConfigurationChanged(oldCallback)
+            assertEquals(submissionsAfterReplacement, dispatcher.submissions().size)
+            fixture.platform.triggerContextConfigurationChanged(currentCallback)
+            assertEquals(1, dispatcher.pendingCount())
+            enterOne(dispatcher)
+
+            handle.close()
+            assertEquals(listOf(oldCallback, currentCallback), fixture.platform.unregisteredContextCallbacks())
+            val submissionsAfterClose = dispatcher.submissions().size
+            fixture.platform.triggerContextConfigurationChanged(currentCallback)
+            assertEquals(submissionsAfterClose, dispatcher.submissions().size)
+            handle.close()
+            assertEquals(listOf(oldCallback, currentCallback), fixture.platform.unregisteredContextCallbacks())
+            assertEquals(1, fixture.platform.unregisterCount.get())
+            assertTrue(observer.failures().isEmpty())
+        }
+    }
+
+    // Verification: MET-02
+    @Test
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S])
+    fun closeDuringWindowContextRegistrationSettlesLateReturnAndFencesPublication() {
+        ControlledNonInlineDispatcher().use { dispatcher ->
+            val fixture = Fixture(dispatcher)
+            val observer = RecordingObserver()
+            val registrationEntered = CountDownLatch(1)
+            val allowRegistrationReturn = CountDownLatch(1)
+            fixture.platform.contextCallbackRegistrationHook = {
+                registrationEntered.countDown()
+                check(allowRegistrationReturn.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    "window-context callback registration was not released"
+                }
+            }
+            val handle = fixture.source.subscribe(observer)
+            val initialTask = dispatcher.enterNext() ?: error("initial Metrics task was not retained")
+            assertTrue(registrationEntered.await(TIMEOUT_SECONDS, TimeUnit.SECONDS))
+            val callback = checkNotNull(fixture.platform.registeredContextCallback)
+
+            handle.close()
+            assertEquals(1, fixture.platform.unregisterCount.get())
+            assertEquals(0, fixture.platform.contextCallbackUnregisterCount.get())
+            allowRegistrationReturn.countDown()
+            initialTask.awaitSuccessfulCompletion()
+
+            assertEquals(listOf(callback), fixture.platform.unregisteredContextCallbacks())
+            assertTrue(observer.changes().isEmpty())
+            assertTrue(observer.failures().isEmpty())
+            val submissionsAfterClose = dispatcher.submissions().size
+            fixture.platform.triggerContextConfigurationChanged(callback)
+            assertEquals(submissionsAfterClose, dispatcher.submissions().size)
+            handle.close()
+            assertEquals(1, fixture.platform.contextCallbackUnregisterCount.get())
+            assertEquals(1, fixture.platform.unregisterCount.get())
+        }
+    }
+
+    // Verification: MET-02
+    @Test
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S])
+    fun contextCallbackCleanupFailureDoesNotSkipDisplayListenerCleanup() {
+        ControlledNonInlineDispatcher().use { dispatcher ->
+            val fixture = Fixture(dispatcher)
+            val observer = RecordingObserver()
+            val handle = fixture.source.subscribe(observer)
+            enterOne(dispatcher)
+            val cleanupFailure = IllegalStateException("context callback cleanup failed")
+            fixture.platform.contextCallbackUnregisterFailure = cleanupFailure
+
+            assertSame(cleanupFailure, assertThrows(cleanupFailure.javaClass) { handle.close() })
+            assertEquals(1, fixture.platform.contextCallbackUnregisterCount.get())
+            assertEquals(1, fixture.platform.unregisterCount.get())
+            assertSame(fixture.platform.registeredListener, fixture.platform.unregisteredListener)
+            assertSame(cleanupFailure, assertThrows(cleanupFailure.javaClass) { handle.close() })
+            assertEquals(1, fixture.platform.contextCallbackUnregisterCount.get())
             assertEquals(1, fixture.platform.unregisterCount.get())
         }
     }
@@ -475,7 +672,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
                         assertNotNull(adopted.metrics)
                         assertEquals(MetricsAttachmentLifecycle.Live, adopted.lifecycle)
                         assertTrue(adopted.handleAdopted)
-                        assertTrue(adopted.isReady(requireCompletionCloseSettlement = true))
+                        assertTrue(adopted.isReady())
                         assertEquals(ownerIndex + 1, platform.registerCount.get())
                         assertEquals(ownerIndex, platform.unregisterCount.get())
                         assertTrue(publicDispatcher.submissions().isEmpty())
@@ -489,7 +686,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
                         val retired = owner.readSnapshot()
                         assertEquals(MetricsAttachmentLifecycle.Retired, retired.lifecycle)
                         assertTrue(retired.handleAdopted)
-                        assertFalse(retired.isReady(requireCompletionCloseSettlement = false))
+                        assertFalse(retired.isReady())
                         assertEquals(ownerIndex, platform.unregisterCount.get())
                         assertEquals(1, ownerDispatcher.pendingCount())
                         val closeTask = ownerDispatcher.enterNext() ?: error("owner close task was not retained")
@@ -744,11 +941,14 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
         private val recordedApi30WindowContextInputs = ArrayList<Context>()
         private val recordedApi31ApplicationContexts = ArrayList<Context>()
         private val recordedApi31WindowContexts = ArrayList<Context>()
+        private val recordedUnregisteredContextCallbacks = ArrayList<ComponentCallbacks>()
 
         val returnedMainHandler: Handler = Handler(Looper.getMainLooper())
         val mainHandlerCount = AtomicInteger()
         val registerCount = AtomicInteger()
         val unregisterCount = AtomicInteger()
+        val contextCallbackRegisterCount = AtomicInteger()
+        val contextCallbackUnregisterCount = AtomicInteger()
 
         @Volatile
         var registeredHandler: Handler? = null
@@ -763,6 +963,18 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
         var unregisterThread: Thread? = null
 
         @Volatile
+        var registeredWindowContext: Context? = null
+
+        @Volatile
+        var registeredContextCallback: ComponentCallbacks? = null
+
+        @Volatile
+        var unregisteredWindowContext: Context? = null
+
+        @Volatile
+        var unregisteredContextCallback: ComponentCallbacks? = null
+
+        @Volatile
         var registrationFailure: Exception? = null
 
         @Volatile
@@ -772,6 +984,9 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
         var maximumBoundsFailure: Exception? = null
 
         @Volatile
+        var maximumBoundsOverride: (() -> Rect)? = null
+
+        @Volatile
         var registrationAssertion: ((Handler) -> Unit)? = null
 
         @Volatile
@@ -779,6 +994,15 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
         @Volatile
         var maximumBoundsHook: (() -> Unit)? = null
+
+        @Volatile
+        var contextCallbackRegistrationHook: (() -> Unit)? = null
+
+        @Volatile
+        var contextCallbackRegistrationFailure: Exception? = null
+
+        @Volatile
+        var contextCallbackUnregisterFailure: Exception? = null
 
         @Volatile
         var displayIdOverride: ((Display) -> Int)? = null
@@ -858,6 +1082,25 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             }
         }
 
+        override fun registerWindowContextCallback(windowContext: Context, callback: ComponentCallbacks) {
+            recordRoute(ROUTE_CONTEXT_CALLBACK_REGISTER)
+            contextCallbackRegisterCount.incrementAndGet()
+            registeredWindowContext = windowContext
+            registeredContextCallback = callback
+            contextCallbackRegistrationHook?.invoke()
+            contextCallbackRegistrationFailure?.let { throw it }
+        }
+
+        override fun unregisterWindowContextCallback(windowContext: Context, callback: ComponentCallbacks) {
+            contextCallbackUnregisterCount.incrementAndGet()
+            unregisteredWindowContext = windowContext
+            unregisteredContextCallback = callback
+            synchronized(routeGate) {
+                recordedUnregisteredContextCallbacks += callback
+            }
+            contextCallbackUnregisterFailure?.let { throw it }
+        }
+
         override fun windowManager(windowContext: Context): WindowManager {
             recordRoute(ROUTE_WINDOW_MANAGER)
             return delegate.windowManager(windowContext)
@@ -867,6 +1110,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             recordRoute(ROUTE_MAXIMUM_BOUNDS)
             maximumBoundsHook?.invoke()
             maximumBoundsFailure?.let { throw it }
+            maximumBoundsOverride?.let { return it() }
             return delegate.maximumWindowBounds(windowManager)
         }
 
@@ -887,6 +1131,10 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             checkNotNull(registeredListener).onDisplayRemoved(displayId)
         }
 
+        fun triggerContextConfigurationChanged(callback: ComponentCallbacks? = registeredContextCallback) {
+            checkNotNull(callback).onConfigurationChanged(Configuration())
+        }
+
         fun routeEvents(): List<String> = synchronized(routeGate) { recordedRouteEvents.toList() }
 
         fun routeDisplays(): List<Display> = synchronized(routeGate) { recordedRouteDisplays.toList() }
@@ -900,6 +1148,9 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             synchronized(routeGate) { recordedApi31ApplicationContexts.toList() }
 
         fun api31WindowContextCount(): Int = synchronized(routeGate) { recordedApi31WindowContexts.size }
+
+        fun unregisteredContextCallbacks(): List<ComponentCallbacks> =
+            synchronized(routeGate) { recordedUnregisteredContextCallbacks.toList() }
 
         private fun recordRoute(name: String, display: Display? = null) {
             synchronized(routeGate) {
@@ -916,6 +1167,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
         const val ROUTE_DISPLAY_CONTEXT = "createDisplayContext"
         const val ROUTE_API_30_WINDOW_CONTEXT = "createApi30WindowContext"
         const val ROUTE_API_31_WINDOW_CONTEXT = "createApi31WindowContext"
+        const val ROUTE_CONTEXT_CALLBACK_REGISTER = "registerWindowContextCallback"
         const val ROUTE_WINDOW_MANAGER = "windowManager"
         const val ROUTE_MAXIMUM_BOUNDS = "maximumWindowBounds"
         const val TIMEOUT_SECONDS = 5L

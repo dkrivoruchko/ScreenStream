@@ -1,6 +1,8 @@
 package io.screenstream.capture.internal.metrics
 
+import android.content.ComponentCallbacks
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Point
 import android.hardware.display.DisplayManager
 import android.os.Build
@@ -33,7 +35,124 @@ internal class BuiltInCaptureMetricsObservation private constructor(
 
     private enum class PublishedAvailability { NotPublished, Available, Unavailable, }
 
-    private class DisplayEpoch(val display: Display, val windowContext: Context?, val windowManager: WindowManager?)
+    private enum class ContextCallbackState { Prepared, RegistrationAttempted, CloseRequested, Registered, Closed, }
+
+    private inner class DisplayEpoch(
+        val display: Display,
+        val windowContext: Context?,
+        val windowManager: WindowManager?,
+    ) {
+        private val callbackGate = Any()
+        private var callbackState = ContextCallbackState.Prepared
+        private var unregisterAttempted = false
+        private var unregisterFailure: Exception? = null
+
+        val callback: ComponentCallbacks? = if ((windowContext == null) || (sdkInt < Build.VERSION_CODES.S)) {
+            null
+        } else {
+            object : ComponentCallbacks {
+                override fun onConfigurationChanged(newConfig: Configuration) {
+                    if (displayEpoch.get() === this@DisplayEpoch) {
+                        requestRefresh(invalidateEpoch = false)
+                    }
+                }
+
+                @Suppress("OVERRIDE_DEPRECATION")
+                override fun onLowMemory() = Unit
+            }
+        }
+
+        fun registerCallback() {
+            val context = windowContext ?: return
+            val exactCallback = callback ?: return
+            synchronized(callbackGate) {
+                check(callbackState === ContextCallbackState.Prepared)
+                callbackState = ContextCallbackState.RegistrationAttempted
+            }
+            val registrationFailure = try {
+                source.platform.registerWindowContextCallback(context, exactCallback)
+                null
+            } catch (failure: Exception) {
+                failure
+            }
+            val mustUnregister = synchronized(callbackGate) {
+                when {
+                    registrationFailure != null -> {
+                        callbackState = ContextCallbackState.Closed
+                        claimUnregister()
+                    }
+
+                    callbackState === ContextCallbackState.CloseRequested -> {
+                        callbackState = ContextCallbackState.Closed
+                        claimUnregister()
+                    }
+
+                    else -> {
+                        check(callbackState === ContextCallbackState.RegistrationAttempted)
+                        callbackState = ContextCallbackState.Registered
+                        false
+                    }
+                }
+            }
+            val cleanupFailure = if (mustUnregister) unregisterCallback(context, exactCallback) else null
+            if (registrationFailure != null) {
+                if ((cleanupFailure != null) && (cleanupFailure !== registrationFailure)) {
+                    registrationFailure.addSuppressed(cleanupFailure)
+                }
+                throw registrationFailure
+            }
+            cleanupFailure?.let { throw it }
+        }
+
+        fun closeCallback(): Exception? {
+            val context = windowContext ?: return null
+            val exactCallback = callback ?: return null
+            val mustUnregister = synchronized(callbackGate) {
+                when (callbackState) {
+                    ContextCallbackState.Prepared -> {
+                        callbackState = ContextCallbackState.Closed
+                        false
+                    }
+
+                    ContextCallbackState.RegistrationAttempted -> {
+                        callbackState = ContextCallbackState.CloseRequested
+                        false
+                    }
+
+                    ContextCallbackState.Registered -> {
+                        callbackState = ContextCallbackState.Closed
+                        claimUnregister()
+                    }
+
+                    ContextCallbackState.CloseRequested,
+                    ContextCallbackState.Closed,
+                        -> false
+                }
+            }
+            return if (mustUnregister) unregisterCallback(context, exactCallback) else synchronized(callbackGate) {
+                unregisterFailure
+            }
+        }
+
+        private fun claimUnregister(): Boolean {
+            if (unregisterAttempted) return false
+            unregisterAttempted = true
+            return true
+        }
+
+        private fun unregisterCallback(context: Context, exactCallback: ComponentCallbacks): Exception? {
+            val failure = try {
+                source.platform.unregisterWindowContextCallback(context, exactCallback)
+                null
+            } catch (cause: Exception) {
+                cause
+            }
+            synchronized(callbackGate) {
+                unregisterFailure = failure
+            }
+            return failure
+        }
+    }
 
     private inner class PublicObservationDispatcher(
         private val delegate: NonInlineDispatcher,
@@ -389,7 +508,7 @@ internal class BuiltInCaptureMetricsObservation private constructor(
 
     private fun performRefresh(epochInvalidated: Boolean) {
         if (epochInvalidated) {
-            displayEpoch.set(null)
+            retireDisplayEpoch()?.let { throw it }
             publishUnavailable()
             requestRefresh(invalidateEpoch = false)
             return
@@ -397,26 +516,47 @@ internal class BuiltInCaptureMetricsObservation private constructor(
 
         val selectedDisplay = source.resolveSelectedDisplay()
         if ((selectedDisplay == null) || !source.isSelectedDisplayValid(selectedDisplay)) {
-            displayEpoch.set(null)
+            retireDisplayEpoch()?.let { throw it }
             publishUnavailable()
             return
         }
 
-        val readEpoch = displayEpoch.get()?.takeIf { it.display === selectedDisplay } ?: run {
-            displayEpoch.set(null)
-            createEpoch(selectedDisplay).also { displayEpoch.set(it) }
+        var readEpoch = displayEpoch.get()
+        if ((readEpoch != null) && (readEpoch.display !== selectedDisplay)) {
+            if (displayEpoch.compareAndSet(readEpoch, null)) {
+                readEpoch.closeCallback()?.let { throw it }
+            }
+            readEpoch = null
         }
-        if (!source.isSelectedDisplayValid(readEpoch.display)) {
-            displayEpoch.compareAndSet(readEpoch, null)
+        if (readEpoch == null) {
+            val createdEpoch = createEpoch(selectedDisplay)
+            if (((signals.get() and OPEN) == 0) || !displayEpoch.compareAndSet(null, createdEpoch)) {
+                createdEpoch.closeCallback()?.let { throw it }
+                return
+            }
+            readEpoch = createdEpoch
+            createdEpoch.registerCallback()
+            if ((displayEpoch.get() !== createdEpoch) || ((signals.get() and OPEN) == 0)) {
+                createdEpoch.closeCallback()?.let { throw it }
+                return
+            }
+        }
+        val exactReadEpoch = readEpoch
+        if (!source.isSelectedDisplayValid(exactReadEpoch.display)) {
+            if (displayEpoch.compareAndSet(exactReadEpoch, null)) {
+                exactReadEpoch.closeCallback()?.let { throw it }
+            }
             publishUnavailable()
             requestRefresh(invalidateEpoch = false)
             return
         }
 
-        val metrics = readMetrics(readEpoch)
+        val metrics = readMetrics(exactReadEpoch)
         val epochInvalidatedDuringRead = (signals.get() and EPOCH_INVALIDATED) != 0
-        if ((displayEpoch.get() !== readEpoch) || epochInvalidatedDuringRead || !source.isSelectedDisplayValid(readEpoch.display)) {
-            displayEpoch.compareAndSet(readEpoch, null)
+        if ((displayEpoch.get() !== exactReadEpoch) || epochInvalidatedDuringRead || !source.isSelectedDisplayValid(exactReadEpoch.display)) {
+            if (displayEpoch.compareAndSet(exactReadEpoch, null)) {
+                exactReadEpoch.closeCallback()?.let { throw it }
+            }
             publishUnavailable()
             requestRefresh(invalidateEpoch = false)
             return
@@ -438,7 +578,9 @@ internal class BuiltInCaptureMetricsObservation private constructor(
             display = display,
             windowContext = windowContext,
             windowManager = source.platform.windowManager(windowContext),
-        )
+        ).also { epoch ->
+            if (sdkInt < Build.VERSION_CODES.S) check(epoch.callback == null)
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -566,7 +708,8 @@ internal class BuiltInCaptureMetricsObservation private constructor(
             val mustUnregister = (state === ListenerState.RegistrationAttempted) ||
                     (state === ListenerState.RegisteredAwaitingInitialDispatch) ||
                     (state === ListenerState.Registered)
-            failure = try {
+            val contextFailure = retireDisplayEpoch()
+            val displayFailure = try {
                 if (mustUnregister) {
                     source.platform.unregisterDisplayListener(source.displayManager, listener)
                 }
@@ -574,13 +717,18 @@ internal class BuiltInCaptureMetricsObservation private constructor(
             } catch (cause: Exception) {
                 cause
             }
+            failure = contextFailure ?: displayFailure
+            if ((contextFailure != null) && (displayFailure != null) && (displayFailure !== contextFailure)) {
+                contextFailure.addSuppressed(displayFailure)
+            }
             listenerState.set(ListenerState.Closed)
             closeFailure.set(failure)
             markFinished()
         }
-        displayEpoch.set(null)
         return failure
     }
+
+    private fun retireDisplayEpoch(): Exception? = displayEpoch.getAndSet(null)?.closeCallback()
 
     private fun clearWorkerStateAfterClose() {
         if (listenerState.get() === ListenerState.Closed) {

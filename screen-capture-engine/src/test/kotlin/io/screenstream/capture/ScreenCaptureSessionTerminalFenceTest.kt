@@ -1,11 +1,20 @@
 package io.screenstream.capture
 
+import android.graphics.Bitmap
 import android.hardware.DataSpace
 import android.os.Build
+import io.mockk.every
+import io.mockk.mockkStatic
+import io.mockk.spyk
+import io.mockk.unmockkStatic
+import io.mockk.verify
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.FrameSnapshot
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.NativeCarrierSnapshot
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.SafeRejectingNativeJpegFacade
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.assertJpegDimensions
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.copyFrame
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.drainAcceptedSessionWork
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.driveControlUntil
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.primeCachedFrame
@@ -24,6 +33,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -41,6 +51,127 @@ import java.util.concurrent.atomic.AtomicReference
 @Config(manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class ScreenCaptureSessionTerminalFenceTest {
+    // Verification: SES-02
+    // Verification: SES-03
+    // Verification: SES-07
+    // Verification: ENC-06
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun stoppedSessionHeldInFrameworkCompressionCannotAffectSuccessorFramesOrFrozenValues() = runTest {
+        val bitmapA = spyk(Bitmap.createBitmap(8, 6, Bitmap.Config.ARGB_8888))
+        val bitmapB = spyk(Bitmap.createBitmap(10, 6, Bitmap.Config.ARGB_8888))
+        val compressionEntered = CountDownLatch(1)
+        val compressionMayReturn = CountDownLatch(1)
+        val platformA = HappyCapturePlatform()
+        val platformB = HappyCapturePlatform()
+        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+        try {
+            every { bitmapA.compress(Bitmap.CompressFormat.JPEG, any(), any()) } answers {
+                compressionEntered.countDown()
+                assertTrue("Session A compression was not released", compressionMayReturn.await(30L, TimeUnit.SECONDS))
+                callOriginal()
+            }
+            mockkStatic(Bitmap::class)
+            every { Bitmap.createBitmap(8, 6, Bitmap.Config.ARGB_8888) } returns bitmapA
+            every { Bitmap.createBitmap(10, 6, Bitmap.Config.ARGB_8888) } returns bitmapB
+            SessionStartHarness(
+                bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+                metrics = CaptureMetrics(8, 6, 320),
+                platformSdkInt = Build.VERSION_CODES.N,
+                projection = platformA.projection,
+                projectionPlatform = platformA.projectionPlatform,
+                eglPlatform = platformA.eglPlatform,
+                glesPlatform = platformA.glesPlatform,
+                targetPlatform = platformA.targetPlatform,
+            ).use { a ->
+                SessionStartHarness(
+                    bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+                    metrics = CaptureMetrics(10, 6, 320),
+                    platformSdkInt = Build.VERSION_CODES.N,
+                    projection = platformB.projection,
+                    projectionPlatform = platformB.projectionPlatform,
+                    eglPlatform = platformB.eglPlatform,
+                    glesPlatform = platformB.glesPlatform,
+                    targetPlatform = platformB.targetPlatform,
+                ).use { b ->
+                    var heldTask: ControlledNonInlineDispatcher.TaskHandle? = null
+                    val aFrames = AtomicInteger()
+                    val bFrames = CopyOnWriteArrayList<FrameSnapshot>()
+                    try {
+                        startActiveSession(a, parameters)
+                        a.session.registerFrameConsumer { aFrames.incrementAndGet() }
+                        platformA.deliverSourceFrame(rgbaSeed = 41)
+                        // Controlled entry arranges the interval; the compress latch proves actual codec entry.
+                        repeat(32) {
+                            if (heldTask == null) {
+                                a.enterNextControlTask()
+                                a.enterNextCaptureTask()
+                                heldTask = a.enterNextWorker()
+                            }
+                        }
+                        val exactAProduction = checkNotNull(heldTask) { "Session A did not submit compression" }
+                        check(compressionEntered.await(5L, TimeUnit.SECONDS)) { "Session A compression did not enter" }
+                        a.session.stop()
+
+                        startActiveSession(b, parameters)
+                        assertTrue(a.session !== b.session)
+                        b.session.registerFrameConsumer { bFrames += copyFrame(it) }
+                        platformB.deliverSourceFrame(rgbaSeed = 73)
+                        b.driveUntil { bFrames.size == 1 }
+                        assertTrue(b.session.state.value is ScreenCaptureState.Active)
+                        val firstB = bFrames.single()
+                        assertJpegDimensions(firstB.bytes, 10, 6)
+                        verify(exactly = 1) { bitmapB.compress(Bitmap.CompressFormat.JPEG, any(), any()) }
+
+                        driveControlUntil(a) { a.session.state.value is ScreenCaptureState.Stopped }
+                        val frozenState = a.session.state.value as ScreenCaptureState.Stopped
+                        val frozenStats = a.session.stats.value
+                        assertSame(ScreenCaptureStopReason.Requested, frozenState.reason)
+                        assertEquals(0, aFrames.get())
+                        assertFalse(bitmapA.isRecycled)
+                        assertFalse(bitmapB.isRecycled)
+                        verify(exactly = 0) {
+                            bitmapA.recycle()
+                            bitmapB.recycle()
+                        }
+
+                        compressionMayReturn.countDown()
+                        exactAProduction.awaitSuccessfulCompletion()
+                        drainAcceptedSessionWork(a)
+                        assertTrue(bitmapA.isRecycled)
+                        verify(exactly = 1) { bitmapA.recycle() }
+                        assertFalse(bitmapB.isRecycled)
+                        verify(exactly = 0) { bitmapB.recycle() }
+                        assertEquals(0, aFrames.get())
+                        assertEquals(frozenState, a.session.state.value)
+                        assertEquals(frozenStats, a.session.stats.value)
+
+                        platformB.deliverSourceFrame(rgbaSeed = 109)
+                        b.driveUntil { bFrames.size == 2 }
+                        val secondB = bFrames.last()
+                        assertTrue(secondB.sequence > firstB.sequence)
+                        assertJpegDimensions(secondB.bytes, 10, 6)
+                        verify(exactly = 2) { bitmapB.compress(Bitmap.CompressFormat.JPEG, any(), any()) }
+                        assertTrue(b.session.state.value is ScreenCaptureState.Active)
+                        assertEquals(0, aFrames.get())
+                        assertEquals(frozenState, a.session.state.value)
+                        assertEquals(frozenStats, a.session.stats.value)
+                    } finally {
+                        compressionMayReturn.countDown()
+                        heldTask?.awaitSuccessfulCompletion()
+                        stopAndDrainSession(a)
+                        stopAndDrainSession(b)
+                    }
+                }
+            }
+        } finally {
+            compressionMayReturn.countDown()
+            unmockkStatic(Bitmap::class)
+            if (!bitmapA.isRecycled) bitmapA.recycle()
+            if (!bitmapB.isRecycled) bitmapB.recycle()
+        }
+    }
+
     // Verification: TERM-01
     @Test
     @Config(sdk = [Build.VERSION_CODES.R])
@@ -54,6 +185,7 @@ internal class ScreenCaptureSessionTerminalFenceTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.R,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
@@ -83,7 +215,7 @@ internal class ScreenCaptureSessionTerminalFenceTest {
             }, "ScreenCaptureEngine-Terminal-Stopper")
 
             try {
-                startActiveSession(harness, platform, parameters)
+                startActiveSession(harness, parameters)
                 val carrierBeforeRead = nativeJpeg.carrierSnapshot()
                 assertEquals(1, carrierBeforeRead.allocationCount)
                 assertEquals(1, carrierBeforeRead.outstandingCount)
@@ -184,13 +316,14 @@ internal class ScreenCaptureSessionTerminalFenceTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                harness.session.start(platform.projection, parameters)
+                harness.session.start(parameters)
             }
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
             start.await()

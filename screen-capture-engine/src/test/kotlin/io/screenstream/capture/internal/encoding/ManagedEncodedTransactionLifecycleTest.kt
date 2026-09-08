@@ -19,17 +19,18 @@ internal class ManagedEncodedTransactionLifecycleTest {
         val output = transaction.outputStream
         output.write(byteArrayOf(1, 2, 3), 0, 3)
         output.write(4)
+        output.write(byteArrayOf(90, 5, 6, 7, 8, 9, 91), 1, 5)
         output.write(byteArrayOf(9), 0, 0)
 
         output.close()
 
         assertEquals(ManagedEncodedTransaction.State.ProducerClosed, transaction.state)
-        assertEquals(4, transaction.byteCount)
+        assertEquals(9, transaction.byteCount)
         assertNull(transaction.committedPayload)
         assertTrue(transaction.commit())
 
         val payload = transaction.committedPayload ?: error("commit did not expose payload")
-        assertArrayEquals(byteArrayOf(1, 2, 3, 4), payload.toByteArray())
+        assertArrayEquals(byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9), payload.toByteArray())
         assertTrue(transaction.transferCommittedPayload(payload))
         assertFalse(transaction.transferCommittedPayload(payload))
         assertNull(transaction.committedPayload)

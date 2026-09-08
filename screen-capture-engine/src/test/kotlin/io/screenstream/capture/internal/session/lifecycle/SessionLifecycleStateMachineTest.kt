@@ -1,6 +1,5 @@
 package io.screenstream.capture.internal.session.lifecycle
 
-import io.screenstream.capture.ScreenCaptureException
 import io.screenstream.capture.ScreenCaptureProblem
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
@@ -101,7 +100,7 @@ internal class SessionLifecycleStateMachineTest {
         assertTrue(lifecycle.canRunProduction(sessionReady = true, revisionCurrent = true))
         settlement ?: error("successful successor Active did not settle start")
         settlement.complete()
-        lifecycle.startWaiter.awaitCompletion()
+        assertSame(SessionLifecycle.StartOutcome.Succeeded, lifecycle.startWaiter.awaitCompletion())
     }
 
     // Verification: SES-02
@@ -181,7 +180,7 @@ internal class SessionLifecycleStateMachineTest {
         lifecycle.commitTerminal(projectionPreparation)
 
         checkNotNull(projectionPreparation.startSettlement).complete()
-        assertStartFails(lifecycle, ScreenCaptureProblem.CaptureUnavailable)
+        assertStartCancelled(lifecycle)
     }
 
     // Verification: SES-02
@@ -331,7 +330,7 @@ internal class SessionLifecycleStateMachineTest {
 
             assertClaimIsIrreversible(lifecycle)
             checkNotNull(winnerPreparation.startSettlement).complete()
-            assertStartFails(lifecycle, ScreenCaptureProblem.CaptureUnavailable)
+            assertStartCancelled(lifecycle)
         }
     }
 
@@ -361,7 +360,7 @@ internal class SessionLifecycleStateMachineTest {
 
         assertClaimIsIrreversible(lifecycle)
         checkNotNull(preparation.startSettlement).complete()
-        assertStartFails(lifecycle, ScreenCaptureProblem.InternalFailure)
+        assertStartFails(lifecycle, ScreenCaptureProblem.InternalFailure, failedDecision.cause)
     }
 
     // Verification: SES-02
@@ -413,12 +412,16 @@ internal class SessionLifecycleStateMachineTest {
     private suspend fun assertStartFails(
         lifecycle: SessionLifecycle,
         expectedProblem: ScreenCaptureProblem,
+        expectedCause: Throwable?,
     ) {
-        try {
-            lifecycle.startWaiter.awaitCompletion()
-            error("terminal start unexpectedly succeeded")
-        } catch (failure: ScreenCaptureException) {
-            assertSame(expectedProblem, failure.problem)
-        }
+        val outcome = lifecycle.startWaiter.awaitCompletion()
+        assertTrue(outcome is SessionLifecycle.StartOutcome.Failed)
+        val failure = (outcome as SessionLifecycle.StartOutcome.Failed).failure
+        assertSame(expectedProblem, failure.problem)
+        assertSame(expectedCause, failure.cause)
+    }
+
+    private suspend fun assertStartCancelled(lifecycle: SessionLifecycle) {
+        assertSame(SessionLifecycle.StartOutcome.Cancelled, lifecycle.startWaiter.awaitCompletion())
     }
 }

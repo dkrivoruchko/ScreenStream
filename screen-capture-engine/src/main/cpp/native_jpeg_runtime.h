@@ -44,15 +44,16 @@ namespace screenstream::jpeg {
         std::int32_t segmentByteCount = 0;
 
         std::uint8_t *payload() noexcept {
-            return reinterpret_cast<std::uint8_t *>(this) + sizeof(NativeSegment);
+            return payload_;
         }
 
         [[nodiscard]] const std::uint8_t *payload() const noexcept {
-            return reinterpret_cast<const std::uint8_t *>(this) + sizeof(NativeSegment);
+            return payload_;
         }
 
     private:
         NativeSegment *next_ = nullptr;
+        std::uint8_t payload_[kNativeSegmentPayloadCapacity];
 
         friend class NativeSegmentWriter;
     };

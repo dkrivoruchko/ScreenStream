@@ -1,6 +1,7 @@
 package io.screenstream.capture
 
 import android.content.Context
+import android.media.projection.MediaProjection
 import android.os.Build
 import io.screenstream.capture.internal.metrics.BuiltInCaptureMetricsSource
 import io.screenstream.capture.internal.metrics.SessionMetricsSourceSelection
@@ -23,11 +24,16 @@ public object ScreenCaptureEngine {
      * observing any of the returned session's flows also does not start capture. The new session initially reports
      * [ScreenCaptureState.NotStarted] and zero-valued statistics.
      *
+     * The successful return transfers [mediaProjection] ownership to the session. The host must call [ScreenCaptureSession.stop]
+     * for every returned session, including one that never starts. If any fallible construction step throws, the caller
+     * retains the projection.
+     *
      * If [ScreenCaptureConfig.captureMetricsSource] is `null`, [context] is normalized to its application context
      * and used for a source that follows the current default display. If a source is supplied, its exact identity is
      * retained and [context] is not accessed, forwarded, or retained.
      *
      * @param context context used only to construct the default display metrics source when one is not configured.
+     * @param mediaProjection fresh projection authority obtained for this session.
      * @param config read-only session configuration. Its property references do not change, but a configured metrics
      * source may be stateful and is retained by identity. The default follows the default display and selects the
      * JPEG backend automatically.
@@ -37,6 +43,7 @@ public object ScreenCaptureEngine {
      */
     public fun createSession(
         context: Context,
+        mediaProjection: MediaProjection,
         config: ScreenCaptureConfig = ScreenCaptureConfig(),
     ): ScreenCaptureSession {
         val configuredMetricsSource = config.captureMetricsSource
@@ -47,18 +54,19 @@ public object ScreenCaptureEngine {
                 BuiltInCaptureMetricsSource.forDefaultDisplay(context, ProductionRuntime.workerDispatcher),
             )
         }
-        return ScreenCaptureSession.create(
-            SessionCoordinator(
-                metricsSourceSelection = metricsSourceSelection,
-                jpegBackendPolicy = config.jpegBackendPolicy,
-                workerDispatcher = ProductionRuntime.workerDispatcher,
-                handlerThreadPlatform = ProductionRuntime.handlerThreadPlatform,
-                handlerTaskPoster = ProductionRuntime.handlerTaskPoster,
-                delayedEntryScheduler = ProductionRuntime.delayedEntryScheduler,
-                executionClock = ProductionRuntime.elapsedRealtimeClock,
-                currentEpochMillis = ProductionRuntime.currentEpochMillis,
-                platformSdkInt = Build.VERSION.SDK_INT,
-            ),
+        val coordinator = SessionCoordinator(
+            metricsSourceSelection = metricsSourceSelection,
+            jpegBackendPolicy = config.jpegBackendPolicy,
+            workerDispatcher = ProductionRuntime.workerDispatcher,
+            handlerThreadPlatform = ProductionRuntime.handlerThreadPlatform,
+            handlerTaskPoster = ProductionRuntime.handlerTaskPoster,
+            delayedEntryScheduler = ProductionRuntime.delayedEntryScheduler,
+            executionClock = ProductionRuntime.elapsedRealtimeClock,
+            currentEpochMillis = ProductionRuntime.currentEpochMillis,
+            platformSdkInt = Build.VERSION.SDK_INT,
         )
+        val session = ScreenCaptureSession.create(coordinator)
+        coordinator.adoptProjection(mediaProjection)
+        return session
     }
 }

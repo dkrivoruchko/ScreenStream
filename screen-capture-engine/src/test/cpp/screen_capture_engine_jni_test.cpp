@@ -91,6 +91,7 @@ namespace {
         std::int32_t compressorResult = ANDROID_BITMAP_RESULT_SUCCESS;
         bool compressorDescriptorMatched = false;
         bool compressorWriteSucceeded = false;
+        std::size_t compressorEntryCalls = 0;
 
         const void *expectedPixels = nullptr;
         std::uint32_t expectedWidth = 2;
@@ -648,6 +649,8 @@ namespace {
             fixture.invoke();
             require(fixture.producedByteCount() == kPendingWord && fixture.status() == kPendingWord,
                     "wrong-sized result block was mutated");
+            require(fixture.harness.state.compressorEntryCalls == 0,
+                    "wrong-sized result block reached the compressor");
             require(fixture.harness.state.adoptedBytes.empty(), "wrong-sized result block published bytes");
             requireCleanLocalsAndJniUse(fixture.harness.state, "wrong-sized result block");
         }
@@ -656,6 +659,8 @@ namespace {
             fixture.invoke(101);
             require(fixture.producedByteCount() == 0 && fixture.status() == kInternalFailureStatus,
                     "invalid descriptor did not return internal wire failure");
+            require(fixture.harness.state.compressorEntryCalls == 0,
+                    "invalid descriptor reached the compressor");
             require(fixture.harness.state.adoptedBytes.empty(), "invalid descriptor published bytes");
             requireCleanLocalsAndJniUse(fixture.harness.state, "invalid descriptor");
         }
@@ -665,6 +670,8 @@ namespace {
             fixture.invoke();
             require(fixture.producedByteCount() == 0 && fixture.status() == kInternalFailureStatus,
                     "carrier capacity mismatch did not return internal wire failure");
+            require(fixture.harness.state.compressorEntryCalls == 0,
+                    "carrier capacity mismatch reached the compressor");
             require(fixture.harness.state.adoptedBytes.empty(), "carrier capacity mismatch published bytes");
             requireCleanLocalsAndJniUse(fixture.harness.state, "carrier capacity mismatch");
         }
@@ -684,6 +691,8 @@ namespace {
 
         require(fixture.harness.state.compressorDescriptorMatched,
                 "owner entry changed the maintained compressor descriptor");
+        require(fixture.harness.state.compressorEntryCalls == 1,
+                "valid compression did not enter the compressor exactly once");
         require(fixture.harness.state.compressorWriteSucceeded, "fake compressor output was rejected");
         require(fixture.harness.state.adoptedBytes == expected, "sink bytes were not exact FIFO output");
         require(fixture.harness.state.adoptionCalls == 3 &&
@@ -805,6 +814,8 @@ extern "C" int AndroidBitmap_compress(
 ) {
     if (activeCompressorState == nullptr) return ANDROID_BITMAP_RESULT_BAD_PARAMETER;
     FakeJniState &state = *activeCompressorState;
+    // Count entry before fake validation so JNI-side descriptor checks remain observable.
+    ++state.compressorEntryCalls;
     state.compressorDescriptorMatched =
             info != nullptr &&
             info->width == state.expectedWidth &&

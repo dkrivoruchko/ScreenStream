@@ -1,9 +1,13 @@
 package io.screenstream.capture.internal.encoding
 
+import android.graphics.Bitmap
+import io.mockk.every
+import io.mockk.mockkStatic
+import io.mockk.spyk
+import io.mockk.unmockkStatic
 import io.screenstream.capture.JpegBackendPolicy
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.internal.Rgba8888Layout
-import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -23,11 +27,79 @@ import java.util.concurrent.atomic.AtomicReference
 @Config(manifest = Config.NONE, sdk = [36])
 internal class EncodingOwnerAutoLifecycleTest {
     // Verification: ENC-02
+    // Verification: ENC-06
+    // Verification: ENC-09
+    @Test
+    fun sameShapeFallbackKeepsExactNativeCarrierThroughFrameworkCompression() {
+        val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)
+        val bitmap = spyk(Bitmap.createBitmap(layout.widthPx, layout.heightPx, Bitmap.Config.ARGB_8888))
+        try {
+            mockkStatic(Bitmap::class)
+            every { Bitmap.createBitmap(layout.widthPx, layout.heightPx, Bitmap.Config.ARGB_8888) } returns bitmap
+            ControlledNonInlineDispatcher().use { dispatcher ->
+                val nativeJpeg = SafeRejectingNativeJpegFacade()
+                val owner = EncodingOwner(dispatcher, { 0L }, nativeJpeg)
+                var unsettledInput: EncodingInput? = null
+                try {
+                    reconcileReady(owner, dispatcher, layout)
+                    val nativeResult = AtomicReference<EncodingResult?>()
+                    val original = requireInput(owner) { check(nativeResult.compareAndSet(null, it)) }
+                    unsettledInput = original
+                    fillOpaqueRgba(original)
+                    assertSame(EncodingInputSettlement.Accepted, original.encode(80))
+                    unsettledInput = null
+                    enterOne(dispatcher)
+                    assertSame(EncodingResult.ReadinessChanged, nativeResult.get())
+                    nativeJpeg.assertNoFreeEffect()
+                    assertInputFailedInternal(owner.acquireInput { fail("unreconciled fallback produced output") })
+
+                    reconcileReady(owner, dispatcher, layout)
+                    val frameworkResult = AtomicReference<EncodingResult?>()
+                    val framework = requireInput(owner) { check(frameworkResult.compareAndSet(null, it)) }
+                    unsettledInput = framework
+                    assertSame(original.carrier, framework.carrier)
+                    assertSame(original.writableView, framework.writableView)
+                    nativeJpeg.assertAllocatedCarrier(framework.writableView)
+                    nativeJpeg.assertNoFreeEffect()
+                    every { bitmap.compress(Bitmap.CompressFormat.JPEG, any(), any()) } answers {
+                        // Observe the retained backing while the real Framework invocation owns it.
+                        nativeJpeg.assertAllocatedCarrier(original.writableView)
+                        nativeJpeg.assertNoFreeEffect()
+                        nativeJpeg.assertOneCarrierAllocation()
+                        nativeJpeg.assertOneCompressionEffect()
+                        callOriginal()
+                    }
+                    fillOpaqueRgba(framework)
+                    assertSame(EncodingInputSettlement.Accepted, framework.encode(80))
+                    unsettledInput = null
+                    enterOne(dispatcher)
+                    val encoded = frameworkResult.get() as? EncodingResult.Encoded
+                        ?: error("same-shape reconciled frame did not encode through Framework")
+                    assertTrue(encoded.payload.byteCount > 0)
+                    nativeJpeg.assertNoFreeEffect()
+                    nativeJpeg.assertOneCarrierAllocation()
+                    nativeJpeg.assertOneCompressionEffect()
+                    owner.retire()
+                    enterOne(dispatcher)
+                    nativeJpeg.assertEveryCarrierFreedExactlyOnce()
+                } finally {
+                    unsettledInput?.discard()
+                    owner.retire()
+                    drainAcceptedWork(dispatcher)
+                }
+            }
+        } finally {
+            unmockkStatic(Bitmap::class)
+            if (!bitmap.isRecycled) bitmap.recycle()
+        }
+    }
+
+    // Verification: ENC-02
     @Test
     fun autoSafeRejectionRequiresReconciliationBeforeFrameworkFallback() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val nativeJpeg = SafeRejectingNativeJpegFacade()
-            val owner = EncodingOwner(dispatcher, ElapsedRealtimeClock { 0L }, nativeJpeg)
+            val owner = EncodingOwner(dispatcher, { 0L }, nativeJpeg)
             var unsettledInput: EncodingInput? = null
 
             try {
@@ -82,7 +154,7 @@ internal class EncodingOwnerAutoLifecycleTest {
     fun retirementWaitsForNativeCarrierLoanAndFreesItOnce() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val nativeJpeg = SafeRejectingNativeJpegFacade()
-            val owner = EncodingOwner(dispatcher, ElapsedRealtimeClock { 0L }, nativeJpeg)
+            val owner = EncodingOwner(dispatcher, { 0L }, nativeJpeg)
             var unsettledInput: EncodingInput? = null
 
             try {
@@ -166,9 +238,9 @@ internal class EncodingOwnerAutoLifecycleTest {
 
     private class SafeRejectingNativeJpegFacade : NativeJpegFacade {
         private val allocatedCarriers: MutableSet<ByteBuffer> =
-            Collections.newSetFromMap(IdentityHashMap<ByteBuffer, Boolean>())
+            Collections.newSetFromMap(IdentityHashMap())
         private val successfullyFreedCarriers: MutableSet<ByteBuffer> =
-            Collections.newSetFromMap(IdentityHashMap<ByteBuffer, Boolean>())
+            Collections.newSetFromMap(IdentityHashMap())
         private val freeAttempts = ArrayList<ByteBuffer>()
         private var compressionEffectCount: Int = 0
 

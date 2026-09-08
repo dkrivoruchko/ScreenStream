@@ -32,8 +32,14 @@ internal class SessionPlanResolutionGeometryTest {
 
     // Verification: SES-04
     @Test
-    fun api34ProvisionalDimensionsUseFullUntilTheyBecomeAuthoritative() {
-        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.5))
+    fun provisionalResolutionIsNeutralAndIndependentOfTheRequestedGeometry() {
+        val parameters = ScreenCaptureParameters(
+            sourceRegion = SourceRegion.LeftHalf,
+            crop = CropInsetsPx(left = 2, top = 1, right = 1, bottom = 0),
+            rotation = Rotation.Degrees90,
+            mirror = Mirror.Horizontal,
+            outputSize = OutputSize.TargetSize(64, 32, OutputSize.ContentMode.Stretch),
+        )
 
         val provisional = resolvePlan(
             parameters,
@@ -42,7 +48,17 @@ internal class SessionPlanResolutionGeometryTest {
             platformSdkInt = 34,
             sourceDimensionsAreAuthoritative = false,
         )
+        assertTrue(provisional.isProvisional)
         assertTarget(provisional, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
+        assertEquals(0, provisional.capturePlan.appliedSourceRect.leftPx)
+        assertEquals(0, provisional.capturePlan.appliedSourceRect.topPx)
+        assertEquals(10, provisional.capturePlan.appliedSourceRect.rightPx)
+        assertEquals(6, provisional.capturePlan.appliedSourceRect.bottomPx)
+        assertSame(Rotation.Degrees0, provisional.capturePlan.rotation)
+        assertSame(Mirror.None, provisional.capturePlan.mirror)
+        assertEquals(1, provisional.capturePlan.rgbaLayout.widthPx)
+        assertEquals(1, provisional.capturePlan.rgbaLayout.heightPx)
+        assertEquals(4, provisional.capturePlan.rgbaLayout.byteCount)
 
         val authoritative = resolvePlan(
             parameters,
@@ -51,7 +67,48 @@ internal class SessionPlanResolutionGeometryTest {
             platformSdkInt = 34,
             sourceDimensionsAreAuthoritative = true,
         )
-        assertTarget(authoritative, CaptureTargetMode.Downscaled, widthPx = 5, heightPx = 3)
+        assertFalse(authoritative.isProvisional)
+        assertTarget(authoritative, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
+        assertEquals(parameters, authoritative.effectiveParameters.appliedParameters)
+        assertEquals(64, authoritative.capturePlan.rgbaLayout.widthPx)
+        assertEquals(32, authoritative.capturePlan.rgbaLayout.heightPx)
+    }
+
+    // Verification: SES-04
+    // Audit item: P4-T02
+    @Test
+    fun provisionalInvalidRequestIsDeferredUntilAuthoritativeGeometryCanResolveIt() {
+        val parameters = ScreenCaptureParameters(
+            crop = CropInsetsPx(left = 2, top = 0, right = 0, bottom = 0),
+            outputSize = OutputSize.ScaleFactor(1.0),
+        )
+
+        val provisional = SessionPlanResolution.resolve(
+            parameters = parameters,
+            widthPx = 2,
+            heightPx = 2,
+            densityDpi = 320,
+            platformSdkInt = 34,
+            sourceDimensionsAreAuthoritative = false,
+        )
+        val authoritative = SessionPlanResolution.resolve(
+            parameters = parameters,
+            widthPx = 6,
+            heightPx = 4,
+            densityDpi = 320,
+            platformSdkInt = 34,
+            sourceDimensionsAreAuthoritative = true,
+        )
+
+        assertTrue(provisional is SessionPlanResolution.Resolved)
+        assertTrue((provisional as SessionPlanResolution.Resolved).isProvisional)
+        assertTrue(authoritative is SessionPlanResolution.Resolved)
+        authoritative as SessionPlanResolution.Resolved
+        assertFalse(authoritative.isProvisional)
+        assertEquals(2, authoritative.effectiveParameters.appliedSourceRect.leftPx)
+        assertEquals(6, authoritative.effectiveParameters.appliedSourceRect.rightPx)
+        assertEquals(4, authoritative.effectiveParameters.finalImageSize.widthPx)
+        assertEquals(4, authoritative.effectiveParameters.finalImageSize.heightPx)
     }
 
     // Verification: SES-04

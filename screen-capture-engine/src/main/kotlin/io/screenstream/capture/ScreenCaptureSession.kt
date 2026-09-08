@@ -54,12 +54,12 @@ public class ScreenCaptureSession private constructor(private val coordinator: S
         get() = coordinator.diagnosticEvents
 
     /**
-     * Transfers fresh projection authority to this session and starts capture.
+     * Starts capture with the projection authority transferred by [ScreenCaptureEngine.createSession].
      *
      * The host must obtain fresh user consent and satisfy the platform's media-projection foreground-service and
-     * permission requirements before calling this function. In particular, hosts targeting Android 14 or later
-     * require one-time projection consent/authority for each capture session. Only an accepted call transfers
-     * [mediaProjection]; a rejected or pre-acceptance-cancelled call does not touch it.
+     * permission requirements before creating the session. In particular, hosts targeting Android 14 or later
+     * require one-time projection consent/authority for each capture session. A successful factory return transfers
+     * projection ownership; the host must stop every created session, including one that never starts.
      *
      * Hosts targeting Android 9 or later declare `FOREGROUND_SERVICE`. For hosts targeting Android 10 or later,
      * capture and projection acquisition occur while a running foreground service declares the `mediaProjection`
@@ -73,23 +73,28 @@ public class ScreenCaptureSession private constructor(private val coordinator: S
      * elapsed-realtime window sampled before admission; expiration is observed only when current session work can
      * arbitrate it and is not an unconditional publication deadline.
      *
-     * If caller cancellation is observed before admission, the session and projection remain untouched. Cancellation
-     * after acceptance requests owner stop and still propagates to this caller.
+     * If this invocation enters while the session is fresh and observes caller cancellation before admission, it
+     * atomically requests owner stop and propagates cancellation. Cancellation after admission likewise requests
+     * owner stop and propagates to this caller. A cancelled repeated or losing invocation has no authority to stop the
+     * admitted run. If the invocation never enters, the lifecycle owner still must stop the created session.
+     * A clock or deadline arithmetic failure before admission is a genuine startup failure; it does not return
+     * projection ownership, so the lifecycle owner must still stop the session.
      *
-     * @param mediaProjection fresh authority obtained for this capture session.
      * @param initialParameters initial desired parameters. Defaults to [ScreenCaptureParameters] constructor defaults.
-     * @throws kotlinx.coroutines.CancellationException if the caller is cancelled; after acceptance this also requests
-     * session stop.
+     * @throws kotlinx.coroutines.CancellationException if the caller is cancelled, or if a normal stop or Android
+     * projection stop resolves startup before [ScreenCaptureState.Active]. A caller cancellation observed by an
+     * entered fresh or admitted invocation also requests session stop; a terminal operation cancellation can be
+     * caught while the caller's Job remains active.
      * @throws IllegalStateException if this session has already accepted a start, is terminal, or loses a concurrent
      * start race.
-     * @throws ScreenCaptureException if startup terminates before becoming active. Its
+     * @throws ScreenCaptureException if genuine startup failure terminates before becoming active. Its
      * [ScreenCaptureException.problem] is the stable failure meaning; message, cause, and suppressed throwables are
-     * optional best-effort diagnostics.
+     * optional best-effort diagnostics. Normal Requested or ProjectionStopped terminal outcomes remain operation
+     * cancellation.
      */
     public suspend fun start(
-        mediaProjection: MediaProjection,
         initialParameters: ScreenCaptureParameters = ScreenCaptureParameters(),
-    ): Unit = coordinator.start(mediaProjection, initialParameters)
+    ): Unit = coordinator.start(initialParameters)
 
     /**
      * Durably requests the newest parameters for a running session.
@@ -156,18 +161,15 @@ public class FrameConsumerRegistration private constructor(
     private val unregisterAction: suspend () -> Unit,
 ) {
     /**
-     * Closes new delivery for this registration and awaits its outstanding callback handoff unless terminal session
-     * resolution wins.
+     * Closes new delivery for this registration and awaits its exact callback completion.
      *
-     * A successful call is idempotent. Caller cancellation does not reopen delivery or fabricate completion, and a
-     * later call observes the same monotone result. Calling from inside this registration's entered callback is
-     * illegal.
+     * A successful call is idempotent and repeatable. Caller cancellation cancels only that caller's wait; it does
+     * not reopen delivery or cancel the registration's independent completion. Session stop or failure does not
+     * settle this wait exceptionally, and an entered callback must still return. Calling from inside this
+     * registration's entered callback is illegal.
      *
      * @throws IllegalStateException if invoked from this registration's entered callback.
-     * @throws kotlinx.coroutines.CancellationException if the caller is cancelled or terminal stop resolves an
-     * outstanding unregister; terminal-stop cancellation can occur even while the caller's Job remains active.
-     * @throws ScreenCaptureException with the terminal session's authoritative [ScreenCaptureException.problem] if
-     * failure wins before unregister completes.
+     * @throws kotlinx.coroutines.CancellationException if the caller is cancelled.
      */
     public suspend fun unregister(): Unit = unregisterAction()
 

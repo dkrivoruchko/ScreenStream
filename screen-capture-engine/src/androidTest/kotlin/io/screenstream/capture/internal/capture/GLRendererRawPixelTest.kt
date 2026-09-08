@@ -5,6 +5,7 @@ import android.graphics.Paint
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
 import android.view.Surface
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.screenstream.capture.ColorMode
@@ -14,7 +15,6 @@ import io.screenstream.capture.OutputSize
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.SourceRegion
-import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import io.screenstream.capture.internal.session.topology.SessionPlanResolution
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -119,6 +119,66 @@ internal class GLRendererRawPixelTest {
             outputWidthPx = 8,
             outputHeightPx = 8,
         )
+        cases += fullCase(
+            name = "left-half-scale-2-retained-edge",
+            parameters = ScreenCaptureParameters(
+                sourceRegion = SourceRegion.LeftHalf,
+                outputSize = OutputSize.ScaleFactor(2.0),
+            ),
+            outputWidthPx = 4,
+            outputHeightPx = 6,
+            anchors = listOf(
+                PixelAnchor(x = 3, y = 0, red = 179, green = 77, blue = 38),
+                PixelAnchor(x = 1, y = 0, red = 236, green = 19, blue = 10),
+            ),
+        )
+        cases += fullCase(
+            name = "crop-1-0-1-1-scale-2-retained-edges",
+            parameters = ScreenCaptureParameters(
+                crop = REQUIRED_CROP,
+                outputSize = OutputSize.ScaleFactor(2.0),
+            ),
+            outputWidthPx = 6,
+            outputHeightPx = 4,
+            anchors = listOf(
+                PixelAnchor(x = 0, y = 0, red = 179, green = 77, blue = 38),
+                PixelAnchor(x = 5, y = 0, red = 0, green = 255, blue = 255),
+                PixelAnchor(x = 0, y = 3, red = 64, green = 64, blue = 64),
+                PixelAnchor(x = 2, y = 1, red = 62, green = 42, blue = 35),
+            ),
+        )
+        cases += fullCase(
+            name = "crop-scale-2-rotated-mirrored-retained-edges",
+            parameters = ScreenCaptureParameters(
+                crop = REQUIRED_CROP,
+                outputSize = OutputSize.ScaleFactor(2.0),
+                rotation = Rotation.Degrees90,
+                mirror = Mirror.Horizontal,
+            ),
+            outputWidthPx = 4,
+            outputHeightPx = 6,
+            anchors = listOf(
+                PixelAnchor(x = 0, y = 0, red = 179, green = 77, blue = 38),
+                PixelAnchor(x = 0, y = 5, red = 0, green = 255, blue = 255),
+                PixelAnchor(x = 3, y = 0, red = 64, green = 64, blue = 64),
+                PixelAnchor(x = 1, y = 2, red = 62, green = 42, blue = 35),
+            ),
+        )
+        cases += fullCase(
+            name = "single-retained-pixel-scale-2",
+            parameters = ScreenCaptureParameters(
+                crop = CropInsetsPx(left = 2, top = 1, right = 2, bottom = 1),
+                outputSize = OutputSize.ScaleFactor(2.0),
+            ),
+            outputWidthPx = 2,
+            outputHeightPx = 2,
+            anchors = listOf(
+                PixelAnchor(x = 0, y = 0, red = 128, green = 128, blue = 128),
+                PixelAnchor(x = 1, y = 0, red = 128, green = 128, blue = 128),
+                PixelAnchor(x = 0, y = 1, red = 128, green = 128, blue = 128),
+                PixelAnchor(x = 1, y = 1, red = 128, green = 128, blue = 128),
+            ),
+        )
         cases += expandedFullCase(
             name = "full-closure-left-half-subscale",
             parameters = ScreenCaptureParameters(
@@ -158,10 +218,13 @@ internal class GLRendererRawPixelTest {
     // Verification: IMG-01
     @Test
     fun downscaledAndProvisionalFullMatchIndependentCpuOracle() {
-        val parameters = ScreenCaptureParameters(
+        val requestedParameters = ScreenCaptureParameters(
             outputSize = OutputSize.ScaleFactor(0.5),
             rotation = Rotation.Degrees90,
             mirror = Mirror.Horizontal,
+        )
+        val neutralProvisionalParameters = ScreenCaptureParameters(
+            outputSize = OutputSize.TargetSize(1, 1, OutputSize.ContentMode.Stretch),
         )
         verifyCases(
             listOf(
@@ -170,7 +233,7 @@ internal class GLRendererRawPixelTest {
                     sourceDimensionsAreAuthoritative = true,
                     oracleCase = RawPixelOracle.Case(
                         name = "authoritative-downscaled-rotated-mirrored",
-                        parameters = parameters,
+                        parameters = requestedParameters,
                         logicalWidthPx = 10,
                         logicalHeightPx = 6,
                         targetImage = RawPixelOracle.fiveByThreeTarget,
@@ -186,15 +249,17 @@ internal class GLRendererRawPixelTest {
                     sourceDimensionsAreAuthoritative = false,
                     oracleCase = RawPixelOracle.Case(
                         name = "provisional-forced-full-leaf",
-                        parameters = parameters,
+                        // API 34 leaf preparation is independently specified as neutral Full 1x1. Session does not
+                        // admit this provisional renderer output; authority later resolves requested parameters.
+                        parameters = neutralProvisionalParameters,
                         logicalWidthPx = 10,
                         logicalHeightPx = 6,
                         targetImage = RawPixelOracle.expandedTenBySixTarget,
                         expectedTargetMode = RawPixelOracle.TargetMode.Full,
                         expectedTargetWidthPx = 10,
                         expectedTargetHeightPx = 6,
-                        expectedOutputWidthPx = 3,
-                        expectedOutputHeightPx = 5,
+                        expectedOutputWidthPx = 1,
+                        expectedOutputHeightPx = 1,
                     ),
                 ),
             ),
@@ -206,6 +271,7 @@ internal class GLRendererRawPixelTest {
         parameters: ScreenCaptureParameters,
         outputWidthPx: Int,
         outputHeightPx: Int,
+        anchors: List<PixelAnchor> = emptyList(),
     ): RenderCase = RenderCase(
         resolverSdkInt = 32,
         sourceDimensionsAreAuthoritative = true,
@@ -221,6 +287,7 @@ internal class GLRendererRawPixelTest {
             expectedOutputWidthPx = outputWidthPx,
             expectedOutputHeightPx = outputHeightPx,
         ),
+        anchors = anchors,
     )
 
     private fun expandedFullCase(
@@ -264,7 +331,7 @@ internal class GLRendererRawPixelTest {
                 val plan = (resolved as SessionPlanResolution.Resolved).capturePlan
                 assertPlan(oracleCase, expected, plan)
                 val rendered = harness.render(plan, oracleCase.targetImage, oracleCase.name)
-                assertPixels(oracleCase, expected, rendered)
+                assertPixels(renderCase, expected, rendered)
             }
         } catch (failure: Throwable) {
             primaryFailure = failure
@@ -304,10 +371,11 @@ internal class GLRendererRawPixelTest {
     }
 
     private fun assertPixels(
-        oracleCase: RawPixelOracle.Case,
+        renderCase: RenderCase,
         expected: RawPixelOracle.ExpectedImage,
         rendered: RenderedFrame,
     ) {
+        val oracleCase = renderCase.oracleCase
         val tolerance = when (rendered.precision) {
             EglOwner.FragmentPrecision.High -> HIGH_PRECISION_TOLERANCE
             EglOwner.FragmentPrecision.Medium -> MEDIUM_PRECISION_TOLERANCE
@@ -342,6 +410,34 @@ internal class GLRendererRawPixelTest {
                 }
             }
         }
+        for (anchor in renderCase.anchors) {
+            val offset = ((anchor.y * expected.widthPx) + anchor.x) * 4
+            val literalChannels = intArrayOf(anchor.red, anchor.green, anchor.blue)
+            for (channel in 0..2) {
+                assertEquals(
+                    "${oracleCase.name}: literal CPU anchor=(${anchor.x},${anchor.y}), channel=$channel",
+                    literalChannels[channel],
+                    expected.channelAt(anchor.x, anchor.y, channel),
+                )
+                val actual = carrier.get(offset + channel).toInt() and 0xFF
+                val error = abs(actual - literalChannels[channel])
+                assertTrue(
+                    "${oracleCase.name}: literal actual anchor=(${anchor.x},${anchor.y}), channel=$channel, " +
+                            "expected=${literalChannels[channel]}, actual=$actual, tolerance=$tolerance",
+                    error <= tolerance,
+                )
+            }
+            assertEquals(
+                "${oracleCase.name}: literal CPU anchor=(${anchor.x},${anchor.y}), alpha",
+                255,
+                expected.channelAt(anchor.x, anchor.y, 3),
+            )
+            assertEquals(
+                "${oracleCase.name}: literal actual anchor=(${anchor.x},${anchor.y}), alpha",
+                255,
+                carrier.get(offset + 3).toInt() and 0xFF,
+            )
+        }
     }
 
     private class RealRendererHarness : TargetOwner.SourceSink, CaptureCallbackBoundary {
@@ -359,11 +455,13 @@ internal class GLRendererRawPixelTest {
             val resources = runOnCaptureThread("$caseName setup") { openResources(plan) }
             var primaryFailure: Throwable? = null
             try {
+                reportPrecision(caseName, resources.precision, selectedOutcome = "selected/attempted")
                 val carrier = ByteBuffer.allocateDirect(plan.rgbaCarrierByteCount)
                 val ticket = ReadTicket(caseName, resources.renderer, carrier)
                 check(pendingTicket.compareAndSet(null, ticket)) { "$caseName: another frame ticket is pending" }
                 postTargetImage(resources.target.producerSurface, targetImage, ticket)
                 ticket.await()
+                reportPrecision(caseName, resources.precision, selectedOutcome = "exercised")
                 return RenderedFrame(carrier, resources.precision)
             } catch (failure: Throwable) {
                 primaryFailure = failure
@@ -426,7 +524,7 @@ internal class GLRendererRawPixelTest {
                     eglOwner = eglOwner,
                     targetOwner = openedTarget,
                     precision = precision,
-                    clock = ElapsedRealtimeClock { 0L },
+                    clock = { 0L },
                     platformSdkInt = Build.VERSION.SDK_INT,
                 )
                 renderer = openedRenderer
@@ -605,6 +703,31 @@ internal class GLRendererRawPixelTest {
             if (!accepted) command.fail(AssertionError("$name post was rejected"))
             return command.await()
         }
+
+        private fun reportPrecision(
+            caseName: String,
+            precision: EglOwner.FragmentPrecision,
+            selectedOutcome: String,
+        ) {
+            val selectedBranch: String
+            val unselectedBranch: String
+            when (precision) {
+                EglOwner.FragmentPrecision.High -> {
+                    selectedBranch = "highp"
+                    unselectedBranch = "mediump"
+                }
+
+                EglOwner.FragmentPrecision.Medium -> {
+                    selectedBranch = "mediump"
+                    unselectedBranch = "highp"
+                }
+            }
+            Log.i(
+                PRECISION_LOG_TAG,
+                "case=$caseName, naturalFragmentPrecision=$selectedBranch, " +
+                        "$selectedBranch=$selectedOutcome, $unselectedBranch=unexercised",
+            )
+        }
     }
 
     private class ReadTicket(
@@ -695,6 +818,15 @@ internal class GLRendererRawPixelTest {
         val resolverSdkInt: Int,
         val sourceDimensionsAreAuthoritative: Boolean,
         val oracleCase: RawPixelOracle.Case,
+        val anchors: List<PixelAnchor> = emptyList(),
+    )
+
+    private class PixelAnchor(
+        val x: Int,
+        val y: Int,
+        val red: Int,
+        val green: Int,
+        val blue: Int,
     )
 
     private class RotationCase(
@@ -718,6 +850,7 @@ internal class GLRendererRawPixelTest {
     private companion object {
         private const val DENSITY_DPI = 320
         private const val TIMEOUT_MILLIS = 10_000L
+        private const val PRECISION_LOG_TAG = "GLRendererRawPixel"
         private const val HIGH_PRECISION_TOLERANCE = 2
         private const val MEDIUM_PRECISION_TOLERANCE = 6
         private val REQUIRED_CROP = CropInsetsPx(left = 1, top = 0, right = 1, bottom = 1)

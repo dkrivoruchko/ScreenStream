@@ -185,21 +185,8 @@ internal class EglOwnerLifecycleTest {
             val currentFailure = assertThrows(CaptureBoundaryFailure::class.java) { fixture.owner.open() }
             assertSame(case.name, ScreenCaptureProblem.InternalFailure, currentFailure.problem)
             assertTrue(case.name, fixture.gl.calls.isEmpty())
-            val callsBeforeClose = fixture.egl.calls.toList()
+            assertCleanCloseWithoutRetry(fixture)
 
-            val firstClose = fixture.owner.close()
-            val repeatedClose = fixture.owner.close()
-
-            assertNull(case.name, firstClose.cleanupFailure)
-            assertNotNull(case.name, firstClose.residue)
-            assertNull(case.name, firstClose.namespaceDestroyedProof)
-            assertNull(case.name, repeatedClose.cleanupFailure)
-            assertNotNull(case.name, repeatedClose.residue)
-            assertNull(case.name, repeatedClose.namespaceDestroyedProof)
-            assertEquals(case.name, callsBeforeClose, fixture.egl.calls)
-            assertEquals(case.name, 0, fixture.egl.destroyContextCalls.size)
-            assertEquals(case.name, 0, fixture.egl.destroySurfaceCalls.size)
-            assertEquals(case.name, 0, fixture.egl.releaseThreadCount)
         }
     }
 
@@ -409,6 +396,7 @@ internal class EglOwnerLifecycleTest {
             assertSame(case.name, fixture.egl.context, fixture.egl.destroyContextCalls.single().context)
             assertEquals(case.name, 0, fixture.egl.destroySurfaceCalls.size)
             assertEquals(case.name, 0, fixture.egl.releaseThreadCount)
+            assertEquals(case.name, if (case.destroyOutcome == DestroyOutcome.Success) 1 else 0, fixture.egl.releaseDisplayCount)
             assertEquals(case.name, callsAfterFirst, fixture.egl.calls)
             when (val destroy = case.destroyOutcome) {
                 DestroyOutcome.Success -> {
@@ -542,7 +530,9 @@ internal class EglOwnerLifecycleTest {
 
             assertEquals(
                 case.name,
-                listOf("makeCurrent:unbind", "currentContext", "destroyContext", "destroySurface", "releaseThread"),
+                listOf("makeCurrent:unbind", "currentContext", "destroyContext", "destroySurface") +
+                        (if ((case.contextFailure == null) && (case.surfaceFailure == null)) listOf("releaseDisplayInitialization") else emptyList()) +
+                        "releaseThread",
                 suffix,
             )
             assertEquals(case.name, callsAfterFirst, fixture.egl.calls)
@@ -603,6 +593,352 @@ internal class EglOwnerLifecycleTest {
         assertEquals(callsAfterSecond, rawOomeFixture.egl.calls)
     }
 
+    // Verification: CAP-03
+    @Test
+    fun initialBadAllocRequiresIndependentSameThreadUnbindProof() {
+        val good = Fixture().apply { egl.bindResult = false; egl.enqueueError(EGL14.EGL_BAD_ALLOC) }
+        val failure = assertThrows(CaptureBoundaryFailure::class.java) { good.owner.open() }
+        assertSame(ScreenCaptureProblem.ResourceExhausted, failure.problem)
+        val otherThread = AtomicReference<EglOwner.EglRetirementOutcome>()
+        val worker = Thread { otherThread.set(good.owner.close()) }
+        worker.start()
+        worker.join(5_000)
+        assertFalse(worker.isAlive)
+        assertNotNull(otherThread.get().residue)
+        assertEquals(1, good.egl.makeCurrentCalls.size)
+        assertCleanCloseWithoutRetry(good)
+        assertEquals(1, good.egl.releaseDisplayCount)
+
+        listOf("false", "throw", "unproved").forEach { mode ->
+            val fixture = Fixture().apply {
+                egl.bindResult = false
+                egl.enqueueError(EGL14.EGL_BAD_ALLOC)
+            }
+            assertThrows(CaptureBoundaryFailure::class.java) { fixture.owner.open() }
+            when (mode) {
+                "false" -> fixture.egl.unbindResult = false
+                "throw" -> fixture.egl.unbindFailure = IllegalStateException("unbind")
+                else -> fixture.egl.unbindCurrentContextOverride = fixture.egl.context
+            }
+            val first = fixture.owner.close()
+            val calls = fixture.egl.calls.toList()
+            val again = fixture.owner.close()
+            assertNotNull(first.cleanupFailure)
+            assertSame(first.residue, again.residue)
+            assertNull(first.namespaceDestroyedProof)
+            assertEquals(calls, fixture.egl.calls)
+            assertEquals(0, fixture.egl.destroyContextCalls.size)
+            assertEquals(0, fixture.egl.destroySurfaceCalls.size)
+            assertEquals(0, fixture.egl.releaseDisplayCount)
+        }
+    }
+
+    // Verification: CAP-03
+    @Test
+    fun initializationAcquisitionAndReleaseAreMonotone() {
+        listOf(false, true).forEach { throws ->
+            val fixture = Fixture()
+            val failure = IllegalStateException("initialize")
+            fixture.egl.initializeResult = false
+            if (throws) fixture.egl.initializeFailure = failure
+            val opening = captureThrowable { fixture.owner.open() }
+            if (throws) assertSame(failure, opening) else assertTrue(opening is CaptureBoundaryFailure)
+            val first = fixture.owner.close()
+            val calls = fixture.egl.calls.toList()
+            if (throws) assertNotNull(first.residue) else assertNull(first.residue)
+            fixture.owner.close()
+            assertEquals(calls, fixture.egl.calls)
+            assertEquals(0, fixture.egl.releaseDisplayCount)
+        }
+        val noObjects = Fixture().apply { egl.selectedConfigCount = 0 }
+        assertThrows(CaptureBoundaryFailure::class.java) { noObjects.owner.open() }
+        assertNull(noObjects.owner.close().residue)
+        noObjects.owner.close()
+        assertEquals(1, noObjects.egl.releaseDisplayCount)
+        assertEquals(0, noObjects.egl.releaseThreadCount)
+
+        val ordinary = IllegalStateException("display release")
+        val raw = AssertionError("display release")
+        listOf(null, ordinary, raw).forEach { failure ->
+            val fixture = openedFixture()
+            fixture.egl.displayReleaseResult = false
+            fixture.egl.displayReleaseFailure = failure
+            val first = if (failure === raw) {
+                assertSame(raw, captureThrowable { fixture.owner.close() })
+                fixture.owner.close()
+            } else fixture.owner.close()
+            assertNotNull(first.residue)
+            assertTrue(first.namespaceDestroyedProof?.matches(fixture.owner) == true)
+            if (failure === ordinary) assertSame(ordinary, first.cleanupFailure)
+            val calls = fixture.egl.calls.toList()
+            fixture.owner.close()
+            assertEquals(calls, fixture.egl.calls)
+            assertEquals(1, fixture.egl.releaseDisplayCount)
+            assertEquals(1, fixture.egl.releaseThreadCount)
+        }
+        val failedThread = openedFixture()
+        val threadFailure = IllegalStateException("thread release")
+        failedThread.egl.releaseThreadFailure = threadFailure
+        val threadRetirement = failedThread.owner.close()
+        assertSame(threadFailure, threadRetirement.residue)
+        assertEquals(1, failedThread.egl.releaseDisplayCount)
+        failedThread.owner.close()
+        assertEquals(1, failedThread.egl.releaseDisplayCount)
+        assertEquals(1, failedThread.egl.releaseThreadCount)
+
+        val bothFailed = openedFixture()
+        bothFailed.egl.displayReleaseFailure = ordinary
+        bothFailed.egl.releaseThreadFailure = threadFailure
+        val both = bothFailed.owner.close()
+        assertSame(ordinary, both.cleanupFailure)
+        assertSame(ordinary, both.residue)
+        assertEquals(1, bothFailed.egl.releaseThreadCount)
+        assertTrue(both.namespaceDestroyedProof?.matches(bothFailed.owner) == true)
+
+        val denied = openedFixture()
+        val retained = denied.owner.close(allowDisplayRelease = false)
+        assertNotNull(retained.residue)
+        assertTrue(retained.namespaceDestroyedProof?.matches(denied.owner) == true)
+        val calls = denied.egl.calls.toList()
+        assertNotNull(denied.owner.close(allowDisplayRelease = true).residue)
+        assertEquals(calls, denied.egl.calls)
+        assertEquals(0, denied.egl.releaseDisplayCount)
+        assertEquals(1, denied.egl.releaseThreadCount)
+    }
+
+    // Verification: CAP-03
+    @Test
+    fun sharedAndroidDisplaySurvivesOtherOwnersHeldOrUnprovedRetirement() {
+        listOf(false, true).forEach { retainA ->
+            val model = SharedDisplayModel()
+            val a = model.client(holdDestruction = !retainA, denyUnbind = retainA)
+            val b = model.client()
+            val threadA = java.util.concurrent.Executors.newSingleThreadExecutor()
+            val threadB = java.util.concurrent.Executors.newSingleThreadExecutor()
+            try {
+                threadA.submit<EglOwner.FragmentPrecision> { a.owner.open() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+                val closingA = threadA.submit<EglOwner.EglRetirementOutcome> { a.owner.close() }
+                if (!retainA) assertTrue(model.cleanupEntered.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                else assertNotNull(closingA.get(5, java.util.concurrent.TimeUnit.SECONDS).residue)
+                threadB.submit<EglOwner.FragmentPrecision> { b.owner.open() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+                assertEquals(b.textureName, threadB.submit<Int> { b.createTexture() }.get(5, java.util.concurrent.TimeUnit.SECONDS))
+                model.assertLive(a, b)
+                assertTrue(a.thread !== b.thread)
+                model.cleanupMayReturn.countDown()
+                val retiredA = closingA.get(5, java.util.concurrent.TimeUnit.SECONDS)
+                if (retainA) {
+                    assertNotNull(retiredA.residue)
+                    assertNull(retiredA.namespaceDestroyedProof)
+                    model.assertLive(a, b)
+                    assertEquals(0, a.releases)
+                } else {
+                    assertNull(retiredA.residue)
+                    assertTrue(retiredA.namespaceDestroyedProof?.matches(a.owner) == true)
+                    model.assertOnlyLive(b)
+                    assertEquals(1, a.contextDestructions)
+                    assertEquals(1, a.surfaceDestructions)
+                    assertEquals(1, a.releases)
+                    assertEquals(1, a.threadReleases)
+                }
+                val repeatedA = threadA.submit<EglOwner.EglRetirementOutcome> { a.owner.close() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+                if (retainA) assertNotNull(repeatedA.residue) else assertNull(repeatedA.residue)
+                assertEquals(if (retainA) 0 else 1, a.releases)
+                assertEquals(b.textureName, threadB.submit<Int> { b.createTexture() }.get(5, java.util.concurrent.TimeUnit.SECONDS))
+                val retiredB = threadB.submit<EglOwner.EglRetirementOutcome> { b.owner.close() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+                assertNull(retiredB.residue)
+                assertEquals(1, b.contextDestructions)
+                assertEquals(1, b.surfaceDestructions)
+                assertEquals(1, b.releases)
+                assertEquals(1, b.threadReleases)
+                if (retainA) model.assertOnlyLive(a) else model.assertOnlyLive()
+            } finally {
+                model.cleanupMayReturn.countDown()
+                threadA.shutdownNow()
+                threadB.shutdownNow()
+                assertTrue(threadA.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertTrue(threadB.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS))
+            }
+        }
+    }
+
+    // Verification: CAP-03
+    @Test
+    fun sharedDisplayModelRejectsUseAfterAnUnownedFinalTermination() {
+        val model = SharedDisplayModel()
+        val client = model.client()
+        val thread = java.util.concurrent.Executors.newSingleThreadExecutor()
+        try {
+            thread.submit<EglOwner.FragmentPrecision> { client.owner.open() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+            assertEquals(client.textureName, thread.submit<Int> { client.createTexture() }.get(5, java.util.concurrent.TimeUnit.SECONDS))
+            // Negative control: an uncooperative client consumes another owner's reference.
+            model.unownedTermination()
+            val failure = thread.submit<Throwable> { captureThrowable { client.createTexture() } }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+            assertTrue(failure is CaptureBoundaryFailure)
+            assertFalse(client.owner.isHealthy)
+        } finally {
+            thread.shutdownNow()
+            assertTrue(thread.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS))
+        }
+    }
+
+    private class SharedDisplayModel {
+        private val lock = Any()
+        private val display: EGLDisplay = mockk()
+        private val clients = mutableListOf<Client>()
+        private val contexts = mutableSetOf<EGLContext>()
+        private val surfaces = mutableSetOf<EGLSurface>()
+        private val bindings = mutableMapOf<Thread, Pair<EGLContext, EGLSurface>>()
+        private var references = 0
+        val cleanupEntered = java.util.concurrent.CountDownLatch(1)
+        val cleanupMayReturn = java.util.concurrent.CountDownLatch(1)
+
+        fun client(holdDestruction: Boolean = false, denyUnbind: Boolean = false): Client =
+            Client(holdDestruction, denyUnbind, 700 + clients.size).also { clients += it }
+
+        fun assertLive(vararg expected: Client) = synchronized(lock) {
+            assertEquals(expected.size, references)
+            assertEquals(expected.map { it.context }.toSet(), contexts)
+            assertEquals(expected.map { it.surface }.toSet(), surfaces)
+        }
+
+        fun assertOnlyLive(vararg expected: Client) = assertLive(*expected)
+
+        fun unownedTermination() = synchronized(lock) {
+            check(references > 0)
+            references -= 1
+            if (references == 0) {
+                contexts.clear()
+                surfaces.clear()
+            }
+        }
+
+        inner class Client(private val holdDestruction: Boolean, private val denyUnbind: Boolean, val textureName: Int) {
+            val context: EGLContext = mockk()
+            val surface: EGLSurface = mockk()
+            private val config: EGLConfig = mockk()
+            var thread: Thread? = null
+            var releases = 0
+            var contextDestructions = 0
+            var surfaceDestructions = 0
+            var threadReleases = 0
+            private val baseGl = RecordingGlesPlatform(4096, 4096, 4096, intArrayOf(127, 127), 23)
+            private val gl = object : GlesPlatform by baseGl {
+                override fun genTextures(names: IntArray) = synchronized(lock) {
+                    requireLiveBinding()
+                    names[0] = textureName
+                }
+
+                override fun getInteger(name: Int, values: IntArray) = synchronized(lock) {
+                    requireLiveBinding()
+                    baseGl.getInteger(name, values)
+                }
+
+                override fun getShaderPrecisionFormat(range: IntArray, precision: IntArray) = synchronized(lock) {
+                    requireLiveBinding()
+                    baseGl.getShaderPrecisionFormat(range, precision)
+                }
+            }
+            private val platform = object : EglPlatform {
+                override val currentDisplay: EGLDisplay
+                    get() = synchronized(lock) { if (bindings.containsKey(Thread.currentThread())) display else EGL14.EGL_NO_DISPLAY }
+                override val currentContext: EGLContext
+                    get() = synchronized(lock) { bindings[Thread.currentThread()]?.first ?: EGL14.EGL_NO_CONTEXT }
+                override val currentReadSurface: EGLSurface
+                    get() = synchronized(lock) { bindings[Thread.currentThread()]?.second ?: EGL14.EGL_NO_SURFACE }
+                override val currentDrawSurface: EGLSurface get() = currentReadSurface
+                override fun getDisplay(): EGLDisplay = display
+                override fun initialize(display: EGLDisplay, version: IntArray): Boolean = synchronized(lock) {
+                    assertSame(this@SharedDisplayModel.display, display)
+                    references += 1
+                    thread = Thread.currentThread()
+                    true
+                }
+
+                override fun chooseConfig(display: EGLDisplay, attributes: IntArray, configs: Array<EGLConfig?>, count: IntArray): Boolean {
+                    configs[0] = config
+                    count[0] = 1
+                    return true
+                }
+
+                override fun createContext(display: EGLDisplay, config: EGLConfig, attributes: IntArray): EGLContext = synchronized(lock) {
+                    check(references > 0)
+                    check(contexts.add(context))
+                    context
+                }
+
+                override fun createPbufferSurface(display: EGLDisplay, config: EGLConfig, attributes: IntArray): EGLSurface = synchronized(lock) {
+                    check(references > 0)
+                    check(surfaces.add(surface))
+                    surface
+                }
+
+                override fun makeCurrent(display: EGLDisplay, surface: EGLSurface, context: EGLContext): Boolean = synchronized(lock) {
+                    assertSame(thread, Thread.currentThread())
+                    if (context === EGL14.EGL_NO_CONTEXT) {
+                        if (denyUnbind) return@synchronized false
+                        bindings.remove(Thread.currentThread())
+                    } else {
+                        check(references > 0 && context in contexts && surface in surfaces)
+                        bindings[Thread.currentThread()] = context to surface
+                    }
+                    true
+                }
+
+                override fun destroyContext(display: EGLDisplay, context: EGLContext): Boolean {
+                    // Never hold the model monitor across the test gate: B must execute while A is held.
+                    if (holdDestruction) {
+                        cleanupEntered.countDown()
+                        if (!cleanupMayReturn.await(5, java.util.concurrent.TimeUnit.SECONDS)) throw AssertionError("A cleanup was not released")
+                    }
+                    return synchronized(lock) {
+                        assertSame(this@Client.context, context)
+                        check(bindings.values.none { it.first === context })
+                        check(contexts.remove(context))
+                        contextDestructions += 1
+                        true
+                    }
+                }
+
+                override fun destroySurface(display: EGLDisplay, surface: EGLSurface): Boolean = synchronized(lock) {
+                    assertSame(this@Client.surface, surface)
+                    check(bindings.values.none { it.second === surface })
+                    check(surfaces.remove(surface))
+                    surfaceDestructions += 1
+                    true
+                }
+
+                override fun releaseDisplayInitialization(display: EGLDisplay): Boolean = synchronized(lock) {
+                    assertSame(this@SharedDisplayModel.display, display)
+                    check(context !in contexts && surface !in surfaces)
+                    check(releases++ == 0)
+                    unownedTermination()
+                    true
+                }
+
+                override fun releaseThread(): Boolean = synchronized(lock) {
+                    assertSame(thread, Thread.currentThread())
+                    check(!bindings.containsKey(Thread.currentThread()))
+                    check(threadReleases++ == 0)
+                    true
+                }
+
+                override fun getError(): Int = EGL14.EGL_BAD_ACCESS
+            }
+            val owner = EglOwner(platform, gl)
+
+            fun createTexture(): Int {
+                val names = IntArray(1)
+                owner.runGlesGroup { api -> api.genTextures(names); names[0] != 0 }
+                return names[0]
+            }
+
+            private fun requireLiveBinding() {
+                check(references > 0 && context in contexts && surface in surfaces)
+                check(bindings[Thread.currentThread()] == context to surface)
+            }
+        }
+    }
+
     private fun assertCleanCloseWithoutRetry(fixture: Fixture) {
         val callsBeforeClose = fixture.egl.calls.size
         val first = fixture.owner.close()
@@ -614,7 +950,7 @@ internal class EglOwnerLifecycleTest {
         assertTrue(first.namespaceDestroyedProof?.matches(fixture.owner) == true)
         assertExactUnbindCall(fixture)
         assertEquals(
-            listOf("makeCurrent:unbind", "currentContext", "destroyContext", "destroySurface", "releaseThread"),
+            listOf("makeCurrent:unbind", "currentContext", "destroyContext", "destroySurface", "releaseDisplayInitialization", "releaseThread"),
             fixture.egl.calls.drop(callsBeforeClose),
         )
         assertNull(repeated.cleanupFailure)
@@ -707,7 +1043,7 @@ internal class EglOwnerLifecycleTest {
         val owner = EglOwner(egl, gl)
     }
 
-    private data class PrecisionCase(
+    private class PrecisionCase(
         val range: IntArray,
         val precision: Int,
         val expected: EglOwner.FragmentPrecision,
@@ -768,6 +1104,11 @@ internal class EglOwnerLifecycleTest {
         val createContextCalls = mutableListOf<ContextCall>()
         val destroyContextCalls = mutableListOf<ContextCall>()
         val destroySurfaceCalls = mutableListOf<SurfaceCall>()
+        var releaseDisplayCount = 0
+        var initializeResult = true
+        var initializeFailure: Throwable? = null
+        var displayReleaseResult = true
+        var displayReleaseFailure: Throwable? = null
         var releaseThreadCount = 0
         var selectedConfig: EGLConfig? = config
         var selectedConfigCount = 1
@@ -832,9 +1173,10 @@ internal class EglOwnerLifecycleTest {
         override fun initialize(display: EGLDisplay, version: IntArray): Boolean {
             calls += "initialize"
             assertSame(this.ownedDisplay, display)
+            initializeFailure?.let { throw it }
             version[0] = 1
             version[1] = 5
-            return true
+            return initializeResult
         }
 
         override fun chooseConfig(
@@ -906,6 +1248,14 @@ internal class EglOwnerLifecycleTest {
             destroySurfaceCalls += SurfaceCall(display, surface)
             destroySurfaceFailure?.let { throw it }
             return destroySurfaceResult
+        }
+
+        override fun releaseDisplayInitialization(display: EGLDisplay): Boolean {
+            calls += "releaseDisplayInitialization"
+            assertSame(ownedDisplay, display)
+            releaseDisplayCount += 1
+            displayReleaseFailure?.let { throw it }
+            return displayReleaseResult
         }
 
         override fun releaseThread(): Boolean {

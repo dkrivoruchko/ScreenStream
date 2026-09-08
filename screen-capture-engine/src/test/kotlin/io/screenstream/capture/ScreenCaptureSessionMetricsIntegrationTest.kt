@@ -7,7 +7,6 @@ import android.os.Looper
 import io.mockk.every
 import io.mockk.mockk
 import io.screenstream.capture.internal.metrics.SessionMetricsSourceSelection
-import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import io.screenstream.capture.internal.runtime.HandlerTaskPoster
 import io.screenstream.capture.internal.runtime.HandlerThreadPlatform
 import io.screenstream.capture.internal.session.SessionCoordinator
@@ -15,16 +14,22 @@ import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
 import io.screenstream.capture.testutil.ManualDelayedEntryScheduler
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -49,7 +54,7 @@ internal class ScreenCaptureSessionMetricsIntegrationTest {
         CoordinatorMetricsHarness(source, platform, Build.VERSION_CODES.N).use { harness ->
             val start = async(UnconfinedTestDispatcher(testScheduler)) {
                 try {
-                    harness.session.start(platform.projection, parameters)
+                    harness.session.start(parameters)
                     null
                 } catch (failure: ScreenCaptureException) {
                     failure
@@ -76,62 +81,97 @@ internal class ScreenCaptureSessionMetricsIntegrationTest {
     // Verification: SES-03
     @Test
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun preActiveCompletionRequiresSettledCloseAndUsesCurrentAvailability() = runTest {
-        // Cell B: completion without Metrics fails startup only after the exact handle closes.
+    fun preActiveCompletionSettlesFromFrozenAvailabilityBeforeExactHandleCloseReturns() = runTest {
+        // Cell B: the real handle close remains entered while completed-unavailable settles startup failure.
         run {
-            val source = ControllableMetricsSource()
+            val closeEntered = CountDownLatch(1)
+            val allowCloseReturn = CountDownLatch(1)
+            val source = ControllableMetricsSource {
+                closeEntered.countDown()
+                allowCloseReturn.await()
+            }
             val platform = HappyCapturePlatform()
             val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+            var closeTask: ControlledNonInlineDispatcher.TaskHandle? = null
 
             CoordinatorMetricsHarness(source, platform, Build.VERSION_CODES.N).use { harness ->
-                val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                    try {
-                        harness.session.start(platform.projection, parameters)
-                        null
-                    } catch (failure: ScreenCaptureException) {
-                        failure
+                try {
+                    val start = async(UnconfinedTestDispatcher(testScheduler)) {
+                        try {
+                            harness.session.start(parameters)
+                            null
+                        } catch (failure: ScreenCaptureException) {
+                            failure
+                        }
                     }
+                    harness.driveUntil(source::isSubscribed)
+
+                    source.complete()
+                    harness.settleNextMetricsChange()
+                    closeTask = harness.enterNextWorker()
+                    assertTrue(closeEntered.await(5L, TimeUnit.SECONDS))
+                    harness.driveUntil { harness.session.state.value is ScreenCaptureState.Failed }
+
+                    val failed = harness.session.state.value as ScreenCaptureState.Failed
+                    val startFailure = checkNotNull(start.await())
+                    assertSame(ScreenCaptureProblem.CaptureUnavailable, failed.problem)
+                    assertEquals(parameters, failed.requestedParameters)
+                    assertNull(failed.lastEffectiveParameters)
+                    assertSame(ScreenCaptureProblem.CaptureUnavailable, startFailure.problem)
+                    assertEquals(1, source.handleCloseCount())
+                    assertFalse(closeTask.completed)
+                } finally {
+                    allowCloseReturn.countDown()
+                    closeTask?.awaitSuccessfulCompletion()
                 }
-                harness.driveUntil(source::isSubscribed)
-
-                source.complete()
-                harness.driveUntil { harness.session.state.value is ScreenCaptureState.Failed }
-
-                val failed = harness.session.state.value as ScreenCaptureState.Failed
-                val startFailure = checkNotNull(start.await())
-                assertSame(ScreenCaptureProblem.CaptureUnavailable, failed.problem)
-                assertEquals(parameters, failed.requestedParameters)
-                assertNull(failed.lastEffectiveParameters)
-                assertSame(ScreenCaptureProblem.CaptureUnavailable, startFailure.problem)
-                assertEquals(1, source.handleCloseCount())
             }
+            assertEquals(1, source.handleCloseCount())
         }
 
-        // Cell C: completion with positive Metrics can satisfy first-Active readiness after close settlement.
+        // Cell C: frozen positive Metrics reaches exact Active geometry and a successful start while close is held.
         run {
-            val source = ControllableMetricsSource()
+            val closeEntered = CountDownLatch(1)
+            val allowCloseReturn = CountDownLatch(1)
+            val source = ControllableMetricsSource {
+                closeEntered.countDown()
+                allowCloseReturn.await()
+            }
             val platform = HappyCapturePlatform()
             val metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320)
             val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+            var closeTask: ControlledNonInlineDispatcher.TaskHandle? = null
 
             CoordinatorMetricsHarness(source, platform, Build.VERSION_CODES.N).use { harness ->
-                val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                    harness.session.start(platform.projection, parameters)
-                    harness.session.state.value
+                try {
+                    val startReturned = AtomicBoolean()
+                    val start = async(UnconfinedTestDispatcher(testScheduler)) {
+                        harness.session.start(parameters)
+                        startReturned.set(true)
+                        harness.session.state.value
+                    }
+                    harness.driveUntil(source::isSubscribed)
+
+                    source.emit(metrics)
+                    source.complete()
+                    harness.settleNextMetricsChange()
+                    closeTask = harness.enterNextWorker()
+                    assertTrue(closeEntered.await(5L, TimeUnit.SECONDS))
+                    harness.driveUntil { startReturned.get() }
+
+                    val active = start.await() as ScreenCaptureState.Active
+                    assertSame(active, harness.session.state.value)
+                    assertEquals(parameters, active.requestedParameters)
+                    assertEquals(metrics.widthPx, active.effectiveParameters.captureGeometry.widthPx)
+                    assertEquals(metrics.heightPx, active.effectiveParameters.captureGeometry.heightPx)
+                    assertEquals(metrics.densityDpi, active.effectiveParameters.captureGeometry.densityDpi)
+                    assertEquals(1, source.handleCloseCount())
+                    assertFalse(closeTask.completed)
+                } finally {
+                    allowCloseReturn.countDown()
+                    closeTask?.awaitSuccessfulCompletion()
                 }
-                harness.driveUntil(source::isSubscribed)
-
-                source.emit(metrics)
-                source.complete()
-                harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
-
-                val active = start.await() as ScreenCaptureState.Active
-                assertEquals(parameters, active.requestedParameters)
-                assertEquals(metrics.widthPx, active.effectiveParameters.captureGeometry.widthPx)
-                assertEquals(metrics.heightPx, active.effectiveParameters.captureGeometry.heightPx)
-                assertEquals(metrics.densityDpi, active.effectiveParameters.captureGeometry.densityDpi)
-                assertEquals(1, source.handleCloseCount())
             }
+            assertEquals(1, source.handleCloseCount())
         }
     }
 
@@ -149,7 +189,7 @@ internal class ScreenCaptureSessionMetricsIntegrationTest {
 
             CoordinatorMetricsHarness(source, platform, Build.VERSION_CODES.N).use { harness ->
                 val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                    harness.session.start(platform.projection, parameters)
+                    harness.session.start(parameters)
                     harness.session.state.value
                 }
                 harness.driveUntil(source::isSubscribed)
@@ -175,7 +215,7 @@ internal class ScreenCaptureSessionMetricsIntegrationTest {
 
             CoordinatorMetricsHarness(source, platform, Build.VERSION_CODES.N).use { harness ->
                 val start = async(UnconfinedTestDispatcher(testScheduler)) {
-                    harness.session.start(platform.projection, parameters)
+                    harness.session.start(parameters)
                     harness.session.state.value
                 }
                 harness.driveUntil(source::isSubscribed)
@@ -197,15 +237,107 @@ internal class ScreenCaptureSessionMetricsIntegrationTest {
             }
         }
     }
+
+    // Verification: MET-03
+    // Verification: SES-02
+    @Test
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun ordinaryCompletionCloseFailureAfterActiveFailsTheStillOpenSession() = runTest {
+        val closeFailure = IllegalStateException("expected Metrics close failure")
+        val source = ControllableMetricsSource { throw closeFailure }
+        val platform = HappyCapturePlatform()
+        val metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320)
+        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+
+        CoordinatorMetricsHarness(source, platform, Build.VERSION_CODES.N).use { harness ->
+            val start = async(UnconfinedTestDispatcher(testScheduler)) {
+                harness.session.start(parameters)
+                harness.session.state.value
+            }
+            harness.driveUntil(source::isSubscribed)
+            source.emit(metrics)
+            harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
+            val active = start.await() as ScreenCaptureState.Active
+
+            source.complete()
+            harness.driveUntil { harness.session.state.value is ScreenCaptureState.Failed }
+
+            val failed = harness.session.state.value as ScreenCaptureState.Failed
+            assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
+            assertEquals(active.effectiveParameters, failed.lastEffectiveParameters)
+            assertEquals(1, source.handleCloseCount())
+        }
+    }
+
+    // Verification: MET-03
+    // Verification: SES-03
+    @Test
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun reentrantActiveInvalidationCannotSettleStaleStartAndCurrentRecoverySucceeds() = runTest {
+        val source = ControllableMetricsSource()
+        val platform = HappyCapturePlatform()
+        val initialMetrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320)
+        val recoveredMetrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320)
+        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+
+        CoordinatorMetricsHarness(source, platform, Build.VERSION_CODES.N).use { harness ->
+            val invalidated = AtomicBoolean()
+            val startReturned = AtomicBoolean()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                harness.session.state.collect { state ->
+                    if (state is ScreenCaptureState.Active && invalidated.compareAndSet(false, true)) {
+                        // Make a real source opportunity available before the reentrant Metrics invalidation.
+                        // The stale Active settlement must keep Capture production closed despite that opportunity.
+                        platform.deliverSourceFrame(rgbaSeed = 41)
+                        source.emit(null)
+                    }
+                }
+            }
+            val start = async(UnconfinedTestDispatcher(testScheduler)) {
+                harness.session.start(parameters)
+                startReturned.set(true)
+                harness.session.state.value
+            }
+            harness.driveUntil(source::isSubscribed)
+
+            source.emit(initialMetrics)
+            harness.driveUntil { harness.session.state.value is ScreenCaptureState.Suspended }
+            harness.drainAcceptedWork()
+
+            val suspended = harness.session.state.value as ScreenCaptureState.Suspended
+            assertTrue(invalidated.get())
+            assertFalse(startReturned.get())
+            assertSame(ScreenCaptureProblem.CaptureUnavailable, suspended.problem)
+            assertEquals(0, platform.sourceUpdateCount())
+
+            source.emit(recoveredMetrics)
+            harness.driveUntil { startReturned.get() }
+
+            val active = start.await() as ScreenCaptureState.Active
+            assertSame(active, harness.session.state.value)
+            assertEquals(recoveredMetrics.widthPx, active.effectiveParameters.captureGeometry.widthPx)
+            assertEquals(recoveredMetrics.heightPx, active.effectiveParameters.captureGeometry.heightPx)
+            assertEquals(recoveredMetrics.densityDpi, active.effectiveParameters.captureGeometry.densityDpi)
+
+            platform.deliverSourceFrame(rgbaSeed = 83)
+            harness.driveUntil { platform.sourceUpdateCount() > 0 }
+            assertEquals(1, platform.sourceUpdateCount())
+        }
+    }
 }
 
-internal class ControllableMetricsSource : CaptureMetricsSource {
+internal class ControllableMetricsSource(
+    private val closeAction: () -> Unit = { },
+) : CaptureMetricsSource {
     private val observer = AtomicReference<CaptureMetricsSource.Observer?>()
     private val handleCloses = AtomicInteger()
 
     override fun subscribe(observer: CaptureMetricsSource.Observer): AutoCloseable {
         check(this.observer.compareAndSet(null, observer)) { "Metrics source subscribed more than once" }
-        return AutoCloseable { handleCloses.incrementAndGet() }
+        return AutoCloseable {
+            handleCloses.incrementAndGet()
+            closeAction()
+        }
     }
 
     internal fun isSubscribed(): Boolean = observer.get() != null
@@ -231,26 +363,30 @@ internal class CoordinatorMetricsHarness(
     platformSdkInt: Int,
 ) : AutoCloseable {
     private val handlerEnvironment = ManualHandlerEnvironment()
-    private val workerDispatcher = ControlledNonInlineDispatcher()
+    private val workerDispatcher = ControlledNonInlineDispatcher(workerThreadCount = 2)
     private val delayedEntryScheduler = ManualDelayedEntryScheduler()
 
-    internal val session: ScreenCaptureSession = ScreenCaptureSession.create(
-        SessionCoordinator(
-            metricsSourceSelection = SessionMetricsSourceSelection.Explicit(source),
-            jpegBackendPolicy = JpegBackendPolicy.FrameworkOnly,
-            workerDispatcher = workerDispatcher,
-            handlerThreadPlatform = handlerEnvironment,
-            handlerTaskPoster = handlerEnvironment,
-            delayedEntryScheduler = delayedEntryScheduler,
-            executionClock = ElapsedRealtimeClock { 0L },
-            currentEpochMillis = { 0L },
-            platformSdkInt = platformSdkInt,
-            projectionPlatform = platform.projectionPlatform,
-            eglPlatform = platform.eglPlatform,
-            glesPlatform = platform.glesPlatform,
-            targetPlatform = platform.targetPlatform,
-        ),
+    private val coordinator = SessionCoordinator(
+        metricsSourceSelection = SessionMetricsSourceSelection.Explicit(source),
+        jpegBackendPolicy = JpegBackendPolicy.FrameworkOnly,
+        workerDispatcher = workerDispatcher,
+        handlerThreadPlatform = handlerEnvironment,
+        handlerTaskPoster = handlerEnvironment,
+        delayedEntryScheduler = delayedEntryScheduler,
+        executionClock = { 0L },
+        currentEpochMillis = { 0L },
+        platformSdkInt = platformSdkInt,
+        projectionPlatform = platform.projectionPlatform,
+        eglPlatform = platform.eglPlatform,
+        glesPlatform = platform.glesPlatform,
+        targetPlatform = platform.targetPlatform,
     )
+
+    internal val session: ScreenCaptureSession = ScreenCaptureSession.create(coordinator)
+
+    init {
+        coordinator.adoptProjection(platform.projection)
+    }
 
     internal fun driveUntil(condition: () -> Boolean) {
         repeat(DRIVE_LIMIT) {
@@ -271,6 +407,9 @@ internal class CoordinatorMetricsHarness(
         check(enterNextWorkerSuccessfully()) { "Metrics callback did not schedule its owner turn" }
         check(handlerEnvironment.enterNextControl()) { "Metrics owner did not request its Control turn" }
     }
+
+    internal fun enterNextWorker(): ControlledNonInlineDispatcher.TaskHandle =
+        workerDispatcher.enterNext() ?: error("Controlled Coordinator worker task was not retained")
 
     internal fun drainAcceptedWork() {
         repeat(DRIVE_LIMIT) {

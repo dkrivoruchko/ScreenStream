@@ -103,7 +103,7 @@ internal class SessionMetricsOwnerLifecycleTest {
             assertSame(latest, snapshot.metrics)
             assertEquals(MetricsAttachmentLifecycle.Live, snapshot.lifecycle)
             assertTrue(snapshot.handleAdopted)
-            assertTrue(snapshot.isReady(requireCompletionCloseSettlement = true))
+            assertTrue(snapshot.isReady())
             assertEquals(1, dispatcher.pendingCount())
             assertEquals(2, dispatcher.submissions().size)
 
@@ -149,7 +149,7 @@ internal class SessionMetricsOwnerLifecycleTest {
             assertEquals(metrics, duplicateAvailable.metrics)
             assertEquals(MetricsAttachmentLifecycle.Live, duplicateAvailable.lifecycle)
             assertTrue(duplicateAvailable.handleAdopted)
-            assertTrue(duplicateAvailable.isReady(requireCompletionCloseSettlement = true))
+            assertTrue(duplicateAvailable.isReady())
             assertNull(duplicateAvailable.failure)
 
             observer.onMetricsChanged(null)
@@ -157,14 +157,14 @@ internal class SessionMetricsOwnerLifecycleTest {
             val unavailable = owner.readSnapshot()
             assertNotSame(available, unavailable)
             assertNull(unavailable.metrics)
-            assertFalse(unavailable.isReady(requireCompletionCloseSettlement = false))
+            assertFalse(unavailable.isReady())
 
             observer.onMetricsChanged(null)
             val duplicateUnavailable = owner.readSnapshot()
             assertNull(duplicateUnavailable.metrics)
             assertEquals(MetricsAttachmentLifecycle.Live, duplicateUnavailable.lifecycle)
             assertTrue(duplicateUnavailable.handleAdopted)
-            assertFalse(duplicateUnavailable.isReady(requireCompletionCloseSettlement = false))
+            assertFalse(duplicateUnavailable.isReady())
             assertNull(duplicateUnavailable.failure)
 
             val recoveredMetrics = CaptureMetrics(40, 50, 60)
@@ -173,7 +173,7 @@ internal class SessionMetricsOwnerLifecycleTest {
             val recovered = owner.readSnapshot()
             assertNotSame(unavailable, recovered)
             assertSame(recoveredMetrics, recovered.metrics)
-            assertTrue(recovered.isReady(requireCompletionCloseSettlement = true))
+            assertTrue(recovered.isReady())
 
             observer.onComplete()
             val completing = owner.readSnapshot()
@@ -246,8 +246,7 @@ internal class SessionMetricsOwnerLifecycleTest {
                 assertSame(metrics, whileCloseEntered.metrics)
                 assertEquals(MetricsAttachmentLifecycle.Completed, whileCloseEntered.lifecycle)
                 assertFalse(whileCloseEntered.completionCloseSettled)
-                assertFalse(whileCloseEntered.isReady(requireCompletionCloseSettlement = true))
-                assertTrue(whileCloseEntered.isReady(requireCompletionCloseSettlement = false))
+                assertTrue(whileCloseEntered.isReady())
 
                 observer.onMetricsChanged(null)
                 observer.onFailure(IllegalStateException("late failure"))
@@ -264,7 +263,7 @@ internal class SessionMetricsOwnerLifecycleTest {
                 assertSame(metrics, settled.metrics)
                 assertEquals(MetricsAttachmentLifecycle.Completed, settled.lifecycle)
                 assertTrue(settled.completionCloseSettled)
-                assertTrue(settled.isReady(requireCompletionCloseSettlement = true))
+                assertTrue(settled.isReady())
                 assertNull(settled.failure)
 
                 owner.retire()
@@ -304,15 +303,14 @@ internal class SessionMetricsOwnerLifecycleTest {
             assertEquals(MetricsAttachmentLifecycle.Completed, beforeClose.lifecycle)
             assertTrue(beforeClose.handleAdopted)
             assertFalse(beforeClose.completionCloseSettled)
-            assertFalse(beforeClose.isReady(requireCompletionCloseSettlement = true))
-            assertTrue(beforeClose.isReady(requireCompletionCloseSettlement = false))
+            assertTrue(beforeClose.isReady())
 
             drain(dispatcher)
 
             val afterClose = owner.readSnapshot()
             assertEquals(MetricsAttachmentLifecycle.Completed, afterClose.lifecycle)
             assertTrue(afterClose.completionCloseSettled)
-            assertTrue(afterClose.isReady(requireCompletionCloseSettlement = true))
+            assertTrue(afterClose.isReady())
             assertEquals(1, subscribeCalls.get())
             assertEquals(1, handle.closeCount.get())
             assertEquals(listOf(0, 1), controlCloseCounts)
@@ -362,7 +360,7 @@ internal class SessionMetricsOwnerLifecycleTest {
             assertNotSame(snapshot, retiredSnapshot)
             assertEquals(MetricsAttachmentLifecycle.Retired, retiredSnapshot.lifecycle)
             assertNull(retiredSnapshot.failure)
-            assertFalse(retiredSnapshot.isReady(requireCompletionCloseSettlement = false))
+            assertFalse(retiredSnapshot.isReady())
             assertEquals(1, handle.closeCount.get())
             assertEquals(controlRequestsBeforeRetirement, controlRequests.get())
         }
@@ -604,6 +602,55 @@ internal class SessionMetricsOwnerLifecycleTest {
 
     // Verification: MET-01
     @Test
+    fun positiveBeforeHandleReturnRemainsUnreadyUntilExactNormalAdoption() {
+        val dispatcher = ControlledNonInlineDispatcher()
+        val subscribeEntered = CountDownLatch(1)
+        val allowReturn = CountDownLatch(1)
+        val handle = RecordingHandle()
+        dispatcher.use {
+            try {
+                val metrics = CaptureMetrics(12, 34, 56)
+                val source = CaptureMetricsSource { observer ->
+                    observer.onMetricsChanged(metrics)
+                    subscribeEntered.countDown()
+                    allowReturn.await()
+                    handle
+                }
+                val owner = SessionMetricsOwner(dispatcher, explicit(source), requestControlTurn = { })
+
+                owner.attach()
+                val attachment = dispatcher.enterNext() ?: error("attachment task was not retained")
+                assertTrue(subscribeEntered.await(5L, TimeUnit.SECONDS))
+
+                val beforeReturn = owner.readSnapshot()
+                assertSame(metrics, beforeReturn.metrics)
+                assertEquals(MetricsAttachmentLifecycle.Attaching, beforeReturn.lifecycle)
+                assertFalse(beforeReturn.handleAdopted)
+                assertFalse(beforeReturn.isReady())
+                assertEquals(0, handle.closeCount.get())
+
+                allowReturn.countDown()
+                attachment.awaitSuccessfulCompletion()
+                drain(dispatcher)
+
+                val adopted = owner.readSnapshot()
+                assertSame(metrics, adopted.metrics)
+                assertEquals(MetricsAttachmentLifecycle.Live, adopted.lifecycle)
+                assertTrue(adopted.handleAdopted)
+                assertTrue(adopted.isReady())
+
+                owner.retire()
+                drain(dispatcher)
+                assertEquals(MetricsAttachmentLifecycle.Retired, owner.readSnapshot().lifecycle)
+                assertEquals(1, handle.closeCount.get())
+            } finally {
+                allowReturn.countDown()
+            }
+        }
+    }
+
+    // Verification: MET-01
+    @Test
     fun retirementClosesLateHandleWithoutWake() {
         val dispatcher = ControlledNonInlineDispatcher()
         val subscribeEntered = CountDownLatch(1)
@@ -632,7 +679,7 @@ internal class SessionMetricsOwnerLifecycleTest {
                 val snapshot = owner.readSnapshot()
                 assertEquals(MetricsAttachmentLifecycle.Retired, snapshot.lifecycle)
                 assertTrue(snapshot.handleAdopted)
-                assertFalse(snapshot.isReady(requireCompletionCloseSettlement = false))
+                assertFalse(snapshot.isReady())
                 assertEquals(1, handle.closeCount.get())
                 assertEquals(0, controlRequests.get())
             } finally {

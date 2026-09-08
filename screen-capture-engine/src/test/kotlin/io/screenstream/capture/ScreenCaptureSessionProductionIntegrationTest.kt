@@ -22,6 +22,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.seconds
 
 /*
@@ -50,6 +54,7 @@ internal class ScreenCaptureSessionProductionIntegrationTest {
             delayedControlOutcome = SessionStartHarness.DelayedControlOutcome.Accept,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
@@ -58,7 +63,7 @@ internal class ScreenCaptureSessionProductionIntegrationTest {
             nativeJpeg = nativeJpeg,
         ).use { harness ->
             try {
-                startActiveSession(harness, platform, parameters)
+                startActiveSession(harness, parameters)
                 val active = harness.session.state.value as ScreenCaptureState.Active
                 val delivered = CopyOnWriteArrayList<FrameSnapshot>()
                 val registration = harness.session.registerFrameConsumer { frame -> delivered += copyFrame(frame) }
@@ -115,6 +120,7 @@ internal class ScreenCaptureSessionProductionIntegrationTest {
             delayedControlOutcome = SessionStartHarness.DelayedControlOutcome.Accept,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
@@ -123,7 +129,7 @@ internal class ScreenCaptureSessionProductionIntegrationTest {
             nativeJpeg = nativeJpeg,
         ).use { harness ->
             try {
-                startActiveSession(harness, platform, parameters)
+                startActiveSession(harness, parameters)
                 val active = harness.session.state.value as ScreenCaptureState.Active
                 val delivered = CopyOnWriteArrayList<FrameSnapshot>()
                 val registration = harness.session.registerFrameConsumer { frame -> delivered += copyFrame(frame) }
@@ -163,6 +169,195 @@ internal class ScreenCaptureSessionProductionIntegrationTest {
     }
 
     // Verification: SES-05
+    // Verification: SES-06
+    @Test
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun consumerlessRepeatRearmsAcrossTwoQuietDeadlinesBeforeLateCachedDelivery() = runTest {
+        val platform = HappyCapturePlatform()
+        val nativeJpeg = SafeRejectingNativeJpegFacade(successfulCompressionCountBeforeRejection = 1)
+        val parameters = ScreenCaptureParameters(
+            outputSize = OutputSize.ScaleFactor(1.0),
+            frameRepeatInterval = 1.seconds,
+        )
+        SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            delayedControlOutcome = SessionStartHarness.DelayedControlOutcome.Accept,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+            jpegBackendPolicy = JpegBackendPolicy.Auto,
+            nativeJpeg = nativeJpeg,
+        ).use { harness ->
+            try {
+                startActiveSession(harness, parameters)
+                val active = harness.session.state.value as ScreenCaptureState.Active
+
+                harness.clock.setDefaultNanos(1_000_000_000L)
+                platform.deliverSourceFrame(rgbaSeed = 37)
+                harness.driveUntil { harness.session.stats.value.producedFrameCount == 1L }
+                drainAcceptedSessionWork(harness)
+
+                val statsAfterFresh = harness.session.stats.value
+                val readsAfterFresh = platform.sourceUpdateCount()
+                val compressionsAfterFresh = nativeJpeg.carrierSnapshot().compressionCount
+                assertEquals(1L, statsAfterFresh.encodedFrameCount)
+                assertEquals(1L, statsAfterFresh.producedFrameCount)
+                assertEquals(0L, statsAfterFresh.droppedFrames.total)
+                assertEquals(0L, statsAfterFresh.droppedDeliveries.total)
+
+                harness.clock.setDefaultNanos(2_000_000_000L)
+                check(harness.enterNextDelayedControlTask())
+                harness.driveUntil { harness.session.stats.value.producedFrameCount == 2L }
+                drainAcceptedSessionWork(harness)
+
+                harness.clock.setDefaultNanos(3_000_000_000L)
+                check(harness.enterNextDelayedControlTask())
+                harness.driveUntil { harness.session.stats.value.producedFrameCount == 3L }
+                val statsAfterRepeats = harness.session.stats.value
+
+                assertEquals(statsAfterFresh.encodedFrameCount, statsAfterRepeats.encodedFrameCount)
+                assertEquals(statsAfterFresh.droppedFrames, statsAfterRepeats.droppedFrames)
+                assertEquals(statsAfterFresh.droppedDeliveries, statsAfterRepeats.droppedDeliveries)
+                assertEquals(readsAfterFresh, platform.sourceUpdateCount())
+                assertEquals(compressionsAfterFresh, nativeJpeg.carrierSnapshot().compressionCount)
+
+                val delivered = CopyOnWriteArrayList<FrameSnapshot>()
+                val registration = harness.session.registerFrameConsumer { frame -> delivered += copyFrame(frame) }
+                harness.driveUntil { delivered.size == 1 }
+                val cached = delivered.single()
+
+                assertArrayEquals(
+                    byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x53, 0x43, 0x45, 0xFF.toByte(), 0xD9.toByte()),
+                    cached.bytes,
+                )
+                assertEquals(3L, cached.sequence)
+                assertEquals(3_000_000_000L, cached.timestampElapsedRealtimeNanos)
+                assertEquals(active.effectiveParameters, cached.effectiveParameters)
+
+                val unregister = async(UnconfinedTestDispatcher(testScheduler)) { registration.unregister() }
+                harness.driveUntil { unregister.isCompleted }
+                unregister.await()
+            } finally {
+                stopAndDrainSession(harness)
+                nativeJpeg.close()
+            }
+        }
+    }
+
+    // Verification: SES-05
+    // Verification: SES-06
+    // Verification: SES-07
+    @Test
+    fun heldOriginalCallbackRemainsImmutableAcrossTwoAutonomousRepeatDeadlines() = runTest {
+        val platform = HappyCapturePlatform()
+        val nativeJpeg = SafeRejectingNativeJpegFacade(successfulCompressionCountBeforeRejection = 1)
+        val parameters = ScreenCaptureParameters(
+            outputSize = OutputSize.ScaleFactor(1.0),
+            frameRepeatInterval = 1.seconds,
+        )
+        val callbackEntered = CountDownLatch(1)
+        val callbackMayReturn = CountDownLatch(1)
+        val callbackEntries = AtomicInteger()
+        val beforeHold = AtomicReference<FrameSnapshot?>()
+        val afterHold = AtomicReference<FrameSnapshot?>()
+        SessionStartHarness(
+            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            delayedControlOutcome = SessionStartHarness.DelayedControlOutcome.Accept,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+            jpegBackendPolicy = JpegBackendPolicy.Auto,
+            nativeJpeg = nativeJpeg,
+        ).use { harness ->
+            try {
+                startActiveSession(harness, parameters)
+                harness.session.registerFrameConsumer { frame ->
+                    callbackEntries.incrementAndGet()
+                    beforeHold.set(copyFrame(frame))
+                    callbackEntered.countDown()
+                    check(callbackMayReturn.await(5L, TimeUnit.SECONDS)) { "Entered callback was not released" }
+                    afterHold.set(copyFrame(frame))
+                }
+
+                harness.clock.setDefaultNanos(1_000_000_000L)
+                platform.deliverSourceFrame(rgbaSeed = 43)
+                check(harness.enterNextControlTask())
+                check(harness.enterNextCaptureTask())
+                check(harness.enterNextControlTask())
+                checkNotNull(harness.enterNextWorker()).awaitSuccessfulCompletion()
+                check(harness.enterNextControlTask())
+                val callbackTask = checkNotNull(harness.enterNextWorker())
+                try {
+                    check(callbackTask.awaitEntered()) { "Delivery worker did not enter" }
+                    check(callbackEntered.await(5L, TimeUnit.SECONDS)) { "Frame callback did not enter" }
+
+                    val statsBeforeRepeats = harness.session.stats.value
+                    val readsBeforeRepeats = platform.sourceUpdateCount()
+                    val compressionsBeforeRepeats = nativeJpeg.carrierSnapshot().compressionCount
+                    harness.clock.setDefaultNanos(2_000_000_000L)
+                    check(harness.enterNextDelayedControlTask())
+                    harness.driveUntil {
+                        val stats = harness.session.stats.value
+                        stats.producedFrameCount == statsBeforeRepeats.producedFrameCount + 1L &&
+                                stats.droppedDeliveries.byConsumerBusy ==
+                                statsBeforeRepeats.droppedDeliveries.byConsumerBusy + 1L
+                    }
+                    drainAcceptedSessionWork(harness)
+
+                    harness.clock.setDefaultNanos(3_000_000_000L)
+                    check(harness.enterNextDelayedControlTask())
+                    harness.driveUntil {
+                        val stats = harness.session.stats.value
+                        stats.producedFrameCount == statsBeforeRepeats.producedFrameCount + 2L &&
+                                stats.droppedDeliveries.byConsumerBusy ==
+                                statsBeforeRepeats.droppedDeliveries.byConsumerBusy + 2L
+                    }
+                    val statsAfterRepeats = harness.session.stats.value
+
+                    assertEquals(1, callbackEntries.get())
+                    assertEquals(statsBeforeRepeats.encodedFrameCount, statsAfterRepeats.encodedFrameCount)
+                    assertEquals(statsBeforeRepeats.droppedFrames, statsAfterRepeats.droppedFrames)
+                    assertEquals(
+                        statsBeforeRepeats.droppedDeliveries.byCallbackFailure,
+                        statsAfterRepeats.droppedDeliveries.byCallbackFailure,
+                    )
+                    assertEquals(
+                        statsBeforeRepeats.droppedDeliveries.byConsumerBusy + 2L,
+                        statsAfterRepeats.droppedDeliveries.byConsumerBusy,
+                    )
+                    assertEquals(readsBeforeRepeats, platform.sourceUpdateCount())
+                    assertEquals(compressionsBeforeRepeats, nativeJpeg.carrierSnapshot().compressionCount)
+                } finally {
+                    callbackMayReturn.countDown()
+                    callbackTask.awaitSuccessfulCompletion()
+                }
+
+                val originalBeforeHold = checkNotNull(beforeHold.get())
+                val originalAfterHold = checkNotNull(afterHold.get())
+                assertArrayEquals(originalBeforeHold.bytes, originalAfterHold.bytes)
+                assertEquals(originalBeforeHold.sequence, originalAfterHold.sequence)
+                assertEquals(
+                    originalBeforeHold.timestampElapsedRealtimeNanos,
+                    originalAfterHold.timestampElapsedRealtimeNanos,
+                )
+                assertEquals(originalBeforeHold.effectiveParameters, originalAfterHold.effectiveParameters)
+            } finally {
+                callbackMayReturn.countDown()
+                stopAndDrainSession(harness)
+                nativeJpeg.close()
+            }
+        }
+    }
+
+    // Verification: SES-05
     // Audit item: P3-01
     @Test
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -178,6 +373,7 @@ internal class ScreenCaptureSessionProductionIntegrationTest {
             delayedControlOutcome = SessionStartHarness.DelayedControlOutcome.Reject,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
@@ -186,7 +382,7 @@ internal class ScreenCaptureSessionProductionIntegrationTest {
             nativeJpeg = nativeJpeg,
         ).use { harness ->
             try {
-                startActiveSession(harness, platform, parameters)
+                startActiveSession(harness, parameters)
                 val delivered = CopyOnWriteArrayList<FrameSnapshot>()
                 harness.session.registerFrameConsumer { frame -> delivered += copyFrame(frame) }
 
@@ -221,6 +417,7 @@ internal class ScreenCaptureSessionProductionIntegrationTest {
             bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,
             glesPlatform = platform.glesPlatform,
@@ -229,7 +426,7 @@ internal class ScreenCaptureSessionProductionIntegrationTest {
             nativeJpeg = nativeJpeg,
         ).use { harness ->
             try {
-                startActiveSession(harness, platform, initialParameters)
+                startActiveSession(harness, initialParameters)
                 val baselineStats = harness.session.stats.value
                 val delivered = CopyOnWriteArrayList<FrameSnapshot>()
                 harness.session.registerFrameConsumer { frame -> delivered += copyFrame(frame) }

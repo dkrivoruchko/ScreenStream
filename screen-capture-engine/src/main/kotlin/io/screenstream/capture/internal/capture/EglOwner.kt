@@ -51,6 +51,8 @@ internal class EglOwner(
 
     private enum class OwnedRetirement { Absent, Owned, Attempted, Retired, }
 
+    private enum class Initialization { Absent, AcquisitionEntered, Acquired, RetainedByExternalGate, ReleaseAttempted, Released, }
+
     private enum class ThreadRetirement { Blocked, Eligible, Attempted, Released, }
 
     private val eglVersion = IntArray(2)
@@ -61,6 +63,8 @@ internal class EglOwner(
     private val highFloatRange = IntArray(2)
     private val highFloatPrecision = IntArray(1)
     private val namespaceDestroyedProof = GLNamespaceDestroyedProof(this)
+    private var initialization = Initialization.Absent
+    private var displayReleaseFailure: Throwable? = null
     private var capabilities: GLCapabilities? = null
     private var display: EGLDisplay? = null
     private var context: EGLContext? = null
@@ -84,7 +88,12 @@ internal class EglOwner(
         val createdDisplay = egl.getDisplay()
         if (createdDisplay === EGL14.EGL_NO_DISPLAY) failEgl("eglGetDisplay")
         display = createdDisplay
-        if (!egl.initialize(createdDisplay, eglVersion)) failEgl("eglInitialize")
+        initialization = Initialization.AcquisitionEntered
+        if (!egl.initialize(createdDisplay, eglVersion)) {
+            initialization = Initialization.Absent
+            failEgl("eglInitialize")
+        }
+        initialization = Initialization.Acquired
         val attributes = intArrayOf(
             EGL14.EGL_SURFACE_TYPE, EGL14.EGL_PBUFFER_BIT,
             EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
@@ -125,6 +134,7 @@ internal class EglOwner(
             pbufferRetirement = OwnedRetirement.Owned
         }
 
+        bindingThread = Thread.currentThread()
         bindingState = BindingState.InitialBindEntered
         if (!egl.makeCurrent(createdDisplay, createdPbuffer, createdContext)) failEgl("eglMakeCurrent")
         if ((egl.currentDisplay != createdDisplay) || (egl.currentContext != createdContext) ||
@@ -132,7 +142,6 @@ internal class EglOwner(
         ) {
             failInternal("eglMakeCurrent did not install the exact owned display/context/pbuffer tuple")
         }
-        bindingThread = Thread.currentThread()
         bindingState = BindingState.Current
         integrity = Integrity.Healthy
         return queryCapabilities().fragmentPrecision
@@ -229,57 +238,10 @@ internal class EglOwner(
         ).also { capabilities = it }
     }
 
-    internal fun close(): EglRetirementOutcome {
+    internal fun close(allowDisplayRelease: Boolean = true): EglRetirementOutcome {
         val ownedDisplay = display ?: return EglRetirementOutcome(cleanupFailure = null, residue = null, namespaceDestroyedProof = null)
 
-        if (bindingState == BindingState.NeverAttempted) {
-            val ownedContext = context
-            val ownsExactContext = (contextRetirement == OwnedRetirement.Owned) && (ownedContext != null) && (ownedContext !== EGL14.EGL_NO_CONTEXT)
-            val hasNoPbuffer = (pbufferRetirement == OwnedRetirement.Absent) && (pbuffer == null)
-            val exactNeverBoundPrefix = ownsExactContext && hasNoPbuffer
-            if (exactNeverBoundPrefix) {
-                contextDestroyFailure = try {
-                    contextRetirement = OwnedRetirement.Attempted
-                    if (!egl.destroyContext(ownedDisplay, ownedContext)) {
-                        throw EglErrorException("eglDestroyContext", egl.getError())
-                    }
-                    context = null
-                    contextRetirement = OwnedRetirement.Retired
-                    integrity = Integrity.Destroyed
-                    null
-                } catch (failure: Exception) {
-                    failure
-                }
-                val residue = if (contextRetirement == OwnedRetirement.Retired) {
-                    null
-                } else {
-                    contextDestroyFailure ?: CapturePhysicalException("EGL context remains owned")
-                }
-                if (residue == null) display = null
-                return EglRetirementOutcome(
-                    cleanupFailure = contextDestroyFailure,
-                    residue = residue,
-                    namespaceDestroyedProof = namespaceDestroyedProof.takeIf { integrity == Integrity.Destroyed },
-                )
-            }
-            if ((contextRetirement == OwnedRetirement.Absent) && (pbufferRetirement == OwnedRetirement.Absent)) {
-                display = null
-                return EglRetirementOutcome(cleanupFailure = null, residue = null, namespaceDestroyedProof = null)
-            }
-            val residue = contextDestroyFailure ?: CapturePhysicalException("EGL never-bound ownership invariant was not satisfied")
-            return EglRetirementOutcome(
-                cleanupFailure = contextDestroyFailure,
-                residue = residue,
-                namespaceDestroyedProof = null,
-            )
-        }
-
-        if (bindingState == BindingState.InitialBindEntered) {
-            val residue = CapturePhysicalException("Exact EGL binding ownership was not proved")
-            return EglRetirementOutcome(cleanupFailure = null, residue = residue, namespaceDestroyedProof = null)
-        }
-
-        if (bindingState == BindingState.Current) {
+        if ((bindingState == BindingState.InitialBindEntered) || (bindingState == BindingState.Current)) {
             if (bindingThread !== Thread.currentThread()) {
                 val residue = CapturePhysicalException("EGL teardown did not run on its binding thread")
                 return EglRetirementOutcome(cleanupFailure = null, residue = residue, namespaceDestroyedProof = null)
@@ -302,7 +264,8 @@ internal class EglOwner(
             }
         }
         var firstFailure = unbindFailure
-        if (bindingState != BindingState.Unbound) {
+        val neverBound = bindingState == BindingState.NeverAttempted
+        if (!neverBound && (bindingState != BindingState.Unbound)) {
             val residue = unbindFailure ?: CapturePhysicalException("EGL unbind returned without proving no current context")
             return EglRetirementOutcome(cleanupFailure = firstFailure, residue = residue, namespaceDestroyedProof = null)
         }
@@ -341,6 +304,27 @@ internal class EglOwner(
         }
         firstFailure = firstFailure ?: pbufferDestroyFailure
 
+        val resourcesRetired = (contextRetirement in setOf(OwnedRetirement.Absent, OwnedRetirement.Retired)) &&
+                (pbufferRetirement in setOf(OwnedRetirement.Absent, OwnedRetirement.Retired))
+        if (initialization == Initialization.Acquired) {
+            if (!allowDisplayRelease) {
+                // This denial is final: a later close must not introduce EGL work after TLS release.
+                initialization = Initialization.RetainedByExternalGate
+            } else if (resourcesRetired) {
+                displayReleaseFailure = try {
+                    initialization = Initialization.ReleaseAttempted
+                    if (!egl.releaseDisplayInitialization(ownedDisplay)) {
+                        throw EglErrorException("eglTerminate", egl.getError())
+                    }
+                    initialization = Initialization.Released
+                    null
+                } catch (failure: Exception) {
+                    failure
+                }
+            }
+        }
+        firstFailure = firstFailure ?: displayReleaseFailure
+
         if (threadRetirement == ThreadRetirement.Eligible) {
             releaseThreadFailure = try {
                 threadRetirement = ThreadRetirement.Attempted
@@ -362,7 +346,10 @@ internal class EglOwner(
             (pbufferRetirement == OwnedRetirement.Owned) || (pbufferRetirement == OwnedRetirement.Attempted) ->
                 pbufferDestroyFailure ?: CapturePhysicalException("EGL pbuffer remains owned")
 
-            threadRetirement != ThreadRetirement.Released ->
+            (initialization != Initialization.Absent) && (initialization != Initialization.Released) ->
+                displayReleaseFailure ?: CapturePhysicalException("EGL display initialization remains owned or unproved")
+
+            !neverBound && (threadRetirement != ThreadRetirement.Released) ->
                 releaseThreadFailure ?: CapturePhysicalException("EGL thread release remains unproved")
 
             else -> null

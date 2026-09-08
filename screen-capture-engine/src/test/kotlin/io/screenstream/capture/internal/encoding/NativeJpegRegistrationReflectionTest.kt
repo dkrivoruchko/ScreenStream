@@ -53,7 +53,7 @@ internal class NativeJpegRegistrationReflectionTest {
             "io.screenstream.capture.internal.encoding.NativeJpegProcess"
         private const val SINK_BINARY_NAME: String =
             "io.screenstream.capture.internal.encoding.NativeSegmentSink"
-        private val PRIVATE_FINAL: Int = Modifier.PRIVATE or Modifier.FINAL
-        private val PRIVATE_FINAL_NATIVE: Int = PRIVATE_FINAL or Modifier.NATIVE
+        private const val PRIVATE_FINAL: Int = Modifier.PRIVATE or Modifier.FINAL
+        private const val PRIVATE_FINAL_NATIVE: Int = PRIVATE_FINAL or Modifier.NATIVE
     }
 }
