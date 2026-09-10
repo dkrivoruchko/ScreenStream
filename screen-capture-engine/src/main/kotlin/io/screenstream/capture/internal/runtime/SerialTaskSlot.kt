@@ -8,7 +8,8 @@ import java.util.concurrent.atomic.AtomicReference
  * The exact attempt is installed before dispatch can expose it. Its body cannot enter until the dispatch call has
  * resolved as accepted. An accepted attempt owns the slot until its body returns normally; only then is the slot
  * released and its `afterTaskReleased` callback invoked. A throwing or nonreturning body therefore authorizes
- * neither release nor a successor. Rejection clears only the exact attempt that was not accepted.
+ * neither release nor a successor. Once acceptance is published, entry and release may occur before [trySubmit]
+ * returns. Rejection clears only the exact attempt that was not accepted.
  */
 internal class SerialTaskSlot(
     private val dispatcher: NonInlineDispatcher,

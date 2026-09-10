@@ -10,14 +10,13 @@ package io.screenstream.capture
  * retain identity equality.
  *
  * @property sequence a positive, nonrepeating, nonwrapping session-local identifier. Collectors may observe gaps,
- * and the value does not guarantee delivery or observed ordering.
- * @property timestampEpochMillis a wall-clock timestamp for approximate correlation only; it is not a monotonic
- * lifecycle or ordering signal.
+ *     and the value does not guarantee delivery or observed ordering.
+ * @property timestampEpochMillis Unix-epoch wall-clock time in milliseconds for approximate correlation only; it is
+ *     not a monotonic lifecycle or ordering signal.
  * @property source an extensible best-effort origin label, not a closed or stable taxonomy.
  * @property eventName an extensible best-effort event label, not a closed or stable taxonomy.
  * @property message a short, noncontractual diagnostic description that callers must not parse for semantics.
- * @property cause optional opaque diagnostic context. Its presence, type, identity, object graph, and text are not
- * API guarantees.
+ * @property cause optional opaque best-effort diagnostic context with no stable content guarantee.
  */
 public class ScreenCaptureDiagnosticEvent private constructor(
     public val sequence: Long,

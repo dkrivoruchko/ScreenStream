@@ -1,5 +1,6 @@
 package io.screenstream.capture.internal.runtime
 
+/** Nonnegative monotonic nanoseconds since boot, including deep sleep; unrelated to wall-clock epoch time. */
 internal fun interface ElapsedRealtimeClock {
     fun nowNanos(): Long
 

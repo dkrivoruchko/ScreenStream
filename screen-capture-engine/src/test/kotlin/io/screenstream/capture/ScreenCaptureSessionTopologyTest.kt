@@ -3,11 +3,13 @@ package io.screenstream.capture
 import android.os.Build
 import io.mockk.every
 import io.mockk.verify
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
+import io.screenstream.capture.testutil.ControllableMetricsSource
+import io.screenstream.capture.testutil.CoordinatorMetricsHarness
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.SafeRejectingNativeJpegFacade
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.drainAcceptedSessionWork
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.stopAndDrainSession
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.requestStopAndDrainSession
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -21,13 +23,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 
-/*
- * Public capture-topology integration evidence through the real Coordinator and Capture owners.
- *
- * Projection callbacks and accepted non-inline work only arrange activation, resize, and visibility changes.
- * Queue shape, turn count, private phase, handler identity, and incidental platform-call ordering are not oracles;
- * public State/effective geometry and maintained platform effects decide these scenarios.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -38,12 +33,12 @@ internal class ScreenCaptureSessionTopologyTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun publicStartTraversesCaptureBoundariesAndReturnsAfterFirstActive() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320)
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = metrics,
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -65,17 +60,17 @@ internal class ScreenCaptureSessionTopologyTest {
             val stateAtStartReturn = start.await()
 
             val active = stateAtStartReturn as ScreenCaptureState.Active
-            val effective = active.effectiveParameters
-            assertEquals(parameters, effective.appliedParameters)
-            assertEquals(8, effective.captureGeometry.widthPx)
-            assertEquals(6, effective.captureGeometry.heightPx)
-            assertEquals(320, effective.captureGeometry.densityDpi)
-            assertEquals(0, effective.appliedSourceRect.leftPx)
-            assertEquals(0, effective.appliedSourceRect.topPx)
-            assertEquals(8, effective.appliedSourceRect.rightPx)
-            assertEquals(6, effective.appliedSourceRect.bottomPx)
-            assertEquals(8, effective.finalImageSize.widthPx)
-            assertEquals(6, effective.finalImageSize.heightPx)
+            val outputInfo = active.outputInfo
+            assertEquals(parameters, outputInfo.parameters)
+            assertEquals(8, outputInfo.captureGeometry.widthPx)
+            assertEquals(6, outputInfo.captureGeometry.heightPx)
+            assertEquals(320, outputInfo.captureGeometry.densityDpi)
+            assertEquals(0, outputInfo.appliedSourceRect.leftPx)
+            assertEquals(0, outputInfo.appliedSourceRect.topPx)
+            assertEquals(8, outputInfo.appliedSourceRect.rightPx)
+            assertEquals(6, outputInfo.appliedSourceRect.bottomPx)
+            assertEquals(8, outputInfo.finalImageSize.widthPx)
+            assertEquals(6, outputInfo.finalImageSize.heightPx)
             assertNull(active.isCapturedContentVisible)
 
             platform.verifyOpenBoundaries(widthPx = 8, heightPx = 6, densityDpi = 320)
@@ -92,10 +87,10 @@ internal class ScreenCaptureSessionTopologyTest {
             crop = CropInsetsPx(left = 2, top = 0, right = 0, bottom = 0),
             outputSize = OutputSize.ScaleFactor(1.0),
         )
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = provisionalMetrics,
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             projection = platform.projection,
@@ -123,18 +118,18 @@ internal class ScreenCaptureSessionTopologyTest {
             val stateAtStartReturn = start.await()
 
             val active = stateAtStartReturn as ScreenCaptureState.Active
-            val effective = active.effectiveParameters
+            val outputInfo = active.outputInfo
             assertEquals(parameters, active.requestedParameters)
-            assertEquals(parameters, effective.appliedParameters)
-            assertEquals(6, effective.captureGeometry.widthPx)
-            assertEquals(4, effective.captureGeometry.heightPx)
-            assertEquals(320, effective.captureGeometry.densityDpi)
-            assertEquals(2, effective.appliedSourceRect.leftPx)
-            assertEquals(0, effective.appliedSourceRect.topPx)
-            assertEquals(6, effective.appliedSourceRect.rightPx)
-            assertEquals(4, effective.appliedSourceRect.bottomPx)
-            assertEquals(4, effective.finalImageSize.widthPx)
-            assertEquals(4, effective.finalImageSize.heightPx)
+            assertEquals(parameters, outputInfo.parameters)
+            assertEquals(6, outputInfo.captureGeometry.widthPx)
+            assertEquals(4, outputInfo.captureGeometry.heightPx)
+            assertEquals(320, outputInfo.captureGeometry.densityDpi)
+            assertEquals(2, outputInfo.appliedSourceRect.leftPx)
+            assertEquals(0, outputInfo.appliedSourceRect.topPx)
+            assertEquals(6, outputInfo.appliedSourceRect.rightPx)
+            assertEquals(4, outputInfo.appliedSourceRect.bottomPx)
+            assertEquals(4, outputInfo.finalImageSize.widthPx)
+            assertEquals(4, outputInfo.finalImageSize.heightPx)
             assertNull(active.isCapturedContentVisible)
 
             platform.verifyInitialProjectionBoundaries(widthPx = 2, heightPx = 2, densityDpi = 320)
@@ -143,18 +138,17 @@ internal class ScreenCaptureSessionTopologyTest {
     }
 
     // Verification: SES-03
-    // Audit item: P4-T02
     @Test
     @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun provisionalOpenUsesBoundedNeutralOutputAndDefersEncodingPreparation() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val nativeJpeg = SafeRejectingNativeJpegFacade()
         val parameters = ScreenCaptureParameters(
             outputSize = OutputSize.TargetSize(64, 32, OutputSize.ContentMode.Stretch),
         )
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             projection = platform.projection,
@@ -186,35 +180,34 @@ internal class ScreenCaptureSessionTopologyTest {
 
                 val active = harness.session.state.value as ScreenCaptureState.Active
                 assertEquals(parameters, active.requestedParameters)
-                assertEquals(parameters, active.effectiveParameters.appliedParameters)
-                assertEquals(10, active.effectiveParameters.captureGeometry.widthPx)
-                assertEquals(8, active.effectiveParameters.captureGeometry.heightPx)
-                assertEquals(64, active.effectiveParameters.finalImageSize.widthPx)
-                assertEquals(32, active.effectiveParameters.finalImageSize.heightPx)
+                assertEquals(parameters, active.outputInfo.parameters)
+                assertEquals(10, active.outputInfo.captureGeometry.widthPx)
+                assertEquals(8, active.outputInfo.captureGeometry.heightPx)
+                assertEquals(64, active.outputInfo.finalImageSize.widthPx)
+                assertEquals(32, active.outputInfo.finalImageSize.heightPx)
                 verify(exactly = 1) { platform.glesPlatform.texImage2D(64, 32) }
                 verify(exactly = 2) { platform.glesPlatform.texImage2D(any(), any()) }
                 assertEquals(1, nativeJpeg.carrierSnapshot().allocationCount)
             } finally {
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
                 nativeJpeg.close()
             }
         }
     }
 
     // Verification: SES-03
-    // Audit item: P4-T02
     @Test
     @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun authoritativeInvalidGeometryFailsStartupAfterNeutralOpen() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val nativeJpeg = SafeRejectingNativeJpegFacade()
         val parameters = ScreenCaptureParameters(
             crop = CropInsetsPx(left = 2, top = 0, right = 0, bottom = 0),
             outputSize = OutputSize.ScaleFactor(1.0),
         )
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 2, heightPx = 2, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             projection = platform.projection,
@@ -236,29 +229,28 @@ internal class ScreenCaptureSessionTopologyTest {
                 val failed = harness.session.state.value as ScreenCaptureState.Failed
                 assertSame(ScreenCaptureProblem.InvalidRequest, failed.problem)
                 assertEquals(parameters, failed.requestedParameters)
-                assertNull(failed.lastEffectiveParameters)
+                assertNull(failed.lastOutputInfo)
                 assertEquals(0, nativeJpeg.carrierSnapshot().allocationCount)
                 verify(exactly = 1) { platform.glesPlatform.texImage2D(1, 1) }
                 val startFailure = start.await() as ScreenCaptureException
                 assertSame(ScreenCaptureProblem.InvalidRequest, startFailure.problem)
             } finally {
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
                 nativeJpeg.close()
             }
         }
     }
 
     // Verification: SES-03
-    // Audit item: P4-T02
     @Test
     @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun genuineNeutralOpenFailureStillFailsStartup() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         every { platform.glesPlatform.texImage2D(1, 1) } throws IllegalStateException("Injected neutral output setup failure")
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.TargetSize(64, 32, OutputSize.ContentMode.Stretch))
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             projection = platform.projection,
@@ -275,11 +267,11 @@ internal class ScreenCaptureSessionTopologyTest {
 
                 val failed = harness.session.state.value as ScreenCaptureState.Failed
                 assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
-                assertNull(failed.lastEffectiveParameters)
+                assertNull(failed.lastOutputInfo)
                 val startFailure = start.await() as ScreenCaptureException
                 assertSame(ScreenCaptureProblem.InternalFailure, startFailure.problem)
             } finally {
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }
@@ -291,7 +283,7 @@ internal class ScreenCaptureSessionTopologyTest {
     fun authoritativeResizeAfterActivePublishesCompatibleResizedCapture() = runTest {
         val metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320)
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val metricsSource = ControllableMetricsSource()
 
         CoordinatorMetricsHarness(
@@ -315,23 +307,23 @@ internal class ScreenCaptureSessionTopologyTest {
             harness.driveUntil {
                 val state = harness.session.state.value
                 (state is ScreenCaptureState.Active) &&
-                        (state.effectiveParameters.captureGeometry.widthPx == 6) &&
-                        (state.effectiveParameters.captureGeometry.heightPx == 4)
+                        (state.outputInfo.captureGeometry.widthPx == 6) &&
+                        (state.outputInfo.captureGeometry.heightPx == 4)
             }
 
             val resizedActive = harness.session.state.value as ScreenCaptureState.Active
-            val effective = resizedActive.effectiveParameters
+            val outputInfo = resizedActive.outputInfo
             assertEquals(parameters, resizedActive.requestedParameters)
-            assertEquals(parameters, effective.appliedParameters)
-            assertEquals(6, effective.captureGeometry.widthPx)
-            assertEquals(4, effective.captureGeometry.heightPx)
-            assertEquals(320, effective.captureGeometry.densityDpi)
-            assertEquals(0, effective.appliedSourceRect.leftPx)
-            assertEquals(0, effective.appliedSourceRect.topPx)
-            assertEquals(6, effective.appliedSourceRect.rightPx)
-            assertEquals(4, effective.appliedSourceRect.bottomPx)
-            assertEquals(6, effective.finalImageSize.widthPx)
-            assertEquals(4, effective.finalImageSize.heightPx)
+            assertEquals(parameters, outputInfo.parameters)
+            assertEquals(6, outputInfo.captureGeometry.widthPx)
+            assertEquals(4, outputInfo.captureGeometry.heightPx)
+            assertEquals(320, outputInfo.captureGeometry.densityDpi)
+            assertEquals(0, outputInfo.appliedSourceRect.leftPx)
+            assertEquals(0, outputInfo.appliedSourceRect.topPx)
+            assertEquals(6, outputInfo.appliedSourceRect.rightPx)
+            assertEquals(4, outputInfo.appliedSourceRect.bottomPx)
+            assertEquals(6, outputInfo.finalImageSize.widthPx)
+            assertEquals(4, outputInfo.finalImageSize.heightPx)
             assertEquals(initialActive.isCapturedContentVisible, resizedActive.isCapturedContentVisible)
 
             metricsSource.emit(CaptureMetrics(widthPx = 10, heightPx = 7, densityDpi = 320))
@@ -348,13 +340,13 @@ internal class ScreenCaptureSessionTopologyTest {
             harness.driveUntil {
                 val state = harness.session.state.value
                 (state is ScreenCaptureState.Active) &&
-                        (state.effectiveParameters.captureGeometry.densityDpi == 480)
+                        (state.outputInfo.captureGeometry.densityDpi == 480)
             }
 
             val densityUpdated = harness.session.state.value as ScreenCaptureState.Active
-            assertEquals(6, densityUpdated.effectiveParameters.captureGeometry.widthPx)
-            assertEquals(4, densityUpdated.effectiveParameters.captureGeometry.heightPx)
-            assertEquals(480, densityUpdated.effectiveParameters.captureGeometry.densityDpi)
+            assertEquals(6, densityUpdated.outputInfo.captureGeometry.widthPx)
+            assertEquals(4, densityUpdated.outputInfo.captureGeometry.heightPx)
+            assertEquals(480, densityUpdated.outputInfo.captureGeometry.densityDpi)
             verify(exactly = 1) {
                 platform.projectionPlatform.resize(any(), 6, 4, 480)
             }
@@ -373,10 +365,10 @@ internal class ScreenCaptureSessionTopologyTest {
     fun capturedContentVisibilityRepublishesActiveWithoutChangingCaptureTopology() = runTest {
         val metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320)
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = metrics,
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             projection = platform.projection,
@@ -401,7 +393,7 @@ internal class ScreenCaptureSessionTopologyTest {
                 (harness.session.state.value as? ScreenCaptureState.Active)?.isCapturedContentVisible == true
             }
             val visibleActive = harness.session.state.value as ScreenCaptureState.Active
-            assertEquals(initialActive.effectiveParameters, visibleActive.effectiveParameters)
+            assertEquals(initialActive.outputInfo, visibleActive.outputInfo)
             assertEquals(initialActive.requestedParameters, visibleActive.requestedParameters)
             assertEquals(initialStats, harness.session.stats.value)
             assertEquals(true, visibleActive.isCapturedContentVisible)
@@ -411,7 +403,7 @@ internal class ScreenCaptureSessionTopologyTest {
                 (harness.session.state.value as? ScreenCaptureState.Active)?.isCapturedContentVisible == false
             }
             val hiddenActive = harness.session.state.value as ScreenCaptureState.Active
-            assertEquals(initialActive.effectiveParameters, hiddenActive.effectiveParameters)
+            assertEquals(initialActive.outputInfo, hiddenActive.outputInfo)
             assertEquals(initialActive.requestedParameters, hiddenActive.requestedParameters)
             assertEquals(initialStats, harness.session.stats.value)
             assertEquals(false, hiddenActive.isCapturedContentVisible)

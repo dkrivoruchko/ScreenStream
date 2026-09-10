@@ -9,6 +9,12 @@ import java.nio.ByteBuffer
 internal val nativeJpegSettlementMismatch: RuntimeException =
     object : RuntimeException("Native JPEG ownership failed internally", null, false, false) {}
 
+/**
+ * One native-backend production attempt, including work skipped before entry or failed before the JNI call, plus its
+ * carrier, transaction, and timing settlement. Safe compressor rejection may report native produced bytes while the
+ * managed transaction copied none; classification therefore joins both counts instead of treating native production
+ * as transferred payload.
+ */
 internal class NativeJpegProduction(
     override val runtime: EncoderRuntime,
     override val input: EncodingInput,
@@ -32,7 +38,7 @@ internal class NativeJpegProduction(
     internal val hasResultBlock: Boolean
         get() = resultBlockSlot != null
 
-    override val hasLeafResult: Boolean
+    override val hasRecordedResult: Boolean
         get() = result.isRecorded
 
     private fun allocateResultBlockForEntry(): ByteBuffer {
@@ -52,7 +58,7 @@ internal class NativeJpegProduction(
         check(runtime.skipNativeBeforeEntry(this) === result)
     }
 
-    override fun settleNoLeafPhysical(residue: NoLeafPhysicalSettlement.Residue) {
+    override fun cleanupResources(residue: ResourceCleanupState.Residue) {
         settleProductionCarrier(
             input = input,
             discardReady = { runtime.releaseNativeReadyBeforeEntry(this) },
@@ -62,7 +68,7 @@ internal class NativeJpegProduction(
         residue.attempt { settleProducerTransaction(transaction) }
     }
 
-    override fun settleDetachedLeaf(): Exception? = try {
+    override fun detachResultPayload(): Exception? = try {
         with(result) {
             when (requireDisposition()) {
                 NativeJpegDisposition.Returned.CompleteTransfer ->
@@ -120,6 +126,7 @@ internal class NativeJpegProduction(
         } catch (failure: Exception) {
             thrownThrowable = failure
         } catch (failure: OutOfMemoryError) {
+            // Contain only the exact allocation failure already recorded by this transaction; foreign OOME escapes.
             if (!transaction.hasFaultedResourceExhaustionCause(failure)) throw failure
             thrownThrowable = failure
         }

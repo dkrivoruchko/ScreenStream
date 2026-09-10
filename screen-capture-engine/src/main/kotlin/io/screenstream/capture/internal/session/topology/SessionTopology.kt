@@ -2,7 +2,7 @@ package io.screenstream.capture.internal.session.topology
 
 import android.os.Build.VERSION_CODES
 import io.screenstream.capture.CaptureMetrics
-import io.screenstream.capture.ScreenCaptureEffectiveParameters
+import io.screenstream.capture.CaptureOutputInfo
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.internal.Rgba8888Layout
@@ -12,12 +12,18 @@ import io.screenstream.capture.internal.capture.CaptureTargetMode
 import io.screenstream.capture.internal.metrics.MetricsSnapshot
 
 /**
- * Exclusive semantic owner of desired parameters, configuration revisions, readiness, resolved plans, effective
- * output, and captured-content visibility for one session.
+ * Exclusive semantic owner of pending parameters most recently accepted from the public API, reconciled desired
+ * parameters, the current effective plan, historical `lastOutputInfo`, and captured-content visibility. These states
+ * remain distinct; terminal preparation snapshots pending parameters and historical output. An equal request normally
+ * does nothing; retry from a settled suspension with no newer pending request becomes a new desired revision after
+ * ingress settles. Cached-image compatibility covers image-affecting parameters, including JPEG quality, and ignores
+ * pacing-only changes.
  *
  * Plan and publication candidates capture exact owner/generation evidence and are not commits. The coordinator must
  * revalidate them immediately before joining them with other session domains. Leaf completion, matching values, or
- * a previously resolved revision alone never establishes currentness.
+ * a previously resolved revision alone never establishes currentness. On API 34+, accepted projection resize owns
+ * width and height while metrics retain density authority. A provisional plan may prepare a Full target, but cannot
+ * establish Active or production readiness.
  */
 internal class SessionTopology {
     internal class ParameterUpdate(
@@ -29,7 +35,7 @@ internal class SessionTopology {
         internal val parameters: ScreenCaptureParameters,
         internal val revision: Long,
         internal val isCachedImageCompatible: Boolean,
-        internal val historicalEffectiveParameters: ScreenCaptureEffectiveParameters?,
+        internal val historicalOutputInfo: CaptureOutputInfo?,
         internal val problem: ScreenCaptureProblem?,
     )
 
@@ -43,8 +49,8 @@ internal class SessionTopology {
             internal val snapshot: MetricsSnapshot,
             internal val requiresTopologyRevision: Boolean,
             internal val closesActiveAdmission: Boolean,
-            internal val wasActive: Boolean,
-            internal val historicalEffectiveParameters: ScreenCaptureEffectiveParameters?,
+            internal val hasPublicEffectivePlan: Boolean,
+            internal val historicalOutputInfo: CaptureOutputInfo?,
         ) : MetricsDecision
     }
 
@@ -175,8 +181,8 @@ internal class SessionTopology {
             (owner === expectedOwner) && (generation == expectedOwner.generation) &&
                     expectedOwner.acceptsSettledRevision(revision) && expectedOwner.productionReady(plan)
 
-        internal fun isCachedImageCurrent(expectedOwner: SessionTopology, cachedParameters: ScreenCaptureEffectiveParameters): Boolean =
-            isCurrent(expectedOwner) && expectedOwner.cacheIsCurrent(this, cachedParameters)
+        internal fun isCachedImageCurrent(expectedOwner: SessionTopology, cachedOutputInfo: CaptureOutputInfo): Boolean =
+            isCurrent(expectedOwner) && expectedOwner.cacheIsCurrent(this, cachedOutputInfo)
 
     }
 
@@ -236,7 +242,7 @@ internal class SessionTopology {
         private val owner: SessionTopology,
         private val generation: Long,
         private val publicPlan: SessionPlanResolution.Resolved,
-        internal val effectiveParameters: ScreenCaptureEffectiveParameters,
+        internal val outputInfo: CaptureOutputInfo,
         internal val isCapturedContentVisible: Boolean?,
     ) {
         internal fun isCurrent(expectedOwner: SessionTopology): Boolean =
@@ -251,7 +257,7 @@ internal class SessionTopology {
         private val generation: Long,
         internal val revision: Long,
         internal val requestedParameters: ScreenCaptureParameters,
-        internal val historicalEffectiveParameters: ScreenCaptureEffectiveParameters,
+        internal val historicalOutputInfo: CaptureOutputInfo,
         internal val isCapturedContentVisible: Boolean?,
         internal val problem: ScreenCaptureProblem?,
     ) {
@@ -265,7 +271,7 @@ internal class SessionTopology {
     internal class TerminalEvidence(
         private val owner: SessionTopology,
         internal val requestedParameters: ScreenCaptureParameters,
-        internal val lastEffectiveParameters: ScreenCaptureEffectiveParameters?,
+        internal val lastOutputInfo: CaptureOutputInfo?,
     ) {
         internal fun isCurrent(expectedOwner: SessionTopology): Boolean = owner === expectedOwner
     }
@@ -340,7 +346,7 @@ internal class SessionTopology {
     }
 
     private var generation = 0L
-    private var nextRevision = 0L
+    private var lastAllocatedRevision = 0L
     private var pendingRevision = 0L
     private var pendingParameters = ScreenCaptureParameters()
     private var desiredRevision = 0L
@@ -367,7 +373,7 @@ internal class SessionTopology {
     private var lastPublishedCapturedContentVisibility: Boolean? = null
     private var lastPublishedPausedRevision = 0L
     private var lastPublishedPauseProblem: ScreenCaptureProblem? = null
-    private var lastEffectiveParameters: ScreenCaptureEffectiveParameters? = null
+    private var lastOutputInfo: CaptureOutputInfo? = null
     private var lastPublishedTargetMode: CaptureTargetMode? = null
     private val capturedContentResize = CapturedContentResizeState()
 
@@ -386,8 +392,8 @@ internal class SessionTopology {
     }
 
     internal fun initialize(parameters: ScreenCaptureParameters) {
-        check((nextRevision == 0L) && (pendingRevision == 0L) && (desiredRevision == 0L))
-        nextRevision = 1L
+        check((lastAllocatedRevision == 0L) && (pendingRevision == 0L) && (desiredRevision == 0L))
+        lastAllocatedRevision = 1L
         pendingRevision = 1L
         pendingParameters = parameters
         desiredRevision = 1L
@@ -396,7 +402,11 @@ internal class SessionTopology {
     }
 
     internal fun prepareParameterUpdate(parameters: ScreenCaptureParameters): ParameterUpdate? {
-        if (parameters == pendingParameters) return null
+        if (parameters == pendingParameters) {
+            val committedSuspension = suspension
+            if ((committedSuspension?.revision != desiredRevision) || (pendingRevision != desiredRevision)) return null
+            return ParameterUpdate(pendingParameters)
+        }
         return ParameterUpdate(parameters)
     }
 
@@ -410,7 +420,7 @@ internal class SessionTopology {
     internal fun prepareDesiredIngress(): DesiredTransition? {
         if (pendingRevision == desiredRevision) return null
         val publishedPlan = publicEffectivePlan
-        val historical = publishedPlan?.effectiveParameters ?: lastEffectiveParameters
+        val historical = publishedPlan?.outputInfo ?: lastOutputInfo
         val unavailable = lastMetricsSnapshot?.let { it.metrics == null } == true
         val problem = if (unavailable && suspension?.problem == ScreenCaptureProblem.CaptureUnavailable) {
             ScreenCaptureProblem.CaptureUnavailable
@@ -422,7 +432,7 @@ internal class SessionTopology {
             parameters = pendingParameters,
             revision = pendingRevision,
             isCachedImageCompatible = sameCachedImageParameters(desiredParameters, pendingParameters),
-            historicalEffectiveParameters = historical,
+            historicalOutputInfo = historical,
             problem = problem,
         )
     }
@@ -434,13 +444,13 @@ internal class SessionTopology {
         desiredRevision = candidate.revision
         desiredParameters = candidate.parameters
         advanceGeneration()
-        val historical = candidate.historicalEffectiveParameters ?: return null
+        val historical = candidate.historicalOutputInfo ?: return null
         return PausedPublication(
             owner = this,
             generation = generation,
             revision = desiredRevision,
             requestedParameters = desiredParameters,
-            historicalEffectiveParameters = historical,
+            historicalOutputInfo = historical,
             isCapturedContentVisible = isCapturedContentVisible,
             problem = candidate.problem,
         )
@@ -454,7 +464,7 @@ internal class SessionTopology {
         val requiresTopologyRevision = when {
             (previousSnapshot != null) && sameMetricsAuthority(previousSnapshot.metrics, snapshot.metrics, platformSdkInt) -> false
             snapshot.metrics != null -> true
-            else -> lastEffectiveParameters != null
+            else -> lastOutputInfo != null
         }
         if (requiresTopologyRevision && (pendingRevision != desiredRevision)) {
             return MetricsDecision.BlockedByPendingIngress
@@ -465,8 +475,8 @@ internal class SessionTopology {
             closesActiveAdmission = (publishedPlan != null) &&
                     (previousSnapshot?.isReady() == true) &&
                     (!snapshot.isReady()),
-            wasActive = publishedPlan != null,
-            historicalEffectiveParameters = lastEffectiveParameters,
+            hasPublicEffectivePlan = publishedPlan != null,
+            historicalOutputInfo = lastOutputInfo,
         )
     }
 
@@ -702,7 +712,7 @@ internal class SessionTopology {
         isFirstPublicAssignment: Boolean,
     ): ActivePublicationCommit {
         check(candidate.isCurrent(this))
-        lastEffectiveParameters = candidate.plan.effectiveParameters
+        lastOutputInfo = candidate.plan.outputInfo
         lastPublishedCapturedContentVisibility = candidate.isCapturedContentVisible
         lastPublishedPausedRevision = 0L
         lastPublishedPauseProblem = null
@@ -734,7 +744,7 @@ internal class SessionTopology {
             owner = this,
             generation = generation,
             publicPlan = plan,
-            effectiveParameters = plan.effectiveParameters,
+            outputInfo = plan.outputInfo,
             isCapturedContentVisible = isCapturedContentVisible,
         )
     }
@@ -750,7 +760,7 @@ internal class SessionTopology {
                     (problem == ScreenCaptureProblem.CaptureUnavailable) ||
                     (problem == ScreenCaptureProblem.ResourceExhausted),
         )
-        val historical = lastEffectiveParameters ?: return null
+        val historical = lastOutputInfo ?: return null
         if ((lastPublishedPausedRevision == desiredRevision) && (lastPublishedPauseProblem == problem) &&
             (lastPublishedCapturedContentVisibility == isCapturedContentVisible)
         ) {
@@ -761,14 +771,14 @@ internal class SessionTopology {
             generation = generation,
             revision = desiredRevision,
             requestedParameters = desiredParameters,
-            historicalEffectiveParameters = historical,
+            historicalOutputInfo = historical,
             isCapturedContentVisible = isCapturedContentVisible,
             problem = problem,
         )
     }
 
     internal fun prepareReconfiguration(): PausedPublication? {
-        val historical = publicEffectivePlan?.effectiveParameters ?: return null
+        val historical = publicEffectivePlan?.outputInfo ?: return null
         if (suspension?.revision == desiredRevision) return null
         if ((lastPublishedPausedRevision == desiredRevision) && (lastPublishedPauseProblem == null) &&
             (lastPublishedCapturedContentVisibility == isCapturedContentVisible)
@@ -780,14 +790,14 @@ internal class SessionTopology {
             generation = generation,
             revision = desiredRevision,
             requestedParameters = desiredParameters,
-            historicalEffectiveParameters = historical,
+            historicalOutputInfo = historical,
             isCapturedContentVisible = isCapturedContentVisible,
             problem = null,
         )
     }
 
     internal fun preparePausedVisibility(): PausedPublication? {
-        val historical = lastEffectiveParameters ?: return null
+        val historical = lastOutputInfo ?: return null
         if ((active) || (lastPublishedCapturedContentVisibility == isCapturedContentVisible)) return null
         val problem = suspension?.takeIf { it.revision == desiredRevision }?.problem
         return PausedPublication(
@@ -795,7 +805,7 @@ internal class SessionTopology {
             generation = generation,
             revision = desiredRevision,
             requestedParameters = desiredParameters,
-            historicalEffectiveParameters = historical,
+            historicalOutputInfo = historical,
             isCapturedContentVisible = isCapturedContentVisible,
             problem = problem,
         )
@@ -816,7 +826,7 @@ internal class SessionTopology {
     internal fun prepareTerminalEvidence(): TerminalEvidence = TerminalEvidence(
         owner = this,
         requestedParameters = pendingParameters,
-        lastEffectiveParameters = lastEffectiveParameters,
+        lastOutputInfo = lastOutputInfo,
     )
 
     internal fun invalidateActiveTopology() {
@@ -892,13 +902,13 @@ internal class SessionTopology {
     }
 
     private fun allocateRevision(): Long {
-        val revision = Math.addExact(nextRevision, 1L)
-        nextRevision = revision
+        val revision = Math.addExact(lastAllocatedRevision, 1L)
+        lastAllocatedRevision = revision
         return revision
     }
 
     private fun commitAllocatedTopologyRevision(revision: Long) {
-        check((revision == nextRevision) && (revision > desiredRevision) && (pendingRevision == desiredRevision))
+        check((revision == lastAllocatedRevision) && (revision > desiredRevision) && (pendingRevision == desiredRevision))
         pendingRevision = revision
         desiredRevision = revision
         suspension = null
@@ -909,11 +919,11 @@ internal class SessionTopology {
         generation += 1L
     }
 
-    private fun cacheIsCurrent(candidate: ProductionReadiness, cachedParameters: ScreenCaptureEffectiveParameters): Boolean =
+    private fun cacheIsCurrent(candidate: ProductionReadiness, cachedOutputInfo: CaptureOutputInfo): Boolean =
         (captureAppliedPlan?.hasSameCaptureConfigurationAs(candidate.plan.capturePlan) == true) &&
                 (captureApplyPending == null) && (encoderReadyPlan === candidate.plan.encoderPlan) &&
                 (encodingPending == null) &&
-                (sameCachedEffectiveParameters(cachedParameters, candidate.plan.effectiveParameters))
+                (sameCachedOutputInfo(cachedOutputInfo, candidate.plan.outputInfo))
 
     private fun sameCachedImageParameters(left: ScreenCaptureParameters, right: ScreenCaptureParameters): Boolean =
         (left.sourceRegion == right.sourceRegion) && (left.crop == right.crop) &&
@@ -921,8 +931,8 @@ internal class SessionTopology {
                 (left.mirror == right.mirror) && (left.colorMode == right.colorMode) &&
                 (left.jpegQuality == right.jpegQuality)
 
-    private fun sameCachedEffectiveParameters(left: ScreenCaptureEffectiveParameters, right: ScreenCaptureEffectiveParameters): Boolean =
-        (sameCachedImageParameters(left.appliedParameters, right.appliedParameters)) &&
+    private fun sameCachedOutputInfo(left: CaptureOutputInfo, right: CaptureOutputInfo): Boolean =
+        (sameCachedImageParameters(left.parameters, right.parameters)) &&
                 (left.captureGeometry == right.captureGeometry) && (left.appliedSourceRect == right.appliedSourceRect) &&
                 (left.finalImageSize == right.finalImageSize)
 

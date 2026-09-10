@@ -76,9 +76,9 @@ internal class SessionTopologyReconciliationTest {
         topology.commitMetrics(metricsUpdate)
 
         val staleCandidate = topology.resolvePlan(platformSdkInt = 30) as SessionTopology.PlanDecision.Install
-        assertEquals(metrics.widthPx, staleCandidate.plan.effectiveParameters.captureGeometry.widthPx)
-        assertEquals(metrics.heightPx, staleCandidate.plan.effectiveParameters.captureGeometry.heightPx)
-        assertEquals(metrics.densityDpi, staleCandidate.plan.effectiveParameters.captureGeometry.densityDpi)
+        assertEquals(metrics.widthPx, staleCandidate.plan.outputInfo.captureGeometry.widthPx)
+        assertEquals(metrics.heightPx, staleCandidate.plan.outputInfo.captureGeometry.heightPx)
+        assertEquals(metrics.densityDpi, staleCandidate.plan.outputInfo.captureGeometry.densityDpi)
 
         val afterCloseSettlement = MetricsSnapshot(
             metrics = metrics,
@@ -198,24 +198,36 @@ internal class SessionTopologyReconciliationTest {
         )
     }
 
+    // Verification: API-04
     // Verification: SES-03
     @Test
     fun deniedApplyWaitsUntilRelevantRequestGeometryOrAvailabilityRevision() {
         val requestCase = suspendedAfterDeniedApply(platformSdkInt = Build.VERSION_CODES.S_V2)
         assertSame(SessionTopology.ConvergenceStep.Waiting, requestCase.topology.nextConvergence(false))
+        val reevaluation = requestCase.topology.prepareParameterUpdate(requestCase.deniedParameters.copy())
+            ?: error("missing equal suspended reevaluation")
+        assertSame(requestCase.deniedParameters, reevaluation.parameters)
+        requestCase.topology.commitParameterUpdate(reevaluation)
         assertNull(requestCase.topology.prepareParameterUpdate(requestCase.deniedParameters.copy()))
-        assertSame(SessionTopology.ConvergenceStep.Waiting, requestCase.topology.nextConvergence(false))
-
-        val changedRequest = requestCase.deniedParameters.copy(outputSize = OutputSize.ScaleFactor(0.75))
-        requestCase.topology.commitParameterUpdate(
-            requestCase.topology.prepareParameterUpdate(changedRequest) ?: error("missing changed request"),
-        )
-        requestCase.topology.commitDesired(
-            requestCase.topology.prepareDesiredIngress() ?: error("missing changed desired ingress"),
-        )
+        val reevaluationIngress = requestCase.topology.prepareDesiredIngress()
+            ?: error("missing equal suspended desired ingress")
+        assertSame(requestCase.deniedParameters, reevaluationIngress.parameters)
+        requestCase.topology.commitDesired(reevaluationIngress)
+        assertNull(requestCase.topology.prepareParameterUpdate(requestCase.deniedParameters.copy()))
         commitCurrentPlan(requestCase.topology, requestCase.platformSdkInt)
-        val requestReopen = requestCase.topology.nextConvergence(false) as SessionTopology.ConvergenceStep.Apply
-        assertTrue(requestReopen.revision > requestCase.deniedRevision)
+        val equalRequestReopen = requestCase.topology.nextConvergence(false) as SessionTopology.ConvergenceStep.Apply
+        assertTrue(equalRequestReopen.revision > requestCase.deniedRevision)
+
+        val latestPendingCase = suspendedAfterDeniedApply(platformSdkInt = Build.VERSION_CODES.S_V2)
+        val newerRequest = latestPendingCase.deniedParameters.copy(outputSize = OutputSize.ScaleFactor(0.75))
+        latestPendingCase.topology.commitParameterUpdate(
+            latestPendingCase.topology.prepareParameterUpdate(newerRequest) ?: error("missing newer request"),
+        )
+        assertNull(latestPendingCase.topology.prepareParameterUpdate(newerRequest.copy()))
+        val staleReplacement = latestPendingCase.topology.prepareParameterUpdate(
+            latestPendingCase.deniedParameters.copy(),
+        ) ?: error("stale public state value was not compared against the latest pending request")
+        assertEquals(latestPendingCase.deniedParameters, staleReplacement.parameters)
 
         val geometryCase = suspendedAfterDeniedApply(
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,

@@ -31,6 +31,7 @@ target_link_libraries(screen_capture_engine PRIVATE
         ${jnigraphics_library}
 )
 
+# JNI methods are registered dynamically; the version script permits only JNI_OnLoad to remain exported.
 target_link_options(screen_capture_engine PRIVATE
         "-Wl,--no-undefined"
         "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/screen_capture_engine.map.txt"

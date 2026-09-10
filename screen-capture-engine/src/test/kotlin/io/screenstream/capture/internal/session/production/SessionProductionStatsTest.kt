@@ -35,7 +35,7 @@ internal class SessionProductionStatsTest {
 
         val terminal = production.prepareTerminal()
         assertEquals(1L, terminal.finalStats.encodedFrameCount)
-        assertEquals(1L, terminal.finalStats.droppedFrames.byFailure)
+        assertEquals(1L, terminal.finalStats.frameProductionDrops.byFailure)
         assertEquals(0.0, terminal.finalStats.averageProducedFps, 0.0)
         production.commitTerminal(terminal)
 

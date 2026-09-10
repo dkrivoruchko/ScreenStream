@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
-internal class SessionStartHarness(
+internal class SessionHarness(
     workerOutcome: DispatchOutcome = DispatchOutcome.Accept,
     workerThreadCount: Int = 1,
     bootstrapMode: BootstrapMode = BootstrapMode.FailFast,
@@ -246,6 +246,12 @@ internal class SessionStartHarness(
             }
         }
 
+        private var nextCapturePostOutcome: DispatchOutcome = DispatchOutcome.Accept
+
+        fun setNextCapturePostOutcome(outcome: DispatchOutcome) = synchronized(gate) {
+            nextCapturePostOutcome = outcome
+        }
+
         override fun post(handler: Handler, task: Runnable): Boolean = synchronized(gate) {
             when (handler) {
                 controlHandler -> {
@@ -280,6 +286,13 @@ internal class SessionStartHarness(
                 }
 
                 captureHandler -> {
+                    val outcome = nextCapturePostOutcome
+                    nextCapturePostOutcome = DispatchOutcome.Accept
+                    when (outcome) {
+                        DispatchOutcome.Accept -> Unit
+                        DispatchOutcome.Reject -> return@synchronized false
+                        is DispatchOutcome.Throw -> throw outcome.failure
+                    }
                     captureTasks.addLast(task)
                     capturePosts += 1
                 }
@@ -507,6 +520,9 @@ internal class SessionStartHarness(
         checkNotNull(manualHandlerTaskPoster).enterNextDelayedControl()
 
     internal fun claimNextCaptureTask(): Runnable? = checkNotNull(manualHandlerTaskPoster).claimNextCapture()
+
+    internal fun setNextCapturePostOutcome(outcome: DispatchOutcome) =
+        checkNotNull(manualHandlerTaskPoster).setNextCapturePostOutcome(outcome)
 
     internal fun enterNextDelayedEntry(): ManualDelayedEntryScheduler.TaskHandle? {
         val handle = delayedEntryScheduler.scheduledTasks().firstOrNull { task ->

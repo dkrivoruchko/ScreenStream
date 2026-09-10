@@ -29,12 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 
-/**
- * The HandlerThread, frame listener, Canvas producer, finite waits, synthetic resolver SDK, and authority flag only
- * arrange a real production-renderer read. Callback counts, queue observations, and timeouts are not verdicts. The
- * maintained verdict is the literal plan geometry plus every pixel from [RawPixelOracle]. The provisional API 34
- * case forces a Full plan through the leaf renderer and does not claim that Session admitted a provisional frame.
- */
+/** Judges real renderer output with independent CPU geometry and every pixel from [RawPixelOracle]. */
 @RunWith(AndroidJUnit4::class)
 internal class GLRendererRawPixelTest {
     // Verification: IMG-01
@@ -249,8 +244,8 @@ internal class GLRendererRawPixelTest {
                     sourceDimensionsAreAuthoritative = false,
                     oracleCase = RawPixelOracle.Case(
                         name = "provisional-forced-full-leaf",
-                        // API 34 leaf preparation is independently specified as neutral Full 1x1. Session does not
-                        // admit this provisional renderer output; authority later resolves requested parameters.
+                        // The provisional leaf keeps a Full 10x6 Target and produces a separate neutral 1x1 output.
+                        // Session admission is outside this case; later authority resolves requested parameters.
                         parameters = neutralProvisionalParameters,
                         logicalWidthPx = 10,
                         logicalHeightPx = 6,
@@ -480,7 +475,7 @@ internal class GLRendererRawPixelTest {
             }
         }
 
-        override fun onSourceAvailable(candidate: SourceCandidate) {
+        override fun onSourceAvailable(availability: SourceAvailability) {
             val ticket = pendingTicket.getAndSet(null) ?: return
             val accepted = try {
                 captureHandler.post { ticket.read() }
@@ -661,15 +656,17 @@ internal class GLRendererRawPixelTest {
                 }
             }
             failures.add(targetOutcome?.cleanupFailure)
-            if (targetOwner?.blocksEglTeardown == true) {
+            if (targetOwner?.blocksEglInitializationRelease == true) {
                 failures.add(CapturePhysicalException("Target still blocks EGL teardown"))
             }
 
             val rendererRetired = (renderer == null) || ((rendererOutcome != null) && (rendererOutcome.residue == null))
-            val healthyPrerequisites = (targetOwner?.blocksEglTeardown != true) && rendererRetired
+            val healthyPrerequisites = (targetOwner?.blocksEglInitializationRelease != true) && rendererRetired
             val eglOutcome = if (healthyPrerequisites || !eglOwner.isHealthy) {
                 try {
-                    eglOwner.close()
+                    eglOwner.close(
+                        allowInitializationRelease = targetOwner?.blocksEglInitializationRelease != true,
+                    )
                 } catch (failure: Throwable) {
                     failures.add(failure)
                     null

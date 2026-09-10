@@ -3,6 +3,7 @@ package io.screenstream.capture.internal.capture
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.projection.MediaProjection
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.Surface
@@ -20,6 +21,7 @@ import io.screenstream.capture.Rotation
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.internal.Rgba8888Layout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -30,6 +32,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [36])
@@ -70,6 +76,7 @@ internal class ProjectionOwnerLifecycleTest {
             controlHandler = controlHandler,
             callbackSink = callbackSink,
             callbackBoundary = callbackBoundary,
+            stopCompletion = ProjectionStopCompletion(),
         )
 
         assertSame(ProjectionOwner.ProjectionOperationResult.Success, owner.registerCallback())
@@ -107,10 +114,72 @@ internal class ProjectionOwnerLifecycleTest {
             display.resize(720, 1280, 320)
             display.surface = null
             display.release()
-            projection.unregisterCallback(refEq(callback.captured))
             projection.stop()
+            projection.unregisterCallback(refEq(callback.captured))
         }
         confirmVerified(projection, display)
+    }
+
+    // Verification: CAP-01
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun projectionStopPrecedesEnteredCallbackUnregister() {
+        val projection = mockk<MediaProjection>()
+        val unregisterEntered = CountDownLatch(1)
+        val unregisterMayReturn = CountDownLatch(1)
+        val stopEntered = CountDownLatch(1)
+        val unregisterCount = AtomicInteger()
+        val stopCount = AtomicInteger()
+        val platform = mockk<ProjectionPlatform>()
+        every { platform.registerCallback(refEq(projection), any(), any()) } just Runs
+        every { platform.unregisterCallback(refEq(projection), any()) } answers {
+            unregisterCount.incrementAndGet()
+            unregisterEntered.countDown()
+            check(unregisterMayReturn.await(5L, TimeUnit.SECONDS)) { "Callback unregister was not released" }
+        }
+        every { platform.stop(refEq(projection)) } answers {
+            stopCount.incrementAndGet()
+            stopEntered.countDown()
+        }
+        val owner = owner(projection, platform)
+        assertSame(ProjectionOwner.ProjectionOperationResult.Success, owner.registerCallback())
+        val outcome = AtomicReference<ProjectionOwner.ProjectionRetirementOutcome?>()
+        val retirementFailure = AtomicReference<Throwable?>()
+        val retirementReturned = CountDownLatch(1)
+        val retirementThread = Thread({
+            try {
+                outcome.set(owner.retireCallbackAndProjection())
+            } catch (failure: Throwable) {
+                retirementFailure.set(failure)
+            } finally {
+                retirementReturned.countDown()
+            }
+        }, "ScreenCaptureEngine-Blocking-Unregister")
+
+        try {
+            retirementThread.start()
+            check(unregisterEntered.await(5L, TimeUnit.SECONDS)) { "Callback unregister did not enter" }
+
+            assertEquals(0L, stopEntered.count)
+            assertEquals(1L, retirementReturned.count)
+            assertEquals(1, unregisterCount.get())
+            assertEquals(1, stopCount.get())
+
+            unregisterMayReturn.countDown()
+            check(stopEntered.await(5L, TimeUnit.SECONDS)) { "Projection stop did not enter" }
+            check(retirementReturned.await(5L, TimeUnit.SECONDS)) { "Projection retirement did not return" }
+            retirementThread.join(5_000L)
+
+            assertFalse("Projection retirement thread did not return", retirementThread.isAlive)
+            retirementFailure.get()?.let { throw AssertionError("Projection retirement failed", it) }
+            assertNull(checkNotNull(outcome.get()).cleanupFailure)
+            assertNull(checkNotNull(outcome.get()).residue)
+            assertEquals(1, unregisterCount.get())
+            assertEquals(1, stopCount.get())
+        } finally {
+            unregisterMayReturn.countDown()
+            retirementThread.join(5_000L)
+        }
     }
 
     // Verification: CAP-01
@@ -199,7 +268,7 @@ internal class ProjectionOwnerLifecycleTest {
         assertSame(unregisterFailure, first.residue)
         assertSame(unregisterFailure, repeated.cleanupFailure)
         assertSame(unregisterFailure, repeated.residue)
-        assertEquals(listOf("register", "unregister", "stop"), platform.calls)
+        assertEquals(listOf("register", "stop", "unregister"), platform.calls)
         assertEquals(1, platform.unregisterCount)
         assertEquals(1, platform.stopCount)
         assertEquals(0, platform.createCount)
@@ -247,6 +316,7 @@ internal class ProjectionOwnerLifecycleTest {
         callbackSink = callbackSink,
         callbackBoundary = callbackBoundary,
         platform = platform,
+        stopCompletion = ProjectionStopCompletion(),
     )
 
     private fun plan(

@@ -89,8 +89,8 @@ internal class ManagedEncodedTransactionLifecycleTest {
         val first = directBytes(1, 2)
         val second = directBytes(3, 4, 5)
 
-        transaction.adoptNativeSegment(first, 2)
-        transaction.adoptNativeSegment(second, 3)
+        transaction.copyNativeSegment(first, 2)
+        transaction.copyNativeSegment(second, 3)
         assertEquals(first.limit(), first.position())
         assertEquals(second.limit(), second.position())
         transaction.closeNativeProducer()
@@ -107,7 +107,7 @@ internal class ManagedEncodedTransactionLifecycleTest {
     @Test
     fun abortDropsTentativeNativeBytesAndCannotPublishThem() {
         val transaction = NativeEncodedTransaction()
-        transaction.adoptNativeSegment(directBytes(6, 7, 8), 3)
+        transaction.copyNativeSegment(directBytes(6, 7, 8), 3)
         transaction.closeNativeProducer()
 
         assertTrue(transaction.abort())

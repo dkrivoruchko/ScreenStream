@@ -2,6 +2,13 @@ package io.screenstream.capture.internal.encoding
 
 import io.screenstream.capture.internal.storage.ImmutableEncodedPayload
 
+/**
+ * Owns tentative mutable segments until producer close and commit. Close ends producer writes; only a later commit of
+ * positive output normalizes a partial tail and transfers every mutable alias, including the outer segment array and
+ * each inner [ByteArray], to [ImmutableEncodedPayload]. The first fault is sticky. A committed payload cannot abort and
+ * detaches only by exact identity without copying. Checked byte-count overflow is resource exhaustion; an
+ * [OutOfMemoryError] is contained only when the exact allocation site records that same throwable.
+ */
 internal sealed class ManagedEncodedTransaction {
     internal enum class State { Open, ProducerClosed, Faulted, Committed, Aborted, }
 

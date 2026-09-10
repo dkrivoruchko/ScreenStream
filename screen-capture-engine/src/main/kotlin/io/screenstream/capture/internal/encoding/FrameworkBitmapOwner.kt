@@ -10,6 +10,12 @@ import io.screenstream.capture.internal.Rgba8888Layout
 import io.screenstream.capture.internal.isExactWritableRgbaCarrier
 import java.nio.ByteBuffer
 
+/**
+ * Owns one mutable final-size bitmap and its exclusive transfer/compression use. Tight bitmap rows accept the exact
+ * RGBA carrier directly; padded rows are converted one row at a time. A returned bitmap is adopted before validation,
+ * so later validation or scratch-allocation failure can retain `ownerResidue`. Resource exhaustion is contained only
+ * where an exact allocation attempt records its [OutOfMemoryError].
+ */
 internal class FrameworkBitmapOwner(internal val layout: Rgba8888Layout) {
     internal sealed interface Creation {
         class Created(internal val owner: FrameworkBitmapOwner) : Creation

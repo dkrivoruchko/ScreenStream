@@ -39,6 +39,11 @@ internal class ControlledNonInlineDispatcher(
         require(workerThreadCount > 0) { "workerThreadCount must be positive" }
     }
 
+    /**
+     * The submitted [task] is the outer `Runnable`, not a nested callback or codec entry. Completion includes thrown
+     * failures and does not prove engine-slot release. [awaitCompletion] returns the failure;
+     * [awaitSuccessfulCompletion] rethrows it.
+     */
     internal class TaskHandle internal constructor(
         internal val task: Runnable,
     ) {

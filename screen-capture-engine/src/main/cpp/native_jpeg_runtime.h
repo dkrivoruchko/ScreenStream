@@ -58,14 +58,14 @@ namespace screenstream::jpeg {
         friend class NativeSegmentWriter;
     };
 
+    // Owns its mutex-serialized segment chain. Each append preallocates before mutation, and the first recorded fault
+    // is sticky. A pointer returned by firstSegment is valid only while the caller excludes close; freeFrontSegment or
+    // close invalidates freed pointers, so arbitrary concurrent drain and close are unsupported.
     class NativeSegmentWriter final {
     public:
         NativeSegmentWriter() noexcept = default;
 
-        NativeSegmentWriter(
-                SegmentAllocateFunction allocateFunction,
-                SegmentFreeFunction freeFunction
-        ) noexcept;
+        NativeSegmentWriter(SegmentAllocateFunction allocateFunction, SegmentFreeFunction freeFunction) noexcept;
 
         ~NativeSegmentWriter() noexcept;
 
@@ -102,9 +102,9 @@ namespace screenstream::jpeg {
 
         void recordOutOfMemory() noexcept;
 
-        [[nodiscard]] bool validateChainLocked() const noexcept;
+        [[nodiscard]] bool validateRemainingChainLocked() const noexcept;
 
-        [[nodiscard]] bool validateListLocked() const noexcept;
+        [[nodiscard]] bool validateCompleteOutputLocked() const noexcept;
 
         [[nodiscard]] bool freeChainLocked() noexcept;
 
@@ -143,6 +143,7 @@ namespace screenstream::jpeg {
             bool compressionLeftPendingJavaThrowable
     ) noexcept;
 
+    // The compressor returns before the writer is frozen; this function records evidence but does not drain segments.
     CompressionResult compressFrame(
             const NativeFrameDescriptor &descriptor,
             CompressorFunction compressor,

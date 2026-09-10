@@ -5,7 +5,8 @@ import java.nio.ByteBuffer
 internal class NativeEncodedTransaction : ManagedEncodedTransaction() {
     internal val segmentSink: NativeSegmentSink = NativeSegmentSink(this)
 
-    internal fun adoptNativeSegment(nativeSegmentView: ByteBuffer, segmentByteCount: Int) {
+    /** Synchronously copies the borrowed native view and does not retain it after this call. */
+    internal fun copyNativeSegment(nativeSegmentView: ByteBuffer, segmentByteCount: Int) {
         requireOpenProducer()
         if ((segmentByteCount <= 0) ||
             (!nativeSegmentView.isDirect) ||

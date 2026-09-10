@@ -1,3 +1,4 @@
+# RegisterNatives and GetMethodID resolve these binary names and private members after shrinking.
 -keepnames class io.screenstream.capture.internal.encoding.NativeJpegProcess
 -keepclassmembers,allowoptimization,includedescriptorclasses class io.screenstream.capture.internal.encoding.NativeJpegProcess {
     private java.nio.ByteBuffer nativeAllocateCarrier(long);
@@ -8,5 +9,5 @@
 
 -keepnames class io.screenstream.capture.internal.encoding.NativeSegmentSink
 -keepclassmembers,allowoptimization,includedescriptorclasses class io.screenstream.capture.internal.encoding.NativeSegmentSink {
-    private void adoptNativeSegment(java.nio.ByteBuffer, int);
+    private void copyNativeSegment(java.nio.ByteBuffer, int);
 }

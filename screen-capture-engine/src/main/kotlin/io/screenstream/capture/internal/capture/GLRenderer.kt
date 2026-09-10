@@ -17,6 +17,13 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
+/**
+ * The shader maps GL's first readback row directly to the output top. Inverse mirror, rotation, and crop map into
+ * source coordinates; after texel-center clamping, one `1 - y` conversion precedes the OES transform. No later
+ * vertical row flip occurs. Clamping limits sampling at the selected rect but cannot undo upstream resampling or
+ * establish a privacy boundary. RGB is quantized to RGB8 before optional round-half-up integer grayscale; output
+ * alpha is opaque.
+ */
 internal class GLRenderer(
     private val eglOwner: EglOwner,
     private var targetOwner: TargetOwner,
@@ -38,7 +45,7 @@ internal class GLRenderer(
     private val shaderStatus = IntArray(1)
     private val programStatus = IntArray(1)
     private val surfaceTextureTransformMatrix = FloatArray(TargetPlatform.TRANSFORM_MATRIX_FLOAT_COUNT)
-    private val logicalInverseMatrix = FloatArray(TargetPlatform.TRANSFORM_MATRIX_FLOAT_COUNT)
+    private val outputToSourceMatrix = FloatArray(TargetPlatform.TRANSFORM_MATRIX_FLOAT_COUNT)
     private val positionBuffer: FloatBuffer = directFloatBuffer(floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f))
     private val textureCoordinateBuffer: FloatBuffer = directFloatBuffer(floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f, 1f, 1f))
     private var outputTextureName = 0
@@ -49,7 +56,7 @@ internal class GLRenderer(
     private var fragmentShaderName = 0
     private var programName = 0
     private var oesMatrixLocation = -1
-    private var imageMatrixLocation = -1
+    private var outputToSourceMatrixLocation = -1
     private var grayscaleLocation = -1
     private var sourceTextureLocation = -1
     private var imageMinXLocation = -1
@@ -93,14 +100,14 @@ internal class GLRenderer(
             gl.getProgramStatus(candidateProgram, programStatus)
             if (programStatus[0] != GLES20.GL_TRUE) return@runGlesGroup false
             oesMatrixLocation = gl.getUniformLocation(candidateProgram, OES_MATRIX_UNIFORM_NAME)
-            imageMatrixLocation = gl.getUniformLocation(candidateProgram, IMAGE_MATRIX_UNIFORM_NAME)
+            outputToSourceMatrixLocation = gl.getUniformLocation(candidateProgram, OUTPUT_TO_SOURCE_MATRIX_UNIFORM_NAME)
             grayscaleLocation = gl.getUniformLocation(candidateProgram, GRAYSCALE_UNIFORM_NAME)
             sourceTextureLocation = gl.getUniformLocation(candidateProgram, SOURCE_TEXTURE_UNIFORM_NAME)
             imageMinXLocation = gl.getUniformLocation(candidateProgram, IMAGE_MIN_X_UNIFORM_NAME)
             imageMaxXLocation = gl.getUniformLocation(candidateProgram, IMAGE_MAX_X_UNIFORM_NAME)
             imageMinYLocation = gl.getUniformLocation(candidateProgram, IMAGE_MIN_Y_UNIFORM_NAME)
             imageMaxYLocation = gl.getUniformLocation(candidateProgram, IMAGE_MAX_Y_UNIFORM_NAME)
-            if ((oesMatrixLocation < 0) || (imageMatrixLocation < 0) ||
+            if ((oesMatrixLocation < 0) || (outputToSourceMatrixLocation < 0) ||
                 (grayscaleLocation < 0) || (sourceTextureLocation < 0) ||
                 (imageMinXLocation < 0) || (imageMaxXLocation < 0) ||
                 (imageMinYLocation < 0) || (imageMaxYLocation < 0)
@@ -172,6 +179,7 @@ internal class GLRenderer(
         var readbackStartedNanos = 0L
         var readbackFinishedNanos = 0L
         eglOwner.runGlesGroup { gl ->
+            // updateTexImage may consume the pending source even when it throws, so restoration is no longer safe.
             sourceRestorableAfterReadFailure = false
             val dataSpace = targetOwner.updateFrameAndReadDataSpace(preparedTexture, surfaceTextureTransformMatrix)
             if (isDisplayP3DataSpace(dataSpace, platformSdkInt)) {
@@ -188,7 +196,7 @@ internal class GLRenderer(
             gl.bindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, targetOwner.requireOesTextureName())
             gl.uniform1i(sourceTextureLocation, 0)
             gl.uniformMatrix4fv(oesMatrixLocation, surfaceTextureTransformMatrix)
-            gl.uniformMatrix4fv(imageMatrixLocation, logicalInverseMatrix)
+            gl.uniformMatrix4fv(outputToSourceMatrixLocation, outputToSourceMatrix)
             gl.uniform1f(grayscaleLocation, if (colorMode == ColorMode.Grayscale) 1f else 0f)
             gl.uniform1f(imageMinXLocation, imageMinX)
             gl.uniform1f(imageMaxXLocation, imageMaxX)
@@ -220,6 +228,7 @@ internal class GLRenderer(
             }
             true
         }
+        // Exact P3 is an operation failure only after the GLES group and its postprobe settle healthy.
         operationFailure?.let { throw it }
         val duration = try {
             Math.subtractExact(readbackFinishedNanos, readbackStartedNanos)
@@ -233,7 +242,7 @@ internal class GLRenderer(
     }
 
     private fun refreshImageParameters(plan: CapturePlan) {
-        computeLogicalInverseMatrix(plan, logicalInverseMatrix)
+        computeOutputToSourceMatrix(plan, outputToSourceMatrix)
         colorMode = plan.colorMode
         val sourceWidthPx = plan.sourceWidthPx.toDouble()
         val sourceHeightPx = plan.sourceHeightPx.toDouble()
@@ -401,7 +410,7 @@ internal class GLRenderer(
         private const val POSITION_ATTRIBUTE_NAME = "aPosition"
         private const val TEX_COORD_ATTRIBUTE_NAME = "aTexCoord"
         private const val OES_MATRIX_UNIFORM_NAME = "uOesMatrix"
-        private const val IMAGE_MATRIX_UNIFORM_NAME = "uImageMatrix"
+        private const val OUTPUT_TO_SOURCE_MATRIX_UNIFORM_NAME = "uOutputToSourceMatrix"
         private const val GRAYSCALE_UNIFORM_NAME = "uGrayscale"
         private const val SOURCE_TEXTURE_UNIFORM_NAME = "uSourceTexture"
         private const val IMAGE_MIN_X_UNIFORM_NAME = "uImageMinX"
@@ -418,7 +427,7 @@ internal class GLRenderer(
                     position(0)
                 }
 
-        private fun computeLogicalInverseMatrix(plan: CapturePlan, destination: FloatArray) {
+        private fun computeOutputToSourceMatrix(plan: CapturePlan, destination: FloatArray) {
             val sourceWidthPx = plan.sourceWidthPx
             val sourceHeightPx = plan.sourceHeightPx
             val appliedSourceRect = plan.appliedSourceRect
@@ -548,19 +557,21 @@ internal class GLRenderer(
         }
 
         private const val VERTEX_SHADER: String = """
-            uniform mat4 $IMAGE_MATRIX_UNIFORM_NAME;
+            uniform mat4 $OUTPUT_TO_SOURCE_MATRIX_UNIFORM_NAME;
             attribute vec4 $POSITION_ATTRIBUTE_NAME;
             attribute vec4 $TEX_COORD_ATTRIBUTE_NAME;
             varying vec2 vImageCoord;
             void main() {
                 gl_Position = $POSITION_ATTRIBUTE_NAME;
                 vec4 framebufferCoordinate = vec4($TEX_COORD_ATTRIBUTE_NAME.x, $TEX_COORD_ATTRIBUTE_NAME.y, 0.0, 1.0);
-                vec4 imageCoordinate = $IMAGE_MATRIX_UNIFORM_NAME * framebufferCoordinate;
+                vec4 imageCoordinate = $OUTPUT_TO_SOURCE_MATRIX_UNIFORM_NAME * framebufferCoordinate;
                 vImageCoord = imageCoordinate.xy;
             }
         """
 
         private const val FRAGMENT_EXTENSION: String = "#extension GL_OES_EGL_image_external : require\n"
+
+        // Grayscale uses (77R + 150G + 29B) / 256 after RGB8 quantization, rounded half up.
         private const val FRAGMENT_BODY: String = """
             uniform samplerExternalOES $SOURCE_TEXTURE_UNIFORM_NAME;
             uniform mat4 $OES_MATRIX_UNIFORM_NAME;

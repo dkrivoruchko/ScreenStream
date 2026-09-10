@@ -11,6 +11,10 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
+/*
+ * The decoded JPEG oracle compares each channel within tile-interior rows and each tile, plus grayscale spread and
+ * ordering. These local limits prevent one region's error from being diluted into a whole-image average.
+ */
 internal object DeviceJpegFixture {
     internal const val WIDTH_PX: Int = 64
     internal const val HEIGHT_PX: Int = 48

@@ -1,131 +1,90 @@
 # ScreenStream Capture Engine
 
-## Overview
+ScreenStream Capture Engine is a Kotlin SDK for Android screen capture and image processing. It turns screen content into complete JPEG images, ready to save, analyze, or send to another device.
 
-ScreenStream Capture Engine is an embeddable Kotlin Android library that produces JPEG frames from a user-approved [`MediaProjection`](https://developer.android.com/reference/android/media/projection/MediaProjection). Choose image settings and receive complete frames to save, analyze, or transport.
+It handles capture and image processing while giving your app control over the result:
 
-### Capture Control
+- **Ready-to-use JPEGs.** Complete images arrive with matching settings and dimensions for storage, analysis, or transport.
+- **Flexible image output.** Choose the framing, orientation, size, color, and JPEG quality your application needs.
+- **Live control.** Change image and timing settings without restarting capture.
+- **Efficient image processing.** Image transforms share one GPU pass. Only the final-size pixels are then copied back for JPEG encoding.
+- **Less wasted work.** The SDK checks whether another frame is due and selects the newest waiting image, reducing unnecessary processing.
+- **Reuse across frames.** Graphics and encoding resources are reused when settings allow. A newly registered consumer can receive the latest compatible JPEG without a new capture or encode.
+- **Bounded frame delivery.** Slow frame callbacks do not build an SDK delivery backlog. JPEGs can be copied into new or reusable app storage.
+- **Resource management and monitoring.** The SDK coordinates capture resources and exposes lifecycle state, statistics, and diagnostics so your app can respond.
 
-- **Receive complete, self-describing JPEG frames.** Each delivered image includes its final dimensions and the exact output details used to produce it.
-- **Change output without restarting capture.** Adjust the captured region, crop, image size, rotation, mirroring, color, frame rate, repeat interval, and JPEG quality while the session is running.
-- **Choose the capture measurements.** Use dimensions and density from the current default display, a fixed display, or measurements supplied by your app.
+Read the guides:
 
-### Performance and Memory Efficiency
-
-- **Avoid unnecessary CPU and GPU work.** The engine keeps only the newest screen image waiting for processing and applies frame-rate limits before GPU pixel readback and JPEG encoding.
-- **Process each fresh output in one GPU pass.** One OpenGL ES draw applies crop, rotation, mirroring, output sizing, and color or grayscale processing, then reads only the final-size pixels needed by the JPEG encoder.
-- **Capture fewer pixels when possible.** On [API 32+](https://developer.android.com/media/grow/media-projection#surface), a compatible full-source downscale can feed fewer pixels into the graphics path; see the [one final-size processing path](docs/architecture.md#one-final-size-processing-path).
-- **Reuse compatible resources.** Capture targets, GPU resources, and encoding storage are reused across frames and setting changes when their size and format remain compatible, reducing repeated setup and allocation.
-- **Keep callback delivery bounded.** Each session runs or schedules at most one frame callback for its current consumer at a time; if the app is still handling it, later delivery opportunities are counted as drops instead of building a memory-consuming queue.
-- **Copy JPEG bytes only when requested.** Receiving a frame does not allocate an app-owned JPEG copy. `copyTo()` writes into app-provided storage, while `toByteArray()` creates an independent contiguous copy.
-- **Reuse encoded JPEGs for repeat output.** When repeats are enabled, the engine can deliver the latest JPEG again without another capture, GPU readback, encode, or engine-side JPEG-byte copy.
-
-### Built for Integration
-
-- **Use a focused session API.** One `ScreenCaptureSession` represents one capture run and accepts live setting changes without requiring another session.
-- **Observe capture as it runs.** Read-only Kotlin Flows report lifecycle state, cumulative frame statistics, and best-effort troubleshooting events.
-
-```mermaid
-flowchart TB
-    Start["Your app<br/>starts capture"] --> Capture
-
-    subgraph Engine["ScreenStream Capture Engine"]
-        direction TB
-        Capture["Capture"] --> GPU["GPU processing<br/>one transform pass"]
-        GPU --> Encode["JPEG encoding<br/>Android Framework · optional Native"]
-        Encode --> Deliver["Controlled delivery<br/>complete JPEG · one at a time"]
-    end
-
-    Deliver --> Value["JPEG frames ready for your app<br/>save · analyze · stream"]
-```
-
-See [Usage](docs/usage.md) for integration and [Architecture](docs/architecture.md) for pipeline design and responsibility boundaries.
-
-## Requirements
-
-- The supported public API is Kotlin 2.4 and later.
-- The library supports Android API 24 and later. Consuming projects must use `compileSdk` 37 or later.
-- Complete the [Android host prerequisites](docs/usage.md#android-host-prerequisites) before starting capture.
+- [Usage](docs/usage.md) — how to integrate and use the SDK, with examples and the complete public API contract.
+- [Architecture](docs/architecture.md) — how the SDK works and why it is designed this way.
 
 ## Quick start
 
-Create a session with a fresh `MediaProjection`, register a frame consumer (the function called for each delivered JPEG), then start capture. A successful factory call transfers projection ownership to the session. The lifecycle owner must call `stop()` when done, even if `start()` never runs. See [startup and ownership](docs/usage.md#start-a-capture-run).
-
 ```kotlin
-val session = ScreenCaptureEngine.createSession(context, mediaProjection)
-
-session.registerFrameConsumer { frame: EncodedImageFrame ->
-    // frame contains one complete JPEG and its output details.
-    // Read or copy it only inside this callback.
+suspend fun captureScreen(
+    context: Context,
+    mediaProjection: MediaProjection,
+    onJpeg: (ByteArray) -> Unit,
+) {
+    val session = ScreenCaptureEngine.createSession(context, mediaProjection)
+    try {
+        session.registerFrameConsumer { frame ->
+            // Runs on an engine worker; keep onJpeg nonblocking.
+            onJpeg(frame.toByteArray()) // An owned copy the app can keep.
+        }
+        session.start()
+        // Wait for capture to end; cancel this coroutine to request stop.
+        session.state.first {
+            it is ScreenCaptureState.Stopped || it is ScreenCaptureState.Failed
+        }
+    } finally {
+        withContext(NonCancellable) {
+            session.stop()
+        }
+    }
 }
-
-session.start()
-
-// When capture is no longer needed:
-session.stop()
 ```
 
-### Work with JPEG frames
+See the [complete integration example](docs/usage.md#complete-lifecycle-integration) for error handling and registration cleanup.
 
-Each callback receives an `EncodedImageFrame`, an object containing one complete JPEG plus read-only output and timing details. The object is borrowed: read or copy it only inside that callback and on the same thread. If your app needs the JPEG bytes after the callback returns, copy them inside the callback with `copyTo()` or `toByteArray()`.
+## What your app owns
 
-See [Detailed frame handling](docs/usage.md#work-with-jpeg-frames) for metadata, lifetime rules, and both copy strategies.
+Your app obtains Android capture authority and a `MediaProjection` for the selected screen or, where supported, app window. Before creating a session, meet Android's permission and foreground-service requirements. The SDK does not provide that host setup; follow the [Android host requirements](docs/usage.md#prepare-the-android-host).
 
-## Capture parameters
+After `createSession()` succeeds, the SDK owns the projection. Your app controls the run through its session: register a JPEG consumer, start with the desired image settings, update those settings, and observe state and statistics. Each session supports one run. When it is no longer needed, await `session.stop()`; the [lifecycle guide](docs/usage.md#run-a-capture-session) covers startup, cancellation, consumer cleanup, and stopping from a context that cannot suspend.
 
-Pass parameters at start or update them while the session is running.
+Your app decides how to use, buffer, protect, and retain the JPEG copies. Audio capture, video encoding, storage, and transport are outside the SDK's scope.
 
-| Parameter | Default | Purpose |
-| --- | --- | --- |
-| `sourceRegion` | `SourceRegion.Full` | Selects the source area to capture. |
-| `crop` | `CropInsetsPx.ZERO` | Removes edges from the selected content. |
-| `rotation` | `Rotation.Degrees0` | Rotates the image clockwise. |
-| `mirror` | `Mirror.None` | Reflects the image after rotation. |
-| `outputSize` | `OutputSize.ScaleFactor(0.5)` | Sets the final JPEG dimensions. |
-| `colorMode` | `ColorMode.Color` | Selects color or grayscale output. |
-| `frameRate` | `FrameRate.Auto` | Controls how often new JPEGs may be produced. |
-| `frameRepeatInterval` | `null` | Optionally redelivers the latest JPEG after an interval with no output. |
-| `jpegQuality` | `80` | Sets the JPEG encoder quality hint. |
+Supports Android API 24 and later. The current SDK build uses Kotlin 2.4 and `compileSdk` 37.
 
-See [Capture parameters and live updates](docs/usage.md#choose-and-update-capture-parameters) for choices, processing order, and applied-output details.
+## Capture capabilities
 
-## Session configuration
+### Image control
 
-Session configuration is fixed at creation; capture parameters can change while running.
+**Composition.** Select the full source, its left half, or its right half, then crop, rotate, and mirror the image. Choose color or grayscale output and set JPEG quality. [Image sizing](docs/usage.md#image-and-geometry) can scale the result by a factor, fit it inside bounds without padding, or stretch it to exact dimensions.
 
-| Option | Default | Purpose |
-| --- | --- | --- |
-| `captureMetricsSource` | `null` | Chooses where capture dimensions and density come from. |
-| `jpegBackendPolicy` | `JpegBackendPolicy.Auto` | Controls whether the optional native JPEG encoder may be used. |
+**Live changes.** [Update settings](docs/usage.md#change-capture-parameters) without restarting the session. Each frame includes its own settings, captured area, and final dimensions, so the bytes stay paired with the right metadata as capture changes.
 
-See [Session configuration](docs/usage.md#configure-session-wide-behavior) for display-source choices and JPEG backend policy.
+### Processing and delivery
 
-## Monitor capture
+**Work per image.** The [GPU pipeline](docs/architecture.md#one-final-size-processing-path) combines cropping, sizing, rotation, mirroring, and color processing in one pass. It then copies only those final-size pixels from the GPU for JPEG encoding. Graphics and encoding resources are reused while they remain suitable for the current settings. [JPEG encoding](docs/usage.md#session-configuration) supports the Android framework encoder and an optional native compressor.
 
-A session exposes three read-only Kotlin Flows:
+**Output timing.** [Timing controls](docs/usage.md#frame-timing) let you process images as they become available, cap the output rate, or sample less often. The engine checks whether a frame is due before copying pixels from the GPU and encoding it, and keeps the newest waiting image.
 
-| Signal | Use it for |
-| --- | --- |
-| `session.state` | Shows current capture status and any requested or applied output details available in that state. Use it for app decisions. |
-| `session.stats` | Accumulates frame counts, processing time, JPEG size, and frame-production or delivery-drop counts. |
-| `session.diagnosticEvents` | Best-effort context for app logs, support reports, and troubleshooting. |
+**Frame handoff.** A session supports at most one current frame consumer, registered with `registerFrameConsumer()`. The frame object passed to its callback is a temporary SDK-owned view: read its metadata or [copy its JPEG bytes](docs/usage.md#handle-jpeg-frames) only while that callback is running and on the same thread. The copy can use a new array or your own reusable buffer.
 
-The Flows update independently; their latest values do not form a synchronized snapshot. See [Monitoring](docs/usage.md#monitor-capture) for fields and collection rules.
+For that registration, at most one callback can be running or waiting to run. Later delivery opportunities are skipped while it is busy, rather than queued. Your app controls any queue it creates with the copied bytes.
 
-## Behavior and responsibilities
+### Monitoring and recovery
 
-### What the engine provides
+**Run state.** Follow capture through active operation, settings changes, pauses, and completion with a Kotlin Flow. When a recoverable problem pauses new output, the session enters `Suspended` and remains available for recovery. It may resume after settings or capture conditions change. Resubmitting the current desired settings with `updateParameters()` can also [request reevaluation](docs/usage.md#retry-suspended-capture). This does not guarantee that another capture attempt will start or succeed, and the SDK does not retry continuously.
 
-- Every delivered frame is one complete, opaque, top-down JPEG together with its exact output settings and dimensions. Color uses a nominal SDR/sRGB interpretation; see [color assumptions and limits](docs/usage.md#color-assumptions-and-limits).
-- Out-of-range parameter values are rejected. Requests that cannot produce valid output are reported through startup failure or session state rather than silently changed.
+**Output health.** [Statistics](docs/usage.md#monitor-capture) report session totals for produced frames and production or delivery drops. They also show average output rate, processing times, and JPEG size, plus the latest JPEG size. Diagnostics add troubleshooting context; state and the SDK's stable problem categories guide [error handling and recovery](docs/usage.md#handle-errors-and-recovery).
 
-### What your app owns
+## Practical limits
 
-- Complete the Android host requirements, then use a fresh `MediaProjection` and a new `ScreenCaptureSession` for each capture run.
-- Use an `EncodedImageFrame` only inside its callback. Copy its bytes before returning if your app must retain them or send them to another thread.
-- Source selection and crop choose the intended image area. Your app decides who may access delivered JPEGs and how they are transported, stored, retained, and deleted.
-
-### Practical limits
-
-- Capture, frame pacing, and repeat delivery are best effort rather than realtime guarantees. Explicit frame-rate controls set limits or sampling policies, not promised delivery rates.
-- A callback admitted before a settings change can still deliver its original output. A callback already running may outlive `stop()`. Await the registration's `unregister()` successfully before releasing resources used only by that callback; this wait remains available after the session ends.
+- Capture timing is best effort; frames may be delayed or skipped.
+- JPEG output assumes standard dynamic range (SDR) and sRGB colors. Faithful color reproduction and conversion from high dynamic range (HDR) are not guaranteed. Captured frames explicitly identified as Display P3 are rejected; see the [color limits](docs/usage.md#color-assumptions-and-limits).
+- Android may omit protected content, including windows marked `FLAG_SECURE`.
+- A callback already scheduled before a settings change can still deliver its older image. Use that frame's own metadata.
+- A terminal state does not prove that a running callback has returned or that all Android and graphics resources have finished releasing.

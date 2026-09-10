@@ -13,12 +13,16 @@ import io.screenstream.capture.internal.capture.EglPlatform
 import io.screenstream.capture.internal.capture.GlesPlatform
 import io.screenstream.capture.internal.capture.ProjectionPlatform
 import io.screenstream.capture.internal.capture.TargetPlatform
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.stopAndDrainSession
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.DispatchOutcome
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.requestStopAndDrainSession
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -35,6 +39,7 @@ import org.robolectric.annotation.LooperMode
 import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 /*
  * Public Bootstrap contract evidence through the real Session Coordinator.
@@ -47,13 +52,89 @@ import java.util.concurrent.atomic.AtomicInteger
 @Config(manifest = Config.NONE, sdk = [36])
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class ScreenCaptureSessionBootstrapTest {
+    // Verification: SES-08
+    // Verification: SES-01
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun cancelledEnteredStopStillStopsNeverStartedSessionAndAnotherWaiterCompletes() = runTest {
+        SessionHarness().use { harness ->
+            every { harness.projection().stop() } just Runs
+            val cancellation = AtomicReference<Throwable?>()
+            val cancelled = launch(UnconfinedTestDispatcher(testScheduler)) {
+                currentCoroutineContext().cancel()
+                cancellation.set(runCatching { harness.session.stop() }.exceptionOrNull())
+            }
+            cancelled.join()
+            assertTrue(cancellation.get() is CancellationException)
+            assertTrue(harness.session.state.value is ScreenCaptureState.Stopped)
+            val stopped = async(UnconfinedTestDispatcher(testScheduler)) { harness.session.stop() }
+            assertFalse(stopped.isCompleted)
+            check(harness.enterNextWorkerSuccessfully())
+            stopped.await()
+            harness.session.stop()
+            assertTrue(runCatching { harness.session.start() }.exceptionOrNull() is IllegalStateException)
+            verify(exactly = 1) { harness.projection().stop() }
+        }
+    }
+
+    // Verification: SES-08
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun bootstrapStopFailureIsDurableAndSeparateFromRequestedTerminalState() = runTest {
+        SessionHarness().use { harness ->
+            val cause = IllegalStateException("bootstrap projection stop failed")
+            every { harness.projection().stop() } throws cause
+            val stopped = async(UnconfinedTestDispatcher(testScheduler)) { runCatching { harness.session.stop() } }
+            assertFalse(stopped.isCompleted)
+            check(harness.enterNextWorkerSuccessfully())
+            val failure = stopped.await().exceptionOrNull() as ScreenCaptureException
+            assertSame(ScreenCaptureProblem.InternalFailure, failure.problem)
+            assertSame(cause, failure.cause)
+            assertSame(failure, runCatching { harness.session.stop() }.exceptionOrNull())
+            assertTrue(harness.session.state.value is ScreenCaptureState.Stopped)
+            verify(exactly = 1) { harness.projection().stop() }
+        }
+    }
+
+    // Verification: SES-08
+    @Test
+    fun rejectedBootstrapStopDispatchFailsWithoutClaimingProjectionCompletion() = runTest {
+        SessionHarness(workerOutcome = DispatchOutcome.Reject).use { harness ->
+            val failure = runCatching { harness.session.stop() }.exceptionOrNull() as ScreenCaptureException
+            assertSame(ScreenCaptureProblem.InternalFailure, failure.problem)
+            assertSame(failure, runCatching { harness.session.stop() }.exceptionOrNull())
+            assertTrue(harness.session.state.value is ScreenCaptureState.Stopped)
+            verify(exactly = 0) { harness.projection().stop() }
+        }
+    }
+
+    // Verification: SES-08
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun failedStartupDoesNotMakeSuccessfulStopFail() = runTest {
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
+            bootstrapFault = SessionHarness.BootstrapFault.ControlThreadStartThrows,
+        ).use { harness ->
+            every { harness.projection().stop() } just Runs
+            val startup = async(UnconfinedTestDispatcher(testScheduler)) { runCatching { harness.session.start() } }
+            check(harness.enterNextWorkerSuccessfully())
+            assertTrue(startup.await().exceptionOrNull() is ScreenCaptureException)
+            assertTrue(harness.session.state.value is ScreenCaptureState.Failed)
+            val terminal = harness.session.state.value
+            harness.session.stop()
+            assertSame(terminal, harness.session.state.value)
+            verify(exactly = 1) { harness.projection().stop() }
+            harness.drainWorkerTasks()
+        }
+    }
+
     // Verification: SES-01
     // Verification: BSP-01
     @Test
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun controlThreadStartFailureFailsPublicStartAndReleasesProjectionOnce() = runTest {
         assertFatalBootstrapFault(
-            fault = SessionStartHarness.BootstrapFault.ControlThreadStartThrows,
+            fault = SessionHarness.BootstrapFault.ControlThreadStartThrows,
             expectedControlQuitRequests = 1,
             expectedCaptureQuitRequests = 0,
         )
@@ -62,10 +143,9 @@ internal class ScreenCaptureSessionBootstrapTest {
     // Verification: SES-01
     // Verification: BSP-02
     @Test
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun missingControlLooperFailsPublicStartAndReleasesProjectionOnce() = runTest {
         assertFatalBootstrapFault(
-            fault = SessionStartHarness.BootstrapFault.ControlLooperReturnsNull,
+            fault = SessionHarness.BootstrapFault.ControlLooperReturnsNull,
             expectedControlQuitRequests = 1,
             expectedCaptureQuitRequests = 0,
         )
@@ -74,10 +154,9 @@ internal class ScreenCaptureSessionBootstrapTest {
     // Verification: SES-01
     // Verification: BSP-03
     @Test
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun controlHandlerConstructionFailureFailsPublicStartAndReleasesProjectionOnce() = runTest {
         assertFatalBootstrapFault(
-            fault = SessionStartHarness.BootstrapFault.ControlHandlerConstructionThrows,
+            fault = SessionHarness.BootstrapFault.ControlHandlerConstructionThrows,
             expectedControlQuitRequests = 1,
             expectedCaptureQuitRequests = 0,
         )
@@ -87,11 +166,11 @@ internal class ScreenCaptureSessionBootstrapTest {
     // Verification: BSP-04
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun rejectedFirstControlPostFailsStartAndRetiresProjectionWithoutSeparateStop() = runTest {
+    fun rejectedFirstControlPostFailsStartAndRetiresProjectionWithoutSeparateRequestStop() = runTest {
         val platforms = CapturePlatformProbes()
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
-            bootstrapFault = SessionStartHarness.BootstrapFault.FirstControlPostReturnsFalse,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
+            bootstrapFault = SessionHarness.BootstrapFault.FirstControlPostReturnsFalse,
             projectionPlatform = platforms.projection,
             eglPlatform = platforms.egl,
             glesPlatform = platforms.gles,
@@ -112,7 +191,7 @@ internal class ScreenCaptureSessionBootstrapTest {
 
                 // Test-seam receipt only: it validates that the arranged post(false) outcome was consumed.
                 assertSame(
-                    SessionStartHarness.BootstrapFault.FirstControlPostReturnsFalse,
+                    SessionHarness.BootstrapFault.FirstControlPostReturnsFalse,
                     harness.consumedBootstrapFault(),
                 )
                 val terminal = harness.session.state.value as ScreenCaptureState.Failed
@@ -134,7 +213,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 confirmVerified(projection)
             } finally {
                 try {
-                    stopAndDrainAcceptedWork(harness)
+                    requestStopAndDrainAcceptedWork(harness)
                 } finally {
                     start.cancelAndJoin()
                 }
@@ -147,7 +226,7 @@ internal class ScreenCaptureSessionBootstrapTest {
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun acceptedFirstControlPostMayEnterDuringCallAndRetiresProjectionOnce() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
         val projectionStopReturned = AtomicBoolean(false)
         every { platform.projection.stop() } just Runs
@@ -155,9 +234,9 @@ internal class ScreenCaptureSessionBootstrapTest {
         every { platform.projectionPlatform.stop(refEq(platform.projection)) } answers {
             projectionStopReturned.set(true)
         }
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
-            bootstrapFault = SessionStartHarness.BootstrapFault.FirstControlPostEntersDuringCall,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
+            bootstrapFault = SessionHarness.BootstrapFault.FirstControlPostEntersDuringCall,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
             projection = platform.projection,
@@ -175,7 +254,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
 
                 assertSame(
-                    SessionStartHarness.BootstrapFault.FirstControlPostEntersDuringCall,
+                    SessionHarness.BootstrapFault.FirstControlPostEntersDuringCall,
                     harness.consumedBootstrapFault(),
                 )
                 assertTrue(start.isCompleted)
@@ -183,8 +262,8 @@ internal class ScreenCaptureSessionBootstrapTest {
                 assertTrue(harness.session.state.value is ScreenCaptureState.Active)
                 assertEquals(initialStats, harness.session.stats.value)
 
-                harness.session.stop()
-                stopAndDrainSession(harness)
+                harness.session.requestStop()
+                requestStopAndDrainSession(harness)
 
                 val terminal = harness.session.state.value as ScreenCaptureState.Stopped
                 val terminalStats = harness.session.stats.value
@@ -196,7 +275,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 verify(exactly = 0) { platform.projection.stop() }
             } finally {
                 try {
-                    stopAndDrainAcceptedWork(harness)
+                    requestStopAndDrainAcceptedWork(harness)
                 } finally {
                     start.cancelAndJoin()
                 }
@@ -207,10 +286,9 @@ internal class ScreenCaptureSessionBootstrapTest {
     // Verification: SES-01
     // Verification: BSP-05
     @Test
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun thrownFirstControlPostFailsPublicStartAndReleasesProjectionOnce() = runTest {
         assertFatalBootstrapFault(
-            fault = SessionStartHarness.BootstrapFault.FirstControlPostThrows,
+            fault = SessionHarness.BootstrapFault.FirstControlPostThrows,
             expectedControlQuitRequests = 1,
             expectedCaptureQuitRequests = 1,
         )
@@ -219,10 +297,10 @@ internal class ScreenCaptureSessionBootstrapTest {
     // Verification: SES-01
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun stopBeforeBootstrapWorkerEntryMakesLateWorkerCleanupOnly() = runTest {
+    fun requestStopBeforeBootstrapWorkerEntryMakesLateWorkerCleanupOnly() = runTest {
         val platforms = CapturePlatformProbes()
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             projectionPlatform = platforms.projection,
             eglPlatform = platforms.egl,
             glesPlatform = platforms.gles,
@@ -242,7 +320,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 platforms.verifyUntouched()
                 verify { projection wasNot Called }
 
-                harness.session.stop()
+                harness.session.requestStop()
 
                 val terminal = harness.session.state.value as ScreenCaptureState.Stopped
                 val terminalStats = harness.session.stats.value
@@ -261,7 +339,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 confirmVerified(projection)
             } finally {
                 try {
-                    stopAndDrainAcceptedWork(harness)
+                    requestStopAndDrainAcceptedWork(harness)
                 } finally {
                     start.cancelAndJoin()
                 }
@@ -272,10 +350,10 @@ internal class ScreenCaptureSessionBootstrapTest {
     // Verification: SES-01
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun stopBeforeAcceptedFirstControlEntryMakesLateEntryCleanupOnly() = runTest {
+    fun requestStopBeforeAcceptedFirstControlEntryMakesLateEntryCleanupOnly() = runTest {
         val platforms = CapturePlatformProbes()
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             projectionPlatform = platforms.projection,
             eglPlatform = platforms.egl,
             glesPlatform = platforms.gles,
@@ -297,7 +375,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 platforms.verifyUntouched()
                 verify { projection wasNot Called }
 
-                harness.session.stop()
+                harness.session.requestStop()
 
                 val terminal = harness.session.state.value as ScreenCaptureState.Stopped
                 val terminalStats = harness.session.stats.value
@@ -317,7 +395,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 confirmVerified(projection)
             } finally {
                 try {
-                    stopAndDrainAcceptedWork(harness)
+                    requestStopAndDrainAcceptedWork(harness)
                 } finally {
                     start.cancelAndJoin()
                 }
@@ -328,10 +406,10 @@ internal class ScreenCaptureSessionBootstrapTest {
     // Verification: SES-01
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun stopDuringBootstrapSkipsQueuedPlatformOpen() = runTest {
+    fun requestStopDuringBootstrapSkipsQueuedPlatformOpen() = runTest {
         val platforms = CapturePlatformProbes()
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             projectionPlatform = platforms.projection,
             eglPlatform = platforms.egl,
             glesPlatform = platforms.gles,
@@ -360,7 +438,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 platforms.verifyUntouched()
                 verify { projection wasNot Called }
 
-                harness.session.stop()
+                harness.session.requestStop()
                 driveControlUntilStopped(harness)
 
                 val terminal = harness.session.state.value as ScreenCaptureState.Stopped
@@ -381,7 +459,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 confirmVerified(projection)
             } finally {
                 try {
-                    stopAndDrainAcceptedWork(harness)
+                    requestStopAndDrainAcceptedWork(harness)
                 } finally {
                     start.cancelAndJoin()
                 }
@@ -393,8 +471,8 @@ internal class ScreenCaptureSessionBootstrapTest {
     // Verification: MET-01
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun stopDuringMetricsSubscribeClosesLateHandleOnce() = runTest {
-        SessionStartHarness(bootstrapMode = SessionStartHarness.BootstrapMode.BlockingMetrics).use { harness ->
+    fun requestStopDuringMetricsSubscribeClosesLateHandleOnce() = runTest {
+        SessionHarness(bootstrapMode = SessionHarness.BootstrapMode.BlockingMetrics).use { harness ->
             val projection = harness.projection()
             every { projection.stop() } just Runs
             val callbackCount = AtomicInteger()
@@ -418,7 +496,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 assertFalse(start.isCompleted)
                 verify { projection wasNot Called }
 
-                harness.session.stop()
+                harness.session.requestStop()
                 driveControlUntilStopped(harness)
 
                 val terminal = harness.session.state.value as ScreenCaptureState.Stopped
@@ -444,7 +522,7 @@ internal class ScreenCaptureSessionBootstrapTest {
             } finally {
                 try {
                     harness.releaseMetricsSubscribeReturn()
-                    stopAndDrainAcceptedWork(harness)
+                    requestStopAndDrainAcceptedWork(harness)
                 } finally {
                     start.cancelAndJoin()
                 }
@@ -454,13 +532,13 @@ internal class ScreenCaptureSessionBootstrapTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun TestScope.assertFatalBootstrapFault(
-        fault: SessionStartHarness.BootstrapFault,
+        fault: SessionHarness.BootstrapFault,
         expectedControlQuitRequests: Int,
         expectedCaptureQuitRequests: Int,
     ) {
         val platforms = CapturePlatformProbes()
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             bootstrapFault = fault,
             projectionPlatform = platforms.projection,
             eglPlatform = platforms.egl,
@@ -500,7 +578,7 @@ internal class ScreenCaptureSessionBootstrapTest {
                 confirmVerified(projection)
             } finally {
                 try {
-                    stopAndDrainAcceptedWork(harness)
+                    requestStopAndDrainAcceptedWork(harness)
                 } finally {
                     start.cancelAndJoin()
                 }
@@ -508,7 +586,7 @@ internal class ScreenCaptureSessionBootstrapTest {
         }
     }
 
-    private fun driveWorkerAndControlUntilCaptureBoundary(harness: SessionStartHarness) {
+    private fun driveWorkerAndControlUntilCaptureBoundary(harness: SessionHarness) {
         repeat(ACCEPTED_WORK_LIMIT) {
             val worker = harness.enterNextWorker()
             if (worker != null) {
@@ -521,7 +599,7 @@ internal class ScreenCaptureSessionBootstrapTest {
         error("Worker and Control work did not reach the bounded Capture boundary")
     }
 
-    private fun driveControlUntilStopped(harness: SessionStartHarness) {
+    private fun driveControlUntilStopped(harness: SessionHarness) {
         repeat(ACCEPTED_WORK_LIMIT) {
             if (harness.session.state.value is ScreenCaptureState.Stopped) return
             check(harness.enterNextControlTask()) { "Control work became idle before terminal publication" }
@@ -531,7 +609,7 @@ internal class ScreenCaptureSessionBootstrapTest {
         }
     }
 
-    private fun driveWorkersUntil(harness: SessionStartHarness, condition: () -> Boolean) {
+    private fun driveWorkersUntil(harness: SessionHarness, condition: () -> Boolean) {
         repeat(ACCEPTED_WORK_LIMIT) {
             if (condition()) return
             val worker = harness.enterNextWorker() ?: error("Worker work became idle before the owner boundary settled")
@@ -540,8 +618,8 @@ internal class ScreenCaptureSessionBootstrapTest {
         check(condition()) { "Worker work did not settle the owner boundary within the bounded drive" }
     }
 
-    private fun stopAndDrainAcceptedWork(harness: SessionStartHarness) {
-        harness.session.stop()
+    private fun requestStopAndDrainAcceptedWork(harness: SessionHarness) {
+        harness.session.requestStop()
         repeat(ACCEPTED_WORK_LIMIT) {
             var progressed = false
             harness.enterNextWorker()?.let { worker ->

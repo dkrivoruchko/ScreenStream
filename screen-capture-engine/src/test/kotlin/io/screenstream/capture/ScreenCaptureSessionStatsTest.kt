@@ -2,13 +2,13 @@ package io.screenstream.capture
 
 import android.os.Build
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.BlockingCallback
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.drainAcceptedSessionWork
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.driveControlUntil
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.primeCachedFrame
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.requestStopAndDrainSession
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.startActiveSession
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.stopAndDrainSession
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -24,13 +24,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-/*
- * Public Session Stats accounting evidence through the real Coordinator, Production, and Delivery.
- *
- * Injected elapsed-time samples, callback latches, the second worker, and controlled task entry only arrange
- * eligible activity and consumer overlap. Exact public cumulative or frozen Stats and real callback return decide
- * these scenarios; clock-read count, queue shape, turn count, and private phase are not oracles.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -40,11 +33,11 @@ internal class ScreenCaptureSessionStatsTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun freshOutputWithoutConsumerCountsProductionWithoutDeliveryDrop() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -74,13 +67,13 @@ internal class ScreenCaptureSessionStatsTest {
                     eligibleStats.droppedDeliveries.byCallbackFailure,
                 )
 
-                harness.session.stop()
+                harness.session.requestStop()
                 driveControlUntil(harness) { harness.session.state.value is ScreenCaptureState.Stopped }
                 val finalStats = harness.session.stats.value
                 assertEquals(eligibleStats.producedFrameCount, finalStats.producedFrameCount)
                 assertEquals(eligibleStats.droppedDeliveries, finalStats.droppedDeliveries)
             } finally {
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }
@@ -90,12 +83,12 @@ internal class ScreenCaptureSessionStatsTest {
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun callbackFailureBeforeRequestedStopIsCountedExactlyOnceInFinalStats() = runTest {
-        val platform = HappyCapturePlatform()
+    fun callbackFailureBeforeRequestStopIsCountedExactlyOnceInFinalStats() = runTest {
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -166,7 +159,7 @@ internal class ScreenCaptureSessionStatsTest {
                 statsAfterSecondDelivery.droppedDeliveries.byCallbackFailure,
             )
 
-            harness.session.stop()
+            harness.session.requestStop()
             driveControlUntil(harness) { harness.session.state.value is ScreenCaptureState.Stopped }
 
             val stopped = harness.session.state.value as ScreenCaptureState.Stopped
@@ -184,12 +177,12 @@ internal class ScreenCaptureSessionStatsTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun enteredConsumerBusyDropIsCountedExactlyOnceInFrozenFinalStats() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
+        SessionHarness(
             workerThreadCount = 2,
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -228,7 +221,7 @@ internal class ScreenCaptureSessionStatsTest {
                 )
                 assertEquals(1, callback.entryCount())
 
-                harness.session.stop()
+                harness.session.requestStop()
                 driveControlUntil(harness) { harness.session.state.value is ScreenCaptureState.Stopped }
                 val frozenState = harness.session.state.value as ScreenCaptureState.Stopped
                 val frozenStats = harness.session.stats.value
@@ -247,7 +240,7 @@ internal class ScreenCaptureSessionStatsTest {
             } finally {
                 callback.release()
                 callbackTask.awaitCompletion()
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }

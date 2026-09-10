@@ -1,6 +1,5 @@
 package io.screenstream.capture.internal.capture
 
-import android.annotation.SuppressLint
 import android.graphics.SurfaceTexture
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
@@ -8,6 +7,11 @@ import android.os.Handler
 import android.view.Surface
 import io.screenstream.capture.ScreenCaptureProblem
 
+/**
+ * Owns the OES texture, SurfaceTexture, Surface, and frame-listener lifecycle for one target. Listener and resource
+ * retirement are proof-gated and attempted once; a returned cleanup failure is distinct from evidence that a root
+ * remains. GL-name retirement after context destruction accepts proof only from this target's EGL namespace.
+ */
 internal class TargetOwner(
     private val captureHandler: Handler,
     private val eglOwner: EglOwner,
@@ -17,7 +21,7 @@ internal class TargetOwner(
     private val platform: TargetPlatform = AndroidTargetPlatform,
 ) {
     internal fun interface SourceSink {
-        fun onSourceAvailable(candidate: SourceCandidate)
+        fun onSourceAvailable(availability: SourceAvailability)
     }
 
     internal class ReleaseOutcome(
@@ -36,8 +40,8 @@ internal class TargetOwner(
 
     private enum class ReleaseState { Eligible, Attempted, Released, }
 
-    internal val sourceCandidate: SourceCandidate = SourceCandidate()
-    private val callbackIdentity = CaptureCallbackIdentity.Target(sourceCandidate.token)
+    internal val sourceAvailability: SourceAvailability = SourceAvailability()
+    private val callbackIdentity = CaptureCallbackIdentity.Target(sourceAvailability.token)
     private val textureNames = IntArray(1)
     private val successfulListenerRemovalProof = ListenerRemovalProof(this)
     private var oesTextureName = 0
@@ -62,7 +66,7 @@ internal class TargetOwner(
             if (listenerFenced || (!listenerMayBeInstalled) || (callbackTexture !== surfaceTexture)) {
                 return@runCaptureCallback
             }
-            sourceSink.onSourceAvailable(sourceCandidate)
+            sourceSink.onSourceAvailable(sourceAvailability)
         }
     }
 
@@ -95,7 +99,7 @@ internal class TargetOwner(
                 -> false
         }
 
-    internal val blocksEglTeardown: Boolean
+    internal val blocksEglInitializationRelease: Boolean
         get() = ((listenerRetirement != ListenerRetirement.NeverAttempted) && (listenerRetirement != ListenerRetirement.RemovalReturned))
                 || (surface != null) || (surfaceTexture != null)
 
@@ -165,7 +169,6 @@ internal class TargetOwner(
 
     internal fun requireSurfaceTexture(): SurfaceTexture = checkNotNull(surfaceTexture)
 
-    @SuppressLint("NewApi")
     internal fun updateFrameAndReadDataSpace(surfaceTexture: SurfaceTexture, transformMatrix: FloatArray): Int {
         try {
             platform.updateTexImage(surfaceTexture)

@@ -1,15 +1,15 @@
 package io.screenstream.capture
 
 import android.os.Build
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.FrameSnapshot
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.assertJpegDimensions
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.copyFrame
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.drainAcceptedSessionWork
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.driveControlUntil
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.requestStopAndDrainSession
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.startActiveSession
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.stopAndDrainSession
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -26,15 +26,6 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
-/*
- * Public live-parameter-update and cache-compatibility evidence through the real Coordinator, owners, cache, and
- * Links.
- *
- * Accepted non-inline work and the one-shot Control-post action only arrange update convergence or update/terminal
- * contention. Queue shape, turn count, private phase, handler identity, and incidental platform-call ordering are
- * not oracles; public State, immutable frame identity/effective parameters, and maintained target effects decide
- * these scenarios.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -44,12 +35,12 @@ internal class ScreenCaptureSessionParameterUpdateTest {
     @Config(sdk = [Build.VERSION_CODES.S_V2])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun admittedUnequalUpdateStoppedAtFirstUnlockedEffectFreezesNewestRequestWithoutOrdinarySuccessor() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val initialParameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
         val updatedParameters = initialParameters.copy(outputSize = OutputSize.ScaleFactor(0.5))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.S_V2,
             projection = platform.projection,
@@ -66,7 +57,7 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             try {
                 harness.runBeforeNextControlPost {
                     check(raceArranged.compareAndSet(false, true))
-                    harness.session.stop()
+                    harness.session.requestStop()
                 }
 
                 harness.session.updateParameters(updatedParameters)
@@ -79,11 +70,11 @@ internal class ScreenCaptureSessionParameterUpdateTest {
 
                 assertSame(ScreenCaptureStopReason.Requested, stopped.reason)
                 assertEquals(updatedParameters, stopped.requestedParameters)
-                assertEquals(initialActive.effectiveParameters, stopped.lastEffectiveParameters)
+                assertEquals(initialActive.outputInfo, stopped.lastOutputInfo)
                 assertEquals(stopped, harness.session.state.value)
                 platform.verifyNoReplacementTargetWasCreated()
             } finally {
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }
@@ -93,15 +84,15 @@ internal class ScreenCaptureSessionParameterUpdateTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun imageAffectingUpdatePublishesNewestReconfiguringBeforeFirstEncodingEffect() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val initialParameters = ScreenCaptureParameters(
             outputSize = OutputSize.ScaleFactor(1.0),
             jpegQuality = 80,
         )
         val updatedParameters = initialParameters.copy(jpegQuality = 35)
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -120,7 +111,7 @@ internal class ScreenCaptureSessionParameterUpdateTest {
 
                 val reconfiguring = ScreenCaptureState.Reconfiguring.create(
                     requestedParameters = updatedParameters,
-                    lastEffectiveParameters = initialActive.effectiveParameters,
+                    lastOutputInfo = initialActive.outputInfo,
                     isCapturedContentVisible = initialActive.isCapturedContentVisible,
                 )
                 assertEquals(reconfiguring, harness.session.state.value)
@@ -129,19 +120,18 @@ internal class ScreenCaptureSessionParameterUpdateTest {
                 harness.driveUntil {
                     val state = harness.session.state.value
                     (state is ScreenCaptureState.Active) &&
-                            (state.effectiveParameters.appliedParameters == updatedParameters)
+                            (state.outputInfo.parameters == updatedParameters)
                 }
                 platform.verifyNoProjectionTopologyChanges()
                 platform.verifyNoReplacementTargetWasCreated()
             } finally {
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }
 
     // Verification: SES-06
     // Verification: STO-01
-    // Audit item: P3-05
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -152,10 +142,10 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             frameRate = FrameRate.MaxFps(30),
         )
         val updatedParameters = initialParameters.copy(frameRate = FrameRate.MaxFps(15))
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = metrics,
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -193,7 +183,7 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             harness.driveUntil {
                 val state = harness.session.state.value
                 (state is ScreenCaptureState.Active) &&
-                        (state.effectiveParameters.appliedParameters == updatedParameters)
+                        (state.outputInfo.parameters == updatedParameters)
             }
             val currentActive = harness.session.state.value as ScreenCaptureState.Active
             harness.clock.setDefaultNanos(productionNanos + 1_000_000_000L)
@@ -212,13 +202,13 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             cachedUnregister.await()
 
             assertEquals(updatedParameters, currentActive.requestedParameters)
-            assertEquals(updatedParameters, currentActive.effectiveParameters.appliedParameters)
-            assertEquals(initialParameters, original.effectiveParameters.appliedParameters)
-            assertEquals(productionNanos, original.timestampElapsedRealtimeNanos)
+            assertEquals(updatedParameters, currentActive.outputInfo.parameters)
+            assertEquals(initialParameters, original.outputInfo.parameters)
+            assertEquals(productionNanos, original.outputTimestampElapsedRealtimeNanos)
             assertArrayEquals(original.bytes, cached.bytes)
             assertEquals(original.sequence, cached.sequence)
-            assertEquals(original.timestampElapsedRealtimeNanos, cached.timestampElapsedRealtimeNanos)
-            assertEquals(original.effectiveParameters, cached.effectiveParameters)
+            assertEquals(original.outputTimestampElapsedRealtimeNanos, cached.outputTimestampElapsedRealtimeNanos)
+            assertEquals(original.outputInfo, cached.outputInfo)
             assertEquals(statsBeforeProduction.encodedFrameCount + 1L, statsAfterProduction.encodedFrameCount)
             assertEquals(statsBeforeProduction.producedFrameCount + 1L, statsAfterProduction.producedFrameCount)
             assertEquals(statsAfterProduction, harness.session.stats.value)
@@ -241,10 +231,10 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             sourceRegion = SourceRegion.RightHalf,
             outputSize = OutputSize.TargetSize(4, 6, OutputSize.ContentMode.Stretch),
         )
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = metrics,
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -278,7 +268,7 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             harness.driveUntil {
                 val state = harness.session.state.value
                 (state is ScreenCaptureState.Active) &&
-                        (state.effectiveParameters.appliedParameters == updatedParameters)
+                        (state.outputInfo.parameters == updatedParameters)
             }
             val currentActive = harness.session.state.value as ScreenCaptureState.Active
 
@@ -298,10 +288,10 @@ internal class ScreenCaptureSessionParameterUpdateTest {
             assertEquals(1, deliveredFrames.size)
             val firstDelivered = deliveredFrames.single()
             assertEquals(updatedParameters, currentActive.requestedParameters)
-            assertEquals(updatedParameters, currentActive.effectiveParameters.appliedParameters)
-            assertEquals(updatedParameters, firstDelivered.effectiveParameters.appliedParameters)
-            assertEquals(currentActive.effectiveParameters, firstDelivered.effectiveParameters)
-            assertEquals(original.effectiveParameters.appliedSourceRect, firstDelivered.effectiveParameters.appliedSourceRect)
+            assertEquals(updatedParameters, currentActive.outputInfo.parameters)
+            assertEquals(updatedParameters, firstDelivered.outputInfo.parameters)
+            assertEquals(currentActive.outputInfo, firstDelivered.outputInfo)
+            assertEquals(original.outputInfo.appliedSourceRect, firstDelivered.outputInfo.appliedSourceRect)
             assertTrue(firstDelivered.sequence > original.sequence)
             assertJpegDimensions(firstDelivered.bytes, widthPx = 4, heightPx = 6)
             platform.verifyNoProjectionTopologyChanges()

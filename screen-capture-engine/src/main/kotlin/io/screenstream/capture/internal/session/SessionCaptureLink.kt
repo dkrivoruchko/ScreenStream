@@ -18,6 +18,7 @@ import io.screenstream.capture.internal.session.production.SessionReadBridge
  * raw-frame read. It deliberately owns no capture policy or session-currentness decision; those
  * remain with [SessionCoordinator]. A detached read is retained only until its exact late real return or matching
  * definite pre-entry dispatch rejection settles its loan, without reviving terminal session state.
+ * `Locked` methods require the coordinator's session gate and tolerate a callback arriving before submission returns.
  */
 internal class SessionCaptureLink(
     private val coordinator: SessionCoordinator,

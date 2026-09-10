@@ -8,6 +8,14 @@ import android.opengl.EGLSurface
 import android.opengl.GLES20
 import io.screenstream.capture.ScreenCaptureProblem
 
+/**
+ * Owns one EGL initialization, binding, context, pbuffer, and their GL namespace. GLES work requires the binding
+ * thread and exact current display/context/read-surface/draw-surface tuple. Ordinary command success still requires a
+ * clean postprobe; failure poisons the context, with a typed [CaptureBoundaryFailure] taking precedence. An [Error]
+ * bypasses postprobe. Cleanup failure and retained residue are separate evidence: namespace-destruction proof retires
+ * only this owner's GL names. Unbind runs on the binding thread; uncertain releases are attempted once, and denying
+ * initialization release is irreversible.
+ */
 internal class EglOwner(
     private val egl: EglPlatform = AndroidEglPlatform,
     private val gl: GlesPlatform = AndroidGlesPlatform,
@@ -64,7 +72,7 @@ internal class EglOwner(
     private val highFloatPrecision = IntArray(1)
     private val namespaceDestroyedProof = GLNamespaceDestroyedProof(this)
     private var initialization = Initialization.Absent
-    private var displayReleaseFailure: Throwable? = null
+    private var initializationReleaseFailure: Throwable? = null
     private var capabilities: GLCapabilities? = null
     private var display: EGLDisplay? = null
     private var context: EGLContext? = null
@@ -168,6 +176,7 @@ internal class EglOwner(
     }
 
     internal fun endGlesGroup(commandsSucceeded: Boolean, commandFailure: Exception? = null) {
+        // The postprobe follows ordinary return or Exception containment; an escaping Error provides no probe evidence.
         var postprobeFailure: Exception? = null
         val postprobe = try {
             gl.getError()
@@ -238,7 +247,7 @@ internal class EglOwner(
         ).also { capabilities = it }
     }
 
-    internal fun close(allowDisplayRelease: Boolean = true): EglRetirementOutcome {
+    internal fun close(allowInitializationRelease: Boolean): EglRetirementOutcome {
         val ownedDisplay = display ?: return EglRetirementOutcome(cleanupFailure = null, residue = null, namespaceDestroyedProof = null)
 
         if ((bindingState == BindingState.InitialBindEntered) || (bindingState == BindingState.Current)) {
@@ -307,11 +316,11 @@ internal class EglOwner(
         val resourcesRetired = (contextRetirement in setOf(OwnedRetirement.Absent, OwnedRetirement.Retired)) &&
                 (pbufferRetirement in setOf(OwnedRetirement.Absent, OwnedRetirement.Retired))
         if (initialization == Initialization.Acquired) {
-            if (!allowDisplayRelease) {
+            if (!allowInitializationRelease) {
                 // This denial is final: a later close must not introduce EGL work after TLS release.
                 initialization = Initialization.RetainedByExternalGate
             } else if (resourcesRetired) {
-                displayReleaseFailure = try {
+                initializationReleaseFailure = try {
                     initialization = Initialization.ReleaseAttempted
                     if (!egl.releaseDisplayInitialization(ownedDisplay)) {
                         throw EglErrorException("eglTerminate", egl.getError())
@@ -323,7 +332,7 @@ internal class EglOwner(
                 }
             }
         }
-        firstFailure = firstFailure ?: displayReleaseFailure
+        firstFailure = firstFailure ?: initializationReleaseFailure
 
         if (threadRetirement == ThreadRetirement.Eligible) {
             releaseThreadFailure = try {
@@ -347,7 +356,7 @@ internal class EglOwner(
                 pbufferDestroyFailure ?: CapturePhysicalException("EGL pbuffer remains owned")
 
             (initialization != Initialization.Absent) && (initialization != Initialization.Released) ->
-                displayReleaseFailure ?: CapturePhysicalException("EGL display initialization remains owned or unproved")
+                initializationReleaseFailure ?: CapturePhysicalException("EGL display initialization remains owned or unproved")
 
             !neverBound && (threadRetirement != ThreadRetirement.Released) ->
                 releaseThreadFailure ?: CapturePhysicalException("EGL thread release remains unproved")

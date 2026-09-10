@@ -1,4 +1,4 @@
-package io.screenstream.capture.internal
+package io.screenstream.capture.internal.session.topology
 
 import io.screenstream.capture.SourceRegion
 import org.junit.Assert.assertEquals

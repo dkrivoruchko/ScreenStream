@@ -261,7 +261,7 @@ internal class SessionLifecycleStateMachineTest {
     // Verification: API-03
     // Verification: SES-02
     @Test
-    fun incumbentChallengerMatrixKeepsPriorityAndSettlesNonFailureWinnersAsCaptureUnavailable() = runTest {
+    fun terminalContestsPreservePriorityAndCancelStartForNonFailureWinners() = runTest {
         val invalidRequestFailure = SessionLifecycle.TerminalDecision.Failed(
             ScreenCaptureProblem.InvalidRequest,
             IllegalStateException("first invalid-request failure"),

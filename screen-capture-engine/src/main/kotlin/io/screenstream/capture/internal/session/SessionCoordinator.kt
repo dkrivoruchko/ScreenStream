@@ -2,7 +2,7 @@ package io.screenstream.capture.internal.session
 
 import android.media.projection.MediaProjection
 import android.os.HandlerThread
-import io.screenstream.capture.EncodedImageFrame
+import io.screenstream.capture.EncodedFrame
 import io.screenstream.capture.JpegBackendPolicy
 import io.screenstream.capture.ScreenCaptureDiagnosticEvent
 import io.screenstream.capture.ScreenCaptureException
@@ -24,6 +24,7 @@ import io.screenstream.capture.internal.capture.CaptureSourceIdentity
 import io.screenstream.capture.internal.capture.EglPlatform
 import io.screenstream.capture.internal.capture.GlesPlatform
 import io.screenstream.capture.internal.capture.ProjectionPlatform
+import io.screenstream.capture.internal.capture.ProjectionStopCompletion
 import io.screenstream.capture.internal.capture.TargetPlatform
 import io.screenstream.capture.internal.delivery.DeliveryClosedStage
 import io.screenstream.capture.internal.delivery.DeliveryFact
@@ -52,6 +53,7 @@ import io.screenstream.capture.internal.session.production.SessionProductionReco
 import io.screenstream.capture.internal.session.production.SessionReadBridge
 import io.screenstream.capture.internal.session.topology.SessionTopology
 import io.screenstream.capture.internal.storage.PublishedFrame
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.SharedFlow
@@ -61,13 +63,13 @@ import java.util.concurrent.CancellationException
 /**
  * Permanent transaction root for one screen-capture session.
  *
- * The coordinator joins the exclusive lifecycle, topology, production, and delivery domains; correlates leaf
- * results through their typed links; and selects public publication and terminal progress. It must not duplicate
- * state owned by those domains or infer completion from dispatch acceptance, elapsed time, or terminal state.
+ * Returned leaf facts are first correlated through their typed links, including stale facts needed to settle exact
+ * physical ownership. Identity and currentness are then revalidated before a fact may affect live session semantics.
  *
  * Cross-domain work is serialized in `publicationGate -> sessionGate` order. Platform, codec, callback, cleanup,
- * clock, dispatch, waiting, payload, and Flow-assignment work must run with both gates released. Every returned leaf
- * fact is applied only after its exact identity and currentness have been revalidated.
+ * clock, dispatch, waiting, payload, and Flow-assignment work must run with both gates released. Methods suffixed `Locked`
+ * require `sessionGate`; both Control turns and callbacks use them, and a callback may arrive before its submit call
+ * returns.
  */
 internal class SessionCoordinator(
     private val metricsSourceSelection: SessionMetricsSourceSelection,
@@ -90,7 +92,6 @@ internal class SessionCoordinator(
     }
 
     private val pacingWakeTask = Runnable { enterPacingWake() }
-    private val repeatWakeTask = Runnable { enterRepeatWake() }
 
     private class TerminalPublicationCandidate(
         val lifecycle: SessionLifecycle.TerminalPreparation,
@@ -135,6 +136,8 @@ internal class SessionCoordinator(
     private val production = SessionProduction(executionClock.nowNanos())
     private val delivery = SessionDelivery()
     private val bootstrapOwnership = BootstrapOwnership()
+    private val terminalPublicationCompletion = CompletableDeferred<Unit>()
+    private val projectionStopCompletion = ProjectionStopCompletion()
 
     private val bootstrap = SessionBootstrap(
         coordinator = this,
@@ -150,6 +153,7 @@ internal class SessionCoordinator(
         glesPlatform = glesPlatform,
         targetPlatform = targetPlatform,
         nativeJpeg = nativeJpeg,
+        projectionStopCompletion = projectionStopCompletion,
     )
 
     private var controlExecutor: SessionControlExecutor? = null
@@ -157,8 +161,7 @@ internal class SessionCoordinator(
     private var pendingControlWake: ImmediateControlWake? = null
     private var terminalPublicationClaimed = false
     private var ordinaryPublication: OrdinaryPublication? = null
-    private var postedPacingWake: SessionProduction.WakeIdentity.Pacing? = null
-    private var postedRepeatWake: SessionProduction.WakeIdentity.Repeat? = null
+    private var postedPacingWake: SessionProduction.PacingWake? = null
     private lateinit var captureLink: SessionCaptureLink
     private lateinit var metricsOwner: SessionMetricsOwner
     private lateinit var encodingLink: SessionEncodingLink
@@ -167,6 +170,16 @@ internal class SessionCoordinator(
     internal val state: StateFlow<ScreenCaptureState> = observations.state
     internal val stats: StateFlow<ScreenCaptureStats> = observations.stats
     internal val diagnosticEvents: SharedFlow<ScreenCaptureDiagnosticEvent> = observations.diagnosticEvents
+
+    internal suspend fun stop() {
+        requestStop()
+        currentCoroutineContext().ensureActive()
+        terminalPublicationCompletion.await()
+        // Active can reserve its successful startup outcome before completing it outside the session gates.
+        // A racing terminal publication then has no startup settlement of its own to complete.
+        lifecycle.startWaiter.awaitCompletion()
+        projectionStopCompletion.awaitCompletion()
+    }
 
     internal fun adoptProjection(mediaProjection: MediaProjection) {
         synchronized(sessionGate) {
@@ -238,7 +251,7 @@ internal class SessionCoordinator(
             try {
                 callerContext.ensureActive()
             } catch (_: CancellationException) {
-                stop()
+                requestStop()
             }
             throw cancellation
         }
@@ -273,7 +286,7 @@ internal class SessionCoordinator(
         selectedFailure?.let { throw it }
     }
 
-    internal fun registerFrameConsumer(consumer: (EncodedImageFrame) -> Unit): suspend () -> Unit {
+    internal fun registerFrameConsumer(consumer: (EncodedFrame) -> Unit): suspend () -> Unit {
         var wake: ImmediateControlWake? = null
         var progress: TerminalProgress? = null
         var registration: SessionDelivery.Registration? = null
@@ -313,7 +326,7 @@ internal class SessionCoordinator(
         registration.completeIfReady()
     }
 
-    internal fun stop() = offerTerminal(SessionLifecycle.TerminalDecision.Requested)
+    internal fun requestStop() = offerTerminal(SessionLifecycle.TerminalDecision.Requested)
 
     internal fun bootstrapCutoffWon(ownership: BootstrapOwnership): Boolean = synchronized(sessionGate) {
         check(ownership === bootstrapOwnership)
@@ -481,11 +494,9 @@ internal class SessionCoordinator(
         publishPausedVisibilityIfNeeded()
         offerCachedFirst()
         startFreshProduction()
-        processRepeatOutput()
         publishStatsIfDue()
         finishTerminalIfPending()
         syncPacingWakeTask()
-        syncRepeatWakeTask()
     }
 
     private fun ensureMetricsAttachment() {
@@ -512,20 +523,19 @@ internal class SessionCoordinator(
                 paused = topology.commitDesired(candidate)
                 production.prepareStaleOutput(candidate.revision)?.let(production::discardStaleOutput)
                 lifecycle.pauseProduction()
-                production.suppressAllWakes()
-                if (frameRateChanged) production.resetForFrameRateChange()
+                if (frameRateChanged) production.resetForFrameRateChange() else production.suppressPacingWake()
                 shouldInvalidateCache = !candidate.isCachedImageCompatible
                 paused?.let { pausedCandidate ->
                     val state = pausedCandidate.problem?.let { problem ->
                         ScreenCaptureState.Suspended.create(
                             requestedParameters = pausedCandidate.requestedParameters,
                             problem = problem,
-                            lastEffectiveParameters = pausedCandidate.historicalEffectiveParameters,
+                            lastOutputInfo = pausedCandidate.historicalOutputInfo,
                             isCapturedContentVisible = pausedCandidate.isCapturedContentVisible,
                         )
                     } ?: ScreenCaptureState.Reconfiguring.create(
                         requestedParameters = pausedCandidate.requestedParameters,
-                        lastEffectiveParameters = pausedCandidate.historicalEffectiveParameters,
+                        lastOutputInfo = pausedCandidate.historicalOutputInfo,
                         isCapturedContentVisible = pausedCandidate.isCapturedContentVisible,
                     )
                     topology.commitPausedPublication(pausedCandidate)
@@ -575,8 +585,8 @@ internal class SessionCoordinator(
                         if (revision != null || decision.closesActiveAdmission) {
                             revision?.let { production.prepareStaleOutput(it)?.let(production::discardStaleOutput) }
                             lifecycle.pauseProduction()
-                            production.suppressAllWakes()
-                            paused = if (decision.wasActive && decision.historicalEffectiveParameters != null) {
+                            production.suppressPacingWake()
+                            paused = if (decision.hasPublicEffectivePlan && decision.historicalOutputInfo != null) {
                                 topology.prepareReconfiguration()
                             } else {
                                 null
@@ -584,14 +594,14 @@ internal class SessionCoordinator(
                             paused?.let { pausedCandidate ->
                                 val state = ScreenCaptureState.Reconfiguring.create(
                                     requestedParameters = pausedCandidate.requestedParameters,
-                                    lastEffectiveParameters = pausedCandidate.historicalEffectiveParameters,
+                                    lastOutputInfo = pausedCandidate.historicalOutputInfo,
                                     isCapturedContentVisible = pausedCandidate.isCapturedContentVisible,
                                 )
                                 topology.commitPausedPublication(pausedCandidate)
                                 publication = reserveStateLocked(state)
                             }
                         }
-                        shouldSuspend = snapshot.metrics == null && decision.historicalEffectiveParameters != null
+                        shouldSuspend = snapshot.metrics == null && decision.historicalOutputInfo != null
                     }
                 }
             }
@@ -706,12 +716,12 @@ internal class SessionCoordinator(
                 }
                 production.prepareStaleOutput(revision)?.let(production::discardStaleOutput)
                 lifecycle.pauseProduction()
-                production.suppressAllWakes()
+                production.suppressPacingWake()
                 paused = topology.prepareReconfiguration()
                 paused?.let { pausedCandidate ->
                     val state = ScreenCaptureState.Reconfiguring.create(
                         requestedParameters = pausedCandidate.requestedParameters,
-                        lastEffectiveParameters = pausedCandidate.historicalEffectiveParameters,
+                        lastOutputInfo = pausedCandidate.historicalOutputInfo,
                         isCapturedContentVisible = pausedCandidate.isCapturedContentVisible,
                     )
                     topology.commitPausedPublication(pausedCandidate)
@@ -757,12 +767,12 @@ internal class SessionCoordinator(
                                 val state = ScreenCaptureState.Suspended.create(
                                     requestedParameters = suspension.requestedParameters,
                                     problem = checkNotNull(suspension.problem),
-                                    lastEffectiveParameters = suspension.historicalEffectiveParameters,
+                                    lastOutputInfo = suspension.historicalOutputInfo,
                                     isCapturedContentVisible = suspension.isCapturedContentVisible,
                                 )
                                 topology.commitPausedPublication(suspension)
                                 publication = reserveStateLocked(state)
-                                production.suppressAllWakes()
+                                production.suppressPacingWake()
                                 shouldInvalidateCache = true
                             }
                         }
@@ -935,12 +945,12 @@ internal class SessionCoordinator(
                                     val state = ScreenCaptureState.Suspended.create(
                                         requestedParameters = suspension.requestedParameters,
                                         problem = checkNotNull(suspension.problem),
-                                        lastEffectiveParameters = suspension.historicalEffectiveParameters,
+                                        lastOutputInfo = suspension.historicalOutputInfo,
                                         isCapturedContentVisible = suspension.isCapturedContentVisible,
                                     )
                                     topology.commitPausedPublication(suspension)
                                     publication = reserveStateLocked(state)
-                                    production.suppressAllWakes()
+                                    production.suppressPacingWake()
                                     shouldInvalidateCache = true
                                 }
                             }
@@ -1009,7 +1019,7 @@ internal class SessionCoordinator(
             assessment
         } ?: return
         val activeState = ScreenCaptureState.Active.create(
-            candidate.plan.effectiveParameters,
+            candidate.plan.outputInfo,
             candidate.isCapturedContentVisible,
         )
         var deadlineFailure: SessionLifecycle.ActiveReservation? = null
@@ -1071,7 +1081,7 @@ internal class SessionCoordinator(
     private fun publishActiveVisibilityIfNeeded() {
         val candidate = synchronized(sessionGate) { topology.prepareActiveVisibility() } ?: return
         val state = ScreenCaptureState.Active.create(
-            effectiveParameters = candidate.effectiveParameters,
+            outputInfo = candidate.outputInfo,
             isCapturedContentVisible = candidate.isCapturedContentVisible,
         )
         var publication: OrdinaryPublication.State? = null
@@ -1102,11 +1112,11 @@ internal class SessionCoordinator(
                 val state = ScreenCaptureState.Suspended.create(
                     requestedParameters = candidate.requestedParameters,
                     problem = checkNotNull(candidate.problem),
-                    lastEffectiveParameters = candidate.historicalEffectiveParameters,
+                    lastOutputInfo = candidate.historicalOutputInfo,
                     isCapturedContentVisible = candidate.isCapturedContentVisible,
                 )
                 topology.commitPausedPublication(candidate)
-                production.suppressAllWakes()
+                production.suppressPacingWake()
                 publication = reserveStateLocked(state)
             }
         }
@@ -1126,12 +1136,12 @@ internal class SessionCoordinator(
                     ScreenCaptureState.Suspended.create(
                         requestedParameters = candidate.requestedParameters,
                         problem = problem,
-                        lastEffectiveParameters = candidate.historicalEffectiveParameters,
+                        lastOutputInfo = candidate.historicalOutputInfo,
                         isCapturedContentVisible = candidate.isCapturedContentVisible,
                     )
                 } ?: ScreenCaptureState.Reconfiguring.create(
                     requestedParameters = candidate.requestedParameters,
-                    lastEffectiveParameters = candidate.historicalEffectiveParameters,
+                    lastOutputInfo = candidate.historicalOutputInfo,
                     isCapturedContentVisible = candidate.isCapturedContentVisible,
                 )
                 topology.commitPausedPublication(candidate)
@@ -1220,7 +1230,7 @@ internal class SessionCoordinator(
 
             is SessionProduction.FreshGrantDecision.RetainUntil -> {
                 if (discardReadConstruction(record, input, read)) {
-                    armWake(grant.targetNanos, readiness.revision, isPacingWake = true)
+                    armPacingWake(grant.targetNanos, readiness.revision)
                 } else {
                     offerFailure(ScreenCaptureProblem.InternalFailure, IllegalStateException("Input discard failed"))
                 }
@@ -1297,6 +1307,8 @@ internal class SessionCoordinator(
     }
 
     private fun consumeRead(read: SessionReadBridge) {
+        // A selected successful read is mechanical accounting even after stop closes ordinary admission; stop alone
+        // does not make its production identity stale. Semantic currentness separately decides encoding and output.
         val result = read.requireClaimedResult()
         var semanticCurrent = false
         var ordinaryAdmissionOpen: Boolean
@@ -1473,11 +1485,11 @@ internal class SessionCoordinator(
                         production.prepareCache()?.let(production::invalidateCache)
                         if (invalidatesActivePlan) {
                             lifecycle.pauseProduction()
-                            production.suppressAllWakes()
+                            production.suppressPacingWake()
                             val paused = checkNotNull(topology.prepareReconfiguration())
                             val state = ScreenCaptureState.Reconfiguring.create(
                                 requestedParameters = paused.requestedParameters,
-                                lastEffectiveParameters = paused.historicalEffectiveParameters,
+                                lastOutputInfo = paused.historicalOutputInfo,
                                 isCapturedContentVisible = paused.isCapturedContentVisible,
                             )
                             topology.commitPausedPublication(paused)
@@ -1534,7 +1546,7 @@ internal class SessionCoordinator(
             offerFailure(ScreenCaptureProblem.InternalFailure, failure)
             return
         }
-        when (val decision = production.prepareFreshOutput(readiness.plan.effectiveParameters, nowNanos, readiness.parameters.frameRate)) {
+        when (val decision = production.prepareFreshOutput(readiness.plan.outputInfo, nowNanos, readiness.parameters.frameRate)) {
             SessionProduction.FreshOutputDecision.Missing -> Unit
             SessionProduction.FreshOutputDecision.InvalidEvidence ->
                 offerFailure(ScreenCaptureProblem.InternalFailure, IllegalStateException("Invalid fresh output evidence"))
@@ -1543,7 +1555,7 @@ internal class SessionCoordinator(
                 offerFailure(ScreenCaptureProblem.InternalFailure, IllegalStateException("Output sequence exhausted"))
 
             is SessionProduction.FreshOutputDecision.Deferred ->
-                armWake(decision.targetNanos, readiness.revision, isPacingWake = true)
+                armPacingWake(decision.targetNanos, readiness.revision)
 
             is SessionProduction.FreshOutputDecision.Candidate -> {
                 var frame: PublishedFrame? = null
@@ -1564,70 +1576,20 @@ internal class SessionCoordinator(
         }
     }
 
-    private fun processRepeatOutput() {
-        val readiness = synchronized(sessionGate) { topology.prepareProductionReadiness() } ?: return
-        val interval = readiness.parameters.frameRepeatInterval ?: run {
-            production.suppressRepeatWake()
-            return
-        }
-        val nowNanos = try {
-            executionClock.nowNanos()
-        } catch (failure: Exception) {
-            offerFailure(ScreenCaptureProblem.InternalFailure, failure)
-            return
-        }
-        when (val decision = production.prepareRepeat(
-            effectiveParameters = readiness.plan.effectiveParameters,
-            frameRate = readiness.parameters.frameRate,
-            repeatInterval = interval,
-            nowNanos = nowNanos,
-        )) {
-            SessionProduction.RepeatDecision.Missing -> production.suppressRepeatWake()
-            SessionProduction.RepeatDecision.InvalidEvidence ->
-                offerFailure(ScreenCaptureProblem.InternalFailure, IllegalStateException("Invalid repeat evidence"))
-
-            SessionProduction.RepeatDecision.SequenceExhausted ->
-                offerFailure(ScreenCaptureProblem.InternalFailure, IllegalStateException("Output sequence exhausted"))
-
-            is SessionProduction.RepeatDecision.Deferred ->
-                armWake(decision.targetNanos, readiness.revision, isPacingWake = false)
-
-            is SessionProduction.RepeatDecision.Candidate -> {
-                var frame: PublishedFrame? = null
-                serializePublication {
-                    synchronized(sessionGate) {
-                        val isCurrent = lifecycle.canRunProduction(
-                            sessionReady = topology.isActiveFor(readiness.revision),
-                            revisionCurrent = topology.acceptsSettledRevision(readiness.revision),
-                        )
-                        val isCacheCurrent = readiness.isCachedImageCurrent(
-                            expectedOwner = topology,
-                            cachedParameters = decision.previousFrame.effectiveParameters,
-                        )
-                        if (!isCurrent || !isCacheCurrent || !decision.isCurrent(production)) return@synchronized
-                        frame = production.commitRepeat(decision)
-                        if (frame != null) controlWorkPending = true
-                    }
-                }
-                frame?.let { offerPublishedFrame(readiness, it) }
-            }
-        }
-    }
-
     private fun offerPublishedFrame(readiness: SessionTopology.ProductionReadiness, frame: PublishedFrame) {
-        val freshOffer = synchronized(sessionGate) {
+        val publishedOffer = synchronized(sessionGate) {
             val isCurrent = lifecycle.canRunProduction(
                 sessionReady = topology.isActiveFor(readiness.revision),
                 revisionCurrent = topology.acceptsSettledRevision(readiness.revision),
             ) && readiness.isCurrent(topology) && production.frameIsLatest(frame)
-            if (!isCurrent) return@synchronized SessionDelivery.FreshOffer.NotAvailable
+            if (!isCurrent) return@synchronized SessionDelivery.PublishedFrameOffer.NotAvailable
             val isPhysicalHandoffFree = deliveryLink.currentHandoffLocked() == null && !deliveryLink.hasPendingOfferLocked()
-            delivery.prepareFreshOffer(frame, isPhysicalHandoffFree)
+            delivery.preparePublishedFrameOffer(frame, isPhysicalHandoffFree)
         }
-        when (freshOffer) {
-            SessionDelivery.FreshOffer.NotAvailable -> Unit
-            SessionDelivery.FreshOffer.ConsumerBusy -> production.recordConsumerBusy()
-            is SessionDelivery.FreshOffer.Prepared -> executeDeliveryOffer(freshOffer.offer)
+        when (publishedOffer) {
+            SessionDelivery.PublishedFrameOffer.NotAvailable -> Unit
+            SessionDelivery.PublishedFrameOffer.ConsumerBusy -> production.recordConsumerBusy()
+            is SessionDelivery.PublishedFrameOffer.Prepared -> executeDeliveryOffer(publishedOffer.offer)
         }
     }
 
@@ -1643,7 +1605,7 @@ internal class SessionCoordinator(
             if (!isCurrent) return@synchronized null
             val frame = when {
                 cache == null -> null
-                cache.isCurrent(production) && readiness.isCachedImageCurrent(topology, cache.frame.effectiveParameters) -> cache.frame
+                cache.isCurrent(production) && readiness.isCachedImageCurrent(topology, cache.frame.outputInfo) -> cache.frame
                 else -> return@synchronized null
             }
             val currentHandoff = deliveryLink.currentHandoffLocked()
@@ -1764,7 +1726,7 @@ internal class SessionCoordinator(
     }
 
     private fun completeHandoffSettlement(settlement: SessionDelivery.HandoffSettlement) {
-        (settlement as? SessionDelivery.HandoffSettlement.UnregisterCompleted)?.settlement?.complete()
+        (settlement as? SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister)?.settlement?.complete()
     }
 
     private suspend fun unregister(registration: SessionDelivery.Registration) {
@@ -1817,63 +1779,38 @@ internal class SessionCoordinator(
         }
     }
 
-    private fun armWake(targetNanos: Long, revision: Long, isPacingWake: Boolean) {
-        if (isPacingWake) {
-            synchronized(sessionGate) {
-                if (!lifecycle.isOrdinaryAdmissionOpen || !topology.acceptsSettledRevision(revision)) return
-                production.armPacingWake(targetNanos, revision)
-            }
-            syncPacingWakeTask()
-            return
-        }
-
+    private fun armPacingWake(targetNanos: Long, revision: Long) {
         synchronized(sessionGate) {
-            if (!lifecycle.canRunProduction(
-                    sessionReady = topology.isActiveFor(revision),
-                    revisionCurrent = topology.acceptsSettledRevision(revision),
-                )
-            ) return
-            production.armRepeatWake(targetNanos, revision)
+            if (!lifecycle.isOrdinaryAdmissionOpen || !topology.acceptsSettledRevision(revision)) return
+            production.armPacingWake(targetNanos, revision)
         }
-        syncRepeatWakeTask()
+        syncPacingWakeTask()
     }
 
     private fun enterPacingWake() {
         val isCurrent = synchronized(sessionGate) {
             val wake = postedPacingWake
             postedPacingWake = null
-            wake != null && production.clearWake(wake) && lifecycle.isOrdinaryAdmissionOpen && topology.acceptsSettledRevision(wake.configRevision)
+            wake != null && production.clearPacingWake(wake) && lifecycle.isOrdinaryAdmissionOpen && topology.acceptsSettledRevision(wake.configRevision)
         }
         if (isCurrent) signalControl()
     }
 
     private fun syncPacingWakeTask() {
         var removeExisting = false
-        var wakeToPost: SessionProduction.WakeIdentity.Pacing? = null
+        var wakeToPost: SessionProduction.PacingWake? = null
         synchronized(sessionGate) {
             val logical = if (lifecycle.isOrdinaryAdmissionOpen) {
                 production.currentPacingWake()
             } else {
-                production.suppressAllWakes()
+                production.suppressPacingWake()
                 null
             }
             val posted = postedPacingWake
-            when {
-                logical == null -> if (posted != null) {
-                    postedPacingWake = null
-                    removeExisting = true
-                }
-
-                posted == null -> {
-                    postedPacingWake = logical
-                    wakeToPost = logical
-                }
-
-                posted !== logical -> {
-                    postedPacingWake = logical
-                    removeExisting = true
-                    wakeToPost = logical
-                }
+            if (posted !== logical) {
+                postedPacingWake = logical
+                removeExisting = posted != null
+                wakeToPost = logical
             }
         }
         val executor = controlExecutor
@@ -1904,82 +1841,12 @@ internal class SessionCoordinator(
         }
     }
 
-    private fun settlePacingSchedulingFailure(wake: SessionProduction.WakeIdentity.Pacing, failure: Exception) {
+    private fun settlePacingSchedulingFailure(wake: SessionProduction.PacingWake, failure: Exception) {
         val shouldFail = synchronized(sessionGate) {
             if (postedPacingWake !== wake) return@synchronized false
             if (production.currentPacingWake() !== wake) return@synchronized false
             postedPacingWake = null
-            production.clearWake(wake)
-        }
-        if (shouldFail) offerFailure(ScreenCaptureProblem.InternalFailure, failure)
-    }
-
-    private fun enterRepeatWake() {
-        val isCurrent = synchronized(sessionGate) {
-            val wake = postedRepeatWake
-            postedRepeatWake = null
-            wake != null && production.clearWake(wake) && lifecycle.isOrdinaryAdmissionOpen && topology.acceptsSettledRevision(wake.configRevision)
-        }
-        if (isCurrent) signalControl()
-    }
-
-    private fun syncRepeatWakeTask() {
-        var removeExisting = false
-        var wakeToPost: SessionProduction.WakeIdentity.Repeat? = null
-        synchronized(sessionGate) {
-            val logical = if (lifecycle.isOrdinaryAdmissionOpen) {
-                production.currentRepeatWake()
-            } else {
-                production.suppressRepeatWake()
-                null
-            }
-            val posted = postedRepeatWake
-            when {
-                logical == null -> if (posted != null) {
-                    postedRepeatWake = null
-                    removeExisting = true
-                }
-
-                posted == null -> {
-                    postedRepeatWake = logical
-                    wakeToPost = logical
-                }
-            }
-        }
-        val executor = controlExecutor
-        if (removeExisting && executor != null) executor.removeCallbacks(repeatWakeTask)
-        val wake = wakeToPost ?: return
-        if (executor == null) {
-            settleRepeatSchedulingFailure(wake, IllegalStateException("Control executor unavailable for repeat wake"))
-            return
-        }
-        val remainingNanos = try {
-            maxOf(0L, Math.subtractExact(wake.targetNanos, executionClock.nowNanos()))
-        } catch (failure: Exception) {
-            settleRepeatSchedulingFailure(wake, failure)
-            return
-        }
-        val stillPending = synchronized(sessionGate) {
-            postedRepeatWake === wake && production.currentRepeatWake() === wake
-        }
-        if (!stillPending) return
-        val accepted = try {
-            executor.postDelayed(repeatWakeTask, nanosToCeilingMillis(remainingNanos))
-        } catch (failure: Exception) {
-            settleRepeatSchedulingFailure(wake, failure)
-            return
-        }
-        if (!accepted) {
-            settleRepeatSchedulingFailure(wake, IllegalStateException("Delayed Control repeat wake was rejected"))
-        }
-    }
-
-    private fun settleRepeatSchedulingFailure(wake: SessionProduction.WakeIdentity.Repeat, failure: Exception) {
-        val shouldFail = synchronized(sessionGate) {
-            if (postedRepeatWake !== wake) return@synchronized false
-            if (production.currentRepeatWake() !== wake) return@synchronized false
-            postedRepeatWake = null
-            production.clearWake(wake)
+            production.clearPacingWake(wake)
         }
         if (shouldFail) offerFailure(ScreenCaptureProblem.InternalFailure, failure)
     }
@@ -2075,6 +1942,8 @@ internal class SessionCoordinator(
                         check(encodingLink.canFreezeTerminalLocked(currentRead?.record, currentRead?.input))
                     }
 
+                    // Returned reads and recorded delivery facts are consumed before freeze. An unresolved read loan is
+                    // detached for exact late settlement; this does not claim every unconsumed encoder operation drained.
                     if (::deliveryLink.isInitialized) deliveryLink.freezeTerminalLocked()
                     if (::captureLink.isInitialized) {
                         captureLink.freezeTerminalLocked(currentRead)
@@ -2085,7 +1954,6 @@ internal class SessionCoordinator(
                     production.commitTerminal(preparation.production)
                     topology.invalidateActiveTopology()
                     postedPacingWake = null
-                    postedRepeatWake = null
                     terminalPublicationClaimed = true
                     preparation
                 }
@@ -2111,10 +1979,10 @@ internal class SessionCoordinator(
                 terminalState = terminalPublication.state,
             )
             terminalPublication.lifecycle.startSettlement?.complete()
+            terminalPublicationCompletion.complete(Unit)
             terminalPublication.delivery.settlement?.complete()
             delivery.completeTerminalRegistration(terminalPublication.delivery)
             controlExecutor?.removeCallbacks(pacingWakeTask)
-            controlExecutor?.removeCallbacks(repeatWakeTask)
             bootstrap.requestPrefixRetirement()
             if (::metricsOwner.isInitialized) {
                 metricsOwner.retire()
@@ -2152,13 +2020,13 @@ internal class SessionCoordinator(
 
     private fun terminalState(decision: SessionLifecycle.TerminalDecision, evidence: SessionTopology.TerminalEvidence): ScreenCaptureState = when (decision) {
         SessionLifecycle.TerminalDecision.Requested ->
-            ScreenCaptureState.Stopped.create(ScreenCaptureStopReason.Requested, evidence.requestedParameters, evidence.lastEffectiveParameters)
+            ScreenCaptureState.Stopped.create(ScreenCaptureStopReason.Requested, evidence.requestedParameters, evidence.lastOutputInfo)
 
         SessionLifecycle.TerminalDecision.ProjectionStopped ->
-            ScreenCaptureState.Stopped.create(ScreenCaptureStopReason.ProjectionStopped, evidence.requestedParameters, evidence.lastEffectiveParameters)
+            ScreenCaptureState.Stopped.create(ScreenCaptureStopReason.ProjectionStopped, evidence.requestedParameters, evidence.lastOutputInfo)
 
         is SessionLifecycle.TerminalDecision.Failed ->
-            ScreenCaptureState.Failed.create(decision.problem, evidence.requestedParameters, evidence.lastEffectiveParameters)
+            ScreenCaptureState.Failed.create(decision.problem, evidence.requestedParameters, evidence.lastOutputInfo)
     }
 
     private fun terminalDiagnostic(decision: SessionLifecycle.TerminalDecision): SessionObservationPublisher.DiagnosticRequest? = when (decision) {
@@ -2519,6 +2387,9 @@ internal class SessionCoordinator(
     }
 
     private fun publishOrdinary(publication: OrdinaryPublication): OrdinaryPublicationSettlement {
+        // This off-gate Flow assignment settles the same reserved operation afterward. An immediate collector cannot
+        // consume it; the reservation defers competing wakes and terminal claim. Active then revalidates topology and
+        // metrics before settlement. No frame is implied by assignment.
         when (publication) {
             is OrdinaryPublication.State -> observations.publishState(publication.value)
             is OrdinaryPublication.Active -> observations.publishState(publication.value)

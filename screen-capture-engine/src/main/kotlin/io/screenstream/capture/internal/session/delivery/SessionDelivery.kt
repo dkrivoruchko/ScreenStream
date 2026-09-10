@@ -1,6 +1,6 @@
 package io.screenstream.capture.internal.session.delivery
 
-import io.screenstream.capture.EncodedImageFrame
+import io.screenstream.capture.EncodedFrame
 import io.screenstream.capture.internal.delivery.DeliveryCutoff
 import io.screenstream.capture.internal.delivery.DeliveryHandoffCompletion
 import io.screenstream.capture.internal.delivery.DeliveryHandoffToken
@@ -25,6 +25,12 @@ internal class SessionDelivery {
         data object IdExhausted : RegistrationResult
     }
 
+    /**
+     * Completion requires durable `callbackSafe` evidence and semantic detachment; removal, caller cancellation, or
+     * reporting failure cannot revoke either fact. Semantic detach permits replacement before waiter notification or
+     * physical release. Completion actions run outside `completionGate` because they can reenter the coordinator's
+     * session gate.
+     */
     internal class Registration(internal val id: Long, internal val waiter: RegistrationWaiter) : DeliveryHandoffCompletion {
         private val completionGate = Any()
         private var admissionToken: DeliveryHandoffToken? = null
@@ -99,6 +105,7 @@ internal class SessionDelivery {
             if (admissionToken !== token) return@synchronized false
             when (result) {
                 DeliveryCutoff.NoHandoff -> when {
+                    // A cutoff racing an unreturned offer permits one successor only if that offer later returns accepted.
                     cutoffState == CutoffState.SuccessorCalling -> cutoffState = CutoffState.Effective
                     cutoffState == CutoffState.Effective -> Unit
                     offerAccepted -> {
@@ -209,15 +216,15 @@ internal class SessionDelivery {
         internal fun complete() = registration.completeIfReady()
 
         internal companion object {
-            internal fun succeeded(registration: Registration): RegistrationSettlement =
+            internal fun create(registration: Registration): RegistrationSettlement =
                 RegistrationSettlement(registration)
         }
     }
 
-    internal sealed interface FreshOffer {
-        data object NotAvailable : FreshOffer
-        data object ConsumerBusy : FreshOffer
-        class Prepared(internal val offer: Offer) : FreshOffer
+    internal sealed interface PublishedFrameOffer {
+        data object NotAvailable : PublishedFrameOffer
+        data object ConsumerBusy : PublishedFrameOffer
+        class Prepared(internal val offer: Offer) : PublishedFrameOffer
     }
 
     internal class CachedFirstCheck(internal val registration: Registration)
@@ -233,14 +240,14 @@ internal class SessionDelivery {
         internal val registration: Registration,
         internal val handoff: DeliveryHandoffToken,
         internal val completion: DeliveryHandoffCompletion,
-        internal val callback: (EncodedImageFrame) -> Unit,
+        internal val callback: (EncodedFrame) -> Unit,
         internal val frame: PublishedFrame,
     ) {
         internal companion object {
             internal fun create(
                 registration: Registration,
                 handoff: DeliveryHandoffToken,
-                callback: (EncodedImageFrame) -> Unit,
+                callback: (EncodedFrame) -> Unit,
                 frame: PublishedFrame,
             ): Offer = Offer(registration, handoff, registration, callback, frame)
         }
@@ -255,7 +262,7 @@ internal class SessionDelivery {
     internal sealed interface HandoffSettlement {
         data object Stale : HandoffSettlement
         data object RegistrationRetained : HandoffSettlement
-        class UnregisterCompleted(internal val settlement: RegistrationSettlement) : HandoffSettlement
+        class ReadyToCompleteUnregister(internal val settlement: RegistrationSettlement) : HandoffSettlement
     }
 
     internal sealed interface CutoffSettlement {
@@ -281,11 +288,11 @@ internal class SessionDelivery {
 
     private enum class CutoffState { None, FirstCalling, AwaitingOfferReturn, SuccessorCalling, Effective, }
 
-    private class RegistrationRecord(id: Long, callback: (EncodedImageFrame) -> Unit) {
+    private class RegistrationRecord(id: Long, callback: (EncodedFrame) -> Unit) {
         val completion = CompletableDeferred<Unit>()
         val registration = Registration(id, RegistrationWaiter(completion))
         var state = RegistrationState.Open
-        var callback: ((EncodedImageFrame) -> Unit)? = callback
+        var callback: ((EncodedFrame) -> Unit)? = callback
         var cachedFirstPending = true
         var offer: Offer? = null
         var offerAccepted = false
@@ -293,18 +300,18 @@ internal class SessionDelivery {
         var cutoffState = CutoffState.None
     }
 
-    private var nextRegistrationId = 0L
+    private var lastAllocatedRegistrationId = 0L
     private var registration: RegistrationRecord? = null
     private var terminalPhase = TerminalPhase.Open
 
-    internal fun register(callback: (EncodedImageFrame) -> Unit): RegistrationResult {
+    internal fun register(callback: (EncodedFrame) -> Unit): RegistrationResult {
         if (terminalPhase != TerminalPhase.Open) return RegistrationResult.Terminal
         if (registration != null) return RegistrationResult.Occupied
-        if (nextRegistrationId == Long.MAX_VALUE) return RegistrationResult.IdExhausted
-        val acceptedId = nextRegistrationId + 1L
+        if (lastAllocatedRegistrationId == Long.MAX_VALUE) return RegistrationResult.IdExhausted
+        val acceptedId = lastAllocatedRegistrationId + 1L
         val accepted = RegistrationRecord(acceptedId, callback)
         val result = RegistrationResult.Accepted(accepted.registration)
-        nextRegistrationId = acceptedId
+        lastAllocatedRegistrationId = acceptedId
         registration = accepted
         return result
     }
@@ -318,15 +325,15 @@ internal class SessionDelivery {
         this.registration = null
     }
 
-    internal fun prepareFreshOffer(frame: PublishedFrame, isPhysicalHandoffFree: Boolean): FreshOffer {
-        val current = registration ?: return FreshOffer.NotAvailable
+    internal fun preparePublishedFrameOffer(frame: PublishedFrame, isPhysicalHandoffFree: Boolean): PublishedFrameOffer {
+        val current = registration ?: return PublishedFrameOffer.NotAvailable
         val callback = current.callback
-        if ((current.state != RegistrationState.Open) || (callback == null)) return FreshOffer.NotAvailable
-        if ((current.offer != null) || !isPhysicalHandoffFree) return FreshOffer.ConsumerBusy
+        if ((current.state != RegistrationState.Open) || (callback == null)) return PublishedFrameOffer.NotAvailable
+        if ((current.offer != null) || !isPhysicalHandoffFree) return PublishedFrameOffer.ConsumerBusy
         val handoff = DeliveryHandoffToken(current.registration.id)
         current.registration.reserveAdmission(handoff)
         val offer = Offer.create(current.registration, handoff, callback, frame)
-        val prepared = FreshOffer.Prepared(offer)
+        val prepared = PublishedFrameOffer.Prepared(offer)
         current.cachedFirstPending = false
         current.offerAccepted = false
         current.cutoffState = CutoffState.None
@@ -405,12 +412,8 @@ internal class SessionDelivery {
         if ((current == null) || (expected.registration !== current.registration) || (current.offer !== expected)) {
             if (expected.registration.matchesAdmission(expected.handoff)) {
                 expected.registration.recordOfferReturned(expected.handoff, accepted = false)
-                if (expected.registration.isSemanticDetached() &&
-                    expected.registration.acknowledgeSemanticDetach()
-                ) {
-                    return HandoffSettlement.UnregisterCompleted(
-                        RegistrationSettlement.succeeded(expected.registration),
-                    )
+                if (expected.registration.isSemanticDetached() && expected.registration.acknowledgeSemanticDetach()) {
+                    return HandoffSettlement.ReadyToCompleteUnregister(RegistrationSettlement.create(expected.registration))
                 }
             }
             return HandoffSettlement.Stale
@@ -430,7 +433,7 @@ internal class SessionDelivery {
         if ((current.registration.id != registrationId) || (offer.registration !== current.registration)) return HandoffSettlement.Stale
         current.registration.recordCallbackReturnedForSettlement(offer.handoff)
         if (registration == null) {
-            return HandoffSettlement.UnregisterCompleted(RegistrationSettlement.succeeded(current.registration))
+            return HandoffSettlement.ReadyToCompleteUnregister(RegistrationSettlement.create(current.registration))
         }
         return if (current.registration.isCallbackSafe() && current.registration.isDetachEligible()) {
             settleHandoff(offer)
@@ -462,7 +465,7 @@ internal class SessionDelivery {
                 detachAfterProof(expected, offer.handoff)
                 return UnregisterAction.Complete(
                     expected.waiter,
-                    RegistrationSettlement.succeeded(expected),
+                    RegistrationSettlement.create(expected),
                 )
             }
             current.cutoffState = CutoffState.FirstCalling
@@ -476,7 +479,7 @@ internal class SessionDelivery {
             current.settlementIssued = true
             return UnregisterAction.Complete(
                 expected.waiter,
-                RegistrationSettlement.succeeded(expected),
+                RegistrationSettlement.create(expected),
             )
         }
     }
@@ -492,7 +495,7 @@ internal class SessionDelivery {
                 detachAfterProof(current.registration, offer.handoff)
                 return UnregisterAction.Complete(
                     current.registration.waiter,
-                    RegistrationSettlement.succeeded(current.registration),
+                    RegistrationSettlement.create(current.registration),
                 )
             }
             if (current.cutoffState != CutoffState.None) return null
@@ -504,7 +507,7 @@ internal class SessionDelivery {
         current.registration.markDetachEligible()
         val action = UnregisterAction.Complete(
             current.registration.waiter,
-            RegistrationSettlement.succeeded(current.registration),
+            RegistrationSettlement.create(current.registration),
         )
         current.registration.markNoOfferSafe()
         current.registration.acknowledgeSemanticDetach()
@@ -589,7 +592,7 @@ internal class SessionDelivery {
         check((current == null) || (current.state == RegistrationState.TerminalPending))
         val settlement = if ((current != null) && (current.offer == null)) {
             check(!current.settlementIssued)
-            RegistrationSettlement.succeeded(current.registration)
+            RegistrationSettlement.create(current.registration)
         } else {
             null
         }
@@ -636,10 +639,10 @@ internal class SessionDelivery {
         }
         check(!current.settlementIssued)
         current.registration.acknowledgeSemanticDetach()
-        val completed = HandoffSettlement.UnregisterCompleted(RegistrationSettlement.succeeded(current.registration))
+        val completion = HandoffSettlement.ReadyToCompleteUnregister(RegistrationSettlement.create(current.registration))
         current.offer = null
         registration = null
         current.settlementIssued = true
-        return completed
+        return completion
     }
 }

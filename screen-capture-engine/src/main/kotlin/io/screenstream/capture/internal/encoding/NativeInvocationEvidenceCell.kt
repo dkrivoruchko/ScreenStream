@@ -5,9 +5,11 @@ import java.nio.ByteBuffer
 /**
  * Collects the independent evidence required to classify one returned Native JPEG invocation.
  *
- * Wire status, produced-byte shape, Java throwable propagation, transaction state, and exact carrier settlement must
- * agree before a safe outcome is returned. Missing, contradictory, malformed, or partially settled evidence is an
- * unsafe internal failure; no single status code or throwable class is sufficient on its own.
+ * [NativeJpegProcess.newResultBlock] owns the wire layout and pending markers. This cell retains its fields and Java
+ * throwable evidence independently, so a pending wire cannot hide a thrown value. Transaction state and exact carrier
+ * settlement must also agree before a safe outcome is returned. Missing,
+ * contradictory, malformed, or partially settled evidence is an unsafe internal failure; no single status code or
+ * throwable class is sufficient on its own.
  */
 internal class NativeInvocationEvidenceCell {
     internal enum class CarrierSettlementState { NotEntered, Entered, Settled, SettlementFailed, }
@@ -76,8 +78,8 @@ internal class NativeInvocationEvidenceCell {
         }
 
         val produced = producedByteCountSlot
-        val adopted = transaction.byteCount
-        if (produced !in 0L..Int.MAX_VALUE.toLong() || adopted < 0 || adopted.toLong() > produced) {
+        val copied = transaction.byteCount
+        if (produced !in 0L..Int.MAX_VALUE.toLong() || copied < 0 || copied.toLong() > produced) {
             return NativeJpegDisposition.Returned.UnsafeInternalFailure
         }
 
@@ -96,21 +98,21 @@ internal class NativeInvocationEvidenceCell {
         val thrownStorageOutOfMemory = thrownThrowableMatchesStorageExhaustion(transaction)
         return when (wireStatus) {
             NativeJpegProcess.NativeWireStatus.NativeTransferComplete ->
-                if (throwable == null && storageFailure == null && produced > 0L && adopted.toLong() == produced) {
+                if (throwable == null && storageFailure == null && produced > 0L && copied.toLong() == produced) {
                     NativeJpegDisposition.Returned.CompleteTransfer
                 } else {
                     NativeJpegDisposition.Returned.UnsafeInternalFailure
                 }
 
             NativeJpegProcess.NativeWireStatus.SafeCompressorRejection ->
-                if (throwable == null && storageFailure == null && adopted == 0) {
+                if (throwable == null && storageFailure == null && copied == 0) {
                     NativeJpegDisposition.Returned.SafeCompressorRejection
                 } else {
                     NativeJpegDisposition.Returned.UnsafeInternalFailure
                 }
 
             NativeJpegProcess.NativeWireStatus.NativeOutOfMemory ->
-                if (throwable == null && storageFailure == null && adopted == 0) {
+                if (throwable == null && storageFailure == null && copied == 0) {
                     NativeJpegDisposition.Returned.RequiredResourceExhaustion
                 } else {
                     NativeJpegDisposition.Returned.UnsafeInternalFailure

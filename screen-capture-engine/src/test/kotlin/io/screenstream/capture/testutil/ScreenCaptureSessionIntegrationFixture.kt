@@ -20,8 +20,8 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
 import io.mockk.verifyOrder
-import io.screenstream.capture.EncodedImageFrame
-import io.screenstream.capture.ScreenCaptureEffectiveParameters
+import io.screenstream.capture.CaptureOutputInfo
+import io.screenstream.capture.EncodedFrame
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureState
 import io.screenstream.capture.internal.capture.EglPlatform
@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicReference
  */
 internal object ScreenCaptureSessionIntegrationFixture {
     internal suspend fun startActiveSession(
-        harness: SessionStartHarness,
+        harness: SessionHarness,
         parameters: ScreenCaptureParameters,
     ) = coroutineScope {
         val start = async(start = CoroutineStart.UNDISPATCHED) {
@@ -62,8 +62,8 @@ internal object ScreenCaptureSessionIntegrationFixture {
         start.await()
     }
 
-    internal fun stopAndDrainSession(harness: SessionStartHarness) {
-        harness.session.stop()
+    internal fun requestStopAndDrainSession(harness: SessionHarness) {
+        harness.session.requestStop()
         if (harness.session.state.value !is ScreenCaptureState.Stopped &&
             harness.session.state.value !is ScreenCaptureState.Failed
         ) {
@@ -76,8 +76,8 @@ internal object ScreenCaptureSessionIntegrationFixture {
     }
 
     internal suspend fun primeCachedFrame(
-        harness: SessionStartHarness,
-        platform: HappyCapturePlatform,
+        harness: SessionHarness,
+        platform: CapturePlatformFixture,
         rgbaSeed: Int,
     ) {
         val callbackEntered = CountDownLatch(1)
@@ -96,7 +96,7 @@ internal object ScreenCaptureSessionIntegrationFixture {
         private val returned = CountDownLatch(1)
         private val entries = AtomicInteger()
 
-        fun invoke(@Suppress("UNUSED_PARAMETER") frame: EncodedImageFrame) {
+        fun invoke(@Suppress("UNUSED_PARAMETER") frame: EncodedFrame) {
             entries.incrementAndGet()
             entered.countDown()
             try {
@@ -123,7 +123,7 @@ internal object ScreenCaptureSessionIntegrationFixture {
         fun entryCount(): Int = entries.get()
     }
 
-    internal fun driveControlUntil(harness: SessionStartHarness, condition: () -> Boolean) {
+    internal fun driveControlUntil(harness: SessionHarness, condition: () -> Boolean) {
         repeat(32) {
             if (condition()) return
             harness.enterNextControlTask()
@@ -132,7 +132,7 @@ internal object ScreenCaptureSessionIntegrationFixture {
         check(condition()) { "Controlled Session work did not reach the requested public condition" }
     }
 
-    internal fun drainAcceptedSessionWork(harness: SessionStartHarness) {
+    internal fun drainAcceptedSessionWork(harness: SessionHarness) {
         repeat(32) {
             var progressed = harness.enterNextWorkerSuccessfully()
             progressed = harness.enterNextControlTask() || progressed
@@ -144,16 +144,16 @@ internal object ScreenCaptureSessionIntegrationFixture {
 
     internal class FrameSnapshot(
         val bytes: ByteArray,
-        val effectiveParameters: ScreenCaptureEffectiveParameters,
+        val outputInfo: CaptureOutputInfo,
         val sequence: Long,
-        val timestampElapsedRealtimeNanos: Long,
+        val outputTimestampElapsedRealtimeNanos: Long,
     )
 
-    internal fun copyFrame(frame: EncodedImageFrame): FrameSnapshot = FrameSnapshot(
+    internal fun copyFrame(frame: EncodedFrame): FrameSnapshot = FrameSnapshot(
         bytes = frame.toByteArray(),
-        effectiveParameters = frame.effectiveParameters,
+        outputInfo = frame.outputInfo,
         sequence = frame.sequence,
-        timestampElapsedRealtimeNanos = frame.timestampElapsedRealtimeNanos,
+        outputTimestampElapsedRealtimeNanos = frame.outputTimestampElapsedRealtimeNanos,
     )
 
     internal fun assertJpegDimensions(bytes: ByteArray, widthPx: Int, heightPx: Int) {
@@ -167,9 +167,11 @@ internal object ScreenCaptureSessionIntegrationFixture {
         }
     }
 
+    /** Emits deterministic synthetic encoded bytes and does not exercise a JPEG codec. */
     internal class SafeRejectingNativeJpegFacade(
         private val successfulCompressionCountBeforeRejection: Int = 0,
         blockCompression: Boolean = false,
+        private val successfulBytesForCompression: (Int) -> ByteArray = { NATIVE_SUCCESS_BYTES },
     ) : NativeJpegFacade, AutoCloseable {
         private val outstandingCarriers: MutableSet<ByteBuffer> =
             Collections.newSetFromMap(IdentityHashMap())
@@ -231,12 +233,14 @@ internal object ScreenCaptureSessionIntegrationFixture {
             check(resultBlock.getLong(8) == NativeJpegProcess.NATIVE_RESULT_PENDING)
             compressionCount += 1
             if (compressionCount <= successfulCompressionCountBeforeRejection) {
-                val segment = ByteBuffer.allocateDirect(NATIVE_SUCCESS_BYTES.size).apply {
-                    put(NATIVE_SUCCESS_BYTES)
+                val successfulBytes = successfulBytesForCompression(compressionCount)
+                require(successfulBytes.isNotEmpty())
+                val segment = ByteBuffer.allocateDirect(successfulBytes.size).apply {
+                    put(successfulBytes)
                     flip()
                 }
-                sink.adoptSegment(segment, NATIVE_SUCCESS_BYTES.size)
-                resultBlock.putLong(0, NATIVE_SUCCESS_BYTES.size.toLong())
+                sink.copySegment(segment, successfulBytes.size)
+                resultBlock.putLong(0, successfulBytes.size.toLong())
                 resultBlock.putLong(8, 0L)
                 return
             }
@@ -305,7 +309,7 @@ internal object ScreenCaptureSessionIntegrationFixture {
         val freedCarrier: ByteBuffer?,
     )
 
-    internal class HappyCapturePlatform {
+    internal class CapturePlatformFixture {
         val projection: MediaProjection = mockk()
         val projectionPlatform: ProjectionPlatform = mockk()
         val eglPlatform: EglPlatform = mockk()
@@ -341,10 +345,11 @@ internal object ScreenCaptureSessionIntegrationFixture {
         private val sourceUpdates = AtomicInteger()
         private val nextReadbackAction = AtomicReference<((ByteBuffer) -> Unit)?>(null)
         private val nextSourceUpdateFailure = AtomicReference<Exception?>(null)
+        private val nextSurfaceTextureCreationFailure = AtomicReference<Surface.OutOfResourcesException?>(null)
         private var didReturnInitialVirtualDisplay = false
 
-        // Robolectric may leave EGL14's opaque native sentinels null. Install identities once per sandbox
-        // so real EglOwner teardown can pass the same non-null NO_* handles through its Kotlin boundary.
+        // Robolectric may leave EGL14's opaque native sentinels null. Fill missing values for this fixture so real
+        // EglOwner teardown can pass the same non-null NO_* handles through its Kotlin boundary.
         private val noDisplay = EGL14.EGL_NO_DISPLAY ?: mockk<EGLDisplay>().also { EGL14.EGL_NO_DISPLAY = it }
         private val noContext = EGL14.EGL_NO_CONTEXT ?: mockk<EGLContext>().also { EGL14.EGL_NO_CONTEXT = it }
         private val noSurface = EGL14.EGL_NO_SURFACE ?: mockk<EGLSurface>().also { EGL14.EGL_NO_SURFACE = it }
@@ -441,6 +446,12 @@ internal object ScreenCaptureSessionIntegrationFixture {
 
         fun failNextSourceUpdate(failure: Exception) {
             check(nextSourceUpdateFailure.compareAndSet(null, failure)) { "A source-update failure is already armed" }
+        }
+
+        fun failNextReplacementSurfaceTextureCreation(failure: Surface.OutOfResourcesException) {
+            check(nextSurfaceTextureCreationFailure.compareAndSet(null, failure)) {
+                "A replacement SurfaceTexture-creation failure is already armed"
+            }
         }
 
         fun sourceUpdateCount(): Int = sourceUpdates.get()
@@ -641,6 +652,7 @@ internal object ScreenCaptureSessionIntegrationFixture {
             every { glesPlatform.disable(any()) } just Runs
             every { glesPlatform.drawTriangleStrip() } just Runs
             every { glesPlatform.readPixels(any(), any(), any()) } answers {
+                // This fixture writes synthetic RGBA bytes directly; it does not execute a shader.
                 val widthPx = firstArg<Int>()
                 val heightPx = secondArg<Int>()
                 val destination = thirdArg<Buffer>() as ByteBuffer
@@ -661,6 +673,7 @@ internal object ScreenCaptureSessionIntegrationFixture {
                 if (firstArg<Int>() == initialOesTextureName) {
                     initialSurfaceTexture.also { createdSurfaceTextures += it }
                 } else {
+                    nextSurfaceTextureCreationFailure.getAndSet(null)?.let { throw it }
                     replacementSurfaceTexture.also { createdSurfaceTextures += it }
                 }
             }

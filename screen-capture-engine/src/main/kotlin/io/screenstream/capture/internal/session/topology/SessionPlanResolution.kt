@@ -2,25 +2,30 @@ package io.screenstream.capture.internal.session.topology
 
 import android.os.Build.VERSION_CODES
 import io.screenstream.capture.CaptureGeometry
+import io.screenstream.capture.CaptureOutputInfo
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.ImageRect
 import io.screenstream.capture.ImageSize
 import io.screenstream.capture.OutputSize
 import io.screenstream.capture.Rotation
-import io.screenstream.capture.ScreenCaptureEffectiveParameters
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.SourceRegion
 import io.screenstream.capture.internal.Rgba8888Layout
-import io.screenstream.capture.internal.SourceRegionBounds
 import io.screenstream.capture.internal.capture.CapturePlan
 import io.screenstream.capture.internal.capture.CaptureTargetMode
 import kotlin.math.floor
 
+/**
+ * Resolves authoritative geometry into capture and output plans. Before geometry is authoritative, the provisional
+ * plan opens a Full source target with neutral 1x1 output solely to await authoritative resize; it does not validate
+ * desired transforms and is never Active. Eligible downscaling uses the source aspect's reduced GCD ratio and the
+ * smallest integral multiple that covers the rotation-adjusted output.
+ */
 internal sealed interface SessionPlanResolution {
     class Resolved(
         internal val capturePlan: CapturePlan,
-        internal val effectiveParameters: ScreenCaptureEffectiveParameters,
+        internal val outputInfo: CaptureOutputInfo,
         internal val isProvisional: Boolean,
     ) : SessionPlanResolution {
         internal val encoderPlan: Rgba8888Layout
@@ -187,8 +192,8 @@ internal sealed interface SessionPlanResolution {
                         targetHeightPx = targetHeightPx,
                         rgbaLayout = rgbaLayout,
                     ),
-                    effectiveParameters = ScreenCaptureEffectiveParameters.create(
-                        appliedParameters = parameters,
+                    outputInfo = CaptureOutputInfo.create(
+                        parameters = parameters,
                         captureGeometry = geometry,
                         appliedSourceRect = appliedSourceRect,
                         finalImageSize = finalImageSize,
@@ -237,8 +242,8 @@ internal sealed interface SessionPlanResolution {
                             PROVISIONAL_OUTPUT_DIMENSION_PX,
                         ),
                     ),
-                    effectiveParameters = ScreenCaptureEffectiveParameters.create(
-                        appliedParameters = preparationParameters,
+                    outputInfo = CaptureOutputInfo.create(
+                        parameters = preparationParameters,
                         captureGeometry = geometry,
                         appliedSourceRect = appliedSourceRect,
                         finalImageSize = outputSize,

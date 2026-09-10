@@ -3,11 +3,11 @@ package io.screenstream.capture.internal.encoding
 import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 
 internal sealed class EncoderProductionTask {
-    internal sealed interface NoLeafPhysicalSettlement {
-        data object Pending : NoLeafPhysicalSettlement
-        data object Settled : NoLeafPhysicalSettlement
+    internal sealed interface ResourceCleanupState {
+        data object Pending : ResourceCleanupState
+        data object Settled : ResourceCleanupState
 
-        class Residue : NoLeafPhysicalSettlement {
+        class Residue : ResourceCleanupState {
             private var ordinaryCauseSlot: Exception? = null
 
             internal val cause: Exception
@@ -35,31 +35,36 @@ internal sealed class EncoderProductionTask {
         }
     }
 
-    private var physicalSettlementSlot: NoLeafPhysicalSettlement = NoLeafPhysicalSettlement.Pending
+    private var resourceCleanupState: ResourceCleanupState = ResourceCleanupState.Pending
 
     internal abstract val runtime: EncoderRuntime
     internal abstract val input: EncodingInput
-    internal abstract val hasLeafResult: Boolean
+    internal abstract val hasRecordedResult: Boolean
 
     internal abstract fun execute(clock: ElapsedRealtimeClock)
     internal open fun skipBeforeEntry() = Unit
-    protected abstract fun settleNoLeafPhysical(residue: NoLeafPhysicalSettlement.Residue)
-    internal open fun settleDetachedLeaf(): Exception? = null
+    protected abstract fun cleanupResources(residue: ResourceCleanupState.Residue)
 
-    internal fun settlePhysical(): Exception? {
-        if (physicalSettlementSlot == NoLeafPhysicalSettlement.Pending) {
-            val residue = NoLeafPhysicalSettlement.Residue()
-            settleNoLeafPhysical(residue)
-            physicalSettlementSlot = if (residue.hasFailure) residue else NoLeafPhysicalSettlement.Settled
+    /**
+     * Detaches any committed payload from its transaction without copying or publishing it. A successful recorded
+     * result retains the same payload.
+     */
+    internal open fun detachResultPayload(): Exception? = null
+
+    internal fun settleResources(): Exception? {
+        if (resourceCleanupState == ResourceCleanupState.Pending) {
+            val residue = ResourceCleanupState.Residue()
+            cleanupResources(residue)
+            resourceCleanupState = if (residue.hasFailure) residue else ResourceCleanupState.Settled
         }
-        return (physicalSettlementSlot as? NoLeafPhysicalSettlement.Residue)?.cause
+        return (resourceCleanupState as? ResourceCleanupState.Residue)?.cause
     }
 
     protected inline fun settleProductionCarrier(
         input: EncodingInput,
         crossinline discardReady: () -> Boolean,
         crossinline releaseEntered: () -> Boolean,
-        residue: NoLeafPhysicalSettlement.Residue,
+        residue: ResourceCleanupState.Residue,
     ) {
         residue.attempt {
             val released = when {

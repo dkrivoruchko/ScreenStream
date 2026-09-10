@@ -23,10 +23,9 @@ import java.util.concurrent.atomic.AtomicReference
 
 internal class SessionMetricsOwnerLifecycleTest {
     /*
-     * This fixture arranges the owner-visible ordering in which a real slot release completes before the injected
-     * submit call returns. It does not claim that the inner SerialTaskSlot released before its own trySubmit returned;
-     * that production ordering is established from the slot source. Fixture checks arrange the schedule, while the
-     * MET-01 assertions below judge only the maintained owner outcome.
+     * The wrapper enters the accepted real-slot task and waits for its release hook before returning to
+     * SessionMetricsOwner. This arranges owner-visible release-before-submit-return without asserting that ordering
+     * inside SerialTaskSlot.trySubmit.
      */
     // Verification: MET-01
     @Test

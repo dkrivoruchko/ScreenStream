@@ -54,6 +54,10 @@ internal class EncodingInput(
     internal fun encode(jpegQuality: Int): EncodingInputSettlement = owner.encodeInput(this, jpegQuality)
 }
 
+/**
+ * `Accepted` transfers settlement to asynchronous production without promising that its callback will arrive.
+ * `Settled` proves the carrier returned synchronously and no asynchronous production remains for this input.
+ */
 internal sealed interface EncodingInputSettlement {
     data object Accepted : EncodingInputSettlement
     data object Settled : EncodingInputSettlement

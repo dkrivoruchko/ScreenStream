@@ -3,6 +3,7 @@ package io.screenstream.capture
 import android.content.Context
 import android.media.projection.MediaProjection
 import android.os.Build
+import androidx.annotation.CheckResult
 import io.screenstream.capture.internal.metrics.BuiltInCaptureMetricsSource
 import io.screenstream.capture.internal.metrics.SessionMetricsSourceSelection
 import io.screenstream.capture.internal.runtime.ProductionRuntime
@@ -11,10 +12,11 @@ import io.screenstream.capture.internal.session.SessionCoordinator
 /**
  * Entry point for creating screen-capture sessions.
  *
- * Each session converts one caller-provided [android.media.projection.MediaProjection] authority into a best-effort
- * sequence of SDR JPEG frames. The host application remains responsible for obtaining fresh user consent, meeting
- * foreground-service and permission requirements, protecting copied frame data, and stopping capture when its own
- * lifecycle requires it. The engine declares and starts no application component.
+ * Each session converts one caller-provided [MediaProjection] authority into a best-effort sequence of SDR JPEG
+ * frames. The host application remains responsible for obtaining projection authority, meeting foreground-service and
+ * permission requirements, protecting copied frame data, and calling [ScreenCaptureSession.stop] when its lifecycle
+ * requires capture to end. [ScreenCaptureSession.requestStop] provides a nonawaiting alternative. The engine declares
+ * and starts no application component.
  */
 public object ScreenCaptureEngine {
     /**
@@ -24,23 +26,25 @@ public object ScreenCaptureEngine {
      * observing any of the returned session's flows also does not start capture. The new session initially reports
      * [ScreenCaptureState.NotStarted] and zero-valued statistics.
      *
-     * The successful return transfers [mediaProjection] ownership to the session. The host must call [ScreenCaptureSession.stop]
-     * for every returned session, including one that never starts. If any fallible construction step throws, the caller
-     * retains the projection.
+     * A successful return transfers [mediaProjection] ownership to the session. The host must call
+     * [ScreenCaptureSession.stop] for every returned session, including one that never starts, or use
+     * [ScreenCaptureSession.requestStop] when it cannot await completion. If any fallible construction step throws,
+     * the caller retains the projection.
      *
      * If [ScreenCaptureConfig.captureMetricsSource] is `null`, [context] is normalized to its application context
      * and used for a source that follows the current default display. If a source is supplied, its exact identity is
      * retained and [context] is not accessed, forwarded, or retained.
      *
      * @param context context used only to construct the default display metrics source when one is not configured.
-     * @param mediaProjection fresh projection authority obtained for this session.
+     * @param mediaProjection host-provided projection authority whose ownership is transferred to this session.
      * @param config read-only session configuration. Its property references do not change, but a configured metrics
-     * source may be stateful and is retained by identity. The default follows the default display and selects the
-     * JPEG backend automatically.
+     *     source may be stateful and is retained by identity. The default follows the default display and selects the
+     *     JPEG backend automatically.
      * @return a new identity-based session that can be started at most once.
      * @throws IllegalArgumentException if the default metrics source cannot obtain a usable application context or
-     * display service.
+     *     display service.
      */
+    @CheckResult
     public fun createSession(
         context: Context,
         mediaProjection: MediaProjection,

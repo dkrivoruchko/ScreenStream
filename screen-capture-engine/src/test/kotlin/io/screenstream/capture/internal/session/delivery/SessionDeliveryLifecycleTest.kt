@@ -1,9 +1,9 @@
 package io.screenstream.capture.internal.session.delivery
 
 import io.screenstream.capture.CaptureGeometry
+import io.screenstream.capture.CaptureOutputInfo
 import io.screenstream.capture.ImageRect
 import io.screenstream.capture.ImageSize
-import io.screenstream.capture.ScreenCaptureEffectiveParameters
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.internal.delivery.DeliveryCutoff
 import io.screenstream.capture.internal.delivery.DeliveryHandoffToken
@@ -71,7 +71,7 @@ internal class SessionDeliveryLifecycleTest {
     fun noHandoffWaitsForOfferReturnAndSuccessorCutoffThenExactClosed() {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        val offer = freshOffer(delivery)
+        val offer = publishedFrameOffer(delivery)
         val unregister = delivery.beginUnregister(registration, requestCutoffImmediately = true)
         assertTrue(unregister is SessionDelivery.UnregisterAction.RequestCutoff)
 
@@ -83,8 +83,8 @@ internal class SessionDeliveryLifecycleTest {
         assertRetained(delivery.recordCutoffResult(registration, DeliveryCutoff.NoHandoff))
 
         val closed = delivery.settleClosedHandoff(registration.id)
-        assertTrue(closed is SessionDelivery.HandoffSettlement.UnregisterCompleted)
-        val settlement = (closed as SessionDelivery.HandoffSettlement.UnregisterCompleted).settlement
+        assertTrue(closed is SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister)
+        val settlement = (closed as SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister).settlement
         runTest {
             val awaiting = async(start = CoroutineStart.UNDISPATCHED) { unregister.waiter.awaitCompletion() }
             assertFalse(awaiting.isCompleted)
@@ -98,14 +98,14 @@ internal class SessionDeliveryLifecycleTest {
     fun cutoffBeforeEntryCompletesUnregisterWithoutPhysicalTaskRelease() {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        freshOffer(delivery)
+        publishedFrameOffer(delivery)
         val unregister = delivery.beginUnregister(registration, requestCutoffImmediately = true)
         assertTrue(unregister is SessionDelivery.UnregisterAction.RequestCutoff)
 
         val result = delivery.recordCutoffResult(registration, DeliveryCutoff.CutoffBeforeEntry)
         val handoff = (result as SessionDelivery.CutoffSettlement.Handoff).settlement
-        assertTrue(handoff is SessionDelivery.HandoffSettlement.UnregisterCompleted)
-        (handoff as SessionDelivery.HandoffSettlement.UnregisterCompleted).settlement.complete()
+        assertTrue(handoff is SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister)
+        (handoff as SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister).settlement.complete()
         runTest { unregister.waiter.awaitCompletion() }
         assertTrue(delivery.register { } is SessionDelivery.RegistrationResult.Accepted)
     }
@@ -115,7 +115,7 @@ internal class SessionDeliveryLifecycleTest {
     fun enteredCutoffWaitsForExactClosedHandoff() {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        val offer = freshOffer(delivery)
+        val offer = publishedFrameOffer(delivery)
         assertSame(SessionDelivery.AcceptedOfferSettlement.Retained, delivery.settleAcceptedOffer(offer))
         val unregister = delivery.beginUnregister(registration, requestCutoffImmediately = true)
         assertTrue(unregister is SessionDelivery.UnregisterAction.RequestCutoff)
@@ -125,8 +125,8 @@ internal class SessionDeliveryLifecycleTest {
             val awaiting = async(start = CoroutineStart.UNDISPATCHED) { unregister.waiter.awaitCompletion() }
             assertFalse(awaiting.isCompleted)
             val closed = delivery.settleClosedHandoff(registration.id)
-            assertTrue(closed is SessionDelivery.HandoffSettlement.UnregisterCompleted)
-            (closed as SessionDelivery.HandoffSettlement.UnregisterCompleted).settlement.complete()
+            assertTrue(closed is SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister)
+            (closed as SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister).settlement.complete()
             awaiting.await()
         }
     }
@@ -136,7 +136,7 @@ internal class SessionDeliveryLifecycleTest {
     fun offerReturnThatDidNotStartCompletesDeferredUnregister() {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        val offer = freshOffer(delivery)
+        val offer = publishedFrameOffer(delivery)
         val unregister = delivery.beginUnregister(registration, requestCutoffImmediately = false)
         assertTrue(unregister is SessionDelivery.UnregisterAction.AwaitCompletion)
 
@@ -182,7 +182,7 @@ internal class SessionDeliveryLifecycleTest {
     fun pendingUnregisterWithOfferClaimsOneShotCutoffAndSettlesFromExactCutoff() = runTest {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        val offer = freshOffer(delivery)
+        val offer = publishedFrameOffer(delivery)
         val deferred = delivery.beginUnregister(registration, requestCutoffImmediately = false)
         assertTrue(deferred is SessionDelivery.UnregisterAction.AwaitCompletion)
         val awaiting = async(start = CoroutineStart.UNDISPATCHED) {
@@ -203,16 +203,16 @@ internal class SessionDeliveryLifecycleTest {
         assertFalse(awaiting.isCompleted)
         val cutoff = delivery.recordCutoffResult(registration, DeliveryCutoff.CutoffBeforeEntry)
         val handoff = (cutoff as SessionDelivery.CutoffSettlement.Handoff).settlement
-        assertTrue(handoff is SessionDelivery.HandoffSettlement.UnregisterCompleted)
+        assertTrue(handoff is SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister)
         runCurrent()
         assertFalse(awaiting.isCompleted)
-        (handoff as SessionDelivery.HandoffSettlement.UnregisterCompleted).settlement.complete()
+        (handoff as SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister).settlement.complete()
         awaiting.await()
         assertTrue(delivery.register { } is SessionDelivery.RegistrationResult.Accepted)
 
         val terminalDelivery = SessionDelivery()
         val terminalRegistration = acceptedRegistration(terminalDelivery)
-        val terminalOffer = freshOffer(terminalDelivery)
+        val terminalOffer = publishedFrameOffer(terminalDelivery)
         terminalDelivery.closeAdmissionForTerminal()
         val terminal = terminalDelivery.prepareTerminal() ?: error("terminal preparation was not created")
         terminalDelivery.commitTerminal(terminal)
@@ -227,7 +227,7 @@ internal class SessionDeliveryLifecycleTest {
     fun callbackProofBeforeCloseIsConsumedWhenCloseBecomesEligible() = runTest {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        val offer = freshOffer(delivery)
+        val offer = publishedFrameOffer(delivery)
         offer.completion.callbackReturned(offer.handoff)
 
         val unregister = delivery.beginUnregister(registration, requestCutoffImmediately = true)
@@ -242,7 +242,7 @@ internal class SessionDeliveryLifecycleTest {
     fun callbackProofDuringDeferredCloseIsConsumedAtPendingEligibility() = runTest {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        val offer = freshOffer(delivery)
+        val offer = publishedFrameOffer(delivery)
         val deferred = delivery.beginUnregister(registration, requestCutoffImmediately = false)
         assertTrue(deferred is SessionDelivery.UnregisterAction.AwaitCompletion)
         val awaiting = async(start = CoroutineStart.UNDISPATCHED) {
@@ -267,7 +267,7 @@ internal class SessionDeliveryLifecycleTest {
     fun terminalDetachLateAcceptedRequestsOnlyOneExactSuccessorCutoff() = runTest {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        val offer = freshOffer(delivery)
+        val offer = publishedFrameOffer(delivery)
         val unregister = delivery.beginUnregister(registration, requestCutoffImmediately = true)
         assertTrue(unregister is SessionDelivery.UnregisterAction.RequestCutoff)
         assertRetained(delivery.recordCutoffResult(registration, offer.handoff, DeliveryCutoff.NoHandoff))
@@ -313,7 +313,7 @@ internal class SessionDeliveryLifecycleTest {
     fun terminalDetachLateDefiniteNoStartForwardsExactCompletion() = runTest {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        val offer = freshOffer(delivery)
+        val offer = publishedFrameOffer(delivery)
         delivery.closeAdmissionForTerminal()
         val terminal = delivery.prepareTerminal() ?: error("terminal preparation was not created")
         delivery.commitTerminal(terminal)
@@ -333,8 +333,8 @@ internal class SessionDeliveryLifecycleTest {
         runCurrent()
         assertFalse(awaiting.isCompleted)
         val late = delivery.settleOfferThatDidNotStart(offer, offer.handoff)
-        assertTrue(late is SessionDelivery.HandoffSettlement.UnregisterCompleted)
-        (late as SessionDelivery.HandoffSettlement.UnregisterCompleted).settlement.complete()
+        assertTrue(late is SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister)
+        (late as SessionDelivery.HandoffSettlement.ReadyToCompleteUnregister).settlement.complete()
         awaiting.await()
         registration.waiter.awaitCompletion()
         assertTrue(delivery.register { } is SessionDelivery.RegistrationResult.Terminal)
@@ -345,7 +345,7 @@ internal class SessionDeliveryLifecycleTest {
     fun heldDetachThenTerminalCompletionLeavesReleasedDetachStaleAndOneShot() = runTest {
         val delivery = SessionDelivery()
         val registration = acceptedRegistration(delivery)
-        val offer = freshOffer(delivery)
+        val offer = publishedFrameOffer(delivery)
         val detachEntered = CountDownLatch(1)
         val releaseDetach = CountDownLatch(1)
         val detachCalls = AtomicInteger()
@@ -478,10 +478,10 @@ internal class SessionDeliveryLifecycleTest {
         return (result as SessionDelivery.RegistrationResult.Accepted).registration
     }
 
-    private fun freshOffer(delivery: SessionDelivery): SessionDelivery.Offer {
-        val result = delivery.prepareFreshOffer(frame(), isPhysicalHandoffFree = true)
-        assertTrue(result is SessionDelivery.FreshOffer.Prepared)
-        return (result as SessionDelivery.FreshOffer.Prepared).offer
+    private fun publishedFrameOffer(delivery: SessionDelivery): SessionDelivery.Offer {
+        val result = delivery.preparePublishedFrameOffer(frame(), isPhysicalHandoffFree = true)
+        assertTrue(result is SessionDelivery.PublishedFrameOffer.Prepared)
+        return (result as SessionDelivery.PublishedFrameOffer.Prepared).offer
     }
 
     private fun assertRetained(result: SessionDelivery.CutoffSettlement) {
@@ -493,8 +493,8 @@ internal class SessionDeliveryLifecycleTest {
     }
 
     private companion object {
-        private val EFFECTIVE_PARAMETERS = ScreenCaptureEffectiveParameters.create(
-            appliedParameters = ScreenCaptureParameters.DEFAULT,
+        private val EFFECTIVE_PARAMETERS = CaptureOutputInfo.create(
+            parameters = ScreenCaptureParameters.DEFAULT,
             captureGeometry = CaptureGeometry.create(widthPx = 2, heightPx = 2, densityDpi = 320),
             appliedSourceRect = ImageRect.create(leftPx = 0, topPx = 0, rightPx = 2, bottomPx = 2),
             finalImageSize = ImageSize.create(widthPx = 2, heightPx = 2),
@@ -502,9 +502,9 @@ internal class SessionDeliveryLifecycleTest {
 
         private fun frame(): PublishedFrame = PublishedFrame(
             payload = ImmutableEncodedPayload(arrayOf(byteArrayOf(1, 2, 3)), byteCount = 3),
-            effectiveParameters = EFFECTIVE_PARAMETERS,
+            outputInfo = EFFECTIVE_PARAMETERS,
             sequence = 1L,
-            timestampElapsedRealtimeNanos = 2L,
+            outputTimestampElapsedRealtimeNanos = 2L,
         )
     }
 }

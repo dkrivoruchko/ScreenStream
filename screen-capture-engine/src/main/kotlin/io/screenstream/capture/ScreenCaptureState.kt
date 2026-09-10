@@ -6,8 +6,9 @@ package io.screenstream.capture
  * Each value is internally coherent and uses structural equality. Rapid [ScreenCaptureSession.state]
  * assignments may be conflated, and a state value is not an atomic snapshot with [ScreenCaptureSession.stats].
  * A terminal [Stopped] or [Failed] value ends capture authority but is not a receipt for physical cleanup.
- * Terminal selection prioritizes [ScreenCaptureStopReason.ProjectionStopped], then
- * [ScreenCaptureStopReason.Requested], then the first failure contender represented by [Failed].
+ * Before terminal state freezes, selection prioritizes [ScreenCaptureStopReason.ProjectionStopped], then
+ * [ScreenCaptureStopReason.Requested], then the first failure contender represented by [Failed]. The frozen terminal
+ * value is immutable.
  */
 public sealed interface ScreenCaptureState {
     /** The initial state of a session for which capture has not been accepted. */
@@ -27,7 +28,8 @@ public sealed interface ScreenCaptureState {
      *
      * @property requestedParameters the requested parameter snapshot represented by this state.
      * @property isCapturedContentVisible the latest informational visibility observation, or `null` when no
-     * observation is available. Visibility is `null` on API 24 through 33.
+     *     observation is available. Visibility is `null` on API 24 through 33. A false value does not itself pause or
+     *     stop capture.
      */
     public sealed interface Running : ScreenCaptureState {
         public val requestedParameters: ScreenCaptureParameters
@@ -41,46 +43,43 @@ public sealed interface ScreenCaptureState {
      * This state does not imply that a frame has already been produced or delivered. A visibility-only update
      * may publish another structurally different `Active` snapshot without changing capture or statistics.
      *
-     * @property effectiveParameters the currently applied parameters and committed output geometry.
+     * @property outputInfo the currently applied parameters and committed output geometry.
      * @property isCapturedContentVisible the latest informational visibility observation, or `null` when no
-     * observation is available.
+     *     observation is available.
      */
     public class Active private constructor(
-        public val effectiveParameters: ScreenCaptureEffectiveParameters,
+        public val outputInfo: CaptureOutputInfo,
         public override val isCapturedContentVisible: Boolean?,
     ) : Running {
         /**
-         * The requested parameters, equal to [ScreenCaptureEffectiveParameters.appliedParameters] of
-         * [effectiveParameters].
+         * The requested parameters, equal to [CaptureOutputInfo.parameters] of
+         * [outputInfo].
          */
         public override val requestedParameters: ScreenCaptureParameters
-            get() = effectiveParameters.appliedParameters
+            get() = outputInfo.parameters
 
-        /** Returns whether [other] is an `Active` value with structurally equal public fields. */
         public override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Active) return false
 
-            return (effectiveParameters == other.effectiveParameters) && (isCapturedContentVisible == other.isCapturedContentVisible)
+            return (outputInfo == other.outputInfo) && (isCapturedContentVisible == other.isCapturedContentVisible)
         }
 
-        /** Returns a hash code consistent with structural equality. */
         public override fun hashCode(): Int {
-            var result: Int = effectiveParameters.hashCode()
+            var result: Int = outputInfo.hashCode()
             result = (31 * result) + (isCapturedContentVisible?.hashCode() ?: 0)
             return result
         }
 
-        /** Returns a bounded, non-sensitive debug string whose exact format is not an API contract. */
         public override fun toString(): String =
-            "Active(effectiveParameters=$effectiveParameters, isCapturedContentVisible=$isCapturedContentVisible)"
+            "Active(outputInfo=$outputInfo, isCapturedContentVisible=$isCapturedContentVisible)"
 
         internal companion object {
             @JvmSynthetic
             internal fun create(
-                effectiveParameters: ScreenCaptureEffectiveParameters,
+                outputInfo: CaptureOutputInfo,
                 isCapturedContentVisible: Boolean?,
-            ): Active = Active(effectiveParameters, isCapturedContentVisible)
+            ): Active = Active(outputInfo, isCapturedContentVisible)
         }
     }
 
@@ -91,50 +90,47 @@ public sealed interface ScreenCaptureState {
      * paused, although a previously admitted callback may still finish with its earlier immutable frame.
      *
      * @property requestedParameters the latest requested parameter snapshot being reconciled.
-     * @property lastEffectiveParameters the historical last-committed output; it does not describe current
-     * availability.
+     * @property lastOutputInfo the historical last-committed output; it does not describe current
+     *     availability.
      * @property isCapturedContentVisible the latest informational visibility observation, or `null` when no
-     * observation is available.
+     *     observation is available.
      */
     public class Reconfiguring private constructor(
         public override val requestedParameters: ScreenCaptureParameters,
-        public val lastEffectiveParameters: ScreenCaptureEffectiveParameters,
+        public val lastOutputInfo: CaptureOutputInfo,
         public override val isCapturedContentVisible: Boolean?,
     ) : Running {
-        /** Returns whether [other] is a `Reconfiguring` value with structurally equal public fields. */
         public override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Reconfiguring) return false
 
             return (requestedParameters == other.requestedParameters) &&
-                    (lastEffectiveParameters == other.lastEffectiveParameters) &&
+                    (lastOutputInfo == other.lastOutputInfo) &&
                     (isCapturedContentVisible == other.isCapturedContentVisible)
         }
 
-        /** Returns a hash code consistent with structural equality. */
         public override fun hashCode(): Int {
             var result: Int = requestedParameters.hashCode()
-            result = (31 * result) + lastEffectiveParameters.hashCode()
+            result = (31 * result) + lastOutputInfo.hashCode()
             result = (31 * result) + (isCapturedContentVisible?.hashCode() ?: 0)
             return result
         }
 
-        /** Returns a bounded, non-sensitive debug string whose exact format is not an API contract. */
         public override fun toString(): String =
             "Reconfiguring(" +
                     "requestedParameters=$requestedParameters, " +
-                    "lastEffectiveParameters=$lastEffectiveParameters, " +
+                    "lastOutputInfo=$lastOutputInfo, " +
                     "isCapturedContentVisible=$isCapturedContentVisible)"
 
         internal companion object {
             @JvmSynthetic
             internal fun create(
                 requestedParameters: ScreenCaptureParameters,
-                lastEffectiveParameters: ScreenCaptureEffectiveParameters,
+                lastOutputInfo: CaptureOutputInfo,
                 isCapturedContentVisible: Boolean?,
             ): Reconfiguring = Reconfiguring(
                 requestedParameters = requestedParameters,
-                lastEffectiveParameters = lastEffectiveParameters,
+                lastOutputInfo = lastOutputInfo,
                 isCapturedContentVisible = isCapturedContentVisible,
             )
         }
@@ -143,48 +139,49 @@ public sealed interface ScreenCaptureState {
     /**
      * Capture is paused because of a recoverable problem and may resume when the problem is resolved.
      *
-     * Startup never enters this state. [problem] is one of [ScreenCaptureProblem.InvalidRequest],
-     * [ScreenCaptureProblem.CaptureUnavailable], or [ScreenCaptureProblem.ResourceExhausted].
+     * This state occurs only after the first [Active] assignment; [ScreenCaptureSession.start] may still be pending.
+     * [problem] is one of [ScreenCaptureProblem.InvalidRequest],
+     * [ScreenCaptureProblem.CaptureUnavailable], or [ScreenCaptureProblem.ResourceExhausted]. There is no retry timer;
+     * changed metrics, a projection resize, or [ScreenCaptureSession.updateParameters] may request reevaluation. An
+     * equal settled request can request one reevaluation under the conditions documented by
+     * [ScreenCaptureSession.updateParameters]. A callback already entered with an earlier immutable frame may finish.
      *
      * @property requestedParameters the latest requested parameter snapshot retained while paused.
      * @property problem the stable, caller-facing reason capture is currently unavailable.
-     * @property lastEffectiveParameters the historical last-committed output; it does not describe current
-     * availability.
+     * @property lastOutputInfo the historical last-committed output; it does not describe current
+     *     availability.
      * @property isCapturedContentVisible the latest informational visibility observation, or `null` when no
-     * observation is available.
+     *     observation is available.
      */
     public class Suspended private constructor(
         public override val requestedParameters: ScreenCaptureParameters,
         public val problem: ScreenCaptureProblem,
-        public val lastEffectiveParameters: ScreenCaptureEffectiveParameters,
+        public val lastOutputInfo: CaptureOutputInfo,
         public override val isCapturedContentVisible: Boolean?,
     ) : Running {
-        /** Returns whether [other] is a `Suspended` value with structurally equal public fields. */
         public override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Suspended) return false
 
             return (requestedParameters == other.requestedParameters) &&
                     (problem == other.problem) &&
-                    (lastEffectiveParameters == other.lastEffectiveParameters) &&
+                    (lastOutputInfo == other.lastOutputInfo) &&
                     (isCapturedContentVisible == other.isCapturedContentVisible)
         }
 
-        /** Returns a hash code consistent with structural equality. */
         public override fun hashCode(): Int {
             var result: Int = requestedParameters.hashCode()
             result = (31 * result) + problem.hashCode()
-            result = (31 * result) + lastEffectiveParameters.hashCode()
+            result = (31 * result) + lastOutputInfo.hashCode()
             result = (31 * result) + (isCapturedContentVisible?.hashCode() ?: 0)
             return result
         }
 
-        /** Returns a bounded, non-sensitive debug string whose exact format is not an API contract. */
         public override fun toString(): String =
             "Suspended(" +
                     "requestedParameters=$requestedParameters, " +
                     "problem=$problem, " +
-                    "lastEffectiveParameters=$lastEffectiveParameters, " +
+                    "lastOutputInfo=$lastOutputInfo, " +
                     "isCapturedContentVisible=$isCapturedContentVisible)"
 
         internal companion object {
@@ -192,12 +189,12 @@ public sealed interface ScreenCaptureState {
             internal fun create(
                 requestedParameters: ScreenCaptureParameters,
                 problem: ScreenCaptureProblem,
-                lastEffectiveParameters: ScreenCaptureEffectiveParameters,
+                lastOutputInfo: CaptureOutputInfo,
                 isCapturedContentVisible: Boolean?,
             ): Suspended = Suspended(
                 requestedParameters = requestedParameters,
                 problem = problem,
-                lastEffectiveParameters = lastEffectiveParameters,
+                lastOutputInfo = lastOutputInfo,
                 isCapturedContentVisible = isCapturedContentVisible,
             )
         }
@@ -212,45 +209,42 @@ public sealed interface ScreenCaptureState {
      *
      * @property reason the stable reason the session stopped.
      * @property requestedParameters the latest durably accepted requested parameters at terminal selection.
-     * @property lastEffectiveParameters the historical last-committed output, or `null` if none was committed.
+     * @property lastOutputInfo the historical last-committed output, or `null` if none was committed.
      */
     public class Stopped private constructor(
         public val reason: ScreenCaptureStopReason,
         public val requestedParameters: ScreenCaptureParameters,
-        public val lastEffectiveParameters: ScreenCaptureEffectiveParameters?,
+        public val lastOutputInfo: CaptureOutputInfo?,
     ) : ScreenCaptureState {
-        /** Returns whether [other] is a `Stopped` value with structurally equal public fields. */
         public override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Stopped) return false
 
             return (reason == other.reason) &&
                     (requestedParameters == other.requestedParameters) &&
-                    (lastEffectiveParameters == other.lastEffectiveParameters)
+                    (lastOutputInfo == other.lastOutputInfo)
         }
 
-        /** Returns a hash code consistent with structural equality. */
         public override fun hashCode(): Int {
             var result: Int = reason.hashCode()
             result = (31 * result) + requestedParameters.hashCode()
-            result = (31 * result) + (lastEffectiveParameters?.hashCode() ?: 0)
+            result = (31 * result) + (lastOutputInfo?.hashCode() ?: 0)
             return result
         }
 
-        /** Returns a bounded, non-sensitive debug string whose exact format is not an API contract. */
         public override fun toString(): String =
             "Stopped(" +
                     "reason=$reason, " +
                     "requestedParameters=$requestedParameters, " +
-                    "lastEffectiveParameters=$lastEffectiveParameters)"
+                    "lastOutputInfo=$lastOutputInfo)"
 
         internal companion object {
             @JvmSynthetic
             internal fun create(
                 reason: ScreenCaptureStopReason,
                 requestedParameters: ScreenCaptureParameters,
-                lastEffectiveParameters: ScreenCaptureEffectiveParameters?,
-            ): Stopped = Stopped(reason, requestedParameters, lastEffectiveParameters)
+                lastOutputInfo: CaptureOutputInfo?,
+            ): Stopped = Stopped(reason, requestedParameters, lastOutputInfo)
         }
     }
 
@@ -263,45 +257,42 @@ public sealed interface ScreenCaptureState {
      *
      * @property problem the stable, caller-facing failure semantics.
      * @property requestedParameters the latest durably accepted requested parameters at terminal selection.
-     * @property lastEffectiveParameters the historical last-committed output, or `null` if none was committed.
+     * @property lastOutputInfo the historical last-committed output, or `null` if none was committed.
      */
     public class Failed private constructor(
         public val problem: ScreenCaptureProblem,
         public val requestedParameters: ScreenCaptureParameters,
-        public val lastEffectiveParameters: ScreenCaptureEffectiveParameters?,
+        public val lastOutputInfo: CaptureOutputInfo?,
     ) : ScreenCaptureState {
-        /** Returns whether [other] is a `Failed` value with structurally equal public fields. */
         public override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Failed) return false
 
             return (problem == other.problem) &&
                     (requestedParameters == other.requestedParameters) &&
-                    (lastEffectiveParameters == other.lastEffectiveParameters)
+                    (lastOutputInfo == other.lastOutputInfo)
         }
 
-        /** Returns a hash code consistent with structural equality. */
         public override fun hashCode(): Int {
             var result: Int = problem.hashCode()
             result = (31 * result) + requestedParameters.hashCode()
-            result = (31 * result) + (lastEffectiveParameters?.hashCode() ?: 0)
+            result = (31 * result) + (lastOutputInfo?.hashCode() ?: 0)
             return result
         }
 
-        /** Returns a bounded, non-sensitive debug string whose exact format is not an API contract. */
         public override fun toString(): String =
             "Failed(" +
                     "problem=$problem, " +
                     "requestedParameters=$requestedParameters, " +
-                    "lastEffectiveParameters=$lastEffectiveParameters)"
+                    "lastOutputInfo=$lastOutputInfo)"
 
         internal companion object {
             @JvmSynthetic
             internal fun create(
                 problem: ScreenCaptureProblem,
                 requestedParameters: ScreenCaptureParameters,
-                lastEffectiveParameters: ScreenCaptureEffectiveParameters?,
-            ): Failed = Failed(problem, requestedParameters, lastEffectiveParameters)
+                lastOutputInfo: CaptureOutputInfo?,
+            ): Failed = Failed(problem, requestedParameters, lastOutputInfo)
         }
     }
 }
@@ -309,8 +300,9 @@ public sealed interface ScreenCaptureState {
 /** The stable reason represented by a terminal [ScreenCaptureState.Stopped] value. */
 public enum class ScreenCaptureStopReason {
     /**
-     * Stop was requested by the session owner, including through [ScreenCaptureSession.stop] or cancellation of
-     * an already accepted start.
+     * Stop was requested by the session owner, including through [ScreenCaptureSession.stop],
+     * [ScreenCaptureSession.requestStop], or cancellation
+     * observed by an entered fresh or already admitted [ScreenCaptureSession.start] invocation.
      */
     Requested,
 
@@ -341,8 +333,8 @@ public enum class ScreenCaptureProblem {
     InternalFailure,
 
     /**
-     * A captured source buffer explicitly declared a color space that cannot be represented safely by the
-     * required SDR/sRGB output.
+     * On API 33 or later, an observed captured buffer explicitly declared Display P3, which the nominal SDR/sRGB
+     * output rejects before readback. This classification does not imply generic gamut or HDR validation.
      */
     UnsupportedColorSpace,
 }
@@ -350,8 +342,7 @@ public enum class ScreenCaptureProblem {
 /**
  * An operation failure with stable [problem] semantics.
  *
- * The inherited message, cause, and suppressed throwables are optional best-effort diagnostic context. Their
- * presence, text, type, identity, object graph, order, and cardinality are not API guarantees.
+ * Inherited throwable details are optional best-effort diagnostic context with no stable content guarantee.
  *
  * @property problem the authoritative caller-facing failure classification.
  */

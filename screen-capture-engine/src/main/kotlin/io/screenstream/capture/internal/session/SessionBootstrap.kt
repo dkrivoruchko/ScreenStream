@@ -5,6 +5,7 @@ import android.os.HandlerThread
 import io.screenstream.capture.internal.capture.EglPlatform
 import io.screenstream.capture.internal.capture.GlesPlatform
 import io.screenstream.capture.internal.capture.ProjectionPlatform
+import io.screenstream.capture.internal.capture.ProjectionStopCompletion
 import io.screenstream.capture.internal.capture.SessionCaptureOwner
 import io.screenstream.capture.internal.capture.TargetPlatform
 import io.screenstream.capture.internal.encoding.NativeJpegFacade
@@ -21,7 +22,7 @@ import io.screenstream.capture.internal.runtime.ProductionRuntime
  *
  * Bootstrap owns every constructed prefix root until the exact first Control entry commits transfer through
  * [BootstrapOwnership]. A concurrent terminal cutoff leaves untransferred roots with Bootstrap for best-effort
- * retirement. Bootstrap has no lifecycle, publication, retry, or replacement-lane authority.
+ * retirement.
  */
 internal class SessionBootstrap(
     private val coordinator: SessionCoordinator,
@@ -37,6 +38,7 @@ internal class SessionBootstrap(
     private val glesPlatform: GlesPlatform,
     private val targetPlatform: TargetPlatform,
     private val nativeJpeg: NativeJpegFacade,
+    private val projectionStopCompletion: ProjectionStopCompletion,
     private val projectionStop: ProjectionStop = AndroidBootstrapProjectionStop,
 ) {
     internal fun interface ProjectionStop {
@@ -83,10 +85,14 @@ internal class SessionBootstrap(
     }
 
     internal fun requestPrefixRetirement() {
-        try {
-            workerDispatcher.tryDispatch(::retireAfterCutoff)
-        } catch (_: Exception) {
+        val failure = try {
+            if (workerDispatcher.tryDispatch(::retireAfterCutoff)) null
+            else IllegalStateException("Bootstrap retirement dispatch was rejected")
+        } catch (failure: Exception) {
+            failure
         }
+        // Only an untransferred, unclaimed stop depends on this dispatch; otherwise its owner reports completion.
+        if (failure != null && ownership.hasUnclaimedProjectionStop()) projectionStopCompletion.failed(failure)
     }
 
     private fun runBootstrap() {
@@ -131,6 +137,7 @@ internal class SessionBootstrap(
             eglPlatform = eglPlatform,
             glesPlatform = glesPlatform,
             targetPlatform = targetPlatform,
+            projectionStopCompletion = projectionStopCompletion,
         )
         val preparedGraph = PreparedGraph(
             executor = executor,
@@ -262,14 +269,16 @@ internal class SessionBootstrap(
         val claim = ownership.claimProjectionStop() ?: return
         try {
             projectionStop.stop(claim.projection)
-        } catch (_: Exception) {
+        } catch (failure: Exception) {
             try {
                 ownership.recordProjectionStopFailure(claim)
             } catch (_: Exception) {
             }
+            projectionStopCompletion.failed(failure)
             return
         }
         ownership.recordProjectionStopReturned(claim)
+        projectionStopCompletion.returned()
     }
 
     private fun retireLane(claim: BootstrapOwnership.LaneQuitClaim) {

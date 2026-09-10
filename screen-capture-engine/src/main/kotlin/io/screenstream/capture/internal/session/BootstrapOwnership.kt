@@ -7,9 +7,11 @@ import android.os.HandlerThread
 /**
  * Finite ownership ledger for the accepted projection and lane roots before the first Control task transfers them.
  *
- * Every root has one monotone transfer-or-cutoff winner. Queue acceptance is not entry, so the first Control task and
- * its dependencies remain rooted until real entry or cutoff. Cleanup after cutoff claims only roots still owned by
- * Bootstrap and is never a Session terminal or physical-release receipt.
+ * Every root has one monotone transfer-or-cutoff winner. Making the first entry inert does not itself clear a posted
+ * root: when no entry was observed during the call, a false post result proves non-entry. Observed entry wins regardless of
+ * the returned value, while a thrown [Exception] without observed entry leaves the root awaiting exact entry or
+ * explicit post/lane settlement. Cleanup after cutoff claims only roots still owned by Bootstrap and is
+ * never a Session terminal or physical-release receipt.
  */
 internal class BootstrapOwnership {
     internal enum class LaneStartDecision { Admitted, Cutoff, }
@@ -216,6 +218,10 @@ internal class BootstrapOwnership {
         val projection = checkNotNull(acceptedProjection)
         projectionStopState = ProjectionStopState.StopAttempted
         return ProjectionStopClaim(projection)
+    }
+
+    internal fun hasUnclaimedProjectionStop(): Boolean = synchronized(gate) {
+        firstControlEntryState == FirstControlEntryState.CutoffInert && projectionStopState == ProjectionStopState.Owned
     }
 
     internal fun recordProjectionStopReturned(claim: ProjectionStopClaim) = synchronized(gate) {

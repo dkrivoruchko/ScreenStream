@@ -1,3 +1,3 @@
 # Work state
 
-No active tasks
+No active tasks.

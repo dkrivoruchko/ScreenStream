@@ -1,5 +1,9 @@
 package io.screenstream.capture.internal.storage
 
+/**
+ * Immutable encoded storage that retains the supplied outer array and each inner [ByteArray] without copying. The
+ * producer must relinquish every mutable alias at construction; callers receive only validated copies.
+ */
 internal class ImmutableEncodedPayload(
     private val segments: Array<ByteArray>,
     internal val byteCount: Int,

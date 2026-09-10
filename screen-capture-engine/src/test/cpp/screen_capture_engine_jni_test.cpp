@@ -27,7 +27,7 @@ namespace {
 
     constexpr const char *kFacadeClassName =
             "io/screenstream/capture/internal/encoding/NativeJpegProcess";
-    constexpr const char *kSinkMethodName = "adoptNativeSegment";
+    constexpr const char *kSinkMethodName = "copyNativeSegment";
     constexpr const char *kSinkMethodDescriptor = "(Ljava/nio/ByteBuffer;I)V";
     constexpr std::size_t kResultBlockByteCount = 16;
     constexpr std::size_t kProducedByteCountOffset = 0;
@@ -65,8 +65,8 @@ namespace {
     struct FakeJniState final {
         std::vector<std::unique_ptr<FakeReference>> references;
         std::vector<RegisteredMethod> registeredMethods;
-        std::vector<std::uint8_t> adoptedBytes;
-        std::vector<std::size_t> adoptedSegmentByteCounts;
+        std::vector<std::uint8_t> copiedBytes;
+        std::vector<std::size_t> copiedSegmentByteCounts;
 
         std::string lastFoundClassName;
         std::string lastMethodName;
@@ -84,8 +84,8 @@ namespace {
         jthrowable sinkThrowable = nullptr;
         bool compressorRequestsOversizedWrite = false;
         bool forbiddenCallWhilePending = false;
-        std::size_t adoptionCalls = 0;
-        std::size_t failAdoptionCall = 0;
+        std::size_t copyCalls = 0;
+        std::size_t failCopyCall = 0;
 
         std::vector<std::uint8_t> compressorBytes = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
         std::int32_t compressorResult = ANDROID_BITMAP_RESULT_SUCCESS;
@@ -211,7 +211,7 @@ namespace {
         return state.makeReference(ReferenceKind::Class, true, nullptr, -1, "NativeSegmentSink");
     }
 
-    _jmethodID adoptMethodId{};
+    _jmethodID copyMethodId{};
 
     jmethodID fakeGetMethodID(JNIEnv *environment, jclass clazz, const char *name, const char *descriptor) {
         FakeJniState &state = stateOf(environment);
@@ -221,7 +221,7 @@ namespace {
         if (state.lastMethodName != kSinkMethodName || state.lastMethodDescriptor != kSinkMethodDescriptor) {
             return nullptr;
         }
-        return &adoptMethodId;
+        return &copyMethodId;
     }
 
     void fakeCallVoidMethodV(JNIEnv *environment, jobject sink, jmethodID method, va_list arguments) {
@@ -232,20 +232,20 @@ namespace {
         FakeReference *sinkReference = state.findReference(sink);
         FakeReference *bufferReference = state.findReference(buffer);
         if (sinkReference == nullptr || sinkReference->kind != ReferenceKind::Sink ||
-            method != &adoptMethodId || bufferReference == nullptr ||
+            method != &copyMethodId || bufferReference == nullptr ||
             bufferReference->kind != ReferenceKind::Buffer || !bufferReference->active ||
             byteCount <= 0 || bufferReference->address == nullptr || bufferReference->capacity != byteCount) {
             state.forbiddenCallWhilePending = true;
             return;
         }
-        ++state.adoptionCalls;
-        if (state.adoptionCalls == state.failAdoptionCall) {
+        ++state.copyCalls;
+        if (state.copyCalls == state.failCopyCall) {
             state.pendingThrowable = state.sinkThrowable;
             return;
         }
         const auto *first = static_cast<const std::uint8_t *>(bufferReference->address);
-        state.adoptedBytes.insert(state.adoptedBytes.end(), first, first + byteCount);
-        state.adoptedSegmentByteCounts.push_back(static_cast<std::size_t>(byteCount));
+        state.copiedBytes.insert(state.copiedBytes.end(), first, first + byteCount);
+        state.copiedSegmentByteCounts.push_back(static_cast<std::size_t>(byteCount));
     }
 
     jint fakeRegisterNatives(
@@ -633,7 +633,7 @@ namespace {
         require(readWord(resultBlock, kProducedByteCountOffset) == kPendingWord &&
                 readWord(resultBlock, kWireStatusOffset) == kPendingWord,
                 "preexisting Throwable was converted to a wire result");
-        require(harness.state.adoptedBytes.empty(), "preexisting Throwable published sink bytes");
+        require(harness.state.copiedBytes.empty(), "preexisting Throwable published sink bytes");
         require(!harness.state.forbiddenCallWhilePending, "entry used forbidden JNI while Throwable was pending");
 
         harness.state.pendingThrowable = nullptr;
@@ -651,7 +651,7 @@ namespace {
                     "wrong-sized result block was mutated");
             require(fixture.harness.state.compressorEntryCalls == 0,
                     "wrong-sized result block reached the compressor");
-            require(fixture.harness.state.adoptedBytes.empty(), "wrong-sized result block published bytes");
+            require(fixture.harness.state.copiedBytes.empty(), "wrong-sized result block published bytes");
             requireCleanLocalsAndJniUse(fixture.harness.state, "wrong-sized result block");
         }
         {
@@ -661,7 +661,7 @@ namespace {
                     "invalid descriptor did not return internal wire failure");
             require(fixture.harness.state.compressorEntryCalls == 0,
                     "invalid descriptor reached the compressor");
-            require(fixture.harness.state.adoptedBytes.empty(), "invalid descriptor published bytes");
+            require(fixture.harness.state.copiedBytes.empty(), "invalid descriptor published bytes");
             requireCleanLocalsAndJniUse(fixture.harness.state, "invalid descriptor");
         }
         {
@@ -672,7 +672,7 @@ namespace {
                     "carrier capacity mismatch did not return internal wire failure");
             require(fixture.harness.state.compressorEntryCalls == 0,
                     "carrier capacity mismatch reached the compressor");
-            require(fixture.harness.state.adoptedBytes.empty(), "carrier capacity mismatch published bytes");
+            require(fixture.harness.state.copiedBytes.empty(), "carrier capacity mismatch published bytes");
             requireCleanLocalsAndJniUse(fixture.harness.state, "carrier capacity mismatch");
         }
     }
@@ -694,14 +694,14 @@ namespace {
         require(fixture.harness.state.compressorEntryCalls == 1,
                 "valid compression did not enter the compressor exactly once");
         require(fixture.harness.state.compressorWriteSucceeded, "fake compressor output was rejected");
-        require(fixture.harness.state.adoptedBytes == expected, "sink bytes were not exact FIFO output");
-        require(fixture.harness.state.adoptionCalls == 3 &&
-                fixture.harness.state.adoptedSegmentByteCounts == std::vector<std::size_t>({
-                                                                                                   screenstream::jpeg::kNativeSegmentPayloadCapacity,
-                                                                                                   screenstream::jpeg::kNativeSegmentPayloadCapacity,
-                                                                                                   17,
-                                                                                           }),
-                "successful transfer did not adopt the exact three-segment FIFO");
+        require(fixture.harness.state.copiedBytes == expected, "sink bytes were not exact FIFO output");
+        require(fixture.harness.state.copyCalls == 3 &&
+                fixture.harness.state.copiedSegmentByteCounts == std::vector<std::size_t>({
+                                                                                                  screenstream::jpeg::kNativeSegmentPayloadCapacity,
+                                                                                                  screenstream::jpeg::kNativeSegmentPayloadCapacity,
+                                                                                                  17,
+                                                                                          }),
+                "successful transfer did not copy the exact three-segment FIFO");
         require(fixture.producedByteCount() == static_cast<std::int64_t>(expected.size()),
                 "produced byte count mismatch");
         require(fixture.status() == kCompleteStatus, "successful transfer did not complete the wire");
@@ -713,7 +713,7 @@ namespace {
     }
 
     // Verification: ENC-04
-    void testSecondAdoptionFailureStopsTransferAndPreservesThrowable() {
+    void testSecondCopyFailureStopsTransferAndPreservesThrowable() {
         CompressionFixture fixture;
         fixture.harness.state.compressorBytes.resize(
                 2 * screenstream::jpeg::kNativeSegmentPayloadCapacity + 17
@@ -723,32 +723,32 @@ namespace {
         }
         const jthrowable original = fixture.harness.state.makeThrowable("java/lang/RuntimeException");
         fixture.harness.state.sinkThrowable = original;
-        fixture.harness.state.failAdoptionCall = 2;
+        fixture.harness.state.failCopyCall = 2;
 
         fixture.invoke();
 
         require(sameReference(fixture.harness.state.pendingThrowable, original),
-                "second-adoption Throwable was replaced or cleared");
+                "second-copy Throwable was replaced or cleared");
         require(fixture.status() == kJavaThrowableStatus,
-                "second-adoption Throwable did not use JavaThrowable wire status");
+                "second-copy Throwable did not use JavaThrowable wire status");
         require(fixture.producedByteCount() ==
                 static_cast<std::int64_t>(fixture.harness.state.compressorBytes.size()),
-                "second-adoption failure changed produced-byte evidence");
-        require(fixture.harness.state.adoptionCalls == 2,
-                "transfer continued after the second adoption failed");
-        require(fixture.harness.state.adoptedSegmentByteCounts == std::vector<std::size_t>({
-                                                                                                   screenstream::jpeg::kNativeSegmentPayloadCapacity,
-                                                                                           }), "second-adoption failure adopted more than the first segment");
-        require(fixture.harness.state.adoptedBytes == std::vector<std::uint8_t>(
+                "second-copy failure changed produced-byte evidence");
+        require(fixture.harness.state.copyCalls == 2,
+                "transfer continued after the second copy failed");
+        require(fixture.harness.state.copiedSegmentByteCounts == std::vector<std::size_t>({
+                                                                                                  screenstream::jpeg::kNativeSegmentPayloadCapacity,
+                                                                                          }), "second-copy failure copied more than the first segment");
+        require(fixture.harness.state.copiedBytes == std::vector<std::uint8_t>(
                 fixture.harness.state.compressorBytes.begin(),
                 fixture.harness.state.compressorBytes.begin() +
                 static_cast<std::ptrdiff_t>(screenstream::jpeg::kNativeSegmentPayloadCapacity)
-        ), "second-adoption failure changed the first adopted segment");
-        requireCleanLocalsAndJniUse(fixture.harness.state, "second-adoption failure");
+        ), "second-copy failure changed the first copied segment");
+        requireCleanLocalsAndJniUse(fixture.harness.state, "second-copy failure");
     }
 
     // Verification: ENC-04
-    void testCompressorRejectionAndCallbackOverflowDoNotAdopt() {
+    void testCompressorRejectionAndCallbackOverflowDoNotCopy() {
         {
             CompressionFixture fixture;
             fixture.harness.state.compressorResult = ANDROID_BITMAP_RESULT_ALLOCATION_FAILED;
@@ -760,9 +760,9 @@ namespace {
                     static_cast<std::int64_t>(fixture.harness.state.compressorBytes.size()) &&
                     fixture.status() == kSafeCompressorRejectionStatus,
                     "clean compressor rejection did not preserve status and byte evidence");
-            require(fixture.harness.state.adoptionCalls == 0 &&
-                    fixture.harness.state.adoptedBytes.empty(),
-                    "clean compressor rejection adopted a native segment");
+            require(fixture.harness.state.copyCalls == 0 &&
+                    fixture.harness.state.copiedBytes.empty(),
+                    "clean compressor rejection copied a native segment");
             require(fixture.harness.state.pendingThrowable == nullptr,
                     "clean compressor rejection left a Throwable");
             requireCleanLocalsAndJniUse(fixture.harness.state, "clean compressor rejection");
@@ -777,9 +777,9 @@ namespace {
                     "oversized compressor callback was accepted");
             require(fixture.producedByteCount() == 0 && fixture.status() == kNativeOutOfMemoryStatus,
                     "oversized callback did not fail before accepting bytes");
-            require(fixture.harness.state.adoptionCalls == 0 &&
-                    fixture.harness.state.adoptedBytes.empty(),
-                    "oversized callback adopted a native segment");
+            require(fixture.harness.state.copyCalls == 0 &&
+                    fixture.harness.state.copiedBytes.empty(),
+                    "oversized callback copied a native segment");
             require(fixture.harness.state.pendingThrowable == nullptr,
                     "oversized callback left a Throwable");
             requireCleanLocalsAndJniUse(fixture.harness.state, "oversized callback");
@@ -795,10 +795,10 @@ namespace {
                                                                                  &testCarrierCapabilityAndPreexistingThrowableEntries},
                                                                                 {"compress malformed inputs", &testCompressMalformedInputsDoNotPublish},
                                                                                 {"compress exact transfer", &testCompressTransfersExactBytesAndCompletesWire},
-                                                                                {"second-adoption Throwable cleanup",
-                                                                                 &testSecondAdoptionFailureStopsTransferAndPreservesThrowable},
+                                                                                {"second-copy Throwable cleanup",
+                                                                                 &testSecondCopyFailureStopsTransferAndPreservesThrowable},
                                                                                 {"compress rejection/overflow",
-                                                                                 &testCompressorRejectionAndCallbackOverflowDoNotAdopt},
+                                                                                 &testCompressorRejectionAndCallbackOverflowDoNotCopy},
                                                                         }};
 
 }

@@ -296,6 +296,7 @@ internal object RawPixelOracle {
         val y1 = y0 + 1
         val weightX = texelX - x0
         val weightY = texelY - y0
+        // Preserve weights from the original neighboring coordinates before clamping each sampled neighbor.
         val clampedX0 = x0.coerceIn(retainedLeftPx, retainedRightPx - 1)
         val clampedX1 = x1.coerceIn(retainedLeftPx, retainedRightPx - 1)
         val clampedY0 = y0.coerceIn(retainedTopPx, retainedBottomPx - 1)

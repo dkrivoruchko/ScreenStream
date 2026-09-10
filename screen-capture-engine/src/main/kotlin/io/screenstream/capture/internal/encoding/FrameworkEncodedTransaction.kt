@@ -2,6 +2,7 @@ package io.screenstream.capture.internal.encoding
 
 import java.io.OutputStream
 
+/** Managed JPEG stream assembly; commit copies only a partially used tail before transferring segment ownership. */
 internal class FrameworkEncodedTransaction : ManagedEncodedTransaction() {
     private var tail: ByteArray? = null
     private var usedTailByteCount: Int = 0

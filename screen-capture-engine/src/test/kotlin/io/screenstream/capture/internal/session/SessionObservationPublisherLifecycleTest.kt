@@ -2,7 +2,7 @@ package io.screenstream.capture.internal.session
 
 import io.screenstream.capture.ScreenCaptureDeliveryDropStats
 import io.screenstream.capture.ScreenCaptureDiagnosticEvent
-import io.screenstream.capture.ScreenCaptureFrameDropStats
+import io.screenstream.capture.ScreenCaptureFrameProductionDropStats
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureState
 import io.screenstream.capture.ScreenCaptureStats
@@ -77,7 +77,7 @@ internal class SessionObservationPublisherLifecycleTest {
         val terminalState = ScreenCaptureState.Stopped.create(
             reason = ScreenCaptureStopReason.Requested,
             requestedParameters = ScreenCaptureParameters.DEFAULT,
-            lastEffectiveParameters = null,
+            lastOutputInfo = null,
         )
         val collector = backgroundScope.launch(start = CoroutineStart.UNDISPATCHED) {
             publisher.diagnosticEvents.collect { event ->
@@ -136,7 +136,7 @@ internal class SessionObservationPublisherLifecycleTest {
         val terminalState = ScreenCaptureState.Stopped.create(
             reason = ScreenCaptureStopReason.Requested,
             requestedParameters = ScreenCaptureParameters.DEFAULT,
-            lastEffectiveParameters = null,
+            lastOutputInfo = null,
         )
         lateinit var publisher: SessionObservationPublisher
         var diagnosticAttempted = false
@@ -179,7 +179,7 @@ internal class SessionObservationPublisherLifecycleTest {
         val terminalState = ScreenCaptureState.Stopped.create(
             reason = ScreenCaptureStopReason.ProjectionStopped,
             requestedParameters = ScreenCaptureParameters.DEFAULT,
-            lastEffectiveParameters = null,
+            lastOutputInfo = null,
         )
         publisher.publishState(ScreenCaptureState.Starting)
 
@@ -208,7 +208,7 @@ internal class SessionObservationPublisherLifecycleTest {
         val terminalState = ScreenCaptureState.Stopped.create(
             reason = ScreenCaptureStopReason.Requested,
             requestedParameters = ScreenCaptureParameters.DEFAULT,
-            lastEffectiveParameters = null,
+            lastOutputInfo = null,
         )
         publisher.publishState(priorState)
 
@@ -236,7 +236,7 @@ internal class SessionObservationPublisherLifecycleTest {
     ): ScreenCaptureStats = ScreenCaptureStats.create(
         encodedFrameCount = 1L,
         producedFrameCount = 0L,
-        droppedFrames = ScreenCaptureFrameDropStats.create(byStaleWork = 0L, byFailure = 0L),
+        frameProductionDrops = ScreenCaptureFrameProductionDropStats.create(byStaleWork = 0L, byFailure = 0L),
         droppedDeliveries = ScreenCaptureDeliveryDropStats.create(byConsumerBusy = 0L, byCallbackFailure = 0L),
         averageProducedFps = 0.0,
         averageEncodingDuration = Duration.ZERO,

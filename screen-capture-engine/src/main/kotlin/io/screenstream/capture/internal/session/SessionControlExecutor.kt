@@ -5,13 +5,8 @@ import android.os.HandlerThread
 import io.screenstream.capture.internal.runtime.HandlerTaskPoster
 
 /**
- * Owns the control-thread mechanism used to enter coordinator turns.
- *
- * Posting acceptance proves only that Android accepted the task; it does not prove task entry or
- * progress. This class therefore carries no Session semantic authority: [SessionCoordinator] is the sole cross-owner,
- * Link-correlation, publication, and terminal arbiter, while Lifecycle, Topology, Production, and Session Delivery
- * retain their exclusive semantic state. A successful [requestQuit] is a quit request rather than a thread-termination
- * receipt.
+ * Owns Control-thread posting and coordinator turn entry. Post acceptance does not prove task entry, and a successful
+ * [requestQuit] is a quit request rather than a thread-termination receipt.
  */
 internal class SessionControlExecutor(
     private val coordinator: SessionCoordinator,

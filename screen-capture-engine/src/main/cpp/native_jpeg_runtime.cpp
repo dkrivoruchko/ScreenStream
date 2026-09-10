@@ -73,8 +73,8 @@ namespace screenstream::jpeg {
             }
 
             const std::size_t bytesAfterTail = size > tailAvailable ? size - tailAvailable : 0;
-            const std::size_t requiredSegmentCount = bytesAfterTail == 0 ? 0 :
-                                                     1 + ((bytesAfterTail - 1) / kNativeSegmentPayloadCapacity);
+            const std::size_t requiredSegmentCount = bytesAfterTail == 0 ? 0 : 1 + ((bytesAfterTail - 1) / kNativeSegmentPayloadCapacity);
+            // Prepare every segment needed by this append before mutating the live tail or chain.
             for (std::size_t index = 0; index < requiredSegmentCount; ++index) {
                 void *allocation = allocateFunction_(sizeof(NativeSegment));
                 if (allocation == nullptr) {
@@ -107,8 +107,7 @@ namespace screenstream::jpeg {
                 remaining -= copied;
             }
             for (NativeSegment *segment = preparedHead; segment != nullptr; segment = segment->next_) {
-                const std::size_t copied = remaining < kNativeSegmentPayloadCapacity ?
-                                           remaining : kNativeSegmentPayloadCapacity;
+                const std::size_t copied = remaining < kNativeSegmentPayloadCapacity ? remaining : kNativeSegmentPayloadCapacity;
                 std::memcpy(segment->payload(), source, copied);
                 segment->segmentByteCount = static_cast<std::int32_t>(copied);
                 source += copied;
@@ -158,7 +157,7 @@ namespace screenstream::jpeg {
         );
     }
 
-    bool NativeSegmentWriter::validateChainLocked() const noexcept {
+    bool NativeSegmentWriter::validateRemainingChainLocked() const noexcept {
         if (segmentCount_ == 0) {
             return head_ == nullptr && tail_ == nullptr;
         }
@@ -182,22 +181,20 @@ namespace screenstream::jpeg {
         return false;
     }
 
-    bool NativeSegmentWriter::validateListLocked() const noexcept {
-        if (producedByteCount_ == 0) return segmentCount_ == 0 && validateChainLocked();
+    bool NativeSegmentWriter::validateCompleteOutputLocked() const noexcept {
+        if (producedByteCount_ == 0) return segmentCount_ == 0 && validateRemainingChainLocked();
         if (producedByteCount_ < 0 || producedByteCount_ > INT_MAX) return false;
 
         const auto produced = static_cast<std::size_t>(producedByteCount_);
-        const std::size_t expectedSegmentCount =
-                1 + ((produced - 1) / kNativeSegmentPayloadCapacity);
-        if (segmentCount_ != expectedSegmentCount || !validateChainLocked()) return false;
+        const std::size_t expectedSegmentCount = 1 + ((produced - 1) / kNativeSegmentPayloadCapacity);
+        if (segmentCount_ != expectedSegmentCount || !validateRemainingChainLocked()) return false;
 
         std::size_t remaining = produced;
         NativeSegment *segment = head_;
         NativeSegment *lastSegment = nullptr;
         for (std::size_t index = 0; index < expectedSegmentCount; ++index) {
             if (segment == nullptr) return false;
-            const std::size_t expectedByteCount = remaining < kNativeSegmentPayloadCapacity ?
-                                                  remaining : kNativeSegmentPayloadCapacity;
+            const std::size_t expectedByteCount = remaining < kNativeSegmentPayloadCapacity ? remaining : kNativeSegmentPayloadCapacity;
             if (segment->segmentByteCount != static_cast<std::int32_t>(expectedByteCount)) return false;
             remaining -= expectedByteCount;
             lastSegment = segment;
@@ -214,7 +211,7 @@ namespace screenstream::jpeg {
                 return false;
             }
             lifecycle_ = Lifecycle::Frozen;
-            if (!validateListLocked()) {
+            if (!validateCompleteOutputLocked()) {
                 recordInternalFailure();
                 return false;
             }
@@ -260,7 +257,7 @@ namespace screenstream::jpeg {
     }
 
     bool NativeSegmentWriter::freeChainLocked() noexcept {
-        const bool coherent = validateChainLocked();
+        const bool coherent = validateRemainingChainLocked();
         if (!coherent) recordInternalFailure();
 
         NativeSegment *nativeSegment = head_;
@@ -319,20 +316,15 @@ namespace screenstream::jpeg {
     bool NativeSegmentWriter::closed() const noexcept {
         try {
             std::lock_guard<std::mutex> lock(mutex_);
-            return lifecycle_ == Lifecycle::Closed &&
-                   head_ == nullptr && tail_ == nullptr && segmentCount_ == 0;
+            return lifecycle_ == Lifecycle::Closed && head_ == nullptr && tail_ == nullptr && segmentCount_ == 0;
         } catch (...) {
             const_cast<NativeSegmentWriter *>(this)->recordInternalFailure();
             return false;
         }
     }
 
-    NativeWireStatus classifyInitialWireStatus(
-            const CompressionResult &compressionResult,
-            bool compressionLeftPendingJavaThrowable
-    ) noexcept {
-        if (compressionLeftPendingJavaThrowable && compressionResult.writerFrozen &&
-            compressionResult.writerFault != WriterFault::InternalFailure) {
+    NativeWireStatus classifyInitialWireStatus(const CompressionResult &compressionResult, bool compressionLeftPendingJavaThrowable) noexcept {
+        if (compressionLeftPendingJavaThrowable && compressionResult.writerFrozen && compressionResult.writerFault != WriterFault::InternalFailure) {
             return NativeWireStatus::JavaThrowable;
         }
         if (compressionResult.writerFrozen && compressionResult.writerFault != WriterFault::InternalFailure) {

@@ -31,7 +31,7 @@ internal interface EglPlatform {
 
     fun destroySurface(display: EGLDisplay, surface: EGLSurface): Boolean
 
-    // Android initialization references require cooperating clients to balance only their own successful initialize.
+    // Balance only this owner's successful initialize; no process-wide EGL reference-count assumption is required.
     fun releaseDisplayInitialization(display: EGLDisplay): Boolean
 
     fun releaseThread(): Boolean

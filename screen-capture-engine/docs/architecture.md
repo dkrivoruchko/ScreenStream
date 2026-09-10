@@ -1,206 +1,306 @@
-[README](../README.md) · [Usage](usage.md) · Architecture
+[Usage](usage.md) · Architecture
 
 # Architecture
 
-This document explains the pipeline and responsibility boundaries of one capture run. See [Usage](usage.md) for integration and frame handling.
+Screen Capture Engine owns the path from an Android `MediaProjection` to complete JPEG frames delivered to an application. It resolves image settings against changing capture geometry, coordinates GPU processing and JPEG encoding, and bounds production and delivery work. Resource owners support preparation, reuse, reconfiguration, and cleanup throughout the run.
+
+The central design separates two questions: **is this work still useful to the current run?** and **has the component using its resources actually finished?** A new request can make an image obsolete immediately, but it cannot make an Android call, codec operation, or application callback return. This distinction shapes configuration, frame delivery, and shutdown.
+
+This guide explains how those pieces work together. [Usage](usage.md) covers integration and the complete caller contract; the [internal guide](../internal/README.md) extends the architecture with detailed algorithms, failure handling, ABI rules, and verification methods.
 
 ## Contents
 
 - [Capture run model](#capture-run-model)
-  - [Host and engine boundaries](#host-and-engine-boundaries)
-  - [One session, one run](#one-session-one-run)
-- [Android capture and JPEG pipeline](#android-capture-and-jpeg-pipeline)
-  - [From MediaProjection to complete JPEG](#from-mediaprojection-to-complete-jpeg)
-  - [Capture size and density](#capture-size-and-density)
-  - [JPEG backend seam](#jpeg-backend-seam)
-- [Session lifecycle](#session-lifecycle)
-  - [Public phases](#public-phases)
-  - [Recoverable pauses and final outcomes](#recoverable-pauses-and-final-outcomes)
-  - [Run outcome and resource release](#run-outcome-and-resource-release)
+- [Component and ownership model](#component-and-ownership-model)
+- [Execution and coordination](#execution-and-coordination)
 - [Requested and applied output](#requested-and-applied-output)
-  - [Why output is resolved](#why-output-is-resolved)
-  - [How changes reach delivered frames](#how-changes-reach-delivered-frames)
+- [Android capture and JPEG pipeline](#android-capture-and-jpeg-pipeline)
 - [Frame ownership and bounded delivery](#frame-ownership-and-bounded-delivery)
-  - [Borrowed frames and app-owned bytes](#borrowed-frames-and-app-owned-bytes)
-  - [Backpressure and reusable JPEGs](#backpressure-and-reusable-jpegs)
+- [Session lifecycle](#session-lifecycle)
 - [Observation model](#observation-model)
-  - [Three signals, three roles](#three-signals-three-roles)
-  - [Independent timelines](#independent-timelines)
 - [Performance and memory design](#performance-and-memory-design)
-  - [Avoid expensive work early](#avoid-expensive-work-early)
-  - [One final-size processing path](#one-final-size-processing-path)
-  - [Reuse resources and encoded data](#reuse-resources-and-encoded-data)
 
 ## Capture run model
 
 ### Host and engine boundaries
 
-The host obtains user consent and a [`MediaProjection`](https://developer.android.com/media/grow/media-projection) for the selected display or app window. It maintains the required [`mediaProjection` foreground-service context](https://developer.android.com/develop/background-work/services/fgs/service-types#media-projection) while capture can run.
+The application obtains Android capture authority and a [`MediaProjection`](https://developer.android.com/media/grow/media-projection) for the selected display or, where supported, app window. It maintains the required [`mediaProjection` foreground-service context](https://developer.android.com/develop/background-work/services/fgs/service-types#media-projection) and decides when capture should run. Transport, analysis, storage, access control, retention, and deletion of copied JPEGs belong to the application.
 
-The host controls access, transport, storage, retention, and deletion of copied JPEGs.
+The engine owns capture, image processing, JPEG encoding, and delivery. The application supplies desired `ScreenCaptureParameters`; the engine combines them with capture dimensions and density to resolve an applied `CaptureOutputInfo`. That immutable description identifies the settings and geometry used for output. A change can require preparation before it becomes usable, so the newest request and the currently applied configuration are deliberately separate.
 
-The app requests image settings, and the engine combines them with the captured width, height, and density. The resulting `applied output` is the exact settings and resolved geometry used for a usable JPEG path. The engine owns the capture objects attached to the run, manages graphics and JPEG resources, and delivers complete frames.
+```mermaid
+flowchart LR
+    Host["App<br/>consent · service · lifetime"] -->|projection<br/>desired parameters| Engine["Capture Engine"]
+    Engine -->|borrowed complete JPEG<br/>and output metadata| Callback["App callback"]
+    Callback -->|copy during callback| Owned["App-owned bytes<br/>analyze · store · transport"]
+```
 
 ### One session, one run
 
-A `ScreenCaptureSession` owns one capture run: live settings, frame delivery, observations, and the final outcome.
+A `ScreenCaptureSession` owns one capture run. Each run uses a new session and host-provided projection authority. The host follows Android’s [consent requirements](https://developer.android.com/media/grow/media-projection#user_consent); the engine does not interpret consent or the projection’s origin. A successful `createSession()` transfers projection ownership to the session; a throwing factory leaves it with the application. `start()` starts preparation of the already-owned projection. The application stops every created session, including one that never starts; see [run a capture session](usage.md#run-a-capture-session).
 
-Each run uses a fresh session and a fresh `MediaProjection`, matching Android's [one-use projection consent model](https://developer.android.com/media/grow/media-projection#user-consent). A successful synchronous `createSession()` transfers projection ownership to the session; a thrown factory call leaves it with the host. `start()` then starts capture without another ownership handoff. The lifecycle owner must stop every created session even if it never starts; see [startup ownership](usage.md#start-a-capture-run).
+During a run, Android makes captured images available, the engine selects one for processing, and a GPU draw produces RGBA (red, green, blue, and alpha) pixels at the requested JPEG dimensions. Readback copies those pixels from the GPU into a CPU-accessible buffer, and Encoding turns them into a complete immutable payload. The session checks whether the result is still current before assigning output identity and offering it to the consumer.
 
-JPEG payloads are immutable and engine-owned. Read the borrowed `EncodedImageFrame` only inside its receiving callback and on that callback thread. Metadata needs no byte copy; `copyTo()` fills caller-owned storage and `toByteArray()` creates an app-owned array. Copy bytes during the callback to retain them afterward.
+The callback receives a borrowed `EncodedFrame`, not ownership of the engine's JPEG storage. It may retain immutable metadata values and bytes copied during the callback. Frame access itself is restricted to that callback and its thread. This permits encoded storage to be reused safely for later cached-first delivery without imposing an application retention policy.
 
-## Android capture and JPEG pipeline
+## Component and ownership model
 
-### From MediaProjection to complete JPEG
+The engine separates **session decisions** from **resource ownership**. Session decisions describe the newest request, usable output, production timing, and final outcome. Resource owners know which Android objects, buffers, subscriptions, or callbacks remain in use and what must happen before they can be released.
 
-Android projects the selected display or app-window content by calling [`MediaProjection.createVirtualDisplay()`](https://developer.android.com/reference/kotlin/android/media/projection/MediaProjection#createvirtualdisplay). The engine creates that virtual display at the current source dimensions and directs it to an engine-provided [`Surface`](https://developer.android.com/reference/kotlin/android/view/Surface). That `Surface` is backed by a [`SurfaceTexture`](https://developer.android.com/reference/kotlin/android/graphics/SurfaceTexture), which exposes captured images as an OpenGL ES texture.
+[`SessionCoordinator`](../src/main/kotlin/io/screenstream/capture/internal/session/SessionCoordinator.kt) joins these responsibilities. It matches requests with their results and coordinates changes across owners. It neither combines all their state into one object nor takes over their resource cleanup.
 
-The engine keeps the newest waiting image, combines spatial transforms and color-mode processing in one [OpenGL ES draw](https://developer.android.com/reference/kotlin/android/opengl/GLES20#gldrawarrays), and [reads back pixels](https://developer.android.com/reference/kotlin/android/opengl/GLES20#glreadpixels) at the final JPEG dimensions. A JPEG backend commits those pixels into a complete immutable payload. The session separately checks whether that result still belongs to current output before committing its public frame identity and offering bounded callback delivery. A completed encode can therefore be counted and discarded as stale without becoming produced output.
+Four session owners divide the decisions:
+
+- [`SessionLifecycle`](../src/main/kotlin/io/screenstream/capture/internal/session/lifecycle/SessionLifecycle.kt) decides whether start and production are allowed, whether first `Active` is still eligible, and which terminal outcome wins.
+- [`SessionTopology`](../src/main/kotlin/io/screenstream/capture/internal/session/topology/SessionTopology.kt) combines the newest request, a revision identifying which request work belongs to, capture geometry, and resource readiness into an applied plan. It also retains the last applied output description.
+- [`SessionProduction`](../src/main/kotlin/io/screenstream/capture/internal/session/production/SessionProduction.kt) manages fresh capture and output pacing, the latest reusable frame, production identity, and statistics accumulation.
+- [`SessionDelivery`](../src/main/kotlin/io/screenstream/capture/internal/session/delivery/SessionDelivery.kt) tracks consumer registration, frame handoff, and when a registration can finish unregistering.
+
+Four physical owners manage work and its resources:
+
+- [`SessionMetricsOwner`](../src/main/kotlin/io/screenstream/capture/internal/metrics/SessionMetricsOwner.kt) attaches the metrics subscription and owns its close attempt.
+- [`SessionCaptureOwner`](../src/main/kotlin/io/screenstream/capture/internal/capture/SessionCaptureOwner.kt) owns the projection, virtual display, target surface, graphics resources, and readback. EGL manages the graphics context and surfaces; OpenGL ES (GLES) performs the GPU work.
+- [`EncodingOwner`](../src/main/kotlin/io/screenstream/capture/internal/encoding/EncodingOwner.kt) owns the RGBA buffer, its temporary loan to Capture, backend state, and tentative encoded bytes.
+- [`DeliveryOwner`](../src/main/kotlin/io/screenstream/capture/internal/delivery/DeliveryOwner.kt) owns callback scheduling and entry, the temporary frame borrow, and callback return.
+
+The following diagram shows coordination relationships, not physical threads or a frame's route:
 
 ```mermaid
 flowchart TB
-    App["App supplies capture access<br/>and image settings"] --> Session
-
-    subgraph Engine["ScreenStream Capture Engine"]
-        direction TB
-        Session["ScreenCaptureSession<br/>lifecycle + output request"] --> Resolve["Resolve applied output"]
-        Resolve --> Capture["MediaProjection<br/>source-sized VirtualDisplay → Surface"]
-        Capture --> Source["Newest waiting<br/>screen image"]
-        Source --> GPU["OpenGL ES<br/>transform + final-size readback"]
-        GPU --> Encode["JPEG encoding<br/>Framework or optional Native"]
-        Encode --> Deliver["Bounded delivery<br/>one complete frame at a time"]
-    end
-
-    Deliver --> Callback["App callback<br/>borrowed EncodedImageFrame"]
+    API["Public session API"] --> Coordinator["SessionCoordinator"]
+    Coordinator --> Storage
+    Coordinator --> Decisions["Session owners<br/>Lifecycle · Topology · Production · SessionDelivery"]
+    Coordinator --> Links["Typed links<br/>match operations and returned results"]
+    Coordinator --> Metrics["Metrics owner"]
+    Links --> EncodingDelivery["Encoding · Delivery owners"]
+    Links --> CaptureOwner["Capture owner"]
+    Decisions -->|Production · SessionDelivery| Storage
+    EncodingDelivery --> Storage["Encoded storage"]
+    EncodingDelivery --> Runtime
+    CaptureOwner --> Runtime["Runtime<br/>lanes · dispatch · clocks · serial slots"]
+    Metrics --> Runtime
 ```
 
-### Capture size and density
+Runtime mechanisms schedule and serialize work without deciding session policy. Storage types hold immutable payloads and frame identity without deciding which output is current. These boundaries allow a late operation to finish its own cleanup even after the session has stopped accepting useful work.
 
-`CaptureMetricsSource` supplies the width, height, and density used for capture geometry. It can follow the current display or another host-selected source; the user-approved `MediaProjection` supplies the screen content.
+## Execution and coordination
 
-On API 24–33, the selected metrics source supplies all three geometry values. On API 34+, those initial dimensions support provisional capture setup. Geometry-dependent output validation, preparation, and publication wait for Android's first valid authoritative [`onCapturedContentResize()`](https://developer.android.com/reference/android/media/projection/MediaProjection.Callback#onCapturedContentResize(int,%20int)) width and height, while the selected source continues to supply density. A request need not fit the provisional dimensions; necessary capture setup can still fail.
+### Lanes and queue-less work
 
-When dimensions or density change, the session resolves new output before fresh JPEG production continues.
+The Control `Handler` lane drives reconciliation and frame production. Public calls and owner callbacks also update coordinated state under the session gates (locks protecting shared session decisions); Control is not the only thread that can change session decisions.
 
-### JPEG backend seam
+The Capture `Handler` lane serializes projection, target, EGL, GLES, and readback work. It provides the thread-affine access that graphics resources require. Metrics, Encoding, and Delivery each use a [`SerialTaskSlot`](../src/main/kotlin/io/screenstream/capture/internal/runtime/SerialTaskSlot.kt) over shared non-inline worker execution. Each slot permits one accepted or entered operation. A slot is neither a dedicated thread nor a queue of work waiting behind a busy owner.
 
-The Framework path uses [`Bitmap.compress()`](https://developer.android.com/reference/kotlin/android/graphics/Bitmap#compress) with `Bitmap.CompressFormat.JPEG`. The optional Native path uses NDK [`AndroidBitmap_compress()`](https://developer.android.com/ndk/reference/group/bitmap#androidbitmap_compress), available from API 30. `JpegBackendPolicy.Auto` selects Native only after its library load and capability checks succeed. [Expected library unavailability](../internal/components/encoding.md#backend-selection-and-fallback) or an unsupported compressor selects Framework. Unexpected Native failures follow normal containment or propagation rules rather than selecting fallback. If Native later rejects compression in the one form the engine can handle safely, that attempt produces no JPEG and is not retried with Framework; later frames use Framework. `JpegBackendPolicy.FrameworkOnly` uses Framework exclusively.
+Scheduling, producing a result, and becoming available for another operation are different boundaries:
 
-Both backends preserve public frame, geometry, ownership, delivery, observation, and problem contracts, but do not promise identical JPEG bytes. Output uses the [nominal SDR/sRGB color assumptions and limits](usage.md#color-assumptions-and-limits); neither backend selection nor successful encoding proves faithful conversion of arbitrary source color spaces.
+1. **Accepted:** the dispatcher takes responsibility for an outer task.
+2. **Entered:** the task begins owner work after acceptance has been established.
+3. **Result recorded:** the operation records its local result or callback outcome. Its task body may still be running.
+4. **Slot released:** the outer task body returns normally and the slot removes that exact attempt.
 
-## Session lifecycle
+Reporting to Coordinator depends on the owner: Encoding reports after slot release, while Delivery can report callback failure before release and physical closure afterward.
 
-### Public phases
+Once acceptance is established, entry and release can occur before the submitting call returns. Definite rejection proves non-entry; acceptance does not promise eventual entry or return. A task that throws without containing the failure does not release its serial slot, even though its outer invocation has ended. A nonreturning task likewise keeps the slot occupied. The engine cannot manufacture a safe successor merely because a result appeared or shutdown began.
 
-`NotStarted` is the initial state. `Starting` covers creation of the first usable capture path. `Active` means the session has applied output that can produce JPEGs. Setting or geometry changes can enter `Reconfiguring`; a recoverable problem can enter `Suspended`. `Stopped` and `Failed` are permanent outcomes.
+### Gates, currentness, and typed links
 
-The diagram uses public state names and representative transitions:
+Cross-component decisions use the fixed `publicationGate → sessionGate` lock order. Android calls, codec work, dispatch, waiting, application callbacks, payload copies, cleanup, clocks, and Flow assignments run with both gates released. This keeps external work out of the critical sections that coordinate the run. Public-value publication is reserved under the gates, performed outside them, and checked again before dependent work continues.
 
-```mermaid
-stateDiagram-v2
-    [*] --> NotStarted
-    NotStarted --> Starting
-    NotStarted --> Stopped
-    Starting --> Active
-    Starting --> Stopped
-    Starting --> Failed
-    Active --> Reconfiguring
-    Reconfiguring --> Active
-    Active --> Suspended
-    Reconfiguring --> Suspended
-    Suspended --> Active
-    Active --> Stopped
-    Active --> Failed
-    Reconfiguring --> Stopped
-    Reconfiguring --> Failed
-    Suspended --> Stopped
-    Suspended --> Failed
-```
+A result must identify the operation and resources that produced it. The typed links preserve that connection:
 
-Lifecycle state describes the run; frames describe individual JPEG outputs. `Active` establishes usable output, while a delivered frame establishes one produced JPEG.
+- [`SessionCaptureLink`](../src/main/kotlin/io/screenstream/capture/internal/session/SessionCaptureLink.kt) matches projection, target, source, apply, and read operations.
+- [`SessionEncodingLink`](../src/main/kotlin/io/screenstream/capture/internal/session/SessionEncodingLink.kt) matches backend reconciliation, buffer loans, and encoding results.
+- [`SessionDeliveryLink`](../src/main/kotlin/io/screenstream/capture/internal/session/SessionDeliveryLink.kt) matches frame offers, callback handoffs, failures, and physical close.
 
-### Recoverable pauses and final outcomes
+Coordinator then decides whether a result is still useful. A result from a superseded revision cannot become current output, but it still belongs to the operation that must return its resources. Some results also describe the health of a shared owner or backend: a capture-owner invalidation or Native backend rejection can affect current readiness even when the triggering image is obsolete. Neither old pixels nor late health information can revive a run whose terminal outcome has been fixed.
 
-`Reconfiguring` is a planned pause while the engine prepares output for changed settings or geometry. `Suspended` represents a recoverable problem after the session has become active. A changed parameter request or restored or changed capture geometry can trigger another attempt. The session returns to `Active` only after it prepares usable output.
+Capture and Encoding do not call each other. [`SessionReadBridge`](../src/main/kotlin/io/screenstream/capture/internal/session/production/SessionReadBridge.kt) binds one Capture read to one exact Encoding-owned RGBA loan. Once installed, a matching Capture return or definite rejection before entry is required to settle that loan. A new revision or stop request cannot substitute for either event.
 
-`Stopped` and `Failed` finish the session permanently. `Stopped` describes a normal app-requested end or Android ending the projection. Android reports that platform event through [`MediaProjection.Callback.onStop()`](https://developer.android.com/reference/kotlin/android/media/projection/MediaProjection.Callback#onstop), and the session exposes it as a stable stop reason. `Failed` carries the stable problem category when the engine cannot continue. Apps can respond to these outcomes independently of platform exception text or diagnostic messages.
-
-### Run outcome and resource release
-
-As the run ends, the session closes new capture and delivery work and manages release of its projection, virtual display, surface, graphics, and encoding resources. `state`, `stats`, and `diagnosticEvents` remain available for the lifetime of the session object.
-
-`Stopped` or `Failed` gives the final public outcome of the capture run. A frame callback that has already begun may still return afterward, and Android and graphics resources may finish releasing in the background. `stop()` is nonwaiting; a new session may start after it returns. Registration `unregister()` remains a cancellable wait for callback completion even after the session ends, so the host can separately protect resources used by an old callback. It does not wait for all engine resources. See [shutdown and successive runs](usage.md#stop-capture).
+The [internal concurrency contract](../internal/01-session/coordination.md) develops the detailed lock, wake, and progress rules behind this model.
 
 ## Requested and applied output
 
 ### Why output is resolved
 
-`ScreenCaptureParameters` describes the output requested by the app. The engine must combine that request with the actual capture width, height, and density before it knows the exact source area and final JPEG size. The resulting `ScreenCaptureEffectiveParameters` is the public description of that applied output.
+Image settings are meaningful only in combination with the captured content's geometry. A source region, crop, rotation, or target size can resolve differently after an app-window resize or display change. `ScreenCaptureParameters` therefore describes the desired value; `CaptureOutputInfo` describes the applied settings and resolved geometry.
 
-A request can resolve to different concrete geometry after rotation, display changes, or app-window selection. A request that cannot currently produce output becomes a clear lifecycle problem while retaining its requested value.
+For example, a 1920×1080 capture with `TargetSize(1280, 1280, AspectFit)` resolves to an unpadded 1280×720 JPEG. If the current request cannot be applied, it remains visible in state together with the appropriate lifecycle problem. The engine does not silently replace it with a different request.
+
+Three decisions must remain distinct:
+
+- **Applying a configuration** establishes a usable image and encoding path. `Active.outputInfo` describes that path; it does not prove that a JPEG has been produced. Historical `lastOutputInfo` records the last applied configuration.
+- **Committing encoded bytes** turns a complete tentative JPEG into an immutable payload. The image may already be obsolete by then.
+- **Committing output** accepts a still-current payload for output and assigns its sequence, timestamp, and `CaptureOutputInfo`. Delivery is a later opportunity, not part of that commitment.
+
+### Capture size and density
+
+The approved projection supplies the content. `CaptureMetricsSource` supplies dimensions, density, and availability used to configure its capture. Metrics observations can arrive before `subscribe()` returns, so a positive observation alone does not complete setup: the session must also adopt the returned subscription handle. If that handle arrives after its subscription is no longer needed, the metrics owner still owns the corresponding close attempt.
+
+On API 24–33, the selected metrics source supplies width, height, and density. On API 34+, positive metrics allow provisional preparation while the engine waits for a valid [`onCapturedContentResize()`](https://developer.android.com/reference/android/media/projection/MediaProjection.Callback#onCapturedContentResize(int,%20int)). Provisional preparation uses a full-source capture target and neutral output plan. It can prepare resources, but does not validate the requested final geometry or make the run `Active`.
+
+After authoritative resize dimensions arrive, [`SessionPlanResolution`](../src/main/kotlin/io/screenstream/capture/internal/session/topology/SessionPlanResolution.kt) resolves the requested selection, crop, rotation, mirror, sizing, and checked RGBA layout. Adopted resize dimensions remain authoritative for the run; metrics continue to supply density and availability. [Select capture metrics](usage.md#select-capture-metrics) explains the source choices and their caller obligations.
+
+### Reconfiguration and target replacement
+
+An unequal parameter update advances the desired revision and makes older production ineligible for output. Metrics, adopted resize, and backend readiness changes can also require a new plan. Coordinator pauses affected production, resolves the newest request, and drives Capture apply and Encoding reconciliation. Production resumes only when the same revision and plan are current across the required owners.
+
+Resize arrival and adoption are separate steps. A resize notification is first recorded; the Control turn can process a completed image before adopting the pending dimensions as a new revision. An old-plan result can still commit in that interval only if its desired revision matches both the pending request and the applied plan, and all other output checks pass. This does not keep old output eligible after a parameter update has already changed the desired revision.
+
+A compatible capture target can be reused. If replacement fails before attachment and the old resources are still known to be intact, Capture can roll back and preserve them. Ambiguous surface attachment, failed rollback, or loss of that ownership evidence invalidates the owner. Uncertain resources remain retained for cleanup; a failed replacement does not generally promise restoration of the previous target.
 
 ### How changes reach delivered frames
 
-`updateParameters()` records the newest request without waiting for reconfiguration or frame production. `ScreenCaptureState.Active.effectiveParameters` describes the applied session output, while `EncodedImageFrame.effectiveParameters` describes the exact output for one JPEG. The session resolves a live change against current capture geometry and reuses compatible resources or prepares replacements. `Reconfiguring` makes any required pause visible until new output is ready.
+`updateParameters()` records the newest request without waiting for preparation. `Active.outputInfo` describes the currently usable path; each `EncodedFrame.outputInfo` describes that frame. Work keeps its original configuration rather than being relabeled with a newer request.
 
-Work that has already started keeps its original applied description. Before the session commits fresh output, it discards results made obsolete by a newer request or adopted geometry. Resize notification stages new geometry; the session adopts it atomically with pausing output and invalidating the old configuration. Correctly described old-plan output may commit before that adoption, but cannot newly commit afterward. The [runtime adoption boundary](../internal/architecture/runtime.md#reconfiguration-and-recovery) defines this transition.
+A frame already admitted to a callback can arrive after an update or reconfiguration begins. A pacing-only update can also preserve a compatible cached frame with older `outputInfo`. Consumers interpret the frame's own metadata instead of reconstructing it from a separately collected state value. See [change capture parameters](usage.md#change-capture-parameters) for update and retry rules.
 
-A frame already admitted for a callback may still arrive after `updateParameters()` returns or reconfiguration begins. That bounded handoff retains its exact original descriptor; it is never relabeled with newer settings. Updating parameters therefore does not establish a barrier after which every callback contains the newest requested output.
+## Android capture and JPEG pipeline
+
+### From MediaProjection to complete JPEG
+
+Android sends projected content through [`MediaProjection.createVirtualDisplay()`](https://developer.android.com/reference/kotlin/android/media/projection/MediaProjection#createvirtualdisplay) into an engine-provided [`Surface`](https://developer.android.com/reference/kotlin/android/view/Surface). Its [`SurfaceTexture`](https://developer.android.com/reference/kotlin/android/graphics/SurfaceTexture) exposes the newest captured image as an external OpenGL ES texture.
+
+The diagram follows the data from one fresh image to application-owned bytes. Its arrows show the image path, not direct calls between owners; Coordinator arranges each handoff.
+
+```mermaid
+flowchart TB
+    Android["Android capture<br/>Surface → SurfaceTexture"] --> Capture["Capture<br/>GPU transform and RGBA readback"]
+    Capture --> Encoding["Encoding<br/>complete immutable JPEG payload"]
+    Encoding --> Commit["Session output commit<br/>currentness · identity · metadata"]
+    Commit --> Delivery["Delivery<br/>borrowed EncodedFrame callback"]
+    Delivery --> App["App-owned bytes<br/>copied during the callback"]
+```
+
+The ownership transitions explain what can safely happen at each step:
+
+1. Before readback, Encoding loans its RGBA carrier to Capture through Coordinator and `SessionReadBridge`. Capture does not acquire ownership of that buffer.
+2. After a matching read return, Coordinator asks Encoding to settle the exact loan by accepting current input for encoding or discarding obsolete input. The read return itself does not make the carrier reusable.
+3. Encoding returns a complete immutable payload. Coordinator checks currentness before assigning output identity. Successful encoding may contribute to statistics when processed before final freeze even if the image has become obsolete and cannot become output.
+4. Delivery offers the published frame through a callback. The application can copy bytes before returning; return revokes the borrow. Callback-result recording and release of the worker slot remain separate events.
+
+Every asynchronous result is checked before useful work continues. Stop can detach an outstanding read bridge from ongoing production, but only its matching late return or definite pre-entry rejection can resolve the remaining loan. Application copying is optional; output commitment does not guarantee callback delivery.
+
+### One final-size processing path
+
+[`GLRenderer`](../src/main/kotlin/io/screenstream/capture/internal/capture/GLRenderer.kt) combines source selection, crop, rotation, mirroring, sizing, and color processing in one draw at final JPEG dimensions. This avoids building a full intermediate image for each transform.
+
+The spatial transform maps each output location back to the selected source region. Sampling is clamped to that region's retained pixel centers, then composed with the `SurfaceTexture` transform for the external texture. This keeps logical crop and orientation separate from Android's texture transform. Readback writes tightly packed, top-down RGBA rows into the Encoding-owned carrier, so later encoding does not need a vertical row flip.
+
+The engine treats captured color as standard dynamic range (SDR) with a nominal sRGB interpretation. That provides a defined processing model for color and grayscale; it does not promise arbitrary color-space conversion or identical JPEG bytes across backends. Output is opaque. The exact dataspace, grayscale, and fidelity rules are in [color assumptions and limits](usage.md#color-assumptions-and-limits).
+
+Compatible full-source, same-aspect downscales on API 32+ may request a smaller `SurfaceTexture` buffer while leaving the virtual display source-sized. Android may scale content into that surface, reducing pixels entering the graphics path. This optimization is conditional: platform buffer behavior can differ, and the renderer cannot undo upstream resampling.
+
+### Graphics validity and cleanup
+
+Serializing work on the Capture lane is necessary but insufficient for safe GLES access. [`EglOwner`](../src/main/kotlin/io/screenstream/capture/internal/capture/EglOwner.kt) also requires its binding thread and the exact current display, context, and read/draw surfaces. Command checks detect graphics failures that can make the context unusable; a normal function return alone is not proof that the GL work succeeded.
+
+Resources remain associated with the owner that created them. Evidence that one EGL namespace was destroyed cannot release another owner's GL names. Uncertain release attempts are not retried as though nothing happened. This conservative ownership model prevents target replacement and shutdown from reusing or forgetting resources whose validity is unknown. Detailed graphics checks and retirement rules belong in the [Capture design](../internal/02-capture/capture.md).
+
+### JPEG backend seam
+
+The Framework backend copies RGBA into a reusable Android bitmap, converting rows to its pixel representation where needed, then writes JPEG bytes through [`Bitmap.compress()`](https://developer.android.com/reference/kotlin/android/graphics/Bitmap#compress) into managed segments. The Native backend can use a native RGBA carrier and compress through NDK [`AndroidBitmap_compress()`](https://developer.android.com/ndk/reference/group/bitmap#androidbitmap_compress), available from API 30.
+
+Native JPEG segments cross JNI through a synchronous borrowed view. The managed sink copies each segment into a managed array before the native segment is freed. Counts and completion checks distinguish bytes the compressor produced from bytes successfully copied. Only a complete successful transaction can transfer the managed arrays into an immutable payload. This is a controlled copy boundary, not end-to-end zero-copy; the [native ABI contract](../internal/03-output/native-abi.md) specifies the detailed boundary checks.
+
+`JpegBackendPolicy.Auto` separates process capability from session health. Process-wide loading and capability checks establish whether Native is available. A safely classified Native compression rejection disables Native for that session: the affected output is dropped, and later reconciliation selects Framework. There is no same-frame retry. Other unexpected failures retain their normal failure meaning. `FrameworkOnly` performs no optional Native loading, probing, allocation, compression, or release calls.
+
+Carrier storage and compressor choice are related but distinct. After Native is disabled, Framework can reuse a compatible retained native carrier. Both backends preserve the same public geometry, ownership, observation, and delivery contracts.
 
 ## Frame ownership and bounded delivery
 
+### Immutable storage and frame identity
+
+Encoding builds tentative bytes inside [`ManagedEncodedTransaction`](../src/main/kotlin/io/screenstream/capture/internal/encoding/ManagedEncodedTransaction.kt). Closing the producer ends writes; it does not commit the result. Successful commitment validates the payload, normalizes a partial tail where necessary, and transfers exclusive ownership of the segment arrays into [`ImmutableEncodedPayload`](../src/main/kotlin/io/screenstream/capture/internal/storage/ImmutableEncodedPayload.kt). Producers drop their mutable references after that transfer. The payload is immutable through ownership, without flattening all segments into a second full JPEG array.
+
+[`PublishedFrame`](../src/main/kotlin/io/screenstream/capture/internal/storage/PublishedFrame.kt) adds sequence, `outputTimestampElapsedRealtimeNanos`, and `CaptureOutputInfo` to a payload accepted for output. The timestamp records output commitment on Android's elapsed-realtime clock. It is neither the time Android captured the image nor callback-entry time.
+
+A fresh output commit pairs newly encoded bytes with a new sequence, timestamp, and output description. Cached-first delivery to a new consumer reuses the existing published frame, including its identity, without re-encoding the JPEG.
+
 ### Borrowed frames and app-owned bytes
 
-The encoder finishes a complete immutable JPEG payload before delivery. Session output commit associates payload bytes with effective output, a sequence, and an elapsed-realtime commit timestamp. Repeats create new output identities over existing bytes; cached delivery to a new consumer retains the original identity. These timestamps describe output commit, not source capture or callback entry. `EncodedImageFrame` is the temporary public view during one callback.
+Delivery exposes a borrowed `EncodedFrame` inside the exact callback and on its callback thread. Callback return revokes frame access. Immutable metadata values and copied bytes can outlive that boundary; the borrowed wrapper cannot. `copyTo()` copies into caller storage, while `toByteArray()` creates a contiguous caller-owned array.
 
-The frame is borrowed: its properties and byte-copy operations are available only inside the callback that receives it and on that callback's thread. The callback boundary defines when borrowed app access ends; the lifetime of engine storage remains behind that boundary. Bytes copied during the callback are app-owned and can outlive it, as can immutable metadata values read during the callback. The borrowed frame itself cannot.
-
-Callbacks for one consumer are serialized on engine-provided worker execution rather than the caller or UI thread. The engine does not promise the same physical thread for later callbacks. UI or other longer-lived work therefore receives app-owned bytes copied before the callback returns, not the borrowed frame.
-
-The app chooses how many copied JPEGs to retain, when to release them, and how they enter storage or transport.
+Callbacks for one registration are serialized on shared worker execution, without a promise that successive callbacks use the same physical thread. A callback already admitted when reconfiguration or shutdown begins keeps its original frame identity and metadata. Application work that must outlive the callback uses copied bytes and its own scheduling and retention policy; see [frame handling](usage.md#handle-jpeg-frames).
 
 ### Backpressure and reusable JPEGs
 
-A newer source image replaces the older waiting image. For the current consumer, the session keeps at most one callback running or waiting to begin. A later opportunity while that callback is busy becomes an observable delivery drop instead of backlog.
+Source availability is latest-value: a newer image can replace one not yet selected, without a public drop-counter entry. The engine allows one materialized production across the input loan, read, encode, and unpublished result. Delivery permits one physical callback handoff. If it is occupied, a later delivery opportunity is dropped and counted instead of queued. Slow consumers therefore do not create an internal backlog of JPEGs waiting for callbacks.
 
-The latest complete immutable JPEG can be reused for later delivery or configured repeats without another capture, readback, or encode.
+Fresh-image pacing and the cap on output commits use separate histories. Scheduling avoids catch-up bursts. When the engine adopts a different `frameRate` value, it resets both histories and their pending pacing wake. A cached-first offer can reuse the latest compatible frame with its existing output identity. Reuse permits an offer; it does not guarantee that an available consumer and delivery slot will accept it.
+
+## Session lifecycle
+
+### Public phases
+
+`NotStarted` is the initial state. `Starting` covers setup of the first usable path. `Active` means the applied configuration is ready to produce JPEGs, not that a first JPEG has been delivered. `Reconfiguring` describes preparation of a changed path; `Suspended` records a recoverable current problem after the run has first become active. `Stopped` and `Failed` are permanent outcomes.
+
+This diagram is schematic: it shows the normal preparation and recovery paths. Every nonterminal phase can also end; even a session that has not started can fail, for example if it cannot allocate a consumer registration identity.
+
+```mermaid
+stateDiagram-v2
+    [*] --> NotStarted
+    NotStarted --> Starting
+    Starting --> Active
+    Active --> Reconfiguring
+    Reconfiguring --> Active
+    Active --> Suspended
+    Reconfiguring --> Suspended
+    Suspended --> Reconfiguring
+    Suspended --> Active
+    state "Stopped or Failed" as Terminal
+    NotStarted --> Terminal
+    Starting --> Terminal
+    Active --> Terminal
+    Reconfiguring --> Terminal
+    Suspended --> Terminal
+```
+
+### Startup and first Active
+
+First `Active` requires the metrics subscription and observations, resolved topology, Capture readiness, Encoding readiness, and bootstrap facts to agree. [`BootstrapOwnership`](../src/main/kotlin/io/screenstream/capture/internal/session/BootstrapOwnership.kt) owns the accepted projection and every created lane that has not yet been transferred. First Control entry transfers them to their long-lived owners. If stop or failure wins before that entry, bootstrap retains the cleanup responsibility rather than leaving the resources ownerless.
+
+Startup can fail with `CaptureUnavailable` if the engine cannot confirm readiness for first `Active` within a ten-second window. The window starts from an elapsed-realtime sample inside `start()` before acceptance and includes deep sleep. The engine schedules an expiry check and also checks elapsed time during startup, including first Control entry and first-Active reservation. An obsolete check cannot override a settled start or terminal outcome.
+
+This is not a guarantee that `start()` returns within ten wall-clock seconds. Scheduled work must enter to perform its check. After publishing `Active`, Coordinator rechecks that the configuration is still current and ordinary work may continue before settling startup success. If that check is invalidated, `Active` may already have been observed while `start()` remains pending until a later usable `Active` or a terminal outcome; the first-Active window is not restarted. First `Active` also does not wait for a frame or callback. [Startup details](usage.md#startup-details) explains the caller-visible timing and cancellation rules.
+
+### Recoverable pauses and final outcomes
+
+A changed request, metrics or resize information, or an eligible explicit retry can resume preparation from a recoverable pause. There is no retry timer or separate recovery controller. The same coordinator resolves the newest request against current resource readiness.
+
+`Stopped` means the application requested an end, cancellation of an eligible start requested stop, or Android reported that projection stopped. `Failed` carries a stable problem category when the run cannot continue. Before the terminal outcome is claimed, projection stop takes priority over requested stop, which takes priority over failure; the first failure is retained among competing failures. Once claimed, that choice cannot be changed by late work.
+
+### Run outcome and resource release
+
+A terminal outcome ends ordinary session work and fixes the run’s final state and statistics. Finalization incorporates the returned work eligible for accounting, then assigns final statistics before terminal state. The two flows remain independently observed; they do not form an atomic snapshot or promise that every outstanding operation contributed.
+
+Session completion also requires startup to be settled and the session’s projection-stop call to return normally. `stop()` requests shutdown and awaits that boundary; `requestStop()` closes admission and requests shutdown without waiting. A shutdown failure is separate from the already selected run outcome.
+
+Resource lifetime remains with each owner. An entered consumer callback, a retained encoding operation, or graphics cleanup can outlive session completion. Registration `unregister()` independently waits for its callback, and later returns settle only the resources they actually used. This permits a new session with independent projection authority while the app continues to protect shared callback resources. [Usage](usage.md#stop-a-capture-run) covers caller cleanup and cancellation; [Session retirement](../internal/01-session/session.md#retirement-and-later-sessions) defines the internal completion and ownership protocol.
 
 ## Observation model
 
 ### Three signals, three roles
 
-Lifecycle, cumulative measurements, and troubleshooting use separate read-only signals:
+The observation API separates decisions from measurements and supplementary context:
 
-| Signal | Why it is separate |
-| --- | --- |
-| `session.state` | Describes the current lifecycle phase, applied output, recoverable pause, or final run outcome. It is the signal for app behavior. |
-| `session.stats` | Accumulates frame, drop, processing-time, and JPEG-size measurements across the run without turning each measurement into a lifecycle change. |
-| `session.diagnosticEvents` | Adds optional context about individual notable events for logs and support reports while lifecycle meaning remains in `state`. |
+- `session.state` describes lifecycle, applied output, recoverable problems, and the final outcome.
+- `session.stats` describes work and output through counters, averages, and latest measurements.
+- `session.diagnosticEvents` supplies best-effort context to observers present at emission time.
 
-The running states can also carry Android's latest captured-content visibility observation when the platform supplies one through [`onCapturedContentVisibilityChanged()`](https://developer.android.com/reference/kotlin/android/media/projection/MediaProjection.Callback#oncapturedcontentvisibilitychanged). Visibility is informational context alongside the applied output and any session problem.
+The observation signals remain available after the run ends. State and statistics each expose a consistent latest value. They are independent flows, not an atomic combined snapshot or a history of every transition. Diagnostics have no replay. Captured-content visibility is informational: `false` does not itself pause or stop capture. Semantic owners choose the values; the publication path orders and assigns them without interpreting session policy.
 
 ### Independent timelines
 
-`state` and `stats` each retain an internally consistent latest value. `diagnosticEvents` publishes best-effort events to observers present when they occur. Statistics and diagnostics can update at a different pace from lifecycle. This separation assumes [nonblocking collection](usage.md#monitor-capture); collector execution may be inline and must not synchronously reenter session work that awaits publication.
+Doing work, incorporating its result into statistics, and publishing statistics are different events. A successfully encoded image can contribute to the relevant counters and averages even if it became obsolete before output commitment. Results processed after final statistics freeze cannot contribute. The final snapshot therefore describes the work included by that boundary, not everything that might eventually return from an outstanding operation.
 
-Latest values do not form a synchronized snapshot: state can be newer than statistics, and diagnostic context can be absent.
+Changed statistics become eligible for ordinary publication during Active Control work when the sampled elapsed time is at least one second beyond the previously committed statistics sample. There is no periodic heartbeat or catch-up wake. Measurements can accumulate while publication is deferred through quiet or suspended periods. Terminal publication bypasses that cadence and assigns the frozen final statistics before terminal state.
+
+Flow assignment runs outside the session gates, but a collector that executes inline can still delay the publishing call. Collectors must remain nonblocking and must not synchronously reenter session work that waits for publication. [Monitor capture](usage.md#monitor-capture) describes the fields, cadence, and interpretation in detail.
 
 ## Performance and memory design
 
-### Avoid expensive work early
+The design avoids building queues of expensive work. It coalesces source and configuration changes, applies pacing before readback and compression, renders transforms in one final-size draw, and discards obsolete results before output commitment. Compatible targets, graphics objects, RGBA carriers, bitmap storage, and backend state can be reused while the required validity checks hold.
 
-The pipeline removes obsolete opportunities before expensive stages. While production is busy, the newest source image replaces the older waiting one. Frame-rate policy is evaluated before GPU readback and JPEG encoding, concentrating CPU and GPU work on images still eligible for output.
+Segmented JPEG storage avoids an engine-side flattening copy. Cached delivery reuses a committed payload. These savings coexist with deliberate copies at bitmap, codec-output, JNI, and application ownership boundaries. `toByteArray()` allocates a contiguous application copy; `copyTo()` writes into storage the application already supplied.
 
-Only one fresh image proceeds through readback and encoding at a time. Parameter and geometry changes can discard an obsolete result before Session output commit. Already-admitted callback delivery remains bounded and keeps its original descriptor.
-
-### One final-size processing path
-
-One OpenGL ES draw combines source selection, crop, rotation, mirroring, output sizing, and color-mode processing. Rendering at final output dimensions means JPEG encoding reads only those pixels, avoiding full-size intermediate images for individual transforms.
-
-On API 32+, Android can [scale captured content into the supplied surface while preserving its aspect ratio](https://developer.android.com/media/grow/media-projection#surface). For a compatible full-source, same-aspect downscale, the engine uses that platform behavior and supplies smaller buffer dimensions through [`SurfaceTexture.setDefaultBufferSize()`](https://developer.android.com/reference/kotlin/android/graphics/SurfaceTexture#setdefaultbuffersize). The `VirtualDisplay` remains source-sized. This reduces the number of pixels entering the graphics path while preserving the source geometry in the output description.
-
-### Reuse resources and encoded data
-
-Compatible capture targets, graphics objects, pixel buffers, and JPEG resources remain reusable across frames and live changes, avoiding repeated setup and allocation.
-
-JPEG output is retained as an immutable encoded payload that can be published and reused directly. `copyTo()` can fill an app-provided destination, while `toByteArray()` creates a contiguous app-owned array only when requested. Repeats reuse the latest payload, avoiding capture, GPU readback, JPEG encoding, and an engine-side payload copy.
+Bounded concurrency is not a fixed byte budget. Geometry and compressed size determine buffer sizes, cached and borrowed frames can retain different payloads, and the application controls its own copies and queues. Nor do the work bounds guarantee prompt cleanup after an unreturned call or uncertain platform release. The engine bounds ordinary production and delivery while preserving ownership until it can establish what has actually finished.

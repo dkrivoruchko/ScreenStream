@@ -16,9 +16,9 @@ import java.util.concurrent.atomic.AtomicReference
 internal class NativeJpegProductionLifecycleTest {
     // Verification: ENC-04
     @Test
-    fun adoptedSegmentWithUnsafeEvidenceAbortsWithoutPayloadAndReusesExactCarrier() {
+    fun copiedSegmentWithUnsafeEvidenceAbortsWithoutPayloadAndReusesExactCarrier() {
         ControlledNonInlineDispatcher().use { dispatcher ->
-            val nativeJpeg = AdoptedSegmentUnsafeEvidenceFacade()
+            val nativeJpeg = CopiedSegmentUnsafeEvidenceFacade()
             val productionFactory = RecordingNativeProductionFactory()
             val owner = EncodingOwner(
                 workerDispatcher = dispatcher,
@@ -47,7 +47,7 @@ internal class NativeJpegProductionLifecycleTest {
                 assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
                 assertNull(failed.cause)
                 productionFactory.assertAbortedWithoutPayload()
-                nativeJpeg.assertOneCompressionWithOneAdoptedSegment()
+                nativeJpeg.assertOneCompressionWithOneCopiedSegment()
 
                 unsettledInput = requireInput(owner) { fail("discarded successor returned a production result") }
                 assertSame(exactCarrier, unsettledInput.carrier)
@@ -152,11 +152,11 @@ internal class NativeJpegProductionLifecycleTest {
         }
     }
 
-    private class AdoptedSegmentUnsafeEvidenceFacade : NativeJpegFacade {
+    private class CopiedSegmentUnsafeEvidenceFacade : NativeJpegFacade {
         private var carrier: ByteBuffer? = null
         private var freeCount: Int = 0
         private var compressionCount: Int = 0
-        private var adoptedSegmentCount: Int = 0
+        private var copiedSegmentCount: Int = 0
 
         override fun resolveAvailability(): NativeJpegProcess.Availability = NativeJpegProcess.Availability.Available
 
@@ -195,13 +195,13 @@ internal class NativeJpegProductionLifecycleTest {
                 put(3.toByte())
                 flip()
             }
-            sink.adoptSegment(segment, segment.remaining())
-            adoptedSegmentCount += 1
+            sink.copySegment(segment, segment.remaining())
+            copiedSegmentCount += 1
         }
 
-        fun assertOneCompressionWithOneAdoptedSegment() {
+        fun assertOneCompressionWithOneCopiedSegment() {
             assertEquals(1, compressionCount)
-            assertEquals(1, adoptedSegmentCount)
+            assertEquals(1, copiedSegmentCount)
         }
 
         fun assertCarrierFreedExactlyOnce() {

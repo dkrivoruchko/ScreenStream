@@ -11,6 +11,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/**
+ * Owns three independent Flow timelines. Off-gate assignments may run collectors immediately. Final statistics,
+ * optional diagnostic, and terminal state are assigned in that order but are not an atomic cross-flow observation.
+ * The diagnostic lock allocates sequence IDs only; emission can reorder or be lost. Diagnostic clock, construction,
+ * and emission contain ordinary [Exception], while [Error] follows normal propagation.
+ */
 internal class SessionObservationPublisher(private val currentEpochMillis: () -> Long) {
     internal class DiagnosticRequest(
         internal val source: String,

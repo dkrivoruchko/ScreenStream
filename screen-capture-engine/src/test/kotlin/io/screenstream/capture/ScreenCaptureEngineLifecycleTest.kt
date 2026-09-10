@@ -66,13 +66,13 @@ internal class ScreenCaptureEngineLifecycleTest {
         assertZeroStats(stats.first())
         assertEquals(0, subscriptionCount.get())
 
-        session.stop()
-        otherSession.stop()
+        session.requestStop()
+        otherSession.requestStop()
     }
 
     // Verification: SES-01
     @Test
-    fun successfulFactoryTransfersIdleProjectionAndHostStopRetiresItOnce() = runTest {
+    fun successfulFactoryTransfersIdleProjectionAndHostRequestStopRetiresItOnce() = runTest {
         val dispatcher = ControlledNonInlineDispatcher()
         mockkObject(ProductionRuntime)
         every { ProductionRuntime.workerDispatcher } returns dispatcher
@@ -94,7 +94,7 @@ internal class ScreenCaptureEngineLifecycleTest {
             val start = CoroutineScope(caller).async(start = CoroutineStart.DEFAULT) { session.start() }
 
             assertSame(ScreenCaptureState.NotStarted, session.state.value)
-            session.stop()
+            session.requestStop()
             try {
                 start.await()
                 throw AssertionError("cancelled-before-entry start completed normally")
@@ -105,7 +105,7 @@ internal class ScreenCaptureEngineLifecycleTest {
             retirement.awaitSuccessfulCompletion()
             assertTrue(session.state.value is ScreenCaptureState.Stopped)
             assertZeroStats(session.stats.value)
-            session.stop()
+            session.requestStop()
             assertEquals(0, dispatcher.pendingCount())
             verify(exactly = 1) { projection.stop() }
         } finally {
@@ -132,9 +132,9 @@ internal class ScreenCaptureEngineLifecycleTest {
     private fun assertZeroStats(stats: ScreenCaptureStats) {
         assertEquals(0L, stats.encodedFrameCount)
         assertEquals(0L, stats.producedFrameCount)
-        assertEquals(0L, stats.droppedFrames.byStaleWork)
-        assertEquals(0L, stats.droppedFrames.byFailure)
-        assertEquals(0L, stats.droppedFrames.total)
+        assertEquals(0L, stats.frameProductionDrops.byStaleWork)
+        assertEquals(0L, stats.frameProductionDrops.byFailure)
+        assertEquals(0L, stats.frameProductionDrops.total)
         assertEquals(0L, stats.droppedDeliveries.byConsumerBusy)
         assertEquals(0L, stats.droppedDeliveries.byCallbackFailure)
         assertEquals(0L, stats.droppedDeliveries.total)

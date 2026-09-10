@@ -44,11 +44,6 @@ import java.nio.ByteBuffer
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
 @LooperMode(LooperMode.Mode.PAUSED)
-/*
- * Contract: Target replacement reports its exact owner-visible result and preserves or quarantines the exact graph
- * roots justified by platform settlement. Paused-Looper drains only arrange accepted Capture work and callbacks.
- * Private state, reflection, GC, queue/scheduler counts, and incidental global call order are not verdicts.
- */
 internal class SessionCaptureOwnerTargetReplacementTest {
     private var savedNoDisplay: EGLDisplay? = null
     private var savedNoContext: EGLContext? = null
@@ -164,7 +159,9 @@ internal class SessionCaptureOwnerTargetReplacementTest {
             )
             assertEquals(listOf(INITIAL_OES_TEXTURE), fixture.gles.deletedTextures)
 
-            val eglRetirement = fixture.eglOwner.close()
+            val eglRetirement = fixture.eglOwner.close(
+                allowInitializationRelease = !fixture.target.blocksEglInitializationRelease,
+            )
             assertNull(eglRetirement.cleanupFailure)
             assertNull(eglRetirement.residue)
         }
@@ -630,6 +627,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
                 eglPlatform = egl.platform,
                 glesPlatform = gles.platform,
                 targetPlatform = targetPlatform,
+                projectionStopCompletion = ProjectionStopCompletion(),
             )
         }
 

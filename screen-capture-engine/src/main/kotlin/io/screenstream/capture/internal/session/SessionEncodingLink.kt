@@ -23,6 +23,8 @@ import io.screenstream.capture.internal.session.production.SessionProductionReco
  * are current and what they mean for the session. Terminal freezing may preserve only the exact
  * detached production record and input that are still in the loaned phase; all other pending facts
  * become semantically irrelevant.
+ * `Locked` methods require the coordinator's session gate. Callback facts and synchronous settlement returns are
+ * distinct evidence, and either callback can arrive before its submission call returns.
  */
 internal class SessionEncodingLink(
     private val coordinator: SessionCoordinator,

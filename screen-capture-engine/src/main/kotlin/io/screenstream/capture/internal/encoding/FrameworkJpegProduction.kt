@@ -12,7 +12,7 @@ internal class FrameworkJpegProduction(
     internal var result: FrameworkJpegResult? = null
         private set
 
-    override val hasLeafResult: Boolean
+    override val hasRecordedResult: Boolean
         get() = result != null
 
     init {
@@ -30,7 +30,7 @@ internal class FrameworkJpegProduction(
         result = checkNotNull(runtime.skipFrameworkBeforeEntry(this))
     }
 
-    override fun settleNoLeafPhysical(residue: NoLeafPhysicalSettlement.Residue) {
+    override fun cleanupResources(residue: ResourceCleanupState.Residue) {
         residue.attempt {
             val owner = runtime.requireBitmapOwner()
             if (owner.isInUse && !owner.finishUse()) encoderCleanupMismatch else null
@@ -44,7 +44,7 @@ internal class FrameworkJpegProduction(
         residue.attempt { settleProducerTransaction(transaction) }
     }
 
-    override fun settleDetachedLeaf(): Exception? = try {
+    override fun detachResultPayload(): Exception? = try {
         when (val jpeg = checkNotNull(result)) {
             is FrameworkJpegResult.Success -> check(jpeg.transaction.transferCommittedPayload(jpeg.payload))
             is FrameworkJpegResult.Failure -> transferCommittedPayloadIfPresent(jpeg.transaction)
@@ -99,6 +99,7 @@ internal class FrameworkJpegProduction(
         } catch (failure: Exception) {
             return settleEnteredFrameworkFailure(bitmapUseStarted = true, cause = failure)
         } catch (failure: OutOfMemoryError) {
+            // Contain only the exact allocation failure already recorded by this transaction; foreign OOME escapes.
             if (!transaction.hasFaultedResourceExhaustionCause(failure)) throw failure
             return settleEnteredFrameworkFailure(bitmapUseStarted = true, cause = failure)
         }

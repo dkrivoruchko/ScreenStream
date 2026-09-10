@@ -12,10 +12,11 @@ import io.screenstream.capture.internal.runtime.SerialTaskSlot
  * Sole per-session owner of the RGBA carrier, its exact input loan, JPEG runtime/backend state, encoded
  * transactions, and physical Encoding retirement.
  *
- * Reconcile and production use one queue-less operation slot and never overlap an outstanding input loan. An
- * [EncodingInput] is both the carrier capability and its settlement identity; only that exact input may be encoded
- * or discarded. Physical settlement and slot release precede result delivery. Retirement closes new work but cannot
- * infer that a loaned carrier or entered operation returned.
+ * Reconcile and production use one queue-less operation slot; reconciliation cannot overlap a carrier loan. An
+ * [EncodingInput] is both the carrier capability and its settlement identity. Production begins only from that exact
+ * input returned as a filled loan. Physical settlement handling and slot release precede result delivery; a failed
+ * result does not promise clean physical release. Retirement closes new work but cannot infer that a loaned carrier
+ * or entered operation returned.
  */
 internal class EncodingOwner(
     workerDispatcher: NonInlineDispatcher,
@@ -102,13 +103,13 @@ internal class EncodingOwner(
             } catch (failure: Exception) {
                 failure
             }
-            settleProductionAfterFailure(production, skipFailure)?.let { failure ->
+            settleProductionResources(production, skipFailure)?.let { failure ->
                 result = EncodingResult.Failed(ScreenCaptureProblem.InternalFailure, failure)
             }
         }
 
         override fun recordOrdinaryFailure(failure: Exception) {
-            settleProductionAfterFailure(production, failure)
+            settleProductionResources(production, failure)
             result = EncodingResult.Failed(ScreenCaptureProblem.InternalFailure, failure)
         }
 
@@ -411,7 +412,7 @@ internal class EncodingOwner(
         } catch (failure: Exception) {
             return failProductionBeforeSubmission(exact, production, failure)
         } ?: return if (cutoffBeforeSubmission) {
-            val failure = settleProductionAfterFailure(production, cause = null)
+            val failure = settleProductionResources(production, cause = null)
             finishDirectInputSettlement(
                 exact,
                 if (failure == null) EncodingInputSettlement.Settled else
@@ -476,25 +477,25 @@ internal class EncodingOwner(
         production: EncoderProductionTask,
         cause: Throwable?,
     ): EncodingInputSettlement {
-        val settlement = settleProductionAfterFailure(production, cause)
+        val settlement = settleProductionResources(production, cause)
         return finishDirectInputSettlement(
             exact,
             EncodingInputSettlement.Failed(ScreenCaptureProblem.InternalFailure, settlement ?: cause),
         )
     }
 
-    private fun settleProductionAfterFailure(production: EncoderProductionTask, cause: Throwable?): Throwable? {
+    private fun settleProductionResources(production: EncoderProductionTask, cause: Throwable?): Throwable? {
         return try {
-            val physicalFailure = production.settlePhysical()
-            val detachedFailure = if (production.hasLeafResult) production.settleDetachedLeaf() else null
-            cause ?: physicalFailure ?: detachedFailure
+            val physicalFailure = production.settleResources()
+            val payloadDetachFailure = if (production.hasRecordedResult) production.detachResultPayload() else null
+            cause ?: physicalFailure ?: payloadDetachFailure
         } catch (failure: Exception) {
             cause ?: failure
         }
     }
 
     private fun settleProductionResult(production: EncoderProductionTask): EncodingResult {
-        val transferFailure = production.settleDetachedLeaf()
+        val transferFailure = production.detachResultPayload()
         if (transferFailure != null) {
             return EncodingResult.Failed(ScreenCaptureProblem.InternalFailure, transferFailure)
         }

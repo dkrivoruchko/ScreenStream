@@ -7,12 +7,18 @@ import android.view.Surface
 import io.screenstream.capture.ScreenCaptureProblem
 import java.util.concurrent.atomic.AtomicBoolean
 
+/**
+ * Owns projection callback registration, the virtual display, its current surface, and one-attempt retirement. If
+ * `setSurface` throws after entry, attachment is ambiguous: the old and replacement surface roots remain retained
+ * until later proof, and cleanup failure alone does not prove which root survives.
+ */
 internal class ProjectionOwner(
     private val projection: MediaProjection,
     private val controlHandler: Handler,
     private val callbackSink: CallbackSink,
     private val callbackBoundary: CaptureCallbackBoundary,
     private val platform: ProjectionPlatform = AndroidProjectionPlatform,
+    private val stopCompletion: ProjectionStopCompletion,
 ) {
     internal class Token
 
@@ -87,7 +93,7 @@ internal class ProjectionOwner(
 
     internal val token: Token = Token()
     private val callbackIdentity = CaptureCallbackIdentity.Projection(token)
-    private val callbackFence = AtomicBoolean(true)
+    private val callbacksAllowed = AtomicBoolean(true)
     private var callbackRegistration = CallbackRegistration.Prepared
     private var displayCreation = DisplayCreation.NotAttempted
     private var virtualDisplay: VirtualDisplay? = null
@@ -103,21 +109,21 @@ internal class ProjectionOwner(
     private val callback = object : MediaProjection.Callback() {
         override fun onStop() {
             runCaptureCallback(callbackBoundary, callbackIdentity) {
-                if (!callbackFence.get()) return@runCaptureCallback
+                if (!callbacksAllowed.get()) return@runCaptureCallback
                 callbackSink.onProjectionStopped(token)
             }
         }
 
         override fun onCapturedContentResize(width: Int, height: Int) {
             runCaptureCallback(callbackBoundary, callbackIdentity) {
-                if (!callbackFence.get()) return@runCaptureCallback
+                if (!callbacksAllowed.get()) return@runCaptureCallback
                 callbackSink.onCapturedContentResize(token, width, height)
             }
         }
 
         override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
             runCaptureCallback(callbackBoundary, callbackIdentity) {
-                if (!callbackFence.get()) return@runCaptureCallback
+                if (!callbacksAllowed.get()) return@runCaptureCallback
                 callbackSink.onCapturedContentVisibilityChanged(token, isVisible)
             }
         }
@@ -269,7 +275,7 @@ internal class ProjectionOwner(
     }
 
     internal fun fenceCallbacks() {
-        callbackFence.set(false)
+        callbacksAllowed.set(false)
     }
 
     internal fun retireDisplay(expectedSurface: Surface?): VirtualDisplayRetirementOutcome {
@@ -321,6 +327,23 @@ internal class ProjectionOwner(
 
     internal fun retireCallbackAndProjection(): ProjectionRetirementOutcome {
         var cleanupFailure: Throwable? = null
+        if (projectionStop == ProjectionStop.Eligible) {
+            val failure = try {
+                projectionStop = ProjectionStop.Attempted
+                platform.stop(projection)
+                projectionStop = ProjectionStop.Stopped
+                null
+            } catch (returnedFailure: Exception) {
+                projectionStopFailure = returnedFailure
+                returnedFailure
+            }
+            cleanupFailure = failure
+            // Completion can resume waiters inline; record the stop result first and notify outside the platform-call catch.
+            if (failure == null) stopCompletion.returned() else stopCompletion.failed(failure)
+        } else if (projectionStop == ProjectionStop.Attempted) {
+            cleanupFailure = projectionStopFailure ?: CapturePhysicalException("MediaProjection stop remains unproved")
+        }
+
         val mustUnregister = (callbackRegistration == CallbackRegistration.Attempted) || (callbackRegistration == CallbackRegistration.Registered)
         if (mustUnregister) {
             val failure = try {
@@ -332,25 +355,9 @@ internal class ProjectionOwner(
                 callbackUnregisterFailure = returnedFailure
                 returnedFailure
             }
-            cleanupFailure = failure
+            cleanupFailure = cleanupFailure ?: failure
         } else if (callbackRegistration == CallbackRegistration.UnregisterAttempted) {
-            cleanupFailure = callbackUnregisterFailure ?: CapturePhysicalException("Projection callback unregister remains unproved")
-        }
-
-        if (projectionStop == ProjectionStop.Eligible) {
-            val failure = try {
-                projectionStop = ProjectionStop.Attempted
-                platform.stop(projection)
-                projectionStop = ProjectionStop.Stopped
-                null
-            } catch (returnedFailure: Exception) {
-                projectionStopFailure = returnedFailure
-                returnedFailure
-            }
-            cleanupFailure = cleanupFailure ?: failure
-        } else if (projectionStop == ProjectionStop.Attempted) {
-            val failure = projectionStopFailure ?: CapturePhysicalException("MediaProjection stop remains unproved")
-            cleanupFailure = cleanupFailure ?: failure
+            cleanupFailure = cleanupFailure ?: callbackUnregisterFailure ?: CapturePhysicalException("Projection callback unregister remains unproved")
         }
 
         val residue = when (callbackRegistration) {

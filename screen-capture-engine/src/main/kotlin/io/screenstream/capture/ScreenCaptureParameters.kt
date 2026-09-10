@@ -1,8 +1,10 @@
 package io.screenstream.capture
 
+import androidx.annotation.CheckResult
+import androidx.annotation.FloatRange
+import androidx.annotation.IntRange
 import io.screenstream.capture.FrameRate.Companion.MAX_FPS_RANGE
 import io.screenstream.capture.FrameRate.Companion.SAMPLING_INTERVAL_RANGE
-import io.screenstream.capture.ScreenCaptureParameters.Companion.FRAME_REPEAT_INTERVAL_RANGE
 import io.screenstream.capture.ScreenCaptureParameters.Companion.JPEG_QUALITY_RANGE
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -13,8 +15,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * Source selection, crop, rotation, mirror, and output sizing are applied in that order. Instances
  * use structural equality across every property, and all nested parameter values are immutable.
  * Pre-JPEG output is opaque, top-down RGBA using a nominal SDR/sRGB interpretation, and JPEG rows
- * retain that top-down orientation. See the
- * [color assumptions and limits](../../../../../../docs/usage.md#color-assumptions-and-limits).
+ * retain that top-down orientation. The engine rejects an explicitly observed Display P3 source on
+ * API 33 and later; it does not otherwise promise generic gamut or HDR detection or conversion.
  *
  * @property sourceRegion source area selected before crop and transforms. Defaults to
  *     [SourceRegion.Full].
@@ -24,15 +26,12 @@ import kotlin.time.Duration.Companion.milliseconds
  * @property rotation clockwise rotation applied after crop. Defaults to [Rotation.Degrees0].
  * @property mirror reflection in the already-rotated image. Defaults to [Mirror.None].
  * @property colorMode output color conversion. Defaults to [ColorMode.Color].
- * @property frameRate fresh-frame admission policy. Defaults to [FrameRate.Auto].
- * @property frameRepeatInterval optional best-effort maximum-silence interval for republishing the
- *     cached JPEG payload. `null`, the default, disables repeat output. A non-null value must be in
- *     [FRAME_REPEAT_INTERVAL_RANGE]. Repeat is not a deadline and may be delayed by [FrameRate.MaxFps].
+ * @property frameRate frame-production policy. [FrameRate.MaxFps] limits fresh-frame admission and output commits;
+ *     [FrameRate.SamplingInterval] limits fresh-frame admission only. Defaults to [FrameRate.Auto].
  * @property jpegQuality JPEG encoder quality hint in [JPEG_QUALITY_RANGE]. Defaults to `80`.
  *     Changing it invalidates payload bytes encoded at the previous quality. Different encoders or
  *     devices need not produce identical bytes for the same value.
- * @throws IllegalArgumentException if [frameRepeatInterval] or [jpegQuality] is outside its valid
- *     range.
+ * @throws IllegalArgumentException if [jpegQuality] is outside its valid range.
  */
 public class ScreenCaptureParameters(
     public val sourceRegion: SourceRegion = SourceRegion.Full,
@@ -42,17 +41,12 @@ public class ScreenCaptureParameters(
     public val mirror: Mirror = Mirror.None,
     public val colorMode: ColorMode = ColorMode.Color,
     public val frameRate: FrameRate = FrameRate.Auto,
-    public val frameRepeatInterval: Duration? = null,
-    public val jpegQuality: Int = 80,
+    @param:IntRange(from = 0, to = 100) @get:IntRange(from = 0, to = 100) public val jpegQuality: Int = 80,
 ) {
     init {
-        require((frameRepeatInterval == null) || (frameRepeatInterval in FRAME_REPEAT_INTERVAL_RANGE)) {
-            "frameRepeatInterval must be null or in $FRAME_REPEAT_INTERVAL_RANGE"
-        }
         require(jpegQuality in JPEG_QUALITY_RANGE) { "jpegQuality must be in $JPEG_QUALITY_RANGE" }
     }
 
-    /** Compares every parameter property for structural equality. */
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ScreenCaptureParameters) return false
@@ -64,11 +58,9 @@ public class ScreenCaptureParameters(
                 (mirror == other.mirror) &&
                 (colorMode == other.colorMode) &&
                 (frameRate == other.frameRate) &&
-                (frameRepeatInterval == other.frameRepeatInterval) &&
                 (jpegQuality == other.jpegQuality)
     }
 
-    /** Returns a hash code derived from every parameter property. */
     public override fun hashCode(): Int {
         var result: Int = sourceRegion.hashCode()
         result = (31 * result) + crop.hashCode()
@@ -77,12 +69,10 @@ public class ScreenCaptureParameters(
         result = (31 * result) + mirror.hashCode()
         result = (31 * result) + colorMode.hashCode()
         result = (31 * result) + frameRate.hashCode()
-        result = (31 * result) + (frameRepeatInterval?.hashCode() ?: 0)
         result = (31 * result) + jpegQuality.hashCode()
         return result
     }
 
-    /** Returns a bounded, non-sensitive debug representation whose format is unspecified. */
     public override fun toString(): String =
         "ScreenCaptureParameters(" +
                 "sourceRegion=$sourceRegion, " +
@@ -92,7 +82,6 @@ public class ScreenCaptureParameters(
                 "mirror=$mirror, " +
                 "colorMode=$colorMode, " +
                 "frameRate=$frameRate, " +
-                "frameRepeatInterval=$frameRepeatInterval, " +
                 "jpegQuality=$jpegQuality)"
 
     /**
@@ -107,12 +96,13 @@ public class ScreenCaptureParameters(
      * @param rotation replacement clockwise rotation.
      * @param mirror replacement oriented-image mirror.
      * @param colorMode replacement color mode.
-     * @param frameRate replacement fresh-frame admission policy.
-     * @param frameRepeatInterval replacement repeat interval, or `null` to disable repeat output.
+     * @param frameRate replacement frame-production policy. [FrameRate.MaxFps] limits fresh-frame
+     *     admission and output commits; [FrameRate.SamplingInterval] limits fresh-frame admission only.
      * @param jpegQuality replacement JPEG quality hint.
      * @return a new [ScreenCaptureParameters] containing the supplied and retained values.
      * @throws IllegalArgumentException if a replacement value violates a locally validated range.
      */
+    @CheckResult
     public fun copy(
         sourceRegion: SourceRegion = this.sourceRegion,
         crop: CropInsetsPx = this.crop,
@@ -121,8 +111,7 @@ public class ScreenCaptureParameters(
         mirror: Mirror = this.mirror,
         colorMode: ColorMode = this.colorMode,
         frameRate: FrameRate = this.frameRate,
-        frameRepeatInterval: Duration? = this.frameRepeatInterval,
-        jpegQuality: Int = this.jpegQuality,
+        @IntRange(from = 0, to = 100) jpegQuality: Int = this.jpegQuality,
     ): ScreenCaptureParameters = ScreenCaptureParameters(
         sourceRegion = sourceRegion,
         crop = crop,
@@ -131,17 +120,12 @@ public class ScreenCaptureParameters(
         mirror = mirror,
         colorMode = colorMode,
         frameRate = frameRate,
-        frameRepeatInterval = frameRepeatInterval,
         jpegQuality = jpegQuality,
     )
 
-    /** Shared parameter ranges and the default parameter value. */
     public companion object {
         /** Inclusive valid range for [ScreenCaptureParameters.jpegQuality]. */
-        public val JPEG_QUALITY_RANGE: IntRange = 0..100
-
-        /** Inclusive valid range, `1,000` through `3,600,000` milliseconds, for repeat output. */
-        public val FRAME_REPEAT_INTERVAL_RANGE: ClosedRange<Duration> = 1_000.milliseconds..3_600_000.milliseconds
+        public val JPEG_QUALITY_RANGE: kotlin.ranges.IntRange = 0..100
 
         /**
          * Deeply immutable default value, structurally equal to [ScreenCaptureParameters] constructed
@@ -173,7 +157,7 @@ public enum class SourceRegion {
 }
 
 /**
- * Nonnegative crop insets measured in pixels in the unrotated selected-region coordinate space.
+ * Immutable structural nonnegative crop insets measured in pixels in the unrotated selected-region coordinate space.
  *
  * Insets select content; they are not a privacy-redaction boundary. Whether the insets leave
  * nonempty content is validated later against authoritative capture geometry.
@@ -185,10 +169,10 @@ public enum class SourceRegion {
  * @throws IllegalArgumentException if any inset is negative.
  */
 public class CropInsetsPx(
-    public val left: Int,
-    public val top: Int,
-    public val right: Int,
-    public val bottom: Int,
+    @param:IntRange(from = 0) @get:IntRange(from = 0) public val left: Int,
+    @param:IntRange(from = 0) @get:IntRange(from = 0) public val top: Int,
+    @param:IntRange(from = 0) @get:IntRange(from = 0) public val right: Int,
+    @param:IntRange(from = 0) @get:IntRange(from = 0) public val bottom: Int,
 ) {
     init {
         require(left >= 0) { "left must be non-negative" }
@@ -197,7 +181,6 @@ public class CropInsetsPx(
         require(bottom >= 0) { "bottom must be non-negative" }
     }
 
-    /** Compares all four insets for structural equality. */
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CropInsetsPx) return false
@@ -205,7 +188,6 @@ public class CropInsetsPx(
         return (left == other.left) && (top == other.top) && (right == other.right) && (bottom == other.bottom)
     }
 
-    /** Returns a hash code derived from all four insets. */
     public override fun hashCode(): Int {
         var result: Int = left.hashCode()
         result = (31 * result) + top.hashCode()
@@ -214,10 +196,8 @@ public class CropInsetsPx(
         return result
     }
 
-    /** Returns a bounded, non-sensitive debug representation whose format is unspecified. */
     public override fun toString(): String = "CropInsetsPx(left=$left, top=$top, right=$right, bottom=$bottom)"
 
-    /** Shared crop-inset values. */
     public companion object {
         /** No crop on any edge. */
         public val ZERO: CropInsetsPx = CropInsetsPx(left = 0, top = 0, right = 0, bottom = 0)
@@ -242,12 +222,15 @@ public sealed interface OutputSize {
      * @property factor finite factor strictly greater than zero.
      * @throws IllegalArgumentException if [factor] is non-finite or not positive.
      */
-    public class ScaleFactor(public val factor: Double) : OutputSize {
+    public class ScaleFactor(
+        @param:FloatRange(from = 0.0, fromInclusive = false, to = Double.MAX_VALUE)
+        @get:FloatRange(from = 0.0, fromInclusive = false, to = Double.MAX_VALUE)
+        public val factor: Double,
+    ) : OutputSize {
         init {
             require(factor.isFinite() && (factor > 0.0)) { "factor must be finite and positive" }
         }
 
-        /** Compares [factor] for structural equality. */
         public override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is ScaleFactor) return false
@@ -255,15 +238,18 @@ public sealed interface OutputSize {
             return factor == other.factor
         }
 
-        /** Returns the hash code of [factor]. */
         public override fun hashCode(): Int = factor.hashCode()
 
-        /** Returns a bounded, non-sensitive debug representation whose format is unspecified. */
         public override fun toString(): String = "ScaleFactor(factor=$factor)"
     }
 
     /**
-     * Sizes output relative to positive target dimensions.
+     * Derives final image dimensions from positive target bounds.
+     *
+     * The default [ContentMode.AspectFit] preserves the oriented aspect ratio without padding, so
+     * one final dimension may be smaller than its bound. For example, a `1920×1080` image fitted
+     * within `1280×1280` becomes `1280×720`. [ContentMode.Stretch] uses the exact supplied width
+     * and height and can distort the image.
      *
      * @property widthPx positive target width in pixels.
      * @property heightPx positive target height in pixels.
@@ -272,8 +258,8 @@ public sealed interface OutputSize {
      * @throws IllegalArgumentException if [widthPx] or [heightPx] is not positive.
      */
     public class TargetSize(
-        public val widthPx: Int,
-        public val heightPx: Int,
+        @param:IntRange(from = 1) @get:IntRange(from = 1) public val widthPx: Int,
+        @param:IntRange(from = 1) @get:IntRange(from = 1) public val heightPx: Int,
         public val contentMode: ContentMode = ContentMode.AspectFit,
     ) : OutputSize {
         init {
@@ -281,7 +267,6 @@ public sealed interface OutputSize {
             require(heightPx > 0) { "heightPx must be positive" }
         }
 
-        /** Compares target dimensions and [contentMode] for structural equality. */
         public override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is TargetSize) return false
@@ -289,7 +274,6 @@ public sealed interface OutputSize {
             return (widthPx == other.widthPx) && (heightPx == other.heightPx) && (contentMode == other.contentMode)
         }
 
-        /** Returns a hash code derived from target dimensions and [contentMode]. */
         public override fun hashCode(): Int {
             var result: Int = widthPx.hashCode()
             result = (31 * result) + heightPx.hashCode()
@@ -297,19 +281,18 @@ public sealed interface OutputSize {
             return result
         }
 
-        /** Returns a bounded, non-sensitive debug representation whose format is unspecified. */
         public override fun toString(): String =
             "TargetSize(widthPx=$widthPx, heightPx=$heightPx, contentMode=$contentMode)"
     }
 
-    /** Policy for placing the oriented image within [TargetSize] dimensions. */
+    /** Policy for deriving final image dimensions from [TargetSize] bounds. */
     public enum class ContentMode {
-        /** Uses the target width and height exactly, allowing aspect-ratio distortion. */
+        /** Uses the exact target width and height, allowing aspect-ratio distortion. */
         Stretch,
 
         /**
-         * Preserves the oriented aspect ratio, subject to integer-pixel rounding, within the target
-         * bounds and without padding.
+         * Preserves the oriented aspect ratio within the target bounds and adds no padding, so one
+         * final dimension may be smaller than its bound.
          *
          * A dimension not fixed at its bound is rounded to the nearest pixel and clamped to at
          * least one pixel.
@@ -346,9 +329,10 @@ public enum class Mirror {
 }
 
 /**
- * Color conversion applied after source handling and output sizing using the pre-JPEG image's
- * nominal SDR/sRGB interpretation. See the
- * [color assumptions and limits](../../../../../../docs/usage.md#color-assumptions-and-limits).
+ * Color conversion applied after source handling and output sizing. The opaque, top-down pre-JPEG
+ * RGBA image uses a nominal SDR/sRGB interpretation, and JPEG rows retain that orientation. An
+ * explicitly observed Display P3 source is rejected on API 33 and later; other gamut and HDR
+ * detection or conversion is outside this contract.
  *
  * Shader precision and lossy JPEG encoding do not promise bit-exact decoded channel values.
  */
@@ -365,26 +349,31 @@ public enum class ColorMode {
     Grayscale,
 }
 
-/** Fresh-frame admission policy whose variants are immutable structural values. */
+/**
+ * Frame-production policy whose variants are immutable structural values.
+ *
+ * [MaxFps] caps fresh-frame admission and output commits. [SamplingInterval] limits only fresh-frame admission.
+ */
 public sealed interface FrameRate {
 
     /** Admits fresh frames at the available source and processing-capacity pace. */
     public data object Auto : FrameRate
 
     /**
-     * Caps fresh-frame admission and all produced output, including repeats, to at most [fps].
+     * Caps fresh-frame admission and output commits to at most [fps].
      *
      * The cap does not guarantee that frames are produced at that rate.
      *
      * @property fps maximum frames per second in [MAX_FPS_RANGE].
      * @throws IllegalArgumentException if [fps] is outside [MAX_FPS_RANGE].
      */
-    public class MaxFps(public val fps: Int) : FrameRate {
+    public class MaxFps(
+        @param:IntRange(from = 1, to = 120) @get:IntRange(from = 1, to = 120) public val fps: Int,
+    ) : FrameRate {
         init {
             require(fps in MAX_FPS_RANGE) { "fps must be in $MAX_FPS_RANGE" }
         }
 
-        /** Compares [fps] for structural equality. */
         public override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is MaxFps) return false
@@ -392,10 +381,8 @@ public sealed interface FrameRate {
             return fps == other.fps
         }
 
-        /** Returns the hash code of [fps]. */
         public override fun hashCode(): Int = fps.hashCode()
 
-        /** Returns a bounded, non-sensitive debug representation whose format is unspecified. */
         public override fun toString(): String = "MaxFps(fps=$fps)"
     }
 
@@ -415,7 +402,6 @@ public sealed interface FrameRate {
             }
         }
 
-        /** Compares [interval] for structural equality. */
         public override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is SamplingInterval) return false
@@ -423,19 +409,16 @@ public sealed interface FrameRate {
             return interval == other.interval
         }
 
-        /** Returns the hash code of [interval]. */
         public override fun hashCode(): Int = interval.hashCode()
 
-        /** Returns a bounded, non-sensitive debug representation whose format is unspecified. */
         public override fun toString(): String = "SamplingInterval(interval=$interval)"
     }
 
-    /** Shared valid ranges for explicit frame-rate policies. */
     public companion object {
         /** Inclusive valid range for [MaxFps.fps]. */
-        public val MAX_FPS_RANGE: IntRange = 1..120
+        public val MAX_FPS_RANGE: kotlin.ranges.IntRange = 1..120
 
-        /** Inclusive valid range, `1,001` through `3,600,000` milliseconds, for fresh sampling. */
-        public val SAMPLING_INTERVAL_RANGE: ClosedRange<Duration> = 1_001.milliseconds..3_600_000.milliseconds
+        /** Inclusive valid range, `1,000` through `3,600,000` milliseconds, for fresh sampling. */
+        public val SAMPLING_INTERVAL_RANGE: ClosedRange<Duration> = 1_000.milliseconds..3_600_000.milliseconds
     }
 }

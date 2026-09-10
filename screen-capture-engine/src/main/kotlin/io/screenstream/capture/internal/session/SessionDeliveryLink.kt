@@ -1,6 +1,6 @@
 package io.screenstream.capture.internal.session
 
-import io.screenstream.capture.EncodedImageFrame
+import io.screenstream.capture.EncodedFrame
 import io.screenstream.capture.internal.delivery.DeliveryClosedStage
 import io.screenstream.capture.internal.delivery.DeliveryCutoff
 import io.screenstream.capture.internal.delivery.DeliveryFact
@@ -17,7 +17,9 @@ import io.screenstream.capture.internal.storage.PublishedFrame
  *
  * It rejects stale, duplicate, and mismatched facts but owns neither callback registration policy
  * nor their session meaning. A `Closed` fact is staged before becoming consumable so Delivery can clear the exact
- * physical `current` before the coordinator may settle the semantic handoff.
+ * physical `current` before ordinary release or accounting. Direct exact callback-return or cutoff evidence can make
+ * unregister safe earlier.
+ * `Locked` methods require the coordinator's session gate; delivery facts may arrive before the offer call returns.
  */
 internal class SessionDeliveryLink(
     private val coordinator: SessionCoordinator,
@@ -26,7 +28,7 @@ internal class SessionDeliveryLink(
     internal class OfferRequest(
         internal val handoff: DeliveryHandoffToken,
         internal val completion: DeliveryHandoffCompletion?,
-        internal val callback: (EncodedImageFrame) -> Unit,
+        internal val callback: (EncodedFrame) -> Unit,
         internal val frame: PublishedFrame,
     )
 
@@ -54,14 +56,14 @@ internal class SessionDeliveryLink(
 
     internal fun prepareOfferLocked(
         registrationId: Long,
-        callback: (EncodedImageFrame) -> Unit,
+        callback: (EncodedFrame) -> Unit,
         frame: PublishedFrame,
     ): OfferRequest = prepareOfferLocked(DeliveryHandoffToken(registrationId), null, callback, frame)
 
     internal fun prepareOfferLocked(
         handoff: DeliveryHandoffToken,
         completion: DeliveryHandoffCompletion?,
-        callback: (EncodedImageFrame) -> Unit,
+        callback: (EncodedFrame) -> Unit,
         frame: PublishedFrame,
     ): OfferRequest {
         check(!terminalFrozen)

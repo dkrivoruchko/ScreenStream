@@ -1,7 +1,7 @@
 package io.screenstream.capture.internal.delivery
 
-import io.screenstream.capture.EncodedImageFrame
-import io.screenstream.capture.ScreenCaptureEffectiveParameters
+import io.screenstream.capture.CaptureOutputInfo
+import io.screenstream.capture.EncodedFrame
 import io.screenstream.capture.internal.runtime.NonInlineDispatcher
 import io.screenstream.capture.internal.runtime.SerialTaskSlot
 import io.screenstream.capture.internal.storage.PublishedFrame
@@ -59,18 +59,21 @@ internal sealed interface DeliveryFact {
  * The owner has one queue-less handoff. Dispatch acceptance proves neither callback entry nor return. Before every
  * public frame access the borrow verifies both its open interval and exact callback thread, and the borrow is revoked
  * on every actual callback exit. Cutoff prevents a queued callback from entering but never interrupts an entered
- * callback or treats elapsed time, terminal state, or reference release as a return receipt.
+ * callback or treats elapsed time, terminal state, or reference release as a return receipt. An escaping [Error]
+ * still revokes the borrow but does not prove task return or release slot occupancy. On ordinary release, `Closed` is
+ * staged before physical `current` is cleared, and only then is the stage marked ready. Stage failure retains current
+ * without retry; ready failure occurs only after release.
  */
 internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val factSink: DeliveryFactSink) {
     private enum class Entry { Queued, Entered, CutoffInert, Returned, }
 
-    private class BorrowedFrame(frame: PublishedFrame) : EncodedImageFrame.Access {
+    private class BorrowedFrame(frame: PublishedFrame) : EncodedFrame.Access {
         private val accessGate = Any()
         private var retainedFrame: PublishedFrame? = frame
         private var callbackThread: Thread? = null
         private var open = false
 
-        val frame: EncodedImageFrame = EncodedImageFrame.create(this)
+        val frame: EncodedFrame = EncodedFrame.create(this)
 
         fun openOn(thread: Thread) {
             synchronized(accessGate) {
@@ -90,11 +93,11 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
 
         override fun byteCount(): Int = checkedFrame().payload.byteCount
 
-        override fun effectiveParameters(): ScreenCaptureEffectiveParameters = checkedFrame().effectiveParameters
+        override fun outputInfo(): CaptureOutputInfo = checkedFrame().outputInfo
 
         override fun sequence(): Long = checkedFrame().sequence
 
-        override fun timestampElapsedRealtimeNanos(): Long = checkedFrame().timestampElapsedRealtimeNanos
+        override fun outputTimestampElapsedRealtimeNanos(): Long = checkedFrame().outputTimestampElapsedRealtimeNanos
 
         override fun copyTo(destination: ByteArray, destinationOffset: Int): Int = checkedFrame().payload.copyTo(destination, destinationOffset)
 
@@ -103,10 +106,10 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
         private fun checkedFrame(): PublishedFrame = synchronized(accessGate) {
             val frame = retainedFrame
             if (!open || (frame == null)) {
-                throw IllegalStateException("EncodedImageFrame is valid only during its callback body")
+                throw IllegalStateException("EncodedFrame is valid only during its callback body")
             }
             if (Thread.currentThread() !== callbackThread) {
-                throw IllegalStateException("EncodedImageFrame is valid only on its callback thread")
+                throw IllegalStateException("EncodedFrame is valid only on its callback thread")
             }
             frame
         }
@@ -115,11 +118,11 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
     private class Handoff(
         val token: DeliveryHandoffToken,
         val completion: DeliveryHandoffCompletion?,
-        callback: (EncodedImageFrame) -> Unit,
+        callback: (EncodedFrame) -> Unit,
         frame: PublishedFrame,
     ) {
         val borrow = BorrowedFrame(frame)
-        var callback: ((EncodedImageFrame) -> Unit)? = callback
+        var callback: ((EncodedFrame) -> Unit)? = callback
         var entry: Entry = Entry.Queued
         var callbackThread: Thread? = null
         var closedOutcome: DeliveryFact.Closed.Outcome? = null
@@ -130,13 +133,13 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
     private var retired = false
     private var current: Handoff? = null
 
-    internal fun offer(token: DeliveryHandoffToken, callback: (EncodedImageFrame) -> Unit, frame: PublishedFrame): DeliveryOffer =
+    internal fun offer(token: DeliveryHandoffToken, callback: (EncodedFrame) -> Unit, frame: PublishedFrame): DeliveryOffer =
         offer(token, completion = null, callback, frame)
 
     internal fun offer(
         token: DeliveryHandoffToken,
         completion: DeliveryHandoffCompletion?,
-        callback: (EncodedImageFrame) -> Unit,
+        callback: (EncodedFrame) -> Unit,
         frame: PublishedFrame,
     ): DeliveryOffer {
         val handoff = Handoff(token = token, completion = completion, callback = callback, frame = frame)

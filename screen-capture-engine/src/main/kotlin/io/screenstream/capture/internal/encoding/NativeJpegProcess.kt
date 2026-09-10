@@ -27,10 +27,8 @@ internal interface NativeJpegFacade {
 }
 
 /**
- * Process-lifetime facade for the frozen Native JPEG JNI and wire ABI.
- *
- * A classified library-load result is published once. An exact [UnsatisfiedLinkError] is clean unavailability; later
- * JNI failures retain their normal propagation. The facade retains no Session state and the library is never unloaded.
+ * Process-lifetime receiver and facade for the Native JPEG JNI and wire ABI. Later JNI failures retain normal
+ * propagation. The facade retains no session state and the library is never unloaded.
  */
 internal class NativeJpegProcess private constructor() {
     internal enum class Availability { Available, CleanUnavailable, Poisoned, }
@@ -96,6 +94,7 @@ internal class NativeJpegProcess private constructor() {
             resultBlock = resultBlock,
         )
 
+        // Wire layout: native-order 16-byte block, produced byte count at 0, status at 8, both -1 until native evidence.
         override fun newResultBlock(): ByteBuffer =
             ByteBuffer.allocateDirect(NATIVE_RESULT_BLOCK_BYTE_COUNT)
                 .order(ByteOrder.nativeOrder())
@@ -148,6 +147,11 @@ internal class NativeJpegProcess private constructor() {
     }
 }
 
+/**
+ * Publishes one load classification. Only exact base [UnsatisfiedLinkError] and any caught [SecurityException] mean
+ * clean unavailability; another [Exception] poisons the cell. Another [Error] escapes before publication, so a later
+ * resolution may retry.
+ */
 internal class NativeJpegAvailabilityCell(
     private val initialLoad: () -> Unit,
 ) {

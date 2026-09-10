@@ -31,8 +31,12 @@ internal class MetricsSnapshot(
  *
  * Source callbacks may arrive inline, reentrantly, concurrently, and from arbitrary threads. They are serialized by
  * the owner gate and coalesced onto one queue-less worker slot. The exact returned handle is adopted before later
- * fallible work and closed at most once. Session may read [MetricsSnapshot] while holding its session gate, so this
- * owner must never acquire a Session lock or call Session while its own gate is held.
+ * fallible work. Readiness requires positive metrics plus the exact adopted handle. Positive metrics followed by
+ * completion remain usable before close settles; a close [Exception] can still fail a live source. The owner makes at
+ * most one close attempt, including for a handle returned after completion or retirement, and does not claim
+ * successful closure when that attempt fails. A worker release may arrive before its submit call returns and is
+ * retained in explicit bookkeeping. Session may read [MetricsSnapshot] while holding its session gate, so this owner
+ * must never acquire a Session lock or call Session while its own gate is held.
  */
 internal class SessionMetricsOwner(
     workerDispatcher: NonInlineDispatcher,

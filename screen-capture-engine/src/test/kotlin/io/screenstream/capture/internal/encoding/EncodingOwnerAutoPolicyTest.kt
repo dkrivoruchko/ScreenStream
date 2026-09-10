@@ -19,11 +19,10 @@ import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [36])
-internal class EncodingOwnerAutoSelectionTest {
+internal class EncodingOwnerAutoPolicyTest {
     // Verification: ENC-02
-    // Audit item: P6-01
     @Test
-    fun autoSelectionHasExactlyFourHostOwnerSemanticArrangements() {
+    fun cleanUnavailableNativeSelectsFrameworkWithoutCapabilityCheck() {
         exerciseFrameworkSelection(
             facade = HostSelectionNativeJpegFacade(
                 availability = NativeJpegProcess.Availability.CleanUnavailable,
@@ -31,7 +30,11 @@ internal class EncodingOwnerAutoSelectionTest {
             ),
             expectedCapabilityChecks = 0,
         )
+    }
 
+    // Verification: ENC-02
+    @Test
+    fun poisonedNativeAvailabilityFailsWithoutCapabilityCheck() {
         exerciseFailedSelection(
             facade = HostSelectionNativeJpegFacade(
                 availability = NativeJpegProcess.Availability.Poisoned,
@@ -40,7 +43,11 @@ internal class EncodingOwnerAutoSelectionTest {
             expectedCapabilityChecks = 0,
             expectedCause = null,
         )
+    }
 
+    // Verification: ENC-02
+    @Test
+    fun nativeCapabilityExceptionFailsWithExactCause() {
         val capabilityFailure = IllegalStateException("Injected Native capability-check failure")
         exerciseFailedSelection(
             facade = HostSelectionNativeJpegFacade(
@@ -50,7 +57,11 @@ internal class EncodingOwnerAutoSelectionTest {
             expectedCapabilityChecks = 1,
             expectedCause = capabilityFailure,
         )
+    }
 
+    // Verification: ENC-02
+    @Test
+    fun missingNativeCompressorSelectsFramework() {
         exerciseFrameworkSelection(
             facade = HostSelectionNativeJpegFacade(
                 availability = NativeJpegProcess.Availability.Available,
@@ -61,7 +72,6 @@ internal class EncodingOwnerAutoSelectionTest {
     }
 
     // Verification: ENC-02
-    // Audit item: P6-02
     @Test
     fun returnedNativeFailureKeepsNativeReadyForSuccessor() {
         val cases = listOf(
@@ -337,7 +347,7 @@ internal class EncodingOwnerAutoSelectionTest {
             every { production.transaction } returns transaction
             every { production.healthCell } returns healthCell
             every { production.result } returns result
-            every { production.hasLeafResult } returns true
+            every { production.hasRecordedResult } returns true
             every { production.execute(any()) } answers {
                 val enteredCarrier = checkNotNull(runtime.enterNativeUse(production))
                 check(enteredCarrier === expectedInput.writableView)
@@ -351,7 +361,7 @@ internal class EncodingOwnerAutoSelectionTest {
                     payload = null,
                 )
             }
-            every { production.settleDetachedLeaf() } returns null
+            every { production.detachResultPayload() } returns null
             transactions += transaction
             results += result
             return production

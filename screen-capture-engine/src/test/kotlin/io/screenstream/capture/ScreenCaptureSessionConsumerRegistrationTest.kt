@@ -4,13 +4,13 @@ import android.hardware.DataSpace
 import android.os.Build
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.BlockingCallback
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.drainAcceptedSessionWork
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.driveControlUntil
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.primeCachedFrame
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.requestStopAndDrainSession
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.startActiveSession
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.stopAndDrainSession
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -38,13 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
-/*
- * Public frame-consumer registration evidence through the real Coordinator, cache, and Delivery Link.
- *
- * Controlled task entry and callback latches only arrange queued, entered, and returned work. Queue shape, turn count,
- * private phase, and incidental call ordering are not oracles; public completion or failure, replacement admission,
- * callback access, real callback return, and frozen public values decide these scenarios.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -54,11 +47,11 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun publicUnregisterBeforeCallbackEntryCompletesAndLateTaskIsInert() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -99,7 +92,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             } finally {
                 lateCallbackTask?.awaitCompletion()
                 unregister.cancelAndJoin()
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }
@@ -109,11 +102,11 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun publicUnregisterAfterCallbackEntryWaitsForExactReturn() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -162,7 +155,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
                 callback.release()
                 callbackTask.awaitCompletion()
                 unregister.cancelAndJoin()
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }
@@ -173,10 +166,10 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun sameCallbackWorkerCanRetryAndReplaceBeforePhysicalNotificationReturns() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -227,7 +220,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             harness.driveUntil { replacementEntries.get() == 1 }
             assertEquals(originalSequence.get(), replacementSequence.get())
             checkNotNull(replacementRef.get()).unregister()
-            stopAndDrainSession(harness)
+            requestStopAndDrainSession(harness)
         }
     }
 
@@ -236,11 +229,11 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun publicSelfUnregisterIsRejectedWithoutRevokingBorrow() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -311,7 +304,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             } finally {
                 firstCallbackTask.awaitCompletion()
                 externalUnregister?.cancelAndJoin()
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }
@@ -321,11 +314,11 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun cancelledPublicUnregisterRetainsSettlementForRetry() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -390,7 +383,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
                 callbackTask.awaitCompletion()
                 cancelledCaller.cancelAndJoin()
                 retry?.cancelAndJoin()
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }
@@ -401,11 +394,11 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun terminalFailureKeepsOutstandingPublicUnregisterPendingUntilLateCallbackReturn() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
             projection = platform.projection,
@@ -454,7 +447,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
                 callback.release()
                 callbackTask.awaitCompletion()
                 unregister.cancelAndJoin()
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }
@@ -465,11 +458,11 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun enteredCallbackKeepsUnregisterPendingUntilActualReturnAfterTerminal() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -528,7 +521,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             var unregister: Deferred<Unit>? = null
 
             try {
-                harness.session.stop()
+                harness.session.requestStop()
                 driveControlUntil(harness) { harness.session.state.value is ScreenCaptureState.Stopped }
 
                 val frozenState = harness.session.state.value as ScreenCaptureState.Stopped
@@ -571,11 +564,11 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun terminalHeldSessionCompletesItsRegistrationWithoutAControlTurnAndDoesNotAffectAnotherSession() = runTest {
-        val platformA = HappyCapturePlatform()
-        val platformB = HappyCapturePlatform()
+        val platformA = CapturePlatformFixture()
+        val platformB = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        val harnessA = SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        val harnessA = SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platformA.projection,
@@ -584,8 +577,8 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             glesPlatform = platformA.glesPlatform,
             targetPlatform = platformA.targetPlatform,
         )
-        val harnessB = SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        val harnessB = SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platformB.projection,
@@ -609,7 +602,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             callbackTaskA = heldTask
             heldCallback.awaitEntered()
 
-            harnessA.session.stop()
+            harnessA.session.requestStop()
             driveControlUntil(harnessA) { harnessA.session.state.value is ScreenCaptureState.Stopped }
             val frozenAState = harnessA.session.state.value
             val frozenAStats = harnessA.session.stats.value
@@ -644,8 +637,8 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
             callbackA?.release()
             callbackTaskA?.awaitCompletion()
             unregisterA?.cancelAndJoin()
-            stopAndDrainSession(harnessA)
-            stopAndDrainSession(harnessB)
+            requestStopAndDrainSession(harnessA)
+            requestStopAndDrainSession(harnessB)
             harnessA.close()
             harnessB.close()
         }
@@ -656,11 +649,11 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun cachedFirstDispatchRejectionFailsSessionWithoutCallbackEntry() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -686,7 +679,7 @@ internal class ScreenCaptureSessionConsumerRegistrationTest {
                 assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
                 assertEquals(0, callbackEntries.get())
             } finally {
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
             }
         }
     }

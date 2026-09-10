@@ -6,13 +6,13 @@ import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
 import io.mockk.verify
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.FrameSnapshot
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.copyFrame
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.drainAcceptedSessionWork
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.driveControlUntil
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.startActiveSession
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
@@ -32,22 +32,16 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicInteger
 
-/*
- * Public failure/suspension joins through the real Session Coordinator and Capture/Metrics owners.
- * Controlled task entry and injected platform/source outcomes only arrange the boundary. Public State/Stats,
- * start settlement, requested/last-effective facts, and terminal immutability are the verdicts.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
-internal class ScreenCaptureSessionFailureJoinIntegrationTest {
+internal class ScreenCaptureSessionFailureAndRecoveryIntegrationTest {
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun exactFirstActiveCutoffFailsStartAndRetiresAcceptedProjection() = runTest {
-        SessionStartHarness(bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics).use { harness ->
+        SessionHarness(bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics).use { harness ->
             val projection = harness.projection()
             every { projection.stop() } just Runs
             val parameters = ScreenCaptureParameters(jpegQuality = 81)
@@ -70,7 +64,7 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
             val failed = harness.session.state.value as ScreenCaptureState.Failed
             assertSame(ScreenCaptureProblem.CaptureUnavailable, failed.problem)
             assertEquals(parameters, failed.requestedParameters)
-            assertNull(failed.lastEffectiveParameters)
+            assertNull(failed.lastOutputInfo)
             assertZeroStats(harness.session.stats.value)
             assertEquals(initialStats, harness.session.stats.value)
 
@@ -82,20 +76,18 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
         }
     }
 
-    // Audit item: P2-02
     // Verification: SES-07
-    // Audit item: P3-04
     @Test
     @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun invalidRequestSuspendsWithDirtyStatsWithheldUntilActiveRecovery() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val initialParameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
         val invalidParameters = initialParameters.copy(
             crop = CropInsetsPx(left = 8, top = 0, right = 0, bottom = 0),
         )
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             projection = platform.projection,
@@ -120,7 +112,7 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
                 state = harness.session.state.value,
                 expectedProblem = ScreenCaptureProblem.InvalidRequest,
                 expectedRequested = invalidParameters,
-                expectedLastEffective = initialActive.effectiveParameters,
+                expectedLastOutputInfo = initialActive.outputInfo,
             )
 
             harness.clock.setDefaultNanos(1_000_000_000L)
@@ -134,27 +126,26 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
             harness.driveUntil {
                 val state = harness.session.state.value
                 state is ScreenCaptureState.Active &&
-                        state.effectiveParameters.appliedParameters == initialParameters &&
+                        state.outputInfo.parameters == initialParameters &&
                         harness.session.stats.value.producedFrameCount == 1L
             }
 
             val recovered = harness.session.state.value as ScreenCaptureState.Active
             assertEquals(initialParameters, recovered.requestedParameters)
-            assertEquals(initialParameters, recovered.effectiveParameters.appliedParameters)
+            assertEquals(initialParameters, recovered.outputInfo.parameters)
             assertEquals(1L, harness.session.stats.value.encodedFrameCount)
             assertEquals(1L, harness.session.stats.value.producedFrameCount)
         }
     }
 
-    // Audit item: P2-02
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun unavailableMetricsSuspendRecoverAndAdjacentSourceFailureTerminates() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -172,39 +163,39 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
                 state = harness.session.state.value,
                 expectedProblem = ScreenCaptureProblem.CaptureUnavailable,
                 expectedRequested = parameters,
-                expectedLastEffective = initialActive.effectiveParameters,
+                expectedLastOutputInfo = initialActive.outputInfo,
             )
 
             harness.emitMetrics(CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320))
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
             val recovered = harness.session.state.value as ScreenCaptureState.Active
             assertEquals(parameters, recovered.requestedParameters)
-            assertEquals(initialActive.effectiveParameters, recovered.effectiveParameters)
+            assertEquals(initialActive.outputInfo, recovered.outputInfo)
 
             harness.failMetrics(IllegalStateException("Injected metrics-source failure"))
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Failed }
             val failed = harness.session.state.value as ScreenCaptureState.Failed
             assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
             assertEquals(parameters, failed.requestedParameters)
-            assertEquals(recovered.effectiveParameters, failed.lastEffectiveParameters)
+            assertEquals(recovered.outputInfo, failed.lastOutputInfo)
 
             drainAcceptedSessionWork(harness)
-            harness.session.stop()
+            harness.session.requestStop()
             assertEquals(failed, harness.session.state.value)
         }
     }
 
-    // Audit item: P2-02
+    // Verification: API-04
     // Verification: SES-03
     @Test
     @Config(sdk = [Build.VERSION_CODES.S_V2])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun rollbackSafeResourceExhaustionSuspendsAndRecovers() = runTest {
-        val platform = HappyCapturePlatform()
+    fun equalResubmissionReevaluatesRollbackSafeResourceExhaustionAndRecovers() = runTest {
+        val platform = CapturePlatformFixture()
         val initialParameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
         val downscaledParameters = initialParameters.copy(outputSize = OutputSize.ScaleFactor(0.5))
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.S_V2,
             projection = platform.projection,
@@ -215,18 +206,9 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
         ).use { harness ->
             startActiveSession(harness, initialParameters)
             val initialActive = harness.session.state.value as ScreenCaptureState.Active
-            val nextSyntheticTextureName = AtomicInteger(10_000)
-            val generatedCandidateTextures = CopyOnWriteArrayList<Int>()
-            val deniedCandidateTextures = CopyOnWriteArrayList<Int>()
-            every { platform.glesPlatform.genTextures(any()) } answers {
-                val textureName = nextSyntheticTextureName.incrementAndGet()
-                firstArg<IntArray>()[0] = textureName
-                generatedCandidateTextures += textureName
-            }
-            every { platform.targetPlatform.createSurfaceTexture(any()) } answers {
-                deniedCandidateTextures += firstArg<Int>()
-                throw Surface.OutOfResourcesException("Injected persistent replacement SurfaceTexture allocation denial")
-            }
+            platform.failNextReplacementSurfaceTextureCreation(
+                Surface.OutOfResourcesException("Injected replacement SurfaceTexture allocation denial"),
+            )
 
             harness.session.updateParameters(downscaledParameters)
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Suspended }
@@ -236,14 +218,9 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
                 state = suspended,
                 expectedProblem = ScreenCaptureProblem.ResourceExhausted,
                 expectedRequested = downscaledParameters,
-                expectedLastEffective = initialActive.effectiveParameters,
+                expectedLastOutputInfo = initialActive.outputInfo,
             )
-            assertEquals(1, generatedCandidateTextures.size)
-            assertEquals(generatedCandidateTextures, deniedCandidateTextures)
-            val deniedTextureName = generatedCandidateTextures.single()
-            verify(exactly = 1) {
-                platform.glesPlatform.deleteTextures(match { it.contentEquals(intArrayOf(deniedTextureName)) })
-            }
+            assertSame(downscaledParameters, (suspended as ScreenCaptureState.Suspended).requestedParameters)
             verify(exactly = 2) { platform.targetPlatform.createSurfaceTexture(any()) }
             verify(exactly = 1) {
                 platform.targetPlatform.setDefaultBufferSize(any(), any(), any())
@@ -254,45 +231,63 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
 
             drainAcceptedSessionWork(harness)
             assertSame(suspended, harness.session.state.value)
-            assertEquals(listOf(deniedTextureName), generatedCandidateTextures)
-            assertEquals(listOf(deniedTextureName), deniedCandidateTextures)
+
+            platform.failNextReplacementSurfaceTextureCreation(
+                Surface.OutOfResourcesException("Injected repeated replacement SurfaceTexture allocation denial"),
+            )
+            harness.session.updateParameters(downscaledParameters.copy())
+            harness.session.updateParameters(downscaledParameters.copy())
+            drainAcceptedSessionWork(harness)
+            val renewedSuspension = harness.session.state.value
+            assertSuspended(
+                state = renewedSuspension,
+                expectedProblem = ScreenCaptureProblem.ResourceExhausted,
+                expectedRequested = downscaledParameters,
+                expectedLastOutputInfo = initialActive.outputInfo,
+            )
+            assertSame(
+                downscaledParameters,
+                (renewedSuspension as ScreenCaptureState.Suspended).requestedParameters,
+            )
+            assertSame(initialActive.outputInfo, renewedSuspension.lastOutputInfo)
+            verify(exactly = 3) { platform.targetPlatform.createSurfaceTexture(any()) }
+
+            drainAcceptedSessionWork(harness)
+            assertSame(renewedSuspension, harness.session.state.value)
+            verify(exactly = 3) { platform.targetPlatform.createSurfaceTexture(any()) }
+
+            harness.session.updateParameters(downscaledParameters.copy())
+            harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
+            val recovered = harness.session.state.value as ScreenCaptureState.Active
+            assertSame(downscaledParameters, recovered.requestedParameters)
+            assertSame(downscaledParameters, recovered.outputInfo.parameters)
+            assertEquals(4, recovered.outputInfo.finalImageSize.widthPx)
+            assertEquals(3, recovered.outputInfo.finalImageSize.heightPx)
+            verify(exactly = 4) { platform.targetPlatform.createSurfaceTexture(any()) }
+            verify(exactly = 1) {
+                platform.projectionPlatform.createVirtualDisplay(any(), any(), any(), any(), any())
+                platform.projectionPlatform.setSurface(any(), any())
+            }
 
             harness.session.updateParameters(downscaledParameters.copy())
             drainAcceptedSessionWork(harness)
-            assertSame(suspended, harness.session.state.value)
-            assertEquals(listOf(deniedTextureName), generatedCandidateTextures)
-            assertEquals(listOf(deniedTextureName), deniedCandidateTextures)
-
-            harness.session.updateParameters(initialParameters)
-            harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
-            val recovered = harness.session.state.value as ScreenCaptureState.Active
-            assertEquals(initialParameters, recovered.requestedParameters)
-            assertEquals(initialActive.effectiveParameters, recovered.effectiveParameters)
-            assertEquals(listOf(deniedTextureName), generatedCandidateTextures)
-            assertEquals(listOf(deniedTextureName), deniedCandidateTextures)
+            assertSame(recovered, harness.session.state.value)
+            verify(exactly = 4) { platform.targetPlatform.createSurfaceTexture(any()) }
 
             val delivered = CopyOnWriteArrayList<FrameSnapshot>()
             harness.session.registerFrameConsumer { frame -> delivered += copyFrame(frame) }
             platform.deliverSourceFrame(rgbaSeed = 61)
             harness.driveUntil { delivered.isNotEmpty() }
             assertEquals(1, platform.sourceUpdateCount())
-            assertEquals(initialActive.effectiveParameters, delivered.single().effectiveParameters)
+            assertSame(downscaledParameters, delivered.single().outputInfo.parameters)
             assertTrue(delivered.single().bytes.isNotEmpty())
-            drainAcceptedSessionWork(harness)
-            verify(exactly = 1) { platform.glesPlatform.deleteTextures(any()) }
-            verify(exactly = 0) {
-                platform.targetPlatform.clearFrameListener(any())
-                platform.targetPlatform.releaseSurface(any())
-                platform.targetPlatform.releaseSurfaceTexture(any())
-            }
         }
     }
 
-    // Audit item: P2-02
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun maintainableProblemsBeforeFirstActiveFailWithoutSuspension() = runTest {
+    fun recoverableProblemsBeforeFirstActiveFailWithoutSuspension() = runTest {
         assertStartupFailure(
             expectedProblem = ScreenCaptureProblem.InvalidRequest,
             parameters = ScreenCaptureParameters(crop = CropInsetsPx(left = 8, top = 0, right = 0, bottom = 0)),
@@ -317,15 +312,14 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
         )
     }
 
-    // Audit item: P2-03
     @Test
     @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun currentProjectionStopBeatsRequestedContenderAndFreezesFinalState() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             projection = platform.projection,
@@ -339,36 +333,35 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
 
             platform.deliverProjectionStopped()
             assertEquals(active, harness.session.state.value)
-            harness.session.stop()
+            harness.session.requestStop()
             driveControlUntil(harness) { harness.session.state.value is ScreenCaptureState.Stopped }
 
             val stopped = harness.session.state.value as ScreenCaptureState.Stopped
             assertSame(ScreenCaptureStopReason.ProjectionStopped, stopped.reason)
             assertEquals(parameters, stopped.requestedParameters)
-            assertEquals(active.effectiveParameters, stopped.lastEffectiveParameters)
+            assertEquals(active.outputInfo, stopped.lastOutputInfo)
 
             drainAcceptedSessionWork(harness)
-            harness.session.stop()
+            harness.session.requestStop()
             platform.deliverCapturedContentVisibilityChanged(isVisible = true)
             drainAcceptedSessionWork(harness)
             assertEquals(stopped, harness.session.state.value)
         }
     }
 
-    // Audit item: P2-05
     @Test
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun staleOwnerInvalidatedReadFailsExactlyWhileOrdinaryAdmissionRemainsOpen() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val initialParameters = ScreenCaptureParameters(
             outputSize = OutputSize.ScaleFactor(1.0),
             frameRate = FrameRate.Auto,
         )
         val staleRevisionParameters = initialParameters.copy(frameRate = FrameRate.MaxFps(15))
         val latestParameters = initialParameters.copy(frameRate = FrameRate.MaxFps(30))
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
             projection = platform.projection,
@@ -394,11 +387,11 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
             val failed = harness.session.state.value as ScreenCaptureState.Failed
             assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
             assertEquals(latestParameters, failed.requestedParameters)
-            assertEquals(active.effectiveParameters, failed.lastEffectiveParameters)
-            assertEquals(1L, harness.session.stats.value.droppedFrames.byFailure)
+            assertEquals(active.outputInfo, failed.lastOutputInfo)
+            assertEquals(1L, harness.session.stats.value.frameProductionDrops.byFailure)
 
             drainAcceptedSessionWork(harness)
-            harness.session.stop()
+            harness.session.requestStop()
             assertEquals(failed, harness.session.state.value)
         }
     }
@@ -410,9 +403,9 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
         metrics: CaptureMetrics?,
         completeUnavailableMetrics: Boolean = false,
     ) {
-        val platform = HappyCapturePlatform()
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        val platform = CapturePlatformFixture()
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = metrics,
             platformSdkInt = Build.VERSION_CODES.N,
             projection = platform.projection,
@@ -422,8 +415,8 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
             targetPlatform = platform.targetPlatform,
         ).use { harness ->
             val initialStats = harness.session.stats.value
-            // Serialized eager collection is deterministic instrumentation for transient Suspended only; it is
-            // not a receipt for product-publication history or ordering.
+            // In this serialized arrangement the collector body does not suspend, so eager collection can observe
+            // transient Suspended. It is not a general receipt for publication history or ordering.
             val transientStates = CopyOnWriteArrayList<ScreenCaptureState>()
             val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
                 harness.session.state.collect(transientStates::add)
@@ -443,7 +436,7 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
                 val failed = harness.session.state.value as ScreenCaptureState.Failed
                 assertSame(expectedProblem, failed.problem)
                 assertEquals(parameters, failed.requestedParameters)
-                assertNull(failed.lastEffectiveParameters)
+                assertNull(failed.lastOutputInfo)
                 assertTrue(transientStates.none { it is ScreenCaptureState.Suspended })
                 assertEquals(initialStats, harness.session.stats.value)
             } finally {
@@ -456,24 +449,24 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
         state: ScreenCaptureState,
         expectedProblem: ScreenCaptureProblem,
         expectedRequested: ScreenCaptureParameters,
-        expectedLastEffective: ScreenCaptureEffectiveParameters,
+        expectedLastOutputInfo: CaptureOutputInfo,
     ) {
         val suspended = state as ScreenCaptureState.Suspended
         assertSame(expectedProblem, suspended.problem)
         assertEquals(expectedRequested, suspended.requestedParameters)
-        assertEquals(expectedLastEffective, suspended.lastEffectiveParameters)
+        assertEquals(expectedLastOutputInfo, suspended.lastOutputInfo)
     }
 
     private fun assertZeroStats(stats: ScreenCaptureStats) {
         assertEquals(0L, stats.encodedFrameCount)
         assertEquals(0L, stats.producedFrameCount)
-        assertEquals(0L, stats.droppedFrames.total)
+        assertEquals(0L, stats.frameProductionDrops.total)
         assertEquals(0L, stats.droppedDeliveries.total)
     }
 
     private suspend fun startActiveSessionWithAuthoritativeResize(
-        harness: SessionStartHarness,
-        platform: HappyCapturePlatform,
+        harness: SessionHarness,
+        platform: CapturePlatformFixture,
         parameters: ScreenCaptureParameters,
     ) = coroutineScope {
         val start = async(start = CoroutineStart.UNDISPATCHED) {
@@ -485,7 +478,7 @@ internal class ScreenCaptureSessionFailureJoinIntegrationTest {
         start.await()
     }
 
-    private fun claimNextCaptureTask(harness: SessionStartHarness): Runnable {
+    private fun claimNextCaptureTask(harness: SessionHarness): Runnable {
         repeat(32) {
             harness.claimNextCaptureTask()?.let { return it }
             harness.enterNextWorkerSuccessfully()

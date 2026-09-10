@@ -4,10 +4,10 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import io.screenstream.capture.CaptureGeometry
+import io.screenstream.capture.CaptureOutputInfo
 import io.screenstream.capture.ImageRect
 import io.screenstream.capture.ImageSize
 import io.screenstream.capture.JpegBackendPolicy
-import io.screenstream.capture.ScreenCaptureEffectiveParameters
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.internal.delivery.DeliveryFact
 import io.screenstream.capture.internal.delivery.DeliveryHandoffToken
@@ -66,8 +66,8 @@ internal class SessionDeliveryLinkCorrelationTest {
             val link = fixture.link
             val delivery = SessionDelivery()
             val registration = (delivery.register { } as SessionDelivery.RegistrationResult.Accepted).registration
-            val offer = (delivery.prepareFreshOffer(frame(), isPhysicalHandoffFree = true)
-                    as SessionDelivery.FreshOffer.Prepared).offer
+            val offer = (delivery.preparePublishedFrameOffer(frame(), isPhysicalHandoffFree = true)
+                    as SessionDelivery.PublishedFrameOffer.Prepared).offer
             val request = link.prepareOfferLocked(offer.handoff, offer.completion, offer.callback, offer.frame)
             assertTrue(link.recordOfferReturnedLocked(request, DeliveryOffer.Accepted(offer.handoff)))
             assertSame(SessionDelivery.AcceptedOfferSettlement.Retained, delivery.settleAcceptedOffer(offer, offer.handoff))
@@ -236,8 +236,8 @@ internal class SessionDeliveryLinkCorrelationTest {
     }
 
     private companion object {
-        private val EFFECTIVE_PARAMETERS = ScreenCaptureEffectiveParameters.create(
-            appliedParameters = ScreenCaptureParameters.DEFAULT,
+        private val EFFECTIVE_PARAMETERS = CaptureOutputInfo.create(
+            parameters = ScreenCaptureParameters.DEFAULT,
             captureGeometry = CaptureGeometry.create(widthPx = 2, heightPx = 2, densityDpi = 320),
             appliedSourceRect = ImageRect.create(leftPx = 0, topPx = 0, rightPx = 2, bottomPx = 2),
             finalImageSize = ImageSize.create(widthPx = 2, heightPx = 2),
@@ -245,9 +245,9 @@ internal class SessionDeliveryLinkCorrelationTest {
 
         private fun frame(): PublishedFrame = PublishedFrame(
             payload = ImmutableEncodedPayload(arrayOf(byteArrayOf(1, 2, 3)), byteCount = 3),
-            effectiveParameters = EFFECTIVE_PARAMETERS,
+            outputInfo = EFFECTIVE_PARAMETERS,
             sequence = 1L,
-            timestampElapsedRealtimeNanos = 2L,
+            outputTimestampElapsedRealtimeNanos = 2L,
         )
     }
 }

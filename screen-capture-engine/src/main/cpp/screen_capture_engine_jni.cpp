@@ -24,7 +24,7 @@ namespace {
     constexpr std::size_t kProducedByteCountOffset = 0;
     constexpr std::size_t kWireStatusOffset = 8;
     constexpr const char *kFacadeClassName = "io/screenstream/capture/internal/encoding/NativeJpegProcess";
-    constexpr const char *kSinkMethodName = "adoptNativeSegment";
+    constexpr const char *kSinkMethodName = "copyNativeSegment";
     constexpr const char *kSinkMethodDescriptor = "(Ljava/nio/ByteBuffer;I)V";
 
     class ResultChannel final {
@@ -42,6 +42,8 @@ namespace {
 
         void complete(NativeWireStatus wireStatus, std::int64_t producedByteCount) noexcept {
             if (address_ == nullptr) return;
+            // The address was captured while JNI was healthy. Raw writes remain valid with a pending Java throwable
+            // and neither clear nor replace that throwable.
             const auto wireStatusValue = static_cast<std::int64_t>(wireStatus);
             std::memcpy(address_ + kProducedByteCountOffset, &producedByteCount, sizeof(producedByteCount));
             std::memcpy(address_ + kWireStatusOffset, &wireStatusValue, sizeof(wireStatusValue));
@@ -170,7 +172,7 @@ namespace {
     void compressAndTransferSegments(
             JNIEnv *env,
             jobject sink,
-            jmethodID adoptMethod,
+            jmethodID copyMethod,
             NativeFrameDescriptor descriptor,
             CompressorFunction compressor,
             ResultChannel &result
@@ -181,8 +183,7 @@ namespace {
 
             NativeWireStatus finalWireStatus = NativeWireStatus::InternalFailure;
             try {
-                const CompressionResult compressionResult =
-                        screenstream::jpeg::compressFrame(descriptor, compressor, writer);
+                const CompressionResult compressionResult = screenstream::jpeg::compressFrame(descriptor, compressor, writer);
                 producedByteCount = compressionResult.producedByteCount;
 
                 const bool compressionLeftPendingJavaThrowable = env->ExceptionCheck();
@@ -205,14 +206,15 @@ namespace {
                             break;
                         }
 
-                        env->CallVoidMethod(sink, adoptMethod, nativeSegmentView, segmentByteCount);
-                        const bool adoptionLeftPendingJavaThrowable = env->ExceptionCheck();
+                        // Java copies this borrowed native view synchronously before the callback returns.
+                        env->CallVoidMethod(sink, copyMethod, nativeSegmentView, segmentByteCount);
+                        const bool copyLeftPendingJavaThrowable = env->ExceptionCheck();
                         env->DeleteLocalRef(nativeSegmentView);
                         if (!writer.freeFrontSegment(nativeSegment)) {
                             finalWireStatus = NativeWireStatus::InternalFailure;
                             break;
                         }
-                        if (adoptionLeftPendingJavaThrowable) {
+                        if (copyLeftPendingJavaThrowable) {
                             finalWireStatus = NativeWireStatus::JavaThrowable;
                             break;
                         }
@@ -234,6 +236,8 @@ namespace {
                 finalWireStatus = NativeWireStatus::InternalFailure;
             }
 
+            // A stopped copy callback leaves the remaining native tail for close; produced bytes still describe the
+            // compressor output rather than the successfully copied managed prefix.
             const bool closed = writer.close() && writer.closed();
             if (!closed || writer.fault() == WriterFault::InternalFailure ||
                 (finalWireStatus == NativeWireStatus::SafeCompressorRejection &&
@@ -290,9 +294,9 @@ namespace {
                 result.complete(NativeWireStatus::InternalFailure, 0);
                 return;
             }
-            jmethodID adoptMethod = env->GetMethodID(sinkClass, kSinkMethodName, kSinkMethodDescriptor);
+            jmethodID copyMethod = env->GetMethodID(sinkClass, kSinkMethodName, kSinkMethodDescriptor);
             env->DeleteLocalRef(sinkClass);
-            if (adoptMethod == nullptr || env->ExceptionCheck()) {
+            if (copyMethod == nullptr || env->ExceptionCheck()) {
                 result.complete(NativeWireStatus::InternalFailure, 0);
                 return;
             }
@@ -311,7 +315,7 @@ namespace {
             if (__builtin_available(android 30, *)) {
                 auto compressor = &AndroidBitmap_compress;
                 if (compressor != nullptr) {
-                    compressAndTransferSegments(env, sink, adoptMethod, descriptor, compressor, result);
+                    compressAndTransferSegments(env, sink, copyMethod, descriptor, compressor, result);
                     return;
                 }
             }

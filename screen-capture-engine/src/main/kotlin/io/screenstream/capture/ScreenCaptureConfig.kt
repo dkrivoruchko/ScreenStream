@@ -8,8 +8,9 @@ package io.screenstream.capture
  * caller-visible source.
  *
  * @property captureMetricsSource source of capture dimensions and density. `null` follows the current default
- * display through the application [android.hardware.display.DisplayManager]. A custom source owns any
- * Activity, window, display, and lifecycle policy needed to keep its metrics consistent with the projection consent.
+ *     display through the application [android.hardware.display.DisplayManager]. A custom source owns any Activity,
+ *     window, display, and lifecycle policy needed to keep its metrics consistent with projection consent. Its
+ *     [CaptureMetricsSource.subscribe] method and returned handle may be called on an engine worker thread.
  * @property jpegBackendPolicy policy for selecting the JPEG encoder. Defaults to [JpegBackendPolicy.Auto].
  */
 public class ScreenCaptureConfig(

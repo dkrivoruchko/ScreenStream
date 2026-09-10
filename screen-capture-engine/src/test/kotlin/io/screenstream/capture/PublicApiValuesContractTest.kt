@@ -28,7 +28,6 @@ internal class PublicApiValuesContractTest {
         assertEquals(Mirror.None, defaults.mirror)
         assertEquals(ColorMode.Color, defaults.colorMode)
         assertEquals(FrameRate.Auto, defaults.frameRate)
-        assertEquals(null, defaults.frameRepeatInterval)
         assertEquals(80, defaults.jpegQuality)
 
         val custom = ScreenCaptureParameters(
@@ -43,7 +42,6 @@ internal class PublicApiValuesContractTest {
             mirror = Mirror.Vertical,
             colorMode = ColorMode.Grayscale,
             frameRate = FrameRate.SamplingInterval(1_001.milliseconds),
-            frameRepeatInterval = 1_000.milliseconds,
             jpegQuality = 0,
         )
         val copied = custom.copy()
@@ -60,7 +58,6 @@ internal class PublicApiValuesContractTest {
         assertFalse(custom == custom.copy(mirror = Mirror.Horizontal))
         assertFalse(custom == custom.copy(colorMode = ColorMode.Color))
         assertFalse(custom == custom.copy(frameRate = FrameRate.MaxFps(60)))
-        assertFalse(custom == custom.copy(frameRepeatInterval = null))
         assertFalse(custom == custom.copy(jpegQuality = 1))
     }
 
@@ -68,18 +65,14 @@ internal class PublicApiValuesContractTest {
     @Test
     fun publicSemanticConstantsMatchProductContract() {
         assertEquals(0..100, ScreenCaptureParameters.JPEG_QUALITY_RANGE)
-        assertEquals(
-            1_000.milliseconds..3_600_000.milliseconds,
-            ScreenCaptureParameters.FRAME_REPEAT_INTERVAL_RANGE,
-        )
         assertEquals(1..120, FrameRate.MAX_FPS_RANGE)
-        assertEquals(1_001.milliseconds..3_600_000.milliseconds, FrameRate.SAMPLING_INTERVAL_RANGE)
-        assertEquals("image/jpeg", EncodedImageFrame.JPEG_MIME_TYPE)
+        assertEquals(1_000.milliseconds..3_600_000.milliseconds, FrameRate.SAMPLING_INTERVAL_RANGE)
+        assertEquals("image/jpeg", EncodedFrame.JPEG_MIME_TYPE)
     }
 
     // Verification: API-01
     @Test
-    fun publicValueEqualityRulesIncludeEveryStructuralField() {
+    fun parameterAndGeometryValuesPreserveStructuralEquality() {
         assertStructuralValue { CaptureMetrics(widthPx = 1920, heightPx = 1080, densityDpi = 420) }
         assertStructuralValue { createStructuralParameters() }
         assertStructuralValue { CropInsetsPx(left = 1, top = 2, right = 3, bottom = 4) }
@@ -96,58 +89,6 @@ internal class PublicApiValuesContractTest {
         assertStructuralValue { ImageRect.create(leftPx = 1, topPx = 2, rightPx = 1279, bottomPx = 718) }
         assertStructuralValue { CaptureGeometry.create(widthPx = 1280, heightPx = 720, densityDpi = 320) }
         assertStructuralValue { ImageSize.create(widthPx = 640, heightPx = 360) }
-        assertStructuralValue { createStructuralEffectiveParameters() }
-        assertStructuralValue {
-            ScreenCaptureState.Active.create(
-                effectiveParameters = createStructuralEffectiveParameters(),
-                isCapturedContentVisible = true,
-            )
-        }
-        assertStructuralValue {
-            ScreenCaptureState.Reconfiguring.create(
-                requestedParameters = createStructuralParameters(),
-                lastEffectiveParameters = createStructuralEffectiveParameters(),
-                isCapturedContentVisible = false,
-            )
-        }
-        assertStructuralValue {
-            ScreenCaptureState.Suspended.create(
-                requestedParameters = createStructuralParameters(),
-                problem = ScreenCaptureProblem.ResourceExhausted,
-                lastEffectiveParameters = createStructuralEffectiveParameters(),
-                isCapturedContentVisible = null,
-            )
-        }
-        assertStructuralValue {
-            ScreenCaptureState.Stopped.create(
-                reason = ScreenCaptureStopReason.ProjectionStopped,
-                requestedParameters = createStructuralParameters(),
-                lastEffectiveParameters = createStructuralEffectiveParameters(),
-            )
-        }
-        assertStructuralValue {
-            ScreenCaptureState.Failed.create(
-                problem = ScreenCaptureProblem.InternalFailure,
-                requestedParameters = createStructuralParameters(),
-                lastEffectiveParameters = createStructuralEffectiveParameters(),
-            )
-        }
-        assertStructuralValue {
-            createStats(
-                encodedFrameCount = 3L,
-                producedFrameCount = 5L,
-                averageProducedFps = 29.5,
-                averageEncodingDuration = 12.milliseconds,
-                averageReadbackDuration = 4.milliseconds,
-                lastEncodedByteCount = 1_024,
-                averageEncodedByteCount = 768,
-            )
-        }
-        assertStructuralValue { ScreenCaptureFrameDropStats.create(byStaleWork = 2L, byFailure = 1L) }
-        assertStructuralValue {
-            ScreenCaptureDeliveryDropStats.create(byConsumerBusy = 4L, byCallbackFailure = 3L)
-        }
-
         val metrics = CaptureMetrics(widthPx = 1920, heightPx = 1080, densityDpi = 420)
         assertEveryMutationIsUnequal(
             metrics,
@@ -213,49 +154,91 @@ internal class PublicApiValuesContractTest {
             ImageSize.create(widthPx = 640, heightPx = 361),
         )
 
+    }
+
+    // Verification: API-01
+    @Test
+    fun outputAndStateValuesPreserveStructuralEquality() {
+        assertStructuralValue { createStructuralOutputInfo() }
+        assertStructuralValue {
+            ScreenCaptureState.Active.create(
+                outputInfo = createStructuralOutputInfo(),
+                isCapturedContentVisible = true,
+            )
+        }
+        assertStructuralValue {
+            ScreenCaptureState.Reconfiguring.create(
+                requestedParameters = createStructuralParameters(),
+                lastOutputInfo = createStructuralOutputInfo(),
+                isCapturedContentVisible = false,
+            )
+        }
+        assertStructuralValue {
+            ScreenCaptureState.Suspended.create(
+                requestedParameters = createStructuralParameters(),
+                problem = ScreenCaptureProblem.ResourceExhausted,
+                lastOutputInfo = createStructuralOutputInfo(),
+                isCapturedContentVisible = null,
+            )
+        }
+        assertStructuralValue {
+            ScreenCaptureState.Stopped.create(
+                reason = ScreenCaptureStopReason.ProjectionStopped,
+                requestedParameters = createStructuralParameters(),
+                lastOutputInfo = createStructuralOutputInfo(),
+            )
+        }
+        assertStructuralValue {
+            ScreenCaptureState.Failed.create(
+                problem = ScreenCaptureProblem.InternalFailure,
+                requestedParameters = createStructuralParameters(),
+                lastOutputInfo = createStructuralOutputInfo(),
+            )
+        }
+
         val parameters = createStructuralParameters()
         val alternateParameters = parameters.copy(jpegQuality = 91)
-        val effectiveParameters = createStructuralEffectiveParameters()
-        val alternateEffectiveParameters = createStructuralEffectiveParameters(appliedParameters = alternateParameters)
+        val outputInfo = createStructuralOutputInfo()
+        val alternateOutputInfo = createStructuralOutputInfo(parameters = alternateParameters)
         assertEveryMutationIsUnequal(
-            effectiveParameters,
-            createStructuralEffectiveParameters(appliedParameters = alternateParameters),
-            createStructuralEffectiveParameters(
+            outputInfo,
+            createStructuralOutputInfo(parameters = alternateParameters),
+            createStructuralOutputInfo(
                 captureGeometry = CaptureGeometry.create(widthPx = 1281, heightPx = 720, densityDpi = 320),
             ),
-            createStructuralEffectiveParameters(
+            createStructuralOutputInfo(
                 appliedSourceRect = ImageRect.create(leftPx = 1, topPx = 2, rightPx = 1278, bottomPx = 718),
             ),
-            createStructuralEffectiveParameters(finalImageSize = ImageSize.create(widthPx = 641, heightPx = 360)),
+            createStructuralOutputInfo(finalImageSize = ImageSize.create(widthPx = 641, heightPx = 360)),
         )
 
-        val active = ScreenCaptureState.Active.create(effectiveParameters, isCapturedContentVisible = true)
+        val active = ScreenCaptureState.Active.create(outputInfo, isCapturedContentVisible = true)
         assertEveryMutationIsUnequal(
             active,
-            ScreenCaptureState.Active.create(alternateEffectiveParameters, isCapturedContentVisible = true),
-            ScreenCaptureState.Active.create(effectiveParameters, isCapturedContentVisible = false),
+            ScreenCaptureState.Active.create(alternateOutputInfo, isCapturedContentVisible = true),
+            ScreenCaptureState.Active.create(outputInfo, isCapturedContentVisible = false),
         )
 
         val reconfiguring = ScreenCaptureState.Reconfiguring.create(
             requestedParameters = parameters,
-            lastEffectiveParameters = effectiveParameters,
+            lastOutputInfo = outputInfo,
             isCapturedContentVisible = false,
         )
         assertEveryMutationIsUnequal(
             reconfiguring,
             ScreenCaptureState.Reconfiguring.create(
                 alternateParameters,
-                effectiveParameters,
+                outputInfo,
                 isCapturedContentVisible = false,
             ),
             ScreenCaptureState.Reconfiguring.create(
                 parameters,
-                alternateEffectiveParameters,
+                alternateOutputInfo,
                 isCapturedContentVisible = false,
             ),
             ScreenCaptureState.Reconfiguring.create(
                 parameters,
-                effectiveParameters,
+                outputInfo,
                 isCapturedContentVisible = true,
             ),
         )
@@ -263,7 +246,7 @@ internal class PublicApiValuesContractTest {
         val suspended = ScreenCaptureState.Suspended.create(
             requestedParameters = parameters,
             problem = ScreenCaptureProblem.ResourceExhausted,
-            lastEffectiveParameters = effectiveParameters,
+            lastOutputInfo = outputInfo,
             isCapturedContentVisible = null,
         )
         assertEveryMutationIsUnequal(
@@ -271,25 +254,25 @@ internal class PublicApiValuesContractTest {
             ScreenCaptureState.Suspended.create(
                 alternateParameters,
                 ScreenCaptureProblem.ResourceExhausted,
-                effectiveParameters,
+                outputInfo,
                 isCapturedContentVisible = null,
             ),
             ScreenCaptureState.Suspended.create(
                 parameters,
                 ScreenCaptureProblem.InvalidRequest,
-                effectiveParameters,
+                outputInfo,
                 isCapturedContentVisible = null,
             ),
             ScreenCaptureState.Suspended.create(
                 parameters,
                 ScreenCaptureProblem.ResourceExhausted,
-                alternateEffectiveParameters,
+                alternateOutputInfo,
                 isCapturedContentVisible = null,
             ),
             ScreenCaptureState.Suspended.create(
                 parameters,
                 ScreenCaptureProblem.ResourceExhausted,
-                effectiveParameters,
+                outputInfo,
                 isCapturedContentVisible = true,
             ),
         )
@@ -297,56 +280,76 @@ internal class PublicApiValuesContractTest {
         val stopped = ScreenCaptureState.Stopped.create(
             reason = ScreenCaptureStopReason.ProjectionStopped,
             requestedParameters = parameters,
-            lastEffectiveParameters = effectiveParameters,
+            lastOutputInfo = outputInfo,
         )
         assertEveryMutationIsUnequal(
             stopped,
             ScreenCaptureState.Stopped.create(
                 ScreenCaptureStopReason.Requested,
                 parameters,
-                effectiveParameters,
+                outputInfo,
             ),
             ScreenCaptureState.Stopped.create(
                 ScreenCaptureStopReason.ProjectionStopped,
                 alternateParameters,
-                effectiveParameters,
+                outputInfo,
             ),
             ScreenCaptureState.Stopped.create(
                 ScreenCaptureStopReason.ProjectionStopped,
                 parameters,
-                lastEffectiveParameters = null,
+                lastOutputInfo = null,
             ),
         )
 
         val failed = ScreenCaptureState.Failed.create(
             problem = ScreenCaptureProblem.InternalFailure,
             requestedParameters = parameters,
-            lastEffectiveParameters = effectiveParameters,
+            lastOutputInfo = outputInfo,
         )
         assertEveryMutationIsUnequal(
             failed,
             ScreenCaptureState.Failed.create(
                 ScreenCaptureProblem.InvalidRequest,
                 parameters,
-                effectiveParameters,
+                outputInfo,
             ),
             ScreenCaptureState.Failed.create(
                 ScreenCaptureProblem.InternalFailure,
                 alternateParameters,
-                effectiveParameters,
+                outputInfo,
             ),
             ScreenCaptureState.Failed.create(
                 ScreenCaptureProblem.InternalFailure,
                 parameters,
-                lastEffectiveParameters = null,
+                lastOutputInfo = null,
             ),
         )
+    }
 
-        val frameDrops = ScreenCaptureFrameDropStats.create(byStaleWork = 2L, byFailure = 1L)
+    // Verification: API-01
+    @Test
+    fun statsValuesPreserveStructuralEquality() {
+        assertStructuralValue {
+            createStats(
+                encodedFrameCount = 3L,
+                producedFrameCount = 5L,
+                averageProducedFps = 29.5,
+                averageEncodingDuration = 12.milliseconds,
+                averageReadbackDuration = 4.milliseconds,
+                lastEncodedByteCount = 1_024,
+                averageEncodedByteCount = 768,
+            )
+        }
+        assertStructuralValue { ScreenCaptureFrameProductionDropStats.create(byStaleWork = 2L, byFailure = 1L) }
+        assertStructuralValue {
+            ScreenCaptureDeliveryDropStats.create(byConsumerBusy = 4L, byCallbackFailure = 3L)
+        }
+
+        val frameDrops = ScreenCaptureFrameProductionDropStats.create(byStaleWork = 2L, byFailure = 1L)
         assertEveryMutationIsUnequal(
             frameDrops,
-            ScreenCaptureFrameDropStats.create(byStaleWork = 3L, byFailure = 1L),
-            ScreenCaptureFrameDropStats.create(byStaleWork = 2L, byFailure = 2L),
+            ScreenCaptureFrameProductionDropStats.create(byStaleWork = 3L, byFailure = 1L),
+            ScreenCaptureFrameProductionDropStats.create(byStaleWork = 2L, byFailure = 2L),
         )
 
         val deliveryDrops = ScreenCaptureDeliveryDropStats.create(byConsumerBusy = 4L, byCallbackFailure = 3L)
@@ -362,7 +365,7 @@ internal class PublicApiValuesContractTest {
             createStructuralStats(encodedFrameCount = 4L),
             createStructuralStats(producedFrameCount = 6L),
             createStructuralStats(
-                droppedFrames = ScreenCaptureFrameDropStats.create(byStaleWork = 3L, byFailure = 1L),
+                frameProductionDrops = ScreenCaptureFrameProductionDropStats.create(byStaleWork = 3L, byFailure = 1L),
             ),
             createStructuralStats(
                 droppedDeliveries = ScreenCaptureDeliveryDropStats.create(
@@ -376,7 +379,11 @@ internal class PublicApiValuesContractTest {
             createStructuralStats(lastEncodedByteCount = 1_025),
             createStructuralStats(averageEncodedByteCount = 769),
         )
+    }
 
+    // Verification: API-01
+    @Test
+    fun configAndDiagnosticsPreserveIdentityEquality() {
         val metricsSource = CaptureMetricsSource { AutoCloseable {} }
         assertIdentityValue {
             ScreenCaptureConfig(
@@ -409,21 +416,6 @@ internal class PublicApiValuesContractTest {
             }
         }
 
-        listOf(1_000L, 3_600_000L).forEach { millis ->
-            val actual = ScreenCaptureParameters(frameRepeatInterval = millis.milliseconds).frameRepeatInterval
-            assertTrue(actual == millis.milliseconds)
-        }
-        listOf(999L, 3_600_001L).forEach { millis ->
-            assertThrows(IllegalArgumentException::class.java) {
-                ScreenCaptureParameters(frameRepeatInterval = millis.milliseconds)
-            }
-        }
-        listOf(Duration.ZERO, Duration.INFINITE).forEach { interval ->
-            assertThrows(IllegalArgumentException::class.java) {
-                ScreenCaptureParameters(frameRepeatInterval = interval)
-            }
-        }
-
         listOf(1, 120).forEach { fps ->
             assertEquals(fps, FrameRate.MaxFps(fps).fps)
         }
@@ -431,10 +423,10 @@ internal class PublicApiValuesContractTest {
             assertThrows(IllegalArgumentException::class.java) { FrameRate.MaxFps(fps) }
         }
 
-        listOf(1_001L, 3_600_000L).forEach { millis ->
+        listOf(1_000L, 3_600_000L).forEach { millis ->
             assertEquals(millis.milliseconds, FrameRate.SamplingInterval(millis.milliseconds).interval)
         }
-        listOf(1_000L, 3_600_001L).forEach { millis ->
+        listOf(999L, 3_600_001L).forEach { millis ->
             assertThrows(IllegalArgumentException::class.java) {
                 FrameRate.SamplingInterval(millis.milliseconds)
             }
@@ -511,14 +503,14 @@ internal class PublicApiValuesContractTest {
 
         val geometry = CaptureGeometry.create(widthPx = 4, heightPx = 3, densityDpi = 320)
         val finalSize = ImageSize.create(widthPx = 2, heightPx = 2)
-        ScreenCaptureEffectiveParameters.create(
-            appliedParameters = ScreenCaptureParameters.DEFAULT,
+        CaptureOutputInfo.create(
+            parameters = ScreenCaptureParameters.DEFAULT,
             captureGeometry = geometry,
             appliedSourceRect = ImageRect.create(leftPx = 0, topPx = 0, rightPx = 4, bottomPx = 3),
             finalImageSize = finalSize,
         )
         assertThrows(IllegalArgumentException::class.java) {
-            ScreenCaptureEffectiveParameters.create(
+            CaptureOutputInfo.create(
                 ScreenCaptureParameters.DEFAULT,
                 geometry,
                 ImageRect.create(leftPx = 0, topPx = 0, rightPx = 5, bottomPx = 3),
@@ -526,7 +518,7 @@ internal class PublicApiValuesContractTest {
             )
         }
         assertThrows(IllegalArgumentException::class.java) {
-            ScreenCaptureEffectiveParameters.create(
+            CaptureOutputInfo.create(
                 ScreenCaptureParameters.DEFAULT,
                 geometry,
                 ImageRect.create(leftPx = 0, topPx = 0, rightPx = 4, bottomPx = 4),
@@ -591,7 +583,7 @@ internal class PublicApiValuesContractTest {
     // Verification: API-01
     @Test
     fun dropTotalsSaturateAndRejectNegativeComponents() {
-        val frameDrops = ScreenCaptureFrameDropStats.create(
+        val frameDrops = ScreenCaptureFrameProductionDropStats.create(
             byStaleWork = Long.MAX_VALUE,
             byFailure = Long.MAX_VALUE,
         )
@@ -602,16 +594,16 @@ internal class PublicApiValuesContractTest {
 
         assertEquals(Long.MAX_VALUE, frameDrops.total)
         assertEquals(Long.MAX_VALUE, deliveryDrops.total)
-        assertEquals(3L, ScreenCaptureFrameDropStats.create(1L, 2L).total)
+        assertEquals(3L, ScreenCaptureFrameProductionDropStats.create(1L, 2L).total)
         assertEquals(7L, ScreenCaptureDeliveryDropStats.create(3L, 4L).total)
-        assertEquals(frameDrops, ScreenCaptureFrameDropStats.create(Long.MAX_VALUE, Long.MAX_VALUE))
-        assertEquals(frameDrops.hashCode(), ScreenCaptureFrameDropStats.create(Long.MAX_VALUE, Long.MAX_VALUE).hashCode())
+        assertEquals(frameDrops, ScreenCaptureFrameProductionDropStats.create(Long.MAX_VALUE, Long.MAX_VALUE))
+        assertEquals(frameDrops.hashCode(), ScreenCaptureFrameProductionDropStats.create(Long.MAX_VALUE, Long.MAX_VALUE).hashCode())
         assertEquals(deliveryDrops, ScreenCaptureDeliveryDropStats.create(Long.MAX_VALUE, 1L))
         assertThrows(IllegalArgumentException::class.java) {
-            ScreenCaptureFrameDropStats.create(byStaleWork = -1L, byFailure = 0L)
+            ScreenCaptureFrameProductionDropStats.create(byStaleWork = -1L, byFailure = 0L)
         }
         assertThrows(IllegalArgumentException::class.java) {
-            ScreenCaptureFrameDropStats.create(byStaleWork = 0L, byFailure = -1L)
+            ScreenCaptureFrameProductionDropStats.create(byStaleWork = 0L, byFailure = -1L)
         }
         assertThrows(IllegalArgumentException::class.java) {
             ScreenCaptureDeliveryDropStats.create(byConsumerBusy = -1L, byCallbackFailure = 0L)
@@ -669,18 +661,17 @@ internal class PublicApiValuesContractTest {
         mirror = Mirror.Vertical,
         colorMode = ColorMode.Grayscale,
         frameRate = FrameRate.SamplingInterval(interval = 1_500.milliseconds),
-        frameRepeatInterval = 2_000.milliseconds,
         jpegQuality = 90,
     )
 
-    private fun createStructuralEffectiveParameters(
-        appliedParameters: ScreenCaptureParameters = createStructuralParameters(),
+    private fun createStructuralOutputInfo(
+        parameters: ScreenCaptureParameters = createStructuralParameters(),
         captureGeometry: CaptureGeometry = CaptureGeometry.create(widthPx = 1280, heightPx = 720, densityDpi = 320),
         appliedSourceRect: ImageRect = ImageRect.create(leftPx = 1, topPx = 2, rightPx = 1279, bottomPx = 718),
         finalImageSize: ImageSize = ImageSize.create(widthPx = 640, heightPx = 360),
-    ): ScreenCaptureEffectiveParameters =
-        ScreenCaptureEffectiveParameters.create(
-            appliedParameters = appliedParameters,
+    ): CaptureOutputInfo =
+        CaptureOutputInfo.create(
+            parameters = parameters,
             captureGeometry = captureGeometry,
             appliedSourceRect = appliedSourceRect,
             finalImageSize = finalImageSize,
@@ -689,7 +680,7 @@ internal class PublicApiValuesContractTest {
     private fun createStructuralStats(
         encodedFrameCount: Long = 3L,
         producedFrameCount: Long = 5L,
-        droppedFrames: ScreenCaptureFrameDropStats = ScreenCaptureFrameDropStats.create(
+        frameProductionDrops: ScreenCaptureFrameProductionDropStats = ScreenCaptureFrameProductionDropStats.create(
             byStaleWork = 2L,
             byFailure = 1L,
         ),
@@ -705,7 +696,7 @@ internal class PublicApiValuesContractTest {
     ): ScreenCaptureStats = createStats(
         encodedFrameCount = encodedFrameCount,
         producedFrameCount = producedFrameCount,
-        droppedFrames = droppedFrames,
+        frameProductionDrops = frameProductionDrops,
         droppedDeliveries = droppedDeliveries,
         averageProducedFps = averageProducedFps,
         averageEncodingDuration = averageEncodingDuration,
@@ -717,7 +708,7 @@ internal class PublicApiValuesContractTest {
     private fun createStats(
         encodedFrameCount: Long = 0L,
         producedFrameCount: Long = 0L,
-        droppedFrames: ScreenCaptureFrameDropStats = ScreenCaptureFrameDropStats.create(
+        frameProductionDrops: ScreenCaptureFrameProductionDropStats = ScreenCaptureFrameProductionDropStats.create(
             byStaleWork = 0L,
             byFailure = 0L,
         ),
@@ -733,7 +724,7 @@ internal class PublicApiValuesContractTest {
     ): ScreenCaptureStats = ScreenCaptureStats.create(
         encodedFrameCount = encodedFrameCount,
         producedFrameCount = producedFrameCount,
-        droppedFrames = droppedFrames,
+        frameProductionDrops = frameProductionDrops,
         droppedDeliveries = droppedDeliveries,
         averageProducedFps = averageProducedFps,
         averageEncodingDuration = averageEncodingDuration,

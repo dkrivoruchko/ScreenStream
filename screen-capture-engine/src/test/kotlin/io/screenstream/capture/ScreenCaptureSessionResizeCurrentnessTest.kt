@@ -7,13 +7,13 @@ import io.mockk.unmockkConstructor
 import io.screenstream.capture.internal.delivery.DeliveryOffer
 import io.screenstream.capture.internal.delivery.DeliveryOwner
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.FrameSnapshot
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.SafeRejectingNativeJpegFacade
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.assertJpegDimensions
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.copyFrame
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.stopAndDrainSession
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.requestStopAndDrainSession
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -49,24 +49,23 @@ import kotlin.time.Duration.Companion.nanoseconds
 internal class ScreenCaptureSessionResizeCurrentnessTest {
     // Verification: SES-03
     // Verification: SES-06
-    // Audit item: P5-G01
     @Test
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun admittedOldCallbackRemainsImmutableAcrossResizeAdoptionThenReplacementProducesCurrentOutput() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
         val callbackEntered = CountDownLatch(1)
         val callbackMayReturn = CountDownLatch(1)
         val callbackCount = AtomicInteger()
-        val firstBorrow = AtomicReference<EncodedImageFrame?>()
+        val firstBorrow = AtomicReference<EncodedFrame?>()
         val firstBeforeAdoption = AtomicReference<FrameSnapshot?>()
         val firstAfterAdoption = AtomicReference<FrameSnapshot?>()
         val firstCallbackThread = AtomicReference<Thread?>()
         val delivered = CopyOnWriteArrayList<FrameSnapshot>()
         val offerPauseArmed = AtomicBoolean(false)
-        val harnessReference = AtomicReference<SessionStartHarness?>()
+        val harnessReference = AtomicReference<SessionHarness?>()
         val callbackTaskReference = AtomicReference<ControlledNonInlineDispatcher.TaskHandle?>()
-        var harness: SessionStartHarness? = null
+        var harness: SessionHarness? = null
         var primaryFailure: Throwable? = null
         var cleanupFailure: Throwable? = null
 
@@ -110,8 +109,8 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
                 result
             }
 
-            val exactHarness = SessionStartHarness(
-                bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            val exactHarness = SessionHarness(
+                bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
                 metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
                 platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
                 projection = platform.projection,
@@ -132,8 +131,8 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
                             val stateBeforeAdoption = exactHarness.session.state.value
                             assertTrue(stateBeforeAdoption is ScreenCaptureState.Active)
                             assertEquals(
-                                initialActive.effectiveParameters,
-                                (stateBeforeAdoption as ScreenCaptureState.Active).effectiveParameters,
+                                initialActive.outputInfo,
+                                (stateBeforeAdoption as ScreenCaptureState.Active).outputInfo,
                             )
                             firstBeforeAdoption.set(copyFrame(frame))
                             callbackEntered.countDown()
@@ -170,7 +169,7 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
                     ?: throw AssertionError("The old-frame callback TaskHandle was not retained")
                 try {
                     assertNull(firstAfterAdoption.get())
-                    assertEquals(initialActive.effectiveParameters, checkNotNull(firstBeforeAdoption.get()).effectiveParameters)
+                    assertEquals(initialActive.outputInfo, checkNotNull(firstBeforeAdoption.get()).outputInfo)
                 } finally {
                     callbackMayReturn.countDown()
                     callbackTask.awaitSuccessfulCompletion()
@@ -179,16 +178,16 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
                 exactHarness.driveUntil {
                     val state = exactHarness.session.state.value
                     state is ScreenCaptureState.Active &&
-                            state.effectiveParameters.captureGeometry.widthPx == 6 &&
-                            state.effectiveParameters.captureGeometry.heightPx == 4
+                            state.outputInfo.captureGeometry.widthPx == 6 &&
+                            state.outputInfo.captureGeometry.heightPx == 4
                 }
 
                 val before = checkNotNull(firstBeforeAdoption.get())
                 val after = checkNotNull(firstAfterAdoption.get())
                 assertArrayEquals(before.bytes, after.bytes)
                 assertEquals(before.sequence, after.sequence)
-                assertEquals(before.timestampElapsedRealtimeNanos, after.timestampElapsedRealtimeNanos)
-                assertEquals(before.effectiveParameters, after.effectiveParameters)
+                assertEquals(before.outputTimestampElapsedRealtimeNanos, after.outputTimestampElapsedRealtimeNanos)
+                assertEquals(before.outputInfo, after.outputInfo)
                 assertJpegDimensions(after.bytes, widthPx = 8, heightPx = 6)
 
                 exactHarness.clock.setDefaultNanos(2_000_000_000L)
@@ -197,11 +196,11 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
 
                 val replacement = delivered.last()
                 assertTrue(replacement.sequence > after.sequence)
-                assertTrue(replacement.timestampElapsedRealtimeNanos > after.timestampElapsedRealtimeNanos)
-                assertEquals(6, replacement.effectiveParameters.captureGeometry.widthPx)
-                assertEquals(4, replacement.effectiveParameters.captureGeometry.heightPx)
-                assertEquals(6, replacement.effectiveParameters.finalImageSize.widthPx)
-                assertEquals(4, replacement.effectiveParameters.finalImageSize.heightPx)
+                assertTrue(replacement.outputTimestampElapsedRealtimeNanos > after.outputTimestampElapsedRealtimeNanos)
+                assertEquals(6, replacement.outputInfo.captureGeometry.widthPx)
+                assertEquals(4, replacement.outputInfo.captureGeometry.heightPx)
+                assertEquals(6, replacement.outputInfo.finalImageSize.widthPx)
+                assertEquals(4, replacement.outputInfo.finalImageSize.heightPx)
                 assertJpegDimensions(replacement.bytes, widthPx = 6, heightPx = 4)
                 assertFalse(after.bytes.contentEquals(replacement.bytes))
                 assertEquals(2, platform.sourceUpdateCount())
@@ -217,7 +216,7 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
             preserveCleanupFailure {
                 callbackTaskReference.get()?.awaitSuccessfulCompletion()
             }
-            preserveCleanupFailure { harness?.let(::stopAndDrainSession) }
+            preserveCleanupFailure { harness?.let(::requestStopAndDrainSession) }
             preserveCleanupFailure { harness?.close() }
             preserveCleanupFailure { unmockkConstructor(DeliveryOwner::class) }
             if (primaryFailure == null) cleanupFailure?.let { throw it }
@@ -227,15 +226,14 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
     // Verification: SES-03
     // Verification: SES-06
     // Verification: SES-07
-    // Audit item: P5-G01
     @Test
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun enteredOldReadSettlesStaleAcrossAdoptionBeforeReplacementReadsAndPublishes() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val nativeJpeg = SafeRejectingNativeJpegFacade(successfulCompressionCountBeforeRejection = 1)
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             projection = platform.projection,
@@ -281,17 +279,17 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
                 harness.driveUntil {
                     val state = harness.session.state.value
                     state is ScreenCaptureState.Active &&
-                            state.effectiveParameters.captureGeometry.widthPx == 6 &&
-                            state.effectiveParameters.captureGeometry.heightPx == 4 &&
-                            harness.session.stats.value.droppedFrames.byStaleWork ==
-                            baselineStats.droppedFrames.byStaleWork + 1L
+                            state.outputInfo.captureGeometry.widthPx == 6 &&
+                            state.outputInfo.captureGeometry.heightPx == 4 &&
+                            harness.session.stats.value.frameProductionDrops.byStaleWork ==
+                            baselineStats.frameProductionDrops.byStaleWork + 1L
                 }
 
                 val settledStats = harness.session.stats.value
                 val replacementCarrier = nativeJpeg.carrierSnapshot()
                 assertEquals(baselineStats.encodedFrameCount, settledStats.encodedFrameCount)
                 assertEquals(baselineStats.producedFrameCount, settledStats.producedFrameCount)
-                assertEquals(baselineStats.droppedFrames.byStaleWork + 1L, settledStats.droppedFrames.byStaleWork)
+                assertEquals(baselineStats.frameProductionDrops.byStaleWork + 1L, settledStats.frameProductionDrops.byStaleWork)
                 assertEquals(123.nanoseconds, settledStats.averageReadbackDuration)
                 assertTrue(delivered.isEmpty())
                 assertEquals(0, replacementCarrier.compressionCount)
@@ -308,12 +306,12 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
                 harness.driveUntil { delivered.size == 1 }
 
                 val replacement = delivered.single()
-                assertEquals(6, replacement.effectiveParameters.captureGeometry.widthPx)
-                assertEquals(4, replacement.effectiveParameters.captureGeometry.heightPx)
-                assertEquals(6, replacement.effectiveParameters.finalImageSize.widthPx)
-                assertEquals(4, replacement.effectiveParameters.finalImageSize.heightPx)
+                assertEquals(6, replacement.outputInfo.captureGeometry.widthPx)
+                assertEquals(4, replacement.outputInfo.captureGeometry.heightPx)
+                assertEquals(6, replacement.outputInfo.finalImageSize.widthPx)
+                assertEquals(4, replacement.outputInfo.finalImageSize.heightPx)
                 assertTrue(replacement.sequence > 0L)
-                assertEquals(2_000_000_000L, replacement.timestampElapsedRealtimeNanos)
+                assertEquals(2_000_000_000L, replacement.outputTimestampElapsedRealtimeNanos)
                 assertArrayEquals(
                     byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0x53, 0x43, 0x45, 0xFF.toByte(), 0xD9.toByte()),
                     replacement.bytes,
@@ -321,12 +319,12 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
                 assertEquals(1, nativeJpeg.carrierSnapshot().compressionCount)
                 harness.clock.setDefaultNanos(3_000_000_000L)
                 check(harness.enterNextControlTask())
-                assertEquals(baselineStats.droppedFrames.byStaleWork + 1L, harness.session.stats.value.droppedFrames.byStaleWork)
+                assertEquals(baselineStats.frameProductionDrops.byStaleWork + 1L, harness.session.stats.value.frameProductionDrops.byStaleWork)
                 assertEquals(baselineStats.encodedFrameCount + 1L, harness.session.stats.value.encodedFrameCount)
                 assertEquals(baselineStats.producedFrameCount + 1L, harness.session.stats.value.producedFrameCount)
                 assertEquals(2, platform.sourceUpdateCount())
             } finally {
-                stopAndDrainSession(harness)
+                requestStopAndDrainSession(harness)
                 nativeJpeg.close()
             }
         }
@@ -334,8 +332,8 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private suspend fun kotlinx.coroutines.test.TestScope.startWithAuthoritativeResize(
-        harness: SessionStartHarness,
-        platform: HappyCapturePlatform,
+        harness: SessionHarness,
+        platform: CapturePlatformFixture,
         parameters: ScreenCaptureParameters,
         widthPx: Int,
         heightPx: Int,

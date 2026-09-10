@@ -8,37 +8,38 @@ import kotlin.time.Duration
  * All fields start at zero. Counters and derived totals saturate instead of wrapping, and all averages remain
  * finite and nonnegative. Values use structural equality.
  *
- * A created session installs one all-zero snapshot; accepting start does not by itself assign another. Statistics
- * are not a periodic sampling service. Ordinary changed snapshots are eligible only on eligible activity while
- * [ScreenCaptureState.Active], when the elapsed-realtime sample is at least 1,000 milliseconds after the sample
- * used for the previous committed ordinary snapshot; the initial baseline is the Session-creation sample. Physical
- * assignment and collector observation may occur later and have no minimum spacing guarantee. There is no
- * statistics-only wake or catch-up; changes remain pending during [ScreenCaptureState.Suspended]. Normal terminal
- * publication assigns the final
- * statistics before terminal state, but [ScreenCaptureSession.stats] and [ScreenCaptureSession.state] are separate
- * conflated flows with no cross-flow atomicity, collector ordering, or collector-progress guarantee.
+ * A created session installs one all-zero snapshot; accepting start does not by itself assign another. Ordinary
+ * snapshot publication is considered when activity is processed while [ScreenCaptureState.Active]. Results processed
+ * before final statistics freeze can still contribute to counters and averages outside Active. A changed snapshot
+ * becomes eligible when its elapsed-realtime sample is at least 1,000 milliseconds after the previous ordinary
+ * snapshot sample, initially the session-creation sample. Assignment and collection may occur later or close together.
+ * There is no sampling timer or catch-up, and changes remain pending while [ScreenCaptureState.Suspended].
+ * Final statistics freeze and are assigned before the terminal state; results processed later cannot change them.
+ * [ScreenCaptureSession.stats] and [ScreenCaptureSession.state] are separate conflated flows with no atomic snapshot,
+ * observed ordering, or collector progress guarantee.
  *
- * @property encodedFrameCount successful fresh JPEG encodes whose exact results were consumed before terminal
- * freeze, including successful results later suppressed as stale. Repeat and cached-first output do not count.
- * @property producedFrameCount fresh and repeated output commits, whether or not a consumer exists. Cached-first
- * delivery does not count.
- * @property droppedFrames frame-production drops grouped by their exact membership.
- * @property droppedDeliveries delivery opportunities dropped for the reasons represented by the value.
- * @property averageProducedFps the finite nonnegative rate across the first-to-latest output-commit interval,
- * including repeats, suspension, and deep sleep; zero with fewer than two commits or no positive interval.
- * @property averageEncodingDuration the average duration of successful real encodes, including successful stale
- * work; zero when there is no eligible sample. Repeat and cached-first output add no sample.
- * @property averageReadbackDuration the average duration of successful real readbacks, including successful stale
- * work; zero when there is no eligible sample. Repeat and cached-first output add no sample.
- * @property lastEncodedByteCount the latest mechanically successful encoded-byte sample, including successful stale
- * work, or zero before the first successful encode.
- * @property averageEncodedByteCount the rounded nonnegative mean of mechanically successful encoded-byte samples,
- * capped at [Int.MAX_VALUE], or zero before the first successful encode.
+ * @property encodedFrameCount successful JPEG encodes processed before final statistics freeze, including successful
+ *     results later suppressed as stale. Cached-first output does not count.
+ * @property producedFrameCount fresh output commits, whether or not a consumer exists. Cached-first
+ *     delivery does not count.
+ * @property frameProductionDrops returned production results dropped as stale or failed before final freeze.
+ * @property droppedDeliveries consumer-busy opportunities and callback failures processed before final freeze.
+ * @property averageProducedFps `(producedFrameCount - 1) / elapsedSeconds` across the first-to-latest output-commit
+ *     interval, including suspension and deep sleep. It is finite and nonnegative, is zero with fewer than two commits
+ *     or no positive interval, and does not decay merely because no later output commits.
+ * @property averageEncodingDuration the average duration of successful fresh encodes processed before final freeze,
+ *     including stale results; zero when there is no eligible sample. Cached-first output adds no sample.
+ * @property averageReadbackDuration the average duration of successful readbacks processed before final freeze,
+ *     including stale results; zero when there is no eligible sample. Cached-first output adds no sample.
+ * @property lastEncodedByteCount the latest successful encoded byte count, including successful stale work, or zero
+ *     before the first successful encode.
+ * @property averageEncodedByteCount the rounded nonnegative mean of successful encoded byte counts,
+ *     capped at [Int.MAX_VALUE], or zero before the first successful encode.
  */
 public class ScreenCaptureStats private constructor(
     public val encodedFrameCount: Long,
     public val producedFrameCount: Long,
-    public val droppedFrames: ScreenCaptureFrameDropStats,
+    public val frameProductionDrops: ScreenCaptureFrameProductionDropStats,
     public val droppedDeliveries: ScreenCaptureDeliveryDropStats,
     public val averageProducedFps: Double,
     public val averageEncodingDuration: Duration,
@@ -58,14 +59,13 @@ public class ScreenCaptureStats private constructor(
         require((encodedFrameCount == 0L) == (averageEncodedByteCount == 0))
     }
 
-    /** Returns whether [other] is a statistics value with structurally equal public fields. */
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ScreenCaptureStats) return false
 
         return (encodedFrameCount == other.encodedFrameCount) &&
                 (producedFrameCount == other.producedFrameCount) &&
-                (droppedFrames == other.droppedFrames) &&
+                (frameProductionDrops == other.frameProductionDrops) &&
                 (droppedDeliveries == other.droppedDeliveries) &&
                 (averageProducedFps.compareTo(other.averageProducedFps) == 0) &&
                 (averageEncodingDuration == other.averageEncodingDuration) &&
@@ -74,11 +74,10 @@ public class ScreenCaptureStats private constructor(
                 (averageEncodedByteCount == other.averageEncodedByteCount)
     }
 
-    /** Returns a hash code consistent with structural equality. */
     public override fun hashCode(): Int {
         var result: Int = encodedFrameCount.hashCode()
         result = (31 * result) + producedFrameCount.hashCode()
-        result = (31 * result) + droppedFrames.hashCode()
+        result = (31 * result) + frameProductionDrops.hashCode()
         result = (31 * result) + droppedDeliveries.hashCode()
         result = (31 * result) + averageProducedFps.hashCode()
         result = (31 * result) + averageEncodingDuration.hashCode()
@@ -88,12 +87,11 @@ public class ScreenCaptureStats private constructor(
         return result
     }
 
-    /** Returns a bounded, non-sensitive debug string whose exact format is not an API contract. */
     public override fun toString(): String =
         "ScreenCaptureStats(" +
                 "encodedFrameCount=$encodedFrameCount, " +
                 "producedFrameCount=$producedFrameCount, " +
-                "droppedFrames=$droppedFrames, " +
+                "frameProductionDrops=$frameProductionDrops, " +
                 "droppedDeliveries=$droppedDeliveries, " +
                 "averageProducedFps=$averageProducedFps, " +
                 "averageEncodingDuration=$averageEncodingDuration, " +
@@ -106,7 +104,7 @@ public class ScreenCaptureStats private constructor(
         internal val EMPTY: ScreenCaptureStats = ScreenCaptureStats(
             encodedFrameCount = 0L,
             producedFrameCount = 0L,
-            droppedFrames = ScreenCaptureFrameDropStats.create(byStaleWork = 0L, byFailure = 0L),
+            frameProductionDrops = ScreenCaptureFrameProductionDropStats.create(byStaleWork = 0L, byFailure = 0L),
             droppedDeliveries = ScreenCaptureDeliveryDropStats.create(byConsumerBusy = 0L, byCallbackFailure = 0L),
             averageProducedFps = 0.0,
             averageEncodingDuration = Duration.ZERO,
@@ -119,7 +117,7 @@ public class ScreenCaptureStats private constructor(
         internal fun create(
             encodedFrameCount: Long,
             producedFrameCount: Long,
-            droppedFrames: ScreenCaptureFrameDropStats,
+            frameProductionDrops: ScreenCaptureFrameProductionDropStats,
             droppedDeliveries: ScreenCaptureDeliveryDropStats,
             averageProducedFps: Double,
             averageEncodingDuration: Duration,
@@ -129,7 +127,7 @@ public class ScreenCaptureStats private constructor(
         ): ScreenCaptureStats = ScreenCaptureStats(
             encodedFrameCount = encodedFrameCount,
             producedFrameCount = producedFrameCount,
-            droppedFrames = droppedFrames,
+            frameProductionDrops = frameProductionDrops,
             droppedDeliveries = droppedDeliveries,
             averageProducedFps = averageProducedFps,
             averageEncodingDuration = averageEncodingDuration,
@@ -141,16 +139,15 @@ public class ScreenCaptureStats private constructor(
 }
 
 /**
- * Cumulative frame-production drop counts.
+ * Immutable structural cumulative frame-production drop counts.
  *
- * Each component and [total] saturates at [Long.MAX_VALUE]. Producing output when no consumer is registered is not
- * a frame drop. Terminal retirement of unclassified, unpublished, or transferred work adds no frame drop.
+ * Each component and [total] saturates at [Long.MAX_VALUE]. These fields count production results processed before
+ * final statistics freeze. Producing output when no consumer is registered is not a frame-production drop.
  *
  * @property byStaleWork otherwise-successful work suppressed solely because its identity was stale.
- * @property byFailure a mechanically returned production failure consumed before terminal freeze, even if its
- * identity later became stale.
+ * @property byFailure a returned production failure processed before final freeze, even if its identity was stale.
  */
-public class ScreenCaptureFrameDropStats private constructor(
+public class ScreenCaptureFrameProductionDropStats private constructor(
     public val byStaleWork: Long,
     public val byFailure: Long,
 ) {
@@ -163,41 +160,38 @@ public class ScreenCaptureFrameDropStats private constructor(
     public val total: Long
         get() = saturatingNonNegativeSum(byStaleWork, byFailure)
 
-    /** Returns whether [other] is a frame-drop value with structurally equal public fields. */
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is ScreenCaptureFrameDropStats) return false
+        if (other !is ScreenCaptureFrameProductionDropStats) return false
 
         return (byStaleWork == other.byStaleWork) && (byFailure == other.byFailure)
     }
 
-    /** Returns a hash code consistent with structural equality. */
     public override fun hashCode(): Int {
         var result: Int = byStaleWork.hashCode()
         result = (31 * result) + byFailure.hashCode()
         return result
     }
 
-    /** Returns a bounded, non-sensitive debug string whose exact format is not an API contract. */
     public override fun toString(): String =
-        "ScreenCaptureFrameDropStats(byStaleWork=$byStaleWork, byFailure=$byFailure)"
+        "ScreenCaptureFrameProductionDropStats(byStaleWork=$byStaleWork, byFailure=$byFailure)"
 
     internal companion object {
         @JvmSynthetic
-        internal fun create(byStaleWork: Long, byFailure: Long): ScreenCaptureFrameDropStats =
-            ScreenCaptureFrameDropStats(byStaleWork, byFailure)
+        internal fun create(byStaleWork: Long, byFailure: Long): ScreenCaptureFrameProductionDropStats =
+            ScreenCaptureFrameProductionDropStats(byStaleWork, byFailure)
     }
 }
 
 /**
- * Cumulative delivery drop counts.
+ * Immutable structural cumulative delivery drop counts.
  *
  * Each component and [total] saturates at [Long.MAX_VALUE]. Producing without a consumer is not a delivery drop,
  * and a delivery scheduling failure is a session failure rather than a drop.
  *
  * @property byConsumerBusy a delivery opportunity that occurred while the prior handoff was still occupied.
  * @property byCallbackFailure an entered consumer callback that threw an [Exception] and whose exact failure was
- * accepted for accounting before terminal freeze.
+ *     accepted for accounting before terminal freeze.
  */
 public class ScreenCaptureDeliveryDropStats private constructor(
     public val byConsumerBusy: Long,
@@ -212,7 +206,6 @@ public class ScreenCaptureDeliveryDropStats private constructor(
     public val total: Long
         get() = saturatingNonNegativeSum(byConsumerBusy, byCallbackFailure)
 
-    /** Returns whether [other] is a delivery-drop value with structurally equal public fields. */
     public override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ScreenCaptureDeliveryDropStats) return false
@@ -220,14 +213,12 @@ public class ScreenCaptureDeliveryDropStats private constructor(
         return (byConsumerBusy == other.byConsumerBusy) && (byCallbackFailure == other.byCallbackFailure)
     }
 
-    /** Returns a hash code consistent with structural equality. */
     public override fun hashCode(): Int {
         var result: Int = byConsumerBusy.hashCode()
         result = (31 * result) + byCallbackFailure.hashCode()
         return result
     }
 
-    /** Returns a bounded, non-sensitive debug string whose exact format is not an API contract. */
     public override fun toString(): String =
         "ScreenCaptureDeliveryDropStats(byConsumerBusy=$byConsumerBusy, byCallbackFailure=$byCallbackFailure)"
 

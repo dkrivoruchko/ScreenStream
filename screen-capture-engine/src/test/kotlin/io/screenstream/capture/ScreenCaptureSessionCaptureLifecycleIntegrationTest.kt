@@ -23,13 +23,14 @@ import io.screenstream.capture.internal.capture.CapturePlan
 import io.screenstream.capture.internal.capture.CaptureProjectionIdentity
 import io.screenstream.capture.internal.capture.CaptureSourceIdentity
 import io.screenstream.capture.internal.capture.CaptureTargetMode
+import io.screenstream.capture.internal.capture.ProjectionStopCompletion
 import io.screenstream.capture.internal.capture.SessionCaptureFactPort
 import io.screenstream.capture.internal.capture.SessionCaptureOwner
 import io.screenstream.capture.internal.runtime.HandlerTaskPoster
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.drainAcceptedSessionWork
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.startActiveSession
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -43,13 +44,12 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 
 /*
- * Projection/open composition evidence through the real Coordinator and Capture owner. Platform faults arrange
- * Android API outcomes only; public terminal state/start settlement and maintained retirement effects are verdicts.
+ * Capture lifecycle evidence spans direct SessionCaptureOwner boundaries and full-session Coordinator composition.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.TIRAMISU])
 @LooperMode(LooperMode.Mode.PAUSED)
-internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
+internal class ScreenCaptureSessionCaptureLifecycleIntegrationTest {
     private var savedNoDisplay: EGLDisplay? = null
     private var savedNoContext: EGLContext? = null
     private var savedNoSurface: EGLSurface? = null
@@ -72,7 +72,6 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
     }
 
     // Verification: CAP-01
-    // Audit item: P5-01
     @Test
     fun nullVirtualDisplayPreservesRootProblemOnlyWhenRetirementIsProvedClean() {
         val cases = listOf(
@@ -89,7 +88,7 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
         )
 
         cases.forEach { case ->
-            val platform = HappyCapturePlatform()
+            val platform = CapturePlatformFixture()
             every {
                 platform.projectionPlatform.createVirtualDisplay(
                     refEq(platform.projection),
@@ -127,6 +126,7 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
                 eglPlatform = platform.eglPlatform,
                 glesPlatform = platform.glesPlatform,
                 targetPlatform = platform.targetPlatform,
+                projectionStopCompletion = ProjectionStopCompletion(),
             )
 
             owner.adoptProjection(platform.projection)
@@ -159,14 +159,13 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
     }
 
     // Verification: CAP-01
-    // Audit item: P5-05
     @Test
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun registeredProjectionDoubleStopRequestsOneDeferredCaptureRetirement() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
             projection = platform.projection,
@@ -187,7 +186,7 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
             val stopped = harness.session.state.value as ScreenCaptureState.Stopped
             assertSame(ScreenCaptureStopReason.ProjectionStopped, stopped.reason)
             assertEquals(parameters, stopped.requestedParameters)
-            assertEquals(active.effectiveParameters, stopped.lastEffectiveParameters)
+            assertEquals(active.outputInfo, stopped.lastOutputInfo)
 
             verifyNoCaptureRetirementEffects(platform)
             check(harness.enterNextCaptureTask()) { "Projection stop did not request Capture retirement" }
@@ -220,11 +219,11 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
     // Verification: CAP-03
     @Test
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    fun returnedStopPrecedesExactCaptureRetirementIncludingReplacement() = runTest {
+    fun returnedRequestStopPrecedesExactCaptureRetirementIncludingReplacement() = runTest {
         listOf(false, true).forEach { replace ->
-            val platform = HappyCapturePlatform()
-            SessionStartHarness(
-                bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            val platform = CapturePlatformFixture()
+            SessionHarness(
+                bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
                 metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
                 platformSdkInt = Build.VERSION_CODES.TIRAMISU,
                 projection = platform.projection,
@@ -238,11 +237,11 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
                     val updated = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.5))
                     harness.session.updateParameters(updated)
                     harness.driveUntil {
-                        (harness.session.state.value as? ScreenCaptureState.Active)?.effectiveParameters?.appliedParameters == updated
+                        (harness.session.state.value as? ScreenCaptureState.Active)?.outputInfo?.parameters == updated
                     }
                 }
                 drainAcceptedSessionWork(harness)
-                harness.session.stop()
+                harness.session.requestStop()
                 // Explicit entry arranges the interval; exact physical-resource receipts below are the oracle.
                 verify(exactly = 0) {
                     platform.eglPlatform.destroyContext(any(), any())
@@ -252,7 +251,7 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
                 drainAcceptedSessionWork(harness)
                 assertTrue(harness.session.state.value is ScreenCaptureState.Stopped)
                 platform.verifySuccessfulRetirement()
-                harness.session.stop()
+                harness.session.requestStop()
                 drainAcceptedSessionWork(harness)
                 platform.verifySuccessfulRetirement()
             }
@@ -264,9 +263,9 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun poisonedCaptureReleasesDisplayOnlyWhenExternalSurfaceTextureRetires() = runTest {
         listOf(false, true).forEach { retainSurfaceTexture ->
-            val platform = HappyCapturePlatform()
-            SessionStartHarness(
-                bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            val platform = CapturePlatformFixture()
+            SessionHarness(
+                bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
                 metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
                 platformSdkInt = Build.VERSION_CODES.TIRAMISU,
                 projection = platform.projection,
@@ -290,7 +289,7 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
                     platform.eglPlatform.releaseThread()
                 }
                 verify(exactly = if (retainSurfaceTexture) 0 else 1) { platform.eglPlatform.releaseDisplayInitialization(any()) }
-                harness.session.stop()
+                harness.session.requestStop()
                 drainAcceptedSessionWork(harness)
                 verify(exactly = 1) { platform.targetPlatform.releaseSurfaceTexture(any()) }
                 verify(exactly = if (retainSurfaceTexture) 0 else 1) { platform.eglPlatform.releaseDisplayInitialization(any()) }
@@ -298,7 +297,7 @@ internal class ScreenCaptureSessionProjectionOpenIntegrationTest {
         }
     }
 
-    private fun verifyNoCaptureRetirementEffects(platform: HappyCapturePlatform) {
+    private fun verifyNoCaptureRetirementEffects(platform: CapturePlatformFixture) {
         verify(exactly = 0) {
             platform.projectionPlatform.setSurface(any<VirtualDisplay>(), null)
             platform.projectionPlatform.release(any())

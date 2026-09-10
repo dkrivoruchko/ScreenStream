@@ -25,6 +25,14 @@ internal fun interface BuiltInMetricsOwnerDispatcher {
     fun dispatch(task: Runnable)
 }
 
+/**
+ * Physical built-in display observation with either direct Metrics-owner turns or a guarded public worker dispatcher.
+ * Initial public-dispatch rejection throws from `subscribe` before a handle is returned; later rejection is contained
+ * as observation failure. `DIRTY` refreshes coalesce; `EPOCH_INVALIDATED` publishes unavailable before a fresh display
+ * association, with current signals and epoch identity revalidated through callback admission. An unregister requested
+ * while a DisplayEpoch window-context callback is registering is deferred until that attempt returns. `closeResources`
+ * fences ingress and makes one cleanup attempt without waiting for callbacks or draining dispatch.
+ */
 internal class BuiltInCaptureMetricsObservation private constructor(
     private val source: BuiltInCaptureMetricsSource,
     private val sink: BuiltInCaptureMetricsSink,
@@ -583,7 +591,6 @@ internal class BuiltInCaptureMetricsObservation private constructor(
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun readMetrics(readEpoch: DisplayEpoch): CaptureMetrics? {
         if (!source.platform.isValid(readEpoch.display)) return null
         val widthPx: Int

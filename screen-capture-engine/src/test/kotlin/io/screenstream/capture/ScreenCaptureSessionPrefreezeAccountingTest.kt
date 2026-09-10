@@ -11,12 +11,12 @@ import io.screenstream.capture.internal.session.SessionCoordinator
 import io.screenstream.capture.internal.session.SessionEncodingLink
 import io.screenstream.capture.internal.session.production.SessionReadBridge
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.NativeCarrierSnapshot
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.SafeRejectingNativeJpegFacade
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.requestStopAndDrainSession
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.startActiveSession
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.stopAndDrainSession
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -52,13 +52,13 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
     // Verification: SES-07
     @Test
     @Config(sdk = [Build.VERSION_CODES.R])
-    fun stopOnlySelectedFilledRetainsReadbackSampleAndDiscardsWithoutEncoding() = runTest {
-        val harnessRef = AtomicReference<SessionStartHarness?>()
+    fun requestStopOnlySelectedFilledRetainsReadbackSampleAndDiscardsWithoutEncoding() = runTest {
+        val harnessRef = AtomicReference<SessionHarness?>()
         val stopIssued = AtomicBoolean()
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val nativeJpeg = SafeRejectingNativeJpegFacade()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        var harness: SessionStartHarness? = null
+        var harness: SessionHarness? = null
         var primaryFailure: Throwable? = null
 
         mockkConstructor(SessionCoordinator::class, recordPrivateCalls = true)
@@ -75,7 +75,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
                 assertEquals(READBACK_DURATION_NANOS, result.readbackDurationNanos)
                 if (stopIssued.compareAndSet(false, true)) {
                     val session = checkNotNull(harnessRef.get()).session
-                    session.stop()
+                    session.requestStop()
                     assertThrows(IllegalStateException::class.java) {
                         session.updateParameters(parameters)
                     }
@@ -89,7 +89,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             startActiveSession(exactHarness, parameters)
             val active = exactHarness.session.state.value as ScreenCaptureState.Active
             val baselineStats = exactHarness.session.stats.value
-            val delivered = CopyOnWriteArrayList<EncodedImageFrame>()
+            val delivered = CopyOnWriteArrayList<EncodedFrame>()
             exactHarness.session.registerFrameConsumer { frame -> delivered += frame }
             check(exactHarness.enterNextControlTask()) { "Consumer registration was not offered to Control" }
 
@@ -107,12 +107,12 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             val finalStats = exactHarness.session.stats.value
             assertTrue(stopIssued.get())
             assertSame(ScreenCaptureStopReason.Requested, stopped.reason)
-            assertEquals(active.effectiveParameters, stopped.lastEffectiveParameters)
+            assertEquals(active.outputInfo, stopped.lastOutputInfo)
             assertTrue(delivered.isEmpty())
             assertEquals(baselineStats.encodedFrameCount, finalStats.encodedFrameCount)
             assertEquals(baselineStats.producedFrameCount, finalStats.producedFrameCount)
-            assertEquals(baselineStats.droppedFrames.byStaleWork, finalStats.droppedFrames.byStaleWork)
-            assertEquals(baselineStats.droppedFrames.byFailure, finalStats.droppedFrames.byFailure)
+            assertEquals(baselineStats.frameProductionDrops.byStaleWork, finalStats.frameProductionDrops.byStaleWork)
+            assertEquals(baselineStats.frameProductionDrops.byFailure, finalStats.frameProductionDrops.byFailure)
             assertEquals(READBACK_DURATION_NANOS.nanoseconds, finalStats.averageReadbackDuration)
             assertEquals(baselineStats.averageEncodingDuration, finalStats.averageEncodingDuration)
             assertEquals(baselineStats.lastEncodedByteCount, finalStats.lastEncodedByteCount)
@@ -127,7 +127,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
         } finally {
             cleanupPreservingPrimary(
                 primaryFailure,
-                { harnessRef.getAndSet(null)?.let(::stopAndDrainSession) },
+                { harnessRef.getAndSet(null)?.let(::requestStopAndDrainSession) },
                 { nativeJpeg.close() },
                 { harness?.close() },
                 { unmockkConstructor(SessionCoordinator::class) },
@@ -138,13 +138,13 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
     // Verification: SES-07
     @Test
     @Config(sdk = [Build.VERSION_CODES.R])
-    fun stopOnlySelectedEncodedRetainsTimingAndSizeWithoutOutputOrStale() = runTest {
-        val harnessRef = AtomicReference<SessionStartHarness?>()
+    fun requestStopOnlySelectedEncodedRetainsTimingAndSizeWithoutOutputOrStale() = runTest {
+        val harnessRef = AtomicReference<SessionHarness?>()
         val stopIssued = AtomicBoolean()
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val nativeJpeg = SafeRejectingNativeJpegFacade(successfulCompressionCountBeforeRejection = 1)
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        var harness: SessionStartHarness? = null
+        var harness: SessionHarness? = null
         var encodingTask: ControlledNonInlineDispatcher.TaskHandle? = null
         var primaryFailure: Throwable? = null
 
@@ -163,7 +163,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
                 assertEquals(ENCODED_BYTE_COUNT, result.payload.byteCount)
                 if (stopIssued.compareAndSet(false, true)) {
                     val session = checkNotNull(harnessRef.get()).session
-                    session.stop()
+                    session.requestStop()
                     assertThrows(IllegalStateException::class.java) {
                         session.updateParameters(parameters)
                     }
@@ -177,7 +177,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             startActiveSession(exactHarness, parameters)
             val active = exactHarness.session.state.value as ScreenCaptureState.Active
             val baselineStats = exactHarness.session.stats.value
-            val delivered = CopyOnWriteArrayList<EncodedImageFrame>()
+            val delivered = CopyOnWriteArrayList<EncodedFrame>()
             exactHarness.session.registerFrameConsumer { frame -> delivered += frame }
             check(exactHarness.enterNextControlTask()) { "Consumer registration was not offered to Control" }
 
@@ -207,12 +207,12 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             val finalStats = exactHarness.session.stats.value
             assertTrue(stopIssued.get())
             assertSame(ScreenCaptureStopReason.Requested, stopped.reason)
-            assertEquals(active.effectiveParameters, stopped.lastEffectiveParameters)
+            assertEquals(active.outputInfo, stopped.lastOutputInfo)
             assertTrue(delivered.isEmpty())
             assertEquals(baselineStats.encodedFrameCount + 1L, finalStats.encodedFrameCount)
             assertEquals(baselineStats.producedFrameCount, finalStats.producedFrameCount)
-            assertEquals(baselineStats.droppedFrames.byStaleWork, finalStats.droppedFrames.byStaleWork)
-            assertEquals(baselineStats.droppedFrames.byFailure, finalStats.droppedFrames.byFailure)
+            assertEquals(baselineStats.frameProductionDrops.byStaleWork, finalStats.frameProductionDrops.byStaleWork)
+            assertEquals(baselineStats.frameProductionDrops.byFailure, finalStats.frameProductionDrops.byFailure)
             assertEquals(READBACK_DURATION_NANOS.nanoseconds, finalStats.averageReadbackDuration)
             assertEquals(ENCODE_DURATION_NANOS.nanoseconds, finalStats.averageEncodingDuration)
             assertEquals(ENCODED_BYTE_COUNT, finalStats.lastEncodedByteCount)
@@ -229,7 +229,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             cleanupPreservingPrimary(
                 primaryFailure,
                 { encodingTask?.awaitSuccessfulCompletion() },
-                { harnessRef.getAndSet(null)?.let(::stopAndDrainSession) },
+                { harnessRef.getAndSet(null)?.let(::requestStopAndDrainSession) },
                 { nativeJpeg.close() },
                 { harness?.close() },
                 { unmockkConstructor(SessionCoordinator::class) },
@@ -240,15 +240,15 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
     // Verification: SES-07
     @Test
     @Config(sdk = [Build.VERSION_CODES.R])
-    fun selectedActualNativeRejectionCountsBeforeStopWithoutReconfigurationOrOutput() = runTest {
-        val harnessRef = AtomicReference<SessionStartHarness?>()
+    fun selectedActualNativeRejectionCountsBeforeRequestStopWithoutReconfigurationOrOutput() = runTest {
+        val harnessRef = AtomicReference<SessionHarness?>()
         val stopIssued = AtomicBoolean()
         val postStopInterval = AtomicBoolean()
         val postStopStates = CopyOnWriteArrayList<ScreenCaptureState>()
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val nativeJpeg = SafeRejectingNativeJpegFacade(blockCompression = true)
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        var harness: SessionStartHarness? = null
+        var harness: SessionHarness? = null
         var stateCollector: Job? = null
         var encodingTask: ControlledNonInlineDispatcher.TaskHandle? = null
         var primaryFailure: Throwable? = null
@@ -265,7 +265,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
                 }
                 if (stopIssued.compareAndSet(false, true)) {
                     val session = checkNotNull(harnessRef.get()).session
-                    session.stop()
+                    session.requestStop()
                     postStopInterval.set(true)
                     assertThrows(IllegalStateException::class.java) {
                         session.updateParameters(parameters)
@@ -280,13 +280,12 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             startActiveSession(exactHarness, parameters)
             val active = exactHarness.session.state.value as ScreenCaptureState.Active
             val baselineStats = exactHarness.session.stats.value
-            val delivered = CopyOnWriteArrayList<EncodedImageFrame>()
+            val delivered = CopyOnWriteArrayList<EncodedFrame>()
             exactHarness.session.registerFrameConsumer { frame -> delivered += frame }
             check(exactHarness.enterNextControlTask()) { "Consumer registration was not offered to Control" }
 
-            // This eager collector starts before the selected Control entry. In this controlled single-threaded
-            // arrangement, every synchronous StateFlow assignment resumes it before another task can be entered,
-            // so a post-stop Reconfiguring or Active assignment cannot be hidden by conflation.
+            // The non-suspending collector is installed before the selected Control entry to observe this serialized
+            // post-stop interval. These observations are not a general StateFlow publication history.
             stateCollector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
                 exactHarness.session.state.collect { state ->
                     if (postStopInterval.get()) postStopStates += state
@@ -312,14 +311,14 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             val stopped = exactHarness.session.state.value as ScreenCaptureState.Stopped
             val finalStats = exactHarness.session.stats.value
             assertSame(ScreenCaptureStopReason.Requested, stopped.reason)
-            assertEquals(active.effectiveParameters, stopped.lastEffectiveParameters)
+            assertEquals(active.outputInfo, stopped.lastOutputInfo)
             assertTrue(delivered.isEmpty())
             assertEquals(baselineStats.encodedFrameCount, finalStats.encodedFrameCount)
             assertEquals(baselineStats.producedFrameCount, finalStats.producedFrameCount)
-            assertEquals(baselineStats.droppedFrames.byStaleWork, finalStats.droppedFrames.byStaleWork)
+            assertEquals(baselineStats.frameProductionDrops.byStaleWork, finalStats.frameProductionDrops.byStaleWork)
             assertEquals(
-                baselineStats.droppedFrames.byFailure + 1L,
-                finalStats.droppedFrames.byFailure,
+                baselineStats.frameProductionDrops.byFailure + 1L,
+                finalStats.frameProductionDrops.byFailure,
             )
 
             exactHarness.drainWorkerTasks()
@@ -340,7 +339,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             cleanupPreservingPrimary(
                 primaryFailure,
                 { encodingTask?.awaitSuccessfulCompletion() },
-                { harnessRef.getAndSet(null)?.let(::stopAndDrainSession) },
+                { harnessRef.getAndSet(null)?.let(::requestStopAndDrainSession) },
                 { nativeJpeg.close() },
                 { harness?.close() },
                 { stateCollector?.cancelAndJoin() },
@@ -352,11 +351,11 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
     // Verification: SES-07
     @Test
     @Config(sdk = [Build.VERSION_CODES.R])
-    fun stopBeforeEncodingSelectionExcludesActualNativeRejectionFromFinalAccounting() = runTest {
-        val platform = HappyCapturePlatform()
+    fun requestStopBeforeEncodingSelectionExcludesActualNativeRejectionFromFinalAccounting() = runTest {
+        val platform = CapturePlatformFixture()
         val nativeJpeg = SafeRejectingNativeJpegFacade(blockCompression = true)
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        var harness: SessionStartHarness? = null
+        var harness: SessionHarness? = null
         var encodingTask: ControlledNonInlineDispatcher.TaskHandle? = null
         var primaryFailure: Throwable? = null
 
@@ -366,7 +365,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             startActiveSession(exactHarness, parameters)
             val active = exactHarness.session.state.value as ScreenCaptureState.Active
             val baselineStats = exactHarness.session.stats.value
-            val delivered = CopyOnWriteArrayList<EncodedImageFrame>()
+            val delivered = CopyOnWriteArrayList<EncodedFrame>()
             exactHarness.session.registerFrameConsumer { frame -> delivered += frame }
             check(exactHarness.enterNextControlTask()) { "Consumer registration was not offered to Control" }
 
@@ -383,7 +382,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             assertEquals(1, afterActualReturn.resultBlockCount)
             assertEquals(1, afterActualReturn.outstandingCount)
 
-            exactHarness.session.stop()
+            exactHarness.session.requestStop()
             assertThrows(IllegalStateException::class.java) {
                 exactHarness.session.updateParameters(parameters)
             }
@@ -392,12 +391,12 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             val stopped = exactHarness.session.state.value as ScreenCaptureState.Stopped
             val finalStats = exactHarness.session.stats.value
             assertSame(ScreenCaptureStopReason.Requested, stopped.reason)
-            assertEquals(active.effectiveParameters, stopped.lastEffectiveParameters)
+            assertEquals(active.outputInfo, stopped.lastOutputInfo)
             assertTrue(delivered.isEmpty())
             assertEquals(baselineStats.encodedFrameCount, finalStats.encodedFrameCount)
             assertEquals(baselineStats.producedFrameCount, finalStats.producedFrameCount)
-            assertEquals(baselineStats.droppedFrames.byStaleWork, finalStats.droppedFrames.byStaleWork)
-            assertEquals(baselineStats.droppedFrames.byFailure, finalStats.droppedFrames.byFailure)
+            assertEquals(baselineStats.frameProductionDrops.byStaleWork, finalStats.frameProductionDrops.byStaleWork)
+            assertEquals(baselineStats.frameProductionDrops.byFailure, finalStats.frameProductionDrops.byFailure)
 
             exactHarness.drainWorkerTasks()
             assertRetiredCarrier(nativeJpeg.carrierSnapshot(), compressionCount = 1, resultBlockCount = 1)
@@ -411,7 +410,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
             cleanupPreservingPrimary(
                 primaryFailure,
                 { encodingTask?.awaitSuccessfulCompletion() },
-                { harness?.let(::stopAndDrainSession) },
+                { harness?.let(::requestStopAndDrainSession) },
                 { nativeJpeg.close() },
                 { harness?.close() },
             )
@@ -419,10 +418,10 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
     }
 
     private fun newHarness(
-        platform: HappyCapturePlatform,
+        platform: CapturePlatformFixture,
         nativeJpeg: NativeJpegFacade,
-    ): SessionStartHarness = SessionStartHarness(
-        bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+    ): SessionHarness = SessionHarness(
+        bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
         metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
         platformSdkInt = Build.VERSION_CODES.R,
         projection = platform.projection,
@@ -435,7 +434,7 @@ internal class ScreenCaptureSessionPrefreezeAccountingTest {
     )
 
     private fun enterWorkUntilNativeCompressionBlocks(
-        harness: SessionStartHarness,
+        harness: SessionHarness,
         nativeJpeg: SafeRejectingNativeJpegFacade,
     ): ControlledNonInlineDispatcher.TaskHandle {
         repeat(32) {

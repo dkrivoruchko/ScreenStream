@@ -325,7 +325,9 @@ internal class GLRendererReadbackTest {
             assertEquals(1, targetPlatform.surfaceReleaseCount)
             assertEquals(1, targetPlatform.surfaceTextureReleaseCount)
 
-            val eglRetirement = eglOwner.close()
+            val eglRetirement = eglOwner.close(
+                allowInitializationRelease = !targetOwner.blocksEglInitializationRelease,
+            )
             assertNull(eglRetirement.cleanupFailure)
             assertNull(eglRetirement.residue)
             assertTrue(eglRetirement.namespaceDestroyedProof?.matches(eglOwner) == true)

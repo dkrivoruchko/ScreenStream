@@ -3,6 +3,7 @@
 
 // Test-only JNI 1.6 subset. Types, function-table signatures, and C++ member
 // wrappers match the NDK 29 jni.h surface used by screen_capture_engine_jni.cpp.
+// The reduced function tables support only exercised calls and do not prove the VM ABI.
 
 #include <stdarg.h>
 #include <stdint.h>

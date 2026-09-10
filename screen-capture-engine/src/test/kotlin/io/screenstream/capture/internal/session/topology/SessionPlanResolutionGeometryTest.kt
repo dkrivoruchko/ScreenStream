@@ -69,13 +69,12 @@ internal class SessionPlanResolutionGeometryTest {
         )
         assertFalse(authoritative.isProvisional)
         assertTarget(authoritative, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
-        assertEquals(parameters, authoritative.effectiveParameters.appliedParameters)
+        assertEquals(parameters, authoritative.outputInfo.parameters)
         assertEquals(64, authoritative.capturePlan.rgbaLayout.widthPx)
         assertEquals(32, authoritative.capturePlan.rgbaLayout.heightPx)
     }
 
     // Verification: SES-04
-    // Audit item: P4-T02
     @Test
     fun provisionalInvalidRequestIsDeferredUntilAuthoritativeGeometryCanResolveIt() {
         val parameters = ScreenCaptureParameters(
@@ -105,10 +104,10 @@ internal class SessionPlanResolutionGeometryTest {
         assertTrue(authoritative is SessionPlanResolution.Resolved)
         authoritative as SessionPlanResolution.Resolved
         assertFalse(authoritative.isProvisional)
-        assertEquals(2, authoritative.effectiveParameters.appliedSourceRect.leftPx)
-        assertEquals(6, authoritative.effectiveParameters.appliedSourceRect.rightPx)
-        assertEquals(4, authoritative.effectiveParameters.finalImageSize.widthPx)
-        assertEquals(4, authoritative.effectiveParameters.finalImageSize.heightPx)
+        assertEquals(2, authoritative.outputInfo.appliedSourceRect.leftPx)
+        assertEquals(6, authoritative.outputInfo.appliedSourceRect.rightPx)
+        assertEquals(4, authoritative.outputInfo.finalImageSize.widthPx)
+        assertEquals(4, authoritative.outputInfo.finalImageSize.heightPx)
     }
 
     // Verification: SES-04
@@ -124,8 +123,8 @@ internal class SessionPlanResolutionGeometryTest {
             platformSdkInt = 32,
         )
 
-        assertEquals(5, resolved.effectiveParameters.finalImageSize.widthPx)
-        assertEquals(8, resolved.effectiveParameters.finalImageSize.heightPx)
+        assertEquals(5, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(8, resolved.outputInfo.finalImageSize.heightPx)
         assertTarget(resolved, CaptureTargetMode.Downscaled, widthPx = 10, heightPx = 6)
     }
 
@@ -186,14 +185,14 @@ internal class SessionPlanResolutionGeometryTest {
         assertTrue(result is SessionPlanResolution.Resolved)
         val resolved = result as SessionPlanResolution.Resolved
 
-        assertEquals(2, resolved.effectiveParameters.appliedSourceRect.leftPx)
-        assertEquals(1, resolved.effectiveParameters.appliedSourceRect.topPx)
-        assertEquals(4, resolved.effectiveParameters.appliedSourceRect.rightPx)
-        assertEquals(4, resolved.effectiveParameters.appliedSourceRect.bottomPx)
-        assertEquals(5, resolved.effectiveParameters.finalImageSize.widthPx)
-        assertEquals(3, resolved.effectiveParameters.finalImageSize.heightPx)
+        assertEquals(2, resolved.outputInfo.appliedSourceRect.leftPx)
+        assertEquals(1, resolved.outputInfo.appliedSourceRect.topPx)
+        assertEquals(4, resolved.outputInfo.appliedSourceRect.rightPx)
+        assertEquals(4, resolved.outputInfo.appliedSourceRect.bottomPx)
+        assertEquals(5, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(3, resolved.outputInfo.finalImageSize.heightPx)
         assertSame(CaptureTargetMode.Full, resolved.capturePlan.targetMode)
-        assertEquals(resolved.capturePlan.appliedSourceRect, resolved.effectiveParameters.appliedSourceRect)
+        assertEquals(resolved.capturePlan.appliedSourceRect, resolved.outputInfo.appliedSourceRect)
     }
 
     // Verification: SES-04
@@ -268,7 +267,7 @@ internal class SessionPlanResolutionGeometryTest {
             sourceDimensionsAreAuthoritative = true,
         )
         assertTrue(result is SessionPlanResolution.Resolved)
-        val size = (result as SessionPlanResolution.Resolved).effectiveParameters.finalImageSize
+        val size = (result as SessionPlanResolution.Resolved).outputInfo.finalImageSize
 
         assertEquals(8, size.widthPx)
         assertEquals(5, size.heightPx)
@@ -285,8 +284,8 @@ internal class SessionPlanResolutionGeometryTest {
             heightPx = 3,
         )
 
-        assertEquals(3, resolved.effectiveParameters.finalImageSize.widthPx)
-        assertEquals(2, resolved.effectiveParameters.finalImageSize.heightPx)
+        assertEquals(3, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(2, resolved.outputInfo.finalImageSize.heightPx)
     }
 
     // Verification: SES-04
@@ -300,8 +299,8 @@ internal class SessionPlanResolutionGeometryTest {
             heightPx = 1,
         )
 
-        assertEquals(2, resolved.effectiveParameters.finalImageSize.widthPx)
-        assertEquals(1, resolved.effectiveParameters.finalImageSize.heightPx)
+        assertEquals(2, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(1, resolved.outputInfo.finalImageSize.heightPx)
     }
 
     // Verification: SES-04
@@ -315,8 +314,8 @@ internal class SessionPlanResolutionGeometryTest {
             heightPx = 3,
         )
 
-        assertEquals(8, resolved.effectiveParameters.finalImageSize.widthPx)
-        assertEquals(2, resolved.effectiveParameters.finalImageSize.heightPx)
+        assertEquals(8, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(2, resolved.outputInfo.finalImageSize.heightPx)
     }
 
     // Verification: SES-04
@@ -330,8 +329,8 @@ internal class SessionPlanResolutionGeometryTest {
             heightPx = 4,
         )
 
-        assertEquals(1, resolved.effectiveParameters.finalImageSize.widthPx)
-        assertEquals(1, resolved.effectiveParameters.finalImageSize.heightPx)
+        assertEquals(1, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(1, resolved.outputInfo.finalImageSize.heightPx)
         assertEquals(1, resolved.encoderPlan.widthPx)
         assertEquals(1, resolved.encoderPlan.heightPx)
         assertEquals(4, resolved.encoderPlan.rowByteCount)

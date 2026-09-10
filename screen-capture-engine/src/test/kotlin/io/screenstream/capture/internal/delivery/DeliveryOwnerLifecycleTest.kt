@@ -1,10 +1,10 @@
 package io.screenstream.capture.internal.delivery
 
 import io.screenstream.capture.CaptureGeometry
-import io.screenstream.capture.EncodedImageFrame
+import io.screenstream.capture.CaptureOutputInfo
+import io.screenstream.capture.EncodedFrame
 import io.screenstream.capture.ImageRect
 import io.screenstream.capture.ImageSize
-import io.screenstream.capture.ScreenCaptureEffectiveParameters
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.internal.session.delivery.SessionDelivery
 import io.screenstream.capture.internal.storage.ImmutableEncodedPayload
@@ -149,14 +149,14 @@ internal class DeliveryOwnerLifecycleTest {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val borrowMethods = listOf(
                 BorrowMethod("byteCount") { it.byteCount },
-                BorrowMethod("effectiveParameters") { it.effectiveParameters },
+                BorrowMethod("outputInfo") { it.outputInfo },
                 BorrowMethod("sequence") { it.sequence },
-                BorrowMethod("timestampElapsedRealtimeNanos") { it.timestampElapsedRealtimeNanos },
+                BorrowMethod("outputTimestampElapsedRealtimeNanos") { it.outputTimestampElapsedRealtimeNanos },
                 BorrowMethod("copyTo") { it.copyTo(ByteArray(4)) },
                 BorrowMethod("toByteArray") { it.toByteArray() },
             )
             val ownerRef = AtomicReference<DeliveryOwner>()
-            val retained = AtomicReference<EncodedImageFrame?>()
+            val retained = AtomicReference<EncodedFrame?>()
             val wrongThreadFailures = AtomicReference<Map<String, Throwable?>>()
             val callbackThread = AtomicReference<Thread?>()
             val sink = RecordingFactSink(
@@ -292,7 +292,7 @@ internal class DeliveryOwnerLifecycleTest {
     fun failureFactExceptionBecomesInternalClosedOutcome() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val reportFailure = IllegalStateException("fact transfer failed")
-            val retained = AtomicReference<EncodedImageFrame?>()
+            val retained = AtomicReference<EncodedFrame?>()
             val sink = RecordingFactSink(
                 offerFailure = reportFailure,
                 onOffer = { fact ->
@@ -478,8 +478,8 @@ internal class DeliveryOwnerLifecycleTest {
                 ownerRef.set(owner)
                 val delivery = SessionDelivery()
                 val registration = (delivery.register { } as SessionDelivery.RegistrationResult.Accepted).registration
-                val offer = (delivery.prepareFreshOffer(frame(), isPhysicalHandoffFree = true)
-                        as SessionDelivery.FreshOffer.Prepared).offer
+                val offer = (delivery.preparePublishedFrameOffer(frame(), isPhysicalHandoffFree = true)
+                        as SessionDelivery.PublishedFrameOffer.Prepared).offer
                 val callbackFailure = IllegalArgumentException("callback")
                 assertTrue(
                     owner.offer(
@@ -540,8 +540,8 @@ internal class DeliveryOwnerLifecycleTest {
             val owner = DeliveryOwner(dispatcher, sink)
             val delivery = SessionDelivery()
             val registration = (delivery.register { } as SessionDelivery.RegistrationResult.Accepted).registration
-            val offer = (delivery.prepareFreshOffer(frame(), isPhysicalHandoffFree = true)
-                    as SessionDelivery.FreshOffer.Prepared).offer
+            val offer = (delivery.preparePublishedFrameOffer(frame(), isPhysicalHandoffFree = true)
+                    as SessionDelivery.PublishedFrameOffer.Prepared).offer
             assertTrue(
                 owner.offer(offer.handoff, offer.completion, { throw IllegalArgumentException("callback") }, frame())
                         is DeliveryOffer.Accepted,
@@ -582,10 +582,10 @@ internal class DeliveryOwnerLifecycleTest {
             val owner = DeliveryOwner(dispatcher, sink)
             val delivery = SessionDelivery()
             val registration = (delivery.register { } as SessionDelivery.RegistrationResult.Accepted).registration
-            val offer = (delivery.prepareFreshOffer(frame(), isPhysicalHandoffFree = true)
-                    as SessionDelivery.FreshOffer.Prepared).offer
+            val offer = (delivery.preparePublishedFrameOffer(frame(), isPhysicalHandoffFree = true)
+                    as SessionDelivery.PublishedFrameOffer.Prepared).offer
             val failure = AssertionError("uncontained callback")
-            val retained = AtomicReference<EncodedImageFrame?>()
+            val retained = AtomicReference<EncodedFrame?>()
             assertTrue(
                 owner.offer(
                     offer.handoff,
@@ -631,7 +631,7 @@ internal class DeliveryOwnerLifecycleTest {
 
     private class BorrowMethod(
         val label: String,
-        val access: (EncodedImageFrame) -> Any?,
+        val access: (EncodedFrame) -> Any?,
     )
 
     private class RecordingCompletion : DeliveryHandoffCompletion {
@@ -682,8 +682,8 @@ internal class DeliveryOwnerLifecycleTest {
     }
 
     private companion object {
-        private val EFFECTIVE_PARAMETERS = ScreenCaptureEffectiveParameters.create(
-            appliedParameters = ScreenCaptureParameters.DEFAULT,
+        private val EFFECTIVE_PARAMETERS = CaptureOutputInfo.create(
+            parameters = ScreenCaptureParameters.DEFAULT,
             captureGeometry = CaptureGeometry.create(widthPx = 2, heightPx = 2, densityDpi = 320),
             appliedSourceRect = ImageRect.create(leftPx = 0, topPx = 0, rightPx = 2, bottomPx = 2),
             finalImageSize = ImageSize.create(widthPx = 2, heightPx = 2),
@@ -691,9 +691,9 @@ internal class DeliveryOwnerLifecycleTest {
 
         private fun frame(): PublishedFrame = PublishedFrame(
             payload = ImmutableEncodedPayload(arrayOf(byteArrayOf(1, 2), byteArrayOf(3, 4)), byteCount = 4),
-            effectiveParameters = EFFECTIVE_PARAMETERS,
+            outputInfo = EFFECTIVE_PARAMETERS,
             sequence = 3L,
-            timestampElapsedRealtimeNanos = 5L,
+            outputTimestampElapsedRealtimeNanos = 5L,
         )
     }
 }

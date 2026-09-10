@@ -4,11 +4,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-internal class SourceCandidateReservationTest {
+internal class SourceAvailabilityReservationTest {
     // Verification: CAP-02
     @Test
     fun availabilityIsConflatedAndSettlementControlsTheNextReservation() {
-        val candidate = SourceCandidate()
+        val candidate = SourceAvailability()
 
         assertFalse(candidate.reserve())
         assertTrue(candidate.markAvailable())

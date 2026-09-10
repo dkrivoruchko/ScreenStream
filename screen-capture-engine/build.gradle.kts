@@ -23,6 +23,7 @@ android {
 
         externalNativeBuild {
             cmake {
+                // Keep platform API references weak so native code can probe optional compressor availability.
                 arguments += "-DANDROID_WEAK_API_DEFS=ON"
                 targets += "screen_capture_engine"
             }

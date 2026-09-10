@@ -33,12 +33,12 @@ internal class NativeJpegRegistrationReflectionTest {
         }
 
         val sinkMethod = sinkClass.getDeclaredMethod(
-            "adoptNativeSegment",
+            "copyNativeSegment",
             ByteBuffer::class.java,
             Integer.TYPE,
         )
         assertEquals(
-            "adoptNativeSegment(Ljava/nio/ByteBuffer;I)V",
+            "copyNativeSegment(Ljava/nio/ByteBuffer;I)V",
             packet(sinkMethod),
         )
         assertEquals(PRIVATE_FINAL, sinkMethod.modifiers)

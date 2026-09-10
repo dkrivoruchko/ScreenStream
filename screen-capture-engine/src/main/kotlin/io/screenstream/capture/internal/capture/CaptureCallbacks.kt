@@ -3,13 +3,14 @@ package io.screenstream.capture.internal.capture
 internal sealed interface CaptureCallbackIdentity {
     class Projection(internal val token: ProjectionOwner.Token) : CaptureCallbackIdentity
 
-    class Target(internal val source: SourceCandidate.Token) : CaptureCallbackIdentity
+    class Target(internal val source: SourceAvailability.Token) : CaptureCallbackIdentity
 }
 
 internal interface CaptureCallbackBoundary {
     fun onCallbackException(identity: CaptureCallbackIdentity, failure: Exception)
 }
 
+/** Contains callback and reporting [Exception] values; an [Error] escapes through the platform callback. */
 internal inline fun runCaptureCallback(
     boundary: CaptureCallbackBoundary,
     identity: CaptureCallbackIdentity,

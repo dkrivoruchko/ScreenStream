@@ -142,7 +142,7 @@ internal class EglOwnerLifecycleTest {
             assertSame(ScreenCaptureProblem.InternalFailure, failure.problem)
             assertFalse(malformed.owner.isHealthy)
             assertEquals(1, malformed.gl.calls.count { it == "getError" })
-            malformed.owner.close()
+            malformed.owner.close(allowInitializationRelease = true)
         }
     }
 
@@ -154,7 +154,7 @@ internal class EglOwnerLifecycleTest {
         }
         val configFailure = assertThrows(CaptureBoundaryFailure::class.java) { malformedConfig.owner.open() }
         assertSame(ScreenCaptureProblem.InternalFailure, configFailure.problem)
-        val configClose = malformedConfig.owner.close()
+        val configClose = malformedConfig.owner.close(allowInitializationRelease = true)
         assertNull(configClose.cleanupFailure)
         assertNull(configClose.residue)
         assertNull(configClose.namespaceDestroyedProof)
@@ -199,7 +199,7 @@ internal class EglOwnerLifecycleTest {
             fixture.owner.runGlesGroup { true }
             assertEquals(listOf("getError"), fixture.gl.calls)
             assertTrue(fixture.owner.isHealthy)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
         }
 
         openedFixture().let { fixture ->
@@ -211,7 +211,7 @@ internal class EglOwnerLifecycleTest {
             assertSame(ScreenCaptureProblem.ResourceExhausted, failure.problem)
             assertEquals(listOf("getError"), fixture.gl.calls)
             assertQuarantinedBeforeAnotherGroup(fixture)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
         }
 
         openedFixture().let { fixture ->
@@ -223,7 +223,7 @@ internal class EglOwnerLifecycleTest {
             assertSame(ScreenCaptureProblem.InternalFailure, failure.problem)
             assertEquals(listOf("getError"), fixture.gl.calls)
             assertQuarantinedBeforeAnotherGroup(fixture)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
         }
 
         openedFixture().let { fixture ->
@@ -238,7 +238,7 @@ internal class EglOwnerLifecycleTest {
             assertSame(commandFailure, failure.cause)
             assertEquals(listOf("getError"), fixture.gl.calls)
             assertQuarantinedBeforeAnotherGroup(fixture)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
         }
 
         openedFixture().let { fixture ->
@@ -253,7 +253,7 @@ internal class EglOwnerLifecycleTest {
             assertSame(physicalCause, escaped.physicalCause)
             assertEquals(listOf("getError"), fixture.gl.calls)
             assertQuarantinedBeforeAnotherGroup(fixture)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
         }
 
         openedFixture().let { fixture ->
@@ -268,7 +268,7 @@ internal class EglOwnerLifecycleTest {
             assertSame(postprobeFailure, failure.cause)
             assertEquals(listOf("getError"), fixture.gl.calls)
             assertQuarantinedBeforeAnotherGroup(fixture)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
         }
 
         openedFixture().let { fixture ->
@@ -279,7 +279,7 @@ internal class EglOwnerLifecycleTest {
             assertSame(ScreenCaptureProblem.InternalFailure, failure.problem)
             assertEquals(listOf("getError"), fixture.gl.calls)
             assertQuarantinedBeforeAnotherGroup(fixture)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
         }
     }
 
@@ -299,7 +299,7 @@ internal class EglOwnerLifecycleTest {
             assertEquals(0, fixture.egl.destroyContextCalls.size)
             assertEquals(0, fixture.egl.destroySurfaceCalls.size)
             assertEquals(0, fixture.egl.releaseThreadCount)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
         }
 
         openedFixture().let { fixture ->
@@ -316,7 +316,7 @@ internal class EglOwnerLifecycleTest {
             assertEquals(0, fixture.egl.destroyContextCalls.size)
             assertEquals(0, fixture.egl.destroySurfaceCalls.size)
             assertEquals(0, fixture.egl.releaseThreadCount)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
         }
 
         Fixture().let { fixture ->
@@ -329,7 +329,7 @@ internal class EglOwnerLifecycleTest {
             assertEquals(0, fixture.egl.destroyContextCalls.size)
             assertEquals(0, fixture.egl.makeCurrentCalls.size)
             assertEquals(0, fixture.egl.releaseThreadCount)
-            val retirement = fixture.owner.close()
+            val retirement = fixture.owner.close(allowInitializationRelease = true)
             assertNull(retirement.cleanupFailure)
             assertNull(retirement.residue)
             assertTrue(retirement.namespaceDestroyedProof?.matches(fixture.owner) == true)
@@ -387,9 +387,9 @@ internal class EglOwnerLifecycleTest {
             assertEquals(case.name, 0, fixture.egl.destroySurfaceCalls.size)
             assertEquals(case.name, 0, fixture.egl.releaseThreadCount)
 
-            val first = fixture.owner.close()
+            val first = fixture.owner.close(allowInitializationRelease = true)
             val callsAfterFirst = fixture.egl.calls.toList()
-            val repeated = fixture.owner.close()
+            val repeated = fixture.owner.close(allowInitializationRelease = true)
 
             assertEquals(case.name, 1, fixture.egl.destroyContextCalls.size)
             assertSame(case.name, fixture.egl.ownedDisplay, fixture.egl.destroyContextCalls.single().display)
@@ -435,7 +435,7 @@ internal class EglOwnerLifecycleTest {
         val wrongThreadGles = AtomicReference<Throwable>()
         var commandEntered = false
         val worker = Thread {
-            wrongThreadClose.set(fixture.owner.close())
+            wrongThreadClose.set(fixture.owner.close(allowInitializationRelease = true))
             wrongThreadGles.set(captureThrowable {
                 fixture.owner.runGlesGroup {
                     commandEntered = true
@@ -456,7 +456,7 @@ internal class EglOwnerLifecycleTest {
         assertTrue(fixture.gl.calls.isEmpty())
         assertEquals(1, fixture.egl.makeCurrentCalls.size)
         assertEquals(0, fixture.egl.destroyContextCalls.size)
-        assertNull(fixture.owner.close().residue)
+        assertNull(fixture.owner.close(allowInitializationRelease = true).residue)
         assertExactUnbindCall(fixture)
 
         val unbindException = IllegalStateException("unbind failed")
@@ -474,9 +474,9 @@ internal class EglOwnerLifecycleTest {
             blocked.egl.unbindFailure = case.failure
             val callsBefore = blocked.egl.calls.size
 
-            val first = blocked.owner.close()
+            val first = blocked.owner.close(allowInitializationRelease = true)
             val callsAfterFirst = blocked.egl.calls.toList()
-            val repeated = blocked.owner.close()
+            val repeated = blocked.owner.close(allowInitializationRelease = true)
 
             assertNotNull(first.cleanupFailure)
             assertSame(first.cleanupFailure, first.residue)
@@ -523,10 +523,10 @@ internal class EglOwnerLifecycleTest {
             fixture.egl.releaseThreadFailure = case.releaseFailure
             val callsBefore = fixture.egl.calls.size
 
-            val first = fixture.owner.close()
+            val first = fixture.owner.close(allowInitializationRelease = true)
             val suffix = fixture.egl.calls.drop(callsBefore)
             val callsAfterFirst = fixture.egl.calls.toList()
-            val repeated = fixture.owner.close()
+            val repeated = fixture.owner.close(allowInitializationRelease = true)
 
             assertEquals(
                 case.name,
@@ -564,7 +564,9 @@ internal class EglOwnerLifecycleTest {
         val rawOome = OutOfMemoryError("context destroy OOME")
         rawOomeFixture.egl.destroyContextFailure = rawOome
 
-        val escaped = assertThrows(OutOfMemoryError::class.java) { rawOomeFixture.owner.close() }
+        val escaped = assertThrows(OutOfMemoryError::class.java) {
+            rawOomeFixture.owner.close(allowInitializationRelease = true)
+        }
 
         assertSame(rawOome, escaped)
         assertExactUnbindCall(rawOomeFixture)
@@ -572,13 +574,13 @@ internal class EglOwnerLifecycleTest {
         assertEquals(0, rawOomeFixture.egl.destroySurfaceCalls.size)
         assertEquals(0, rawOomeFixture.egl.releaseThreadCount)
         val callsBeforeSecond = rawOomeFixture.egl.calls.size
-        val second = rawOomeFixture.owner.close()
+        val second = rawOomeFixture.owner.close(allowInitializationRelease = true)
         assertEquals(
             listOf("destroySurface", "releaseThread"),
             rawOomeFixture.egl.calls.drop(callsBeforeSecond),
         )
         val callsAfterSecond = rawOomeFixture.egl.calls.toList()
-        val repeated = rawOomeFixture.owner.close()
+        val repeated = rawOomeFixture.owner.close(allowInitializationRelease = true)
         assertEquals(1, rawOomeFixture.egl.destroyContextCalls.size)
         assertEquals(1, rawOomeFixture.egl.destroySurfaceCalls.size)
         assertSame(rawOomeFixture.egl.ownedDisplay, rawOomeFixture.egl.destroySurfaceCalls.single().display)
@@ -600,7 +602,7 @@ internal class EglOwnerLifecycleTest {
         val failure = assertThrows(CaptureBoundaryFailure::class.java) { good.owner.open() }
         assertSame(ScreenCaptureProblem.ResourceExhausted, failure.problem)
         val otherThread = AtomicReference<EglOwner.EglRetirementOutcome>()
-        val worker = Thread { otherThread.set(good.owner.close()) }
+        val worker = Thread { otherThread.set(good.owner.close(allowInitializationRelease = true)) }
         worker.start()
         worker.join(5_000)
         assertFalse(worker.isAlive)
@@ -620,9 +622,9 @@ internal class EglOwnerLifecycleTest {
                 "throw" -> fixture.egl.unbindFailure = IllegalStateException("unbind")
                 else -> fixture.egl.unbindCurrentContextOverride = fixture.egl.context
             }
-            val first = fixture.owner.close()
+            val first = fixture.owner.close(allowInitializationRelease = true)
             val calls = fixture.egl.calls.toList()
-            val again = fixture.owner.close()
+            val again = fixture.owner.close(allowInitializationRelease = true)
             assertNotNull(first.cleanupFailure)
             assertSame(first.residue, again.residue)
             assertNull(first.namespaceDestroyedProof)
@@ -643,17 +645,17 @@ internal class EglOwnerLifecycleTest {
             if (throws) fixture.egl.initializeFailure = failure
             val opening = captureThrowable { fixture.owner.open() }
             if (throws) assertSame(failure, opening) else assertTrue(opening is CaptureBoundaryFailure)
-            val first = fixture.owner.close()
+            val first = fixture.owner.close(allowInitializationRelease = true)
             val calls = fixture.egl.calls.toList()
             if (throws) assertNotNull(first.residue) else assertNull(first.residue)
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
             assertEquals(calls, fixture.egl.calls)
             assertEquals(0, fixture.egl.releaseDisplayCount)
         }
         val noObjects = Fixture().apply { egl.selectedConfigCount = 0 }
         assertThrows(CaptureBoundaryFailure::class.java) { noObjects.owner.open() }
-        assertNull(noObjects.owner.close().residue)
-        noObjects.owner.close()
+        assertNull(noObjects.owner.close(allowInitializationRelease = true).residue)
+        noObjects.owner.close(allowInitializationRelease = true)
         assertEquals(1, noObjects.egl.releaseDisplayCount)
         assertEquals(0, noObjects.egl.releaseThreadCount)
 
@@ -662,16 +664,16 @@ internal class EglOwnerLifecycleTest {
         listOf(null, ordinary, raw).forEach { failure ->
             val fixture = openedFixture()
             fixture.egl.displayReleaseResult = false
-            fixture.egl.displayReleaseFailure = failure
+            fixture.egl.initializationReleaseFailure = failure
             val first = if (failure === raw) {
-                assertSame(raw, captureThrowable { fixture.owner.close() })
-                fixture.owner.close()
-            } else fixture.owner.close()
+                assertSame(raw, captureThrowable { fixture.owner.close(allowInitializationRelease = true) })
+                fixture.owner.close(allowInitializationRelease = true)
+            } else fixture.owner.close(allowInitializationRelease = true)
             assertNotNull(first.residue)
             assertTrue(first.namespaceDestroyedProof?.matches(fixture.owner) == true)
             if (failure === ordinary) assertSame(ordinary, first.cleanupFailure)
             val calls = fixture.egl.calls.toList()
-            fixture.owner.close()
+            fixture.owner.close(allowInitializationRelease = true)
             assertEquals(calls, fixture.egl.calls)
             assertEquals(1, fixture.egl.releaseDisplayCount)
             assertEquals(1, fixture.egl.releaseThreadCount)
@@ -679,28 +681,28 @@ internal class EglOwnerLifecycleTest {
         val failedThread = openedFixture()
         val threadFailure = IllegalStateException("thread release")
         failedThread.egl.releaseThreadFailure = threadFailure
-        val threadRetirement = failedThread.owner.close()
+        val threadRetirement = failedThread.owner.close(allowInitializationRelease = true)
         assertSame(threadFailure, threadRetirement.residue)
         assertEquals(1, failedThread.egl.releaseDisplayCount)
-        failedThread.owner.close()
+        failedThread.owner.close(allowInitializationRelease = true)
         assertEquals(1, failedThread.egl.releaseDisplayCount)
         assertEquals(1, failedThread.egl.releaseThreadCount)
 
         val bothFailed = openedFixture()
-        bothFailed.egl.displayReleaseFailure = ordinary
+        bothFailed.egl.initializationReleaseFailure = ordinary
         bothFailed.egl.releaseThreadFailure = threadFailure
-        val both = bothFailed.owner.close()
+        val both = bothFailed.owner.close(allowInitializationRelease = true)
         assertSame(ordinary, both.cleanupFailure)
         assertSame(ordinary, both.residue)
         assertEquals(1, bothFailed.egl.releaseThreadCount)
         assertTrue(both.namespaceDestroyedProof?.matches(bothFailed.owner) == true)
 
         val denied = openedFixture()
-        val retained = denied.owner.close(allowDisplayRelease = false)
+        val retained = denied.owner.close(allowInitializationRelease = false)
         assertNotNull(retained.residue)
         assertTrue(retained.namespaceDestroyedProof?.matches(denied.owner) == true)
         val calls = denied.egl.calls.toList()
-        assertNotNull(denied.owner.close(allowDisplayRelease = true).residue)
+        assertNotNull(denied.owner.close(allowInitializationRelease = true).residue)
         assertEquals(calls, denied.egl.calls)
         assertEquals(0, denied.egl.releaseDisplayCount)
         assertEquals(1, denied.egl.releaseThreadCount)
@@ -717,7 +719,9 @@ internal class EglOwnerLifecycleTest {
             val threadB = java.util.concurrent.Executors.newSingleThreadExecutor()
             try {
                 threadA.submit<EglOwner.FragmentPrecision> { a.owner.open() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
-                val closingA = threadA.submit<EglOwner.EglRetirementOutcome> { a.owner.close() }
+                val closingA = threadA.submit<EglOwner.EglRetirementOutcome> {
+                    a.owner.close(allowInitializationRelease = true)
+                }
                 if (!retainA) assertTrue(model.cleanupEntered.await(5, java.util.concurrent.TimeUnit.SECONDS))
                 else assertNotNull(closingA.get(5, java.util.concurrent.TimeUnit.SECONDS).residue)
                 threadB.submit<EglOwner.FragmentPrecision> { b.owner.open() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
@@ -740,11 +744,15 @@ internal class EglOwnerLifecycleTest {
                     assertEquals(1, a.releases)
                     assertEquals(1, a.threadReleases)
                 }
-                val repeatedA = threadA.submit<EglOwner.EglRetirementOutcome> { a.owner.close() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+                val repeatedA = threadA.submit<EglOwner.EglRetirementOutcome> {
+                    a.owner.close(allowInitializationRelease = true)
+                }.get(5, java.util.concurrent.TimeUnit.SECONDS)
                 if (retainA) assertNotNull(repeatedA.residue) else assertNull(repeatedA.residue)
                 assertEquals(if (retainA) 0 else 1, a.releases)
                 assertEquals(b.textureName, threadB.submit<Int> { b.createTexture() }.get(5, java.util.concurrent.TimeUnit.SECONDS))
-                val retiredB = threadB.submit<EglOwner.EglRetirementOutcome> { b.owner.close() }.get(5, java.util.concurrent.TimeUnit.SECONDS)
+                val retiredB = threadB.submit<EglOwner.EglRetirementOutcome> {
+                    b.owner.close(allowInitializationRelease = true)
+                }.get(5, java.util.concurrent.TimeUnit.SECONDS)
                 assertNull(retiredB.residue)
                 assertEquals(1, b.contextDestructions)
                 assertEquals(1, b.surfaceDestructions)
@@ -941,9 +949,9 @@ internal class EglOwnerLifecycleTest {
 
     private fun assertCleanCloseWithoutRetry(fixture: Fixture) {
         val callsBeforeClose = fixture.egl.calls.size
-        val first = fixture.owner.close()
+        val first = fixture.owner.close(allowInitializationRelease = true)
         val callsAfterFirst = fixture.egl.calls.toList()
-        val repeated = fixture.owner.close()
+        val repeated = fixture.owner.close(allowInitializationRelease = true)
 
         assertNull(first.cleanupFailure)
         assertNull(first.residue)
@@ -1108,7 +1116,7 @@ internal class EglOwnerLifecycleTest {
         var initializeResult = true
         var initializeFailure: Throwable? = null
         var displayReleaseResult = true
-        var displayReleaseFailure: Throwable? = null
+        var initializationReleaseFailure: Throwable? = null
         var releaseThreadCount = 0
         var selectedConfig: EGLConfig? = config
         var selectedConfigCount = 1
@@ -1254,7 +1262,7 @@ internal class EglOwnerLifecycleTest {
             calls += "releaseDisplayInitialization"
             assertSame(ownedDisplay, display)
             releaseDisplayCount += 1
-            displayReleaseFailure?.let { throw it }
+            initializationReleaseFailure?.let { throw it }
             return displayReleaseResult
         }
 

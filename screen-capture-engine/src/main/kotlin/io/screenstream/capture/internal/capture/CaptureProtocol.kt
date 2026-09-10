@@ -13,6 +13,11 @@ internal class CaptureBoundaryFailure(internal val problem: ScreenCaptureProblem
 
 internal enum class CaptureTargetMode { Full, Downscaled, }
 
+/**
+ * One physical capture configuration. Source dimensions define projection and crop space, target dimensions define
+ * the producer surface, and [rgbaLayout] defines the final readback range. Equal configuration values permit reuse;
+ * they do not make two plan instances the same request identity.
+ */
 internal class CapturePlan(
     internal val appliedSourceRect: ImageRect,
     internal val rotation: Rotation,
@@ -52,8 +57,8 @@ internal class CapturePlan(
     }
 }
 
-internal class CaptureSourceIdentity(private val owner: SessionCaptureOwner, private val source: SourceCandidate) {
-    internal fun names(expectedOwner: SessionCaptureOwner, expectedSource: SourceCandidate): Boolean =
+internal class CaptureSourceIdentity(private val owner: SessionCaptureOwner, private val source: SourceAvailability) {
+    internal fun names(expectedOwner: SessionCaptureOwner, expectedSource: SourceAvailability): Boolean =
         (owner === expectedOwner) && (source === expectedSource)
 }
 
@@ -73,6 +78,7 @@ internal sealed interface CaptureOpenResult {
     class Failed(internal val problem: ScreenCaptureProblem, internal val cause: Throwable) : CaptureOpenResult
 }
 
+/** `OwnerInvalidated` can terminate even a stale request; `OperationLocal` affects only a still-current request. */
 internal enum class CaptureFailureScope { OperationLocal, OwnerInvalidated, }
 
 internal sealed interface CaptureApplyResult {
@@ -123,7 +129,11 @@ internal interface SessionCaptureFactPort {
     fun onCaptureFailure(failure: Exception)
 }
 
-internal class SourceCandidate {
+/**
+ * Coalesces source opportunity for one target token; it is neither a frame queue nor a count. After a failed read,
+ * [settle] restores availability only when `sourceConsumed` proves the reserved source remained unconsumed.
+ */
+internal class SourceAvailability {
     internal class Token
 
     private enum class State { Unavailable, Available, Reserved, }

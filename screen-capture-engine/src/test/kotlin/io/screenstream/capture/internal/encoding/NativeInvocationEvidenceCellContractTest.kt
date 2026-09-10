@@ -10,9 +10,9 @@ import java.nio.ByteOrder
 internal class NativeInvocationEvidenceCellContractTest {
     // Verification: ENC-04
     @Test
-    fun coherentCompleteTransferRequiresExactProducedAndAdoptedCounts() {
+    fun coherentCompleteTransferRequiresExactProducedAndCopiedCounts() {
         val complete = NativeEncodedTransaction().apply {
-            adoptNativeSegment(directBytes(1, 2, 3), 3)
+            copyNativeSegment(directBytes(1, 2, 3), 3)
             closeNativeProducer()
         }
         assertEquals(
@@ -21,7 +21,7 @@ internal class NativeInvocationEvidenceCellContractTest {
         )
 
         val contradictory = NativeEncodedTransaction().apply {
-            adoptNativeSegment(directBytes(1, 2, 3), 3)
+            copyNativeSegment(directBytes(1, 2, 3), 3)
             closeNativeProducer()
         }
         assertEquals(
@@ -32,7 +32,7 @@ internal class NativeInvocationEvidenceCellContractTest {
 
     // Verification: ENC-04
     @Test
-    fun coherentSafeRejectionAllowsNativeBytesButNoManagedAdoption() {
+    fun coherentSafeRejectionAllowsNativeBytesButNoManagedCopy() {
         val transaction = closedEmptyTransaction()
 
         assertEquals(
@@ -51,14 +51,14 @@ internal class NativeInvocationEvidenceCellContractTest {
 
     // Verification: ENC-04
     @Test
-    fun safeRejectionRejectsManagedAdoptionOrThrownThrowable() {
-        val adopted = NativeEncodedTransaction().apply {
-            adoptNativeSegment(directBytes(4), 1)
+    fun safeRejectionRejectsManagedCopyOrThrownThrowable() {
+        val copied = NativeEncodedTransaction().apply {
+            copyNativeSegment(directBytes(4), 1)
             closeNativeProducer()
         }
         assertEquals(
             NativeJpegDisposition.Returned.UnsafeInternalFailure,
-            classify(adopted, resultBlock(producedByteCount = 1L, wireStatus = 1L)),
+            classify(copied, resultBlock(producedByteCount = 1L, wireStatus = 1L)),
         )
         assertEquals(
             NativeJpegDisposition.Returned.UnsafeInternalFailure,
@@ -72,7 +72,7 @@ internal class NativeInvocationEvidenceCellContractTest {
 
     // Verification: ENC-04
     @Test
-    fun coherentNativeOutOfMemoryRequiresNoAdoptedPayload() {
+    fun coherentNativeOutOfMemoryRequiresNoCopiedPayload() {
         assertEquals(
             NativeJpegDisposition.Returned.RequiredResourceExhaustion,
             classify(closedEmptyTransaction(), resultBlock(producedByteCount = 0L, wireStatus = 2L)),
@@ -83,7 +83,7 @@ internal class NativeInvocationEvidenceCellContractTest {
         )
 
         val contradictory = NativeEncodedTransaction().apply {
-            adoptNativeSegment(directBytes(9), 1)
+            copyNativeSegment(directBytes(9), 1)
             closeNativeProducer()
         }
         assertEquals(

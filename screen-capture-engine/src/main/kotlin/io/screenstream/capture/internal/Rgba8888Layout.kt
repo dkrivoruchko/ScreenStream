@@ -2,6 +2,7 @@ package io.screenstream.capture.internal
 
 import java.nio.ByteBuffer
 
+/** Tight four-byte-per-pixel rows whose total byte range is positive and addressable by [Int]. */
 internal class Rgba8888Layout private constructor(
     internal val widthPx: Int,
     internal val heightPx: Int,

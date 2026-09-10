@@ -1,13 +1,19 @@
 package io.screenstream.capture.internal.session.production
 
 import io.screenstream.capture.ScreenCaptureDeliveryDropStats
-import io.screenstream.capture.ScreenCaptureFrameDropStats
+import io.screenstream.capture.ScreenCaptureFrameProductionDropStats
 import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import kotlin.math.floor
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 
+/**
+ * Accumulates finite mechanical samples and saturating public counters. Once the produced count saturates, its count
+ * and timestamps stop advancing, so FPS freezes. Saturated encoded and readback sample counts freeze their means;
+ * the latest encoded size can still change. FPS spans the count - 1 intervals between the first and latest produced
+ * frames. Samples consumed before terminal freeze remain countable even if their later semantic work is stale.
+ */
 internal class SessionStatsAccumulator {
     private var encodedFrameCount = 0L
     private var producedFrameCount = 0L
@@ -108,7 +114,7 @@ internal class SessionStatsAccumulator {
         return ScreenCaptureStats.create(
             encodedFrameCount = encodedFrameCount,
             producedFrameCount = producedFrameCount,
-            droppedFrames = ScreenCaptureFrameDropStats.create(framesDroppedByStaleWork, framesDroppedByFailure),
+            frameProductionDrops = ScreenCaptureFrameProductionDropStats.create(framesDroppedByStaleWork, framesDroppedByFailure),
             droppedDeliveries = ScreenCaptureDeliveryDropStats.create(deliveriesDroppedByConsumerBusy, deliveriesDroppedByCallbackFailure),
             averageProducedFps = averageProducedFps,
             averageEncodingDuration = if (encodedFrameCount == 0L) Duration.ZERO else meanEncodingDurationNanos.nanoseconds,

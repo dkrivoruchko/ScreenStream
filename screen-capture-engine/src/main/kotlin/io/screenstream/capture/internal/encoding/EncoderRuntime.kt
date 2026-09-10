@@ -6,6 +6,7 @@ import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.internal.Rgba8888Layout
 import java.nio.ByteBuffer
 
+/** Session-sticky native-compression health; only a safely classified compressor rejection disables it. */
 internal class NativeHealthCell(initial: State) {
     internal enum class State { Enabled, Disabled, }
 
@@ -50,6 +51,12 @@ internal sealed interface EncoderRuntimeCreation {
     ) : EncoderRuntimeCreation
 }
 
+/**
+ * Owns one layout-compatible carrier, optional framework bitmap, and backend readiness. A safely classified native
+ * compressor rejection drops the current frame and disables later native compression for this session. A later
+ * reconcile prepares the framework bitmap without retrying that frame; the retained native carrier may still be
+ * converted for framework input or freed during retirement.
+ */
 internal class EncoderRuntime private constructor(
     internal val layout: Rgba8888Layout,
     initialBackendState: EncoderBackendState,

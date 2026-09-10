@@ -1,5 +1,6 @@
 package io.screenstream.capture.internal.session.lifecycle
 
+import io.screenstream.capture.ScreenCaptureException
 import io.screenstream.capture.ScreenCaptureProblem
 import kotlinx.coroutines.CompletableDeferred
 
@@ -53,7 +54,7 @@ internal class SessionLifecycle {
     internal sealed interface StartOutcome {
         data object Succeeded : StartOutcome
         data object Cancelled : StartOutcome
-        class Failed(internal val failure: io.screenstream.capture.ScreenCaptureException) : StartOutcome
+        class Failed(internal val failure: ScreenCaptureException) : StartOutcome
     }
 
     internal class StartSettlement private constructor(
@@ -63,7 +64,7 @@ internal class SessionLifecycle {
         private sealed interface Outcome {
             data object Succeeded : Outcome
             data object Cancelled : Outcome
-            class Failed(val failure: io.screenstream.capture.ScreenCaptureException) : Outcome
+            class Failed(val failure: ScreenCaptureException) : Outcome
         }
 
         internal fun complete() {
@@ -80,12 +81,10 @@ internal class SessionLifecycle {
         internal companion object {
             internal fun succeeded(completion: CompletableDeferred<StartOutcome>): StartSettlement = StartSettlement(completion, Outcome.Succeeded)
 
-            internal fun failed(completion: CompletableDeferred<StartOutcome>, decision: TerminalDecision): StartSettlement {
+            internal fun fromTerminalDecision(completion: CompletableDeferred<StartOutcome>, decision: TerminalDecision): StartSettlement {
                 val outcome = when (decision) {
                     TerminalDecision.Requested, TerminalDecision.ProjectionStopped -> Outcome.Cancelled
-                    is TerminalDecision.Failed -> Outcome.Failed(
-                        io.screenstream.capture.ScreenCaptureException.create(decision.problem, decision.cause),
-                    )
+                    is TerminalDecision.Failed -> Outcome.Failed(ScreenCaptureException.create(decision.problem, decision.cause))
                 }
                 return StartSettlement(completion, outcome)
             }
@@ -94,6 +93,7 @@ internal class SessionLifecycle {
 
     private enum class Phase { NotStarted, Starting, Running, Terminal, }
 
+    // Once assigned, first-Active eligibility is never rearmed; an invalidated assignment keeps start pending.
     private enum class FirstActiveState { AwaitingAssignment, AssignedStartPending, StartEntitlementConsumed, }
 
     internal enum class BootstrapFactResult { Recorded, Ready, Stale, }
@@ -258,7 +258,7 @@ internal class SessionLifecycle {
         val startSettlement = if (startSettlementIssued) {
             null
         } else {
-            StartSettlement.failed(startCompletion, decision)
+            StartSettlement.fromTerminalDecision(startCompletion, decision)
         }
         return TerminalPreparation(decision, startSettlement)
     }

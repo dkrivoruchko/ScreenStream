@@ -51,11 +51,6 @@ import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
-/*
- * Owner-observable Capture read results and exact carrier ownership are the verdicts in this package.
- * A paused Robolectric Looper may only enter already accepted Handler work. Private fields, command identities,
- * queue sizes, turn counts, reflection, and scheduler checkpoints are not oracles.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.TIRAMISU])
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -216,6 +211,8 @@ internal class SessionCaptureOwnerReadbackTest {
         assertEquals(deletionsBeforeRetirement, fixture.glNameDeletionCount)
         assertEquals(
             listOf(
+                "projection-stop",
+                "projection-callback-unregister",
                 "listener-fence",
                 "display-detach",
                 "display-release",
@@ -225,8 +222,6 @@ internal class SessionCaptureOwnerReadbackTest {
                 "egl-context-destroy",
                 "egl-surface-destroy",
                 "egl-thread-release",
-                "projection-callback-unregister",
-                "projection-stop",
             ),
             fixture.retirementEvents,
         )
@@ -360,6 +355,7 @@ internal class SessionCaptureOwnerReadbackTest {
                 eglPlatform = eglPlatform,
                 glesPlatform = glesPlatform,
                 targetPlatform = targetPlatform,
+                projectionStopCompletion = ProjectionStopCompletion(),
             )
         }
 

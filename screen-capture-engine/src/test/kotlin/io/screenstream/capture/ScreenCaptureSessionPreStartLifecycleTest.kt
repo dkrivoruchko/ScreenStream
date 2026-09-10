@@ -19,7 +19,7 @@ import org.junit.Assert.fail
 import org.junit.Test
 import kotlin.time.Duration
 
-internal class ScreenCaptureSessionShutdownTest {
+internal class ScreenCaptureSessionPreStartLifecycleTest {
     // Verification: UNR-01
     @Test
     fun preStartConsumerAdmissionUnregisterReplacementAndUpdateArePlatformFree() = runTest {
@@ -49,11 +49,11 @@ internal class ScreenCaptureSessionShutdownTest {
     // Verification: API-04
     // Verification: SES-02
     @Test
-    fun preStartStopSettlesRegistrationWithoutCancellingCallerAndRejectsLaterWork() = runTest {
+    fun preStartRequestStopSettlesRegistrationWithoutCancellingCallerAndRejectsLaterWork() = runTest {
         val (session, dispatcher) = sessionWithDispatcher()
         val registration = session.registerFrameConsumer { fail("terminal consumer was invoked") }
 
-        session.stop()
+        session.requestStop()
         val terminalState = session.state.value
         assertTrue(terminalState is ScreenCaptureState.Stopped)
 
@@ -74,23 +74,23 @@ internal class ScreenCaptureSessionShutdownTest {
     // Verification: SES-02
     // Verification: OBS-01
     @Test
-    fun stopBeforeStartPublishesRequestedTerminalDefaultsAndIsIdempotent() {
+    fun requestStopBeforeStartPublishesRequestedTerminalDefaultsAndIsIdempotent() {
         val (session, dispatcher) = sessionWithDispatcher()
         val initialStats = session.stats.value
 
         assertSame(ScreenCaptureState.NotStarted, session.state.value)
         assertZeroStats(initialStats)
 
-        session.stop()
+        session.requestStop()
 
         val stopped = session.state.value as ScreenCaptureState.Stopped
         val finalStats = session.stats.value
         assertSame(ScreenCaptureStopReason.Requested, stopped.reason)
         assertEquals(ScreenCaptureParameters.DEFAULT, stopped.requestedParameters)
-        assertNull(stopped.lastEffectiveParameters)
+        assertNull(stopped.lastOutputInfo)
         assertZeroStats(finalStats)
 
-        session.stop()
+        session.requestStop()
 
         assertEquals(stopped, session.state.value)
         assertEquals(finalStats, session.stats.value)
@@ -134,9 +134,9 @@ internal class ScreenCaptureSessionShutdownTest {
     private fun assertZeroStats(stats: ScreenCaptureStats) {
         assertEquals(0L, stats.encodedFrameCount)
         assertEquals(0L, stats.producedFrameCount)
-        assertEquals(0L, stats.droppedFrames.byStaleWork)
-        assertEquals(0L, stats.droppedFrames.byFailure)
-        assertEquals(0L, stats.droppedFrames.total)
+        assertEquals(0L, stats.frameProductionDrops.byStaleWork)
+        assertEquals(0L, stats.frameProductionDrops.byFailure)
+        assertEquals(0L, stats.frameProductionDrops.total)
         assertEquals(0L, stats.droppedDeliveries.byConsumerBusy)
         assertEquals(0L, stats.droppedDeliveries.byCallbackFailure)
         assertEquals(0L, stats.droppedDeliveries.total)

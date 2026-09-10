@@ -38,64 +38,6 @@ internal class PacingCalculatorTimingTest {
 
     // Verification: SES-05
     @Test
-    fun repeatOutputDefersUntilExactRepeatBoundary() {
-        val early = PacingCalculator.repeatOutput(
-            frameRate = FrameRate.Auto,
-            repeatInterval = 1_000.milliseconds,
-            nowNanos = 1_000_000_009L,
-            lastOutputGrantNanos = 10L,
-            outputHistory = null,
-        )
-        assertTrue(early is PacingDecision.Deferred)
-        assertEquals(1_000_000_010L, (early as PacingDecision.Deferred).eligibleAtNanos)
-
-        val boundary = PacingCalculator.repeatOutput(
-            frameRate = FrameRate.Auto,
-            repeatInterval = 1_000.milliseconds,
-            nowNanos = 1_000_000_010L,
-            lastOutputGrantNanos = 10L,
-            outputHistory = null,
-        )
-        assertTrue(boundary is PacingDecision.Eligible)
-        boundary as PacingDecision.Eligible
-        assertNull(boundary.nextPhase)
-        assertEquals(0L, boundary.nextRequiredGapNanos)
-    }
-
-    // Verification: SES-05
-    @Test
-    fun maxFpsRepeatDefersToRepeatBoundaryAfterWrappedCadenceIsEligible() {
-        val history = CadenceHistory(
-            lastGrantNanos = 666_666_666L,
-            phase = 0,
-            requiredGapNanos = 333_333_334L,
-        )
-
-        val early = PacingCalculator.repeatOutput(
-            frameRate = FrameRate.MaxFps(3),
-            repeatInterval = 1_000.milliseconds,
-            nowNanos = 1_000_000_000L,
-            lastOutputGrantNanos = 666_666_666L,
-            outputHistory = history,
-        )
-        assertTrue(early is PacingDecision.Deferred)
-        assertEquals(1_666_666_666L, (early as PacingDecision.Deferred).eligibleAtNanos)
-
-        val successor = PacingCalculator.repeatOutput(
-            frameRate = FrameRate.MaxFps(3),
-            repeatInterval = 1_000.milliseconds,
-            nowNanos = 1_666_666_666L,
-            lastOutputGrantNanos = 666_666_666L,
-            outputHistory = history,
-        )
-        assertTrue(successor is PacingDecision.Eligible)
-        successor as PacingDecision.Eligible
-        assertEquals(1, successor.nextPhase)
-        assertEquals(333_333_333L, successor.nextRequiredGapNanos)
-    }
-
-    // Verification: SES-05
-    @Test
     fun autoIsImmediateAndNegativeClockIsInvalid() {
         val eligible = PacingCalculator.freshCapture(FrameRate.Auto, nowNanos = 0L, lastFreshGrantNanos = null, history = null)
         assertTrue(eligible is PacingDecision.Eligible)
@@ -111,33 +53,35 @@ internal class PacingCalculatorTimingTest {
 
     // Verification: SES-05
     @Test
-    fun samplingIsImmediateOnceThenRetainsUntilExactInterval() {
-        val frameRate = FrameRate.SamplingInterval(1_001.milliseconds)
-        val first = PacingCalculator.freshCapture(frameRate, nowNanos = 5L, lastFreshGrantNanos = null, history = null)
+    fun samplingIntervalDefersFreshCaptureWithoutDelayingFreshOutput() {
+        val sampling = FrameRate.SamplingInterval(1_000.milliseconds)
+        val first = PacingCalculator.freshCapture(sampling, nowNanos = 0L, lastFreshGrantNanos = null, history = null)
         assertTrue(first is PacingDecision.Eligible)
-        assertEquals(1_001_000_000L, (first as PacingDecision.Eligible).nextRequiredGapNanos)
+        assertEquals(1_000_000_000L, (first as PacingDecision.Eligible).nextRequiredGapNanos)
 
         val early = PacingCalculator.freshCapture(
-            frameRate,
-            nowNanos = 1_001_000_004L,
-            lastFreshGrantNanos = 5L,
+            sampling,
+            nowNanos = 999_999_999L,
+            lastFreshGrantNanos = 0L,
             history = null,
         )
-        assertTrue(early is PacingDecision.RetainOpportunity)
-        assertEquals(1_001_000_005L, (early as PacingDecision.RetainOpportunity).eligibleAtNanos)
+        assertTrue(early is PacingDecision.Deferred)
+        assertEquals(1_000_000_000L, (early as PacingDecision.Deferred).eligibleAtNanos)
 
-        assertTrue(
-            PacingCalculator.freshCapture(
-                frameRate,
-                nowNanos = 10_000_000_000L,
-                lastFreshGrantNanos = 5L,
-                history = null,
-            ) is PacingDecision.Eligible,
+        val boundary = PacingCalculator.freshCapture(
+            frameRate = sampling,
+            nowNanos = 1_000_000_000L,
+            lastFreshGrantNanos = 0L,
+            history = null,
         )
-        assertTrue(
-            PacingCalculator.freshCapture(frameRate, nowNanos = 4L, lastFreshGrantNanos = 5L, history = null) ===
-                    PacingDecision.InvalidEvidence,
+        assertTrue(boundary is PacingDecision.Eligible)
+
+        val output = PacingCalculator.freshOutput(
+            frameRate = sampling,
+            nowNanos = 999_999_999L,
+            history = null,
         )
+        assertTrue(output is PacingDecision.Eligible)
     }
 
     // Verification: SES-05
@@ -152,8 +96,8 @@ internal class PacingCalculatorTimingTest {
         val firstHistory = CadenceHistory(0L, first.nextPhase ?: error("missing phase"), first.nextRequiredGapNanos)
 
         val early = PacingCalculator.freshCapture(frameRate, 333_333_332L, 0L, firstHistory)
-        assertTrue(early is PacingDecision.RetainOpportunity)
-        assertEquals(333_333_333L, (early as PacingDecision.RetainOpportunity).eligibleAtNanos)
+        assertTrue(early is PacingDecision.Deferred)
+        assertEquals(333_333_333L, (early as PacingDecision.Deferred).eligibleAtNanos)
 
         val exact = PacingCalculator.freshCapture(frameRate, 333_333_333L, 0L, firstHistory)
         assertTrue(exact is PacingDecision.Eligible)

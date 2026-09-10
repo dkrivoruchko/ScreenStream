@@ -15,10 +15,12 @@ import java.nio.ByteBuffer
  * availability, direct readback, and retirement.
  *
  * Ordinary platform work is serialized on the Capture handler with at most one unresolved ordinary command. Posted
- * roots are installed before submission and retained until definite rejection or command completion, before result
- * publication. Results describe owner-local physical settlement only; Session decides semantic currentness and lifecycle
- * consequences after exact Link correlation. Retirement fences new work but does not fabricate return of an entered or
- * nonreturning read.
+ * roots are installed before submission; false return and a caught [Exception] clear the exact root, while [Error] or
+ * nonreturn leaves it rooted. Normal command return clears that root before result publication. A caught failure while
+ * opening the unattached replacement attempts rollback before changing the live target; later GL, listener, and resize
+ * steps may mutate before `setSurface`. Ambiguous surface replacement retains every possibly owned root.
+ * Results describe owner-local physical settlement only; Session decides currentness after Link correlation.
+ * Retirement fences new work and records one attempt without fabricating return of entered work.
  */
 internal class SessionCaptureOwner(
     private val captureThread: HandlerThread,
@@ -32,6 +34,7 @@ internal class SessionCaptureOwner(
     private val eglPlatform: EglPlatform,
     private val glesPlatform: GlesPlatform,
     private val targetPlatform: TargetPlatform,
+    private val projectionStopCompletion: ProjectionStopCompletion,
 ) : ProjectionOwner.CallbackSink, TargetOwner.SourceSink, CaptureCallbackBoundary {
     private sealed interface Command {
         class Open(val plan: CapturePlan) : Command
@@ -43,7 +46,7 @@ internal class SessionCaptureOwner(
             val writableCarrier: ByteBuffer,
             val returnPort: CaptureReadReturnPort,
         ) : Command {
-            var reservedSource: SourceCandidate? = null
+            var reservedSource: SourceAvailability? = null
             var sourceSettled = false
         }
 
@@ -80,7 +83,7 @@ internal class SessionCaptureOwner(
                     is Command.Open -> {
                         check(activeCommand == null)
                         activeCommand = command
-                        checkNotNull(retireOrReuse(command))
+                        checkNotNull(retireOrGetOutcome(command))
                         activeCommand = null
                         CommandResult.Open(CaptureOpenResult.CutoffInert)
                     }
@@ -131,6 +134,7 @@ internal class SessionCaptureOwner(
             callbackSink = this,
             callbackBoundary = this,
             platform = projectionPlatform,
+            stopCompletion = projectionStopCompletion,
         )
         projectionOwner = projection
         projectionIdentity = CaptureProjectionIdentity(this, projection.token)
@@ -166,7 +170,13 @@ internal class SessionCaptureOwner(
             if (retirementRequested) return
             retirementRequested = true
         }
-        post(Command.Retire)
+        val accepted = try {
+            post(Command.Retire)
+        } catch (failure: Exception) {
+            projectionStopCompletion.failed(failure)
+            return
+        }
+        if (!accepted) projectionStopCompletion.failed(CapturePhysicalException("Capture retirement dispatch was rejected"))
     }
 
     private fun post(command: Command): Boolean {
@@ -181,6 +191,7 @@ internal class SessionCaptureOwner(
                 ordinaryPost = posted
             }
         }
+        // Do not clear from a finally block: Error or nonreturn leaves entry uncertain and the posted root retained.
         val accepted = try {
             handlerTaskPoster.post(captureHandler, posted)
         } catch (failure: Exception) {
@@ -211,7 +222,7 @@ internal class SessionCaptureOwner(
                 is Command.Read -> CommandResult.Read(command.returnPort, settleReadResult(command, enter(command)))
                 Command.Retire -> {
                     checkCaptureThread()
-                    if (retireOrReuse(command) != null) requestCaptureThreadQuit()
+                    if (retireOrGetOutcome(command) != null) requestCaptureThreadQuit()
                     null
                 }
             }
@@ -249,7 +260,7 @@ internal class SessionCaptureOwner(
                 platform = targetPlatform,
             )
             targetOwner = target
-            targetIdentity = CaptureSourceIdentity(this, target.sourceCandidate)
+            targetIdentity = CaptureSourceIdentity(this, target.sourceAvailability)
             target.open(command.plan)
             target.installListener()
             val glRenderer = GLRenderer(egl, target, fragmentPrecision, readbackClock, platformSdkInt)
@@ -272,12 +283,12 @@ internal class SessionCaptureOwner(
             )
         } catch (failure: CaptureBoundaryFailure) {
             val primary = failure.physicalCause
-            val outcome = checkNotNull(retireOrReuse(command))
+            val outcome = checkNotNull(retireOrGetOutcome(command))
             val retirementFailure = outcome.cleanupFailure ?: outcome.unsafeResidue
             val problem = if (retirementFailure == null) failure.problem else ScreenCaptureProblem.InternalFailure
             return CaptureOpenResult.Failed(problem, primary)
         } catch (failure: Exception) {
-            retireOrReuse(command)
+            retireOrGetOutcome(command)
             return CaptureOpenResult.Failed(ScreenCaptureProblem.InternalFailure, failure)
         }
     }
@@ -347,7 +358,7 @@ internal class SessionCaptureOwner(
                 platform = targetPlatform,
             )
             targetCandidate = replacement
-            targetCandidateIdentity = CaptureSourceIdentity(this, replacement.sourceCandidate)
+            targetCandidateIdentity = CaptureSourceIdentity(this, replacement.sourceAvailability)
             candidateAttachmentAttempted = false
             try {
                 replacement.open(newPlan)
@@ -449,7 +460,7 @@ internal class SessionCaptureOwner(
             )
         }
         if (!command.writableCarrier.isExactWritableRgbaCarrier(currentPlan.rgbaCarrierByteCount) ||
-            command.plan !== currentPlan || !command.sourceIdentity.names(this, target.sourceCandidate)
+            command.plan !== currentPlan || !command.sourceIdentity.names(this, target.sourceAvailability)
         ) {
             return CaptureReadResult.Failed(
                 problem = ScreenCaptureProblem.InternalFailure,
@@ -458,7 +469,7 @@ internal class SessionCaptureOwner(
                 scope = egl.failureScope(),
             )
         }
-        if (!target.sourceCandidate.reserve()) {
+        if (!target.sourceAvailability.reserve()) {
             return CaptureReadResult.Failed(
                 problem = ScreenCaptureProblem.InternalFailure,
                 cause = CapturePhysicalException("Entered Capture read does not match the installed plan/source owner"),
@@ -466,7 +477,7 @@ internal class SessionCaptureOwner(
                 scope = egl.failureScope(),
             )
         }
-        command.reservedSource = target.sourceCandidate
+        command.reservedSource = target.sourceAvailability
         return try {
             val readbackDurationNanos = glRenderer.readFrame(command.writableCarrier)
             CaptureReadResult.Filled(readbackDurationNanos)
@@ -487,8 +498,8 @@ internal class SessionCaptureOwner(
         }
     }
 
-    // Reuses a completed retirement outcome, not the retired resources.
-    private fun retireOrReuse(command: Command): RetirementOutcome? =
+    // Retirement is one-attempt: Entered stays unresolved; Returned reuses the exact cached outcome.
+    private fun retireOrGetOutcome(command: Command): RetirementOutcome? =
         when (val current = retirement) {
             RetirementState.Available -> retirePhysical(command).also(::enforceProjectionResidueRetention)
             RetirementState.Entered -> null
@@ -506,6 +517,7 @@ internal class SessionCaptureOwner(
         val candidate = targetCandidate
         val oldTarget = retiringTarget
         projection?.fenceCallbacks()
+        val projectionRetirement = attemptCleanup { projection?.retireCallbackAndProjection() }
 
         val currentListenerRemoval = attemptCleanup { currentTarget?.fenceAndRemoveListener() }
         val candidateListenerRemoval = attemptCleanup { candidate?.fenceAndRemoveListener() }
@@ -537,11 +549,11 @@ internal class SessionCaptureOwner(
         }
 
         val egl = eglOwner
-        val blocksDisplayRelease =
-            (currentTarget?.blocksEglTeardown == true) || (candidate?.blocksEglTeardown == true) || (oldTarget?.blocksEglTeardown == true)
-        val blocksHealthyEglTeardown = blocksDisplayRelease || (rendererRetirement.value?.residue != null)
+        val blocksEglInitializationRelease =
+            (currentTarget?.blocksEglInitializationRelease == true) || (candidate?.blocksEglInitializationRelease == true) || (oldTarget?.blocksEglInitializationRelease == true)
+        val blocksHealthyEglTeardown = blocksEglInitializationRelease || (rendererRetirement.value?.residue != null)
         val eglRetirement = if ((egl != null) && (!blocksHealthyEglTeardown || !egl.isHealthy)) {
-            attemptCleanup { egl.close(allowDisplayRelease = !blocksDisplayRelease) }
+            attemptCleanup { egl.close(allowInitializationRelease = !blocksEglInitializationRelease) }
         } else {
             CleanupAttempt<EglOwner.EglRetirementOutcome>(null, null)
         }
@@ -550,7 +562,6 @@ internal class SessionCaptureOwner(
         val currentNamespaceRetired = namespaceDestroyedProof?.let { currentTarget?.retireOesTextureNameAfterContextDestroyed(it) } == true
         val candidateNamespaceRetired = namespaceDestroyedProof?.let { candidate?.retireOesTextureNameAfterContextDestroyed(it) } == true
         val oldNamespaceRetired = namespaceDestroyedProof?.let { oldTarget?.retireOesTextureNameAfterContextDestroyed(it) } == true
-        val projectionRetirement = attemptCleanup { projection?.retireCallbackAndProjection() }
 
         val cleanupFailure = currentListenerRemoval.failure
             ?: currentListenerRemoval.value?.failure
@@ -713,7 +724,7 @@ internal class SessionCaptureOwner(
 
     private fun retireFailedCommand(command: Command, failure: Exception): CommandResult? {
         val sourceRestorable = renderer?.sourceRestorableAfterLastReadFailure != false
-        retireOrReuse(command) ?: return null
+        retireOrGetOutcome(command) ?: return null
         return when (command) {
             is Command.Open -> CommandResult.Open(CaptureOpenResult.Failed(ScreenCaptureProblem.InternalFailure, failure))
             is Command.Apply -> CommandResult.Apply(
@@ -741,9 +752,11 @@ internal class SessionCaptureOwner(
         }
     }
 
-    override fun onSourceAvailable(candidate: SourceCandidate) {
+    override fun onSourceAvailable(availability: SourceAvailability) {
         checkCaptureThread()
-        if ((retirement === RetirementState.Available) && (candidate === targetOwner?.sourceCandidate) && candidate.markAvailable()) {
+        if ((retirement === RetirementState.Available) &&
+            (availability === targetOwner?.sourceAvailability) && availability.markAvailable()
+        ) {
             val identity = checkNotNull(targetIdentity)
             publishFact { factPort.onSourceAvailable(identity) }
         }
@@ -769,7 +782,7 @@ internal class SessionCaptureOwner(
     override fun onCallbackException(identity: CaptureCallbackIdentity, failure: Exception) {
         val isCurrent = when (identity) {
             is CaptureCallbackIdentity.Projection -> projectionIdentity?.names(this, identity.token) == true
-            is CaptureCallbackIdentity.Target -> targetOwner?.sourceCandidate?.token === identity.source
+            is CaptureCallbackIdentity.Target -> targetOwner?.sourceAvailability?.token === identity.source
         }
         if (isCurrent) publishFact { factPort.onCaptureFailure(failure) }
     }

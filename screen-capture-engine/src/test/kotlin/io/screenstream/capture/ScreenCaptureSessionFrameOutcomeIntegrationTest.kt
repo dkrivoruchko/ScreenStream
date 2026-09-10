@@ -7,14 +7,16 @@ import io.screenstream.capture.internal.encoding.NativeJpegProcess
 import io.screenstream.capture.internal.encoding.NativeSegmentSink
 import io.screenstream.capture.testutil.ControlledNonInlineDispatcher
 import io.screenstream.capture.testutil.FrameworkBitmapCompressionFixture
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.FrameSnapshot
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.SafeRejectingNativeJpegFacade
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.assertJpegDimensions
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.copyFrame
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.drainAcceptedSessionWork
 import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.driveControlUntil
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.requestStopAndDrainSession
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.startActiveSession
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
@@ -33,28 +35,21 @@ import org.robolectric.annotation.LooperMode
 import java.nio.ByteBuffer
 import java.util.concurrent.CopyOnWriteArrayList
 
-/*
- * Public frame-production integration evidence through the real Coordinator, Capture, Encoding, cache, and Links.
- *
- * Injected compression/native faults and controlled stale returns only arrange failure and recovery boundaries.
- * Queue shape, turn count, private phase, handler identity, and incidental call ordering are not oracles; exact public
- * State/Stats, immutable frame values, current effective parameters, and exact resource settlement decide the tests.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
-internal class ScreenCaptureSessionFrameProductionTest {
+internal class ScreenCaptureSessionFrameOutcomeIntegrationTest {
     // Verification: SES-06
     // Verification: FWK-01
     @Test
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun frameworkCompressionRejectionDropsPartialPayloadAndRecoversOnFreshFrame() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
         FrameworkBitmapCompressionFixture(widthPx = 8, heightPx = 6).use { bitmapFixture ->
-            SessionStartHarness(
-                bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+            SessionHarness(
+                bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
                 metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
                 platformSdkInt = Build.VERSION_CODES.TIRAMISU,
                 projection = platform.projection,
@@ -94,21 +89,21 @@ internal class ScreenCaptureSessionFrameProductionTest {
                 assertEquals(2, bitmapFixture.compressionAttemptCount)
                 val delivered = deliveredFrames.single()
                 assertArrayEquals(bitmapFixture.successfulJpegBytes, delivered.bytes)
-                assertEquals(initialActive.effectiveParameters, delivered.effectiveParameters)
+                assertEquals(initialActive.outputInfo, delivered.outputInfo)
                 assertEquals(initialActive, harness.session.state.value)
 
                 val unregister = async(UnconfinedTestDispatcher(testScheduler)) { registration.unregister() }
                 harness.driveUntil { unregister.isCompleted }
                 unregister.await()
-                harness.session.stop()
+                harness.session.requestStop()
                 harness.driveUntil { harness.session.state.value is ScreenCaptureState.Stopped }
 
                 val finalStats = harness.session.stats.value
                 assertEquals(baselineStats.encodedFrameCount + 1L, finalStats.encodedFrameCount)
                 assertEquals(baselineStats.producedFrameCount + 1L, finalStats.producedFrameCount)
                 assertEquals(
-                    baselineStats.droppedFrames.byFailure + 1L,
-                    finalStats.droppedFrames.byFailure,
+                    baselineStats.frameProductionDrops.byFailure + 1L,
+                    finalStats.frameProductionDrops.byFailure,
                 )
             }
         }
@@ -119,11 +114,11 @@ internal class ScreenCaptureSessionFrameProductionTest {
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun currentDisplayP3ReadFailsSessionWithExactPublicProblem() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
             projection = platform.projection,
@@ -148,14 +143,14 @@ internal class ScreenCaptureSessionFrameProductionTest {
             val failed = harness.session.state.value as ScreenCaptureState.Failed
             assertSame(ScreenCaptureProblem.UnsupportedColorSpace, failed.problem)
             assertEquals(parameters, failed.requestedParameters)
-            assertEquals(initialActive.effectiveParameters, failed.lastEffectiveParameters)
+            assertEquals(initialActive.outputInfo, failed.lastOutputInfo)
             assertTrue(deliveredFrames.isEmpty())
             val finalStats = harness.session.stats.value
             assertEquals(baselineStats.encodedFrameCount, finalStats.encodedFrameCount)
             assertEquals(baselineStats.producedFrameCount, finalStats.producedFrameCount)
             assertEquals(
-                baselineStats.droppedFrames.byFailure + 1L,
-                finalStats.droppedFrames.byFailure,
+                baselineStats.frameProductionDrops.byFailure + 1L,
+                finalStats.frameProductionDrops.byFailure,
             )
 
             drainAcceptedSessionWork(harness)
@@ -171,15 +166,15 @@ internal class ScreenCaptureSessionFrameProductionTest {
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun staleDisplayP3ReadIsCleanupOnlyAndFreshSrgbFrameStillPublishes() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val initialParameters = ScreenCaptureParameters(
             outputSize = OutputSize.ScaleFactor(1.0),
             frameRate = FrameRate.Auto,
         )
         val updatedParameters = initialParameters.copy(frameRate = FrameRate.MaxFps(15))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.TIRAMISU,
             projection = platform.projection,
@@ -212,29 +207,29 @@ internal class ScreenCaptureSessionFrameProductionTest {
 
             val updatedActive = harness.session.state.value as ScreenCaptureState.Active
             assertEquals(updatedParameters, updatedActive.requestedParameters)
-            assertEquals(updatedParameters, updatedActive.effectiveParameters.appliedParameters)
+            assertEquals(updatedParameters, updatedActive.outputInfo.parameters)
             assertTrue(deliveredFrames.isEmpty())
 
             platform.deliverSourceFrame(rgbaSeed = 97, dataSpace = DataSpace.DATASPACE_SRGB)
             harness.driveUntil { deliveredFrames.isNotEmpty() }
 
             val delivered = deliveredFrames.single()
-            assertEquals(updatedActive.effectiveParameters, delivered.effectiveParameters)
+            assertEquals(updatedActive.outputInfo, delivered.outputInfo)
             assertJpegDimensions(delivered.bytes, widthPx = 8, heightPx = 6)
             assertEquals(updatedActive, harness.session.state.value)
 
             val unregister = async(UnconfinedTestDispatcher(testScheduler)) { registration.unregister() }
             harness.driveUntil { unregister.isCompleted }
             unregister.await()
-            harness.session.stop()
+            harness.session.requestStop()
             harness.driveUntil { harness.session.state.value is ScreenCaptureState.Stopped }
 
             val finalStats = harness.session.stats.value
             assertEquals(baselineStats.encodedFrameCount + 1L, finalStats.encodedFrameCount)
             assertEquals(baselineStats.producedFrameCount + 1L, finalStats.producedFrameCount)
             assertEquals(
-                baselineStats.droppedFrames.byFailure + 1L,
-                finalStats.droppedFrames.byFailure,
+                baselineStats.frameProductionDrops.byFailure + 1L,
+                finalStats.frameProductionDrops.byFailure,
             )
         }
     }
@@ -245,12 +240,12 @@ internal class ScreenCaptureSessionFrameProductionTest {
     @Config(sdk = [Build.VERSION_CODES.R])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun safeNativeRejectionReconcilesBeforePublishingLaterFrameworkFrame() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val nativeJpeg = SafeRejectingNativeJpegFacade()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.R,
             projection = platform.projection,
@@ -279,7 +274,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
 
                 val reconfiguring = harness.session.state.value as ScreenCaptureState.Reconfiguring
                 assertEquals(initialActive.requestedParameters, reconfiguring.requestedParameters)
-                assertEquals(initialActive.effectiveParameters, reconfiguring.lastEffectiveParameters)
+                assertEquals(initialActive.outputInfo, reconfiguring.lastOutputInfo)
                 assertEquals(initialActive.isCapturedContentVisible, reconfiguring.isCapturedContentVisible)
                 assertTrue(deliveredFrames.isEmpty())
 
@@ -293,20 +288,20 @@ internal class ScreenCaptureSessionFrameProductionTest {
 
                 assertEquals(1, deliveredFrames.size)
                 val delivered = deliveredFrames.single()
-                assertEquals(reconciledActive.effectiveParameters, delivered.effectiveParameters)
+                assertEquals(reconciledActive.outputInfo, delivered.outputInfo)
                 assertJpegDimensions(delivered.bytes, widthPx = 8, heightPx = 6)
 
-                harness.session.stop()
+                harness.session.requestStop()
                 harness.driveUntil { harness.session.state.value is ScreenCaptureState.Stopped }
 
                 val finalStats = harness.session.stats.value
                 assertEquals(baselineStats.encodedFrameCount + 1L, finalStats.encodedFrameCount)
                 assertEquals(
-                    baselineStats.droppedFrames.byFailure + 1L,
-                    finalStats.droppedFrames.byFailure,
+                    baselineStats.frameProductionDrops.byFailure + 1L,
+                    finalStats.frameProductionDrops.byFailure,
                 )
             } finally {
-                harness.session.stop()
+                harness.session.requestStop()
                 if (harness.session.state.value !is ScreenCaptureState.Stopped &&
                     harness.session.state.value !is ScreenCaptureState.Failed
                 ) {
@@ -327,7 +322,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
     @Config(sdk = [Build.VERSION_CODES.R])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun staleNativeReadinessChangeInvalidatesCompatibleCacheBeforeFreshCurrentDelivery() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val nativeJpeg = SafeRejectingNativeJpegFacade(
             successfulCompressionCountBeforeRejection = 1,
             blockCompression = true,
@@ -338,8 +333,8 @@ internal class ScreenCaptureSessionFrameProductionTest {
         )
         val updatedParameters = initialParameters.copy(frameRate = FrameRate.MaxFps(15))
 
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             platformSdkInt = Build.VERSION_CODES.R,
             projection = platform.projection,
@@ -386,7 +381,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
 
                 val reconfiguring = harness.session.state.value as ScreenCaptureState.Reconfiguring
                 assertEquals(updatedParameters, reconfiguring.requestedParameters)
-                assertEquals(initialActive.effectiveParameters, reconfiguring.lastEffectiveParameters)
+                assertEquals(initialActive.outputInfo, reconfiguring.lastOutputInfo)
 
                 nativeJpeg.releaseCompression()
                 nativeJpeg.awaitCompressionReturned()
@@ -394,12 +389,12 @@ internal class ScreenCaptureSessionFrameProductionTest {
                 harness.driveUntil {
                     val state = harness.session.state.value
                     (state is ScreenCaptureState.Active) &&
-                            (state.effectiveParameters.appliedParameters == updatedParameters)
+                            (state.outputInfo.parameters == updatedParameters)
                 }
 
                 val updatedActive = harness.session.state.value as ScreenCaptureState.Active
                 assertEquals(updatedParameters, updatedActive.requestedParameters)
-                assertEquals(updatedParameters, updatedActive.effectiveParameters.appliedParameters)
+                assertEquals(updatedParameters, updatedActive.outputInfo.parameters)
                 assertTrue(observedStates.none { state -> state is ScreenCaptureState.Suspended })
 
                 val deliveredFrames = CopyOnWriteArrayList<FrameSnapshot>()
@@ -413,7 +408,7 @@ internal class ScreenCaptureSessionFrameProductionTest {
                 val delivered = deliveredFrames.single()
                 assertFalse(cachedFrame.bytes.contentEquals(delivered.bytes))
                 assertTrue(delivered.sequence > cachedFrame.sequence)
-                assertEquals(updatedActive.effectiveParameters, delivered.effectiveParameters)
+                assertEquals(updatedActive.outputInfo, delivered.outputInfo)
                 assertJpegDimensions(delivered.bytes, widthPx = 8, heightPx = 6)
 
                 val currentUnregister = async(UnconfinedTestDispatcher(testScheduler)) {
@@ -422,18 +417,18 @@ internal class ScreenCaptureSessionFrameProductionTest {
                 harness.driveUntil { currentUnregister.isCompleted }
                 currentUnregister.await()
 
-                harness.session.stop()
+                harness.session.requestStop()
                 harness.driveUntil { harness.session.state.value is ScreenCaptureState.Stopped }
 
                 val finalStats = harness.session.stats.value
                 assertEquals(2L, finalStats.encodedFrameCount)
                 assertEquals(2L, finalStats.producedFrameCount)
-                assertEquals(1L, finalStats.droppedFrames.byFailure)
+                assertEquals(1L, finalStats.frameProductionDrops.byFailure)
             } finally {
                 nativeJpeg.releaseCompression()
                 blockedNativeTask?.awaitCompletion()
                 stateCollector.cancelAndJoin()
-                harness.session.stop()
+                harness.session.requestStop()
                 if (harness.session.state.value !is ScreenCaptureState.Stopped &&
                     harness.session.state.value !is ScreenCaptureState.Failed
                 ) {
@@ -448,8 +443,63 @@ internal class ScreenCaptureSessionFrameProductionTest {
         }
     }
 
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun successfulEncodeSettledAfterRevisionChangeIsCountedOnlyAsStaleWork() = runTest {
+        val platform = CapturePlatformFixture()
+        val nativeJpeg = SafeRejectingNativeJpegFacade(successfulCompressionCountBeforeRejection = 1)
+        val initialParameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+        val updatedParameters = initialParameters.copy(frameRate = FrameRate.MaxFps(15))
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
+            platformSdkInt = Build.VERSION_CODES.TIRAMISU,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+            jpegBackendPolicy = JpegBackendPolicy.Auto,
+            nativeJpeg = nativeJpeg,
+        ).use { harness ->
+            try {
+                startActiveSession(harness, initialParameters)
+                val baselineStats = harness.session.stats.value
+                val delivered = CopyOnWriteArrayList<FrameSnapshot>()
+                harness.session.registerFrameConsumer { frame -> delivered += copyFrame(frame) }
+                harness.clock.setDefaultNanos(1_000_000_000L)
+
+                platform.deliverSourceFrame(rgbaSeed = 31)
+                check(harness.enterNextControlTask())
+                check(harness.enterNextCaptureTask())
+                check(harness.enterNextControlTask())
+                val encodingTask = checkNotNull(harness.enterNextWorker())
+                encodingTask.awaitSuccessfulCompletion()
+
+                harness.session.updateParameters(updatedParameters)
+                harness.driveUntil {
+                    val state = harness.session.state.value
+                    state is ScreenCaptureState.Active && state.requestedParameters == updatedParameters
+                }
+                val current = harness.session.state.value as ScreenCaptureState.Active
+                val finalStats = harness.session.stats.value
+
+                assertEquals(updatedParameters, current.outputInfo.parameters)
+                assertEquals(baselineStats.encodedFrameCount + 1L, finalStats.encodedFrameCount)
+                assertEquals(7, finalStats.lastEncodedByteCount)
+                assertEquals(baselineStats.frameProductionDrops.byStaleWork + 1L, finalStats.frameProductionDrops.byStaleWork)
+                assertEquals(baselineStats.producedFrameCount, finalStats.producedFrameCount)
+                assertTrue(delivered.isEmpty())
+            } finally {
+                requestStopAndDrainSession(harness)
+                nativeJpeg.close()
+            }
+        }
+    }
+
     private fun enterWorkUntilNativeCompressionBlocks(
-        harness: SessionStartHarness,
+        harness: SessionHarness,
         nativeJpeg: SafeRejectingNativeJpegFacade,
     ): ControlledNonInlineDispatcher.TaskHandle {
         repeat(32) {

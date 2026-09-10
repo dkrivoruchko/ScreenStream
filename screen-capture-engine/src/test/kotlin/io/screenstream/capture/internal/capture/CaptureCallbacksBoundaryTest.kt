@@ -89,7 +89,7 @@ internal class CaptureCallbacksBoundaryTest {
     }
 
     private fun targetIdentity(): CaptureCallbackIdentity =
-        CaptureCallbackIdentity.Target(SourceCandidate().token)
+        CaptureCallbackIdentity.Target(SourceAvailability().token)
 
     private class DirectThrowable : Throwable("direct non-Exception Throwable")
 }

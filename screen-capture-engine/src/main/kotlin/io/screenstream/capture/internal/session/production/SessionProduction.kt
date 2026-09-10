@@ -1,7 +1,7 @@
 package io.screenstream.capture.internal.session.production
 
+import io.screenstream.capture.CaptureOutputInfo
 import io.screenstream.capture.FrameRate
-import io.screenstream.capture.ScreenCaptureEffectiveParameters
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.internal.capture.CaptureReadResult
@@ -10,15 +10,16 @@ import io.screenstream.capture.internal.isExactWritableRgbaCarrier
 import io.screenstream.capture.internal.runtime.ElapsedRealtimeClock
 import io.screenstream.capture.internal.storage.ImmutableEncodedPayload
 import io.screenstream.capture.internal.storage.PublishedFrame
-import kotlin.time.Duration
 
 /**
- * Exclusive semantic owner of materialized production, pacing, repeat, the latest immutable frame, output
+ * Exclusive semantic owner of materialized production, pacing, the latest immutable frame, output
  * identities, and public statistics for one session.
  *
  * At most one fresh production is materialized. Grants, output candidates, cached-frame candidates, wakes, and
  * terminal snapshots are provisional identity-bearing evidence and must be revalidated before commit. Clearing a
- * record, terminal state, or elapsed time never fabricates a Capture return or settles an Encoding input loan.
+ * record, terminal state, or elapsed time never fabricates a Capture return or settles an Encoding input loan. Fresh
+ * capture and output grants keep separate cadence histories. Prefreeze accounting records only evidence already
+ * consumed and does not prove every encoder operation drained.
  */
 internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
     internal class UnpublishedOutput(
@@ -66,28 +67,6 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
         }
     }
 
-    internal sealed interface RepeatDecision {
-        data object Missing : RepeatDecision
-        data object InvalidEvidence : RepeatDecision
-        data object SequenceExhausted : RepeatDecision
-        class Deferred(internal val targetNanos: Long) : RepeatDecision
-        class Candidate(
-            private val owner: SessionProduction,
-            private val generation: Long,
-            internal val previousFrame: PublishedFrame,
-            internal val frame: PublishedFrame,
-            internal val frameRate: FrameRate,
-            internal val nextPhase: Int?,
-            internal val nextRequiredGapNanos: Long,
-            private val previousGrantNanos: Long,
-        ) : RepeatDecision {
-            internal fun isCurrent(expectedOwner: SessionProduction): Boolean = (owner === expectedOwner) &&
-                    (generation == expectedOwner.generation) && (expectedOwner.latestFrame === previousFrame) &&
-                    (expectedOwner.lastOutputGrantNanos == previousGrantNanos) &&
-                    (expectedOwner.currentRecord == null) && (expectedOwner.unpublishedOutput == null)
-        }
-    }
-
     internal class CacheCandidate(private val owner: SessionProduction, internal val frame: PublishedFrame) {
         internal fun isCurrent(expectedOwner: SessionProduction): Boolean =
             (owner === expectedOwner) && (expectedOwner.latestFrame === frame)
@@ -110,13 +89,7 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
                 expectedOwner.statsAccumulator.hasUnpublishedChanges && !expectedOwner.terminalCommitted
     }
 
-    internal sealed interface WakeIdentity {
-        val targetNanos: Long
-        val configRevision: Long
-
-        class Pacing(override val targetNanos: Long, override val configRevision: Long) : WakeIdentity
-        class Repeat(override val targetNanos: Long, override val configRevision: Long) : WakeIdentity
-    }
+    internal class PacingWake(internal val targetNanos: Long, internal val configRevision: Long)
 
     internal class TerminalSnapshot(
         private val owner: SessionProduction,
@@ -140,9 +113,8 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
     private var generation = 0L
     private var statsGeneration = 0L
     private var lastStatsPublicationNanos = creationElapsedRealtimeNanos
-    private var nextOutputSequence = 0L
+    private var lastCommittedOutputSequence = 0L
     private var lastFreshGrantNanos: Long? = null
-    private var lastOutputGrantNanos: Long? = null
     private var freshCadenceHistory: CadenceHistory? = null
     private var outputCadenceHistory: CadenceHistory? = null
     private var currentRead: SessionReadBridge? = null
@@ -150,8 +122,7 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
     private var currentRecord: SessionProductionRecord? = null
     private var unpublishedOutput: UnpublishedOutput? = null
     private var latestFrame: PublishedFrame? = null
-    private var pacingWake: WakeIdentity.Pacing? = null
-    private var repeatWake: WakeIdentity.Repeat? = null
+    private var pacingWake: PacingWake? = null
     private var terminalCommitted = false
 
     init {
@@ -195,8 +166,8 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
     internal fun prepareFreshGrant(frameRate: FrameRate, nowNanos: Long): FreshGrantDecision {
         if (terminalCommitted) return FreshGrantDecision.InvalidEvidence
         return when (val proposal = PacingCalculator.freshCapture(frameRate, nowNanos, lastFreshGrantNanos, freshCadenceHistory)) {
-            PacingDecision.InvalidEvidence, is PacingDecision.Deferred -> FreshGrantDecision.InvalidEvidence
-            is PacingDecision.RetainOpportunity -> FreshGrantDecision.RetainUntil(proposal.eligibleAtNanos)
+            PacingDecision.InvalidEvidence -> FreshGrantDecision.InvalidEvidence
+            is PacingDecision.Deferred -> FreshGrantDecision.RetainUntil(proposal.eligibleAtNanos)
             is PacingDecision.Eligible -> FreshGrantDecision.Grant(
                 owner = this,
                 generation = generation,
@@ -268,8 +239,8 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
     }
 
     internal fun prepareFreshOutput(
-        effectiveParameters: ScreenCaptureEffectiveParameters,
-        timestampElapsedRealtimeNanos: Long,
+        outputInfo: CaptureOutputInfo,
+        outputTimestampElapsedRealtimeNanos: Long,
         frameRate: FrameRate,
     ): FreshOutputDecision {
         val unpublishedOutput = this.unpublishedOutput ?: return FreshOutputDecision.Missing
@@ -277,17 +248,17 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
         if (unpublishedOutput.record !== record) return FreshOutputDecision.InvalidEvidence
         val read = currentRead
         if ((read != null) && (read.record !== record)) return FreshOutputDecision.InvalidEvidence
-        val eligibleProposal = when (val proposal = PacingCalculator.freshOutput(frameRate, timestampElapsedRealtimeNanos, outputCadenceHistory)) {
+        val eligibleProposal = when (val proposal = PacingCalculator.freshOutput(frameRate, outputTimestampElapsedRealtimeNanos, outputCadenceHistory)) {
             is PacingDecision.Deferred -> return FreshOutputDecision.Deferred(proposal.eligibleAtNanos)
             is PacingDecision.Eligible -> proposal
-            else -> return FreshOutputDecision.InvalidEvidence
+            PacingDecision.InvalidEvidence -> return FreshOutputDecision.InvalidEvidence
         }
-        if (nextOutputSequence == Long.MAX_VALUE) return FreshOutputDecision.SequenceExhausted
+        if (lastCommittedOutputSequence == Long.MAX_VALUE) return FreshOutputDecision.SequenceExhausted
         val frame = PublishedFrame(
             payload = unpublishedOutput.payload,
-            effectiveParameters = effectiveParameters,
-            sequence = nextOutputSequence + 1L,
-            timestampElapsedRealtimeNanos = timestampElapsedRealtimeNanos,
+            outputInfo = outputInfo,
+            sequence = lastCommittedOutputSequence + 1L,
+            outputTimestampElapsedRealtimeNanos = outputTimestampElapsedRealtimeNanos,
         )
         return FreshOutputDecision.Candidate(
             owner = this,
@@ -307,73 +278,19 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
         if (!candidate.isCurrent(this)) return null
         val cadence = cadenceHistory(
             candidate.frameRate,
-            candidate.frame.timestampElapsedRealtimeNanos,
+            candidate.frame.outputTimestampElapsedRealtimeNanos,
             candidate.nextPhase,
             candidate.nextRequiredGapNanos,
         )
-        nextOutputSequence = candidate.frame.sequence
+        lastCommittedOutputSequence = candidate.frame.sequence
         unpublishedOutput = null
         latestFrame = candidate.frame
         outputCadenceHistory = cadence
-        lastOutputGrantNanos = candidate.frame.timestampElapsedRealtimeNanos
         currentRead = null
         currentRecord = null
-        statsAccumulator.recordProducedFrame(candidate.frame.timestampElapsedRealtimeNanos)
+        statsAccumulator.recordProducedFrame(candidate.frame.outputTimestampElapsedRealtimeNanos)
         statsChanged()
         pacingWake = null
-        changed()
-        return candidate.frame
-    }
-
-    internal fun prepareRepeat(
-        effectiveParameters: ScreenCaptureEffectiveParameters,
-        frameRate: FrameRate,
-        repeatInterval: Duration,
-        nowNanos: Long,
-    ): RepeatDecision {
-        if ((currentRecord != null) || (unpublishedOutput != null)) return RepeatDecision.Missing
-        val previous = latestFrame ?: return RepeatDecision.Missing
-        val previousGrant = lastOutputGrantNanos ?: return RepeatDecision.Missing
-        val eligibleProposal = when (val proposal = PacingCalculator.repeatOutput(
-            frameRate = frameRate,
-            repeatInterval = repeatInterval,
-            nowNanos = nowNanos,
-            lastOutputGrantNanos = previousGrant,
-            outputHistory = outputCadenceHistory,
-        )) {
-            is PacingDecision.Deferred -> return RepeatDecision.Deferred(proposal.eligibleAtNanos)
-            is PacingDecision.Eligible -> proposal
-            else -> return RepeatDecision.InvalidEvidence
-        }
-        if (nextOutputSequence == Long.MAX_VALUE) return RepeatDecision.SequenceExhausted
-        val frame = PublishedFrame(previous.payload, effectiveParameters, nextOutputSequence + 1L, nowNanos)
-        return RepeatDecision.Candidate(
-            owner = this,
-            generation = generation,
-            previousFrame = previous,
-            frame = frame,
-            frameRate = frameRate,
-            nextPhase = eligibleProposal.nextPhase,
-            nextRequiredGapNanos = eligibleProposal.nextRequiredGapNanos,
-            previousGrantNanos = previousGrant,
-        )
-    }
-
-    internal fun commitRepeat(candidate: RepeatDecision.Candidate): PublishedFrame? {
-        if (!candidate.isCurrent(this)) return null
-        val cadence = cadenceHistory(
-            candidate.frameRate,
-            candidate.frame.timestampElapsedRealtimeNanos,
-            candidate.nextPhase,
-            candidate.nextRequiredGapNanos,
-        )
-        nextOutputSequence = candidate.frame.sequence
-        latestFrame = candidate.frame
-        outputCadenceHistory = cadence
-        lastOutputGrantNanos = candidate.frame.timestampElapsedRealtimeNanos
-        statsAccumulator.recordProducedFrame(candidate.frame.timestampElapsedRealtimeNanos)
-        statsChanged()
-        repeatWake = null
         changed()
         return candidate.frame
     }
@@ -383,7 +300,6 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
         freshCadenceHistory = null
         outputCadenceHistory = null
         pacingWake = null
-        repeatWake = null
         changed()
     }
 
@@ -404,56 +320,29 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
         changed()
     }
 
-    internal fun armPacingWake(targetNanos: Long, configRevision: Long): WakeIdentity.Pacing? {
+    internal fun armPacingWake(targetNanos: Long, configRevision: Long): PacingWake? {
         require((targetNanos >= 0L) && (configRevision > 0L))
         if (terminalCommitted) return null
         val installed = pacingWake
         if ((installed != null) && (installed.targetNanos <= targetNanos)) return null
-        val wake = WakeIdentity.Pacing(targetNanos, configRevision)
+        val wake = PacingWake(targetNanos, configRevision)
         pacingWake = wake
         changed()
         return wake
     }
 
-    internal fun armRepeatWake(targetNanos: Long, configRevision: Long): WakeIdentity.Repeat? {
-        require((targetNanos >= 0L) && (configRevision > 0L))
-        if (terminalCommitted || (repeatWake != null)) return null
-        val wake = WakeIdentity.Repeat(targetNanos, configRevision)
-        repeatWake = wake
-        changed()
-        return wake
-    }
+    internal fun currentPacingWake(): PacingWake? = pacingWake
 
-    internal fun currentPacingWake(): WakeIdentity.Pacing? = pacingWake
-
-    internal fun currentRepeatWake(): WakeIdentity.Repeat? = repeatWake
-
-    internal fun clearWake(expected: WakeIdentity): Boolean = when (expected) {
-        is WakeIdentity.Pacing -> {
-            if (pacingWake !== expected) return false
-            pacingWake = null
-            changed()
-            true
-        }
-
-        is WakeIdentity.Repeat -> {
-            if (repeatWake !== expected) return false
-            repeatWake = null
-            changed()
-            true
-        }
-    }
-
-    internal fun suppressRepeatWake() {
-        if (repeatWake == null) return
-        repeatWake = null
-        changed()
-    }
-
-    internal fun suppressAllWakes() {
-        if ((pacingWake == null) && (repeatWake == null)) return
+    internal fun clearPacingWake(expected: PacingWake): Boolean {
+        if (pacingWake !== expected) return false
         pacingWake = null
-        repeatWake = null
+        changed()
+        return true
+    }
+
+    internal fun suppressPacingWake() {
+        if (pacingWake == null) return
+        pacingWake = null
         changed()
     }
 
@@ -480,6 +369,7 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
     internal fun recordCallbackFailure() = recordStatsMutation(statsAccumulator::recordCallbackFailure)
 
     internal fun prepareStats(publicationNanos: Long): StatsCandidate? {
+        // Activity samples the interval from the previous publication (or construction); there is no periodic timer.
         require(publicationNanos >= 0L)
         if (!statsAccumulator.hasUnpublishedChanges || terminalCommitted) return null
         val eligibleAt = Math.addExact(lastStatsPublicationNanos, ElapsedRealtimeClock.NANOS_PER_SECOND)
@@ -521,7 +411,6 @@ internal class SessionProduction(creationElapsedRealtimeNanos: Long) {
         unpublishedOutput = null
         latestFrame = null
         pacingWake = null
-        repeatWake = null
         terminalCommitted = true
         changed()
     }

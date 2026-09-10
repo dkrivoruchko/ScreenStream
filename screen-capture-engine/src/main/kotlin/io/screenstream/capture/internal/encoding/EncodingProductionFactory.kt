@@ -1,13 +1,5 @@
 package io.screenstream.capture.internal.encoding
 
-/**
- * [EncodingOwner]'s construction boundary for encoded transactions and admitted production tasks.
- *
- * This boundary lets contract tests deterministically exercise transaction- and production-construction failures
- * without constructor or static mocking. It is not a dependency container: implementations must own no policy or
- * mutable state and must not catch construction failures. [DefaultEncodingProductionFactory] only invokes the
- * concrete transaction constructors and delegates production admission to [EncoderRuntime].
- */
 internal interface EncodingProductionFactory {
     fun createNativeTransaction(): NativeEncodedTransaction
 

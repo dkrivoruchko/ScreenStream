@@ -18,8 +18,8 @@ internal enum class CarrierDisposition { Filled, Discarded, }
  * [lend] mints the sole [EncodingInput] capability for one exact Capture loan. Only that exact identity can settle the
  * loan. A discarded Capture loan returns directly to idle. A filled loan becomes ready, where it may be discarded or
  * enter Encoding; an entered Encoding loan must return before idle. Cancellation, terminal state, elapsed time, or
- * reference loss cannot fabricate ownership advancement. Native backing is detached only after its free call has
- * returned successfully.
+ * reference loss cannot fabricate ownership advancement. A returned allocation is adopted even if later validation
+ * fails. Native backing gets one free attempt and is detached only after that call returns successfully.
  */
 internal sealed class RgbaCarrier(
     val layout: Rgba8888Layout,

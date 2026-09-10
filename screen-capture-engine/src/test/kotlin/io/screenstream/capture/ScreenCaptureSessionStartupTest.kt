@@ -4,8 +4,8 @@ import io.mockk.Called
 import io.mockk.verify
 import io.screenstream.capture.testutil.DispatchAttemptKind
 import io.screenstream.capture.testutil.DispatchOutcome
-import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.HappyCapturePlatform
-import io.screenstream.capture.testutil.SessionStartHarness
+import io.screenstream.capture.testutil.ScreenCaptureSessionIntegrationFixture.CapturePlatformFixture
+import io.screenstream.capture.testutil.SessionHarness
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,7 +37,7 @@ internal class ScreenCaptureSessionStartupTest {
     // Verification: API-03
     @Test
     fun cancelledCallerEnteringFreshStartRequestsSessionStop() = runTest {
-        SessionStartHarness(bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics).use { harness ->
+        SessionHarness(bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics).use { harness ->
             val projection = harness.projection()
             val initialStats = harness.session.stats.value
             val cancelledJob = Job(coroutineContext[Job]).apply { cancel() }
@@ -82,7 +82,7 @@ internal class ScreenCaptureSessionStartupTest {
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun cancellationObservedInsidePublicationGateLeavesNoAdmissionOrWork() = runTest {
-        SessionStartHarness(bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics).use { harness ->
+        SessionHarness(bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics).use { harness ->
             val projection = harness.projection()
             val initialStats = harness.session.stats.value
             val callerJob = Job()
@@ -110,14 +110,14 @@ internal class ScreenCaptureSessionStartupTest {
     // Verification: API-03
     @Test
     fun invalidAdmissionClockFailsInternalBeforeAdmission() = runTest {
-        val cases = listOf<Pair<String, (SessionStartHarness) -> Unit>>(
+        val cases = listOf<Pair<String, (SessionHarness) -> Unit>>(
             "clock exception" to { harness -> harness.clock.enqueueFailure(IllegalStateException("clock failed")) },
             "negative clock" to { harness -> harness.clock.enqueueValue(-1L) },
             "deadline overflow" to { harness -> harness.clock.enqueueValue(Long.MAX_VALUE) },
         )
 
         cases.forEach { (name, arrangeClock) ->
-            SessionStartHarness().use { harness ->
+            SessionHarness().use { harness ->
                 val projection = harness.projection()
                 val initialState = harness.session.state.value
                 val initialStats = harness.session.stats.value
@@ -140,7 +140,7 @@ internal class ScreenCaptureSessionStartupTest {
                 assertPlatformFree(harness)
                 verify { projection wasNot Called }
 
-                harness.session.stop()
+                harness.session.requestStop()
                 val retirement = harness.enterNextWorker() ?: error("Accepted projection retirement was not retained")
                 retirement.awaitSuccessfulCompletion()
                 verify(exactly = 1) { projection.stop() }
@@ -152,7 +152,7 @@ internal class ScreenCaptureSessionStartupTest {
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun overlappingStartsRejectSecondAndCancelFirst() = runTest {
-        SessionStartHarness(bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics).use { harness ->
+        SessionHarness(bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics).use { harness ->
             val acceptedProjection = harness.projection()
             val rejectedProjection = harness.projection()
             val acceptedParameters = ScreenCaptureParameters(jpegQuality = 81)
@@ -194,7 +194,7 @@ internal class ScreenCaptureSessionStartupTest {
             val stopped = harness.session.state.value as ScreenCaptureState.Stopped
             assertSame(ScreenCaptureStopReason.Requested, stopped.reason)
             assertEquals(acceptedParameters, stopped.requestedParameters)
-            assertNull(stopped.lastEffectiveParameters)
+            assertNull(stopped.lastOutputInfo)
             assertZeroStats(harness.session.stats.value)
             assertPlatformFree(harness)
             verify { acceptedProjection wasNot Called }
@@ -206,7 +206,7 @@ internal class ScreenCaptureSessionStartupTest {
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun cancelledLosingStartCannotStopAdmittedWinner() = runTest {
-        SessionStartHarness(bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics).use { harness ->
+        SessionHarness(bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics).use { harness ->
             val projection = harness.projection()
             val winnerParameters = ScreenCaptureParameters(jpegQuality = 81)
             val winner = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) {
@@ -256,7 +256,7 @@ internal class ScreenCaptureSessionStartupTest {
     // Verification: API-03
     @Test
     fun requestedStartupCancellationIsCatchableInAStillActiveCaller() = runTest {
-        SessionStartHarness(bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics).use { harness ->
+        SessionHarness(bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics).use { harness ->
             val callerJob = Job()
             var callerWasActiveWhenCaught = false
             val operation = CoroutineScope(coroutineContext + callerJob).async(start = CoroutineStart.UNDISPATCHED) {
@@ -269,7 +269,7 @@ internal class ScreenCaptureSessionStartupTest {
                 }
             }
 
-            harness.session.stop()
+            harness.session.requestStop()
             val cancellation = operation.await()
             assertTrue(cancellation is CancellationException)
             assertTrue(callerWasActiveWhenCaught)
@@ -284,10 +284,10 @@ internal class ScreenCaptureSessionStartupTest {
     // Verification: API-03
     @Test
     fun projectionStoppedStartupCancellationIsCatchableBeforeActive() = runTest {
-        val platform = HappyCapturePlatform()
+        val platform = CapturePlatformFixture()
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
-        SessionStartHarness(
-            bootstrapMode = SessionStartHarness.BootstrapMode.ImmediateMetrics,
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
             projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
@@ -343,7 +343,7 @@ internal class ScreenCaptureSessionStartupTest {
     // Verification: SES-01
     @Test
     fun bootstrapDispatchRejectionFailsStartInternally() = runTest {
-        SessionStartHarness(workerOutcome = DispatchOutcome.Reject).use { harness ->
+        SessionHarness(workerOutcome = DispatchOutcome.Reject).use { harness ->
             val projection = harness.projection()
             val parameters = ScreenCaptureParameters(jpegQuality = 81)
 
@@ -365,20 +365,20 @@ internal class ScreenCaptureSessionStartupTest {
             val failed = harness.session.state.value as ScreenCaptureState.Failed
             assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
             assertEquals(parameters, failed.requestedParameters)
-            assertNull(failed.lastEffectiveParameters)
+            assertNull(failed.lastOutputInfo)
             assertZeroStats(harness.session.stats.value)
             assertPlatformFree(harness)
             verify { projection wasNot Called }
         }
     }
 
-    private fun assertPlatformFree(harness: SessionStartHarness) {
+    private fun assertPlatformFree(harness: SessionHarness) {
         assertEquals(0, harness.metricsSubscriptionCount())
         assertEquals(0, harness.handlerPlatformCallCount())
         assertEquals(0, harness.handlerPostCallCount())
     }
 
-    private fun assertNoStartWork(harness: SessionStartHarness) {
+    private fun assertNoStartWork(harness: SessionHarness) {
         assertEquals(1, harness.workerSubmissionStates().size)
         assertTrue(harness.workerSubmissionStates().single() is ScreenCaptureState.Stopped)
         assertEquals(1, harness.workerDispatcher.submissions().size)
@@ -402,9 +402,9 @@ internal class ScreenCaptureSessionStartupTest {
     private fun assertZeroStats(stats: ScreenCaptureStats) {
         assertEquals(0L, stats.encodedFrameCount)
         assertEquals(0L, stats.producedFrameCount)
-        assertEquals(0L, stats.droppedFrames.byStaleWork)
-        assertEquals(0L, stats.droppedFrames.byFailure)
-        assertEquals(0L, stats.droppedFrames.total)
+        assertEquals(0L, stats.frameProductionDrops.byStaleWork)
+        assertEquals(0L, stats.frameProductionDrops.byFailure)
+        assertEquals(0L, stats.frameProductionDrops.total)
         assertEquals(0L, stats.droppedDeliveries.byConsumerBusy)
         assertEquals(0L, stats.droppedDeliveries.byCallbackFailure)
         assertEquals(0L, stats.droppedDeliveries.total)
