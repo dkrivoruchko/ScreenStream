@@ -1,6 +1,8 @@
 package info.dvkr.screenstream.rtsp.internal
 
 import android.media.MediaCodecInfo
+import android.media.MediaCodecInfo.CodecCapabilities
+import android.media.MediaCodecInfo.CodecProfileLevel
 import android.media.MediaCodecInfo.EncoderCapabilities
 import android.media.MediaCodecList
 import android.os.Build
@@ -8,6 +10,7 @@ import android.util.Range
 import androidx.core.util.toClosedRange
 import info.dvkr.screenstream.rtsp.internal.Codec.Audio
 import info.dvkr.screenstream.rtsp.internal.Codec.Video
+import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -296,5 +299,28 @@ internal object EncoderUtils {
         val min = floor(supported.lower / 1000f).toInt().coerceAtLeast(6)
         val max = ceil(supported.upper / 1000f).toInt().coerceIn(6, 510)
         return Range(min, max).toClosedRange()
+    }
+
+    internal fun CodecCapabilities.getSupportedH264Profiles(): List<RtspSettings.Values.H264Profile> {
+        val availableProfiles = profileLevels?.map { it.profile } ?: emptyList()
+        val result = mutableListOf(RtspSettings.Values.H264Profile.AUTO)
+
+        if (availableProfiles.any { it == CodecProfileLevel.AVCProfileBaseline || it == CodecProfileLevel.AVCProfileConstrainedBaseline }) {
+            result.add(RtspSettings.Values.H264Profile.BASELINE)
+        }
+        if (availableProfiles.any { it == CodecProfileLevel.AVCProfileMain }) {
+            result.add(RtspSettings.Values.H264Profile.MAIN)
+        }
+        if (availableProfiles.any { it == CodecProfileLevel.AVCProfileHigh || it == CodecProfileLevel.AVCProfileConstrainedHigh }) {
+            result.add(RtspSettings.Values.H264Profile.HIGH)
+        }
+        return result
+    }
+
+    internal fun RtspSettings.Values.H264Profile.toCodecProfile(): Int? = when (this) {
+        RtspSettings.Values.H264Profile.AUTO -> null
+        RtspSettings.Values.H264Profile.BASELINE -> CodecProfileLevel.AVCProfileBaseline
+        RtspSettings.Values.H264Profile.MAIN -> CodecProfileLevel.AVCProfileMain
+        RtspSettings.Values.H264Profile.HIGH -> CodecProfileLevel.AVCProfileHigh
     }
 }

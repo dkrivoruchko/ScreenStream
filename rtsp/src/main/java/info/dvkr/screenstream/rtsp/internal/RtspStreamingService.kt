@@ -190,7 +190,7 @@ internal class RtspStreamingService(
             onVideoReconfigureStart()
             virtualDisplay.surface = null
             videoEncoder.stop()
-            videoEncoder.prepare(width, height, fps, bitRate)
+            videoEncoder.prepare(width, height, fps, bitRate, settings.videoH264Profile)
             val inputSurfaceTexture = videoEncoder.inputSurfaceTexture ?: throw IllegalStateException("VideoEncoder input surface is null")
             val newSurface = Surface(inputSurfaceTexture)
             virtualDisplay.resize(width, height, densityDpi)
@@ -1230,7 +1230,8 @@ internal class RtspStreamingService(
                                 encodedWidth,
                                 encodedHeight,
                                 fps = settings.videoFps.coerceIn(videoCapabilities.supportedFrameRates.toClosedRange()),
-                                bitRate = settings.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange())
+                                bitRate = settings.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange()),
+                                h264Profile = settings.videoH264Profile
                             )
                             if (!isStartupStillValid()) {
                                 XLog.i(getLog("StartProjection", "Startup invalidated before virtual display creation."))

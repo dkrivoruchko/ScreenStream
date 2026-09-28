@@ -12,9 +12,11 @@ import android.os.Process
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.Codec
+import info.dvkr.screenstream.rtsp.internal.EncoderUtils.toCodecProfile
 import info.dvkr.screenstream.rtsp.internal.MasterClock
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
+import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H264Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
@@ -65,7 +67,13 @@ internal class VideoEncoder(
     internal val inputSurfaceTexture: SurfaceTexture?
         get() = eglRenderer?.inputSurfaceTexture
 
-    internal fun prepare(width: Int, height: Int, fps: Int, bitRate: Int) {
+    internal fun prepare(
+        width: Int,
+        height: Int,
+        fps: Int,
+        bitRate: Int,
+        h264Profile: RtspSettings.Values.H264Profile = RtspSettings.Values.H264Profile.AUTO
+    ) {
         runCatching {
             synchronized(encoderLock) {
                 require(width % 2 == 0 && height % 2 == 0) { "Width and height must be even. Received: $width x $height" }
@@ -84,6 +92,12 @@ internal class VideoEncoder(
                     setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0)
                     setInteger(MediaFormat.KEY_PRIORITY, 1)
 
+                    if (codecInfo.codec == Codec.Video.H264 && h264Profile != RtspSettings.Values.H264Profile.AUTO) {
+                        h264Profile.toCodecProfile()?.let { profileInt ->
+                            setInteger(MediaFormat.KEY_PROFILE, profileInt)
+                        }
+                    }
+
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0)
                     }
@@ -96,7 +110,15 @@ internal class VideoEncoder(
                 }
 
                 val encoder = MediaCodec.createByCodecName(codecInfo.name)
-                encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                val configuredSuccessfully = runCatching {
+                    encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                }.isSuccess
+
+                if (!configuredSuccessfully && format.containsKey(MediaFormat.KEY_PROFILE)) {
+                    XLog.w(getLog("prepare", "MediaCodec failed to configure with H.264 profile $h264Profile. Retrying with AUTO profile."))
+                    format.removeKey(MediaFormat.KEY_PROFILE)
+                    encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                }
 
                 eglRenderer = EglRenderer(width, height, encoder.createInputSurface(), onError).apply {
                     setFps(fps)

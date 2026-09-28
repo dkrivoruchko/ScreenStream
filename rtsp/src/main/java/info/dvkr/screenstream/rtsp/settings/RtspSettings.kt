@@ -23,6 +23,7 @@ public interface RtspSettings {
 
         public val VIDEO_CODEC_AUTO_SELECT: Preferences.Key<Boolean> = booleanPreferencesKey("VIDEO_CODEC_AUTO_SELECT")
         public val VIDEO_CODEC: Preferences.Key<String> = stringPreferencesKey("VIDEO_CODEC")
+        public val VIDEO_H264_PROFILE: Preferences.Key<String> = stringPreferencesKey("VIDEO_H264_PROFILE")
         public val VIDEO_RESIZE_FACTOR: Preferences.Key<Float> = floatPreferencesKey("VIDEO_RESIZE_FACTOR")
         public val VIDEO_FPS: Preferences.Key<Int> = intPreferencesKey("VIDEO_FPS")
         public val VIDEO_BITRATE: Preferences.Key<Int> = intPreferencesKey("VIDEO_BITRATE")
@@ -63,6 +64,7 @@ public interface RtspSettings {
 
         public const val VIDEO_CODEC_AUTO_SELECT: Boolean = true
         public const val VIDEO_CODEC: String = ""
+        public val VIDEO_H264_PROFILE: Values.H264Profile = Values.H264Profile.AUTO
         public const val VIDEO_RESIZE_FACTOR: Float = 50F
         public const val VIDEO_FPS: Int = 30
         public const val VIDEO_BITRATE: Int = 4500 * 1000
@@ -93,6 +95,7 @@ public interface RtspSettings {
     public object Values {
         public enum class Mode { SERVER, CLIENT }
         public enum class ProtocolPolicy { AUTO, TCP, UDP }
+        public enum class H264Profile { AUTO, BASELINE, MAIN, HIGH }
 
         @IntDef(flag = true, value = [INTERFACE_WIFI, INTERFACE_MOBILE, INTERFACE_ETHERNET, INTERFACE_VPN])
         @Retention(AnnotationRetention.SOURCE)
@@ -127,6 +130,7 @@ public interface RtspSettings {
 
         public val videoCodecAutoSelect: Boolean = Default.VIDEO_CODEC_AUTO_SELECT,
         public val videoCodec: String = Default.VIDEO_CODEC,
+        public val videoH264Profile: Values.H264Profile = Default.VIDEO_H264_PROFILE,
         public val videoResizeFactor: Float = Default.VIDEO_RESIZE_FACTOR,
         public val videoFps: Int = Default.VIDEO_FPS,
         public val videoBitrateBits: Int = Default.VIDEO_BITRATE,
