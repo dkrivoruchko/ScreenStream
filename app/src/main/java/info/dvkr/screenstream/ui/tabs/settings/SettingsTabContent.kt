@@ -40,8 +40,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.InlineAdaptiveBanner
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.tile.TileActionService
@@ -56,6 +58,7 @@ import info.dvkr.screenstream.ui.theme.dynamicThemeAvailable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import java.io.IOException
 
 private enum class AppSetting { APP_LOCALE, NIGHT_MODE }
 
@@ -140,7 +143,13 @@ internal fun SettingsTabContent(
                                         dynamicTheme = settingsData.dynamicTheme,
                                         onValueChange = { dynamicTheme ->
                                             if (settingsData.dynamicTheme != dynamicTheme) {
-                                                scope.launch { appSettings.updateData { copy(dynamicTheme = dynamicTheme) } }
+                                                scope.launch {
+                                                    try {
+                                                        appSettings.updateData { copy(dynamicTheme = dynamicTheme) }
+                                                    } catch (error: IOException) {
+                                                        XLog.e(context.getLog("SettingsTabContent", "Failed to save dynamic theme"), error)
+                                                    }
+                                                }
                                             }
                                         })
                                 }
@@ -191,7 +200,13 @@ internal fun SettingsTabContent(
                         nightMode = settingsData.nightMode,
                         onNightModeSelected = { nightMode ->
                             if (settingsData.nightMode != nightMode) {
-                                scope.launch { appSettings.updateData { copy(nightMode = nightMode) } }
+                                scope.launch {
+                                    try {
+                                        appSettings.updateData { copy(nightMode = nightMode) }
+                                    } catch (error: IOException) {
+                                        XLog.e(context.getLog("SettingsTabContent", "Failed to save night mode"), error)
+                                    }
+                                }
                             }
                         })
 

@@ -47,7 +47,7 @@ internal fun LocalNetworkPermission(
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val selectedModuleId = streamingModuleManager.selectedModuleIdFlow
-        .collectAsStateWithLifecycle(initialValue = AppSettings.Default.STREAMING_MODULE)
+        .collectAsStateWithLifecycle(initialValue = AppSettings.Default.STREAMING_MODULE_NONE)
     val activeModule = streamingModuleManager.activeModuleStateFlow.collectAsStateWithLifecycle()
     val currentActiveModule by rememberUpdatedState(activeModule.value)
 

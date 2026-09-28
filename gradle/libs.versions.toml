@@ -1,43 +1,45 @@
 [versions]
-agp = "9.3.2"
-kotlin = "2.4.10"
+agp = "9.4.1"
+kotlin = "2.4.20"
 android-tools-desugar = "2.1.5"
 
 koin-android = "4.2.2"
+koin-plugin = "1.2.1"
 
 kotlinx-coroutines = "1.11.0"
+kotlinx-serialization = "1.11.0"
 
-androidx-core-ktx = "1.19.0"
-androidx-annotation = "1.10.0"
+androidx-core-ktx = "1.19.1"
+androidx-annotation = "1.11.0"
 androidx-core-splashscreen = "1.2.0"
 androidx-activity-compose = "1.13.0"
-androidx-fragment = "1.9.0"
+androidx-fragment = "1.9.1"
 androidx-appcompat = "1.8.0"
 androidx-lifecycle = "2.11.0"
 androidx-window = "1.5.1"
 androidx-datastore-preferences = "1.2.1"
-androidx-work = "2.11.2"
+androidx-work = "2.12.0"
 
-compose-bom = "2026.08.00"
+compose-bom = "2026.09.00"
 
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.5.2"
+ktor = "3.6.0"
 
 #PlayStore-WebRTC
-play-services-base = "18.10.1"
+play-services-base = "18.11.0"
 play-services-tasks = "18.4.1"
 play-integrity = "1.6.0"
 socket = "2.1.2"
-okio = "3.18.1"
+okio = "3.18.2"
 okhttp = "5.5.0"
 
 #PlayStore-App
 play-app-update = "2.1.0"
 play-app-review = "2.0.2"
-ads-mobile-sdk = "1.4.0"
-firebase-bom = "34.18.0"
+ads-mobile-sdk = "1.5.0"
+firebase-bom = "34.19.0"
 google-services = "4.5.0"
 crashlytics-gradle = "3.0.8"
 
@@ -46,8 +48,11 @@ android-tools-desugar = { module = "com.android.tools:desugar_jdk_libs", version
 kotlinReflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 
 koin-android-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin-android" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin-android" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin-android" }
 
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core-ktx" }
 androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "androidx-annotation" }
@@ -107,6 +112,8 @@ androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin-plugin" }
 
 #PlayStore
 googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }

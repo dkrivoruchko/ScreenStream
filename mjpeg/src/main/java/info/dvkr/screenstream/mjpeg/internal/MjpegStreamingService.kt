@@ -40,6 +40,7 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.isLocalNetworkPermissionGranted
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
 import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
+import info.dvkr.screenstream.mjpeg.MjpegKoinScope
 import info.dvkr.screenstream.mjpeg.MjpegModuleService
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
@@ -59,15 +60,20 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.Scope
+import org.koin.core.annotation.Scoped
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 
+@Scoped
+@Scope(MjpegKoinScope::class)
 internal class MjpegStreamingService(
-    private val service: MjpegModuleService,
-    private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
+    @InjectedParam private val service: MjpegModuleService,
+    @InjectedParam private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
     private val networkHelper: NetworkHelper,
     private val mjpegSettings: MjpegSettings,
     private val streamingAnalytics: StreamingAnalytics

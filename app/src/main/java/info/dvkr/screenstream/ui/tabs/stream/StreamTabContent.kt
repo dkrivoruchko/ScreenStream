@@ -99,7 +99,7 @@ private fun StreamingModuleSelector(
     scope: CoroutineScope = rememberCoroutineScope(),
 ) {
     val selectedModuleId = streamingModulesManager.selectedModuleIdFlow
-        .collectAsStateWithLifecycle(initialValue = AppSettings.Default.STREAMING_MODULE)
+        .collectAsStateWithLifecycle(initialValue = AppSettings.Default.STREAMING_MODULE_NONE)
 
     val adaptiveInfo = currentWindowAdaptiveInfo()
     val expanded = rememberSaveable {

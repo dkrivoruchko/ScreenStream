@@ -7,16 +7,21 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.mjpeg.MjpegKoinScope
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings.Values.AddressMask
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings.Values.InterfaceMask
+import org.koin.core.annotation.Scope
+import org.koin.core.annotation.Scoped
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.util.Collections
 
+@Scoped
+@Scope(MjpegKoinScope::class)
 internal class NetworkHelper(private val context: Context) {
 
     private companion object {

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.koin.compiler)
 }
 
 kotlin {
@@ -45,6 +46,9 @@ android {
 dependencies {
     implementation(projects.common)
     implementation(projects.webrtcRuntime)
+
+    implementation(libs.koin.core)
+    implementation(libs.koin.annotations)
 
     implementation(libs.play.services.base)
     implementation(libs.play.services.tasks)

@@ -38,6 +38,7 @@ import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
 import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.webrtc.R
+import info.dvkr.screenstream.webrtc.WebRtcKoinScope
 import info.dvkr.screenstream.webrtc.WebRtcModuleService
 import info.dvkr.screenstream.webrtc.settings.WebRtcSettings
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
@@ -60,6 +61,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.Scope
+import org.koin.core.annotation.Scoped
 import org.webrtc.IceCandidate
 import org.webrtc.PeerConnection.IceServer
 import java.util.concurrent.TimeUnit
@@ -69,9 +73,11 @@ import kotlin.math.pow
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 
+@Scoped
+@Scope(WebRtcKoinScope::class)
 internal class WebRtcStreamingService(
-    private val service: WebRtcModuleService,
-    private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
+    @InjectedParam private val service: WebRtcModuleService,
+    @InjectedParam private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
     private val environment: WebRtcEnvironment,
     private val webRtcSettings: WebRtcSettings,
     private val streamingAnalytics: StreamingAnalytics

@@ -12,16 +12,19 @@ import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.notification.NotificationHelperImpl
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.context.startKoin
-import org.koin.core.module.Module
-import org.koin.dsl.bind
+import org.koin.core.annotation.KoinApplication
+import org.koin.core.module.dsl.bind
+import org.koin.core.module.dsl.createdAtStart
+import org.koin.core.module.dsl.withOptions
 import org.koin.dsl.module
+import org.koin.plugin.module.dsl.single
+import org.koin.plugin.module.dsl.startKoin
+import org.koin.plugin.module.dsl.viewModel
 
+@KoinApplication
 public abstract class BaseApp : Application() {
 
     protected open fun configureReleaseLogger(builder: LogConfiguration.Builder): Unit = Unit
-
-    public abstract val streamingModules: Array<Module>
 
     override fun onCreate() {
         super.onCreate()
@@ -61,16 +64,18 @@ public abstract class BaseApp : Application() {
 
         initLogger(isDebuggable)
 
-        val defaultModule = module {
-            single { AdMob(get()) }
-            single(createdAtStart = true) { AppStreamingAnalytics(get()) } bind (StreamingAnalytics::class)
-            single { NotificationHelperImpl(get()) } bind (NotificationHelper::class)
-        }
-
-        startKoin {
+        startKoin<BaseApp> {
             allowOverride(false)
             androidContext(this@BaseApp)
-            modules(defaultModule, *streamingModules)
+            modules(module {
+                single<AdMob>()
+                single<AppStreamingAnalytics>() withOptions {
+                    bind<StreamingAnalytics>()
+                    createdAtStart()
+                }
+                single<NotificationHelperImpl>() withOptions { bind<NotificationHelper>() }
+                viewModel<SingleActivityViewModel>()
+            })
         }
     }
 

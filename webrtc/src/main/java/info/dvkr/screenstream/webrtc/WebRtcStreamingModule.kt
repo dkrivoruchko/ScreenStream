@@ -23,9 +23,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import org.koin.core.annotation.Named
+import org.koin.core.annotation.Single
 import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
 
+@Single(binds = [StreamingModule::class])
+@Named("WebRtcStreamingModule")
 public class WebRtcStreamingModule : StreamingModule {
 
     public companion object {

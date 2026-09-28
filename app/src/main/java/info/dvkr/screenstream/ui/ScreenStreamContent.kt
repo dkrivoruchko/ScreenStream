@@ -63,6 +63,7 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.isPermissionGranted
 import info.dvkr.screenstream.network.LocalNetworkPermission
 import info.dvkr.screenstream.notification.NotificationPermission
+import io.screenstream.streaming.capture.ScreenCaptureConsentHost
 import info.dvkr.screenstream.ui.tabs.about.AboutTabContent
 import info.dvkr.screenstream.ui.tabs.exit.ExitTabContent
 import info.dvkr.screenstream.ui.tabs.settings.SettingsTabContent
@@ -100,6 +101,8 @@ internal fun ScreenStreamContent(
     if (Build.VERSION.SDK_INT >= 37) {
         LocalNetworkPermission(enabled = localNetworkPermissionEnabled.value)
     }
+
+    ScreenCaptureConsentHost()
 }
 
 internal enum class AppTabs(

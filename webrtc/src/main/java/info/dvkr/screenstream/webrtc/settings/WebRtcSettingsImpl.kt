@@ -19,8 +19,10 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
+import org.koin.core.annotation.Single
 import java.io.IOException
 
+@Single(binds = [WebRtcSettings::class])
 internal class WebRtcSettingsImpl(context: Context) : WebRtcSettings {
 
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(

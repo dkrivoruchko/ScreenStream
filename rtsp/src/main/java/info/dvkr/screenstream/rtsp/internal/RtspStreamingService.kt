@@ -37,6 +37,7 @@ import info.dvkr.screenstream.common.isLocalNetworkPermissionGranted
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
 import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.rtsp.R
+import info.dvkr.screenstream.rtsp.RtspKoinScope
 import info.dvkr.screenstream.rtsp.RtspModuleService
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.adjustResizeFactor
 import info.dvkr.screenstream.rtsp.internal.audio.AudioEncoder
@@ -75,13 +76,18 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.Scope
+import org.koin.core.annotation.Scoped
 import java.net.URISyntaxException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 
+@Scoped
+@Scope(RtspKoinScope::class)
 internal class RtspStreamingService(
-    private val service: RtspModuleService,
-    private val mutableRtspStateFlow: MutableStateFlow<RtspState>,
+    @InjectedParam private val service: RtspModuleService,
+    @InjectedParam private val mutableRtspStateFlow: MutableStateFlow<RtspState>,
     private val rtspSettings: RtspSettings,
     private val networkHelper: NetworkHelper,
     private val streamingAnalytics: StreamingAnalytics

@@ -9,12 +9,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 import org.koin.core.scope.Scope
 
 @Immutable
 public interface StreamingModule {
 
     @Immutable
+    @Serializable
     public data class Id(public val value: String)
 
     @Immutable

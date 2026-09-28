@@ -5,6 +5,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.koin.compiler)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
 }
@@ -122,6 +123,10 @@ dependencies {
     coreLibraryDesugaring(libs.android.tools.desugar)
 
     implementation(projects.common)
+    implementation(projects.streamingCore)
+
+    implementation(libs.koin.core)
+    implementation(libs.koin.annotations)
 
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
@@ -129,6 +134,7 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.navigation)
 
     implementation(projects.mjpeg)
+    implementation(projects.mjpeg2)
     implementation(projects.rtsp)
 
     "PlayStoreImplementation"(projects.webrtc)

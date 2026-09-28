@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import androidx.annotation.MainThread
 import androidx.annotation.RequiresApi
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.NotificationCompat
@@ -29,7 +30,7 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
     private val packageName = context.packageName
     private val packageManager = context.packageManager
-    private val largeIcon by lazy(LazyThreadSafetyMode.NONE) { AppCompatResources.getDrawable(context, R.drawable.logo)?.toBitmap() }
+    private val largeIcon by lazy { AppCompatResources.getDrawable(context, R.drawable.logo)?.toBitmap() }
 
     init {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -83,7 +84,18 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
             .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
             .putExtra(Settings.EXTRA_CHANNEL_ID, notificationManager.getNotificationChannel(CHANNEL_STREAMING).id)
 
-    override fun createForegroundNotification(context: Context, stopIntent: Intent): Notification {
+    override fun createForegroundNotification(context: Context, stopIntent: Intent): Notification =
+        buildForegroundNotification(
+            context,
+            PendingIntent.getService(context, 2, stopIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT),
+        )
+
+    /** Builds the notification from the already prepared Stop route. */
+    @MainThread
+    override fun createForegroundNotification(context: Context, stopAction: PendingIntent): Notification =
+        buildForegroundNotification(context, stopAction)
+
+    private fun buildForegroundNotification(context: Context, stopAction: PendingIntent): Notification {
         XLog.d(getLog("createForegroundNotification", "context: ${context::class.java.simpleName}#${context.hashCode()}"))
 
         return NotificationCompat.Builder(context, CHANNEL_STREAMING)
@@ -97,13 +109,7 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
             .setSmallIcon(R.drawable.ic_notification_small_anim_24dp)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(PendingIntent.getActivity(context, 0, SingleActivity.getIntent(context), PendingIntent.FLAG_IMMUTABLE))
-            .addAction(
-                NotificationCompat.Action(
-                    null,
-                    context.getString(R.string.app_notification_stop),
-                    PendingIntent.getService(context, 2, stopIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                )
-            )
+            .addAction(NotificationCompat.Action(null, context.getString(R.string.app_notification_stop), stopAction))
             .also { builder ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     notificationManager.getNotificationChannel(CHANNEL_STREAMING)?.let { notificationChannel ->
