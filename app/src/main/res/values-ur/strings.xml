@@ -13,6 +13,7 @@
     <string name="app_tab_exit">خروج</string>
 
     <string name="app_tab_stream_select_mode">اسٹریم موڈ منتخب کریں:</string>
+    <string name="app_tab_stream_switching_modules">ماڈیول تبدیل کیے جا رہے ہیں</string>
 
     <string name="app_permission_required_title">اجازت درکار ہے</string>
     <string name="app_permission_allow_notifications">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات کی اجازت درکار ہے۔\n\nاطلاعات کی اجازت دیں۔</string>

@@ -33,10 +33,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.common.findActivity
 import info.dvkr.screenstream.common.getAppSettingsIntent
 import info.dvkr.screenstream.common.isPermissionGranted
-import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.get
@@ -63,7 +63,7 @@ internal fun RtspMainScreenUI(
     rtspStateFlow: StateFlow<RtspState>,
     sendEvent: (event: RtspEvent) -> Unit,
     onProjectionGranted: (startAttemptId: String, intent: Intent) -> Unit,
-    windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+    windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier,
     rtspSettings: RtspSettings = koinInject(),
     notificationHelper: NotificationHelper = koinInject()
@@ -163,7 +163,7 @@ internal fun RtspMainScreenUI(
                     ServerSettingsCard(
                         settings = settings,
                         updateSettings = updateSettings,
-                        windowWidthSizeClass = windowWidthSizeClass,
+                        windowSizeClass = windowSizeClass,
                         enabled = state.isStreaming.not(),
                         modifier = Modifier.padding(8.dp)
                     )
@@ -174,7 +174,7 @@ internal fun RtspMainScreenUI(
                     ClientSettingsCard(
                         settings = settings,
                         updateSettings = updateSettings,
-                        windowWidthSizeClass = windowWidthSizeClass,
+                        windowSizeClass = windowSizeClass,
                         enabled = state.isStreaming.not(),
                         modifier = Modifier.padding(8.dp)
                     )

@@ -5,6 +5,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.koin.compiler)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
@@ -124,6 +125,7 @@ dependencies {
 
     implementation(projects.common)
     implementation(projects.streamingCore)
+    implementation(projects.streamingLegacy)
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)

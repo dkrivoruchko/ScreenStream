@@ -13,6 +13,7 @@
     <string name="app_tab_exit">خروج</string>
 
     <string name="app_tab_stream_select_mode">اختر وضع البث:</string>
+    <string name="app_tab_stream_switching_modules">جارٍ تبديل الوحدات</string>
 
     <string name="app_permission_required_title">الإذن مطلوب</string>
     <string name="app_permission_allow_notifications">يحتاج هذا التطبيق إلى إذن الإشعارات لبدء خدمة البث.\n\nاسمح بالإشعارات.</string>

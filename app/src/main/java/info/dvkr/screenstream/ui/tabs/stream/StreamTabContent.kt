@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.ui.tabs.stream
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,10 +18,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,14 +34,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
-import info.dvkr.screenstream.AnchoredAdaptiveBanner
+import info.dvkr.screenstream.app.AnchoredAdaptiveBanner
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.common.module.StreamingModule
-import info.dvkr.screenstream.common.module.StreamingModuleManager
-import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.common.ui.ExpandableCard
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.streaming.module.StreamingModule
 import org.koin.compose.koinInject
 
 @Composable
@@ -49,14 +47,8 @@ internal fun StreamTabContent( //TODO Add foldable support
     modifier: Modifier = Modifier,
     streamingModulesManager: StreamingModuleManager = koinInject()
 ) {
-    val activeModule = streamingModulesManager.activeModuleStateFlow.collectAsStateWithLifecycle()
-    val windowWidthSizeClass = with(currentWindowAdaptiveInfo().windowSizeClass) {
-        when {
-            isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) -> StreamingModule.WindowWidthSizeClass.EXPANDED
-            isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) -> StreamingModule.WindowWidthSizeClass.MEDIUM
-            else -> StreamingModule.WindowWidthSizeClass.COMPACT
-        }
-    }
+    val moduleState = streamingModulesManager.state.collectAsStateWithLifecycle()
+    val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
 
     Column(modifier = modifier) {
         val width = with(LocalDensity.current) { boundsInWindow.width.toDp() }
@@ -65,6 +57,7 @@ internal fun StreamTabContent( //TODO Add foldable support
                 Column(modifier = Modifier.weight(1F), verticalArrangement = Arrangement.Center) {
                     StreamingModuleSelector(
                         streamingModulesManager = streamingModulesManager,
+                        enabled = moduleState.value != StreamingModuleManager.State.Switching,
                         modifier = Modifier
                             .padding(top = 8.dp, start = 16.dp, end = 8.dp, bottom = 8.dp)
                             .fillMaxWidth()
@@ -79,29 +72,63 @@ internal fun StreamTabContent( //TODO Add foldable support
                 AnchoredAdaptiveBanner(modifier = Modifier.fillMaxWidth())
                 StreamingModuleSelector(
                     streamingModulesManager = streamingModulesManager,
+                    enabled = moduleState.value != StreamingModuleManager.State.Switching,
                     modifier = Modifier
                         .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
                         .fillMaxWidth()
                 )
             }
         }
-        activeModule.value?.StreamUIContent(
-            windowWidthSizeClass = windowWidthSizeClass,
-            modifier = Modifier.fillMaxSize()
-        )
+
+        //TODO Update UI to properly manage new StreamingModuleManager.States.
+        when (val state = moduleState.value) {
+            is StreamingModuleManager.State.Running -> key(state.instanceId) {
+                streamingModulesManager.InstanceContent(state.instanceId, windowSizeClass, Modifier.fillMaxSize()) {
+                    InstanceContentUnavailable()
+                }
+            }
+
+            is StreamingModuleManager.State.Failed -> key(state.instanceId) {
+                streamingModulesManager.InstanceContent(state.instanceId, windowSizeClass, Modifier.fillMaxSize()) {
+                    InstanceContentUnavailable()
+                }
+            }
+
+            is StreamingModuleManager.State.Unresponsive -> key(state.instanceId) {
+                streamingModulesManager.InstanceContent(state.instanceId, windowSizeClass, Modifier.fillMaxSize()) {
+                    InstanceContentUnavailable()
+                }
+            }
+
+            StreamingModuleManager.State.Switching -> Box(
+                modifier = Modifier.fillMaxWidth().weight(1F),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = stringResource(R.string.app_tab_stream_switching_modules))
+            }
+
+            StreamingModuleManager.State.NoModule, StreamingModuleManager.State.Exiting -> Unit
+        }
     }
 }
 
 @Composable
+private fun InstanceContentUnavailable() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = stringResource(R.string.app_error_title))
+    }
+}
+
+//TODO Update UI to properly manage new StreamingModuleManager.States.
+@Composable
 private fun StreamingModuleSelector(
     streamingModulesManager: StreamingModuleManager,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
-    scope: CoroutineScope = rememberCoroutineScope(),
 ) {
-    val selectedModuleId = streamingModulesManager.selectedModuleIdFlow
-        .collectAsStateWithLifecycle(initialValue = AppSettings.Default.STREAMING_MODULE_NONE)
+    val selectedModuleId = streamingModulesManager.currentInstanceId.collectAsStateWithLifecycle().value?.moduleId
 
-    val adaptiveInfo = currentWindowAdaptiveInfo()
+    val adaptiveInfo = currentWindowAdaptiveInfoV2()
     val expanded = rememberSaveable {
         mutableStateOf(adaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND))
     }
@@ -127,8 +154,9 @@ private fun StreamingModuleSelector(
         streamingModulesManager.modules.forEach { module ->
             ModuleSelectorRow(
                 module = module,
-                selectedModuleId = selectedModuleId.value,
-                onModuleSelect = { moduleId -> scope.launch { streamingModulesManager.selectStreamingModule(moduleId) } },
+                selectedModuleId = selectedModuleId,
+                enabled = enabled,
+                onModuleSelect = streamingModulesManager::selectModule,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -138,13 +166,15 @@ private fun StreamingModuleSelector(
 @Composable
 private fun ModuleSelectorRow(
     module: StreamingModule,
-    selectedModuleId: StreamingModule.Id,
+    selectedModuleId: StreamingModule.Id?,
+    enabled: Boolean,
     onModuleSelect: (StreamingModule.Id) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier.selectable(
             selected = module.id == selectedModuleId,
+            enabled = enabled,
             onClick = { onModuleSelect.invoke(module.id) },
             role = Role.RadioButton
         ),
@@ -152,7 +182,7 @@ private fun ModuleSelectorRow(
     ) {
         val openDescriptionDialog = rememberSaveable { mutableStateOf(false) }
 
-        RadioButton(selected = module.id == selectedModuleId, onClick = null, modifier = Modifier.padding(start = 8.dp))
+        RadioButton(selected = module.id == selectedModuleId, onClick = null, enabled = enabled, modifier = Modifier.padding(start = 8.dp))
 
         Text(
             text = stringResource(id = module.nameResource),

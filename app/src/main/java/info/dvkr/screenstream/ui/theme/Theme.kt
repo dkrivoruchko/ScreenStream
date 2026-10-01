@@ -10,7 +10,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import info.dvkr.screenstream.common.settings.AppSettings
+import info.dvkr.screenstream.app.settings.AppSettings
 import org.koin.compose.koinInject
 
 private val lightScheme = lightColorScheme(

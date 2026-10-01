@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Metu</string>
 
     <string name="app_tab_stream_select_mode">Pilih mode stream:</string>
+    <string name="app_tab_stream_switching_modules">Ngalih modul</string>
 
     <string name="app_permission_required_title">Ijin dibutuhake</string>
     <string name="app_permission_allow_notifications">Aplikasi iki mbutuhake ijin kabar kanggo miwiti layanan streaming.\n\nIdini kabar.</string>

@@ -5,6 +5,12 @@
         path="./datastore/app_settings.preferences_pb" />
     <include
         domain="file"
+        path="./datastore/streaming_settings.preferences_pb" />
+    <include
+        domain="file"
+        path="./datastore/mjpeg.preferences_pb" />
+    <include
+        domain="file"
         path="./datastore/MJPEG_settings.preferences_pb" />
     <include
         domain="file"

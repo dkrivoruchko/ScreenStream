@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Irten</string>
 
     <string name="app_tab_stream_select_mode">Hautatu streaming modua:</string>
+    <string name="app_tab_stream_switching_modules">Moduluak aldatzen</string>
 
     <string name="app_permission_required_title">Baimena behar da</string>
     <string name="app_permission_allow_notifications">Aplikazio honek jakinarazpen-baimena behar du transmisio-zerbitzua hasteko.\n\nBaimendu jakinarazpenak.</string>

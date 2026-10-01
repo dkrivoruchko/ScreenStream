@@ -1,10 +1,10 @@
-package info.dvkr.screenstream.common.settings
+package info.dvkr.screenstream.app.settings
 
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
-import info.dvkr.screenstream.common.module.StreamingModule
+import info.dvkr.screenstream.common.settings.JsonPreferencesStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import org.koin.core.annotation.Single
+import org.koin.core.annotation.Singleton
 
 /**
  * App-wide choices stored in `app_settings.preferences_pb`. Creation starts one process-owned
@@ -26,7 +26,7 @@ import org.koin.core.annotation.Single
  * @param context supplies the app settings DataStore file.
  * @param dispatcher runs settings observation and writes, defaulting to IO.
  */
-@Single(createdAtStart = true)
+@Singleton(createdAtStart = true)
 public class AppSettings(
     context: Context,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -34,21 +34,16 @@ public class AppSettings(
 
     /** Values used when the JSON settings payload is absent or unrecoverable. */
     public object Default {
-        /** Represents the absence of a saved streaming-module selection. */
-        public val STREAMING_MODULE_NONE: StreamingModule.Id = StreamingModule.Id("_NONE_")
         public const val NIGHT_MODE: Int = AppCompatDelegate.MODE_NIGHT_UNSPECIFIED
         public const val DYNAMIC_THEME: Boolean = false
-        public const val SCREEN_CAPTURE_EDUCATION_COMPLETED: Boolean = false
     }
 
     /** The app-wide settings stored together as one immutable value. */
     @Immutable
     @Serializable
     public data class Data(
-        public val streamingModule: StreamingModule.Id = Default.STREAMING_MODULE_NONE,
         public val nightMode: Int = Default.NIGHT_MODE,
         public val dynamicTheme: Boolean = Default.DYNAMIC_THEME,
-        public val screenCaptureEducationCompleted: Boolean = Default.SCREEN_CAPTURE_EDUCATION_COMPLETED,
     )
 
     private val storage: JsonPreferencesStore<Data> = JsonPreferencesStore(

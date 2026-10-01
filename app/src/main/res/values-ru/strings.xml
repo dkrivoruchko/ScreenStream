@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Выход</string>
 
     <string name="app_tab_stream_select_mode">Выберите режим трансляции:</string>
+    <string name="app_tab_stream_switching_modules">Переключение модулей</string>
 
     <string name="app_permission_required_title">Требуется разрешение</string>
     <string name="app_permission_allow_notifications">Этому приложению нужно разрешение на уведомления, чтобы запустить службу трансляции.\n\nРазрешите уведомления.</string>

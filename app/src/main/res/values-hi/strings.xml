@@ -13,6 +13,7 @@
     <string name="app_tab_exit">बाहर</string>
 
     <string name="app_tab_stream_select_mode">स्ट्रीम मोड चुनें:</string>
+    <string name="app_tab_stream_switching_modules">मॉड्यूल बदले जा रहे हैं</string>
 
     <string name="app_permission_required_title">अनुमति आवश्यक है</string>
     <string name="app_permission_allow_notifications">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप को सूचना अनुमति चाहिए।\n\nसूचनाओं की अनुमति दें।</string>

@@ -30,6 +30,8 @@ android {
 
 dependencies {
     implementation(projects.common)
+    implementation(projects.streamingCore)
+    implementation(projects.streamingLegacy)
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)

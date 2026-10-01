@@ -15,6 +15,7 @@
     <string name="app_tab_exit">Exit</string>
 
     <string name="app_tab_stream_select_mode">Select stream mode:</string>
+    <string name="app_tab_stream_switching_modules">Switching modules</string>
 
     <string name="app_permission_required_title">Permission required</string>
     <string name="app_permission_allow_notifications">This app needs notification permission to start the streaming service.\n\nAllow notifications.</string>

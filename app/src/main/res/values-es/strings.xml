@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Salir</string>
 
     <string name="app_tab_stream_select_mode">Seleccionar modo de transmisión:</string>
+    <string name="app_tab_stream_switching_modules">Cambiando módulos</string>
 
     <string name="app_permission_required_title">Permiso requerido</string>
     <string name="app_permission_allow_notifications">Esta app necesita permiso de notificaciones para iniciar el servicio de transmisión.\n\nPermite las notificaciones.</string>

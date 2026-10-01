@@ -36,7 +36,7 @@ import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
-import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
+import io.screenstream.streaming.legacy.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.WebRtcKoinScope
 import info.dvkr.screenstream.webrtc.WebRtcModuleService

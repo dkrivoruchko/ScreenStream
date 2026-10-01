@@ -9,13 +9,21 @@ import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import info.dvkr.screenstream.rtsp.ui.isStartupPolicyError
-import kotlinx.coroutines.runBlocking
+import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
+import io.screenstream.streaming.StreamingModuleManager
 import org.koin.android.ext.android.inject
+import org.koin.core.qualifier.named
 
+/**
+ * Creates one legacy controller for accepted core startup, before dispatching the backend's old commands.
+ * Retains that original controller for this Service lifetime; lifecycle callbacks never wait for cleanup.
+ */
 public class RtspModuleService : StreamingModuleService() {
 
     internal companion object {
-        internal fun getIntent(context: Context): Intent = Intent(context, RtspModuleService::class.java).addIntentId()
+        internal fun getIntent(context: Context): Intent = Intent(context, RtspModuleService::class.java).addIntentId().let { intent ->
+            (context as? RtspModuleService)?.legacyOwner?.prepareCommand(intent) ?: intent
+        }
 
         internal fun startService(context: Context, intent: Intent) {
             XLog.d(getLog("RtspModuleService.startService", "Run intent: ${intent.extras}"))
@@ -37,15 +45,30 @@ public class RtspModuleService : StreamingModuleService() {
     override val notificationIdForeground: Int = 300
     override val notificationIdError: Int = 310
 
-    private val rtspStreamingModule: RtspStreamingModule by inject(RtspKoinQualifier, LazyThreadSafetyMode.NONE)
+    private val rtspStreamingModule: RtspStreamingModuleLegacy by inject(RtspKoinQualifier, LazyThreadSafetyMode.NONE)
+    private val legacyRtspStreamingModule: LegacyRtspStreamingModule by inject(named("LegacyRtspStreamingModule"), LazyThreadSafetyMode.NONE)
+    private var legacyOwner: LegacyStreamingModuleAdapter.LegacyController? = null
+    private val streamingModuleManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == StreamingModuleManager.ACTION_START_MODULE) {
+            streamingModuleManager.onServiceStart(service = this, intent = intent, existingController = legacyOwner) { runtime ->
+                legacyRtspStreamingModule.createController(runtime, this).also { legacyOwner = it }
+            }
+            if (legacyOwner == null) stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
+        val originalOwner = legacyOwner
+        if (originalOwner == null) {
+            stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
+        if (!originalOwner.acceptsCommand(intent)) return START_NOT_STICKY
         if (intent == null) {
             XLog.e(
                 getLog("onStartCommand"),
                 IllegalArgumentException("RtspModuleService.onStartCommand: intent = null. Stop self, startId: $startId")
             )
-            stopSelfResult(startId)
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "RtspModuleService.INTENT_ID: ${intent.getStringExtra(INTENT_ID)}"))
@@ -73,19 +96,14 @@ public class RtspModuleService : StreamingModuleService() {
             return START_NOT_STICKY
         }
 
-        if (streamingModuleManager.isActive(RtspStreamingModule.Id)) {
-            when (rtspEvent) {
-                is RtspEvent.Intentable.StartService -> rtspStreamingModule.onServiceStart(this, rtspEvent.token)
-                is RtspEvent.Intentable.StartProjection -> {
-                    XLog.i(getLog("onStartCommand", "SP_TRACE route=service_cached_permission stage=service_dispatch event=StartProjection startAttemptId=${rtspEvent.startAttemptId} startId=$startId"))
-                    rtspStreamingModule.startProjection(rtspEvent.startAttemptId, rtspEvent.intent)
-                }
-                is RtspEvent.Intentable.StopStream -> rtspStreamingModule.sendEvent(rtspEvent)
-                RtspEvent.Intentable.RecoverError -> rtspStreamingModule.sendEvent(rtspEvent)
+        when (rtspEvent) {
+            is RtspEvent.Intentable.StartService -> rtspStreamingModule.onServiceStart(this, rtspEvent.token)
+            is RtspEvent.Intentable.StartProjection -> {
+                XLog.i(getLog("onStartCommand", "SP_TRACE route=service_cached_permission stage=service_dispatch event=StartProjection startAttemptId=${rtspEvent.startAttemptId} startId=$startId"))
+                rtspStreamingModule.startProjection(rtspEvent.startAttemptId, rtspEvent.intent)
             }
-        } else {
-            XLog.w(getLog("onStartCommand", "Not active module. Stop self, startId: $startId"))
-            stopSelf(startId)
+            is RtspEvent.Intentable.StopStream -> rtspStreamingModule.sendEvent(rtspEvent)
+            RtspEvent.Intentable.RecoverError -> rtspStreamingModule.sendEvent(rtspEvent)
         }
 
         return START_NOT_STICKY
@@ -93,8 +111,29 @@ public class RtspModuleService : StreamingModuleService() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        runBlocking { streamingModuleManager.stopModule(RtspStreamingModule.Id) }
-        super.onDestroy()
+        val originalOwner = legacyOwner
+        legacyOwner = null
+        try {
+            super.onDestroy()
+        } finally {
+            originalOwner?.onServiceDestroyed()
+        }
+    }
+
+    override fun onTimeout(startId: Int) {
+        try {
+            stopSelf()
+        } finally {
+            legacyOwner?.requestModuleShutdown()
+        }
+    }
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        try {
+            stopSelf()
+        } finally {
+            legacyOwner?.requestModuleShutdown()
+        }
     }
 
     @Throws(IllegalStateException::class)

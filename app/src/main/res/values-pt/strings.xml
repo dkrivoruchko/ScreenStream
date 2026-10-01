@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Sair</string>
 
     <string name="app_tab_stream_select_mode">Selecionar modo de transmissão:</string>
+    <string name="app_tab_stream_switching_modules">Alternando módulos</string>
 
     <string name="app_permission_required_title">Permissão necessária</string>
     <string name="app_permission_allow_notifications">Este app precisa da permissão de notificações para iniciar o serviço de transmissão.\n\nPermita notificações.</string>

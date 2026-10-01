@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Вийти</string>
 
     <string name="app_tab_stream_select_mode">Оберіть режим трансляції:</string>
+    <string name="app_tab_stream_switching_modules">Перемикання модулів</string>
 
     <string name="app_permission_required_title">Дозвіл обов\'язковий</string>
     <string name="app_permission_allow_notifications">Цьому додатку потрібен дозвіл на сповіщення, щоб запустити службу трансляції.\n\nДозвольте сповіщення.</string>

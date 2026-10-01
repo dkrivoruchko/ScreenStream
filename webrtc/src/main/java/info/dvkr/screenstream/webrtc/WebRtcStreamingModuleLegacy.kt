@@ -1,23 +1,22 @@
-package info.dvkr.screenstream.rtsp
+package info.dvkr.screenstream.webrtc
 
+import io.screenstream.streaming.module.StreamingModule
 import android.app.ActivityManager
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Looper
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.window.core.layout.WindowSizeClass
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.module.StreamingModule
-import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
-import info.dvkr.screenstream.rtsp.internal.RtspEvent
-import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
-import info.dvkr.screenstream.rtsp.settings.RtspSettings
-import info.dvkr.screenstream.rtsp.ui.RtspClientStatus
-import info.dvkr.screenstream.rtsp.ui.RtspMainScreenUI
-import info.dvkr.screenstream.rtsp.ui.RtspState
+import io.screenstream.streaming.legacy.StreamingModuleLegacy
+import io.screenstream.streaming.legacy.isStreamingModuleStartBlocked
+import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
+import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
+import info.dvkr.screenstream.webrtc.ui.WebRtcMainScreenUI
+import info.dvkr.screenstream.webrtc.ui.WebRtcState
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,58 +25,50 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Named
-import org.koin.core.annotation.Single
+import org.koin.core.annotation.Singleton
 import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
 
-@Single(binds = [StreamingModule::class])
-@Named("RtspStreamingModule")
-public class RtspStreamingModule : StreamingModule {
+@Singleton(binds = [StreamingModuleLegacy::class])
+@Named("WebRtcStreamingModule")
+public class WebRtcStreamingModuleLegacy : StreamingModuleLegacy {
 
     public companion object {
-        public val Id: StreamingModule.Id = StreamingModule.Id("RTSP")
+        public val Id: StreamingModule.Id = StreamingModule.Id("WEBRTC")
     }
 
-    private val _streamingServiceState: MutableStateFlow<StreamingModule.State> = MutableStateFlow(StreamingModule.State.Initiated)
-    private val _rtspStateFlow: MutableStateFlow<RtspState> = MutableStateFlow(RtspState())
+    private val _streamingServiceState: MutableStateFlow<StreamingModuleLegacy.State> = MutableStateFlow(StreamingModuleLegacy.State.Initiated)
+    private val _webRtcStateFlow: MutableStateFlow<WebRtcState> = MutableStateFlow(WebRtcState())
     private var startToken: String? = null
-    private var streamingService: RtspStreamingService? = null
+    private var streamingService: WebRtcStreamingService? = null
 
     override val id: StreamingModule.Id = Id
-    override val priority: Int = 10
+    override val priority: Int = 20
 
     override val isRunning: Flow<Boolean>
-        get() = _streamingServiceState.map { it is StreamingModule.State.Running }
+        get() = _streamingServiceState.map { it is StreamingModuleLegacy.State.Running }
 
     override val isStreaming: Flow<Boolean>
-        get() = _rtspStateFlow.map { it.isStreaming }
+        get() = _webRtcStateFlow.map { it.isStreaming }
 
     override val hasActiveConsumer: Flow<Boolean>
-        get() = _rtspStateFlow
-            .map { state ->
-                when (state.mode) {
-                    RtspSettings.Values.Mode.SERVER -> state.serverClientStats.any { it.lastSentAtMs > 0L }
-                    RtspSettings.Values.Mode.CLIENT -> state.clientStatus == RtspClientStatus.ACTIVE
-                }
-            }
+        get() = _webRtcStateFlow
+            .map { it.clients.isNotEmpty() }
             .distinctUntilChanged()
 
-    override val requiresLocalNetworkPermission: Boolean = true
-
-    override val nameResource: Int = R.string.rtsp_stream_mode
-    override val descriptionResource: Int = R.string.rtsp_stream_mode_description
-    override val detailsResource: Int = R.string.rtsp_stream_mode_details
+    override val nameResource: Int = R.string.webrtc_stream_mode
+    override val descriptionResource: Int = R.string.webrtc_stream_mode_description
+    override val detailsResource: Int = R.string.webrtc_stream_mode_details
 
     @Composable
     override fun StreamUIContent(
-        windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+        windowSizeClass: WindowSizeClass,
         modifier: Modifier
     ): Unit =
-        RtspMainScreenUI(
-            rtspStateFlow = _rtspStateFlow.asStateFlow(),
+        WebRtcMainScreenUI(
+            webRtcStateFlow = _webRtcStateFlow.asStateFlow(),
             sendEvent = ::sendEvent,
             onProjectionGranted = ::startProjection,
-            windowWidthSizeClass = windowWidthSizeClass,
             modifier = modifier
         )
 
@@ -87,66 +78,64 @@ public class RtspStreamingModule : StreamingModule {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
-            StreamingModule.State.Initiated -> {
+            StreamingModuleLegacy.State.Initiated -> {
                 startToken = Uuid.random().toString()
-                _streamingServiceState.value = StreamingModule.State.PendingStart
-                val intent = RtspEvent.Intentable.StartService(startToken!!).toIntent(context)
+                _streamingServiceState.value = StreamingModuleLegacy.State.PendingStart
+                val intent = WebRtcEvent.Intentable.StartService(startToken!!).toIntent(context)
                 try {
-                    RtspModuleService.startService(context, intent)
+                    WebRtcModuleService.startService(context, intent)
                 } catch (error: Throwable) {
                     startToken = null
-                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    _streamingServiceState.value = StreamingModuleLegacy.State.Initiated
                     if (error.isStreamingModuleStartBlocked()) {
                         val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
-                        throw StreamingModule.StartBlockedException(id, importance, error)
+                        throw StreamingModuleLegacy.StartBlockedException(id, importance, error)
                     }
                     throw error
                 }
             }
 
-            StreamingModule.State.PendingStart ->
+            StreamingModuleLegacy.State.PendingStart ->
                 XLog.i(getLog("startModule", "Already starting (PendingStart). Ignoring."))
 
-            is StreamingModule.State.Running ->
+            is StreamingModuleLegacy.State.Running ->
                 XLog.w(getLog("startModule", "Already running. Ignoring."), RuntimeException("Unexpected state: $state"))
 
-            StreamingModule.State.PendingStop ->
+            StreamingModuleLegacy.State.PendingStop ->
                 XLog.w(getLog("startModule", "Stopping (PendingStop). Ignoring."), RuntimeException("Unexpected state: $state"))
         }
     }
 
     @MainThread
-    internal fun onServiceStart(service: Service, token: String) {
-        XLog.d(getLog("onServiceStart", "Service: $service"))
-
+    internal fun onServiceStart(service: WebRtcModuleService, token: String) {
         when (val state = _streamingServiceState.value) {
-            StreamingModule.State.PendingStart -> {
+            StreamingModuleLegacy.State.PendingStart -> {
                 if (token != startToken) {
                     XLog.w(getLog("onServiceStart", "Invalid token. Ignoring."))
                     return
                 }
                 startToken = null
-                val scope = RtspKoinScope().scope
+                val scope = WebRtcKoinScope().scope
                 try {
-                    val createdStreamingService = scope.get<RtspStreamingService> { parametersOf(service, _rtspStateFlow) }
+                    val createdStreamingService = scope.get<WebRtcStreamingService> { parametersOf(service, _webRtcStateFlow) }
                     streamingService = createdStreamingService
-                    _streamingServiceState.value = StreamingModule.State.Running(scope)
+                    _streamingServiceState.value = StreamingModuleLegacy.State.Running(scope)
                     createdStreamingService.start()
                 } catch (t: Throwable) {
                     streamingService = null
                     scope.close()
-                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    _streamingServiceState.value = StreamingModuleLegacy.State.Initiated
                     throw t
                 }
             }
 
-            StreamingModule.State.Initiated ->
+            StreamingModuleLegacy.State.Initiated ->
                 XLog.w(getLog("onServiceStart", "Unexpected Initiated state. Ignoring."), RuntimeException("Unexpected state: $state"))
 
-            is StreamingModule.State.Running ->
+            is StreamingModuleLegacy.State.Running ->
                 XLog.w(getLog("onServiceStart", "Already running. Ignoring."), RuntimeException("Unexpected state: $state"))
 
-            StreamingModule.State.PendingStop ->
+            StreamingModuleLegacy.State.PendingStop ->
                 XLog.w(getLog("onServiceStart", "Stopping (PendingStop). Ignoring."), RuntimeException("Unexpected state: $state"))
         }
     }
@@ -157,49 +146,42 @@ public class RtspStreamingModule : StreamingModule {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
-            StreamingModule.State.Initiated -> XLog.d(getLog("stopModule", "Already stopped (Initiated). Ignoring"))
+            StreamingModuleLegacy.State.Initiated -> XLog.d(getLog("stopModule", "Already stopped (Initiated). Ignoring"))
 
-            StreamingModule.State.PendingStart -> {
+            StreamingModuleLegacy.State.PendingStart -> {
                 XLog.d(getLog("stopModule", "Not started (PendingStart)"))
                 startToken = null
                 streamingService = null
-                _rtspStateFlow.value = RtspState()
-                _streamingServiceState.value = StreamingModule.State.Initiated
+                _streamingServiceState.value = StreamingModuleLegacy.State.Initiated
             }
 
-            is StreamingModule.State.Running -> {
-                _streamingServiceState.value = StreamingModule.State.PendingStop
-                _rtspStateFlow.value = RtspState()
+            is StreamingModuleLegacy.State.Running -> {
+                _streamingServiceState.value = StreamingModuleLegacy.State.PendingStop
+                _webRtcStateFlow.value = WebRtcState()
                 val activeStreamingService = streamingService
                 try {
                     withContext(NonCancellable) {
                         if (activeStreamingService != null) activeStreamingService.destroyService()
-                        else XLog.w(getLog("stopModule", "Running state without RtspStreamingService"))
+                        else XLog.w(getLog("stopModule", "Running state without WebRtcStreamingService"))
                     }
                 } finally {
                     streamingService = null
-                    _rtspStateFlow.value = RtspState()
+                    _webRtcStateFlow.value = WebRtcState()
                     startToken = null
                     state.scope.close()
-                    _streamingServiceState.value = StreamingModule.State.Initiated
+                    _streamingServiceState.value = StreamingModuleLegacy.State.Initiated
                 }
             }
 
-            StreamingModule.State.PendingStop -> XLog.d(getLog("stopModule", "Already stopping (PendingStop). Ignoring"))
+            StreamingModuleLegacy.State.PendingStop -> XLog.d(getLog("stopModule", "Already stopping (PendingStop). Ignoring"))
         }
 
         XLog.d(getLog("stopModule", "Done"))
     }
 
-    @MainThread
     override fun stopStream(reason: String) {
-        XLog.d(getLog("stopStream", "reason: $reason"))
-        sendEvent(RtspEvent.Intentable.StopStream(reason))
-    }
-
-    override fun recoverError() {
-        XLog.d(getLog("recoverError"))
-        sendEvent(RtspEvent.Intentable.RecoverError)
+        XLog.d(getLog("stopStream", "reason $reason"))
+        sendEvent(WebRtcEvent.Intentable.StopStream(reason))
     }
 
     @MainThread
@@ -208,14 +190,14 @@ public class RtspStreamingModule : StreamingModule {
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
-            is StreamingModule.State.Running -> {
+            is StreamingModuleLegacy.State.Running -> {
                 val activeStreamingService = streamingService
                 if (activeStreamingService != null) {
                     if (activeStreamingService.prepareStartProjectionForeground(startAttemptId)) {
                         val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
-                        activeStreamingService.sendEvent(RtspEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
+                        activeStreamingService.sendEvent(WebRtcEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
                     }
-                } else XLog.w(getLog("startProjection", "Running state without RtspStreamingService"))
+                } else XLog.w(getLog("startProjection", "Running state without WebRtcStreamingService"))
             }
 
             else -> XLog.i(getLog("startProjection", "Ignoring stale intent in state $state"))
@@ -223,26 +205,28 @@ public class RtspStreamingModule : StreamingModule {
     }
 
     @MainThread
-    internal fun sendEvent(event: RtspEvent) {
+    internal fun sendEvent(event: WebRtcEvent) {
         XLog.d(getLog("sendEvent", "Event $event"))
         check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
 
         when (val state = _streamingServiceState.value) {
-            is StreamingModule.State.Running -> {
+            is StreamingModuleLegacy.State.Running -> {
                 val activeStreamingService = streamingService
                 if (activeStreamingService != null) activeStreamingService.sendEvent(event)
                 else XLog.w(
-                    getLog("sendEvent", "Running state without RtspStreamingService for event $event"),
+                    getLog("sendEvent", "Running state without WebRtcStreamingService for event $event"),
                     RuntimeException("Unexpected state: $state for event $event")
                 )
             }
+
             else -> when (event) {
-                is RtspEvent.StartProjection,
-                is RtspEvent.CastPermissionsDenied,
-                is RtspEvent.Intentable.RecoverError,
-                is RtspEvent.Intentable.StopStream,
-                is RtspStreamingService.InternalEvent.StartStream ->
-                    XLog.i(getLog("sendEvent", "Ignoring stale event in state=$state: $event"))
+                is WebRtcEvent.Intentable.StopStream,
+                is WebRtcEvent.StartProjection,
+                is WebRtcEvent.CastPermissionsDenied,
+                is WebRtcEvent.GetNewStreamId,
+                is WebRtcEvent.CreateNewPassword,
+                is WebRtcStreamingService.InternalEvent.StartStream ->
+                    XLog.i(getLog("sendEvent", "Ignoring stale event in state $state => $event"))
 
                 else -> XLog.w(
                     getLog("sendEvent", "Unexpected state: $state for event $event"),

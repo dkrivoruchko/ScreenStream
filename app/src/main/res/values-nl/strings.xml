@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Afsluiten</string>
 
     <string name="app_tab_stream_select_mode">Selecteer streammodus:</string>
+    <string name="app_tab_stream_switching_modules">Modules wisselen</string>
 
     <string name="app_permission_required_title">Toestemming nodig</string>
     <string name="app_permission_allow_notifications">Deze app heeft meldingsrechten nodig om de streamingdienst te starten.\n\nSta meldingen toe.</string>

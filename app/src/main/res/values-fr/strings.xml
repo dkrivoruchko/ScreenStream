@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Quitter</string>
 
     <string name="app_tab_stream_select_mode">Sélectionnez le mode de diffusion :</string>
+    <string name="app_tab_stream_switching_modules">Changement de modules</string>
 
     <string name="app_permission_required_title">Permission requise</string>
     <string name="app_permission_allow_notifications">Cette application a besoin de l\'autorisation de notifications pour démarrer le service de diffusion.\n\nAutorisez les notifications.</string>

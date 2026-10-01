@@ -27,20 +27,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import info.dvkr.screenstream.common.module.StreamingModule
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.rtsp.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun RtspSettingModal(
-    windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+    windowSizeClass: WindowSizeClass,
     title: String,
     onDismissRequest: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    when (windowWidthSizeClass) {
-        StreamingModule.WindowWidthSizeClass.COMPACT -> {
+    val dialogMaxWidth = when {
+        windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) -> 520.dp
+        windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) -> 440.dp
+        else -> null
+    }
+    when {
+        dialogMaxWidth == null -> {
             val sheetState = rememberModalBottomSheetState()
             val scope = rememberCoroutineScope()
             val closeSheet = {
@@ -64,13 +69,7 @@ internal fun RtspSettingModal(
             }
         }
 
-        StreamingModule.WindowWidthSizeClass.MEDIUM,
-        StreamingModule.WindowWidthSizeClass.EXPANDED -> {
-            val dialogMaxWidth = when (windowWidthSizeClass) {
-                StreamingModule.WindowWidthSizeClass.MEDIUM -> 440.dp
-                StreamingModule.WindowWidthSizeClass.EXPANDED -> 520.dp
-            }
-
+        else -> {
             Dialog(
                 onDismissRequest = onDismissRequest,
                 properties = DialogProperties(usePlatformDefaultWidth = false)

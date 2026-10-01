@@ -12,7 +12,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.settings.AppSettings
+import info.dvkr.screenstream.common.settings.ScreenCaptureEducationSettings
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 import java.io.IOException
@@ -21,7 +21,7 @@ import kotlin.time.Duration.Companion.seconds
 @Stable
 @KoinViewModel
 internal class ScreenCapturePermissionViewModel(
-    private val appSettings: AppSettings
+    private val educationSettings: ScreenCaptureEducationSettings
 ) : ViewModel() {
 
     internal companion object {
@@ -56,7 +56,7 @@ internal class ScreenCapturePermissionViewModel(
         )
 
     internal fun requestStart(onStartRequested: (Boolean) -> Unit) {
-        if (appSettings.data.value.screenCaptureEducationCompleted) {
+        if (educationSettings.screenCaptureEducationCompleted) {
             state = PermissionState.Idle
             onStartRequested(false)
         } else {
@@ -70,7 +70,7 @@ internal class ScreenCapturePermissionViewModel(
 
         viewModelScope.launch {
             try {
-                appSettings.updateData { copy(screenCaptureEducationCompleted = true) }
+                educationSettings.markEducationCompleted()
             } catch (error: IOException) {
                 XLog.e(getLog("ScreenCapturePermission", "Failed to save education confirmation"), error)
             }

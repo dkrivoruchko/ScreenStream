@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.AdMob
+import info.dvkr.screenstream.app.AdMob
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.findActivity
 import info.dvkr.screenstream.common.getVersionName

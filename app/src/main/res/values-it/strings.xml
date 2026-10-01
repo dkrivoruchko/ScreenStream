@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Esci</string>
 
     <string name="app_tab_stream_select_mode">Seleziona la modalità di streaming:</string>
+    <string name="app_tab_stream_switching_modules">Cambio dei moduli</string>
 
     <string name="app_permission_required_title">Richiesta autorizzazione</string>
     <string name="app_permission_allow_notifications">Questa app richiede l\'autorizzazione alle notifiche per avviare il servizio di streaming.\n\nConsenti le notifiche.</string>

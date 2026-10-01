@@ -13,6 +13,7 @@
     <string name="app_tab_exit">終了</string>
 
     <string name="app_tab_stream_select_mode">ストリームモードを選択：</string>
+    <string name="app_tab_stream_switching_modules">モジュールを切り替えています</string>
 
     <string name="app_permission_required_title">権限が必要です</string>
     <string name="app_permission_allow_notifications">このアプリはストリーミングサービスを開始するために通知権限が必要です。\n\n通知を許可してください。</string>

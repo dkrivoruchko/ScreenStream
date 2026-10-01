@@ -1,4 +1,4 @@
-package info.dvkr.screenstream
+package info.dvkr.screenstream.app
 
 import android.content.Context
 import android.os.Bundle
@@ -7,7 +7,9 @@ import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingAnalyticsEvent
 import info.dvkr.screenstream.common.analytics.StreamingAnalyticsMappers
 import info.dvkr.screenstream.common.analytics.StreamingAnalyticsSchema
+import org.koin.core.annotation.Singleton
 
+@Singleton(binds = [StreamingAnalytics::class], createdAtStart = true)
 public class AppStreamingAnalytics(context: Context) : StreamingAnalytics {
 
     private val firebaseAnalytics: FirebaseAnalytics = FirebaseAnalytics.getInstance(context)

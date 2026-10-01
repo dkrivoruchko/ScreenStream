@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.common.module.StreamingModule
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.common.ui.ExpandableCard
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
@@ -38,7 +38,7 @@ import info.dvkr.screenstream.mjpeg.ui.main.settings.general.StopOnSleepRow
 internal fun GeneralSettingsCard(
     settings: MjpegSettings.Data,
     updateSettings: (MjpegSettings.Data.() -> MjpegSettings.Data) -> Unit,
-    windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+    windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier,
 ) {
     var selectedSheet by rememberSaveable { mutableStateOf<GeneralSettingSheet?>(null) }
@@ -112,7 +112,7 @@ internal fun GeneralSettingsCard(
 
         selectedSheet?.let { sheet ->
             MjpegSettingModal(
-                windowWidthSizeClass = windowWidthSizeClass,
+                windowSizeClass = windowSizeClass,
                 title = stringResource(sheet.titleRes),
                 onDismissRequest = { selectedSheet = null }
             ) {

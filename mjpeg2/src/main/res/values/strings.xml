@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mjpeg2_stream_mode">MJPEG2</string>
-    <string name="mjpeg2_stream_mode_description">In development</string>
-    <string name="mjpeg2_stream_mode_details">Screen streaming and browser viewing are not available yet.</string>
+    <string name="mjpeg_mode_name">MJPEG</string>
+    <string name="mjpeg_mode_description">In development</string>
+    <string name="mjpeg_mode_details">Screen streaming and browser viewing are not available yet.</string>
+
+    <string name="mjpeg_start_stream">Start stream</string>
+    <string name="mjpeg_stop_stream">Stop stream</string>
+
+    <string name="mjpeg_capture_error">Screen capture failed</string>
+    <string name="mjpeg_capture_resume_error">Could not resume screen capture</string>
 </resources>

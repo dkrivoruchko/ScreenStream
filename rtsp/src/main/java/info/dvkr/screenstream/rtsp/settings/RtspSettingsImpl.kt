@@ -20,11 +20,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.koin.core.annotation.Single
+import org.koin.core.annotation.Singleton
 import java.io.IOException
 import kotlin.uuid.Uuid
 
-@Single(binds = [RtspSettings::class])
+@Singleton(binds = [RtspSettings::class])
 internal class RtspSettingsImpl(
     context: Context
 ) : RtspSettings {

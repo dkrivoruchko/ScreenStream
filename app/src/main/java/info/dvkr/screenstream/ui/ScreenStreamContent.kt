@@ -34,8 +34,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
-import androidx.compose.material3.adaptive.currentWindowSize
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldLayout
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
@@ -50,6 +49,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -124,7 +124,7 @@ private fun MainContent(
 
     BackHandler(enabled = selectedTab.value != AppTabs.STREAM) { selectedTab.value = AppTabs.STREAM }
 
-    val layoutType = with(currentWindowAdaptiveInfo()) {
+    val layoutType = with(currentWindowAdaptiveInfoV2()) {
         when {
             windowPosture.isTabletop -> NavigationSuiteType.NavigationBar
             windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) -> NavigationSuiteType.NavigationRail
@@ -132,7 +132,7 @@ private fun MainContent(
         }
     }
 
-    val windowSize = currentWindowSize()
+    val windowSize = LocalWindowInfo.current.containerSize
     val contentBoundsInWindow = remember(windowSize) { mutableStateOf(windowSize.toIntRect().toRect()) }
 
     Surface(

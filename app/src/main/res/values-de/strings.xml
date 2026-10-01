@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Beenden</string>
 
     <string name="app_tab_stream_select_mode">Stream-Modus auswählen:</string>
+    <string name="app_tab_stream_switching_modules">Module werden gewechselt</string>
 
     <string name="app_permission_required_title">Berechtigung erforderlich</string>
     <string name="app_permission_allow_notifications">Diese App benötigt die Benachrichtigungsberechtigung, um den Streaming-Dienst zu starten.\n\nBenachrichtigungen erlauben.</string>

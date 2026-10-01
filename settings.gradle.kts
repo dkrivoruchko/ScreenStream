@@ -30,6 +30,7 @@ rootProject.name = "ScreenStream"
 include(":app")
 include(":common")
 include(":streaming-core")
+include(":streaming-legacy")
 include(":mjpeg")
 include(":mjpeg2")
 include(":rtsp")

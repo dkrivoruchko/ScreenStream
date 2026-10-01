@@ -14,14 +14,12 @@ import com.google.android.play.core.ktx.launchReview
 import com.google.android.play.core.ktx.requestReview
 import com.google.android.play.core.review.ReviewManagerFactory
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.module.StreamingModuleManager
+import io.screenstream.streaming.StreamingModuleManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -81,12 +79,10 @@ public object AppReview {
         }
 
         trackingJob?.cancel()
-        trackingJob = streamingModulesManager.activeModuleStateFlow
-            .flatMapLatest { activeModule ->
-                if (activeModule == null) flowOf(StreamingSignal(isStreaming = false, hasActiveConsumer = false))
-                else combine(activeModule.isStreaming, activeModule.hasActiveConsumer) { isStreaming, hasActiveConsumer ->
-                    StreamingSignal(isStreaming = isStreaming, hasActiveConsumer = hasActiveConsumer)
-                }
+        trackingJob = streamingModulesManager.state
+            .map { state ->
+                val status = if (state is StreamingModuleManager.State.Running) state.status else null
+                StreamingSignal(status?.isStreaming == true, status?.hasConsumer == true)
             }
             .distinctUntilChanged()
             .onEach { signal -> onStreamingSignal(activity, signal) }

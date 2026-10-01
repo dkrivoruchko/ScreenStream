@@ -15,7 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.common.module.StreamingModule
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.common.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
@@ -36,7 +36,7 @@ import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerProtocolRow
 internal fun ServerSettingsCard(
     settings: RtspSettings.Data,
     updateSettings: (RtspSettings.Data.() -> RtspSettings.Data) -> Unit,
-    windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+    windowSizeClass: WindowSizeClass,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -129,7 +129,7 @@ internal fun ServerSettingsCard(
 
         selectedSheet?.let { sheet ->
             RtspSettingModal(
-                windowWidthSizeClass = windowWidthSizeClass,
+                windowSizeClass = windowSizeClass,
                 title = stringResource(sheet.titleRes),
                 onDismissRequest = { selectedSheet = null }
             ) {

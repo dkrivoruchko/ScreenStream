@@ -10,10 +10,12 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.app.SingleActivityViewModel
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.settings.AppSettings
+import info.dvkr.screenstream.app.settings.AppSettings
 import info.dvkr.screenstream.ui.ScreenStreamContent
 import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
+import io.screenstream.streaming.StreamingModuleManager
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.core.qualifier.named
 import kotlin.coroutines.cancellation.CancellationException
 
 public class SingleActivity : AppUpdateActivity() {
@@ -29,8 +32,8 @@ public class SingleActivity : AppUpdateActivity() {
         internal fun getIntent(context: Context): Intent = Intent(context, SingleActivity::class.java)
     }
 
-    private val streamingModulesManager: info.dvkr.screenstream.common.module.StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
-    private val streamingViewModel: SingleActivityViewModel by viewModel()
+    private val streamingModulesManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
+    private val streamingViewModel: SingleActivityViewModel by viewModel(qualifier = named("SingleActivityViewModel"))
     private val appSettings: AppSettings by inject(mode = LazyThreadSafetyMode.NONE)
 
     override fun onCreate(savedInstanceState: Bundle?) {

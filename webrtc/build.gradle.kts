@@ -45,6 +45,8 @@ android {
 
 dependencies {
     implementation(projects.common)
+    implementation(projects.streamingCore)
+    implementation(projects.streamingLegacy)
     implementation(projects.webrtcRuntime)
 
     implementation(libs.koin.core)

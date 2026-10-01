@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.common.module
+package io.screenstream.streaming.legacy
 
 import android.app.BackgroundServiceStartNotAllowedException
 import android.content.Context
@@ -8,23 +8,13 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
+import androidx.window.core.layout.WindowSizeClass
+import io.screenstream.streaming.module.StreamingModule
 import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.Serializable
 import org.koin.core.scope.Scope
 
 @Immutable
-public interface StreamingModule {
-
-    @Immutable
-    @Serializable
-    public data class Id(public val value: String)
-
-    @Immutable
-    public enum class WindowWidthSizeClass {
-        COMPACT,
-        MEDIUM,
-        EXPANDED,
-    }
+public interface StreamingModuleLegacy {
 
     public sealed class State {
         public data object Initiated : State()
@@ -33,7 +23,7 @@ public interface StreamingModule {
         public data object PendingStop : State()
     }
 
-    public val id: Id
+    public val id: StreamingModule.Id
 
     public val priority: Int
 
@@ -56,7 +46,7 @@ public interface StreamingModule {
     public val detailsResource: Int
 
     @Composable
-    public fun StreamUIContent(windowWidthSizeClass: WindowWidthSizeClass, modifier: Modifier)
+    public fun StreamUIContent(windowSizeClass: WindowSizeClass, modifier: Modifier)
 
     @MainThread
     public fun startModule(context: Context)
@@ -71,7 +61,7 @@ public interface StreamingModule {
     public fun recoverError(): Unit = Unit
 
     public class StartBlockedException(
-        public val moduleId: Id,
+        public val moduleId: StreamingModule.Id,
         public val importance: Int,
         cause: Throwable
     ) : IllegalStateException(
@@ -82,7 +72,7 @@ public interface StreamingModule {
 
 public fun Throwable.isStreamingModuleStartBlocked(): Boolean =
     when {
-        this is StreamingModule.StartBlockedException -> true
+        this is StreamingModuleLegacy.StartBlockedException -> true
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> this is BackgroundServiceStartNotAllowedException
         this is IllegalStateException -> message?.contains("Not allowed to start service", ignoreCase = true) == true
         else -> false

@@ -13,6 +13,7 @@
     <string name="app_tab_exit">გასვლა</string>
 
     <string name="app_tab_stream_select_mode">აირჩიეთ ნაკადის რეჟიმი:</string>
+    <string name="app_tab_stream_switching_modules">მოდულების გადართვა</string>
 
     <string name="app_permission_required_title">საჭიროა ნებართვა</string>
     <string name="app_permission_allow_notifications">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებების ნებართვა სჭირდება.\n\nდაუშვით შეტყობინებები.</string>

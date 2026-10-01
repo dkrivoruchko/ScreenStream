@@ -35,7 +35,7 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.isLocalNetworkPermissionGranted
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
-import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
+import io.screenstream.streaming.legacy.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.RtspKoinScope
 import info.dvkr.screenstream.rtsp.RtspModuleService

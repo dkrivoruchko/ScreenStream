@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Verlaat</string>
 
     <string name="app_tab_stream_select_mode">Kies stroommodus:</string>
+    <string name="app_tab_stream_switching_modules">Wissel modules</string>
 
     <string name="app_permission_required_title">Toestemming vereis</string>
     <string name="app_permission_allow_notifications">Hierdie app benodig kennisgewingtoestemming om die stroomdiens te begin.\n\nLaat kennisgewings toe.</string>

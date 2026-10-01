@@ -27,8 +27,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.common.getAppSettingsIntent
-import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.get
@@ -56,7 +56,7 @@ internal fun MjpegMainScreenUI(
     mjpegStateFlow: StateFlow<MjpegState>,
     sendEvent: (event: MjpegEvent) -> Unit,
     onProjectionGranted: (startAttemptId: String, intent: android.content.Intent) -> Unit,
-    windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+    windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier,
     mjpegSettings: MjpegSettings = koinInject(),
     notificationHelper: NotificationHelper = koinInject()
@@ -139,7 +139,7 @@ internal fun MjpegMainScreenUI(
                 GeneralSettingsCard(
                     settings = settings,
                     updateSettings = updateSettings,
-                    windowWidthSizeClass = windowWidthSizeClass,
+                    windowSizeClass = windowSizeClass,
                     modifier = Modifier.padding(8.dp)
                 )
             }
@@ -148,7 +148,7 @@ internal fun MjpegMainScreenUI(
                 ImageSettingsCard(
                     settings = settings,
                     updateSettings = updateSettings,
-                    windowWidthSizeClass = windowWidthSizeClass,
+                    windowSizeClass = windowSizeClass,
                     modifier = Modifier.padding(8.dp)
                 )
             }
@@ -158,7 +158,7 @@ internal fun MjpegMainScreenUI(
                     settings = settings,
                     isStreaming = state.isStreaming,
                     updateSettings = updateSettings,
-                    windowWidthSizeClass = windowWidthSizeClass,
+                    windowSizeClass = windowSizeClass,
                     modifier = Modifier.padding(8.dp)
                 )
             }
@@ -167,7 +167,7 @@ internal fun MjpegMainScreenUI(
                 AdvancedSettingsCard(
                     settings = settings,
                     updateSettings = updateSettings,
-                    windowWidthSizeClass = windowWidthSizeClass,
+                    windowSizeClass = windowSizeClass,
                     modifier = Modifier.padding(8.dp)
                 )
             }

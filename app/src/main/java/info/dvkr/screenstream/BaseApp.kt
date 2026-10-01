@@ -8,18 +8,9 @@ import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.XLog
 import com.elvishew.xlog.printer.AndroidPrinter
 import com.elvishew.xlog.printer.Printer
-import info.dvkr.screenstream.common.analytics.StreamingAnalytics
-import info.dvkr.screenstream.common.notification.NotificationHelper
-import info.dvkr.screenstream.notification.NotificationHelperImpl
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.annotation.KoinApplication
-import org.koin.core.module.dsl.bind
-import org.koin.core.module.dsl.createdAtStart
-import org.koin.core.module.dsl.withOptions
-import org.koin.dsl.module
-import org.koin.plugin.module.dsl.single
 import org.koin.plugin.module.dsl.startKoin
-import org.koin.plugin.module.dsl.viewModel
 
 @KoinApplication
 public abstract class BaseApp : Application() {
@@ -67,15 +58,6 @@ public abstract class BaseApp : Application() {
         startKoin<BaseApp> {
             allowOverride(false)
             androidContext(this@BaseApp)
-            modules(module {
-                single<AdMob>()
-                single<AppStreamingAnalytics>() withOptions {
-                    bind<StreamingAnalytics>()
-                    createdAtStart()
-                }
-                single<NotificationHelperImpl>() withOptions { bind<NotificationHelper>() }
-                viewModel<SingleActivityViewModel>()
-            })
         }
     }
 

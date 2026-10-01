@@ -13,6 +13,7 @@
     <string name="app_tab_exit">প্রস্থান</string>
 
     <string name="app_tab_stream_select_mode">স্ট্রিম মোড নির্বাচন করুন:</string>
+    <string name="app_tab_stream_switching_modules">মডিউল পরিবর্তন করা হচ্ছে</string>
 
     <string name="app_permission_required_title">অনুমতি প্রয়োজন</string>
     <string name="app_permission_allow_notifications">স্ট্রিমিং পরিষেবা শুরু করতে এই অ্যাপের বিজ্ঞপ্তির অনুমতি প্রয়োজন।\n\nবিজ্ঞপ্তির অনুমতি দিন।</string>

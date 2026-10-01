@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Çıkış</string>
 
     <string name="app_tab_stream_select_mode">Yayın modunu seçin:</string>
+    <string name="app_tab_stream_switching_modules">Modüller değiştiriliyor</string>
 
     <string name="app_permission_required_title">İzin gerekli</string>
     <string name="app_permission_allow_notifications">Bu uygulamanın yayın hizmetini başlatmak için bildirim iznine ihtiyacı var.\n\nBildirimlere izin verin.</string>

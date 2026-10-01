@@ -16,7 +16,6 @@ public abstract class StreamingModuleService : Service() {
     protected abstract val notificationIdForeground: Int
     protected abstract val notificationIdError: Int
 
-    protected val streamingModuleManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
     protected val notificationHelper: NotificationHelper by inject(mode = LazyThreadSafetyMode.NONE)
 
     protected val processedIntents: MutableSet<String> = mutableSetOf()

@@ -1,4 +1,4 @@
-package info.dvkr.screenstream
+package info.dvkr.screenstream.app
 
 import android.app.Activity
 import android.content.Context
@@ -43,6 +43,7 @@ import com.google.android.ump.ConsentInformation.PrivacyOptionsRequirementStatus
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.FormError
 import com.google.android.ump.UserMessagingPlatform
+import info.dvkr.screenstream.BuildConfig
 import info.dvkr.screenstream.common.getLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,10 +52,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.koin.compose.koinInject
+import org.koin.core.annotation.Singleton
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
+@Singleton
 public class AdMob(private val context: Context) {
 
     internal enum class Availability { PENDING, READY, UNAVAILABLE }

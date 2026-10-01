@@ -9,13 +9,21 @@ import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.ui.MjpegError
 import info.dvkr.screenstream.mjpeg.ui.isStartupPolicyError
-import kotlinx.coroutines.runBlocking
+import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
+import io.screenstream.streaming.StreamingModuleManager
 import org.koin.android.ext.android.inject
+import org.koin.core.qualifier.named
 
+/**
+ * Creates one legacy controller for accepted core startup, before dispatching the backend's old commands.
+ * Retains that original controller for this Service lifetime; lifecycle callbacks never wait for cleanup.
+ */
 public class MjpegModuleService : StreamingModuleService() {
 
     internal companion object {
-        internal fun getIntent(context: Context): Intent = Intent(context, MjpegModuleService::class.java).addIntentId()
+        internal fun getIntent(context: Context): Intent = Intent(context, MjpegModuleService::class.java).addIntentId().let { intent ->
+            (context as? MjpegModuleService)?.legacyLaunch?.prepareCommand(intent) ?: intent
+        }
 
         internal fun startService(context: Context, intent: Intent) {
             XLog.d(getLog("MjpegModuleService.startService", "Run intent: ${intent.extras}"))
@@ -37,12 +45,28 @@ public class MjpegModuleService : StreamingModuleService() {
     override val notificationIdForeground: Int = 100
     override val notificationIdError: Int = 110
 
-    private val mjpegStreamingModule: MjpegStreamingModule by inject(MjpegKoinQualifier, LazyThreadSafetyMode.NONE)
+    private val mjpegStreamingModule: MjpegStreamingModuleLegacy by inject(MjpegKoinQualifier, LazyThreadSafetyMode.NONE)
+
+    private val legacyMjpegStreamingModule: LegacyMjpegStreamingModule by inject(named("LegacyMjpegStreamingModule"), LazyThreadSafetyMode.NONE)
+    private var legacyLaunch: LegacyStreamingModuleAdapter.LegacyController? = null
+    private val streamingModuleManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == StreamingModuleManager.ACTION_START_MODULE) {
+            streamingModuleManager.onServiceStart(service = this, intent = intent, existingController = legacyLaunch) { runtime ->
+                legacyMjpegStreamingModule.createController(runtime, this).also { legacyLaunch = it }
+            }
+            if (legacyLaunch == null) stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
+        val originalOwner = legacyLaunch
+        if (originalOwner == null) {
+            stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
+        if (!originalOwner.acceptsCommand(intent)) return START_NOT_STICKY
         if (intent == null) {
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("MjpegModuleService.onStartCommand: intent = null. Stop self, startId: $startId"))
-            stopSelfResult(startId)
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "MjpegModuleService.INTENT_ID: ${intent.getStringExtra(INTENT_ID)}"))
@@ -64,19 +88,14 @@ public class MjpegModuleService : StreamingModuleService() {
             return START_NOT_STICKY
         }
 
-        if (streamingModuleManager.isActive(MjpegStreamingModule.Id)) {
-            when (mjpegEvent) {
-                is MjpegEvent.Intentable.StartService -> mjpegStreamingModule.onServiceStart(this, mjpegEvent.token)
-                is MjpegEvent.Intentable.StartProjection -> {
-                    XLog.i(getLog("onStartCommand", "SP_TRACE route=service_cached_permission stage=service_dispatch event=StartProjection startAttemptId=${mjpegEvent.startAttemptId} startId=$startId"))
-                    mjpegStreamingModule.startProjection(mjpegEvent.startAttemptId, mjpegEvent.intent)
-                }
-                is MjpegEvent.Intentable.StopStream -> mjpegStreamingModule.sendEvent(mjpegEvent)
-                MjpegEvent.Intentable.RecoverError -> mjpegStreamingModule.sendEvent(mjpegEvent)
+        when (mjpegEvent) {
+            is MjpegEvent.Intentable.StartService -> mjpegStreamingModule.onServiceStart(this, mjpegEvent.token)
+            is MjpegEvent.Intentable.StartProjection -> {
+                XLog.i(getLog("onStartCommand", "SP_TRACE route=service_cached_permission stage=service_dispatch event=StartProjection startAttemptId=${mjpegEvent.startAttemptId} startId=$startId"))
+                mjpegStreamingModule.startProjection(mjpegEvent.startAttemptId, mjpegEvent.intent)
             }
-        } else {
-            XLog.w(getLog("onStartCommand", "Not active module. Stop self, startId: $startId"))
-            stopSelf(startId)
+            is MjpegEvent.Intentable.StopStream -> mjpegStreamingModule.sendEvent(mjpegEvent)
+            MjpegEvent.Intentable.RecoverError -> mjpegStreamingModule.sendEvent(mjpegEvent)
         }
 
         return START_NOT_STICKY
@@ -84,8 +103,29 @@ public class MjpegModuleService : StreamingModuleService() {
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        runBlocking { streamingModuleManager.stopModule(MjpegStreamingModule.Id) }
-        super.onDestroy()
+        val originalOwner = legacyLaunch
+        legacyLaunch = null
+        try {
+            super.onDestroy()
+        } finally {
+            originalOwner?.onServiceDestroyed()
+        }
+    }
+
+    override fun onTimeout(startId: Int) {
+        try {
+            stopSelf()
+        } finally {
+            legacyLaunch?.requestModuleShutdown()
+        }
+    }
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        try {
+            stopSelf()
+        } finally {
+            legacyLaunch?.requestModuleShutdown()
+        }
     }
 
     @Throws(IllegalStateException::class)

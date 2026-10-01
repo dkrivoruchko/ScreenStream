@@ -18,7 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.HingePolicy
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
@@ -26,6 +26,7 @@ import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,11 +42,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.InlineAdaptiveBanner
 import info.dvkr.screenstream.R
+import info.dvkr.screenstream.app.InlineAdaptiveBanner
+import info.dvkr.screenstream.app.settings.AppSettings
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.notification.NotificationHelper
-import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.tile.TileActionService
 import info.dvkr.screenstream.ui.tabs.settings.app.AppLocaleDetail
 import info.dvkr.screenstream.ui.tabs.settings.app.AppLocaleRow
@@ -74,10 +75,17 @@ internal fun SettingsTabContent(
     val settingsData = appSettings.data.collectAsStateWithLifecycle().value
 
     val context = LocalContext.current
-    val windowAdaptiveInfo = currentWindowAdaptiveInfo()
+    val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
     val listPanePreferredWidth = calculateListPanePreferredWidth(windowAdaptiveInfo, boundsInWindow)
-    val scaffoldDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo, HingePolicy.AvoidOccluding)
-        .copy(verticalPartitionSpacerSize = 0.dp, horizontalPartitionSpacerSize = 0.dp)
+    val calculatedDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo, HingePolicy.AvoidOccluding)
+    val scaffoldDirective = remember(calculatedDirective) {
+        calculatedDirective.copy(
+            maxHorizontalPartitions = minOf(calculatedDirective.maxHorizontalPartitions, 2),
+            defaultPanePreferredWidth = 360.dp,
+            verticalPartitionSpacerSize = 0.dp,
+            horizontalPartitionSpacerSize = 0.dp,
+        )
+    }
     val navigator = rememberListDetailPaneScaffoldNavigator<AppSetting>(scaffoldDirective)
     val lazyListState = rememberLazyListState()
 

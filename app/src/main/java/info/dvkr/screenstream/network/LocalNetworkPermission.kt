@@ -30,10 +30,9 @@ import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.findActivity
 import info.dvkr.screenstream.common.getAppSettingsIntent
 import info.dvkr.screenstream.common.isLocalNetworkPermissionGranted
-import info.dvkr.screenstream.common.module.StreamingModule
-import info.dvkr.screenstream.common.module.StreamingModuleManager
-import info.dvkr.screenstream.common.settings.AppSettings
 import info.dvkr.screenstream.common.shouldShowPermissionRationale
+import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
 import org.koin.compose.koinInject
 
 @Composable
@@ -46,14 +45,10 @@ internal fun LocalNetworkPermission(
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val selectedModuleId = streamingModuleManager.selectedModuleIdFlow
-        .collectAsStateWithLifecycle(initialValue = AppSettings.Default.STREAMING_MODULE_NONE)
-    val activeModule = streamingModuleManager.activeModuleStateFlow.collectAsStateWithLifecycle()
-    val currentActiveModule by rememberUpdatedState(activeModule.value)
-
-    val selectedModule: StreamingModule? = remember(selectedModuleId.value, streamingModuleManager.modules) {
-        streamingModuleManager.modules.firstOrNull { it.id == selectedModuleId.value }
-    }
+    val instanceId = streamingModuleManager.currentInstanceId.collectAsStateWithLifecycle().value
+    val selectedModule = streamingModuleManager.modules.firstOrNull { it.id == instanceId?.moduleId } as? LegacyStreamingModuleAdapter
+    val currentLegacyModule by rememberUpdatedState(selectedModule)
+    val currentInstanceId by rememberUpdatedState(instanceId)
     if (selectedModule?.requiresLocalNetworkPermission != true) return
 
     val activity = remember(context) { context.findActivity() }
@@ -64,7 +59,7 @@ internal fun LocalNetworkPermission(
         if (granted) {
             hadPermission = true
             permissionUiState = PermissionUiState.Idle
-            currentActiveModule?.recoverError()
+            currentInstanceId?.let { currentLegacyModule?.recoverError(it) }
         } else {
             hadPermission = false
             permissionUiState = if (activity.shouldShowPermissionRationale(permission)) {
@@ -82,7 +77,7 @@ internal fun LocalNetworkPermission(
         requestPermissionLauncher.launch(permission)
     }
 
-    LaunchedEffect(selectedModuleId.value, enabled, permissionUiState) {
+    LaunchedEffect(instanceId, enabled, permissionUiState) {
         if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) requestPermissionIfNeeded()
     }
 
@@ -91,7 +86,7 @@ internal fun LocalNetworkPermission(
         when {
             isPermissionGranted -> {
                 if (hadPermission.not() || permissionUiState == PermissionUiState.OpenedSettings) {
-                    currentActiveModule?.recoverError()
+                    currentInstanceId?.let { currentLegacyModule?.recoverError(it) }
                 }
                 hadPermission = true
                 permissionUiState = PermissionUiState.Idle

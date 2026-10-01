@@ -15,7 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.common.module.StreamingModule
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.common.ui.ExpandableCard
 import info.dvkr.screenstream.mjpeg.R
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
@@ -40,7 +40,7 @@ import info.dvkr.screenstream.mjpeg.ui.main.settings.image.VrModeRow
 internal fun ImageSettingsCard(
     settings: MjpegSettings.Data,
     updateSettings: (MjpegSettings.Data.() -> MjpegSettings.Data) -> Unit,
-    windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+    windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier,
 ) {
     var selectedSheet by rememberSaveable { mutableStateOf<ImageSettingSheet?>(null) }
@@ -106,7 +106,7 @@ internal fun ImageSettingsCard(
 
         selectedSheet?.let { sheet ->
             MjpegSettingModal(
-                windowWidthSizeClass = windowWidthSizeClass,
+                windowSizeClass = windowSizeClass,
                 title = stringResource(sheet.titleRes),
                 onDismissRequest = { selectedSheet = null }
             ) {

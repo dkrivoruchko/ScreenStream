@@ -13,6 +13,7 @@
     <string name="app_tab_exit">ውጣ</string>
 
     <string name="app_tab_stream_select_mode">የዥረት ሁነታን ይምረጡ፡</string>
+    <string name="app_tab_stream_switching_modules">ሞጁሎችን በመቀየር ላይ</string>
 
     <string name="app_permission_required_title">ፍቃድ ያስፈልጋል</string>
     <string name="app_permission_allow_notifications">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር የማሳወቂያ ፈቃድ ይፈልጋል።\n\nማሳወቂያዎችን ይፍቀዱ።</string>

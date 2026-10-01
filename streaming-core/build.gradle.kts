@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.koin.compiler)
 }
 
@@ -25,6 +26,7 @@ android {
 
 dependencies {
     api(projects.common)
+    api(libs.androidx.window.core)
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)

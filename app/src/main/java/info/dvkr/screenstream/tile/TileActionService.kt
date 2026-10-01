@@ -16,20 +16,15 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.SingleActivity
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.module.StreamingModuleManager
+import io.screenstream.streaming.StreamingModuleManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapConcat
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.get
 
 public class TileActionService : TileService() {
@@ -54,13 +49,18 @@ public class TileActionService : TileService() {
 
     override fun onBind(intent: Intent?): IBinder? = runCatching { super.onBind(intent) }.getOrNull()
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun onStartListening() {
         super.onStartListening()
 
         streamingModulesManager = runCatching { get<StreamingModuleManager>() }.getOrNull() ?: return
-        streamingModulesManager!!.activeModuleStateFlow
-            .flatMapConcat { activeModule -> activeModule?.isStreaming?.map<Boolean, Boolean?> { it } ?: flow { emit(null) } }
+        streamingModulesManager!!.state
+            .map { state ->
+                when (state) {
+                    is StreamingModuleManager.State.Running -> state.status.isStreaming
+                    is StreamingModuleManager.State.Unresponsive -> state.lastStatus.isStreaming
+                    else -> null
+                }
+            }
             .distinctUntilChanged()
             .map { isStreaming ->
                 qsTile?.icon = Icon.createWithResource(this, R.drawable.ic_tile_24dp)
@@ -103,18 +103,15 @@ public class TileActionService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val activeModule = streamingModulesManager?.run { runBlocking { activeModuleStateFlow.first() } }
-        if (activeModule == null) {
-            startSingleActivity()
-            return
+        val state = streamingModulesManager?.state?.value
+        val status = when (state) {
+            is StreamingModuleManager.State.Running -> state.status
+            is StreamingModuleManager.State.Unresponsive -> state.lastStatus
+            else -> null
         }
-
-        val isStreaming = runBlocking { activeModule.isStreaming.first() }
-        if (isStreaming) {
-            activeModule.stopStream("TileActionService.onClick")
-        } else {
-            startSingleActivity()
-        }
+        val attempt = status?.captureAttempt
+        if (status?.isStreaming == true && attempt != null) streamingModulesManager?.requestStreamStop(attempt)
+        else startSingleActivity()
     }
 
     @Suppress("DEPRECATION")

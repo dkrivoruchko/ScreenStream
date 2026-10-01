@@ -1,4 +1,4 @@
-package info.dvkr.screenstream
+package info.dvkr.screenstream.app
 
 import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModel
@@ -8,8 +8,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.koin.core.annotation.KoinViewModel
+import org.koin.core.annotation.Named
 
 /** One initial module selection and Exit wait across Activity configuration changes. */
+@KoinViewModel
+@Named("SingleActivityViewModel")
 internal class SingleActivityViewModel(
     private val streamingManager: StreamingModuleManager,
 ) : ViewModel() {

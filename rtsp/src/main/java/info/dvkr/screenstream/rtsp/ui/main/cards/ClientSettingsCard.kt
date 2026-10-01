@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import info.dvkr.screenstream.common.module.StreamingModule
+import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.common.ui.ExpandableCard
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
@@ -29,7 +29,7 @@ import info.dvkr.screenstream.rtsp.ui.main.settings.common.RtspSettingModal
 internal fun ClientSettingsCard(
     settings: RtspSettings.Data,
     updateSettings: (RtspSettings.Data.() -> RtspSettings.Data) -> Unit,
-    windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
+    windowSizeClass: WindowSizeClass,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -80,7 +80,7 @@ internal fun ClientSettingsCard(
 
         selectedSheet.value?.let { sheet ->
             RtspSettingModal(
-                windowWidthSizeClass = windowWidthSizeClass,
+                windowSizeClass = windowSizeClass,
                 title = stringResource(sheet.titleRes),
                 onDismissRequest = { selectedSheet.value = null }
             ) {

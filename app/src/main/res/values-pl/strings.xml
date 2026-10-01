@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Wyjście</string>
 
     <string name="app_tab_stream_select_mode">Wybierz tryb strumienia:</string>
+    <string name="app_tab_stream_switching_modules">Przełączanie modułów</string>
 
     <string name="app_permission_required_title">Wymaga pozwolenia</string>
     <string name="app_permission_allow_notifications">Ta aplikacja potrzebuje uprawnienia do powiadomień, aby uruchomić usługę transmisji.\n\nZezwól na powiadomienia.</string>

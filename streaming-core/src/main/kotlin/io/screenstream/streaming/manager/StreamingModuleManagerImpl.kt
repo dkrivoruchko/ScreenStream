@@ -1,24 +1,41 @@
 package io.screenstream.streaming.manager
 
+import android.app.Service
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
 import android.os.SystemClock
 import androidx.annotation.MainThread
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.window.core.layout.WindowSizeClass
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.module.StreamingModule
-import info.dvkr.screenstream.common.settings.AppSettings
 import io.screenstream.streaming.StreamingModuleManager
-import io.screenstream.streaming.module.StreamingModuleApi
+import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.streaming.settings.StreamingSettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.onTimeout
+import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Singleton
+import java.util.Collections
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -29,131 +46,213 @@ import kotlin.uuid.Uuid
  * Commands and reports are checked against their original instance independently of UI collection.
  *
  * @param modules Available modules, ordered by priority for selection.
- * @param appSettings Saved application selection and its updates.
+ * @param streamingSettings Saved streaming selection and its updates.
  * @param errorNotification Owner of the process notification for coordinator errors.
  * @param dispatcher Dispatcher for process-owned work and queued module reports.
  */
 @Singleton(binds = [StreamingModuleManager::class])
 internal class StreamingModuleManagerImpl internal constructor(
-    modules: List<StreamingModuleApi>,
-    private val appSettings: AppSettings,
+    modules: List<StreamingModule>,
+    private val androidContext: Context,
+    private val streamingSettings: StreamingSettings,
     private val errorNotification: StreamingModuleErrorNotification,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Main,
 ) : StreamingModuleManager {
     /** Registered modules copied for the selector, highest priority first. */
-    private val modules: List<StreamingModuleApi> = modules.sortedByDescending { it.priority }.toList().also {
+    override val modules: List<StreamingModule> = Collections.unmodifiableList(modules.sortedByDescending { it.priority }).also {
         require(it.isNotEmpty()) { "At least one streaming module is required" }
     }
 
-    private val moduleById: Map<StreamingModule.Id, StreamingModuleApi> = this.modules.associateBy { it.id }.also {
+    private val moduleById: Map<StreamingModule.Id, StreamingModule> = this.modules.associateBy { it.id }.also {
         require(it.size == this.modules.size) { "Streaming module IDs must be unique" }
     }
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
     private var selectedModuleId: StreamingModule.Id? = null
-    private var currentInstance: StreamingModuleLaunch? = null
-    private var operationState: OperationState = OperationState.Idle
-    private var operationTimer: Job? = null
+    private var currentInstance: LaunchRecord? = null
+    private var transitionJob: Job? = null
+    private var exitCompletion: CompletableDeferred<Unit>? = null
+    private val deadlineWake = Channel<Unit>(Channel.CONFLATED)
     private var lastSettingsWrite: Job? = null
 
     /** One complete process state, independent of Activity collection. */
     override val state: StateFlow<StreamingModuleManager.State>
         field = MutableStateFlow<StreamingModuleManager.State>(StreamingModuleManager.State.NoModule)
 
-    /** Select a known module after initialization, or launch the current selection when null. */
+    override val currentInstanceId: StateFlow<StreamingModule.InstanceId?> = state.map { current ->
+        when (current) {
+            is StreamingModuleManager.State.Running -> current.instanceId
+            is StreamingModuleManager.State.Unresponsive -> current.instanceId
+            is StreamingModuleManager.State.Failed -> current.instanceId
+            StreamingModuleManager.State.NoModule,
+            StreamingModuleManager.State.Switching,
+            StreamingModuleManager.State.Exiting -> null
+        }
+    }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    /** Select a known module, keeping one process-owned transition until startup settles. */
     @MainThread
     override fun selectModule(moduleId: StreamingModule.Id?) {
-        if (operationState !is OperationState.Idle && operationState !is OperationState.Exited) return
+        if (transitionJob != null) return
         if (moduleId != null && moduleId !in moduleById) {
             XLog.w(this@StreamingModuleManagerImpl.getLog("Select", "Unknown streaming module ID=$moduleId"))
             return
         }
-        if (selectedModuleId == null) {
-            val selectionWait = OperationState.AwaitingSelection(moduleId)
-            operationState = selectionWait
-            publishState()
-            scope.launch { initializeSelection(selectionWait) }
-            return
-        }
-        selectLoadedModule(moduleId)
+        if (selectedModuleId != null && currentInstance?.instanceId?.moduleId == (moduleId ?: selectedModuleId)) return
+        beginPreparation(moduleId)
     }
 
-    /** Resolve the first selection once; a revoked wait cannot mutate a later opening. */
-    private suspend fun initializeSelection(selectionWait: OperationState.AwaitingSelection) {
-        val savedModuleId = try {
-            appSettings.initialize()
-            appSettings.data.value.streamingModule
-        } catch (error: Exception) {
-            if (error is CancellationException) throw error
-            if (operationState === selectionWait) {
-                operationState = OperationState.Idle
-                state.value = StreamingModuleManager.State.NoModule
-            }
-            XLog.e(this@StreamingModuleManagerImpl.getLog("Initialize", "Failed to initialize module selection"), error)
-            throw error
-        }
-        if (operationState !== selectionWait) return
-        val resolvedModuleId = savedModuleId.takeIf { it in moduleById } ?: modules.first().id
-        selectedModuleId = resolvedModuleId
-        if (savedModuleId == AppSettings.Default.STREAMING_MODULE_NONE) {
-            persistSettings {
-                if (streamingModule == AppSettings.Default.STREAMING_MODULE_NONE) copy(streamingModule = resolvedModuleId) else this
-            }
-        }
-        operationState = OperationState.Idle
-        selectLoadedModule(selectionWait.requestedModuleId)
-    }
-
-    private fun selectLoadedModule(moduleId: StreamingModule.Id?) {
-        val selected = selectedModuleId ?: return
-        val target = moduleId ?: selected
-        if (currentInstance?.id?.moduleId == target) return
-        if (moduleId != null && target != selected) persistSettings { copy(streamingModule = target) }
-        beginPreparation(target)
-    }
-
-    /** Restart only the exact current launch while its current error still permits it. */
+    /** Restart only the current launch whose applied error still permits it. */
     @MainThread
-    override fun restartModule(expectedInstanceId: StreamingModuleApi.InstanceId) {
-        if (operationState !is OperationState.Idle || selectedModuleId == null) return
+    override fun restartModule(expectedInstanceId: StreamingModule.InstanceId) {
+        if (transitionJob != null || selectedModuleId == null) return
         val instance = currentInstance ?: return
-        if (instance.id != expectedInstanceId ||
-            (instance.state !is StreamingModuleLaunch.LaunchState.Failed && instance.state !is StreamingModuleLaunch.LaunchState.Unresponsive)
+        if (instance.instanceId != expectedInstanceId ||
+            (instance.state !is LaunchState.Failed && instance.state !is LaunchState.Unresponsive)
         ) return
-        beginPreparation(instance.id.moduleId)
+        beginPreparation(expectedInstanceId.moduleId)
     }
 
     /**
-     * Exit revokes the current instance and pending launch, ends any transition, and closes launch
-     * admission while active. Await process-owned shutdown with a deadline at most three seconds
-     * after the first Exit request. Repeated calls await the same operation and deadline.
-     * Caller cancellation ends only its wait; shutdown continues. Return means the wait ended,
-     * including when cleanup remains unconfirmed. The calling Activity then finishes its task.
-     * A later Activity may prepare the selected module after Exit completes.
+     * Give Exit priority over opening. Repeated callers share the first Exit barrier; cancellation
+     * ends only their wait. Cleanup continues in the process after the three-second UI deadline.
      */
     @MainThread
     override suspend fun exit() {
-        val completion = when (val operation = operationState) {
-            is OperationState.AwaitingShutdown -> (operation.afterWait as? AfterShutdownWait.Exit)?.completion ?: beginExit()
-            is OperationState.Exited -> operation.completion
-            else -> beginExit()
-        }
-        if (operationState is OperationState.AwaitingShutdown) checkOperationDeadline()
+        val completion = exitCompletion ?: beginExit()
+        wakeTransitionWaiter()
         completion.await()
     }
+
+    /** Install the transition before publication so synchronous callers cannot open another one. */
+    private fun beginPreparation(requestedModuleId: StreamingModule.Id?) {
+        exitCompletion = null
+        val loadedTarget = selectedModuleId?.let { requestedModuleId ?: it }
+        val previous = currentInstance
+        val previousDeadline = previous?.takeUnless { it.isFinishReported }?.let {
+            it.shutdownDeadlineElapsedMillis ?: shutdownDeadline()
+        }
+        lateinit var opening: Job
+        opening = scope.launch(start = CoroutineStart.LAZY) {
+            try {
+                if (selectedModuleId == null) {
+                    streamingSettings.initialize()
+                    if (transitionJob !== opening) return@launch
+                    val saved = streamingSettings.data.value.selectedModuleId
+                    val resolved = saved?.takeIf { it in moduleById } ?: modules.first().id
+                    selectedModuleId = resolved
+                    if (saved == null) persistSettings {
+                        if (selectedModuleId == null) copy(selectedModuleId = resolved) else this
+                    }
+                }
+                if (transitionJob !== opening) return@launch
+                val selected = checkNotNull(selectedModuleId)
+                val target = loadedTarget ?: (requestedModuleId ?: selected)
+                if (loadedTarget == null) {
+                    if (target != selected) persistSettings { copy(selectedModuleId = target) }
+                    selectedModuleId = target
+                }
+                if (previous != null && previousDeadline != null) {
+                    awaitUntil(previous.cleanupSettled, previousDeadline)
+                }
+                if (transitionJob !== opening) return@launch
+                val instance = launchInstance(target)
+                val started = awaitUntil(instance.startupSettled, instance.firstStatusDeadlineElapsedMillis)
+                if (transitionJob !== opening) return@launch
+                if (!started) failInstance(instance, StreamingModuleManager.Failure.LaunchFailed)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                XLog.e(this@StreamingModuleManagerImpl.getLog("Initialize", "Failed to open streaming module"), error)
+                throw error
+            } finally {
+                if (transitionJob === opening) {
+                    transitionJob = null
+                    publishState()
+                }
+            }
+        }
+        transitionJob = opening
+        if (loadedTarget != null) {
+            val changed = loadedTarget != selectedModuleId
+            selectedModuleId = loadedTarget
+            if (changed) persistSettings { copy(selectedModuleId = loadedTarget) }
+        }
+        if (previous != null && previousDeadline != null) {
+            previous.beginClosing()
+            previous.requestModuleShutdown(previousDeadline)
+        }
+        try {
+            publishState()
+        } finally {
+            opening.start()
+        }
+    }
+
+    /** Install Exit before cancelling an opening; that cancellation never cancels instance cleanup. */
+    private fun beginExit(): CompletableDeferred<Unit> {
+        val completion = CompletableDeferred<Unit>()
+        val previousTransition = transitionJob
+        val instance = currentInstance
+        lateinit var exiting: Job
+        exiting = scope.launch(start = CoroutineStart.LAZY) {
+            try {
+                if (instance != null && !instance.isFinishReported) {
+                    awaitUntil(instance.cleanupSettled, checkNotNull(instance.shutdownDeadlineElapsedMillis))
+                }
+            } finally {
+                if (transitionJob === exiting) {
+                    currentInstance = null
+                    transitionJob = null
+                    try {
+                        publishState()
+                    } finally {
+                        completion.complete(Unit)
+                    }
+                }
+            }
+        }
+        exitCompletion = completion
+        transitionJob = exiting
+        previousTransition?.cancel()
+        instance?.beginClosing()
+        instance?.requestModuleShutdown(instance.shutdownDeadlineElapsedMillis ?: shutdownDeadline())
+        try {
+            publishState()
+        } finally {
+            exiting.start()
+        }
+        return completion
+    }
+
+    /** Wait against elapsed time, recomputing after reports and deep-sleep wake-ups. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private suspend fun awaitUntil(signal: CompletableDeferred<Unit>, deadlineElapsedMillis: Long): Boolean {
+        while (true) {
+            if (signal.isCompleted) return true
+            val remaining = deadlineElapsedMillis - SystemClock.elapsedRealtime()
+            if (remaining < 0L) return false
+            select {
+                signal.onAwait { }
+                deadlineWake.onReceive { }
+                onTimeout((remaining + 1L).milliseconds) { }
+            }
+        }
+    }
+
+    private fun shutdownDeadline(): Long = SystemClock.elapsedRealtime() + SHUTDOWN_TIMEOUT.inWholeMilliseconds
 
     /**
      * Route an external Start to the current [instanceId] after its first status. The module decides
      * capture readiness when handling the request; stale or conflicting requests leave state
      * unchanged.
      */
-    override fun requestStreamStart(instanceId: StreamingModuleApi.InstanceId) {
+    override fun requestStreamStart(instanceId: StreamingModule.InstanceId) {
         scope.launch(dispatcher) {
-            checkOperationDeadline()
+            wakeTransitionWaiter()
             val instance = currentInstance ?: return@launch
-            if (operationState !is OperationState.Idle || !instance.isAdmitted() || instance.id != instanceId || !instance.hasLiveStatus()) return@launch
+            if (transitionJob != null || !instance.isAdmitted() || instance.instanceId != instanceId || !instance.hasLiveStatus()) return@launch
             try {
-                instance.module.requestStreamStart(instanceId)
+                instance.controllerForCommands()?.requestStreamStart()
             } catch (error: Exception) {
                 XLog.e(this@StreamingModuleManagerImpl.getLog("ExternalStart", "Failed to dispatch Start for instanceId=$instanceId"), error)
             }
@@ -166,275 +265,97 @@ internal class StreamingModuleManagerImpl internal constructor(
      * may lag the notification that first exposed the Stop action.
      */
     @MainThread
-    override fun requestStreamStop(attempt: StreamingModuleApi.CaptureAttemptId) {
+    override fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId) {
         val instance = currentInstance ?: return
-        if (operationState !is OperationState.Idle || !instance.isAdmitted() || instance.id != attempt.instanceId || !instance.hasLiveStatus()) return
+        if (transitionJob != null || !instance.isAdmitted() || instance.instanceId != attempt.instanceId || !instance.hasLiveStatus()) return
         try {
-            instance.module.requestStreamStop(attempt)
+            instance.controllerForCommands()?.requestStreamStop(attempt)
         } catch (error: Exception) {
             XLog.e(this@StreamingModuleManagerImpl.getLog("ExternalStop", "Failed to dispatch Stop for attempt=$attempt"), error)
         }
     }
 
-    /** Current preparation or Exit step, including the completed Exit barrier. */
-    private sealed interface OperationState {
-        data object Idle : OperationState
-        class AwaitingSelection(val requestedModuleId: StreamingModule.Id?) : OperationState
-        class AwaitingShutdown(val instance: StreamingModuleLaunch, var afterWait: AfterShutdownWait) : OperationState
-        class AwaitingFirstStatus(val instance: StreamingModuleLaunch, var deadlineElapsedMillis: Long? = null) : OperationState
-        class Exited(val completion: CompletableDeferred<Unit>) : OperationState
-    }
-
-    /** Continuation after shutdown; Exit may replace a pending launch. */
-    private sealed interface AfterShutdownWait {
-        class Launch(val moduleId: StreamingModule.Id) : AfterShutdownWait
-        class Exit(val completion: CompletableDeferred<Unit>) : AfterShutdownWait
-    }
-
-    /** Accept a selection, then launch it after the prior instance finishes or reaches its shutdown deadline. */
-    private fun beginPreparation(moduleId: StreamingModule.Id) {
-        selectedModuleId = moduleId
-        val previousInstance = currentInstance
-        if (previousInstance == null || previousInstance.isFinishReported) {
-            launchInstance(moduleId)
-            return
-        }
-
-        val shutdownWait = beginShutdownWait(previousInstance, AfterShutdownWait.Launch(moduleId))
-        if (operationState !== shutdownWait || shutdownWait.afterWait !is AfterShutdownWait.Launch) return
-        checkOperationDeadline()
-        if (operationState === shutdownWait) publishState()
-    }
-
-    /** Give Exit priority over pending preparation and reuse the instance's first shutdown deadline. */
-    private fun beginExit(): CompletableDeferred<Unit> {
-        val completion = CompletableDeferred<Unit>()
-        val operation = operationState
-        if (operation is OperationState.AwaitingShutdown) {
-            operation.afterWait = AfterShutdownWait.Exit(completion)
-            checkOperationDeadline()
-            if (operationState === operation) publishState()
-            return completion
-        }
-
-        val instance = currentInstance
-        if (instance == null || instance.isFinishReported) {
-            finishExit(completion)
-            return completion
-        }
-
-        val shutdownWait = beginShutdownWait(instance, AfterShutdownWait.Exit(completion))
-        if (operationState !== shutdownWait) return completion
-        checkOperationDeadline()
-        if (operationState === shutdownWait) publishState()
-        return completion
-    }
-
-    /** Install one exact shutdown wait before dispatching the original instance's Shutdown. */
-    private fun beginShutdownWait(instance: StreamingModuleLaunch, afterWait: AfterShutdownWait): OperationState.AwaitingShutdown {
-        instance.beginClosing()
-        val deadlineElapsedMillis = instance.shutdownDeadlineElapsedMillis ?: (SystemClock.elapsedRealtime() + SHUTDOWN_TIMEOUT.inWholeMilliseconds)
-        val shutdownWait = OperationState.AwaitingShutdown(instance, afterWait)
-        operationTimer?.cancel()
-        operationTimer = null
-        operationState = shutdownWait
-        scheduleOperationTimeout(shutdownWait, deadlineElapsedMillis)
-        instance.requestShutdown(deadlineElapsedMillis)
-        return shutdownWait
-    }
-
-    private fun continueAfterShutdownWait(shutdownWait: OperationState.AwaitingShutdown) {
-        if (operationState !== shutdownWait) return
-        operationTimer?.cancel()
-        operationTimer = null
-        operationState = OperationState.Idle
-        when (val afterWait = shutdownWait.afterWait) {
-            is AfterShutdownWait.Launch -> launchInstance(afterWait.moduleId)
-            is AfterShutdownWait.Exit -> finishExit(afterWait.completion)
-        }
-    }
-
-    private fun launchInstance(moduleId: StreamingModule.Id) {
-        val instance = StreamingModuleLaunch(StreamingModuleApi.InstanceId(moduleId, Uuid.random()), moduleById.getValue(moduleId), scope) {
-            checkOperationDeadline()
-            handleHeartbeatTimeout(it)
-        }
-        val firstStatusWait = OperationState.AwaitingFirstStatus(instance)
+    /** Reserve identity and deadline before Android can synchronously deliver the startup. */
+    private fun launchInstance(moduleId: StreamingModule.Id): LaunchRecord {
+        val instance = LaunchRecord(StreamingModule.InstanceId(moduleId, Uuid.random()), moduleById.getValue(moduleId).serviceClass)
         currentInstance = instance
-        operationTimer?.cancel()
-        operationTimer = null
-        operationState = firstStatusWait
-        instance.admit()
+        instance.firstStatusDeadlineElapsedMillis = SystemClock.elapsedRealtime() + FIRST_STATUS_TIMEOUT.inWholeMilliseconds
+        instance.admit(instance.firstStatusDeadlineElapsedMillis)
         try {
-            instance.module.requestLaunch(InstanceCallbacks(instance))
-        } catch (error: Exception) {
-            if (operationState === firstStatusWait && currentInstance === instance && !instance.isClosing) {
-                XLog.e(this@StreamingModuleManagerImpl.getLog("Launch", "Failed to launch instanceId=${instance.id}"), error)
-                failInstance(instance, StreamingModuleManager.Failure.LaunchFailed)
+            val startup = Intent(androidContext, instance.serviceClass).apply {
+                action = StreamingModuleManager.ACTION_START_MODULE
+                putExtra(EXTRA_MODULE, instance.instanceId.moduleId.value)
+                putExtra(EXTRA_UUID, instance.instanceId.uuid.toString())
             }
+            if (androidContext.startService(startup) == null) instance.reportFailure(null)
+        } catch (error: Throwable) {
+            XLog.e(this@StreamingModuleManagerImpl.getLog("Startup", "Android module startup failed"), error)
+            instance.reportFailure(null)
+        } finally {
+            instance.dispatchDone.complete(Unit)
+        }
+        return instance
+    }
+
+    private fun failInstance(instance: LaunchRecord, failure: StreamingModuleManager.Failure) {
+        if (!instance.fail(failure)) return
+        if (!instance.isFinishReported) instance.requestModuleShutdown(shutdownDeadline())
+        try {
+            if (currentInstance === instance && !instance.isClosing) publishState()
+        } finally {
+            instance.startupSettled.complete(Unit)
+        }
+    }
+
+    /** Wake the one transition waiter; report handlers independently validate first-status deadlines. */
+    private fun wakeTransitionWaiter() {
+        deadlineWake.trySend(Unit)
+    }
+
+    private fun handleRunningReport(instance: LaunchRecord, status: StreamingModule.Status, heartbeatAtUptimeMillis: Long) {
+        if (currentInstance !== instance) return
+        if (instance.state == LaunchState.Starting &&
+            SystemClock.elapsedRealtime() > instance.firstStatusDeadlineElapsedMillis
+        ) {
+            failInstance(instance, StreamingModuleManager.Failure.LaunchFailed)
             return
         }
-        if (operationState !== firstStatusWait || currentInstance !== instance || instance.isClosing) return
-        val deadlineElapsedMillis = SystemClock.elapsedRealtime() + FIRST_STATUS_TIMEOUT.inWholeMilliseconds
-        firstStatusWait.deadlineElapsedMillis = deadlineElapsedMillis
-        instance.admit(deadlineElapsedMillis)
-        scheduleOperationTimeout(firstStatusWait, deadlineElapsedMillis)
-        publishState()
-    }
-
-    private fun finishExit(completion: CompletableDeferred<Unit>) {
-        currentInstance?.beginClosing()
-        currentInstance = null
-        val exitedState = OperationState.Exited(completion)
-        operationTimer?.cancel()
-        operationTimer = null
-        operationState = exitedState
-        publishState()
-        completion.complete(Unit)
-    }
-
-    private fun failInstance(instance: StreamingModuleLaunch, error: StreamingModuleManager.Failure) {
-        if (!instance.fail(error)) return
-        if (currentInstance !== instance || instance.isClosing) return
-        val firstStatusWait = operationState as? OperationState.AwaitingFirstStatus
-        if (firstStatusWait?.instance === instance) {
-            operationTimer?.cancel()
-            operationTimer = null
-            operationState = OperationState.Idle
-        }
-        if (!instance.isFinishReported) {
-            instance.requestShutdown(SystemClock.elapsedRealtime() + SHUTDOWN_TIMEOUT.inWholeMilliseconds)
-        }
-        if (currentInstance === instance && !instance.isClosing && operationState is OperationState.Idle) publishState()
-    }
-
-    private fun scheduleOperationTimeout(expectedOperation: OperationState, deadlineElapsedMillis: Long) {
-        operationTimer?.cancel()
-        operationTimer = scope.launch {
-            while (operationState === expectedOperation) {
-                val remainingMillis = deadlineElapsedMillis - SystemClock.elapsedRealtime()
-                if (remainingMillis < 0L) {
-                    checkOperationDeadline()
-                    return@launch
-                }
-                delay((remainingMillis + 1L).milliseconds)
-            }
+        if (!instance.acceptStatus(status, heartbeatAtUptimeMillis)) return
+        try {
+            publishState()
+        } finally {
+            instance.startupSettled.complete(Unit)
         }
     }
 
-    /** Check and settle the current wait when its absolute elapsed deadline has passed. */
-    private fun checkOperationDeadline() {
-        when (val operation = operationState) {
-            is OperationState.AwaitingShutdown -> {
-                val deadlineElapsedMillis = operation.instance.shutdownDeadlineElapsedMillis ?: return
-                if (SystemClock.elapsedRealtime() > deadlineElapsedMillis) continueAfterShutdownWait(operation)
-            }
-
-            is OperationState.AwaitingFirstStatus -> {
-                val deadlineElapsedMillis = operation.deadlineElapsedMillis ?: return
-                if (SystemClock.elapsedRealtime() > deadlineElapsedMillis) failInstance(operation.instance, StreamingModuleManager.Failure.LaunchFailed)
-            }
-
-            else -> Unit
-        }
-    }
-
-    /** Callbacks retain their instance identity and queue reports through the coordinator's deadline gate. */
-    private inner class InstanceCallbacks(private val instance: StreamingModuleLaunch) : StreamingModuleApi.InstanceCallbacks {
-        override val instanceId: StreamingModuleApi.InstanceId = instance.id
-
-        override fun isCurrent(): Boolean = instance.isAdmitted()
-
-        override fun reportRunning(status: StreamingModuleApi.Status, heartbeatAtUptimeMillis: Long) {
-            scope.launch(dispatcher) {
-                checkOperationDeadline()
-                handleRunningReport(instance, status, heartbeatAtUptimeMillis)
-            }
-        }
-
-        override fun reportFailed(messageResource: Int?) {
-            scope.launch(dispatcher) {
-                checkOperationDeadline()
-                handleFailureReport(instance, messageResource)
-            }
-        }
-
-        override fun reportFinished(cleanupCompleted: Boolean) {
-            scope.launch(dispatcher) {
-                checkOperationDeadline()
-                handleFinishedReport(instance, cleanupCompleted)
-            }
-        }
-    }
-
-    private fun handleRunningReport(instance: StreamingModuleLaunch, status: StreamingModuleApi.Status, heartbeatAtUptimeMillis: Long) {
-        if (currentInstance !== instance || !instance.acceptStatus(status, heartbeatAtUptimeMillis)) return
-
-        val firstStatusWait = operationState as? OperationState.AwaitingFirstStatus
-        if (firstStatusWait?.instance === instance) {
-            operationTimer?.cancel()
-            operationTimer = null
-            operationState = OperationState.Idle
-        }
-        publishState()
-    }
-
-    private fun handleFailureReport(instance: StreamingModuleLaunch, messageResource: Int?) {
+    private fun handleFailureReport(instance: LaunchRecord, messageResource: Int?) {
         if (currentInstance !== instance || instance.isClosing || instance.isFinishReported) return
         failInstance(instance, instance.failureFor(messageResource))
     }
 
-    private fun handleFinishedReport(instance: StreamingModuleLaunch, cleanupCompleted: Boolean) {
+    private fun handleFinishedReport(instance: LaunchRecord, cleanupCompleted: Boolean) {
         if (!instance.markFinished(cleanupCompleted)) return
-        val shutdownWait = operationState as? OperationState.AwaitingShutdown
-        if (shutdownWait?.instance === instance) {
-            continueAfterShutdownWait(shutdownWait)
-            return
-        }
-        val firstStatusWait = operationState as? OperationState.AwaitingFirstStatus
-        if (firstStatusWait?.instance === instance) {
-            operationTimer?.cancel()
-            operationTimer = null
-            operationState = OperationState.Idle
-        }
         if (currentInstance === instance) publishState()
     }
 
-    private fun handleHeartbeatTimeout(instance: StreamingModuleLaunch) {
-        if (currentInstance !== instance) return
-        if (instance.checkHeartbeat()) publishState()
+    private fun handleHeartbeatTimeout(instance: LaunchRecord) {
+        if (currentInstance === instance && instance.checkHeartbeat()) publishState()
     }
 
     private fun publishState() {
-        val published = when (val operation = operationState) {
-            is OperationState.AwaitingSelection,
-            is OperationState.AwaitingFirstStatus -> StreamingModuleManager.State.Switching
-
-            is OperationState.AwaitingShutdown ->
-                if (operation.afterWait is AfterShutdownWait.Exit) {
-                    StreamingModuleManager.State.Exiting
-                } else {
-                    StreamingModuleManager.State.Switching
+        state.value = when {
+            exitCompletion != null -> StreamingModuleManager.State.Exiting
+            transitionJob != null -> StreamingModuleManager.State.Switching
+            else -> currentInstance?.let { instance ->
+                when (val launch = instance.state) {
+                    is LaunchState.Running -> StreamingModuleManager.State.Running(instance.instanceId, launch.status)
+                    is LaunchState.Unresponsive -> StreamingModuleManager.State.Unresponsive(instance.instanceId, launch.lastStatus)
+                    is LaunchState.Failed -> StreamingModuleManager.State.Failed(instance.instanceId, launch.failure)
+                    LaunchState.Starting, LaunchState.Stopped -> StreamingModuleManager.State.NoModule
                 }
-
-            is OperationState.Exited -> StreamingModuleManager.State.Exiting
-            is OperationState.Idle -> {
-                val instance = currentInstance
-                if (instance == null) {
-                    StreamingModuleManager.State.NoModule
-                } else {
-                    when (val launch = instance.state) {
-                        is StreamingModuleLaunch.LaunchState.Running -> StreamingModuleManager.State.Running(instance.id, launch.status)
-                        is StreamingModuleLaunch.LaunchState.Unresponsive -> StreamingModuleManager.State.Unresponsive(instance.id, launch.lastStatus)
-                        is StreamingModuleLaunch.LaunchState.Failed -> StreamingModuleManager.State.Failed(instance.id, launch.failure)
-                        StreamingModuleLaunch.LaunchState.Starting,
-                        StreamingModuleLaunch.LaunchState.Stopped -> error("Idle manager cannot expose a starting or stopped launch")
-                    }
-                }
-            }
+            } ?: StreamingModuleManager.State.NoModule
         }
-        state.value = published
-        // A synchronous collector may reenter and publish a newer state during the assignment.
+        // A synchronous collector may publish a newer state during assignment.
         when (val current = state.value) {
             is StreamingModuleManager.State.Failed -> errorNotification.show(current)
             is StreamingModuleManager.State.Unresponsive -> errorNotification.show(current)
@@ -442,20 +363,341 @@ internal class StreamingModuleManagerImpl internal constructor(
         }
     }
 
-    private fun persistSettings(transform: AppSettings.Data.() -> AppSettings.Data) {
+    @Composable
+    override fun InstanceContent(
+        instanceId: StreamingModule.InstanceId,
+        window: WindowSizeClass,
+        modifier: Modifier,
+        fallback: @Composable () -> Unit,
+    ) {
+        val owner = currentInstance?.takeIf { it.instanceId == instanceId }
+        val installed = owner?.controllerState?.collectAsStateWithLifecycle()?.value
+        if (installed != null && owner.isAdmitted()) installed.Content(window, modifier) else fallback()
+    }
+
+    @MainThread
+    override fun onServiceStart(
+        service: Service,
+        existingController: StreamingModule.Controller?,
+        intent: Intent?,
+        createController: (StreamingModule.Controller.Runtime) -> StreamingModule.Controller,
+    ) {
+        wakeTransitionWaiter()
+        if (intent?.action != StreamingModuleManager.ACTION_START_MODULE) return
+        val module = intent.getStringExtra(EXTRA_MODULE) ?: return
+        val uuid = intent.getStringExtra(EXTRA_UUID) ?: return
+        val instanceId = runCatching { StreamingModule.InstanceId(StreamingModule.Id(module), Uuid.parse(uuid)) }.getOrNull() ?: return
+        val instance = currentInstance?.takeIf { it.instanceId == instanceId } ?: return
+        if (!instance.isAdmitted() || instance.startupReceived) return
+        if (!instance.serviceClass.isInstance(service) || intent.component != ComponentName(androidContext, instance.serviceClass)) {
+            instance.reportFailure(null)
+            return
+        }
+        if (existingController != null) {
+            instance.reportFailure(null)
+            return
+        }
+        instance.installController(createController)
+    }
+
+    private fun persistSettings(transform: StreamingSettings.Data.() -> StreamingSettings.Data) {
         val previousWrite = lastSettingsWrite
         lastSettingsWrite = scope.launch {
             previousWrite?.join()
             try {
-                appSettings.updateData(transform)
+                streamingSettings.updateData(transform)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                XLog.e(this@StreamingModuleManagerImpl.getLog("SettingsWrite", "Failed to save app settings"), error)
+                XLog.e(this@StreamingModuleManagerImpl.getLog("SettingsWrite", "Failed to save streaming settings"), error)
             }
         }
     }
 
+    /** Logical launch facts only; its controller owns every Service and resource obligation. */
+    private inner class LaunchRecord(val instanceId: StreamingModule.InstanceId, val serviceClass: Class<out Service>) {
+        private val gate = Any()
+        val dispatchDone = CompletableDeferred<Unit>()
+        val startupSettled = CompletableDeferred<Unit>()
+        val cleanupSettled = CompletableDeferred<Unit>()
+        var firstStatusDeadlineElapsedMillis = Long.MAX_VALUE
+        private var setupDone = CompletableDeferred(Unit)
+        val controllerState = MutableStateFlow<StreamingModule.Controller?>(null)
+        private var controller: StreamingModule.Controller? = null
+        var startupReceived = false
+            private set
+        private var cleanupFailed = false
+        private var pendingRunning: Report.Running? = null
+        private var pendingFailure: Report.Failed? = null
+        private var pendingFinished: Report.Finished? = null
+        private var draining = false
+        @Volatile
+        private var failureQueued = false
+        @Volatile
+        private var shutdownRequested = false
+        @Volatile
+        private var admittedUntilElapsedMillis = Long.MIN_VALUE
+        var state: LaunchState = LaunchState.Starting
+            private set
+        var shutdownDeadlineElapsedMillis: Long? = null
+            private set
+        private var heartbeatCheck: Job? = null
+        var isFinishReported = false
+            private set
+        var isClosing = false
+            private set
+
+        private val runtime = object : StreamingModule.Controller.Runtime {
+            override val instanceId: StreamingModule.InstanceId = this@LaunchRecord.instanceId
+            override fun isCurrent(): Boolean = isAdmitted()
+            override fun reportRunning(status: StreamingModule.Status, heartbeatAtUptimeMillis: Long) {
+                synchronized(gate) {
+                    if (!isAdmitted()) return
+                    pendingRunning = Report.Running(status, heartbeatAtUptimeMillis)
+                }
+                scheduleReports()
+            }
+
+            override fun reportFailed(messageResource: Int?) = reportFailure(messageResource)
+        }
+
+        /** Adopt before accessing identity or starting; even a rejected late result is cleaned up. */
+        fun installController(factory: (StreamingModule.Controller.Runtime) -> StreamingModule.Controller) {
+            val setup = synchronized(gate) {
+                if (!isAdmitted() || startupReceived) return
+                startupReceived = true
+                CompletableDeferred<Unit>().also { setupDone = it }
+            }
+            try {
+                val created = factory(runtime)
+                synchronized(gate) { controller = created }
+                check(created.instanceId == instanceId) { "Controller identity does not match its launch" }
+                if (!isAdmitted()) {
+                    requestControllerShutdown(created); return
+                }
+                controllerState.value = created
+                if (isAdmitted()) created.startModule() else requestControllerShutdown(created)
+            } catch (error: Throwable) {
+                XLog.e(this@StreamingModuleManagerImpl.getLog("Startup", "Module controller startup failed"), error)
+                reportFailure(null)
+            } finally {
+                setup.complete(Unit)
+            }
+        }
+
+        fun controllerForCommands(): StreamingModule.Controller? = synchronized(gate) { controller?.takeIf { isAdmitted() } }
+
+        fun reportFailure(messageResource: Int?) {
+            val accepted = synchronized(gate) {
+                if (shutdownRequested || failureQueued) false else {
+                    failureQueued = true
+                    pendingFailure = Report.Failed(messageResource)
+                    true
+                }
+            }
+            if (!accepted) return
+            scheduleReports()
+            beginShutdown()
+        }
+
+        private fun requestControllerShutdown(current: StreamingModule.Controller) {
+            try {
+                current.requestModuleShutdown()
+            } catch (error: Throwable) {
+                synchronized(gate) { cleanupFailed = true }
+                XLog.e(this@StreamingModuleManagerImpl.getLog("Shutdown", "Module shutdown failed"), error)
+            }
+        }
+
+        fun requestModuleShutdown(deadlineIfFirst: Long) {
+            if (shutdownDeadlineElapsedMillis == null) shutdownDeadlineElapsedMillis = deadlineIfFirst
+            beginShutdown()
+        }
+
+        /** Close admission immediately; the process keeps waiting after the UI deadline or cancellation. */
+        private fun beginShutdown() {
+            val first = synchronized(gate) {
+                if (shutdownRequested) false else {
+                    shutdownRequested = true; true
+                }
+            }
+            if (!first) return
+            revokeAdmission()
+            synchronized(gate) { controller }?.let(::requestControllerShutdown)
+            scope.launch(Dispatchers.Default) {
+                dispatchDone.await()
+                synchronized(gate) { setupDone }.await()
+                val ownedController = synchronized(gate) { controller }
+                if (ownedController != null) withContext(dispatcher) { requestControllerShutdown(ownedController) }
+                val succeeded = if (ownedController == null) true else try {
+                    ownedController.awaitCleanup()
+                } catch (error: Throwable) {
+                    XLog.e(this@StreamingModuleManagerImpl.getLog("Cleanup", "Module cleanup failed"), error)
+                    false
+                }
+                synchronized(gate) { pendingFinished = Report.Finished(succeeded && !cleanupFailed) }
+                scheduleReports()
+            }
+        }
+
+        /** Bounded slots preserve accepted Running, first failure, then the final cleanup outcome. */
+        private fun scheduleReports() {
+            val start = synchronized(gate) {
+                if (draining) false else {
+                    draining = true; true
+                }
+            }
+            if (!start) return
+            scope.launch {
+                while (true) {
+                    val report = synchronized(gate) {
+                        when {
+                            pendingRunning != null -> pendingRunning.also { pendingRunning = null }
+                            pendingFailure != null -> pendingFailure.also { pendingFailure = null }
+                            pendingFinished != null -> pendingFinished.also { pendingFinished = null }
+                            else -> {
+                                draining = false; null
+                            }
+                        }
+                    } ?: return@launch
+                    try {
+                        wakeTransitionWaiter()
+                        when (report) {
+                            is Report.Running -> handleRunningReport(this@LaunchRecord, report.status, report.heartbeat)
+                            is Report.Failed -> handleFailureReport(this@LaunchRecord, report.messageResource)
+                            is Report.Finished -> handleFinishedReport(this@LaunchRecord, report.cleanupCompleted)
+                        }
+                    } catch (error: Exception) {
+                        XLog.e(this@StreamingModuleManagerImpl.getLog("Report", "Failed to apply module report"), error)
+                    } finally {
+                        if (report is Report.Finished) {
+                            synchronized(gate) { controller = null }
+                            controllerState.value = null
+                            synchronized(gate) {
+                                pendingRunning = null
+                                pendingFailure = null
+                                pendingFinished = null
+                                draining = false
+                            }
+                            startupSettled.complete(Unit)
+                            cleanupSettled.complete(Unit)
+                        }
+                    }
+                    if (report is Report.Finished) return@launch
+                }
+            }
+        }
+
+        fun admit(deadlineElapsedMillis: Long = Long.MAX_VALUE) {
+            admittedUntilElapsedMillis = deadlineElapsedMillis
+        }
+
+        private fun revokeAdmission() {
+            admittedUntilElapsedMillis = Long.MIN_VALUE
+            controllerState.value = null
+        }
+
+        fun acceptStatus(status: StreamingModule.Status, heartbeatAtUptimeMillis: Long): Boolean {
+            if (isClosing || isFinishReported || state is LaunchState.Failed || state == LaunchState.Stopped) return false
+            val previousHeartbeat = when (val previous = state) {
+                is LaunchState.Running -> previous.heartbeatAtUptimeMillis
+                is LaunchState.Unresponsive -> previous.heartbeatAtUptimeMillis
+                else -> null
+            }
+            if (previousHeartbeat != null && heartbeatAtUptimeMillis < previousHeartbeat) return false
+
+            if (!shutdownRequested) admit()
+            val fresh = SystemClock.uptimeMillis() - heartbeatAtUptimeMillis <= HEARTBEAT_TIMEOUT.inWholeMilliseconds
+            state = if (fresh) LaunchState.Running(status, heartbeatAtUptimeMillis)
+            else LaunchState.Unresponsive(status, heartbeatAtUptimeMillis)
+            if (!shutdownRequested) scheduleHeartbeatCheck()
+            return true
+        }
+
+        fun failureFor(messageResource: Int?): StreamingModuleManager.Failure =
+            if (state is LaunchState.Running || state is LaunchState.Unresponsive) StreamingModuleManager.Failure.ModuleFailed(messageResource)
+            else StreamingModuleManager.Failure.LaunchFailed
+
+        fun fail(failure: StreamingModuleManager.Failure): Boolean {
+            if (state is LaunchState.Failed) return false
+            state = LaunchState.Failed(failure)
+            revokeAdmission()
+            heartbeatCheck?.cancel()
+            heartbeatCheck = null
+            return true
+        }
+
+        fun beginClosing() {
+            isClosing = true
+            revokeAdmission()
+            heartbeatCheck?.cancel()
+            heartbeatCheck = null
+        }
+
+        fun markFinished(cleanupCompleted: Boolean): Boolean {
+            if (isFinishReported) return false
+            val previous = state
+            isFinishReported = true
+            revokeAdmission()
+            heartbeatCheck?.cancel()
+            heartbeatCheck = null
+            state = when {
+                previous is LaunchState.Failed -> previous
+                isClosing || shutdownDeadlineElapsedMillis != null -> LaunchState.Stopped
+                previous is LaunchState.Running || previous is LaunchState.Unresponsive -> LaunchState.Failed(StreamingModuleManager.Failure.ModuleFailed())
+                else -> LaunchState.Failed(StreamingModuleManager.Failure.LaunchFailed)
+            }
+            if (!cleanupCompleted) XLog.w(this@StreamingModuleManagerImpl.getLog("Finished", "Cleanup failed or unconfirmed for instance=$instanceId"))
+            return true
+        }
+
+        fun checkHeartbeat(): Boolean {
+            val running = state as? LaunchState.Running ?: return false
+            if (isClosing || isFinishReported) return false
+            if (SystemClock.uptimeMillis() - running.heartbeatAtUptimeMillis > HEARTBEAT_TIMEOUT.inWholeMilliseconds) {
+                state = LaunchState.Unresponsive(running.status, running.heartbeatAtUptimeMillis)
+                return true
+            }
+            scheduleHeartbeatCheck()
+            return false
+        }
+
+        private fun scheduleHeartbeatCheck() {
+            heartbeatCheck?.cancel()
+            heartbeatCheck = null
+            val running = state as? LaunchState.Running ?: return
+            if (isClosing || isFinishReported) return
+            heartbeatCheck = scope.launch {
+                val remainingMillis = running.heartbeatAtUptimeMillis + HEARTBEAT_TIMEOUT.inWholeMilliseconds - SystemClock.uptimeMillis()
+                delay((remainingMillis + 1L).coerceAtLeast(1L).milliseconds)
+                wakeTransitionWaiter()
+                handleHeartbeatTimeout(this@LaunchRecord)
+            }
+        }
+
+        fun isAdmitted(): Boolean = !shutdownRequested && !failureQueued && SystemClock.elapsedRealtime() <= admittedUntilElapsedMillis
+
+        fun hasLiveStatus(): Boolean = state is LaunchState.Running || state is LaunchState.Unresponsive
+
+    }
+
+    private sealed interface Report {
+        class Running(val status: StreamingModule.Status, val heartbeat: Long) : Report
+        class Failed(val messageResource: Int?) : Report
+        class Finished(val cleanupCompleted: Boolean) : Report
+    }
+
+    private sealed interface LaunchState {
+        data object Starting : LaunchState
+        class Running(val status: StreamingModule.Status, val heartbeatAtUptimeMillis: Long) : LaunchState
+        class Unresponsive(val lastStatus: StreamingModule.Status, val heartbeatAtUptimeMillis: Long) : LaunchState
+        class Failed(val failure: StreamingModuleManager.Failure) : LaunchState
+        data object Stopped : LaunchState
+    }
+
     private companion object {
+        const val EXTRA_MODULE = "io.screenstream.streaming.MODULE_ID"
+        const val EXTRA_UUID = "io.screenstream.streaming.INSTANCE_UUID"
+        val HEARTBEAT_TIMEOUT = 3.seconds
         val FIRST_STATUS_TIMEOUT = 3.seconds
         val SHUTDOWN_TIMEOUT = 3.seconds
     }

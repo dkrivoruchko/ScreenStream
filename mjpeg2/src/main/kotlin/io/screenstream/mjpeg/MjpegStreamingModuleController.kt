@@ -2,185 +2,362 @@ package io.screenstream.mjpeg
 
 import android.os.SystemClock
 import android.util.Log
-import io.screenstream.streaming.foreground.ForegroundControl
-import io.screenstream.streaming.module.StreamingModuleApi
-import io.screenstream.streaming.module.StreamingModuleHost
+import info.dvkr.screenstream.common.notification.NotificationHelper
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.window.core.layout.WindowSizeClass
+import io.screenstream.mjpeg.ipaddress.NetworkInterfaceMonitor
+import io.screenstream.mjpeg.capture.CaptureIssue
+import io.screenstream.mjpeg.capture.MjpegCaptureAttempt
+import io.screenstream.mjpeg.ui.MjpegCaptureButton
+import io.screenstream.mjpeg.settings.MjpegSettings
+import io.screenstream.mjpeg.ui.UiController
+import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.streaming.capture.ScreenCaptureAccess
+import io.screenstream.streaming.module.StreamingModuleService
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.yield
+import org.koin.core.annotation.Factory
+import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.uuid.Uuid
 
 /**
- * One controller per [StreamingModuleApi.InstanceId], created by [StreamingModuleHost]'s factory
- * after the Service launch is accepted for attachment. [start] begins ordinary control work only
- * after conditional installation. Shutdown closes commands and starts independent cleanup; that
- * cleanup can outlive a coordinator wait or the Android Service lifetime. Slice A keeps capture idle.
+ * Owns ordinary control work, settings observation and one network monitor for an MJPEG instance.
+ * Its exact Android Service creates it inertly before the manager adopts it and calls start.
+ * One independent cleanup task closes observation and the monitor, stops that Service and waits for destruction.
+ * Capture attempts run independently; HTTP and frame delivery are not part of this capture-only stage.
  */
+@Factory(binds = [])
 internal class MjpegStreamingModuleController(
-    private val callbacks: StreamingModuleApi.Controller.Callbacks,
-    private val foregroundControl: ForegroundControl,
-) : StreamingModuleApi.Controller {
-    private sealed interface Command {
-        data object Start : Command
-        data class Stop(val attempt: StreamingModuleApi.CaptureAttemptId) : Command
+    @InjectedParam private val runtime: StreamingModule.Controller.Runtime,
+    @InjectedParam private val service: MjpegStreamingModuleService,
+    private val settings: Lazy<MjpegSettings>,
+    private val monitor: NetworkInterfaceMonitor,
+    private val captureAccess: ScreenCaptureAccess,
+    private val notifications: NotificationHelper,
+) : StreamingModule.Controller, UiController {
+    private enum class Problem {
+        PreparationFailed,
+        ObservationFailed,
+        InternalFailure,
     }
 
-    private sealed interface LoopEvent {
-        data class CommandReceived(val command: Command) : LoopEvent
-        data object Closed : LoopEvent
-        data object HeartbeatDue : LoopEvent
-    }
-
-    override val instanceId: StreamingModuleApi.InstanceId = callbacks.instanceId
+    override val instanceId: StreamingModule.InstanceId = runtime.instanceId
 
     private val gate: Any = Any()
-    private val commands: Channel<Command> = Channel(COMMAND_CAPACITY)
-    private val workScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val cleanupResult: CompletableDeferred<Boolean> = CompletableDeferred()
+    private val wake: Channel<Unit> = Channel(Channel.CONFLATED)
+    private val workJob: Job = SupervisorJob()
+    private val workScope: CoroutineScope = CoroutineScope(workJob + Dispatchers.Default)
+
+    /** Independent of ordinary work and waiters; completion includes exact Service destruction. */
+    private val cleanupTask: Deferred<Boolean> = CoroutineScope(Dispatchers.Default).async(start = CoroutineStart.LAZY) {
+        finishCleanup()
+    }
+    private val uiState = MutableStateFlow(UiController.State(instanceId, UiController.Action.Start(enabled = false)))
+    override val state: StateFlow<UiController.State> = uiState.asStateFlow()
+
     private var started: Boolean = false
     private var closing: Boolean = false
-    private var controlJob: Job? = null
+    private var requestedFilter: NetworkInterfaceMonitor.Filter? = null
+    private var latestSettings: MjpegSettings.Data? = null
+    private var firstProblem: Problem? = null
+    private var capture: MjpegCaptureAttempt? = null
+    private var captureErrorShown = false
+    private var lastStatus: StreamingModule.Status? = null
 
-    override fun start() {
-        if (!callbacks.isCurrent()) {
-            requestShutdown()
+    override fun startModule() {
+        if (!runtime.isCurrent()) {
+            requestModuleShutdown()
             return
         }
         val job = synchronized(gate) {
             if (started || closing) return
             started = true
-            workScope.launch(start = CoroutineStart.LAZY) { runControlLoop() }.also { controlJob = it }
+            workScope.launch(start = CoroutineStart.LAZY) { runControlLoop() }
         }
-        // Shutdown can cancel this lazy job before its first instruction. The worker checks the
-        // exact instance again before reporting or admitting any future resource.
         job.start()
     }
 
-    fun requestStreamStart() {
-        submit(Command.Start)
-    }
-
-    fun requestStreamStop(attempt: StreamingModuleApi.CaptureAttemptId) {
-        if (attempt.instanceId == instanceId) submit(Command.Stop(attempt))
-    }
-
-    private fun submit(command: Command) {
-        if (!callbacks.isCurrent()) return
-        val overflow = synchronized(gate) {
-            if (closing || !started) return
-            commands.trySend(command).isFailure
-        }
-        if (overflow) {
-            // A full command queue cannot silently lose a required future Stop.
-            callbacks.reportFailed()
-            requestShutdown()
-        }
-    }
-
-    override fun requestShutdown() {
-        val job = synchronized(gate) {
-            if (closing) return
-            closing = true
-            commands.close()
-            controlJob
-        }
-        job?.cancel()
-        workScope.cancel()
-        val launched = try {
-            callbacks.launchCleanup {
-                var completed = false
-                try {
-                    job?.join()
-                    completed = true
-                } catch (failure: Throwable) {
-                    Log.e(TAG, "MJPEG2 control cleanup failed", failure)
-                } finally {
-                    cleanupResult.complete(completed)
+    /** Install one inert attempt immediately; repeated Start leaves its work and consent unchanged. */
+    override fun requestStreamStart() {
+        try {
+            val attempt = synchronized(gate) {
+                if (closing || capture != null || !runtime.isCurrent()) return
+                val image = latestSettings?.image ?: return
+                MjpegCaptureAttempt(
+                    StreamingModule.CaptureAttemptId(instanceId, Uuid.random()), service, captureAccess, notifications,
+                    image, runtime::isCurrent,
+                ) { wake.trySend(Unit) }.also {
+                    capture = it
+                    captureErrorShown = false
+                    uiState.value = UiController.State(instanceId, UiController.Action.Busy)
                 }
             }
+            attempt.start()
+            wake.trySend(Unit)
         } catch (failure: Throwable) {
-            Log.e(TAG, "MJPEG2 cleanup could not be scheduled", failure)
-            cleanupResult.complete(false)
-            return
+            fail(Problem.InternalFailure, failure)
         }
-        // A cancelled child can complete before entering its block. Its exact handle closes that
-        // gap without cancelling or owning the module host's surviving supervisor.
-        launched.invokeOnCompletion { cleanupResult.complete(false) }
     }
 
-    override suspend fun awaitCleanup(): Boolean {
-        return cleanupResult.await()
+    override fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId) {
+        if (attempt.instanceId != instanceId || !runtime.isCurrent()) return
+        val owned = synchronized(gate) {
+            capture?.takeIf { !closing && it.id == attempt }
+        } ?: return
+        owned.requestStop(MjpegCaptureAttempt.StopReason.User)
+        synchronized(gate) {
+            if (capture === owned) publishCapture()
+        }
+    }
+
+    /** Close command admission and start cleanup without waiting; repeated calls share the same task. */
+    override fun requestModuleShutdown() {
+        val attempt = synchronized(gate) {
+            closing = true
+            uiState.value = UiController.State(instanceId, UiController.Action.Busy)
+            capture
+        }
+        service.closeForegroundAdmission()
+        attempt?.requestStop(MjpegCaptureAttempt.StopReason.Shutdown)
+        workScope.cancel()
+        cleanupTask.start()
+    }
+
+    /**
+     * After shutdown, wait for work, foreground calls and exact Service destruction; false means cleanup failed.
+     * Cancelling this caller ends only its wait and does not cancel the controller's cleanup task.
+     */
+    override suspend fun awaitCleanup(): Boolean = cleanupTask.await()
+
+    /** Start independent monitor and platform cleanup, then join every obligation; false records any failure. */
+    private suspend fun finishCleanup(): Boolean = coroutineScope {
+        val monitorCleanup = async {
+            try {
+                monitor.close()
+                true
+            } catch (failure: Throwable) {
+                Log.e(TAG, "MJPEG monitor cleanup failed", failure)
+                false
+            }
+        }
+        // Only the capture owner's pending media work may delay final foreground release and Service stop.
+        val platformCleanup = async {
+            val attemptSucceeded = synchronized(gate) { capture }?.awaitCleanup() ?: true
+            var succeeded = try {
+                when (service.removeForeground()) {
+                    is StreamingModuleService.ReleaseResult.Failed, StreamingModuleService.ReleaseResult.Unconfirmed -> false
+                    StreamingModuleService.ReleaseResult.NotRequired, StreamingModuleService.ReleaseResult.ApiCompleted -> true
+                }
+            } catch (failure: Throwable) {
+                Log.e(TAG, "MJPEG foreground cleanup failed", failure)
+                false
+            }
+            try {
+                service.stopSelf()
+            } catch (failure: Throwable) {
+                succeeded = false
+                Log.e(TAG, "MJPEG Service stop failed", failure)
+            }
+            service.awaitDestroyed()
+            attemptSucceeded && succeeded
+        }
+        workJob.join()
+        val monitorSucceeded = monitorCleanup.await()
+        val platformSucceeded = platformCleanup.await()
+        monitorSucceeded && platformSucceeded
+    }
+
+    /** The shared Service records destruction; close this controller's work without awaiting cleanup. */
+    override fun onServiceDestroyed() {
+        try {
+            runtime.reportFailed()
+        } finally {
+            requestModuleShutdown()
+        }
+    }
+
+    @Composable
+    override fun Content(window: WindowSizeClass, modifier: Modifier) {
+        MjpegCaptureButton(this, ::requestStreamStart, ::requestStreamStop, modifier)
+    }
+
+    private suspend fun observeSettings() {
+        var hasSnapshot = false
+        try {
+            currentCoroutineContext().ensureActive()
+            if (!runtime.isCurrent() || isClosing()) return
+            val observer = synchronized(gate) {
+                if (closing) return
+                workScope.launch(start = CoroutineStart.LAZY) { observeNetwork(monitor) }
+            }
+            observer.start()
+            settings.value.data.collect { value ->
+                synchronized(gate) {
+                    if (closing) return@collect
+                    latestSettings = value
+                    hasSnapshot = true
+                }
+                wake.trySend(Unit)
+            }
+        } catch (failure: CancellationException) {
+            if (!isClosing()) fail(if (hasSnapshot) Problem.ObservationFailed else Problem.PreparationFailed, failure)
+        } catch (failure: Throwable) {
+            fail(if (hasSnapshot) Problem.ObservationFailed else Problem.PreparationFailed, failure)
+        }
+    }
+
+    private suspend fun observeNetwork(monitor: NetworkInterfaceMonitor) {
+        try {
+            monitor.state.collect { value ->
+                val unexpectedClose = synchronized(gate) {
+                    if (closing) return@collect
+                    value is NetworkInterfaceMonitor.State.Closed
+                }
+                if (unexpectedClose) {
+                    fail(Problem.ObservationFailed, IllegalStateException("Monitor closed while controller is open"))
+                } else wake.trySend(Unit)
+            }
+        } catch (failure: CancellationException) {
+            if (!isClosing()) fail(Problem.ObservationFailed, failure)
+        } catch (failure: Throwable) {
+            fail(Problem.ObservationFailed, failure)
+        }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun runControlLoop() {
         try {
-            if (!callbacks.isCurrent()) return
+            val observation = workScope.launch(start = CoroutineStart.LAZY) { observeSettings() }
             var nextHeartbeat = SystemClock.uptimeMillis()
             while (true) {
-                if (!callbacks.isCurrent() || isClosing()) return
+                currentCoroutineContext().ensureActive()
+                if (!runtime.isCurrent() || isClosing()) return
+                wake.tryReceive()
                 val now = SystemClock.uptimeMillis()
                 if (now >= nextHeartbeat) {
-                    callbacks.reportRunning(
-                        StreamingModuleApi.Status(
-                            isStreaming = false,
-                            hasConsumer = false,
-                            captureAttempt = null,
-                        ),
-                        now,
-                    )
+                    reportStatus(now)
                     nextHeartbeat = now + HEARTBEAT_MILLIS
+                    observation.start()
                 }
-
-                val waitMillis = (nextHeartbeat - SystemClock.uptimeMillis()).coerceAtLeast(0L)
-                val event: LoopEvent = select {
-                    // Timeout first also wins a simultaneous ready command at the deadline.
-                    onTimeout(waitMillis.milliseconds) { LoopEvent.HeartbeatDue }
-                    commands.onReceiveCatching { result ->
-                        if (result.isClosed) LoopEvent.Closed
-                        else LoopEvent.CommandReceived(result.getOrThrow())
-                    }
-                }
-                when (event) {
-                    LoopEvent.Closed -> return
-                    LoopEvent.HeartbeatDue -> Unit
-                    // Settings, address, capture, and HTTP producers arrive in later slices.
-                    is LoopEvent.CommandReceived -> when (event.command) {
-                        Command.Start -> Unit
-                        is Command.Stop -> Unit
-                    }
+                reconcileFilter()
+                reconcileCapture()
+                val status = publishCapture()
+                if (status != lastStatus) reportStatus(SystemClock.uptimeMillis(), status)
+                yield()
+                val heartbeatWait = (nextHeartbeat - SystemClock.uptimeMillis()).coerceAtLeast(0L)
+                val recoveryWait = synchronized(gate) { capture }?.recoveryDelay(SystemClock.elapsedRealtime())
+                val waitMillis = if (recoveryWait == null) heartbeatWait else minOf(heartbeatWait, recoveryWait)
+                select {
+                    wake.onReceiveCatching { }
+                    onTimeout(waitMillis.milliseconds) { }
                 }
             }
         } catch (failure: CancellationException) {
-            if (!isClosing()) markFailure(failure)
+            if (!isClosing()) fail(Problem.InternalFailure, failure)
         } catch (failure: Throwable) {
-            markFailure(failure)
+            fail(Problem.InternalFailure, failure)
         } finally {
-            requestShutdown()
+            requestModuleShutdown()
         }
     }
 
-    private fun markFailure(failure: Throwable) {
-        val report = !isClosing()
-        Log.e(TAG, "MJPEG2 control loop failed", failure)
-        if (report) callbacks.reportFailed()
+    private fun reconcileCapture() {
+        val attempt = synchronized(gate) { capture } ?: return
+        val image = synchronized(gate) { latestSettings?.image } ?: return
+        attempt.reconcile(image, SystemClock.elapsedRealtime())
+        val snapshot = attempt.snapshot()
+        if (!captureErrorShown && (snapshot.issue != null || snapshot.cleanupResult == false)) {
+            captureErrorShown = true
+            val resource = if (snapshot.issue == CaptureIssue.ResumeFailed) R.string.mjpeg_capture_resume_error
+                else R.string.mjpeg_capture_error
+            workScope.launch(Dispatchers.Main.immediate) {
+                notifications.showNotification(ERROR_NOTIFICATION_ID, notifications.getErrorNotification(service, service.getString(resource), null))
+            }
+        }
+        if (snapshot.cleanupResult == true) {
+            synchronized(gate) {
+                if (capture !== attempt || closing) return
+                capture = null
+            }
+        }
+    }
+
+    /** Publish controls and status from the same fresh attempt snapshot after outcome reconciliation. */
+    private fun publishCapture(): StreamingModule.Status = synchronized(gate) {
+        val attempt = capture
+        val snapshot = attempt?.snapshot()
+        val action = when {
+            closing -> UiController.Action.Busy
+            attempt == null || snapshot == null -> UiController.Action.Start(enabled = latestSettings != null)
+            snapshot.cleanupResult == false -> UiController.Action.Start(enabled = false)
+            snapshot.streaming -> UiController.Action.Stop(attempt.id)
+            else -> UiController.Action.Busy
+        }
+        uiState.value = UiController.State(instanceId, action)
+        StreamingModule.Status(snapshot?.streaming == true, hasConsumer = false, captureAttempt = attempt?.id)
+    }
+
+    private fun captureStatus(): StreamingModule.Status {
+        val attempt = synchronized(gate) { capture }
+        return StreamingModule.Status(attempt?.snapshot()?.streaming == true, hasConsumer = false, captureAttempt = attempt?.id)
+    }
+
+    private fun reportStatus(now: Long, status: StreamingModule.Status = captureStatus()) {
+        runtime.reportRunning(status, now)
+        lastStatus = status
+    }
+
+    private fun reconcileFilter() {
+        val update = synchronized(gate) {
+            if (closing) return
+            val filter = latestSettings?.network?.filter ?: return
+            if (requestedFilter == filter) return
+            filter
+        }
+        if (!runtime.isCurrent()) return
+        monitor.updateFilter(update)
+        synchronized(gate) { requestedFilter = update }
+    }
+
+    private fun fail(problem: Problem, failure: Throwable) {
+        synchronized(gate) {
+            if (closing || firstProblem != null) return
+            firstProblem = problem
+        }
+        Log.e(TAG, "MJPEG controller failed: $problem", failure)
+        try {
+            runtime.reportFailed()
+        } finally {
+            requestModuleShutdown()
+        }
     }
 
     private fun isClosing(): Boolean = synchronized(gate) { closing }
 
     private companion object {
         private const val TAG: String = "MjpegStreamingModuleController"
-        private const val COMMAND_CAPACITY: Int = 32
+        private const val ERROR_NOTIFICATION_ID: Int = 410
         private const val HEARTBEAT_MILLIS: Long = 1_000L
     }
 }

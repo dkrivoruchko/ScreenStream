@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Keluar</string>
 
     <string name="app_tab_stream_select_mode">Pilih mode streaming:</string>
+    <string name="app_tab_stream_switching_modules">Beralih modul</string>
 
     <string name="app_permission_required_title">Izin diperlukan</string>
     <string name="app_permission_allow_notifications">Aplikasi ini memerlukan izin notifikasi untuk memulai layanan streaming.\n\nIzinkan notifikasi.</string>

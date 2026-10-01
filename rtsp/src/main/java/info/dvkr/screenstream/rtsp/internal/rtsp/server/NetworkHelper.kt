@@ -12,14 +12,14 @@ import info.dvkr.screenstream.rtsp.internal.RtspNetInterface
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.settings.RtspSettings.Values.AddressMask
 import info.dvkr.screenstream.rtsp.settings.RtspSettings.Values.InterfaceMask
-import org.koin.core.annotation.Single
+import org.koin.core.annotation.Singleton
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.util.Collections
 
-@Single
+@Singleton
 internal class NetworkHelper(private val context: Context) {
 
     private companion object {

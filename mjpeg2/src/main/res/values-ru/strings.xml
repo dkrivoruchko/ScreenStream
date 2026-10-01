@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mjpeg2_stream_mode">MJPEG2</string>
-    <string name="mjpeg2_stream_mode_description">В разработке</string>
-    <string name="mjpeg2_stream_mode_details">Трансляция экрана и просмотр в браузере пока недоступны.</string>
+    <string name="mjpeg_mode_name">MJPEG</string>
+    <string name="mjpeg_mode_description">В разработке</string>
+    <string name="mjpeg_mode_details">Трансляция экрана и просмотр в браузере пока недоступны.</string>
 </resources>

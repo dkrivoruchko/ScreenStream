@@ -11,15 +11,22 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import info.dvkr.screenstream.webrtc.ui.isExpectedEnvironmentIssue
 import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
-import kotlinx.coroutines.runBlocking
+import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
+import io.screenstream.streaming.StreamingModuleManager
 import org.koin.android.ext.android.inject
 import java.net.ConnectException
 import java.net.UnknownHostException
 
+/**
+ * Creates one legacy controller for accepted core startup, before dispatching the backend's old commands.
+ * Retains that original controller for this Service lifetime; lifecycle callbacks never wait for cleanup.
+ */
 public class WebRtcModuleService : StreamingModuleService() {
 
     internal companion object {
-        internal fun getIntent(context: Context): Intent = Intent(context, WebRtcModuleService::class.java).addIntentId()
+        internal fun getIntent(context: Context): Intent = Intent(context, WebRtcModuleService::class.java).addIntentId().let { intent ->
+            (context as? WebRtcModuleService)?.legacyOwner?.prepareCommand(intent) ?: intent
+        }
 
         @Throws(ServiceStartNotAllowedException::class)
         internal fun startService(context: Context, intent: Intent) {
@@ -43,12 +50,31 @@ public class WebRtcModuleService : StreamingModuleService() {
     override val notificationIdForeground: Int = 200
     override val notificationIdError: Int = 210
 
-    private val webRtcStreamingModule: WebRtcStreamingModule by inject(WebRtcKoinQualifier, LazyThreadSafetyMode.NONE)
+    private val webRtcStreamingModule: WebRtcStreamingModuleLegacy by inject(WebRtcKoinQualifier, LazyThreadSafetyMode.NONE)
+
+    private val legacyWebRtcStreamingModule: LegacyWebRtcStreamingModule by inject(
+        org.koin.core.qualifier.named("LegacyWebRtcStreamingModule"), LazyThreadSafetyMode.NONE
+    )
+
+    private var legacyOwner: LegacyStreamingModuleAdapter.LegacyController? = null
+    private val streamingModuleManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == StreamingModuleManager.ACTION_START_MODULE) {
+            streamingModuleManager.onServiceStart(service = this, intent = intent, existingController = legacyOwner) { runtime ->
+                legacyWebRtcStreamingModule.createController(runtime, this).also { legacyOwner = it }
+            }
+            if (legacyOwner == null) stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
+        val originalOwner = legacyOwner
+        if (originalOwner == null) {
+            stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
+        if (!originalOwner.acceptsCommand(intent)) return START_NOT_STICKY
         if (intent == null) {
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: intent = null. Stop self, startId: $startId"))
-            stopSelfResult(startId)
             return START_NOT_STICKY
         }
         XLog.d(getLog("onStartCommand", "WebRtcModuleService.INTENT_ID: ${intent.getStringExtra(INTENT_ID)}"))
@@ -69,29 +95,43 @@ public class WebRtcModuleService : StreamingModuleService() {
             XLog.e(getLog("onStartCommand"), IllegalArgumentException("WebRtcModuleService.onStartCommand: redelivered intent, WebRtcEvent: $webRtcEvent, startId: $startId, $intent"))
             return START_NOT_STICKY
         }
-
-        if (streamingModuleManager.isActive(WebRtcStreamingModule.Id)) {
-            when (webRtcEvent) {
-                is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.onServiceStart(this, webRtcEvent.token)
-                is WebRtcEvent.Intentable.StartProjection -> {
-                    XLog.i(getLog("onStartCommand", "SP_TRACE route=service_cached_permission stage=service_dispatch event=StartProjection startAttemptId=${webRtcEvent.startAttemptId} startId=$startId"))
-                    webRtcStreamingModule.startProjection(webRtcEvent.startAttemptId, webRtcEvent.intent)
-                }
-                is WebRtcEvent.Intentable.StopStream -> webRtcStreamingModule.sendEvent(webRtcEvent)
-                WebRtcEvent.Intentable.RecoverError -> webRtcStreamingModule.sendEvent(webRtcEvent)
+        when (webRtcEvent) {
+            is WebRtcEvent.Intentable.StartService -> webRtcStreamingModule.onServiceStart(this, webRtcEvent.token)
+            is WebRtcEvent.Intentable.StartProjection -> {
+                XLog.i(getLog("onStartCommand", "SP_TRACE route=service_cached_permission stage=service_dispatch event=StartProjection startAttemptId=${webRtcEvent.startAttemptId} startId=$startId"))
+                webRtcStreamingModule.startProjection(webRtcEvent.startAttemptId, webRtcEvent.intent)
             }
-        } else {
-            XLog.w(getLog("onStartCommand", "Not active module. Stop self, startId: $startId"))
-            stopSelf(startId)
+            is WebRtcEvent.Intentable.StopStream -> webRtcStreamingModule.sendEvent(webRtcEvent)
+            WebRtcEvent.Intentable.RecoverError -> webRtcStreamingModule.sendEvent(webRtcEvent)
         }
-
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
         XLog.d(getLog("onDestroy"))
-        runBlocking { streamingModuleManager.stopModule(WebRtcStreamingModule.Id) }
-        super.onDestroy()
+        val originalOwner = legacyOwner
+        legacyOwner = null
+        try {
+            super.onDestroy()
+        } finally {
+            originalOwner?.onServiceDestroyed()
+        }
+    }
+
+    override fun onTimeout(startId: Int) {
+        try {
+            stopSelf()
+        } finally {
+            legacyOwner?.requestModuleShutdown()
+        }
+    }
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        try {
+            stopSelf()
+        } finally {
+            legacyOwner?.requestModuleShutdown()
+        }
     }
 
     @Throws(IllegalStateException::class)

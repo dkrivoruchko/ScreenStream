@@ -13,6 +13,7 @@
     <string name="app_tab_exit">Chiqish</string>
 
     <string name="app_tab_stream_select_mode">Strim rejimini tanlang:</string>
+    <string name="app_tab_stream_switching_modules">Modullar almashtirilmoqda</string>
 
     <string name="app_permission_required_title">Ruxsat talab qilinadi</string>
     <string name="app_permission_allow_notifications">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnoma ruxsati kerak.\n\nBildirishnomalarga ruxsat bering.</string>

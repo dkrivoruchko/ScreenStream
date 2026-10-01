@@ -13,6 +13,7 @@
     <string name="app_tab_exit">離開</string>
 
     <string name="app_tab_stream_select_mode">選擇串流模式：</string>
+    <string name="app_tab_stream_switching_modules">正在切換模組</string>
 
     <string name="app_permission_required_title">需要權限</string>
     <string name="app_permission_allow_notifications">此應用程式需要通知權限才能啟動串流服務。\n\n請允許通知。</string>
