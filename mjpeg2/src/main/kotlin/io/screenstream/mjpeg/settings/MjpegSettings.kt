@@ -12,10 +12,9 @@ import kotlinx.serialization.Serializable
 import org.koin.core.annotation.Singleton
 
 /**
- * Process-owned MJPEG preferences in `mjpeg.preferences_pb`, under the DATA key.
- * Observation belongs to each controller. Existing JSON-store recovery supplies defaults
- * on supported read/decode failures; there is no legacy import or additional error-state hierarchy.
- * Applying desired settings, admission rules and PIN generation belong to the future controller.
+ * Saved MJPEG image, network, access, page and behavior preferences, retained across app launches
+ * in `mjpeg.preferences_pb`. Saving a choice does not mean the current stream has applied it yet.
+ * Supported read/decode failures can return defaults; old MJPEG preferences are not imported.
  *
  * @param context Supplies the preferences file.
  * @param dispatcher Runs writes, defaulting to IO.
@@ -44,32 +43,19 @@ internal class MjpegSettings(
         val behavior: StreamBehaviorSettings = StreamBehaviorSettings(),
     )
 
-    /**
-     * Controller commands that transform the latest value of one group, avoiding replacement from
-     * stale UI snapshots. The controller decides whether an edit is currently allowed; this type
-     * itself neither performs writes nor applies settings.
-     */
-    internal sealed interface Edit {
-        class Image(val change: (ImageSettings) -> ImageSettings) : Edit
-        class Network(val change: (NetworkSettings) -> NetworkSettings) : Edit
-        class Access(val change: (AccessSettings) -> AccessSettings) : Edit
-        class Web(val change: (WebPageSettings) -> WebPageSettings) : Edit
-        class Behavior(val change: (StreamBehaviorSettings) -> StreamBehaviorSettings) : Edit
-    }
-
     private val storage: JsonPreferencesStore<Data> = JsonPreferencesStore(
         serializer = Data.serializer(),
         defaultValue = Data(web = WebPageSettings()),
         produceFile = { context.preferencesDataStoreFile("mjpeg") },
     )
 
-    /** Available snapshots, including recovery defaults; each observer owns its collection. */
+    /** Saved preferences, including defaults returned after supported read recovery. */
     internal val data: Flow<Data> = storage.data
 
     /**
      * Transform the latest stored snapshot atomically, rather than a potentially stale [data] value.
      * Once admitted into the non-cancellable write, caller cancellation does not stop it. Transform
-     * and storage failures propagate; controller admission and application are separate work.
+     * and storage failures propagate; completing the save does not confirm application to the stream.
      */
     internal suspend fun updateData(transform: Data.() -> Data): Unit = withContext(NonCancellable + dispatcher) {
         storage.updateData(transform)

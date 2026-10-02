@@ -1,7 +1,9 @@
 package io.screenstream.capture.internal.session
 
 import android.media.projection.MediaProjection
+import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import io.screenstream.capture.internal.capture.EglPlatform
 import io.screenstream.capture.internal.capture.GlesPlatform
 import io.screenstream.capture.internal.capture.ProjectionPlatform
@@ -18,11 +20,13 @@ import io.screenstream.capture.internal.runtime.NonInlineDispatcher
 import io.screenstream.capture.internal.runtime.ProductionRuntime
 
 /**
- * Builds the fixed session graph and starts its Control and Capture lanes off the caller thread.
+ * Builds one session's owner graph and starts its Control and Capture lanes off the caller thread.
  *
- * Bootstrap owns every constructed prefix root until the exact first Control entry commits transfer through
- * [BootstrapOwnership]. A concurrent terminal cutoff leaves untransferred roots with Bootstrap for best-effort
- * retirement.
+ * The graph uses dedicated handlers for session control and physical capture, and an application main-looper handler
+ * for projection notifications that can outlive those lanes. Bootstrap retains each constructed resource until the
+ * first Control entry transfers ownership through [BootstrapOwnership]. If terminal cutoff wins first, Bootstrap
+ * remains responsible for stopping the untransferred projection and retiring the constructed lanes. Projection stop
+ * completion reports the stop call's result before the remaining lane cleanup.
  */
 internal class SessionBootstrap(
     private val coordinator: SessionCoordinator,
@@ -128,7 +132,7 @@ internal class SessionBootstrap(
         val captureOwner = SessionCaptureOwner(
             captureThread = captureThread,
             captureHandler = captureHandler,
-            controlHandler = controlHandler,
+            projectionCallbackHandler = Handler(Looper.getMainLooper()),
             handlerTaskPoster = handlerTaskPoster,
             factPort = captureLink,
             readbackClock = executionClock,

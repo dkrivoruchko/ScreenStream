@@ -518,8 +518,7 @@ internal class EncodingOwner(
 
                     NativeJpegDisposition.Returned.SafeCompressorRejection -> {
                         val fallbackCommitted = synchronized(gate) {
-                            if (retired || runtime !== production.runtime || nativeHealth !== production.healthCell) false
-                            else production.healthCell.disable() && production.runtime.switchNativeToFramework()
+                            !(retired || runtime !== production.runtime || nativeHealth !== production.healthCell) && production.healthCell.disable() && production.runtime.switchNativeToFramework()
                         }
                         if (fallbackCommitted) EncodingResult.ReadinessChanged
                         else EncodingResult.Failed(ScreenCaptureProblem.InternalFailure, null)

@@ -346,7 +346,7 @@ internal class SessionCaptureOwnerReadbackTest {
             owner = SessionCaptureOwner(
                 captureThread = captureThread,
                 captureHandler = mainHandler,
-                controlHandler = mainHandler,
+                projectionCallbackHandler = mainHandler,
                 handlerTaskPoster = poster,
                 factPort = factPort,
                 readbackClock = readbackClock,

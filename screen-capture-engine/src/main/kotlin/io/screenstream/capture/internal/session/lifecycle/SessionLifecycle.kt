@@ -203,8 +203,7 @@ internal class SessionLifecycle {
         get() = firstActiveState == FirstActiveState.AwaitingAssignment
 
     internal fun activePublicationMayProceed(first: Boolean): Boolean {
-        if ((terminalDecision != null) || terminalClaimed || !productionPaused) return false
-        return if (first) {
+        return !((terminalDecision != null) || terminalClaimed || !productionPaused) && if (first) {
             (phase == Phase.Starting) && (firstActiveState == FirstActiveState.AwaitingAssignment) && bootstrapReady
         } else {
             (phase == Phase.Running) && (firstActiveState != FirstActiveState.AwaitingAssignment)

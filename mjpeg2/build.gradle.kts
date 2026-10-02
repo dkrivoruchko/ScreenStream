@@ -31,4 +31,6 @@ dependencies {
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.websockets)
 }

@@ -616,7 +616,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
             owner = SessionCaptureOwner(
                 captureThread = captureThread,
                 captureHandler = captureHandler,
-                controlHandler = captureHandler,
+                projectionCallbackHandler = captureHandler,
                 handlerTaskPoster = poster,
                 factPort = factPort,
                 readbackClock = {

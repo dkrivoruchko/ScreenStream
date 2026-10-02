@@ -206,8 +206,7 @@ internal class DeliveryOwner(workerDispatcher: NonInlineDispatcher, private val 
     }
 
     internal fun isEnteredCallbackThread(registrationId: Long): Boolean {
-        if (registrationId <= 0L) return false
-        return synchronized(ownerGate) {
+        return registrationId > 0L && synchronized(ownerGate) {
             val handoff = current
             (handoff?.token?.registrationId == registrationId) && (handoff.entry == Entry.Entered) && (handoff.callbackThread === Thread.currentThread())
         }

@@ -50,8 +50,7 @@ internal class SessionReadBridge(
     }
 
     internal fun claimRejectedBeforeEntryLocked(): Boolean {
-        if (returnedSlot != null) return false
-        return when (decision) {
+        return returnedSlot == null && when (decision) {
             Decision.Open -> {
                 decision = Decision.Claimed
                 true

@@ -11,21 +11,22 @@ import io.screenstream.capture.internal.runtime.HandlerTaskPoster
 import java.nio.ByteBuffer
 
 /**
- * Sole physical owner of one session's projection, Capture lane, virtual display, target, EGL/GLES state, source
- * availability, direct readback, and retirement.
+ * Owns one session's projection, Capture lane, virtual display, targets, EGL/GLES resources, source availability, and
+ * direct readback. It reports physical facts through [factPort]; Session decides whether they still apply.
  *
- * Ordinary platform work is serialized on the Capture handler with at most one unresolved ordinary command. Posted
- * roots are installed before submission; false return and a caught [Exception] clear the exact root, while [Error] or
- * nonreturn leaves it rooted. Normal command return clears that root before result publication. A caught failure while
- * opening the unattached replacement attempts rollback before changing the live target; later GL, listener, and resize
- * steps may mutate before `setSurface`. Ambiguous surface replacement retains every possibly owned root.
- * Results describe owner-local physical settlement only; Session decides currentness after Link correlation.
- * Retirement fences new work and records one attempt without fabricating return of entered work.
+ * The Capture handler serializes platform work and retirement. Projection notifications use [projectionCallbackHandler]
+ * to report facts naming their projection and request retirement, without graphics cleanup. Production uses the
+ * application's main looper, which outlives the session and accepts already-dispatched notifications after unregister.
+ *
+ * Unreturned operations and ambiguous failures, including surface replacement, retain every possibly owned resource
+ * until physical evidence permits release. Retirement fences new work and callbacks and attempts cleanup once.
+ * Projection stop completion is reported before callback unregister and graphics cleanup; it does not establish that
+ * those later steps finished or that an entered operation returned.
  */
 internal class SessionCaptureOwner(
     private val captureThread: HandlerThread,
     private val captureHandler: Handler,
-    private val controlHandler: Handler,
+    private val projectionCallbackHandler: Handler,
     private val handlerTaskPoster: HandlerTaskPoster,
     private val factPort: SessionCaptureFactPort,
     private val readbackClock: ElapsedRealtimeClock,
@@ -130,7 +131,7 @@ internal class SessionCaptureOwner(
         check(!retirementRequested) { "Capture is retiring" }
         val projection = ProjectionOwner(
             projection = mediaProjection,
-            controlHandler = controlHandler,
+            projectionCallbackHandler = projectionCallbackHandler,
             callbackSink = this,
             callbackBoundary = this,
             platform = projectionPlatform,
@@ -328,15 +329,11 @@ internal class SessionCaptureOwner(
             val newPlan = command.plan
             val requiresSourceResize = (oldPlan.sourceWidthPx != newPlan.sourceWidthPx) ||
                     (oldPlan.sourceHeightPx != newPlan.sourceHeightPx)
-            val requiresTargetReplacement = if (requiresSourceResize) {
-                true
-            } else {
-                when (newPlan.targetMode) {
-                    CaptureTargetMode.Full -> oldTarget.targetMode != CaptureTargetMode.Full
-                    CaptureTargetMode.Downscaled -> (oldTarget.targetMode != CaptureTargetMode.Downscaled) ||
-                            (oldTarget.targetWidthPx < newPlan.targetWidthPx) ||
-                            (oldTarget.targetHeightPx < newPlan.targetHeightPx)
-                }
+            val requiresTargetReplacement = requiresSourceResize || when (newPlan.targetMode) {
+                CaptureTargetMode.Full -> oldTarget.targetMode != CaptureTargetMode.Full
+                CaptureTargetMode.Downscaled -> (oldTarget.targetMode != CaptureTargetMode.Downscaled) ||
+                        (oldTarget.targetWidthPx < newPlan.targetWidthPx) ||
+                        (oldTarget.targetHeightPx < newPlan.targetHeightPx)
             }
             if (!requiresTargetReplacement) {
                 glRenderer.applyAfterPreflight(newPlan)

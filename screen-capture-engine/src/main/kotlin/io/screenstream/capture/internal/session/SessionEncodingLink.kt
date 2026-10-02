@@ -138,8 +138,7 @@ internal class SessionEncodingLink(
 
     internal fun recordSettlementReturnedLocked(record: SessionProductionRecord, input: EncodingInput, result: EncodingInputSettlement): Boolean {
         val request = pendingProduction ?: return false
-        if (request.record !== record || request.input !== input || request.phase != ProductionPhase.Settling) return false
-        return when (result) {
+        return !(request.record !== record || request.input !== input || request.phase != ProductionPhase.Settling) && when (result) {
             EncodingInputSettlement.Accepted -> {
                 if (request.shouldEncode != true) return false
                 request.phase = ProductionPhase.Accepted

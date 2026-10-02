@@ -8,13 +8,20 @@ import io.screenstream.capture.ScreenCaptureProblem
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Owns projection callback registration, the virtual display, its current surface, and one-attempt retirement. If
- * `setSurface` throws after entry, attachment is ambiguous: the old and replacement surface roots remain retained
- * until later proof, and cleanup failure alone does not prove which root survives.
+ * Owns one projection's callback registration, virtual display, attached surface, and retirement attempts.
+ *
+ * Projection and display operations run on the Capture lane. Notifications arrive through [projectionCallbackHandler]
+ * and report facts with this owner's [token] to [callbackSink], unless callbacks have been fenced. The callback looper
+ * must outlive the session to accept platform notifications already dispatched when the callback is unregistered.
+ *
+ * Retirement attempts projection stop once, reports its result through [stopCompletion], then unregisters the callback.
+ * Display retirement separately records detachment and release. If `setSurface` throws after entry, attachment remains
+ * ambiguous: the old and replacement surfaces stay retained until proof establishes their ownership. A cleanup failure
+ * alone proves neither surface safe to release.
  */
 internal class ProjectionOwner(
     private val projection: MediaProjection,
-    private val controlHandler: Handler,
+    private val projectionCallbackHandler: Handler,
     private val callbackSink: CallbackSink,
     private val callbackBoundary: CaptureCallbackBoundary,
     private val platform: ProjectionPlatform = AndroidProjectionPlatform,
@@ -133,7 +140,7 @@ internal class ProjectionOwner(
         check(callbackRegistration == CallbackRegistration.Prepared)
         return try {
             callbackRegistration = CallbackRegistration.Attempted
-            platform.registerCallback(projection, callback, controlHandler)
+            platform.registerCallback(projection, callback, projectionCallbackHandler)
             callbackRegistration = CallbackRegistration.Registered
             ProjectionOperationResult.Success
         } catch (failure: Exception) {

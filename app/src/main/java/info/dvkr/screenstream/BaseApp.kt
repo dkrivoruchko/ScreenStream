@@ -8,8 +8,11 @@ import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.XLog
 import com.elvishew.xlog.printer.AndroidPrinter
 import com.elvishew.xlog.printer.Printer
+import io.screenstream.streaming.logV
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.annotation.KoinApplication
+import org.koin.core.logger.Level
+import org.koin.core.logger.Logger
 import org.koin.plugin.module.dsl.startKoin
 
 @KoinApplication
@@ -56,6 +59,7 @@ public abstract class BaseApp : Application() {
         initLogger(isDebuggable)
 
         startKoin<BaseApp> {
+            if (isDebuggable) logger(KoinLogger)
             allowOverride(false)
             androidContext(this@BaseApp)
         }
@@ -69,5 +73,11 @@ public abstract class BaseApp : Application() {
         val printers = if (isDebuggable) arrayOf<Printer>(AndroidPrinter()) else emptyArray()
 
         XLog.init(logConfiguration, *printers)
+    }
+
+    private object KoinLogger : Logger(Level.DEBUG) {
+        override fun display(level: Level, msg: String) {
+            logV(tag = "display", msg = "Koin [$level] $msg")
+        }
     }
 }

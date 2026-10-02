@@ -9,10 +9,10 @@ import io.screenstream.capture.Mirror
 import io.screenstream.capture.OutputSize
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.SourceRegion
-import io.screenstream.mjpeg.ipaddress.NetworkInterfaceMonitor.AddressCategory
-import io.screenstream.mjpeg.ipaddress.NetworkInterfaceMonitor.AddressFamily
-import io.screenstream.mjpeg.ipaddress.NetworkInterfaceMonitor.Filter
-import io.screenstream.mjpeg.ipaddress.NetworkInterfaceMonitor.InterfaceType
+import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.AddressCategory
+import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.AddressFamily
+import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.Filter
+import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.InterfaceType
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -24,25 +24,29 @@ import kotlinx.serialization.encoding.Encoder
 import kotlin.time.Duration
 
 /**
- * Saved image choices. The controller may apply image and frame-rate edits during capture;
- * encoder-policy edits require stopped capture. Capture geometry and resource limits are checked
- * by the engine, rather than by these preferences.
+ * Appearance, size and update rate of the streamed image. Image and frame-rate choices can change
+ * during streaming; changing the JPEG encoder requires stopped capture. Cropping must leave a
+ * nonempty image, and the output size must fit the device's capabilities.
  *
- * @property sourceRegion Whole capture area by default; half-area choices precede cropping.
+ * @property sourceRegion Stream the whole captured area, its left half or its right half; defaults
+ * to the whole area. A half requires at least two source pixels in width and is selected before cropping.
  * @property cropEnabled Whether saved insets are applied; false uses zero insets without erasing them.
  * @property cropInsets Nonnegative pixel insets in the selected region before rotation, initially zero.
  * Whether they leave a nonempty image depends on the actual source dimensions.
- * @property outputSelection Scale by default; changing the choice retains both saved size options.
- * @property scalePercent Default 50%; finite and positive after division by 100, including enlargement.
- * @property targetSize Optional positive pixel bounds and AspectFit/Stretch policy; initially unset.
- * A value is required when TargetSize is selected, and is retained while Scale is selected.
- * @property rotation Clockwise image rotation, initially zero degrees.
- * @property mirror Reflection after rotation, initially disabled.
- * @property colorMode Color by default, with grayscale available.
- * @property jpegQuality JPEG quality in 0..100, initially 80.
- * @property frameRate Auto by default; a 1..120 FPS cap or 1-second..1-hour sampling interval limits
- * new images without guaranteeing a production rate.
- * @property jpegBackendPolicy Auto by default; FrameworkOnly restricts the engine's JPEG encoder.
+ * @property outputSelection Choose percentage scaling or a target pixel size; defaults to Scale.
+ * Switching choices retains the unused values for later use.
+ * @property scalePercent Image size as a percentage after cropping and rotation, initially 50%.
+ * 100% keeps that size; larger values enlarge it. Must be finite and yield a positive scale factor.
+ * @property targetSize Positive width/height bounds, initially unset. AspectFit preserves proportions;
+ * Stretch fills those dimensions. Required for TargetSize and retained when percentage scaling is used.
+ * @property rotation Clockwise rotation by 0, 90, 180 or 270 degrees; defaults to 0.
+ * @property mirror Horizontal or vertical reflection after rotation; defaults to None.
+ * @property colorMode Color or grayscale output; defaults to Color.
+ * @property jpegQuality JPEG quality in 0..100, initially 80; higher values favor detail over smaller files.
+ * @property frameRate Auto follows available frames and processing capacity by default. A 1..120 FPS
+ * cap or 1-second..1-hour sampling interval limits new images without guaranteeing that rate.
+ * @property jpegBackendPolicy Auto chooses an available JPEG encoder; FrameworkOnly uses Android's
+ * encoder only. Defaults to Auto and changes only while capture is stopped.
  */
 @Serializable
 internal data class ImageSettings(
@@ -68,7 +72,7 @@ internal data class ImageSettings(
         require(outputSelection != OutputSelection.TargetSize || targetSize != null) { "Target size must be set when selected" }
     }
 
-    /** Which saved output-size choice the controller applies. */
+    /** How the streamed image is sized; the unselected size choice remains saved. */
     @Serializable
     enum class OutputSelection {
         /** Apply [ImageSettings.scalePercent] to the transformed source size. */
@@ -147,13 +151,14 @@ internal data class ImageSettings(
 }
 
 /**
- * Saved network choices. Filter edits can be applied at any time; changing the HTTP port requires
- * stopped capture. The controller coordinates discovery and HTTP application.
+ * Networks and addresses on which viewers can connect. Address filters can change while streaming;
+ * changing the HTTP port requires stopped capture.
  *
- * @property filter Nonempty address-family, interface-type and category groups. Choices within a
- * group are ORed and groups are ANDed; All is the full set. Defaults are IPv4, Wi-Fi/Ethernet and
- * Private addresses. [Filter] owns copies of its sets and separately allows empty groups.
- * @property httpPort Fixed listening port in 1024..65535, initially 8080.
+ * @property filter Select eligible IP families, network types and address categories; each group
+ * must have a selection. An address must match one selected choice in every group. Defaults to IPv4
+ * on Wi-Fi/Ethernet with Private addresses. All includes every supported choice, but never IPv6
+ * link-local; LinkLocal includes IPv4 only. Selecting an address does not guarantee viewers can reach it.
+ * @property httpPort Port viewers use to connect, in 1024..65535; defaults to 8080.
  */
 @Serializable
 internal data class NetworkSettings(
@@ -193,20 +198,22 @@ internal data class NetworkSettings(
 }
 
 /**
- * Saved access choices. The controller must admit edits only while capture is stopped, with no
- * Start/consent in progress and after Stop cleanup has completed. Link tokens and applied permissions are runtime
- * state; this model does not generate PINs or apply access changes.
+ * Whether viewers need a PIN and when it changes. These choices are edited only after capture has
+ * fully stopped, not while starting or awaiting consent. PIN-entry blocking and PIN visibility are
+ * preferences for the future web client and full settings screen.
  *
- * @property pinEnabled Whether PIN protection is requested, initially false.
- * @property pinPolicy When the controller replaces the same saved [pin], initially NewOnModuleStart.
- * @property pin Saved six-ASCII-digit PIN, including leading zeros, or null before one is generated.
- * Null does not itself disable requested protection; the controller must generate, save and apply it.
+ * @property pinEnabled Require PIN-authorized access instead of open viewing; defaults to false.
+ * On the media-only stage, viewers use the protected link rather than a PIN form.
+ * @property pinPolicy When to replace the saved [pin]; defaults to NewOnModuleStart.
+ * @property pin Saved PIN of six ASCII digits, including leading zeros; initially null.
+ * If protection is enabled without a PIN, one is generated and saved before protected viewing opens.
  * @property hidePinOnCaptureStart Hide the displayed PIN when capture starts, initially true;
  * the user may reveal it independently of this preference.
  * @property limitWrongPins Enable blocking after five wrong PIN entries per client IP, initially true.
  * Attempts are shared across listening addresses; already authorized viewers are not revoked by blocking.
- * @property blockMinutes Positive whole minutes for subsequent IP blocks, initially one; requests
- * during a block do not extend it, and success or expiry resets the attempt count.
+ * @property blockMinutes Duration of future PIN-entry blocks in whole minutes, at least one;
+ * defaults to one. Changes affect later blocks. Requests during a block do not extend it, and
+ * successful PIN entry or expiry resets the attempt count.
  */
 @Serializable
 internal data class AccessSettings(
@@ -228,12 +235,13 @@ internal data class AccessSettings(
         /** Keep the PIN until the user changes it. */
         Permanent,
 
-        /** Replace on each new module controller, including return from another mode, not background resume. */
+        /** Generate a new PIN whenever MJPEG is enabled, including return from another mode, not background resume. */
         NewOnModuleStart,
 
         /**
-         * Generate and save for each new controller even if a PIN was saved, then replace once when
-         * an attempt that accepted projection logically ends, even if the engine failed.
+         * Generate a new PIN whenever MJPEG is enabled, then replace it once after capture ends.
+         * A startup that acquired screen capture but subsequently failed also changes the PIN;
+         * declining or cancelling consent before capture is acquired does not.
          */
         NewAfterStream,
     }
@@ -254,13 +262,13 @@ internal class SecretValue(val value: String) {
 }
 
 /**
- * Page preferences shared with all viewers. The controller can apply edits at any time;
- * preferences local to one browser remain with that viewer.
+ * Appearance of the future web page, shared by all viewers. These choices can change at any time;
+ * browser-specific viewing preferences are separate. The media-only endpoints do not display a page.
  *
  * @property background RGB color in #RRGGBB form, initially #101418.
  * @property title Page caption and browser-tab title, initially the device manufacturer/model without
- * a repeated manufacturer, or Android device when unavailable. Every write includes this value,
- * even when equal to its current device default; an explicitly empty title remains empty.
+ * a repeated manufacturer, or Android device when unavailable. The saved title is retained on
+ * later launches; an explicitly empty title remains empty.
  * @property titleEnabled Show the caption, initially true.
  * @property titleLayout Caption placement, initially top overlay with automatic hiding.
  * @property controlsLayout Control placement, initially bottom overlay with automatic hiding.
@@ -318,17 +326,20 @@ internal data class WebPageSettings(
 }
 
 /**
- * Saved capture behavior. The controller applies wakefulness edits immediately, event preferences
- * to later events, and post-Stop display at Stop or immediately while already stopped. Platform
- * restrictions and system Stop take priority. These preferences do not implement those actions.
+ * When to stop streaming and what viewers see afterward. Changes are allowed at any time:
+ * screen wakefulness applies immediately, Stop/notification choices affect later events, and
+ * post-Stop imagery changes immediately if already stopped. System Stop and device restrictions
+ * take priority. Screen wakefulness, screen-off Stop and slow-viewer notifications are not yet connected.
  *
- * @property keepScreenAwake Request dim-capable screen wakefulness during capture, initially false;
+ * @property keepScreenAwake Prevent automatic screen-off during capture while allowing dimming, initially false;
  * it does not override manual locking or platform restrictions.
  * @property stopOnScreenOff Request capture Stop when the screen turns off, initially false.
- * @property stopOnAllAddressesLost Request Stop when all usable device addresses disappear, initially
- * false; an HTTP-server failure while an address still exists is not address loss.
- * @property postStopImage Placeholder by default; the last frame is usable only while still available
- * and is not persisted for restoration.
+ * @property stopAfterNetworkLossSeconds Stop capture after the selected address list stays empty
+ * for this many seconds; 10..1800, initially 60. Returning addresses cancel the pending Stop.
+ * An HTTP-server failure while an address still exists is not address loss.
+ * @property postStopImage What viewers see after an ordinary Stop: no image, a placeholder or the
+ * last available frame; defaults to Placeholder. Cleared/lost frames cannot be restored, and capture
+ * errors leave no image instead of showing a stopped-stream placeholder.
  * @property notifySlowViewers Request slow-viewer notifications, initially true; statistics collection
  * is independent, and the notification surface remains to be implemented.
  */
@@ -336,10 +347,14 @@ internal data class WebPageSettings(
 internal data class StreamBehaviorSettings(
     val keepScreenAwake: Boolean = false,
     val stopOnScreenOff: Boolean = false,
-    val stopOnAllAddressesLost: Boolean = false,
+    val stopAfterNetworkLossSeconds: Int = 60,
     val postStopImage: PostStopImage = PostStopImage.Placeholder,
     val notifySlowViewers: Boolean = true,
 ) {
+    init {
+        require(stopAfterNetworkLossSeconds in 10..1800) { "Network-loss timeout must be in 10..1800 seconds" }
+    }
+
     /** Image preference after capture stops. */
     @Serializable
     enum class PostStopImage {

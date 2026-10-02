@@ -117,7 +117,7 @@ internal class ScreenCaptureSessionCaptureLifecycleIntegrationTest {
             val owner = SessionCaptureOwner(
                 captureThread = captureThread,
                 captureHandler = captureHandler,
-                controlHandler = controlHandler,
+                projectionCallbackHandler = controlHandler,
                 handlerTaskPoster = poster,
                 factPort = facts,
                 readbackClock = { 0L },

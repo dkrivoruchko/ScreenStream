@@ -67,7 +67,7 @@ public sealed interface ScreenCaptureState {
 
         public override fun hashCode(): Int {
             var result: Int = outputInfo.hashCode()
-            result = (31 * result) + (isCapturedContentVisible?.hashCode() ?: 0)
+            result = (31 * result) + isCapturedContentVisible.hashCode()
             return result
         }
 
@@ -112,7 +112,7 @@ public sealed interface ScreenCaptureState {
         public override fun hashCode(): Int {
             var result: Int = requestedParameters.hashCode()
             result = (31 * result) + lastOutputInfo.hashCode()
-            result = (31 * result) + (isCapturedContentVisible?.hashCode() ?: 0)
+            result = (31 * result) + isCapturedContentVisible.hashCode()
             return result
         }
 
@@ -173,7 +173,7 @@ public sealed interface ScreenCaptureState {
             var result: Int = requestedParameters.hashCode()
             result = (31 * result) + problem.hashCode()
             result = (31 * result) + lastOutputInfo.hashCode()
-            result = (31 * result) + (isCapturedContentVisible?.hashCode() ?: 0)
+            result = (31 * result) + isCapturedContentVisible.hashCode()
             return result
         }
 
@@ -228,7 +228,7 @@ public sealed interface ScreenCaptureState {
         public override fun hashCode(): Int {
             var result: Int = reason.hashCode()
             result = (31 * result) + requestedParameters.hashCode()
-            result = (31 * result) + (lastOutputInfo?.hashCode() ?: 0)
+            result = (31 * result) + lastOutputInfo.hashCode()
             return result
         }
 
@@ -276,7 +276,7 @@ public sealed interface ScreenCaptureState {
         public override fun hashCode(): Int {
             var result: Int = problem.hashCode()
             result = (31 * result) + requestedParameters.hashCode()
-            result = (31 * result) + (lastOutputInfo?.hashCode() ?: 0)
+            result = (31 * result) + lastOutputInfo.hashCode()
             return result
         }
 

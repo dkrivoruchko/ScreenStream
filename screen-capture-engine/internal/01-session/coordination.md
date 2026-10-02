@@ -62,14 +62,13 @@ Stale evidence still settles its exact resources. It may also contribute the exp
 
 ## Execution lanes
 
-- Caller threads perform bounded validation, admission, and snapshot access. Heavy Capture, Encoding, callback, and cleanup work runs elsewhere.
+- Caller threads perform bounded validation, admission, and snapshot access. Physical capture, encoding, application callbacks, and cleanup run on their owner lanes.
 - Bootstrap performs potentially blocking lane start and Looper acquisition on the shared non-inline worker.
 - The Control `Handler` enters Coordinator turns. `SessionControlExecutor` owns Handler mechanics, not lifecycle, currentness, plans, schedules, statistics, or publication policy.
+- `MediaProjection.Callback` uses the explicit `projectionCallbackHandler` on the application's main Looper. Callback entry forwards typed Capture facts through the callback fence and identity-checked ingress; `onStop` also requests Capture retirement. This is a platform-notification destination, not a Coordinator turn or a physical-work lane. The main Looper lasts for the application process; the session does not create or retire it.
 - The Capture `Handler` serializes projection, Target, EGL/GLES, readback, and Capture retirement.
 - Encoding and Delivery use the shared non-inline worker through owner-local `SerialTaskSlot` instances. Metrics likewise coalesces its attachment, refresh, close, and notification work through its owner.
 - Startup and pacing delayed tasks are scheduling mechanisms. Lifecycle or Production owns their semantic identity.
-
-`MediaProjection.Callback` is hosted on the Control Handler but remains a Capture platform callback. Its entry is not a Coordinator turn and cannot directly change session semantics; it emits typed Capture evidence.
 
 ## Session gates
 

@@ -155,12 +155,7 @@ internal class FrameworkBitmapOwner(internal val layout: Rgba8888Layout) {
             actualRowByteCount = exactBitmap.rowBytes
             actualByteCount = exactBitmap.byteCount
             actualAllocationByteCount = exactBitmap.allocationByteCount
-            actualIsSrgb = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                actualConfig != Bitmap.Config.HARDWARE && exactBitmap.colorSpace == ColorSpace.get(ColorSpace.Named.SRGB)
-            } else {
-                true
-            }
-
+            actualIsSrgb = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || actualConfig != Bitmap.Config.HARDWARE && exactBitmap.colorSpace == ColorSpace.get(ColorSpace.Named.SRGB)
             check(actualWidthPx == layout.widthPx)
             check(actualHeightPx == layout.heightPx)
             check(actualConfig == Bitmap.Config.ARGB_8888)

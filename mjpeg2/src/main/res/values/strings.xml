@@ -7,6 +7,39 @@
     <string name="mjpeg_start_stream">Start stream</string>
     <string name="mjpeg_stop_stream">Stop stream</string>
 
+    <string name="mjpeg_network_filter">Network filter</string>
+    <string name="mjpeg_network_filter_ip_version">IP version</string>
+    <string name="mjpeg_network_filter_network_type">Network type</string>
+    <string name="mjpeg_network_filter_address_type">Address type</string>
+    <string name="mjpeg_network_filter_ipv4">IPv4</string>
+    <string name="mjpeg_network_filter_ipv6">IPv6</string>
+    <string name="mjpeg_network_filter_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_filter_ethernet">Ethernet</string>
+    <string name="mjpeg_network_filter_mobile">Mobile data</string>
+    <string name="mjpeg_network_filter_vpn">VPN</string>
+    <string name="mjpeg_network_filter_other">Other</string>
+    <string name="mjpeg_network_filter_private">Private</string>
+    <string name="mjpeg_network_filter_non_private">Non-private</string>
+    <string name="mjpeg_network_filter_loopback">Loopback</string>
+    <string name="mjpeg_network_filter_link_local">IPv4 link-local</string>
+    <string name="mjpeg_network_filter_keep_one">Keep at least one option selected in each group.</string>
+    <string name="mjpeg_network_filter_load_error">Could not load network settings</string>
+    <string name="mjpeg_network_filter_save_error">Could not save network settings</string>
+
     <string name="mjpeg_capture_error">Screen capture failed</string>
-    <string name="mjpeg_capture_resume_error">Could not resume screen capture</string>
+
+    <string name="mjpeg_copy_url">Copy URL</string>
+    <string name="mjpeg_same_device">This device only</string>
+    <string name="mjpeg_allow_local_network">Allow local network</string>
+    <string name="mjpeg_stream_stopped">Stream stopped</string>
+
+    <string name="mjpeg_server_pending">Pending</string>
+    <string name="mjpeg_server_listening">Listening</string>
+    <string name="mjpeg_server_permission_required">Local network permission required</string>
+    <string name="mjpeg_server_address_in_use">Address in use</string>
+    <string name="mjpeg_server_address_unavailable">Address unavailable</string>
+    <string name="mjpeg_server_permission_denied">Permission denied</string>
+    <string name="mjpeg_server_io_failure">Could not open server</string>
+    <string name="mjpeg_server_unknown_failure">Server failed</string>
+    <string name="mjpeg_retry_server">Retry</string>
 </resources>

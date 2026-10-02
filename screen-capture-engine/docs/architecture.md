@@ -87,9 +87,11 @@ Runtime mechanisms schedule and serialize work without deciding session policy. 
 
 ### Lanes and queue-less work
 
-The Control `Handler` lane drives reconciliation and frame production. Public calls and owner callbacks also update coordinated state under the session gates (locks protecting shared session decisions); Control is not the only thread that can change session decisions.
+The Control `Handler` lane drives Coordinator reconciliation and frame production. Public calls and owner callbacks enter through the session gates (locks protecting shared session decisions), so coordinated state can also change on their calling threads.
 
-The Capture `Handler` lane serializes projection, target, EGL, GLES, and readback work. It provides the thread-affine access that graphics resources require. Metrics, Encoding, and Delivery each use a [`SerialTaskSlot`](../src/main/kotlin/io/screenstream/capture/internal/runtime/SerialTaskSlot.kt) over shared non-inline worker execution. Each slot permits one accepted or entered operation. A slot is neither a dedicated thread nor a queue of work waiting behind a busy owner.
+The Capture `Handler` lane serializes projection operations, target management, EGL, GLES, readback, and physical retirement, providing the thread-affine access required by graphics resources. Android projection notifications arrive through an explicit Handler on the application's [main Looper](https://developer.android.com/reference/android/os/Looper#getMainLooper()). Those short callbacks forward identity-checked Capture facts through the callback fence and request owner work; graphics work and Capture cleanup execute on Capture. The main Looper lasts for the application process; the session does not create or retire it. Each session owns its projection callback registration and retirement.
+
+Metrics, Encoding, and Delivery each use a [`SerialTaskSlot`](../src/main/kotlin/io/screenstream/capture/internal/runtime/SerialTaskSlot.kt) over shared non-inline worker execution. Each slot permits one accepted or entered operation. A slot is neither a dedicated thread nor a queue of work waiting behind a busy owner.
 
 Scheduling, producing a result, and becoming available for another operation are different boundaries:
 

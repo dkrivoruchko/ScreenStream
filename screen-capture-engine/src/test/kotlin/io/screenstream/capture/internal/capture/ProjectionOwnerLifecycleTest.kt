@@ -73,7 +73,7 @@ internal class ProjectionOwnerLifecycleTest {
         every { projection.stop() } just Runs
         val owner = ProjectionOwner(
             projection = projection,
-            controlHandler = controlHandler,
+            projectionCallbackHandler = controlHandler,
             callbackSink = callbackSink,
             callbackBoundary = callbackBoundary,
             stopCompletion = ProjectionStopCompletion(),
@@ -312,7 +312,7 @@ internal class ProjectionOwnerLifecycleTest {
         callbackBoundary: RecordingCallbackBoundary = RecordingCallbackBoundary(),
     ): ProjectionOwner = ProjectionOwner(
         projection = projection,
-        controlHandler = Handler(Looper.getMainLooper()),
+        projectionCallbackHandler = Handler(Looper.getMainLooper()),
         callbackSink = callbackSink,
         callbackBoundary = callbackBoundary,
         platform = platform,

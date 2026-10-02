@@ -79,8 +79,7 @@ internal class SessionDeliveryLink(
 
     internal fun recordOfferReturnedLocked(request: OfferRequest, result: DeliveryOffer): Boolean {
         val expected = request.handoff
-        if ((pendingOffer !== request) || (handoff !== expected)) return false
-        return when (result) {
+        return !((pendingOffer !== request) || (handoff !== expected)) && when (result) {
             is DeliveryOffer.Accepted -> {
                 if (result.handoff !== expected) return false
                 pendingOffer = null

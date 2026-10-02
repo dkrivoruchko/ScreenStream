@@ -3,9 +3,6 @@ package io.screenstream.capture
 import androidx.annotation.CheckResult
 import androidx.annotation.FloatRange
 import androidx.annotation.IntRange
-import io.screenstream.capture.FrameRate.Companion.MAX_FPS_RANGE
-import io.screenstream.capture.FrameRate.Companion.SAMPLING_INTERVAL_RANGE
-import io.screenstream.capture.ScreenCaptureParameters.Companion.JPEG_QUALITY_RANGE
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
