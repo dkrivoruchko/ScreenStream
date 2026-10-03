@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 internal class EncodingOwnerFrameworkLifecycleTest {
     // Verification: ENC-05
     // Verification: ENC-06
@@ -440,7 +440,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
     @Test
     @Config(
         manifest = Config.NONE,
-        sdk = [Build.VERSION_CODES.N, Build.VERSION_CODES.O, Build.VERSION_CODES.BAKLAVA],
+        sdk = [Build.VERSION_CODES.N, Build.VERSION_CODES.O, Build.VERSION_CODES.CINNAMON_BUN],
     )
     fun frameworkEncodingProducesReusableJpeg() {
         ControlledNonInlineDispatcher().use { dispatcher ->

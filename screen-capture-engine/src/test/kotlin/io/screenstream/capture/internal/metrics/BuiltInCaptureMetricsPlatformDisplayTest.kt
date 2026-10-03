@@ -148,7 +148,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun registrationFailureIsContainedButInitialDispatchFailureEscapes() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val fixture = Fixture(dispatcher)
@@ -179,7 +179,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun refreshDispatchFailureClosesAndFencesListener() {
         assertRefreshSubmissionFailure(DispatchOutcome.Reject, expectedFailure = null)
         val dispatchFailure = IllegalArgumentException("refresh dispatch failed")
@@ -188,7 +188,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun refreshReadFailureClosesAndFencesListener() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val fixture = Fixture(dispatcher)
@@ -218,7 +218,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun invalidationDuringRefreshCreatesSuccessorEpoch() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val fixture = Fixture(dispatcher)
@@ -524,7 +524,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun concurrentCloseSharesUnregisterFailure() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val fixture = Fixture(dispatcher)
@@ -589,7 +589,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun callerCloseDoesNotWaitForObserver() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val fixture = Fixture(dispatcher)
@@ -637,7 +637,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
     // Verification: MET-01
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun defaultConfigCreatesFreshObservationPerOwner() {
         val application: Application = RuntimeEnvironment.getApplication()
         ShadowDisplayManager.changeDisplay(Display.DEFAULT_DISPLAY, DISPLAY_QUALIFIERS)
@@ -719,7 +719,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun acceptedInitialDispatchCloseFencesLateEntry() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val fixture = Fixture(dispatcher)

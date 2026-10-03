@@ -87,7 +87,7 @@ internal class GLRendererReadbackTest {
     // Verification: CAP-04
     // Verification: P3-01
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.TIRAMISU, Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.TIRAMISU, Build.VERSION_CODES.CINNAMON_BUN])
     fun exactDisplayP3FailsBeforeRead() {
         RendererFixture(dataSpace = DataSpace.DATASPACE_DISPLAY_P3).use { fixture ->
             fixture.fillCarrier(CARRIER_SENTINEL)
@@ -123,7 +123,7 @@ internal class GLRendererReadbackTest {
 
     // Verification: CAP-04
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.TIRAMISU, Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.TIRAMISU, Build.VERSION_CODES.CINNAMON_BUN])
     fun nonDisplayP3DataspacesRemainBestEffort() {
         listOf(
             DataSpace.DATASPACE_UNKNOWN,

@@ -3,6 +3,7 @@ package io.screenstream.capture
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.media.projection.MediaProjection
+import android.os.Build
 import io.mockk.Called
 import io.mockk.every
 import io.mockk.mockk
@@ -30,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 internal class ScreenCaptureEngineLifecycleTest {
     // Verification: API-02
     // Verification: OBS-01

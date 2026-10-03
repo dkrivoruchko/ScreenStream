@@ -1,5 +1,6 @@
 package io.screenstream.capture.internal.encoding
 
+import android.os.Build
 import io.mockk.every
 import io.mockk.mockk
 import io.screenstream.capture.JpegBackendPolicy
@@ -18,7 +19,7 @@ import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 internal class EncodingOwnerAutoPolicyTest {
     // Verification: ENC-02
     @Test

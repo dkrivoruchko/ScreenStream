@@ -12,7 +12,7 @@ The catalogue's **Executable** method requires a direct test oracle; **Inspectio
 
 ## Commands and prerequisites
 
-Run commands from the repository root. The module [build configuration](../../build.gradle.kts) uses JVM toolchain 17 and explicitly launches unit tests on JDK 21; Gradle must be able to locate or provision that test runtime. Host-native checks require Android SDK CMake 4.1.2, its Ninja executable, and a host Clang compiler. Their [CMake workflow](../../src/test/cpp/CMakePresets.json) configures, builds, and runs the two C++ test executables with AddressSanitizer and UndefinedBehaviorSanitizer.
+Run commands from the repository root. The module [build configuration](../../build.gradle.kts) uses JVM toolchain 17 and explicitly launches unit tests on JDK 21; Gradle must be able to locate or provision that test runtime. The unit-test launch opens `java.base/jdk.internal.access` for Robolectric's API 37 FileDescriptor setup. Host-native checks require Android SDK CMake 4.1.2, its Ninja executable, and a host Clang compiler. Their [CMake workflow](../../src/test/cpp/CMakePresets.json) configures, builds, and runs the two C++ test executables with AddressSanitizer and UndefinedBehaviorSanitizer.
 
 ### Local and host-native checks
 

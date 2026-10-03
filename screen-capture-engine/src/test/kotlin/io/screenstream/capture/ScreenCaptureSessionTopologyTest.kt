@@ -79,7 +79,7 @@ internal class ScreenCaptureSessionTopologyTest {
 
     // Verification: SES-03
     @Test
-    @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
+    @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE, Build.VERSION_CODES.CINNAMON_BUN])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun authoritativeInitialResizeKeepsStartPendingUntilResizedCaptureIsActive() = runTest {
         val provisionalMetrics = CaptureMetrics(widthPx = 2, heightPx = 2, densityDpi = 320)
@@ -92,7 +92,7 @@ internal class ScreenCaptureSessionTopologyTest {
         SessionHarness(
             bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
             metrics = provisionalMetrics,
-            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            platformSdkInt = Build.VERSION.SDK_INT,
             projection = platform.projection,
             projectionPlatform = platform.projectionPlatform,
             eglPlatform = platform.eglPlatform,

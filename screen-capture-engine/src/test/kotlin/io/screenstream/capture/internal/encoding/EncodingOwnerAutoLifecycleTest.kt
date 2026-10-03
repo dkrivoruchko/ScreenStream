@@ -1,6 +1,7 @@
 package io.screenstream.capture.internal.encoding
 
 import android.graphics.Bitmap
+import android.os.Build
 import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.spyk
@@ -24,7 +25,7 @@ import java.util.IdentityHashMap
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 internal class EncodingOwnerAutoLifecycleTest {
     // Verification: ENC-02
     // Verification: ENC-06

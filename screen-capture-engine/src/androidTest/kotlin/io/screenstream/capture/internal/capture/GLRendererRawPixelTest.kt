@@ -224,7 +224,7 @@ internal class GLRendererRawPixelTest {
         verifyCases(
             listOf(
                 RenderCase(
-                    resolverSdkInt = 32,
+                    resolverSdkInt = Build.VERSION_CODES.S_V2,
                     sourceDimensionsAreAuthoritative = true,
                     oracleCase = RawPixelOracle.Case(
                         name = "authoritative-downscaled-rotated-mirrored",
@@ -240,7 +240,7 @@ internal class GLRendererRawPixelTest {
                     ),
                 ),
                 RenderCase(
-                    resolverSdkInt = 34,
+                    resolverSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
                     sourceDimensionsAreAuthoritative = false,
                     oracleCase = RawPixelOracle.Case(
                         name = "provisional-forced-full-leaf",
@@ -268,7 +268,7 @@ internal class GLRendererRawPixelTest {
         outputHeightPx: Int,
         anchors: List<PixelAnchor> = emptyList(),
     ): RenderCase = RenderCase(
-        resolverSdkInt = 32,
+        resolverSdkInt = Build.VERSION_CODES.S_V2,
         sourceDimensionsAreAuthoritative = true,
         oracleCase = RawPixelOracle.Case(
             name = name,
@@ -291,7 +291,7 @@ internal class GLRendererRawPixelTest {
         outputWidthPx: Int,
         outputHeightPx: Int,
     ): RenderCase = RenderCase(
-        resolverSdkInt = 32,
+        resolverSdkInt = Build.VERSION_CODES.S_V2,
         sourceDimensionsAreAuthoritative = true,
         oracleCase = RawPixelOracle.Case(
             name = name,

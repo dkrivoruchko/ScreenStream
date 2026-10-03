@@ -41,6 +41,8 @@ android {
 
     testOptions {
         unitTests.all {
+            // Robolectric's API 37 FileDescriptor interceptor accesses JDK SharedSecrets during setup.
+            it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
             it.javaLauncher.set(
                 javaToolchains.launcherFor {
                     languageVersion = JavaLanguageVersion.of(21)
@@ -76,12 +78,12 @@ tasks.named("check") {
 dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
-    implementation("androidx.annotation:annotation:1.10.0")
+    implementation("androidx.annotation:annotation:1.11.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     testImplementation("io.mockk:mockk:1.14.11")
-    testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation("org.robolectric:robolectric:4.17")
 
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")

@@ -1,5 +1,6 @@
 package io.screenstream.capture.internal.session
 
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -206,7 +207,7 @@ internal class SessionEncodingLinkCorrelationTest {
             delayedEntryScheduler = { _, _ -> throw AssertionError("delayed scheduling was not expected") },
             executionClock = { 0L },
             currentEpochMillis = { 0L },
-            platformSdkInt = 37,
+            platformSdkInt = Build.VERSION_CODES.CINNAMON_BUN,
         )
         private val inputOwner = EncodingOwner(FailFastNonInlineDispatcher, ZeroClock)
         private val loans = mutableListOf<Pair<ManagedDirectCarrier, EncodingInput>>()

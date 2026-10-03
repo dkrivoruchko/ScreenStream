@@ -6,6 +6,7 @@ import android.opengl.EGLContext
 import android.opengl.EGLDisplay
 import android.opengl.EGLSurface
 import android.opengl.GLES20
+import android.os.Build
 import io.mockk.mockk
 import io.screenstream.capture.ColorMode
 import io.screenstream.capture.ImageRect
@@ -32,7 +33,7 @@ import java.util.ArrayDeque
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 internal class EglOwnerLifecycleTest {
     private var savedNoDisplay: EGLDisplay? = null
     private var savedNoContext: EGLContext? = null

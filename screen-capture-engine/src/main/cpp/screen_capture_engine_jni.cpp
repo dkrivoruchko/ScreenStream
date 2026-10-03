@@ -1,5 +1,6 @@
 #include "native_jpeg_runtime.h"
 
+#include <android/api-level.h>
 #include <android/bitmap.h>
 #include <android/data_space.h>
 #include <jni.h>
@@ -128,7 +129,7 @@ namespace {
     jboolean nativeHasWeakCompressor(JNIEnv *env, jobject) noexcept {
         try {
             if (env == nullptr || env->ExceptionCheck()) return JNI_FALSE;
-            if (__builtin_available(android 30, *)) {
+            if (__builtin_available(android __ANDROID_API_R__, *)) {
                 auto compressor = &AndroidBitmap_compress;
                 if (compressor != nullptr) return JNI_TRUE;
             }
@@ -312,7 +313,7 @@ namespace {
             descriptor.quality = static_cast<std::int32_t>(quality);
             descriptor.pixels = pixelAddress;
 
-            if (__builtin_available(android 30, *)) {
+            if (__builtin_available(android __ANDROID_API_R__, *)) {
                 auto compressor = &AndroidBitmap_compress;
                 if (compressor != nullptr) {
                     compressAndTransferSegments(env, sink, copyMethod, descriptor, compressor, result);

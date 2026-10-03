@@ -56,7 +56,7 @@ internal class BuiltInCaptureMetricsSourceLifecycleTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S, Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S, Build.VERSION_CODES.CINNAMON_BUN])
     fun windowContextsPublishAvailabilitySequence() {
         val application: Application = RuntimeEnvironment.getApplication()
         val displayManager = displayManager(application)
@@ -91,7 +91,7 @@ internal class BuiltInCaptureMetricsSourceLifecycleTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun fixedAndDefaultSourcesFollowSelectedDisplay() {
         val application: Application = RuntimeEnvironment.getApplication()
         val displayManager = displayManager(application)
@@ -139,7 +139,7 @@ internal class BuiltInCaptureMetricsSourceLifecycleTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.BAKLAVA])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
     fun repeatedCloseFencesWorkAndDisplayChanges() {
         val application: Application = RuntimeEnvironment.getApplication()
         val displayManager = displayManager(application)

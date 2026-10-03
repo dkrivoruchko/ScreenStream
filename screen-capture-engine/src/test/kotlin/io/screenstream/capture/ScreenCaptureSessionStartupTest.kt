@@ -1,5 +1,6 @@
 package io.screenstream.capture
 
+import android.os.Build
 import io.mockk.Called
 import io.mockk.verify
 import io.screenstream.capture.testutil.DispatchAttemptKind
@@ -32,7 +33,7 @@ import kotlin.coroutines.startCoroutine
 import kotlin.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 internal class ScreenCaptureSessionStartupTest {
     // Verification: API-03
     @Test

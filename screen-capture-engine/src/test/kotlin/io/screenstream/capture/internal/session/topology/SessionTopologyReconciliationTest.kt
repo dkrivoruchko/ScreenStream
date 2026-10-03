@@ -71,11 +71,11 @@ internal class SessionTopologyReconciliationTest {
         )
         val metricsUpdate = topology.prepareMetrics(
             snapshot = beforeCloseSettlement,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.MetricsDecision.Update
         topology.commitMetrics(metricsUpdate)
 
-        val staleCandidate = topology.resolvePlan(platformSdkInt = 30) as SessionTopology.PlanDecision.Install
+        val staleCandidate = topology.resolvePlan(platformSdkInt = Build.VERSION_CODES.R) as SessionTopology.PlanDecision.Install
         assertEquals(metrics.widthPx, staleCandidate.plan.outputInfo.captureGeometry.widthPx)
         assertEquals(metrics.heightPx, staleCandidate.plan.outputInfo.captureGeometry.heightPx)
         assertEquals(metrics.densityDpi, staleCandidate.plan.outputInfo.captureGeometry.densityDpi)
@@ -89,12 +89,12 @@ internal class SessionTopologyReconciliationTest {
         )
         val settlementUpdate = topology.prepareMetrics(
             snapshot = afterCloseSettlement,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.MetricsDecision.Update
         topology.commitMetrics(settlementUpdate)
 
         assertFalse(staleCandidate.isCurrent(topology))
-        assertTrue(topology.resolvePlan(platformSdkInt = 30) is SessionTopology.PlanDecision.Install)
+        assertTrue(topology.resolvePlan(platformSdkInt = Build.VERSION_CODES.R) is SessionTopology.PlanDecision.Install)
     }
 
     // Verification: SES-03
@@ -111,18 +111,18 @@ internal class SessionTopologyReconciliationTest {
         )
         val metricsUpdate = topology.prepareMetrics(
             snapshot = snapshot,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.MetricsDecision.Update
         topology.commitMetrics(metricsUpdate)
         val staleCandidate = topology.resolvePlan(
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.PlanDecision.Install
 
         topology.recordCapturedContentVisibility(isVisible = true)
 
         assertFalse(staleCandidate.isCurrent(topology))
         val currentCandidate = topology.resolvePlan(
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.PlanDecision.Install
         topology.recordCapturedContentVisibility(isVisible = true)
         assertTrue(currentCandidate.isCurrent(topology))
@@ -136,17 +136,17 @@ internal class SessionTopologyReconciliationTest {
         val initialSnapshot = readyMetrics(widthPx = 100, heightPx = 200, densityDpi = 300)
         val initialUpdate = topology.prepareMetrics(
             snapshot = initialSnapshot,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.MetricsDecision.Update
         topology.commitMetrics(initialUpdate)
         val stalePlan = topology.resolvePlan(
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.PlanDecision.Install
 
         val changedSnapshot = readyMetrics(widthPx = 101, heightPx = 200, densityDpi = 300)
         val changedUpdate = topology.prepareMetrics(
             snapshot = changedSnapshot,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.MetricsDecision.Update
         topology.commitMetrics(changedUpdate)
 
@@ -162,7 +162,7 @@ internal class SessionTopologyReconciliationTest {
         val initialSnapshot = readyMetrics(widthPx = 100, heightPx = 200, densityDpi = 300)
         val initialUpdate = topology.prepareMetrics(
             snapshot = initialSnapshot,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.MetricsDecision.Update
         topology.commitMetrics(initialUpdate)
 
@@ -176,7 +176,7 @@ internal class SessionTopologyReconciliationTest {
             SessionTopology.MetricsDecision.BlockedByPendingIngress,
             topology.prepareMetrics(
                 snapshot = laterSnapshot,
-                platformSdkInt = 30,
+                platformSdkInt = Build.VERSION_CODES.R,
             ),
         )
 
@@ -184,7 +184,7 @@ internal class SessionTopologyReconciliationTest {
         topology.commitDesired(desiredIngress)
         val laterUpdate = topology.prepareMetrics(
             snapshot = laterSnapshot,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
         ) as SessionTopology.MetricsDecision.Update
         val metricsRevision = topology.commitMetrics(laterUpdate) ?: error("missing Metrics topology revision")
 
@@ -193,7 +193,7 @@ internal class SessionTopologyReconciliationTest {
             SessionTopology.MetricsDecision.Duplicate,
             topology.prepareMetrics(
                 snapshot = laterSnapshot,
-                platformSdkInt = 30,
+                platformSdkInt = Build.VERSION_CODES.R,
             ),
         )
     }

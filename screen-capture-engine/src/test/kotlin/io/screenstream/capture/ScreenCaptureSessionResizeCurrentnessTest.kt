@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration.Companion.nanoseconds
 
 /*
- * API 34 resize-currentness evidence through the real Coordinator, Capture, Encoding, Storage, and Delivery owners.
+ * Authoritative resize-currentness evidence through the real Coordinator, Capture, Encoding, Storage, and Delivery owners.
  * Latches and explicit task entry only arrange the accepted intervals. Public output identity and Stats, exact native
  * carrier effects, current replacement Target readback, and actual outer task return decide the scenarios.
  */
@@ -50,6 +50,7 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
     // Verification: SES-03
     // Verification: SES-06
     @Test
+    @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE, Build.VERSION_CODES.CINNAMON_BUN])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun admittedOldCallbackRemainsImmutableAcrossResizeAdoptionThenReplacementProducesCurrentOutput() = runTest {
         val platform = CapturePlatformFixture()
@@ -112,7 +113,7 @@ internal class ScreenCaptureSessionResizeCurrentnessTest {
             val exactHarness = SessionHarness(
                 bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
                 metrics = CaptureMetrics(widthPx = 8, heightPx = 6, densityDpi = 320),
-                platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+                platformSdkInt = Build.VERSION.SDK_INT,
                 projection = platform.projection,
                 projectionPlatform = platform.projectionPlatform,
                 eglPlatform = platform.eglPlatform,

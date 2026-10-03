@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicReference
  * ordering. HandlerThread quit calls prove request cardinality only, never thread termination or cleanup.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class ScreenCaptureSessionBootstrapTest {
     // Verification: SES-08

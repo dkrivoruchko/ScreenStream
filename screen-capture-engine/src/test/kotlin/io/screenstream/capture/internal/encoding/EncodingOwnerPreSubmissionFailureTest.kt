@@ -1,5 +1,6 @@
 package io.screenstream.capture.internal.encoding
 
+import android.os.Build
 import io.screenstream.capture.JpegBackendPolicy
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.internal.Rgba8888Layout
@@ -17,7 +18,7 @@ import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 internal class EncodingOwnerPreSubmissionFailureTest {
     // Verification: ENC-03
     @Test

@@ -1,5 +1,6 @@
 package io.screenstream.capture
 
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -115,7 +116,7 @@ internal class ScreenCaptureSessionPreStartLifecycleTest {
         },
         executionClock = { 0L },
         currentEpochMillis = { 0L },
-        platformSdkInt = 36,
+        platformSdkInt = Build.VERSION_CODES.CINNAMON_BUN,
     ).also { it.adoptProjection(mockk(relaxed = true)) }
 
     private class QueuedDispatcher : NonInlineDispatcher {

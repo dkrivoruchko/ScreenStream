@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class ProjectionOwnerLifecycleTest {
     // Verification: CAP-01

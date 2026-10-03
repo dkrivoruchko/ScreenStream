@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
 import java.nio.ByteBuffer
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [36])
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 internal class FrameworkBitmapOwnerLifecycleTest {
     // Verification: ENC-06
     @Test
@@ -119,7 +119,7 @@ internal class FrameworkBitmapOwnerLifecycleTest {
     @Test
     @Config(
         manifest = Config.NONE,
-        sdk = [Build.VERSION_CODES.N, Build.VERSION_CODES.O, Build.VERSION_CODES.BAKLAVA],
+        sdk = [Build.VERSION_CODES.N, Build.VERSION_CODES.O, Build.VERSION_CODES.CINNAMON_BUN],
     )
     fun invalidBitmapAdoptionShapesAreRejectedOnApplicableApiBands() {
         val layout = Rgba8888Layout.create(widthPx = 2, heightPx = 2)

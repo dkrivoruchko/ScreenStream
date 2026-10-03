@@ -1,6 +1,7 @@
 package io.screenstream.capture.testutil
 
 import android.media.projection.MediaProjection
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -40,7 +41,7 @@ internal class SessionHarness(
     bootstrapFault: BootstrapFault = BootstrapFault.None,
     delayedControlOutcome: DelayedControlOutcome = DelayedControlOutcome.FailFast,
     metrics: CaptureMetrics? = CaptureMetrics(100, 200, 300),
-    platformSdkInt: Int = 36,
+    platformSdkInt: Int = Build.VERSION_CODES.CINNAMON_BUN,
     projectionPlatform: ProjectionPlatform = AndroidProjectionPlatform,
     eglPlatform: EglPlatform = AndroidEglPlatform,
     glesPlatform: GlesPlatform = AndroidGlesPlatform,

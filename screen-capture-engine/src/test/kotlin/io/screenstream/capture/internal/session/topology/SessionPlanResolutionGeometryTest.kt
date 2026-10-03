@@ -1,5 +1,6 @@
 package io.screenstream.capture.internal.session.topology
 
+import android.os.Build
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.Mirror
 import io.screenstream.capture.OutputSize
@@ -21,10 +22,10 @@ internal class SessionPlanResolutionGeometryTest {
     fun earlyDownscaleStartsAtApi32AndRemainsEligibleAboveApi37() {
         val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.5))
 
-        val api31 = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = 31)
+        val api31 = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = Build.VERSION_CODES.S)
         assertTarget(api31, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
 
-        listOf(32, 37, 38).forEach { platformSdkInt ->
+        listOf(Build.VERSION_CODES.S_V2, Build.VERSION_CODES.CINNAMON_BUN, 38).forEach { platformSdkInt ->
             val resolved = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = platformSdkInt)
             assertTarget(resolved, CaptureTargetMode.Downscaled, widthPx = 5, heightPx = 3)
         }
@@ -45,7 +46,7 @@ internal class SessionPlanResolutionGeometryTest {
             parameters,
             widthPx = 10,
             heightPx = 6,
-            platformSdkInt = 34,
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             sourceDimensionsAreAuthoritative = false,
         )
         assertTrue(provisional.isProvisional)
@@ -64,7 +65,7 @@ internal class SessionPlanResolutionGeometryTest {
             parameters,
             widthPx = 10,
             heightPx = 6,
-            platformSdkInt = 34,
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             sourceDimensionsAreAuthoritative = true,
         )
         assertFalse(authoritative.isProvisional)
@@ -87,7 +88,7 @@ internal class SessionPlanResolutionGeometryTest {
             widthPx = 2,
             heightPx = 2,
             densityDpi = 320,
-            platformSdkInt = 34,
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             sourceDimensionsAreAuthoritative = false,
         )
         val authoritative = SessionPlanResolution.resolve(
@@ -95,7 +96,7 @@ internal class SessionPlanResolutionGeometryTest {
             widthPx = 6,
             heightPx = 4,
             densityDpi = 320,
-            platformSdkInt = 34,
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
             sourceDimensionsAreAuthoritative = true,
         )
 
@@ -120,7 +121,7 @@ internal class SessionPlanResolutionGeometryTest {
             ),
             widthPx = 15,
             heightPx = 9,
-            platformSdkInt = 32,
+            platformSdkInt = Build.VERSION_CODES.S_V2,
         )
 
         assertEquals(5, resolved.outputInfo.finalImageSize.widthPx)
@@ -135,7 +136,7 @@ internal class SessionPlanResolutionGeometryTest {
             parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.9)),
             widthPx = 6,
             heightPx = 4,
-            platformSdkInt = 32,
+            platformSdkInt = Build.VERSION_CODES.S_V2,
         )
 
         assertTarget(resolved, CaptureTargetMode.Full, widthPx = 6, heightPx = 4)
@@ -159,7 +160,7 @@ internal class SessionPlanResolutionGeometryTest {
         )
 
         ineligibleParameters.forEach { parameters ->
-            val resolved = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = 32)
+            val resolved = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = Build.VERSION_CODES.S_V2)
             assertTarget(resolved, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
         }
     }
@@ -179,7 +180,7 @@ internal class SessionPlanResolutionGeometryTest {
             widthPx = 5,
             heightPx = 4,
             densityDpi = 320,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
             sourceDimensionsAreAuthoritative = true,
         )
         assertTrue(result is SessionPlanResolution.Resolved)
@@ -263,7 +264,7 @@ internal class SessionPlanResolutionGeometryTest {
             widthPx = 5,
             heightPx = 3,
             densityDpi = 320,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
             sourceDimensionsAreAuthoritative = true,
         )
         assertTrue(result is SessionPlanResolution.Resolved)
@@ -347,7 +348,7 @@ internal class SessionPlanResolutionGeometryTest {
             widthPx = 2,
             heightPx = 1,
             densityDpi = 320,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
             sourceDimensionsAreAuthoritative = true,
         )
 
@@ -363,7 +364,7 @@ internal class SessionPlanResolutionGeometryTest {
             widthPx = 3,
             heightPx = 2,
             densityDpi = 320,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
             sourceDimensionsAreAuthoritative = true,
         )
         assertTrue(invalid is SessionPlanResolution.Rejected)
@@ -380,7 +381,7 @@ internal class SessionPlanResolutionGeometryTest {
             widthPx = 1,
             heightPx = 1,
             densityDpi = 320,
-            platformSdkInt = 30,
+            platformSdkInt = Build.VERSION_CODES.R,
             sourceDimensionsAreAuthoritative = true,
         )
         assertTrue(exhausted is SessionPlanResolution.Rejected)
@@ -392,7 +393,7 @@ internal class SessionPlanResolutionGeometryTest {
         widthPx: Int = 6,
         heightPx: Int = 4,
         densityDpi: Int = 320,
-        platformSdkInt: Int = 30,
+        platformSdkInt: Int = Build.VERSION_CODES.R,
         sourceDimensionsAreAuthoritative: Boolean = true,
     ): SessionPlanResolution.Resolved {
         val result = SessionPlanResolution.resolve(
