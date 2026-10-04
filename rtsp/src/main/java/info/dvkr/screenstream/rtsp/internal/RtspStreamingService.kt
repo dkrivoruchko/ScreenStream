@@ -185,12 +185,19 @@ internal class RtspStreamingService(
             mediaProjection.unregisterCallback(projectionCallback)
         }
 
-        fun reconfigureVideo(width: Int, height: Int, fps: Int, bitRate: Int, densityDpi: Int) {
+        fun reconfigureVideo(
+            width: Int,
+            height: Int,
+            fps: Int,
+            bitRate: Int,
+            densityDpi: Int,
+            h264Profile: RtspSettings.Values.H264Profile = RtspSettings.Values.H264Profile.AUTO
+        ) {
             val oldSurface = captureSurface
             onVideoReconfigureStart()
             virtualDisplay.surface = null
             videoEncoder.stop()
-            videoEncoder.prepare(width, height, fps, bitRate)
+            videoEncoder.prepare(width, height, fps, bitRate, h264Profile)
             val inputSurfaceTexture = videoEncoder.inputSurfaceTexture ?: throw IllegalStateException("VideoEncoder input surface is null")
             val newSurface = Surface(inputSurfaceTexture)
             virtualDisplay.resize(width, height, densityDpi)
@@ -264,7 +271,8 @@ internal class RtspStreamingService(
                         height = targetHeight,
                         fps = settings.videoFps.coerceIn(videoCapabilities.supportedFrameRates.toClosedRange()),
                         bitRate = settings.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange()),
-                        densityDpi = service.resources.displayMetrics.densityDpi
+                        densityDpi = service.resources.displayMetrics.densityDpi,
+                        h264Profile = settings.videoH264Profile
                     )
                     encodedSize = targetWidth to targetHeight
                 } catch (cause: Throwable) {
@@ -1230,7 +1238,8 @@ internal class RtspStreamingService(
                                 encodedWidth,
                                 encodedHeight,
                                 fps = settings.videoFps.coerceIn(videoCapabilities.supportedFrameRates.toClosedRange()),
-                                bitRate = settings.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange())
+                                bitRate = settings.videoBitrateBits.coerceIn(videoCapabilities.bitrateRange.toClosedRange()),
+                                h264Profile = settings.videoH264Profile
                             )
                             if (!isStartupStillValid()) {
                                 XLog.i(getLog("StartProjection", "Startup invalidated before virtual display creation."))

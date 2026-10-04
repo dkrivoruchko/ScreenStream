@@ -91,6 +91,9 @@ internal class RtspSettingsImpl(
                 if (newSettings.videoCodec != RtspSettings.Default.VIDEO_CODEC)
                     set(RtspSettings.Key.VIDEO_CODEC, newSettings.videoCodec)
 
+                if (newSettings.videoH264Profile != RtspSettings.Default.VIDEO_H264_PROFILE)
+                    set(RtspSettings.Key.VIDEO_H264_PROFILE, newSettings.videoH264Profile.name)
+
                 if (newSettings.videoResizeFactor != RtspSettings.Default.VIDEO_RESIZE_FACTOR) {
                     set(RtspSettings.Key.VIDEO_RESIZE_FACTOR, newSettings.videoResizeFactor)
                 }
@@ -184,6 +187,9 @@ internal class RtspSettingsImpl(
 
         videoCodecAutoSelect = this[RtspSettings.Key.VIDEO_CODEC_AUTO_SELECT] ?: RtspSettings.Default.VIDEO_CODEC_AUTO_SELECT,
         videoCodec = this[RtspSettings.Key.VIDEO_CODEC] ?: RtspSettings.Default.VIDEO_CODEC,
+        videoH264Profile = runCatching {
+            this[RtspSettings.Key.VIDEO_H264_PROFILE]?.let { name -> RtspSettings.Values.H264Profile.valueOf(name) }
+        }.getOrNull() ?: RtspSettings.Default.VIDEO_H264_PROFILE,
         videoResizeFactor = this[RtspSettings.Key.VIDEO_RESIZE_FACTOR] ?: RtspSettings.Default.VIDEO_RESIZE_FACTOR,
         videoFps = this[RtspSettings.Key.VIDEO_FPS] ?: RtspSettings.Default.VIDEO_FPS,
         videoBitrateBits = this[RtspSettings.Key.VIDEO_BITRATE] ?: RtspSettings.Default.VIDEO_BITRATE,
