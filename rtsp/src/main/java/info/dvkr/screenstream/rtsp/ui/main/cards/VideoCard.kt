@@ -107,7 +107,7 @@ internal fun VideoCard(
                 .fillMaxWidth()
         )
 
-        if (selectedVideoEncoder?.codec == Codec.Video.H264) {
+        if (selectedVideoEncoder.codec == Codec.Video.H264) {
             val supportedH264Profiles = remember(selectedVideoEncoder) {
                 selectedVideoEncoder.capabilities.getSupportedH264Profiles()
             }
