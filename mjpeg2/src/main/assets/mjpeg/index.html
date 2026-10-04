@@ -91,7 +91,7 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
         <dt data-word="method"></dt><dd id="info-method"></dd>
         <dt data-word="connection"></dt><dd id="info-connection"></dd>
         <dt data-word="image"></dt><dd id="info-image"></dd>
-        <dt data-word="capture"></dt><dd id="info-capture"></dd>
+        <dt id="info-notice-label" data-word="streamNotice" hidden></dt><dd id="info-notice" hidden></dd>
         <dt data-word="size"></dt><dd id="info-size"></dd>
         <dt data-word="title"></dt><dd id="info-title"></dd>
       </dl>
@@ -116,6 +116,1020 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
   <video id="pip-video" muted playsinline aria-hidden="true"></video>
   <noscript><p class="panel">Enable JavaScript to view this stream and enter its PIN.</p></noscript>
 </main>
-<script>function _typeof(e){return _typeof="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(e){return typeof e}:function(e){return e&&"function"==typeof Symbol&&e.constructor===Symbol&&e!==Symbol.prototype?"symbol":typeof e},_typeof(e)}!function(){"use strict";var e={app:"ScreenStream",connecting:"Connecting\u2026",connected:"Connected",reconnecting:"Reconnecting\u2026",unavailable:"Server unavailable. Retry the connection.",mediaStarting:"Waiting for an image\u2026",mediaRetrying:"Restoring image\u2026",mediaFailed:"Image unavailable. Retry or choose another viewing method.",viewing:"Viewing",pinRequired:"Enter the six-digit PIN shown on the streaming device.",pinWrong:"Incorrect PIN. Try again.",pinInvalid:"Enter six digits (0\u20139).",pinSending:"Checking PIN\u2026",pinNetwork:"Could not check PIN. Retry the connection.",blocked:"PIN entry blocked. Try again in ",seconds:" seconds.",retry:"Retry connection",alternate:"Other viewing method",useMjpeg:"Use MJPEG",fit:"Fit",original:"Original size",width:"Fit width",viewMode:"Image size",fullscreen:"Full screen",leaveFullscreen:"Exit full screen",pip:"Picture in picture",pipReady:"Picture in picture is ready. Press Picture in picture again to open it.",pipError:"Picture in picture could not open. Normal viewing continues.",fullscreenError:"Full screen could not open. Normal viewing continues.",more:"More",close:"Close",infoToggle:"Show connection information",pinLabel:"PIN",unlock:"View stream",info:"Connection information",method:"Viewing method",connection:"State connection",image:"Image delivery",size:"JPEG dimensions",unknownSize:"No image",title:"Full title",capture:"Capture",stopped:"Stream stopped",waiting_for_permission:"Waiting for permission on the streaming device",starting:"Starting capture",active:"Capture active",reconfiguring:"Updating capture settings",suspended:"Capture paused",stopping:"Stopping capture",failed:"Capture failed",capture_failed:"Capture failed on the streaming device.",invalid_request:"Check capture settings on the streaming device.",capture_unavailable:"Screen capture is unavailable on the streaming device.",resource_exhausted:"The streaming device has insufficient capture resources.",permission_required:"Allow screen capture on the streaming device.",permission_denied:"Screen capture permission was declined on the streaming device.",cleanup_failed:"Capture cleanup failed on the streaming device.",deviceAction:"Check the streaming device.",unsupported:"This browser cannot connect to the stream. Use a browser with WebSocket support."};function t(e,t){e.textContent=t}function n(e){return document.getElementById(e)}for(var i=document.querySelectorAll("[data-word]"),o=0;o<i.length;o+=1)t(i[o],e[i[o].getAttribute("data-word")]);var r=null,a="connecting",c="idle",u=0,l=null,s=null,d="",p=0,m=!1,f=n("pin-panel"),g=n("pin"),h=n("unlock"),v=function(i){var o=n("shell"),r=n("viewport"),a=n("image-stage"),c=n("caption"),u=n("controls"),l=n("menu"),s=n("fullscreen"),d=n("pip"),p=n("pip-video"),m=null,f="fit",g=null,h=null,v=0,y=0,w=null,b=!1,E=!1,L=null,k=null,T=null,x=null,S=0,A=o.requestFullscreen||o.webkitRequestFullscreen||o.mozRequestFullScreen||o.msRequestFullscreen,C=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen,M=!!(window.HTMLCanvasElement&&HTMLCanvasElement.prototype.captureStream&&p.requestPictureInPicture&&"srcObject"in p&&document.pictureInPictureEnabled);function I(){return document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement}function P(){c.classList.remove("autohidden"),u.classList.remove("autohidden"),clearTimeout(w),w=setTimeout(function(){w=null,!m||b||E||u.contains(document.activeElement)||l.contains(document.activeElement)||(m.titleLayout.autoHide&&c.classList.add("autohidden"),m.controlsLayout.autoHide&&u.classList.add("autohidden"))},4e3)}function R(){if(g&&v&&y){var e=r.clientWidth,t=r.clientHeight,n=1;"placeholder"===h?n=Math.min(1,e/v,t/y):"fit"===f?n=Math.min(e/v,t/y):"width"===f&&(n=e/v);var i=Math.max(1,v*n),o=Math.max(1,y*n);g.style.width=i+"px",g.style.height=o+"px",g.style.left=Math.max(0,(e-i)/2)+"px",g.style.top=("width"===f&&"placeholder"!==h?0:Math.max(0,(t-o)/2))+"px",a.style.width=Math.max(e,i)+"px",a.style.height=Math.max(t,o)+"px"}else a.style.width=a.style.height="100%"}function F(){var e=window.visualViewport,t=Math.min(o.clientHeight,e&&1===e.scale?e.height:window.innerHeight||o.clientHeight),i=n("pin-panel");if(i.style.top=Math.round(t*(t<=400?.03:.1))+"px",i.style.maxHeight=Math.max(48,.8*t)+"px",m){var a=n("top-bar"),s=n("bottom-bar"),d=parseFloat(window.getComputedStyle(a).paddingTop)||4,p=parseFloat(window.getComputedStyle(s).paddingBottom)||4,f=[{node:c,settings:m.titleLayout},{node:u,settings:m.controlsLayout}],g={top:d,bottom:p},h={top:d,bottom:p};f.forEach(function(e){var t=e.node,n=e.settings;if(!t.hidden){t.classList.toggle("separate-bar","bar"===n.presentation),t.style.top=t.style.bottom="";var i="top"===n.position?"top":"bottom";t.style[i]=g[i]+"px",g[i]+=t.offsetHeight,"bar"===n.presentation&&(h[i]=g[i])}}),a.style.height=h.top+"px",s.style.height=h.bottom+"px",r.style.top=h.top+"px",r.style.bottom=h.bottom+"px",n("status").style.top=g.top+"px",l.style.top=l.style.bottom="";var v="top"===m.controlsLayout.position?"top":"bottom";l.style[v]=g[v]+4+"px",l.style.maxHeight=Math.max(48,t-g.top-g.bottom-12)+"px",R()}}function H(e){E=!1,l.hidden=!0,n("more").setAttribute("aria-expanded","false"),e&&n("more").focus(),P()}function _(){S+=1,clearTimeout(T),clearTimeout(x),T=x=null,p.onloadedmetadata=null,p.pause(),p.srcObject=null;var e=k;if(k=L=null,e&&e.getTracks().forEach(function(e){return e.stop()}),document.pictureInPictureElement===p&&document.exitPictureInPicture){var t=document.exitPictureInPicture();t&&t.catch&&t.catch(function(){})}}function q(e){if(e===S&&k){var t;try{t=p.requestPictureInPicture()}catch(n){return i.notice("pipError"),void _()}t.then(function(){e===S?(clearTimeout(x),x=null):_()},function(t){e===S&&("NotAllowedError"===t.name?(i.notice("pipReady"),clearTimeout(x),x=setTimeout(function(){e===S&&_()},3e4)):(i.notice("pipError"),_()))})}}return s.hidden=!A||!C,d.hidden=!M,d.disabled=!0,p.addEventListener("leavepictureinpicture",_),s.addEventListener("click",function(){try{var e=I()?C.call(document):A.call(o);e&&e.catch&&e.catch(function(){return i.notice("fullscreenError")})}catch(t){i.notice("fullscreenError")}}),["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"].forEach(function(n){document.addEventListener(n,function(){t(s,I()?e.leaveFullscreen:e.fullscreen),F()})}),d.addEventListener("click",function(){if(M&&g)if(document.pictureInPictureElement!==p)if(k&&p.readyState>=2)q(S);else{_();var e=S;try{var t=(L=document.createElement("canvas")).getContext("2d"),n=function(){if(e===S&&g){try{L.width===g.naturalWidth&&L.height===g.naturalHeight||(L.width=g.naturalWidth,L.height=g.naturalHeight),t.drawImage(g,0,0)}catch(o){return i.notice("pipError"),void _()}T=setTimeout(n,100)}};if(n(),!L)return;k=L.captureStream(10),p.srcObject=k,p.onloadedmetadata=function(){if(e===S){clearTimeout(x),x=null;var t=p.play();t&&t.then?t.then(function(){return q(e)},function(){e===S&&(i.notice("pipError"),_())}):q(e)}},x=setTimeout(function(){e===S&&(i.notice("pipError"),_())},1e4)}catch(o){i.notice("pipError"),_()}}else _()}),n("view-mode").addEventListener("change",function(e){f=e.target.value,r.scrollLeft=r.scrollTop=0,R(),P()}),n("more").addEventListener("click",function(){E?H(!0):(E=!0,l.hidden=!1,n("more").setAttribute("aria-expanded","true"),P(),F(),n("show-info").focus())}),n("close-menu").addEventListener("click",function(){return H(!0)}),n("show-info").addEventListener("change",function(e){n("information").hidden=!e.target.checked,F()}),document.addEventListener("keydown",function(e){if(P(),("Escape"===e.key||"BrowserBack"===e.key||27===e.keyCode)&&E)return e.preventDefault(),void H(!0);if(!E&&u.contains(document.activeElement)&&"SELECT"!==document.activeElement.tagName){var t=e.key||{37:"ArrowLeft",38:"ArrowUp",39:"ArrowRight",40:"ArrowDown"}[e.keyCode];if("ArrowLeft"===t||"ArrowRight"===t||"ArrowUp"===t||"ArrowDown"===t){var n=Array.prototype.slice.call(u.querySelectorAll("button,select")).filter(function(e){return!e.hidden&&!e.disabled}),i=n.indexOf(document.activeElement),o="ArrowLeft"===t||"ArrowUp"===t?-1:1;e.preventDefault(),n[(i+o+n.length)%n.length].focus()}}}),document.addEventListener("mousemove",P),document.addEventListener("touchstart",function(){b=!0,P()}),document.addEventListener("touchend",function(){b=!1,P()}),document.addEventListener("touchcancel",function(){b=!1,P()}),document.addEventListener("mousedown",function(){b=!0,P()}),document.addEventListener("mouseup",function(){b=!1,P()}),u.addEventListener("focusin",P),u.addEventListener("focusout",P),window.addEventListener("resize",F),window.addEventListener("orientationchange",F),window.visualViewport&&window.visualViewport.addEventListener("resize",F),F(),{configure:function(i){m=i,o.style.backgroundColor=/^#[0-9a-fA-F]{6}$/.test(i.background)?i.background:"#101418",t(n("caption-text"),i.title),c.title=i.title,document.title=i.title||e.app,c.hidden=!i.titleEnabled,u.hidden=!1,P(),F()},setImage:function(e,t){h=(g=e)?t:null,v=g?g.naturalWidth:0,y=g?g.naturalHeight:0,d.disabled=!g,n("placeholder").hidden=!!g,g||_(),R()},setDimensions:function(e,t){v=e,y=t,R()},layout:F,closeMenu:H,activity:P,pause:function(){clearTimeout(w),w=null,_()},accessDenied:function(){H(!1),u.hidden=c.hidden=!0,_(),F()}}}({notice:function(t){d=e[t],clearTimeout(s),s=setTimeout(function(){d="",E()},1e4),E()}}),y=function(e,t){var n=[0,1e3,2e3,4e3,8e3],i=null,o=null,r=0,a=0,c=null,u=null,l=null,s=null,d=!1,p=!1,m=!0,f="",g=null,h="mjpeg",v=0,y=0,w=0,b="idle";function E(e){b=e,t.state(e)}function L(e){e&&(e.onload=e.onerror=null,e.removeAttribute("src"),e.parentNode&&e.parentNode.removeChild(e))}function k(){r+=1,clearTimeout(c),clearTimeout(u),clearTimeout(l),c=u=l=null,L(o),o=null}function T(){!i||y===i.naturalWidth&&w===i.naturalHeight||(y=i.naturalWidth,w=i.naturalHeight,t.dimensions(y,w))}function x(){clearTimeout(s),s=null,L(i),i=null,y=w=0,t.image(null,null),t.dimensions(0,0)}function S(){clearTimeout(s),T(),i&&(s=setTimeout(S,500))}function A(e,t){e!==r||t!==o&&t!==i||(k(),i&&(i.onerror=null),m||x(),d&&p&&(v>=n.length?E("failed"):(E("retrying"),l=setTimeout(M,n[v++]))))}function C(e,n,a){e===r&&n===o&&n.naturalWidth&&n.naturalHeight&&(clearTimeout(c),clearTimeout(u),c=u=null,L(i),i=n,o=null,n.style.visibility="visible",n.removeAttribute("aria-hidden"),n.alt="Stream image",n.onload=function(){e===r&&n===i&&T()},n.onerror=function(){return A(e,n)},v=0,t.image(i,a),S(),E("viewing"),"jpeg"===h&&(l=setTimeout(M,500)))}function M(){if(k(),d&&p){var t=r,n=g,l=new Image;o=l,l.className="stream-image",l.alt="",l.setAttribute("aria-hidden","true"),l.style.visibility="hidden",e.appendChild(l),i||E("starting");var s=!1,m=function(){if(t===r&&l===o&&l.naturalWidth&&("jpeg"!==h||l.complete))if("jpeg"===h&&"function"==typeof l.decode){if(s)return;s=!0,l.decode().then(function(){return C(t,l,n)},function(){return A(t,l)})}else C(t,l,n)};l.onload=m,l.onerror=function(){return A(t,l)};var v=function(){t===r&&l===o&&(m(),l===o&&(u=setTimeout(v,100)))};c=setTimeout(function(){return A(t,l)},1e4),l.src="/"+h+"?s="+encodeURIComponent(f)+"&kind="+n+"&n="+ ++a,u=setTimeout(v,100)}}function I(){p&&d&&(v=0,E("retrying"),M())}return{configure:function(e){var t=f,n=g,r=d;if(p="open"===e.access||"authorized"===e.access,g=!p||"stream"!==e.imageKind&&"placeholder"!==e.imageKind?null:e.imageKind,d=p&&!0===e.imageAvailable&&null!==g,m=!(!e.display||!e.display.retainImageOnReconnect),p&&(f=e.s),!d)return k(),x(),v=0,void E("idle");f===t&&g===n&&r&&(i||o||"idle"!==b)||(v=0,M())},retry:I,alternate:function(){h="mjpeg"===h?"jpeg":"mjpeg",t.method(h),I()},pause:function(){k(),x()},resume:function(e){!p||!d||!e&&(o||i&&i.naturalWidth)||I()},method:function(){return h},image:function(){return i},state:function(){return b}}}(n("image-stage"),{state:function(e){c=e,E()},image:function(e,t){v.setImage(e,t),E()},dimensions:function(i,o){v.setDimensions(i,o),t(n("info-size"),i&&o?i+" \xd7 "+o:e.unknownSize)},method:function(e){t(n("info-method"),"mjpeg"===e?"MJPEG":"JPEG"),L()}}),w=function(e){var t=[0,1e3,2e3,4e3,8e3],n=null,i=0,o=null,r=null,a=0,c="",u=!1,l=!1,s=null;function d(){i+=1,clearTimeout(o),clearTimeout(r),o=r=null,n&&(n.onopen=n.onmessage=n.onerror=n.onclose=null,n.close(),n=null)}function p(n){if(n===i&&!u&&!l)if(d(),a>=t.length)e.state("unavailable");else{e.state("reconnecting");var r=t[a++];o=setTimeout(m,r)}}function m(){if(d(),!l)if(window.WebSocket){var t=i;u=!1;var o=("https:"===location.protocol?"wss://":"ws://")+location.host+"/ws"+(c?"?s="+encodeURIComponent(c):"");try{n=new WebSocket(o)}catch(s){return void p(t)}r=setTimeout(function(){return p(t)},1e4),n.onmessage=function(n){if(t===i){var o;try{o=JSON.parse(n.data)}catch(s){return void p(t)}if(o&&"object"===_typeof(o)){if("pin_required"===o.access||"blocked"===o.access)return u=!0,a=0,d(),void e.snapshot(o);var l=o.display,m=function(e){return e&&("top"===e.position||"bottom"===e.position)&&("overlay"===e.presentation||"bar"===e.presentation)&&"boolean"==typeof e.autoHide};!("open"!==o.access&&"authorized"!==o.access||"string"!=typeof o.s||!o.s||"boolean"!=typeof o.imageAvailable||null!==o.imageKind&&"stream"!==o.imageKind&&"placeholder"!==o.imageKind||o.imageAvailable!==(null!==o.imageKind))&&l&&"string"==typeof o.capture&&"string"==typeof l.title&&"string"==typeof l.background&&"boolean"==typeof l.titleEnabled&&"boolean"==typeof l.retainImageOnReconnect&&m(l.titleLayout)&&m(l.controlsLayout)?(clearTimeout(r),r=null,a=0,c=o.s,e.state("connected"),e.snapshot(o)):p(t)}else p(t)}},n.onclose=n.onerror=function(){return p(t)}}else e.state("unsupported")}function f(){l=!1,u=!1,a=0,e.state("connecting"),m()}return{retry:f,submitPin:function(t){if(!s)if(/^[0-9]{6}$/.test(t)){var n=new XMLHttpRequest;s=n,e.pin("pinSending"),n.open("POST","/pin",!0),n.setRequestHeader("Content-Type","application/x-www-form-urlencoded"),n.timeout=1e4;var i=function(){return s===n&&(s=null,!0)};n.onload=function(){if(i())if(204===n.status)e.pin("success"),f();else if(403===n.status)e.pin("pinWrong");else if(429===n.status){var t=parseInt(n.getResponseHeader("Retry-After"),10);e.snapshot({access:"blocked",retryAfterMs:1e3*(isFinite(t)&&t>0?t:1)})}else e.pin("pinNetwork")},n.onerror=n.ontimeout=function(){i()&&e.pin("pinNetwork")},n.send("pin="+encodeURIComponent(t))}else e.pin("pinInvalid")},pause:function(){if(l=!0,d(),s){var e=s;s=null,e.abort()}},healthy:function(){return!!n&&1===n.readyState&&!r}}}({state:function(e){a=e,E()},snapshot:function(i){if(clearTimeout(l),l=null,u=0,r=i,"pin_required"===i.access||"blocked"===i.access){a=i.access,y.configure(i),v.accessDenied();var o=f.hidden;f.hidden=!1,g.disabled=h.disabled=!1,"blocked"===i.access?k(i.retryAfterMs):(t(n("pin-message"),e.pinRequired),o&&g.focus())}else f.hidden=!0,g.value="",v.configure(i.display),t(n("info-title"),i.display.title),y.configure(i);E()},pin:function(i){h.disabled=!1,"success"===i?(g.value="",f.hidden=!0):(h.disabled="pinSending"===i,t(n("pin-message"),e[i]),"pinWrong"===i&&(g.select(),g.focus()))}});function b(){return r&&("open"===r.access||"authorized"===r.access)}function E(){var i=function(){if(!b())return"";var t=e[r.capture]||e.failed;r.issue&&(["capture_failed","cleanup_failed"].indexOf(r.issue.code)>=0&&(t+=". "+e[r.issue.code]),"check_device"===r.issue.action&&(t+=" "+e.deviceAction));return t}(),o="";("connected"!==a&&"pin_required"!==a&&"blocked"!==a&&(o=e[a]||e.connecting),b())&&("active"!==r.capture&&(o+=(o?" \xb7 ":"")+i),("starting"===c||"retrying"===c||"failed"===c)&&(o+=(o?" \xb7 ":"")+e["starting"===c?"mediaStarting":"retrying"===c?"mediaRetrying":"mediaFailed"]));d&&(o+=(o?" \xb7 ":"")+d),t(n("status"),o),t(n("placeholder"),b()?r.imageAvailable?e.mediaStarting:i||e.mediaStarting:e[a]||e.connecting);var u={idle:e.mediaStarting,starting:e.mediaStarting,retrying:e.mediaRetrying,failed:e.mediaFailed,viewing:e.viewing};t(n("info-connection"),e[a]||a),t(n("info-image"),u[c]),t(n("info-capture"),i),n("recovery").hidden=!f.hidden||"unavailable"!==a&&"failed"!==c,n("recovery-alternate").hidden=!b()||!r.imageAvailable,L()}function L(){var i="mjpeg"===y.method()?e.alternate:e.useMjpeg;t(n("alternate"),i),t(n("recovery-alternate"),i),n("alternate").disabled=!b()||!r.imageAvailable}function k(i){u=Date.now()+Math.max(0,isFinite(i)?i:1e3);var o=function(){var i=Math.max(0,Math.ceil((u-Date.now())/1e3));g.disabled=h.disabled=i>0,t(n("pin-message"),i>0?e.blocked+i+e.seconds:e.pinRequired),i>0?l=setTimeout(o,1e3):(l=null,u=0,a="pin_required",E())};o()}function T(){v.closeMenu(!1),w.retry(),y.retry()}function x(){y.alternate(),v.closeMenu(!0)}function S(){m=!0,w.pause(),y.pause(),v.pause(),clearTimeout(l),l=null,clearTimeout(s),s=null,d=""}function A(){m&&(m=!1,w.retry(),y.resume(!0),v.activity(),u&&k(Math.max(0,u-Date.now())))}n("pin-form").addEventListener("submit",function(e){e.preventDefault(),u||h.disabled||w.submitPin(g.value)}),["retry","pin-retry","recovery-retry"].forEach(function(e){return n(e).addEventListener("click",T)}),["alternate","recovery-alternate"].forEach(function(e){return n(e).addEventListener("click",x)}),window.addEventListener("pagehide",S),window.addEventListener("pageshow",A),document.addEventListener("freeze",S),document.addEventListener("resume",A),document.addEventListener("visibilitychange",function(){if(document.hidden)p=Date.now();else{var e=p&&Date.now()-p>3e4;p=0,m?A():(!e&&w.healthy()||w.retry(),y.resume(!!e),v.activity())}}),t(n("info-method"),"MJPEG"),t(n("info-size"),e.unknownSize),E(),w.retry()}();</script>
+<script>function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
+(function () {
+  "use strict";
+
+  var words = {
+    app: 'ScreenStream',
+    connecting: 'Connecting…',
+    connected: 'Connected',
+    reconnecting: 'Reconnecting…',
+    unavailable: 'Server unavailable. Retry the connection.',
+    mediaStarting: 'Waiting for an image…',
+    mediaRetrying: 'Restoring image…',
+    mediaFailed: 'Image unavailable. Retry or choose another viewing method.',
+    viewing: 'Viewing',
+    pinRequired: 'Enter the six-digit PIN shown on the streaming device.',
+    pinWrong: 'Incorrect PIN. Try again.',
+    pinInvalid: 'Enter six digits (0–9).',
+    pinSending: 'Checking PIN…',
+    pinNetwork: 'Could not check PIN. Retry the connection.',
+    blocked: 'PIN entry blocked. Try again in ',
+    seconds: ' seconds.',
+    retry: 'Retry connection',
+    alternate: 'Other viewing method',
+    useMjpeg: 'Use MJPEG',
+    fit: 'Fit',
+    original: 'Original size',
+    width: 'Fit width',
+    viewMode: 'Image size',
+    fullscreen: 'Full screen',
+    leaveFullscreen: 'Exit full screen',
+    pip: 'Picture in picture',
+    pipReady: 'Picture in picture is ready. Press Picture in picture again to open it.',
+    pipError: 'Picture in picture could not open. Normal viewing continues.',
+    fullscreenError: 'Full screen could not open. Normal viewing continues.',
+    more: 'More',
+    close: 'Close',
+    infoToggle: 'Show connection information',
+    pinLabel: 'PIN',
+    unlock: 'View stream',
+    info: 'Connection information',
+    method: 'Viewing method',
+    connection: 'State connection',
+    image: 'Image delivery',
+    size: 'JPEG dimensions',
+    unknownSize: 'No image',
+    title: 'Full title',
+    streamNotice: 'Stream notice',
+    permission_required: 'Confirm screen sharing on the streaming device.',
+    stopped: 'Stream stopped',
+    paused: 'Stream paused',
+    failed: 'Stream failed. Check the streaming device.',
+    unsupported: 'This browser cannot connect to the stream. Use a browser with WebSocket support.'
+  };
+  function text(node, value) {
+    node.textContent = value;
+  }
+  function byId(id) {
+    return document.getElementById(id);
+  }
+  function decodeSnapshot(data) {
+    var value;
+    try {
+      value = JSON.parse(data);
+    } catch (_) {
+      return null;
+    }
+    if (!value || _typeof(value) !== 'object') return null;
+    if (value.access === 'pin_required' || value.access === 'blocked') return value;
+    var display = value.display;
+    var validLayout = function validLayout(layout) {
+      return layout && (layout.position === 'top' || layout.position === 'bottom') && (layout.presentation === 'overlay' || layout.presentation === 'bar') && typeof layout.autoHide === 'boolean';
+    };
+    if (value.access !== 'open' && value.access !== 'authorized' || typeof value.hasImage !== 'boolean' || value.notice !== null && value.notice !== 'permission_required' && value.notice !== 'stopped' && value.notice !== 'paused' && value.notice !== 'failed' || !display || typeof display.title !== 'string' || typeof display.background !== 'string' || typeof display.titleEnabled !== 'boolean' || typeof display.retainImageOnMediaFailure !== 'boolean' || !validLayout(display.titleLayout) || !validLayout(display.controlsLayout)) return null;
+    return value;
+  }
+  function createConnection(callbacks) {
+    var delays = [0, 1000, 2000, 4000, 8000];
+    var socket = null,
+      timer = null;
+    var retries = 0,
+      paused = false,
+      pinRequest = null;
+    function disposeSocket() {
+      clearTimeout(timer);
+      timer = null;
+      var ws = socket;
+      socket = null;
+      if (ws) {
+        ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
+        ws.close();
+      }
+    }
+    function failed(ws) {
+      if (ws !== socket || paused) return;
+      disposeSocket();
+      if (retries >= delays.length) {
+        callbacks.state('unavailable');
+        return;
+      }
+      callbacks.state('reconnecting');
+      var delay = delays[retries++];
+      var retryTimer = setTimeout(function () {
+        if (timer !== retryTimer || paused) return;
+        timer = null;
+        open();
+      }, delay);
+      timer = retryTimer;
+    }
+    function open() {
+      disposeSocket();
+      if (paused) return;
+      if (!window.WebSocket) {
+        callbacks.state('unsupported');
+        return;
+      }
+      var url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+      var ws;
+      try {
+        ws = new WebSocket(url);
+      } catch (_) {
+        failed(null);
+        return;
+      }
+      socket = ws;
+      var deadline = setTimeout(function () {
+        if (timer === deadline) failed(ws);
+      }, 10000);
+      timer = deadline;
+      ws.onmessage = function (event) {
+        if (ws !== socket) return;
+        var value = decodeSnapshot(event.data);
+        if (!value) {
+          failed(ws);
+          return;
+        }
+        if (value.access === 'pin_required' || value.access === 'blocked') {
+          retries = 0;
+          disposeSocket();
+          callbacks.snapshot(value);
+          return;
+        }
+        clearTimeout(timer);
+        timer = null;
+        retries = 0;
+        callbacks.snapshot(value);
+      };
+      ws.onclose = ws.onerror = function () {
+        return failed(ws);
+      };
+    }
+    function retry() {
+      paused = false;
+      retries = 0;
+      callbacks.state('connecting');
+      open();
+    }
+    function submitPin(pin) {
+      if (pinRequest) return;
+      if (!/^[0-9]{6}$/.test(pin)) {
+        callbacks.pin('pinInvalid');
+        return;
+      }
+      var request = new XMLHttpRequest();
+      pinRequest = request;
+      callbacks.pin('pinSending');
+      request.open('POST', '/pin', true);
+      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      request.timeout = 10000;
+      var finish = function finish() {
+        if (pinRequest !== request) return false;
+        pinRequest = null;
+        return true;
+      };
+      request.onload = function () {
+        if (!finish()) return;
+        if (request.status === 204) {
+          callbacks.pin('success');
+          retry();
+        } else if (request.status === 403) callbacks.pin('pinWrong');else if (request.status === 429) {
+          var seconds = parseInt(request.getResponseHeader('Retry-After'), 10);
+          callbacks.snapshot({
+            access: 'blocked',
+            retryAfterMs: (isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000
+          });
+        } else callbacks.pin('pinNetwork');
+      };
+      request.onerror = request.ontimeout = function () {
+        if (finish()) callbacks.pin('pinNetwork');
+      };
+      request.send('pin=' + encodeURIComponent(pin));
+    }
+    function pause() {
+      paused = true;
+      disposeSocket();
+      if (pinRequest) {
+        var request = pinRequest;
+        pinRequest = null;
+        request.abort();
+      }
+    }
+    return {
+      retry: retry,
+      submitPin: submitPin,
+      pause: pause,
+      healthy: function healthy() {
+        return !!socket && socket.readyState === 1 && !timer;
+      }
+    };
+  }
+
+  // At most one displayed image and one replacement candidate.
+  function createMedia(stage, callbacks) {
+    var delays = [0, 1000, 2000, 4000, 8000];
+    var displayed = null,
+      candidate = null,
+      generation = 0;
+    var firstTimer = null,
+      probeTimer = null,
+      nextTimer = null,
+      sizeTimer = null;
+    var retain = true,
+      hasImage = false,
+      _method = 'mjpeg';
+    var retries = 0,
+      width = 0,
+      height = 0;
+    function discard(image) {
+      if (!image) return;
+      image.onload = image.onerror = null;
+      image.removeAttribute('src');
+      if (image.parentNode) image.parentNode.removeChild(image);
+    }
+    function cancelCandidate() {
+      generation += 1;
+      clearTimeout(firstTimer);
+      clearTimeout(probeTimer);
+      clearTimeout(nextTimer);
+      firstTimer = probeTimer = nextTimer = null;
+      discard(candidate);
+      candidate = null;
+    }
+    function dimensions() {
+      if (displayed && (width !== displayed.naturalWidth || height !== displayed.naturalHeight)) {
+        width = displayed.naturalWidth;
+        height = displayed.naturalHeight;
+        callbacks.image(displayed, width, height);
+      }
+    }
+    function clearDisplayed() {
+      clearTimeout(sizeTimer);
+      sizeTimer = null;
+      discard(displayed);
+      displayed = null;
+      width = height = 0;
+      callbacks.image(null, 0, 0);
+    }
+    function observeSize() {
+      clearTimeout(sizeTimer);
+      dimensions();
+      if (displayed) sizeTimer = setTimeout(observeSize, 500);
+    }
+    function failed(id, image) {
+      if (id !== generation || image !== candidate && image !== displayed) return;
+      cancelCandidate();
+      if (displayed) displayed.onerror = null;
+      if (!retain) clearDisplayed();
+      if (!hasImage) return;
+      if (retries >= delays.length) {
+        callbacks.state('failed');
+        return;
+      }
+      callbacks.state('retrying');
+      nextTimer = setTimeout(start, delays[retries++]);
+    }
+    function promote(id, image) {
+      if (id !== generation || image !== candidate || !image.naturalWidth || !image.naturalHeight) return;
+      clearTimeout(firstTimer);
+      clearTimeout(probeTimer);
+      firstTimer = probeTimer = null;
+      discard(displayed);
+      displayed = image;
+      candidate = null;
+      image.style.visibility = 'visible';
+      image.removeAttribute('aria-hidden');
+      image.alt = 'Stream image';
+      image.onload = function () {
+        if (id === generation && image === displayed) dimensions();
+      };
+      image.onerror = function () {
+        return failed(id, image);
+      };
+      retries = 0;
+      width = image.naturalWidth;
+      height = image.naturalHeight;
+      callbacks.image(displayed, width, height);
+      observeSize();
+      callbacks.state('viewing');
+      // Poll after promotion so a slow JPEG load delays the next request.
+      if (_method === 'jpeg') nextTimer = setTimeout(start, 500);
+    }
+    function start() {
+      cancelCandidate();
+      if (!hasImage) return;
+      var id = generation;
+      var image = new Image();
+      candidate = image;
+      image.className = 'stream-image';
+      image.alt = '';
+      image.setAttribute('aria-hidden', 'true');
+      image.style.visibility = 'hidden';
+      stage.appendChild(image);
+      if (!displayed) callbacks.state('starting');
+      var decoding = false;
+      var ready = function ready() {
+        if (id !== generation || image !== candidate || !image.naturalWidth || _method === 'jpeg' && !image.complete) return;
+        // Multipart decode() may never settle. Natural dimensions/load are its first-frame signals.
+        if (_method === 'jpeg' && typeof image.decode === 'function') {
+          if (decoding) return;
+          decoding = true;
+          image.decode().then(function () {
+            return promote(id, image);
+          }, function () {
+            return failed(id, image);
+          });
+        } else promote(id, image);
+      };
+      image.onload = ready;
+      image.onerror = function () {
+        return failed(id, image);
+      };
+      var _probe = function probe() {
+        if (id !== generation || image !== candidate) return;
+        ready();
+        if (image === candidate) probeTimer = setTimeout(_probe, 100);
+      };
+      firstTimer = setTimeout(function () {
+        return failed(id, image);
+      }, 10000);
+      image.src = '/' + _method + '?requestSequence=' + id;
+      probeTimer = setTimeout(_probe, 100);
+    }
+    function configure(snapshot, firstSnapshot) {
+      var previousHasImage = hasImage;
+      hasImage = (snapshot.access === 'open' || snapshot.access === 'authorized') && snapshot.hasImage;
+      retain = !!(snapshot.display && snapshot.display.retainImageOnMediaFailure);
+      if (!hasImage) {
+        cancelCandidate();
+        clearDisplayed();
+        retries = 0;
+        callbacks.state('idle');
+        return;
+      }
+      if (firstSnapshot || !previousHasImage) {
+        retries = 0;
+        start();
+      }
+      // Ordinary state updates leave healthy and exhausted attempts alone.
+    }
+    function retry() {
+      if (!hasImage) return;
+      retries = 0;
+      callbacks.state('retrying');
+      start();
+    }
+    function alternate() {
+      _method = _method === 'mjpeg' ? 'jpeg' : 'mjpeg';
+      callbacks.method(_method);
+      retry();
+    }
+    function pause() {
+      cancelCandidate();
+      clearDisplayed();
+    }
+    function resume() {
+      if (hasImage && !candidate && (!displayed || !displayed.naturalWidth)) retry();
+    }
+    return {
+      configure: configure,
+      alternate: alternate,
+      pause: pause,
+      resume: resume,
+      method: function method() {
+        return _method;
+      }
+    };
+  }
+  function createPresentation(callbacks) {
+    var shell = byId('shell'),
+      viewport = byId('viewport'),
+      stage = byId('image-stage');
+    var caption = byId('caption'),
+      controls = byId('controls'),
+      menu = byId('menu');
+    var full = byId('fullscreen'),
+      pip = byId('pip'),
+      video = byId('pip-video');
+    var display = null,
+      mode = 'fit',
+      image = null,
+      width = 0,
+      height = 0;
+    var inactivity = null,
+      interacting = false,
+      menuOpen = false;
+    var pipAttempt = null,
+      pipOperation = null;
+    var fullRequest = shell.requestFullscreen || shell.webkitRequestFullscreen || shell.mozRequestFullScreen || shell.msRequestFullscreen;
+    var fullExit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+    var pipSupported = !!(window.HTMLCanvasElement && HTMLCanvasElement.prototype.captureStream && video.requestPictureInPicture && 'srcObject' in video && document.pictureInPictureEnabled);
+    full.hidden = !fullRequest || !fullExit;
+    pip.hidden = !pipSupported;
+    pip.disabled = true;
+    function fullscreenElement() {
+      return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    }
+    function showBlocks() {
+      caption.classList.remove('autohidden');
+      controls.classList.remove('autohidden');
+    }
+    function holdsFocus() {
+      return controls.contains(document.activeElement) || menu.contains(document.activeElement);
+    }
+    function activity() {
+      showBlocks();
+      clearTimeout(inactivity);
+      inactivity = setTimeout(function () {
+        inactivity = null;
+        if (!display || interacting || menuOpen || holdsFocus()) return;
+        if (display.titleLayout.autoHide) caption.classList.add('autohidden');
+        if (display.controlsLayout.autoHide) controls.classList.add('autohidden');
+      }, 4000);
+    }
+    function sizeImage() {
+      if (!image || !width || !height) {
+        stage.style.width = stage.style.height = '100%';
+        return;
+      }
+      var vw = viewport.clientWidth,
+        vh = viewport.clientHeight;
+      var scale = 1;
+      if (mode === 'fit') scale = Math.min(vw / width, vh / height);else if (mode === 'width') scale = vw / width;
+      var iw = Math.max(1, width * scale),
+        ih = Math.max(1, height * scale);
+      // Keep oversized images at the scroll origin so their edges remain reachable.
+      image.style.width = iw + 'px';
+      image.style.height = ih + 'px';
+      image.style.left = Math.max(0, (vw - iw) / 2) + 'px';
+      image.style.top = (mode === 'width' ? 0 : Math.max(0, (vh - ih) / 2)) + 'px';
+      stage.style.width = Math.max(vw, iw) + 'px';
+      stage.style.height = Math.max(vh, ih) + 'px';
+    }
+    function layout() {
+      var visual = window.visualViewport;
+      var visibleHeight = Math.min(shell.clientHeight, visual && visual.scale === 1 ? visual.height : window.innerHeight || shell.clientHeight);
+      var pinPanel = byId('pin-panel');
+      pinPanel.style.top = Math.round(visibleHeight * (visibleHeight <= 400 ? .03 : .1)) + 'px';
+      pinPanel.style.maxHeight = Math.max(48, visibleHeight * .8) + 'px';
+      if (!display) return;
+      var topBar = byId('top-bar'),
+        bottomBar = byId('bottom-bar');
+      var topSafe = parseFloat(window.getComputedStyle(topBar).paddingTop) || 4;
+      var bottomSafe = parseFloat(window.getComputedStyle(bottomBar).paddingBottom) || 4;
+      var blocks = [{
+        node: caption,
+        settings: display.titleLayout
+      }, {
+        node: controls,
+        settings: display.controlsLayout
+      }];
+      var totals = {
+          top: topSafe,
+          bottom: bottomSafe
+        },
+        reserved = {
+          top: topSafe,
+          bottom: bottomSafe
+        };
+      // Caption is outermost; controls sit nearer the image.
+      blocks.forEach(function (block) {
+        var node = block.node,
+          settings = block.settings;
+        if (node.hidden) return;
+        node.classList.toggle('separate-bar', settings.presentation === 'bar');
+        node.style.top = node.style.bottom = '';
+        var edge = settings.position === 'top' ? 'top' : 'bottom';
+        node.style[edge] = totals[edge] + 'px';
+        totals[edge] += node.offsetHeight;
+        if (settings.presentation === 'bar') reserved[edge] = totals[edge];
+      });
+      topBar.style.height = reserved.top + 'px';
+      bottomBar.style.height = reserved.bottom + 'px';
+      viewport.style.top = reserved.top + 'px';
+      viewport.style.bottom = reserved.bottom + 'px';
+      byId('status').style.top = totals.top + 'px';
+      menu.style.top = menu.style.bottom = '';
+      var edge = display.controlsLayout.position === 'top' ? 'top' : 'bottom';
+      menu.style[edge] = totals[edge] + 4 + 'px';
+      menu.style.maxHeight = Math.max(48, visibleHeight - totals.top - totals.bottom - 12) + 'px';
+      sizeImage();
+    }
+    function sameLayout(previous, next) {
+      return previous.position === next.position && previous.presentation === next.presentation && previous.autoHide === next.autoHide;
+    }
+    function sameDisplay(previous, next) {
+      return !!previous && previous.background === next.background && previous.title === next.title && previous.titleEnabled === next.titleEnabled && previous.retainImageOnMediaFailure === next.retainImageOnMediaFailure && sameLayout(previous.titleLayout, next.titleLayout) && sameLayout(previous.controlsLayout, next.controlsLayout);
+    }
+    function configure(value, force) {
+      // Unchanged snapshots must not reset the viewer's inactivity timer.
+      if (!force && sameDisplay(display, value)) return;
+      display = value;
+      shell.style.backgroundColor = /^#[0-9a-fA-F]{6}$/.test(value.background) ? value.background : '#101418';
+      text(byId('caption-text'), value.title);
+      caption.title = value.title;
+      document.title = value.title || words.app;
+      caption.hidden = !value.titleEnabled;
+      controls.hidden = false;
+      activity();
+      layout();
+    }
+    function setImage(value, w, h) {
+      image = value;
+      width = w;
+      height = h;
+      updatePipButton();
+      byId('placeholder').hidden = !!image;
+      if (!image) stopPip();
+      sizeImage();
+    }
+    function closeMenu(focus) {
+      menuOpen = false;
+      menu.hidden = true;
+      byId('more').setAttribute('aria-expanded', 'false');
+      if (focus) byId('more').focus();
+      activity();
+    }
+    function toggleMenu() {
+      if (menuOpen) {
+        closeMenu(true);
+        return;
+      }
+      menuOpen = true;
+      menu.hidden = false;
+      byId('more').setAttribute('aria-expanded', 'true');
+      activity();
+      layout();
+      byId('show-info').focus();
+    }
+    function updatePipButton() {
+      pip.disabled = !image || pipOperation !== null;
+    }
+    function isCurrentPipAttempt(attempt) {
+      return pipAttempt === attempt;
+    }
+    function releasePipAttempt(attempt) {
+      if (attempt.phase === 'released') return;
+      if (isCurrentPipAttempt(attempt)) pipAttempt = null;
+      attempt.phase = 'released';
+      clearTimeout(attempt.paintTimer);
+      clearTimeout(attempt.prepareTimer);
+      attempt.paintTimer = attempt.prepareTimer = null;
+      if (attempt.stream && video.srcObject === attempt.stream) {
+        video.onloadedmetadata = null;
+        video.pause();
+        video.srcObject = null;
+      }
+      if (attempt.stream) attempt.stream.getTracks().forEach(function (track) {
+        return track.stop();
+      });
+      // Pending browser promises retain the attempt, so release every media reference now.
+      attempt.canvas = attempt.context = attempt.stream = attempt.window = null;
+    }
+    function finishPipOperation(operation) {
+      if (pipOperation === operation) pipOperation = null;
+      updatePipButton();
+    }
+    function exitPip() {
+      if (pipOperation || document.pictureInPictureElement !== video) return;
+      var operation = {};
+      pipOperation = operation;
+      updatePipButton();
+      try {
+        document.exitPictureInPicture().then(function () {
+          return finishPipOperation(operation);
+        }, function () {
+          return finishPipOperation(operation);
+        });
+      } catch (_) {
+        finishPipOperation(operation);
+      }
+    }
+    function stopPipAttempt(attempt) {
+      var wasCurrent = isCurrentPipAttempt(attempt);
+      releasePipAttempt(attempt);
+      if (wasCurrent) exitPip();
+      updatePipButton();
+    }
+    function stopPip() {
+      if (pipAttempt) stopPipAttempt(pipAttempt);else exitPip();
+    }
+    function failPipAttempt(attempt) {
+      if (!isCurrentPipAttempt(attempt)) return;
+      callbacks.notice('pipError');
+      stopPipAttempt(attempt);
+    }
+    function enterPip(attempt) {
+      if (!isCurrentPipAttempt(attempt) || !attempt.stream || pipOperation) return;
+      attempt.phase = 'entering';
+      var operation = {};
+      pipOperation = operation;
+      updatePipButton();
+      var result;
+      try {
+        result = video.requestPictureInPicture();
+      } catch (_) {
+        finishPipOperation(operation);
+        failPipAttempt(attempt);
+        return;
+      }
+      result.then(function (pipWindow) {
+        finishPipOperation(operation);
+        if (!isCurrentPipAttempt(attempt)) {
+          // Native requests cannot be cancelled; retire a late entry before another attempt.
+          exitPip();
+          return;
+        }
+        if (document.pictureInPictureElement !== video) {
+          stopPipAttempt(attempt);
+          return;
+        }
+        attempt.phase = 'active';
+        attempt.window = pipWindow;
+        clearTimeout(attempt.prepareTimer);
+        attempt.prepareTimer = null;
+      }, function (error) {
+        finishPipOperation(operation);
+        if (!isCurrentPipAttempt(attempt)) return;
+        if (error.name === 'NotAllowedError') {
+          attempt.phase = 'ready';
+          callbacks.notice('pipReady');
+          clearTimeout(attempt.prepareTimer);
+          attempt.prepareTimer = setTimeout(function () {
+            return stopPipAttempt(attempt);
+          }, 30000);
+        } else failPipAttempt(attempt);
+      });
+    }
+    function openPip() {
+      if (!pipSupported || !image || pipOperation) return;
+      if (document.pictureInPictureElement === video) {
+        stopPip();
+        return;
+      }
+      if (pipAttempt) {
+        if (pipAttempt.phase === 'ready' && video.readyState >= 2) enterPip(pipAttempt);
+        return;
+      }
+      var attempt = {
+        phase: 'preparing',
+        canvas: null,
+        context: null,
+        stream: null,
+        paintTimer: null,
+        prepareTimer: null,
+        window: null
+      };
+      pipAttempt = attempt;
+      try {
+        attempt.canvas = document.createElement('canvas');
+        attempt.context = attempt.canvas.getContext('2d');
+        var _paint = function paint() {
+          if (!isCurrentPipAttempt(attempt) || !image) return;
+          try {
+            if (attempt.canvas.width !== image.naturalWidth || attempt.canvas.height !== image.naturalHeight) {
+              attempt.canvas.width = image.naturalWidth;
+              attempt.canvas.height = image.naturalHeight;
+            }
+            attempt.context.drawImage(image, 0, 0);
+          } catch (_) {
+            failPipAttempt(attempt);
+            return;
+          }
+          attempt.paintTimer = setTimeout(_paint, 100);
+        };
+        _paint();
+        if (!isCurrentPipAttempt(attempt)) return;
+        attempt.stream = attempt.canvas.captureStream(10);
+        video.onloadedmetadata = function () {
+          if (!isCurrentPipAttempt(attempt) || video.srcObject !== attempt.stream) return;
+          video.onloadedmetadata = null;
+          // Keep the preparation deadline through play() and the native PiP request.
+          try {
+            video.play().then(function () {
+              return enterPip(attempt);
+            }, function () {
+              return failPipAttempt(attempt);
+            });
+          } catch (_) {
+            failPipAttempt(attempt);
+          }
+        };
+        attempt.prepareTimer = setTimeout(function () {
+          return failPipAttempt(attempt);
+        }, 10000);
+        video.srcObject = attempt.stream;
+      } catch (_) {
+        failPipAttempt(attempt);
+      }
+    }
+    video.addEventListener('leavepictureinpicture', function (event) {
+      var attempt = pipAttempt;
+      if (attempt && attempt.phase === 'active' && event.pictureInPictureWindow === attempt.window && document.pictureInPictureElement !== video) stopPipAttempt(attempt);
+    });
+    full.addEventListener('click', function () {
+      try {
+        var result = fullscreenElement() ? fullExit.call(document) : fullRequest.call(shell);
+        if (result && result["catch"]) result["catch"](function () {
+          return callbacks.notice('fullscreenError');
+        });
+      } catch (_) {
+        callbacks.notice('fullscreenError');
+      }
+    });
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(function (name) {
+      document.addEventListener(name, function () {
+        text(full, fullscreenElement() ? words.leaveFullscreen : words.fullscreen);
+        layout();
+      });
+    });
+    pip.addEventListener('click', openPip);
+    byId('view-mode').addEventListener('change', function (event) {
+      mode = event.target.value;
+      viewport.scrollLeft = viewport.scrollTop = 0;
+      sizeImage();
+      activity();
+    });
+    byId('more').addEventListener('click', toggleMenu);
+    byId('close-menu').addEventListener('click', function () {
+      return closeMenu(true);
+    });
+    byId('show-info').addEventListener('change', function (event) {
+      byId('information').hidden = !event.target.checked;
+      layout();
+    });
+    document.addEventListener('keydown', function (event) {
+      activity();
+      if ((event.key === 'Escape' || event.key === 'BrowserBack' || event.keyCode === 27) && menuOpen) {
+        event.preventDefault();
+        closeMenu(true);
+        return;
+      }
+      if (!menuOpen && controls.contains(document.activeElement) && document.activeElement.tagName !== 'SELECT') {
+        var key = event.key || {
+          37: 'ArrowLeft',
+          38: 'ArrowUp',
+          39: 'ArrowRight',
+          40: 'ArrowDown'
+        }[event.keyCode];
+        if (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown') {
+          var nodes = Array.prototype.slice.call(controls.querySelectorAll('button,select')).filter(function (node) {
+            return !node.hidden && !node.disabled;
+          });
+          var index = nodes.indexOf(document.activeElement),
+            step = key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1;
+          event.preventDefault();
+          nodes[(index + step + nodes.length) % nodes.length].focus();
+        }
+      }
+    });
+    document.addEventListener('mousemove', activity);
+    document.addEventListener('touchstart', function () {
+      interacting = true;
+      activity();
+    });
+    document.addEventListener('touchend', function () {
+      interacting = false;
+      activity();
+    });
+    document.addEventListener('touchcancel', function () {
+      interacting = false;
+      activity();
+    });
+    document.addEventListener('mousedown', function () {
+      interacting = true;
+      activity();
+    });
+    document.addEventListener('mouseup', function () {
+      interacting = false;
+      activity();
+    });
+    controls.addEventListener('focusin', activity);
+    controls.addEventListener('focusout', activity);
+    window.addEventListener('resize', layout);
+    window.addEventListener('orientationchange', layout);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
+    layout();
+    return {
+      configure: configure,
+      setImage: setImage,
+      closeMenu: closeMenu,
+      activity: activity,
+      pause: function pause() {
+        clearTimeout(inactivity);
+        inactivity = null;
+        stopPip();
+      },
+      accessDenied: function accessDenied() {
+        closeMenu(false);
+        controls.hidden = caption.hidden = true;
+        stopPip();
+        layout();
+      }
+    };
+  }
+  var labels = document.querySelectorAll('[data-word]');
+  for (var i = 0; i < labels.length; i += 1) text(labels[i], words[labels[i].getAttribute('data-word')]);
+  var snapshot = null,
+    connectionState = 'connecting',
+    imageState = 'idle';
+  var blockedUntil = 0,
+    blockedTimer = null,
+    noticeTimer = null,
+    notice = '';
+  var hiddenAt = 0,
+    paused = false;
+  var pinPanel = byId('pin-panel'),
+    pinInput = byId('pin'),
+    unlock = byId('unlock');
+  var presentation = createPresentation({
+    notice: showNotice
+  });
+  var media = createMedia(byId('image-stage'), {
+    state: function state(value) {
+      imageState = value;
+      renderState();
+    },
+    image: function image(value, w, h) {
+      presentation.setImage(value, w, h);
+      text(byId('info-size'), w && h ? w + ' × ' + h : words.unknownSize);
+    },
+    method: function method(value) {
+      text(byId('info-method'), value === 'mjpeg' ? 'MJPEG' : 'JPEG');
+      updateAlternate();
+    }
+  });
+  var connection = createConnection({
+    state: function state(value) {
+      connectionState = value;
+      renderState();
+    },
+    snapshot: receiveSnapshot,
+    pin: function pin(value) {
+      unlock.disabled = false;
+      if (value === 'success') {
+        pinInput.value = '';
+        pinPanel.hidden = true;
+      } else {
+        unlock.disabled = value === 'pinSending';
+        text(byId('pin-message'), words[value]);
+        if (value === 'pinWrong') {
+          pinInput.select();
+          pinInput.focus();
+        }
+      }
+    }
+  });
+  function authorized() {
+    return snapshot && (snapshot.access === 'open' || snapshot.access === 'authorized');
+  }
+  function streamNoticeText() {
+    return authorized() && snapshot.notice !== null ? words[snapshot.notice] : '';
+  }
+  function renderState() {
+    var streamNotice = streamNoticeText();
+    var status = '';
+    if (connectionState !== 'connected' && connectionState !== 'pin_required' && connectionState !== 'blocked') status = words[connectionState] || words.connecting;
+    if (authorized()) {
+      if (streamNotice) status += (status ? ' · ' : '') + streamNotice;
+      if (imageState === 'starting' || imageState === 'retrying' || imageState === 'failed') {
+        var key = imageState === 'starting' ? 'mediaStarting' : imageState === 'retrying' ? 'mediaRetrying' : 'mediaFailed';
+        status += (status ? ' · ' : '') + words[key];
+      }
+    }
+    if (notice) status += (status ? ' · ' : '') + notice;
+    text(byId('status'), status);
+    text(byId('placeholder'), authorized() ? snapshot.hasImage ? words.mediaStarting : streamNotice || words.mediaStarting : words[connectionState] || words.connecting);
+    var mediaText = {
+      idle: words.mediaStarting,
+      starting: words.mediaStarting,
+      retrying: words.mediaRetrying,
+      failed: words.mediaFailed,
+      viewing: words.viewing
+    };
+    text(byId('info-connection'), words[connectionState] || connectionState);
+    text(byId('info-image'), mediaText[imageState]);
+    text(byId('info-notice'), streamNotice);
+    byId('info-notice-label').hidden = byId('info-notice').hidden = !streamNotice;
+    byId('recovery').hidden = !pinPanel.hidden || connectionState !== 'unavailable' && imageState !== 'failed';
+    byId('recovery-alternate').hidden = !authorized() || !snapshot.hasImage;
+    updateAlternate();
+  }
+  function updateAlternate() {
+    var label = media.method() === 'mjpeg' ? words.alternate : words.useMjpeg;
+    text(byId('alternate'), label);
+    text(byId('recovery-alternate'), label);
+    byId('alternate').disabled = !authorized() || !snapshot.hasImage;
+  }
+  function showNotice(key) {
+    notice = words[key];
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(function () {
+      notice = '';
+      renderState();
+    }, 10000);
+    renderState();
+  }
+  function showBlocked(ms) {
+    blockedUntil = Date.now() + Math.max(0, isFinite(ms) ? ms : 1000);
+    var _tick = function tick() {
+      var seconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
+      pinInput.disabled = unlock.disabled = seconds > 0;
+      text(byId('pin-message'), seconds > 0 ? words.blocked + seconds + words.seconds : words.pinRequired);
+      if (seconds > 0) blockedTimer = setTimeout(_tick, 1000);else {
+        blockedTimer = null;
+        blockedUntil = 0;
+        connectionState = 'pin_required';
+        renderState();
+      }
+    };
+    _tick();
+  }
+  function receiveSnapshot(value) {
+    clearTimeout(blockedTimer);
+    blockedTimer = null;
+    blockedUntil = 0;
+    snapshot = value;
+    if (value.access === 'pin_required' || value.access === 'blocked') {
+      connectionState = value.access;
+      media.configure(value);
+      presentation.accessDenied();
+      var wasHidden = pinPanel.hidden;
+      pinPanel.hidden = false;
+      pinInput.disabled = unlock.disabled = false;
+      if (value.access === 'blocked') showBlocked(value.retryAfterMs);else {
+        text(byId('pin-message'), words.pinRequired);
+        if (wasHidden) pinInput.focus();
+      }
+    } else {
+      // Reconnect must retry media even when the server snapshot is unchanged.
+      var firstSnapshot = connectionState !== 'connected';
+      connectionState = 'connected';
+      pinPanel.hidden = true;
+      pinInput.value = '';
+      presentation.configure(value.display, firstSnapshot);
+      text(byId('info-title'), value.display.title);
+      media.configure(value, firstSnapshot);
+    }
+    renderState();
+  }
+  function retry() {
+    presentation.closeMenu(false);
+    connection.retry();
+  }
+  function alternate() {
+    media.alternate();
+    presentation.closeMenu(true);
+  }
+  byId('pin-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (!blockedUntil && !unlock.disabled) connection.submitPin(pinInput.value);
+  });
+  ['retry', 'pin-retry', 'recovery-retry'].forEach(function (id) {
+    return byId(id).addEventListener('click', retry);
+  });
+  ['alternate', 'recovery-alternate'].forEach(function (id) {
+    return byId(id).addEventListener('click', alternate);
+  });
+  function pausePage() {
+    paused = true;
+    connection.pause();
+    media.pause();
+    presentation.pause();
+    clearTimeout(blockedTimer);
+    blockedTimer = null;
+    clearTimeout(noticeTimer);
+    noticeTimer = null;
+    notice = '';
+  }
+  function resumePage() {
+    if (!paused) return;
+    paused = false;
+    connection.retry();
+    presentation.activity();
+    if (blockedUntil) showBlocked(Math.max(0, blockedUntil - Date.now()));
+  }
+  window.addEventListener('pagehide', pausePage);
+  window.addEventListener('pageshow', resumePage);
+  document.addEventListener('freeze', pausePage);
+  document.addEventListener('resume', resumePage);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      hiddenAt = Date.now();
+      return;
+    }
+    var stale = hiddenAt && Date.now() - hiddenAt > 30000;
+    hiddenAt = 0;
+    if (paused) resumePage();else {
+      if (stale || !connection.healthy()) connection.retry();else media.resume();
+      presentation.activity();
+    }
+  });
+  text(byId('info-method'), 'MJPEG');
+  text(byId('info-size'), words.unknownSize);
+  renderState();
+  connection.retry();
+})();</script>
 </body>
 </html>

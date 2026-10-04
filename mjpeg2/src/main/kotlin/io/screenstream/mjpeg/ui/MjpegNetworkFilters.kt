@@ -21,19 +21,22 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.screenstream.mjpeg.R
-import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.AddressCategory
-import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.AddressFamily
-import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.Filter
-import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.InterfaceType
+import io.screenstream.mjpeg.networkaddress.AddressCategory
+import io.screenstream.mjpeg.networkaddress.AddressFamily
+import io.screenstream.mjpeg.networkaddress.InterfaceType
+import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
 import io.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-/** Edits the saved address selection; each change preserves other preferences and a nonempty group. */
+/**
+ * Edits the live address selection using the controller's shared policy. Each transaction preserves
+ * other groups and a nonempty selection; setup restrictions do not disable these live controls.
+ */
 @Composable
-internal fun MjpegNetworkFilters(settings: MjpegSettings) {
+internal fun MjpegNetworkFilters(settings: MjpegSettings, editPolicy: MjpegSettings.EditPolicy) {
     var loadFailed by remember(settings) { mutableStateOf(false) }
     val dataFlow = remember(settings) {
         settings.data.onEach { loadFailed = false }.catch { failure ->
@@ -46,7 +49,7 @@ internal fun MjpegNetworkFilters(settings: MjpegSettings) {
     var saveFailed by remember(settings) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    fun updateFilter(transform: (Filter) -> Filter) {
+    fun updateFilter(transform: (NetworkAddressFilter) -> NetworkAddressFilter) {
         if (saving || loadFailed || data == null) return
         saving = true
         saveFailed = false
@@ -54,7 +57,8 @@ internal fun MjpegNetworkFilters(settings: MjpegSettings) {
             try {
                 settings.updateData {
                     val filter = transform(network.filter)
-                    if (filter == network.filter) this else copy(network = network.copy(filter = filter))
+                    val proposed = if (filter == network.filter) this else copy(network = network.copy(filter = filter))
+                    if (editPolicy.allows(this, proposed)) proposed else this
                 }
             } catch (failure: CancellationException) {
                 throw failure
@@ -87,7 +91,7 @@ internal fun MjpegNetworkFilters(settings: MjpegSettings) {
                 enabled = !saving && !loadFailed,
                 onToggle = { family ->
                     updateFilter { current ->
-                        Filter(
+                        NetworkAddressFilter(
                             families = toggleChoice(current.families, family),
                             interfaceTypes = current.interfaceTypes,
                             categories = current.categories,
@@ -108,7 +112,7 @@ internal fun MjpegNetworkFilters(settings: MjpegSettings) {
                 enabled = !saving && !loadFailed,
                 onToggle = { type ->
                     updateFilter { current ->
-                        Filter(
+                        NetworkAddressFilter(
                             families = current.families,
                             interfaceTypes = toggleChoice(current.interfaceTypes, type),
                             categories = current.categories,
@@ -128,7 +132,7 @@ internal fun MjpegNetworkFilters(settings: MjpegSettings) {
                 enabled = !saving && !loadFailed,
                 onToggle = { category ->
                     updateFilter { current ->
-                        Filter(
+                        NetworkAddressFilter(
                             families = current.families,
                             interfaceTypes = current.interfaceTypes,
                             categories = toggleChoice(current.categories, category),
@@ -144,7 +148,6 @@ internal fun MjpegNetworkFilters(settings: MjpegSettings) {
     }
 }
 
-/** Displays the saved choices and prevents removing the group's last selected option. */
 @Composable
 private fun <T> NetworkFilterGroup(
     @StringRes title: Int,

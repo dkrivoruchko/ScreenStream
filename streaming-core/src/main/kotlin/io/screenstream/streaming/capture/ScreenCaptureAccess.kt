@@ -8,20 +8,18 @@ public interface ScreenCaptureAccess {
     /**
      * Ask for screen capture consent from a resumed Activity, or take saved process-wide consent
      * on SDK 24–33. Returns null on decline, Busy or when a new dialog needs an unavailable resumed
-     * host. Obsolete attempts are cancelled;
-     * technical failures throw. Caller cancellation removes its wait and ignores late results;
+     * host. Technical failures throw. Caller cancellation removes its wait and ignores late results;
      * it does not dismiss Android's dialog. The grant owns no Android resource. Saved consent is
      * consumed by an admitted request, so a failed startup requires fresh consent next time.
-     * [isCurrent] must be a fast, nonthrowing check of this exact attempt's admission.
+     * The grant retains the requesting coroutine's Job, which must stay active through
+     * [createProjection]. Request consent in the capture's lifetime coroutine, not a short-lived child.
      */
-    public suspend fun requestConsent(
-        attempt: StreamingModule.CaptureAttemptId,
-        isCurrent: () -> Boolean,
-    ): Grant?
+    public suspend fun requestConsent(attempt: StreamingModule.CaptureAttemptId): Grant?
 
     /**
-     * Consume this coordinator's current grant once after foreground promotion. The attempt worker
-     * must store the returned projection before suspending or doing other fallible work. Rejected,
+     * Consume this coordinator's grant once after foreground promotion. Check the requesting Job
+     * at creation admission; an inactive Job throws CancellationException. The attempt worker
+     * must store the returned projection before suspending or doing other fallible work. Invalid,
      * already consumed or overlapping creation throws; a platform failure also consumes the grant.
      * The creation guard remains owned by the attempt until [finishProjectionCreation].
      */
@@ -35,9 +33,10 @@ public interface ScreenCaptureAccess {
     public fun finishProjectionCreation(attempt: StreamingModule.CaptureAttemptId)
 
     /**
-     * Save consent on SDK 24–33 only after successful startup, a normal requested stop and confirmed cleanup. Never call
-     * after failed startup, revocation or failed cleanup. Only the latest admitted attempt can
-     * save once; an older cleanup cannot overwrite a newer attempt's consent decision.
+     * Save consent on SDK 24–33 only after successful startup, a normal requested stop and confirmed
+     * cleanup. Never call after failed startup, revocation or failed cleanup. The requesting Job may
+     * already be cancelled. Only the latest admitted attempt can save once; an older cleanup cannot
+     * overwrite a newer attempt's consent decision.
      */
     public fun saveConsentForReuse(grant: Grant)
 

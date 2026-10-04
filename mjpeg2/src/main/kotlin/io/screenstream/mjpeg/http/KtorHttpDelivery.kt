@@ -1,191 +1,254 @@
 package io.screenstream.mjpeg.http
 
-import android.os.SystemClock
 import android.content.Context
-import io.ktor.http.ContentType
+import android.os.SystemClock
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.content.OutgoingContent
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
-import io.ktor.utils.io.ByteWriteChannel
-import io.ktor.utils.io.writeFully
-import io.screenstream.mjpeg.http.HttpDelivery.FatalIssue
+import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.http.HttpDelivery.Info
-import io.screenstream.mjpeg.http.HttpDelivery.ImageKind
-import io.screenstream.mjpeg.http.HttpDelivery.ServerId
-import io.screenstream.mjpeg.http.HttpDelivery.ViewerMethod
-import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.Address
-import io.screenstream.mjpeg.settings.SecretValue
+import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
+import io.screenstream.mjpeg.http.HttpDelivery.ServerFailure
+import io.screenstream.mjpeg.http.HttpDelivery.ServerInfo
+import io.screenstream.mjpeg.http.HttpDelivery.ServerState
+import io.screenstream.mjpeg.http.media.JpegResponse
+import io.screenstream.mjpeg.http.media.JpegStore
+import io.screenstream.mjpeg.http.web.WebRoutes
+import io.screenstream.mjpeg.http.web.WebRoutes.WebSocketAdmission
+import io.screenstream.mjpeg.http.web.WebState
+import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.settings.AccessSettings
+import io.screenstream.mjpeg.settings.SecretValue
+import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import io.screenstream.mjpeg.settings.WebPageSettings
-import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.CancellationException
+import io.screenstream.streaming.logE
+import io.screenstream.streaming.module.StreamingModule.CaptureAttemptId
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.annotation.Factory
+import java.io.IOException
+import java.net.BindException
+import java.net.Inet6Address
+import java.net.SocketException
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.uuid.Uuid
 
-/** Inert per-controller CIO delivery; start installs prepared access before opening listeners. */
+/** Owns admission and physical lifetimes under one monitor; JPEG writers never acquire it per frame. */
+@Suppress("unused")
 @Factory(binds = [HttpDelivery::class])
-internal class KtorHttpDelivery(context: Context) : HttpDelivery {
-    private val gate = Any()
-    private val ingress = Any()
-    private val workJob = SupervisorJob()
-    private val workScope = CoroutineScope(workJob + Dispatchers.IO + CoroutineExceptionHandler { _, _ ->
-        synchronized(gate) {
-            fatalIssue = FatalIssue.InternalFailure
-            publishInfo()
+internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.RequestHandler {
+    private val controlMonitor = Any()
+    private val runtimeJob = SupervisorJob()
+    private val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.IO + CoroutineExceptionHandler { _, cause ->
+        this@KtorHttpDelivery.logE("Http.work", "HTTP worker failed", cause)
+        synchronized(controlMonitor) {
+            fatalCause = fatalCause ?: cause
+            publishControlInfo()
         }
         requestStop()
     })
-    private val mutableInfo = MutableStateFlow(Info())
-    override val info: StateFlow<Info> = mutableInfo.asStateFlow()
-    private val publicationWake = MutableStateFlow(0L)
+    override val info: StateFlow<Info>
+        field = MutableStateFlow(Info())
+    override val webState: StateFlow<WebState?>
+        field = MutableStateFlow(null)
     private val access = HttpAccess()
-    private val pages = WebClientSessions()
-    private val presentation = WebPresentation()
-    private val webRevision = MutableStateFlow(0L)
-    private val listeners: HttpListeners = HttpListeners(gate, workJob, { address, port ->
-        AddressServer(workJob, checkNotNull(address.ip.hostAddress), port) { server -> web.install(this, server) }
-    }, ::publishInfo, { fatalIssue = FatalIssue.CleanupFailure; publishInfo() })
-    private val web: WebRoutes = WebRoutes(context, gate, access, pages, presentation, webRevision,
-        { server -> !closing && listeners.isActive(server) }, { latest?.kind }, ::media)
-    private val responses = LinkedHashSet<Response>()
+    private val jpegStore = JpegStore()
+    private val webRoutes = WebRoutes(context, this)
+    private val plannedServers = LinkedHashMap<Long, PlannedServer>()
+    private val socketOwners = HashMap<SocketKey, SocketOwner>()
+    private val requests = HttpRequests()
     private var started = false
     private var closing = false
-    private var publication: HttpDelivery.Publication? = null
-    private var frameVersion = 0L
-    private var latest: Frame? = null
-    private var spare: ByteArray? = null
-    private var completedJpegs = 0L
-    private var completedJpegBytes = 0L
-    private var slowWrites = 0L
-    private var fatalIssue: FatalIssue? = null
-    private val cleanup = CoroutineScope(Dispatchers.IO).async(start = CoroutineStart.LAZY) { cleanupOwnedResources() }
-
-    override suspend fun start(access: AccessSettings, token: SecretValue?, isAllowed: (Address, Int) -> Boolean): Boolean {
-        currentCoroutineContext().ensureActive()
-        val statistics = synchronized(gate) {
-            if (started || closing) return false
-            this.access.apply(access, token)
-            started = true
-            statisticsJob()
-        }
-        listeners.start(isAllowed)
-        statistics.start()
-        return synchronized(gate) { !closing }
-    }
-
-    override suspend fun configureServers(servers: List<HttpDelivery.DesiredServer>, port: Int) {
-        currentCoroutineContext().ensureActive()
-        listeners.configure(servers, port)
-    }
-
-    override suspend fun retryServer(id: ServerId) {
-        currentCoroutineContext().ensureActive()
-        listeners.retry(id)
-    }
-
-    override fun updateAccess(access: AccessSettings, token: SecretValue?): Boolean {
-        val revoked = synchronized(gate) {
-            if (!started || closing) return false
-            if (!this.access.apply(access, token)) return true
-            pages.revoke()
-            signalWebState()
-            publishInfo()
-            responses.map { it.job } + web.ownedJobs()
-        }
-        revoked.forEach { it.cancel() }
-        return true
-    }
-
-    override fun updatePresentation(capture: HttpDelivery.WebCaptureState, issue: HttpDelivery.WebCaptureIssue?, display: WebPageSettings) {
-        synchronized(gate) {
-            if (!closing && presentation.update(capture, issue, display)) signalWebState()
-        }
-    }
-
-    override fun updatePublication(publication: HttpDelivery.Publication): Boolean {
-        synchronized(gate) {
-            if (closing || publication.revision <= (this.publication?.revision ?: 0L)) return false
-            if ((this.publication?.revision ?: 0L) < publication.clearRevision) {
-                val previous = latest
-                latest = null
-                previous?.let(::retire)
+    private var fatalCause: Throwable? = null
+    private var cleanupCause: Throwable? = null
+    private var pageSettings = WebPageSettings()
+    private val sampler = runtimeScope.launch(start = CoroutineStart.LAZY) {
+        while (true) {
+            delay(STATISTICS_INTERVAL)
+            synchronized(controlMonitor) {
+                if (closing) return@launch
+                sampleStatistics()
             }
-            this.publication = publication
-            signalPublication()
-            publishInfo()
-            return true
         }
     }
-
-    override fun offerJpeg(publication: HttpDelivery.Publication, byteCount: Int, copyTo: (ByteArray, Int) -> Int): Boolean = synchronized(ingress) {
-        require(byteCount > 0)
-        val kind = publication.kind ?: return false
-        val prefix = "Content-Type: image/jpeg\r\nContent-Length: $byteCount\r\n\r\n".toByteArray(Charsets.US_ASCII)
-        val size = Math.addExact(Math.addExact(prefix.size, byteCount), PART_END.size)
-        var bytes = synchronized(gate) {
-            if (!started || closing || this.publication !== publication) return false
-            spare.also { spare = null }
-        }
+    private val cleanup = CoroutineScope(Dispatchers.IO).async(start = CoroutineStart.LAZY) {
         try {
-            if (bytes == null || bytes.size < size || bytes.size.toLong() > size.toLong() * 2) bytes = ByteArray(size)
-            prefix.copyInto(bytes)
-            check(copyTo(bytes, prefix.size) == byteCount) { "Incomplete JPEG copy" }
-            PART_END.copyInto(bytes, prefix.size + byteCount)
-            synchronized(gate) {
-                if (closing || this.publication !== publication) {
-                    recycle(bytes)
-                    return false
-                }
-                val previous = latest
-                latest = Frame(bytes, prefix.size, byteCount, size, ++frameVersion, kind)
-                previous?.let(::retire)
-                signalPublication()
-                if (previous?.kind != kind) publishInfo()
+            // CIO calls belong to engine children; WebSocket handlers join their detached default sessions.
+            runtimeJob.join()
+            synchronized(controlMonitor) {
+                socketOwners.clear()
+                sampleStatistics()
             }
-            true
+            synchronized(controlMonitor) { cleanupCause }?.let { throw it }
         } catch (cause: Throwable) {
-            synchronized(gate) { bytes?.let(::recycle); fatalIssue = FatalIssue.InternalFailure; publishInfo() }
+            if (cause !== synchronized(controlMonitor) { cleanupCause }) {
+                this@KtorHttpDelivery.logE("Http.cleanup", "HTTP cleanup failed", cause)
+            }
+            throw cause
+        }
+    }
+
+    override val appliedAccessToken: SecretValue?
+        get() = synchronized(controlMonitor) { access.accessToken }
+
+    override suspend fun start(
+        accessSettings: AccessSettings,
+        postStopImage: PostStopImage,
+        webSettings: WebPageSettings,
+        logoBytes: ByteArray,
+    ): Boolean {
+        currentCoroutineContext().ensureActive()
+        val owners = synchronized(controlMonitor) {
+            if (started || closing) return false
+            jpegStore.installLogo(logoBytes)
+            updateConfigurationLocked(accessSettings, postStopImage, webSettings)
+            started = true
+            publishWebState()
+            addSocketOwners()
+        }
+        launchSocketOwners(owners)
+        sampler.start()
+        return synchronized(controlMonitor) { !closing }
+    }
+
+    override suspend fun configureServers(addresses: List<NetworkAddress>, port: Int) {
+        currentCoroutineContext().ensureActive()
+        val (owners, listeners, jobsToCancel) = synchronized(controlMonitor) {
+            if (closing) return
+            require(port in 1..65535)
+            require(addresses.map { it.id }.toSet().size == addresses.size) { "Duplicate address identities" }
+            require(addresses.map { SocketKey.from(it, port) }.toSet().size == addresses.size) { "Duplicate scoped sockets" }
+            val retiringEntries = plannedServers.toMutableMap()
+            val plannedEntries = addresses.map { address ->
+                val previous = retiringEntries[address.id]
+                if (previous != null && previous.port == port) {
+                    retiringEntries.remove(address.id)
+                    check(previous.key == SocketKey.from(address, port)) { "Address identity changed its scoped IP" }
+                    previous.address = address
+                    previous
+                } else {
+                    PlannedServer(address, port)
+                }
+            }
+            plannedServers.clear()
+            plannedEntries.forEach { plannedServers[it.address.id] = it }
+            val listeners = retiringEntries.values.mapNotNull { it.listener }
+            val jobsToCancel = buildList {
+                for (entry in retiringEntries.values) {
+                    val listener = entry.listener
+                    if (listener != null) addAll(requests.cutoff(listener, entry.id, SystemClock.elapsedRealtime()))
+                }
+            }
+            socketOwners.values.forEach { it.changes.trySend(Unit) }
+            val owners = addSocketOwners()
+            publishControlInfo()
+            Triple(owners, listeners, jobsToCancel)
+        }
+        // Accepted owners start independently of caller cancellation, before fallible cutoff actions.
+        launchSocketOwners(owners)
+        try {
+            listeners.forEach(HttpListener::requestStop)
+            jobsToCancel.forEach(Job::cancel)
+        } catch (cause: Throwable) {
+            logE("Http.cleanup", "HTTP cutoff failed", cause)
+            synchronized(controlMonitor) {
+                cleanupCause = cleanupCause ?: cause
+                fatalCause = fatalCause ?: cause
+                publishControlInfo()
+            }
             requestStop()
             throw cause
         }
     }
 
+    override fun retryServer(id: Uuid) {
+        val retryRequests = synchronized(controlMonitor) {
+            if (!started || closing) return
+            val entry = plannedServers.values.firstOrNull { it.id == id && it.state is ServerState.Failed } ?: return
+            entry.bindAttempts = 0
+            entry.state = ServerState.Pending
+            publishControlInfo()
+            checkNotNull(socketOwners[entry.key]).changes
+        }
+        retryRequests.trySend(Unit)
+    }
+
+    override fun updateConfiguration(accessSettings: AccessSettings, postStopImage: PostStopImage, webSettings: WebPageSettings): Boolean {
+        val webJobsToCancel = synchronized(controlMonitor) {
+            if (!started || closing) return false
+            updateConfigurationLocked(accessSettings, postStopImage, webSettings)
+        }
+        webJobsToCancel.forEach(Job::cancel)
+        return true
+    }
+
+    override fun registerCapture(id: CaptureAttemptId): Boolean = synchronized(controlMonitor) {
+        if (!started || closing || !jpegStore.registerCapture(id)) return false
+        publishWebState()
+        true
+    }
+
+    override fun updateCaptureStatus(id: CaptureAttemptId, state: Status) {
+        synchronized(controlMonitor) {
+            if (!jpegStore.updateCaptureStatus(id, state)) return
+            publishWebState()
+        }
+    }
+
+    override fun offerJpeg(id: CaptureAttemptId, byteCount: Int, copyTo: (ByteArray) -> Unit) {
+        if (jpegStore.offerJpeg(id, byteCount, copyTo)) synchronized(controlMonitor) {
+            publishWebState()
+        }
+    }
+
     override fun requestStop() {
-        val owned = synchronized(gate) {
+        val (listeners, jobs) = synchronized(controlMonitor) {
             if (closing) return
             closing = true
-            val transports = listeners.closeAdmission()
-            publication = null
-            val previous = latest
-            latest = null
-            previous?.let(::retire)
-            pages.revoke()
-            signalPublication()
-            publishInfo()
-            transports to (responses.map { it.job } + web.ownedJobs())
+            val jobs = requests.closeAll()
+            jpegStore.dispose()
+            val listeners = plannedServers.values.mapNotNull { it.listener }
+            plannedServers.clear()
+            publishWebState()
+            publishControlInfo()
+            listeners to jobs
         }
-        owned.first.forEach(AddressServer::requestStop)
-        owned.second.forEach { it.cancel() }
-        cleanup.start()
+        fun requestCancellation(action: () -> Unit) {
+            try {
+                action()
+            } catch (cause: Throwable) {
+                logE("Http.cleanup", "HTTP cancellation failed", cause)
+                synchronized(controlMonitor) {
+                    cleanupCause = cleanupCause ?: cause
+                    fatalCause = fatalCause ?: cause
+                    publishControlInfo()
+                }
+            }
+        }
+        try {
+            listeners.forEach { listener -> requestCancellation { listener.requestStop() } }
+            jobs.forEach { job -> requestCancellation { job.cancel() } }
+            requestCancellation { runtimeJob.cancel() }
+        } finally {
+            cleanup.start()
+        }
     }
 
     override suspend fun stop() {
@@ -193,233 +256,333 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery {
         cleanup.await()
     }
 
-    private suspend fun media(call: ApplicationCall, server: AddressServer, method: ViewerMethod) {
-        val requestJob = checkNotNull(call.coroutineContext[Job])
-        val peer = call.request.local.remoteHost
-        val suppliedToken = call.request.queryParameters["t"]
-        val suppliedCookie = WebRoutes.cookie(call)
-        val suppliedPage = call.request.queryParameters["s"]
-        val suppliedKind = call.request.queryParameters["kind"]
-        val expectedKind = when (suppliedKind) {
-            "stream" -> ImageKind.StreamFrame
-            "placeholder" -> ImageKind.Placeholder
-            else -> null
+    override fun isListenerActive(listener: HttpListener): Boolean = synchronized(controlMonitor) { isListenerActiveLocked(listener) }
+
+    override fun exchangeAccessToken(listener: HttpListener, accessToken: String?): SecretValue? = synchronized(controlMonitor) {
+        if (isListenerActiveLocked(listener)) access.exchangeAccessToken(accessToken) else null
+    }
+
+    override fun verifyPin(listener: HttpListener, pin: String?, peerIp: String): HttpAccess.PinResult? = synchronized(controlMonitor) {
+        if (isListenerActiveLocked(listener)) access.verifyPin(pin, peerIp, SystemClock.elapsedRealtime()) else null
+    }
+
+    override suspend fun respondMedia(
+        call: ApplicationCall,
+        listener: HttpListener,
+        format: MediaFormat,
+        accessToken: String?,
+        accessCookie: String?,
+    ) {
+        val job = checkNotNull(call.coroutineContext[Job])
+        val admission = synchronized(controlMonitor) {
+            admitMediaResponseLocked(call, listener, job, format, accessToken, accessCookie)
         }
-        // Access admission and the initial source pin are one transaction.
-        var rejection: HttpStatusCode? = null
-        val ownedResponse = synchronized(gate) {
+        when (admission) {
+            is MediaAdmission.Rejected -> {
+                if (admission.status == HttpStatusCode.ServiceUnavailable) {
+                    call.response.headers.append(HttpHeaders.RetryAfter, "1")
+                }
+                call.respond(admission.status)
+            }
+
+            is MediaAdmission.Accepted -> {
+                val writer = admission.writer
+                job.invokeOnCompletion {
+                    synchronized(controlMonitor) {
+                        requests.retireMedia(writer, SystemClock.elapsedRealtime(), currentListeners())
+                    }
+                }
+                writer.respond(call)
+            }
+        }
+    }
+
+    private fun admitMediaResponseLocked(
+        call: ApplicationCall,
+        listener: HttpListener,
+        job: Job,
+        format: MediaFormat,
+        accessToken: String?,
+        accessCookie: String?,
+    ): MediaAdmission {
+        val now = SystemClock.elapsedRealtime()
+        if (!access.allowsViewing(accessToken, accessCookie)) return MediaAdmission.Rejected(HttpStatusCode.Forbidden)
+        val server = plannedServers.values.firstOrNull { it.listener === listener }
+        if (closing || server == null || !job.isActive) {
+            return MediaAdmission.Rejected(HttpStatusCode.ServiceUnavailable)
+        }
+        val reader = jpegStore.openReader() ?: return MediaAdmission.Rejected(HttpStatusCode.ServiceUnavailable)
+        val writer = JpegResponse(reader, format)
+        requests.registerMedia(
+            writer = writer,
+            listener = listener,
+            serverId = server.id,
+            ip = call.request.local.remoteAddress,
+            port = call.request.local.remotePort,
+            format = format,
+            job = job,
+            now = now,
+        )
+        return MediaAdmission.Accepted(writer)
+    }
+
+    override fun admitWebSocket(listener: HttpListener, accessCookie: String?, peerIp: String, requestJob: Job): WebSocketAdmission {
+        val generation = synchronized(controlMonitor) {
             val now = SystemClock.elapsedRealtime()
-            pages.expire(now)
-            val page = pages.findPage(suppliedPage, access.generation)
-            val authorized = access.admits(suppliedToken, null) || page != null && access.admits(null, suppliedCookie)
-            rejection = when {
-                !authorized -> HttpStatusCode.Forbidden
-                suppliedKind != null && expectedKind == null -> HttpStatusCode.BadRequest
-                closing || !listeners.isActive(server) || !requestJob.isActive || latest == null -> HttpStatusCode.ServiceUnavailable
-                expectedKind != null && latest?.kind != expectedKind -> HttpStatusCode.ServiceUnavailable
-                else -> null
+            if (!isListenerActiveLocked(listener) || !requestJob.isActive || !access.allowsViewing(null, accessCookie)) {
+                val retry = access.remainingBlockMillis(peerIp, now).takeIf { it > 0 }
+                return WebSocketAdmission.Denied(retry)
             }
-            if (rejection != null) null
-            else Response(server, requestJob, access.generation, peer, method, page, expectedKind).also {
-                responses.add(it)
-                pages.mediaAdmitted(page, now)
-                pin(it)
-            }
-        }
-        if (ownedResponse == null) {
-            if (rejection == HttpStatusCode.ServiceUnavailable) call.response.headers.append(HttpHeaders.RetryAfter, "1")
-            call.respond(checkNotNull(rejection))
-            return
+            requests.registerWeb(listener, requestJob)
+            access.generation
         }
         requestJob.invokeOnCompletion {
-            synchronized(gate) {
-                releasePin(ownedResponse)
-                responses.remove(ownedResponse)
-                pages.mediaFinished(ownedResponse.page, ownedResponse.viewer, SystemClock.elapsedRealtime())
-                publishInfo()
+            synchronized(controlMonitor) {
+                requests.removeWeb(requestJob)
             }
         }
-        try {
-            call.respond(object : OutgoingContent.WriteChannelContent() {
-                override val contentType = if (method == ViewerMethod.Jpeg) ContentType.Image.JPEG
-                else ContentType.parse("multipart/x-mixed-replace; boundary=$BOUNDARY")
-                override val contentLength: Long? = if (method == ViewerMethod.Jpeg) synchronized(gate) { ownedResponse.held?.payloadSize?.toLong() } else null
-                override suspend fun writeTo(channel: ByteWriteChannel) { writeMedia(channel, ownedResponse) }
-            })
-        } finally {
-            // If the response failed before writeTo, no source read is still in flight.
-            synchronized(gate) { releasePin(ownedResponse) }
+        return WebSocketAdmission.Accepted(generation)
+    }
+
+    override fun isWebSocketCurrent(listener: HttpListener, generation: Long): Boolean = synchronized(controlMonitor) {
+        isListenerActiveLocked(listener) && generation == access.generation
+    }
+
+    /** Read fresh store facts; null marks preactivation and shutdown. */
+    private fun publishWebState() {
+        if (!started || closing) {
+            webState.value = null
+            return
         }
-    }
-
-    private suspend fun writeMedia(channel: ByteWriteChannel, response: Response) {
-        var sentVersion = -1L
-        var repeatAt = 0L
-        if (response.method == ViewerMethod.Mjpeg) channel.writeFully(PART_BEGIN)
-        while (true) {
-            currentCoroutineContext().ensureActive()
-            val observed = publicationWake.value
-            val frame = synchronized(gate) {
-                if (closing || !listeners.isActive(response.server) || response.generation != access.generation) throw CancellationException("HTTP response revoked")
-                // A selected part finishes with its own bytes/kind. A constrained response waits
-                // for a matching publication; transient kind changes may be conflated by WS.
-                response.held ?: pin(response)
-            }
-            if (frame == null || (frame.version == sentVersion && SystemClock.elapsedRealtime() < repeatAt)) {
-                synchronized(gate) { releasePin(response) }
-                if (frame == null) publicationWake.first { it != observed }
-                else withTimeoutOrNull((repeatAt - SystemClock.elapsedRealtime()).coerceAtLeast(1).milliseconds) { publicationWake.first { it != observed } }
-                continue
-            }
-            try {
-                synchronized(gate) {
-                    if (response.generation != access.generation || closing || !listeners.isActive(response.server)) throw CancellationException("HTTP response revoked")
-                    if (response.viewer != null) response.writeStarted = SystemClock.elapsedRealtime()
-                }
-                try {
-                    if (response.method == ViewerMethod.Mjpeg) writeRange(channel, frame.bytes, 0, frame.payloadOffset)
-                    synchronized(gate) {
-                        if (response.generation != access.generation || closing || !listeners.isActive(response.server)) throw CancellationException("HTTP response revoked")
-                        val firstPayload = response.viewer == null
-                        if (firstPayload) response.viewer = pages.beginPayload(response.page, response.ip, response.method, SystemClock.elapsedRealtime())
-                        if (response.writeStarted == null) response.writeStarted = SystemClock.elapsedRealtime()
-                        if (firstPayload) publishInfo()
-                    }
-                    writeRange(channel, frame.bytes, frame.payloadOffset, frame.payloadSize)
-                    synchronized(gate) {
-                        completedJpegs++
-                        completedJpegBytes += frame.payloadSize
-                        response.viewer?.let { it.completedBytes += frame.payloadSize }
-                    }
-                    if (response.method == ViewerMethod.Mjpeg) writeRange(channel, frame.bytes, frame.payloadOffset + frame.payloadSize, frame.size - frame.payloadOffset - frame.payloadSize)
-                } finally {
-                    // No source is read after this point, even if final flush remains blocked.
-                    synchronized(gate) { releasePin(response) }
-                }
-                channel.flush()
-            } finally {
-                synchronized(gate) {
-                    markSlowWrite(response, SystemClock.elapsedRealtime())
-                    response.writeStarted = null
-                    response.slow = false
-                }
-            }
-            if (response.method == ViewerMethod.Jpeg) return
-            sentVersion = frame.version
-            repeatAt = SystemClock.elapsedRealtime() + JPEG_REPEAT_INTERVAL_MILLIS
-        }
-    }
-
-    private suspend fun writeRange(channel: ByteWriteChannel, bytes: ByteArray, offset: Int, count: Int) {
-        var position = offset
-        val end = offset + count
-        while (position < end) {
-            val size = minOf(WRITE_CHUNK_BYTES, end - position)
-            channel.writeFully(bytes, position, position + size)
-            position += size
-        }
-    }
-
-    private fun pin(response: Response): Frame? = latest?.takeIf {
-        response.expectedKind == null || it.kind == response.expectedKind
-    }?.also {
-        it.readers++
-        response.held = it
-    }
-    private fun releasePin(response: Response) {
-        val frame = response.held ?: return
-        response.held = null
-        frame.readers--
-        if (frame !== latest && frame.readers == 0) recycle(frame.bytes)
-    }
-    private fun retire(frame: Frame) { if (frame.readers == 0) recycle(frame.bytes) }
-    private fun recycle(bytes: ByteArray) { if (!closing && spare == null) spare = bytes }
-    private fun signalPublication() { publicationWake.value++ }
-
-    private fun statisticsJob(): Job = workScope.launch(start = CoroutineStart.LAZY) {
-        while (!synchronized(gate) { closing }) {
-            delay(STATISTICS_INTERVAL_MILLIS.milliseconds)
-            synchronized(gate) {
-                val now = SystemClock.elapsedRealtime()
-                responses.forEach { markSlowWrite(it, now) }
-                if (responses.isNotEmpty() || mutableInfo.value.viewers.isNotEmpty()) publishInfo()
-            }
-        }
-    }
-
-    private fun markSlowWrite(response: Response, now: Long) {
-        if (!response.slow && response.writeStarted?.let { now - it >= SLOW_WRITE_THRESHOLD_MILLIS } == true) {
-            response.slow = true
-            slowWrites++
-        }
-    }
-
-    /** All snapshots are copied under the short gate; no network or JPEG copying occurs here. */
-    private fun publishInfo() {
-        val available = latest != null
-        val kind = latest?.kind
-        if (mutableInfo.value.imageKind != kind) signalWebState()
-        mutableInfo.value = Info(
-            addresses = if (closing) emptyList() else listeners.snapshot(),
-            viewers = if (closing) emptyList() else pages.snapshot(SystemClock.elapsedRealtime(), responses.mapNotNull {
-                it.viewer?.id?.takeIf { _ -> it.slow && it.generation == access.generation }
-            }.toSet()),
-            completedJpegs = completedJpegs,
-            completedJpegBytes = completedJpegBytes,
-            slowWrites = slowWrites,
-            sampledAtElapsedRealtimeMillis = SystemClock.elapsedRealtime(),
-            imageAvailable = available,
-            imageKind = kind,
-            fatalIssue = fatalIssue,
+        val image = jpegStore.snapshot()
+        webState.value = WebState(
+            generation = access.generation,
+            accessOpen = !access.pinEnabled,
+            notice = WebState.noticeFor(image.capture),
+            hasImage = image.hasImage,
+            display = pageSettings,
         )
     }
 
-    private fun signalWebState() { webRevision.value++ }
+    /** Close old readers before admitting new credentials; a writer's acquired JPEG may finish. */
+    private fun updateConfigurationLocked(accessSettings: AccessSettings, postStopImage: PostStopImage, webSettings: WebPageSettings): List<Job> {
+        if (access.requiresCredentialRotation(accessSettings)) requests.closeMediaReaders()
+        val webJobsToCancel = if (access.updateSettings(accessSettings)) {
+            val jobs = requests.clearEndpointsAndGetWebJobs()
+            sampleStatistics()
+            jobs
+        } else emptyList()
+        jpegStore.updateStoppedImagePolicy(postStopImage)
+        pageSettings = webSettings
+        publishWebState()
+        return webJobsToCancel
+    }
 
-    private suspend fun cleanupOwnedResources() {
-        listeners.awaitCleanup()
-        val calls = synchronized(gate) { responses.map { it.job } + web.ownedJobs() }
-        calls.forEach { it.cancel() }
-        calls.joinAll()
-        // A synchronous copy cannot be interrupted; closed admission already prevents its publication.
-        synchronized(ingress) {
-            synchronized(gate) {
-                spare = null
-                latest = null
+    private fun isServerCurrent(server: PlannedServer): Boolean =
+        !closing && plannedServers[server.address.id] === server
+
+    /** Admission requires the exact current transport, including while binding. */
+    private fun isListenerActiveLocked(listener: HttpListener): Boolean =
+        !closing && plannedServers.values.any { it.listener === listener }
+
+    private fun currentListeners(): Set<HttpListener> =
+        if (closing) emptySet() else plannedServers.values.mapNotNullTo(HashSet()) { it.listener }
+
+    /** Insert under the gate; launch afterwards so dispatch cannot run transport work inside it. */
+    private fun addSocketOwners(): List<SocketOwner> {
+        if (!started || closing || !runtimeJob.isActive) return emptyList()
+        return plannedServers.values.mapNotNull { server ->
+            if (server.key in socketOwners) return@mapNotNull null
+            SocketOwner(server.key).also { socketOwners[it.key] = it }
+        }
+    }
+
+    private fun launchSocketOwners(owners: List<SocketOwner>) {
+        owners.forEach { owner ->
+            runtimeScope.launch { runSocketOwner(owner) }
+        }
+    }
+
+    private suspend fun runSocketOwner(owner: SocketOwner) {
+        var retryServer: PlannedServer? = null
+        var retryAtMillis = 0L
+        while (true) {
+            currentCoroutineContext().ensureActive()
+            val server = synchronized(controlMonitor) {
+                if (closing) return
+                val current = plannedServers.values.firstOrNull { it.key == owner.key }
+                if (current == null) {
+                    if (socketOwners[owner.key] === owner) socketOwners.remove(owner.key)
+                    return
+                }
+                current
+            }
+            if (server !== retryServer) {
+                retryServer = null
+                retryAtMillis = 0L
+            }
+            val retryDelay = (retryAtMillis - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+            val attemptAddress = synchronized(controlMonitor) {
+                if (!isServerCurrent(server) || server.bindAttempts >= MAX_BIND_ATTEMPTS || retryDelay > 0L) null else {
+                    server.bindAttempts++
+                    server.state = ServerState.Pending
+                    publishControlInfo()
+                    server.address
+                }
+            }
+            if (attemptAddress == null) {
+                if (retryDelay > 0L) {
+                    withTimeoutOrNull(retryDelay.milliseconds) { owner.changes.receive() }
+                } else {
+                    owner.changes.receive()
+                }
+                continue
+            }
+            runBindAttempt(server, attemptAddress)
+            synchronized(controlMonitor) {
+                retryServer = server.takeIf { isServerCurrent(it) && it.bindAttempts < MAX_BIND_ATTEMPTS }
+                retryAtMillis = if (retryServer != null) SystemClock.elapsedRealtime() + RETRY_DELAY_MILLIS else 0L
             }
         }
-        workJob.cancelAndJoin()
-        synchronized(gate) {
-            publishInfo()
-        }
-        check(synchronized(gate) { fatalIssue != FatalIssue.CleanupFailure }) { "HTTP cleanup failed" }
     }
 
-    private class Frame(val bytes: ByteArray, val payloadOffset: Int, val payloadSize: Int, val size: Int, val version: Long, val kind: ImageKind) {
-        var readers = 0
+    private suspend fun runBindAttempt(entry: PlannedServer, address: NetworkAddress) {
+        var listener: HttpListener? = null
+        var failure: ServerFailure? = null
+        try {
+            listener = HttpListener(
+                parentJob = runtimeJob,
+                host = checkNotNull(address.ip.hostAddress),
+                port = entry.port,
+            ) { physicalListener ->
+                webRoutes.installRoutes(this, physicalListener)
+            }
+            val installed = synchronized(controlMonitor) {
+                if (!isServerCurrent(entry)) false else {
+                    entry.listener = listener
+                    true
+                }
+            }
+            if (!installed) return
+            listener.startListening()
+            val listening = synchronized(controlMonitor) {
+                if (!isServerCurrent(entry) || entry.listener !== listener) false else {
+                    entry.state = ServerState.Listening
+                    publishControlInfo()
+                    true
+                }
+            }
+            if (!listening) return
+            listener.awaitTermination()
+            failure = ServerFailure.IoFailure
+        } catch (cause: Exception) {
+            // A canceled physical engine can fail its await while this persistent owner is active.
+            currentCoroutineContext().ensureActive()
+            failure = when (cause) {
+                is BindException -> ServerFailure.AddressInUse
+                is SecurityException -> ServerFailure.PermissionDenied
+                is SocketException -> ServerFailure.AddressUnavailable
+                is IOException -> ServerFailure.IoFailure
+                else -> ServerFailure.Unknown
+            }
+        } finally {
+            val jobsToCancel = synchronized(controlMonitor) {
+                val jobs = if (entry.listener === listener) {
+                    entry.listener = null
+                    listener?.let { requests.cutoff(it, entry.id, SystemClock.elapsedRealtime()) }.orEmpty()
+                } else emptyList()
+                if (isServerCurrent(entry)) {
+                    failure?.let {
+                        entry.state = ServerState.Failed(it, entry.bindAttempts)
+                        publishControlInfo()
+                    }
+                }
+                jobs
+            }
+            withContext(NonCancellable) {
+                try {
+                    try {
+                        jobsToCancel.forEach(Job::cancel)
+                    } finally {
+                        listener?.stopAndAwaitCleanup()
+                    }
+                } catch (cause: Throwable) {
+                    this@KtorHttpDelivery.logE("Http.listenerCleanup", "Listener cleanup failed", cause)
+                    synchronized(controlMonitor) {
+                        cleanupCause = cleanupCause ?: cause
+                        fatalCause = fatalCause ?: cause
+                        publishControlInfo()
+                    }
+                    // Do not return to this owner's successor selection after uncertain cleanup.
+                    requestStop()
+                }
+            }
+        }
     }
-    private class Response(
-        val server: AddressServer,
-        val job: Job,
-        val generation: Long,
-        val ip: String,
-        val method: ViewerMethod,
-        val page: WebClientSessions.Page?,
-        val expectedKind: ImageKind?,
-    ) {
-        var held: Frame? = null
-        var viewer: WebClientSessions.Viewer? = null
-        var writeStarted: Long? = null
-        var slow = false
+
+    /** Preserve the last statistics sample when listener state or failure changes. */
+    private fun publishControlInfo() {
+        info.value = info.value.copy(
+            servers = if (closing) emptyList() else plannedServers.values.map { it.toServerInfo() },
+            clients = if (closing) emptyList() else info.value.clients,
+            fatalCause = fatalCause,
+        )
+    }
+
+    private fun sampleStatistics() {
+        val now = SystemClock.elapsedRealtime()
+        val sample = requests.sample(now, jpegStore.snapshot().sourceIdentity, currentListeners())
+        info.value = Info(
+            servers = if (closing) emptyList() else plannedServers.values.map { it.toServerInfo() },
+            clients = if (closing) emptyList() else sample.clients,
+            completedJpegs = sample.completedJpegs,
+            completedJpegBytes = sample.completedJpegBytes,
+            sampledAtElapsedRealtimeMillis = now,
+            fatalCause = fatalCause,
+        )
+    }
+
+    /** One planned incarnation; metadata edits and physical bind retries preserve its UUID. */
+    private class PlannedServer(var address: NetworkAddress, val port: Int) {
+        val id = Uuid.random()
+        val key = SocketKey.from(address, port)
+        var bindAttempts = 0
+        var state: ServerState = ServerState.Pending
+        var listener: HttpListener? = null
+
+        fun toServerInfo(): ServerInfo = ServerInfo(id, address, port, state)
+    }
+
+    /**
+     * One runtime child serializes attempts for a scoped socket. It finishes physical cleanup
+     * before reading the latest plan; replacement plans do not create waiter jobs.
+     */
+    private class SocketOwner(val key: SocketKey) {
+        val changes = Channel<Unit>(capacity = Channel.CONFLATED)
+    }
+
+    private data class SocketKey(val bytes: List<Byte>, val scopeId: Int?, val scopeInterface: String?, val port: Int) {
+        companion object {
+            fun from(address: NetworkAddress, port: Int): SocketKey {
+                val ip = address.ip
+                return SocketKey(
+                    bytes = ip.address.toList(),
+                    scopeId = (ip as? Inet6Address)?.scopeId,
+                    scopeInterface = (ip as? Inet6Address)?.scopedInterface?.name,
+                    port = port,
+                )
+            }
+        }
+    }
+
+    private sealed interface MediaAdmission {
+        class Accepted(val writer: JpegResponse) : MediaAdmission
+        class Rejected(val status: HttpStatusCode) : MediaAdmission
     }
 
     private companion object {
-        const val STATISTICS_INTERVAL_MILLIS = 250L
-        const val JPEG_REPEAT_INTERVAL_MILLIS = 1_000L
-        const val SLOW_WRITE_THRESHOLD_MILLIS = 2_000L
-        const val WRITE_CHUNK_BYTES = 32 * 1024
-        const val BOUNDARY = "screenstream-jpeg"
-        val PART_BEGIN = "--$BOUNDARY\r\n".toByteArray(Charsets.US_ASCII)
-        val PART_END = "\r\n--$BOUNDARY\r\n".toByteArray(Charsets.US_ASCII)
+        val STATISTICS_INTERVAL = 1.seconds
+        const val RETRY_DELAY_MILLIS = 250L
+        const val MAX_BIND_ATTEMPTS = 3
     }
 }
