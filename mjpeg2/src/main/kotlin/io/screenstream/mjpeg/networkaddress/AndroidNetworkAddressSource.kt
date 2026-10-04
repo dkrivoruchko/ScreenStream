@@ -10,13 +10,11 @@ import android.net.TetheringInterface
 import android.net.TetheringManager
 import android.os.Build
 import androidx.annotation.RequiresApi
-import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor.InterfaceType
 import io.screenstream.streaming.logE
 import io.screenstream.streaming.logW
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import java.net.InetAddress
-import java.net.NetworkInterface
 import java.util.Collections
 
 /**
@@ -24,7 +22,10 @@ import java.util.Collections
  * information may be incomplete while Android is delivering updates or an interface cannot be read.
  * The caller must use [scan] on IO and complete the close sequence when finished.
  */
-internal class AndroidNetworkAddressSource(context: Context) {
+internal class AndroidNetworkAddressSource(
+    context: Context,
+    private val nativeInterfaces: NativeInterfaceAccess = SystemNativeInterfaceAccess,
+) {
     private val applicationContext = context.applicationContext
     private val connectivity = applicationContext.getSystemService(ConnectivityManager::class.java)
     private val platformLock = Any()
@@ -32,7 +33,7 @@ internal class AndroidNetworkAddressSource(context: Context) {
     private var sourceRevision = 0L
     private val callbackNetworks = mutableMapOf<Network, NetworkMetadata>()
 
-    // Fallback facts never overwrite callback payloads. API24-25 needs this outside-callback path.
+    // Pre-26 fallback reads never overwrite callback payloads; registered modern callbacks are authoritative.
     private var fallbackNetworks = emptyMap<Network, NetworkMetadata>()
     private var fallbackReady = false
     private var tethered = emptyMap<String, InterfaceType>()
@@ -79,7 +80,6 @@ internal class AndroidNetworkAddressSource(context: Context) {
      */
     val changes: ReceiveChannel<Snapshot> = snapshotChanges
 
-    /** Returns the latest known network information without reading interfaces. */
     fun snapshot(): Snapshot = synchronized(platformLock) { snapshotLocked() }
 
     /**
@@ -105,7 +105,7 @@ internal class AndroidNetworkAddressSource(context: Context) {
         val successfulInterfaces = mutableSetOf<String>()
         val failedInterfaces = mutableSetOf<String>()
         var enumerationComplete = true
-        fun readInterface(item: NetworkInterface) {
+        fun readInterface(item: NativeInterfaceAccess.Handle) {
             val name = item.name
             try {
                 val addresses = if (item.isUp) item.inetAddresses.toList() else emptyList()
@@ -120,7 +120,7 @@ internal class AndroidNetworkAddressSource(context: Context) {
         }
 
         try {
-            val interfaces = NetworkInterface.getNetworkInterfaces()
+            val interfaces = nativeInterfaces.enumerate()
             if (interfaces != null) {
                 while (interfaces.hasMoreElements()) {
                     readInterface(interfaces.nextElement())
@@ -141,7 +141,7 @@ internal class AndroidNetworkAddressSource(context: Context) {
         for (name in retryNames.distinct()) {
             if (name in successfulInterfaces) continue
             try {
-                NetworkInterface.getByName(name)?.let(::readInterface)
+                nativeInterfaces.getByName(name)?.let(::readInterface)
             } catch (error: Exception) {
                 if (failedInterfaces.add(name)) {
                     logW("scan", "Interface lookup failed on retry; interface=$name", error)
@@ -222,7 +222,6 @@ internal class AndroidNetworkAddressSource(context: Context) {
         )
     }
 
-    /** Updates known network information unless closing has begun. */
     private fun updateCallbackState(update: () -> Unit) {
         synchronized(platformLock) {
             if (isClosing) return
@@ -240,8 +239,7 @@ internal class AndroidNetworkAddressSource(context: Context) {
     }
 
     /**
-     * Watches usable local networks, including networks without Internet access. An unavailable observer
-     * can be registered again on a later scan.
+     * Retry observer registration on later scans; failure leaves native interface evidence usable.
      */
     private fun registerNetworkObserver() {
         val registrationNeeded = synchronized(platformLock) { !isClosing && !networkRegistered }
@@ -268,7 +266,6 @@ internal class AndroidNetworkAddressSource(context: Context) {
             }
         } catch (error: Exception) {
             logW("registerNetworkObserver", "Network observer registration failed; native interface scans remain available", error)
-            // Recoverable observation failure; native evidence remains usable and registration retries.
         }
     }
 
@@ -361,7 +358,6 @@ internal class AndroidNetworkAddressSource(context: Context) {
         else -> InterfaceType.Other
     }
 
-    /** Returns a separate address list for the interface described by Android. */
     private fun LinkProperties.copyInterfaceAddresses(): List<InterfaceAddresses> {
         val name = interfaceName ?: return emptyList()
         val addresses = Collections.unmodifiableList(linkAddresses.map { it.address })
@@ -448,7 +444,6 @@ internal class AndroidNetworkAddressSource(context: Context) {
         /** Starts receiving tethered interface updates; pair a successful call with [close]. */
         fun start() = manager.registerTetheringEventCallback({ it.run() }, callback)
 
-        /** Stops receiving updates for this tethering observer. */
         fun close() = manager.unregisterTetheringEventCallback(callback)
     }
 }

@@ -11,9 +11,12 @@ import androidx.annotation.MainThread
 import io.screenstream.streaming.module.StreamingModule
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.job
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.koin.core.annotation.Singleton
 import kotlin.coroutines.resume
@@ -29,15 +32,14 @@ internal class ScreenCaptureAccessImpl(context: Context) : ScreenCaptureAccess {
 
     private class ConsentGrant(
         val attempt: StreamingModule.CaptureAttemptId,
-        val isCurrent: () -> Boolean,
-        val data: Intent,
+        val job: Job,
+        val consentResultIntent: Intent,
     ) : ScreenCaptureAccess.Grant {
         var consumed: Boolean = false
     }
 
     private class PendingConsent(
         val attempt: StreamingModule.CaptureAttemptId,
-        val isCurrent: () -> Boolean,
         val waiter: CancellableContinuation<ScreenCaptureAccess.Grant?>,
         var request: Request,
     )
@@ -53,12 +55,11 @@ internal class ScreenCaptureAccessImpl(context: Context) : ScreenCaptureAccess {
     private var resumedHostToken: Any? = null
     private var pendingConsent: PendingConsent? = null
     private var projectionCreation: ProjectionCreation? = null
-    private var savedIntent: Intent? = null
+    private var savedConsentIntent: Intent? = null
     private var latestAttemptId: StreamingModule.CaptureAttemptId? = null
 
     override suspend fun requestConsent(
         attempt: StreamingModule.CaptureAttemptId,
-        isCurrent: () -> Boolean,
     ): ScreenCaptureAccess.Grant? = suspendCancellableCoroutine { waiter ->
         // Register in the caller context before installation: already-cancelled callers cannot
         // leave a dialog installed, and no dispatcher boundary carries a resource-bearing result.
@@ -67,25 +68,23 @@ internal class ScreenCaptureAccessImpl(context: Context) : ScreenCaptureAccess {
         }
         val immediate: Result<ScreenCaptureAccess.Grant?>? = synchronized(gate) {
             when {
-                !waiter.isActive -> null
-                !isCurrent() -> Result.failure(CancellationException("Capture attempt is no longer current"))
+                !waiter.isActive || !waiter.context.job.isActive -> null
                 pendingConsent != null || projectionCreation != null -> Result.success(null)
                 else -> {
-                    val saved = savedIntent?.takeIf { Build.VERSION.SDK_INT in Build.VERSION_CODES.N..Build.VERSION_CODES.TIRAMISU }
+                    val saved = savedConsentIntent?.takeIf { Build.VERSION.SDK_INT in Build.VERSION_CODES.N..Build.VERSION_CODES.TIRAMISU }
                     if (saved == null && resumedHostToken == null) {
                         Result.success(null)
                     } else {
-                        savedIntent = null
+                        savedConsentIntent = null
                         latestAttemptId = attempt
                         try {
-                            if (saved != null) Result.success(ConsentGrant(attempt, isCurrent, saved))
+                            if (saved != null) Result.success(ConsentGrant(attempt, waiter.context.job, saved))
                             else {
                                 val request = Request(Uuid.random().toString(), projectionManager.createScreenCaptureIntent())
                                 when {
-                                    !waiter.isActive -> null
-                                    !isCurrent() -> Result.failure(CancellationException("Capture attempt is no longer current"))
+                                    !waiter.isActive || !waiter.context.job.isActive -> null
                                     else -> {
-                                        pendingConsent = PendingConsent(attempt, isCurrent, waiter, request)
+                                        pendingConsent = PendingConsent(attempt, waiter, request)
                                         mutableRequest.value = request
                                         null
                                     }
@@ -104,14 +103,14 @@ internal class ScreenCaptureAccessImpl(context: Context) : ScreenCaptureAccess {
     override fun createProjection(grant: ScreenCaptureAccess.Grant): MediaProjection {
         val accepted = grant as? ConsentGrant ?: error("Invalid screen capture consent")
         val creation = synchronized(gate) {
-            check(accepted.isCurrent()) { "Capture attempt is no longer current" }
+            accepted.job.ensureActive()
             check(!accepted.consumed) { "Consent has already been consumed" }
             check(projectionCreation == null && pendingConsent == null) { "Another capture acquisition is still pending" }
             accepted.consumed = true
             ProjectionCreation(accepted.attempt).also { projectionCreation = it }
         }
         return try {
-            checkNotNull(projectionManager.getMediaProjection(Activity.RESULT_OK, accepted.data))
+            checkNotNull(projectionManager.getMediaProjection(Activity.RESULT_OK, accepted.consentResultIntent))
         } finally {
             synchronized(gate) { creation.inFlight = false }
         }
@@ -130,7 +129,7 @@ internal class ScreenCaptureAccessImpl(context: Context) : ScreenCaptureAccess {
             if (latestAttemptId != completed.attempt || !completed.consumed) return
             latestAttemptId = null
             if (Build.VERSION.SDK_INT in Build.VERSION_CODES.N..Build.VERSION_CODES.TIRAMISU) {
-                savedIntent = completed.data
+                savedConsentIntent = completed.consentResultIntent
             }
         }
     }
@@ -160,7 +159,7 @@ internal class ScreenCaptureAccessImpl(context: Context) : ScreenCaptureAccess {
     @MainThread
     internal fun canSubmit(key: String, token: Any): Boolean = synchronized(gate) {
         resumedHostToken === token && pendingConsent?.let {
-            it.request.key == key && !it.request.submitted && it.isCurrent()
+            it.request.key == key && !it.request.submitted && it.waiter.isActive && it.waiter.context.job.isActive
         } == true
     }
 
@@ -193,13 +192,14 @@ internal class ScreenCaptureAccessImpl(context: Context) : ScreenCaptureAccess {
             removePending()
         } ?: return
         val outcome = runCatching {
+            pending.waiter.context.job.ensureActive()
             when {
-                !pending.isCurrent() -> throw CancellationException("Capture attempt is no longer current")
+                !pending.waiter.isActive -> throw CancellationException("Consent request is no longer active")
                 !pending.request.submitted -> error("Consent result arrived before submission")
                 result.resultCode != Activity.RESULT_OK -> null
                 else -> {
-                    val copied = Intent(checkNotNull(result.data) { "Screen consent returned no result data" })
-                    ConsentGrant(pending.attempt, pending.isCurrent, copied)
+                    val copiedConsentIntent = Intent(checkNotNull(result.data) { "Screen consent returned no result data" })
+                    ConsentGrant(pending.attempt, pending.waiter.context.job, copiedConsentIntent)
                 }
             }
         }

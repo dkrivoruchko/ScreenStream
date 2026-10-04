@@ -22,6 +22,18 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
+            it.javaLauncher.set(
+                javaToolchains.launcherFor {
+                    languageVersion = JavaLanguageVersion.of(21)
+                },
+            )
+        }
+    }
 }
 
 dependencies {
@@ -33,4 +45,9 @@ dependencies {
     implementation(libs.koin.annotations)
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.websockets)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.ktor.server.test.host)
 }

@@ -8,6 +8,7 @@ import org.koin.core.annotation.Singleton
  * Lists native MJPEG metadata and its Android Service component.
  * Selection starts that Service; this process singleton creates no controller or resources.
  */
+@Suppress("unused")
 @Singleton(binds = [StreamingModule::class])
 internal class MjpegStreamingModule : StreamingModule {
     internal companion object {

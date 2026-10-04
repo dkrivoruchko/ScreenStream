@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.seconds
-import kotlin.uuid.Uuid
 
 /**
  * Creates controllers that bridge the common lifecycle to an unchanged legacy backend.
@@ -72,7 +71,7 @@ public abstract class LegacyStreamingModuleAdapter(
             XLog.e("Legacy observer failed", failure)
             runtime.reportFailed()
         })
-        private val startDone = CompletableDeferred<Unit>()
+        private val startupDispatchCompleted = CompletableDeferred<Unit>()
         private val cleanupTask: Deferred<Boolean> = CoroutineScope(Dispatchers.Main.immediate).async(start = CoroutineStart.LAZY) {
             finishCleanup()
         }
@@ -83,21 +82,21 @@ public abstract class LegacyStreamingModuleAdapter(
         internal var backend: StreamingModuleLegacy? = null
         private var running = false
         private var streaming = false
-        private var consumer = false
+        private var hasActiveConsumer = false
         private var attempt: StreamingModule.CaptureAttemptId? = null
 
         public fun isCurrent(): Boolean = !closing && runtime.isCurrent()
 
         /** Copy an ordinary legacy command for this launch, preserving its old token and extras. */
-        public fun prepareCommand(intent: Intent): Intent = legacyAddress(intent).also {
+        public fun prepareCommand(intent: Intent): Intent = addressLegacyCommand(intent).also {
             if (it.action == StreamingModuleManager.ACTION_START_MODULE) it.action = null
         }
 
         /** Admit only ordinary legacy commands addressed to this original launch. */
         public fun acceptsCommand(intent: Intent?): Boolean = isCurrent() &&
-            intent?.data == legacyAddress(Intent()).data
+            intent?.data == addressLegacyCommand(Intent()).data
 
-        private fun legacyAddress(intent: Intent): Intent = Intent(intent)
+        private fun addressLegacyCommand(intent: Intent): Intent = Intent(intent)
             .setData(Uri.Builder().scheme("screenstream").authority("legacy-command")
                 .appendPath(instanceId.moduleId.value).appendPath(instanceId.uuid.toString()).build())
 
@@ -110,13 +109,13 @@ public abstract class LegacyStreamingModuleAdapter(
                 val module = legacyModule.value.also { backend = it }
                 if (!isCurrent()) return
                 workScope.launch {
-                    combine(module.isRunning, module.isStreaming, module.hasActiveConsumer) { running, streaming, consumer ->
-                        Triple(running, streaming, consumer)
+                    combine(module.isRunning, module.isStreaming, module.hasActiveConsumer) { running, streaming, hasActiveConsumer ->
+                        Triple(running, streaming, hasActiveConsumer)
                     }.collect { (isRunning, isStreaming, hasConsumer) ->
                         running = isRunning
                         streaming = isStreaming
-                        consumer = hasConsumer
-                        if (streaming && attempt == null) attempt = StreamingModule.CaptureAttemptId(instanceId, Uuid.random())
+                        hasActiveConsumer = hasConsumer
+                        if (streaming && attempt == null) attempt = StreamingModule.CaptureAttemptId(instanceId)
                         if (!streaming) attempt = null
                     }
                 }
@@ -126,13 +125,13 @@ public abstract class LegacyStreamingModuleAdapter(
                 })
                 workScope.launch {
                     while (isCurrent()) {
-                        if (running) runtime.reportRunning(StreamingModule.Status(streaming, consumer, attempt), SystemClock.uptimeMillis())
+                        if (running) runtime.reportRunning(StreamingModule.Status(streaming, hasActiveConsumer, attempt), SystemClock.uptimeMillis())
                         delay(1.seconds)
                     }
                 }
             } finally {
                 synchronized(lock) {
-                    startDone.complete(Unit)
+                    startupDispatchCompleted.complete(Unit)
                 }
             }
         }
@@ -151,7 +150,7 @@ public abstract class LegacyStreamingModuleAdapter(
                 if (!closing) {
                     closing = true
                     if (!started) {
-                        startDone.complete(Unit)
+                        startupDispatchCompleted.complete(Unit)
                     }
                 }
             }
@@ -160,7 +159,7 @@ public abstract class LegacyStreamingModuleAdapter(
         }
 
         private suspend fun finishCleanup(): Boolean {
-            startDone.await()
+            startupDispatchCompleted.await()
             val backendStopped = runCatching {
                 withContext(Dispatchers.Main.immediate) { backend?.stopModule() }
             }

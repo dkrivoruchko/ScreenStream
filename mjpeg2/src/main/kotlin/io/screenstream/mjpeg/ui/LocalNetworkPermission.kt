@@ -26,19 +26,28 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.withResumed
 import info.dvkr.screenstream.common.findActivity
 import io.screenstream.mjpeg.R
+import java.util.concurrent.atomic.AtomicBoolean
+
+/** One module-created selection episode; eligibility remains bound to its originating module. */
+internal class LocalNetworkPermissionRequest(
+    private val isEligible: (LocalNetworkPermissionRequest) -> Boolean,
+) {
+    private val automaticClaimed = AtomicBoolean()
+
+    /** Automatic admission consumes one budget; manual admission leaves it intact. */
+    fun tryClaim(automatic: Boolean): Boolean =
+        isEligible(this) && (!automatic || automaticClaimed.compareAndSet(false, true))
+}
 
 /**
- * Ordinary platform permission; the launcher stays registered even while no request is needed.
- * @param requestKey Exact current selection; null hides the action without removing the launcher.
- * @param onPermissionChange Recheck authoritative permission after a result or host resume.
- * @param claimPermissionRequest Controller admission and automatic-request budget for this exact key.
+ * Keep the launcher registered when no request is needed; a result must still recheck permission.
+ * Automatic launches claim the exact current selection only while the host is resumed.
  */
 @SuppressLint("InlinedApi")
 @Composable
 internal fun LocalNetworkPermission(
-    requestKey: UiController.PermissionRequestKey?,
-    onPermissionChange: () -> Unit,
-    claimPermissionRequest: (UiController.PermissionRequestKey, Boolean) -> Boolean,
+    request: LocalNetworkPermissionRequest?,
+    onPermissionCheck: () -> Unit,
 ) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.CINNAMON_BUN) return
     val context = LocalContext.current
@@ -49,33 +58,31 @@ internal fun LocalNetworkPermission(
     fun granted(): Boolean = context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
     var hasPermission by remember { mutableStateOf(granted()) }
     var requested by remember { mutableStateOf(false) }
-    val currentOnPermissionChange by rememberUpdatedState(onPermissionChange)
-    val currentClaimPermissionRequest by rememberUpdatedState(claimPermissionRequest)
+    val currentOnPermissionCheck by rememberUpdatedState(onPermissionCheck)
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         hasPermission = granted()
         requested = true
-        currentOnPermissionChange()
+        currentOnPermissionCheck()
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         hasPermission = granted()
-        currentOnPermissionChange()
+        currentOnPermissionCheck()
     }
-    LaunchedEffect(requestKey, lifecycle) {
-        if (requestKey != null) lifecycle.withResumed {
-            if (!granted() && currentClaimPermissionRequest(requestKey, true)) {
+    LaunchedEffect(request, lifecycle) {
+        if (request != null) lifecycle.withResumed {
+            if (!granted() && request.tryClaim(automatic = true)) {
                 requested = true
                 launcher.launch(permission)
             }
         }
     }
-    if (requestKey != null && !hasPermission) {
+    if (request != null && !hasPermission) {
         TextButton(onClick = {
             if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) ||
-                !currentClaimPermissionRequest(requestKey, false)
+                !request.tryClaim(automatic = false)
             ) return@TextButton
             if (requested && !activity.shouldShowRequestPermissionRationale(permission)) {
-                val uri = "package:${context.packageName}".toUri()
-                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri))
+                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()))
             } else {
                 requested = true
                 launcher.launch(permission)

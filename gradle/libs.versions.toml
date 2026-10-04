@@ -8,6 +8,8 @@ koin-plugin = "1.2.1"
 
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.11.0"
+junit = "4.13.2"
+robolectric = "4.17"
 
 androidx-core-ktx = "1.19.1"
 androidx-annotation = "1.11.0"
@@ -79,6 +81,7 @@ xlog = { module = "com.elvishew:xlog", version.ref = "xlog" }
 
 #MJPEG
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 ktor-server-compression = { module = "io.ktor:ktor-server-compression", version.ref = "ktor" }
 ktor-server-caching-headers = { module = "io.ktor:ktor-server-caching-headers", version.ref = "ktor" }
 ktor-server-default-headers = { module = "io.ktor:ktor-server-default-headers", version.ref = "ktor" }
@@ -86,6 +89,11 @@ ktor-server-forwarded-header = { module = "io.ktor:ktor-server-forwarded-header"
 ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+
+#Tests
+junit = { module = "junit:junit", version.ref = "junit" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 
 #RTSP
 ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }

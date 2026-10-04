@@ -1,0 +1,19 @@
+{
+  "name": "screenstream-mjpeg-web",
+  "private": true,
+  "version": "1.0.0",
+  "engines": {
+    "node": "24.21.0",
+    "npm": "12.2.0"
+  },
+  "packageManager": "npm@12.2.0",
+  "scripts": {
+    "build": "node build.cjs",
+    "check": "node build.cjs --check"
+  },
+  "devDependencies": {
+    "@babel/core": "7.28.5",
+    "@babel/preset-env": "7.28.5",
+    "acorn": "8.15.0"
+  }
+}

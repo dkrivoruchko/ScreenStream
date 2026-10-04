@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.common.settings
 
 import androidx.datastore.core.CorruptionException
+import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -47,12 +48,14 @@ import java.io.IOException
  * @param defaultValue value used when the JSON preference is absent.
  * @param produceFile returns the same `.preferences_pb` file for this store.
  * @param key name of the JSON string preference, defaulting to `DATA`.
+ * @param migrations preferences migrations run before the first read or update.
  */
 public class JsonPreferencesStore<T : Any>(
     private val serializer: KSerializer<T>,
     private val defaultValue: T,
     produceFile: () -> File,
     key: String = "DATA",
+    migrations: List<DataMigration<Preferences>> = emptyList(),
 ) {
     private val payloadKey: Preferences.Key<String> = stringPreferencesKey(key)
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
@@ -61,6 +64,7 @@ public class JsonPreferencesStore<T : Any>(
             emptyPreferences()
         },
         produceFile = produceFile,
+        migrations = migrations,
     )
     private val successfulUpdates: MutableStateFlow<Long> = MutableStateFlow(0L)
     private val decodeLock: Any = Any()

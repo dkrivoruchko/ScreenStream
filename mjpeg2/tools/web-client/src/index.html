@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="same-origin">
+<title>ScreenStream</title>
+<style>/* INLINE_STYLE */</style>
+</head>
+<body>
+<main id="shell" aria-label="ScreenStream viewer">
+  <div id="top-bar" class="edge bar"></div>
+  <div id="viewport" tabindex="0" aria-label="Stream image. Use arrow keys to scroll.">
+    <div id="image-stage"></div>
+    <div id="placeholder" role="status">Connecting…</div>
+  </div>
+  <div id="bottom-bar" class="edge bar"></div>
+  <div id="caption" class="block caption" hidden><span id="caption-text"></span></div>
+  <div id="controls" class="block controls" role="toolbar" aria-label="Viewing controls" hidden>
+    <label class="mode-label"><span class="sr-only" data-word="viewMode"></span>
+      <select id="view-mode" aria-label="Image size">
+        <option value="fit" data-word="fit"></option>
+        <option value="original" data-word="original"></option>
+        <option value="width" data-word="width"></option>
+      </select>
+    </label>
+    <button id="fullscreen" type="button" hidden data-word="fullscreen"></button>
+    <button id="pip" type="button" hidden data-word="pip"></button>
+    <button id="more" type="button" aria-expanded="false" aria-controls="menu" data-word="more"></button>
+  </div>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+  <section id="menu" class="panel" role="dialog" aria-label="More viewing options" hidden>
+    <label class="check"><input id="show-info" type="checkbox"><span data-word="infoToggle"></span></label>
+    <div id="information" hidden>
+      <h2 data-word="info"></h2>
+      <dl>
+        <dt data-word="method"></dt><dd id="info-method"></dd>
+        <dt data-word="connection"></dt><dd id="info-connection"></dd>
+        <dt data-word="image"></dt><dd id="info-image"></dd>
+        <dt id="info-notice-label" data-word="streamNotice" hidden></dt><dd id="info-notice" hidden></dd>
+        <dt data-word="size"></dt><dd id="info-size"></dd>
+        <dt data-word="title"></dt><dd id="info-title"></dd>
+      </dl>
+    </div>
+    <button id="retry" type="button" data-word="retry"></button>
+    <button id="alternate" type="button" data-word="alternate"></button>
+    <button id="close-menu" type="button" data-word="close"></button>
+  </section>
+  <section id="pin-panel" class="panel pin-panel" aria-label="Stream access" hidden>
+    <form id="pin-form" method="post" action="/pin">
+      <p id="pin-message" role="status" aria-live="polite"></p>
+      <label for="pin" data-word="pinLabel"></label>
+      <input id="pin" name="pin" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message">
+      <button id="unlock" type="submit" data-word="unlock"></button>
+    </form>
+    <button id="pin-retry" type="button" data-word="retry"></button>
+  </section>
+  <div id="recovery" class="panel recovery" hidden>
+    <button id="recovery-retry" type="button" data-word="retry"></button>
+    <button id="recovery-alternate" type="button" data-word="alternate"></button>
+  </div>
+  <video id="pip-video" muted playsinline aria-hidden="true"></video>
+  <noscript><p class="panel">Enable JavaScript to view this stream and enter its PIN.</p></noscript>
+</main>
+<script>/* INLINE_SCRIPT */</script>
+</body>
+</html>

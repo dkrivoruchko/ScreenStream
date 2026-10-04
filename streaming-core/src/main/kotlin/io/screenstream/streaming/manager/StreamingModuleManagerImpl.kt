@@ -277,7 +277,7 @@ internal class StreamingModuleManagerImpl internal constructor(
 
     /** Reserve identity and deadline before Android can synchronously deliver the startup. */
     private fun launchInstance(moduleId: StreamingModule.Id): LaunchRecord {
-        val instance = LaunchRecord(StreamingModule.InstanceId(moduleId, Uuid.random()), moduleById.getValue(moduleId).serviceClass)
+        val instance = LaunchRecord(StreamingModule.InstanceId(moduleId), moduleById.getValue(moduleId).serviceClass)
         currentInstance = instance
         instance.firstStatusDeadlineElapsedMillis = SystemClock.elapsedRealtime() + FIRST_STATUS_TIMEOUT.inWholeMilliseconds
         instance.admit(instance.firstStatusDeadlineElapsedMillis)
@@ -420,7 +420,7 @@ internal class StreamingModuleManagerImpl internal constructor(
         val startupSettled = CompletableDeferred<Unit>()
         val cleanupSettled = CompletableDeferred<Unit>()
         var firstStatusDeadlineElapsedMillis = Long.MAX_VALUE
-        private var setupDone = CompletableDeferred(Unit)
+        private var controllerSetupCompletion = CompletableDeferred(Unit)
         val controllerState = MutableStateFlow<StreamingModule.Controller?>(null)
         private var controller: StreamingModule.Controller? = null
         var startupReceived = false
@@ -465,7 +465,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             val setup = synchronized(gate) {
                 if (!isAdmitted() || startupReceived) return
                 startupReceived = true
-                CompletableDeferred<Unit>().also { setupDone = it }
+                CompletableDeferred<Unit>().also { controllerSetupCompletion = it }
             }
             try {
                 val created = factory(runtime)
@@ -525,7 +525,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             synchronized(gate) { controller }?.let(::requestControllerShutdown)
             scope.launch(Dispatchers.Default) {
                 dispatchDone.await()
-                synchronized(gate) { setupDone }.await()
+                synchronized(gate) { controllerSetupCompletion }.await()
                 val ownedController = synchronized(gate) { controller }
                 if (ownedController != null) withContext(dispatcher) { requestControllerShutdown(ownedController) }
                 val succeeded = if (ownedController == null) true else try {
@@ -562,7 +562,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                     try {
                         wakeTransitionWaiter()
                         when (report) {
-                            is Report.Running -> handleRunningReport(this@LaunchRecord, report.status, report.heartbeat)
+                            is Report.Running -> handleRunningReport(this@LaunchRecord, report.status, report.heartbeatAtUptimeMillis)
                             is Report.Failed -> handleFailureReport(this@LaunchRecord, report.messageResource)
                             is Report.Finished -> handleFinishedReport(this@LaunchRecord, report.cleanupCompleted)
                         }
@@ -681,7 +681,7 @@ internal class StreamingModuleManagerImpl internal constructor(
     }
 
     private sealed interface Report {
-        class Running(val status: StreamingModule.Status, val heartbeat: Long) : Report
+        class Running(val status: StreamingModule.Status, val heartbeatAtUptimeMillis: Long) : Report
         class Failed(val messageResource: Int?) : Report
         class Finished(val cleanupCompleted: Boolean) : Report
     }

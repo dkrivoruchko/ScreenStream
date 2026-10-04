@@ -27,23 +27,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
-import io.screenstream.streaming.module.StreamingModule
 import kotlinx.coroutines.launch
 
 /**
- * Capture controls and planned servers; only an explicit Copy URL reveals an access token.
- * @param uiController Installed controller's local display and server commands.
- * @param settings Saved preferences used by the network filter controls.
- * @param onStart Universal capture Start supplied by the core controller.
- * @param onStop Universal Stop carrying the displayed capture identity.
- * @param modifier Host layout modifier.
+ * Copy URL rereads the current discovery row and planned UUID after the click so a remembered
+ * credential cannot be copied after its server is replaced or stops listening.
  */
 @Composable
 internal fun MjpegContent(
     uiController: UiController,
     settings: MjpegSettings,
-    onStart: () -> Unit,
-    onStop: (StreamingModule.CaptureAttemptId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by uiController.state.collectAsStateWithLifecycle()
@@ -51,21 +44,23 @@ internal fun MjpegContent(
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
     ) {
         LocalNetworkPermission(
-            requestKey = state.permissionRequest,
-            onPermissionChange = uiController::refreshLocalNetworkPermission,
-            claimPermissionRequest = uiController::claimLocalNetworkPermissionRequest,
+            request = state.permissionRequest,
+            onPermissionCheck = { uiController.send(UiController.Command.CheckLocalNetworkPermission) },
         )
         Button(
             onClick = {
                 when (action) {
-                    is UiController.Action.Start -> onStart()
+                    is UiController.Action.Start -> uiController.send(UiController.Command.Start)
                     UiController.Action.Busy -> Unit
-                    is UiController.Action.Stop -> onStop(action.attempt)
+                    is UiController.Action.Stop -> uiController.send(UiController.Command.Stop(action.attempt))
                 }
             },
             enabled = when (action) {
@@ -80,17 +75,17 @@ internal fun MjpegContent(
                 is UiController.Action.Stop -> Text(stringResource(R.string.mjpeg_stop_stream))
             }
         }
-        MjpegNetworkFilters(settings = settings)
+        MjpegNetworkFilters(settings = settings, editPolicy = state.editPolicy)
         state.addressServers.forEach { server ->
-            key(server.id) {
+            key(server.addressId) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(server.interfaceName)
                     val host = if (':' in server.address) "[${server.address}]" else server.address
                     Text("$host:${server.port}")
-                    if (server.sameDevice) Text(stringResource(R.string.mjpeg_same_device))
+                    if (server.isLoopback) Text(stringResource(R.string.mjpeg_same_device))
                     Text(stringResource(server.status.messageResource()))
-                    if (server.status is UiController.ServerStatus.Failed) {
-                        TextButton(onClick = { uiController.retryServer(server.id) }) {
+                    if (server.serverId != null && server.status is UiController.ServerStatus.Failed) {
+                        TextButton(onClick = { uiController.send(UiController.Command.RetryServer(server.serverId)) }) {
                             Text(stringResource(R.string.mjpeg_retry_server))
                         }
                     }
@@ -98,8 +93,9 @@ internal fun MjpegContent(
                         val label = stringResource(R.string.mjpeg_copy_url)
                         TextButton(onClick = {
                             scope.launch {
-                                val current = uiController.state.value.addressServers.firstOrNull { it.id == server.id }
-                                val url = current?.takeIf { it.status == UiController.ServerStatus.Listening }?.copyUrl
+                                val url = uiController.state.value.addressServers
+                                    .firstOrNull { it.addressId == server.addressId && it.serverId == server.serverId }
+                                    ?.takeIf { it.status == UiController.ServerStatus.Listening }?.copyUrl
                                     ?: return@launch
                                 val clip = ClipData.newPlainText(label, url.value)
                                 clip.description.extras = PersistableBundle().apply {
@@ -115,17 +111,15 @@ internal fun MjpegContent(
     }
 }
 
-/** Map local availability to English-source localized resources without exposing implementation errors. */
 @StringRes
 private fun UiController.ServerStatus.messageResource(): Int = when (this) {
     UiController.ServerStatus.Pending -> R.string.mjpeg_server_pending
     UiController.ServerStatus.Listening -> R.string.mjpeg_server_listening
-    UiController.ServerStatus.PermissionRequired -> R.string.mjpeg_server_permission_required
     is UiController.ServerStatus.Failed -> when (reason) {
-        UiController.FailureReason.AddressInUse -> R.string.mjpeg_server_address_in_use
-        UiController.FailureReason.AddressUnavailable -> R.string.mjpeg_server_address_unavailable
-        UiController.FailureReason.PermissionDenied -> R.string.mjpeg_server_permission_denied
-        UiController.FailureReason.IoFailure -> R.string.mjpeg_server_io_failure
-        UiController.FailureReason.Unknown -> R.string.mjpeg_server_unknown_failure
+        UiController.ServerFailureReason.AddressInUse -> R.string.mjpeg_server_address_in_use
+        UiController.ServerFailureReason.AddressUnavailable -> R.string.mjpeg_server_address_unavailable
+        UiController.ServerFailureReason.PermissionDenied -> R.string.mjpeg_server_permission_denied
+        UiController.ServerFailureReason.IoFailure -> R.string.mjpeg_server_io_failure
+        UiController.ServerFailureReason.Unknown -> R.string.mjpeg_server_unknown_failure
     }
 }

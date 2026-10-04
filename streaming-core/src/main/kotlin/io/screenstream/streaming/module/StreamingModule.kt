@@ -53,7 +53,7 @@ public interface StreamingModule {
      * @property uuid Unique identity of this launch within the process.
      */
     @Immutable
-    public data class InstanceId(public val moduleId: Id, public val uuid: Uuid)
+    public data class InstanceId(public val moduleId: Id, public val uuid: Uuid = Uuid.random())
 
     /**
      * Identity assigned to an accepted capture Start within one [InstanceId]. A later accepted
@@ -62,7 +62,7 @@ public interface StreamingModule {
      * @property instanceId Launch that owns the capture attempt.
      * @property uuid Unique identity of this attempt within the instance.
      */
-    public data class CaptureAttemptId(public val instanceId: InstanceId, public val uuid: Uuid)
+    public data class CaptureAttemptId(public val instanceId: InstanceId, public val uuid: Uuid = Uuid.random())
 
     /**
      * Capture summary from real module control work, including while capture is idle. The source is
