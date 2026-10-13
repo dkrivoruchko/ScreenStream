@@ -31,7 +31,7 @@ ScreenStream offers four stream modes: **Global mode (WebRTC)** (available only 
 | **Local mode (MJPEG)**   | MJPEG over HTTP              | JPEG images               | No                 | No                             | Built-in HTTP server                                                   | Optional 4–6 digit PIN                       |
 | **Global mode (WebRTC)** | WebRTC                       | WebRTC video              | Microphone / internal audio | Yes                            | Public signaling service at [screenstream.io](https://screenstream.io) | End-to-end encryption + password             |
 | **RTSP mode**            | RTSP/RTP over TCP or UDP     | H.264 / H.265             | OPUS / AAC / G.711 | No (server) / Depends (client) | Built-in server (server mode) / External server (client mode)          | Client mode supports RTSP auth + RTSPS (TLS) |
-| **VNC mode**             | RFB over TCP                 | Raw / zlib framebuffer    | No                 | No                             | Built-in server (server mode) / Reverse connect (client mode)           | No encryption                               |
+| **VNC mode**             | RFB over TCP                 | Raw / zlib / ZRLE framebuffer | No                 | No                             | Built-in server (server mode) / Reverse connect (client mode)           | No encryption                               |
 
 In **Global mode (WebRTC)**, **Local mode (MJPEG)**, and **VNC mode**, the number of clients is not directly limited, but each client uses CPU resources and separate bandwidth.
 
@@ -153,7 +153,7 @@ VNC mode uses the RFB protocol and supports two sub-modes. Server mode (default)
 - Server mode hosts the device as a VNC server on a configurable port (default 5900).
 - Client mode connects to a remote VNC viewer (reverse connect) with a configurable reconnect delay.
 - View-only: keyboard, pointer, and cut-text messages from viewers are ignored.
-- Raw and zlib framebuffer encodings, with a configurable frame rate (default 15 FPS).
+- Framebuffer updates use ZRLE when the viewer supports it, otherwise zlib or Raw, with a configurable frame rate (default 15 FPS) and a configurable scale factor (10–100%, default 100%).
 - Server mode adds port, interface/address filters, and IPv4/IPv6 settings.
 - No encryption or password protection.
 - Requires a VNC client or viewer for viewing.
@@ -163,6 +163,8 @@ VNC mode uses the RFB protocol and supports two sub-modes. Server mode (default)
 > - VNC mode is view-only and unencrypted; use it only on trusted networks.
 >
 > - Client mode requires a VNC viewer that can accept inbound reverse connections.
+>
+> - Changing the screen orientation or resolution while streaming disconnects connected viewers, which need to reconnect to see the new framebuffer size.
 
 ## Contribution
 
