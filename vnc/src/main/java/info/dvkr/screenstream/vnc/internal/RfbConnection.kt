@@ -255,7 +255,16 @@ internal class RfbConnection(
             if (bitmap !== lastBitmap) {
                 lastBitmap = bitmap
                 if (bitmap.width != width || bitmap.height != height) {
-                    throw IOException("Framebuffer resized to ${bitmap.width}x${bitmap.height}, closing connection")
+                    // The RFB framebuffer size is fixed for the lifetime of the
+                    // connection (RFC 6143 has no resize message). Close this
+                    // connection so the viewer reconnects and receives a fresh
+                    // ServerInit with the new dimensions. Cancelling the scope
+                    // routes through the normal shutdown path (run()'s finally
+                    // closes the socket); throwing here would escape this child
+                    // coroutine and crash the process.
+                    XLog.i(getLog("RfbConnection", "Framebuffer resized to ${bitmap.width}x${bitmap.height}, closing connection"))
+                    scope.cancel()
+                    return
                 }
                 sendFrameUpdate(output, bitmap, width, height)
                 updateRequested = false
