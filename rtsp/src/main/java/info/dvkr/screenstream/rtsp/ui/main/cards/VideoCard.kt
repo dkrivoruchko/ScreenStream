@@ -65,6 +65,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 internal fun VideoCard(
     isStreaming: Boolean,
+    activeH264ProfileIdc: Int?,
     selectedVideoEncoder: VideoCodecInfo?,
     settings: RtspSettings.Data,
     updateSettings: (RtspSettings.Data.() -> RtspSettings.Data) -> Unit,
@@ -113,7 +114,7 @@ internal fun VideoCard(
             }
 
             H264Profile(
-                selectedProfile = settings.videoH264Profile,
+                selectedProfile = settings.videoH264Profile.takeIf { it in supportedH264Profiles } ?: RtspSettings.Values.H264Profile.AUTO,
                 supportedProfiles = supportedH264Profiles,
                 onProfileSelected = { updateSettings { copy(videoH264Profile = it) } },
                 enabled = isStreaming.not(),
@@ -121,6 +122,20 @@ internal fun VideoCard(
                     .padding(top = 4.dp)
                     .fillMaxWidth()
             )
+            if (isStreaming) {
+                val activeProfile = when (activeH264ProfileIdc) {
+                    66 -> stringResource(R.string.rtsp_video_h264_profile_baseline)
+                    77 -> stringResource(R.string.rtsp_video_h264_profile_main)
+                    100 -> stringResource(R.string.rtsp_video_h264_profile_high)
+                    null -> "—"
+                    else -> activeH264ProfileIdc.toString()
+                }
+                Text(
+                    text = stringResource(R.string.rtsp_video_h264_profile_active, activeProfile),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
         }
 
         val context = LocalContext.current

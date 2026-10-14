@@ -39,6 +39,7 @@ import info.dvkr.screenstream.common.module.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.RtspModuleService
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.adjustResizeFactor
+import info.dvkr.screenstream.rtsp.internal.EncoderUtils.getSupportedH264Profiles
 import info.dvkr.screenstream.rtsp.internal.audio.AudioEncoder
 import info.dvkr.screenstream.rtsp.internal.audio.AudioSource
 import info.dvkr.screenstream.rtsp.internal.onvif.OnvifServer
@@ -241,6 +242,7 @@ internal class RtspStreamingService(
     private var previousError: RtspError? = null
     private var audioCaptureDisabled: Boolean = false
     private var audioIssueToastShown: Boolean = false
+    private var activeH264ProfileIdc: Int? = null
     private var resizeActor: ResizeConflateActor? = null
     private var settingsLoaded: Boolean = false
     private var initializedMode: RtspSettings.Values.Mode? = null
@@ -587,7 +589,8 @@ internal class RtspStreamingService(
 
     internal sealed class InternalEvent(priority: Int) : RtspEvent(priority) {
         data class InitState(val clearIntent: Boolean, val mode: RtspSettings.Values.Mode, val pendingStartAttemptId: String? = null) : InternalEvent(Priority.DESTROY_IGNORE)
-        data class OnVideoCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
+        data class OnVideoCodecChange(val autoSelect: Boolean, val name: String, val profile: RtspSettings.Values.H264Profile) : InternalEvent(Priority.DESTROY_IGNORE)
+        data class OnVideoProfile(val codec: MediaCodec, val profileIdc: Int?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class OnAudioCodecChange(val name: String?) : InternalEvent(Priority.DESTROY_IGNORE)
         data class ModeChanged(val mode: RtspSettings.Values.Mode) : InternalEvent(Priority.RECOVER_IGNORE)
         data class StartStream(val permissionEducationShown: Boolean, val clearStartupPolicyError: Boolean = false) : InternalEvent(Priority.RECOVER_IGNORE)
@@ -680,10 +683,10 @@ internal class RtspStreamingService(
             }
         )
 
-        rtspSettings.data.map { it.videoCodecAutoSelect to it.videoCodec }.listenForChange(coroutineScope) {
-            if (it.first) sendEvent(InternalEvent.OnVideoCodecChange(null))
-            else sendEvent(InternalEvent.OnVideoCodecChange(it.second))
+        rtspSettings.data.map {
+            InternalEvent.OnVideoCodecChange(autoSelect = it.videoCodecAutoSelect, name = it.videoCodec, profile = it.videoH264Profile)
         }
+            .listenForChange(coroutineScope) { sendEvent(it) }
 
         rtspSettings.data.map { it.audioCodecAutoSelect to it.audioCodec }.listenForChange(coroutineScope) {
             if (it.first) sendEvent(InternalEvent.OnAudioCodecChange(null))
@@ -828,6 +831,7 @@ internal class RtspStreamingService(
             waitingCastPermission = projectionState.waitingForPermission,
             startAttemptId = projectionState.pendingStartAttemptId,
             isStreaming = projectionState.active != null,
+            activeH264ProfileIdc = activeH264ProfileIdc,
             selectedVideoEncoder = selectedVideoEncoderInfo,
             selectedAudioEncoder = selectedAudioEncoderInfo,
             serverClientStats = serverController?.statsSnapshot.orEmpty(),
@@ -898,20 +902,37 @@ internal class RtspStreamingService(
                 previousError = null
                 audioCaptureDisabled = false
                 audioIssueToastShown = false
+                activeH264ProfileIdc = null
             }
 
             is InternalEvent.OnVideoCodecChange -> {
-                require(projectionState.active == null) { "Cannot change codec while streaming" }
-
-                selectedVideoEncoderInfo = null
                 val available = EncoderUtils.availableVideoEncoders
-                selectedVideoEncoderInfo = when {
+                val selectedEncoder = when {
                     available.isEmpty() -> throw IllegalStateException("No suitable video encoders available")
                     // Auto select
-                    event.name.isNullOrBlank() -> available.first()
+                    event.autoSelect || event.name.isBlank() -> available.first()
 
                     // We have saved codec, checking if it's available
                     else -> available.firstOrNull { it.name.equals(event.name, ignoreCase = true) } ?: available.first()
+                }
+                if (selectedVideoEncoderInfo != selectedEncoder) {
+                    require(projectionState.active == null) { "Cannot change codec while streaming" }
+                    selectedVideoEncoderInfo = selectedEncoder
+                }
+                if (selectedEncoder.codec == Codec.Video.H264 && event.profile !in selectedEncoder.capabilities.getSupportedH264Profiles()) {
+                    coroutineScope.launch {
+                        rtspSettings.updateData {
+                            if (videoCodecAutoSelect == event.autoSelect && videoCodec == event.name && videoH264Profile == event.profile) {
+                                copy(videoH264Profile = RtspSettings.Values.H264Profile.AUTO)
+                            } else this
+                        }
+                    }
+                }
+            }
+
+            is InternalEvent.OnVideoProfile -> {
+                if (projectionState.active?.videoEncoder?.isCodecActive(event.codec) == true) {
+                    activeH264ProfileIdc = event.profileIdc
                 }
             }
 
@@ -1199,6 +1220,7 @@ internal class RtspStreamingService(
                 projectionState.foregroundPreflightStartAttemptId = null
                 XLog.i(getLog("StartProjection", "SP_TRACE route=preflight_v1 stage=async_start startAttemptId=${event.startAttemptId} mode=$modeLocal audioMode=$audioMode settingsLoaded=$settingsLoaded cachedIntent=${projectionState.cachedIntent != null}"))
                 val startProjection = {
+                    activeH264ProfileIdc = null
                     projectionCoordinator.startProjection(event.intent) { _, mediaProjection, audioCaptureAllowed, isStartupStillValid ->
                         // TODO Starting from Android R, if your application requests the SYSTEM_ALERT_WINDOW permission, and the user has
                         //  not explicitly denied it, the permission will be automatically granted until the projection is stopped.
@@ -1222,10 +1244,14 @@ internal class RtspStreamingService(
 
                         val videoEncoder = VideoEncoder(
                             codecInfo = videoEncoderInfo,
-                            onVideoInfo = { sps, pps, vps ->
+                            onVideoInfo = { codec, sps, pps, vps ->
                                 val params = VideoParams(videoEncoderInfo.codec, sps, pps, vps)
                                 projectionState.lastVideoParams = params
                                 setVideoParams(params, encodedWidth, encodedHeight)
+                                if (videoEncoderInfo.codec == Codec.Video.H264) {
+                                    val profileIdc = if (sps.size >= 4 && (sps[0].toInt() and 0x9F) == 7) (sps[1].toInt() and 0xFF).takeIf { it != 0 } else null
+                                    sendEvent(InternalEvent.OnVideoProfile(codec, profileIdc))
+                                }
                             },
                             onVideoFrame = onFrame,
                             onFps = { sendEvent(InternalEvent.OnVideoFps(it)) },
@@ -1359,7 +1385,11 @@ internal class RtspStreamingService(
                             },
                             audioEncoder = audioEncoder,
                             deviceConfiguration = deviceConfiguration,
-                            onVideoReconfigureStart = { clientController?.beginVideoReconfigure() }
+                            onVideoReconfigureStart = {
+                                activeH264ProfileIdc = null
+                                mutableRtspStateFlow.value = buildViewState()
+                                clientController?.beginVideoReconfigure()
+                            }
                         )
                         resizeActor?.close()
                         resizeActor = ResizeConflateActor(
@@ -1627,6 +1657,7 @@ internal class RtspStreamingService(
 
         audioCaptureDisabled = false
         audioIssueToastShown = false
+        activeH264ProfileIdc = null
 
         clientController?.stop()
         serverController?.stop(stopServer)

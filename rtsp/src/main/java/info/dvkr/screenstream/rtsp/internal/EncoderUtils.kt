@@ -301,26 +301,48 @@ internal object EncoderUtils {
         return Range(min, max).toClosedRange()
     }
 
-    internal fun CodecCapabilities.getSupportedH264Profiles(): List<RtspSettings.Values.H264Profile> {
-        val availableProfiles = profileLevels?.map { it.profile } ?: emptyList()
-        val result = mutableListOf(RtspSettings.Values.H264Profile.AUTO)
+    internal fun CodecCapabilities.getSupportedH264Profiles(): List<RtspSettings.Values.H264Profile> =
+        RtspSettings.Values.H264Profile.entries.filter { profile ->
+            profile == RtspSettings.Values.H264Profile.AUTO || profileLevels.orEmpty().any { it.profile in profile.codecProfiles() }
+        }
 
-        if (availableProfiles.any { it == CodecProfileLevel.AVCProfileBaseline || it == CodecProfileLevel.AVCProfileConstrainedBaseline }) {
-            result.add(RtspSettings.Values.H264Profile.BASELINE)
+    internal fun CodecCapabilities.resolveH264ProfileLevel(
+        profile: RtspSettings.Values.H264Profile,
+        width: Int,
+        height: Int,
+        fps: Int,
+        bitRate: Int,
+    ): CodecProfileLevel? {
+        if (profile == RtspSettings.Values.H264Profile.AUTO) return null
+        val video = videoCapabilities ?: return null
+        if (!video.areSizeAndRateSupported(width, height, fps.toDouble()) || !video.bitrateRange.contains(bitRate)) return null
+
+        for (codecProfile in profile.codecProfiles()) {
+            val candidates = profileLevels.orEmpty().filter { it.profile == codecProfile }.sortedBy { it.level }
+            for (candidate in candidates) {
+                val levelVideo = CodecCapabilities.createFromProfileLevel(Video.H264.mimeType, candidate.profile, candidate.level)
+                    ?.videoCapabilities ?: continue
+                if (levelVideo.areSizeAndRateSupported(width, height, fps.toDouble()) && levelVideo.bitrateRange.contains(bitRate)) {
+                    return candidate
+                }
+            }
         }
-        if (availableProfiles.any { it == CodecProfileLevel.AVCProfileMain }) {
-            result.add(RtspSettings.Values.H264Profile.MAIN)
-        }
-        if (availableProfiles.any { it == CodecProfileLevel.AVCProfileHigh || it == CodecProfileLevel.AVCProfileConstrainedHigh }) {
-            result.add(RtspSettings.Values.H264Profile.HIGH)
-        }
-        return result
+        return null
     }
 
-    internal fun RtspSettings.Values.H264Profile.toCodecProfile(): Int? = when (this) {
-        RtspSettings.Values.H264Profile.AUTO -> null
-        RtspSettings.Values.H264Profile.BASELINE -> CodecProfileLevel.AVCProfileBaseline
-        RtspSettings.Values.H264Profile.MAIN -> CodecProfileLevel.AVCProfileMain
-        RtspSettings.Values.H264Profile.HIGH -> CodecProfileLevel.AVCProfileHigh
+    private fun RtspSettings.Values.H264Profile.codecProfiles(): List<Int> = when (this) {
+        RtspSettings.Values.H264Profile.AUTO -> emptyList()
+        RtspSettings.Values.H264Profile.BASELINE -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            listOf(CodecProfileLevel.AVCProfileBaseline, CodecProfileLevel.AVCProfileConstrainedBaseline)
+        } else {
+            listOf(CodecProfileLevel.AVCProfileBaseline)
+        }
+
+        RtspSettings.Values.H264Profile.MAIN -> listOf(CodecProfileLevel.AVCProfileMain)
+        RtspSettings.Values.H264Profile.HIGH -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            listOf(CodecProfileLevel.AVCProfileHigh, CodecProfileLevel.AVCProfileConstrainedHigh)
+        } else {
+            listOf(CodecProfileLevel.AVCProfileHigh)
+        }
     }
 }

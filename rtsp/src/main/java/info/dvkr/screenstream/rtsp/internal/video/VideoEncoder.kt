@@ -12,20 +12,20 @@ import android.os.Process
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.Codec
-import info.dvkr.screenstream.rtsp.internal.EncoderUtils.toCodecProfile
+import info.dvkr.screenstream.rtsp.internal.EncoderUtils.resolveH264ProfileLevel
 import info.dvkr.screenstream.rtsp.internal.MasterClock
 import info.dvkr.screenstream.rtsp.internal.MediaFrame
 import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
-import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.Av1Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H264Packet
 import info.dvkr.screenstream.rtsp.internal.rtsp.packets.H265Packet
 import info.dvkr.screenstream.rtsp.internal.stripAnnexBStartCode
+import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import java.nio.ByteBuffer
 
 internal class VideoEncoder(
     private val codecInfo: VideoCodecInfo,
-    private val onVideoInfo: (sps: ByteArray, pps: ByteArray?, vps: ByteArray?) -> Unit,
+    private val onVideoInfo: (codec: MediaCodec, sps: ByteArray, pps: ByteArray?, vps: ByteArray?) -> Unit,
     private val onVideoFrame: (MediaFrame.VideoFrame) -> Unit,
     private val onFps: (Int) -> Unit,
     private val onError: (Throwable) -> Unit,
@@ -83,46 +83,24 @@ internal class VideoEncoder(
                 this.width = width
                 this.height = height
 
-                fun createFormat(profile: RtspSettings.Values.H264Profile): MediaFormat {
-                    return MediaFormat.createVideoFormat(codecInfo.codec.mimeType, width, height).apply {
-                        setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
-                        setInteger(MediaFormat.KEY_FRAME_RATE, fps)
-                        setInteger(MediaFormat.KEY_BIT_RATE, bitRate)
-                        setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
-                        setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0)
-                        setInteger(MediaFormat.KEY_PRIORITY, 1)
-
-                        if (codecInfo.codec == Codec.Video.H264 && profile != RtspSettings.Values.H264Profile.AUTO) {
-                            profile.toCodecProfile()?.let { profileInt ->
-                                setInteger(MediaFormat.KEY_PROFILE, profileInt)
-                            }
-                        }
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0)
-                        }
-
-                        if (codecInfo.isCBRModeSupported) {
-                            setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR)
-                        } else {
-                            setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR)
-                        }
+                val profileLevel = if (codecInfo.codec == Codec.Video.H264) {
+                    codecInfo.capabilities.resolveH264ProfileLevel(profile = h264Profile, width = width, height = height, fps = fps, bitRate = bitRate)
+                } else {
+                    null
+                }
+                val encoder = try {
+                    createConfiguredEncoder(createFormat(width = width, height = height, fps = fps, bitRate = bitRate, profileLevel = profileLevel))
+                } catch (cause: Throwable) {
+                    if (profileLevel == null) throw cause
+                    XLog.w(getLog("prepare", "MediaCodec failed to configure with H.264 profile $h264Profile. Retrying with AUTO profile."), cause)
+                    try {
+                        createConfiguredEncoder(createFormat(width = width, height = height, fps = fps, bitRate = bitRate))
+                    } catch (retryCause: Throwable) {
+                        if (retryCause !== cause) retryCause.addSuppressed(cause)
+                        throw retryCause
                     }
                 }
-
-                var encoder = MediaCodec.createByCodecName(codecInfo.name)
-                var format = createFormat(h264Profile)
-                val configuredSuccessfully = runCatching {
-                    encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-                }.isSuccess
-
-                if (!configuredSuccessfully && h264Profile != RtspSettings.Values.H264Profile.AUTO) {
-                    XLog.w(getLog("prepare", "MediaCodec failed to configure with H.264 profile $h264Profile. Retrying with AUTO profile."))
-                    runCatching { encoder.release() }
-                    encoder = MediaCodec.createByCodecName(codecInfo.name)
-                    format = createFormat(RtspSettings.Values.H264Profile.AUTO)
-                    encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-                }
+                videoEncoder = encoder
 
                 eglRenderer = EglRenderer(width, height, encoder.createInputSurface(), onError).apply {
                     setFps(fps)
@@ -132,13 +110,49 @@ internal class VideoEncoder(
                 handler = Handler(handlerThread!!.looper)
                 encoder.setCallback(createCodecCallback(), handler)
 
-                videoEncoder = encoder
                 lastBitrate = bitRate
                 currentState = State.PREPARED
             }
         }.onFailure { cause ->
             stopInternal(force = true, logTag = "prepareCleanup")
             onError(cause)
+        }
+    }
+
+    private fun createFormat(
+        width: Int,
+        height: Int,
+        fps: Int,
+        bitRate: Int,
+        profileLevel: MediaCodecInfo.CodecProfileLevel? = null,
+    ): MediaFormat = MediaFormat.createVideoFormat(codecInfo.codec.mimeType, width, height).apply {
+        setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+        setInteger(MediaFormat.KEY_FRAME_RATE, fps)
+        setInteger(MediaFormat.KEY_BIT_RATE, bitRate)
+        setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+        setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0)
+        setInteger(MediaFormat.KEY_PRIORITY, 1)
+        profileLevel?.let {
+            setInteger(MediaFormat.KEY_PROFILE, it.profile)
+            setInteger(MediaFormat.KEY_LEVEL, it.level)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0)
+        }
+        setInteger(
+            MediaFormat.KEY_BITRATE_MODE,
+            if (codecInfo.isCBRModeSupported) MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR else MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR
+        )
+    }
+
+    private fun createConfiguredEncoder(format: MediaFormat): MediaCodec {
+        val encoder = MediaCodec.createByCodecName(codecInfo.name)
+        try {
+            encoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+            return encoder
+        } catch (cause: Throwable) {
+            runCatching { encoder.release() }.onFailure { if (it !== cause) cause.addSuppressed(it) }
+            throw cause
         }
     }
 
@@ -181,13 +195,17 @@ internal class VideoEncoder(
             }
         } ?: return false
 
-        snapshot.eglRenderer?.stop()
+        snapshot.eglRenderer?.runCatching { stop() }?.onFailure {
+            XLog.w(this@VideoEncoder.getLog(logTag, "eglRenderer.stop() exception: ${it.message}"), it)
+        }
 
-        snapshot.videoEncoder?.runCatching {
-            stop()
-            release()
-        }?.onFailure {
-            XLog.w(this@VideoEncoder.getLog(logTag, "mediaCodec.stop() exception: ${it.message}"), it)
+        snapshot.videoEncoder?.let { encoder ->
+            runCatching { encoder.stop() }.onFailure {
+                XLog.w(this@VideoEncoder.getLog(logTag, "mediaCodec.stop() exception: ${it.message}"), it)
+            }
+            runCatching { encoder.release() }.onFailure {
+                XLog.w(this@VideoEncoder.getLog(logTag, "mediaCodec.release() exception: ${it.message}"), it)
+            }
         }
 
         snapshot.handler?.removeCallbacksAndMessages(null)
@@ -256,7 +274,7 @@ internal class VideoEncoder(
         }
     }
 
-    private fun isCallbackCodecActive(codec: MediaCodec): Boolean = synchronized(encoderLock) {
+    internal fun isCodecActive(codec: MediaCodec): Boolean = synchronized(encoderLock) {
         codec === videoEncoder && currentState == State.RUNNING
     }
 
@@ -292,7 +310,7 @@ internal class VideoEncoder(
                     if (flags.hasFlag(MediaCodec.BUFFER_FLAG_CODEC_CONFIG)) {
                         if (!isCodecConfigSent) {
                             outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
-                                onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
+                                onVideoInfo(codec, sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
                                 isCodecConfigSent = true
                             }
                         }
@@ -307,7 +325,7 @@ internal class VideoEncoder(
 
                     if (!isCodecConfigSent && isKeyFrame) {
                         outputBuffer.duplicate().extractCodecConfig(adjustedInfo)?.let { (sps, pps, vps) ->
-                            onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
+                            onVideoInfo(codec, sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
                             isCodecConfigSent = true
                         }
                     }
@@ -327,7 +345,7 @@ internal class VideoEncoder(
                 }
                 onVideoFrame(videoFrame)
             }.onFailure { cause ->
-                if (!isCallbackCodecActive(codec)) {
+                if (!isCodecActive(codec)) {
                     XLog.v(
                         this@VideoEncoder.getLog(
                             "CodecCallback.onOutputBufferAvailable",
@@ -340,7 +358,7 @@ internal class VideoEncoder(
 
                 XLog.w(this@VideoEncoder.getLog("CodecCallback.onOutputBufferAvailable", "onFailure: ${cause.message}"), cause)
                 releaseOutputBufferSafely(codec, index)
-                if (isCallbackCodecActive(codec)) {
+                if (isCodecActive(codec)) {
                     onError(cause)
                 } else {
                     XLog.v(
@@ -354,7 +372,7 @@ internal class VideoEncoder(
         }
 
         override fun onError(codec: MediaCodec, cause: MediaCodec.CodecException) {
-            if (!isCallbackCodecActive(codec)) {
+            if (!isCodecActive(codec)) {
                 XLog.v(this@VideoEncoder.getLog("CodecCallback.onError", "Ignoring stale callback error: ${cause.message}"))
                 return
             }
@@ -363,9 +381,9 @@ internal class VideoEncoder(
         }
 
         override fun onOutputFormatChanged(codec: MediaCodec, format: MediaFormat): Unit = synchronized(encoderLock) {
-            if (isCodecConfigSent) return
+            if (!isCodecActive(codec) || isCodecConfigSent) return
             format.extractCodecConfigFromFormat()?.let { (sps, pps, vps) ->
-                onVideoInfo(sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
+                onVideoInfo(codec, sps.stripAnnexBStartCode(), pps?.stripAnnexBStartCode(), vps?.stripAnnexBStartCode())
                 isCodecConfigSent = true
             }
         }
