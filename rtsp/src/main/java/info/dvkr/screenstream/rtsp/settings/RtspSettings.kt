@@ -156,4 +156,5 @@ public interface RtspSettings {
 
     public val data: StateFlow<Data>
     public suspend fun updateData(transform: Data.() -> Data)
+    public fun updateServerAddress(address: String)
 }

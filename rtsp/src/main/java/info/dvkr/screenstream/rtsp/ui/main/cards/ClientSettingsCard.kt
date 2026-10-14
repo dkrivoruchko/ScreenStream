@@ -5,22 +5,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.common.ui.ExpandableCard
@@ -35,13 +37,31 @@ import info.dvkr.screenstream.rtsp.ui.main.settings.common.RtspSettingModal
 internal fun ClientSettingsCard(
     settings: RtspSettings.Data,
     updateSettings: (RtspSettings.Data.() -> RtspSettings.Data) -> Unit,
+    updateServerAddress: (String) -> Unit,
     windowWidthSizeClass: StreamingModule.WindowWidthSizeClass,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     val selectedSheet = rememberSaveable { mutableStateOf<ClientSettingSheet?>(null) }
     val expanded = rememberSaveable { mutableStateOf(false) }
-    val serverAddressError = runCatching { RtspUrl.parse(settings.serverAddress) }.isFailure
+    val serverAddressState = rememberTextFieldState(initialText = settings.serverAddress)
+    val saveServerAddress by rememberUpdatedState(updateServerAddress)
+    val submittedAddress = remember { mutableStateOf(settings.serverAddress) }
+    val serverAddressError = runCatching { RtspUrl.parse(serverAddressState.text.toString()) }.isFailure
+
+    fun submitServerAddress(address: String) {
+        if (address != submittedAddress.value) {
+            submittedAddress.value = address
+            saveServerAddress(address)
+        }
+    }
+
+    LaunchedEffect(serverAddressState) {
+        snapshotFlow { serverAddressState.text.toString() }.collect { submitServerAddress(it) }
+    }
+    DisposableEffect(serverAddressState) {
+        onDispose { submitServerAddress(serverAddressState.text.toString()) }
+    }
 
     ExpandableCard(
         expanded = expanded.value,
@@ -60,26 +80,8 @@ internal fun ClientSettingsCard(
         },
         modifier = modifier
     ) {
-        var serverAddressValue by remember {
-            mutableStateOf(TextFieldValue(text = settings.serverAddress, selection = TextRange(settings.serverAddress.length)))
-        }
-        LaunchedEffect(settings.serverAddress) {
-            if (settings.serverAddress != serverAddressValue.text) {
-                serverAddressValue = TextFieldValue(
-                    text = settings.serverAddress,
-                    selection = TextRange(settings.serverAddress.length)
-                )
-            }
-        }
-
         OutlinedTextField(
-            value = serverAddressValue,
-            onValueChange = { serverAddress ->
-                serverAddressValue = serverAddress
-                if (settings.serverAddress != serverAddress.text) {
-                    updateSettings { copy(serverAddress = serverAddress.text) }
-                }
-            },
+            state = serverAddressState,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -90,7 +92,7 @@ internal fun ClientSettingsCard(
                 keyboardType = KeyboardType.Uri,
                 autoCorrectEnabled = false
             ),
-            singleLine = true
+            lineLimits = TextFieldLineLimits.SingleLine
         )
 
         ClientProtocolRow(

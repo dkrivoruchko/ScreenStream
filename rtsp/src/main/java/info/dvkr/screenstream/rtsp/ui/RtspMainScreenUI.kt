@@ -174,6 +174,7 @@ internal fun RtspMainScreenUI(
                     ClientSettingsCard(
                         settings = settings,
                         updateSettings = updateSettings,
+                        updateServerAddress = rtspSettings::updateServerAddress,
                         windowWidthSizeClass = windowWidthSizeClass,
                         enabled = state.isStreaming.not(),
                         modifier = Modifier.padding(8.dp)
