@@ -13,7 +13,6 @@ import info.dvkr.screenstream.common.getLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -29,7 +28,6 @@ internal class RtspSettingsImpl(
 ) : RtspSettings {
 
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
-    private val serverAddressUpdates = Channel<String>(Channel.CONFLATED)
 
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { ex -> XLog.e(ex); emptyPreferences() },
@@ -50,25 +48,12 @@ internal class RtspSettingsImpl(
 
     init {
         coroutineScope.launch {
-            for (address in serverAddressUpdates) {
-                try {
-                    updateData { copy(serverAddress = address) }
-                } catch (cause: IOException) {
-                    XLog.e(this@RtspSettingsImpl.getLog("updateServerAddress"), cause)
-                }
-            }
-        }
-        coroutineScope.launch {
             dataStore.edit { preferences ->
                 if (preferences[RtspSettings.Key.ONVIF_DEVICE_ID].isNullOrBlank()) {
                     preferences[RtspSettings.Key.ONVIF_DEVICE_ID] = Uuid.random().toString()
                 }
             }
         }
-    }
-
-    override fun updateServerAddress(address: String) {
-        serverAddressUpdates.trySend(address)
     }
 
     override suspend fun updateData(transform: RtspSettings.Data.() -> RtspSettings.Data) = withContext(NonCancellable + Dispatchers.IO) {
