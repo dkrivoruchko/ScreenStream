@@ -1,6 +1,8 @@
 package info.dvkr.screenstream.rtsp.internal
 
 import android.media.MediaCodecInfo
+import android.media.MediaCodecInfo.CodecCapabilities
+import android.media.MediaCodecInfo.CodecProfileLevel
 import android.media.MediaCodecInfo.EncoderCapabilities
 import android.media.MediaCodecList
 import android.os.Build
@@ -8,6 +10,7 @@ import android.util.Range
 import androidx.core.util.toClosedRange
 import info.dvkr.screenstream.rtsp.internal.Codec.Audio
 import info.dvkr.screenstream.rtsp.internal.Codec.Video
+import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -296,5 +299,50 @@ internal object EncoderUtils {
         val min = floor(supported.lower / 1000f).toInt().coerceAtLeast(6)
         val max = ceil(supported.upper / 1000f).toInt().coerceIn(6, 510)
         return Range(min, max).toClosedRange()
+    }
+
+    internal fun CodecCapabilities.getSupportedH264Profiles(): List<RtspSettings.Values.H264Profile> =
+        RtspSettings.Values.H264Profile.entries.filter { profile ->
+            profile == RtspSettings.Values.H264Profile.AUTO || profileLevels.orEmpty().any { it.profile in profile.codecProfiles() }
+        }
+
+    internal fun CodecCapabilities.resolveH264ProfileLevel(
+        profile: RtspSettings.Values.H264Profile,
+        width: Int,
+        height: Int,
+        fps: Int,
+        bitRate: Int,
+    ): CodecProfileLevel? {
+        if (profile == RtspSettings.Values.H264Profile.AUTO) return null
+        val video = videoCapabilities ?: return null
+        if (!video.areSizeAndRateSupported(width, height, fps.toDouble()) || !video.bitrateRange.contains(bitRate)) return null
+
+        for (codecProfile in profile.codecProfiles()) {
+            val candidates = profileLevels.orEmpty().filter { it.profile == codecProfile }.sortedBy { it.level }
+            for (candidate in candidates) {
+                val levelVideo = CodecCapabilities.createFromProfileLevel(Video.H264.mimeType, candidate.profile, candidate.level)
+                    ?.videoCapabilities ?: continue
+                if (levelVideo.areSizeAndRateSupported(width, height, fps.toDouble()) && levelVideo.bitrateRange.contains(bitRate)) {
+                    return candidate
+                }
+            }
+        }
+        return null
+    }
+
+    private fun RtspSettings.Values.H264Profile.codecProfiles(): List<Int> = when (this) {
+        RtspSettings.Values.H264Profile.AUTO -> emptyList()
+        RtspSettings.Values.H264Profile.BASELINE -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            listOf(CodecProfileLevel.AVCProfileBaseline, CodecProfileLevel.AVCProfileConstrainedBaseline)
+        } else {
+            listOf(CodecProfileLevel.AVCProfileBaseline)
+        }
+
+        RtspSettings.Values.H264Profile.MAIN -> listOf(CodecProfileLevel.AVCProfileMain)
+        RtspSettings.Values.H264Profile.HIGH -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            listOf(CodecProfileLevel.AVCProfileHigh, CodecProfileLevel.AVCProfileConstrainedHigh)
+        } else {
+            listOf(CodecProfileLevel.AVCProfileHigh)
+        }
     }
 }

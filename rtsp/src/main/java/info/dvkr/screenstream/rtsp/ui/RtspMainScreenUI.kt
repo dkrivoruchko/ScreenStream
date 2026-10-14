@@ -183,6 +183,7 @@ internal fun RtspMainScreenUI(
             item(key = "VIDEO") {
                 VideoCard(
                     isStreaming = state.isStreaming,
+                    activeH264ProfileIdc = state.activeH264ProfileIdc,
                     selectedVideoEncoder = state.selectedVideoEncoder,
                     settings = settings,
                     updateSettings = updateSettings,

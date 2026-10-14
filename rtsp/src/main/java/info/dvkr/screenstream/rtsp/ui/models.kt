@@ -30,6 +30,7 @@ internal data class RtspState(
     val waitingCastPermission: Boolean = false,
     val startAttemptId: String? = null,
     val isStreaming: Boolean = false,
+    val activeH264ProfileIdc: Int? = null,
     val selectedVideoEncoder: VideoCodecInfo? = null,
     val selectedAudioEncoder: AudioCodecInfo? = null,
     val serverBindings: List<RtspBinding> = emptyList(),

@@ -48,10 +48,12 @@ import androidx.window.layout.WindowMetricsCalculator
 import info.dvkr.screenstream.common.ui.ExpandableCard
 import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.rtsp.R
+import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.adjustResizeFactor
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.getBitRateInKbits
 import info.dvkr.screenstream.rtsp.internal.EncoderUtils.getFrameRates
+import info.dvkr.screenstream.rtsp.internal.EncoderUtils.getSupportedH264Profiles
 import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.main.media.EncoderItem
@@ -63,6 +65,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 internal fun VideoCard(
     isStreaming: Boolean,
+    activeH264ProfileIdc: Int?,
     selectedVideoEncoder: VideoCodecInfo?,
     settings: RtspSettings.Data,
     updateSettings: (RtspSettings.Data.() -> RtspSettings.Data) -> Unit,
@@ -104,6 +107,36 @@ internal fun VideoCard(
                 .padding(top = 4.dp)
                 .fillMaxWidth()
         )
+
+        if (selectedVideoEncoder.codec == Codec.Video.H264) {
+            val supportedH264Profiles = remember(selectedVideoEncoder) {
+                selectedVideoEncoder.capabilities.getSupportedH264Profiles()
+            }
+
+            H264Profile(
+                selectedProfile = settings.videoH264Profile.takeIf { it in supportedH264Profiles } ?: RtspSettings.Values.H264Profile.AUTO,
+                supportedProfiles = supportedH264Profiles,
+                onProfileSelected = { updateSettings { copy(videoH264Profile = it) } },
+                enabled = isStreaming.not(),
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .fillMaxWidth()
+            )
+            if (isStreaming) {
+                val activeProfile = when (activeH264ProfileIdc) {
+                    66 -> stringResource(R.string.rtsp_video_h264_profile_baseline)
+                    77 -> stringResource(R.string.rtsp_video_h264_profile_main)
+                    100 -> stringResource(R.string.rtsp_video_h264_profile_high)
+                    null -> "—"
+                    else -> activeH264ProfileIdc.toString()
+                }
+                Text(
+                    text = stringResource(R.string.rtsp_video_h264_profile_active, activeProfile),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+        }
 
         val context = LocalContext.current
         val screenSize = remember(context) {
@@ -401,3 +434,69 @@ private fun Bitrate(
 internal fun Int.toKOrMBitString(): String =
     if (this >= 1000) stringResource(R.string.rtsp_video_bitrate_mbit, this / 1000f)
     else stringResource(R.string.rtsp_video_bitrate_kbit, this)
+
+@Composable
+private fun H264Profile(
+    selectedProfile: RtspSettings.Values.H264Profile,
+    supportedProfiles: List<RtspSettings.Values.H264Profile>,
+    onProfileSelected: (RtspSettings.Values.H264Profile) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = modifier
+            .conditional(enabled) { clickable { expanded = true } }
+            .alpha(if (enabled) 1f else 0.5f)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = stringResource(R.string.rtsp_video_h264_profile))
+        Spacer(Modifier.weight(1f))
+
+        val profileText = when (selectedProfile) {
+            RtspSettings.Values.H264Profile.AUTO -> stringResource(R.string.rtsp_video_h264_profile_auto)
+            RtspSettings.Values.H264Profile.BASELINE -> stringResource(R.string.rtsp_video_h264_profile_baseline)
+            RtspSettings.Values.H264Profile.MAIN -> stringResource(R.string.rtsp_video_h264_profile_main)
+            RtspSettings.Values.H264Profile.HIGH -> stringResource(R.string.rtsp_video_h264_profile_high)
+        }
+        Text(
+            text = profileText,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.align(Alignment.CenterVertically)
+        )
+
+        val iconRotation = remember { Animatable(0F) }
+        Icon(
+            painter = painterResource(R.drawable.arrow_drop_down_24px),
+            contentDescription = null,
+            modifier = Modifier.graphicsLayer {
+                rotationZ = iconRotation.value
+            }
+        )
+        LaunchedEffect(expanded) { iconRotation.animateTo(targetValue = if (expanded) 180F else 0F, animationSpec = tween(500)) }
+
+        Box {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                supportedProfiles.forEach { profile ->
+                    DropdownMenuItem(
+                        text = {
+                            val text = when (profile) {
+                                RtspSettings.Values.H264Profile.AUTO -> stringResource(R.string.rtsp_video_h264_profile_auto)
+                                RtspSettings.Values.H264Profile.BASELINE -> stringResource(R.string.rtsp_video_h264_profile_baseline)
+                                RtspSettings.Values.H264Profile.MAIN -> stringResource(R.string.rtsp_video_h264_profile_main)
+                                RtspSettings.Values.H264Profile.HIGH -> stringResource(R.string.rtsp_video_h264_profile_high)
+                            }
+                            Text(text = text)
+                        },
+                        onClick = {
+                            onProfileSelected(profile)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}

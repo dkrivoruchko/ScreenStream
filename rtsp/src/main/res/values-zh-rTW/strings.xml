@@ -73,6 +73,12 @@
     <string name="rtsp_video_parameters">視訊設定</string>
     <string name="rtsp_video_encoder">視訊編碼器：</string>
     <string name="rtsp_video_encoder_auto">自動</string>
+    <string name="rtsp_video_h264_profile">H.264 編碼設定檔：</string>
+    <string name="rtsp_video_h264_profile_auto">自動</string>
+    <string name="rtsp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtsp_video_h264_profile_main">Main</string>
+    <string name="rtsp_video_h264_profile_high">High</string>
+    <string name="rtsp_video_h264_profile_active">目前編碼設定檔：%1$s</string>
     <string name="rtsp_video_resize_image">調整圖像大小：%1$.2f%%</string>
     <string name="rtsp_video_resize_image_10">10%</string>
     <string name="rtsp_video_resize_image_100">100%</string>
