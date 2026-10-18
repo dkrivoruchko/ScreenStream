@@ -52,10 +52,6 @@
     <string name="webrtc_stream_stop_on_sleep">Hentikan streaming saat tidur</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Hentikan streaming jika layar mati</string>
 
-    <string name="webrtc_stream_audio_permission_title">Izinkan akses audio</string>
-    <string name="webrtc_stream_audio_permission_message">Izin mikrofon diperlukan untuk streaming audio mikrofon atau audio internal.\n\nTanpanya, streaming tidak memiliki suara.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Aktifkan izin mikrofon di setelan aplikasi untuk streaming audio mikrofon atau audio internal.\n\nTanpanya, streaming tidak memiliki suara.</string>
-    <string name="webrtc_stream_audio_permission_open_settings">Buka pengaturan</string>
     <string name="webrtc_item_client_disconnect">Putuskan</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Harap perbarui Google Play Store</string>

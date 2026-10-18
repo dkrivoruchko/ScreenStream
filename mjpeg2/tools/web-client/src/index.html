@@ -3,62 +3,96 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
 <meta name="referrer" content="same-origin">
 <title>ScreenStream</title>
 <style>/* INLINE_STYLE */</style>
 </head>
 <body>
-<main id="shell" aria-label="ScreenStream viewer">
+<main id="shell" class="access-screen" aria-label="ScreenStream viewer">
+  <div id="safe-area" aria-hidden="true"></div>
   <div id="top-bar" class="edge bar"></div>
   <div id="viewport" tabindex="0" aria-label="Stream image. Use arrow keys to scroll.">
     <div id="image-stage"></div>
-    <div id="placeholder" role="status">Connecting…</div>
+    <section id="placeholder" class="open-state" role="status" aria-live="polite">
+      <img id="state-logo" width="192" height="192" alt="" aria-hidden="true" hidden>
+      <div class="open-content"><p id="state-message"></p></div>
+    </section>
   </div>
   <div id="bottom-bar" class="edge bar"></div>
   <div id="caption" class="block caption" hidden><span id="caption-text"></span></div>
-  <div id="controls" class="block controls" role="toolbar" aria-label="Viewing controls" hidden>
-    <label class="mode-label"><span class="sr-only" data-word="viewMode"></span>
-      <select id="view-mode" aria-label="Image size">
-        <option value="fit" data-word="fit"></option>
-        <option value="original" data-word="original"></option>
-        <option value="width" data-word="width"></option>
-      </select>
-    </label>
-    <button id="fullscreen" type="button" hidden data-word="fullscreen"></button>
-    <button id="pip" type="button" hidden data-word="pip"></button>
-    <button id="more" type="button" aria-expanded="false" aria-controls="menu" data-word="more"></button>
-  </div>
-  <div id="status" class="status" role="status" aria-live="polite"></div>
-  <section id="menu" class="panel" role="dialog" aria-label="More viewing options" hidden>
-    <label class="check"><input id="show-info" type="checkbox"><span data-word="infoToggle"></span></label>
-    <div id="information" hidden>
-      <h2 data-word="info"></h2>
-      <dl>
-        <dt data-word="method"></dt><dd id="info-method"></dd>
-        <dt data-word="connection"></dt><dd id="info-connection"></dd>
-        <dt data-word="image"></dt><dd id="info-image"></dd>
-        <dt id="info-notice-label" data-word="streamNotice" hidden></dt><dd id="info-notice" hidden></dd>
-        <dt data-word="size"></dt><dd id="info-size"></dd>
-        <dt data-word="title"></dt><dd id="info-title"></dd>
-      </dl>
+  <!-- Material Icons SVG paths: google/material-design-icons, Apache 2.0. Fit to width uses a custom path. -->
+  <div id="controls" class="block controls" role="group" aria-label="Viewing controls" hidden>
+    <div class="size-modes" role="group" aria-label="Image size">
+      <button id="view-fit" type="button" aria-pressed="true" data-label="fit">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M17 4h3c1.1 0 2 .9 2 2v2h-2V6h-3V4zM4 8V6h3V4H4c-1.1 0-2 .9-2 2v2h2zm16 8v2h-3v2h3c1.1 0 2-.9 2-2v-2h-2zM7 18H4v-2H2v2c0 1.1.9 2 2 2h3v-2zM18 8H6v8h12V8z"/></svg>
+      </button>
+      <button id="view-original" type="button" aria-pressed="false" data-label="original"><span class="native-size" aria-hidden="true">1:1</span></button>
+      <button id="view-width" type="button" aria-pressed="false" data-label="width">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M3 5v14M21 5v14M5 12h14M8 9l-3 3 3 3M16 9l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
-    <button id="retry" type="button" data-word="retry"></button>
-    <button id="alternate" type="button" data-word="alternate"></button>
-    <button id="close-menu" type="button" data-word="close"></button>
+    <button id="fullscreen" type="button" aria-pressed="false" data-label="fullscreen" hidden>
+      <svg class="fullscreen-enter" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      <svg class="fullscreen-exit" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+    </button>
+    <button id="pip" type="button" data-label="pip" hidden>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>
+    </button>
+    <button id="more" type="button" aria-expanded="false" aria-controls="menu" data-label="more">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+    </button>
+  </div>
+  <div id="control-tooltip" class="control-tooltip" aria-hidden="true" hidden></div>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+  <div id="capture-notice" class="capture-notice" role="status" aria-live="polite" hidden></div>
+  <section id="menu" class="panel" role="region" aria-label="More viewing options" tabindex="-1" hidden>
+    <h2 id="method-label" class="menu-heading" data-word="connection"></h2>
+    <div class="method-choices" role="group" aria-labelledby="method-label">
+      <button id="method-mjpeg" type="button" aria-pressed="true" aria-labelledby="method-mjpeg-label" aria-describedby="method-mjpeg-description">
+        <span id="method-mjpeg-label" class="method-title" data-word="mjpeg"></span>
+        <span id="method-mjpeg-description" class="method-description" data-word="mjpegDescription"></span>
+        <svg class="method-check" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="m9 16.17-4.17-4.17-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </button>
+      <button id="method-jpeg" type="button" aria-pressed="false" aria-labelledby="method-jpeg-label" aria-describedby="method-jpeg-description">
+        <span id="method-jpeg-label" class="method-title" data-word="jpeg"></span>
+        <span id="method-jpeg-description" class="method-description" data-word="jpegDescription"></span>
+        <svg class="method-check" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="m9 16.17-4.17-4.17-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </button>
+    </div>
+    <dl class="information-list">
+      <dt data-word="status"></dt><dd id="info-connection"></dd>
+      <dt data-word="image"></dt><dd id="info-image"></dd>
+      <dt id="info-notice-label" data-word="notice" hidden></dt><dd id="info-notice" hidden></dd>
+      <dt data-word="size"></dt><dd id="info-size"></dd>
+    </dl>
+    <div class="legal-links">
+      <a href="https://screenstream.io/privacy.html" target="_blank" rel="noopener noreferrer" data-word="privacy"></a>
+      <a href="https://screenstream.io/terms.html" target="_blank" rel="noopener noreferrer" data-word="terms"></a>
+    </div>
   </section>
-  <section id="pin-panel" class="panel pin-panel" aria-label="Stream access" hidden>
-    <form id="pin-form" method="post" action="/pin">
-      <p id="pin-message" role="status" aria-live="polite"></p>
-      <label for="pin" data-word="pinLabel"></label>
-      <input id="pin" name="pin" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message">
-      <button id="unlock" type="submit" data-word="unlock"></button>
-    </form>
-    <button id="pin-retry" type="button" data-word="retry"></button>
+  <section id="pin-panel" class="panel" aria-labelledby="pin-title" hidden>
+    <img id="pin-logo" src="/* INLINE_LOGO */" width="192" height="192" alt="" aria-hidden="true">
+    <div class="open-content">
+      <h1 id="pin-title" data-word="pinTitle"></h1>
+      <form id="pin-form" method="post" action="/pin">
+        <p id="pin-message" role="status" aria-live="polite"></p>
+        <p id="pin-block-copy" data-word="pinBlocked" aria-hidden="true" hidden></p>
+        <div id="pin-countdown" aria-hidden="true" hidden>
+          <strong id="pin-countdown-value"></strong>
+        </div>
+        <div id="pin-entry">
+          <label for="pin" data-word="pinRequired"></label>
+          <input id="pin" name="pin" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message">
+          <button id="unlock" type="submit" data-word="unlock"></button>
+        </div>
+      </form>
+      <button id="pin-retry" type="button" data-word="retry" hidden></button>
+    </div>
   </section>
   <div id="recovery" class="panel recovery" hidden>
     <button id="recovery-retry" type="button" data-word="retry"></button>
-    <button id="recovery-alternate" type="button" data-word="alternate"></button>
+    <button id="recovery-alternate" type="button" data-word="useJpeg"></button>
   </div>
   <video id="pip-video" muted playsinline aria-hidden="true"></video>
   <noscript><p class="panel">Enable JavaScript to view this stream and enter its PIN.</p></noscript>

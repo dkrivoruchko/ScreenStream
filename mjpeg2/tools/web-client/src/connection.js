@@ -8,11 +8,12 @@ function decodeSnapshot(data) {
         (layout.presentation === 'overlay' || layout.presentation === 'bar') && typeof layout.autoHide === 'boolean';
     if ((value.access !== 'open' && value.access !== 'authorized') ||
         typeof value.hasImage !== 'boolean' ||
+        (value.imageKind !== 'none' && value.imageKind !== 'logo' && value.imageKind !== 'live' && value.imageKind !== 'retained') ||
+        value.hasImage !== (value.imageKind !== 'none') ||
         (value.notice !== null && value.notice !== 'permission_required' && value.notice !== 'stopped' &&
             value.notice !== 'paused' && value.notice !== 'failed') ||
         !display || typeof display.title !== 'string' ||
         typeof display.background !== 'string' || typeof display.titleEnabled !== 'boolean' ||
-        typeof display.retainImageOnMediaFailure !== 'boolean' ||
         !validLayout(display.titleLayout) || !validLayout(display.controlsLayout)) return null;
     return value;
 }

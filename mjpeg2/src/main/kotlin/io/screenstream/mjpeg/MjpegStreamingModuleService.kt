@@ -15,7 +15,7 @@ import org.koin.android.ext.android.inject
 import org.koin.core.parameter.parametersOf
 
 /**
- * Configures native MJPEG's foreground notification and creates its inert business controller.
+ * Creates native MJPEG's inert controller and performs foreground and notification operations.
  * The shared base owns exact Service startup, destruction and timeout callbacks.
  */
 public class MjpegStreamingModuleService : StreamingModuleService() {

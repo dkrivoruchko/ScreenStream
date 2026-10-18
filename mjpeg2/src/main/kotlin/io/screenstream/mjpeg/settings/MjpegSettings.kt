@@ -1,12 +1,15 @@
 package io.screenstream.mjpeg.settings
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
 import info.dvkr.screenstream.common.settings.JsonPreferencesStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.koin.core.annotation.Singleton
@@ -24,6 +27,7 @@ internal class MjpegSettings(
      * Groups update atomically; URL tokens, viewing cookies, applied state, discovery and statistics are runtime-only.
      * [web] is required so the initial device title is saved rather than recalculated on later launches.
      */
+    @Immutable
     @Serializable
     internal data class Data(
         val image: ImageSettings = ImageSettings(),
@@ -41,7 +45,7 @@ internal class MjpegSettings(
     internal enum class EditPolicy {
         All,
 
-        /** Only image processing, address selection, web appearance and behavior can change. */
+        /** Image processing, address selection, web appearance, behavior and PIN visibility can change. */
         LiveOnly;
 
         val canEditStreamSetup: Boolean get() = this == All
@@ -54,7 +58,7 @@ internal class MjpegSettings(
             LiveOnly -> proposed.copy(
                 image = proposed.image.copy(jpegBackendPolicy = current.image.jpegBackendPolicy),
                 network = proposed.network.copy(httpPort = current.network.httpPort),
-                access = current.access,
+                access = current.access.copy(hidePinOnCaptureStart = proposed.access.hidePinOnCaptureStart),
             )
         }
     }
@@ -68,19 +72,26 @@ internal class MjpegSettings(
 
     internal val data: Flow<Data> = storage.data
 
+    private val updateMutex = Mutex()
+
     /**
      * Transform the latest stored snapshot atomically, rather than a potentially stale [data] value.
+     * Calls acquire the mutex before dispatching, preserving their admission order.
      * Enabling protection without a PIN generates one in the same update.
      * Once admitted into the non-cancellable write, caller cancellation does not stop it. Transform
      * and storage failures propagate; completing the save does not confirm application to the stream.
      */
-    internal suspend fun updateData(transform: Data.() -> Data): Unit = withContext(NonCancellable + dispatcher) {
-        storage.updateData {
-            val updated = transform()
-            if (updated.access.pinEnabled && updated.access.pin == null) {
-                updated.copy(access = updated.access.withGeneratedPin())
-            } else {
-                updated
+    internal suspend fun updateData(transform: Data.() -> Data): Unit = withContext(NonCancellable) {
+        updateMutex.withLock {
+            withContext(dispatcher) {
+                storage.updateData {
+                    val updated = transform()
+                    if (updated.access.pinEnabled && updated.access.pin == null) {
+                        updated.copy(access = updated.access.withGeneratedPin())
+                    } else {
+                        updated
+                    }
+                }
             }
         }
     }

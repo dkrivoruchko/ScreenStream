@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">Pilih mode streaming:</string>
     <string name="app_tab_stream_switching_modules">Beralih modul</string>
 
-    <string name="app_permission_required_title">Izin diperlukan</string>
-    <string name="app_permission_allow_notifications">Aplikasi ini memerlukan izin notifikasi untuk memulai layanan streaming.\n\nIzinkan notifikasi.</string>
-    <string name="app_permission_allow_notifications_settings">Aplikasi ini memerlukan izin notifikasi untuk memulai layanan streaming.\n\nAktifkan notifikasi di setelan aplikasi.</string>
-    <string name="app_permission_notification_settings">Buka pengaturan</string>
-    <string name="app_permission_local_network_title">Akses jaringan lokal diperlukan</string>
-    <string name="app_permission_local_network_message">Izinkan ScreenStream menggunakan jaringan lokal Anda agar perangkat dapat terhubung ke streaming Anda.</string>
+    <string name="app_permission_not_now">Jangan sekarang</string>
+    <string name="app_permission_open_settings">Buka setelan</string>
+
+    <string name="app_permission_notifications_title">Izinkan notifikasi</string>
+    <string name="app_permission_notifications_message">Notifikasi menampilkan status streaming dan peringatan kesalahan. Gunakan notifikasi untuk menghentikan streaming atau membuka kembali ScreenStream.</string>
+
+    <string name="app_permission_local_network_title">Akses jaringan lokal</string>
+    <string name="app_permission_local_network_message">Izinkan ScreenStream menggunakan jaringan lokal Anda untuk streaming ke perangkat lain di jaringan yang sama.\n\nAndroid menjelaskan izin ini sebagai akses ke Perangkat di sekitar dan mungkin menyebutkan penentuan posisi relatifnya.</string>
     <string name="app_permission_local_network_off_title">Akses jaringan lokal nonaktif</string>
-    <string name="app_permission_local_network_settings_message">Aktifkan akses jaringan lokal di Setelan Android untuk membagikan layar Anda dengan perangkat.</string>
-    <string name="app_permission_open_settings">Buka pengaturan</string>
-    <string name="app_permission_try_again">Coba lagi</string>
+    <string name="app_permission_local_network_settings_message">Di setelan aplikasi, buka Izin dan izinkan Perangkat di sekitar untuk streaming ke perangkat di jaringan lokal yang sama.</string>
+
+    <string name="app_permission_microphone_title">Akses mikrofon</string>
+    <string name="app_permission_microphone_message">Izinkan akses mikrofon untuk menyertakan suara dari mikrofon Anda dalam streaming.\n\nTanpanya, audio mikrofon tidak dapat di-streaming.</string>
+    <string name="app_permission_device_audio_title">Akses audio perangkat</string>
+    <string name="app_permission_device_audio_message">Android memerlukan izin mikrofon untuk streaming audio perangkat. Ini tidak menyalakan mikrofon Anda.\n\nHanya audio yang diizinkan untuk dibagikan oleh Android dan aplikasi pemutarnya yang dapat di-streaming.</string>
+
+    <string name="app_permission_audio_title">Audio mikrofon dan perangkat</string>
+    <string name="app_permission_audio_message">Izinkan akses mikrofon untuk streaming audio mikrofon dan perangkat.\n\nAudio perangkat hanya dapat di-streaming jika Android dan aplikasi pemutarnya mengizinkan berbagi audio tersebut.</string>
+    <string name="app_permission_audio_settings_message">Aktifkan izin mikrofon di setelan aplikasi untuk streaming audio mikrofon atau audio internal.\n\nTanpa izin ini, streaming tidak bersuara.</string>
 
     <string name="app_notification_channel_streaming">Pemberitahuan streaming</string>
     <string name="app_notification_channel_error">Pemberitahuan kesalahan</string>

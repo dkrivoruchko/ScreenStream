@@ -6,5 +6,5 @@ import org.koin.core.annotation.Module
 
 @Module
 @Configuration
-@ComponentScan("info.dvkr.screenstream.app", "info.dvkr.screenstream.notification")
+@ComponentScan("info.dvkr.screenstream.app", "info.dvkr.screenstream.notification", "info.dvkr.screenstream.permissions")
 public class AppKoinModule

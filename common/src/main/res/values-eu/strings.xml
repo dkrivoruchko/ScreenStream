@@ -5,4 +5,7 @@
 
     <string name="common_continue">Jarraitu</string>
     <string name="common_try_again">Saiatu berriro</string>
+
+    <string name="common_expanded">Zabalduta</string>
+    <string name="common_collapsed">Tolestuta</string>
 </resources>

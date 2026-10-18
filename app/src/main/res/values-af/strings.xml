@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">Kies stroommodus:</string>
     <string name="app_tab_stream_switching_modules">Wissel modules</string>
 
-    <string name="app_permission_required_title">Toestemming vereis</string>
-    <string name="app_permission_allow_notifications">Hierdie app benodig kennisgewingtoestemming om die stroomdiens te begin.\n\nLaat kennisgewings toe.</string>
-    <string name="app_permission_allow_notifications_settings">Hierdie app benodig kennisgewingtoestemming om die stroomdiens te begin.\n\nAktiveer kennisgewings in appinstellings.</string>
-    <string name="app_permission_notification_settings">Maak instellings oop</string>
-    <string name="app_permission_local_network_title">Toegang tot plaaslike netwerk vereis</string>
-    <string name="app_permission_local_network_message">Laat ScreenStream jou plaaslike netwerk gebruik sodat toestelle met jou stroom kan verbind.</string>
-    <string name="app_permission_local_network_off_title">Toegang tot plaaslike netwerk is af</string>
-    <string name="app_permission_local_network_settings_message">Skakel toegang tot plaaslike netwerk in Android-instellings aan om jou skerm met toestelle te deel.</string>
+    <string name="app_permission_not_now">Nie nou nie</string>
     <string name="app_permission_open_settings">Maak instellings oop</string>
-    <string name="app_permission_try_again">Probeer weer</string>
+
+    <string name="app_permission_notifications_title">Laat kennisgewings toe</string>
+    <string name="app_permission_notifications_message">Kennisgewings wys die stroomstatus en foutwaarskuwings. Gebruik hulle om die stroom te stop of ScreenStream weer oop te maak.</string>
+
+    <string name="app_permission_local_network_title">Toegang tot plaaslike netwerk</string>
+    <string name="app_permission_local_network_message">Laat ScreenStream jou plaaslike netwerk gebruik om na ander toestelle op dieselfde netwerk te stroom.\n\nAndroid beskryf hierdie toestemming as toegang tot Nabygeleë toestelle en kan die bepaling van hul relatiewe posisie noem.</string>
+    <string name="app_permission_local_network_off_title">Toegang tot plaaslike netwerk is af</string>
+    <string name="app_permission_local_network_settings_message">Maak Toestemmings in appinstellings oop en laat Toestelle in die omtrek toe om na toestelle op dieselfde plaaslike netwerk te stroom.</string>
+
+    <string name="app_permission_microphone_title">Mikrofoontoegang</string>
+    <string name="app_permission_microphone_message">Laat mikrofoontoegang toe om klank van jou mikrofoon by die stroom in te sluit.\n\nDaarsonder kan mikrofoonklank nie gestroom word nie.</string>
+    <string name="app_permission_device_audio_title">Toegang tot toestelklank</string>
+    <string name="app_permission_device_audio_message">Android vereis mikrofoontoestemming om toestelklank te stroom. Dit skakel nie jou mikrofoon aan nie.\n\nSlegs klank wat Android en die spelende app toelaat om gedeel te word, kan gestroom word.</string>
+
+    <string name="app_permission_audio_title">Mikrofoon- en toestelklank</string>
+    <string name="app_permission_audio_message">Laat mikrofoontoegang toe om mikrofoon- en toestelklank te stroom.\n\nToestelklank kan slegs gestroom word wanneer Android en die spelende app dit toelaat.</string>
+    <string name="app_permission_audio_settings_message">Skakel mikrofoontoestemming in appinstellings aan om mikrofoon- of interne oudio te stroom.\n\nSonder dit sal die stroom geen klank hê nie.</string>
 
     <string name="app_notification_channel_streaming">Stroomkennisgewings</string>
     <string name="app_notification_channel_error">Foutkennisgewings</string>

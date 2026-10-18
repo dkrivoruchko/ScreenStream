@@ -16,7 +16,7 @@ internal class MjpegStreamingModule : StreamingModule {
     }
 
     override val id: StreamingModule.Id = Id
-    override val priority: Int = 25
+    override val priority: Int = 40
     override val nameResource: Int = R.string.mjpeg_mode_name
     override val descriptionResource: Int = R.string.mjpeg_mode_description
     override val detailsResource: Int = R.string.mjpeg_mode_details

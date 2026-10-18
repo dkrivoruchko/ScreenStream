@@ -13,7 +13,6 @@ public interface WebRtcSettings {
         public val STREAM_PASSWORD: Preferences.Key<String> = stringPreferencesKey("STREAM_PASSWORD")
         public val ENABLE_MIC: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_MIC")
         public val ENABLE_DEVICE_AUDIO: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_DEVICE_AUDIO")
-        public val AUDIO_PERMISSION_DENIED: Preferences.Key<Boolean> = booleanPreferencesKey("MIC_PERMISSION_DENIED")
 
         public val KEEP_AWAKE: Preferences.Key<Boolean> = booleanPreferencesKey("KEEP_AWAKE")
         public val STOP_ON_SLEEP: Preferences.Key<Boolean> = booleanPreferencesKey("STOP_ON_SLEEP")
@@ -24,7 +23,6 @@ public interface WebRtcSettings {
         public const val STREAM_PASSWORD: String = ""
         public const val ENABLE_MIC: Boolean = false
         public const val ENABLE_DEVICE_AUDIO: Boolean = false
-        public const val AUDIO_PERMISSION_DENIED: Boolean = false
 
         public const val KEEP_AWAKE: Boolean = true
         public const val STOP_ON_SLEEP: Boolean = false
@@ -36,7 +34,6 @@ public interface WebRtcSettings {
         public val streamPassword: String = Default.STREAM_PASSWORD,
         public val enableMic: Boolean = Default.ENABLE_MIC,
         public val enableDeviceAudio: Boolean = Default.ENABLE_DEVICE_AUDIO,
-        public val audioPermissionDenied: Boolean = Default.AUDIO_PERMISSION_DENIED,
 
         public val keepAwake: Boolean = Default.KEEP_AWAKE,
         public val stopOnSleep: Boolean = Default.STOP_ON_SLEEP,

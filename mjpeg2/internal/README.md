@@ -1,8 +1,8 @@
 # MJPEG internals
 
-Use the [module README](../README.md) and [Usage](../docs/usage.md) for viewing and host integration, and [Architecture](../docs/architecture.md) for the component and image-flow model. These internal pages describe exact algorithms, admission rules, resource ownership and failure boundaries.
+Use the [module README](../README.md) and [Usage](../docs/usage.md) for viewing and host integration, [Architecture](../docs/architecture.md) for the component and image-flow model, and the [HTTP viewing API](../docs/http-viewing-api.md) for routes, authorization and wire state. These internal pages describe exact algorithms, admission rules, resource ownership and failure boundaries.
 
-Device/browser acceptance remains incomplete. The verification pages distinguish source-derived contracts, proposed checks and executed evidence.
+The verification pages define maintained scenarios, suitable environments and the evidence needed to support a result. Test execution reports and acceptance results belong with the change or release being verified, outside these reference pages.
 
 ## Find the rule for a change
 
@@ -11,7 +11,7 @@ Device/browser acceptance remains incomplete. The verification pages distinguish
 | Maintainer task | Owning page |
 | --- | --- |
 | Change catalog/selection, Service-first launch, manager reports/deadlines, foreground Stop or consent handoff | [Streaming host](01-lifecycle/streaming-host.md) |
-| Change capture startup/state/Stop, Suspended, first failures, consumer/projection cleanup or consent reuse conditions | [Module lifecycle](01-lifecycle/module-lifecycle.md) |
+| Change capture startup/state/Stop, Suspended, first failures, consumer/projection cleanup, consent reuse conditions or diagnostic failure stages | [Module lifecycle](01-lifecycle/module-lifecycle.md) |
 | Change controller event work, effective settings, readiness, network-loss timing, LAN request admission or native state projection | [Coordination](01-lifecycle/coordination.md) |
 
 ### Configuration
@@ -27,17 +27,18 @@ Device/browser acceptance remains incomplete. The verification pages distinguish
 | --- | --- |
 | Change listener/socket ownership, credential rotation/PIN limiter, request registration/retirement, sampled statistics or terminal cleanup | [HTTP delivery](03-delivery/http-delivery.md) |
 | Change JPEG copy/publication, selected image, pools/leases, multipart writes/repeats or slow observations | [JPEG delivery](03-delivery/jpeg-delivery.md) |
-| Change route/status/header/origin rules, cookie/token exchange, WebSocket wire or existing browser coordination/recovery/presentation | [Web client](03-delivery/web-client.md) |
+| Change client-facing routes, authorization, headers or wire schema | [HTTP viewing API](../docs/http-viewing-api.md), extended by [Web client](03-delivery/web-client.md) |
+| Change authority/PIN parsing, WebSocket transport settlement or browser coordination/recovery/presentation | [Web client](03-delivery/web-client.md) |
 | Change authored browser files, generated HTML or build/drift workflow | [Existing web build guide](../tools/web-client/README.md) |
 
 ### Verification
 
 | Maintainer task | Owning page |
 | --- | --- |
-| Choose verification environment, evidence expectations and permitted test work | [Testing](04-testing/testing.md) |
-| Find product scenarios, source contributors and current coverage gaps | [Verification contracts](04-testing/verification-contracts.md) |
+| Choose verification environment and evidence expectations | [Testing](04-testing/testing.md) |
+| Find product scenarios, source contributors and test entry points | [Verification contracts](04-testing/verification-contracts.md) |
 
-The current business-logic inventory contains 23 non-UI Kotlin files; the six `ui/**` files remain outside that scope. The testing pages own detailed source coverage, environments and verification evidence.
+The business-logic inventory covers non-UI Kotlin sources; `ui/**` presentation files remain outside that scope. The testing pages own source-to-scenario mappings, environments and verification requirements.
 
 ## Source and evidence ownership
 
@@ -45,7 +46,7 @@ The main coordination entry point is [MjpegStreamingModuleController](../src/mai
 
 Kotlin source, manifests and Gradle files define current declarations, identities, packaging and SDK/dependency configuration. The [capture engine Usage](../../screen-capture-engine/docs/usage.md) defines upstream borrowed-frame, lifecycle and image guarantees; MJPEG must not strengthen them.
 
-Official [Android projection](https://developer.android.com/media/grow/media-projection), [foreground-service](https://developer.android.com/develop/background-work/services/fgs/service-types#media-projection) and [coroutine](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-non-cancellable/) documentation own external platform/library rules. Tests provide evidence about product contracts, not new definitions of those contracts. Distinguish source inspection, proposed cases, executed results and unresolved acceptance when documenting a conclusion.
+Official [Android projection](https://developer.android.com/media/grow/media-projection), [foreground-service](https://developer.android.com/develop/background-work/services/fgs/service-types#media-projection) and [coroutine](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-non-cancellable/) documentation own external platform/library rules. Tests provide evidence about product contracts, not new definitions of those contracts. When reporting a result, distinguish source inspection, executed checks and platform acceptance; keep run results outside this reference.
 
 ## Keep documentation aligned
 

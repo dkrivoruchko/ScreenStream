@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">اختر وضع البث:</string>
     <string name="app_tab_stream_switching_modules">جارٍ تبديل الوحدات</string>
 
-    <string name="app_permission_required_title">الإذن مطلوب</string>
-    <string name="app_permission_allow_notifications">يحتاج هذا التطبيق إلى إذن الإشعارات لبدء خدمة البث.\n\nاسمح بالإشعارات.</string>
-    <string name="app_permission_allow_notifications_settings">يحتاج هذا التطبيق إلى إذن الإشعارات لبدء خدمة البث.\n\nفعّل الإشعارات من إعدادات التطبيق.</string>
-    <string name="app_permission_notification_settings">فتح الإعدادات</string>
-    <string name="app_permission_local_network_title">مطلوب الوصول إلى الشبكة المحلية</string>
-    <string name="app_permission_local_network_message">اسمح لـ ScreenStream باستخدام شبكتك المحلية حتى تتمكن الأجهزة من الاتصال بالبث.</string>
-    <string name="app_permission_local_network_off_title">الوصول إلى الشبكة المحلية متوقف</string>
-    <string name="app_permission_local_network_settings_message">فعّل الوصول إلى الشبكة المحلية في إعدادات Android لمشاركة شاشتك مع الأجهزة.</string>
+    <string name="app_permission_not_now">ليس الآن</string>
     <string name="app_permission_open_settings">فتح الإعدادات</string>
-    <string name="app_permission_try_again">حاول مرة أخرى</string>
+
+    <string name="app_permission_notifications_title">اسمح بالإشعارات</string>
+    <string name="app_permission_notifications_message">تعرض الإشعارات حالة البث وتنبيهات الأخطاء. استخدمها لإيقاف البث أو إعادة فتح ScreenStream.</string>
+
+    <string name="app_permission_local_network_title">الوصول إلى الشبكة المحلية</string>
+    <string name="app_permission_local_network_message">اسمح لـ ScreenStream باستخدام شبكتك المحلية للبث إلى أجهزة أخرى على الشبكة نفسها.\n\nيصف Android هذا الإذن بأنه وصول إلى الأجهزة القريبة، وقد يذكر تحديد مواضعها بالنسبة إلى بعضها.</string>
+    <string name="app_permission_local_network_off_title">الوصول إلى الشبكة المحلية متوقف</string>
+    <string name="app_permission_local_network_settings_message">في إعدادات التطبيق، افتح «الأذونات» واسمح بالوصول إلى «الأجهزة المجاورة» للبث إلى أجهزة على الشبكة المحلية نفسها.</string>
+
+    <string name="app_permission_microphone_title">الوصول إلى الميكروفون</string>
+    <string name="app_permission_microphone_message">اسمح بالوصول إلى الميكروفون لتضمين صوته في البث.\n\nبدون ذلك، لا يمكن بث صوت الميكروفون.</string>
+    <string name="app_permission_device_audio_title">الوصول إلى صوت الجهاز</string>
+    <string name="app_permission_device_audio_message">يتطلب Android إذن الميكروفون لبث صوت الجهاز. هذا لا يشغّل الميكروفون.\n\nيمكن بث الصوت الذي يسمح Android والتطبيق الذي يشغّله بمشاركته فقط.</string>
+
+    <string name="app_permission_audio_title">صوت الميكروفون والجهاز</string>
+    <string name="app_permission_audio_message">اسمح بالوصول إلى الميكروفون لبث صوت الميكروفون والجهاز.\n\nلا يمكن بث صوت الجهاز إلا إذا سمح Android والتطبيق الذي يشغّله بمشاركته.</string>
+    <string name="app_permission_audio_settings_message">فعّل إذن الميكروفون في إعدادات التطبيق لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
 
     <string name="app_notification_channel_streaming">إشعارات البث</string>
     <string name="app_notification_channel_error">إشعارات الأخطاء</string>

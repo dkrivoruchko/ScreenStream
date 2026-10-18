@@ -2,7 +2,7 @@
 
 # MJPEG test scenarios
 
-These pages describe maintained outcomes and important variants. The linked classes may exercise only part of a page; local notes identify remaining gaps. Execution results belong in [Running tests](testing.md).
+These pages describe maintained outcomes and important variants. The linked classes are test entry points, not a coverage or execution claim. Use the [testing guide](testing.md) to choose environments and qualify results; keep run reports outside this catalogue.
 
 | Scenarios | Product result | Related tests |
 | --- | --- | --- |
@@ -14,4 +14,4 @@ These pages describe maintained outcomes and important variants. The linked clas
 | [Viewing credentials and PIN verification](scenarios/access.md) | Viewing authority, credential cutoff and immediate-peer PIN blocks. | [HttpAccessTest](../../src/test/kotlin/io/screenstream/mjpeg/http/HttpAccessTest.kt) |
 | [Selected images, immutable bytes and media writes](scenarios/media.md) | Selected-image policy, immutable acquired bytes and valid wire payloads. | [JpegStoreTest](../../src/test/kotlin/io/screenstream/mjpeg/http/media/JpegStoreTest.kt), [JpegResponseProtocolTest](../../src/test/kotlin/io/screenstream/mjpeg/http/media/JpegResponseProtocolTest.kt) |
 | [HTTP authority and WebSocket wire protocol](scenarios/web-protocol.md) | Host/Origin isolation, bounded parsing and read-only state protocol. | [WebRoutesProtocolTest](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebRoutesProtocolTest.kt), [WebStateContractTest](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebStateContractTest.kt) |
-| [Integration inspections and real adapter smoke](scenarios/integration.md) | Bounded wiring inspections and platform smoke with fresh lifetime isolation. | Inspection and L2 smoke; no dedicated test class. |
+| [Integration inspections and real adapter smoke](scenarios/integration.md) | Bounded wiring inspections and platform smoke with fresh lifetime isolation. | Source/graph inspection and L2 smoke requirements. |

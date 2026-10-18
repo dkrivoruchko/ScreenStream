@@ -5,4 +5,7 @@
 
     <string name="common_continue">Continua</string>
     <string name="common_try_again">Riprova</string>
+
+    <string name="common_expanded">Espanso</string>
+    <string name="common_collapsed">Compresso</string>
 </resources>

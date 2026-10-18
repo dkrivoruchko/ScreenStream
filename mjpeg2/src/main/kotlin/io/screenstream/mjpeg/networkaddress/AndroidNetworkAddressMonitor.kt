@@ -1,9 +1,22 @@
 package io.screenstream.mjpeg.networkaddress
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.LinkProperties
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.net.TetheringInterface
+import android.net.TetheringManager
+import android.os.Build
+import androidx.annotation.RequiresApi
+import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.InterfaceAddresses
+import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.ScanResult
+import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.Snapshot
 import io.screenstream.streaming.logD
 import io.screenstream.streaming.logE
 import io.screenstream.streaming.logV
+import io.screenstream.streaming.logW
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +36,6 @@ import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Factory
-import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.util.Collections
@@ -31,7 +43,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.nanoseconds
 
 /**
- * Serializes native scans while callback metadata and filters change. The controller, not discovery,
+ * Serializes native scans while callback metadata changes. The controller, not discovery,
  * decides when an empty selection must stop capture.
  */
 @Factory(binds = [NetworkAddressMonitor::class])
@@ -39,24 +51,24 @@ internal class AndroidNetworkAddressMonitor(
     context: Context,
     nativeInterfaces: NativeInterfaceAccess = SystemNativeInterfaceAccess,
 ) : NetworkAddressMonitor {
-    // Lifecycle admission and cleanup are independent of observation work and of each close waiter.
-    private val lifecycleLock = Any()
+    // Admission, observer handles and platform metadata share one gate; scan and cleanup work run outside it.
+    private val admissionGate = Any()
     private var terminalFailure: Throwable? = null
-    private val filterUpdates = Channel<NetworkAddressFilter>(Channel.CONFLATED)
+    private val registrations = linkedMapOf<Observer, () -> Unit>()
+    private val cleanupFailures = mutableListOf<Exception>()
+    private val platformChanges = Channel<Unit>(Channel.CONFLATED)
     private val closeRequested = CompletableDeferred<Unit>()
     private val closeCompletion = CompletableDeferred<Unit>()
     private val ownedScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val addressSource = AndroidNetworkAddressSource(context, nativeInterfaces)
+    private val addressSource = AndroidNetworkAddressSource(nativeInterfaces)
+    private val platform = PlatformObservation(context)
     override val state: StateFlow<NetworkAddressMonitor.State>
         field = MutableStateFlow<NetworkAddressMonitor.State>(NetworkAddressMonitor.State.NotStarted)
     private val observationJob = ownedScope.launch(start = CoroutineStart.LAZY) { Observation().run() }
 
-    override fun updateFilter(filter: NetworkAddressFilter) {
-        synchronized(lifecycleLock) {
-            if (closeRequested.isCompleted) return
-            filterUpdates.trySend(filter)
-            observationJob.start()
-        }
+    override fun start() {
+        val admitted = synchronized(admissionGate) { !closeRequested.isCompleted }
+        if (admitted) observationJob.start()
     }
 
     override suspend fun close() {
@@ -64,61 +76,110 @@ internal class AndroidNetworkAddressMonitor(
         closeCompletion.await()
     }
 
-    /** Stops accepting updates and reports any discovery failure immediately. Failure remains the final status. */
+    /** Fences all admission before independently retiring observers and joining observation. */
     private fun beginClose(failure: Throwable? = null) {
-        synchronized(lifecycleLock) {
+        var reportFailure = false
+        val handles = synchronized(admissionGate) {
             if (failure != null && terminalFailure == null) {
                 terminalFailure = failure
                 state.value = NetworkAddressMonitor.State.Failed
-                if (failure !is CancellationException) {
-                    logE("beginClose", "Address discovery failed; state=Failed", failure)
-                }
+                reportFailure = failure !is CancellationException
             }
-            if (closeRequested.isCompleted) return
-            closeRequested.complete(Unit)
-            val handles = addressSource.beginClose()
-            logD("beginClose", "Close requested; observersToClose=${handles.size}")
-            observationJob.start() // Also permits close before the first filter.
-            ownedScope.launch(Dispatchers.IO) {
-                addressSource.unregister(handles)
-                observationJob.join() // Includes a native scan and retirement of late registrations.
-                val cleanupFailure = addressSource.finishClose()
-                val outcome = synchronized(lifecycleLock) {
-                    val cause = terminalFailure ?: cleanupFailure
-                    if (cause != null && cleanupFailure != null && cleanupFailure !== cause) {
-                        cause.addSuppressed(cleanupFailure)
+            if (closeRequested.isCompleted) {
+                null
+            } else {
+                closeRequested.complete(Unit)
+                registrations.values.toList().also { registrations.clear() }
+            }
+        }
+        if (reportFailure && failure != null) logE("beginClose", "Address discovery failed; state=Failed", failure)
+        if (handles == null) return
+        logD("beginClose", "Close requested; observersToClose=${handles.size}")
+        observationJob.start() // Also permits close before discovery starts.
+        ownedScope.launch(Dispatchers.IO) {
+            unregisterObservers(handles)
+            observationJob.join() // Includes the native scan and retirement of late registrations.
+            val outcome = synchronized(admissionGate) {
+                val cleanupFailure = cleanupFailures.firstOrNull()
+                if (cleanupFailure != null) {
+                    for (error in cleanupFailures.drop(1)) {
+                        if (error !== cleanupFailure) cleanupFailure.addSuppressed(error)
                     }
-                    state.value = if (cause == null) NetworkAddressMonitor.State.Closed else NetworkAddressMonitor.State.Failed
-                    cause
                 }
-                if (outcome == null) {
-                    this@AndroidNetworkAddressMonitor.logD("beginClose", "Address discovery closed")
+                val cause = terminalFailure ?: cleanupFailure
+                if (cause != null && cleanupFailure != null && cleanupFailure !== cause) {
+                    cause.addSuppressed(cleanupFailure)
                 }
-                filterUpdates.close()
-                if (outcome == null) {
-                    closeCompletion.complete(Unit)
-                } else {
-                    closeCompletion.completeExceptionally(outcome)
-                }
-                ownedScope.cancel()
+                state.value = if (cause == null) NetworkAddressMonitor.State.Closed else NetworkAddressMonitor.State.Failed
+                cause
+            }
+            platformChanges.close()
+            if (outcome == null) {
+                this@AndroidNetworkAddressMonitor.logD("beginClose", "Address discovery closed")
+                closeCompletion.complete(Unit)
+            } else {
+                closeCompletion.completeExceptionally(outcome)
+            }
+            ownedScope.cancel()
+        }
+    }
+
+    /** A registration completing after close must retire before its scan can finish. */
+    private fun retainRegistration(observer: Observer, unregister: () -> Unit, registered: () -> Unit = {}) {
+        val accepted = synchronized(admissionGate) {
+            if (closeRequested.isCompleted) {
+                false
+            } else {
+                registrations[observer] = unregister
+                registered()
+                platform.changedLocked()
+                true
+            }
+        }
+        if (!accepted) unregisterObservers(listOf(unregister))
+    }
+
+    private fun unregisterObservers(handles: List<() -> Unit>) {
+        for (unregister in handles) {
+            try {
+                unregister()
+            } catch (error: Exception) {
+                logE("unregisterObservers", "Network observer cleanup failed; observer could not be unregistered", error)
+                synchronized(admissionGate) { cleanupFailures.add(error) }
             }
         }
     }
 
+    private fun scan(): ScanResult {
+        platform.registerObservers()
+        platform.refreshFallback()
+        val snapshot = platform.snapshot()
+        if (closeRequested.isCompleted) {
+            return ScanResult(
+                platformSnapshot = snapshot,
+                interfaces = emptyList(),
+                successfulInterfaces = emptySet(),
+                failedInterfaces = emptySet(),
+                enumerationComplete = false,
+            )
+        }
+        return addressSource.scan(snapshot)
+    }
+
+    private enum class Observer { Network, Tethering }
+
     private inner class Observation {
-        private var currentFilter: NetworkAddressFilter? = null
         private var addressesByIp = emptyMap<IpAddressKey, TrackedAddress>()
         private var nextAddressId = 0L
         private var hasScanned = false
-        private var platformSnapshot = addressSource.snapshot()
-        private var activeScan: Deferred<AndroidNetworkAddressSource.ScanResult>? = null
-        private var scanRequested = false
-        private var refreshAtNanos: Long? = null
+        private var platformSnapshot = platform.snapshot()
+        private var activeScan: Deferred<ScanResult>? = null
+        private var scanAtNanos: Long? = System.nanoTime()
         private var retryIndex = 0
-        private var acceptedScanRevision = -1L
 
         suspend fun run() {
             try {
+                publishInventory()
                 while (!closeRequested.isCompleted) {
                     startScanIfNeeded()
                     awaitChange()
@@ -134,46 +195,33 @@ internal class AndroidNetworkAddressMonitor(
             }
         }
 
-        /** Waits for a change, giving stop requests and the latest filter priority. */
-        @OptIn(ExperimentalCoroutinesApi::class) // Atomic selection cannot lose a concurrent filter to timeout cancellation.
+        /** Waits for a change, giving stop requests and current platform evidence priority. */
+        @OptIn(ExperimentalCoroutinesApi::class)
         private suspend fun awaitChange(): Unit = select {
             closeRequested.onAwait { }
-            filterUpdates.onReceive { onFilterChanged(it) }
-            addressSource.changes.onReceive { onPlatformChanged(it) }
+            platformChanges.onReceive { onPlatformChanged() }
             activeScan?.onAwait { onScanFinished(it) }
-            refreshAtNanos?.let { deadline ->
-                val remaining = (deadline - System.nanoTime()).coerceAtLeast(0).nanoseconds
-                onTimeout(remaining) { scanRequested = true }
+            if (activeScan == null) {
+                scanAtNanos?.let { deadline ->
+                    val remaining = (deadline - System.nanoTime()).coerceAtLeast(0).nanoseconds
+                    onTimeout(remaining) { }
+                }
             }
         }
 
         private fun startScanIfNeeded() {
-            if (!scanRequested || activeScan != null || currentFilter == null) return
-            activeScan = ownedScope.async(Dispatchers.IO) { addressSource.scan() }
-            scanRequested = false
-            refreshAtNanos = null
-        }
-
-        /** Applies the requested filter to known addresses while discovery catches up. */
-        private fun onFilterChanged(filter: NetworkAddressFilter) {
-            val firstFilter = currentFilter == null
-            if (currentFilter != filter) {
-                this@AndroidNetworkAddressMonitor.logD(
-                    "onFilterChanged",
-                    "Address filter applied; families=${filter.families}, " +
-                            "interfaceTypes=${filter.interfaceTypes}, categories=${filter.categories}",
-                )
-            }
-            currentFilter = filter
-            publishSelection()
-            if (firstFilter) scanRequested = true
+            val deadline = scanAtNanos ?: return
+            if (activeScan != null || deadline - System.nanoTime() > 0L) return
+            activeScan = ownedScope.async(Dispatchers.IO) { scan() }
+            scanAtNanos = null
         }
 
         /** Updates interface details while keeping known addresses and their ids. */
-        private fun onPlatformChanged(snapshot: AndroidNetworkAddressSource.Snapshot) {
-            if (snapshot.revision < platformSnapshot.revision) return
+        private fun onPlatformChanged() {
+            val snapshot = platform.snapshot()
+            if (snapshot.revision <= platformSnapshot.revision) return
             platformSnapshot = snapshot
-            val types = snapshot.interfaceTypes()
+            val types = snapshot.interfaceTypes
             addressesByIp = addressesByIp.mapValues { (_, tracked) ->
                 tracked.copy(
                     candidates = tracked.candidates.map { candidate ->
@@ -181,36 +229,22 @@ internal class AndroidNetworkAddressMonitor(
                     },
                 )
             }
-            publishSelection()
-            if (snapshot.revision > acceptedScanRevision) {
-                scanRequested = true
-                if (activeScan == null) retryIndex = 0
-            }
+            publishInventory()
+            scanAtNanos = System.nanoTime()
+            if (activeScan == null) retryIndex = 0
         }
 
-        private fun onScanFinished(result: AndroidNetworkAddressSource.ScanResult) {
+        private fun onScanFinished(result: ScanResult) {
             activeScan = null
             // One coherent snapshot includes callbacks whose notification has not been consumed yet.
-            platformSnapshot = addressSource.snapshot()
+            platformSnapshot = platform.snapshot()
             val currentEvidence = result.platformSnapshot.revision == platformSnapshot.revision
-            filterUpdates.tryReceive().getOrNull()?.let { filter ->
-                if (currentFilter != filter) {
-                    this@AndroidNetworkAddressMonitor.logD(
-                        "onScanFinished",
-                        "Pending address filter applied; families=${filter.families}, " +
-                                "interfaceTypes=${filter.interfaceTypes}, categories=${filter.categories}",
-                    )
-                }
-                currentFilter = filter
-            }
             this@AndroidNetworkAddressMonitor.logV(
                 "onScanFinished",
                 "Interface scan completed; snapshotRevision=${result.platformSnapshot.revision}, " +
                         "currentSnapshot=$currentEvidence, complete=${result.complete}, unreadableInterfaces=${result.failedInterfaces}",
             )
             applyScan(result = result, currentEvidence = currentEvidence)
-            acceptedScanRevision = result.platformSnapshot.revision
-            scanRequested = !currentEvidence
             if (currentEvidence) {
                 val refreshDelay = when {
                     result.complete -> {
@@ -221,7 +255,9 @@ internal class AndroidNetworkAddressMonitor(
                     retryIndex < RETRY_DELAYS_MS.size -> RETRY_DELAYS_MS[retryIndex++]
                     else -> PERIODIC_SCAN_MS
                 }
-                refreshAtNanos = System.nanoTime() + refreshDelay.milliseconds.inWholeNanoseconds
+                scanAtNanos = System.nanoTime() + refreshDelay.milliseconds.inWholeNanoseconds
+            } else {
+                scanAtNanos = System.nanoTime()
             }
         }
 
@@ -229,8 +265,8 @@ internal class AndroidNetworkAddressMonitor(
          * Retain previous addresses until current evidence confirms absence; temporary unreadability must
          * not replace their identities or tear down listeners.
          */
-        private fun applyScan(result: AndroidNetworkAddressSource.ScanResult, currentEvidence: Boolean) {
-            val types = platformSnapshot.interfaceTypes()
+        private fun applyScan(result: ScanResult, currentEvidence: Boolean) {
+            val types = platformSnapshot.interfaceTypes
             val freshCandidates = result.interfaces.flatMap { item ->
                 val type = types[item.interfaceName] ?: inferInterfaceType(item.interfaceName)
                 item.addresses.map { ip -> AddressCandidate(ip = ip, interfaceName = item.interfaceName, interfaceType = type) }
@@ -247,7 +283,7 @@ internal class AndroidNetworkAddressMonitor(
 
             // Preserve fresh-before-retained order while removing duplicates and unscoped aliases.
             val mergedCandidates = (freshCandidates + retainedCandidates).distinctBy {
-                Triple(it.ipKey, it.interfaceName, it.interfaceType)
+                it.interfaceName to it.ipKey
             }
             val scopedInterfaceIps = mergedCandidates.filter { it.hasIpv6Scope() }
                 .mapTo(HashSet()) { it.interfaceName to it.ipKey.bytes }
@@ -261,81 +297,270 @@ internal class AndroidNetworkAddressMonitor(
                 TrackedAddress(id = id, candidates = candidates)
             }
             hasScanned = true
-            publishSelection()
+            publishInventory()
         }
 
-        /** Publishes one matching interface per IP address and IPv6 scope in a consistent order. */
-        private fun publishSelection() {
-            val appliedFilter = currentFilter ?: return
-
-            val selection = addressesByIp.values.mapNotNull { tracked ->
-                val candidate = tracked.candidates.firstOrNull { it.matches(appliedFilter) } ?: return@mapNotNull null
-                tracked.id to candidate
-            }.sortedWith(compareBy(CANDIDATE_ORDER) { it.second }).map { (id, candidate) ->
-                NetworkAddress(id = id, ip = candidate.ip, interfaceName = candidate.interfaceName, interfaceType = candidate.interfaceType)
-            }
-
-            synchronized(lifecycleLock) {
-                if (!closeRequested.isCompleted) {
-                    val nextState = if (hasScanned) {
-                        NetworkAddressMonitor.State.Observed(filter = appliedFilter, addresses = Collections.unmodifiableList(selection))
-                    } else {
-                        NetworkAddressMonitor.State.Loading(filter = appliedFilter)
-                    }
-                    val selectionChanged = when (val previousState = state.value) {
-                        is NetworkAddressMonitor.State.Observed -> previousState.addresses != selection
-                        is NetworkAddressMonitor.State.Loading -> hasScanned
-                        else -> true
-                    }
-                    if (selectionChanged) {
-                        val addresses = selection.joinToString { address ->
-                            "${address.id}:${address.interfaceName}/${address.interfaceType}/${address.ip.hostAddress}"
-                        }
-                        this@AndroidNetworkAddressMonitor.logD(
-                            "publishSelection",
-                            "Address selection updated; state=${if (hasScanned) "Observed" else "Loading"}, addresses=[$addresses]",
+        /** Publishes every supported scoped IP and its ordered interface alternatives. */
+        private fun publishInventory() {
+            val nextState = if (hasScanned) {
+                val inventory = NetworkAddressInventory(addressesByIp.mapValues { (_, tracked) ->
+                    tracked.candidates.map { candidate ->
+                        NetworkAddress(
+                            id = tracked.id,
+                            ip = candidate.ip,
+                            interfaceName = candidate.interfaceName,
+                            interfaceType = candidate.interfaceType,
                         )
                     }
-                    state.value = nextState
-                }
+                })
+                NetworkAddressMonitor.State.Observed(inventory)
+            } else {
+                NetworkAddressMonitor.State.Loading
+            }
+            synchronized(admissionGate) {
+                if (!closeRequested.isCompleted) state.value = nextState
             }
         }
     }
 
-    /** Identifies the same IP and IPv6 scope even when interface details change. */
-    private data class IpAddressKey(val bytes: List<Byte>, val scopeId: Int?, val scopeInterface: String?)
+    private inner class PlatformObservation(context: Context) {
+        private val applicationContext = context.applicationContext
+        private val connectivity = applicationContext.getSystemService(ConnectivityManager::class.java)
+
+        private var sourceRevision = 0L
+        private val callbackNetworks = mutableMapOf<Network, NetworkMetadata>()
+
+        // Pre-26 fallback reads never overwrite callback payloads; registered modern callbacks are authoritative.
+        private var fallbackNetworks = emptyMap<Network, NetworkMetadata>()
+        private var fallbackReady = false
+        private var tethered = emptyMap<String, InterfaceType>()
+        private var tetherReady = Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA
+
+        private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) = updateCallbackState {
+                callbackNetworks.putIfAbsent(network, NetworkMetadata())
+            }
+
+            override fun onLost(network: Network) = updateCallbackState {
+                callbackNetworks.remove(network)
+                fallbackNetworks = fallbackNetworks - network
+            }
+
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                val type = networkCapabilities.interfaceType()
+                updateCallbackState {
+                    val previous = callbackNetworks[network] ?: NetworkMetadata()
+                    callbackNetworks[network] = previous.copy(interfaceType = type)
+                }
+            }
+
+            override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
+                val interfaces = linkProperties.copyInterfaceAddresses()
+                updateCallbackState {
+                    val previous = callbackNetworks[network] ?: NetworkMetadata()
+                    callbackNetworks[network] = previous.copy(interfaces = interfaces)
+                }
+            }
+        }
+
+        fun snapshot(): Snapshot = synchronized(admissionGate) { snapshotLocked() }
+
+        /** Returns the network information currently known to this source; requires [admissionGate]. */
+        private fun snapshotLocked(): Snapshot {
+            val networks = (callbackNetworks.keys + fallbackNetworks.keys).map { network ->
+                val callback = callbackNetworks[network]
+                val fallback = fallbackNetworks[network]
+                NetworkMetadata(
+                    interfaces = callback?.interfaces ?: fallback?.interfaces,
+                    interfaceType = callback?.interfaceType ?: fallback?.interfaceType,
+                )
+            }
+            val metadataReady = networks.all { it.interfaces != null && it.interfaceType != null }
+            val fallbackReadyIfNeeded = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O || fallbackReady
+            val types = mutableMapOf<String, InterfaceType>()
+            for ((interfaces, observedType) in networks) {
+                val type = observedType ?: InterfaceType.Other
+                for ((name) in interfaces.orEmpty()) {
+                    val currentType = types[name]
+                    if (currentType == null || currentType == InterfaceType.Other || type == InterfaceType.Vpn) {
+                        types[name] = type
+                    }
+                }
+            }
+            for ((name, type) in tethered) {
+                val currentType = types[name]
+                if (currentType == null || currentType == InterfaceType.Other) {
+                    types[name] = type
+                }
+            }
+            return Snapshot(
+                revision = sourceRevision,
+                callbackInterfaces = Collections.unmodifiableList(networks.flatMap { it.interfaces.orEmpty() }),
+                interfaceTypes = Collections.unmodifiableMap(types.mapValues { (name, type) ->
+                    if (type == InterfaceType.Other) inferInterfaceType(name) else type
+                }),
+                ready = Observer.Network in registrations && metadataReady && fallbackReadyIfNeeded && tetherReady,
+            )
+        }
+
+        private fun updateCallbackState(update: () -> Unit) {
+            synchronized(admissionGate) {
+                if (closeRequested.isCompleted) return
+                update()
+                changedLocked()
+            }
+        }
+
+        fun registerObservers() {
+            registerNetworkObserver()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                registerTetheringObserver()
+            }
+        }
+
+        /** Requires the monitor's admission gate. */
+        fun changedLocked() {
+            sourceRevision++
+            platformChanges.trySend(Unit)
+        }
+
+        /**
+         * Retry observer registration on later scans; failure leaves native interface evidence usable.
+         */
+        private fun registerNetworkObserver() {
+            val registrationNeeded = synchronized(admissionGate) { !closeRequested.isCompleted && Observer.Network !in registrations }
+            if (!registrationNeeded) return
+            try {
+                val request = NetworkRequest.Builder().apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        clearCapabilities()
+                    } else {
+                        removeCapability(NetworkCapabilities.NET_CAPABILITY_TRUSTED)
+                        removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                    }
+                    // No INTERNET or VALIDATED requirement: LAN/P2P networks are useful too.
+                    addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+                }.build()
+                connectivity.registerNetworkCallback(request, networkCallback)
+                retainRegistration(Observer.Network, unregister = { connectivity.unregisterNetworkCallback(networkCallback) }) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        // A network gone before registration produces no initial callback or onLost.
+                        fallbackNetworks = emptyMap()
+                        fallbackReady = false
+                    }
+                }
+            } catch (error: Exception) {
+                logW("registerNetworkObserver", "Network observer registration failed; native interface scans remain available", error)
+            }
+        }
+
+        /** Watches tethered interface types where Android supports it; address reads can proceed without it. */
+        @RequiresApi(Build.VERSION_CODES.BAKLAVA)
+        private fun registerTetheringObserver() {
+            val registrationNeeded = synchronized(admissionGate) { !closeRequested.isCompleted && Observer.Tethering !in registrations }
+            if (!registrationNeeded) return
+            try {
+                val observer = TetheringObservation(applicationContext) { interfaces ->
+                    updateCallbackState {
+                        tethered = interfaces
+                        tetherReady = true
+                    }
+                }
+                observer.start()
+                retainRegistration(Observer.Tethering, unregister = observer::close)
+            } catch (error: Exception) {
+                logW("registerTetheringObserver", "Tethering observer registration failed; interface scans remain available", error)
+            }
+        }
+
+        /** Gets network information when callbacks do not provide it, without replacing newer Android updates. */
+        fun refreshFallback() {
+            val beforeReadRevision = synchronized(admissionGate) {
+                val modernCallbackRegistered = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Observer.Network in registrations
+                if (closeRequested.isCompleted || modernCallbackRegistered) return
+                sourceRevision
+            }
+            val fallbackRead = mutableMapOf<Network, NetworkMetadata>()
+            var complete = true
+            try {
+                @Suppress("DEPRECATION")
+                val networks = connectivity.allNetworks
+                for (network in networks) {
+                    try {
+                        val capabilities = connectivity.getNetworkCapabilities(network)
+                        val properties = connectivity.getLinkProperties(network)
+                        when {
+                            capabilities == null || properties == null -> complete = false
+                            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED) -> {
+                                fallbackRead[network] = NetworkMetadata(
+                                    interfaces = properties.copyInterfaceAddresses(),
+                                    interfaceType = capabilities.interfaceType(),
+                                )
+                            }
+                        }
+                    } catch (error: Exception) {
+                        logW("refreshFallback", "Network metadata read failed; network=$network", error)
+                        complete = false
+                    }
+                }
+            } catch (error: Exception) {
+                logW("refreshFallback", "Network enumeration failed; retaining previous network information", error)
+                complete = false
+            }
+            synchronized(admissionGate) {
+                if (closeRequested.isCompleted || sourceRevision != beforeReadRevision) return
+                val mergedFallback = if (complete) fallbackRead else fallbackNetworks + fallbackRead
+                fallbackNetworks = Collections.unmodifiableMap(mergedFallback)
+                fallbackReady = complete
+                changedLocked()
+            }
+        }
+
+        /** VPN transport takes precedence when Android reports multiple transports. */
+        private fun NetworkCapabilities.interfaceType(): InterfaceType = when {
+            hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> InterfaceType.Vpn
+            hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> InterfaceType.Wifi
+            hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> InterfaceType.Ethernet
+            hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> InterfaceType.Mobile
+            else -> InterfaceType.Other
+        }
+
+        private fun LinkProperties.copyInterfaceAddresses(): List<InterfaceAddresses> {
+            val name = interfaceName ?: return emptyList()
+            val addresses = Collections.unmodifiableList(linkAddresses.map { it.address })
+            return Collections.unmodifiableList(listOf(InterfaceAddresses(interfaceName = name, addresses = addresses)))
+        }
+    }
+
+    /** Known interface details for an Android network. Null means those details are not available yet. */
+    private data class NetworkMetadata(val interfaces: List<InterfaceAddresses>? = null, val interfaceType: InterfaceType? = null)
+
+    /** Reports tethered interface types using the public API available on Android 16 and later. */
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
+    private class TetheringObservation(context: Context, onInterfaces: (Map<String, InterfaceType>) -> Unit) {
+        private val manager = context.getSystemService(TetheringManager::class.java)
+        private val callback = object : TetheringManager.TetheringEventCallback {
+            override fun onTetheredInterfacesChanged(interfaces: Set<TetheringInterface>) {
+                val interfaceTypes = interfaces.associate { item ->
+                    val type = if (item.type == TetheringManager.TETHERING_WIFI) InterfaceType.Wifi else InterfaceType.Other
+                    item.`interface` to type
+                }
+                onInterfaces(Collections.unmodifiableMap(interfaceTypes))
+            }
+        }
+
+        /** Starts receiving tethered interface updates; pair a successful call with [close]. */
+        fun start() = manager.registerTetheringEventCallback({ it.run() }, callback)
+
+        fun close() = manager.unregisterTetheringEventCallback(callback)
+    }
 
     private data class AddressCandidate(val ip: InetAddress, val interfaceName: String, val interfaceType: InterfaceType) {
-        val ipKey: IpAddressKey = IpAddressKey(
-            bytes = ip.address.toList(),
-            scopeId = (ip as? Inet6Address)?.scopeId,
-            scopeInterface = (ip as? Inet6Address)?.scopedInterface?.name,
-        )
+        val ipKey: IpAddressKey = IpAddressKey(ip)
 
         fun isSupported(): Boolean = !ip.isAnyLocalAddress && !ip.isMulticastAddress && !(ip is Inet6Address && ip.isLinkLocalAddress)
 
         fun hasIpv6Scope(): Boolean = ip is Inet6Address && (ip.scopeId != 0 || ip.scopedInterface != null)
-
-        fun matches(filter: NetworkAddressFilter): Boolean {
-            val family = if (ip is Inet4Address) AddressFamily.Ipv4 else AddressFamily.Ipv6
-            return family in filter.families && interfaceType in filter.interfaceTypes && category() in filter.categories
-        }
-
-        private fun category(): AddressCategory {
-            val first = ip.address[0].toInt() and 0xff
-            val second = ip.address[1].toInt() and 0xff
-            val privateAddress = if (ip is Inet4Address) {
-                first == 10 || first == 172 && second in 16..31 || first == 192 && second == 168
-            } else {
-                first and 0xfe == 0xfc
-            }
-            return when {
-                ip.isLoopbackAddress -> AddressCategory.Loopback
-                ip.isLinkLocalAddress -> AddressCategory.LinkLocal
-                privateAddress -> AddressCategory.Private
-                else -> AddressCategory.NonPrivate
-            }
-        }
     }
 
     private data class TrackedAddress(val id: Long, val candidates: List<AddressCandidate>)
@@ -343,10 +568,8 @@ internal class AndroidNetworkAddressMonitor(
     private companion object {
         const val PERIODIC_SCAN_MS = 30_000L
         val RETRY_DELAYS_MS = longArrayOf(250, 1_000, 3_000)
-        val CANDIDATE_ORDER: Comparator<AddressCandidate> = compareBy(
-            { it.interfaceName }, { it.ipKey.bytes.size },
-            { it.ipKey.bytes.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) } },
-            { it.ipKey.scopeId ?: 0 }, { it.ipKey.scopeInterface.orEmpty() }, { it.interfaceType.ordinal },
-        )
+        val CANDIDATE_ORDER: Comparator<AddressCandidate> = compareBy<AddressCandidate> { it.interfaceName }
+            .thenBy(IpAddressKey.ORDER) { it.ipKey }
+            .thenBy { it.interfaceType.ordinal }
     }
 }

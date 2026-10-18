@@ -19,16 +19,16 @@ internal class JpegStore {
     private var captureId: CaptureAttemptId? = null
     private var captureStatus = Status.Stopped
     private var logoFrame: Frame? = null
-    private var stoppedImagePolicy = PostStopImage.Placeholder
+    private var fallbackPolicy = PostStopImage.Placeholder
 
-    private var selectedFrame: Frame? = null
+    private var latestRealFrame: PooledFrame? = null
     private var spareBuffer: ByteArray? = null
     private var captureSourceToken: Any? = null
 
     // Logo is installed before capture; subsequent increments count only accepted publications.
     private var lastPublicationVersion = 0L
 
-    fun snapshot(): Snapshot = synchronized(monitor) { Snapshot(captureStatus, selectedFrame != null, captureSourceToken) }
+    fun snapshot(): Snapshot = synchronized(monitor) { Snapshot(captureStatus, imageKind(), captureSourceToken) }
 
     /** Transfer immutable logo bytes once before capture begins; the caller must not modify them. */
     fun installLogo(bytes: ByteArray) {
@@ -38,17 +38,19 @@ internal class JpegStore {
         }
     }
 
-    /** Apply selection only while stopping or stopped; active capture keeps its selected image. */
-    fun updateStoppedImagePolicy(policy: PostStopImage) {
+    /** Apply the saved fallback whenever no frame belongs to the current capture source. */
+    fun updateFallbackPolicy(policy: PostStopImage) {
         synchronized(monitor) {
             if (closed) return
-            stoppedImagePolicy = policy
-            selectStoppedImage()
+            fallbackPolicy = policy
         }
         wakeReaders()
     }
 
-    /** Fence old producer copies while retaining selection and readers; false after disposal. */
+    /**
+     * Fence old producer copies while retaining latest real frame storage and readers.
+     * Recompute selection from a fresh source and the fallback; false after disposal.
+     */
     fun registerCapture(id: CaptureAttemptId): Boolean {
         synchronized(monitor) {
             if (closed) return false
@@ -70,17 +72,11 @@ internal class JpegStore {
                     if (captureSourceToken == null) captureSourceToken = Any()
                 }
 
-                Status.Suspended, Status.Failed -> {
+                Status.Suspended, Status.Failed, Status.Stopping, Status.Stopped -> {
                     captureSourceToken = null
-                    selectFrame(null)
                 }
 
-                Status.Stopping, Status.Stopped -> {
-                    captureSourceToken = null
-                    selectStoppedImage()
-                }
-
-                else -> Unit
+                Status.Starting, Status.WaitingForPermission, Status.Reconfiguring -> Unit
             }
         }
         wakeReaders()
@@ -92,7 +88,7 @@ internal class JpegStore {
      * bytes from offset zero without retaining the array; [byteCount] must be positive.
      * Stale attempts/closed sources admit no copy; source replacement rejects publication.
      * Failed copies return eligible storage before rethrowing.
-     * True means image availability changed, avoiding a web-state refresh for every JPEG.
+     * True means the selected image kind changed, avoiding a web-state refresh for every JPEG.
      */
     fun offerJpeg(id: CaptureAttemptId, byteCount: Int, copyTo: (ByteArray) -> Unit): Boolean {
         val reservedSource: Any
@@ -115,9 +111,9 @@ internal class JpegStore {
             copyBuffer = buffer
             copyTo(buffer)
             synchronized(monitor) {
-                val previouslyHadImage = selectedFrame != null
+                val previousKind = imageKind()
                 if (captureSourceToken === reservedSource) {
-                    selectFrame(
+                    replaceLatestRealFrame(
                         PooledFrame(
                             bytes = buffer,
                             byteCount = byteCount,
@@ -128,7 +124,7 @@ internal class JpegStore {
                 } else {
                     recycleBuffer(buffer)
                 }
-                previouslyHadImage != (selectedFrame != null)
+                previousKind != imageKind()
             }
         } catch (cause: Throwable) {
             synchronized(monitor) { copyBuffer?.let(::recycleBuffer) }
@@ -158,27 +154,36 @@ internal class JpegStore {
             closed = true
             captureId = null
             captureSourceToken = null
-            selectFrame(null)
+            replaceLatestRealFrame(null)
             logoFrame = null
             spareBuffer = null
         }
         wakeReaders()
     }
 
-    private fun selectStoppedImage() {
-        if (captureStatus != Status.Stopping && captureStatus != Status.Stopped) return
-        when (stoppedImagePolicy) {
-            PostStopImage.None -> selectFrame(null)
-            PostStopImage.Placeholder -> selectFrame(logoFrame)
-            PostStopImage.LastAvailableFrame -> Unit
+    private fun selectedFrame(): Frame? {
+        val latest = latestRealFrame
+        if (latest != null && latest.captureSourceToken === captureSourceToken) return latest
+        return when (fallbackPolicy) {
+            PostStopImage.None -> null
+            PostStopImage.Placeholder -> logoFrame
+            PostStopImage.LastAvailableFrame -> latest ?: logoFrame
         }
     }
 
-    private fun selectFrame(next: Frame?) {
-        if (selectedFrame === next) return
-        val previous = selectedFrame
-        selectedFrame = next
-        if (previous is PooledFrame && previous.leaseCount == 0) {
+    private fun imageKind(): ImageKind {
+        val frame = selectedFrame() ?: return ImageKind.None
+        return when {
+            frame.captureSourceToken == null -> ImageKind.Logo
+            frame.captureSourceToken === captureSourceToken -> ImageKind.Live
+            else -> ImageKind.Retained
+        }
+    }
+
+    private fun replaceLatestRealFrame(next: PooledFrame?) {
+        val previous = latestRealFrame
+        latestRealFrame = next
+        if (previous != null && previous.leaseCount == 0) {
             recycleBuffer(previous.bytes)
         }
     }
@@ -193,7 +198,7 @@ internal class JpegStore {
     }
 
     private fun acquireSelectedFrame(): Frame? {
-        val frame = selectedFrame ?: return null
+        val frame = selectedFrame() ?: return null
         if (frame is PooledFrame) frame.leaseCount++
         return frame
     }
@@ -201,7 +206,7 @@ internal class JpegStore {
     private fun releaseLease(frame: Frame) {
         if (frame !is PooledFrame) return
         frame.leaseCount--
-        if (frame !== selectedFrame && frame.leaseCount == 0) {
+        if (frame !== latestRealFrame && frame.leaseCount == 0) {
             recycleBuffer(frame.bytes)
         }
     }
@@ -259,11 +264,6 @@ internal class JpegStore {
             synchronized(monitor) { releaseLease(frame) }
         }
 
-        /** Images from revoked capture sources and the logo cannot count as live capture recovery. */
-        fun isCurrentCapture(frame: Frame): Boolean = synchronized(monitor) {
-            !closed && frame.captureSourceToken != null && frame.captureSourceToken === captureSourceToken
-        }
-
         /** Close all admission and release only the initial lease still awaiting writer handoff. */
         fun close() {
             synchronized(monitor) {
@@ -276,6 +276,8 @@ internal class JpegStore {
         }
     }
 
-    /** Availability is independent of capture phase; [sourceIdentity] fences obsolete slow observations. */
-    data class Snapshot(val capture: Status, val hasImage: Boolean, val sourceIdentity: Any?)
+    enum class ImageKind { None, Logo, Live, Retained }
+
+    /** Selection is independent of capture phase; [captureSourceToken] fences obsolete slow observations. */
+    data class Snapshot(val captureStatus: Status, val imageKind: ImageKind, val captureSourceToken: Any?)
 }

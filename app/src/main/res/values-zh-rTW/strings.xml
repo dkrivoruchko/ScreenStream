@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">選擇串流模式：</string>
     <string name="app_tab_stream_switching_modules">正在切換模組</string>
 
-    <string name="app_permission_required_title">需要權限</string>
-    <string name="app_permission_allow_notifications">此應用程式需要通知權限才能啟動串流服務。\n\n請允許通知。</string>
-    <string name="app_permission_allow_notifications_settings">此應用程式需要通知權限才能啟動串流服務。\n\n請在應用程式設定中啟用通知。</string>
-    <string name="app_permission_notification_settings">開啟設定</string>
-    <string name="app_permission_local_network_title">需要區域網路存取權</string>
-    <string name="app_permission_local_network_message">允許 ScreenStream 使用您的區域網路，讓裝置可以連線到您的串流。</string>
-    <string name="app_permission_local_network_off_title">區域網路存取權已關閉</string>
-    <string name="app_permission_local_network_settings_message">請在 Android 設定中開啟區域網路存取權，以便與裝置分享您的螢幕。</string>
+    <string name="app_permission_not_now">暫時不要</string>
     <string name="app_permission_open_settings">開啟設定</string>
-    <string name="app_permission_try_again">再試一次</string>
+
+    <string name="app_permission_notifications_title">允許通知</string>
+    <string name="app_permission_notifications_message">通知會顯示串流狀態和錯誤提醒。 您可以透過通知停止串流或重新開啟 ScreenStream。</string>
+
+    <string name="app_permission_local_network_title">區域網路存取權</string>
+    <string name="app_permission_local_network_message">允許 ScreenStream 使用您的區域網路，向同一網路上的其他裝置串流。\n\nAndroid 將此權限描述為存取「附近的裝置」，並可能提及判斷這些裝置的相對位置。</string>
+    <string name="app_permission_local_network_off_title">區域網路存取權已關閉</string>
+    <string name="app_permission_local_network_settings_message">如要向同一區域網路上的裝置串流，請在應用程式設定中開啟「權限」，並允許存取「鄰近裝置」。</string>
+
+    <string name="app_permission_microphone_title">麥克風存取權</string>
+    <string name="app_permission_microphone_message">允許存取麥克風，以在串流中包含麥克風的聲音。\n\n沒有此權限，就無法串流麥克風音訊。</string>
+    <string name="app_permission_device_audio_title">裝置音訊存取權</string>
+    <string name="app_permission_device_audio_message">Android 要求取得麥克風權限才能串流裝置音訊。這不會開啟您的麥克風。\n\n只能串流 Android 和播放音訊的應用程式允許分享的音訊。</string>
+
+    <string name="app_permission_audio_title">麥克風和裝置音訊</string>
+    <string name="app_permission_audio_message">允許存取麥克風，以串流麥克風和裝置音訊。\n\n只有在 Android 和播放音訊的應用程式允許分享時，才能串流裝置音訊。</string>
+    <string name="app_permission_audio_settings_message">請在應用程式設定中啟用麥克風權限，以串流麥克風或內部音訊。\n\n沒有此權限，串流將沒有聲音。</string>
 
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">錯誤通知</string>

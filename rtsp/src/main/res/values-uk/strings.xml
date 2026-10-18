@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">Аудіокодек:</string>
     <string name="rtsp_audio_encoder_auto">Авто</string>
     <string name="rtsp_audio_bitrate">Бітрейт аудіо: %1$s/сек</string>
-    <string name="rtsp_audio_permission_title">Дозволити запис звуку</string>
-    <string name="rtsp_audio_permission_message">Для трансляції аудіо потрібен дозвіл на запис звуку.\n\nБез нього в трансляції не буде звуку.</string>
-    <string name="rtsp_audio_permission_open_settings">Відкрити налаштування</string>
-    <string name="rtsp_audio_permission_message_settings">Увімкніть дозвіл мікрофона в налаштуваннях додатку, щоб транслювати аудіо.\n\nБез нього в трансляції не буде звуку.</string>
     <string name="rtsp_audio_capture_issue_detected">Виявлено проблему із захопленням звуку</string>
 
     <string name="rtsp_connection_access_denied">Доступ заборонено</string>

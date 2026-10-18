@@ -5,4 +5,7 @@
 
     <string name="common_continue">ቀጥል</string>
     <string name="common_try_again">እንደገና ሞክር</string>
+
+    <string name="common_expanded">ተዘርግቷል</string>
+    <string name="common_collapsed">ተሰብስቧል</string>
 </resources>

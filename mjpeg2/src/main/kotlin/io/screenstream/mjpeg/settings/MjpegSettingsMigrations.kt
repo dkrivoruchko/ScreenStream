@@ -27,7 +27,7 @@ import java.io.IOException
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.seconds
 
-/** Temporary legacy import; file identities are independent of the Gradle module's name. */
+/** Imports legacy preferences; file identities are independent of the Gradle module's name. */
 internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferences> {
     private val sourceFile: File = context.preferencesDataStoreFile("MJPEG_settings")
     private val defaults: MjpegSettings.Data = MjpegSettings.Data(web = WebPageSettings())
@@ -134,7 +134,6 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
                 ),
                 web = defaults.web.copy(
                     background = integer("HTML_BACK_COLOR")?.let { "#%06X".format(it and 0xFFFFFF) } ?: defaults.web.background,
-                    retainImageOnMediaFailure = boolean("HTML_KEEP_IMAGE_ON_RECONNECT") ?: defaults.web.retainImageOnMediaFailure,
                 ),
                 behavior = defaults.behavior.copy(
                     keepScreenAwake = boolean("KEEP_AWAKE") ?: defaults.behavior.keepScreenAwake,

@@ -5,4 +5,7 @@
 
     <string name="common_continue">جاری رکھیں</string>
     <string name="common_try_again">دوبارہ کوشش کریں</string>
+
+    <string name="common_expanded">پھیلایا گیا</string>
+    <string name="common_collapsed">سکیڑا گیا</string>
 </resources>

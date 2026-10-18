@@ -1,6 +1,7 @@
 package io.screenstream.mjpeg.settings
 
 import android.os.Build
+import androidx.compose.runtime.Immutable
 import io.screenstream.capture.ColorMode
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.FrameRate
@@ -29,6 +30,7 @@ import kotlin.time.Duration
  * before rotation; output size follows the transformed image. Runtime geometry can reject a request
  * that passed value validation. Frame-rate limits do not guarantee a delivery rate.
  */
+@Immutable
 @Serializable
 internal data class ImageSettings(
     val sourceRegion: SourceRegion = SourceRegion.Full,
@@ -133,6 +135,7 @@ internal data class ImageSettings(
  * Address filters remain live-editable; the HTTP port requires setup edits to be allowed.
  * Each saved filter group must be nonempty. Selection does not guarantee a bind or viewer reachability.
  */
+@Immutable
 @Serializable
 internal data class NetworkSettings(
     @Serializable(with = FilterSerializer::class)
@@ -171,15 +174,16 @@ internal data class NetworkSettings(
 }
 
 /**
- * Access changes require setup edits to be allowed; late observations cannot change busy credentials.
+ * Access changes except [hidePinOnCaptureStart] require setup edits; late observations cannot change busy credentials.
  * Random PIN regeneration works for either policy; typed edits require Permanent. Enabling protection
  * without a PIN generates and saves six ASCII digits before protected viewing opens.
  *
- * [hidePinOnCaptureStart] is a saved display preference; PIN display handling is not connected yet.
+ * [hidePinOnCaptureStart] is live-editable and hides the PIN below stream addresses when capture starts.
  * [limitWrongPins] blocks after five wrong entries per immediate IP, shared across listening addresses.
  * Existing authorization survives a block; requests do not extend it, and success/expiry resets attempts.
  * [blockMinutes] changes affect later blocks.
  */
+@Immutable
 @Serializable
 internal data class AccessSettings(
     val pinEnabled: Boolean = false,
@@ -218,6 +222,7 @@ internal data class AccessSettings(
  * Redacts generated settings/UI strings through [toString]; serialization preserves the supplied text.
  * PIN validation belongs to [AccessSettings]. Reveal [value] only for an explicit user action.
  */
+@Immutable
 @Serializable
 internal class SecretValue(val value: String) {
     override fun equals(other: Any?): Boolean = other is SecretValue && value == other.value
@@ -228,9 +233,8 @@ internal class SecretValue(val value: String) {
 /**
  * Shared live page settings; browser-local viewing choices remain separate.
  * The default device title is always saved; explicitly empty titles remain empty.
- * [retainImageOnMediaFailure] preserves displayed media during media recovery, not authorization denial
- * or image unavailability. Its old serialized name preserves existing saved values.
  */
+@Immutable
 @Serializable
 internal data class WebPageSettings(
     val background: String = "#101418",
@@ -239,8 +243,6 @@ internal data class WebPageSettings(
     val titleEnabled: Boolean = true,
     val titleLayout: BlockLayout = BlockLayout(Edge.Top, Presentation.Overlay, true),
     val controlsLayout: BlockLayout = BlockLayout(Edge.Bottom, Presentation.Overlay, true),
-    @SerialName("retainImageOnReconnect")
-    val retainImageOnMediaFailure: Boolean = true,
 ) {
     init {
         require(background.matches(Regex("#[0-9a-fA-F]{6}"))) { "Background must be an RGB color" }
@@ -260,6 +262,7 @@ internal data class WebPageSettings(
     /**
      * Independent title/control placement; Bar reserves space while Overlay covers the image.
      */
+    @Immutable
     @Serializable
     data class BlockLayout(val position: Edge, val presentation: Presentation, val autoHide: Boolean)
 
@@ -277,11 +280,12 @@ internal data class WebPageSettings(
 
 /**
  * Network-loss Stop tracks an empty selected-address list, not HTTP bind failures; returning addresses
- * cancel it. Timeout edits keep the same loss episode. Post-Stop selection applies immediately while
- * stopped, but cleared frames cannot be restored and capture errors leave no placeholder.
- * Screen wakefulness, screen-off Stop and slow-viewer notifications are not connected yet;
- * notification preferences do not control statistics collection.
+ * cancel it. Timeout edits keep the same loss episode. [postStopImage] applies whenever no current
+ * capture image exists. Last frame falls back to logo; fallback edits retain the latest real frame.
+ * Screen-off Stop ends capture when the device goes to sleep; waking does not restart it.
+ * Notification preferences do not control statistics collection.
  */
+@Immutable
 @Serializable
 internal data class StreamBehaviorSettings(
     val keepScreenAwake: Boolean = false,

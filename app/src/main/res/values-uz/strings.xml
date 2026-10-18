@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">Strim rejimini tanlang:</string>
     <string name="app_tab_stream_switching_modules">Modullar almashtirilmoqda</string>
 
-    <string name="app_permission_required_title">Ruxsat talab qilinadi</string>
-    <string name="app_permission_allow_notifications">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnoma ruxsati kerak.\n\nBildirishnomalarga ruxsat bering.</string>
-    <string name="app_permission_allow_notifications_settings">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnoma ruxsati kerak.\n\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
-    <string name="app_permission_notification_settings">Sozlamalarni oching</string>
-    <string name="app_permission_local_network_title">Mahalliy tarmoqqa kirish kerak</string>
-    <string name="app_permission_local_network_message">Qurilmalar translatsiyangizga ulanishi uchun ScreenStreamga mahalliy tarmoqdan foydalanishga ruxsat bering.</string>
-    <string name="app_permission_local_network_off_title">Mahalliy tarmoqqa kirish faol emas</string>
-    <string name="app_permission_local_network_settings_message">Ekraningizni qurilmalar bilan ulashish uchun Android sozlamalarida mahalliy tarmoqqa kirishni yoqing.</string>
+    <string name="app_permission_not_now">Hozir emas</string>
     <string name="app_permission_open_settings">Sozlamalarni oching</string>
-    <string name="app_permission_try_again">Qayta urining</string>
+
+    <string name="app_permission_notifications_title">Bildirishnomalarga ruxsat bering</string>
+    <string name="app_permission_notifications_message">Bildirishnomalar translatsiya holati va xatolar haqidagi ogohlantirishlarni ko‘rsatadi. Ular orqali translatsiyani to‘xtating yoki ScreenStreamni qayta oching.</string>
+
+    <string name="app_permission_local_network_title">Mahalliy tarmoqqa kirish</string>
+    <string name="app_permission_local_network_message">ScreenStreamga bir xil tarmoqdagi boshqa qurilmalarga translatsiya qilish uchun mahalliy tarmoqdan foydalanishga ruxsat bering.\n\nAndroid bu ruxsatni Yaqin-atrofdagi qurilmalarga kirish deb ta’riflaydi va ularning bir-biriga nisbatan joylashuvini aniqlashni eslatishi mumkin.</string>
+    <string name="app_permission_local_network_off_title">Mahalliy tarmoqqa kirish faol emas</string>
+    <string name="app_permission_local_network_settings_message">Bir xil mahalliy tarmoqdagi qurilmalarga translatsiya qilish uchun ilova sozlamalarida Ruxsatlar bo‘limini oching va Yaqin-atrofdagi qurilmalarga ruxsat bering.</string>
+
+    <string name="app_permission_microphone_title">Mikrofonga kirish</string>
+    <string name="app_permission_microphone_message">Mikrofoningiz ovozini translatsiyaga qo‘shish uchun mikrofonga kirishga ruxsat bering.\n\nBu ruxsatsiz mikrofon audiosini translatsiya qilib bo‘lmaydi.</string>
+    <string name="app_permission_device_audio_title">Qurilma audiosiga kirish</string>
+    <string name="app_permission_device_audio_message">Qurilma audiosini translatsiya qilish uchun Android mikrofon ruxsatini talab qiladi. Bu mikrofoningizni yoqmaydi.\n\nFaqat Android va audioni ijro etayotgan ilova ulashishga ruxsat bergan audio translatsiya qilinishi mumkin.</string>
+
+    <string name="app_permission_audio_title">Mikrofon va qurilma audiosi</string>
+    <string name="app_permission_audio_message">Mikrofon va qurilma audiosini translatsiya qilish uchun mikrofonga kirishga ruxsat bering.\n\nQurilma audiosi faqat Android va audioni ijro etayotgan ilova uni ulashishga ruxsat berganda translatsiya qilinishi mumkin.</string>
+    <string name="app_permission_audio_settings_message">Mikrofon yoki ichki audioni uzatish uchun ilova sozlamalarida mikrofondan foydalanishga ruxsat bering.\n\nBu ruxsatsiz translatsiyada ovoz bo\'lmaydi.</string>
 
     <string name="app_notification_channel_streaming">Oqimli bildirishnomalar</string>
     <string name="app_notification_channel_error">Xato bildirishnomalari</string>

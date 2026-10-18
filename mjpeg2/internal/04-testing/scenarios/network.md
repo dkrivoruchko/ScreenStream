@@ -2,7 +2,7 @@
 
 # Discovery evidence and LAN permission
 
-Behavior: [maintained contract](../../02-configuration/network-addresses.md). Filters, permission policy and supplied source evidence use L0; Android source/monitor integration uses L1. Controlled native inputs exercise complete/partial reads, callback fallback, scoped selection, stable identity, metadata/filter updates, stale-scan reconciliation and held scan/close settlement. Platform shadows exercise callback copying, registration retry/late retirement, pre-26 stale fallback rejection and tether snapshot retirement. Actual Android native discovery and LAN enforcement need L2. Supplied unregister actions check failure aggregation without proving physical observer settlement.
+Behavior: [maintained contract](../../02-configuration/network-addresses.md). Use L0 for filters, permission policy and supplied evidence, and L1 for source/monitor integration. Controlled native inputs and platform shadows verify their supplied callback/read/settlement boundaries. Actual Android native discovery and LAN enforcement require L2. Supplied unregister actions do not establish physical observer settlement.
 
 ## Immutable filter criteria
 
@@ -56,9 +56,9 @@ Two interfaces advertise the same IP; IPv4/IPv6, scope variants and unscoped ali
 
 <a id="mjpeg-net-09"></a>
 
-API 24/25, 26+, 30+ and 36+ fixtures vary callback registration, capabilities/link properties/loss and tethering availability. Register observers; deliver callbacks or fallback reads including callback-during-fallback race. Pre-26 fallback may supply missing metadata without overwriting newer callbacks. Registered modern callbacks become authoritative; VPN and no-INTERNET LAN information remains usable. API-36 tethering observation supplies supported types. ConnectivityManager registration failure/retry checks retain deterministic native address evidence on both scans; readiness follows later callback metadata. This does not exercise tether registration failure/retry.
+API 24/25, 26+, 30+ and 36+ fixtures vary callback registration, capabilities/link properties/loss and tethering availability. Register observers; deliver callbacks or fallback reads including callback-during-fallback race. Pre-26 fallback may supply missing metadata without overwriting newer callbacks. Registered modern callbacks become authoritative; VPN and no-INTERNET LAN information remains usable. API-36 tethering observation supplies supported types. For ConnectivityManager registration failure/retry, retain deterministic native address evidence on both scans and verify readiness after later callback metadata. Arrange tether registration failure/retry separately.
 
-The implemented fallback histories run on 24/25; callback payload/retirement runs on 26/29/30/35. A stock-derived registration receipt checks request criteria on 29/30/35 and public capability satisfaction on 30/35: unrestricted untrusted LAN/VPN inputs need neither INTERNET nor VALIDATED. Stock callback delivery alone does not evaluate a NetworkRequest or establish real network availability. API 26 begins [guaranteed initial capability/link callbacks](https://developer.android.com/reference/android/net/ConnectivityManager.NetworkCallback); API 30 supplies clearCapabilities; API 36 supplies the [public tether callback](https://developer.android.com/reference/android/net/TetheringManager.TetheringEventCallback). Tether snapshot readiness, copying and retired-event rejection run on 36/37. Tether registration faults/late registration and non-WIFI tether inputs remain unarranged; the compiled public tether constants expose WIFI only.
+Use fallback histories on 24/25 and callback payload/retirement histories at 26/29/30/35. A stock-derived registration receipt can check request criteria at 29/30/35 and public capability satisfaction at 30/35: unrestricted untrusted LAN/VPN inputs need neither INTERNET nor VALIDATED. Stock callback delivery alone does not evaluate a NetworkRequest or establish real network availability. API 26 begins [guaranteed initial capability/link callbacks](https://developer.android.com/reference/android/net/ConnectivityManager.NetworkCallback); API 30 supplies clearCapabilities; API 36 supplies the [public tether callback](https://developer.android.com/reference/android/net/TetheringManager.TetheringEventCallback). Use 36/37 for tether snapshot readiness, copying and retired-event rejection. Tether registration faults and late registration need distinct barriers. The compiled public tether constants expose WIFI only; do not invent non-WIFI public inputs to claim platform coverage.
 
 ## Discovery lifetime and settlement
 
@@ -72,7 +72,7 @@ The implemented fallback histories run on 24/25; callback payload/retirement run
 
 <a id="mjpeg-net-12"></a>
 
-- **Discovery/cleanup failure aggregation.** Discovery failure and a held combined monitor cleanup failure remain unarranged. Supplied unregister actions do exercise distinct/identical failures and ensure remaining actions are attempted. A broader history must also hold an applicable obligation until the others settle. Discovery failure publishes Failed promptly and remains final; cleanup waits for all applicable unregister actions, active scan and late registrations. Narrow supplied-action aggregation retains the first exception and attaches later failures except the primary exception itself; no global deduplication is promised. Monitor failure may attach the source aggregation as a nested suppressed cause. Close reports failure only after required settlement.
+- **Discovery/cleanup failure aggregation.** Arrange discovery failure and held combined monitor cleanup separately. Supply distinct/identical unregister failures and verify that remaining actions are attempted; hold an applicable obligation until the others settle. Discovery failure publishes Failed promptly and remains final; cleanup waits for all applicable unregister actions, active scan and late registrations. Narrow supplied-action aggregation retains the first exception and attaches later failures except the primary exception itself; no global deduplication is promised. Monitor failure may attach the source aggregation as a nested suppressed cause. Close reports failure only after required settlement.
 
 ## Permission gates and value policy
 
@@ -80,11 +80,11 @@ The implemented fallback histories run on 24/25; callback payload/retirement run
 
 - **Runtime and target SDK gates.** Runtime API <37 / >=37 and target <37 / >=37 are independently varied with grant denied. Start controller and apply a representative ready address list. Permission is treated granted unless both runtime and target are >=37; only that combination requires actual ACCESS_LOCAL_NETWORK grant. No prompt or launcher behavior is asserted.
 
-Focused L1 controller fixtures cover the supported minimum and immediate predecessor (24/36), then API 37 with target 36/37 and grant changes. This checks MJPEG's admission policy; [Android 17 enforcement](https://developer.android.com/privacy-and-security/local-network-permission) applies inside the real network stack. Android 16's optional compatibility restriction is a separate L2 configuration, not this API-37 production gate.
+Use focused L1 controller fixtures at the supported minimum and immediate predecessor (24/36), then API 37 with target 36/37 and grant changes. These fixtures verify MJPEG's admission policy; [Android 17 enforcement](https://developer.android.com/privacy-and-security/local-network-permission) applies inside the real network stack. Android 16's optional compatibility restriction is a separate L2 configuration, not this API-37 production gate.
 
 <a id="mjpeg-lan-02"></a>
 
-- **Address/filter permission policy.** Loopback versus nonloopback addresses use Wifi/Ethernet/Other/Mobile/Vpn; filters use Loopback-only and mixed categories/types, including empty non-saved sets. Read requiresLocalNetworkPermission and apply controller filtering. Nonloopback Wifi/Ethernet/Other addresses require permission; Mobile/Vpn and loopback do not. A filter requires permission when it includes any nonloopback category and any eligible interface type. Empty saved filters are rejected elsewhere.
+- **Address permission policy.** Loopback versus nonloopback addresses use Wifi/Ethernet/Other/Mobile/Vpn. Read each address's requiresLocalNetworkPermission and apply controller filtering. Nonloopback Wifi/Ethernet/Other addresses require permission; Mobile/Vpn and loopback do not. Selecting addresses through a filter does not itself launch permission UI. Empty saved filter groups are rejected by settings separately.
 
 ## Grant changes and real LAN enforcement
 

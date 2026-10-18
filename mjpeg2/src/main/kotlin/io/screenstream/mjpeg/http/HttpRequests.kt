@@ -25,16 +25,15 @@ internal class HttpRequests {
         serverId: Uuid,
         ip: String,
         port: Int,
-        format: MediaFormat,
         job: Job,
         now: Long,
     ) {
         check(writer !in media) { "Media writer already registered" }
         val key = Endpoint.Key(serverId, ip, port)
         if (endpoints[key]?.hasExpired(now) == true) endpoints.remove(key)
-        val endpoint = endpoints.getOrPut(key) { Endpoint(++lastEndpointId, key, format) }
-        endpoint.format = format
-        endpoint.disconnectAtMillis = null
+        val endpoint = endpoints.getOrPut(key) { Endpoint(++lastEndpointId, key, writer.format) }
+        endpoint.format = writer.format
+        endpoint.activeUntilMillis = null
         media[writer] = MediaRequest(listener, job, endpoint)
     }
 
@@ -61,7 +60,7 @@ internal class HttpRequests {
             it.endpoint === endpoint && it.listener in currentListeners
         }
         if (startsGrace) {
-            endpoint.disconnectAtMillis = now + RECENT_MEDIA_MILLIS
+            endpoint.activeUntilMillis = now + RECENT_MEDIA_MILLIS
         }
     }
 
@@ -79,7 +78,7 @@ internal class HttpRequests {
     /** Cutoff skips Active grace; late completion cannot extend the retention deadline. */
     fun cutoff(listener: HttpListener, serverId: Uuid, now: Long): List<Job> {
         endpoints.values.filter { it.key.serverId == serverId }.forEach { endpoint ->
-            endpoint.disconnectAtMillis = minOf(endpoint.disconnectAtMillis ?: now, now)
+            endpoint.activeUntilMillis = minOf(endpoint.activeUntilMillis ?: now, now)
         }
         val jobs = media.filterValues { it.listener === listener }.map { (writer, request) ->
             writer.close()
@@ -96,7 +95,7 @@ internal class HttpRequests {
     }
 
     /** [currentListeners] must be captured under the same gate; it is not retained. */
-    fun sample(now: Long, source: Any?, currentListeners: Set<HttpListener>): Sample {
+    fun sample(now: Long, captureSourceToken: Any?, currentListeners: Set<HttpListener>): Sample {
         var completedJpegs = retiredJpegCount
         var completedJpegBytes = retiredJpegBytes
         endpoints.values.removeAll { it.hasExpired(now) }
@@ -112,7 +111,7 @@ internal class HttpRequests {
             rowBytes[endpoint] = (rowBytes[endpoint] ?: 0L) + progress.completedJpegBytes
             if (request.listener in currentListeners) {
                 liveEndpoints.add(endpoint)
-                if (source != null && progress.isSlow && progress.observedCaptureSource === source) {
+                if (captureSourceToken != null && progress.isSlow && progress.observedCaptureSource === captureSourceToken) {
                     slowEndpoints.add(endpoint)
                 }
             }
@@ -139,12 +138,12 @@ internal class HttpRequests {
     /** Numeric/string history only; never retains jobs, writers, readers or JPEG storage. */
     private class Endpoint(val id: Long, val key: Key, var format: MediaFormat) {
         var retiredJpegBytes = 0L
-        var disconnectAtMillis: Long? = null
+        var activeUntilMillis: Long? = null
 
         fun hasExpired(now: Long): Boolean =
-            disconnectAtMillis?.let { now >= it + DISCONNECTED_HOLD_MILLIS } == true
+            activeUntilMillis?.let { now >= it + DISCONNECTED_HOLD_MILLIS } == true
 
-        fun isInGrace(now: Long): Boolean = disconnectAtMillis?.let { now < it } == true
+        fun isInGrace(now: Long): Boolean = activeUntilMillis?.let { now < it } == true
 
         data class Key(val serverId: Uuid, val ip: String, val port: Int)
     }

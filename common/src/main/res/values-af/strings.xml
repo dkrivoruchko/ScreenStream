@@ -5,4 +5,7 @@
 
     <string name="common_continue">Gaan voort</string>
     <string name="common_try_again">Probeer weer</string>
+
+    <string name="common_expanded">Uitgevou</string>
+    <string name="common_collapsed">Ingevou</string>
 </resources>

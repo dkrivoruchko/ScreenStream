@@ -49,6 +49,9 @@ internal fun StreamTabContent( //TODO Add foldable support
 ) {
     val moduleState = streamingModulesManager.state.collectAsStateWithLifecycle()
     val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
+    val selectorExpanded = rememberSaveable {
+        mutableStateOf(windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND))
+    }
 
     Column(modifier = modifier) {
         val width = with(LocalDensity.current) { boundsInWindow.width.toDp() }
@@ -58,6 +61,8 @@ internal fun StreamTabContent( //TODO Add foldable support
                     StreamingModuleSelector(
                         streamingModulesManager = streamingModulesManager,
                         enabled = moduleState.value != StreamingModuleManager.State.Switching,
+                        expanded = selectorExpanded.value,
+                        onExpandedChange = { selectorExpanded.value = it },
                         modifier = Modifier
                             .padding(top = 8.dp, start = 16.dp, end = 8.dp, bottom = 8.dp)
                             .fillMaxWidth()
@@ -73,6 +78,8 @@ internal fun StreamTabContent( //TODO Add foldable support
                 StreamingModuleSelector(
                     streamingModulesManager = streamingModulesManager,
                     enabled = moduleState.value != StreamingModuleManager.State.Switching,
+                    expanded = selectorExpanded.value,
+                    onExpandedChange = { selectorExpanded.value = it },
                     modifier = Modifier
                         .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
                         .fillMaxWidth()
@@ -124,18 +131,15 @@ private fun InstanceContentUnavailable() {
 private fun StreamingModuleSelector(
     streamingModulesManager: StreamingModuleManager,
     enabled: Boolean,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val selectedModuleId = streamingModulesManager.currentInstanceId.collectAsStateWithLifecycle().value?.moduleId
 
-    val adaptiveInfo = currentWindowAdaptiveInfoV2()
-    val expanded = rememberSaveable {
-        mutableStateOf(adaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND))
-    }
-
     ExpandableCard(
-        expanded = expanded.value,
-        onExpandedChange = { expanded.value = it },
+        expanded = expanded,
+        onExpandedChange = onExpandedChange,
         headerContent = {
             Column(
                 modifier = Modifier

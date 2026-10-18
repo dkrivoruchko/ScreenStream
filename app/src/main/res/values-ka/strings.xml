@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">აირჩიეთ ნაკადის რეჟიმი:</string>
     <string name="app_tab_stream_switching_modules">მოდულების გადართვა</string>
 
-    <string name="app_permission_required_title">საჭიროა ნებართვა</string>
-    <string name="app_permission_allow_notifications">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებების ნებართვა სჭირდება.\n\nდაუშვით შეტყობინებები.</string>
-    <string name="app_permission_allow_notifications_settings">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებების ნებართვა სჭირდება.\n\nჩართეთ შეტყობინებები აპის პარამეტრებში.</string>
-    <string name="app_permission_notification_settings">გახსენით პარამეტრები</string>
-    <string name="app_permission_local_network_title">საჭიროა ლოკალურ ქსელზე წვდომა</string>
-    <string name="app_permission_local_network_message">დაუშვით, რომ ScreenStream-მა გამოიყენოს თქვენი ლოკალური ქსელი, რათა მოწყობილობები თქვენს ნაკადს დაუკავშირდნენ.</string>
-    <string name="app_permission_local_network_off_title">ლოკალურ ქსელზე წვდომა გამორთულია</string>
-    <string name="app_permission_local_network_settings_message">ჩართეთ ლოკალურ ქსელზე წვდომა Android-ის პარამეტრებში, რომ ეკრანი მოწყობილობებს გაუზიაროთ.</string>
+    <string name="app_permission_not_now">ახლა არა</string>
     <string name="app_permission_open_settings">გახსენით პარამეტრები</string>
-    <string name="app_permission_try_again">ხელახლა სცადეთ</string>
+
+    <string name="app_permission_notifications_title">დაუშვით შეტყობინებები</string>
+    <string name="app_permission_notifications_message">შეტყობინებები აჩვენებს სტრიმინგის სტატუსსა და შეცდომების შესახებ გაფრთხილებებს. მათი მეშვეობით შეგიძლიათ შეწყვიტოთ სტრიმინგი ან ხელახლა გახსნათ ScreenStream.</string>
+
+    <string name="app_permission_local_network_title">ლოკალურ ქსელზე წვდომა</string>
+    <string name="app_permission_local_network_message">ნება დართეთ ScreenStream-ს გამოიყენოს თქვენი ლოკალური ქსელი იმავე ქსელში სხვა მოწყობილობებზე სტრიმინგისთვის.\n\nAndroid ამ ნებართვას აღწერს, როგორც ახლომდებარე მოწყობილობებზე წვდომას და შეიძლება ახსენოს მათი ერთმანეთის მიმართ მდებარეობის განსაზღვრა.</string>
+    <string name="app_permission_local_network_off_title">ლოკალურ ქსელზე წვდომა გამორთულია</string>
+    <string name="app_permission_local_network_settings_message">იმავე ლოკალურ ქსელში მოწყობილობებზე სტრიმინგისთვის აპის პარამეტრებში გახსენით „ნებართვები“ და დაუშვით „ახლომახლო მოწყობილობები“.</string>
+
+    <string name="app_permission_microphone_title">მიკროფონზე წვდომა</string>
+    <string name="app_permission_microphone_message">დაუშვით მიკროფონზე წვდომა, რათა სტრიმში თქვენი მიკროფონის ხმაც ჩაირთოს.\n\nამის გარეშე მიკროფონის აუდიო ვერ გადაიცემა.</string>
+    <string name="app_permission_device_audio_title">მოწყობილობის აუდიოზე წვდომა</string>
+    <string name="app_permission_device_audio_message">მოწყობილობის აუდიოს გადასაცემად Android-ს მიკროფონის ნებართვა სჭირდება. ეს თქვენს მიკროფონს არ რთავს.\n\nგადაიცემა მხოლოდ ის აუდიო, რომლის გაზიარებაც დაშვებულია Android-ისა და მისი დამკვრელი აპის მიერ.</string>
+
+    <string name="app_permission_audio_title">მიკროფონისა და მოწყობილობის აუდიო</string>
+    <string name="app_permission_audio_message">დაუშვით მიკროფონზე წვდომა მიკროფონისა და მოწყობილობის აუდიოს გადასაცემად.\n\nმოწყობილობის აუდიო გადაიცემა მხოლოდ მაშინ, თუ Android და მისი დამკვრელი აპი გაზიარებას დაუშვებენ.</string>
+    <string name="app_permission_audio_settings_message">ჩართეთ მიკროფონის ნებართვა აპის პარამეტრებში მიკროფონის ან შიდა აუდიოს სტრიმისთვის.\n\nამის გარეშე სტრიმს ხმა არ ექნება.</string>
 
     <string name="app_notification_channel_streaming">სტრიმინგის შეტყობინებები</string>
     <string name="app_notification_channel_error">შეცდომის შეტყობინებები</string>

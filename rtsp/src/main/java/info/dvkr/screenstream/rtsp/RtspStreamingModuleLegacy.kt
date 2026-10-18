@@ -1,6 +1,5 @@
 package info.dvkr.screenstream.rtsp
 
-import io.screenstream.streaming.module.StreamingModule
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
@@ -11,14 +10,15 @@ import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import io.screenstream.streaming.legacy.StreamingModuleLegacy
-import io.screenstream.streaming.legacy.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspClientStatus
 import info.dvkr.screenstream.rtsp.ui.RtspMainScreenUI
 import info.dvkr.screenstream.rtsp.ui.RtspState
+import io.screenstream.streaming.legacy.StreamingModuleLegacy
+import io.screenstream.streaming.legacy.isStreamingModuleStartBlocked
+import io.screenstream.streaming.module.StreamingModule
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +43,7 @@ public class RtspStreamingModuleLegacy : StreamingModuleLegacy {
     private val _rtspStateFlow: MutableStateFlow<RtspState> = MutableStateFlow(RtspState())
     private var startToken: String? = null
     private var streamingService: RtspStreamingService? = null
+    private var initialLocalNetworkRequestClaimed = false
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 10
@@ -63,8 +64,6 @@ public class RtspStreamingModuleLegacy : StreamingModuleLegacy {
             }
             .distinctUntilChanged()
 
-    override val requiresLocalNetworkPermission: Boolean = true
-
     override val nameResource: Int = R.string.rtsp_stream_mode
     override val descriptionResource: Int = R.string.rtsp_stream_mode_description
     override val detailsResource: Int = R.string.rtsp_stream_mode_details
@@ -79,8 +78,13 @@ public class RtspStreamingModuleLegacy : StreamingModuleLegacy {
             sendEvent = ::sendEvent,
             onProjectionGranted = ::startProjection,
             windowSizeClass = windowSizeClass,
+            claimInitialLocalNetworkRequest = ::claimInitialLocalNetworkRequest,
             modifier = modifier
         )
+
+    private fun claimInitialLocalNetworkRequest(request: () -> Boolean) {
+        if (!initialLocalNetworkRequestClaimed) initialLocalNetworkRequestClaimed = request()
+    }
 
     @MainThread
     override fun startModule(context: Context) {
@@ -89,6 +93,7 @@ public class RtspStreamingModuleLegacy : StreamingModuleLegacy {
 
         when (val state = _streamingServiceState.value) {
             StreamingModuleLegacy.State.Initiated -> {
+                initialLocalNetworkRequestClaimed = false
                 startToken = Uuid.random().toString()
                 _streamingServiceState.value = StreamingModuleLegacy.State.PendingStart
                 val intent = RtspEvent.Intentable.StartService(startToken!!).toIntent(context)
@@ -214,7 +219,14 @@ public class RtspStreamingModuleLegacy : StreamingModuleLegacy {
                 if (activeStreamingService != null) {
                     if (activeStreamingService.prepareStartProjectionForeground(startAttemptId)) {
                         val foregroundStartError = activeStreamingService.tryStartProjectionForeground()
-                        activeStreamingService.sendEvent(RtspEvent.StartProjection(startAttemptId, intent, foregroundStartProcessed = true, foregroundStartError))
+                        activeStreamingService.sendEvent(
+                            RtspEvent.StartProjection(
+                                startAttemptId,
+                                intent,
+                                foregroundStartProcessed = true,
+                                foregroundStartError
+                            )
+                        )
                     }
                 } else XLog.w(getLog("startProjection", "Running state without RtspStreamingService"))
             }
@@ -237,6 +249,7 @@ public class RtspStreamingModuleLegacy : StreamingModuleLegacy {
                     RuntimeException("Unexpected state: $state for event $event")
                 )
             }
+
             else -> when (event) {
                 is RtspEvent.StartProjection,
                 is RtspEvent.CastPermissionsDenied,

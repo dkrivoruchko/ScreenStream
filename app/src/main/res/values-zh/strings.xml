@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">选择串流模式：</string>
     <string name="app_tab_stream_switching_modules">正在切换模块</string>
 
-    <string name="app_permission_required_title">需要权限</string>
-    <string name="app_permission_allow_notifications">此应用需要通知权限才能启动串流服务。\n\n请允许通知。</string>
-    <string name="app_permission_allow_notifications_settings">此应用需要通知权限才能启动串流服务。\n\n请在应用设置中启用通知。</string>
-    <string name="app_permission_notification_settings">打开设置</string>
-    <string name="app_permission_local_network_title">需要访问本地网络</string>
-    <string name="app_permission_local_network_message">允许 ScreenStream 使用您的本地网络，以便设备可以连接到您的串流。</string>
-    <string name="app_permission_local_network_off_title">本地网络访问已关闭</string>
-    <string name="app_permission_local_network_settings_message">请在 Android 设置中开启本地网络访问，以便与设备共享您的屏幕。</string>
+    <string name="app_permission_not_now">暂时不要</string>
     <string name="app_permission_open_settings">打开设置</string>
-    <string name="app_permission_try_again">重试</string>
+
+    <string name="app_permission_notifications_title">允许通知</string>
+    <string name="app_permission_notifications_message">通知会显示串流状态和错误提醒。 您可以通过通知停止串流或重新打开 ScreenStream。</string>
+
+    <string name="app_permission_local_network_title">本地网络访问</string>
+    <string name="app_permission_local_network_message">允许 ScreenStream 使用您的本地网络，向同一网络上的其他设备串流。\n\nAndroid 将此权限描述为访问“附近的设备”，并可能提及确定这些设备的相对位置。</string>
+    <string name="app_permission_local_network_off_title">本地网络访问已关闭</string>
+    <string name="app_permission_local_network_settings_message">如需向同一本地网络上的设备串流，请在应用设置中打开“权限”，并允许访问“附近的设备”。</string>
+
+    <string name="app_permission_microphone_title">麦克风访问</string>
+    <string name="app_permission_microphone_message">允许访问麦克风，以在串流中包含麦克风的声音。\n\n没有此权限，就无法串流麦克风音频。</string>
+    <string name="app_permission_device_audio_title">设备音频访问</string>
+    <string name="app_permission_device_audio_message">Android 要求获得麦克风权限才能串流设备音频。这不会开启您的麦克风。\n\n只能串流 Android 和播放音频的应用允许共享的音频。</string>
+
+    <string name="app_permission_audio_title">麦克风和设备音频</string>
+    <string name="app_permission_audio_message">允许访问麦克风，以串流麦克风和设备音频。\n\n只有在 Android 和播放音频的应用允许共享时，才能串流设备音频。</string>
+    <string name="app_permission_audio_settings_message">请在应用设置中启用麦克风权限，以串流麦克风或内部音频。\n\n没有该权限，串流将没有声音。</string>
 
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">错误通知</string>

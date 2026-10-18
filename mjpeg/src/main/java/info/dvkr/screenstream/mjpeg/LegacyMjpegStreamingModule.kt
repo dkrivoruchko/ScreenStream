@@ -22,7 +22,6 @@ public class LegacyMjpegStreamingModule(
     override val descriptionResource: Int = R.string.mjpeg_stream_mode_description
     override val detailsResource: Int = R.string.mjpeg_stream_mode_details
     override val serviceClass: Class<out Service> = MjpegModuleService::class.java
-    override val requiresLocalNetworkPermission: Boolean = true
 
     override fun startLegacyStream(module: StreamingModuleLegacy) {
         (module as MjpegStreamingModuleLegacy).sendEvent(MjpegStreamingService.InternalEvent.StartStream(permissionEducationShown = false))

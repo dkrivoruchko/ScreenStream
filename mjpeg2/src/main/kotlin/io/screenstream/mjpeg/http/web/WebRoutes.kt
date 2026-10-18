@@ -18,6 +18,7 @@ import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
 import io.ktor.utils.io.readAvailable
@@ -86,7 +87,7 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
                     return@post
                 }
                 val pin = receivePin(call)
-                when (val result = requestHandler.verifyPin(listener, pin, call.request.local.remoteHost)) {
+                when (val result = requestHandler.verifyPin(listener, pin, call.request.local.remoteAddress)) {
                     is HttpAccess.PinResult.Authorized -> {
                         result.cookie?.let { setAccessCookie(call, it.value) }
                         call.respond(HttpStatusCode.NoContent)
@@ -110,7 +111,7 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
                         closeAndAwaitTermination(CloseReason.Codes.VIOLATED_POLICY, "Origin rejected")
                         return@webSocket
                     }
-                    serveWebSocketState(this, call, listener)
+                    serveWebSocketState(listener)
                 } finally {
                     // Cancel raw transport before joining Ktor's detached default-session job;
                     // request cancellation also prevents the upgrade's final flush from waiting indefinitely.
@@ -160,32 +161,32 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
         )
     }
 
-    private suspend fun serveWebSocketState(webSocket: DefaultWebSocketSession, call: ApplicationCall, listener: HttpListener) {
+    private suspend fun DefaultWebSocketServerSession.serveWebSocketState(listener: HttpListener) {
         val admission = requestHandler.admitWebSocket(
             listener = listener,
             accessCookie = call.request.cookies[COOKIE_NAME],
-            peerIp = call.request.local.remoteHost,
+            peerIp = call.request.local.remoteAddress,
             requestJob = checkNotNull(call.coroutineContext[Job]),
         )
-        val generation = when (admission) {
+        val credentialGeneration = when (admission) {
             is WebSocketAdmission.Denied -> {
                 val deniedState = buildJsonObject {
                     val retryAfterMs = admission.retryAfterMs
                     put("access", if (retryAfterMs == null) "pin_required" else "blocked")
                     if (retryAfterMs != null) put("retryAfterMs", retryAfterMs)
                 }
-                webSocket.sendStateSnapshot(deniedState.toString())
-                webSocket.closeAndAwaitTermination(CloseReason.Codes.NORMAL, "Access required")
+                sendStateSnapshot(deniedState.toString())
+                closeAndAwaitTermination(CloseReason.Codes.NORMAL, "Access required")
                 return
             }
 
-            is WebSocketAdmission.Accepted -> admission.generation
+            is WebSocketAdmission.Accepted -> admission.credentialGeneration
         }
         coroutineScope {
             launch {
                 try {
-                    if (webSocket.incoming.receiveCatching().isSuccess) {
-                        webSocket.closeAndAwaitTermination(CloseReason.Codes.VIOLATED_POLICY, "Read-only connection")
+                    if (incoming.receiveCatching().isSuccess) {
+                        closeAndAwaitTermination(CloseReason.Codes.VIOLATED_POLICY, "Read-only connection")
                     }
                 } finally {
                     // Incoming close/error also ends a collector waiting for the next state.
@@ -193,14 +194,14 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
                 }
             }
             requestHandler.webState.collect { state ->
-                if (state == null || state.generation != generation) {
+                if (state == null || state.credentialGeneration != credentialGeneration) {
                     throw CancellationException("Viewing access unavailable")
                 }
                 val jsonState = state.encodeJson().toString()
-                if (!requestHandler.isWebSocketCurrent(listener, generation)) {
+                if (!requestHandler.isWebSocketCurrent(listener, credentialGeneration)) {
                     throw CancellationException("Viewing access revoked")
                 }
-                webSocket.sendStateSnapshot(jsonState)
+                sendStateSnapshot(jsonState)
             }
         }
     }
@@ -294,11 +295,11 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
 
         fun admitWebSocket(listener: HttpListener, accessCookie: String?, peerIp: String, requestJob: Job): WebSocketAdmission
 
-        fun isWebSocketCurrent(listener: HttpListener, generation: Long): Boolean
+        fun isWebSocketCurrent(listener: HttpListener, credentialGeneration: Long): Boolean
     }
 
     sealed interface WebSocketAdmission {
-        data class Accepted(val generation: Long) : WebSocketAdmission
+        data class Accepted(val credentialGeneration: Long) : WebSocketAdmission
         data class Denied(val retryAfterMs: Long?) : WebSocketAdmission
     }
 

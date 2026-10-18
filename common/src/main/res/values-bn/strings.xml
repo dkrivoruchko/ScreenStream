@@ -5,4 +5,7 @@
 
     <string name="common_continue">চালিয়ে যান</string>
     <string name="common_try_again">আবার চেষ্টা করুন</string>
+
+    <string name="common_expanded">বড় করা হয়েছে</string>
+    <string name="common_collapsed">আড়াল করা হয়েছে</string>
 </resources>

@@ -17,16 +17,25 @@
     <string name="app_tab_stream_select_mode">Select stream mode:</string>
     <string name="app_tab_stream_switching_modules">Switching modules</string>
 
-    <string name="app_permission_required_title">Permission required</string>
-    <string name="app_permission_allow_notifications">This app needs notification permission to start the streaming service.\n\nAllow notifications.</string>
-    <string name="app_permission_allow_notifications_settings">This app needs notification permission to start the streaming service.\n\nEnable notifications in app settings.</string>
-    <string name="app_permission_notification_settings">Open settings</string>
-    <string name="app_permission_local_network_title">Local network access required</string>
-    <string name="app_permission_local_network_message">Allow ScreenStream to use your local network so devices can connect to your stream.</string>
-    <string name="app_permission_local_network_off_title">Local network access is off</string>
-    <string name="app_permission_local_network_settings_message">Turn on local network access in Android Settings to share your screen with devices.</string>
+    <string name="app_permission_not_now">Not now</string>
     <string name="app_permission_open_settings">Open settings</string>
-    <string name="app_permission_try_again">Try again</string>
+
+    <string name="app_permission_notifications_title">Allow notifications</string>
+    <string name="app_permission_notifications_message">Notifications show stream status and error alerts. Use them to stop streaming or reopen ScreenStream.</string>
+
+    <string name="app_permission_local_network_title">Local network access</string>
+    <string name="app_permission_local_network_message">Allow ScreenStream to use your local network for streaming to other devices on the same network.\n\nAndroid describes this permission as access to Nearby devices and may mention determining their relative position.</string>
+    <string name="app_permission_local_network_off_title">Local network access is off</string>
+    <string name="app_permission_local_network_settings_message">In app settings, open Permissions and allow Nearby devices to stream to devices on the same local network.</string>
+
+    <string name="app_permission_microphone_title">Microphone access</string>
+    <string name="app_permission_microphone_message">Allow microphone access to include sound from your microphone in the stream.\n\nWithout it, microphone audio cannot be streamed.</string>
+    <string name="app_permission_device_audio_title">Device audio access</string>
+    <string name="app_permission_device_audio_message">Android requires microphone permission to stream device audio. This does not turn on your microphone.\n\nOnly audio that Android and the playing app allow to be shared can be streamed.</string>
+
+    <string name="app_permission_audio_title">Microphone and device audio</string>
+    <string name="app_permission_audio_message">Allow microphone access to stream microphone and device audio.\n\nDevice audio can be streamed only when Android and the playing app allow sharing it.</string>
+    <string name="app_permission_audio_settings_message">Enable microphone permission in app settings to stream microphone or internal audio.\n\nWithout it, the stream has no sound.</string>
 
     <string name="app_notification_channel_streaming">Streaming notifications</string>
     <string name="app_notification_channel_error">Error notifications</string>

@@ -1,7 +1,5 @@
 package info.dvkr.screenstream.ui
 
-import android.Manifest
-import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
@@ -47,7 +45,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
@@ -60,14 +57,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
 import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.R
-import info.dvkr.screenstream.common.isPermissionGranted
-import info.dvkr.screenstream.network.LocalNetworkPermission
-import info.dvkr.screenstream.notification.NotificationPermission
-import io.screenstream.streaming.capture.ScreenCaptureConsentHost
+import info.dvkr.screenstream.permissions.RuntimePermissionRoot
 import info.dvkr.screenstream.ui.tabs.about.AboutTabContent
 import info.dvkr.screenstream.ui.tabs.exit.ExitTabContent
 import info.dvkr.screenstream.ui.tabs.settings.SettingsTabContent
 import info.dvkr.screenstream.ui.tabs.stream.StreamTabContent
+import io.screenstream.streaming.capture.ScreenCaptureConsentHost
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
@@ -75,11 +70,13 @@ internal fun ScreenStreamContent(
     updateFlow: StateFlow<((Boolean) -> Unit)?>,
     modifier: Modifier = Modifier
 ) {
-    MainContent(
-        modifier = modifier
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .fillMaxSize()
-    )
+    RuntimePermissionRoot {
+        MainContent(
+            modifier = modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .fillMaxSize()
+        )
+    }
 
     val updateFlowState = updateFlow.collectAsStateWithLifecycle()
     if (updateFlowState.value != null) {
@@ -87,19 +84,6 @@ internal fun ScreenStreamContent(
             onConfirmButtonClick = { updateFlowState.value?.invoke(true) },
             onDismissButtonClick = { updateFlowState.value?.invoke(false) }
         )
-    }
-
-    val context = LocalContext.current
-    val isNotificationPermissionMissing = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            context.isPermissionGranted(Manifest.permission.POST_NOTIFICATIONS).not()
-    val localNetworkPermissionEnabled = rememberSaveable {
-        mutableStateOf(isNotificationPermissionMissing.not())
-    }
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        NotificationPermission(onCanRequestNextPermissionChange = { localNetworkPermissionEnabled.value = it })
-    }
-    if (Build.VERSION.SDK_INT >= 37) {
-        LocalNetworkPermission(enabled = localNetworkPermissionEnabled.value)
     }
 
     ScreenCaptureConsentHost()

@@ -1,11 +1,6 @@
 package info.dvkr.screenstream.rtsp.ui.main.cards
 
-import android.Manifest
-import android.content.Intent
 import android.os.Build
-import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -18,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -29,9 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -44,20 +36,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
-import androidx.core.net.toUri
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.findActivity
-import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.isPermissionGranted
-import info.dvkr.screenstream.common.shouldShowPermissionRationale
 import info.dvkr.screenstream.common.ui.ExpandableCard
 import info.dvkr.screenstream.common.ui.conditional
 import info.dvkr.screenstream.rtsp.R
@@ -74,10 +55,10 @@ internal fun AudioCard(
     selectedAudioEncoder: AudioCodecInfo?,
     settings: RtspSettings.Data,
     updateSettings: (RtspSettings.Data.() -> RtspSettings.Data) -> Unit,
+    onMicEnabledChange: (Boolean) -> Unit,
+    onDeviceAudioEnabledChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showRecordAudioPermission by rememberSaveable { mutableStateOf(false) }
-    var pendingPermissionTarget by rememberSaveable { mutableStateOf<PendingAudioPermissionTarget?>(null) }
     val expanded = rememberSaveable { mutableStateOf(false) }
 
     ExpandableCard(
@@ -97,8 +78,6 @@ internal fun AudioCard(
         },
         modifier = modifier
     ) {
-        val context = LocalContext.current
-
         AudioSource(
             text = stringResource(R.string.rtsp_audio_mic),
             mainIconId = R.drawable.mic_24px,
@@ -106,14 +85,7 @@ internal fun AudioCard(
             muteIconContentDescription = stringResource(R.string.rtsp_audio_mic_mute),
             isStreaming = isStreaming,
             active = settings.enableMic,
-            onActiveChange = { active ->
-                if (active.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
-                    updateSettings { copy(enableMic = active) }
-                } else {
-                    pendingPermissionTarget = PendingAudioPermissionTarget.Mic
-                    showRecordAudioPermission = true
-                }
-            },
+            onActiveChange = onMicEnabledChange,
             volume = settings.volumeMic,
             onVolumeChange = { updateSettings { copy(volumeMic = it, muteMic = if (it > 0F) false else muteMic) } },
             muted = settings.muteMic,
@@ -129,14 +101,7 @@ internal fun AudioCard(
                 muteIconContentDescription = stringResource(R.string.rtsp_audio_device_mute),
                 isStreaming = isStreaming,
                 active = settings.enableDeviceAudio,
-                onActiveChange = { active ->
-                    if (active.not() || context.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
-                        updateSettings { copy(enableDeviceAudio = active) }
-                    } else {
-                        pendingPermissionTarget = PendingAudioPermissionTarget.DeviceAudio
-                        showRecordAudioPermission = true
-                    }
-                },
+                onActiveChange = onDeviceAudioEnabledChange,
                 volume = settings.volumeDeviceAudio,
                 onVolumeChange = { updateSettings { copy(volumeDeviceAudio = it, muteDeviceAudio = if (it > 0F) false else muteDeviceAudio) } },
                 muted = settings.muteDeviceAudio,
@@ -175,27 +140,6 @@ internal fun AudioCard(
                 .fillMaxWidth()
         )
     }
-
-    if (showRecordAudioPermission) {
-        RequestPermission { isGranted ->
-            when (pendingPermissionTarget) {
-                PendingAudioPermissionTarget.Mic ->
-                    updateSettings { copy(enableMic = isGranted) }
-
-                PendingAudioPermissionTarget.DeviceAudio ->
-                    updateSettings { copy(enableDeviceAudio = isGranted) }
-
-                null -> Unit
-            }
-            pendingPermissionTarget = null
-            showRecordAudioPermission = false
-        }
-    }
-}
-
-private enum class PendingAudioPermissionTarget {
-    Mic,
-    DeviceAudio
 }
 
 @Composable
@@ -409,118 +353,3 @@ private fun Bitrate(
     }
 }
 
-@Composable
-private fun RequestPermission(
-    permission: String = Manifest.permission.RECORD_AUDIO,
-    onResult: (Boolean) -> Unit
-) {
-    val context = LocalContext.current
-    if (context.isPermissionGranted(permission)) {
-        onResult(true)
-        return
-    }
-
-    val activity = remember(context) { context.findActivity() }
-    var showRationaleDialog by rememberSaveable { mutableStateOf(false) }
-    var showSettingsDialog by rememberSaveable { mutableStateOf(false) }
-
-    val requestPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            onResult(true)
-        } else {
-            val showRationale = activity.shouldShowPermissionRationale(permission)
-            showRationaleDialog = showRationale
-            showSettingsDialog = showRationale.not()
-        }
-    }
-
-    val permissionCheckerObserver = remember {
-        LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                when {
-                    context.isPermissionGranted(permission) -> onResult(true)
-                    showRationaleDialog.not() && showSettingsDialog.not() -> requestPermissionLauncher.launch(permission)
-                }
-            }
-        }
-    }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(lifecycle, permissionCheckerObserver) {
-        lifecycle.addObserver(permissionCheckerObserver)
-        onDispose { lifecycle.removeObserver(permissionCheckerObserver) }
-    }
-
-    if (showRationaleDialog) {
-        AlertDialog(
-            onDismissRequest = {},
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showRationaleDialog = false
-                        requestPermissionLauncher.launch(permission)
-                    }
-                ) {
-                    Text(text = stringResource(android.R.string.ok))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showRationaleDialog = false
-                        onResult(false)
-                    }
-                ) {
-                    Text(text = stringResource(android.R.string.cancel))
-                }
-            },
-            icon = { Icon(painter = painterResource(R.drawable.mic_24px), contentDescription = null) },
-            title = { Text(text = stringResource(R.string.rtsp_audio_permission_title)) },
-            text = { Text(text = stringResource(R.string.rtsp_audio_permission_message)) },
-            shape = MaterialTheme.shapes.large,
-            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
-        )
-    }
-
-    if (showSettingsDialog) {
-        AlertDialog(
-            onDismissRequest = {},
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        runCatching {
-                            val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                addCategory(Intent.CATEGORY_DEFAULT)
-                                data = "package:${context.packageName}".toUri()
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-                                addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-                            }
-                            context.startActivity(i)
-                        }.onFailure { error ->
-                            XLog.e(context.getLog("startActivity", error.toString()), error)
-                            showSettingsDialog = false
-                            onResult(false)
-                        }
-                    }
-                ) {
-                    Text(text = stringResource(R.string.rtsp_audio_permission_open_settings))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showSettingsDialog = false
-                        onResult(false)
-                    }
-                ) {
-                    Text(text = stringResource(android.R.string.cancel))
-                }
-            },
-            icon = { Icon(painter = painterResource(R.drawable.mic_24px), contentDescription = null) },
-            title = { Text(text = stringResource(R.string.rtsp_audio_permission_title)) },
-            text = { Text(text = stringResource(R.string.rtsp_audio_permission_message_settings)) },
-            shape = MaterialTheme.shapes.large,
-            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
-        )
-    }
-}

@@ -142,7 +142,7 @@ internal class MjpegSettingsPersistenceTest {
         runBlocking { seedSettings(context, """{"network":{"httpPort":9000},"web":{"title":"Before failure"}}""") }
         val file = context.preferencesDataStoreFile("mjpeg")
         val savedBytes = file.readBytes()
-        // The approved DataStore 1.2.1 FileStorage writes through <path>.tmp. Arrange the fault
+        // DataStore 1.2.1 FileStorage writes through <path>.tmp. Arrange the fault
         // before constructing its owner; a nonempty directory cannot be opened or deleted as a file.
         val blockedScratch = File(file.absolutePath + ".tmp")
         check(blockedScratch.mkdir())

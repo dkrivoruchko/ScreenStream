@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.settings.JsonPreferencesStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -14,9 +16,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.koin.core.annotation.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * App-wide choices stored in `app_settings.preferences_pb`. Creation starts one process-owned
@@ -44,6 +50,8 @@ public class AppSettings(
     public data class Data(
         public val nightMode: Int = Default.NIGHT_MODE,
         public val dynamicTheme: Boolean = Default.DYNAMIC_THEME,
+        /** Denied+rationale evidence by Android permission name, until the next observed runtime grant. */
+        public val permissionsWithObservedRationale: Set<String> = emptySet(),
     )
 
     private val storage: JsonPreferencesStore<Data> = JsonPreferencesStore(
@@ -52,6 +60,8 @@ public class AppSettings(
         produceFile = { context.preferencesDataStoreFile("app_settings") },
     )
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val permissionRationaleMutex: Mutex = Mutex()
+
     @Volatile
     private var readyData: StateFlow<Data>? = null
     private val preparation: Deferred<Unit> = scope.async {
@@ -83,5 +93,28 @@ public class AppSettings(
      */
     public suspend fun updateData(transform: Data.() -> Data): Unit = withContext(NonCancellable + dispatcher) {
         storage.updateData(transform)
+    }
+
+    /** Apply observations in call order on the existing process scope, including across the IO hop. */
+    internal fun setPermissionRationaleObserved(permissionName: String, observed: Boolean) {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            permissionRationaleMutex.withLock {
+                try {
+                    updateData {
+                        copy(
+                            permissionsWithObservedRationale = if (observed) {
+                                permissionsWithObservedRationale + permissionName
+                            } else {
+                                permissionsWithObservedRationale - permissionName
+                            },
+                        )
+                    }
+                } catch (failure: CancellationException) {
+                    throw failure
+                } catch (failure: Exception) {
+                    XLog.e("Could not save permission rationale history for $permissionName", failure)
+                }
+            }
+        }
     }
 }

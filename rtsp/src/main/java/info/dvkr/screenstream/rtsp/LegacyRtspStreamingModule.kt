@@ -22,7 +22,6 @@ public class LegacyRtspStreamingModule(
     override val descriptionResource: Int = R.string.rtsp_stream_mode_description
     override val detailsResource: Int = R.string.rtsp_stream_mode_details
     override val serviceClass: Class<out Service> = RtspModuleService::class.java
-    override val requiresLocalNetworkPermission: Boolean = true
 
     override fun startLegacyStream(module: StreamingModuleLegacy) {
         (module as RtspStreamingModuleLegacy).sendEvent(RtspStreamingService.InternalEvent.StartStream(permissionEducationShown = false))

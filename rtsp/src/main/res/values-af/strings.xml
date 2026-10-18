@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">Klank-enkodeerder:</string>
     <string name="rtsp_audio_encoder_auto">Outo</string>
     <string name="rtsp_audio_bitrate">Klank-bitrate: %1$s/sek</string>
-    <string name="rtsp_audio_permission_title">Laat klankopname toe</string>
-    <string name="rtsp_audio_permission_message">Oudio-opnametoestemming is nodig om oudio te stroom.\n\nDaarsonder sal die stroom geen oudio hê nie.</string>
-    <string name="rtsp_audio_permission_open_settings">Maak instellings oop</string>
-    <string name="rtsp_audio_permission_message_settings">Aktiveer mikrofoontoestemming in appinstellings om oudio te stroom.\n\nDaarsonder sal die stroom geen oudio hê nie.</string>
     <string name="rtsp_audio_capture_issue_detected">Oudiovasleggingsprobleem bespeur</string>
 
     <string name="rtsp_connection_access_denied">Toegang geweier</string>

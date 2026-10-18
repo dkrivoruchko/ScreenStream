@@ -5,4 +5,7 @@
 
     <string name="common_continue">متابعة</string>
     <string name="common_try_again">حاول مرة أخرى</string>
+
+    <string name="common_expanded">موسَّع</string>
+    <string name="common_collapsed">مطويّ</string>
 </resources>

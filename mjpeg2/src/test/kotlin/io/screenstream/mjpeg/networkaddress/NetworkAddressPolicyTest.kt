@@ -24,7 +24,6 @@ internal class NetworkAddressPolicyTest {
         assertThrows(UnsupportedOperationException::class.java) { (filter.families as MutableSet).clear() }
         assertThrows(UnsupportedOperationException::class.java) { (filter.interfaceTypes as MutableSet).clear() }
         assertThrows(UnsupportedOperationException::class.java) { (filter.categories as MutableSet).clear() }
-        assertTrue(filter.requiresLocalNetworkPermission)
     }
 
     // Cases: MJPEG-LAN-02
@@ -40,18 +39,6 @@ internal class NetworkAddressPolicyTest {
             assertFalse(address("192.168.1.2", type).requiresLocalNetworkPermission)
             assertFalse(address("fd00::1", type).requiresLocalNetworkPermission)
         }
-        fun filter(types: Set<InterfaceType>, categories: Set<AddressCategory>) =
-            NetworkAddressFilter(setOf(AddressFamily.Ipv4), types, categories)
-        assertFalse(filter(setOf(InterfaceType.Wifi), setOf(AddressCategory.Loopback)).requiresLocalNetworkPermission)
-        assertFalse(filter(setOf(InterfaceType.Mobile, InterfaceType.Vpn), setOf(AddressCategory.Private)).requiresLocalNetworkPermission)
-        assertTrue(
-            filter(
-                setOf(InterfaceType.Wifi, InterfaceType.Vpn),
-                setOf(AddressCategory.Loopback, AddressCategory.NonPrivate)
-            ).requiresLocalNetworkPermission
-        )
-        assertFalse(filter(emptySet(), setOf(AddressCategory.Private)).requiresLocalNetworkPermission)
-        assertFalse(filter(setOf(InterfaceType.Wifi), emptySet()).requiresLocalNetworkPermission)
     }
 
     private fun address(ip: String, type: InterfaceType): NetworkAddress =

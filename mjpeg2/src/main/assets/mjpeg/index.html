@@ -3,115 +3,260 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
 <meta name="referrer" content="same-origin">
 <title>ScreenStream</title>
 <style>* { box-sizing: border-box; }
-html, body { margin: 0; width: 100%; height: 100%; color: #fff; background: #101418; font: 16px Arial, sans-serif; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; color: #191c20; background: #f8f9ff; font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color-scheme: light dark; }
 [hidden] { display: none !important; }
-button, select, input { font: inherit; }
-button, select { min-height: 48px; min-width: 48px; border: 1px solid #8e969f; border-radius: 4px; background: #232b33; color: #fff; padding: 8px 12px; cursor: pointer; }
+button, input { font: inherit; }
+button { min-height: 48px; min-width: 48px; border: 1px solid #73777f; border-radius: 10px; background: #eceef4; color: #191c20; padding: 10px 14px; cursor: pointer; }
+button:hover { background: #e0e2e8; }
 button:disabled { opacity: .5; cursor: default; }
-button:focus, select:focus, input:focus, #viewport:focus { outline: 3px solid #8fc8ff; outline-offset: -3px; }
+button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d; outline-offset: -3px; }
+#shell.pointer-input #viewport:focus { outline: none; }
 #shell { position: relative; width: 100%; height: 100%; overflow: hidden; background: #101418; }
-#viewport { position: absolute; top: 0; bottom: 0; left: 0; right: 0; left: constant(safe-area-inset-left); right: constant(safe-area-inset-right); left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px); overflow: auto; -webkit-overflow-scrolling: touch; }
+#shell.access-screen, #shell.empty-screen { background-color: #f8f9ff; }
+/* Measure safe edges without dynamic safe-area padding on bottom-anchored controls. */
+#safe-area { position: absolute; top: 0; right: 0; bottom: 0; left: 0; top: constant(safe-area-inset-top); right: constant(safe-area-inset-right); bottom: constant(safe-area-inset-bottom); left: constant(safe-area-inset-left); top: env(safe-area-inset-top, 0px); right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px); left: env(safe-area-inset-left, 0px); visibility: hidden; pointer-events: none; }
+#viewport { position: absolute; top: 0; bottom: 0; left: 0; right: 0; overflow: auto; -webkit-overflow-scrolling: touch; }
+#viewport.view-fit { overflow: hidden; }
+#viewport.view-width { overflow-x: hidden; overflow-y: auto; }
 #image-stage { position: relative; min-width: 100%; min-height: 100%; }
-.stream-image { display: block; position: absolute; max-width: none; max-height: none; }
-#placeholder { position: absolute; top: 45%; left: 10%; width: 80%; text-align: center; line-height: 1.5; pointer-events: none; }
-.edge { position: absolute; left: 0; right: 0; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; pointer-events: none; z-index: 3; }
-.edge.bar { background: #181e24; }
-#top-bar { top: 0; padding-top: 4px; padding-top: constant(safe-area-inset-top); padding-top: env(safe-area-inset-top, 4px); }
-#bottom-bar { bottom: 0; padding-bottom: 4px; padding-bottom: constant(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom, 4px); }
-.block { position: absolute; z-index: 3; left: 50%; -webkit-transform: translateX(-50%); transform: translateX(-50%); pointer-events: auto; max-width: 100%; padding: 4px; padding-left: constant(safe-area-inset-left); padding-right: constant(safe-area-inset-right); padding-left: env(safe-area-inset-left, 4px); padding-right: env(safe-area-inset-right, 4px); }
+.stream-image { display: block; position: absolute; left: 50%; top: 50%; max-width: none; max-height: none; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); }
+#viewport.view-width .stream-image { position: relative; left: 0; top: 0; width: 100%; height: auto; -webkit-transform: none; transform: none; }
+.stream-candidate { position: absolute; left: 0; top: 0; width: 0; height: 0; visibility: hidden; }
+.edge { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 3; }
+.edge.bar { background: inherit; }
+#top-bar { top: 0; }
+#bottom-bar { bottom: 0; }
+.block { position: absolute; z-index: 3; left: 50%; -webkit-transform: translateX(-50%); transform: translateX(-50%); pointer-events: auto; max-width: 100%; }
 .block.autohidden { visibility: hidden; pointer-events: none; }
-.caption { max-width: 95%; min-height: 32px; line-height: 24px; }
-.caption span { display: block; background: rgba(20, 26, 32, .9); padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The player surfaces stay neutral over any image and browser theme. */
+.caption { max-width: 95%; min-height: 36px; padding: 7px 12px; color: #fff; font-size: 14px; font-weight: 500; line-height: 24px; }
+.caption span { display: block; padding: 3px 12px; border-radius: 9px; color: inherit; background: #121212; background: rgba(0, 0, 0, .62); box-shadow: 0 2px 10px rgba(0, 0, 0, .15); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.controls { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; width: -webkit-max-content; width: -moz-max-content; width: max-content; padding: 6px; border: 0; border-radius: 30px; color: #fff; background: #121212; background: rgba(0, 0, 0, .62); box-shadow: 0 4px 16px rgba(0, 0, 0, .14); }
+.controls > * { margin: 0; }
+.controls > button, .size-modes button + button { margin-left: 6px; }
+.controls button { display: block; position: relative; -webkit-flex: 0 0 48px; flex: 0 0 48px; width: 48px; min-width: 48px; max-width: 48px; height: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 8px; color: inherit; background: transparent; box-shadow: none; text-align: center; }
+#view-fit { border-radius: 24px 8px 8px 24px; }
+#more { border-radius: 8px 24px 24px 8px; }
+.controls button svg { display: inline-block; width: 24px; height: 24px; vertical-align: middle; }
+.controls button:focus { outline: none; }
+.controls button[aria-pressed="true"], #more[aria-expanded="true"] { background: rgba(255, 255, 255, .18); }
+.controls button:hover { background: rgba(255, 255, 255, .12); }
+.controls button[aria-pressed="true"]:hover, #more[aria-expanded="true"]:hover { background: rgba(255, 255, 255, .22); }
+#shell:not(.pointer-input) .controls button:focus { background: rgba(255, 255, 255, .22); }
+.controls button:active { background: rgba(255, 255, 255, .22); }
+.size-modes { display: -webkit-flex; display: flex; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.native-size { font-size: 20px; font-weight: 700; line-height: 24px; }
+#fullscreen .fullscreen-exit, #fullscreen[aria-pressed="true"] .fullscreen-enter { display: none; }
+#fullscreen[aria-pressed="true"] .fullscreen-exit { display: inline-block; }
+.control-tooltip { position: absolute; z-index: 7; max-width: 220px; padding: 6px 10px; border-radius: 8px; color: #fff; background: #121212; background: rgba(0, 0, 0, .88); box-shadow: 0 2px 10px rgba(0, 0, 0, .2); font-size: 12px; line-height: 18px; pointer-events: none; white-space: nowrap; }
+
+/* Separate bars retain the configured background and matching foreground. */
 .caption.separate-bar { width: 100%; max-width: 100%; text-align: center; }
-.controls { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
-.controls > * { margin: 0 2px; }
-.mode-label { display: block; min-width: 0; }
-.mode-label select { max-width: 100%; }
-.status { position: absolute; z-index: 4; left: 10%; width: 80%; text-align: center; pointer-events: none; line-height: 1.4; font-size: 14px; padding: 4px; background: rgba(16, 20, 24, .85); }
+.block.separate-bar { color: #fff; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+#shell.dark-bar-text .block.separate-bar { color: #000; }
+.caption.separate-bar span { background: transparent; border: 0; border-radius: 0; box-shadow: none; color: inherit; }
+.controls.separate-bar { width: 100%; max-width: 100%; }
+.controls.separate-bar #view-fit, .controls.separate-bar #more { border-radius: 8px; }
+#shell.dark-bar-text .controls.separate-bar button[aria-pressed="true"], #shell.dark-bar-text .controls.separate-bar button[aria-expanded="true"] { background: rgba(0, 0, 0, .12); }
+#shell.dark-bar-text .controls.separate-bar button:hover { background: rgba(0, 0, 0, .08); }
+#shell.dark-bar-text .controls.separate-bar button[aria-pressed="true"]:hover, #shell.dark-bar-text .controls.separate-bar button[aria-expanded="true"]:hover { background: rgba(0, 0, 0, .16); }
+#shell.dark-bar-text:not(.pointer-input) .controls.separate-bar button:focus, #shell.dark-bar-text .controls.separate-bar button:active { background: rgba(0, 0, 0, .22); }
+
+/* Empty-state bars follow the neutral canvas rather than the configured image background. */
+#shell.empty-screen .block.separate-bar { color: #191c20; }
+#shell.empty-screen .controls.separate-bar button[aria-pressed="true"], #shell.empty-screen .controls.separate-bar button[aria-expanded="true"] { background: rgba(128, 128, 128, .18); }
+#shell.empty-screen .controls.separate-bar button:hover { background: rgba(128, 128, 128, .12); }
+#shell.empty-screen .controls.separate-bar button[aria-pressed="true"]:hover, #shell.empty-screen .controls.separate-bar button[aria-expanded="true"]:hover { background: rgba(128, 128, 128, .22); }
+#shell.empty-screen:not(.pointer-input) .controls.separate-bar button:focus, #shell.empty-screen .controls.separate-bar button:active { background: rgba(128, 128, 128, .22); }
+
+.status { position: absolute; z-index: 4; left: 10%; width: 80%; padding: 10px 12px; color: #fff; text-align: center; pointer-events: none; line-height: 1.4; font-size: 15px; text-shadow: 0 1px 3px #000, 0 0 8px #000; }
 .status:empty { display: none; }
-.panel { position: absolute; z-index: 6; left: 50%; width: 360px; max-width: 96%; max-height: 80%; margin-left: -180px; padding: 16px; overflow: auto; -webkit-overflow-scrolling: touch; border: 1px solid #8e969f; border-radius: 6px; background: #1c232b; box-shadow: 0 4px 18px #000; }
+.status.capture-failed { color: #ffb4ab; }
+.capture-notice.capture-failed { color: #ffb4ab; }
+.capture-notice { position: absolute; z-index: 4; left: 50%; width: 280px; width: -webkit-max-content; width: -moz-max-content; width: max-content; max-width: calc(100% - 24px); padding: 8px 12px; border-radius: 10px; color: #fff; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .2); font-size: 14px; line-height: 20px; text-align: center; pointer-events: none; -webkit-transform: translateX(-50%); transform: translateX(-50%); }
+.panel { position: absolute; z-index: 6; left: 50%; width: 360px; max-width: 96%; max-height: 80%; margin-left: -180px; padding: 20px; overflow: auto; -webkit-overflow-scrolling: touch; border: 1px solid #73777f; border-radius: 15px; background: #e6e8ee; box-shadow: 0 16px 64px rgba(0, 0, 0, .3); }
 .panel button { display: block; width: 100%; margin-top: 8px; }
-#menu { bottom: 68px; }
-.check { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; min-height: 48px; cursor: pointer; }
-.check input { width: 24px; height: 24px; margin: 0 12px 0 0; }
-.pin-panel { top: 10%; }
-.pin-panel input { display: block; width: 100%; min-height: 48px; margin-top: 8px; font-size: 24px; padding: 8px; color: #111; background: #fff; }
-.pin-panel p { line-height: 1.5; }
+#menu { width: 344px; margin-left: -172px; padding: 14px; border: 0; border-radius: 14px; color: #fff; background: #121212; background: rgba(0, 0, 0, .88); color-scheme: dark; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); }
+#menu:focus { outline: none; }
+.menu-heading { margin: 16px 8px 4px; color: #fff; font-size: 14px; font-weight: 500; line-height: 20px; }
+#method-label { margin-top: 0; margin-bottom: 8px; }
+.method-choices { margin-bottom: 14px; }
+#menu .method-choices button { display: block; position: relative; width: 100%; min-height: 48px; margin: 4px 0; padding: 10px 38px 10px 10px; border: 0; border-radius: 12px; color: inherit; background: transparent; text-align: left; white-space: normal; }
+.method-title, .method-description { display: block; }
+.method-title { font-size: 14px; font-weight: 500; line-height: 20px; }
+.method-description { margin-top: 2px; color: #ccc; font-size: 12px; line-height: 17px; }
+.method-check { position: absolute; right: 12px; top: 50%; width: 18px; height: 18px; margin-top: -9px; visibility: hidden; }
+#menu .method-choices button[aria-pressed="true"] .method-check { visibility: visible; }
+#menu .method-choices button:hover { background: rgba(255, 255, 255, .12); }
+#menu .method-choices button[aria-pressed="true"] { background: rgba(255, 255, 255, .18); }
+#menu .method-choices button[aria-pressed="true"]:hover { background: rgba(255, 255, 255, .22); }
+#menu button:focus { outline: none; }
+#shell:not(.pointer-input) #menu button:focus, #menu .method-choices button:active { background: rgba(255, 255, 255, .22); }
+.information-list { margin: 6px 8px 0; overflow: hidden; }
+.information-list dt { float: left; clear: left; width: 86px; margin: 0; padding: 6px 0; color: #bdbdbd; font-size: 12px; line-height: 20px; }
+.information-list dd { min-height: 32px; margin: 0 0 0 96px; padding: 6px 0; color: #fff; font-size: 13px; line-height: 20px; overflow-wrap: break-word; word-wrap: break-word; }
+.legal-links { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-justify-content: center; justify-content: center; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, .14); }
+.legal-links a { display: inline-block; min-height: 36px; margin: 0 9px; padding: 8px 0; color: #c8c8c8; font-size: 12px; line-height: 20px; text-decoration: underline; white-space: nowrap; }
+.legal-links a:hover { color: #fff; }
+.legal-links a:focus { outline: 2px solid #fff; outline-offset: 3px; border-radius: 2px; }
+
+@supports ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
+  .controls:not(.separate-bar), .caption:not(.separate-bar) span { background: rgba(0, 0, 0, .33); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  #menu { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+}
+
+/* Access and no-image states keep the system palette. */
+.open-state, #pin-panel { position: absolute; top: 50%; left: 50%; width: 392px; max-width: calc(100% - 32px); max-height: calc(100% - 32px); margin-left: 0; padding: 16px 12px; overflow: auto; text-align: center; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); }
+.open-content { width: 100%; min-width: 0; }
+#state-message { margin: 16px 0 0; color: #526070; font-size: 16px; line-height: 1.6; }
+.open-state.capture-failed #state-message { color: #ba1a1a; }
+#pin-panel { border: 0; border-radius: 0; color: inherit; background: transparent; box-shadow: none; }
+/* Leave 264px for compact PIN content and outer insets. */
+#pin-logo, #state-logo { display: block; width: 192px; min-width: 40px; max-width: 192px; height: auto; margin: 0 auto 24px; }
+#pin-title { margin: 0; font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -.02em; }
+#pin-form { width: 100%; max-width: 320px; margin: 0 auto; }
+#pin-panel p { margin: 16px 0 26px; color: #526070; font-size: 16px; line-height: 1.6; }
+#pin-block-copy { white-space: pre-line; }
+#pin-entry { margin-top: 26px; }
+#pin-entry label { display: block; margin-bottom: 12px; color: #526070; font-size: 16px; line-height: 1.5; }
+#pin { display: block; width: 100%; min-height: 56px; margin: 0; padding: 10px 16px; border: 1px solid #73777f; border-radius: 10px; color: #191c20; background: #fff; font: 26px Menlo, Consolas, monospace; letter-spacing: .18em; text-align: center; }
+#unlock { min-height: 50px; margin-top: 16px; border-radius: 10px; background: #32628d; border-color: #32628d; color: #fff; font-size: 15px; font-weight: 600; }
+#unlock:focus { outline-color: #fff; }
+#pin-retry { width: 100%; max-width: 320px; min-height: 48px; margin: 12px auto 0; background: transparent; color: inherit; }
+#pin-countdown { margin-top: 28px; }
+#pin-countdown-value { display: block; margin-top: 0; font: 500 40px Menlo, Consolas, monospace; line-height: 48px; letter-spacing: -.03em; }
 .recovery { top: 35%; }
-h2 { font-size: 18px; margin: 12px 0; }
-dl { margin: 8px 0; }
-dt { color: #bdc7d1; margin-top: 8px; font-size: 14px; }
-dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
 #pip-video { position: absolute; width: 1px; height: 1px; left: 0; bottom: 0; opacity: .01; pointer-events: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
-@media (max-width: 380px) { .panel { left: 2%; margin-left: 0; width: 96%; } .controls { width: 100%; } button, select { padding: 8px 6px; } .controls button { font-size: 13px; } }
-@media (max-width: 600px) {
-  .controls { width: 100%; max-width: 420px; }
-  .mode-label { -webkit-flex: 1; flex: 1; }
-  .mode-label select { width: 100%; }
-  .controls #fullscreen, .controls #pip, .controls #more { font-size: 0; -webkit-flex-shrink: 0; flex-shrink: 0; }
-  #fullscreen::before { content: '\26F6'; font-size: 24px; }
-  #pip::before { content: '\25A3'; font-size: 24px; }
-  #more::before { content: '\2022\2022\2022'; font-size: 18px; }
+@media (max-width: 380px) {
+  .controls > button, .size-modes button + button { margin-left: 3px; }
+  .panel, #menu { left: 2%; margin-left: 0; width: 96%; }
+  button { padding: 8px 6px; }
 }
-@media (max-height: 400px) { .panel { max-height: 90%; } .pin-panel { top: 3%; } #menu { max-height: 70%; } .block { padding-top: 2px; padding-bottom: 2px; } }
+@media (max-width: 600px) {
+  .caption { max-width: calc(100% - 16px); }
+  #pin-logo, #state-logo { max-width: 154px; }
+}
+@media (max-height: 600px) {
+  #pin-panel, .open-state { padding: 8px; }
+  #pin-logo, #state-logo { margin-bottom: 8px; }
+  #pin-title { font-size: 26px; }
+  #pin-entry label { margin-bottom: 8px; font-size: 14px; line-height: 1.4; }
+  #unlock { margin-top: 12px; }
+  #pin-panel p { margin: 12px 0 16px; font-size: 14px; line-height: 1.5; }
+  #pin-entry { margin-top: 8px; }
+}
+@media (max-height: 400px) {
+  .panel { max-height: 90%; }
+  .caption, .controls { padding-top: 2px; padding-bottom: 2px; }
+}
+@media (prefers-color-scheme: dark) {
+  html, body { color: #e0e2e8; background: #101418; }
+  #shell.access-screen, #shell.empty-screen { background-color: #101418; }
+  #shell.empty-screen .block.separate-bar { color: #e0e2e8; }
+  #state-message { color: #c2c7cf; }
+  .open-state.capture-failed #state-message { color: #ffb4ab; }
+  button { background: #1d2024; border-color: #8c9199; color: #e0e2e8; }
+  button:hover { background: #32353a; }
+  button:focus, input:focus, a:focus, #viewport:focus { outline-color: #9dcafc; }
+  .panel { background: #272a2f; border-color: #8c9199; }
+  #pin { background: #191c20; border-color: #8c9199; color: #e0e2e8; }
+  #pin-panel p, #pin-entry label { color: #c2c7cf; }
+  #unlock { background: #9dcafc; border-color: #9dcafc; color: #003355; }
+  #unlock:focus { outline-color: #003355; }
+}
 </style>
 </head>
 <body>
-<main id="shell" aria-label="ScreenStream viewer">
+<main id="shell" class="access-screen" aria-label="ScreenStream viewer">
+  <div id="safe-area" aria-hidden="true"></div>
   <div id="top-bar" class="edge bar"></div>
   <div id="viewport" tabindex="0" aria-label="Stream image. Use arrow keys to scroll.">
     <div id="image-stage"></div>
-    <div id="placeholder" role="status">Connecting…</div>
+    <section id="placeholder" class="open-state" role="status" aria-live="polite">
+      <img id="state-logo" width="192" height="192" alt="" aria-hidden="true" hidden>
+      <div class="open-content"><p id="state-message"></p></div>
+    </section>
   </div>
   <div id="bottom-bar" class="edge bar"></div>
   <div id="caption" class="block caption" hidden><span id="caption-text"></span></div>
-  <div id="controls" class="block controls" role="toolbar" aria-label="Viewing controls" hidden>
-    <label class="mode-label"><span class="sr-only" data-word="viewMode"></span>
-      <select id="view-mode" aria-label="Image size">
-        <option value="fit" data-word="fit"></option>
-        <option value="original" data-word="original"></option>
-        <option value="width" data-word="width"></option>
-      </select>
-    </label>
-    <button id="fullscreen" type="button" hidden data-word="fullscreen"></button>
-    <button id="pip" type="button" hidden data-word="pip"></button>
-    <button id="more" type="button" aria-expanded="false" aria-controls="menu" data-word="more"></button>
-  </div>
-  <div id="status" class="status" role="status" aria-live="polite"></div>
-  <section id="menu" class="panel" role="dialog" aria-label="More viewing options" hidden>
-    <label class="check"><input id="show-info" type="checkbox"><span data-word="infoToggle"></span></label>
-    <div id="information" hidden>
-      <h2 data-word="info"></h2>
-      <dl>
-        <dt data-word="method"></dt><dd id="info-method"></dd>
-        <dt data-word="connection"></dt><dd id="info-connection"></dd>
-        <dt data-word="image"></dt><dd id="info-image"></dd>
-        <dt id="info-notice-label" data-word="streamNotice" hidden></dt><dd id="info-notice" hidden></dd>
-        <dt data-word="size"></dt><dd id="info-size"></dd>
-        <dt data-word="title"></dt><dd id="info-title"></dd>
-      </dl>
+  <!-- Material Icons SVG paths: google/material-design-icons, Apache 2.0. Fit to width uses a custom path. -->
+  <div id="controls" class="block controls" role="group" aria-label="Viewing controls" hidden>
+    <div class="size-modes" role="group" aria-label="Image size">
+      <button id="view-fit" type="button" aria-pressed="true" data-label="fit">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M17 4h3c1.1 0 2 .9 2 2v2h-2V6h-3V4zM4 8V6h3V4H4c-1.1 0-2 .9-2 2v2h2zm16 8v2h-3v2h3c1.1 0 2-.9 2-2v-2h-2zM7 18H4v-2H2v2c0 1.1.9 2 2 2h3v-2zM18 8H6v8h12V8z"/></svg>
+      </button>
+      <button id="view-original" type="button" aria-pressed="false" data-label="original"><span class="native-size" aria-hidden="true">1:1</span></button>
+      <button id="view-width" type="button" aria-pressed="false" data-label="width">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M3 5v14M21 5v14M5 12h14M8 9l-3 3 3 3M16 9l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
-    <button id="retry" type="button" data-word="retry"></button>
-    <button id="alternate" type="button" data-word="alternate"></button>
-    <button id="close-menu" type="button" data-word="close"></button>
+    <button id="fullscreen" type="button" aria-pressed="false" data-label="fullscreen" hidden>
+      <svg class="fullscreen-enter" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      <svg class="fullscreen-exit" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+    </button>
+    <button id="pip" type="button" data-label="pip" hidden>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>
+    </button>
+    <button id="more" type="button" aria-expanded="false" aria-controls="menu" data-label="more">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+    </button>
+  </div>
+  <div id="control-tooltip" class="control-tooltip" aria-hidden="true" hidden></div>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+  <div id="capture-notice" class="capture-notice" role="status" aria-live="polite" hidden></div>
+  <section id="menu" class="panel" role="region" aria-label="More viewing options" tabindex="-1" hidden>
+    <h2 id="method-label" class="menu-heading" data-word="connection"></h2>
+    <div class="method-choices" role="group" aria-labelledby="method-label">
+      <button id="method-mjpeg" type="button" aria-pressed="true" aria-labelledby="method-mjpeg-label" aria-describedby="method-mjpeg-description">
+        <span id="method-mjpeg-label" class="method-title" data-word="mjpeg"></span>
+        <span id="method-mjpeg-description" class="method-description" data-word="mjpegDescription"></span>
+        <svg class="method-check" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="m9 16.17-4.17-4.17-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </button>
+      <button id="method-jpeg" type="button" aria-pressed="false" aria-labelledby="method-jpeg-label" aria-describedby="method-jpeg-description">
+        <span id="method-jpeg-label" class="method-title" data-word="jpeg"></span>
+        <span id="method-jpeg-description" class="method-description" data-word="jpegDescription"></span>
+        <svg class="method-check" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="m9 16.17-4.17-4.17-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </button>
+    </div>
+    <dl class="information-list">
+      <dt data-word="status"></dt><dd id="info-connection"></dd>
+      <dt data-word="image"></dt><dd id="info-image"></dd>
+      <dt id="info-notice-label" data-word="notice" hidden></dt><dd id="info-notice" hidden></dd>
+      <dt data-word="size"></dt><dd id="info-size"></dd>
+    </dl>
+    <div class="legal-links">
+      <a href="https://screenstream.io/privacy.html" target="_blank" rel="noopener noreferrer" data-word="privacy"></a>
+      <a href="https://screenstream.io/terms.html" target="_blank" rel="noopener noreferrer" data-word="terms"></a>
+    </div>
   </section>
-  <section id="pin-panel" class="panel pin-panel" aria-label="Stream access" hidden>
-    <form id="pin-form" method="post" action="/pin">
-      <p id="pin-message" role="status" aria-live="polite"></p>
-      <label for="pin" data-word="pinLabel"></label>
-      <input id="pin" name="pin" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message">
-      <button id="unlock" type="submit" data-word="unlock"></button>
-    </form>
-    <button id="pin-retry" type="button" data-word="retry"></button>
+  <section id="pin-panel" class="panel" aria-labelledby="pin-title" hidden>
+    <img id="pin-logo" src="data:image/jpeg;base64,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" width="192" height="192" alt="" aria-hidden="true">
+    <div class="open-content">
+      <h1 id="pin-title" data-word="pinTitle"></h1>
+      <form id="pin-form" method="post" action="/pin">
+        <p id="pin-message" role="status" aria-live="polite"></p>
+        <p id="pin-block-copy" data-word="pinBlocked" aria-hidden="true" hidden></p>
+        <div id="pin-countdown" aria-hidden="true" hidden>
+          <strong id="pin-countdown-value"></strong>
+        </div>
+        <div id="pin-entry">
+          <label for="pin" data-word="pinRequired"></label>
+          <input id="pin" name="pin" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message">
+          <button id="unlock" type="submit" data-word="unlock"></button>
+        </div>
+      </form>
+      <button id="pin-retry" type="button" data-word="retry" hidden></button>
+    </div>
   </section>
   <div id="recovery" class="panel recovery" hidden>
     <button id="recovery-retry" type="button" data-word="retry"></button>
-    <button id="recovery-alternate" type="button" data-word="alternate"></button>
+    <button id="recovery-alternate" type="button" data-word="useJpeg"></button>
   </div>
   <video id="pip-video" muted playsinline aria-hidden="true"></video>
   <noscript><p class="panel">Enable JavaScript to view this stream and enter its PIN.</p></noscript>
@@ -130,20 +275,26 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
     mediaRetrying: 'Restoring image…',
     mediaFailed: 'Image unavailable. Retry or choose another viewing method.',
     viewing: 'Viewing',
-    pinRequired: 'Enter the six-digit PIN shown on the streaming device.',
+    pinTitle: 'Enter PIN',
+    pinRequired: 'Enter the six-digit PIN shown on the streaming device:',
+    pinBlockedTitle: 'Access temporarily blocked',
+    pinBlocked: 'Too many incorrect PIN attempts.\nPlease wait before trying again.',
+    tryAgainIn: 'Try again in',
+    secondsShort: ' s',
     pinWrong: 'Incorrect PIN. Try again.',
     pinInvalid: 'Enter six digits (0–9).',
     pinSending: 'Checking PIN…',
     pinNetwork: 'Could not check PIN. Retry the connection.',
-    blocked: 'PIN entry blocked. Try again in ',
-    seconds: ' seconds.',
     retry: 'Retry connection',
-    alternate: 'Other viewing method',
+    useJpeg: 'Use JPEG',
     useMjpeg: 'Use MJPEG',
+    mjpeg: 'MJPEG',
+    jpeg: 'JPEG',
+    mjpegDescription: 'Recommended',
+    jpegDescription: 'Use if MJPEG won’t load.',
     fit: 'Fit',
     original: 'Original size',
-    width: 'Fit width',
-    viewMode: 'Image size',
+    width: 'Fit to width',
     fullscreen: 'Full screen',
     leaveFullscreen: 'Exit full screen',
     pip: 'Picture in picture',
@@ -151,21 +302,18 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
     pipError: 'Picture in picture could not open. Normal viewing continues.',
     fullscreenError: 'Full screen could not open. Normal viewing continues.',
     more: 'More',
-    close: 'Close',
-    infoToggle: 'Show connection information',
-    pinLabel: 'PIN',
-    unlock: 'View stream',
-    info: 'Connection information',
-    method: 'Viewing method',
-    connection: 'State connection',
-    image: 'Image delivery',
-    size: 'JPEG dimensions',
+    privacy: 'Privacy Policy',
+    terms: 'Terms & Conditions',
+    unlock: 'Connect',
+    connection: 'Connection',
+    status: 'Status',
+    image: 'Image',
+    size: 'Dimensions',
     unknownSize: 'No image',
-    title: 'Full title',
-    streamNotice: 'Stream notice',
+    notice: 'Notice',
     permission_required: 'Confirm screen sharing on the streaming device.',
-    stopped: 'Stream stopped',
-    paused: 'Stream paused',
+    stopped: 'Stream stopped on device.',
+    paused: 'Screen sharing is paused on the streaming device.',
     failed: 'Stream failed. Check the streaming device.',
     unsupported: 'This browser cannot connect to the stream. Use a browser with WebSocket support.'
   };
@@ -174,6 +322,10 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
   }
   function byId(id) {
     return document.getElementById(id);
+  }
+  function labelControl(node, value) {
+    node.setAttribute('aria-label', value);
+    node.setAttribute('data-tooltip', value);
   }
   function decodeSnapshot(data) {
     var value;
@@ -188,7 +340,7 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
     var validLayout = function validLayout(layout) {
       return layout && (layout.position === 'top' || layout.position === 'bottom') && (layout.presentation === 'overlay' || layout.presentation === 'bar') && typeof layout.autoHide === 'boolean';
     };
-    if (value.access !== 'open' && value.access !== 'authorized' || typeof value.hasImage !== 'boolean' || value.notice !== null && value.notice !== 'permission_required' && value.notice !== 'stopped' && value.notice !== 'paused' && value.notice !== 'failed' || !display || typeof display.title !== 'string' || typeof display.background !== 'string' || typeof display.titleEnabled !== 'boolean' || typeof display.retainImageOnMediaFailure !== 'boolean' || !validLayout(display.titleLayout) || !validLayout(display.controlsLayout)) return null;
+    if (value.access !== 'open' && value.access !== 'authorized' || typeof value.hasImage !== 'boolean' || value.imageKind !== 'none' && value.imageKind !== 'logo' && value.imageKind !== 'live' && value.imageKind !== 'retained' || value.hasImage !== (value.imageKind !== 'none') || value.notice !== null && value.notice !== 'permission_required' && value.notice !== 'stopped' && value.notice !== 'paused' && value.notice !== 'failed' || !display || typeof display.title !== 'string' || typeof display.background !== 'string' || typeof display.titleEnabled !== 'boolean' || !validLayout(display.titleLayout) || !validLayout(display.controlsLayout)) return null;
     return value;
   }
   function createConnection(callbacks) {
@@ -333,11 +485,9 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       candidate = null,
       generation = 0;
     var firstTimer = null,
-      probeTimer = null,
       nextTimer = null,
       sizeTimer = null;
-    var retain = true,
-      hasImage = false,
+    var hasImage = false,
       _method = 'mjpeg';
     var retries = 0,
       width = 0,
@@ -351,13 +501,17 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
     function cancelCandidate() {
       generation += 1;
       clearTimeout(firstTimer);
-      clearTimeout(probeTimer);
       clearTimeout(nextTimer);
-      firstTimer = probeTimer = nextTimer = null;
+      firstTimer = nextTimer = null;
       discard(candidate);
       candidate = null;
     }
     function dimensions() {
+      // Intrinsic size loss means unavailable image data, not a known transport cause.
+      if (displayed && (!displayed.naturalWidth || !displayed.naturalHeight)) {
+        displayedUnavailable(displayed);
+        return;
+      }
       if (displayed && (width !== displayed.naturalWidth || height !== displayed.naturalHeight)) {
         width = displayed.naturalWidth;
         height = displayed.naturalHeight;
@@ -377,11 +531,7 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       dimensions();
       if (displayed) sizeTimer = setTimeout(observeSize, 500);
     }
-    function failed(id, image) {
-      if (id !== generation || image !== candidate && image !== displayed) return;
-      cancelCandidate();
-      if (displayed) displayed.onerror = null;
-      if (!retain) clearDisplayed();
+    function retryLater() {
       if (!hasImage) return;
       if (retries >= delays.length) {
         callbacks.state('failed');
@@ -390,11 +540,27 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       callbacks.state('retrying');
       nextTimer = setTimeout(start, delays[retries++]);
     }
+    function failed(id, image) {
+      if (id !== generation || image !== candidate) return;
+      cancelCandidate();
+      retryLater();
+    }
+    function displayedUnavailable(image) {
+      if (image !== displayed) return;
+      clearDisplayed();
+      // A replacement already loading or scheduled keeps its own attempt and deadline.
+      if (candidate || nextTimer !== null) {
+        callbacks.state('retrying');
+        return;
+      }
+      retryLater();
+    }
     function promote(id, image) {
       if (id !== generation || image !== candidate || !image.naturalWidth || !image.naturalHeight) return;
       clearTimeout(firstTimer);
-      clearTimeout(probeTimer);
-      firstTimer = probeTimer = null;
+      firstTimer = null;
+      // Give the replacement its final layout before removing the old flow image.
+      image.className = 'stream-image';
       discard(displayed);
       displayed = image;
       candidate = null;
@@ -402,10 +568,10 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       image.removeAttribute('aria-hidden');
       image.alt = 'Stream image';
       image.onload = function () {
-        if (id === generation && image === displayed) dimensions();
+        if (image === displayed) dimensions();
       };
       image.onerror = function () {
-        return failed(id, image);
+        return displayedUnavailable(image);
       };
       retries = 0;
       width = image.naturalWidth;
@@ -422,7 +588,7 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       var id = generation;
       var image = new Image();
       candidate = image;
-      image.className = 'stream-image';
+      image.className = 'stream-candidate';
       image.alt = '';
       image.setAttribute('aria-hidden', 'true');
       image.style.visibility = 'hidden';
@@ -430,8 +596,8 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       if (!displayed) callbacks.state('starting');
       var decoding = false;
       var ready = function ready() {
-        if (id !== generation || image !== candidate || !image.naturalWidth || _method === 'jpeg' && !image.complete) return;
-        // Multipart decode() may never settle. Natural dimensions/load are its first-frame signals.
+        if (id !== generation || image !== candidate || !image.naturalWidth || !image.naturalHeight || _method === 'jpeg' && !image.complete) return;
+        // Load admits the initial image; it does not track subsequent multipart frames.
         if (_method === 'jpeg' && typeof image.decode === 'function') {
           if (decoding) return;
           decoding = true;
@@ -446,21 +612,15 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       image.onerror = function () {
         return failed(id, image);
       };
-      var _probe = function probe() {
-        if (id !== generation || image !== candidate) return;
-        ready();
-        if (image === candidate) probeTimer = setTimeout(_probe, 100);
-      };
+      // This bounds waiting for an initial usable image, not ongoing stream freshness.
       firstTimer = setTimeout(function () {
         return failed(id, image);
       }, 10000);
       image.src = '/' + _method + '?requestSequence=' + id;
-      probeTimer = setTimeout(_probe, 100);
     }
     function configure(snapshot, firstSnapshot) {
       var previousHasImage = hasImage;
-      hasImage = (snapshot.access === 'open' || snapshot.access === 'authorized') && snapshot.hasImage;
-      retain = !!(snapshot.display && snapshot.display.retainImageOnMediaFailure);
+      hasImage = (snapshot.access === 'open' || snapshot.access === 'authorized') && snapshot.notice !== 'permission_required' && (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
       if (!hasImage) {
         cancelCandidate();
         clearDisplayed();
@@ -480,8 +640,9 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       callbacks.state('retrying');
       start();
     }
-    function alternate() {
-      _method = _method === 'mjpeg' ? 'jpeg' : 'mjpeg';
+    function selectMethod(value) {
+      if (value !== 'mjpeg' && value !== 'jpeg' || value === _method) return;
+      _method = value;
       callbacks.method(_method);
       retry();
     }
@@ -494,7 +655,7 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
     }
     return {
       configure: configure,
-      alternate: alternate,
+      selectMethod: selectMethod,
       pause: pause,
       resume: resume,
       method: function method() {
@@ -502,176 +663,22 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       }
     };
   }
-  function createPresentation(callbacks) {
-    var shell = byId('shell'),
-      viewport = byId('viewport'),
-      stage = byId('image-stage');
-    var caption = byId('caption'),
-      controls = byId('controls'),
-      menu = byId('menu');
-    var full = byId('fullscreen'),
-      pip = byId('pip'),
-      video = byId('pip-video');
-    var display = null,
-      mode = 'fit',
-      image = null,
-      width = 0,
-      height = 0;
-    var inactivity = null,
-      interacting = false,
-      menuOpen = false;
-    var pipAttempt = null,
-      pipOperation = null;
-    var fullRequest = shell.requestFullscreen || shell.webkitRequestFullscreen || shell.mozRequestFullScreen || shell.msRequestFullscreen;
-    var fullExit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+  function createPictureInPicture(pip, video, callbacks) {
+    var image = null,
+      currentAttempt = null,
+      pendingOperation = null;
     var pipSupported = !!(window.HTMLCanvasElement && HTMLCanvasElement.prototype.captureStream && video.requestPictureInPicture && 'srcObject' in video && document.pictureInPictureEnabled);
-    full.hidden = !fullRequest || !fullExit;
     pip.hidden = !pipSupported;
     pip.disabled = true;
-    function fullscreenElement() {
-      return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    function updateButton() {
+      pip.disabled = !image || pendingOperation !== null;
     }
-    function showBlocks() {
-      caption.classList.remove('autohidden');
-      controls.classList.remove('autohidden');
+    function isCurrent(attempt) {
+      return currentAttempt === attempt;
     }
-    function holdsFocus() {
-      return controls.contains(document.activeElement) || menu.contains(document.activeElement);
-    }
-    function activity() {
-      showBlocks();
-      clearTimeout(inactivity);
-      inactivity = setTimeout(function () {
-        inactivity = null;
-        if (!display || interacting || menuOpen || holdsFocus()) return;
-        if (display.titleLayout.autoHide) caption.classList.add('autohidden');
-        if (display.controlsLayout.autoHide) controls.classList.add('autohidden');
-      }, 4000);
-    }
-    function sizeImage() {
-      if (!image || !width || !height) {
-        stage.style.width = stage.style.height = '100%';
-        return;
-      }
-      var vw = viewport.clientWidth,
-        vh = viewport.clientHeight;
-      var scale = 1;
-      if (mode === 'fit') scale = Math.min(vw / width, vh / height);else if (mode === 'width') scale = vw / width;
-      var iw = Math.max(1, width * scale),
-        ih = Math.max(1, height * scale);
-      // Keep oversized images at the scroll origin so their edges remain reachable.
-      image.style.width = iw + 'px';
-      image.style.height = ih + 'px';
-      image.style.left = Math.max(0, (vw - iw) / 2) + 'px';
-      image.style.top = (mode === 'width' ? 0 : Math.max(0, (vh - ih) / 2)) + 'px';
-      stage.style.width = Math.max(vw, iw) + 'px';
-      stage.style.height = Math.max(vh, ih) + 'px';
-    }
-    function layout() {
-      var visual = window.visualViewport;
-      var visibleHeight = Math.min(shell.clientHeight, visual && visual.scale === 1 ? visual.height : window.innerHeight || shell.clientHeight);
-      var pinPanel = byId('pin-panel');
-      pinPanel.style.top = Math.round(visibleHeight * (visibleHeight <= 400 ? .03 : .1)) + 'px';
-      pinPanel.style.maxHeight = Math.max(48, visibleHeight * .8) + 'px';
-      if (!display) return;
-      var topBar = byId('top-bar'),
-        bottomBar = byId('bottom-bar');
-      var topSafe = parseFloat(window.getComputedStyle(topBar).paddingTop) || 4;
-      var bottomSafe = parseFloat(window.getComputedStyle(bottomBar).paddingBottom) || 4;
-      var blocks = [{
-        node: caption,
-        settings: display.titleLayout
-      }, {
-        node: controls,
-        settings: display.controlsLayout
-      }];
-      var totals = {
-          top: topSafe,
-          bottom: bottomSafe
-        },
-        reserved = {
-          top: topSafe,
-          bottom: bottomSafe
-        };
-      // Caption is outermost; controls sit nearer the image.
-      blocks.forEach(function (block) {
-        var node = block.node,
-          settings = block.settings;
-        if (node.hidden) return;
-        node.classList.toggle('separate-bar', settings.presentation === 'bar');
-        node.style.top = node.style.bottom = '';
-        var edge = settings.position === 'top' ? 'top' : 'bottom';
-        node.style[edge] = totals[edge] + 'px';
-        totals[edge] += node.offsetHeight;
-        if (settings.presentation === 'bar') reserved[edge] = totals[edge];
-      });
-      topBar.style.height = reserved.top + 'px';
-      bottomBar.style.height = reserved.bottom + 'px';
-      viewport.style.top = reserved.top + 'px';
-      viewport.style.bottom = reserved.bottom + 'px';
-      byId('status').style.top = totals.top + 'px';
-      menu.style.top = menu.style.bottom = '';
-      var edge = display.controlsLayout.position === 'top' ? 'top' : 'bottom';
-      menu.style[edge] = totals[edge] + 4 + 'px';
-      menu.style.maxHeight = Math.max(48, visibleHeight - totals.top - totals.bottom - 12) + 'px';
-      sizeImage();
-    }
-    function sameLayout(previous, next) {
-      return previous.position === next.position && previous.presentation === next.presentation && previous.autoHide === next.autoHide;
-    }
-    function sameDisplay(previous, next) {
-      return !!previous && previous.background === next.background && previous.title === next.title && previous.titleEnabled === next.titleEnabled && previous.retainImageOnMediaFailure === next.retainImageOnMediaFailure && sameLayout(previous.titleLayout, next.titleLayout) && sameLayout(previous.controlsLayout, next.controlsLayout);
-    }
-    function configure(value, force) {
-      // Unchanged snapshots must not reset the viewer's inactivity timer.
-      if (!force && sameDisplay(display, value)) return;
-      display = value;
-      shell.style.backgroundColor = /^#[0-9a-fA-F]{6}$/.test(value.background) ? value.background : '#101418';
-      text(byId('caption-text'), value.title);
-      caption.title = value.title;
-      document.title = value.title || words.app;
-      caption.hidden = !value.titleEnabled;
-      controls.hidden = false;
-      activity();
-      layout();
-    }
-    function setImage(value, w, h) {
-      image = value;
-      width = w;
-      height = h;
-      updatePipButton();
-      byId('placeholder').hidden = !!image;
-      if (!image) stopPip();
-      sizeImage();
-    }
-    function closeMenu(focus) {
-      menuOpen = false;
-      menu.hidden = true;
-      byId('more').setAttribute('aria-expanded', 'false');
-      if (focus) byId('more').focus();
-      activity();
-    }
-    function toggleMenu() {
-      if (menuOpen) {
-        closeMenu(true);
-        return;
-      }
-      menuOpen = true;
-      menu.hidden = false;
-      byId('more').setAttribute('aria-expanded', 'true');
-      activity();
-      layout();
-      byId('show-info').focus();
-    }
-    function updatePipButton() {
-      pip.disabled = !image || pipOperation !== null;
-    }
-    function isCurrentPipAttempt(attempt) {
-      return pipAttempt === attempt;
-    }
-    function releasePipAttempt(attempt) {
+    function release(attempt) {
       if (attempt.phase === 'released') return;
-      if (isCurrentPipAttempt(attempt)) pipAttempt = null;
+      if (isCurrent(attempt)) currentAttempt = null;
       attempt.phase = 'released';
       clearTimeout(attempt.paintTimer);
       clearTimeout(attempt.prepareTimer);
@@ -687,62 +694,62 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       // Pending browser promises retain the attempt, so release every media reference now.
       attempt.canvas = attempt.context = attempt.stream = attempt.window = null;
     }
-    function finishPipOperation(operation) {
-      if (pipOperation === operation) pipOperation = null;
-      updatePipButton();
+    function finishOperation(operation) {
+      if (pendingOperation === operation) pendingOperation = null;
+      updateButton();
     }
-    function exitPip() {
-      if (pipOperation || document.pictureInPictureElement !== video) return;
+    function exit() {
+      if (pendingOperation || document.pictureInPictureElement !== video) return;
       var operation = {};
-      pipOperation = operation;
-      updatePipButton();
+      pendingOperation = operation;
+      updateButton();
       try {
         document.exitPictureInPicture().then(function () {
-          return finishPipOperation(operation);
+          return finishOperation(operation);
         }, function () {
-          return finishPipOperation(operation);
+          return finishOperation(operation);
         });
       } catch (_) {
-        finishPipOperation(operation);
+        finishOperation(operation);
       }
     }
-    function stopPipAttempt(attempt) {
-      var wasCurrent = isCurrentPipAttempt(attempt);
-      releasePipAttempt(attempt);
-      if (wasCurrent) exitPip();
-      updatePipButton();
+    function stopAttempt(attempt) {
+      var wasCurrent = isCurrent(attempt);
+      release(attempt);
+      if (wasCurrent) exit();
+      updateButton();
     }
-    function stopPip() {
-      if (pipAttempt) stopPipAttempt(pipAttempt);else exitPip();
+    function stop() {
+      if (currentAttempt) stopAttempt(currentAttempt);else exit();
     }
-    function failPipAttempt(attempt) {
-      if (!isCurrentPipAttempt(attempt)) return;
+    function fail(attempt) {
+      if (!isCurrent(attempt)) return;
       callbacks.notice('pipError');
-      stopPipAttempt(attempt);
+      stopAttempt(attempt);
     }
-    function enterPip(attempt) {
-      if (!isCurrentPipAttempt(attempt) || !attempt.stream || pipOperation) return;
+    function enter(attempt) {
+      if (!isCurrent(attempt) || !attempt.stream || pendingOperation) return;
       attempt.phase = 'entering';
       var operation = {};
-      pipOperation = operation;
-      updatePipButton();
+      pendingOperation = operation;
+      updateButton();
       var result;
       try {
         result = video.requestPictureInPicture();
       } catch (_) {
-        finishPipOperation(operation);
-        failPipAttempt(attempt);
+        finishOperation(operation);
+        fail(attempt);
         return;
       }
       result.then(function (pipWindow) {
-        finishPipOperation(operation);
-        if (!isCurrentPipAttempt(attempt)) {
+        finishOperation(operation);
+        if (!isCurrent(attempt)) {
           // Native requests cannot be cancelled; retire a late entry before another attempt.
-          exitPip();
+          exit();
           return;
         }
         if (document.pictureInPictureElement !== video) {
-          stopPipAttempt(attempt);
+          stopAttempt(attempt);
           return;
         }
         attempt.phase = 'active';
@@ -750,26 +757,26 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
         clearTimeout(attempt.prepareTimer);
         attempt.prepareTimer = null;
       }, function (error) {
-        finishPipOperation(operation);
-        if (!isCurrentPipAttempt(attempt)) return;
+        finishOperation(operation);
+        if (!isCurrent(attempt)) return;
         if (error.name === 'NotAllowedError') {
           attempt.phase = 'ready';
           callbacks.notice('pipReady');
           clearTimeout(attempt.prepareTimer);
           attempt.prepareTimer = setTimeout(function () {
-            return stopPipAttempt(attempt);
+            return stopAttempt(attempt);
           }, 30000);
-        } else failPipAttempt(attempt);
+        } else fail(attempt);
       });
     }
-    function openPip() {
-      if (!pipSupported || !image || pipOperation) return;
+    function toggle() {
+      if (!pipSupported || !image || pendingOperation) return;
       if (document.pictureInPictureElement === video) {
-        stopPip();
+        stop();
         return;
       }
-      if (pipAttempt) {
-        if (pipAttempt.phase === 'ready' && video.readyState >= 2) enterPip(pipAttempt);
+      if (currentAttempt) {
+        if (currentAttempt.phase === 'ready' && video.readyState >= 2) enter(currentAttempt);
         return;
       }
       var attempt = {
@@ -781,12 +788,12 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
         prepareTimer: null,
         window: null
       };
-      pipAttempt = attempt;
+      currentAttempt = attempt;
       try {
         attempt.canvas = document.createElement('canvas');
         attempt.context = attempt.canvas.getContext('2d');
         var _paint = function paint() {
-          if (!isCurrentPipAttempt(attempt) || !image) return;
+          if (!isCurrent(attempt) || !image) return;
           try {
             if (attempt.canvas.width !== image.naturalWidth || attempt.canvas.height !== image.naturalHeight) {
               attempt.canvas.width = image.naturalWidth;
@@ -794,110 +801,585 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
             }
             attempt.context.drawImage(image, 0, 0);
           } catch (_) {
-            failPipAttempt(attempt);
+            fail(attempt);
             return;
           }
           attempt.paintTimer = setTimeout(_paint, 100);
         };
         _paint();
-        if (!isCurrentPipAttempt(attempt)) return;
+        if (!isCurrent(attempt)) return;
         attempt.stream = attempt.canvas.captureStream(10);
         video.onloadedmetadata = function () {
-          if (!isCurrentPipAttempt(attempt) || video.srcObject !== attempt.stream) return;
+          if (!isCurrent(attempt) || video.srcObject !== attempt.stream) return;
           video.onloadedmetadata = null;
           // Keep the preparation deadline through play() and the native PiP request.
           try {
             video.play().then(function () {
-              return enterPip(attempt);
+              return enter(attempt);
             }, function () {
-              return failPipAttempt(attempt);
+              return fail(attempt);
             });
           } catch (_) {
-            failPipAttempt(attempt);
+            fail(attempt);
           }
         };
         attempt.prepareTimer = setTimeout(function () {
-          return failPipAttempt(attempt);
+          return fail(attempt);
         }, 10000);
         video.srcObject = attempt.stream;
       } catch (_) {
-        failPipAttempt(attempt);
+        fail(attempt);
       }
     }
     video.addEventListener('leavepictureinpicture', function (event) {
-      var attempt = pipAttempt;
-      if (attempt && attempt.phase === 'active' && event.pictureInPictureWindow === attempt.window && document.pictureInPictureElement !== video) stopPipAttempt(attempt);
+      var attempt = currentAttempt;
+      if (attempt && attempt.phase === 'active' && event.pictureInPictureWindow === attempt.window && document.pictureInPictureElement !== video) stopAttempt(attempt);
     });
-    full.addEventListener('click', function () {
-      try {
-        var result = fullscreenElement() ? fullExit.call(document) : fullRequest.call(shell);
-        if (result && result["catch"]) result["catch"](function () {
-          return callbacks.notice('fullscreenError');
-        });
-      } catch (_) {
-        callbacks.notice('fullscreenError');
+    pip.addEventListener('click', toggle);
+    return {
+      setImage: function setImage(value) {
+        image = value;
+        updateButton();
+        if (!image) stop();
+      },
+      stop: stop
+    };
+  }
+  function createViewportLayout() {
+    var shell = byId('shell'),
+      safeArea = byId('safe-area');
+    var listeners = [];
+    function bounds() {
+      var visual = window.visualViewport;
+      var unzoomed = !visual || Math.abs(visual.scale - 1) < .01;
+      // Percentage heights can stay at the small viewport after browser bars retract.
+      // Keep the canvas at layout size; a keyboard constrains its usable rectangle below.
+      if (unzoomed) {
+        var _height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+        if (_height > 0) shell.style.height = _height + 'px';
       }
+      var origin = shell.getBoundingClientRect(),
+        width = shell.clientWidth,
+        height = shell.clientHeight;
+      var left = 0,
+        top = 0,
+        right = width,
+        bottom = height;
+      if (unzoomed) {
+        var useVisual = visual && visual.width > 0 && visual.height > 0;
+        left = (useVisual ? visual.offsetLeft : 0) - origin.left;
+        top = (useVisual ? visual.offsetTop : 0) - origin.top;
+        right = left + (useVisual ? visual.width : window.innerWidth || width);
+        bottom = top + (useVisual ? visual.height : window.innerHeight || height);
+      }
+      // Zoom magnifies the existing layout; do not chase the shrunken visual viewport.
+      var safe = window.getComputedStyle(safeArea);
+      left = Math.min(width, Math.max(0, left, parseFloat(safe.left) || 0));
+      top = Math.min(height, Math.max(0, top + 4, parseFloat(safe.top) || 0));
+      right = Math.max(left, Math.min(width, right, width - (parseFloat(safe.right) || 0)));
+      bottom = Math.max(top, Math.min(height, bottom - 4, height - (parseFloat(safe.bottom) || 0)));
+      return {
+        left: left,
+        top: top,
+        right: right,
+        bottom: bottom,
+        width: right - left,
+        height: bottom - top
+      };
+    }
+    function refresh() {
+      var value = bounds();
+      listeners.forEach(function (listener) {
+        return listener(value);
+      });
+    }
+    function keepFocusVisible(panel) {
+      var focused = document.activeElement;
+      if (panel.hidden || !focused || focused === panel || focused.disabled || !panel.contains(focused) || panel.clientHeight <= 0) return;
+      var field = focused.getBoundingClientRect(),
+        box = panel.getBoundingClientRect();
+      if (field.bottom <= field.top) return;
+      // Our own later relayout need not repeat the browser's initial focus scroll.
+      var top = box.top + panel.clientTop,
+        bottom = top + panel.clientHeight;
+      if (field.top < top || field.bottom - field.top > panel.clientHeight) panel.scrollTop += field.top - top;else if (field.bottom > bottom) panel.scrollTop += field.bottom - bottom;
+    }
+    ['resize', 'orientationchange', 'scroll', 'pageshow'].forEach(function (name) {
+      return window.addEventListener(name, refresh);
     });
     ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(function (name) {
-      document.addEventListener(name, function () {
-        text(full, fullscreenElement() ? words.leaveFullscreen : words.fullscreen);
-        layout();
-      });
+      document.addEventListener(name, refresh);
     });
-    pip.addEventListener('click', openPip);
-    byId('view-mode').addEventListener('change', function (event) {
-      mode = event.target.value;
-      viewport.scrollLeft = viewport.scrollTop = 0;
-      sizeImage();
-      activity();
-    });
-    byId('more').addEventListener('click', toggleMenu);
-    byId('close-menu').addEventListener('click', function () {
-      return closeMenu(true);
-    });
-    byId('show-info').addEventListener('change', function (event) {
-      byId('information').hidden = !event.target.checked;
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', refresh);
+      window.visualViewport.addEventListener('scroll', refresh);
+    }
+    return {
+      bounds: bounds,
+      keepFocusVisible: keepFocusVisible,
+      watch: function watch(listener) {
+        listeners.push(listener);
+        listener(bounds());
+      }
+    };
+  }
+  function createAccessPanel(viewportLayout, callbacks) {
+    var panel = byId('pin-panel'),
+      input = byId('pin'),
+      submitButton = byId('unlock');
+    var title = byId('pin-title'),
+      message = byId('pin-message'),
+      entry = byId('pin-entry');
+    var blockCopy = byId('pin-block-copy'),
+      countdown = byId('pin-countdown');
+    var logo = byId('pin-logo'),
+      retryButton = byId('pin-retry'),
+      countdownValue = byId('pin-countdown-value');
+    var blockedUntil = 0,
+      blockedTimer = null,
+      networkFailure = false;
+    function clearBlock() {
+      clearTimeout(blockedTimer);
+      blockedTimer = null;
+      blockedUntil = 0;
+    }
+    function showMessage(value) {
+      text(title, words.pinTitle);
+      entry.hidden = false;
+      blockCopy.hidden = true;
+      message.classList.remove('sr-only');
+      countdown.hidden = true;
+      text(message, value);
+      message.hidden = !value;
+    }
+    function formatRemaining(seconds) {
+      return seconds < 60 ? seconds + words.secondsShort : Math.floor(seconds / 60) + ':' + (seconds % 60 < 10 ? '0' : '') + seconds % 60;
+    }
+    function showBlocked(ms) {
+      blockedUntil = Date.now() + Math.max(0, isFinite(ms) ? ms : 1000);
+      text(title, words.pinBlockedTitle);
+      entry.hidden = true;
+      blockCopy.hidden = false;
+      // Announce the block once; keep per-second updates out of the live region.
+      message.classList.add('sr-only');
+      message.hidden = false;
+      countdown.hidden = false;
+      text(message, words.pinBlocked + ' ' + words.tryAgainIn + ' ' + formatRemaining(Math.ceil((blockedUntil - Date.now()) / 1000)) + '.');
+      var _tick = function tick() {
+        var seconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
+        input.disabled = submitButton.disabled = seconds > 0;
+        text(countdownValue, formatRemaining(seconds));
+        if (seconds > 0) blockedTimer = setTimeout(_tick, 1000);else {
+          blockedTimer = null;
+          blockedUntil = 0;
+          showMessage('');
+          callbacks.expired();
+        }
+      };
+      _tick();
+    }
+    function show(value) {
+      clearBlock();
+      networkFailure = false;
       layout();
+      var wasHidden = panel.hidden;
+      panel.hidden = false;
+      input.disabled = submitButton.disabled = false;
+      if (value.access === 'blocked') showBlocked(value.retryAfterMs);else {
+        showMessage('');
+        if (wasHidden) input.focus();
+      }
+    }
+    function hide() {
+      clearBlock();
+      networkFailure = false;
+      panel.hidden = true;
+      input.value = '';
+    }
+    function result(value) {
+      networkFailure = value === 'pinNetwork';
+      submitButton.disabled = false;
+      if (value === 'success') {
+        input.value = '';
+        panel.hidden = true;
+      } else {
+        submitButton.disabled = value === 'pinSending';
+        showMessage(words[value]);
+        if (value === 'pinWrong') {
+          input.select();
+          input.focus();
+        }
+      }
+    }
+    function layout(value) {
+      var visible = value || viewportLayout.bounds();
+      panel.style.left = visible.left + visible.width / 2 + 'px';
+      panel.style.top = visible.top + visible.height / 2 + 'px';
+      panel.style.maxWidth = Math.max(0, visible.width - 32) + 'px';
+      panel.style.maxHeight = Math.max(0, visible.height - 32) + 'px';
+      logo.style.width = Math.max(40, visible.height - 264) + 'px';
+      if (!entry.hidden) viewportLayout.keepFocusVisible(panel);
+    }
+    byId('pin-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      if (!blockedUntil && !submitButton.disabled) callbacks.submit(input.value);
     });
-    document.addEventListener('keydown', function (event) {
+    retryButton.addEventListener('click', callbacks.retry);
+    viewportLayout.watch(layout);
+    return {
+      show: show,
+      hide: hide,
+      result: result,
+      visible: function visible() {
+        return !panel.hidden;
+      },
+      updateRetry: function updateRetry(state) {
+        retryButton.hidden = panel.hidden || !networkFailure && state !== 'unavailable';
+      },
+      pause: function pause() {
+        clearTimeout(blockedTimer);
+        blockedTimer = null;
+      },
+      resume: function resume() {
+        layout();
+        if (blockedUntil) showBlocked(Math.max(0, blockedUntil - Date.now()));
+      }
+    };
+  }
+  function createPresentation(viewportLayout, callbacks) {
+    var shell = byId('shell'),
+      viewport = byId('viewport'),
+      stage = byId('image-stage');
+    var caption = byId('caption'),
+      controls = byId('controls'),
+      menu = byId('menu');
+    var fullscreenButton = byId('fullscreen'),
+      more = byId('more');
+    var topBar = byId('top-bar'),
+      bottomBar = byId('bottom-bar');
+    var status = byId('status'),
+      recovery = byId('recovery'),
+      placeholder = byId('placeholder');
+    var stateLogo = byId('state-logo'),
+      captionText = byId('caption-text');
+    var tooltip = byId('control-tooltip'),
+      captureNotice = byId('capture-notice');
+    var tooltipButton = null,
+      hoveredControl = null,
+      touchUntil = 0;
+    var display = null,
+      mode = 'fit',
+      image = null,
+      width = 0,
+      height = 0;
+    var inactivity = null,
+      interacting = false,
+      menuOpen = false;
+    var captureMessage = '',
+      captureFailed = false,
+      fullscreenAttempt = null;
+    var fullRequest = shell.requestFullscreen || shell.webkitRequestFullscreen || shell.mozRequestFullScreen || shell.msRequestFullscreen;
+    var fullExit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+    fullscreenButton.hidden = !fullRequest || !fullExit;
+    var pictureInPicture = createPictureInPicture(byId('pip'), byId('pip-video'), callbacks);
+    function fullscreenElement() {
+      return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    }
+    function showBlocks() {
+      caption.classList.remove('autohidden');
+      controls.classList.remove('autohidden');
+    }
+    function positionCaptureNotice() {
+      captureNotice.style.left = viewport.offsetLeft + viewport.clientWidth / 2 + 'px';
+      captureNotice.style.maxWidth = Math.max(1, viewport.clientWidth - 24) + 'px';
+    }
+    function hideTooltip() {
+      tooltip.hidden = true;
+      tooltipButton = null;
+    }
+    function positionTooltip() {
+      if (!tooltipButton) return;
+      var visible = viewportLayout.bounds();
+      var bounds = tooltipButton.getBoundingClientRect(),
+        origin = shell.getBoundingClientRect();
+      var left = bounds.left - origin.left + (bounds.width - tooltip.offsetWidth) / 2;
+      tooltip.style.left = Math.max(visible.left + 8, Math.min(visible.right - tooltip.offsetWidth - 8, left)) + 'px';
+      var above = bounds.top - origin.top - tooltip.offsetHeight - 8;
+      var top = above >= visible.top + 8 ? above : bounds.bottom - origin.top + 8;
+      tooltip.style.top = Math.max(visible.top, Math.min(visible.bottom - tooltip.offsetHeight, top)) + 'px';
+    }
+    function showTooltip(button) {
+      if (!button || button.disabled || button.hidden || menuOpen || Date.now() < touchUntil) return;
+      var label = button.getAttribute('data-tooltip');
+      if (!label) return;
+      tooltipButton = button;
+      text(tooltip, label);
+      tooltip.hidden = false;
+      positionTooltip();
+    }
+    function holdsFocus() {
+      return !shell.classList.contains('pointer-input') && (controls.contains(document.activeElement) || menu.contains(document.activeElement));
+    }
+    function activity() {
+      showBlocks();
+      clearTimeout(inactivity);
+      inactivity = setTimeout(function () {
+        inactivity = null;
+        if (!display || interacting || menuOpen || hoveredControl || holdsFocus()) return;
+        if (display.titleLayout.presentation === 'overlay' && display.titleLayout.autoHide) caption.classList.add('autohidden');
+        if (display.controlsLayout.presentation === 'overlay' && display.controlsLayout.autoHide) {
+          controls.classList.add('autohidden');
+          hideTooltip();
+        }
+      }, 4000);
+    }
+    function sizeImage() {
+      viewport.classList.toggle('view-fit', mode === 'fit');
+      viewport.classList.toggle('view-width', mode === 'width');
+      // The stage owns only natural extent; CSS follows the final viewport after scrollbars.
+      stage.style.width = image && mode === 'original' ? width + 'px' : '100%';
+      stage.style.height = image && mode === 'original' ? height + 'px' : mode === 'width' ? 'auto' : '100%';
+      if (!image || !width || !height) {
+        positionCaptureNotice();
+        return;
+      }
+      if (mode === 'fit') {
+        // Fit removes scrollbars before measuring, so a previous mode cannot narrow it.
+        var scale = Math.min(viewport.clientWidth / width, viewport.clientHeight / height);
+        image.style.width = Math.max(1, width * scale) + 'px';
+        image.style.height = Math.max(1, height * scale) + 'px';
+        viewport.scrollLeft = viewport.scrollTop = 0;
+      } else if (mode === 'original') {
+        image.style.width = width + 'px';
+        image.style.height = height + 'px';
+      } else {
+        // Native width/auto-height layout resolves vertical overflow without a JS feedback loop.
+        image.style.width = image.style.height = '';
+      }
+      positionCaptureNotice();
+    }
+    function layout(value) {
+      var visible = value || viewportLayout.bounds();
+      var bottom = shell.clientHeight - visible.bottom,
+        center = visible.left + visible.width / 2;
+      var blocks = display ? [{
+        node: controls,
+        settings: display.controlsLayout
+      }, {
+        node: caption,
+        settings: display.titleLayout
+      }] : [];
+      var totals = {
+          top: visible.top,
+          bottom: bottom
+        },
+        reserved = {
+          top: visible.top,
+          bottom: bottom
+        };
+      // Controls are outermost; the caption sits nearer the image.
+      blocks.forEach(function (block) {
+        var node = block.node,
+          settings = block.settings;
+        if (node.hidden) return;
+        node.classList.toggle('separate-bar', settings.presentation === 'bar');
+        node.style.left = center + 'px';
+        var inset = node === caption && settings.presentation !== 'bar' ? visible.width <= 600 ? 16 : visible.width * .05 : 0;
+        node.style.maxWidth = Math.max(0, visible.width - inset) + 'px';
+        node.style.top = node.style.bottom = '';
+        var edge = settings.position === 'top' ? 'top' : 'bottom';
+        node.style[edge] = totals[edge] + 'px';
+        totals[edge] += node.offsetHeight;
+        if (settings.presentation === 'bar') reserved[edge] = totals[edge];
+      });
+      topBar.style.height = reserved.top + 'px';
+      bottomBar.style.height = reserved.bottom + 'px';
+      captureNotice.style.bottom = totals.bottom + 8 + 'px';
+      viewport.style.top = reserved.top + 'px';
+      viewport.style.bottom = reserved.bottom + 'px';
+      viewport.style.left = visible.left + 'px';
+      viewport.style.right = shell.clientWidth - visible.right + 'px';
+      status.style.top = totals.top + 'px';
+      status.style.left = visible.left + visible.width * .1 + 'px';
+      status.style.width = visible.width * .8 + 'px';
+      [menu, recovery].forEach(function (node) {
+        node.style.left = center + 'px';
+        node.style.marginLeft = '0';
+        node.style.webkitTransform = node.style.transform = 'translateX(-50%)';
+        node.style.maxWidth = Math.max(0, visible.width - 16) + 'px';
+      });
+      recovery.style.top = visible.top + visible.height * .35 + 'px';
+      recovery.style.maxHeight = Math.max(0, visible.height * .65 - 16) + 'px';
+      menu.style.top = menu.style.bottom = '';
+      var edge = display && display.controlsLayout.position === 'top' ? 'top' : 'bottom';
+      menu.style[edge] = totals[edge] + 4 + 'px';
+      var menuSpace = shell.clientHeight - totals.top - totals.bottom - 12;
+      if (menuSpace < 48) {
+        // In a very short window the scrollable panel may cover the HUD, but stays reachable.
+        menu.style.bottom = '';
+        menu.style.top = visible.top + 4 + 'px';
+      }
+      menu.style.maxHeight = Math.max(0, menuSpace < 48 ? visible.height - 8 : menuSpace) + 'px';
+      viewportLayout.keepFocusVisible(menu);
+      stateLogo.style.width = Math.max(40, viewport.clientHeight - 264) + 'px';
+      sizeImage();
+      positionTooltip();
+    }
+    function sameLayout(previous, next) {
+      return previous.position === next.position && previous.presentation === next.presentation && previous.autoHide === next.autoHide;
+    }
+    function sameDisplay(previous, next) {
+      return !!previous && previous.background === next.background && previous.title === next.title && previous.titleEnabled === next.titleEnabled && sameLayout(previous.titleLayout, next.titleLayout) && sameLayout(previous.controlsLayout, next.controlsLayout);
+    }
+    function applyBackground() {
+      var background = display && /^#[0-9a-fA-F]{6}$/.test(display.background) ? display.background : '#101418';
+      shell.style.backgroundColor = shell.classList.contains('empty-screen') || shell.classList.contains('access-screen') ? '' : background;
+      return background;
+    }
+    function setCaptureNotice(message, failed) {
+      if (captureMessage === message && captureFailed === failed) return;
+      captureMessage = message;
+      captureFailed = failed;
+      text(captureNotice, message);
+      captureNotice.hidden = !message;
+      captureNotice.classList.toggle('capture-failed', failed);
+      layout();
+    }
+    function setEmptyState(value) {
+      shell.classList.toggle('empty-screen', value);
+      applyBackground();
+    }
+    function configure(value, force) {
+      // Unchanged snapshots must not reset the viewer's inactivity timer.
+      if (!force && sameDisplay(display, value)) return;
+      display = value;
+      shell.classList.remove('access-screen');
+      var background = applyBackground();
+      var channels = [1, 3, 5].map(function (offset) {
+        var channel = parseInt(background.substr(offset, 2), 16) / 255;
+        return channel <= .04045 ? channel / 12.92 : Math.pow((channel + .055) / 1.055, 2.4);
+      });
+      var luminance = .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+      // Choose whichever of black or white has stronger contrast against the shared background.
+      shell.classList.toggle('dark-bar-text', (luminance + .05) / .05 > 1.05 / (luminance + .05));
+      text(captionText, value.title);
+      caption.title = value.title;
+      document.title = value.title || words.app;
+      caption.hidden = !value.titleEnabled;
+      controls.hidden = false;
       activity();
-      if ((event.key === 'Escape' || event.key === 'BrowserBack' || event.keyCode === 27) && menuOpen) {
-        event.preventDefault();
+      layout();
+    }
+    function setImage(value, w, h) {
+      image = value;
+      width = w;
+      height = h;
+      pictureInPicture.setImage(value);
+      placeholder.hidden = !!image;
+      sizeImage();
+    }
+    function closeMenu(focus) {
+      menuOpen = false;
+      menu.hidden = true;
+      more.setAttribute('aria-expanded', 'false');
+      if (focus) more.focus();
+      hideTooltip();
+      activity();
+    }
+    function toggleMenu() {
+      hideTooltip();
+      if (menuOpen) {
         closeMenu(true);
         return;
       }
-      if (!menuOpen && controls.contains(document.activeElement) && document.activeElement.tagName !== 'SELECT') {
-        var key = event.key || {
-          37: 'ArrowLeft',
-          38: 'ArrowUp',
-          39: 'ArrowRight',
-          40: 'ArrowDown'
-        }[event.keyCode];
-        if (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown') {
-          var nodes = Array.prototype.slice.call(controls.querySelectorAll('button,select')).filter(function (node) {
-            return !node.hidden && !node.disabled;
-          });
-          var index = nodes.indexOf(document.activeElement),
-            step = key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1;
-          event.preventDefault();
-          nodes[(index + step + nodes.length) % nodes.length].focus();
-        }
+      menuOpen = true;
+      menu.hidden = false;
+      more.setAttribute('aria-expanded', 'true');
+      activity();
+      layout();
+      var method = byId('method-mjpeg').getAttribute('aria-pressed') === 'true' ? byId('method-mjpeg') : byId('method-jpeg');
+      (method.disabled ? menu : method).focus();
+    }
+    fullscreenButton.addEventListener('click', function () {
+      var attempt = {
+        fail: null
+      };
+      fullscreenAttempt = attempt;
+      var failed = function failed() {
+        if (fullscreenAttempt !== attempt) return;
+        fullscreenAttempt = null;
+        callbacks.notice('fullscreenError');
+      };
+      try {
+        var result = fullscreenElement() ? fullExit.call(document) : fullRequest.call(shell);
+        // Promise APIs also dispatch error events; only legacy void APIs need the event fallback.
+        if (result && result["catch"]) result["catch"](failed);else attempt.fail = failed;
+      } catch (_) {
+        failed();
       }
+    });
+    ['fullscreenerror', 'webkitfullscreenerror', 'mozfullscreenerror', 'MSFullscreenError'].forEach(function (name) {
+      document.addEventListener(name, function () {
+        if (fullscreenAttempt && fullscreenAttempt.fail) fullscreenAttempt.fail();
+      });
+    });
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(function (name) {
+      document.addEventListener(name, function () {
+        var active = !!fullscreenElement();
+        fullscreenButton.setAttribute('aria-pressed', active ? 'true' : 'false');
+        labelControl(fullscreenButton, active ? words.leaveFullscreen : words.fullscreen);
+        if (tooltipButton === fullscreenButton) showTooltip(fullscreenButton);
+      });
+    });
+    var modes = ['fit', 'original', 'width'];
+    modes.forEach(function (value) {
+      return byId('view-' + value).addEventListener('click', function () {
+        mode = value;
+        modes.forEach(function (name) {
+          return byId('view-' + name).setAttribute('aria-pressed', name === mode ? 'true' : 'false');
+        });
+        viewport.scrollLeft = viewport.scrollTop = 0;
+        sizeImage();
+        activity();
+      });
+    });
+    more.addEventListener('click', toggleMenu);
+    document.addEventListener('click', function (event) {
+      if (menuOpen && !menu.contains(event.target) && !more.contains(event.target)) closeMenu(false);
+    });
+    document.addEventListener('keydown', function (event) {
+      touchUntil = 0;
+      shell.classList.remove('pointer-input');
+      activity();
+      if (event.key === 'Escape' || event.key === 'BrowserBack' || event.keyCode === 27) {
+        hideTooltip();
+        if (menuOpen) {
+          event.preventDefault();
+          closeMenu(true);
+        }
+        return;
+      }
+      if (controls.contains(document.activeElement)) showTooltip(document.activeElement);
     });
     document.addEventListener('mousemove', activity);
     document.addEventListener('touchstart', function () {
+      touchUntil = Date.now() + 1000;
+      shell.classList.add('pointer-input');
+      hoveredControl = null;
+      hideTooltip();
       interacting = true;
       activity();
     });
-    document.addEventListener('touchend', function () {
-      interacting = false;
-      activity();
-    });
-    document.addEventListener('touchcancel', function () {
-      interacting = false;
-      activity();
+    ['touchend', 'touchcancel'].forEach(function (name) {
+      return document.addEventListener(name, function () {
+        touchUntil = Date.now() + 1000;
+        interacting = false;
+        activity();
+      });
     });
     document.addEventListener('mousedown', function () {
+      shell.classList.add('pointer-input');
+      hideTooltip();
       interacting = true;
       activity();
     });
@@ -905,45 +1387,101 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       interacting = false;
       activity();
     });
-    controls.addEventListener('focusin', activity);
-    controls.addEventListener('focusout', activity);
-    window.addEventListener('resize', layout);
-    window.addEventListener('orientationchange', layout);
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
-    layout();
+    var buttons = controls.querySelectorAll('button');
+    var _loop = function _loop() {
+      var button = buttons[i];
+      button.addEventListener('mouseenter', function () {
+        if (Date.now() < touchUntil) return;
+        hoveredControl = button;
+        showTooltip(button);
+        activity();
+      });
+      button.addEventListener('mouseleave', function () {
+        hoveredControl = null;
+        hideTooltip();
+        activity();
+      });
+      button.addEventListener('focus', function () {
+        activity();
+        if (!shell.classList.contains('pointer-input')) showTooltip(button);
+      });
+      button.addEventListener('blur', function () {
+        hideTooltip();
+        activity();
+      });
+    };
+    for (var i = 0; i < buttons.length; i += 1) {
+      _loop();
+    }
+    viewportLayout.watch(layout);
     return {
       configure: configure,
       setImage: setImage,
+      setEmptyState: setEmptyState,
+      setCaptureNotice: setCaptureNotice,
       closeMenu: closeMenu,
       activity: activity,
       pause: function pause() {
         clearTimeout(inactivity);
         inactivity = null;
-        stopPip();
+        fullscreenAttempt = null;
+        interacting = false;
+        hoveredControl = null;
+        hideTooltip();
+        pictureInPicture.stop();
       },
       accessDenied: function accessDenied() {
+        hoveredControl = null;
+        shell.classList.add('access-screen');
+        shell.style.backgroundColor = '';
         closeMenu(false);
         controls.hidden = caption.hidden = true;
-        stopPip();
+        pictureInPicture.stop();
         layout();
       }
     };
   }
   var labels = document.querySelectorAll('[data-word]');
   for (var i = 0; i < labels.length; i += 1) text(labels[i], words[labels[i].getAttribute('data-word')]);
+  var controlLabels = document.querySelectorAll('[data-label]');
+  for (var _i = 0; _i < controlLabels.length; _i += 1) labelControl(controlLabels[_i], words[controlLabels[_i].getAttribute('data-label')]);
+  var placeholder = byId('placeholder'),
+    stateLogo = byId('state-logo'),
+    stateMessage = byId('state-message');
+  var statusMessage = byId('status'),
+    recovery = byId('recovery'),
+    recoveryAlternate = byId('recovery-alternate');
+  var infoConnection = byId('info-connection'),
+    infoImage = byId('info-image'),
+    infoSize = byId('info-size');
+  var infoNotice = byId('info-notice'),
+    infoNoticeLabel = byId('info-notice-label');
+  var methodButtons = ['mjpeg', 'jpeg'].map(function (method) {
+    return {
+      method: method,
+      button: byId('method-' + method)
+    };
+  });
   var snapshot = null,
     connectionState = 'connecting',
     imageState = 'idle';
-  var blockedUntil = 0,
-    blockedTimer = null,
-    noticeTimer = null,
-    notice = '';
+  var noticeTimer = null,
+    transientMessage = '';
   var hiddenAt = 0,
     paused = false;
-  var pinPanel = byId('pin-panel'),
-    pinInput = byId('pin'),
-    unlock = byId('unlock');
-  var presentation = createPresentation({
+  stateLogo.src = byId('pin-logo').src;
+  var viewportLayout = createViewportLayout();
+  var access = createAccessPanel(viewportLayout, {
+    submit: function submit(pin) {
+      return connection.submitPin(pin);
+    },
+    retry: retry,
+    expired: function expired() {
+      connectionState = 'pin_required';
+      renderState();
+    }
+  });
+  var presentation = createPresentation(viewportLayout, {
     notice: showNotice
   });
   var media = createMedia(byId('image-stage'), {
@@ -953,12 +1491,9 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
     },
     image: function image(value, w, h) {
       presentation.setImage(value, w, h);
-      text(byId('info-size'), w && h ? w + ' × ' + h : words.unknownSize);
+      text(infoSize, w && h ? w + ' × ' + h : words.unknownSize);
     },
-    method: function method(value) {
-      text(byId('info-method'), value === 'mjpeg' ? 'MJPEG' : 'JPEG');
-      updateAlternate();
-    }
+    method: renderMethod
   });
   var connection = createConnection({
     state: function state(value) {
@@ -967,109 +1502,101 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
     },
     snapshot: receiveSnapshot,
     pin: function pin(value) {
-      unlock.disabled = false;
-      if (value === 'success') {
-        pinInput.value = '';
-        pinPanel.hidden = true;
-      } else {
-        unlock.disabled = value === 'pinSending';
-        text(byId('pin-message'), words[value]);
-        if (value === 'pinWrong') {
-          pinInput.select();
-          pinInput.focus();
-        }
-      }
+      access.result(value);
+      renderState();
     }
   });
   function authorized() {
     return snapshot && (snapshot.access === 'open' || snapshot.access === 'authorized');
   }
-  function streamNoticeText() {
+  function hasScreenImage() {
+    return authorized() && snapshot.notice !== 'permission_required' && (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
+  }
+  function captureNoticeText() {
     return authorized() && snapshot.notice !== null ? words[snapshot.notice] : '';
   }
+  function joinMessages(messages) {
+    return messages.filter(Boolean).join(' · ');
+  }
   function renderState() {
-    var streamNotice = streamNoticeText();
-    var status = '';
-    if (connectionState !== 'connected' && connectionState !== 'pin_required' && connectionState !== 'blocked') status = words[connectionState] || words.connecting;
+    var captureNotice = captureNoticeText();
+    var connectionMessage = connectionState !== 'connected' && connectionState !== 'pin_required' && connectionState !== 'blocked' ? words[connectionState] || words.connecting : '';
+    var imageMessage = imageState === 'starting' ? words.mediaStarting : imageState === 'retrying' ? words.mediaRetrying : imageState === 'failed' ? words.mediaFailed : '';
+    var retainedWithImage = !!(authorized() && snapshot.imageKind === 'retained' && placeholder.hidden);
+    var failed = authorized() && snapshot.notice === 'failed';
+    presentation.setCaptureNotice(retainedWithImage ? captureNotice || words.mediaStarting : '', failed);
+    var messages = [connectionMessage];
     if (authorized()) {
-      if (streamNotice) status += (status ? ' · ' : '') + streamNotice;
-      if (imageState === 'starting' || imageState === 'retrying' || imageState === 'failed') {
-        var key = imageState === 'starting' ? 'mediaStarting' : imageState === 'retrying' ? 'mediaRetrying' : 'mediaFailed';
-        status += (status ? ' · ' : '') + words[key];
-      }
+      if (!retainedWithImage) messages.push(captureNotice);
+      if (!captureNotice || retainedWithImage || imageState !== 'starting') messages.push(imageMessage);
     }
-    if (notice) status += (status ? ' · ' : '') + notice;
-    text(byId('status'), status);
-    text(byId('placeholder'), authorized() ? snapshot.hasImage ? words.mediaStarting : streamNotice || words.mediaStarting : words[connectionState] || words.connecting);
+    messages.push(transientMessage);
+    var pinVisible = access.visible();
+    var emptyState = !pinVisible && !placeholder.hidden;
+    stateLogo.hidden = false;
+    // The access form and no-image state each own one message; hidden remains the actual-image fact.
+    placeholder.style.display = pinVisible ? 'none' : '';
+    presentation.setEmptyState(emptyState);
+    placeholder.classList.toggle('capture-failed', failed);
+    statusMessage.classList.toggle('capture-failed', failed);
+    text(statusMessage, placeholder.hidden || pinVisible ? joinMessages(messages) : '');
+    if (emptyState) {
+      var body = !authorized() ? connectionMessage || words.connecting : captureNotice || imageMessage || words.mediaStarting;
+      var details = [body];
+      if (authorized() && connectionMessage) details.push(connectionMessage);
+      if (captureNotice && imageMessage && imageState !== 'starting') details.push(imageMessage);
+      details.push(transientMessage);
+      var message = joinMessages(details);
+      text(stateMessage, message);
+      stateMessage.hidden = !message;
+    }
     var mediaText = {
-      idle: words.mediaStarting,
+      idle: words.unknownSize,
       starting: words.mediaStarting,
       retrying: words.mediaRetrying,
       failed: words.mediaFailed,
       viewing: words.viewing
     };
-    text(byId('info-connection'), words[connectionState] || connectionState);
-    text(byId('info-image'), mediaText[imageState]);
-    text(byId('info-notice'), streamNotice);
-    byId('info-notice-label').hidden = byId('info-notice').hidden = !streamNotice;
-    byId('recovery').hidden = !pinPanel.hidden || connectionState !== 'unavailable' && imageState !== 'failed';
-    byId('recovery-alternate').hidden = !authorized() || !snapshot.hasImage;
-    updateAlternate();
+    text(infoConnection, words[connectionState] || connectionState);
+    text(infoImage, mediaText[imageState]);
+    text(infoNotice, captureNotice);
+    infoNoticeLabel.hidden = infoNotice.hidden = !captureNotice;
+    recovery.hidden = pinVisible || connectionState !== 'unavailable' && imageState !== 'failed';
+    access.updateRetry(connectionState);
+    recoveryAlternate.hidden = !hasScreenImage();
+    renderMethod();
   }
-  function updateAlternate() {
-    var label = media.method() === 'mjpeg' ? words.alternate : words.useMjpeg;
-    text(byId('alternate'), label);
-    text(byId('recovery-alternate'), label);
-    byId('alternate').disabled = !authorized() || !snapshot.hasImage;
+  function renderMethod() {
+    var method = media.method(),
+      enabled = hasScreenImage();
+    text(recoveryAlternate, method === 'mjpeg' ? words.useJpeg : words.useMjpeg);
+    methodButtons.forEach(function (choice) {
+      choice.button.setAttribute('aria-pressed', choice.method === method ? 'true' : 'false');
+      choice.button.disabled = !enabled;
+    });
   }
   function showNotice(key) {
-    notice = words[key];
+    transientMessage = words[key];
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(function () {
-      notice = '';
+      transientMessage = '';
       renderState();
     }, 10000);
     renderState();
   }
-  function showBlocked(ms) {
-    blockedUntil = Date.now() + Math.max(0, isFinite(ms) ? ms : 1000);
-    var _tick = function tick() {
-      var seconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
-      pinInput.disabled = unlock.disabled = seconds > 0;
-      text(byId('pin-message'), seconds > 0 ? words.blocked + seconds + words.seconds : words.pinRequired);
-      if (seconds > 0) blockedTimer = setTimeout(_tick, 1000);else {
-        blockedTimer = null;
-        blockedUntil = 0;
-        connectionState = 'pin_required';
-        renderState();
-      }
-    };
-    _tick();
-  }
   function receiveSnapshot(value) {
-    clearTimeout(blockedTimer);
-    blockedTimer = null;
-    blockedUntil = 0;
     snapshot = value;
     if (value.access === 'pin_required' || value.access === 'blocked') {
       connectionState = value.access;
       media.configure(value);
       presentation.accessDenied();
-      var wasHidden = pinPanel.hidden;
-      pinPanel.hidden = false;
-      pinInput.disabled = unlock.disabled = false;
-      if (value.access === 'blocked') showBlocked(value.retryAfterMs);else {
-        text(byId('pin-message'), words.pinRequired);
-        if (wasHidden) pinInput.focus();
-      }
+      access.show(value);
     } else {
       // Reconnect must retry media even when the server snapshot is unchanged.
       var firstSnapshot = connectionState !== 'connected';
       connectionState = 'connected';
-      pinPanel.hidden = true;
-      pinInput.value = '';
+      access.hide();
       presentation.configure(value.display, firstSnapshot);
-      text(byId('info-title'), value.display.title);
       media.configure(value, firstSnapshot);
     }
     renderState();
@@ -1078,37 +1605,33 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
     presentation.closeMenu(false);
     connection.retry();
   }
-  function alternate() {
-    media.alternate();
+  function switchMethod() {
+    media.selectMethod(media.method() === 'mjpeg' ? 'jpeg' : 'mjpeg');
     presentation.closeMenu(true);
   }
-  byId('pin-form').addEventListener('submit', function (event) {
-    event.preventDefault();
-    if (!blockedUntil && !unlock.disabled) connection.submitPin(pinInput.value);
-  });
-  ['retry', 'pin-retry', 'recovery-retry'].forEach(function (id) {
-    return byId(id).addEventListener('click', retry);
-  });
-  ['alternate', 'recovery-alternate'].forEach(function (id) {
-    return byId(id).addEventListener('click', alternate);
+  byId('recovery-retry').addEventListener('click', retry);
+  recoveryAlternate.addEventListener('click', switchMethod);
+  methodButtons.forEach(function (choice) {
+    choice.button.addEventListener('click', function () {
+      return media.selectMethod(choice.method);
+    });
   });
   function pausePage() {
     paused = true;
     connection.pause();
     media.pause();
     presentation.pause();
-    clearTimeout(blockedTimer);
-    blockedTimer = null;
+    access.pause();
     clearTimeout(noticeTimer);
     noticeTimer = null;
-    notice = '';
+    transientMessage = '';
   }
   function resumePage() {
     if (!paused) return;
     paused = false;
     connection.retry();
     presentation.activity();
-    if (blockedUntil) showBlocked(Math.max(0, blockedUntil - Date.now()));
+    access.resume();
   }
   window.addEventListener('pagehide', pausePage);
   window.addEventListener('pageshow', resumePage);
@@ -1126,8 +1649,7 @@ dd { margin-left: 0; overflow-wrap: break-word; word-wrap: break-word; }
       presentation.activity();
     }
   });
-  text(byId('info-method'), 'MJPEG');
-  text(byId('info-size'), words.unknownSize);
+  text(infoSize, words.unknownSize);
   renderState();
   connection.retry();
 })();</script>

@@ -2,9 +2,9 @@
 
 # Controller admission and reconciliation
 
-Behavior: [maintained contract](../../01-lifecycle/coordination.md). L1 checks use a real test Service with supplied runtime, discovery, delivery and consent inputs. They exercise admission, saved/applied policy, held-consent attempts, independent cleanup and simulated API-37 permission plans. Processed controller checkpoints and advanced Android elapsed time distinguish failed binds, empty discovery, recovery and timeout edits. Actual foreground/capture, Service destruction and socket permission enforcement need L2. Exact loss-deadline arbitration and PIN editing through a non-UI ingress remain unarranged.
+Behavior: [maintained contract](../../01-lifecycle/coordination.md). Use L1 with a real test Service and supplied runtime, discovery, delivery and consent inputs. Observe processed checkpoints and arrange Android elapsed time explicitly. Supplied permission plans do not establish actual foreground/capture, Service destruction or socket enforcement; use L2 for those boundaries.
 
-These business histories share the same contract across supported API 24–37. The controller's only SDK gate is LAN admission: runtime 24–36 bypasses the grant check; API 37 checks it only for target 37+. Focused fixtures use runtime 24/36 and API 37 target 36/37, including grant/revocation rechecks; they supply discovery and listeners rather than enforce Android sockets. [Network scenarios](network.md#mjpeg-lan-01) distinguish this gate from actual platform enforcement.
+These business histories share the same contract across supported API 24–37. The controller's only SDK gate is LAN admission: runtime 24–36 bypasses the grant check; API 37 checks it only for target 37+. Use focused fixtures at runtime 24/36 and API 37 target 36/37, including grant/revocation rechecks; supplied discovery and listeners do not enforce Android sockets. [Network scenarios](network.md#mjpeg-lan-01) distinguish this gate from actual platform enforcement.
 
 ## Module admission and terminal shutdown
 
@@ -46,19 +46,19 @@ A capture is waiting, active, stopping, or blocked after failed cleanup; latest 
 
 <a id="mjpeg-ctl-06"></a>
 
-Protected settings use NewOnModuleStart or Permanent; module then starts. An initially open module later enables protection with absent or existing saved PIN. Observe activation, capture Start/Stop, and same-module background continuity. Protected NewOnModuleStart generates/saves once at module activation; Permanent retains the PIN. Capture restarts do not regenerate it. PIN validity/application is the oracle, not random-value inequality. Initial open preparation is still once-only: later protection enabling generates only a missing PIN and preserves an existing one, without a second module-start regeneration. Both open-to-protected histories retain saved and applied access settings after exact-attempt Stop and confirmed adapter cleanup.
+Protected settings use NewOnModuleStart or Permanent; module then starts. An initially open module later enables protection with absent or existing saved PIN. Observe activation, capture Start/Stop, and same-module background continuity. Protected NewOnModuleStart generates/saves once at module activation; Permanent retains the PIN. Capture restarts do not regenerate it. PIN validity/application is the oracle, not random-value inequality. Initial open preparation is still once-only: later protection enabling generates only a missing PIN and preserves an existing one, without a second module-start regeneration. Verify saved and applied access settings in both open-to-protected histories after exact-attempt Stop and confirmed adapter cleanup.
 
-## PIN command ingress gap
+## PIN settings and application
 
 <a id="mjpeg-ctl-07"></a>
 
-No non-UI Set/regenerate ingress currently exists. A future command history would vary idle/busy admission, Permanent/NewOnModuleStart policy and policy changes during a held prior save. Typed Set requires idle admission, six ASCII digits and Permanent at both admission and transaction; regenerate works under either policy when idle. Saves preserve their admission and sequence; Start need not wait for a save. Late observation while busy cannot change applied credentials.
+Typed PIN edits and regeneration use the Access settings group's ordinary update path. Exercise editable/locked UI, Permanent/NewOnModuleStart policy and policy changes during a held prior save. Typed edits require six ASCII digits and Permanent in the latest transaction; regeneration works under either policy when setup edits are allowed. Saves use the shared settings mutex; Start need not wait for a save. A late saved observation while busy cannot change applied credentials, and successful cleanup makes the latest saved access settings eligible for application. Verify save failures through the existing access-settings Snackbar; cancellation is not a save error.
 
 ## Retained discovery plan
 
 <a id="mjpeg-ctl-08"></a>
 
-A matching ready selection has been applied; discovery becomes Loading or reports a mismatched filter. Observe changes then a new matching Observed result; independently revoke permission. The prior ready plan remains during nonready/mismatched discovery; matching complete result replaces it. Permission filtering takes effect immediately on the retained plan. UI availability is not tested.
+A matching ready selection has been applied; discovery becomes Loading or reports a mismatched filter. Observe changes then a new matching Observed result; independently revoke permission. The prior ready plan remains during nonready/mismatched discovery; matching complete result replaces it. Permission filtering takes effect immediately on the retained plan. UI availability requires separate UI verification.
 
 ## Network-loss episode and recovery
 
@@ -68,7 +68,7 @@ A matching ready selection has been applied; discovery becomes Loading or report
 
 <a id="mjpeg-ctl-10"></a>
 
-- **Recovery already present at loss deadline.** This arbitration is not yet arranged. At the loss deadline, recovery may be queued or already present in monitor.state; stale attempt/filter variants also matter. The decision must use the current matching observation. Current recovery prevents network-loss Stop even if its event is unprocessed; only the still-current empty matching episode can stop its exact capture. Stop/failure/cleanup clears the episode; old deadlines do not stop a replacement.
+- **Recovery already present at loss deadline.** At the loss deadline, recovery may be queued or already present in monitor.state; stale attempt/filter variants also matter. The decision must use the current matching observation. Current recovery prevents network-loss Stop even if its event is unprocessed; only the still-current empty matching episode can stop its exact capture. Stop/failure/cleanup clears the episode; old deadlines do not stop a replacement.
 
 ## Component and configuration failure
 

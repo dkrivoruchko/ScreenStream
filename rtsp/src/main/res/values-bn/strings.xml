@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">অডিও এনকোডার:</string>
     <string name="rtsp_audio_encoder_auto">স্বয়ংক্রিয়</string>
     <string name="rtsp_audio_bitrate">অডিও বিটরেট: %1$s/সেকেন্ড</string>
-    <string name="rtsp_audio_permission_title">অডিও রেকর্ডিং অনুমতি দিন</string>
-    <string name="rtsp_audio_permission_message">অডিও স্ট্রিম করতে অডিও রেকর্ডিং অনুমতি প্রয়োজন।\n\nএটি ছাড়া স্ট্রিমে অডিও থাকবে না।</string>
-    <string name="rtsp_audio_permission_open_settings">সেটিংস খুলুন</string>
-    <string name="rtsp_audio_permission_message_settings">অডিও স্ট্রিম করতে অ্যাপ সেটিংসে মাইক্রোফোন অনুমতি চালু করুন।\n\nএটি ছাড়া স্ট্রিমে অডিও থাকবে না।</string>
     <string name="rtsp_audio_capture_issue_detected">অডিও ক্যাপচার সমস্যা শনাক্ত হয়েছে</string>
 
     <string name="rtsp_connection_access_denied">অ্যাক্সেস অস্বীকৃত</string>

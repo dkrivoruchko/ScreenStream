@@ -1,6 +1,6 @@
 # HTTP delivery
 
-One `HttpDelivery` serves a module's selected addresses. Listeners share credentials, routes and the selected JPEG; capture and encoding are not repeated per listener or viewer. The controller supplies settings, permission-filtered addresses and capture status; HTTP owns no Android capture resources. Physical request jobs own response completion, while endpoint history rows provide sampled viewer/accounting state. [Module lifecycle](../01-lifecycle/module-lifecycle.md) owns capture cleanup, [JPEG delivery](jpeg-delivery.md) owns image storage/writing, and [Web client](web-client.md) owns exact routes and wire behavior.
+One `HttpDelivery` serves a module's selected addresses. Listeners share credentials, routes and the selected JPEG; capture and encoding are not repeated per listener or viewer. The controller supplies settings, permission-filtered addresses and capture status; HTTP owns no Android capture resources. Physical request jobs own response completion, while endpoint history rows provide sampled viewer/accounting state. [Module lifecycle](../01-lifecycle/module-lifecycle.md) owns capture cleanup, [JPEG delivery](jpeg-delivery.md) owns image storage/writing, and the [HTTP viewing API](../../docs/http-viewing-api.md) owns routes and wire state; [Web client](web-client.md) extends it with the transport/browser implementation.
 
 ## Contents
 
@@ -18,9 +18,9 @@ One `HttpDelivery` serves a module's selected addresses. Listeners share credent
 | Owner | Lifetime and responsibility |
 | --- | --- |
 | `KtorHttpDelivery` | One HTTP lifetime; control monitor, runtime job, plan, admission, configuration, web state, sampler and shared cleanup |
-| `HttpAccess` | One delivery; credential generation and immediate-peer PIN blocks under the control monitor |
+| `HttpAccess` | One delivery; `ViewingCredentials` pair, credential generation and immediate-peer PIN blocks under the control monitor |
 | `HttpRequests` | One delivery; physical requests, endpoint history and retired payload totals; no independent lock/scope/timer |
-| `PlannedServer` | One selected server incarnation; UUID, address metadata, port, socket key, attempts and exact listener |
+| `PlannedServer` | One selected server incarnation; UUID, address metadata, port, socket key, attempts, retry deadline and exact listener |
 | `SocketOwner` | One used or retiring scoped socket; runtime child serializing bind/cleanup and reading the latest plan |
 | `HttpListener` | One physical bind attempt; one CIO engine and IP/port connector |
 | `JpegStore` | One delivery; image selection and storage under its own monitor |
@@ -43,7 +43,7 @@ Three identities serve different purposes:
 | Planned server UUID | Metadata updates and physical retries preserve it; removal/reselection or port change replace it |
 | Exact `HttpListener` object | New for every physical bind attempt |
 
-The plan requires unique discovery IDs and unique socket keys. A key contains IP bytes, IPv6 scope ID/interface and port; metadata changes must not change the scoped IP behind an existing address ID. `configureServers` replaces the ready plan without waiting for bind or cleanup. Unchanged incarnations and responses survive. Delivery starts admitted socket owners independently of caller cancellation before performing cutoff actions that could fail. Terminal stop ignores later plans.
+The plan requires unique discovery IDs and unique socket keys. A socket key combines the shared `IpAddressKey` (IP bytes, IPv6 scope ID/interface) with the port; discovery and HTTP use the same scoped IP identity. Metadata changes must not change that identity behind an existing address ID. `configureServers` replaces the ready plan without waiting for bind or cleanup. Unchanged incarnations and responses survive. Delivery starts admitted socket owners independently of caller cancellation before performing cutoff actions that could fail. Terminal stop ignores later plans.
 
 Each socket owner uses a wake signal that retains only the latest notification. After physical cleanup it rereads the desired incarnation. If plans change A → B → C while A retires, the owner proceeds to C without keeping a worker waiting for B. Different keys can bind independently; an ordinary failure of one listener does not stop others. The same key cannot create its successor engine before its predecessor cleanup finishes.
 
@@ -67,13 +67,13 @@ sequenceDiagram
 
 `Pending` includes waiting for the socket or opening the listener. `Listening` follows successful start. `Failed(reason, attempts)` reports availability and the last failure; it does not itself assert physical file-descriptor cleanup.
 
-The budget is three attempts, including the initial attempt and successful binds. Success does not reset it; a later listener termination can spend the remaining budget. Automatic retries wait 250 ms after a completed attempt. `retryServer(UUID)` resets only the current `Failed` incarnation to `Pending` and zero attempts; stale or repeated commands do nothing. Manual retry does not bypass outstanding cleanup or clear an already established retry deadline. A different incarnation discards the predecessor's retry correlation.
+The budget is three attempts, including the initial attempt and successful binds. Success does not reset it; a later listener termination can spend the remaining budget. Automatic retries wait 250 ms after a completed attempt. `PlannedServer.retryAtMillis` owns the deadline alongside its attempt budget. `retryServer(UUID)` resets only the current `Failed` incarnation to `Pending` and zero attempts; stale or repeated commands do nothing. Manual retry does not bypass outstanding cleanup or clear an already established retry deadline. A replacement incarnation starts without its predecessor's deadline.
 
 Listener failures map `BindException` to `AddressInUse`, `SecurityException` to `PermissionDenied`, `SocketException` to `AddressUnavailable`, other `IOException` to `IoFailure`, and other caught exceptions to `Unknown`. Normal unexpected listener termination becomes `IoFailure`. Before mapping a caught exception the persistent owner checks its own cancellation, distinguishing canceled delivery from a canceled physical engine.
 
 ## Access generations and PIN blocks
 
-[Settings](../02-configuration/settings.md#pin-generation-and-edits) owns saved PIN preparation and editing. `HttpAccess` owns applied settings and unsaved credentials. Enabling protection or changing an enabled PIN creates a 192-bit URL-safe Base64 token and a 256-bit hexadecimal cookie; open access uses null credentials. Both new credentials are generated before either is committed. Generation changes fence admitted WebSockets.
+[Settings](../02-configuration/settings.md#pin-generation-and-edits) owns saved PIN preparation and editing. `HttpAccess` owns applied settings and one nullable `ViewingCredentials` pair. Enabling protection or changing an enabled PIN creates a 192-bit URL-safe Base64 token and a 256-bit hexadecimal cookie, then commits the complete pair; null means open access. `credentialGeneration` changes fence admitted WebSockets.
 
 Unchanged enabled PIN, PIN policy, hide preference and limiter edits preserve credentials. Repeated valid PIN login and valid URL-token exchange return the current cookie without rotating it, so other tabs retain access. Equal-length credentials use `MessageDigest.isEqual`; this does not make ordinary HTTP encrypted. [Web client](web-client.md#request-authority-origin-and-credentials) defines token exchange and cookie attributes.
 
@@ -85,7 +85,7 @@ Peer identity is the direct connection address, not forwarded headers, a browser
 
 ## Request admission and cutoff
 
-Media admission under the control monitor checks credentials first, then exact current listener and active call job, pins an initial image before headers, and registers the physical response. A denial remains access denial even when image availability would also fail. No image or unavailable runtime rejects admission rather than creating a reader waiting for its first image. [Web routes](web-client.md#routes-and-response-headers) owns the resulting HTTP statuses.
+Media admission under the control monitor checks credentials first, then exact current listener and active call job, pins an initial image before headers, and registers the physical response. A denial remains access denial even when image availability would also fail. No image or unavailable runtime rejects admission rather than creating a reader waiting for its first image. The [public route contract](../../docs/http-viewing-api.md#routes-and-response-headers) owns the resulting HTTP statuses.
 
 The exact call job's completion retires a response; return from the route or `respond` is insufficient. Retirement transfers that response's progress to retired totals once, checking endpoint identity so a late response cannot update a replacement row.
 
@@ -105,7 +105,7 @@ Server state and fatal failure publish immediately while preserving the previous
 
 Each sample combines progress from still-active responses with retired totals; payload counters do not wait for response completion. Completed counts include each fully written JPEG payload, including repeats, and exclude framing and partial payload writes. [JPEG writing](jpeg-delivery.md#writing-jpeg-and-mjpeg) advances them before multipart footer/flush. They prove output-path payload progress, not receipt, decoding or display. Exact call-job completion transfers final writer progress once, even if its row already disappeared.
 
-`hasConsumer` derives from sampled Active rows, including idle grace; there is no separate global activity tail. A delayed sample may miss a short Active period. Endpoint `isSlow` is true when any current-listener MJPEG response is slow for the current capture source. [JPEG slow observations](jpeg-delivery.md#slow-reader-observations) owns the skipped-publication algorithm; adjacent store/progress samples are not one atomic frame observation.
+`hasConsumer` derives from sampled Active rows, including idle grace; there is no separate global activity tail. A delayed sample may miss a short Active period. Endpoint `isSlow` is true when any current-listener MJPEG response is slow for the current non-null capture source token. The sampler captures that token and current listeners under the control monitor; writers observe frame metadata without querying current source authority. [JPEG slow observations](jpeg-delivery.md#slow-reader-observations) owns the skipped-publication algorithm; adjacent store/progress samples are not one atomic frame observation.
 
 ## Terminal cleanup
 

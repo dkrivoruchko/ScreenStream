@@ -30,13 +30,3 @@ Several sources contribute to the same product behavior. These links locate rele
 | [settings/MjpegSettingsMigrations.kt](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsMigrations.kt) | [Settings](scenarios/settings.md#mjpeg-set-12) |
 | [settings/MjpegSettingsModels.kt](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) | [Settings](scenarios/settings.md) |
 
-## Excluded UI sources
-
-The entire UI package is outside this catalogue:
-
-- [ui/LocalNetworkPermission.kt](../../src/main/kotlin/io/screenstream/mjpeg/ui/LocalNetworkPermission.kt)
-- [ui/MjpegContent.kt](../../src/main/kotlin/io/screenstream/mjpeg/ui/MjpegContent.kt)
-- [ui/MjpegNetworkFilters.kt](../../src/main/kotlin/io/screenstream/mjpeg/ui/MjpegNetworkFilters.kt)
-- [ui/MjpegServerUi.kt](../../src/main/kotlin/io/screenstream/mjpeg/ui/MjpegServerUi.kt)
-- [ui/MjpegUiController.kt](../../src/main/kotlin/io/screenstream/mjpeg/ui/MjpegUiController.kt)
-- [ui/UiController.kt](../../src/main/kotlin/io/screenstream/mjpeg/ui/UiController.kt)

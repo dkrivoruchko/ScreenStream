@@ -52,10 +52,6 @@
     <string name="webrtc_stream_stop_on_sleep">睡眠時停止</string>
     <string name="webrtc_stream_stop_on_sleep_summary">當螢幕待機關閉時停止串流</string>
 
-    <string name="webrtc_stream_audio_permission_title">允許音訊存取</string>
-    <string name="webrtc_stream_audio_permission_message">串流麥克風或內部音訊需要麥克風權限。\n\n沒有此權限，串流將沒有聲音。</string>
-    <string name="webrtc_stream_audio_permission_message_settings">請在應用程式設定中啟用麥克風權限，以串流麥克風或內部音訊。\n\n沒有此權限，串流將沒有聲音。</string>
-    <string name="webrtc_stream_audio_permission_open_settings">開啟設定</string>
     <string name="webrtc_item_client_disconnect">中斷連線</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">請更新 Google Play 商店</string>

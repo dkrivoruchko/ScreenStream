@@ -1,0 +1,19 @@
+<!-- Material Icons by Google, Apache License 2.0.
+     Source: https://github.com/google/material-design-icons/blob/49d4db35df873165d6bd6ba09b063c7dafbac2f4/src/alert/warning_amber/materialicons/24px.svg
+     License: https://www.apache.org/licenses/LICENSE-2.0
+     Adapted: SVG polygons converted to paths. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,5.99L19.53,19H4.47L12,5.99M12,2L1,21h22L12,2L12,2z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M13,16L11,16L11,18L13,18Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M13,10L11,10L11,15L13,15Z" />
+</vector>

@@ -2,23 +2,23 @@
 
 # Selected images, immutable bytes and media writes
 
-Behavior: [maintained contract](../../03-delivery/jpeg-delivery.md). Store/readers use L0; responses, multipart output and runtime progress use L1. Application writers exercise payload/footer/flush faults, shared completed-payload accounting and slow threshold/recovery/source reset. Exact writer lost-wake interleavings, repeat timing, neutral repeat/retained-image slow histories and slow observation combined with failed payload remain unarranged. Android transport evidence needs L2.
+Behavior: [maintained contract](../../03-delivery/jpeg-delivery.md). Use L0 for store/readers and L1 for responses, wire output and runtime progress. Application writers can verify output faults and accounting; exact lost-wake, repeat, slow-state and cutoff races need independent timing/publication barriers. Android transport evidence requires L2.
 
 ## Stopped-image policy histories
 
 <a id="mjpeg-img-01"></a>
 
-- **Initial logo and stopped-image policy.** Install a recognizable immutable logo before capture, apply None/Placeholder/LastAvailableFrame while Stopped, then open a reader. Placeholder selects logo; None selects nothing; LastAvailableFrame preserves current selection without inventing/restoring a frame. Logo installation alone does not promise selected availability until stopped policy is applied; installation is once/pre-capture only.
+- **Initial logo and stopped-image policy.** Install a recognizable immutable logo before capture, apply None/Placeholder/LastAvailableFrame while Stopped, then open a reader. Without a real-frame history, Placeholder and LastAvailableFrame select logo; None selects nothing. Logo installation is once/pre-capture only.
 
 <a id="mjpeg-img-03"></a>
 
-- **Live policy edits and irreversibility.** Active/suspended/failed/stopping/stopped captures have selected logo/live/no image. Change policy among all three choices then transition status. Active live selection is preserved; stopped/stopping policy changes apply immediately. Once an image is cleared, LastAvailableFrame cannot restore it. Suspended/Failed remain empty regardless of stopped policy until appropriate new availability.
+- **Live policy edits and retained history.** Captures have a current-source real frame, a retained real frame or only logo. Change policy among all three choices, then transition through every capture status. A current-source real frame always wins. Otherwise, policy edits immediately select nothing for None, logo for Placeholder, or the latest real frame (logo if absent) for LastAvailableFrame. None and Placeholder do not erase real-frame history: switching back to LastAvailableFrame restores it. The latest real frame survives capture attempts and policy edits until replacement or store disposal.
 
 ## Capture status and selected image
 
 <a id="mjpeg-img-02"></a>
 
-Logo/live image exists under an exact attempt; stale attempt and every current capture status are variants. Register/update status and read selection. Register sets Starting and retains selection; Active admits current live source; Waiting/Starting/Reconfiguring retain selection. Suspended/Failed clear selection/source; Stopping/Stopped apply current stopped policy. Stale status cannot change current facts; Failed is not converted to placeholder.
+Logo or a real frame exists under an exact attempt; stale attempt and every current capture status are variants. Register/update status and read selection. Register sets Starting, creates a fresh source and retains the latest real frame and readers; selection follows the common fallback until a current-source frame arrives. WaitingForPermission/Starting/Reconfiguring preserve the source token; Active creates one if it was revoked. Suspended/Failed/Stopping/Stopped revoke the source and apply the same None/Placeholder/LastAvailableFrame fallback without erasing real-frame history. Stale status cannot change current facts; Failed can coexist with a selected logo or retained real frame.
 
 ## Admitted copies and stale production sources
 
@@ -48,7 +48,7 @@ Logo/live image exists under an exact attempt; stale attempt and every current c
 
 <a id="mjpeg-img-11"></a>
 
-- **Same-publication repeat and new-publication wake.** This timing history is unarranged. After one MJPEG image, hold unchanged selection, then publish a fresh version or clear/close the reader using controlled timing and publication/cutoff barriers. Unchanged publication is repeated after configured one-second repeat delay; new publication can wake earlier; image-empty waits and close exits. Repeats count as completed payloads. Tests require eligible timing bounds, not exact wall-clock intervals or guarantee frame rate.
+- **Same-publication repeat and new-publication wake.** After one MJPEG image, hold unchanged selection, then publish a fresh version or clear/close the reader using controlled timing and publication/cutoff barriers. Unchanged publication is repeated after configured one-second repeat delay; new publication can wake earlier; image-empty waits and close exits. Repeats count as completed payloads. Tests require eligible timing bounds, not exact wall-clock intervals or guarantee frame rate.
 
 ## JPEG and multipart wire output
 
@@ -68,11 +68,11 @@ Logo/live image exists under an exact attempt; stale attempt and every current c
 
 <a id="mjpeg-img-13"></a>
 
-- **Slow observation may advance before failed payload.** This combined history is unarranged. Skip enough accepted current-source publications to mark slow, then fail partway through the observed frame payload. Slow/source Progress can change before header/payload IO even though completed JPEG/byte counts stay unchanged. Slow is an observation of skipped publications, not successful delivery or a receipt.
+- **Slow observation may advance before failed payload.** Skip enough accepted current-source publications to mark slow, then fail partway through the observed frame payload. Slow/source Progress can change before header/payload IO even though completed JPEG/byte counts stay unchanged. Slow is an observation of skipped publications, not successful delivery or a receipt.
 
 <a id="mjpeg-img-14"></a>
 
-- **Slow threshold, recovery and neutral observations.** Consume controlled consecutive publications, skipped runs totalling below/at five and a new source. Threshold/recovery/source-reset checks are implemented; neutral repeat and retained-image slow histories remain unarranged. Five accumulated skips mark slow; a consecutive current publication resets skips/slow. Repeats and retained images are neutral; source replacement resets baseline; JPEG format never contributes slow. Runtime exposes slow only for current source.
+- **Slow threshold, recovery and neutral observations.** Consume controlled consecutive publications, skipped runs totalling below/at five and a new source. Include threshold/recovery/source reset, neutral repeat and retained-image histories separately. Five accumulated skips mark slow; a consecutive current publication resets skips/slow. Repeats and retained images are neutral; source replacement resets baseline; JPEG format never contributes slow. Runtime exposes slow only for current source.
 
 ## Response cancellation and completion
 
@@ -80,4 +80,4 @@ Logo/live image exists under an exact attempt; stale attempt and every current c
 
 Admitted response is waiting, writing acquired bytes or fails before writer entry; credential/listener/runtime cutoff competes. Close reader and cancel/complete actual request through runtime. Reader close stops new admissions; acquired bytes remain valid until final read/release. Actual request completion retires exact final progress once, including pre-writer failure. Cancellation/reader closure alone does not establish finished physical IO or peer delivery.
 
-Normal continuing MJPEG credential rotation is checked after a completed wire payload: the old stream ends externally before local socket close, old credentials fail and current viewing remains usable. A held acquired-byte/write race remains unarranged.
+Check normal continuing MJPEG credential rotation after a completed wire payload: the old stream ends externally before local socket close, old credentials fail and current viewing remains usable. Use a held acquired-byte writer to verify rotation during a payload independently.

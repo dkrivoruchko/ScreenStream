@@ -52,10 +52,6 @@
     <string name="webrtc_stream_stop_on_sleep">Gelditu emisioa pantaila itzaltzean</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Gelditu emisioa pantaila itzaltzen bada</string>
 
-    <string name="webrtc_stream_audio_permission_title">Baimendu audiorako sarbidea</string>
-    <string name="webrtc_stream_audio_permission_message">Mikrofono-baimena behar da mikrofonoaren edo barneko audioaren transmisiorako.\n\nBaimenik gabe, emisioak ez du soinurik izango.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Gaitu mikrofono-baimena aplikazioaren ezarpenetan mikrofonoaren edo barneko audioaren transmisiorako.\n\nBaimenik gabe, emisioak ez du soinurik izango.</string>
-    <string name="webrtc_stream_audio_permission_open_settings">Ireki ezarpenak</string>
     <string name="webrtc_item_client_disconnect">Deskonektatu</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Eguneratu Google Play Store</string>

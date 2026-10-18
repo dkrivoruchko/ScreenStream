@@ -1,10 +1,7 @@
 package io.screenstream.mjpeg
 
-import android.Manifest
-import android.annotation.SuppressLint
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.SystemClock
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
@@ -12,15 +9,16 @@ import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
 import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor
+import io.screenstream.mjpeg.screenoff.AndroidScreenOffObserver
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.MjpegSettings
-import io.screenstream.mjpeg.ui.LocalNetworkPermissionRequest
 import io.screenstream.mjpeg.ui.MjpegUiController
 import io.screenstream.mjpeg.ui.UiController
 import io.screenstream.mjpeg.ui.UiController.Action
 import io.screenstream.streaming.capture.ScreenCaptureAccess
 import io.screenstream.streaming.logE
 import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.streaming.permission.RuntimePermission
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -28,7 +26,6 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -49,10 +46,12 @@ import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.uuid.Uuid
 
 /**
  * Serializes commands and applied settings for one module instance. Setup edits wait for successful
- * capture cleanup; Start, exact Stop and PIN edits are admitted when the event loop handles them.
+ * capture cleanup; Start and exact Stop are admitted when the event loop handles them.
  */
 @Factory(binds = [])
 internal class MjpegStreamingModuleController(
@@ -65,6 +64,7 @@ internal class MjpegStreamingModuleController(
 ) : StreamingModule.Controller {
     override val instanceId: StreamingModule.InstanceId = runtime.instanceId
 
+    private val screenOffObserver = AndroidScreenOffObserver(service)
     private val uiController = MjpegUiController(
         instanceId = instanceId,
         onUiCommand = { enqueue(Event.UiCommand(it)) },
@@ -77,30 +77,32 @@ internal class MjpegStreamingModuleController(
     private val shutdownRequested = CompletableDeferred<Unit>()
 
     // Admission and terminal shutdown share this gate so cleanup cannot miss a newly created owner.
-    // Retain the last admitted session even after its capture activity ends.
-    private val captureAdmission = Any()
-    private var captureForCleanup: MjpegCaptureSession? = null
+    // Retain the last admitted attempt even after its cleanup finishes.
+    private val captureAdmissionGate = Any()
+    private var captureAttempt: CaptureAttempt? = null
 
-    // Only the event loop mutates these module facts and its exclusive activity.
-    private var activity: Activity = Activity.NotStarted
-
+    // Only the event loop mutates these module facts and each attempt's processed state.
     private var effectiveSettings: MjpegSettings.Data? = null
     private var latestObservedSettings: MjpegSettings.Data? = null
-    private var pinSaveJob: Job? = null
 
     private var addressState: NetworkAddressMonitor.State = NetworkAddressMonitor.State.NotStarted
     private var selectedAddresses: List<NetworkAddress> = emptyList()
-    private var configurationApplied = false
-    private var networkLoss: NetworkLossEpisode? = null
+    private var configuredServerAddresses: List<NetworkAddress> = emptyList()
+    private var configuredServerPort: Int? = null
+    private var screenOffRegistration: ScreenOffRegistration? = null
+    private var slowSampleWatermarkMillis: Long? = null
+    private var slowEpisodeWarningConsumed = false
+    private var lastSlowToastAttemptMillis: Long? = null
 
     private var reportedStatus: StreamingModule.Status? = null
-    private var localNetworkPermissionGranted = hasLocalNetworkPermission()
+    private var localNetworkPermissionGranted = RuntimePermission.LocalNetwork.isGranted(service)
+    private val activeCaptureAttempt: CaptureAttempt?
+        get() = captureAttempt?.takeIf { it.processedState.cleanupSucceeded == null }
+    private val isCaptureIdle: Boolean
+        get() = !shutdownRequested.isCompleted && effectiveSettings != null &&
+                (captureAttempt == null || captureAttempt?.processedState?.cleanupSucceeded == true)
     private val editPolicy: MjpegSettings.EditPolicy
-        get() = if (activity == Activity.Idle) MjpegSettings.EditPolicy.All else MjpegSettings.EditPolicy.LiveOnly
-
-    // Synchronous permission launch claims the current request, never mutable controller activity.
-    @Volatile
-    private var permissionRequest: LocalNetworkPermissionRequest? = null
+        get() = if (isCaptureIdle) MjpegSettings.EditPolicy.All else MjpegSettings.EditPolicy.LiveOnly
 
     private val eventLoopJob = controllerScope.launch(start = CoroutineStart.LAZY) { runEventLoop() }
 
@@ -123,15 +125,17 @@ internal class MjpegStreamingModuleController(
 
     /** The sole terminal ingress: close owners before cancelling work, independently of the queue. */
     override fun requestModuleShutdown() {
+        screenOffObserver.close()
         if (!shutdownRequested.complete(Unit)) return
         try {
             service.closeForegroundAdmission()
         } finally {
             try {
-                http.requestStop()
+                val session = synchronized(captureAdmissionGate) { captureAttempt?.session }
+                session?.requestStop(MjpegCaptureSession.StopReason.Shutdown)
             } finally {
                 try {
-                    synchronized(captureAdmission) { captureForCleanup }?.stop(MjpegCaptureSession.StopReason.Shutdown)
+                    http.requestStop()
                 } finally {
                     controllerScope.cancel()
                     eventQueue.close()
@@ -146,7 +150,7 @@ internal class MjpegStreamingModuleController(
 
     @Composable
     override fun Content(window: WindowSizeClass, modifier: Modifier) {
-        uiController.Content(window, modifier)
+        uiController.Content(modifier = modifier)
     }
 
     override fun onServiceDestroyed() {
@@ -155,14 +159,6 @@ internal class MjpegStreamingModuleController(
         } finally {
             requestModuleShutdown()
         }
-    }
-
-    private fun canRequestLocalNetworkPermission(request: LocalNetworkPermissionRequest): Boolean {
-        val current = permissionRequest ?: return false
-        if (shutdownRequested.isCompleted) return false
-        if (!runtime.isCurrent()) return false
-        if (current !== request) return false
-        return !hasLocalNetworkPermission()
     }
 
     private fun enqueue(event: Event) {
@@ -212,62 +208,90 @@ internal class MjpegStreamingModuleController(
                     checkLocalNetworkPermission()
                 }
 
-                val networkLossDelayMillis = updateNetworkLossDeadline()
+                val addressLossDelayMillis = updateAddressLossDeadline()
                 val heartbeatDelayMillis = (nextHeartbeatAtUptimeMillis - SystemClock.uptimeMillis()).coerceAtLeast(0L)
-                val waitMillis = minOf(heartbeatDelayMillis, networkLossDelayMillis ?: Long.MAX_VALUE)
+                val waitMillis = minOf(heartbeatDelayMillis, addressLossDelayMillis ?: Long.MAX_VALUE)
                 val event: Event? = select {
                     eventQueue.onReceive { it }
                     onTimeout(waitMillis.milliseconds) { null }
                 }
                 if (shutdownRequested.isCompleted || !runtime.isCurrent()) break
 
-                when (event) {
-                    is Event.UiCommand -> when (val uiCommand = event.uiCommand) {
-                        UiController.Command.Start -> startCapture()
-                        is UiController.Command.Stop -> stopCapture(uiCommand.attempt, MjpegCaptureSession.StopReason.User)
-                        is UiController.Command.RetryServer -> http.retryServer(uiCommand.serverId)
-                        is UiController.Command.EditPin -> editPin(uiCommand)
-                        UiController.Command.CheckLocalNetworkPermission -> checkLocalNetworkPermission()
-                    }
-
-                    is Event.SettingsObserved -> applySettings(event.settings)
-                    is Event.AddressStateChanged -> {
-                        check(event.state != NetworkAddressMonitor.State.Closed && event.state != NetworkAddressMonitor.State.Failed) {
-                            "NetworkAddress monitor stopped while controller is open"
-                        }
-                        addressState = event.state
-                        updateServerPlan()
-                    }
-
-                    Event.DeliveryChanged -> Unit // The fresh delivery snapshot is read below for this turn.
-                    is Event.CaptureChanged -> applyCaptureState(event.attempt)
-                    is Event.ComponentFailed -> fail(event.source, event.cause)
-                    null -> Unit
-                }
+                handleEvent(event)
 
                 if (shutdownRequested.isCompleted) break
-                val delivery = deliverySnapshot()
-                publishUi(delivery)
-                val status = moduleStatus(delivery)
-                if (status != reportedStatus) reportStatus(SystemClock.uptimeMillis(), status)
+                publishCurrentState()
             }
         } catch (cause: Throwable) {
             if (!shutdownRequested.isCompleted) fail(FailureSource.Controller, cause)
         } finally {
-            activity = Activity.Closing
+            slowSampleWatermarkMillis = null
+            slowEpisodeWarningConsumed = false
             requestModuleShutdown()
             uiController.clear()
         }
     }
 
+    private suspend fun handleEvent(event: Event?) {
+        when (event) {
+            is Event.UiCommand -> when (val uiCommand = event.uiCommand) {
+                UiController.Command.Start -> startCapture()
+                is UiController.Command.Stop -> stopCapture(uiCommand.attempt, MjpegCaptureSession.StopReason.User)
+                is UiController.Command.RetryServer -> http.retryServer(uiCommand.serverId)
+            }
+
+            is Event.SettingsObserved -> applySettings(event.settings)
+            is Event.AddressStateChanged -> {
+                check(event.state != NetworkAddressMonitor.State.Closed && event.state != NetworkAddressMonitor.State.Failed) {
+                    "NetworkAddress monitor stopped while controller is open"
+                }
+                addressState = event.state
+                updateServerPlan()
+            }
+
+            Event.DeliveryChanged -> Unit // The fresh delivery snapshot is read below for this turn.
+            is Event.ScreenOff -> {
+                val registration = screenOffRegistration
+                if (registration != null && registration.attempt == event.attempt && registration.id == event.registrationId &&
+                    effectiveSettings?.behavior?.stopOnScreenOff == true
+                ) {
+                    stopCapture(event.attempt, MjpegCaptureSession.StopReason.System)
+                }
+            }
+
+            is Event.CaptureChanged -> reconcileCapture(event.attempt)
+            is Event.ComponentFailed -> fail(event.source, event.cause)
+            null -> Unit
+        }
+    }
+
+    private suspend fun publishCurrentState() {
+        val delivery = deliverySnapshot()
+        updateSlowViewerWarning(delivery)
+        publishUi(delivery)
+        val status = moduleStatus(delivery)
+        if (status != reportedStatus) reportStatus(SystemClock.uptimeMillis(), status)
+    }
+
     private fun startCapture() {
         val acceptedSettings = effectiveSettings ?: return
-        if (activity != Activity.Idle || !hasAvailableListener()) return
+        if (!isCaptureIdle || !hasAvailableListener()) return
         val id = StreamingModule.CaptureAttemptId(instanceId)
-        val captureActivity = synchronized(captureAdmission) {
-            if (shutdownRequested.isCompleted || !http.registerCapture(id)) return
+        if (acceptedSettings.behavior.stopOnScreenOff) {
+            try {
+                if (registerScreenOffStop(id) != AndroidScreenOffObserver.RegistrationResult.Registered) return
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Exception) {
+                reportScreenOffFailure(failure)
+                return
+            }
+        }
+        val capture = synchronized(captureAdmissionGate) {
+            if (shutdownRequested.isCompleted || !http.registerCapture(id)) return@synchronized null
             val session = MjpegCaptureSession(
                 id = id,
+                initialImageSettings = acceptedSettings.image,
                 context = service,
                 controllerScope = controllerScope,
                 captureAccess = captureAccess,
@@ -275,57 +299,45 @@ internal class MjpegStreamingModuleController(
                 leaveForeground = service::leaveCaptureForeground,
                 onJpeg = { byteCount, copyTo -> http.offerJpeg(id, byteCount, copyTo) },
             )
-            val initialActivity = Activity.Capturing(session, session.state.value)
-            session.runCapture(acceptedSettings.image)
-            captureForCleanup = session
-            initialActivity
+            val attempt = CaptureAttempt(session)
+            session.start()
+            captureAttempt = attempt
+            attempt
         }
 
-        activity = captureActivity
-        captureActivity.session.state
+        if (capture == null) {
+            removeScreenOffStop()
+            return
+        }
+
+        capture.session.state
             .onEach { enqueue(Event.CaptureChanged(id)) }
             .takeWhile { it.cleanupSucceeded == null }
             .launchIn(controllerScope)
     }
 
     private suspend fun stopCapture(attempt: StreamingModule.CaptureAttemptId, reason: MjpegCaptureSession.StopReason) {
-        val capture = activity as? Activity.Capturing ?: return
+        val capture = activeCaptureAttempt ?: return
         if (capture.session.id != attempt) return
 
-        networkLoss = null
-        capture.session.stop(reason)
-        applyCaptureState(attempt)
+        capture.addressLoss = null
+        capture.session.requestStop(reason)
+        removeScreenOffStop()
+        reconcileCapture(attempt)
     }
 
-    private suspend fun applyCaptureState(attempt: StreamingModule.CaptureAttemptId) {
-        val capture = activity as? Activity.Capturing ?: return
+    private suspend fun reconcileCapture(attempt: StreamingModule.CaptureAttemptId) {
+        val capture = activeCaptureAttempt ?: return
         if (capture.session.id != attempt) return
 
+        capture.session.updateScreenAwake(effectiveSettings?.behavior?.keepScreenAwake == true)
         val latestState = capture.session.state.value
-        val captureFailure = latestState.captureFailure
-        if (captureFailure != null && captureFailure !== capture.handledState.captureFailure) {
-            logE(captureFailure.stage, "Capture failed: $attempt", captureFailure.cause)
-            controllerScope.launch { service.showCaptureError() }
-        }
+        if (latestState.isStopRequested) removeScreenOffStop()
+        reportNewSessionFailure(attempt, capture.processedState.captureFailure, latestState.captureFailure)
+        reportNewSessionFailure(attempt, capture.processedState.cleanupFailure, latestState.cleanupFailure)
 
-        val cleanupFailure = latestState.cleanupFailure
-        if (cleanupFailure != null && cleanupFailure !== capture.handledState.cleanupFailure) {
-            logE(cleanupFailure.stage, "Capture failed: $attempt", cleanupFailure.cause)
-            controllerScope.launch { service.showCaptureError() }
-        }
-
-        activity = when (latestState.cleanupSucceeded) {
-            null -> capture.copy(handledState = latestState)
-            true -> {
-                networkLoss = null
-                Activity.Idle
-            }
-
-            false -> {
-                networkLoss = null
-                Activity.BlockedCleanup(attempt)
-            }
-        }
+        if (latestState.cleanupSucceeded != null) capture.addressLoss = null
+        capture.processedState = latestState
 
         http.updateCaptureStatus(attempt, latestState.status)
         if (latestState.cleanupSucceeded == true) {
@@ -333,36 +345,19 @@ internal class MjpegStreamingModuleController(
         }
     }
 
-    private fun editPin(edit: UiController.Command.EditPin) {
-        if (!editPolicy.canEditStreamSetup) return
-        if (edit is UiController.Command.EditPin.Set) {
-            if (effectiveSettings?.access?.pinPolicy != AccessSettings.PinPolicy.Permanent) return
-            if (!AccessSettings.isValidPin(edit.pin.value)) return
-        }
-        val previousSaveJob = pinSaveJob
-        pinSaveJob = controllerScope.launch {
-            try {
-                previousSaveJob?.join()
-                settings.value.updateData {
-                    copy(
-                        access = when (edit) {
-                            UiController.Command.EditPin.Regenerate -> access.withGeneratedPin()
-                            is UiController.Command.EditPin.Set if access.pinPolicy == AccessSettings.PinPolicy.Permanent -> access.copy(pin = edit.pin)
-                            is UiController.Command.EditPin.Set -> access
-                        }
-                    )
-                }
-            } catch (cause: Throwable) {
-                if (cause !is CancellationException || !shutdownRequested.isCompleted) {
-                    this@MjpegStreamingModuleController.logE("PIN.edit", "Could not save PIN", cause)
-                }
-            }
-        }
+    private fun reportNewSessionFailure(
+        attempt: StreamingModule.CaptureAttemptId,
+        previous: MjpegCaptureSession.State.Failure?,
+        current: MjpegCaptureSession.State.Failure?,
+    ) {
+        if (current == null || current === previous) return
+        logE(current.stage, "Capture failed: $attempt", current.cause)
+        controllerScope.launch { service.showCaptureError() }
     }
 
-    private suspend fun updateHttpConfiguration() {
+    private suspend fun updateHttpConfiguration(initialize: Boolean) {
         val settings = effectiveSettings ?: return
-        val applied = if (!configurationApplied) {
+        val applied = if (initialize) {
             val logoBytes = withContext(Dispatchers.IO) {
                 service.assets.open("mjpeg/screenstream-logo.jpg").use { it.readBytes() }
             }
@@ -380,7 +375,6 @@ internal class MjpegStreamingModuleController(
             )
         }
         check(applied) { "HTTP rejected observed configuration" }
-        configurationApplied = true
     }
 
     private suspend fun applySettings(observed: MjpegSettings.Data) {
@@ -388,81 +382,126 @@ internal class MjpegStreamingModuleController(
         val previous = effectiveSettings
         val accepted = if (previous == null) observed else editPolicy.effective(previous, observed)
         effectiveSettings = accepted
+        activeCaptureAttempt?.session?.updateScreenAwake(accepted.behavior.keepScreenAwake)
 
         if (previous?.image != accepted.image) {
-            (activity as? Activity.Capturing)?.session?.updateImageSettings(accepted.image)
+            activeCaptureAttempt?.session?.updateImageSettings(accepted.image)
         }
 
-        if (previous?.network?.filter != accepted.network.filter) {
-            permissionRequest = if (accepted.network.filter.requiresLocalNetworkPermission) {
-                LocalNetworkPermissionRequest(::canRequestLocalNetworkPermission)
-            } else {
-                null
-            }
-            addressMonitor.updateFilter(accepted.network.filter)
-        }
+        if (previous == null) addressMonitor.start()
 
         if (previous?.network != accepted.network) {
             updateServerPlan()
         }
-        if (activity == Activity.NotStarted) {
-            activity = Activity.Idle
-        }
 
-        val httpConfigurationChanged = previous == null || previous.access != accepted.access ||
+        // PIN visibility is local UI state and does not change HTTP access.
+        val httpConfigurationChanged = previous == null ||
+                previous.access.copy(hidePinOnCaptureStart = accepted.access.hidePinOnCaptureStart) != accepted.access ||
                 previous.web != accepted.web || previous.behavior.postStopImage != accepted.behavior.postStopImage
         if (httpConfigurationChanged) {
-            updateHttpConfiguration()
+            updateHttpConfiguration(initialize = previous == null)
+        }
+        updateScreenOffStop()
+    }
+
+    private fun registerScreenOffStop(attempt: StreamingModule.CaptureAttemptId): AndroidScreenOffObserver.RegistrationResult {
+        val registrationId = Uuid.random()
+        val result = screenOffObserver.register(registrationId) {
+            enqueue(Event.ScreenOff(attempt, registrationId))
+        }
+        if (result == AndroidScreenOffObserver.RegistrationResult.Registered) {
+            screenOffRegistration = ScreenOffRegistration(attempt, registrationId)
+        }
+        return result
+    }
+
+    private suspend fun updateScreenOffStop() {
+        val capture = activeCaptureAttempt
+        if (effectiveSettings?.behavior?.stopOnScreenOff != true || capture == null ||
+            capture.session.state.value.isStopRequested
+        ) {
+            removeScreenOffStop()
+            return
+        }
+        if (screenOffRegistration?.attempt == capture.session.id) return
+
+        try {
+            when (registerScreenOffStop(capture.session.id)) {
+                AndroidScreenOffObserver.RegistrationResult.Registered -> Unit
+                AndroidScreenOffObserver.RegistrationResult.ScreenOff ->
+                    stopCapture(capture.session.id, MjpegCaptureSession.StopReason.System)
+
+                AndroidScreenOffObserver.RegistrationResult.Rejected -> Unit
+            }
+        } catch (failure: CancellationException) {
+            throw failure
+        } catch (failure: Exception) {
+            reportScreenOffFailure(failure)
+            stopCapture(capture.session.id, MjpegCaptureSession.StopReason.Error)
         }
     }
 
+    private fun removeScreenOffStop() {
+        val registration = screenOffRegistration ?: return
+        screenOffRegistration = null
+        try {
+            screenOffObserver.unregister(registration.id)
+        } catch (failure: Exception) {
+            reportScreenOffFailure(failure)
+        }
+    }
+
+    private fun reportScreenOffFailure(failure: Exception) {
+        logE("ScreenOff", "Could not manage the screen-off receiver", failure)
+        controllerScope.launch { service.showCaptureError() }
+    }
+
     private suspend fun checkLocalNetworkPermission() {
-        val granted = hasLocalNetworkPermission()
+        val granted = RuntimePermission.LocalNetwork.isGranted(service)
         if (localNetworkPermissionGranted == granted) return
         localNetworkPermissionGranted = granted
         updateServerPlan()
     }
 
-    /** Keep the last ready selection during discovery changes; permission always filters it immediately. */
+    /** Select from processed discovery evidence; retain the last selection while discovery is loading. */
     private suspend fun updateServerPlan() {
         val network = effectiveSettings?.network ?: return
         val observed = addressState as? NetworkAddressMonitor.State.Observed
-        if (observed?.filter == network.filter) selectedAddresses = observed.addresses
-        http.configureServers(
-            addresses = selectedAddresses.filter { !it.requiresLocalNetworkPermission || localNetworkPermissionGranted },
-            port = network.httpPort,
-        )
+        if (observed != null) selectedAddresses = observed.inventory.select(network.filter)
+        val addresses = selectedAddresses.filter { !it.requiresLocalNetworkPermission || localNetworkPermissionGranted }
+        if (configuredServerAddresses == addresses && configuredServerPort == network.httpPort) return
+        http.configureServers(addresses = addresses, port = network.httpPort)
+        configuredServerAddresses = addresses
+        configuredServerPort = network.httpPort
     }
 
     /** A single capture's observed empty selection; timeout edits retain the beginning of that loss. */
-    private suspend fun updateNetworkLossDeadline(): Long? {
-        val capture = activity as? Activity.Capturing
+    private suspend fun updateAddressLossDeadline(): Long? {
+        val capture = activeCaptureAttempt ?: return null
         val data = effectiveSettings
         val observed = addressState as? NetworkAddressMonitor.State.Observed
-        val captureStatus = capture?.session?.state?.value?.status
-        if (capture == null ||
-            captureStatus == MjpegCaptureSession.State.Status.Stopping ||
-            captureStatus == MjpegCaptureSession.State.Status.Stopped ||
-            captureStatus == MjpegCaptureSession.State.Status.Failed ||
+        val captureState = capture.session.state.value
+        if (captureState.isStopRequested ||
             data == null || observed == null ||
-            observed.filter != data.network.filter || observed.addresses.isNotEmpty()
+            observed.inventory.select(data.network.filter).isNotEmpty()
         ) {
-            networkLoss = null
+            capture.addressLoss = null
             return null
         }
 
         val now = SystemClock.elapsedRealtime()
-        val episode = networkLoss?.takeIf { it.attempt == capture.session.id && it.filter == observed.filter }
-            ?: NetworkLossEpisode(attempt = capture.session.id, filter = observed.filter, observedAtElapsedRealtimeMillis = now)
-        networkLoss = episode
+        val filter = data.network.filter
+        val episode = capture.addressLoss?.takeIf { it.filter == filter }
+            ?: AddressLossEpisode(filter = filter, observedAtElapsedRealtimeMillis = now)
+        capture.addressLoss = episode
 
-        val remaining = episode.observedAtElapsedRealtimeMillis + data.behavior.stopAfterNetworkLossSeconds * 1_000L - now
+        val remaining = episode.observedAtElapsedRealtimeMillis + data.behavior.stopAfterNetworkLossSeconds.seconds.inWholeMilliseconds - now
         if (remaining > 0L) return remaining
 
         // Recovery may already be queued; the deadline must respect the current selected-address fact.
         val current = addressMonitor.state.value as? NetworkAddressMonitor.State.Observed
-        if (current == null || current.filter != data.network.filter || current.addresses.isNotEmpty()) {
-            networkLoss = null
+        if (current == null || current.inventory.select(filter).isNotEmpty()) {
+            capture.addressLoss = null
             return null
         }
         stopCapture(capture.session.id, MjpegCaptureSession.StopReason.System)
@@ -473,49 +512,106 @@ internal class MjpegStreamingModuleController(
     private fun hasAvailableListener(delivery: HttpDelivery.Info = http.info.value): Boolean {
         val network = effectiveSettings?.network ?: return false
         val observed = addressMonitor.state.value as? NetworkAddressMonitor.State.Observed ?: return false
-        return !shutdownRequested.isCompleted && runtime.isCurrent() && observed.filter == network.filter &&
+        val addresses = observed.inventory.select(network.filter)
+        return !shutdownRequested.isCompleted && runtime.isCurrent() &&
                 delivery.servers.any { listener ->
                     listener.state == HttpDelivery.ServerState.Listening && listener.port == network.httpPort &&
-                            observed.addresses.any { it.id == listener.address.id } &&
+                            addresses.any { address ->
+                                address.id == listener.address.id && (!address.requiresLocalNetworkPermission || localNetworkPermissionGranted)
+                            } &&
                             selectedAddresses.any { address ->
                                 address.id == listener.address.id && (!address.requiresLocalNetworkPermission || localNetworkPermissionGranted)
                             }
                 }
     }
 
-    @SuppressLint("InlinedApi")
-    private fun hasLocalNetworkPermission(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.CINNAMON_BUN ||
-            service.applicationInfo.targetSdkVersion < Build.VERSION_CODES.CINNAMON_BUN ||
-            service.checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED
-
     private fun deliverySnapshot(): HttpDelivery.Info = http.info.value.also { delivery -> delivery.fatalCause?.let { throw it } }
 
+    private suspend fun updateSlowViewerWarning(delivery: HttpDelivery.Info) {
+        val session = activeCaptureAttempt?.session
+        val state = session?.state?.value
+        if (shutdownRequested.isCompleted || effectiveSettings?.behavior?.notifySlowViewers != true ||
+            session == null || state == null || !state.isStreaming || state.status != MjpegCaptureSession.State.Status.Active
+        ) {
+            slowSampleWatermarkMillis = null
+            slowEpisodeWarningConsumed = false
+            return
+        }
+
+        val watermark = slowSampleWatermarkMillis
+        if (watermark == null) {
+            // A previous source or eligibility period may still own the sampled client rows.
+            slowSampleWatermarkMillis = SystemClock.elapsedRealtime()
+            return
+        }
+        val sampledAt = delivery.sampledAtElapsedRealtimeMillis
+        if (sampledAt <= watermark) return
+        slowSampleWatermarkMillis = sampledAt
+
+        if (delivery.clients.none { it.isSlow }) {
+            slowEpisodeWarningConsumed = false
+            return
+        }
+        if (slowEpisodeWarningConsumed) return
+        val lastAttemptAt = lastSlowToastAttemptMillis
+        if (lastAttemptAt != null && sampledAt - lastAttemptAt < SLOW_VIEWER_WARNING_COOLDOWN_MILLIS) return
+
+        slowEpisodeWarningConsumed = true
+        withContext(Dispatchers.Main.immediate) {
+            currentCoroutineContext().ensureActive()
+            val currentState = session.state.value
+            if (shutdownRequested.isCompleted || !currentState.isStreaming || currentState.status != MjpegCaptureSession.State.Status.Active) {
+                return@withContext
+            }
+            try {
+                Toast.makeText(service, R.string.mjpeg_stream_slow_viewer_warning, Toast.LENGTH_LONG).show()
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Exception) {
+                this@MjpegStreamingModuleController.logE("SlowViewer.toast", "Could not show slow viewer warning", failure)
+            }
+        }
+        lastSlowToastAttemptMillis = SystemClock.elapsedRealtime()
+    }
+
     private fun publishUi(delivery: HttpDelivery.Info) {
+        // A completed loop turn with settings has also applied the initial HTTP configuration.
+        val settings = effectiveSettings
+        val capture = activeCaptureAttempt
         uiController.update(
-            action = activity.toUiAction(startAvailable = activity == Activity.Idle && configurationApplied && hasAvailableListener(delivery)),
-            suspensionProblem = (activity as? Activity.Capturing)?.handledState?.suspensionProblem,
+            action = captureAction(delivery),
+            suspensionProblem = capture?.processedState?.suspensionProblem,
             selectedAddresses = selectedAddresses,
-            port = effectiveSettings?.network?.httpPort,
+            port = settings?.network?.httpPort,
             servers = delivery.servers,
             localNetworkPermissionGranted = localNetworkPermissionGranted,
-            accessApplied = configurationApplied,
+            accessApplied = settings != null,
             appliedAccessToken = http.appliedAccessToken,
-            permissionRequest = permissionRequest,
+            appliedPin = settings?.access?.takeIf { it.pinEnabled }?.pin,
+            hidePinOnCapture = capture != null && settings?.access?.hidePinOnCaptureStart == true,
             editPolicy = editPolicy,
         )
     }
 
     private fun moduleStatus(delivery: HttpDelivery.Info = deliverySnapshot()): StreamingModule.Status {
-        val currentActivity = activity
+        val capture = captureAttempt
         return StreamingModule.Status(
-            isStreaming = (currentActivity as? Activity.Capturing)?.handledState?.isStreaming == true,
+            isStreaming = activeCaptureAttempt?.processedState?.isStreaming == true,
             hasConsumer = delivery.hasConsumer,
-            captureAttempt = when (currentActivity) {
-                is Activity.Capturing -> currentActivity.session.id
-                is Activity.BlockedCleanup -> currentActivity.attempt
-                Activity.NotStarted, Activity.Idle, Activity.Closing -> null
-            },
+            captureAttempt = capture?.takeUnless { it.processedState.cleanupSucceeded == true }?.session?.id,
         )
+    }
+
+    private fun captureAction(delivery: HttpDelivery.Info): Action {
+        if (isCaptureIdle) return Action.Start(enabled = hasAvailableListener(delivery))
+        if (shutdownRequested.isCompleted || effectiveSettings == null) return Action.Busy
+        val capture = captureAttempt ?: return Action.Busy
+        val state = capture.processedState
+        return when {
+            state.cleanupSucceeded == false -> Action.Start(enabled = false)
+            state.isStreaming || state.status == MjpegCaptureSession.State.Status.Suspended -> Action.Stop(capture.session.id)
+            else -> Action.Busy
+        }
     }
 
     private fun reportStatus(heartbeatAtUptimeMillis: Long, status: StreamingModule.Status = moduleStatus()) {
@@ -545,9 +641,10 @@ internal class MjpegStreamingModuleController(
         }
 
         val platformCleanup = async {
+            val screenOffSucceeded = screenOffObserver.close()
             val attemptSucceeded = try {
-                val capture = synchronized(captureAdmission) { captureForCleanup }
-                capture?.awaitCleanup() ?: true
+                val session = synchronized(captureAdmissionGate) { captureAttempt?.session }
+                session?.awaitCleanup() ?: true
             } catch (failure: Throwable) {
                 this@MjpegStreamingModuleController.logE("Cleanup.capture", "Capture cleanup failed", failure)
                 false
@@ -575,10 +672,10 @@ internal class MjpegStreamingModuleController(
                 this@MjpegStreamingModuleController.logE("Cleanup.serviceDestroyed", "Service destruction wait failed", failure)
             }
 
-            attemptSucceeded && succeeded
+            screenOffSucceeded && attemptSucceeded && succeeded
         }
 
-        // Join admitted controller operations even after activity becomes Closing.
+        // Join admitted controller operations even after terminal shutdown.
         controllerJob.join()
         val addressMonitorSucceeded = addressMonitorCleanup.await()
         val platformSucceeded = platformCleanup.await()
@@ -596,28 +693,9 @@ internal class MjpegStreamingModuleController(
         }
     }
 
-    private sealed interface Activity {
-        data object NotStarted : Activity
-        data object Idle : Activity
-
-        // The session owns resources; handledState is the loop's last processed state.
-        data class Capturing(val session: MjpegCaptureSession, val handledState: MjpegCaptureSession.State) : Activity
-
-        data class BlockedCleanup(val attempt: StreamingModule.CaptureAttemptId) : Activity
-        data object Closing : Activity
-
-        fun toUiAction(startAvailable: Boolean): Action = when (this) {
-            Idle -> Action.Start(startAvailable)
-            is BlockedCleanup -> Action.Start(enabled = false)
-            is Capturing ->
-                if (handledState.isStreaming || handledState.status == MjpegCaptureSession.State.Status.Suspended) {
-                    Action.Stop(session.id)
-                } else {
-                    Action.Busy
-                }
-
-            NotStarted, Closing -> Action.Busy
-        }
+    private class CaptureAttempt(val session: MjpegCaptureSession) {
+        var processedState: MjpegCaptureSession.State = session.state.value
+        var addressLoss: AddressLossEpisode? = null
     }
 
     private sealed interface Event {
@@ -626,17 +704,17 @@ internal class MjpegStreamingModuleController(
         data class AddressStateChanged(val state: NetworkAddressMonitor.State) : Event
         data object DeliveryChanged : Event
         data class CaptureChanged(val attempt: StreamingModule.CaptureAttemptId) : Event
+        data class ScreenOff(val attempt: StreamingModule.CaptureAttemptId, val registrationId: Uuid) : Event
         data class ComponentFailed(val source: FailureSource, val cause: Throwable) : Event
     }
 
-    private data class NetworkLossEpisode(
-        val attempt: StreamingModule.CaptureAttemptId,
-        val filter: NetworkAddressFilter,
-        val observedAtElapsedRealtimeMillis: Long,
-    )
+    private data class AddressLossEpisode(val filter: NetworkAddressFilter, val observedAtElapsedRealtimeMillis: Long)
+
+    private data class ScreenOffRegistration(val attempt: StreamingModule.CaptureAttemptId, val id: Uuid)
 
     private enum class FailureSource { Settings, AddressMonitor, Delivery, Controller }
     private companion object {
         private const val HEARTBEAT_MILLIS: Long = 1_000L
+        private const val SLOW_VIEWER_WARNING_COOLDOWN_MILLIS: Long = 30_000L
     }
 }

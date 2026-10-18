@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">ストリームモードを選択：</string>
     <string name="app_tab_stream_switching_modules">モジュールを切り替えています</string>
 
-    <string name="app_permission_required_title">権限が必要です</string>
-    <string name="app_permission_allow_notifications">このアプリはストリーミングサービスを開始するために通知権限が必要です。\n\n通知を許可してください。</string>
-    <string name="app_permission_allow_notifications_settings">このアプリはストリーミングサービスを開始するために通知権限が必要です。\n\nアプリ設定で通知を有効にしてください。</string>
-    <string name="app_permission_notification_settings">設定を開く</string>
-    <string name="app_permission_local_network_title">ローカルネットワークへのアクセスが必要です</string>
-    <string name="app_permission_local_network_message">デバイスがストリームに接続できるように、ScreenStream にローカルネットワークの使用を許可してください。</string>
-    <string name="app_permission_local_network_off_title">ローカルネットワークへのアクセスがオフです</string>
-    <string name="app_permission_local_network_settings_message">デバイスと画面を共有するには、Android 設定でローカルネットワークへのアクセスをオンにしてください。</string>
+    <string name="app_permission_not_now">後で</string>
     <string name="app_permission_open_settings">設定を開く</string>
-    <string name="app_permission_try_again">もう一度試す</string>
+
+    <string name="app_permission_notifications_title">通知を許可</string>
+    <string name="app_permission_notifications_message">通知で配信状況やエラーをお知らせします。 通知から配信を停止したり、ScreenStream を開き直したりできます。</string>
+
+    <string name="app_permission_local_network_title">ローカルネットワークへのアクセス</string>
+    <string name="app_permission_local_network_message">同じネットワーク上の他のデバイスに配信するため、ScreenStream にローカルネットワークの使用を許可してください。\n\nAndroid では、この権限を「付近のデバイス」へのアクセスと説明し、デバイスの相対的な位置の特定に言及する場合があります。</string>
+    <string name="app_permission_local_network_off_title">ローカルネットワークへのアクセスがオフです</string>
+    <string name="app_permission_local_network_settings_message">同じローカルネットワーク上のデバイスに配信するには、アプリ設定で「権限」を開き、「付近のデバイス」を許可してください。</string>
+
+    <string name="app_permission_microphone_title">マイクへのアクセス</string>
+    <string name="app_permission_microphone_message">マイクへのアクセスを許可して、マイクの音声を配信に含めます。\n\n許可しない場合、マイクの音声は配信できません。</string>
+    <string name="app_permission_device_audio_title">デバイスの音声へのアクセス</string>
+    <string name="app_permission_device_audio_message">デバイスの音声を配信するには、Android のマイク権限が必要です。これによってマイクがオンになることはありません。\n\nAndroid と音声を再生するアプリが共有を許可した音声のみ配信できます。</string>
+
+    <string name="app_permission_audio_title">マイクとデバイスの音声</string>
+    <string name="app_permission_audio_message">マイクへのアクセスを許可して、マイクとデバイスの音声を配信します。\n\nデバイスの音声は、Android と音声を再生するアプリが共有を許可した場合のみ配信できます。</string>
+    <string name="app_permission_audio_settings_message">マイク音声または内部音声を配信するには、アプリ設定でマイク権限を有効にしてください。\n\n許可しない場合、配信に音声は含まれません。</string>
 
     <string name="app_notification_channel_streaming">ストリーミング通知</string>
     <string name="app_notification_channel_error">エラー通知</string>

@@ -33,9 +33,6 @@ public interface StreamingModuleLegacy {
 
     public val hasActiveConsumer: Flow<Boolean>
 
-    public val requiresLocalNetworkPermission: Boolean
-        get() = false
-
     @get:StringRes
     public val nameResource: Int
 

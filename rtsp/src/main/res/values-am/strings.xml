@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">የድምጽ አርቃቂ:</string>
     <string name="rtsp_audio_encoder_auto">ራስሰር</string>
     <string name="rtsp_audio_bitrate">የድምጽ ቢትሬት: %1$s/ሰከንድ</string>
-    <string name="rtsp_audio_permission_title">ድምጽ መቅዳትን ፍቀድ</string>
-    <string name="rtsp_audio_permission_message">ድምጽ ለማሰራጨት የድምጽ መቅዳት ፈቃድ ያስፈልጋል።\n\nያለዚህ ዥረቱ ድምጽ አይኖረውም።</string>
-    <string name="rtsp_audio_permission_open_settings">ቅንብሮችን ክፈት</string>
-    <string name="rtsp_audio_permission_message_settings">ድምጽ ለማሰራጨት በመተግበሪያ ቅንብሮች የማይክሮፎን ፈቃድን ያንቁ።\n\nያለዚህ ዥረቱ ድምጽ አይኖረውም።</string>
     <string name="rtsp_audio_capture_issue_detected">የድምጽ መቅረጽ ችግር ተገኘ</string>
 
     <string name="rtsp_connection_access_denied">መዳረሻ ተከልክሏል</string>

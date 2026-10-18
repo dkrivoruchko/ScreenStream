@@ -46,13 +46,13 @@ internal interface HttpDelivery {
     fun updateConfiguration(accessSettings: AccessSettings, postStopImage: PostStopImage, webSettings: WebPageSettings): Boolean
 
     /**
-     * Register before capture construction, retaining the selected image and setting Starting.
+     * Register before capture construction, retaining the last real image and setting Starting.
      * False means not activated or terminally stopped.
      */
     fun registerCapture(id: CaptureAttemptId): Boolean
 
     /**
-     * Ignore stale attempts. Suspended/Failed clear selection; Stopping/Stopped apply stopped-image policy.
+     * Ignore stale attempts. Without a current capture image, apply the configured image fallback.
      * The caller retains Failed after a capture or cleanup failure until an accepted [registerCapture].
      */
     fun updateCaptureStatus(id: CaptureAttemptId, state: Status)

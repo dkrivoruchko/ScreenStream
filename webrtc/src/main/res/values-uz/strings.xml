@@ -52,10 +52,6 @@
     <string name="webrtc_stream_stop_on_sleep">Uyqu rejimida translatsiyani toʻxtating</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Agar ekran oʻchsa, oqimni toʻxtating</string>
 
-    <string name="webrtc_stream_audio_permission_title">Audio kirishiga ruxsat bering</string>
-    <string name="webrtc_stream_audio_permission_message">Mikrofon yoki ichki audioni uzatish uchun mikrofon ruxsati kerak.\n\nBusiz oqimda ovoz bo\'lmaydi.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Mikrofon yoki ichki audioni uzatish uchun ilova sozlamalarida mikrofon ruxsatini yoqing.\n\nBusiz oqimda ovoz bo\'lmaydi.</string>
-    <string name="webrtc_stream_audio_permission_open_settings">Sozlamalarni oching</string>
     <string name="webrtc_item_client_disconnect">Ulanishni uzing</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Google Play doʻkonini yangilang</string>

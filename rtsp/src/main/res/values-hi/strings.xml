@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">ऑडियो एनकोडर:</string>
     <string name="rtsp_audio_encoder_auto">ऑटो</string>
     <string name="rtsp_audio_bitrate">ऑडियो बिटरेट: %1$s/सेकंड</string>
-    <string name="rtsp_audio_permission_title">ऑडियो रिकॉर्डिंग की अनुमति दें</string>
-    <string name="rtsp_audio_permission_message">ऑडियो स्ट्रीम करने के लिए ऑडियो रिकॉर्डिंग अनुमति आवश्यक है।\n\nइसके बिना स्ट्रीम में ऑडियो नहीं होगा।</string>
-    <string name="rtsp_audio_permission_open_settings">सेटिंग्स खोलें</string>
-    <string name="rtsp_audio_permission_message_settings">ऑडियो स्ट्रीम करने के लिए ऐप सेटिंग में माइक्रोफ़ोन अनुमति चालू करें।\n\nइसके बिना स्ट्रीम में ऑडियो नहीं होगा।</string>
     <string name="rtsp_audio_capture_issue_detected">ऑडियो कैप्चर समस्या मिली</string>
 
     <string name="rtsp_connection_access_denied">पहुंच अस्वीकृत</string>

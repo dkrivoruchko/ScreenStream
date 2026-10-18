@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">Sélectionnez le mode de diffusion :</string>
     <string name="app_tab_stream_switching_modules">Changement de modules</string>
 
-    <string name="app_permission_required_title">Permission requise</string>
-    <string name="app_permission_allow_notifications">Cette application a besoin de l\'autorisation de notifications pour démarrer le service de diffusion.\n\nAutorisez les notifications.</string>
-    <string name="app_permission_allow_notifications_settings">Cette application a besoin de l\'autorisation de notifications pour démarrer le service de diffusion.\n\nActivez les notifications dans les paramètres de l\'application.</string>
-    <string name="app_permission_notification_settings">Ouvrir les paramètres</string>
-    <string name="app_permission_local_network_title">Accès au réseau local requis</string>
-    <string name="app_permission_local_network_message">Autorisez ScreenStream à utiliser votre réseau local afin que les appareils puissent se connecter à votre diffusion.</string>
-    <string name="app_permission_local_network_off_title">Accès au réseau local désactivé</string>
-    <string name="app_permission_local_network_settings_message">Activez l\'accès au réseau local dans les paramètres Android pour partager votre écran avec les appareils.</string>
+    <string name="app_permission_not_now">Pas maintenant</string>
     <string name="app_permission_open_settings">Ouvrir les paramètres</string>
-    <string name="app_permission_try_again">Réessayer</string>
+
+    <string name="app_permission_notifications_title">Autoriser les notifications</string>
+    <string name="app_permission_notifications_message">Les notifications affichent l\'état de la diffusion et les alertes d\'erreur. Utilisez-les pour arrêter la diffusion ou rouvrir ScreenStream.</string>
+
+    <string name="app_permission_local_network_title">Accès au réseau local</string>
+    <string name="app_permission_local_network_message">Autorisez ScreenStream à utiliser votre réseau local pour diffuser vers d’autres appareils du même réseau.\n\nAndroid décrit cette autorisation comme un accès aux Appareils à proximité et peut mentionner la détermination de leur position relative.</string>
+    <string name="app_permission_local_network_off_title">Accès au réseau local désactivé</string>
+    <string name="app_permission_local_network_settings_message">Dans les paramètres de l’application, ouvrez Autorisations et accordez l’autorisation Appareils à proximité pour diffuser vers des appareils du même réseau local.</string>
+
+    <string name="app_permission_microphone_title">Accès au microphone</string>
+    <string name="app_permission_microphone_message">Autorisez l’accès au microphone pour inclure le son du microphone dans le flux.\n\nSans cette autorisation, le son du microphone ne peut pas être diffusé.</string>
+    <string name="app_permission_device_audio_title">Accès au son de l’appareil</string>
+    <string name="app_permission_device_audio_message">Android exige l’autorisation du microphone pour diffuser le son de l’appareil. Cela n’active pas votre microphone.\n\nSeul le son dont Android et l’application qui le lit autorisent le partage peut être diffusé.</string>
+
+    <string name="app_permission_audio_title">Son du microphone et de l’appareil</string>
+    <string name="app_permission_audio_message">Autorisez l’accès au microphone pour diffuser le son du microphone et de l’appareil.\n\nLe son de l’appareil ne peut être diffusé que si Android et l’application qui le lit autorisent son partage.</string>
+    <string name="app_permission_audio_settings_message">Activez l\'autorisation du microphone dans les paramètres de l\'application pour diffuser le son du micro ou l\'audio interne.\n\nSans elle, la diffusion sera sans son.</string>
 
     <string name="app_notification_channel_streaming">Notifications de diffusion</string>
     <string name="app_notification_channel_error">Notifications d\'erreur</string>

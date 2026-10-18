@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">Stream-Modus auswählen:</string>
     <string name="app_tab_stream_switching_modules">Module werden gewechselt</string>
 
-    <string name="app_permission_required_title">Berechtigung erforderlich</string>
-    <string name="app_permission_allow_notifications">Diese App benötigt die Benachrichtigungsberechtigung, um den Streaming-Dienst zu starten.\n\nBenachrichtigungen erlauben.</string>
-    <string name="app_permission_allow_notifications_settings">Diese App benötigt die Benachrichtigungsberechtigung, um den Streaming-Dienst zu starten.\n\nAktivieren Sie Benachrichtigungen in den App-Einstellungen.</string>
-    <string name="app_permission_notification_settings">Einstellungen öffnen</string>
-    <string name="app_permission_local_network_title">Zugriff auf lokales Netzwerk erforderlich</string>
-    <string name="app_permission_local_network_message">Erlauben Sie ScreenStream, Ihr lokales Netzwerk zu verwenden, damit Geräte eine Verbindung zu Ihrem Stream herstellen können.</string>
-    <string name="app_permission_local_network_off_title">Zugriff auf lokales Netzwerk ist deaktiviert</string>
-    <string name="app_permission_local_network_settings_message">Aktivieren Sie den Zugriff auf das lokale Netzwerk in den Android-Einstellungen, um Ihren Bildschirm mit Geräten zu teilen.</string>
+    <string name="app_permission_not_now">Nicht jetzt</string>
     <string name="app_permission_open_settings">Einstellungen öffnen</string>
-    <string name="app_permission_try_again">Erneut versuchen</string>
+
+    <string name="app_permission_notifications_title">Benachrichtigungen erlauben</string>
+    <string name="app_permission_notifications_message">Benachrichtigungen zeigen den Streamstatus und Fehlermeldungen an. Darüber können Sie den Stream stoppen oder ScreenStream erneut öffnen.</string>
+
+    <string name="app_permission_local_network_title">Zugriff auf lokales Netzwerk</string>
+    <string name="app_permission_local_network_message">Erlauben Sie ScreenStream, Ihr lokales Netzwerk zu verwenden, um an andere Geräte im selben Netzwerk zu streamen.\n\nAndroid beschreibt diese Berechtigung als Zugriff auf Geräte in der Nähe und erwähnt möglicherweise die Bestimmung ihrer relativen Position.</string>
+    <string name="app_permission_local_network_off_title">Zugriff auf lokales Netzwerk ist deaktiviert</string>
+    <string name="app_permission_local_network_settings_message">Öffnen Sie in den App-Einstellungen Berechtigungen und erteilen Sie die Berechtigung „Geräte in der Nähe“, um an Geräte im selben lokalen Netzwerk zu streamen.</string>
+
+    <string name="app_permission_microphone_title">Mikrofonzugriff</string>
+    <string name="app_permission_microphone_message">Erlauben Sie den Mikrofonzugriff, um Ton von Ihrem Mikrofon in den Stream aufzunehmen.\n\nOhne ihn kann Mikrofonton nicht gestreamt werden.</string>
+    <string name="app_permission_device_audio_title">Zugriff auf Geräteaudio</string>
+    <string name="app_permission_device_audio_message">Android benötigt die Mikrofonberechtigung, um Geräteaudio zu streamen. Dadurch wird Ihr Mikrofon nicht eingeschaltet.\n\nEs kann nur Audio gestreamt werden, dessen Freigabe Android und die wiedergebende App erlauben.</string>
+
+    <string name="app_permission_audio_title">Mikrofon- und Geräteaudio</string>
+    <string name="app_permission_audio_message">Erlauben Sie den Mikrofonzugriff, um Mikrofon- und Geräteaudio zu streamen.\n\nGeräteaudio kann nur gestreamt werden, wenn Android und die wiedergebende App dessen Freigabe erlauben.</string>
+    <string name="app_permission_audio_settings_message">Aktivieren Sie die Mikrofonberechtigung in den App-Einstellungen, um Mikrofon- oder internen Ton zu streamen.\n\nOhne sie hat der Stream keinen Ton.</string>
 
     <string name="app_notification_channel_streaming">Streaming-Benachrichtigungen</string>
     <string name="app_notification_channel_error">Fehlerbenachrichtigungen</string>

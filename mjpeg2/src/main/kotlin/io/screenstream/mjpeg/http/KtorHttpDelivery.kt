@@ -17,6 +17,7 @@ import io.screenstream.mjpeg.http.media.JpegStore
 import io.screenstream.mjpeg.http.web.WebRoutes
 import io.screenstream.mjpeg.http.web.WebRoutes.WebSocketAdmission
 import io.screenstream.mjpeg.http.web.WebState
+import io.screenstream.mjpeg.networkaddress.IpAddressKey
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
@@ -44,7 +45,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.annotation.Factory
 import java.io.IOException
 import java.net.BindException
-import java.net.Inet6Address
 import java.net.SocketException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -96,13 +96,11 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
                 socketOwners.clear()
                 sampleStatistics()
             }
-            synchronized(controlMonitor) { cleanupCause }?.let { throw it }
         } catch (cause: Throwable) {
-            if (cause !== synchronized(controlMonitor) { cleanupCause }) {
-                this@KtorHttpDelivery.logE("Http.cleanup", "HTTP cleanup failed", cause)
-            }
+            this@KtorHttpDelivery.logE("Http.cleanup", "HTTP cleanup failed", cause)
             throw cause
         }
+        synchronized(controlMonitor) { cleanupCause }?.let { throw it }
     }
 
     override val appliedAccessToken: SecretValue?
@@ -134,13 +132,13 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
             if (closing) return
             require(port in 1..65535)
             require(addresses.map { it.id }.toSet().size == addresses.size) { "Duplicate address identities" }
-            require(addresses.map { SocketKey.from(it, port) }.toSet().size == addresses.size) { "Duplicate scoped sockets" }
+            require(addresses.map { SocketKey(it.ipKey, port) }.toSet().size == addresses.size) { "Duplicate scoped sockets" }
             val retiringEntries = plannedServers.toMutableMap()
             val plannedEntries = addresses.map { address ->
                 val previous = retiringEntries[address.id]
                 if (previous != null && previous.port == port) {
                     retiringEntries.remove(address.id)
-                    check(previous.key == SocketKey.from(address, port)) { "Address identity changed its scoped IP" }
+                    check(previous.key == SocketKey(address.ipKey, port)) { "Address identity changed its scoped IP" }
                     previous.address = address
                     previous
                 } else {
@@ -167,12 +165,7 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
             listeners.forEach(HttpListener::requestStop)
             jobsToCancel.forEach(Job::cancel)
         } catch (cause: Throwable) {
-            logE("Http.cleanup", "HTTP cutoff failed", cause)
-            synchronized(controlMonitor) {
-                cleanupCause = cleanupCause ?: cause
-                fatalCause = fatalCause ?: cause
-                publishControlInfo()
-            }
+            recordCleanupFailure("Http.cleanup", "HTTP cutoff failed", cause)
             requestStop()
             throw cause
         }
@@ -234,12 +227,7 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
             try {
                 action()
             } catch (cause: Throwable) {
-                logE("Http.cleanup", "HTTP cancellation failed", cause)
-                synchronized(controlMonitor) {
-                    cleanupCause = cleanupCause ?: cause
-                    fatalCause = fatalCause ?: cause
-                    publishControlInfo()
-                }
+                recordCleanupFailure("Http.cleanup", "HTTP cancellation failed", cause)
             }
         }
         try {
@@ -254,6 +242,15 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
     override suspend fun stop() {
         requestStop()
         cleanup.await()
+    }
+
+    private fun recordCleanupFailure(tag: String, message: String, cause: Throwable) {
+        logE(tag, message, cause)
+        synchronized(controlMonitor) {
+            cleanupCause = cleanupCause ?: cause
+            fatalCause = fatalCause ?: cause
+            publishControlInfo()
+        }
     }
 
     override fun isListenerActive(listener: HttpListener): Boolean = synchronized(controlMonitor) { isListenerActiveLocked(listener) }
@@ -319,7 +316,6 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
             serverId = server.id,
             ip = call.request.local.remoteAddress,
             port = call.request.local.remotePort,
-            format = format,
             job = job,
             now = now,
         )
@@ -327,25 +323,25 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
     }
 
     override fun admitWebSocket(listener: HttpListener, accessCookie: String?, peerIp: String, requestJob: Job): WebSocketAdmission {
-        val generation = synchronized(controlMonitor) {
+        val credentialGeneration = synchronized(controlMonitor) {
             val now = SystemClock.elapsedRealtime()
             if (!isListenerActiveLocked(listener) || !requestJob.isActive || !access.allowsViewing(null, accessCookie)) {
                 val retry = access.remainingBlockMillis(peerIp, now).takeIf { it > 0 }
                 return WebSocketAdmission.Denied(retry)
             }
             requests.registerWeb(listener, requestJob)
-            access.generation
+            access.credentialGeneration
         }
         requestJob.invokeOnCompletion {
             synchronized(controlMonitor) {
                 requests.removeWeb(requestJob)
             }
         }
-        return WebSocketAdmission.Accepted(generation)
+        return WebSocketAdmission.Accepted(credentialGeneration)
     }
 
-    override fun isWebSocketCurrent(listener: HttpListener, generation: Long): Boolean = synchronized(controlMonitor) {
-        isListenerActiveLocked(listener) && generation == access.generation
+    override fun isWebSocketCurrent(listener: HttpListener, credentialGeneration: Long): Boolean = synchronized(controlMonitor) {
+        isListenerActiveLocked(listener) && credentialGeneration == access.credentialGeneration
     }
 
     /** Read fresh store facts; null marks preactivation and shutdown. */
@@ -356,10 +352,10 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
         }
         val image = jpegStore.snapshot()
         webState.value = WebState(
-            generation = access.generation,
+            credentialGeneration = access.credentialGeneration,
             accessOpen = !access.pinEnabled,
-            notice = WebState.noticeFor(image.capture),
-            hasImage = image.hasImage,
+            notice = WebState.noticeFor(image.captureStatus),
+            imageKind = image.imageKind,
             display = pageSettings,
         )
     }
@@ -372,7 +368,7 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
             sampleStatistics()
             jobs
         } else emptyList()
-        jpegStore.updateStoppedImagePolicy(postStopImage)
+        jpegStore.updateFallbackPolicy(postStopImage)
         pageSettings = webSettings
         publishWebState()
         return webJobsToCancel
@@ -404,8 +400,6 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
     }
 
     private suspend fun runSocketOwner(owner: SocketOwner) {
-        var retryServer: PlannedServer? = null
-        var retryAtMillis = 0L
         while (true) {
             currentCoroutineContext().ensureActive()
             val server = synchronized(controlMonitor) {
@@ -417,12 +411,9 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
                 }
                 current
             }
-            if (server !== retryServer) {
-                retryServer = null
-                retryAtMillis = 0L
-            }
-            val retryDelay = (retryAtMillis - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+            val retryDelay: Long
             val attemptAddress = synchronized(controlMonitor) {
+                retryDelay = (server.retryAtMillis - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
                 if (!isServerCurrent(server) || server.bindAttempts >= MAX_BIND_ATTEMPTS || retryDelay > 0L) null else {
                     server.bindAttempts++
                     server.state = ServerState.Pending
@@ -440,8 +431,9 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
             }
             runBindAttempt(server, attemptAddress)
             synchronized(controlMonitor) {
-                retryServer = server.takeIf { isServerCurrent(it) && it.bindAttempts < MAX_BIND_ATTEMPTS }
-                retryAtMillis = if (retryServer != null) SystemClock.elapsedRealtime() + RETRY_DELAY_MILLIS else 0L
+                server.retryAtMillis = if (isServerCurrent(server) && server.bindAttempts < MAX_BIND_ATTEMPTS) {
+                    SystemClock.elapsedRealtime() + RETRY_DELAY_MILLIS
+                } else 0L
             }
         }
     }
@@ -507,12 +499,7 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
                         listener?.stopAndAwaitCleanup()
                     }
                 } catch (cause: Throwable) {
-                    this@KtorHttpDelivery.logE("Http.listenerCleanup", "Listener cleanup failed", cause)
-                    synchronized(controlMonitor) {
-                        cleanupCause = cleanupCause ?: cause
-                        fatalCause = fatalCause ?: cause
-                        publishControlInfo()
-                    }
+                    recordCleanupFailure("Http.listenerCleanup", "Listener cleanup failed", cause)
                     // Do not return to this owner's successor selection after uncertain cleanup.
                     requestStop()
                 }
@@ -531,7 +518,7 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
 
     private fun sampleStatistics() {
         val now = SystemClock.elapsedRealtime()
-        val sample = requests.sample(now, jpegStore.snapshot().sourceIdentity, currentListeners())
+        val sample = requests.sample(now, jpegStore.snapshot().captureSourceToken, currentListeners())
         info.value = Info(
             servers = if (closing) emptyList() else plannedServers.values.map { it.toServerInfo() },
             clients = if (closing) emptyList() else sample.clients,
@@ -545,8 +532,9 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
     /** One planned incarnation; metadata edits and physical bind retries preserve its UUID. */
     private class PlannedServer(var address: NetworkAddress, val port: Int) {
         val id = Uuid.random()
-        val key = SocketKey.from(address, port)
+        val key = SocketKey(address.ipKey, port)
         var bindAttempts = 0
+        var retryAtMillis = 0L
         var state: ServerState = ServerState.Pending
         var listener: HttpListener? = null
 
@@ -561,19 +549,7 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
         val changes = Channel<Unit>(capacity = Channel.CONFLATED)
     }
 
-    private data class SocketKey(val bytes: List<Byte>, val scopeId: Int?, val scopeInterface: String?, val port: Int) {
-        companion object {
-            fun from(address: NetworkAddress, port: Int): SocketKey {
-                val ip = address.ip
-                return SocketKey(
-                    bytes = ip.address.toList(),
-                    scopeId = (ip as? Inet6Address)?.scopeId,
-                    scopeInterface = (ip as? Inet6Address)?.scopedInterface?.name,
-                    port = port,
-                )
-            }
-        }
-    }
+    private data class SocketKey(val ip: IpAddressKey, val port: Int)
 
     private sealed interface MediaAdmission {
         class Accepted(val writer: JpegResponse) : MediaAdmission

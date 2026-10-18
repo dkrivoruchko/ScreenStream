@@ -6,7 +6,7 @@ Test maintained product behavior: saved compatibility, viewing authority, captur
 
 ## Scope
 
-The subjects are MJPEG's non-UI Kotlin sources. [The inventory](source-inventory.md) maps contributing files to behavior pages. UI/Compose, clipboard, permission launchers and request claims, browser JavaScript, shared streaming-core/capture-engine internals and patched Ktor network internals are outside this scope. Boundary fixtures can supply their inputs without establishing their internal coverage.
+The subjects are MJPEG's non-UI Kotlin sources. [The inventory](source-inventory.md) maps contributing files to behavior pages. UI/Compose, clipboard, the native permission-button UI and the shared app permission host/launcher, browser JavaScript, shared streaming-core/capture-engine internals and patched Ktor network internals are outside this scope. Boundary fixtures can supply their inputs without establishing their internal coverage.
 
 ## Environments
 
@@ -43,10 +43,6 @@ Use focused SDK configurations for these transitions, while retaining invariant 
 
 Use `--tests 'fully.qualified.TestClass'` to select a class. Results appear in `mjpeg2/build/reports/tests/testDebugUnitTest/` and `mjpeg2/build/test-results/testDebugUnitTest/`; a successful build without test results is not test execution. L2 is not currently configured with a module instrumentation runner.
 
-## Latest verification
-
-On 2026-10-13, the unfiltered `./gradlew --no-daemon :mjpeg2:testDebugUnitTest` passed **200 test executions in 23 classes**, with zero failures, errors or skips, using Temurin OpenJDK 21.0.12.1. This includes the 13 destructive legacy-migration checks. HTML results are in `mjpeg2/build/reports/tests/testDebugUnitTest/index.html`; XML results are in `mjpeg2/build/test-results/testDebugUnitTest/`. Later runs can replace these reports. This establishes the executed L0/L1 checks, not every catalogue variant, every supported SDK or Android platform behavior. L2 was not executed.
-
 ## Assertions and concrete limits
 
 Use independent expected values and recognizable byte fixtures; parse JSON and multipart output independently of production helpers. Secret redaction and actual authorization are useful checks; random credential inequality, entropy or constant-time behavior are not promised results.
@@ -55,10 +51,10 @@ Observe stable StateFlow checkpoints, because emissions can conflate. For races,
 
 Saving, observation and application are distinct. Capture Stop, reader cutoff, request cancellation and physical completion are also distinct. Assert settled ownership/cleanup and valid acquired bytes at the applicable boundary. Zero-progress registry fixtures cannot establish nonzero writer accounting or physical request settlement; payload counts do not establish peer receipt.
 
-Controlled MJPEG Engine inputs exercise parameter mapping, startup/state transitions, borrowed output and independent media/consumer settlement. Real factory rejection and unstarted-session rollback are separate bridge checks. Terminal registration rejection is checked through lawful controlled Engine admission after ownership transfer; it does not establish Android projection revocation. Defensive broken-frame inputs do not establish failures produced by the real Engine; observation exceptions remain unarranged. Ordinary exact consumer unregister does not naturally fail.
+Controlled MJPEG Engine inputs can verify parameter mapping, startup/state transitions, borrowed output and independent media/consumer settlement. Keep real factory rejection and unstarted-session rollback separate from controlled Engine admission. Registration rejection after supplied ownership transfer does not establish Android projection revocation. Broken-frame inputs verify defensive handling without claiming that the real Engine produces those failures. Ordinary exact consumer unregister does not naturally fail; state/statistics StateFlows do not naturally throw observation exceptions.
 
-Controlled native inputs exercise source fallback/absence evidence, monitor selection and identities, stale-scan reconciliation and held scan/close settlement. These host checks do not establish actual Android native discovery or LAN reachability. Exact repeat/deadline arbitration, held bind/transport cleanup, fatal runtime faults, WebSocket queue/backpressure and incoming-frame size enforcement remain gaps. Application output faults and PIN body read failures are exercised at their public boundaries. PIN editing has no non-UI command ingress. Scenario pages qualify their local limits; integration configuration remains inspection.
+Controlled native inputs can verify fallback/absence evidence, selection and identity, stale-scan reconciliation and scan/close settlement. They do not establish actual Android native discovery or LAN reachability. Use separate faithful barriers and transport fixtures for deadline arbitration, held bind/cleanup, fatal runtime faults, WebSocket queue/backpressure and incoming-frame enforcement. Application output faults and PIN-body read failures need their own boundary inputs. A supplied controller graph does not establish actual Koin resolution. PIN save validation and error presentation require the real Access settings group update path; controller fixtures establish effective-settings application separately.
 
-The [scenario index](verification-contracts.md) links related test classes. Such a link identifies implemented checks, not coverage of every scenario variant. Commands and fresh test reports establish execution; detailed work history stays outside this catalogue.
+The [scenario index](verification-contracts.md) links related test sources as entry points. A link does not establish coverage of every listed variant. Fresh test reports establish execution; retain execution results and platform/device qualifications with the change or release being verified, outside this reference.
 
 [Android testing strategies](https://developer.android.com/training/testing/fundamentals/strategies), [coroutine test scheduling](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/) and [Ktor's socket-free test engine](https://ktor.io/docs/server-testing.html) explain the relevant environment limits.

@@ -298,19 +298,23 @@ public sealed interface OutputSize {
     }
 }
 
-/** Clockwise rotation applied after source selection and crop. */
-public enum class Rotation {
+/**
+ * Clockwise rotation applied after source selection and crop.
+ *
+ * @property degrees clockwise angle in degrees: 0, 90, 180, or 270.
+ */
+public enum class Rotation(public val degrees: Int) {
     /** No rotation. */
-    Degrees0,
+    Degrees0(0),
 
     /** A 90-degree clockwise rotation; exchanges oriented width and height. */
-    Degrees90,
+    Degrees90(90),
 
     /** A 180-degree clockwise rotation. */
-    Degrees180,
+    Degrees180(180),
 
     /** A 270-degree clockwise rotation; exchanges oriented width and height. */
-    Degrees270,
+    Degrees270(270),
 }
 
 /** Reflection applied in the coordinate space of the already-rotated image. */

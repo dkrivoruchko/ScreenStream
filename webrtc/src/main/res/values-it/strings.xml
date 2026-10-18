@@ -52,10 +52,6 @@
     <string name="webrtc_stream_stop_on_sleep">Interrompi a schermo spento</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Interrompi la trasmissione quando lo schermo si spegne</string>
 
-    <string name="webrtc_stream_audio_permission_title">Consenti accesso audio</string>
-    <string name="webrtc_stream_audio_permission_message">L\'autorizzazione del microfono è necessaria per trasmettere audio del microfono o audio interno.\n\nSenza di essa, lo stream non avrà audio.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Abilita l\'autorizzazione del microfono nelle impostazioni dell\'app per trasmettere audio del microfono o audio interno.\n\nSenza di essa, lo stream non avrà audio.</string>
-    <string name="webrtc_stream_audio_permission_open_settings">Apri le impostazioni</string>
     <string name="webrtc_item_client_disconnect">Disconnetti</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Per favore, aggiorna Google Play Store</string>

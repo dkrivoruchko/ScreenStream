@@ -8,12 +8,15 @@
   },
   "packageManager": "npm@12.2.0",
   "scripts": {
+    "start": "node preview/server.cjs",
     "build": "node build.cjs",
-    "check": "node build.cjs --check"
+    "check": "node build.cjs --check",
+    "test": "node --test preview/fixture.test.cjs"
   },
   "devDependencies": {
     "@babel/core": "7.28.5",
     "@babel/preset-env": "7.28.5",
-    "acorn": "8.15.0"
+    "acorn": "8.15.0",
+    "ws": "8.22.0"
   }
 }

@@ -116,7 +116,6 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     notificationManager.getNotificationChannel(CHANNEL_STREAMING)?.let { notificationChannel ->
                         builder.setSound(notificationChannel.sound)
-                            .setPriority(notificationChannel.importance)
                             .setVibrate(notificationChannel.vibrationPattern)
                     }
                 }
@@ -152,7 +151,6 @@ internal class NotificationHelperImpl(context: Context) : NotificationHelper {
                     notificationManager.getNotificationChannel(CHANNEL_ERROR)?.let { notificationChannel ->
                         builder
                             .setSound(notificationChannel.sound)
-                            .setPriority(notificationChannel.importance)
                             .setVibrate(notificationChannel.vibrationPattern)
                     }
                 }

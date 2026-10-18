@@ -45,7 +45,6 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * Adapter policy through lawful Engine observations, not graphics or physical projection evidence.
  * These decisions have no SDK branch; SDK 34 represents the supported 24–37 policy equivalence.
- * CAP-14 remains a gap: no artificial failing StateFlow or application-wide log-writer replacement.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

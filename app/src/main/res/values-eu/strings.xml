@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">Hautatu streaming modua:</string>
     <string name="app_tab_stream_switching_modules">Moduluak aldatzen</string>
 
-    <string name="app_permission_required_title">Baimena behar da</string>
-    <string name="app_permission_allow_notifications">Aplikazio honek jakinarazpen-baimena behar du transmisio-zerbitzua hasteko.\n\nBaimendu jakinarazpenak.</string>
-    <string name="app_permission_allow_notifications_settings">Aplikazio honek jakinarazpen-baimena behar du transmisio-zerbitzua hasteko.\n\nGaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
-    <string name="app_permission_notification_settings">Ireki ezarpenak</string>
-    <string name="app_permission_local_network_title">Tokiko sarerako sarbidea behar da</string>
-    <string name="app_permission_local_network_message">Utzi ScreenStreami zure tokiko sarea erabiltzen, gailuak zure transmisiora konektatu ahal izateko.</string>
-    <string name="app_permission_local_network_off_title">Tokiko sarerako sarbidea desaktibatuta dago</string>
-    <string name="app_permission_local_network_settings_message">Zure pantaila gailuekin partekatzeko, gaitu tokiko sarerako sarbidea Android ezarpenetan.</string>
+    <string name="app_permission_not_now">Orain ez</string>
     <string name="app_permission_open_settings">Ireki ezarpenak</string>
-    <string name="app_permission_try_again">Saiatu berriro</string>
+
+    <string name="app_permission_notifications_title">Baimendu jakinarazpenak</string>
+    <string name="app_permission_notifications_message">Jakinarazpenek transmisioaren egoera eta erroreen abisuak erakusten dituzte. Erabili itzazu transmisioa gelditzeko edo ScreenStream berriro irekitzeko.</string>
+
+    <string name="app_permission_local_network_title">Sare lokalerako sarbidea</string>
+    <string name="app_permission_local_network_message">Baimendu ScreenStream-ek sare lokala erabiltzea sare bereko beste gailuetara transmititzeko.\n\nAndroid-ek baimen hau Inguruko gailuetarako sarbide gisa deskribatzen du, eta haien kokapen erlatiboa zehaztea aipa dezake.</string>
+    <string name="app_permission_local_network_off_title">Tokiko sarerako sarbidea desaktibatuta dago</string>
+    <string name="app_permission_local_network_settings_message">Aplikazioaren ezarpenetan, ireki Baimenak eta baimendu Inguruko gailuak sare lokal bereko gailuetara transmititzeko.</string>
+
+    <string name="app_permission_microphone_title">Mikrofonorako sarbidea</string>
+    <string name="app_permission_microphone_message">Baimendu mikrofonorako sarbidea haren soinua transmisioan sartzeko.\n\nBaimenik gabe, ezin da mikrofonoaren audioa transmititu.</string>
+    <string name="app_permission_device_audio_title">Gailuaren audiorako sarbidea</string>
+    <string name="app_permission_device_audio_message">Android-ek mikrofonoaren baimena behar du gailuaren audioa transmititzeko. Horrek ez du mikrofonoa pizten.\n\nAndroid-ek eta audioa erreproduzitzen duen aplikazioak partekatzea baimentzen duten audioa soilik transmiti daiteke.</string>
+
+    <string name="app_permission_audio_title">Mikrofonoaren eta gailuaren audioa</string>
+    <string name="app_permission_audio_message">Baimendu mikrofonorako sarbidea mikrofonoaren eta gailuaren audioa transmititzeko.\n\nGailuaren audioa transmititzeko, Android-ek eta audioa erreproduzitzen duen aplikazioak hura partekatzea baimendu behar dute.</string>
+    <string name="app_permission_audio_settings_message">Gaitu mikrofono-baimena aplikazioaren ezarpenetan mikrofonoko edo barneko audioa transmititzeko.\n\nBaimenik gabe, transmisioak ez du soinurik izango.</string>
 
     <string name="app_notification_channel_streaming">Igorpen-jakinarazpenak</string>
     <string name="app_notification_channel_error">Errore-jakinarazpenak</string>

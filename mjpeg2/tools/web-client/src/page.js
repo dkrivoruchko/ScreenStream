@@ -1,17 +1,30 @@
 const labels = document.querySelectorAll('[data-word]');
 for (let i = 0; i < labels.length; i += 1) text(labels[i], words[labels[i].getAttribute('data-word')]);
+const controlLabels = document.querySelectorAll('[data-label]');
+for (let i = 0; i < controlLabels.length; i += 1) labelControl(controlLabels[i], words[controlLabels[i].getAttribute('data-label')]);
+const placeholder = byId('placeholder'), stateLogo = byId('state-logo'), stateMessage = byId('state-message');
+const statusMessage = byId('status'), recovery = byId('recovery'), recoveryAlternate = byId('recovery-alternate');
+const infoConnection = byId('info-connection'), infoImage = byId('info-image'), infoSize = byId('info-size');
+const infoNotice = byId('info-notice'), infoNoticeLabel = byId('info-notice-label');
+const methodButtons = ['mjpeg', 'jpeg'].map(method => ({ method, button: byId('method-' + method) }));
 let snapshot = null, connectionState = 'connecting', imageState = 'idle';
-let blockedUntil = 0, blockedTimer = null, noticeTimer = null, notice = '';
+let noticeTimer = null, transientMessage = '';
 let hiddenAt = 0, paused = false;
-const pinPanel = byId('pin-panel'), pinInput = byId('pin'), unlock = byId('unlock');
-const presentation = createPresentation({ notice: showNotice });
+stateLogo.src = byId('pin-logo').src;
+const viewportLayout = createViewportLayout();
+const access = createAccessPanel(viewportLayout, {
+    submit: pin => connection.submitPin(pin),
+    retry,
+    expired: () => { connectionState = 'pin_required'; renderState(); }
+});
+const presentation = createPresentation(viewportLayout, { notice: showNotice });
 const media = createMedia(byId('image-stage'), {
     state: value => { imageState = value; renderState(); },
     image: (value, w, h) => {
         presentation.setImage(value, w, h);
-        text(byId('info-size'), w && h ? w + ' × ' + h : words.unknownSize);
+        text(infoSize, w && h ? w + ' × ' + h : words.unknownSize);
     },
-    method: value => { text(byId('info-method'), value === 'mjpeg' ? 'MJPEG' : 'JPEG'); updateAlternate(); }
+    method: renderMethod
 });
 const connection = createConnection({
     state: value => {
@@ -19,85 +32,85 @@ const connection = createConnection({
         renderState();
     },
     snapshot: receiveSnapshot,
-    pin: value => {
-        unlock.disabled = false;
-        if (value === 'success') {
-            pinInput.value = '';
-            pinPanel.hidden = true;
-        } else {
-            unlock.disabled = value === 'pinSending';
-            text(byId('pin-message'), words[value]);
-            if (value === 'pinWrong') { pinInput.select(); pinInput.focus(); }
-        }
-    }
+    pin: value => { access.result(value); renderState(); }
 });
 function authorized() { return snapshot && (snapshot.access === 'open' || snapshot.access === 'authorized'); }
-function streamNoticeText() { return authorized() && snapshot.notice !== null ? words[snapshot.notice] : ''; }
-function renderState() {
-    const streamNotice = streamNoticeText();
-    let status = '';
-    if (connectionState !== 'connected' && connectionState !== 'pin_required' && connectionState !== 'blocked') status = words[connectionState] || words.connecting;
-    if (authorized()) {
-        if (streamNotice) status += (status ? ' · ' : '') + streamNotice;
-        if (imageState === 'starting' || imageState === 'retrying' || imageState === 'failed') {
-            const key = imageState === 'starting' ? 'mediaStarting' : imageState === 'retrying' ? 'mediaRetrying' : 'mediaFailed';
-            status += (status ? ' · ' : '') + words[key];
-        }
-    }
-    if (notice) status += (status ? ' · ' : '') + notice;
-    text(byId('status'), status);
-    text(byId('placeholder'), authorized() ? (snapshot.hasImage ? words.mediaStarting : streamNotice || words.mediaStarting) : words[connectionState] || words.connecting);
-    const mediaText = { idle: words.mediaStarting, starting: words.mediaStarting, retrying: words.mediaRetrying, failed: words.mediaFailed, viewing: words.viewing };
-    text(byId('info-connection'), words[connectionState] || connectionState);
-    text(byId('info-image'), mediaText[imageState]);
-    text(byId('info-notice'), streamNotice);
-    byId('info-notice-label').hidden = byId('info-notice').hidden = !streamNotice;
-    byId('recovery').hidden = !pinPanel.hidden || (connectionState !== 'unavailable' && imageState !== 'failed');
-    byId('recovery-alternate').hidden = !authorized() || !snapshot.hasImage;
-    updateAlternate();
+function hasScreenImage() {
+    return authorized() && snapshot.notice !== 'permission_required' &&
+        (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
 }
-function updateAlternate() {
-    const label = media.method() === 'mjpeg' ? words.alternate : words.useMjpeg;
-    text(byId('alternate'), label); text(byId('recovery-alternate'), label);
-    byId('alternate').disabled = !authorized() || !snapshot.hasImage;
+function captureNoticeText() { return authorized() && snapshot.notice !== null ? words[snapshot.notice] : ''; }
+function joinMessages(messages) { return messages.filter(Boolean).join(' · '); }
+function renderState() {
+    const captureNotice = captureNoticeText();
+    const connectionMessage = connectionState !== 'connected' && connectionState !== 'pin_required' && connectionState !== 'blocked' ? words[connectionState] || words.connecting : '';
+    const imageMessage = imageState === 'starting' ? words.mediaStarting : imageState === 'retrying' ? words.mediaRetrying : imageState === 'failed' ? words.mediaFailed : '';
+    const retainedWithImage = !!(authorized() && snapshot.imageKind === 'retained' && placeholder.hidden);
+    const failed = authorized() && snapshot.notice === 'failed';
+    presentation.setCaptureNotice(retainedWithImage ? captureNotice || words.mediaStarting : '', failed);
+    const messages = [connectionMessage];
+    if (authorized()) {
+        if (!retainedWithImage) messages.push(captureNotice);
+        if (!captureNotice || retainedWithImage || imageState !== 'starting') messages.push(imageMessage);
+    }
+    messages.push(transientMessage);
+    const pinVisible = access.visible();
+    const emptyState = !pinVisible && !placeholder.hidden;
+    stateLogo.hidden = false;
+    // The access form and no-image state each own one message; hidden remains the actual-image fact.
+    placeholder.style.display = pinVisible ? 'none' : '';
+    presentation.setEmptyState(emptyState);
+    placeholder.classList.toggle('capture-failed', failed);
+    statusMessage.classList.toggle('capture-failed', failed);
+    text(statusMessage, placeholder.hidden || pinVisible ? joinMessages(messages) : '');
+
+    if (emptyState) {
+        const body = !authorized() ? connectionMessage || words.connecting : captureNotice || imageMessage || words.mediaStarting;
+        const details = [body];
+        if (authorized() && connectionMessage) details.push(connectionMessage);
+        if (captureNotice && imageMessage && imageState !== 'starting') details.push(imageMessage);
+        details.push(transientMessage);
+        const message = joinMessages(details);
+        text(stateMessage, message);
+        stateMessage.hidden = !message;
+    }
+    const mediaText = { idle: words.unknownSize, starting: words.mediaStarting, retrying: words.mediaRetrying, failed: words.mediaFailed, viewing: words.viewing };
+    text(infoConnection, words[connectionState] || connectionState);
+    text(infoImage, mediaText[imageState]);
+    text(infoNotice, captureNotice);
+    infoNoticeLabel.hidden = infoNotice.hidden = !captureNotice;
+    recovery.hidden = pinVisible || (connectionState !== 'unavailable' && imageState !== 'failed');
+    access.updateRetry(connectionState);
+    recoveryAlternate.hidden = !hasScreenImage();
+    renderMethod();
+}
+function renderMethod() {
+    const method = media.method(), enabled = hasScreenImage();
+    text(recoveryAlternate, method === 'mjpeg' ? words.useJpeg : words.useMjpeg);
+    methodButtons.forEach(choice => {
+        choice.button.setAttribute('aria-pressed', choice.method === method ? 'true' : 'false');
+        choice.button.disabled = !enabled;
+    });
 }
 function showNotice(key) {
-    notice = words[key];
+    transientMessage = words[key];
     clearTimeout(noticeTimer);
-    noticeTimer = setTimeout(() => { notice = ''; renderState(); }, 10000);
+    noticeTimer = setTimeout(() => { transientMessage = ''; renderState(); }, 10000);
     renderState();
 }
-function showBlocked(ms) {
-    blockedUntil = Date.now() + Math.max(0, isFinite(ms) ? ms : 1000);
-    const tick = () => {
-        const seconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
-        pinInput.disabled = unlock.disabled = seconds > 0;
-        text(byId('pin-message'), seconds > 0 ? words.blocked + seconds + words.seconds : words.pinRequired);
-        if (seconds > 0) blockedTimer = setTimeout(tick, 1000);
-        else { blockedTimer = null; blockedUntil = 0; connectionState = 'pin_required'; renderState(); }
-    };
-    tick();
-}
 function receiveSnapshot(value) {
-    clearTimeout(blockedTimer); blockedTimer = null; blockedUntil = 0;
     snapshot = value;
     if (value.access === 'pin_required' || value.access === 'blocked') {
         connectionState = value.access;
         media.configure(value);
         presentation.accessDenied();
-        const wasHidden = pinPanel.hidden;
-        pinPanel.hidden = false;
-        pinInput.disabled = unlock.disabled = false;
-        if (value.access === 'blocked') showBlocked(value.retryAfterMs);
-        else { text(byId('pin-message'), words.pinRequired); if (wasHidden) pinInput.focus(); }
+        access.show(value);
     } else {
         // Reconnect must retry media even when the server snapshot is unchanged.
         const firstSnapshot = connectionState !== 'connected';
         connectionState = 'connected';
-        pinPanel.hidden = true;
-        pinInput.value = '';
+        access.hide();
         presentation.configure(value.display, firstSnapshot);
-        text(byId('info-title'), value.display.title);
         media.configure(value, firstSnapshot);
     }
     renderState();
@@ -106,25 +119,27 @@ function retry() {
     presentation.closeMenu(false);
     connection.retry();
 }
-function alternate() { media.alternate(); presentation.closeMenu(true); }
-byId('pin-form').addEventListener('submit', event => {
-    event.preventDefault();
-    if (!blockedUntil && !unlock.disabled) connection.submitPin(pinInput.value);
+function switchMethod() {
+    media.selectMethod(media.method() === 'mjpeg' ? 'jpeg' : 'mjpeg');
+    presentation.closeMenu(true);
+}
+byId('recovery-retry').addEventListener('click', retry);
+recoveryAlternate.addEventListener('click', switchMethod);
+methodButtons.forEach(choice => {
+    choice.button.addEventListener('click', () => media.selectMethod(choice.method));
 });
-['retry', 'pin-retry', 'recovery-retry'].forEach(id => byId(id).addEventListener('click', retry));
-['alternate', 'recovery-alternate'].forEach(id => byId(id).addEventListener('click', alternate));
 function pausePage() {
     paused = true;
     connection.pause(); media.pause(); presentation.pause();
-    clearTimeout(blockedTimer); blockedTimer = null;
-    clearTimeout(noticeTimer); noticeTimer = null; notice = '';
+    access.pause();
+    clearTimeout(noticeTimer); noticeTimer = null; transientMessage = '';
 }
 function resumePage() {
     if (!paused) return;
     paused = false;
     connection.retry();
     presentation.activity();
-    if (blockedUntil) showBlocked(Math.max(0, blockedUntil - Date.now()));
+    access.resume();
 }
 window.addEventListener('pagehide', pausePage);
 window.addEventListener('pageshow', resumePage);
@@ -141,7 +156,6 @@ document.addEventListener('visibilitychange', () => {
         presentation.activity();
     }
 });
-text(byId('info-method'), 'MJPEG');
-text(byId('info-size'), words.unknownSize);
+text(infoSize, words.unknownSize);
 renderState();
 connection.retry();

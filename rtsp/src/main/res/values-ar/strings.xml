@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">ترميز الصوت:</string>
     <string name="rtsp_audio_encoder_auto">تلقائي</string>
     <string name="rtsp_audio_bitrate">معدل بت الصوت: %1$s/ثانية</string>
-    <string name="rtsp_audio_permission_title">السماح بتسجيل الصوت</string>
-    <string name="rtsp_audio_permission_message">إذن تسجيل الصوت مطلوب لبث الصوت.\n\nبدونه لن يحتوي البث على صوت.</string>
-    <string name="rtsp_audio_permission_open_settings">فتح الإعدادات</string>
-    <string name="rtsp_audio_permission_message_settings">فعّل إذن الميكروفون من إعدادات التطبيق لبث الصوت.\n\nبدونه لن يحتوي البث على صوت.</string>
     <string name="rtsp_audio_capture_issue_detected">تم رصد مشكلة في التقاط الصوت</string>
 
     <string name="rtsp_connection_access_denied">تم رفض الوصول</string>

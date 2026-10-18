@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">Audio kodlovchi:</string>
     <string name="rtsp_audio_encoder_auto">Avto</string>
     <string name="rtsp_audio_bitrate">Audio bitreyt: %1$s/sek</string>
-    <string name="rtsp_audio_permission_title">Audio yozishga ruxsat berish</string>
-    <string name="rtsp_audio_permission_message">Audio translatsiya qilish uchun audio yozish ruxsati kerak.\n\nBusiz translatsiyada audio bo\'lmaydi.</string>
-    <string name="rtsp_audio_permission_open_settings">Sozlamalarni ochish</string>
-    <string name="rtsp_audio_permission_message_settings">Audio translatsiya qilish uchun ilova sozlamalarida mikrofon ruxsatini yoqing.\n\nBusiz translatsiyada audio bo\'lmaydi.</string>
     <string name="rtsp_audio_capture_issue_detected">Audio yozib olish muammosi aniqlandi</string>
 
     <string name="rtsp_connection_access_denied">Kirish rad etildi</string>

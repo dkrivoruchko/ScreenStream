@@ -5,23 +5,23 @@ import io.screenstream.mjpeg.settings.SecretValue
 import java.security.MessageDigest
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
+import kotlin.time.Duration.Companion.minutes
 
 /** Viewing credentials and peer PIN blocks. Every operation requires the runtime's control monitor. */
 internal class HttpAccess {
     private val random = SecureRandom()
     private var appliedSettings = AccessSettings()
-    private var viewingCookie: SecretValue? = null
+    private var viewingCredentials: ViewingCredentials? = null
     private val pinAttemptsByPeer = HashMap<String, PinAttempts>()
 
     /** Unsaved URL credential; null while access is open. */
-    var accessToken: SecretValue? = null
-        private set
+    val accessToken: SecretValue? get() = viewingCredentials?.token
 
     /** Credential incarnation used to fence admitted WebSocket state. */
-    var generation: Long = 0
+    var credentialGeneration: Long = 0
         private set
 
-    val pinEnabled: Boolean get() = appliedSettings.pinEnabled
+    val pinEnabled: Boolean get() = viewingCredentials != null
 
     /**
      * True means credentials changed and the caller must revoke the old generation.
@@ -32,16 +32,13 @@ internal class HttpAccess {
         require(!settings.pinEnabled || settings.pin != null) { "Protected access requires a saved PIN" }
         val credentialsChanged = requiresCredentialRotation(settings)
         if (credentialsChanged) {
-            // Generate both credentials before committing either one.
-            val nextAccessToken = if (settings.pinEnabled) {
-                SecretValue(Base64.UrlSafe.encode(ByteArray(ACCESS_TOKEN_BYTES).also(random::nextBytes)))
+            viewingCredentials = if (settings.pinEnabled) {
+                ViewingCredentials(
+                    token = SecretValue(Base64.UrlSafe.encode(ByteArray(ACCESS_TOKEN_BYTES).also(random::nextBytes))),
+                    cookie = SecretValue(ByteArray(COOKIE_BYTES).also(random::nextBytes).toHexString()),
+                )
             } else null
-            val nextCookie = if (settings.pinEnabled) {
-                SecretValue(ByteArray(COOKIE_BYTES).also(random::nextBytes).toHexString())
-            } else null
-            accessToken = nextAccessToken
-            viewingCookie = nextCookie
-            generation++
+            credentialGeneration++
         }
         appliedSettings = settings
         if (!settings.pinEnabled || !settings.limitWrongPins) pinAttemptsByPeer.clear()
@@ -49,15 +46,19 @@ internal class HttpAccess {
     }
 
     fun requiresCredentialRotation(settings: AccessSettings): Boolean =
-        appliedSettings.pinEnabled != settings.pinEnabled || settings.pinEnabled && appliedSettings.pin != settings.pin
+        pinEnabled != settings.pinEnabled || settings.pinEnabled && appliedSettings.pin != settings.pin
 
     /** PIN blocks restrict verification, not existing viewing credentials. */
-    fun allowsViewing(accessToken: String?, cookie: String?): Boolean =
-        !pinEnabled || matches(this.accessToken, accessToken) || matches(viewingCookie, cookie)
+    fun allowsViewing(accessToken: String?, cookie: String?): Boolean {
+        val credentials = viewingCredentials ?: return true
+        return matches(credentials.token, accessToken) || matches(credentials.cookie, cookie)
+    }
 
     /** Valid links exchange for the existing cookie without rotating credentials. */
-    fun exchangeAccessToken(accessToken: String?): SecretValue? =
-        if (pinEnabled && matches(this.accessToken, accessToken)) viewingCookie else null
+    fun exchangeAccessToken(accessToken: String?): SecretValue? {
+        val credentials = viewingCredentials ?: return null
+        return if (matches(credentials.token, accessToken)) credentials.cookie else null
+    }
 
     /**
      * Require six ASCII digits. With limiting enabled, the fifth wrong attempt blocks this peer
@@ -65,18 +66,18 @@ internal class HttpAccess {
      * Requests during a block cannot extend its deadline or bypass it with the correct PIN.
      */
     fun verifyPin(pin: String?, peerIp: String, nowMillis: Long): PinResult {
-        if (!pinEnabled) return PinResult.Authorized(null)
+        val credentials = viewingCredentials ?: return PinResult.Authorized(null)
         val retryAfterMillis = remainingBlockMillis(peerIp, nowMillis)
         if (retryAfterMillis > 0) return PinResult.Blocked(retryAfterMillis)
         if (pin != null && AccessSettings.isValidPin(pin) && matches(appliedSettings.pin, pin)) {
             pinAttemptsByPeer.remove(peerIp)
-            return PinResult.Authorized(checkNotNull(viewingCookie))
+            return PinResult.Authorized(credentials.cookie)
         }
         if (!appliedSettings.limitWrongPins) return PinResult.Wrong
         val peerAttempts = pinAttemptsByPeer.getOrPut(peerIp) { PinAttempts() }
         peerAttempts.wrongCount++
         if (peerAttempts.wrongCount < MAX_WRONG_PINS) return PinResult.Wrong
-        val blockDurationMillis = appliedSettings.blockMinutes.toLong() * MINUTE_MILLIS
+        val blockDurationMillis = appliedSettings.blockMinutes.minutes.inWholeMilliseconds
         peerAttempts.blockedUntilMillis = if (nowMillis > Long.MAX_VALUE - blockDurationMillis) {
             Long.MAX_VALUE
         } else {
@@ -109,6 +110,8 @@ internal class HttpAccess {
         data class Blocked(val retryAfterMs: Long) : PinResult
     }
 
+    private class ViewingCredentials(val token: SecretValue, val cookie: SecretValue)
+
     private class PinAttempts {
         var wrongCount = 0
         var blockedUntilMillis = 0L
@@ -116,7 +119,6 @@ internal class HttpAccess {
 
     private companion object {
         const val MAX_WRONG_PINS = 5
-        const val MINUTE_MILLIS = 60_000L
         const val COOKIE_BYTES = 32
         const val ACCESS_TOKEN_BYTES = 24
     }

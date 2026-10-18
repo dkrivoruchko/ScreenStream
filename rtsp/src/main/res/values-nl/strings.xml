@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">Audio-encoder:</string>
     <string name="rtsp_audio_encoder_auto">Auto</string>
     <string name="rtsp_audio_bitrate">Audiobitrate: %1$s/sec</string>
-    <string name="rtsp_audio_permission_title">Audio-opname toestaan</string>
-    <string name="rtsp_audio_permission_message">Toestemming voor audio-opname is vereist om audio te streamen.\n\nZonder deze toestemming heeft de stream geen audio.</string>
-    <string name="rtsp_audio_permission_open_settings">Instellingen openen</string>
-    <string name="rtsp_audio_permission_message_settings">Schakel microfoontoestemming in via de appinstellingen om audio te streamen.\n\nZonder deze toestemming heeft de stream geen audio.</string>
     <string name="rtsp_audio_capture_issue_detected">Probleem met audio-opname gedetecteerd</string>
 
     <string name="rtsp_connection_access_denied">Toegang geweigerd</string>

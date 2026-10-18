@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">Yayın modunu seçin:</string>
     <string name="app_tab_stream_switching_modules">Modüller değiştiriliyor</string>
 
-    <string name="app_permission_required_title">İzin gerekli</string>
-    <string name="app_permission_allow_notifications">Bu uygulamanın yayın hizmetini başlatmak için bildirim iznine ihtiyacı var.\n\nBildirimlere izin verin.</string>
-    <string name="app_permission_allow_notifications_settings">Bu uygulamanın yayın hizmetini başlatmak için bildirim iznine ihtiyacı var.\n\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
-    <string name="app_permission_notification_settings">Ayarları aç</string>
-    <string name="app_permission_local_network_title">Yerel ağ erişimi gerekli</string>
-    <string name="app_permission_local_network_message">ScreenStream uygulamasının yerel ağınızı kullanmasına izin verin, böylece cihazlar yayınınıza bağlanabilir.</string>
-    <string name="app_permission_local_network_off_title">Yerel ağ erişimi kapalı</string>
-    <string name="app_permission_local_network_settings_message">Ekranınızı cihazlarla paylaşmak için Android Ayarlarında yerel ağ erişimini açın.</string>
+    <string name="app_permission_not_now">Şimdi değil</string>
     <string name="app_permission_open_settings">Ayarları aç</string>
-    <string name="app_permission_try_again">Tekrar dene</string>
+
+    <string name="app_permission_notifications_title">Bildirimlere izin ver</string>
+    <string name="app_permission_notifications_message">Bildirimler yayın durumunu ve hata uyarılarını gösterir. Yayını durdurmak veya ScreenStream’i yeniden açmak için bildirimleri kullanın.</string>
+
+    <string name="app_permission_local_network_title">Yerel ağ erişimi</string>
+    <string name="app_permission_local_network_message">ScreenStream uygulamasının aynı ağdaki diğer cihazlara yayın yapmak için yerel ağınızı kullanmasına izin verin.\n\nAndroid bu izni Yakındaki cihazlara erişim olarak açıklar ve cihazların birbirlerine göre konumlarının belirlenmesinden söz edebilir.</string>
+    <string name="app_permission_local_network_off_title">Yerel ağ erişimi kapalı</string>
+    <string name="app_permission_local_network_settings_message">Aynı yerel ağdaki cihazlara yayın yapmak için uygulama ayarlarında İzinler’i açın ve Yakındaki cihazlar’a izin verin.</string>
+
+    <string name="app_permission_microphone_title">Mikrofon erişimi</string>
+    <string name="app_permission_microphone_message">Mikrofonunuzun sesini yayına eklemek için mikrofon erişimine izin verin.\n\nBu izin olmadan mikrofon sesi yayınlanamaz.</string>
+    <string name="app_permission_device_audio_title">Cihaz sesi erişimi</string>
+    <string name="app_permission_device_audio_message">Android, cihaz sesini yayınlamak için mikrofon izni gerektirir. Bu, mikrofonunuzu açmaz.\n\nYalnızca Android ve sesi çalan uygulamanın paylaşılmasına izin verdiği ses yayınlanabilir.</string>
+
+    <string name="app_permission_audio_title">Mikrofon ve cihaz sesi</string>
+    <string name="app_permission_audio_message">Mikrofon ve cihaz sesini yayınlamak için mikrofon erişimine izin verin.\n\nCihaz sesi yalnızca Android ve sesi çalan uygulama paylaşılmasına izin verdiğinde yayınlanabilir.</string>
+    <string name="app_permission_audio_settings_message">Mikrofon veya dahili sesi yayınlamak için uygulama ayarlarından mikrofon iznini etkinleştirin.\n\nBu izin olmadan yayında ses olmaz.</string>
 
     <string name="app_notification_channel_streaming">Yayın bildirimleri</string>
     <string name="app_notification_channel_error">Hata bildirimleri</string>

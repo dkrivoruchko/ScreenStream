@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">የዥረት ሁነታን ይምረጡ፡</string>
     <string name="app_tab_stream_switching_modules">ሞጁሎችን በመቀየር ላይ</string>
 
-    <string name="app_permission_required_title">ፍቃድ ያስፈልጋል</string>
-    <string name="app_permission_allow_notifications">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር የማሳወቂያ ፈቃድ ይፈልጋል።\n\nማሳወቂያዎችን ይፍቀዱ።</string>
-    <string name="app_permission_allow_notifications_settings">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር የማሳወቂያ ፈቃድ ይፈልጋል።\n\nበመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
-    <string name="app_permission_notification_settings">ቅንብሮችን ይክፈቱ</string>
-    <string name="app_permission_local_network_title">የአካባቢ አውታረ መረብ መዳረሻ ያስፈልጋል</string>
-    <string name="app_permission_local_network_message">መሣሪያዎች ወደ ስርጭትዎ እንዲገናኙ ScreenStream የአካባቢ አውታረ መረብዎን እንዲጠቀም ይፍቀዱ።</string>
-    <string name="app_permission_local_network_off_title">የአካባቢ አውታረ መረብ መዳረሻ ጠፍቷል</string>
-    <string name="app_permission_local_network_settings_message">ማያዎን ከመሣሪያዎች ጋር ለማጋራት በAndroid ቅንብሮች ውስጥ የአካባቢ አውታረ መረብ መዳረሻን ያንቁ።</string>
+    <string name="app_permission_not_now">አሁን አይደለም</string>
     <string name="app_permission_open_settings">ቅንብሮችን ይክፈቱ</string>
-    <string name="app_permission_try_again">እንደገና ይሞክሩ</string>
+
+    <string name="app_permission_notifications_title">ማሳወቂያዎችን ይፍቀዱ</string>
+    <string name="app_permission_notifications_message">ማሳወቂያዎች የዥረት ሁኔታን እና የስህተት ማንቂያዎችን ያሳያሉ። ዥረቱን ለማቆም ወይም ScreenStreamን እንደገና ለመክፈት ይጠቀሙባቸው።</string>
+
+    <string name="app_permission_local_network_title">የአካባቢ አውታረ መረብ መዳረሻ</string>
+    <string name="app_permission_local_network_message">በተመሳሳይ አውታረ መረብ ላይ ወዳሉ ሌሎች መሣሪያዎች ለማሰራጨት ScreenStream የአካባቢ አውታረ መረብዎን እንዲጠቀም ይፍቀዱ።\n\nAndroid ይህን ፈቃድ በአቅራቢያ ያሉ መሣሪያዎችን መድረስ ብሎ ይገልጸዋል፣ እና እርስ በርሳቸው ያላቸውን አቀማመጥ መወሰንን ሊጠቅስ ይችላል።</string>
+    <string name="app_permission_local_network_off_title">የአካባቢ አውታረ መረብ መዳረሻ ጠፍቷል</string>
+    <string name="app_permission_local_network_settings_message">በተመሳሳይ የአካባቢ አውታረ መረብ ላይ ወዳሉ መሣሪያዎች ለማሰራጨት፣ በመተግበሪያ ቅንብሮች ውስጥ «ፈቃዶች»ን ይክፈቱና «በአቅራቢያ ያሉ መሣሪያዎች»ን ይፍቀዱ።</string>
+
+    <string name="app_permission_microphone_title">የማይክሮፎን መዳረሻ</string>
+    <string name="app_permission_microphone_message">ከማይክሮፎንዎ የሚመጣውን ድምፅ በስርጭቱ ውስጥ ለማካተት የማይክሮፎን መዳረሻ ይፍቀዱ።\n\nያለዚህ የማይክሮፎን ድምፅ ሊሰራጭ አይችልም።</string>
+    <string name="app_permission_device_audio_title">የመሣሪያ ድምፅ መዳረሻ</string>
+    <string name="app_permission_device_audio_message">የመሣሪያ ድምፅን ለማሰራጨት Android የማይክሮፎን ፈቃድ ይፈልጋል። ይህ ማይክሮፎንዎን አያበራም።\n\nAndroid እና ድምፁን የሚያጫውተው መተግበሪያ እንዲጋራ የፈቀዱት ድምፅ ብቻ ሊሰራጭ ይችላል።</string>
+
+    <string name="app_permission_audio_title">የማይክሮፎን እና የመሣሪያ ድምፅ</string>
+    <string name="app_permission_audio_message">የማይክሮፎን እና የመሣሪያ ድምፅን ለማሰራጨት የማይክሮፎን መዳረሻ ይፍቀዱ።\n\nየመሣሪያ ድምፅ ሊሰራጭ የሚችለው Android እና ድምፁን የሚያጫውተው መተግበሪያ መጋራቱን ሲፈቅዱ ብቻ ነው።</string>
+    <string name="app_permission_audio_settings_message">የማይክሮፎን ወይም የውስጥ ኦዲዮ ለማሰራጨት በመተግበሪያ ቅንብሮች ውስጥ የማይክሮፎን ፈቃድን ያንቁ።\n\nይህ ፈቃድ ከሌለ ዥረቱ ድምጽ አይኖረውም።</string>
 
     <string name="app_notification_channel_streaming">የዥረት ማሳወቂያዎች</string>
     <string name="app_notification_channel_error">የስህተት ማሳወቂያዎች</string>

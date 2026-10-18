@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 internal class JpegResponse(
     private val reader: JpegStore.Reader,
-    private val format: MediaFormat,
+    val format: MediaFormat,
 ) {
     @Volatile
     var progress: Progress = Progress()
@@ -63,10 +63,22 @@ internal class JpegResponse(
     }
 
     private suspend fun writeResponseBody(channel: ByteWriteChannel) {
+        if (format == MediaFormat.Jpeg) {
+            currentCoroutineContext().ensureActive()
+            val frame = reader.acquireFrame() ?: return
+            try {
+                writeJpegPayload(channel, frame)
+            } finally {
+                reader.releaseFrame(frame)
+            }
+            channel.flush()
+            return
+        }
+
         val changeRevision = reader.changeRevision
         var lastWrittenVersion = -1L
         var nextRepeatAtMillis = 0L
-        if (format == MediaFormat.Mjpeg) channel.writeFully(PART_BEGIN)
+        channel.writeFully(PART_BEGIN)
         while (true) {
             currentCoroutineContext().ensureActive()
             // Observe before acquisition so a selection change cannot be lost before suspension.
@@ -83,6 +95,10 @@ internal class JpegResponse(
                 if (repeatPending) {
                     false
                 } else {
+                    updateSlowStatus(frame)
+                    channel.writeFully(
+                        "Content-Type: image/jpeg\r\nContent-Length: ${frame.byteCount}\r\n\r\n".toByteArray(Charsets.US_ASCII)
+                    )
                     writeJpegPayload(channel, frame)
                     true
                 }
@@ -97,9 +113,8 @@ internal class JpegResponse(
                 }
                 continue
             }
-            if (format == MediaFormat.Mjpeg) channel.writeFully(PART_END)
+            channel.writeFully(PART_END)
             channel.flush()
-            if (format == MediaFormat.Jpeg) return
             lastWrittenVersion = publicationVersion
             nextRepeatAtMillis = SystemClock.elapsedRealtime() + 1_000L
         }
@@ -109,10 +124,6 @@ internal class JpegResponse(
      * The Source adapter reads only the valid prefix of the leased array; spare capacity is not sent.
      */
     private suspend fun writeJpegPayload(channel: ByteWriteChannel, frame: Frame) {
-        updateSlowStatus(frame)
-        if (format == MediaFormat.Mjpeg) {
-            channel.writeFully("Content-Type: image/jpeg\r\nContent-Length: ${frame.byteCount}\r\n\r\n".toByteArray(Charsets.US_ASCII))
-        }
         frame.bytes.inputStream(0, frame.byteCount).asSource().use { channel.writeBuffer(it) }
         val previous = progress
         progress = previous.copy(
@@ -122,12 +133,12 @@ internal class JpegResponse(
     }
 
     /**
-     * Count skipped publications within one live source; consecutive publications reset the count.
-     * Source replacement resets the baseline; repeats and retained images are neutral.
-     * Store versions/source identity, never leased arrays.
+     * Count skipped publications within one observed capture source; consecutive publications reset
+     * the count. A different source resets the baseline; repeats and the logo are neutral.
+     * Store versions/source identity, never leased arrays; runtime filters obsolete sources.
      */
     private fun updateSlowStatus(frame: Frame) {
-        if (format != MediaFormat.Mjpeg || !reader.isCurrentCapture(frame)) return
+        if (frame.captureSourceToken == null) return
         val previous = progress
         if (previous.observedCaptureSource !== frame.captureSourceToken) {
             skippedPublications = 0
@@ -151,8 +162,9 @@ internal class JpegResponse(
     /**
      * Completed JPEG payload counts advance before footer/flush. Repeats count; framing and
      * partial writes do not.
-     * [observedCaptureSource] remains the baseline even when [isSlow] is false. Runtime displays
-     * slow status only for the current source; store and progress samples can observe adjacent moments.
+     * [observedCaptureSource] remains the baseline even when [isSlow] is false. Retained frames may
+     * update an obsolete baseline. Runtime displays slow status only for the current source; store
+     * and progress samples can observe adjacent moments.
      */
     data class Progress(
         val completedJpegs: Long = 0,

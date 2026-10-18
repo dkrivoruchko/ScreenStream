@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">Encoder audio:</string>
     <string name="rtsp_audio_encoder_auto">Otomatis</string>
     <string name="rtsp_audio_bitrate">Bitrate audio: %1$s/detik</string>
-    <string name="rtsp_audio_permission_title">Izinkan perekaman audio</string>
-    <string name="rtsp_audio_permission_message">Izin perekaman audio diperlukan untuk menyiarkan audio.\n\nTanpanya, streaming tidak memiliki audio.</string>
-    <string name="rtsp_audio_permission_open_settings">Buka pengaturan</string>
-    <string name="rtsp_audio_permission_message_settings">Aktifkan izin mikrofon di setelan aplikasi untuk menyiarkan audio.\n\nTanpanya, streaming tidak memiliki audio.</string>
     <string name="rtsp_audio_capture_issue_detected">Masalah penangkapan audio terdeteksi</string>
 
     <string name="rtsp_connection_access_denied">Akses ditolak</string>

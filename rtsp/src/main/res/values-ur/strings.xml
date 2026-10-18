@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">آڈیو انکوڈر:</string>
     <string name="rtsp_audio_encoder_auto">خودکار</string>
     <string name="rtsp_audio_bitrate">آڈیو بٹریٹ: %1$s/سیکنڈ</string>
-    <string name="rtsp_audio_permission_title">آڈیو ریکارڈنگ کی اجازت</string>
-    <string name="rtsp_audio_permission_message">آڈیو اسٹریم کرنے کے لیے آڈیو ریکارڈنگ اجازت درکار ہے۔\n\nاس کے بغیر اسٹریم میں آڈیو نہیں ہوگا۔</string>
-    <string name="rtsp_audio_permission_open_settings">ترتیبات کھولیں</string>
-    <string name="rtsp_audio_permission_message_settings">آڈیو اسٹریم کرنے کے لیے ایپ کی ترتیبات میں مائیکروفون اجازت فعال کریں۔\n\nاس کے بغیر اسٹریم میں آڈیو نہیں ہوگا۔</string>
     <string name="rtsp_audio_capture_issue_detected">آڈیو کیپچر کا مسئلہ ملا</string>
 
     <string name="rtsp_connection_access_denied">رسائی مسترد</string>

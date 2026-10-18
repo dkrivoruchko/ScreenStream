@@ -27,8 +27,10 @@ internal fun ErrorCard(
     error: MjpegError,
     sendEvent: (event: MjpegEvent) -> Unit,
     retryStartupPolicyError: () -> Unit,
-    openNotificationSettings: () -> Unit,
-    openLocalNetworkSettings: () -> Unit,
+    requestNotificationPermission: () -> Unit,
+    requestLocalNetworkPermission: () -> Unit,
+    notificationOpensSettings: Boolean,
+    localNetworkOpensSettings: Boolean,
     modifier: Modifier = Modifier
 ) {
     val startupPolicyError = error.isStartupPolicyError()
@@ -51,15 +53,8 @@ internal fun ErrorCard(
                 onClick = {
                     when {
                         startupPolicyError -> retryStartupPolicyError()
-                        error is MjpegError.NotificationPermissionRequired -> {
-                            sendEvent(MjpegEvent.Intentable.RecoverError)
-                            openNotificationSettings()
-                        }
-
-                        error is MjpegError.LocalNetworkPermissionRequired -> {
-                            sendEvent(MjpegEvent.Intentable.RecoverError)
-                            openLocalNetworkSettings()
-                        }
+                        error is MjpegError.NotificationPermissionRequired -> requestNotificationPermission()
+                        error is MjpegError.LocalNetworkPermissionRequired -> requestLocalNetworkPermission()
 
                         else -> sendEvent(MjpegEvent.Intentable.RecoverError)
                     }
@@ -71,7 +66,8 @@ internal fun ErrorCard(
             ) {
                 val buttonTextId = when {
                     startupPolicyError -> R.string.mjpeg_error_start_screen_sharing
-                    error is MjpegError.NotificationPermissionRequired || error is MjpegError.LocalNetworkPermissionRequired -> R.string.mjpeg_error_open_settings
+                    error is MjpegError.NotificationPermissionRequired && notificationOpensSettings -> R.string.mjpeg_error_open_settings
+                    error is MjpegError.LocalNetworkPermissionRequired && localNetworkOpensSettings -> R.string.mjpeg_error_open_settings
                     else -> R.string.mjpeg_error_recover
                 }
                 Text(text = stringResource(buttonTextId), color = MaterialTheme.colorScheme.onError)

@@ -52,10 +52,6 @@
     <string name="webrtc_stream_stop_on_sleep">إيقاف البث عند السكون</string>
     <string name="webrtc_stream_stop_on_sleep_summary">أوقف البث إذا تم إيقاف تشغيل الشاشة</string>
 
-    <string name="webrtc_stream_audio_permission_title">السماح بالوصول إلى الصوت</string>
-    <string name="webrtc_stream_audio_permission_message">إذن الميكروفون مطلوب لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">فعّل إذن الميكروفون في إعدادات التطبيق لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
-    <string name="webrtc_stream_audio_permission_open_settings">افتح الإعدادات</string>
     <string name="webrtc_item_client_disconnect">قطع الاتصال</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">يرجى تحديث متجر جوجل بلاي</string>

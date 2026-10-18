@@ -26,11 +26,13 @@ import io.screenstream.mjpeg.http.httpTestContext
 import io.screenstream.mjpeg.http.httpTestProtection
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
+import io.screenstream.mjpeg.settings.WebPageSettings
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -143,6 +145,18 @@ internal class WebRoutesProtocolTest {
             val packagedHtml = httpTestContext().assets.open("mjpeg/index.html").use { it.readBytes() }
             assertArrayEquals(packagedHtml, publicPage.body<ByteArray>())
             assertNull(publicPage.headers[HttpHeaders.SetCookie])
+            handler.webState.value = WebState(
+                generation = 0L,
+                accessOpen = false,
+                notice = null,
+                hasImage = false,
+                display = WebPageSettings(background = "#FfEe00", title = "Confidential viewer title"),
+            )
+            val configuredPage = client.get("http://localhost/") { header(HttpHeaders.Host, "127.0.0.1:8080") }
+            val configuredHtml = configuredPage.body<ByteArray>()
+            assertArrayEquals(packagedHtml, configuredHtml)
+            assertFalse(configuredHtml.decodeToString().contains("Confidential viewer title"))
+            assertNull(configuredPage.headers[HttpHeaders.SetCookie])
             val token = checkNotNull(handler.access.accessToken).value
             val redirects = listOf("", "wrong", token, token).map { supplied ->
                 client.get("http://localhost/?accessToken=$supplied") { header(HttpHeaders.Host, "127.0.0.1:8080") }

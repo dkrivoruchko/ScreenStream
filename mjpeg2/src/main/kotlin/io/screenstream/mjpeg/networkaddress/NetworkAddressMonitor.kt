@@ -3,19 +3,18 @@ package io.screenstream.mjpeg.networkaddress
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Discovery starts at [updateFilter] and continues without subscribers. Results select one interface
- * per IP and IPv6 scope; callers replace their list rather than repeat selection. The owner must [close]
- * even if no filter was supplied. Discovery does not guarantee a bind or viewer reachability.
+ * Discovery starts at [start] and continues without subscribers. Observations retain all supported
+ * scoped IPs and their interface alternatives; callers select using their current filter. The owner
+ * must [close] even if discovery was never started. Discovery does not guarantee viewer reachability.
  */
 internal interface NetworkAddressMonitor {
     val state: StateFlow<State>
 
     /**
-     * Requests a selection using [filter] and returns immediately. The first call starts discovery;
-     * later calls replace the requested filter. Safe to call from any thread. Calls after closing
-     * begins are ignored. Check the filter in [State.Observed] before using its addresses.
+     * Starts discovery and returns immediately. Safe to call repeatedly from any thread. Calls after
+     * closing begins are ignored.
      */
-    fun updateFilter(filter: NetworkAddressFilter)
+    fun start()
 
     /**
      * All waiters receive the same cleanup result; cancelling one does not interrupt cleanup.
@@ -24,23 +23,23 @@ internal interface NetworkAddressMonitor {
     suspend fun close()
 
     /**
-     * Discovery status. Selected address lists cannot be modified and keep a consistent order.
+     * Discovery status. Inventories and their selected lists cannot be modified and keep a consistent order.
      * Unchanged values do not produce another update.
      */
     sealed interface State {
-        /** No filter has been supplied and discovery has not started. */
+        /** Discovery has not started. */
         data object NotStarted : State
 
-        /** Discovery has started for [filter], but no address result is available yet. */
-        data class Loading(val filter: NetworkAddressFilter) : State
+        /** Discovery has started, but no address result is available yet. */
+        data object Loading : State
 
         /**
-         * The complete selected list for [filter]; replace the caller's previous list with [addresses].
+         * All supported address candidates; [inventory] selects using the caller's current filter.
          * If Android cannot read an interface, its previously known addresses may remain until a later
-         * read confirms they are gone. An empty list means no addresses are currently selected; it does
+         * read confirms they are gone. An empty selection means no addresses match the filter; it does
          * not prove that every connection is unavailable.
          */
-        data class Observed(val filter: NetworkAddressFilter, val addresses: List<NetworkAddress>) : State
+        data class Observed(val inventory: NetworkAddressInventory) : State
 
         /** Discovery or cleanup failed and cannot resume. Call [close] to await cleanup and receive the failure. */
         data object Failed : State

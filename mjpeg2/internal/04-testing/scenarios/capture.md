@@ -2,7 +2,7 @@
 
 # Capture adapter and independent cleanup
 
-Behavior: [maintained contract](../../01-lifecycle/module-lifecycle.md). L1 checks exercise early consent/cancellation, real factory rejection, unstarted-engine handoff failure and raw/owned projection-stop failure or held settlement. Controlled MJPEG Engine inputs separately exercise image parameters, startup/state transitions, borrowed output and independent media/consumer cleanup. The projection shadow supplies only a stop input; none of these checks starts graphics, JNI or a virtual display. Successful real projection, foreground and JPEG output need L2. Terminal registration rejection is checked after controlled ownership transfer; late projection-creation/Stop races and defensive observation failures remain unarranged.
+Behavior: [maintained contract](../../01-lifecycle/module-lifecycle.md). Use L1 for consent/cancellation, factory/ownership failures, parameter/state mapping and independent cleanup. A projection shadow supplies a stop input; it does not start graphics, JNI or a virtual display. Controlled Engine admission after ownership transfer does not establish real Android revocation. Successful real projection, foreground and JPEG output require L2.
 
 ## Consent, single use and early cancellation
 
@@ -24,7 +24,7 @@ Behavior: [maintained contract](../../01-lifecycle/module-lifecycle.md). L1 chec
 
 - **Projection/factory/handoff failures.** After consent and foreground succeed, fail projection creation, factory construction or handoff separately, then await cleanup. Creation failure leaves no adopted session; factory failure leaves the raw projection with the adapter for Stop. Successful factory construction transfers ownership, so cleanup stops the session. Handoff failure remains capture failure and guard cleanup is still attempted.
 
-Controlled Engine inputs also exercise initial start failure and lawful terminal registration rejection after ownership transfer, before registration/start. Registration rejection never starts capture and settles owned media/foreground/guard cleanup without offering consent. Registration/start failures retain Engine.registration/Engine.start respectively and settle applicable consumer obligations. These checks do not establish Android projection revocation or late projection-creation/Stop races.
+Use controlled Engine inputs for initial start failure and lawful terminal registration rejection after ownership transfer, before registration/start. Registration rejection never starts capture and settles owned media/foreground/guard cleanup without offering consent. Registration/start failures retain Engine.registration/Engine.start respectively and settle applicable consumer obligations. These controlled checks do not establish Android projection revocation; late projection-creation/Stop races need separate barriers.
 
 ## Initial and latest image parameters
 
@@ -60,7 +60,7 @@ A truthful six-byte borrowed input rejects a five-byte destination before writin
 
 - **Media and exact consumer settlement.** Hold consumer unregister completion and media stop independently. Stop capture, release each obligation in either order and cancel an awaitCleanup waiter. Media stop and exact registration completion are separate receipts. Foreground release follows media outcome; a created session whose media stop fails does not gain confirmed foreground release. Cleanup waits for exact consumer completion; cancelling a waiter cannot cancel cleanup.
 
-Ordinary Engine unregister waits for the exact callback to return and does not naturally fail from session Stop/failure. Cleanup.consumer is a defensive failure path, not an exercised ordinary Engine outcome.
+Ordinary Engine unregister waits for the exact callback to return and does not naturally fail from session Stop/failure. Cleanup.consumer is a defensive failure path, not an ordinary Engine outcome.
 
 <a id="mjpeg-cap-11"></a>
 
@@ -76,12 +76,12 @@ Successful startup, requested engine Stop, first Stop cause User/Shutdown, no ca
 
 <a id="mjpeg-cap-13"></a>
 
-L1 checks call the real MJPEG Service promotion/release boundary with simulated platform outcomes and request a capture-error notification. Foreground notification identifies the capture attempt and media-projection type. Rejected/failed promotion and unconfirmed/failed release throw rather than claim success. Error notification uses the MJPEG capture-error resource and ID 410; normal foreground ID is 400.
+Call the real MJPEG Service promotion/release boundary in L1 with simulated platform outcomes and request a capture-error notification. Foreground notification identifies the capture attempt and media-projection type. Rejected/failed promotion and unconfirmed/failed release throw rather than claim success. Error notification uses the MJPEG capture-error resource and ID 410; normal foreground ID is 400.
 
-The normal L1 notification/attempt Stop/removal history runs on 24/26/29/34/37. Before 29, ServiceCompat uses the untyped foreground call, so the media-projection type getter is not an available oracle; 29–33 and 34–37 use their typed paths. Failure/lifecycle histories retain a representative SDK because their MJPEG obligation contract is unchanged. Simulated completion does not prove system permission checks or visible notifications. Real capture needs the [platform prerequisites](https://developer.android.com/develop/background-work/services/fgs/launch) and [per-session API-34 consent/callback rules](https://developer.android.com/about/versions/14/behavior-changes-14#user-consent-required); shared consent reuse is limited by its owner to API 24–33. The [integration smoke](integration.md#mjpeg-cfg-04) records remaining supported-platform differences.
+Qualify the normal L1 notification/attempt Stop/removal history at the 24/26/29/34/37 platform boundaries. Before 29, ServiceCompat uses the untyped foreground call, so the media-projection type getter is not an available oracle; 29–33 and 34–37 use their typed paths. Failure/lifecycle histories can use a representative SDK because their MJPEG obligation contract is unchanged. Simulated completion does not prove system permission checks or visible notifications. Real capture needs the [platform prerequisites](https://developer.android.com/develop/background-work/services/fgs/launch) and [per-session API-34 consent/callback rules](https://developer.android.com/about/versions/14/behavior-changes-14#user-consent-required); shared consent reuse is limited by its owner to API 24–33. The [integration smoke](integration.md#mjpeg-cfg-04) defines the supported-platform differences to qualify.
 
-## Defensive observation gap
+## Defensive observation boundaries
 
 <a id="mjpeg-cap-14"></a>
 
-These defensive handlers are unarranged: the real Engine exposes StateFlows that do not naturally throw observation exceptions. If a faithful public stimulus becomes available, state-observation failure should retain Engine.stateObservation and end capture; statistics-observation failure should be logged without changing capture success/state or inventing statistics output. A fabricated throwing Flow or global logger mutation would not establish this real boundary behavior. Logging presence/text is not the oracle.
+The real Engine exposes StateFlows that do not naturally throw observation exceptions. With a faithful public stimulus, state-observation failure should retain Engine.stateObservation and end capture; statistics-observation failure should be logged without changing capture success/state or inventing statistics output. A fabricated throwing Flow or global logger mutation would not establish this real boundary behavior. Logging presence/text is not the oracle.

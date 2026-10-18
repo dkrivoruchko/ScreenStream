@@ -8,7 +8,7 @@ The internal [engine adapter](../../src/main/kotlin/io/screenstream/mjpeg/MjpegC
 
 ## Startup and projection ownership
 
-The capture session is inert until `runCapture(initialImageSettings)`, called once before Stop or updates. It fixes the JPEG backend for the attempt, prepares desired dynamic parameters and launches in controller scope. Return is not consent, startup or first-JPEG confirmation. Before constructing it, the controller calls HTTP `registerCapture` for the new exact attempt.
+Construction takes `initialImageSettings`, fixing the JPEG backend and initializing desired dynamic parameters for the attempt. The capture session remains inert until `start()`, called once before `requestStop` or updates, launches capture in controller scope. Return is not consent, startup or first-JPEG confirmation. Before constructing it, the controller calls HTTP `registerCapture` for the new exact attempt.
 
 ```mermaid
 sequenceDiagram
@@ -38,7 +38,7 @@ The consumer forwards byte count and a synchronous copier. The copier is valid o
 
 The latest dynamic image settings remain in a StateFlow through consent/startup. Initial engine parameters come from its latest value. While the engine is Active, Reconfiguring or Suspended, changed desired values are submitted to the same session; a closed engine admission can reject them with IllegalStateException without inventing a new attempt. Equal parameters are not resubmitted. Backend policy stays fixed, while crop-disabled and unselected size values remain saved but are not sent as active parameters. [Settings](../02-configuration/settings.md) owns model validation/conversion choices.
 
-The capture session observes engine state and maps terminal Stopped/Failed to cancellation of its capture coroutine. A state-observation failure is retained as capture failure. Engine statistics are logged; their observation failure is logged without defining a capture failure. Engine geometry, configuration convergence, old-frame allowance and recovery behavior remain the [engine contract](../../../screen-capture-engine/docs/usage.md).
+The capture session uses one engine-state collection for capture-state publication, terminal Stopped/Failed cancellation and the phase used for desired-parameter submission. A state-observation failure is retained as capture failure. Engine statistics are collected independently for logging; their observation failure is logged without defining a capture failure. Engine geometry, configuration convergence, old-frame allowance and recovery behavior remain the [engine contract](../../../screen-capture-engine/docs/usage.md).
 
 ## State and failure precedence
 
@@ -56,7 +56,7 @@ The capture session publishes latest `status`, `isStreaming`, optional suspensio
 
 `isStreaming` is true only after successful engine start, before any Stop/failure/cleanup outcome and without engine terminal state. It remains true through Reconfiguring/Suspended after startup. Active before `start` return alone is not confirmation of `isStreaming`. A retained failure outranks successful cleanup, leaving Failed until a new controller-admitted attempt replaces it.
 
-Suspended maps engine InvalidRequest, CaptureUnavailable or ResourceExhausted to its stable problem category. The reason is published only while status is Suspended. InternalFailure/UnsupportedColorSpace are not expected suspension reasons. The current native UI receives the reason but does not display it or offer capture Retry.
+Suspended maps engine InvalidRequest, CaptureUnavailable or ResourceExhausted to its stable problem category. The reason is published only while status is Suspended. InternalFailure/UnsupportedColorSpace are not expected suspension reasons. The native UI displays the mapped reason and offers Stop; it has no capture Retry action.
 
 ```mermaid
 stateDiagram-v2
@@ -67,8 +67,8 @@ stateDiagram-v2
     Acquiring --> Cleaning: decline or Stop
     Running --> Cleaning: Stop or terminal
     Suspended --> Cleaning: Stop or terminal
-    state "Controller Idle" as Idle
-    state "Controller BlockedCleanup" as Blocked
+    state "Start eligible after readiness checks" as Idle
+    state "Start blocked by failed cleanup" as Blocked
     Cleaning --> Idle: capture session cleanup succeeds
     Cleaning --> Blocked: capture session cleanup fails
     note right of Acquiring
@@ -77,21 +77,45 @@ stateDiagram-v2
     end note
 ```
 
-The diagram separates simplified capture session phases from controller cleanup outcomes. Running includes Active/Reconfiguring. Successful cleanup permits a replacement attempt in controller Idle even if the last attempt still reports Failed; failed cleanup retains that exact attempt in BlockedCleanup.
+The diagram separates simplified capture session phases from controller cleanup outcomes. Running includes Active/Reconfiguring. The controller retains its latest admitted attempt record and derives availability from its processed cleanup outcome. Successful cleanup permits a replacement attempt after readiness checks even if the last session still reports Failed; failed cleanup blocks Start. The completed record remains the module's capture-cleanup owner until a replacement is admitted or the module shuts down.
+
+## Failure stages and recovery boundaries
+
+`State.Failure(stage, cause)` is an internal diagnostic, not an HTTP wire value or an instruction to retry that stage. The first `captureFailure` and first `cleanupFailure` are retained independently; simultaneous failures do not define a deterministic order between independent cleanup operations. Use the stage with [startup ownership](#startup-and-projection-ownership), [cleanup obligations](#capture-cleanup-and-its-evidence) and the original cause, rather than treating every Failed state as the same operation.
+
+| Retained capture stage | Boundary that failed |
+| --- | --- |
+| `Startup.consent` | `requestConsent` threw. A null/declined grant is instead normal User Stop, without a capture failure. |
+| `Startup.foreground` | Entering the original Service's capture foreground lifetime. Projection creation has not followed successful admission. |
+| `Startup.projection` | Creating the projection through Access. Returned raw resources still follow rollback ownership. |
+| `Engine.creation` | Constructing the engine session; failed construction leaves the raw projection with the attempt. |
+| `Startup.projectionHandoff` | Releasing the projection-creation guard after successful engine construction; the engine already owns the projection. |
+| `Engine.registration` | Registering the borrowed-frame consumer after engine ownership transfer. |
+| `Engine.start` | Initial start or another uncaught failure escaping the structured `runEngineSession` lifetime. It is not limited to an exception from the `start` call. |
+| `Engine.state` | Observing engine Failed during running, cancellation handling or cleanup; its problem is included in the diagnostic cause. |
+| `Engine.stateObservation` | The engine-state observation path failed. Real StateFlows do not naturally throw collection failures; this remains a defensive boundary. |
+| `Output.frame` | Reading borrowed frame size, synchronous output/copy or complete-copy validation failed. The callback requests Error Stop. |
+
+| Retained cleanup stage | Obligation that failed |
+| --- | --- |
+| `Cleanup.consumer` | Exact borrowed-frame registration unregister/completion. Ordinary engine Stop does not naturally make unregister fail. |
+| `Cleanup.media` | Engine stop after handoff, or raw projection stop before handoff. |
+| `Cleanup.foreground` | Foreground removal when that operation is eligible under the media outcome. |
+| `Cleanup.projectionCreation` | Exact projection-creation guard release, attempted independently of prior resource errors. |
+| `Cleanup.consentReuse` | Saving an otherwise eligible consent grant after successful available resource cleanup. |
+| `Cleanup.capture` | Unexpected outer cleanup failure, or capture completion without a recorded cleanup outcome. Cancellation before body entry is instead successful no-resource cleanup. |
+
+`Engine.statsObservation` only logs a statistics-collector failure. `Engine.imageUpdate` logs rejection of a parameter update after engine admission closes; neither is a retained capture/cleanup failure stage. A cancellation or normal engine Stopped can end capture without inventing a failure, and the first accepted User/System/Error/Shutdown Stop cause remains unchanged.
+
+Successful cleanup can coexist with a retained capture failure: the attempt stays Failed, while the controller derives idle availability and can admit a new Start after its readiness checks. A failed cleanup keeps Start blocked until module shutdown. Pending cleanup remains pending, even if the manager's bounded wait ends. There is no per-stage retry or native capture Retry action; a server Retry belongs to HTTP and cannot repair capture ownership. Recoverable capture errors do not automatically become terminal manager failures. See [controller coordination](coordination.md#activity-and-command-admission) and [host failure classification](streaming-host.md#reports-clocks-and-deadlines).
 
 ## Stop and suspension
 
-`stop(reason)` preserves the first User/System/Error/Shutdown cause and requests cancellation immediately. It does not wait for callback completion or cleanup. Parameter updates after Stop are ignored. `awaitCleanup` only waits for the retained outcome; it neither starts nor stops capture, and cancellation of a waiter does not cancel the owner.
+`requestStop(reason)` preserves the first User/System/Error/Shutdown cause and requests cancellation immediately. It does not wait for callback completion or cleanup. Parameter updates after Stop are ignored. `awaitCleanup` only waits for the retained outcome; it neither starts nor stops capture, and cancellation of a waiter does not cancel the owner.
 
-Ordinary Stop leaves HTTP/module open and applies stopped-image policy. Suspension keeps the same engine session/foreground lifetime but closes the current HTTP production source and clears image selection. There is no MJPEG recovery timer, suspension deadline or continuous retry. Changed parameters/capture conditions may recover the session; equal parameters are not a retry. System projection Stop and the controller's [empty-address timeout](coordination.md#network-loss-deadline) still apply during suspension.
+Ordinary Stop leaves HTTP/module open and applies the image fallback. Suspension keeps the same engine session/foreground lifetime but closes the current HTTP production source and applies that same fallback without erasing the latest real frame. There is no MJPEG recovery timer, suspension deadline or continuous retry. Changed parameters/capture conditions may recover the session; equal parameters are not a retry. System projection Stop and the controller's [empty-address timeout](coordination.md#network-loss-deadline) still apply during suspension.
 
-Saved keep-screen-awake and additional screen-off Stop preferences have no connected runtime handling.
-
-### Recorded wakefulness design (unimplemented)
-
-The earlier architecture recorded a plan for one controller-owned `SCREEN_DIM_WAKE_LOCK` during capture, including Suspended and while another app is foreground; idle HTTP would not require it. This remains unimplemented and has no device validation. The recorded decision accepts the [API's deprecated status](https://developer.android.com/reference/android/os/PowerManager#SCREEN_DIM_WAKE_LOCK) while it remains available.
-
-The plan uses [`acquire(timeout)`](https://developer.android.com/reference/android/os/PowerManager.WakeLock#acquire(long)) without reference counting, renewed only by processed controller heartbeats so a stalled controller cannot renew it. Stop, disabling `keepScreenAwake` and module Shutdown would end renewal and attempt release independently of other cleanup; Service destruction alone is insufficient.
+The live [keep-awake preference](coordination.md#keep-screen-awake) requests a dim-allowed screen lock only during confirmed capture. Stop and terminal capture paths release it before media teardown. This optional best-effort resource reports errors only in logs, independently of the media cleanup outcome. The controller's live screen-off Stop preference applies independently during consent, startup, running and suspension.
 
 ## Capture cleanup and its evidence
 
@@ -113,7 +137,7 @@ Consent reuse requires successful startup, successful capture session cleanup, n
 
 ## Controller shutdown and complete module cleanup
 
-`requestModuleShutdown` is the sole terminal ingress. Its once-only signal first closes foreground admission, HTTP admission and the retained capture owner, then cancels ordinary controller work, closes the event queue, clears UI and starts the independent cleanup receipt. Nested `finally` blocks preserve later closure obligations when an earlier action fails. Capture admission and shutdown share a gate so cleanup cannot miss a newly created session.
+`requestModuleShutdown` is the sole terminal ingress. Its once-only signal closes foreground admission, stops the retained capture owner and then closes HTTP admission, before cancelling ordinary controller work, closing the event queue, clearing UI and starting the independent cleanup receipt. Capture Stop runs outside the capture-admission gate and releases its screen lock before unrelated HTTP closure. Nested `finally` blocks preserve later closure obligations when an earlier action fails. Capture admission and shutdown share a gate so cleanup cannot miss a newly created session.
 
 Cleanup starts three branches independently:
 
@@ -123,4 +147,4 @@ Cleanup starts three branches independently:
 
 The controller joins admitted ordinary jobs, including entered preference saves, and awaits all branches. False reflects any failed available obligation. A hanging capture cleanup does not prevent HTTP/monitor cleanup starting but can prevent the platform branch and total receipt settling. A cancelled `awaitCleanup` caller abandons only its wait.
 
-The retained capture owner survives controller activity changes, so successful/failed attempt completion cannot remove the last owner's cleanup obligation. Capture cleanup failure blocks new Start; successful cleanup returns to Idle and allows deferred setup application. Manager deadlines and Service destruction callbacks do not substitute for these outcomes. [Streaming host](streaming-host.md#reports-clocks-and-deadlines) owns bounded waiting; actual device/graphics/socket release remains separate evidence.
+The latest admitted attempt record retains its session after successful or failed cleanup, so completion cannot remove the last owner's cleanup obligation. Capture cleanup failure blocks new Start; successful cleanup permits derived idle availability and deferred setup application. Manager deadlines and Service destruction callbacks do not substitute for these outcomes. [Streaming host](streaming-host.md#reports-clocks-and-deadlines) owns bounded waiting; actual device/graphics/socket release remains separate evidence.

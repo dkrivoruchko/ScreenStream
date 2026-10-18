@@ -5,4 +5,7 @@
 
     <string name="common_continue">Продовжити</string>
     <string name="common_try_again">Спробувати знову</string>
+
+    <string name="common_expanded">Розгорнуто</string>
+    <string name="common_collapsed">Згорнуто</string>
 </resources>

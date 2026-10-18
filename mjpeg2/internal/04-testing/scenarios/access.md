@@ -2,7 +2,7 @@
 
 # Viewing credentials and PIN verification
 
-Behavior: [maintained contract](../../03-delivery/http-delivery.md). Access decisions and explicit-time limiter histories use L0; applied delivery cutoff and HTTP responses use L1. Continuing CIO MJPEG rotation exercises external stream cutoff after a completed payload, old-token/cookie rejection, current viewing and preserved nonzero totals. Rotation during a held acquired-byte writer or detached physical completion remains unarranged.
+Behavior: [maintained contract](../../03-delivery/http-delivery.md). Use L0 for explicit-time access/limiter histories and L1 for delivery cutoff and HTTP responses. Continuing CIO rotation verifies external stream cutoff and credentials; a held acquired-byte writer and detached physical completion need independent barriers. A completed payload alone does not establish those races.
 
 ## Viewing and token exchange
 

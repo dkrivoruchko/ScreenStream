@@ -2,7 +2,7 @@
 
 # HTTP authority and WebSocket wire protocol
 
-Behavior: [maintained contract](../../03-delivery/web-client.md). Explicit-title WebState JSON uses L0; HTTP routes and WebSockets use L1. Public PIN-body channels exercise read faults/timeouts, unsupported-type no-read behavior and UTF-8 byte bounds. Continuing CIO sockets establish changed facts, same-PIN preservation, cookie authorization, generation cutoff and outgoing encoded snapshot limits. Socket termination is checked with real CIO. Held send/close timeouts, snapshot/cutoff races, incoming-frame size enforcement, queue overflow and nonreading-peer completion remain unarranged. Android transport behavior needs L2.
+Behavior: [public protocol](../../../docs/http-viewing-api.md), extended by [transport/browser contracts](../../03-delivery/web-client.md). Use L0 for explicit-title state JSON and L1 for routes, PIN-body channels and WebSockets. Continuing CIO sockets verify wire and termination boundaries; held send/close, snapshot/cutoff, frame-size, queue overflow and nonreading-peer histories require their own inputs. Configured transport limits do not establish delivery, total memory bounds or physical completion. Android transport behavior requires L2.
 
 ## Current listener, Host and forwarded data
 
@@ -28,7 +28,7 @@ Trusted Host request has matching/mismatching Origin; missing Origin uses matchi
 
 <a id="mjpeg-web-04"></a>
 
-Protection is open/protected and root request has no token or valid/invalid/empty token parameter. GET / and repeat token exchanges. Root without parameter returns packaged HTML publicly. Any token parameter returns 303 Location /; only valid protected token adds current cookie. Cookie is Path=/, HttpOnly, SameSite=Lax; valid repeated exchange keeps cookie. No token/credentials enter authorized state JSON.
+Protection is open/protected and root request has no token or valid/invalid/empty token parameter. GET / across changed display settings and repeat token exchanges. Root without parameter returns the unchanged packaged HTML bytes publicly, without configured display/image facts or credentials. Any token parameter returns 303 Location /; only valid protected token adds current cookie. Cookie is Path=/, HttpOnly, SameSite=Lax; valid repeated exchange keeps cookie. No token/credentials enter authorized state JSON.
 
 ## Bounded PIN parsing and verification outcomes
 
@@ -60,7 +60,7 @@ Trusted current WS request has matching Origin and valid/invalid/missing cookie;
 
 <a id="mjpeg-web-10"></a>
 
-WebState explicit-title display fixtures and each capture status are supplied, including large/empty titles; current authorization generation exists. Titles include quotes, control characters and non-ASCII/Unicode text. encodeJson directly, then observe authorized WS snapshots. Wire contains access open/authorized, nullable notice, hasImage and display background/title/titleEnabled/layouts/retainImageOnMediaFailure. Layout uses top/bottom and overlay/bar. Notices: permission_required, stopped, paused, failed; Active/Starting/Reconfiguring/Stopping null. Generation and secrets stay off wire; saved compatibility name is not the wire field. Independent JSON decoding preserves title text/escapes without injecting extra fields or exposing diagnostics/secrets.
+WebState explicit-title display fixtures and each capture status are supplied, including large/empty titles; current authorization generation exists. Titles include quotes, control characters and non-ASCII/Unicode text. encodeJson directly, then observe authorized WS snapshots. Wire contains access open/authorized, nullable notice, required imageKind (none/logo/live/retained), hasImage derived as imageKind != none, and display background/title/titleEnabled/layouts. Layout uses top/bottom and overlay/bar. Notices map WaitingForPermission to permission_required, Stopping/Stopped to stopped, Suspended to paused and Failed to failed; Active/Starting/Reconfiguring use null. Generation and secrets stay off wire. Independent JSON decoding preserves title text/escapes without injecting extra fields or exposing diagnostics/secrets.
 
 ## Latest snapshots and generation cutoff
 
@@ -76,6 +76,6 @@ Authorized WS waits while display/image/capture changes occur; credentials rotat
 
 <a id="mjpeg-web-13"></a>
 
-- **WS frame, snapshot and send limits.** Outgoing JSON at/below/above 256 KiB is checked using Unicode and escaped titles to distinguish characters from encoded bytes. Incoming frames >4096 bytes, queue overflow and a nonreading peer are separate unarranged histories, as are held send/close operations. Configured incoming size/overflow policies close invalid transport traffic. Outgoing snapshots at or below the limit remain eligible; above-limit encoded Frame.Text data closes InternalError without sending a valid oversized snapshot. Count UTF-8 JSON bytes including escaping/field overhead, not title characters. Sends/close use five-second bounded operations; ping/timeout are configured 15 seconds. Eligibility does not prove successful network delivery or exact physical cleanup.
+- **WS frame, snapshot and send limits.** Check outgoing JSON at/below/above 256 KiB using Unicode and escaped titles to distinguish characters from encoded bytes. Arrange incoming frames >4096 bytes, queue overflow, a nonreading peer and held send/close operations as separate histories. Configured incoming size/overflow policies close invalid transport traffic. Outgoing snapshots at or below the limit remain eligible; above-limit encoded Frame.Text data closes InternalError without sending a valid oversized snapshot. Count UTF-8 JSON bytes including escaping/field overhead, not title characters. Sends/close use five-second bounded operations; ping/timeout are configured 15 seconds. Eligibility does not prove successful network delivery or exact physical cleanup.
 
 [Ktor default sessions](https://api.ktor.io/ktor-websockets/io.ktor.websocket/-default-web-socket-session/index.html) handle control frames outside incoming application data; [origin identity](https://www.rfc-editor.org/rfc/rfc6454.html) uses scheme, host and port.

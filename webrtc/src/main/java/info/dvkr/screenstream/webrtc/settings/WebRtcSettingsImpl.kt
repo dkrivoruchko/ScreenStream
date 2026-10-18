@@ -62,10 +62,6 @@ internal class WebRtcSettingsImpl(context: Context) : WebRtcSettings {
                     if (newSettings.enableDeviceAudio != WebRtcSettings.Default.ENABLE_DEVICE_AUDIO)
                         set(WebRtcSettings.Key.ENABLE_DEVICE_AUDIO, newSettings.enableDeviceAudio)
 
-                    if (newSettings.audioPermissionDenied != WebRtcSettings.Default.AUDIO_PERMISSION_DENIED)
-                        set(WebRtcSettings.Key.AUDIO_PERMISSION_DENIED, newSettings.audioPermissionDenied)
-
-
                     if (newSettings.keepAwake != WebRtcSettings.Default.KEEP_AWAKE)
                         set(WebRtcSettings.Key.KEEP_AWAKE, newSettings.keepAwake)
 
@@ -81,7 +77,6 @@ internal class WebRtcSettingsImpl(context: Context) : WebRtcSettings {
         streamPassword = this[WebRtcSettings.Key.STREAM_PASSWORD] ?: WebRtcSettings.Default.STREAM_PASSWORD,
         enableMic = this[WebRtcSettings.Key.ENABLE_MIC] ?: WebRtcSettings.Default.ENABLE_MIC,
         enableDeviceAudio = this[WebRtcSettings.Key.ENABLE_DEVICE_AUDIO] ?: WebRtcSettings.Default.ENABLE_DEVICE_AUDIO,
-        audioPermissionDenied = this[WebRtcSettings.Key.AUDIO_PERMISSION_DENIED] ?: WebRtcSettings.Default.AUDIO_PERMISSION_DENIED,
 
         keepAwake = this[WebRtcSettings.Key.KEEP_AWAKE] ?: WebRtcSettings.Default.KEEP_AWAKE,
         stopOnSleep = this[WebRtcSettings.Key.STOP_ON_SLEEP] ?: WebRtcSettings.Default.STOP_ON_SLEEP

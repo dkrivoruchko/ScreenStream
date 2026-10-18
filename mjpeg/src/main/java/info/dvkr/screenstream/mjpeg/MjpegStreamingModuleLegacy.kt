@@ -41,6 +41,7 @@ public class MjpegStreamingModuleLegacy : StreamingModuleLegacy {
     private val _mjpegStateFlow: MutableStateFlow<MjpegState> = MutableStateFlow(MjpegState())
     private var startToken: String? = null
     private var streamingService: MjpegStreamingService? = null
+    private var localNetworkPermissionRequested = false
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 30
@@ -58,8 +59,6 @@ public class MjpegStreamingModuleLegacy : StreamingModuleLegacy {
             }
         }.distinctUntilChanged()
 
-    override val requiresLocalNetworkPermission: Boolean = true
-
     override val nameResource: Int = R.string.mjpeg_stream_mode
     override val descriptionResource: Int = R.string.mjpeg_stream_mode_description
     override val detailsResource: Int = R.string.mjpeg_stream_mode_details
@@ -73,6 +72,7 @@ public class MjpegStreamingModuleLegacy : StreamingModuleLegacy {
             mjpegStateFlow = _mjpegStateFlow.asStateFlow(),
             sendEvent = ::sendEvent,
             onProjectionGranted = ::startProjection,
+            claimInitialLocalNetworkRequest = ::claimInitialLocalNetworkRequest,
             windowSizeClass = windowSizeClass,
             modifier = modifier
         )
@@ -84,6 +84,7 @@ public class MjpegStreamingModuleLegacy : StreamingModuleLegacy {
 
         when (val state = _streamingServiceState.value) {
             StreamingModuleLegacy.State.Initiated -> {
+                localNetworkPermissionRequested = false
                 startToken = Uuid.random().toString()
                 _streamingServiceState.value = StreamingModuleLegacy.State.PendingStart
                 val intent = MjpegEvent.Intentable.StartService(startToken!!).toIntent(context)
@@ -109,6 +110,10 @@ public class MjpegStreamingModuleLegacy : StreamingModuleLegacy {
             StreamingModuleLegacy.State.PendingStop ->
                 XLog.w(getLog("startModule", "Stopping (PendingStop). Ignoring."), RuntimeException("Unexpected state: $state"))
         }
+    }
+
+    private fun claimInitialLocalNetworkRequest(request: () -> Boolean) {
+        if (!localNetworkPermissionRequested) localNetworkPermissionRequested = request()
     }
 
     @MainThread

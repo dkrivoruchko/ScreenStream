@@ -5,4 +5,7 @@
 
     <string name="common_continue">Weiter</string>
     <string name="common_try_again">Erneut versuchen</string>
+
+    <string name="common_expanded">Ausgeklappt</string>
+    <string name="common_collapsed">Eingeklappt</string>
 </resources>

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark light">
+    <title>MJPEG2 preview</title>
+    <link rel="stylesheet" href="/__preview/panel.css">
+    <script src="/__preview/panel.js" defer></script>
+</head>
+<body>
+<header class="app-header">
+    <h1>MJPEG2 preview</h1>
+    <div class="header-actions">
+        <span id="server-status" class="connection-badge">Connecting</span>
+        <a class="button" href="/viewer" target="_blank" rel="noopener noreferrer">Open viewer <span aria-hidden="true">↗</span></a>
+    </div>
+</header>
+<div id="notification" class="notification" role="status" hidden></div>
+<div class="app-layout">
+    <aside class="sidebar" aria-label="Preview configuration">
+        <form id="delivery-form" class="sidebar-section">
+            <div class="sidebar-row">
+                <label for="scenario">Scenario</label>
+                <select id="scenario" required disabled><option>Loading…</option></select>
+            </div>
+            <div class="sidebar-row">
+                <label for="after-stop">Inactive image</label>
+                <select id="after-stop" name="postStopImage" disabled>
+                    <option value="logo">Logo</option>
+                    <option value="last">Last frame</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+            <label id="image-available-label" class="check">
+                <input id="image-available" name="imageAvailable" type="checkbox" checked disabled><span id="image-available-text">Current frame available</span>
+            </label>
+            <div class="image-control">
+                <span id="image-label">Stream image</span>
+                <div class="segmented" role="group" aria-labelledby="image-label">
+                    <button id="portrait" type="button" aria-pressed="true" disabled>Portrait</button>
+                    <button id="landscape" type="button" aria-pressed="false" disabled>Landscape</button>
+                </div>
+            </div>
+            <p id="test-pin" class="pin-hint" hidden></p>
+        </form>
+        <form id="appearance-form" class="sidebar-section">
+            <h2>Appearance</h2>
+            <fieldset class="placement">
+                <legend>Title</legend>
+                <div class="sidebar-row">
+                    <label for="stream-title">Text</label>
+                    <input id="stream-title" type="text" maxlength="16384" autocomplete="off">
+                </div>
+                <label class="check"><input id="title-enabled" type="checkbox">Show title</label>
+                <div class="field-pair">
+                    <label>Position<select id="title-position"><option value="top">Top</option><option value="bottom">Bottom</option></select></label>
+                    <label>Presentation<select id="title-presentation"><option value="overlay">Overlay</option><option value="bar">Separate bar</option></select></label>
+                </div>
+                <label class="check"><input id="title-autohide" type="checkbox">Auto-hide<span id="title-autohide-note" class="inline-note" hidden>Overlay only</span></label>
+            </fieldset>
+            <fieldset class="placement">
+                <legend>Controls</legend>
+                <div class="field-pair">
+                    <label>Position<select id="controls-position"><option value="top">Top</option><option value="bottom">Bottom</option></select></label>
+                    <label>Presentation<select id="controls-presentation"><option value="overlay">Overlay</option><option value="bar">Separate bar</option></select></label>
+                </div>
+                <label class="check"><input id="controls-autohide" type="checkbox">Auto-hide<span id="controls-autohide-note" class="inline-note" hidden>Overlay only</span></label>
+            </fieldset>
+            <div class="sidebar-row">
+                <label for="background-hex">Background</label>
+                <div class="color-field">
+                    <input id="background-swatch" type="color" value="#101418" aria-label="Choose background color">
+                    <input id="background-hex" type="text" value="#101418" maxlength="7" pattern="#[0-9a-fA-F]{6}" required autocomplete="off" spellcheck="false" aria-describedby="background-error">
+                </div>
+            </div>
+            <p id="background-error" class="field-error" hidden>Use # followed by six hexadecimal digits.</p>
+            <label class="check fault-check"><input id="fail-image-requests" type="checkbox" aria-describedby="image-load-error-hint" disabled>Simulate image load error</label>
+            <p id="image-load-error-hint" class="fault-hint">Test using JPEG in the viewer.</p>
+            <p id="appearance-message" class="field-error" role="status" hidden></p>
+        </form>
+    </aside>
+    <main class="workspace">
+        <section class="viewer-toolbar" aria-label="Viewer preview controls">
+            <div class="viewport-control">
+                <label for="viewport-size">Browser frame</label>
+                <select id="viewport-size">
+                    <option value="390,740" selected>Phone portrait · 390 × 740</option>
+                    <option value="740,390">Phone landscape · 740 × 390</option>
+                    <option value="320,568">Small phone portrait · 320 × 568</option>
+                    <option value="768,1024">Tablet portrait · 768 × 1024</option>
+                    <option value="1024,650">Desktop landscape · 1024 × 650</option>
+                    <option value="1920,1080">Large screen landscape · 1920 × 1080</option>
+                </select>
+            </div>
+            <button id="reload-viewer" type="button">Reload viewer</button>
+            <div class="viewer-metadata"><span id="viewport-description">390 × 740 CSS px</span></div>
+        </section>
+        <div id="build-alert" class="build-alert" role="status" hidden></div>
+        <section id="stage" class="stage" aria-label="Actual browser viewer">
+            <div id="device-space" class="device-space">
+                <div id="device-frame" class="device-frame phone">
+                    <iframe id="viewer" src="about:blank" title="ScreenStream viewer" allowfullscreen allow="fullscreen; picture-in-picture"></iframe>
+                </div>
+            </div>
+        </section>
+        <details id="diagnostics" class="diagnostics">
+            <summary>Diagnostics <span id="diagnostics-summary">Connecting…</span></summary>
+            <div class="diagnostics-body">
+                <dl class="facts">
+                    <div><dt>Scenario</dt><dd id="fact-scenario">—</dd></div>
+                    <div><dt>State transport</dt><dd id="fact-connection">—</dd></div>
+                    <div><dt>Selected image</dt><dd id="fact-image">—</dd></div>
+                    <div><dt>Capture notice</dt><dd id="fact-notice">—</dd></div>
+                    <div><dt>Image delivery</dt><dd id="fact-media">—</dd></div>
+                    <div><dt>Viewer build</dt><dd id="fact-build">—</dd></div>
+                </dl>
+                <pre id="build-error" class="build-error" hidden></pre>
+                <pre id="event-log" class="event-log" aria-label="Preview event log">Waiting for events…</pre>
+            </div>
+        </details>
+    </main>
+</div>
+<noscript><p class="noscript">Enable JavaScript to use the preview panel.</p></noscript>
+</body>
+</html>

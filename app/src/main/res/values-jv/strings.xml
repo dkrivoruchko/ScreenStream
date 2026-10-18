@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">Pilih mode stream:</string>
     <string name="app_tab_stream_switching_modules">Ngalih modul</string>
 
-    <string name="app_permission_required_title">Ijin dibutuhake</string>
-    <string name="app_permission_allow_notifications">Aplikasi iki mbutuhake ijin kabar kanggo miwiti layanan streaming.\n\nIdini kabar.</string>
-    <string name="app_permission_allow_notifications_settings">Aplikasi iki mbutuhake ijin kabar kanggo miwiti layanan streaming.\n\nAktifake kabar ing setelan aplikasi.</string>
-    <string name="app_permission_notification_settings">Bukak setelan</string>
-    <string name="app_permission_local_network_title">Perlu akses jaringan lokal</string>
-    <string name="app_permission_local_network_message">Idini ScreenStream nggunakake jaringan lokal supaya piranti bisa nyambung menyang stream sampeyan.</string>
-    <string name="app_permission_local_network_off_title">Akses jaringan lokal dipateni</string>
-    <string name="app_permission_local_network_settings_message">Aktifake akses jaringan lokal ing Setelan Android kanggo nuduhake layar karo piranti.</string>
+    <string name="app_permission_not_now">Saiki ora</string>
     <string name="app_permission_open_settings">Bukak setelan</string>
-    <string name="app_permission_try_again">Coba maneh</string>
+
+    <string name="app_permission_notifications_title">Idini kabar</string>
+    <string name="app_permission_notifications_message">Kabar nuduhake status streaming lan tandha kesalahan. Gunakake kabar kanggo mungkasi streaming utawa mbukak maneh ScreenStream.</string>
+
+    <string name="app_permission_local_network_title">Akses jaringan lokal</string>
+    <string name="app_permission_local_network_message">Idini ScreenStream nggunakake jaringan lokal kanggo streaming menyang piranti liyane ing jaringan sing padha.\n\nAndroid njlentrehake idin iki minangka akses menyang Piranti ing sacedhake lan bisa nyebutake nemtokake posisi relatif piranti kasebut.</string>
+    <string name="app_permission_local_network_off_title">Akses jaringan lokal dipateni</string>
+    <string name="app_permission_local_network_settings_message">Ing setelan aplikasi, bukak Ijin lan idini Piranti ing sacedhake kanggo streaming menyang piranti ing jaringan lokal sing padha.</string>
+
+    <string name="app_permission_microphone_title">Akses mikropon</string>
+    <string name="app_permission_microphone_message">Idini akses mikropon supaya swara saka mikropon sampeyan kalebu ing streaming.\n\nTanpa idin iki, audio mikropon ora bisa di-streaming.</string>
+    <string name="app_permission_device_audio_title">Akses audio piranti</string>
+    <string name="app_permission_device_audio_message">Android mbutuhake idin mikropon kanggo streaming audio piranti. Iki ora nguripake mikropon sampeyan.\n\nMung audio sing diidini dienggo bareng dening Android lan aplikasi sing muter audio kasebut sing bisa di-streaming.</string>
+
+    <string name="app_permission_audio_title">Audio mikropon lan piranti</string>
+    <string name="app_permission_audio_message">Idini akses mikropon kanggo streaming audio mikropon lan piranti.\n\nAudio piranti mung bisa di-streaming yen Android lan aplikasi sing muter audio kasebut ngidini audio kasebut dienggo bareng.</string>
+    <string name="app_permission_audio_settings_message">Aktifake ijin mikropon ing setelan aplikasi kanggo streaming audio mikropon utawa audio internal.\n\nTanpa ijin iki, stream ora ana swarane.</string>
 
     <string name="app_notification_channel_streaming">Kabar streaming</string>
     <string name="app_notification_channel_error">Kabar kesalahan</string>

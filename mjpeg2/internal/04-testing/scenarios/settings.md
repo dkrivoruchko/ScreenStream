@@ -2,13 +2,13 @@
 
 # Settings and saved compatibility
 
-Behavior: [maintained contract](../../02-configuration/settings.md). Pure values and explicit-title saved JSON use L0; Android-derived titles and preferences use L1. Isolated storage paths and test-owned dispatchers avoid competing store owners. Fresh-instance checks copy saved bytes to a new path, rather than simulate a process restart on the same path. Transform cancellation/failure and filesystem read/write faults are exercised; deterministic encoding failures and internal DataStore-scope teardown remain unarranged.
+Behavior: [maintained contract](../../02-configuration/settings.md). Use L0 for pure values and explicit-title saved JSON, and L1 for Android-derived titles and preferences. Isolate storage paths and own test dispatchers. For fresh-instance checks, copy saved bytes to a new path rather than sharing one DataStore path. Transform, filesystem and encoding failures require distinct faithful inputs; caller completion does not establish internal DataStore-scope teardown.
 
 ## Product defaults and boundaries
 
 <a id="mjpeg-set-01"></a>
 
-Defaults describe open local streaming: Full source, crop off/ZERO, Scale 50%, quality 80, Auto frame rate/backend, IPv4 with Wifi/Ethernet and Private addresses, port 8080, protection off, a one-minute PIN block, 60-second network-loss timeout and Placeholder after Stop. The independently specified five-group snapshot also checks a null saved target, zero rotation, no mirroring, Color mode, access/display defaults and dormant behavior flags. Android-derived device titles are checked separately below.
+Defaults describe open local streaming: Full source, crop off/ZERO, Scale 50%, quality 80, Auto frame rate/backend, IPv4 with Wifi/Ethernet and Private addresses, port 8080, protection off, a one-minute PIN block, 60-second network-loss timeout and Placeholder after Stop. Specify the five-group expected snapshot independently, including a null saved target, zero rotation, no mirroring, Color mode, access/display defaults and behavior defaults. Qualify Android-derived titles separately below.
 
 Construct representative boundary values. Reject nonfinite/nonpositive scale and positive scale whose divided factor becomes zero, quality outside 0..100, selected target mode without a target, empty saved filter groups, ports outside 1024..65535, invalid PIN, block minutes below 1, invalid RGB color and timeout outside 10..1800. Accept valid boundary values without expanding every enum permutation.
 
@@ -16,7 +16,7 @@ Construct representative boundary values. Reject nonfinite/nonpositive scale and
 
 <a id="mjpeg-set-02"></a>
 
-- **Image serialization and retained choices.** Independent saved JSON fixtures exercise custom crop, target-size and frame-rate representations, plus representative source/rotation/mirror/color/backend choices; disabled crop and unselected target values are retained. Encode/decode these fixtures with explicit page values and compare the saved schema independently. Crop insets, target dimensions/content mode and ISO-duration frame rates round-trip; disabled/unselected saved values survive; older target fixtures missing contentMode use AspectFit; malformed values fail decoding rather than inventing a valid geometry.
+- **Image serialization and retained choices.** Use independent saved JSON fixtures for custom crop, target-size and frame-rate representations, plus representative source/rotation/mirror/color/backend choices; disabled crop and unselected target values are retained. Encode/decode these fixtures with explicit page values and compare the saved schema independently. Crop insets, target dimensions/content mode and ISO-duration frame rates round-trip; disabled/unselected saved values survive; older target fixtures missing contentMode use AspectFit; malformed values fail decoding rather than inventing a valid geometry.
 
 <a id="mjpeg-set-03"></a>
 
@@ -24,7 +24,7 @@ Construct representative boundary values. Reject nonfinite/nonpositive scale and
 
 <a id="mjpeg-set-04"></a>
 
-- **Device title and saved compatibility.** L1 Build manufacturer/model fixtures include repeated manufacturer, blank values and differing names; explicit empty title and old retainImageOnReconnect fixture are supplied. Construct page defaults; save and read page settings with changed later Build metadata. Trimmed title avoids repeated manufacturer and falls back to Android device; initial chosen title is encoded even when equal to its default and remains saved; empty title stays empty; old retainImageOnReconnect field preserves retainImageOnMediaFailure.
+- **Device title and saved compatibility.** L1 Build manufacturer/model fixtures include repeated manufacturer, blank values and differing names; explicit empty title and old retainImageOnReconnect fixture are supplied. Construct page defaults; save and read page settings with changed later Build metadata. Trimmed title avoids repeated manufacturer and falls back to Android device; initial chosen title is encoded even when equal to its default and remains saved; empty title stays empty; removed retainImageOnReconnect field is ignored without changing other saved page settings.
 
 <a id="mjpeg-set-07"></a>
 
@@ -32,11 +32,13 @@ Construct representative boundary values. Reject nonfinite/nonpositive scale and
 
 <a id="mjpeg-set-12"></a>
 
-- **Destructive legacy import attempt.** Seed real old Preferences protobuf before constructing MjpegSettings. Observe converted settings and independently inspect saved JSON: only valid new-nondefault choices survive, required aggregate members remain, and synthetic title is absent. Present values equal to old defaults can survive when different from new defaults; absent, invalid, unsupported and new-default-equal values create no payload. Reject whole crop/target/filter compounds for any invalid participating member while unrelated settings survive. Cover oriented target bounds, absent/new stretch default, dormant choices, FPS ranges/overflow, masks excluding LinkLocal, family membership, historical-format keys and raw modern-key precedence. Existing valid, malformed or wrong-typed DATA wins. Source deletion occurs for successful/no-op/corrupt attempts and ordinary read failure; a real destination temporary-write fault establishes deletion before a failed commit and no import retry. Exact nonrecursive deletion failure preserves a primary read exception with the cleanup exception suppressed. Source absence prevents repeat import, while restoration/recreation can trigger another attempt. These tests do not simulate an uncatchable process termination or establish platform/OEM storage guarantees.
+- **Destructive legacy import attempt.** Seed real old Preferences protobuf before constructing MjpegSettings. Observe converted settings and independently inspect saved JSON: only valid new-nondefault choices survive, required aggregate members remain, and synthetic title is absent. Present values equal to old defaults can survive when different from new defaults; absent, invalid, unsupported and new-default-equal values create no payload. Reject whole crop/target/filter compounds for any invalid participating member while unrelated settings survive. Cover oriented target bounds, absent/new stretch default, behavior choices, FPS ranges/overflow, masks excluding LinkLocal, family membership, historical-format keys and raw modern-key precedence. Existing valid, malformed or wrong-typed DATA wins. Source deletion occurs for successful/no-op/corrupt attempts and ordinary read failure; a real destination temporary-write fault establishes deletion before a failed commit and no import retry. Exact nonrecursive deletion failure preserves a primary read exception with the cleanup exception suppressed. Source absence prevents repeat import, while restoration/recreation can trigger another attempt. These tests do not simulate an uncatchable process termination or establish platform/OEM storage guarantees.
 
 <a id="mjpeg-set-10"></a>
 
-- **Dormant preferences persist.** Save and read nondefault hidePinOnCaptureStart, keepScreenAwake, stopOnScreenOff and notifySlowViewers. The values survive serialization and storage. These checks establish no PIN display, wakefulness, screen-off Stop or slow-viewer notification behavior; statistics are independent of notification preference.
+- **Behavior and display preferences persist.** Save and read nondefault hidePinOnCaptureStart, keepScreenAwake, stopOnScreenOff and notifySlowViewers. The values survive serialization and storage. These storage checks alone establish no PIN display, wakefulness, screen-off Stop or slow-viewer notification behavior; statistics are independent of notification preference.
+
+- **Main PIN display and capture state.** On Android, apply protected access and verify one masked PIN row below expanded addresses. Show/Hide and Copy PIN use the applied PIN while idle or capturing; Copy remains sensitive and does not reveal it. With hiding on, transitions between Start and Busy/Stop reset the reveal; Show within the Busy/Stop group remains available. With hiding off, Start and Stop preserve the reveal. Rejected Start leaves the current state unchanged; Stop never automatically reveals the PIN. Recreation, changed module/PIN identity and row disposal begin masked. An attempt missed entirely while UI collection is stopped has no later reset. Access settings retain independent Show/Hide. The same access-link/QR and manual-entry explanation remains visible with ready, mixed, pending, failed, empty or plain-fallback address lists. Verify the PIN label has no format placeholder, label/value align left, actions align right and wrap when needed, and the PIN section has a distinct tonal background. No pre-first-captured-frame guarantee is claimed.
 
 ## Atomic writes and admitted cancellation
 
@@ -52,7 +54,7 @@ Construct representative boundary values. Reject nonfinite/nonpositive scale and
 
 <a id="mjpeg-set-06"></a>
 
-Stored access is open with no PIN, or protected with an already valid PIN. Enable protection via updateData; repeat unrelated edits. Enabled protection has a saved six-ASCII-digit PIN before it can be applied; an existing PIN is preserved by unrelated edits. Random generation is tested for validity/redaction, not guaranteed difference or entropy. Disabling protection retains the saved PIN. Enabling protection after an open activation does not by itself repeat NewOnModuleStart preparation; the [controller activation history](controller.md#mjpeg-ctl-06) checks application.
+Stored access is open with no PIN, or protected with an already valid PIN. Enable protection via updateData; repeat unrelated edits. Enabled protection has a saved six-ASCII-digit PIN before it can be applied; an existing PIN is preserved by unrelated edits. Check random generation for validity/redaction; guaranteed difference or entropy is not an oracle. Disabling protection retains the saved PIN. Enabling protection after an open activation does not by itself repeat NewOnModuleStart preparation; the [controller activation history](controller.md#mjpeg-ctl-06) checks application.
 
 ## Saved versus effective edit policy
 
@@ -64,4 +66,4 @@ Current and proposed Data differ in backend, port, access, live image/filter/pag
 
 <a id="mjpeg-set-11"></a>
 
-Recognizable supplied secrets occur individually and inside saved access settings; the intentional serializer boundary is exercised. Stringify the secret and enclosing settings, then serialize the supplied value. Display/log-oriented strings contain `<redacted>` and no recognizable secret; serialization preserves supplied text at its intended boundary. Independently constructed equal PINs preserve applied credentials through [credential preservation](access.md#mjpeg-acc-03).
+Recognizable supplied secrets occur individually and inside saved access settings; exercise the intentional serializer boundary. Stringify the secret and enclosing settings, then serialize the supplied value. Display/log-oriented strings contain `<redacted>` and no recognizable secret; serialization preserves supplied text at its intended boundary. Independently constructed equal PINs preserve applied credentials through [credential preservation](access.md#mjpeg-acc-03).

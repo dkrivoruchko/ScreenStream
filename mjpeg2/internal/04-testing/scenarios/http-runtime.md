@@ -2,7 +2,7 @@
 
 # HTTP listeners, request history and totals
 
-Behavior: [maintained contract](../../03-delivery/http-delivery.md). L1 checks use routes, request registries and configured CIO loopback. Explicit-time registry histories establish identity and retention; real writers separately establish nonzero completed-payload accounting. Registry calls alone do not prove physical request completion. Held binds/cleanup, fatal fault injection and runtime-clock races remain gaps. Android socket behavior needs L2.
+Behavior: [maintained contract](../../03-delivery/http-delivery.md). Use L1 routes, request registries and configured CIO loopback. Explicit-time registry histories verify identity/retention; real writers are needed for nonzero completed-payload accounting. Registry calls alone do not establish physical request completion. Arrange held binds/cleanup and runtime-clock races with faithful barriers; Android socket behavior requires L2.
 
 ## Activation and accepted plans
 
@@ -24,13 +24,13 @@ A listening plan receives reordered/metadata-only address changes, removals/rese
 
 <a id="mjpeg-srv-04"></a>
 
-- **Independent binds and classified failure.** Configured CIO plans two host loopback addresses on one port: occupied ::1 becomes Failed while 127.0.0.1 serves recognizable media. Security/Socket/IO/unknown exception classification requires separate faithful platform fixtures. Activate and observe attempts. One bind's failure does not prevent another listening server/capture-ready address. BindException maps AddressInUse, SecurityException PermissionDenied, other SocketException AddressUnavailable, IOException IoFailure, remaining ordinary Exception Unknown; unexpected termination maps IoFailure. The host occupied-port test observes Unknown because configured CIO wraps the underlying bind error; it does not establish Android failure classification.
+- **Independent binds and classified failure.** Configured CIO plans two host loopback addresses on one port: occupied ::1 becomes Failed while 127.0.0.1 serves recognizable media. Security/Socket/IO/unknown exception classification requires separate faithful platform fixtures. Activate and observe attempts. One bind's failure does not prevent another listening server/capture-ready address. BindException maps AddressInUse, SecurityException PermissionDenied, other SocketException AddressUnavailable, IOException IoFailure, remaining ordinary Exception Unknown; unexpected termination maps IoFailure. CIO can wrap an underlying bind error; assert the exposed failure and qualify its transport rather than assuming Android exception classification from a host occupied-port fixture.
 
 <a id="mjpeg-srv-05"></a>
 
 - **Three attempts and explicit current Retry.** Exhaust a current server's bind budget, make its port available, then request Retry for current Failed, stale, Listening, preactivation and terminal IDs. Every bind attempt spends the same three-attempt budget, including successful binds; later unexpected termination can exhaust it. Retry of the exact current Failed UUID resets the budget and returns Pending; the other requests do nothing.
 
-A retry during held cleanup or an existing delay cannot bypass physical retirement or erase that deadline. After exhausted cleanup with no retained deadline, no new delay is required. These combined timing histories remain unarranged; the current occupied-port history establishes exhaustion and eligible recovery.
+A retry during held cleanup or an existing delay cannot bypass physical retirement or erase that deadline. After exhausted cleanup with no retained deadline, no new delay is required. An occupied-port history alone does not establish held-cleanup or retry-deadline arbitration.
 
 ## Replacement and physical retirement
 
@@ -44,7 +44,7 @@ A retry during held cleanup or an existing delay cannot bypass physical retireme
 
 <a id="mjpeg-srv-10"></a>
 
-**Listener cleanup receipt.** Stop an unstarted listener and a started CIO listener with an active connection. Completed cleanup together with connection closure/rebind establishes retirement; cancellation alone does not. Held same-socket replacement and rare construction failure remain unarranged.
+**Listener cleanup receipt.** Stop an unstarted listener and a started CIO listener with an active connection. Completed cleanup together with connection closure/rebind establishes retirement; cancellation alone does not. Qualify held same-socket replacement and construction failure separately.
 
 ## Terminal shutdown and cleanup failure
 
@@ -54,7 +54,7 @@ A retry during held cleanup or an existing delay cannot bypass physical retireme
 
 <a id="mjpeg-srv-09"></a>
 
-- **Listener cleanup/fatal runtime failure.** These fault histories are unarranged. A worker fatal fault with successful cleanup, a cancellation/physical cleanup fault with other owners, and combined faults require distinct controlled boundary inputs. Worker fatal failure retains Info.fatalCause and closes the runtime; if cleanup succeeds, stop may complete normally despite that retained fatal cause. Cancellation/physical cleanup failure records a cleanup obligation failure and stop must fail rather than claim successful teardown; uncertain cleanup permits no same-socket successor retry. With combined faults the first fatal cause can differ from the cleanup failure reported by stop. Remaining cancellation obligations are attempted independently.
+- **Listener cleanup/fatal runtime failure.** A worker fatal fault with successful cleanup, a cancellation/physical cleanup fault with other owners, and combined faults require distinct controlled boundary inputs. Worker fatal failure retains Info.fatalCause and closes the runtime; if cleanup succeeds, stop may complete normally despite that retained fatal cause. Cancellation/physical cleanup failure records a cleanup obligation failure and stop must fail rather than claim successful teardown; uncertain cleanup permits no same-socket successor retry. With combined faults the first fatal cause can differ from the cleanup failure reported by stop. Remaining cancellation obligations are attempted independently.
 
 ## Media consumer presence and grace
 
@@ -96,7 +96,7 @@ One response completes payloads before request ends; several same-endpoint respo
 
 <a id="mjpeg-obs-07"></a>
 
-A real output-boundary writer establishes slow progress. Sample with current/absent/replaced source identities and current/obsolete listeners, then after consecutive-frame recovery and exact response retirement. These checks establish sampled correlation; retained-logo neutrality and overlapping slow responses remain unarranged. Endpoint slow is true only if a current listener response reports slow for current nonnull source. Obsolete source observations cannot mark successor slow; source/store samples may be adjacent moments rather than an atomic frame snapshot.
+A real output-boundary writer establishes slow progress. Sample with current/absent/replaced source identities and current/obsolete listeners, then after consecutive-frame recovery and exact response retirement. Include retained-logo neutrality and overlapping slow responses as distinct variants. Endpoint slow is true only if a current listener response reports slow for current nonnull source. Obsolete source observations cannot mark successor slow; source/store samples may be adjacent moments rather than an atomic frame snapshot.
 
 ## Sampling versus control publication
 

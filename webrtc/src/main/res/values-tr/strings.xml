@@ -52,10 +52,6 @@
     <string name="webrtc_stream_stop_on_sleep">Uyku modunda yayını durdur</string>
     <string name="webrtc_stream_stop_on_sleep_summary">Ekran kapanırsa yayını durdur</string>
 
-    <string name="webrtc_stream_audio_permission_title">Ses erişimine izin ver</string>
-    <string name="webrtc_stream_audio_permission_message">Mikrofon veya dahili sesi yayınlamak için mikrofon izni gereklidir.\n\nBu izin olmadan yayında ses olmaz.</string>
-    <string name="webrtc_stream_audio_permission_message_settings">Mikrofon veya dahili sesi yayınlamak için uygulama ayarlarından mikrofon iznini etkinleştirin.\n\nBu izin olmadan yayında ses olmaz.</string>
-    <string name="webrtc_stream_audio_permission_open_settings">Ayarları aç</string>
     <string name="webrtc_item_client_disconnect">Bağlantıyı kes</string>
 
     <string name="webrtc_error_play_integrity_update_play_store">Lütfen Google Play Store\'u güncelleyin</string>

@@ -39,9 +39,6 @@ public abstract class LegacyStreamingModuleAdapter(
     private val lock: Any = Any()
     private var lease: LegacyController? = null
 
-    /** Metadata used only by the existing legacy LAN permission UI. */
-    public open val requiresLocalNetworkPermission: Boolean get() = false
-
     protected abstract fun startLegacyStream(module: StreamingModuleLegacy)
 
     /** Create an inert controller only inside the exact Service after the manager admits its startup. */

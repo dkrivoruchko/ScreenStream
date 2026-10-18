@@ -17,24 +17,34 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
+import io.screenstream.streaming.permission.LocalRuntimePermissions
+import io.screenstream.streaming.permission.PermissionState
+import io.screenstream.streaming.permission.RuntimePermission
 
 @Composable
 internal fun ErrorCard(
     error: WebRtcError,
     sendEvent: (event: WebRtcEvent) -> Unit,
-    audioEnabled: Boolean,
+    hasEnabledAudioSource: Boolean,
     retryStartupPolicyError: () -> Unit,
-    allowMicrophone: () -> Unit,
-    openNotificationSettings: () -> Unit,
+    requestAudioPermission: () -> Unit,
+    requestNotificationPermission: () -> Unit,
     modifier: Modifier = Modifier,
     showRecoverAction: Boolean = true
 ) {
     val startupPolicyError = error.isStartupPolicyError()
-    val microphonePermissionError = error is WebRtcError.AudioPermissionRequired && audioEnabled
+    val isAudioPermissionError = error is WebRtcError.AudioPermissionRequired && hasEnabledAudioSource
+    val permission = when {
+        isAudioPermissionError -> RuntimePermission.RecordAudio
+        error is WebRtcError.NotificationPermissionRequired -> RuntimePermission.Notifications
+        else -> null
+    }
+    val permissionState = permission?.let { LocalRuntimePermissions.current.state(it).collectAsStateWithLifecycle().value }
 
     ElevatedCard(modifier = modifier) {
         Column(
@@ -54,12 +64,9 @@ internal fun ErrorCard(
                 OutlinedButton(
                     onClick = {
                         when {
-                            microphonePermissionError -> allowMicrophone()
+                            isAudioPermissionError -> requestAudioPermission()
                             startupPolicyError -> retryStartupPolicyError()
-                            error is WebRtcError.NotificationPermissionRequired -> {
-                                sendEvent(WebRtcEvent.Intentable.RecoverError)
-                                openNotificationSettings()
-                            }
+                            error is WebRtcError.NotificationPermissionRequired -> requestNotificationPermission()
 
                             else -> sendEvent(WebRtcEvent.Intentable.RecoverError)
                         }
@@ -70,10 +77,11 @@ internal fun ErrorCard(
                     border = ButtonDefaults.outlinedButtonBorder(true).copy(brush = SolidColor(MaterialTheme.colorScheme.onError))
                 ) {
                     val buttonTextId = when {
-                        microphonePermissionError -> R.string.webrtc_error_allow_microphone
+                        permissionState == PermissionState.SettingsSuggested -> R.string.webrtc_error_open_settings
+                        isAudioPermissionError -> R.string.webrtc_error_allow_microphone
                         error is WebRtcError.AudioStartBlocked -> R.string.webrtc_error_start_with_audio
                         startupPolicyError -> R.string.webrtc_error_start_screen_sharing
-                        error is WebRtcError.NotificationPermissionRequired -> R.string.webrtc_error_open_settings
+                        error is WebRtcError.NotificationPermissionRequired && permissionState == PermissionState.Granted -> R.string.webrtc_error_open_settings
                         else -> R.string.webrtc_error_recover
                     }
                     Text(text = stringResource(buttonTextId), color = MaterialTheme.colorScheme.onError)

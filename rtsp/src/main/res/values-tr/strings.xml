@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">Ses kodlayıcı:</string>
     <string name="rtsp_audio_encoder_auto">Otomatik</string>
     <string name="rtsp_audio_bitrate">Ses bit hızı: %1$s/sn</string>
-    <string name="rtsp_audio_permission_title">Ses kaydına izin ver</string>
-    <string name="rtsp_audio_permission_message">Ses yayınlamak için ses kaydı izni gerekir.\n\nBu izin olmadan yayında ses olmaz.</string>
-    <string name="rtsp_audio_permission_open_settings">Ayarları aç</string>
-    <string name="rtsp_audio_permission_message_settings">Ses yayınlamak için uygulama ayarlarında mikrofon iznini etkinleştirin.\n\nBu izin olmadan yayında ses olmaz.</string>
     <string name="rtsp_audio_capture_issue_detected">Ses yakalama sorunu algılandı</string>
 
     <string name="rtsp_connection_access_denied">Erişim reddedildi</string>

@@ -91,10 +91,6 @@
     <string name="rtsp_audio_encoder">Audio kodetzailea:</string>
     <string name="rtsp_audio_encoder_auto">Auto</string>
     <string name="rtsp_audio_bitrate">Audio bit-emaria: %1$s/seg</string>
-    <string name="rtsp_audio_permission_title">Audio grabazioa baimendu</string>
-    <string name="rtsp_audio_permission_message">Audioa transmititzeko audioa grabatzeko baimena behar da.\n\nHori gabe, transmisioak ez du audiorik izango.</string>
-    <string name="rtsp_audio_permission_open_settings">Ezarpenak ireki</string>
-    <string name="rtsp_audio_permission_message_settings">Audioa transmititzeko, gaitu mikrofono-baimena aplikazioaren ezarpenetan.\n\nHori gabe, transmisioak ez du audiorik izango.</string>
     <string name="rtsp_audio_capture_issue_detected">Audioa atzemateko arazoa hauteman da</string>
 
     <string name="rtsp_connection_access_denied">Sarbidea ukatua</string>

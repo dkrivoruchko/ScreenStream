@@ -15,16 +15,25 @@
     <string name="app_tab_stream_select_mode">Seleziona la modalità di streaming:</string>
     <string name="app_tab_stream_switching_modules">Cambio dei moduli</string>
 
-    <string name="app_permission_required_title">Richiesta autorizzazione</string>
-    <string name="app_permission_allow_notifications">Questa app richiede l\'autorizzazione alle notifiche per avviare il servizio di streaming.\n\nConsenti le notifiche.</string>
-    <string name="app_permission_allow_notifications_settings">Questa app richiede l\'autorizzazione alle notifiche per avviare il servizio di streaming.\n\nAttiva le notifiche nelle impostazioni dell\'app.</string>
-    <string name="app_permission_notification_settings">Apri impostazioni</string>
-    <string name="app_permission_local_network_title">Accesso alla rete locale richiesto</string>
-    <string name="app_permission_local_network_message">Consenti a ScreenStream di usare la tua rete locale così i dispositivi possono connettersi allo streaming.</string>
-    <string name="app_permission_local_network_off_title">Accesso alla rete locale disattivato</string>
-    <string name="app_permission_local_network_settings_message">Attiva l\'accesso alla rete locale nelle impostazioni Android per condividere lo schermo con i dispositivi.</string>
+    <string name="app_permission_not_now">Non ora</string>
     <string name="app_permission_open_settings">Apri impostazioni</string>
-    <string name="app_permission_try_again">Riprova</string>
+
+    <string name="app_permission_notifications_title">Consenti le notifiche</string>
+    <string name="app_permission_notifications_message">Le notifiche mostrano lo stato della trasmissione e gli avvisi di errore. Usale per interrompere la trasmissione o riaprire ScreenStream.</string>
+
+    <string name="app_permission_local_network_title">Accesso alla rete locale</string>
+    <string name="app_permission_local_network_message">Consenti a ScreenStream di usare la rete locale per trasmettere ad altri dispositivi sulla stessa rete.\n\nAndroid descrive questa autorizzazione come accesso ai Dispositivi nelle vicinanze e può menzionare il rilevamento della loro posizione relativa.</string>
+    <string name="app_permission_local_network_off_title">Accesso alla rete locale disattivato</string>
+    <string name="app_permission_local_network_settings_message">Nelle impostazioni dell’app, apri Autorizzazioni e concedi l’autorizzazione Dispositivi nelle vicinanze per trasmettere ai dispositivi sulla stessa rete locale.</string>
+
+    <string name="app_permission_microphone_title">Accesso al microfono</string>
+    <string name="app_permission_microphone_message">Consenti l’accesso al microfono per includere il suo suono nella trasmissione.\n\nSenza questa autorizzazione, l’audio del microfono non può essere trasmesso.</string>
+    <string name="app_permission_device_audio_title">Accesso all’audio del dispositivo</string>
+    <string name="app_permission_device_audio_message">Android richiede l’autorizzazione del microfono per trasmettere l’audio del dispositivo. Questo non accende il microfono.\n\nPuò essere trasmesso solo l’audio che Android e l’app che lo riproduce consentono di condividere.</string>
+
+    <string name="app_permission_audio_title">Audio del microfono e del dispositivo</string>
+    <string name="app_permission_audio_message">Consenti l’accesso al microfono per trasmettere l’audio del microfono e del dispositivo.\n\nL’audio del dispositivo può essere trasmesso solo se Android e l’app che lo riproduce ne consentono la condivisione.</string>
+    <string name="app_permission_audio_settings_message">Abilita l\'autorizzazione del microfono nelle impostazioni dell\'app per trasmettere audio del microfono o audio interno.\n\nSenza di essa, lo stream non avrà audio.</string>
 
     <string name="app_notification_channel_streaming">Notifiche di streaming</string>
     <string name="app_notification_channel_error">Notifiche di errore</string>
