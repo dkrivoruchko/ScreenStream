@@ -3,6 +3,9 @@
     <string name="app_error_title">Kesalahan</string>
     <string name="app_error_recover">Pulih</string>
 
+    <string name="app_module_error_title">Terjadi kesalahan</string>
+    <string name="app_module_error_restart">Mulai ulang modul</string>
+
     <string name="app_activity_update_dialog_title">Pembaruan tersedia</string>
     <string name="app_activity_update_dialog_message">Pembaruan baru saja diunduh. Mulai ulang aplikasi sekarang?</string>
     <string name="app_activity_update_dialog_restart">Mengulang kembali</string>

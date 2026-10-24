@@ -1,13 +1,17 @@
 package io.screenstream.streaming.manager
 
 import androidx.annotation.MainThread
+import androidx.annotation.StringRes
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.streaming.module.StreamingModule
+import kotlinx.coroutines.flow.StateFlow
 import org.koin.core.annotation.Singleton
 
 /**
- * One process-owned notification for the current module-instance problem. Each show replaces the prior problem.
+ * One process-owned notification for the current module-instance problem. Each continuous warning
+ * episode gets one delivery attempt; a terminal failure replaces it.
  *
  * @param display Android presentation of the selected error.
  */
@@ -15,57 +19,46 @@ import org.koin.core.annotation.Singleton
 public class StreamingModuleErrorNotification internal constructor(private val display: Display) {
     /** Platform delivery of the selected error notification. */
     public interface Display {
-        /** Present the terminal [state]. */
+        /** Present [messageResource] or generic text. */
         @MainThread
-        public fun show(state: StreamingModuleManager.State.Failed)
+        public fun show(@StringRes messageResource: Int?)
 
-        /** Present the unresponsive [state]. */
-        @MainThread
-        public fun show(state: StreamingModuleManager.State.Unresponsive)
-
-        /** Remove the presented coordinator error notification. */
+        /** Remove the current module-instance problem notification. */
         @MainThread
         public fun cancel()
     }
 
-    private var desired: StreamingModuleManager.State? = null
-    private var lastAttempt: StreamingModuleManager.State? = null
+    private var lastAttempt: Problem? = null
+    private var hasAttemptedUpdate: Boolean = false
     private var isReconciling: Boolean = false
 
-    /** Request the terminal problem; an identical last attempt is not delivered again. */
+    /** Always pass the same manager flow; reentrant publications are read after delivery completes. */
     @MainThread
-    internal fun show(state: StreamingModuleManager.State.Failed) = update(state)
-
-    /** Request unresponsive notification; status-only changes do not redeliver it. */
-    @MainThread
-    internal fun show(state: StreamingModuleManager.State.Unresponsive) = update(state)
-
-    /** Request removal of the current error notification, without repeating the last attempt. */
-    @MainThread
-    internal fun cancel() {
-        update(null)
-    }
-
-    private fun update(content: StreamingModuleManager.State?) {
-        desired = content
+    internal fun update(states: StateFlow<StreamingModuleManager.State>) {
         if (isReconciling) return
         isReconciling = true
         try {
-            while (!sameProblem(lastAttempt, desired)) {
-                val target = desired
+            while (true) {
+                val target = when (val current = states.value) {
+                    is StreamingModuleManager.State.Running -> if (current.status.errorMessage != null) Problem(current.instanceId) else null
+                    is StreamingModuleManager.State.Unresponsive -> Problem(current.instanceId)
+                    is StreamingModuleManager.State.Failed -> Problem(current.instanceId, isTerminal = true, messageResource = current.messageResource)
+                    else -> null
+                }
+                if (hasAttemptedUpdate && lastAttempt == target) break
                 lastAttempt = target
+                hasAttemptedUpdate = true
                 try {
-                    when (target) {
-                        null -> display.cancel()
-                        is StreamingModuleManager.State.Failed -> display.show(target)
-                        is StreamingModuleManager.State.Unresponsive -> display.show(target)
-                        else -> error("Only module problems can be displayed")
+                    if (target == null) {
+                        display.cancel()
+                    } else {
+                        display.show(target.messageResource)
                     }
                 } catch (failure: Exception) {
                     val message = if (target == null) {
                         "Failed to cancel error notification"
                     } else {
-                        "Failed to show error notification for state=$target"
+                        "Failed to show error notification for problem=$target"
                     }
                     XLog.e(this@StreamingModuleErrorNotification.getLog("ErrorNotification", message), failure)
                 }
@@ -75,14 +68,9 @@ public class StreamingModuleErrorNotification internal constructor(private val d
         }
     }
 
-    private fun sameProblem(first: StreamingModuleManager.State?, second: StreamingModuleManager.State?): Boolean = when (first) {
-        null -> second == null
-        is StreamingModuleManager.State.Failed ->
-            second is StreamingModuleManager.State.Failed && first.instanceId == second.instanceId && first.failure == second.failure
-
-        is StreamingModuleManager.State.Unresponsive ->
-            second is StreamingModuleManager.State.Unresponsive && first.instanceId == second.instanceId
-
-        else -> false
-    }
+    private data class Problem(
+        val instanceId: StreamingModule.InstanceId,
+        val isTerminal: Boolean = false,
+        @get:StringRes val messageResource: Int? = null,
+    )
 }

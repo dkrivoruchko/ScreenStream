@@ -24,7 +24,7 @@
     <string name="mjpeg_network_loopback">Loopback</string>
 
     <string name="mjpeg_address_list_title">Stream addresses</string>
-    <string name="mjpeg_address_list_empty">No selected addresses. Check the network connection and network filter.</string>
+    <string name="mjpeg_address_list_empty">No addresses available for streaming.\nCheck Network filter in Connection settings.</string>
     <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
     <string name="mjpeg_address_network_details">Network:\n%1$s (%2$s)</string>
     <string name="mjpeg_address_same_device">This device only</string>
@@ -171,9 +171,8 @@
     <string name="mjpeg_pref_stream_network_loss_timeout_error">Enter a whole number from 10 to 1800</string>
     <string name="mjpeg_pref_stream_network_loss_timeout_help">Returning addresses cancel the timer</string>
 
-    <string name="mjpeg_pref_stream_post_stop_image">Inactive image</string>
-    <string name="mjpeg_pref_stream_post_stop_image_summary">Shown when capture is inactive.</string>
-    <string name="mjpeg_pref_stream_post_stop_none">No image</string>
+    <string name="mjpeg_pref_stream_post_stop_image">Inactive stream image</string>
+    <string name="mjpeg_pref_stream_post_stop_image_summary">What viewers see when you\'re not streaming.</string>
     <string name="mjpeg_pref_stream_post_stop_placeholder">App logo</string>
     <string name="mjpeg_pref_stream_post_stop_last_frame">Last frame</string>
 
@@ -251,7 +250,7 @@
 
     <string name="mjpeg_pref_access_protection">PIN protection</string>
     <string name="mjpeg_pref_access_protection_summary">Require a PIN or access link to view the stream</string>
-    <string name="mjpeg_pref_access_protection_default">Default: Off · New PIN on open</string>
+    <string name="mjpeg_pref_access_protection_default">Default: %1$s · %2$s</string>
     <string name="mjpeg_pref_access_policy_label">PIN policy</string>
     <string name="mjpeg_pref_access_policy_new_on_module_start">New PIN on open</string>
     <string name="mjpeg_pref_access_policy_permanent">Permanent PIN</string>
@@ -272,7 +271,7 @@
     <string name="mjpeg_pref_access_wrong_pins_summary">Pause PIN sign-in after five wrong attempts</string>
     <string name="mjpeg_pref_access_wrong_pins_value">Minutes: %1$d</string>
     <string name="mjpeg_pref_access_wrong_pins_label">Block duration (1–60 minutes)</string>
-    <string name="mjpeg_pref_access_wrong_pins_default">Default: On · %1$s minute</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">Default: %1$s · %2$s min</string>
     <string name="mjpeg_pref_access_wrong_pins_error">Enter a whole number from 1 to 60</string>
     <string name="mjpeg_pref_access_wrong_pins_help">Blocks new PIN attempts from that IP. Existing viewers stay connected.</string>
 

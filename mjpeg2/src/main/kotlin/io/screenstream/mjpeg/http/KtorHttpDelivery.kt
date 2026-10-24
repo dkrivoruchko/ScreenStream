@@ -57,12 +57,7 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
     private val controlMonitor = Any()
     private val runtimeJob = SupervisorJob()
     private val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.IO + CoroutineExceptionHandler { _, cause ->
-        this@KtorHttpDelivery.logE("Http.work", "HTTP worker failed", cause)
-        synchronized(controlMonitor) {
-            fatalCause = fatalCause ?: cause
-            publishControlInfo()
-        }
-        requestStop()
+        fail("Http.work", "HTTP worker failed", cause)
     })
     override val info: StateFlow<Info>
         field = MutableStateFlow(Info())
@@ -184,30 +179,46 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
     }
 
     override fun updateConfiguration(accessSettings: AccessSettings, postStopImage: PostStopImage, webSettings: WebPageSettings): Boolean {
-        val webJobsToCancel = synchronized(controlMonitor) {
+        val webSocketJobsToCancel = synchronized(controlMonitor) {
             if (!started || closing) return false
             updateConfigurationLocked(accessSettings, postStopImage, webSettings)
         }
-        webJobsToCancel.forEach(Job::cancel)
+        webSocketJobsToCancel.forEach(Job::cancel)
         return true
     }
 
-    override fun registerCapture(id: CaptureAttemptId): Boolean = synchronized(controlMonitor) {
-        if (!started || closing || !jpegStore.registerCapture(id)) return false
+    override fun registerCapture(id: CaptureAttemptId, initialCaptureGeneration: Any): Boolean = synchronized(controlMonitor) {
+        if (!started || closing || !jpegStore.registerCapture(id, initialCaptureGeneration)) return false
         publishWebState()
         true
     }
 
-    override fun updateCaptureStatus(id: CaptureAttemptId, state: Status) {
-        synchronized(controlMonitor) {
-            if (!jpegStore.updateCaptureStatus(id, state)) return
+    override fun updateCaptureStatus(id: CaptureAttemptId, state: Status, captureGeneration: Any?) {
+        try {
+            synchronized(controlMonitor) {
+                jpegStore.updateCaptureStatus(id, state, captureGeneration)
+                publishWebState()
+            }
+        } catch (cause: Throwable) {
+            fail("Http.captureState", "HTTP capture state update failed", cause)
+        }
+    }
+
+    override fun offerJpeg(expectedCaptureGeneration: Any, byteCount: Int, copyTo: (ByteArray) -> Unit) {
+        if (jpegStore.offerJpeg(expectedCaptureGeneration, byteCount, copyTo)) synchronized(controlMonitor) {
             publishWebState()
         }
     }
 
-    override fun offerJpeg(id: CaptureAttemptId, byteCount: Int, copyTo: (ByteArray) -> Unit) {
-        if (jpegStore.offerJpeg(id, byteCount, copyTo)) synchronized(controlMonitor) {
-            publishWebState()
+    private fun fail(tag: String, message: String, cause: Throwable) {
+        try {
+            logE(tag, message, cause)
+            synchronized(controlMonitor) {
+                fatalCause = fatalCause ?: cause
+                publishControlInfo()
+            }
+        } finally {
+            requestStop()
         }
     }
 
@@ -326,15 +337,15 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
         val credentialGeneration = synchronized(controlMonitor) {
             val now = SystemClock.elapsedRealtime()
             if (!isListenerActiveLocked(listener) || !requestJob.isActive || !access.allowsViewing(null, accessCookie)) {
-                val retry = access.remainingBlockMillis(peerIp, now).takeIf { it > 0 }
+                val retry = access.pinRetryAfterMillis(peerIp, now).takeIf { it > 0 }
                 return WebSocketAdmission.Denied(retry)
             }
-            requests.registerWeb(listener, requestJob)
+            requests.registerWebSocket(listener, requestJob)
             access.credentialGeneration
         }
         requestJob.invokeOnCompletion {
             synchronized(controlMonitor) {
-                requests.removeWeb(requestJob)
+                requests.removeWebSocket(requestJob)
             }
         }
         return WebSocketAdmission.Accepted(credentialGeneration)
@@ -363,15 +374,15 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
     /** Close old readers before admitting new credentials; a writer's acquired JPEG may finish. */
     private fun updateConfigurationLocked(accessSettings: AccessSettings, postStopImage: PostStopImage, webSettings: WebPageSettings): List<Job> {
         if (access.requiresCredentialRotation(accessSettings)) requests.closeMediaReaders()
-        val webJobsToCancel = if (access.updateSettings(accessSettings)) {
-            val jobs = requests.clearEndpointsAndGetWebJobs()
+        val webSocketJobsToCancel = if (access.updateSettings(accessSettings)) {
+            val jobs = requests.clearEndpointsAndGetWebSocketJobs()
             sampleStatistics()
             jobs
         } else emptyList()
         jpegStore.updateFallbackPolicy(postStopImage)
         pageSettings = webSettings
         publishWebState()
-        return webJobsToCancel
+        return webSocketJobsToCancel
     }
 
     private fun isServerCurrent(server: PlannedServer): Boolean =
@@ -518,7 +529,7 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
 
     private fun sampleStatistics() {
         val now = SystemClock.elapsedRealtime()
-        val sample = requests.sample(now, jpegStore.snapshot().captureSourceToken, currentListeners())
+        val sample = requests.sample(now, jpegStore.snapshot().captureGeneration, currentListeners())
         info.value = Info(
             servers = if (closing) emptyList() else plannedServers.values.map { it.toServerInfo() },
             clients = if (closing) emptyList() else sample.clients,

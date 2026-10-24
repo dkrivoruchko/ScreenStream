@@ -110,11 +110,25 @@ internal fun StreamAddressesContent(
         },
     ) {
         if (addressServers.isEmpty()) {
-            Text(
-                text = stringResource(R.string.mjpeg_address_list_empty),
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.mjpeg_icon_warning),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = stringResource(R.string.mjpeg_address_list_empty),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
         }
         addressServers.forEachIndexed { index, server ->
             key(server.addressId) {

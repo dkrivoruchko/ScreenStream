@@ -12,7 +12,7 @@ import kotlin.uuid.Uuid
  */
 internal class HttpRequests {
     private val media = LinkedHashMap<JpegResponse, MediaRequest>()
-    private val web = LinkedHashMap<Job, HttpListener>()
+    private val webSocketRequests = LinkedHashMap<Job, HttpListener>()
     private val endpoints = LinkedHashMap<Endpoint.Key, Endpoint>()
     private var lastEndpointId = 0L
     private var retiredJpegCount = 0L
@@ -37,13 +37,13 @@ internal class HttpRequests {
         media[writer] = MediaRequest(listener, job, endpoint)
     }
 
-    fun registerWeb(listener: HttpListener, job: Job) {
-        check(job !in web) { "WebSocket request already registered" }
-        web[job] = listener
+    fun registerWebSocket(listener: HttpListener, job: Job) {
+        check(job !in webSocketRequests) { "WebSocket request already registered" }
+        webSocketRequests[job] = listener
     }
 
-    fun removeWeb(job: Job) {
-        web.remove(job)
+    fun removeWebSocket(job: Job) {
+        webSocketRequests.remove(job)
     }
 
     /** Completion transfers final progress exactly once; old listeners cannot start Active grace. */
@@ -70,9 +70,9 @@ internal class HttpRequests {
     }
 
     /** Credential rotation detaches endpoint history but leaves physical requests for final totals. */
-    fun clearEndpointsAndGetWebJobs(): List<Job> {
+    fun clearEndpointsAndGetWebSocketJobs(): List<Job> {
         endpoints.clear()
-        return web.keys.toList()
+        return webSocketRequests.keys.toList()
     }
 
     /** Cutoff skips Active grace; late completion cannot extend the retention deadline. */
@@ -84,18 +84,18 @@ internal class HttpRequests {
             writer.close()
             request.job
         }
-        return jobs + web.filterValues { it === listener }.keys
+        return jobs + webSocketRequests.filterValues { it === listener }.keys
     }
 
     /** Discard endpoint history; pending physical completions still contribute global totals. */
     fun closeAll(): List<Job> {
         closeMediaReaders()
         endpoints.clear()
-        return media.values.map { it.job } + web.keys
+        return media.values.map { it.job } + webSocketRequests.keys
     }
 
     /** [currentListeners] must be captured under the same gate; it is not retained. */
-    fun sample(now: Long, captureSourceToken: Any?, currentListeners: Set<HttpListener>): Sample {
+    fun sample(now: Long, captureGeneration: Any?, currentListeners: Set<HttpListener>): Sample {
         var completedJpegs = retiredJpegCount
         var completedJpegBytes = retiredJpegBytes
         endpoints.values.removeAll { it.hasExpired(now) }
@@ -111,7 +111,7 @@ internal class HttpRequests {
             rowBytes[endpoint] = (rowBytes[endpoint] ?: 0L) + progress.completedJpegBytes
             if (request.listener in currentListeners) {
                 liveEndpoints.add(endpoint)
-                if (captureSourceToken != null && progress.isSlow && progress.observedCaptureSource === captureSourceToken) {
+                if (captureGeneration != null && progress.isSlow && progress.observedCaptureGeneration === captureGeneration) {
                     slowEndpoints.add(endpoint)
                 }
             }

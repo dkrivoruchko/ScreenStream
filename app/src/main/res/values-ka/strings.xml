@@ -3,6 +3,9 @@
     <string name="app_error_title">შეცდომა</string>
     <string name="app_error_recover">აღდგენა</string>
 
+    <string name="app_module_error_title">რაღაც შეცდომა მოხდა</string>
+    <string name="app_module_error_restart">მოდულის გადატვირთვა</string>
+
     <string name="app_activity_update_dialog_title">Განახლება შესაძლებელია</string>
     <string name="app_activity_update_dialog_message">განახლება ახლახან ჩამოიტვირთა. გადატვირთოთ აპი ახლა?</string>
     <string name="app_activity_update_dialog_restart">Რესტარტი</string>

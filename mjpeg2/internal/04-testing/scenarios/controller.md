@@ -22,7 +22,7 @@ A synchronously entered delivery start remains admitted controller work: even af
 
 <a id="mjpeg-ctl-02"></a>
 
-Request stream Start while configuration, matching Observed filter, permitted selected address or Listening server is independently missing/stale, then supply a current ready combination. Only idle/current/configured capture with a current matching Listening server is admitted. Pending/Failed/stale-filter/wrong-port/unpermitted/stale-runtime facts cannot admit Start; duplicate Start cannot create another attempt.
+Request stream Start while configuration, fresh discovery inventory, permitted selected address or Listening server is independently missing/stale, then supply a current ready combination. Only idle/current/configured capture with an address selected by the effective filter in both fresh and retained selections and a matching Listening server is admitted. Pending/Failed/wrong-port/unpermitted/stale-runtime facts cannot admit Start; duplicate Start cannot create another attempt.
 
 ## Exact Stop and replacement
 
@@ -58,7 +58,7 @@ Typed PIN edits and regeneration use the Access settings group's ordinary update
 
 <a id="mjpeg-ctl-08"></a>
 
-A matching ready selection has been applied; discovery becomes Loading or reports a mismatched filter. Observe changes then a new matching Observed result; independently revoke permission. The prior ready plan remains during nonready/mismatched discovery; matching complete result replaces it. Permission filtering takes effect immediately on the retained plan. UI availability requires separate UI verification.
+A ready selection has been applied; discovery becomes Loading or the effective filter changes. Loading retains the prior ready selection. An accepted filter change selects immediately from the processed inventory without a discovery acknowledgement; a later Observed inventory updates that selection. Independently revoke permission and verify immediate filtering of the retained plan. UI availability requires separate UI verification.
 
 ## Network-loss episode and recovery
 
@@ -68,7 +68,7 @@ A matching ready selection has been applied; discovery becomes Loading or report
 
 <a id="mjpeg-ctl-10"></a>
 
-- **Recovery already present at loss deadline.** At the loss deadline, recovery may be queued or already present in monitor.state; stale attempt/filter variants also matter. The decision must use the current matching observation. Current recovery prevents network-loss Stop even if its event is unprocessed; only the still-current empty matching episode can stop its exact capture. Stop/failure/cleanup clears the episode; old deadlines do not stop a replacement.
+- **Recovery already present at loss deadline.** At the loss deadline, recovery may be queued or already present in monitor.state; stale attempt/filter variants also matter. The decision must select from the current observed inventory with the effective filter. Current recovery prevents network-loss Stop even if its event is unprocessed; only the still-current empty-selection episode can stop its exact capture. Stop/failure/cleanup clears the episode; old deadlines do not stop a replacement.
 
 ## Component and configuration failure
 

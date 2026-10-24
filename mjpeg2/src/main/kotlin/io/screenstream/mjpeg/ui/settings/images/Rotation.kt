@@ -54,7 +54,7 @@ internal fun RotationSettingItem(
                     options = CaptureRotation.entries,
                     optionLabel = { option ->
                         val label = stringResource(R.string.mjpeg_pref_image_rotation_option, option.degrees)
-                        if (option == CaptureRotation.Degrees0) stringResource(R.string.mjpeg_pref_default_option, label) else label
+                        if (option == ImageSettings.DEFAULT_ROTATION) stringResource(R.string.mjpeg_pref_default_option, label) else label
                     },
                     onValueSelected = { selected -> if (selected != rotation) onImageChange { copy(rotation = selected) } },
                     onDismissRequest = {

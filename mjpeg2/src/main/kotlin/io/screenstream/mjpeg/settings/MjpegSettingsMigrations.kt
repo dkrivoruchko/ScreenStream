@@ -88,7 +88,7 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
                 90 -> Rotation.Degrees90
                 180 -> Rotation.Degrees180
                 270 -> Rotation.Degrees270
-                else -> defaults.image.rotation
+                else -> ImageSettings.DEFAULT_ROTATION
             }
             val crop = crop()
             val target = target(rotation)
@@ -97,52 +97,52 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
                     0 -> SourceRegion.Full
                     1 -> SourceRegion.LeftHalf
                     2 -> SourceRegion.RightHalf
-                    else -> defaults.image.sourceRegion
+                    else -> ImageSettings.DEFAULT_SOURCE_REGION
                 },
-                cropEnabled = crop?.first ?: defaults.image.cropEnabled,
-                cropInsets = crop?.second ?: defaults.image.cropInsets,
-                outputSelection = if (target != null) ImageSettings.OutputSelection.TargetSize else defaults.image.outputSelection,
-                targetSize = target,
-                scalePercent = integer("RESIZE_FACTOR")?.takeIf { it > 0 }?.toDouble() ?: defaults.image.scalePercent,
+                cropEnabled = crop?.first ?: ImageSettings.DEFAULT_CROP_ENABLED,
+                cropInsets = crop?.second ?: ImageSettings.DEFAULT_CROP_INSETS,
+                outputSelection = if (target != null) ImageSettings.OutputSelection.TargetSize else ImageSettings.DEFAULT_OUTPUT_SELECTION,
+                targetSize = target ?: ImageSettings.DEFAULT_TARGET_SIZE,
+                scalePercent = integer("RESIZE_FACTOR")?.takeIf { it > 0 }?.toDouble() ?: ImageSettings.DEFAULT_SCALE_PERCENT,
                 rotation = rotation,
                 mirror = when (integer("FLIP")) {
                     0 -> Mirror.None
                     1 -> Mirror.Horizontal
                     2 -> Mirror.Vertical
-                    else -> defaults.image.mirror
+                    else -> ImageSettings.DEFAULT_MIRROR
                 },
                 colorMode = boolean("IMAGE_GRAYSCALE")?.let {
                     if (it) ColorMode.Grayscale else ColorMode.Color
-                } ?: defaults.image.colorMode,
-                jpegQuality = integer("JPEG_QUALITY")?.takeIf { it in 0..100 } ?: defaults.image.jpegQuality,
-                frameRate = frameRate() ?: defaults.image.frameRate,
+                } ?: ImageSettings.DEFAULT_COLOR_MODE,
+                jpegQuality = integer("JPEG_QUALITY")?.takeIf { it in 0..100 } ?: ImageSettings.DEFAULT_JPEG_QUALITY,
+                frameRate = frameRate() ?: ImageSettings.DEFAULT_FRAME_RATE,
             )
             return defaults.copy(
                 image = image,
                 network = defaults.network.copy(
-                    filter = filter() ?: defaults.network.filter,
-                    httpPort = integer("SERVER_PORT")?.takeIf { it in 1024..65535 } ?: defaults.network.httpPort,
+                    filter = filter() ?: NetworkSettings.DEFAULT_FILTER,
+                    httpPort = integer("SERVER_PORT")?.takeIf { it in 1024..65535 } ?: NetworkSettings.DEFAULT_HTTP_PORT,
                 ),
                 access = defaults.access.copy(
-                    pinEnabled = boolean("ENABLE_PIN") ?: defaults.access.pinEnabled,
+                    pinEnabled = boolean("ENABLE_PIN") ?: AccessSettings.DEFAULT_PIN_ENABLED,
                     pinPolicy = boolean("NEW_PIN_ON_APP_START")?.let {
                         if (it) AccessSettings.PinPolicy.NewOnModuleStart else AccessSettings.PinPolicy.Permanent
-                    } ?: defaults.access.pinPolicy,
-                    pin = (values["PIN"] as? String)?.takeIf(AccessSettings::isValidPin)?.let(::SecretValue),
-                    hidePinOnCaptureStart = boolean("HIDE_PIN_ON_START") ?: defaults.access.hidePinOnCaptureStart,
-                    limitWrongPins = boolean("BLOCK_ADDRESS") ?: defaults.access.limitWrongPins,
+                    } ?: AccessSettings.DEFAULT_PIN_POLICY,
+                    pin = (values["PIN"] as? String)?.takeIf(AccessSettings::isValidPin)?.let(::SecretValue) ?: AccessSettings.DEFAULT_PIN,
+                    hidePinOnCaptureStart = boolean("HIDE_PIN_ON_START") ?: AccessSettings.DEFAULT_HIDE_PIN_ON_CAPTURE_START,
+                    limitWrongPins = boolean("BLOCK_ADDRESS") ?: AccessSettings.DEFAULT_LIMIT_WRONG_PINS,
                 ),
                 web = defaults.web.copy(
-                    background = integer("HTML_BACK_COLOR")?.let { "#%06X".format(it and 0xFFFFFF) } ?: defaults.web.background,
+                    background = integer("HTML_BACK_COLOR")?.let { "#%06X".format(it and 0xFFFFFF) } ?: WebPageSettings.DEFAULT_BACKGROUND,
                 ),
                 behavior = defaults.behavior.copy(
-                    keepScreenAwake = boolean("KEEP_AWAKE") ?: defaults.behavior.keepScreenAwake,
-                    stopOnScreenOff = boolean("STOP_ON_SLEEP") ?: defaults.behavior.stopOnScreenOff,
-                    notifySlowViewers = boolean("NOTIFY_SLOW_CONNECTIONS") ?: defaults.behavior.notifySlowViewers,
+                    keepScreenAwake = boolean("KEEP_AWAKE") ?: StreamBehaviorSettings.DEFAULT_KEEP_SCREEN_AWAKE,
+                    stopOnScreenOff = boolean("STOP_ON_SLEEP") ?: StreamBehaviorSettings.DEFAULT_STOP_ON_SCREEN_OFF,
+                    notifySlowViewers = boolean("NOTIFY_SLOW_CONNECTIONS") ?: StreamBehaviorSettings.DEFAULT_NOTIFY_SLOW_VIEWERS,
                     // Approximate ordinary legacy Stop; restart/error transitions are not equivalent.
                     postStopImage = boolean("HTML_SHOW_PRESS_START")?.let {
                         if (it) StreamBehaviorSettings.PostStopImage.Placeholder else StreamBehaviorSettings.PostStopImage.LastAvailableFrame
-                    } ?: defaults.behavior.postStopImage,
+                    } ?: StreamBehaviorSettings.DEFAULT_POST_STOP_IMAGE,
                 ),
             )
         }
@@ -152,11 +152,11 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
             if (invalid<Boolean>("IMAGE_CROP") || invalid<Int>(*edges.toTypedArray()) || edges.any { (integer(it) ?: 0) < 0 }) {
                 return null
             }
-            return (boolean("IMAGE_CROP") ?: defaults.image.cropEnabled) to CropInsetsPx(
-                integer("IMAGE_CROP_LEFT") ?: defaults.image.cropInsets.left,
-                integer("IMAGE_CROP_TOP") ?: defaults.image.cropInsets.top,
-                integer("IMAGE_CROP_RIGHT") ?: defaults.image.cropInsets.right,
-                integer("IMAGE_CROP_BOTTOM") ?: defaults.image.cropInsets.bottom,
+            return (boolean("IMAGE_CROP") ?: ImageSettings.DEFAULT_CROP_ENABLED) to CropInsetsPx(
+                integer("IMAGE_CROP_LEFT") ?: ImageSettings.DEFAULT_CROP_INSETS.left,
+                integer("IMAGE_CROP_TOP") ?: ImageSettings.DEFAULT_CROP_INSETS.top,
+                integer("IMAGE_CROP_RIGHT") ?: ImageSettings.DEFAULT_CROP_INSETS.right,
+                integer("IMAGE_CROP_BOTTOM") ?: ImageSettings.DEFAULT_CROP_INSETS.bottom,
             )
         }
 
@@ -188,7 +188,7 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
 
         private fun filter(): NetworkAddressFilter? {
             if (invalid<Boolean>("ENABLE_IPV4", "ENABLE_IPV6")) return null
-            val families = defaults.network.filter.families.toMutableSet()
+            val families = NetworkSettings.DEFAULT_FILTER.families.toMutableSet()
             boolean("ENABLE_IPV4")?.let { if (it) families.add(AddressFamily.Ipv4) else families.remove(AddressFamily.Ipv4) }
             boolean("ENABLE_IPV6")?.let { if (it) families.add(AddressFamily.Ipv6) else families.remove(AddressFamily.Ipv6) }
             if (families.isEmpty()) return null
@@ -213,7 +213,7 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
                 else -> null
             }
             val interfaces = when (interfaceMask) {
-                null -> defaults.network.filter.interfaceTypes
+                null -> NetworkSettings.DEFAULT_FILTER.interfaceTypes
                 0 -> InterfaceType.entries.toSet()
                 else -> buildSet {
                     if (interfaceMask and 1 != 0) add(InterfaceType.Wifi)
@@ -223,7 +223,7 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
                 }
             }
             val categories = when (addressMask) {
-                null -> defaults.network.filter.categories
+                null -> NetworkSettings.DEFAULT_FILTER.categories
                 0 -> setOf(AddressCategory.Private, AddressCategory.NonPrivate, AddressCategory.Loopback)
                 else -> buildSet {
                     if (addressMask and 1 != 0) add(AddressCategory.Private)

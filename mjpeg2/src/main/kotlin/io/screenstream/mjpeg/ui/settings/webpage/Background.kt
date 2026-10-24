@@ -147,22 +147,20 @@ private fun BackgroundEditor(
         hexInput = TextFieldValue(text, selection = TextRange(text.length))
     }
 
-    fun closeEditor() {
-        val rgb = parseRgbColor(hexInput.text)
-        if (rgb != null && rgb != initialRgb) {
-            val hex = formatRgbColor(rgb)
-            onWebPageChange { copy(background = hex) }
-        }
-        onDismiss()
-    }
-
     SettingEditor(
         title = stringResource(BackgroundSearch.info.titleRes),
         description = stringResource(BackgroundSearch.info.summaryRes),
-        onDismiss = ::closeEditor,
+        onDismiss = {
+            val rgb = parseRgbColor(hexInput.text)
+            if (rgb != null && rgb != initialRgb) {
+                val hex = formatRgbColor(rgb)
+                onWebPageChange { copy(background = hex) }
+            }
+            onDismiss()
+        },
     ) {
         Text(
-            stringResource(R.string.mjpeg_pref_default_value, "#101418"),
+            stringResource(R.string.mjpeg_pref_default_value, WebPageSettings.DEFAULT_BACKGROUND),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )

@@ -17,7 +17,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +24,6 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
@@ -49,6 +47,7 @@ import io.screenstream.mjpeg.ui.settings.SettingSwitch
 import io.screenstream.mjpeg.ui.settings.SettingsItem
 import io.screenstream.mjpeg.ui.settings.parseSettingInteger
 import io.screenstream.mjpeg.ui.settings.rememberSettingNumberFormat
+import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object LimitPinAttemptsSearch {
     val durationLabelRes: Int = R.string.mjpeg_pref_access_wrong_pins_label
@@ -70,20 +69,13 @@ internal fun LimitPinAttemptsSettingItem(
     onAccessChange: (AccessSettings.() -> AccessSettings) -> Unit,
 ) {
     var showEditor by retain { mutableStateOf(false) }
-    val openerFocusRequester = remember { FocusRequester() }
-    var shouldRestoreFocus by remember { mutableStateOf(false) }
-    LaunchedEffect(showEditor) {
-        if (!showEditor && shouldRestoreFocus) {
-            openerFocusRequester.requestFocus()
-            shouldRestoreFocus = false
-        }
-    }
+    val openerFocus = rememberSettingOpenerFocus(editorVisible = showEditor)
     SettingsItem(
         title = stringResource(LimitPinAttemptsSearch.info.titleRes),
         summary = stringResource(LimitPinAttemptsSearch.info.summaryRes),
         iconRes = R.drawable.mjpeg_icon_block,
         onClick = { showEditor = true },
-        modifier = Modifier.focusRequester(openerFocusRequester),
+        modifier = Modifier.focusRequester(openerFocus.requester),
         valueContent = {
             Text(
                 stringResource(R.string.mjpeg_pref_access_wrong_pins_value, blockMinutes),
@@ -129,7 +121,7 @@ internal fun LimitPinAttemptsSettingItem(
     if (showEditor) {
         LimitPinAttemptsEditor(blockMinutes, canEditStreamSetup, onAccessChange) {
             showEditor = false
-            shouldRestoreFocus = true
+            openerFocus.markDismissed()
         }
     }
 }
@@ -163,7 +155,11 @@ private fun LimitPinAttemptsEditor(
         },
     ) {
         Text(
-            stringResource(R.string.mjpeg_pref_access_wrong_pins_default, numberFormat.format(1)),
+            stringResource(
+                R.string.mjpeg_pref_access_wrong_pins_default,
+                stringResource(if (AccessSettings.DEFAULT_LIMIT_WRONG_PINS) R.string.mjpeg_pref_value_on else R.string.mjpeg_pref_value_off),
+                numberFormat.format(AccessSettings.DEFAULT_BLOCK_MINUTES),
+            ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )

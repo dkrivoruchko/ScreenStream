@@ -73,7 +73,7 @@ function createPreviewServer(options = {}) {
 
     const device = createDevice();
     let failImageRequests = false;
-    let heartbeat = null, listenPromise = null, closePromise = null;
+    let heartbeat = null, stateKeepalive = null, listenPromise = null, closePromise = null;
     const stateClients = new Map(), mediaRequests = new Set(), logs = [];
 
     function log(event) {
@@ -89,11 +89,11 @@ function createPreviewServer(options = {}) {
             build: viewerBuild.state(), logs: logs.slice()
         };
     }
-    function publish() {
+    function publish(keepalive = false) {
         const encoded = JSON.stringify(device.snapshot());
         for (const [socket, client] of stateClients) {
             if (client.generation !== device.generation) { socket.terminate(); continue; }
-            if (socket.readyState === WebSocket.OPEN && client.lastState !== encoded) {
+            if (socket.readyState === WebSocket.OPEN && (keepalive || client.lastState !== encoded)) {
                 client.lastState = encoded;
                 socket.send(encoded);
             }
@@ -335,6 +335,7 @@ function createPreviewServer(options = {}) {
         await listenPromise;
         if (closePromise) throw new Error('Preview server is closed');
         viewerBuild.start();
+        if (!stateKeepalive) stateKeepalive = setInterval(() => publish(true), 2000);
         if (!heartbeat) heartbeat = setInterval(() => {
             for (const [socket, client] of stateClients) {
                 if (!client.alive) socket.terminate();
@@ -347,7 +348,7 @@ function createPreviewServer(options = {}) {
     }
     function close() {
         if (closePromise) return closePromise;
-        viewerBuild.close(); clearInterval(heartbeat);
+        viewerBuild.close(); clearInterval(heartbeat); clearInterval(stateKeepalive);
         closeViewers(); sockets.close();
         closePromise = (async () => {
             // A bind can still be pending even while server.listening is false.

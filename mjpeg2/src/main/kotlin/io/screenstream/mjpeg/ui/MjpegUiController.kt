@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import java.net.Inet4Address
 import java.net.Inet6Address
 
-/** Synchronously projects screen state and forwards requests to its original module. */
+/** Synchronously projects local screen facts and routes actions to their original owners. */
 internal class MjpegUiController(
     private val instanceId: StreamingModule.InstanceId,
     private val onUiCommand: (UiController.Command) -> Unit,
@@ -58,10 +58,6 @@ internal class MjpegUiController(
         )
     }
 
-    fun clear() {
-        state.value = UiController.State(instanceId, Action.Busy)
-    }
-
     override fun send(uiCommand: UiController.Command) = onUiCommand(uiCommand)
 
     @Composable
@@ -72,7 +68,6 @@ internal class MjpegUiController(
             modifier = modifier,
         )
     }
-
 }
 
 /** Advertise portable URLs from applied access only; saved preferences may still be unapplied. */

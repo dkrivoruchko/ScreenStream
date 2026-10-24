@@ -1,8 +1,8 @@
 const words = {
     app: 'ScreenStream', connecting: 'Connecting…', connected: 'Connected',
-    reconnecting: 'Reconnecting…', unavailable: 'Server unavailable. Retry the connection.',
+    reconnecting: 'Reconnecting',
     mediaStarting: 'Waiting for an image…', mediaRetrying: 'Restoring image…',
-    mediaFailed: 'Image unavailable. Retry or choose another viewing method.', viewing: 'Viewing',
+    mediaFailed: 'Image unavailable.', viewing: 'Viewing',
     pinTitle: 'Enter PIN',
     pinRequired: 'Enter the six-digit PIN shown on the streaming device:',
     pinBlockedTitle: 'Access temporarily blocked',

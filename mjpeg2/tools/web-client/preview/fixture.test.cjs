@@ -392,10 +392,8 @@ test('JPEG orientation, length and multipart bytes match the delivery framing', 
         assert.deepEqual(body.subarray(start + length, start + length + footer.length), footer);
     } finally { stream.destroy(); }
     await scenario(device, 'paused');
-    await update(device, 'options', { postStopImage: 'none' });
-    const unavailable = await request(device, '/jpeg');
-    assert.equal(unavailable.status, 503);
-    assert.equal(unavailable.headers.get('retry-after'), '1');
+    await update(device, 'options', { postStopImage: 'logo' });
+    assert.deepEqual(await jpegPayload(device), fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg')));
 });
 
 test('capture changes preserve transports and request faults affect only media', async t => {
@@ -425,12 +423,12 @@ test('capture changes preserve transports and request faults affect only media',
         assert.equal(stopped.hasImage, true);
         await scenario(device, 'normal');
         assert.equal(authorizedSnapshot(await client.next(), 'open').notice, null);
-        await update(device, 'options', { postStopImage: 'none' });
         await update(device, 'options', { imageAvailable: false });
-        const unavailable = authorizedSnapshot(await client.next(), 'open');
-        assert.equal(unavailable.notice, null);
-        assert.equal(unavailable.hasImage, false);
-        assert.equal((await request(device, '/jpeg')).status, 503);
+        const fallback = authorizedSnapshot(await client.next(), 'open');
+        assert.equal(fallback.notice, null);
+        assert.equal(fallback.hasImage, true);
+        assert.equal(fallback.imageKind, 'logo');
+        assert.deepEqual(await jpegPayload(device), fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg')));
         const missingCount = multipartImages(stream.body()).length;
         await update(device, 'options', { imageAvailable: true });
         assert.equal(authorizedSnapshot(await client.next(), 'open').hasImage, true);
@@ -472,9 +470,9 @@ test('inactive image policies share JPEG, MJPEG and state selection across canon
         const protectedAccess = selected.delivery.access === 'protected';
         const cookie = protectedAccess ? accessCookie(await request(device,
             '/viewer?accessToken=' + encodeURIComponent(selected.delivery.credentials.accessToken))) : undefined;
-        for (const postStopImage of ['none', 'logo', 'last']) for (const imageAvailable of [false, true]) {
+        for (const postStopImage of ['logo', 'last']) for (const imageAvailable of [false, true]) {
             const live = ['normal', 'pin', 'blocked'].includes(id) && imageAvailable;
-            const expected = live ? 'live' : postStopImage === 'none' ? 'none' :
+            const expected = live ? 'live' :
                 postStopImage === 'last' && imageAvailable ? 'retained' : 'logo';
             const current = await update(device, 'options', { postStopImage, imageAvailable });
             assert.equal(current.delivery.imageKind, expected, id + ': ' + postStopImage + '/' + imageAvailable);
@@ -482,12 +480,6 @@ test('inactive image policies share JPEG, MJPEG and state selection across canon
             assert.equal(wire.imageKind, expected);
             if (protectedAccess) for (const path of ['/jpeg', '/mjpeg']) {
                 assert.equal((await request(device, path)).status, 403, 'Access precedes inactive image selection');
-            }
-            if (expected === 'none') {
-                for (const path of ['/jpeg', '/mjpeg']) {
-                    assert.equal((await request(device, path, { headers: cookie ? { Cookie: cookie } : {} })).status, 503);
-                }
-                continue;
             }
             const jpeg = await jpegPayload(device, cookie);
             const stream = await mediaStream(device, '/mjpeg', cookie);

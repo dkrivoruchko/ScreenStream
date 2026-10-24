@@ -13,8 +13,8 @@ import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.ScreenCaptureStopReason
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Failure
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
-import io.screenstream.mjpeg.MjpegCaptureSession.State.SuspensionProblem
 import io.screenstream.mjpeg.MjpegEngineState.Phase
+import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.settings.ImageSettings
 import io.screenstream.streaming.capture.ScreenCaptureAccess
 import io.screenstream.streaming.logD
@@ -34,11 +34,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -47,20 +45,23 @@ import kotlinx.coroutines.withContext
  * Admit a replacement only after successful required capture cleanup. Cancellation requests shutdown;
  * entered cleanup continues in NonCancellable.
  *
- * [onJpeg] may ignore or synchronously copy borrowed bytes into caller-owned storage at offset zero.
- * The copier is valid only during that callback on its thread; never retain it. Callback failure ends capture.
+ * This session owns capture phase and generation; [http] applies them without entering this session.
+ * Register the fresh [initialCaptureGeneration] with HTTP before [start]. JPEG offers carry the generation
+ * captured under the state gate, then synchronously copy borrowed bytes outside the gates. The copier is
+ * valid only during that callback on its thread; never retain it. Callback failure ends capture.
  * [enterForeground] precedes projection creation after consent. [leaveForeground] follows media cleanup
  * and must tolerate rollback before promotion. Both signal failure by throwing.
  */
 internal class MjpegCaptureSession(
     val id: StreamingModule.CaptureAttemptId,
     initialImageSettings: ImageSettings,
+    initialCaptureGeneration: Any,
     private val context: Context,
     private val controllerScope: CoroutineScope,
     private val captureAccess: ScreenCaptureAccess,
+    private val http: HttpDelivery,
     private val enterForeground: suspend () -> Unit,
     private val leaveForeground: () -> Unit,
-    private val onJpeg: (byteCount: Int, copyTo: (ByteArray) -> Unit) -> Unit,
     private val engineFactory: MjpegEngineFactory = DefaultMjpegEngineFactory,
 ) {
     /** First accepted Stop cause; later failures do not replace it. */
@@ -75,7 +76,23 @@ internal class MjpegCaptureSession(
         Shutdown,
     }
 
-    interface State {
+    data class State(
+        /** Identity of the current capture generation; null while JPEG publication is revoked. */
+        internal val captureGeneration: Any?,
+        internal val engineState: MjpegEngineState? = null,
+        internal val startSucceeded: Boolean = false,
+        internal val stopReason: StopReason? = null,
+        /** First acquisition or capture failure. */
+        val captureFailure: Failure? = null,
+        /** First resource-release failure. */
+        val cleanupFailure: Failure? = null,
+        /**
+         * Outcome of this adapter's cleanup operations, null until they finish; separate from capture success.
+         * Engine stop confirms logical shutdown and projection stop, not all internal Engine resource cleanup.
+         * Optional screen-wake-lock errors only log and do not affect this outcome.
+         */
+        val cleanupSucceeded: Boolean? = null,
+    ) {
         /** Capture availability for controls and the viewer page; [State.isStreaming] reports the capture lifetime. */
         enum class Status {
             Stopped,
@@ -119,42 +136,6 @@ internal class MjpegCaptureSession(
 
         /** Retained failure outranks Engine state and successful cleanup, keeping Failed until a new attempt. */
         val status: Status
-
-        /** Whether capture started successfully and has not accepted Stop or failed. Suspended capture still counts. */
-        val isStreaming: Boolean
-
-        /**
-         * A Stop cause has been accepted, including failure or natural/system termination. Remains true
-         * after cleanup; this is not the availability of the UI Stop action.
-         */
-        val isStopRequested: Boolean
-
-        /** Recoverable reason shown only while [status] is [Status.Suspended]. */
-        val suspensionProblem: SuspensionProblem?
-
-        /** First acquisition or capture failure. */
-        val captureFailure: Failure?
-
-        /** First resource-release failure. */
-        val cleanupFailure: Failure?
-
-        /**
-         * Outcome of this adapter's cleanup operations, null until they finish; separate from capture success.
-         * Engine stop confirms logical shutdown and projection stop, not all internal Engine resource cleanup.
-         * Optional screen-wake-lock errors only log and do not affect this outcome.
-         */
-        val cleanupSucceeded: Boolean?
-    }
-
-    private data class StateSnapshot(
-        val engineState: MjpegEngineState? = null,
-        val startSucceeded: Boolean = false,
-        val stopReason: StopReason? = null,
-        override val captureFailure: Failure? = null,
-        override val cleanupFailure: Failure? = null,
-        override val cleanupSucceeded: Boolean? = null,
-    ) : State {
-        override val status: Status
             get() {
                 val engineStatus = when (engineState?.phase) {
                     null -> Status.WaitingForPermission
@@ -173,13 +154,19 @@ internal class MjpegCaptureSession(
                 }
             }
 
-        override val isStreaming: Boolean
+        /** Whether capture started successfully and has not accepted Stop or failed. Suspended capture still counts. */
+        val isStreaming: Boolean
             get() = startSucceeded && !isStopRequested
 
-        override val isStopRequested: Boolean
+        /**
+         * A Stop cause has been accepted, including failure or natural/system termination. Remains true
+         * after cleanup; this is not the availability of the UI Stop action.
+         */
+        val isStopRequested: Boolean
             get() = stopReason != null
 
-        override val suspensionProblem: SuspensionProblem?
+        /** Recoverable reason shown only while [status] is [Status.Suspended]. */
+        val suspensionProblem: SuspensionProblem?
             get() = when {
                 engineState?.phase == Phase.Suspended && status == Status.Suspended -> when (engineState.problem) {
                     ScreenCaptureProblem.InvalidRequest -> SuspensionProblem.InvalidRequest
@@ -191,46 +178,14 @@ internal class MjpegCaptureSession(
 
                 else -> null
             }
-
-        fun withStop(reason: StopReason): StateSnapshot = copy(stopReason = stopReason ?: reason)
-
-        fun withCaptureFailure(stage: String, cause: Throwable): StateSnapshot = copy(
-            captureFailure = captureFailure ?: Failure(stage, cause),
-            stopReason = stopReason ?: StopReason.Error,
-        )
-
-        fun withCleanupFailure(stage: String, cause: Throwable): StateSnapshot = copy(
-            cleanupFailure = cleanupFailure ?: Failure(stage, cause),
-            stopReason = stopReason ?: StopReason.Error,
-        )
-
-        fun withEngineFailure(engineState: MjpegEngineState): StateSnapshot = copy(
-            captureFailure = captureFailure ?: Failure(
-                stage = "Engine.state",
-                cause = IllegalStateException("Engine capture failed: ${engineState.problem}"),
-            ),
-            stopReason = stopReason ?: StopReason.Error,
-        )
-
-        fun withEngineState(engineState: MjpegEngineState): StateSnapshot {
-            val snapshot = when (engineState.phase) {
-                Phase.Failed -> withEngineFailure(engineState)
-                Phase.Stopped -> withStop(StopReason.System)
-                else -> this
-            }
-            return snapshot.copy(engineState = engineState)
-        }
-
-        fun withCleanupOutcome(succeeded: Boolean): StateSnapshot = copy(
-            cleanupSucceeded = succeeded,
-            stopReason = stopReason ?: if (succeeded) StopReason.System else StopReason.Error,
-        )
     }
 
     private val desiredParameters = MutableStateFlow(initialImageSettings.captureParameters())
     private val jpegBackendPolicy: JpegBackendPolicy = initialImageSettings.jpegBackendPolicy
     private lateinit var captureJob: Job
-    private val screenAwakeGate = Any()
+
+    // Lock order: session state gate → HTTP control monitor → JPEG store monitor. Copy outside all three.
+    private val stateGate = Any()
     private var screenWakeLock: PowerManager.WakeLock? = null
 
     /**
@@ -238,7 +193,7 @@ internal class MjpegCaptureSession(
      * while capture failure, cleanup failure and the cleanup outcome remain available.
      */
     val state: StateFlow<State>
-        field = MutableStateFlow(StateSnapshot())
+        field = MutableStateFlow(State(captureGeneration = initialCaptureGeneration))
 
     /** Launch capture once with the initial JPEG backend; return does not confirm consent, startup or a JPEG. */
     fun start() {
@@ -255,29 +210,31 @@ internal class MjpegCaptureSession(
                     cause = cause ?: IllegalStateException("Capture completed without a cleanup outcome"),
                 )
             }
-            state.update { snapshot ->
-                if (snapshot.cleanupSucceeded != null) snapshot else snapshot.copy(
-                    stopReason = snapshot.stopReason ?: if (failure == null) StopReason.System else StopReason.Error,
-                    cleanupFailure = snapshot.cleanupFailure ?: failure,
-                    cleanupSucceeded = failure == null,
-                )
+            synchronized(stateGate) {
+                val snapshot = state.value
+                if (snapshot.cleanupSucceeded == null) {
+                    commitCaptureStateLocked(
+                        snapshot.copy(
+                            stopReason = snapshot.stopReason ?: if (failure == null) StopReason.System else StopReason.Error,
+                            cleanupFailure = snapshot.cleanupFailure ?: failure,
+                            cleanupSucceeded = failure == null,
+                        )
+                    )
+                }
             }
         }
     }
 
     /** Retain the first Stop cause and request cancellation without waiting for JPEG callbacks or cleanup. */
     fun requestStop(reason: StopReason) {
-        synchronized(screenAwakeGate) {
-            state.update { it.withStop(reason) }
-            releaseScreenAwakeLocked()
-        }
+        acceptStop(reason)
         captureJob.cancel()
     }
 
     @Suppress("DEPRECATION")
     @SuppressLint("WakelockTimeout") // The capture lifetime owns this lock; terminal paths release it directly.
     fun updateScreenAwake(enabled: Boolean) {
-        synchronized(screenAwakeGate) {
+        synchronized(stateGate) {
             if (enabled && state.value.isStreaming) {
                 try {
                     val wakeLock = screenWakeLock ?: checkNotNull(context.getSystemService(PowerManager::class.java))
@@ -304,6 +261,89 @@ internal class MjpegCaptureSession(
         }
     }
 
+    private fun acceptStop(reason: StopReason) {
+        synchronized(stateGate) {
+            val snapshot = state.value
+            commitCaptureStateLocked(snapshot.copy(stopReason = snapshot.stopReason ?: reason))
+        }
+    }
+
+    private fun failCapture(stage: String, cause: Throwable) {
+        synchronized(stateGate) {
+            val snapshot = state.value
+            commitCaptureStateLocked(
+                snapshot.copy(
+                    captureFailure = snapshot.captureFailure ?: Failure(stage, cause),
+                    stopReason = snapshot.stopReason ?: StopReason.Error,
+                )
+            )
+        }
+    }
+
+    private fun failCleanup(stage: String, cause: Throwable) {
+        synchronized(stateGate) {
+            val snapshot = state.value
+            commitCaptureStateLocked(
+                snapshot.copy(
+                    cleanupFailure = snapshot.cleanupFailure ?: Failure(stage, cause),
+                    stopReason = snapshot.stopReason ?: StopReason.Error,
+                )
+            )
+        }
+    }
+
+    private fun completeCleanup(succeeded: Boolean) {
+        synchronized(stateGate) {
+            val snapshot = state.value
+            commitCaptureStateLocked(
+                snapshot.copy(
+                    cleanupSucceeded = succeeded,
+                    stopReason = snapshot.stopReason ?: if (succeeded) StopReason.System else StopReason.Error,
+                )
+            )
+        }
+    }
+
+    /** Read fresh facts under the gate; a delayed Flow payload cannot overwrite a newer frame observation. */
+    private fun refreshEngineStateLocked(engineSession: MjpegEngineSession): MjpegEngineState {
+        val engineState = engineSession.currentState
+        val snapshot = state.value
+        val stopReason = when (engineState.phase) {
+            Phase.Failed -> StopReason.Error
+            Phase.Stopped -> StopReason.System
+            else -> null
+        }
+        commitCaptureStateLocked(
+            snapshot.copy(
+                engineState = engineState,
+                captureFailure = snapshot.captureFailure ?: if (engineState.phase == Phase.Failed) engineFailure(engineState) else null,
+                stopReason = snapshot.stopReason ?: stopReason,
+            )
+        )
+        return engineState
+    }
+
+    private fun engineFailure(engineState: MjpegEngineState): Failure = Failure(
+        stage = "Engine.state",
+        cause = IllegalStateException("Engine capture failed: ${engineState.problem}"),
+    )
+
+    /** Commit the effective phase and generation together; HTTP only applies this session's decision. */
+    private fun commitCaptureStateLocked(candidate: State) {
+        val previous = state.value
+        val captureGeneration = when (candidate.status) {
+            Status.Active -> previous.captureGeneration ?: Any()
+            Status.WaitingForPermission, Status.Starting, Status.Reconfiguring -> previous.captureGeneration
+            Status.Suspended, Status.Failed, Status.Stopping, Status.Stopped -> null
+        }
+        val next = candidate.copy(captureGeneration = captureGeneration)
+        state.value = next
+        if (next.isStopRequested) releaseScreenAwakeLocked()
+        if (previous.status != next.status || previous.captureGeneration !== captureGeneration) {
+            http.updateCaptureStatus(id, next.status, captureGeneration)
+        }
+    }
+
     /** Retain the latest dynamic settings through consent/startup for Engine application; ignore them after Stop. */
     fun updateImageSettings(imageSettings: ImageSettings) {
         if (!state.value.isStopRequested) desiredParameters.value = imageSettings.captureParameters()
@@ -322,9 +362,15 @@ internal class MjpegCaptureSession(
         var frameRegistration: MjpegFrameRegistration? = null
         var failureStage = "Startup.consent"
         try {
+            synchronized(stateGate) {
+                val snapshot = state.value
+                if (!snapshot.isStopRequested) {
+                    http.updateCaptureStatus(id, snapshot.status, snapshot.captureGeneration)
+                }
+            }
             consent = captureAccess.requestConsent(id)
             if (consent == null) {
-                state.update { it.withStop(StopReason.User) }
+                acceptStop(StopReason.User)
                 return
             }
 
@@ -334,11 +380,12 @@ internal class MjpegCaptureSession(
             failureStage = "Startup.projection"
             projectionBeforeHandoff = captureAccess.createProjection(consent)
             failureStage = "Engine.creation"
-            engineSession = engineFactory.create(
+            val createdEngineSession = engineFactory.create(
                 context = context,
                 mediaProjection = projectionBeforeHandoff,
                 config = ScreenCaptureConfig(jpegBackendPolicy = jpegBackendPolicy),
             )
+            engineSession = createdEngineSession
             // The Engine now owns the projection; cleanup must stop the session instead.
             projectionBeforeHandoff = null
             failureStage = "Startup.projectionHandoff"
@@ -346,33 +393,43 @@ internal class MjpegCaptureSession(
 
             failureStage = "Engine.registration"
             val captureContext = currentCoroutineContext()
-            frameRegistration = engineSession.registerFrameConsumer { frame ->
+            frameRegistration = createdEngineSession.registerFrameConsumer { frame ->
                 runCatching {
-                    val byteCount = frame.byteCount
-                    onJpeg(byteCount) { bytes -> check(frame.copyTo(bytes) == byteCount) { "Incomplete JPEG copy" } }
-                }.onFailure { cause ->
-                    synchronized(screenAwakeGate) {
-                        state.update { it.withCaptureFailure("Output.frame", cause) }
-                        releaseScreenAwakeLocked()
+                    val captureGeneration = synchronized(stateGate) {
+                        refreshEngineStateLocked(createdEngineSession)
+                        state.value.captureGeneration
                     }
-                    captureContext.cancel()
+                    if (captureGeneration != null) {
+                        val byteCount = frame.byteCount
+                        http.offerJpeg(captureGeneration, byteCount) { bytes ->
+                            check(frame.copyTo(bytes) == byteCount) { "Incomplete JPEG copy" }
+                        }
+                    }
+                }.onFailure { cause ->
+                    failCapture("Output.frame", cause)
                 }
+                if (state.value.isStopRequested) captureContext.cancel()
             }
 
             failureStage = "Engine.start"
-            runEngineSession(engineSession)
+            runEngineSession(createdEngineSession)
         } catch (_: CancellationException) {
-            val engineStateAtCancellation = engineSession?.currentState
-            if (engineStateAtCancellation?.phase == Phase.Failed) {
-                state.update { it.withEngineFailure(engineStateAtCancellation) }
+            synchronized(stateGate) {
+                val engineStateAtCancellation = engineSession?.currentState
+                if (engineStateAtCancellation?.phase == Phase.Failed) {
+                    val snapshot = state.value
+                    commitCaptureStateLocked(
+                        snapshot.copy(
+                            captureFailure = snapshot.captureFailure ?: engineFailure(engineStateAtCancellation),
+                            stopReason = snapshot.stopReason ?: StopReason.Error,
+                        )
+                    )
+                }
             }
         } catch (cause: Throwable) {
-            state.update { it.withCaptureFailure(failureStage, cause) }
+            failCapture(failureStage, cause)
         } finally {
-            synchronized(screenAwakeGate) {
-                state.update { it.withStop(StopReason.System) }
-                releaseScreenAwakeLocked()
-            }
+            acceptStop(StopReason.System)
             releaseResources(consent, projectionBeforeHandoff, engineSession, frameRegistration)
         }
     }
@@ -380,36 +437,30 @@ internal class MjpegCaptureSession(
     private suspend fun runEngineSession(engineSession: MjpegEngineSession): Nothing = coroutineScope {
         val initialParameters = desiredParameters.value
         // Parameter submission must not backpressure terminal-state handling.
-        val observedStates = engineSession.states.onEach { engineState ->
+        engineSession.states.onEach {
+            val engineState = synchronized(stateGate) { refreshEngineStateLocked(engineSession) }
             this@MjpegCaptureSession.logV("Engine.state", "state=${engineState.phase.name}")
             val isTerminal = engineState.phase == Phase.Failed || engineState.phase == Phase.Stopped
-            synchronized(screenAwakeGate) {
-                state.update { it.withEngineState(engineState) }
-                if (isTerminal) {
-                    releaseScreenAwakeLocked()
-                }
-            }
             if (isTerminal) {
                 this@coroutineScope.cancel()
             }
         }.catch { cause ->
-            synchronized(screenAwakeGate) {
-                state.update { it.withCaptureFailure("Engine.stateObservation", cause) }
-                releaseScreenAwakeLocked()
-            }
+            failCapture("Engine.stateObservation", cause)
             this@coroutineScope.cancel()
-        }.conflate()
+        }.launchIn(this)
 
         var submittedParameters = initialParameters
-        combine(desiredParameters, observedStates) { parameters, engineState -> parameters to engineState }.onEach { (parameters, engineState) ->
-            val isRunning = engineState.phase == Phase.Active || engineState.phase == Phase.Reconfiguring || engineState.phase == Phase.Suspended
-            if (isRunning && !state.value.isStopRequested && parameters != submittedParameters) {
-                try {
-                    engineSession.updateParameters(parameters)
-                    submittedParameters = parameters
-                } catch (_: IllegalStateException) {
-                    this@MjpegCaptureSession.logD("Engine.imageUpdate", "Parameter update admission closed")
-                }
+        combine(desiredParameters, state) { parameters, captureState ->
+            val canSubmitParameters = when (captureState.status) {
+                Status.Active, Status.Reconfiguring, Status.Suspended -> true
+                else -> false
+            }
+            if (!canSubmitParameters || state.value.isStopRequested || parameters == submittedParameters) return@combine
+            try {
+                engineSession.updateParameters(parameters)
+                submittedParameters = parameters
+            } catch (_: IllegalStateException) {
+                this@MjpegCaptureSession.logD("Engine.imageUpdate", "Parameter update admission closed")
             }
         }.launchIn(this)
 
@@ -420,7 +471,7 @@ internal class MjpegCaptureSession(
         }.launchIn(this)
 
         engineSession.start(initialParameters)
-        state.update { it.copy(startSucceeded = true) }
+        synchronized(stateGate) { commitCaptureStateLocked(state.value.copy(startSucceeded = true)) }
         awaitCancellation()
     }
 
@@ -434,51 +485,48 @@ internal class MjpegCaptureSession(
         var cleanupSucceeded = false
         try {
             coroutineScope {
-                val consumerCleanup = async {
+                val consumerCleanup = async<Unit> {
                     runCatching { frameRegistration?.unregister() }
                         .onFailure { cause ->
-                            state.update { it.withCleanupFailure("Cleanup.consumer", cause) }
+                            failCleanup("Cleanup.consumer", cause)
                         }
-                        .isSuccess
                 }
                 val mediaReleased = runCatching { if (engineSession != null) engineSession.stop() else projectionBeforeHandoff?.stop() }
                     .onFailure { cause ->
-                        state.update { it.withCleanupFailure("Cleanup.media", cause) }
+                        failCleanup("Cleanup.media", cause)
                     }.isSuccess
-                engineSession?.currentState?.let { engineState ->
-                    state.update { it.withEngineState(engineState) }
+                if (engineSession != null) {
+                    synchronized(stateGate) { refreshEngineStateLocked(engineSession) }
                 }
 
-                val foregroundReleased = (engineSession == null || mediaReleased) && runCatching(leaveForeground)
+                if (engineSession == null || mediaReleased) {
+                    runCatching(leaveForeground)
+                        .onFailure { cause ->
+                            failCleanup("Cleanup.foreground", cause)
+                        }
+                }
+                runCatching { captureAccess.finishProjectionCreation(id) }
                     .onFailure { cause ->
-                        state.update { it.withCleanupFailure("Cleanup.foreground", cause) }
+                        failCleanup("Cleanup.projectionCreation", cause)
                     }
-                    .isSuccess
-                val projectionGuardReleased = runCatching { captureAccess.finishProjectionCreation(id) }
-                    .onFailure { cause ->
-                        state.update { it.withCleanupFailure("Cleanup.projectionCreation", cause) }
-                    }
-                    .isSuccess
-                val consumerReleased = consumerCleanup.await()
-                cleanupSucceeded = mediaReleased && foregroundReleased && projectionGuardReleased && consumerReleased
+                consumerCleanup.await()
 
                 val snapshot = state.value
-                val reuseConsent = cleanupSucceeded && snapshot.startSucceeded && snapshot.captureFailure == null &&
+                val reuseConsent = snapshot.cleanupFailure == null && snapshot.startSucceeded && snapshot.captureFailure == null &&
                         (snapshot.stopReason == StopReason.User || snapshot.stopReason == StopReason.Shutdown) &&
                         snapshot.engineState?.phase == Phase.Stopped && snapshot.engineState.stopReason == ScreenCaptureStopReason.Requested
                 if (reuseConsent && consent != null) {
-                    cleanupSucceeded = runCatching { captureAccess.saveConsentForReuse(consent) }
+                    runCatching { captureAccess.saveConsentForReuse(consent) }
                         .onFailure { cause ->
-                            state.update { it.withCleanupFailure("Cleanup.consentReuse", cause) }
+                            failCleanup("Cleanup.consentReuse", cause)
                         }
-                        .isSuccess
                 }
             }
+            cleanupSucceeded = state.value.cleanupFailure == null
         } catch (cause: Throwable) {
-            cleanupSucceeded = false
-            state.update { it.withCleanupFailure("Cleanup.capture", cause) }
+            failCleanup("Cleanup.capture", cause)
         } finally {
-            state.update { it.withCleanupOutcome(cleanupSucceeded) }
+            completeCleanup(cleanupSucceeded)
         }
     }
 

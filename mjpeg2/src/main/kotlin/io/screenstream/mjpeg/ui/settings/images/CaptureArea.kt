@@ -64,7 +64,7 @@ internal fun CaptureAreaSettingItem(
                     options = SourceRegion.entries,
                     optionLabel = { option ->
                         val label = stringResource(CaptureAreaSearch.labelResIds.getValue(option))
-                        if (option == SourceRegion.Full) stringResource(R.string.mjpeg_pref_default_option, label) else label
+                        if (option == ImageSettings.DEFAULT_SOURCE_REGION) stringResource(R.string.mjpeg_pref_default_option, label) else label
                     },
                     onValueSelected = { selected -> if (selected != region) onImageChange { copy(sourceRegion = selected) } },
                     onDismissRequest = {

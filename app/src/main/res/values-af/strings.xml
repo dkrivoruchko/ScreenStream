@@ -3,6 +3,9 @@
     <string name="app_error_title">Fout</string>
     <string name="app_error_recover">Herstel</string>
 
+    <string name="app_module_error_title">Iets het verkeerd geloop</string>
+    <string name="app_module_error_restart">Herbegin module</string>
+
     <string name="app_activity_update_dialog_title">Opdatering beskikbaar</string>
     <string name="app_activity_update_dialog_message">\'n Opdatering is pas afgelaai. Herbegin die app nou?</string>
     <string name="app_activity_update_dialog_restart">Begin oor</string>

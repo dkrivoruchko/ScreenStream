@@ -101,9 +101,7 @@ internal enum class AppTabs(
 }
 
 @Composable
-private fun MainContent(
-    modifier: Modifier = Modifier
-) {
+private fun MainContent(modifier: Modifier = Modifier) {
     val selectedTab = rememberSaveable { mutableStateOf(AppTabs.STREAM) }
 
     BackHandler(enabled = selectedTab.value != AppTabs.STREAM) { selectedTab.value = AppTabs.STREAM }

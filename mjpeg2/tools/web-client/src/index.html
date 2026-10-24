@@ -14,9 +14,17 @@
   <div id="top-bar" class="edge bar"></div>
   <div id="viewport" tabindex="0" aria-label="Stream image. Use arrow keys to scroll.">
     <div id="image-stage"></div>
-    <section id="placeholder" class="open-state" role="status" aria-live="polite">
+    <section id="placeholder" class="open-state">
       <img id="state-logo" width="192" height="192" alt="" aria-hidden="true" hidden>
-      <div class="open-content"><p id="state-message"></p></div>
+      <div id="status-panel" class="status-panel">
+        <div class="open-content"><p id="state-message" role="status" aria-live="polite"></p></div>
+        <div class="open-actions">
+          <div id="recovery" class="recovery" hidden>
+            <button id="recovery-retry" type="button" data-word="retry"></button>
+            <button id="recovery-alternate" type="button" data-word="useJpeg"></button>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
   <div id="bottom-bar" class="edge bar"></div>
@@ -44,8 +52,6 @@
     </button>
   </div>
   <div id="control-tooltip" class="control-tooltip" aria-hidden="true" hidden></div>
-  <div id="status" class="status" role="status" aria-live="polite"></div>
-  <div id="capture-notice" class="capture-notice" role="status" aria-live="polite" hidden></div>
   <section id="menu" class="panel" role="region" aria-label="More viewing options" tabindex="-1" hidden>
     <h2 id="method-label" class="menu-heading" data-word="connection"></h2>
     <div class="method-choices" role="group" aria-labelledby="method-label">
@@ -75,7 +81,7 @@
     <img id="pin-logo" src="/* INLINE_LOGO */" width="192" height="192" alt="" aria-hidden="true">
     <div class="open-content">
       <h1 id="pin-title" data-word="pinTitle"></h1>
-      <form id="pin-form" method="post" action="/pin">
+      <form id="pin-form" method="post" action="/pin" novalidate>
         <p id="pin-message" role="status" aria-live="polite"></p>
         <p id="pin-block-copy" data-word="pinBlocked" aria-hidden="true" hidden></p>
         <div id="pin-countdown" aria-hidden="true" hidden>
@@ -83,17 +89,14 @@
         </div>
         <div id="pin-entry">
           <label for="pin" data-word="pinRequired"></label>
-          <input id="pin" name="pin" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message">
+          <input id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message pin-error" aria-invalid="false">
+          <p id="pin-error" role="status" aria-live="polite" hidden></p>
           <button id="unlock" type="submit" data-word="unlock"></button>
         </div>
       </form>
       <button id="pin-retry" type="button" data-word="retry" hidden></button>
     </div>
   </section>
-  <div id="recovery" class="panel recovery" hidden>
-    <button id="recovery-retry" type="button" data-word="retry"></button>
-    <button id="recovery-alternate" type="button" data-word="useJpeg"></button>
-  </div>
   <video id="pip-video" muted playsinline aria-hidden="true"></video>
   <noscript><p class="panel">Enable JavaScript to view this stream and enter its PIN.</p></noscript>
 </main>

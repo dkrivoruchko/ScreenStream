@@ -5,14 +5,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -28,6 +25,7 @@ import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingsItem
 import io.screenstream.mjpeg.ui.settings.parseSettingInteger
 import io.screenstream.mjpeg.ui.settings.rememberSettingNumberFormat
+import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object HttpPortSearch {
     val fieldLabelRes: Int = R.string.mjpeg_pref_network_port_label
@@ -48,20 +46,13 @@ internal fun HttpPortSettingItem(
 ) {
     val numberFormat = rememberSettingNumberFormat()
     var showEditor by retain { mutableStateOf(false) }
-    val openerFocusRequester = remember { FocusRequester() }
-    var shouldRestoreFocus by remember { mutableStateOf(false) }
-    LaunchedEffect(showEditor) {
-        if (!showEditor && shouldRestoreFocus) {
-            openerFocusRequester.requestFocus()
-            shouldRestoreFocus = false
-        }
-    }
+    val openerFocus = rememberSettingOpenerFocus(editorVisible = showEditor)
     SettingsItem(
         title = stringResource(HttpPortSearch.info.titleRes),
         summary = stringResource(HttpPortSearch.info.summaryRes),
         iconRes = R.drawable.mjpeg_icon_settings_ethernet,
         onClick = { showEditor = true },
-        modifier = Modifier.focusRequester(openerFocusRequester),
+        modifier = Modifier.focusRequester(openerFocus.requester),
         trailingContent = {
             Text(
                 numberFormat.format(httpPort),
@@ -74,7 +65,7 @@ internal fun HttpPortSettingItem(
     if (showEditor) {
         HttpPortEditor(httpPort, canEditStreamSetup, onNetworkChange) {
             showEditor = false
-            shouldRestoreFocus = true
+            openerFocus.markDismissed()
         }
     }
 }
@@ -107,7 +98,7 @@ private fun HttpPortEditor(
         },
     ) {
         Text(
-            stringResource(R.string.mjpeg_pref_default_value, numberFormat.format(8080)),
+            stringResource(R.string.mjpeg_pref_default_value, numberFormat.format(NetworkSettings.DEFAULT_HTTP_PORT)),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )

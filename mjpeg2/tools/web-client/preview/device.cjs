@@ -27,7 +27,6 @@ function createDevice() {
     function notice() { return currentCapture() || scenarioId === 'starting' ? null : scenarioId; }
     function imageKind() {
         if (currentCapture() && options.imageAvailable) return 'live';
-        if (options.postStopImage === 'none') return 'none';
         if (options.postStopImage === 'last' && !currentCapture() && options.imageAvailable) return 'retained';
         return 'logo';
     }
@@ -86,7 +85,7 @@ function createDevice() {
         const next = { ...options };
         for (const [key, value] of Object.entries(update)) {
             if (key === 'postStopImage') {
-                if (!['logo', 'last', 'none'].includes(value)) throw new DeviceError('Invalid inactive image');
+                if (!['logo', 'last'].includes(value)) throw new DeviceError('Invalid inactive image');
             } else if (key === 'imageAvailable') {
                 if (typeof value !== 'boolean') throw new DeviceError('Image available must be Boolean');
             } else throw new DeviceError('Unknown device option: ' + key);

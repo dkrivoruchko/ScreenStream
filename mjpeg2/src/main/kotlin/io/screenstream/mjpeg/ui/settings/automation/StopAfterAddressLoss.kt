@@ -5,14 +5,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -28,6 +25,7 @@ import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingsItem
 import io.screenstream.mjpeg.ui.settings.parseSettingInteger
 import io.screenstream.mjpeg.ui.settings.rememberSettingNumberFormat
+import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object StopAfterAddressLossSearch {
     val fieldLabelRes: Int = R.string.mjpeg_pref_stream_network_loss_timeout_label
@@ -47,20 +45,13 @@ internal fun StopAfterAddressLossSettingItem(
     onBehaviorChange: (StreamBehaviorSettings.() -> StreamBehaviorSettings) -> Unit,
 ) {
     var showEditor by retain { mutableStateOf(false) }
-    val openerFocusRequester = remember { FocusRequester() }
-    var shouldRestoreFocus by remember { mutableStateOf(false) }
-    LaunchedEffect(showEditor) {
-        if (!showEditor && shouldRestoreFocus) {
-            openerFocusRequester.requestFocus()
-            shouldRestoreFocus = false
-        }
-    }
+    val openerFocus = rememberSettingOpenerFocus(editorVisible = showEditor)
     SettingsItem(
         title = stringResource(StopAfterAddressLossSearch.info.titleRes),
         summary = stringResource(StopAfterAddressLossSearch.info.summaryRes),
         iconRes = R.drawable.mjpeg_icon_timer,
         onClick = { showEditor = true },
-        modifier = Modifier.focusRequester(openerFocusRequester),
+        modifier = Modifier.focusRequester(openerFocus.requester),
         trailingContent = {
             Text(
                 stringResource(R.string.mjpeg_pref_stream_network_loss_timeout_value, timeoutSeconds),
@@ -73,7 +64,7 @@ internal fun StopAfterAddressLossSettingItem(
     if (showEditor) {
         StopAfterAddressLossEditor(timeoutSeconds, onBehaviorChange) {
             showEditor = false
-            shouldRestoreFocus = true
+            openerFocus.markDismissed()
         }
     }
 }
@@ -105,7 +96,10 @@ private fun StopAfterAddressLossEditor(
         },
     ) {
         Text(
-            stringResource(R.string.mjpeg_pref_stream_network_loss_timeout_default, numberFormat.format(60)),
+            stringResource(
+                R.string.mjpeg_pref_stream_network_loss_timeout_default,
+                numberFormat.format(StreamBehaviorSettings.DEFAULT_STOP_AFTER_NETWORK_LOSS_SECONDS),
+            ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )

@@ -3,6 +3,9 @@
     <string name="app_error_title">錯誤</string>
     <string name="app_error_recover">復原</string>
 
+    <string name="app_module_error_title">發生問題</string>
+    <string name="app_module_error_restart">重新啟動模組</string>
+
     <string name="app_activity_update_dialog_title">有新版本可用</string>
     <string name="app_activity_update_dialog_message">更新已下載完畢，是否要立即重新啟動應用程式？</string>
     <string name="app_activity_update_dialog_restart">重新啟動應用程式</string>

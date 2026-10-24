@@ -106,14 +106,15 @@ private fun FrameRateEditor(
     // Only the variant matters here; numeric values live in the input drafts.
     var selectedFrameRate by retain { mutableStateOf(initialFrameRate) }
     var fpsInput by retain {
-        mutableStateOf(TextFieldValue(numberFormat.format((initialFrameRate as? CaptureFrameRate.MaxFps)?.fps ?: 30)))
+        val initialFps = (initialFrameRate as? CaptureFrameRate.MaxFps)?.fps ?: ImageSettings.UI_DEFAULT_MANUAL_FPS
+        mutableStateOf(TextFieldValue(numberFormat.format(initialFps)))
     }
     var intervalInput by retain {
         mutableStateOf(
             TextFieldValue(
                 (initialFrameRate as? CaptureFrameRate.SamplingInterval)?.let {
                     numberFormat.format(it.interval.toDouble(DurationUnit.SECONDS))
-                } ?: numberFormat.format(1)
+                } ?: numberFormat.format(ImageSettings.UI_DEFAULT_SAMPLING_INTERVAL.toDouble(DurationUnit.SECONDS))
             )
         )
     }
@@ -161,19 +162,40 @@ private fun FrameRateEditor(
                 selected = selectedFrameRate == CaptureFrameRate.Auto,
                 onClick = { selectedFrameRate = CaptureFrameRate.Auto },
                 shape = SegmentedButtonDefaults.itemShape(0, 3),
-                label = { Text(stringResource(R.string.mjpeg_pref_default_option, stringResource(FrameRateSearch.automaticOption.labelRes))) },
+                label = {
+                    val label = stringResource(FrameRateSearch.automaticOption.labelRes)
+                    Text(
+                        if (ImageSettings.DEFAULT_FRAME_RATE == CaptureFrameRate.Auto) {
+                            stringResource(R.string.mjpeg_pref_default_option, label)
+                        } else label
+                    )
+                },
             )
             SegmentedButton(
                 selected = selectedFrameRate is CaptureFrameRate.MaxFps,
-                onClick = { selectedFrameRate = CaptureFrameRate.MaxFps(30) },
+                onClick = { selectedFrameRate = CaptureFrameRate.MaxFps(ImageSettings.UI_DEFAULT_MANUAL_FPS) },
                 shape = SegmentedButtonDefaults.itemShape(1, 3),
-                label = { Text(stringResource(FrameRateSearch.fpsLimitOption.labelRes)) },
+                label = {
+                    val label = stringResource(FrameRateSearch.fpsLimitOption.labelRes)
+                    Text(
+                        if (ImageSettings.DEFAULT_FRAME_RATE is CaptureFrameRate.MaxFps) {
+                            stringResource(R.string.mjpeg_pref_default_option, label)
+                        } else label
+                    )
+                },
             )
             SegmentedButton(
                 selected = selectedFrameRate is CaptureFrameRate.SamplingInterval,
-                onClick = { selectedFrameRate = CaptureFrameRate.SamplingInterval(1.seconds) },
+                onClick = { selectedFrameRate = CaptureFrameRate.SamplingInterval(ImageSettings.UI_DEFAULT_SAMPLING_INTERVAL) },
                 shape = SegmentedButtonDefaults.itemShape(2, 3),
-                label = { Text(stringResource(FrameRateSearch.intervalOption.labelRes)) },
+                label = {
+                    val label = stringResource(FrameRateSearch.intervalOption.labelRes)
+                    Text(
+                        if (ImageSettings.DEFAULT_FRAME_RATE is CaptureFrameRate.SamplingInterval) {
+                            stringResource(R.string.mjpeg_pref_default_option, label)
+                        } else label
+                    )
+                },
             )
         }
         val selectedOption = when (selectedFrameRate) {

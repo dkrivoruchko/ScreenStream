@@ -3,6 +3,9 @@
     <string name="app_error_title">Erreur</string>
     <string name="app_error_recover">Rétablir</string>
 
+    <string name="app_module_error_title">Un problème est survenu</string>
+    <string name="app_module_error_restart">Redémarrer le module</string>
+
     <string name="app_activity_update_dialog_title">Mise à jour disponible</string>
     <string name="app_activity_update_dialog_message">Une mise à jour vient d\'être téléchargée. Redémarrer l\'application maintenant ?</string>
     <string name="app_activity_update_dialog_restart">Redémarrer</string>

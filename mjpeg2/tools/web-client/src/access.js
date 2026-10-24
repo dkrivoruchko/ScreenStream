@@ -1,12 +1,18 @@
 function createAccessPanel(viewportLayout, callbacks) {
     const panel = byId('pin-panel'), input = byId('pin'), submitButton = byId('unlock');
     const title = byId('pin-title'), message = byId('pin-message'), entry = byId('pin-entry');
+    const fieldError = byId('pin-error');
     const blockCopy = byId('pin-block-copy'), countdown = byId('pin-countdown');
     const logo = byId('pin-logo'), retryButton = byId('pin-retry'), countdownValue = byId('pin-countdown-value');
-    let blockedUntil = 0, blockedTimer = null, networkFailure = false;
+    let blockedUntil = 0, blockedTimer = null, networkFailure = false, accessState = null, sending = false;
 
     function clearBlock() {
         clearTimeout(blockedTimer); blockedTimer = null; blockedUntil = 0;
+    }
+    function showFieldError(value) {
+        text(fieldError, value);
+        fieldError.hidden = !value;
+        input.setAttribute('aria-invalid', value ? 'true' : 'false');
     }
     function showMessage(value) {
         text(title, words.pinTitle);
@@ -20,7 +26,10 @@ function createAccessPanel(viewportLayout, callbacks) {
     function formatRemaining(seconds) {
         return seconds < 60 ? seconds + words.secondsShort : Math.floor(seconds / 60) + ':' + (seconds % 60 < 10 ? '0' : '') + seconds % 60;
     }
-    function showBlocked(ms) {
+    function showBlocked(ms, repeated) {
+        sending = false;
+        clearTimeout(blockedTimer); blockedTimer = null;
+        if (!repeated) showFieldError('');
         blockedUntil = Date.now() + Math.max(0, isFinite(ms) ? ms : 1000);
         text(title, words.pinBlockedTitle);
         entry.hidden = true;
@@ -29,7 +38,7 @@ function createAccessPanel(viewportLayout, callbacks) {
         message.classList.add('sr-only');
         message.hidden = false;
         countdown.hidden = false;
-        text(message, words.pinBlocked + ' ' + words.tryAgainIn + ' ' + formatRemaining(Math.ceil((blockedUntil - Date.now()) / 1000)) + '.');
+        if (!repeated) text(message, words.pinBlocked + ' ' + words.tryAgainIn + ' ' + formatRemaining(Math.ceil((blockedUntil - Date.now()) / 1000)) + '.');
         const tick = () => {
             const seconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
             input.disabled = submitButton.disabled = seconds > 0;
@@ -37,13 +46,21 @@ function createAccessPanel(viewportLayout, callbacks) {
             if (seconds > 0) blockedTimer = setTimeout(tick, 1000);
             else {
                 blockedTimer = null; blockedUntil = 0;
+                accessState = 'pin_required';
                 showMessage(''); callbacks.expired();
             }
         };
         tick();
     }
     function show(value) {
+        if (!panel.hidden && accessState === value.access) {
+            if (value.access === 'blocked') showBlocked(value.retryAfterMs, true);
+            return;
+        }
         clearBlock(); networkFailure = false;
+        sending = false;
+        accessState = value.access;
+        showFieldError('');
         layout();
         const wasHidden = panel.hidden;
         panel.hidden = false;
@@ -53,21 +70,54 @@ function createAccessPanel(viewportLayout, callbacks) {
     }
     function hide() {
         clearBlock(); networkFailure = false;
+        sending = false;
+        accessState = null;
+        showFieldError('');
         panel.hidden = true;
         input.value = '';
     }
     function result(value) {
+        sending = value === 'pinSending';
         networkFailure = value === 'pinNetwork';
         submitButton.disabled = false;
+        showFieldError('');
         if (value === 'success') {
+            accessState = null;
             input.value = '';
             panel.hidden = true;
         } else {
             submitButton.disabled = value === 'pinSending';
-            showMessage(words[value]);
-            if (value === 'pinWrong') { input.select(); input.focus(); }
+            const invalid = value === 'pinWrong' || value === 'pinInvalid';
+            showMessage(invalid ? '' : words[value]);
+            if (invalid) {
+                showFieldError(words[value]);
+                if (value === 'pinWrong') input.select();
+                input.focus();
+            }
         }
     }
+    input.addEventListener('input', () => {
+        const value = input.value, start = input.selectionStart, end = input.selectionEnd;
+        const digits = value.replace(/[^0-9]/g, '').slice(0, 6);
+        if (value !== digits) {
+            input.value = digits;
+            input.setSelectionRange(
+                Math.min(digits.length, value.slice(0, start).replace(/[^0-9]/g, '').length),
+                Math.min(digits.length, value.slice(0, end).replace(/[^0-9]/g, '').length));
+        }
+        showFieldError('');
+    });
+    input.addEventListener('paste', event => {
+        if (!event.clipboardData) return;
+        event.preventDefault();
+        const start = input.selectionStart, end = input.selectionEnd;
+        const digits = event.clipboardData.getData('text').replace(/[^0-9]/g, '');
+        const inserted = digits.slice(0, 6 - input.value.length + end - start);
+        if (!inserted) return;
+        input.value = input.value.slice(0, start) + inserted + input.value.slice(end);
+        input.setSelectionRange(start + inserted.length, start + inserted.length);
+        showFieldError('');
+    });
     function layout(value) {
         const visible = value || viewportLayout.bounds();
         panel.style.left = visible.left + visible.width / 2 + 'px';
@@ -86,8 +136,16 @@ function createAccessPanel(viewportLayout, callbacks) {
     return {
         show, hide, result,
         visible: () => !panel.hidden,
-        updateRetry: state => { retryButton.hidden = panel.hidden || (!networkFailure && state !== 'unavailable'); },
-        pause: () => { clearTimeout(blockedTimer); blockedTimer = null; },
-        resume: () => { layout(); if (blockedUntil) showBlocked(Math.max(0, blockedUntil - Date.now())); }
+        updateRetry: () => { retryButton.hidden = panel.hidden || !networkFailure; },
+        pause: () => {
+            clearTimeout(blockedTimer); blockedTimer = null;
+            // The page aborts its PIN request before pausing this panel.
+            if (sending) {
+                sending = false;
+                submitButton.disabled = false;
+                showMessage('');
+            }
+        },
+        resume: () => { layout(); if (blockedUntil) showBlocked(Math.max(0, blockedUntil - Date.now()), true); }
     };
 }

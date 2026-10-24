@@ -98,7 +98,7 @@ internal fun SearchSettingsField(query: TextFieldState, modifier: Modifier = Mod
     OutlinedTextField(
         state = query,
         modifier = modifier
-            .padding(start = 16.dp, top = 16.dp, end = 16.dp)
+            .padding(horizontal = 16.dp)
             .wrapContentWidth(Alignment.CenterHorizontally)
             .widthIn(max = 560.dp)
             .fillMaxWidth()

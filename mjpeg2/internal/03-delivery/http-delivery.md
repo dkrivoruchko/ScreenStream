@@ -1,6 +1,6 @@
 # HTTP delivery
 
-One `HttpDelivery` serves a module's selected addresses. Listeners share credentials, routes and the selected JPEG; capture and encoding are not repeated per listener or viewer. The controller supplies settings, permission-filtered addresses and capture status; HTTP owns no Android capture resources. Physical request jobs own response completion, while endpoint history rows provide sampled viewer/accounting state. [Module lifecycle](../01-lifecycle/module-lifecycle.md) owns capture cleanup, [JPEG delivery](jpeg-delivery.md) owns image storage/writing, and the [HTTP viewing API](../../docs/http-viewing-api.md) owns routes and wire state; [Web client](web-client.md) extends it with the transport/browser implementation.
+One `HttpDelivery` serves a module's selected addresses. Listeners share credentials, routes and the selected JPEG; capture and encoding are not repeated per listener or viewer. The controller supplies settings and permission-filtered addresses; the capture session decides and pushes capture phase/generation, which HTTP applies without returning generation identity. HTTP owns no Android capture resources. Physical request jobs own response completion, while endpoint history rows provide sampled viewer/accounting state. [Module lifecycle](../01-lifecycle/module-lifecycle.md) owns capture cleanup, [JPEG delivery](jpeg-delivery.md) owns image storage/writing, and the [HTTP viewing API](../../docs/http-viewing-api.md) owns routes and wire state; [Web client](web-client.md) extends it with the transport/browser implementation.
 
 ## Contents
 
@@ -31,7 +31,7 @@ The control monitor coordinates access, plan changes, request registration, cuto
 
 `start` activates once, transfers exclusive ownership of logo bytes, applies configuration and starts owners/sampling. It can succeed with no selected address or no bound listener: success means admission is open. Pre-activation plans remain `Pending` without socket work. Repeated activation or terminal shutdown rejects start. The controller reads the logo on IO and must not mutate the transferred bytes.
 
-`registerCapture` records an attempt/source before engine construction. Capture status changes are identity-fenced and select content through [JPEG delivery](jpeg-delivery.md#capture-source-and-image-selection). They do not replace the HTTP lifetime.
+`registerCapture(attempt, initialCaptureGeneration)` records the inert session's exact attempt/generation before capture starts and sets Starting. The capture session serializes subsequent status/generation decisions in its immutable snapshot and pushes them through `updateCaptureStatus`; HTTP atomically applies the pair and returns no capability. JPEG offers carry the exact generation read from the committed session snapshot rather than looking up a replacement on entry. Closed/stale attempts are ignored independently of the session's logical generation. Capture status changes are identity-fenced and select content through [JPEG delivery](jpeg-delivery.md#capture-generation-and-image-selection). They do not replace the HTTP lifetime. An unexpected status-operation failure uses the HTTP worker fatal path and terminal admission closure, independently of capture cleanup; it does not become a resource-release failure.
 
 ## Planned servers and scoped sockets
 
@@ -59,8 +59,8 @@ sequenceDiagram
     L-->>D: Listening or Failed
     C->>D: Remove or replace incarnation
     D->>D: Revoke old request admission
-    D->>L: Request cancellation
-    O->>L: Join engine and stop Ktor
+    D->>L: Cancel listener engine
+    O->>L: Join engine, then public Ktor stop
     O->>D: Read latest plan
     Note over O: Next same-key bind follows cleanup
 ```
@@ -81,6 +81,8 @@ Rotation under one control monitor closes old media readers' next-frame admissio
 
 With wrong-PIN limiting enabled, the fifth wrong entry blocks verification for the immediate peer IP across all listeners. Missing or malformed PINs count as wrong when the parser supplies null. A block rejects even a correct PIN until expiry; requests during it do not extend its deadline. Success outside a block or expiry clears its attempts. A duration edit affects only later blocks. Rotation preserves current attempts/blocks; opening access or disabling the limiter clears them. Existing viewing credentials continue authorizing during a PIN block.
 
+Attempt history holds at most 1024 peer IPs. A partial counter expires after 15 minutes without another wrong PIN; an active block keeps its original deadline. Verification and denied WebSocket admission prune expired records without refreshing deadlines. Live records are never evicted. When the table is full, a new IP must wait until the earliest record expiry before its PIN is compared, including a correct PIN; a known unblocked IP can still authorize and release its record. Capacity denial creates no record and does not extend any deadline. Existing viewing credentials remain usable.
+
 Peer identity is the direct connection address, not forwarded headers, a browser tab or a person. Block deadlines use elapsed realtime and saturate rather than overflow when adding duration. There is no persistent PIN-attempt history across delivery lifetimes.
 
 ## Request admission and cutoff
@@ -91,7 +93,7 @@ The exact call job's completion retires a response; return from the route or `re
 
 WebSocket admission accepts open access or a valid cookie, requires the exact active listener and call job, and records the current generation. It creates no media row. The transport checks listener/generation again before state sends; incoming termination ends its waiting collector. URL tokens authorize media or exchange through `/`, but do not directly authorize `/ws`.
 
-Listener removal cuts off admission immediately, closes its readers and cancels its media/WebSocket jobs. Ordinary capture Stop or source replacement changes selected content while existing media readers survive. Credential rotation closes reader admission without forcibly canceling an acquired media payload. Terminal HTTP stop closes admission and separately requests physical cancellation.
+Listener removal cuts off admission immediately, closes its readers and cancels its media/WebSocket jobs. Ordinary capture Stop or generation replacement changes selected content while existing media readers survive. Credential rotation closes reader admission without forcibly canceling an acquired media payload. Terminal HTTP stop closes admission and separately requests physical cancellation.
 
 ## Client history and statistics
 
@@ -105,13 +107,15 @@ Server state and fatal failure publish immediately while preserving the previous
 
 Each sample combines progress from still-active responses with retired totals; payload counters do not wait for response completion. Completed counts include each fully written JPEG payload, including repeats, and exclude framing and partial payload writes. [JPEG writing](jpeg-delivery.md#writing-jpeg-and-mjpeg) advances them before multipart footer/flush. They prove output-path payload progress, not receipt, decoding or display. Exact call-job completion transfers final writer progress once, even if its row already disappeared.
 
-`hasConsumer` derives from sampled Active rows, including idle grace; there is no separate global activity tail. A delayed sample may miss a short Active period. Endpoint `isSlow` is true when any current-listener MJPEG response is slow for the current non-null capture source token. The sampler captures that token and current listeners under the control monitor; writers observe frame metadata without querying current source authority. [JPEG slow observations](jpeg-delivery.md#slow-reader-observations) owns the skipped-publication algorithm; adjacent store/progress samples are not one atomic frame observation.
+`hasConsumer` derives from sampled Active rows, including idle grace; there is no separate global activity tail. A delayed sample may miss a short Active period. Endpoint `isSlow` is true when any current-listener MJPEG response is slow for the current non-null capture generation identity. The sampler captures that token and current listeners under the control monitor; writers observe frame metadata without querying current generation identity. [JPEG slow observations](jpeg-delivery.md#slow-reader-observations) owns the skipped-publication algorithm; adjacent store/progress samples are not one atomic frame observation.
 
 ## Terminal cleanup
 
 `requestStop` irreversibly closes runtime admission, readers and store, removes the plan/history, and publishes closing state. Outside the monitor it requests listener, call-job and runtime cancellation. Delivery records cancellation failures while still attempting the remaining actions, and starts shared cleanup independently of waiters.
 
-Each listener's engine job is a child of the runtime job. Its noncancellable retirement joins engine work and then calls Ktor stop with zero grace/timeout. A failure records cleanup and fatal causes, requests terminal stop and prevents that socket owner from proceeding to a successor with uncertain cleanup.
+Each listener's engine job is a child of the runtime job. After admission cutoff, `requestStop` cancels that job directly. The socket owner uses CIO's cancellable suspend wait for server-job completion. A stop before or during startup cancels the same engine job; delivery's current-plan and exact-listener checks fence a late Listening result.
+
+Noncancellable retirement requests engine cancellation and joins the engine job, then calls public Ktor stop with zero grace and timeout to dispose the application and plugins. Public stop runs in `finally` after the join. The socket owner remains held until engine and framework/application cleanup finish. A failure records cleanup and fatal causes, requests terminal stop and prevents that socket owner from proceeding to a successor with uncertain cleanup. Terminal runtime cancellation still propagates to its engine children independently.
 
 `stop()` awaits one shared deferred. Cleanup joins runtime owners, sampler, CIO engines and physical calls. The WebSocket adapter joins Ktor's detached default-session job before its call finishes. It clears remaining owner bookkeeping and takes the final statistics sample. Canceling a stop waiter does not abandon resources or establish success.
 

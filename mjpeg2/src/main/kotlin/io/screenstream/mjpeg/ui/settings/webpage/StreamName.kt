@@ -146,16 +146,14 @@ private fun StreamNameEditor(
         stringResource(R.string.mjpeg_pref_web_stream_name_error, MAXIMUM_STREAM_NAME_LENGTH)
     } else null
 
-    fun closeEditor() {
-        val name = nameInput.text
-        if (name != initialName && name.length <= MAXIMUM_STREAM_NAME_LENGTH) onWebPageChange { copy(title = name) }
-        onDismiss()
-    }
-
     SettingEditor(
         title = stringResource(StreamNameSearch.info.titleRes),
         description = stringResource(StreamNameSearch.info.summaryRes),
-        onDismiss = ::closeEditor,
+        onDismiss = {
+            val name = nameInput.text
+            if (name != initialName && name.length <= MAXIMUM_STREAM_NAME_LENGTH) onWebPageChange { copy(title = name) }
+            onDismiss()
+        },
     ) {
         OutlinedTextField(
             value = nameInput,

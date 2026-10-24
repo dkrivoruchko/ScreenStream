@@ -64,10 +64,11 @@ internal class HttpAccess {
      * Require six ASCII digits. With limiting enabled, the fifth wrong attempt blocks this peer
      * across all listeners.
      * Requests during a block cannot extend its deadline or bypass it with the correct PIN.
+     * New peers wait for capacity before PIN comparison; live attempt records are never evicted.
      */
     fun verifyPin(pin: String?, peerIp: String, nowMillis: Long): PinResult {
         val credentials = viewingCredentials ?: return PinResult.Authorized(null)
-        val retryAfterMillis = remainingBlockMillis(peerIp, nowMillis)
+        val retryAfterMillis = pinRetryAfterMillis(peerIp, nowMillis)
         if (retryAfterMillis > 0) return PinResult.Blocked(retryAfterMillis)
         if (pin != null && AccessSettings.isValidPin(pin) && matches(appliedSettings.pin, pin)) {
             pinAttemptsByPeer.remove(peerIp)
@@ -76,27 +77,31 @@ internal class HttpAccess {
         if (!appliedSettings.limitWrongPins) return PinResult.Wrong
         val peerAttempts = pinAttemptsByPeer.getOrPut(peerIp) { PinAttempts() }
         peerAttempts.wrongCount++
-        if (peerAttempts.wrongCount < MAX_WRONG_PINS) return PinResult.Wrong
-        val blockDurationMillis = appliedSettings.blockMinutes.minutes.inWholeMilliseconds
-        peerAttempts.blockedUntilMillis = if (nowMillis > Long.MAX_VALUE - blockDurationMillis) {
-            Long.MAX_VALUE
+        val isBlocked = peerAttempts.wrongCount >= MAX_WRONG_PINS
+        val recordLifetimeMillis = if (isBlocked) {
+            appliedSettings.blockMinutes.minutes.inWholeMilliseconds
         } else {
-            nowMillis + blockDurationMillis
+            PIN_ATTEMPT_IDLE_TIMEOUT_MILLIS
         }
-        return PinResult.Blocked(peerAttempts.blockedUntilMillis - nowMillis)
+        peerAttempts.expiresAtMillis = deadlineAfter(nowMillis, recordLifetimeMillis)
+        return if (isBlocked) PinResult.Blocked(peerAttempts.expiresAtMillis - nowMillis) else PinResult.Wrong
     }
 
-    /** Expiry resets the wrong-attempt count. */
-    fun remainingBlockMillis(peerIp: String, nowMillis: Long): Long {
+    /** Prune expired records without refreshing them; return the peer block or full-table capacity wait. */
+    fun pinRetryAfterMillis(peerIp: String, nowMillis: Long): Long {
         if (!pinEnabled || !appliedSettings.limitWrongPins) return 0
-        val peerAttempts = pinAttemptsByPeer[peerIp] ?: return 0
-        if (peerAttempts.blockedUntilMillis == 0L) return 0
-        if (nowMillis >= peerAttempts.blockedUntilMillis) {
-            pinAttemptsByPeer.remove(peerIp)
-            return 0
+        pinAttemptsByPeer.values.removeAll { nowMillis >= it.expiresAtMillis }
+        val peerAttempts = pinAttemptsByPeer[peerIp]
+        if (peerAttempts != null) {
+            if (peerAttempts.wrongCount < MAX_WRONG_PINS) return 0
+            return peerAttempts.expiresAtMillis - nowMillis
         }
-        return peerAttempts.blockedUntilMillis - nowMillis
+        if (pinAttemptsByPeer.size < MAX_PIN_ATTEMPT_RECORDS) return 0
+        return pinAttemptsByPeer.values.minOf { it.expiresAtMillis } - nowMillis
     }
+
+    private fun deadlineAfter(nowMillis: Long, durationMillis: Long): Long =
+        if (nowMillis > Long.MAX_VALUE - durationMillis) Long.MAX_VALUE else nowMillis + durationMillis
 
     private fun matches(expected: SecretValue?, supplied: String?): Boolean {
         // Length is public; compare equal-length credentials without an early byte mismatch return.
@@ -114,11 +119,13 @@ internal class HttpAccess {
 
     private class PinAttempts {
         var wrongCount = 0
-        var blockedUntilMillis = 0L
+        var expiresAtMillis = 0L
     }
 
     private companion object {
         const val MAX_WRONG_PINS = 5
+        const val MAX_PIN_ATTEMPT_RECORDS = 1_024
+        val PIN_ATTEMPT_IDLE_TIMEOUT_MILLIS = 15.minutes.inWholeMilliseconds
         const val COOKIE_BYTES = 32
         const val ACCESS_TOKEN_BYTES = 24
     }

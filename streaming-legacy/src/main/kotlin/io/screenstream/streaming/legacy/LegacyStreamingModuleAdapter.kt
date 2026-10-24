@@ -122,7 +122,7 @@ public abstract class LegacyStreamingModuleAdapter(
                 })
                 workScope.launch {
                     while (isCurrent()) {
-                        if (running) runtime.reportRunning(StreamingModule.Status(streaming, hasActiveConsumer, attempt), SystemClock.uptimeMillis())
+                        if (running) runtime.reportRunning(StreamingModule.Status(streaming, hasActiveConsumer, attempt, errorMessage = null), SystemClock.uptimeMillis())
                         delay(1.seconds)
                     }
                 }

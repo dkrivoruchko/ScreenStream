@@ -24,7 +24,7 @@
     <string name="mjpeg_network_loopback">Loopback</string>
 
     <string name="mjpeg_address_list_title">Адреса трансляции</string>
-    <string name="mjpeg_address_list_empty">Нет выбранных адресов. Проверьте подключение и сетевой фильтр.</string>
+    <string name="mjpeg_address_list_empty">Нет адресов для трансляции.\nПроверьте «Сетевой фильтр» в разделе «Настройки подключения».</string>
     <string name="mjpeg_address_network_details">Интерфейс:\n%1$s (%2$s)</string>
     <string name="mjpeg_address_same_device">Только это устройство</string>
     <string name="mjpeg_address_private_ipv4">IPv4 LAN</string>
@@ -170,9 +170,8 @@
     <string name="mjpeg_pref_stream_network_loss_timeout_error">Введите целое число от 10 до 1800</string>
     <string name="mjpeg_pref_stream_network_loss_timeout_help">Возвращение адресов отменяет таймер</string>
 
-    <string name="mjpeg_pref_stream_post_stop_image">Изображение без захвата</string>
-    <string name="mjpeg_pref_stream_post_stop_image_summary">Показывается, когда захват неактивен.</string>
-    <string name="mjpeg_pref_stream_post_stop_none">Без изображения</string>
+    <string name="mjpeg_pref_stream_post_stop_image">Изображение при неактивном потоке</string>
+    <string name="mjpeg_pref_stream_post_stop_image_summary">Что видят зрители без трансляции.</string>
     <string name="mjpeg_pref_stream_post_stop_placeholder">Логотип приложения</string>
     <string name="mjpeg_pref_stream_post_stop_last_frame">Последний кадр</string>
 
@@ -250,7 +249,7 @@
 
     <string name="mjpeg_pref_access_protection">Защита PIN-кодом</string>
     <string name="mjpeg_pref_access_protection_summary">Требовать PIN-код или ссылку доступа для просмотра трансляции</string>
-    <string name="mjpeg_pref_access_protection_default">По умолчанию: выключено · Новый PIN при открытии</string>
+    <string name="mjpeg_pref_access_protection_default">По умолчанию: %1$s · %2$s</string>
     <string name="mjpeg_pref_access_policy_label">Режим PIN-кода</string>
     <string name="mjpeg_pref_access_policy_new_on_module_start">Новый PIN при открытии</string>
     <string name="mjpeg_pref_access_policy_permanent">Постоянный PIN-код</string>
@@ -271,7 +270,7 @@
     <string name="mjpeg_pref_access_wrong_pins_summary">Приостанавливать вход по PIN-коду после пяти неверных попыток</string>
     <string name="mjpeg_pref_access_wrong_pins_value">Минуты: %1$d</string>
     <string name="mjpeg_pref_access_wrong_pins_label">Блокировка (1–60 минут)</string>
-    <string name="mjpeg_pref_access_wrong_pins_default">По умолчанию: включено · %1$s минута</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">По умолчанию: %1$s · %2$s мин</string>
     <string name="mjpeg_pref_access_wrong_pins_error">Введите целое число от 1 до 60</string>
     <string name="mjpeg_pref_access_wrong_pins_help">Блокирует новые попытки входа с этого IP. Подключённые зрители продолжают просмотр.</string>
 

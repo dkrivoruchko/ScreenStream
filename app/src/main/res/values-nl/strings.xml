@@ -3,6 +3,9 @@
     <string name="app_error_title">Fout</string>
     <string name="app_error_recover">Herstellen</string>
 
+    <string name="app_module_error_title">Er is iets misgegaan</string>
+    <string name="app_module_error_restart">Module opnieuw starten</string>
+
     <string name="app_activity_update_dialog_title">Update beschikbaar</string>
     <string name="app_activity_update_dialog_message">Een update is zojuist gedownload. App nu herstarten?</string>
     <string name="app_activity_update_dialog_restart">Herstart</string>

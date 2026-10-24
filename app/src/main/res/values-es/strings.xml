@@ -3,6 +3,9 @@
     <string name="app_error_title">Error</string>
     <string name="app_error_recover">Recuperar</string>
 
+    <string name="app_module_error_title">Se ha producido un error</string>
+    <string name="app_module_error_restart">Reiniciar módulo</string>
+
     <string name="app_activity_update_dialog_title">Actualización disponible</string>
     <string name="app_activity_update_dialog_message">Se acaba de descargar una actualización. ¿Desea reiniciar la aplicación ahora?</string>
     <string name="app_activity_update_dialog_restart">Reiniciar</string>

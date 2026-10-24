@@ -3,6 +3,9 @@
     <string name="app_error_title">خرابی</string>
     <string name="app_error_recover">بحال کریں</string>
 
+    <string name="app_module_error_title">کچھ غلط ہو گیا</string>
+    <string name="app_module_error_restart">ماڈیول دوبارہ شروع کریں</string>
+
     <string name="app_activity_update_dialog_title">اپ ڈیٹ دستیاب ہے</string>
     <string name="app_activity_update_dialog_message">اپ ڈیٹ ڈاؤن لوڈ ہو چکی ہے۔ ایپ دوبارہ شروع کریں؟</string>
     <string name="app_activity_update_dialog_restart">دوبارہ شروع کریں</string>

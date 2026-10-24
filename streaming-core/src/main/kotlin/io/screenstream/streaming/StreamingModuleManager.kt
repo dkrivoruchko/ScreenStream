@@ -42,7 +42,12 @@ public interface StreamingModuleManager {
 
     /** Render only the exact admitted instance's installed content; otherwise render [fallback]. */
     @Composable
-    public fun InstanceContent(instanceId: StreamingModule.InstanceId, window: WindowSizeClass, modifier: Modifier, fallback: @Composable () -> Unit)
+    public fun InstanceContent(
+        instanceId: StreamingModule.InstanceId,
+        window: WindowSizeClass,
+        modifier: Modifier = Modifier,
+        fallback: @Composable () -> Unit
+    )
 
     /**
      * The module Service calls this on a startup delivery, before creating ordinary module work.
@@ -71,11 +76,7 @@ public interface StreamingModuleManager {
     @MainThread
     public fun selectModule(moduleId: StreamingModule.Id? = null)
 
-    /**
-     * Restart only the exact current [expectedInstanceId] while it has a failure or an
-     * unresponsive heartbeat and no transition is active. A stale ID, healthy launch, or busy
-     * manager ignores the request. Restart does not change the saved selection.
-     */
+    /** Requests a restart of [expectedInstanceId]; stale or busy requests are ignored. */
     @MainThread
     public fun restartModule(expectedInstanceId: StreamingModule.InstanceId)
 
@@ -130,22 +131,10 @@ public interface StreamingModuleManager {
             public val lastStatus: StreamingModule.Status,
         ) : State
 
-        /** A terminal [failure] of [instanceId], retained through its cleanup. */
+        /** Terminal failure retained through cleanup; null [messageResource] uses generic error text. */
         public data class Failed(
             public val instanceId: StreamingModule.InstanceId,
-            public val failure: Failure,
+            @get:StringRes public val messageResource: Int? = null,
         ) : State
-    }
-
-    /** Terminal launch or module failure; recoverable capture errors stay in module UI state. */
-    public sealed interface Failure {
-        /** Launch failed before the first accepted real status. */
-        public data object LaunchFailed : Failure
-
-        /**
-         * Module could not continue after its first accepted status. [messageResource] selects an
-         * optional module error string; null uses the generic module error text.
-         */
-        public data class ModuleFailed(@get:StringRes public val messageResource: Int? = null) : Failure
     }
 }

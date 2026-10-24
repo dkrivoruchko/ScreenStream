@@ -58,11 +58,7 @@ internal fun ControlsPlacementSettingItem(
             title = stringResource(ControlsPlacementSearch.info.titleRes),
             description = stringResource(ControlsPlacementSearch.info.summaryRes),
             layout = layout,
-            defaultLayout = WebPageSettings.BlockLayout(
-                position = WebPageSettings.Edge.Bottom,
-                presentation = WebPageSettings.Presentation.Overlay,
-                autoHide = true,
-            ),
+            defaultLayout = WebPageSettings.DEFAULT_CONTROLS_LAYOUT,
             onLayoutChange = { transform -> onWebPageChange { copy(controlsLayout = controlsLayout.transform()) } },
             onDismiss = {
                 showEditor = false

@@ -153,16 +153,16 @@ private fun SizeEditor(
         IntSize(bounds.width(), bounds.height())
     }
     val initialWidthPixels = initialImageSettings.targetSize?.widthPx
-        ?: screenSize.width.takeIf { it > 0 && screenSize.height > 0 }?.let { it / 2 + it % 2 }
+        ?: screenSize.width.takeIf { it > 0 && screenSize.height > 0 }?.let(ImageSettings::uiDefaultTargetDimension)
     val initialHeightPixels = initialImageSettings.targetSize?.heightPx
-        ?: screenSize.height.takeIf { it > 0 && screenSize.width > 0 }?.let { it / 2 + it % 2 }
+        ?: screenSize.height.takeIf { it > 0 && screenSize.width > 0 }?.let(ImageSettings::uiDefaultTargetDimension)
     var outputSelection by retain { mutableStateOf(initialImageSettings.outputSelection) }
     var scaleInput by retain { mutableStateOf(TextFieldValue(numberFormat.format(initialImageSettings.scalePercent))) }
     var widthInput by retain { mutableStateOf(TextFieldValue(initialWidthPixels?.let { numberFormat.format(it) }.orEmpty())) }
     var heightInput by retain { mutableStateOf(TextFieldValue(initialHeightPixels?.let { numberFormat.format(it) }.orEmpty())) }
     var widthInputEdited by retain { mutableStateOf(false) }
     var heightInputEdited by retain { mutableStateOf(false) }
-    var contentMode by retain { mutableStateOf(initialImageSettings.targetSize?.contentMode ?: OutputSize.ContentMode.AspectFit) }
+    var contentMode by retain { mutableStateOf(initialImageSettings.targetSize?.contentMode ?: ImageSettings.UI_DEFAULT_TARGET_CONTENT_MODE) }
 
     fun parseScalePercent(text: String): Double? = parseSettingDecimal(text, numberFormat)?.takeIf {
         it / 100.0 > 0.0 && acceptsSettingNumberInput(text, numberFormat, allowDecimal = true, maximumValue = MAXIMUM_SCALE_PERCENT)
@@ -221,8 +221,17 @@ private fun SizeEditor(
         Text(
             stringResource(
                 R.string.mjpeg_pref_image_size_default,
-                stringResource(SizeSearch.modeLabelResIds.getValue(ImageSettings.OutputSelection.Scale)),
-                stringResource(R.string.mjpeg_pref_image_size_scale_value, numberFormat.format(50.0)),
+                stringResource(SizeSearch.modeLabelResIds.getValue(ImageSettings.DEFAULT_OUTPUT_SELECTION)),
+                when (ImageSettings.DEFAULT_OUTPUT_SELECTION) {
+                    ImageSettings.OutputSelection.Scale -> stringResource(
+                        R.string.mjpeg_pref_image_size_scale_value,
+                        numberFormat.format(ImageSettings.DEFAULT_SCALE_PERCENT),
+                    )
+
+                    ImageSettings.OutputSelection.TargetSize -> ImageSettings.DEFAULT_TARGET_SIZE?.let {
+                        stringResource(R.string.mjpeg_pref_image_size_value, it.widthPx, it.heightPx)
+                    } ?: stringResource(R.string.mjpeg_pref_value_not_set)
+                },
             ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,

@@ -3,6 +3,9 @@
     <string name="app_error_title">Помилка</string>
     <string name="app_error_recover">Відновити</string>
 
+    <string name="app_module_error_title">Щось пішло не так</string>
+    <string name="app_module_error_restart">Перезапустити модуль</string>
+
     <string name="app_activity_update_dialog_title">Доступне оновлення</string>
     <string name="app_activity_update_dialog_message">Оновлення завантажено. Перезапустити додаток зараз?</string>
     <string name="app_activity_update_dialog_restart">Перезапустити</string>

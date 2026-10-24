@@ -3,6 +3,9 @@
     <string name="app_error_title">ত্রুটি</string>
     <string name="app_error_recover">পুনরুদ্ধার করুন</string>
 
+    <string name="app_module_error_title">কিছু ভুল হয়েছে</string>
+    <string name="app_module_error_restart">মডিউল পুনরায় চালু করুন</string>
+
     <string name="app_activity_update_dialog_title">আপডেট এখন উপলব্ধ</string>
     <string name="app_activity_update_dialog_message">একটি আপডেট সবেমাত্র ডাউনলোড করা হয়েছে। এখন অ্যাপ রিস্টার্ট করবেন?</string>
     <string name="app_activity_update_dialog_restart">পুনরারম্ভ</string>

@@ -3,6 +3,9 @@
     <string name="app_error_title">Fehler</string>
     <string name="app_error_recover">Wiederherstellen</string>
 
+    <string name="app_module_error_title">Etwas ist schiefgelaufen</string>
+    <string name="app_module_error_restart">Modul neu starten</string>
+
     <string name="app_activity_update_dialog_title">Update verfügbar</string>
     <string name="app_activity_update_dialog_message">Ein Update wurde soeben heruntergeladen. App neu starten?</string>
     <string name="app_activity_update_dialog_restart">Neu starten</string>

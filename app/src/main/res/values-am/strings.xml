@@ -3,6 +3,9 @@
     <string name="app_error_title">ስህተት</string>
     <string name="app_error_recover">ማገገም</string>
 
+    <string name="app_module_error_title">የሆነ ችግር ተፈጥሯል</string>
+    <string name="app_module_error_restart">ሞጁሉን እንደገና አስጀምር</string>
+
     <string name="app_activity_update_dialog_title">ማዘመን አለ።</string>
     <string name="app_activity_update_dialog_message">አንድ ዝማኔ አሁን ወርዷል። መተግበሪያ አሁን ዳግም ይጀመር?</string>
     <string name="app_activity_update_dialog_restart">እንደገና ጀምር</string>

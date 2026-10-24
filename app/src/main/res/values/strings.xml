@@ -5,6 +5,9 @@
     <string name="app_error_title">Error</string>
     <string name="app_error_recover">Recover</string>
 
+    <string name="app_module_error_title">Something went wrong</string>
+    <string name="app_module_error_restart">Restart module</string>
+
     <string name="app_activity_update_dialog_title">Update available</string>
     <string name="app_activity_update_dialog_message">An update has just been downloaded. Restart app now?</string>
     <string name="app_activity_update_dialog_restart">Restart</string>

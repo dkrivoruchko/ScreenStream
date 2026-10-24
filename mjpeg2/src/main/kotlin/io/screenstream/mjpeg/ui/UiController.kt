@@ -10,7 +10,10 @@ import io.screenstream.streaming.module.StreamingModule
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.uuid.Uuid
 
-/** Bound to one module instance; collecting [state] does not start or own streaming resources. */
+/**
+ * Bound to one module instance; [state] is valid while that instance is admitted. Collecting it
+ * does not start or own streaming resources.
+ */
 internal interface UiController {
     val state: StateFlow<State>
 

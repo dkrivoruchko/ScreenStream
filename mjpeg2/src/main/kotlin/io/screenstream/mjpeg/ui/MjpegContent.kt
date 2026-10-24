@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.screenstream.mjpeg.MjpegCaptureSession
 import io.screenstream.mjpeg.R
@@ -112,19 +113,15 @@ internal fun MjpegContent(
                 )
             },
         ) { innerPadding ->
-            BoxWithConstraints(
-                Modifier
-                    .fillMaxSize()
-                    .padding(bottom = innerPadding.calculateBottomPadding()),
-            ) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
                 LazyVerticalStaggeredGrid(
                     columns = StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = 12.dp,
-                        top = 8.dp,
+                        top = 0.dp,
                         end = 12.dp,
-                        bottom = 8.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 8.dp,
                     ),
                     verticalItemSpacing = 4.dp,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -141,7 +138,7 @@ internal fun MjpegContent(
                         )
                     }
                     item(key = "settings-search", contentType = "settings-search") {
-                        SearchSettingsField(query = searchQuery, modifier = Modifier.padding(bottom = 4.dp))
+                        SearchSettingsField(query = searchQuery, modifier = Modifier.padding(vertical = 4.dp))
                     }
                     uiState.suspensionProblem?.let { problem ->
                         item(key = "suspension", contentType = "suspension") {
@@ -239,9 +236,9 @@ private fun CaptureActionButton(action: UiController.Action, onClick: () -> Unit
                 .heightIn(min = 48.dp),
         ) {
             when (action) {
-                is UiController.Action.Start -> Text(stringResource(R.string.mjpeg_stream_start_capture))
+                is UiController.Action.Start -> Text(stringResource(R.string.mjpeg_stream_start_capture), fontSize = 18.sp)
                 UiController.Action.Busy -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                is UiController.Action.Stop -> Text(stringResource(R.string.mjpeg_stream_stop_capture))
+                is UiController.Action.Stop -> Text(stringResource(R.string.mjpeg_stream_stop_capture), fontSize = 18.sp)
             }
         }
     }

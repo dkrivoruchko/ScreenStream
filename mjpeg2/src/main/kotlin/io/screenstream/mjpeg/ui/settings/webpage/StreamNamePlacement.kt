@@ -73,11 +73,7 @@ internal fun StreamNamePlacementSettingItem(
             title = stringResource(StreamNamePlacementSearch.info.titleRes),
             description = stringResource(StreamNamePlacementSearch.info.summaryRes),
             layout = layout,
-            defaultLayout = WebPageSettings.BlockLayout(
-                position = WebPageSettings.Edge.Top,
-                presentation = WebPageSettings.Presentation.Overlay,
-                autoHide = true,
-            ),
+            defaultLayout = WebPageSettings.DEFAULT_TITLE_LAYOUT,
             onLayoutChange = { transform -> onWebPageChange { copy(titleLayout = titleLayout.transform()) } },
             onDismiss = {
                 showEditor = false
@@ -131,21 +127,23 @@ internal fun WebPagePlacementEditor(
     val initialLayout = retain { layout }
     var draftLayout by retain { mutableStateOf(initialLayout) }
 
-    fun closeEditor() {
-        val nextLayout = draftLayout
-        if (nextLayout != initialLayout) {
-            onLayoutChange {
-                copy(
-                    position = if (nextLayout.position != initialLayout.position) nextLayout.position else position,
-                    presentation = if (nextLayout.presentation != initialLayout.presentation) nextLayout.presentation else presentation,
-                    autoHide = if (nextLayout.autoHide != initialLayout.autoHide) nextLayout.autoHide else autoHide,
-                )
+    SettingEditor(
+        title = title,
+        description = description,
+        onDismiss = {
+            val nextLayout = draftLayout
+            if (nextLayout != initialLayout) {
+                onLayoutChange {
+                    copy(
+                        position = if (nextLayout.position != initialLayout.position) nextLayout.position else position,
+                        presentation = if (nextLayout.presentation != initialLayout.presentation) nextLayout.presentation else presentation,
+                        autoHide = if (nextLayout.autoHide != initialLayout.autoHide) nextLayout.autoHide else autoHide,
+                    )
+                }
             }
-        }
-        onDismiss()
-    }
-
-    SettingEditor(title, description, onDismiss = ::closeEditor) {
+            onDismiss()
+        },
+    ) {
         Text(
             stringResource(R.string.mjpeg_pref_default_value, webPagePlacementSummary(defaultLayout)),
             color = MaterialTheme.colorScheme.onSurfaceVariant,

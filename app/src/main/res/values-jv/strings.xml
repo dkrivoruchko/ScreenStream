@@ -3,6 +3,9 @@
     <string name="app_error_title">Kesalahan</string>
     <string name="app_error_recover">Waras</string>
 
+    <string name="app_module_error_title">Ana kesalahan</string>
+    <string name="app_module_error_restart">Wiwiti maneh modul</string>
+
     <string name="app_activity_update_dialog_title">Nganyari kasedhiya</string>
     <string name="app_activity_update_dialog_message">Nganyari lagi wae diundhuh. Wiwiti maneh app saiki?</string>
     <string name="app_activity_update_dialog_restart">Wiwiti maneh</string>

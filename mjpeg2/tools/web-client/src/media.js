@@ -1,9 +1,15 @@
+function canLoadScreenImage(snapshot) {
+    return !!snapshot && (snapshot.access === 'open' || snapshot.access === 'authorized') &&
+        (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
+}
+
 // At most one displayed image and one replacement candidate.
 function createMedia(stage, callbacks) {
     const delays = [0, 1000, 2000, 4000, 8000];
     let displayed = null, candidate = null, generation = 0;
     let firstTimer = null, nextTimer = null, sizeTimer = null;
-    let hasImage = false, method = 'mjpeg';
+    let mediaEligible = false, method = 'mjpeg', imageKind = 'none';
+    let retainedWait = false;
     let retries = 0, width = 0, height = 0;
     function discard(image) {
         if (!image) return;
@@ -15,6 +21,7 @@ function createMedia(stage, callbacks) {
         generation += 1;
         clearTimeout(firstTimer); clearTimeout(nextTimer);
         firstTimer = nextTimer = null;
+        retainedWait = false;
         discard(candidate); candidate = null;
     }
     function dimensions() {
@@ -40,7 +47,7 @@ function createMedia(stage, callbacks) {
         if (displayed) sizeTimer = setTimeout(observeSize, 500);
     }
     function retryLater() {
-        if (!hasImage) return;
+        if (!mediaEligible) return;
         if (retries >= delays.length) { callbacks.state('failed'); return; }
         callbacks.state('retrying');
         nextTimer = setTimeout(start, delays[retries++]);
@@ -74,12 +81,18 @@ function createMedia(stage, callbacks) {
         callbacks.image(displayed, width, height);
         observeSize();
         callbacks.state('viewing');
-        // Poll after promotion so a slow JPEG load delays the next request.
-        if (method === 'jpeg') nextTimer = setTimeout(start, 500);
+        // Live JPEGs remain single-flight; retained frames do not need maximum-speed polling.
+        if (method === 'jpeg') {
+            if (imageKind === 'live') start();
+            else {
+                retainedWait = true;
+                nextTimer = setTimeout(start, 500);
+            }
+        }
     }
     function start() {
         cancelCandidate();
-        if (!hasImage) return;
+        if (!mediaEligible) return;
         const id = generation;
         const image = new Image();
         candidate = image;
@@ -107,15 +120,21 @@ function createMedia(stage, callbacks) {
         image.src = '/' + method + '?requestSequence=' + id;
     }
     function configure(snapshot, firstSnapshot) {
-        const previousHasImage = hasImage;
-        hasImage = (snapshot.access === 'open' || snapshot.access === 'authorized') &&
-            snapshot.notice !== 'permission_required' && (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
-        if (!hasImage) { cancelCandidate(); clearDisplayed(); retries = 0; callbacks.state('idle'); return; }
-        if (firstSnapshot || !previousHasImage) { retries = 0; start(); }
-        // Ordinary state updates leave healthy and exhausted attempts alone.
+        const previousMediaEligible = mediaEligible;
+        const previousImageKind = imageKind;
+        imageKind = snapshot.imageKind;
+        mediaEligible = canLoadScreenImage(snapshot);
+        if (!mediaEligible) {
+            if (previousMediaEligible) { cancelCandidate(); clearDisplayed(); retries = 0; callbacks.state('idle'); }
+            return;
+        }
+        if (firstSnapshot || !previousMediaEligible) { retries = 0; start(); }
+        else if (method === 'jpeg' && previousImageKind === 'retained' && imageKind === 'live' &&
+            retainedWait && !candidate) start();
+        // Other state updates leave healthy, retrying and exhausted attempts alone.
     }
     function retry() {
-        if (!hasImage) return;
+        if (!mediaEligible) return;
         retries = 0;
         callbacks.state('retrying');
         start();
@@ -128,7 +147,7 @@ function createMedia(stage, callbacks) {
     }
     function pause() { cancelCandidate(); clearDisplayed(); }
     function resume() {
-        if (hasImage && !candidate && (!displayed || !displayed.naturalWidth)) retry();
+        if (mediaEligible && !candidate && (!displayed || !displayed.naturalWidth)) retry();
     }
     return { configure, selectMethod, pause, resume,
         method: () => method };

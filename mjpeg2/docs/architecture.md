@@ -30,7 +30,7 @@ The arrows show interaction. Settings, manager and `ScreenCaptureAccess` live at
 
 | Component | Responsibility |
 | --- | --- |
-| `:app` | Application DI, Activity/bootstrap/Exit, projection consent hosting, shared ordinary-permission UI and notification presentation. |
+| `:app` | Application DI, Activity/bootstrap/Exit, projection consent hosting, shared ordinary-permission UI, module recovery UI and notification presentation. |
 | `:streaming-core` | Fixed module catalog/manager, instance/attempt API, Service base, selection/education settings, foreground Stop, capture Access and the typed ordinary-permission port. |
 | `:common` | Shared UI, notification interfaces, preference storage and helpers. |
 | `:mjpeg2` | Native descriptor/Service/controller, saved mode settings, address discovery, capture session and engine adapter, HTTP delivery and current native screen. |
@@ -50,14 +50,16 @@ An immutable module descriptor identifies a selectable mode without opening reso
 | Discovery address ID | One observed IP plus IPv6 scope, retained across filters/metadata until confirmed disappearance. |
 | HTTP server UUID | One planned address/port incarnation; physical retries preserve it. |
 | Physical listener identity | One bind attempt/CIO engine; request admission addresses this exact listener. |
-| Capture source identity | One accepted HTTP production epoch; suspension/recovery can replace it within the same attempt. |
+| Capture generation identity | One production epoch selected by the capture attempt; suspension/recovery can replace it within the same attempt. |
 | Credential generation | One runtime viewing-authorization epoch; independent of capture. |
 
-These identities solve different races. Exact attempt Stop cannot end replacement capture. A stale server Retry cannot reset a replacement server. Late JPEG copies cannot restore an image after their production source is revoked. Old WebSocket state cannot authorize a later credential generation. [Coordination](../internal/01-lifecycle/coordination.md) and [HTTP delivery](../internal/03-delivery/http-delivery.md) describe where each comparison occurs.
+These identities solve different races. Exact attempt Stop cannot end replacement capture. A stale server Retry cannot reset a replacement server. Late JPEG copies cannot restore an image after their capture generation is revoked. Old WebSocket state cannot authorize a later credential generation. [Coordination](../internal/01-lifecycle/coordination.md) and [HTTP delivery](../internal/03-delivery/http-delivery.md) describe where each comparison occurs.
 
 ## Control and observation
 
 The manager handles process transitions on Main, Android's main thread. Its Runtime binds admission and reports to the original launch. The native controller serializes commands, settings, address changes and capture observations in one event loop on the background Default dispatcher. Each owner checks whether new work is still allowed when admitting it; shutdown closes admission independently of that loop and begins cleanup even if the loop is blocked.
+
+The app derives generic recovery UI from manager state and routes Restart directly with that state's instance ID. Operation diagnostics travel in `Status.errorMessage`; heartbeat loss and terminal failure remain manager states. Error-notification delivery is process-owned and independent of rendered UI. [Usage](usage.md#observe-state-and-failures) describes the resulting cards and recovery controls.
 
 The capture attempt runs in controller scope and continues entered cleanup in `NonCancellable`. HTTP has its own runtime on the IO dispatcher and control monitor; discovery has independent scan/close work. These owners can begin cleanup independently, although one stuck obligation can leave total cleanup pending. Exact scheduling and admission rules are in [Coordination](../internal/01-lifecycle/coordination.md).
 
@@ -95,13 +97,13 @@ Saved values become effective only after controller observation and edit-policy 
 
 ## Capture and image delivery
 
-The capture attempt obtains consent, promotes its original Service to foreground, then creates the projection. Successful engine construction transfers projection ownership to the engine. [MjpegCaptureSession](../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureSession.kt) retains capture/cleanup outcomes, receives borrowed JPEGs from the [engine adapter](../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureEngineAdapter.kt), and forwards their byte count and synchronous copier to HTTP. The engine owns geometry, metrics, configuration/output metadata, timing and encoding; [Module lifecycle](../internal/01-lifecycle/module-lifecycle.md) describes startup and cleanup.
+The capture attempt obtains consent, promotes its original Service to foreground, then creates the projection. Successful engine construction transfers projection ownership to the engine. [MjpegCaptureSession](../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureSession.kt) owns one immutable snapshot of capture/cleanup outcomes and the capture generation. Its concrete transitions commit the effective status and generation together; HTTP applies that pair without deciding or returning generation identity. State wakeups and borrowed JPEG callbacks sample fresh engine state under one session gate. The callback captures the committed generation there, then forwards it with byte count and synchronous copier outside the gate; recovery admission does not wait for the controller queue. The engine owns geometry, metrics, configuration/output metadata, timing and encoding; [Module lifecycle](../internal/01-lifecycle/module-lifecycle.md) describes startup and cleanup.
 
-The copier is borrowed authority: it is usable only on the frame callback's thread before the callback returns. HTTP can decline an offer or copy it once into owned storage outside its monitors, then checks source identity before publishing. The selected immutable byte prefix can be leased by multiple responses. Old frames remain valid for existing writers until their leases end; selection changes do not overwrite them.
+The copier is borrowed authority: it is usable only on the frame callback's thread before the callback returns. HTTP can decline an offer or copy it once into owned storage outside its monitors, then checks generation identity before publishing. The selected immutable byte prefix can be leased by multiple responses. Old frames remain valid for existing writers until their leases end; selection changes do not overwrite them.
 
 Each media response pins its initial JPEG before sending headers. A single JPEG response sends that pin; MJPEG advances to the newest selected frame and skips intermediate publications. If there is no newer publication, MJPEG can repeat the current JPEG after one second without another capture/encode. This bounds ordinary frame queuing, not total byte memory: JPEG sizes, active response leases and copies outside the module still matter. [JPEG delivery](../internal/03-delivery/jpeg-delivery.md) owns the pool, lease and write rules.
 
-Capture phase and selected image availability are separate. One latest real frame is retained until replacement or HTTP disposal. Whenever no real frame belongs to the current producer source, the common fallback selects none, logo, or that retained frame (logo if absent). This applies before the first frame, during consent, suspension, Stop and failure; fallback edits do not replace a current real frame. An existing MJPEG reader can wait for image availability; a new request without a pin receives 503. A capture failure remains Failed through successful cleanup until a new accepted attempt.
+Capture phase and selected image availability are separate. One latest real frame is retained until replacement or HTTP disposal. Whenever no real frame belongs to the current capture generation, the common fallback selects none, logo, or that retained frame (logo if absent). This applies before the first frame, during consent, suspension, Stop and failure; fallback edits do not replace a current real frame. An existing MJPEG reader can wait for image availability; a new request without a pin receives 503. A capture failure remains Failed through successful cleanup until a new accepted attempt.
 
 ## HTTP and networks
 

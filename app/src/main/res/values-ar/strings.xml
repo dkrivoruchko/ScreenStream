@@ -3,6 +3,9 @@
     <string name="app_error_title">خطأ</string>
     <string name="app_error_recover">استعادة</string>
 
+    <string name="app_module_error_title">حدث خطأ ما</string>
+    <string name="app_module_error_restart">إعادة تشغيل الوحدة</string>
+
     <string name="app_activity_update_dialog_title">التحديث متاح</string>
     <string name="app_activity_update_dialog_message">تم تنزيل تحديث للتو. أعد تشغيل التطبيق الآن؟</string>
     <string name="app_activity_update_dialog_restart">إعادة التشغيل</string>

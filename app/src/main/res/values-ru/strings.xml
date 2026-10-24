@@ -3,6 +3,9 @@
     <string name="app_error_title">Ошибка</string>
     <string name="app_error_recover">Восстановить</string>
 
+    <string name="app_module_error_title">Что-то пошло не так</string>
+    <string name="app_module_error_restart">Перезапустить модуль</string>
+
     <string name="app_activity_update_dialog_title">Доступно обновление</string>
     <string name="app_activity_update_dialog_message">Обновление было только что загружено. Перезапустить приложение сейчас?</string>
     <string name="app_activity_update_dialog_restart">Перезапустить</string>

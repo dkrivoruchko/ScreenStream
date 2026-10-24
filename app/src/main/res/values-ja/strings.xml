@@ -3,6 +3,9 @@
     <string name="app_error_title">エラー</string>
     <string name="app_error_recover">回復</string>
 
+    <string name="app_module_error_title">問題が発生しました</string>
+    <string name="app_module_error_restart">モジュールを再起動</string>
+
     <string name="app_activity_update_dialog_title">更新が利用可能</string>
     <string name="app_activity_update_dialog_message">アップデートをダウンロードしました。 今すぐアプリを再起動しますか?</string>
     <string name="app_activity_update_dialog_restart">再起動</string>

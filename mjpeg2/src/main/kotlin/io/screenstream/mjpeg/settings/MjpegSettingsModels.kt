@@ -23,6 +23,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.security.SecureRandom
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Image parameters are live-editable; changing the JPEG backend requires successful capture cleanup.
@@ -33,21 +34,21 @@ import kotlin.time.Duration
 @Immutable
 @Serializable
 internal data class ImageSettings(
-    val sourceRegion: SourceRegion = SourceRegion.Full,
-    val cropEnabled: Boolean = false,
+    val sourceRegion: SourceRegion = DEFAULT_SOURCE_REGION,
+    val cropEnabled: Boolean = DEFAULT_CROP_ENABLED,
     @Serializable(with = CropInsetsSerializer::class)
-    val cropInsets: CropInsetsPx = CropInsetsPx.ZERO,
-    val outputSelection: OutputSelection = OutputSelection.Scale,
-    val scalePercent: Double = 50.0,
+    val cropInsets: CropInsetsPx = DEFAULT_CROP_INSETS,
+    val outputSelection: OutputSelection = DEFAULT_OUTPUT_SELECTION,
+    val scalePercent: Double = DEFAULT_SCALE_PERCENT,
     @Serializable(with = TargetSizeSerializer::class)
-    val targetSize: OutputSize.TargetSize? = null,
-    val rotation: Rotation = Rotation.Degrees0,
-    val mirror: Mirror = Mirror.None,
-    val colorMode: ColorMode = ColorMode.Color,
-    val jpegQuality: Int = 80,
+    val targetSize: OutputSize.TargetSize? = DEFAULT_TARGET_SIZE,
+    val rotation: Rotation = DEFAULT_ROTATION,
+    val mirror: Mirror = DEFAULT_MIRROR,
+    val colorMode: ColorMode = DEFAULT_COLOR_MODE,
+    val jpegQuality: Int = DEFAULT_JPEG_QUALITY,
     @Serializable(with = FrameRateSerializer::class)
-    val frameRate: FrameRate = FrameRate.Auto,
-    val jpegBackendPolicy: JpegBackendPolicy = JpegBackendPolicy.Auto,
+    val frameRate: FrameRate = DEFAULT_FRAME_RATE,
+    val jpegBackendPolicy: JpegBackendPolicy = DEFAULT_JPEG_BACKEND_POLICY,
 ) {
     init {
         require(scalePercent.isFinite() && scalePercent / 100.0 > 0) { "Scale must be finite and positive" }
@@ -129,6 +130,28 @@ internal data class ImageSettings(
             is Saved.SamplingInterval -> FrameRate.SamplingInterval(Duration.parseIsoString(value.interval))
         }
     }
+
+    companion object {
+        val DEFAULT_SOURCE_REGION: SourceRegion = SourceRegion.Full
+        const val DEFAULT_CROP_ENABLED: Boolean = false
+        val DEFAULT_CROP_INSETS: CropInsetsPx = CropInsetsPx.ZERO
+        val DEFAULT_OUTPUT_SELECTION: OutputSelection = OutputSelection.Scale
+        const val DEFAULT_SCALE_PERCENT: Double = 50.0
+        val DEFAULT_TARGET_SIZE: OutputSize.TargetSize? = null
+        val DEFAULT_ROTATION: Rotation = Rotation.Degrees0
+        val DEFAULT_MIRROR: Mirror = Mirror.None
+        val DEFAULT_COLOR_MODE: ColorMode = ColorMode.Color
+        const val DEFAULT_JPEG_QUALITY: Int = 80
+        val DEFAULT_FRAME_RATE: FrameRate = FrameRate.Auto
+        val DEFAULT_JPEG_BACKEND_POLICY: JpegBackendPolicy = JpegBackendPolicy.Auto
+
+        // Draft values for manual modes when no corresponding value has been saved.
+        const val UI_DEFAULT_MANUAL_FPS: Int = 30
+        val UI_DEFAULT_SAMPLING_INTERVAL: Duration = 1.seconds
+        val UI_DEFAULT_TARGET_CONTENT_MODE: OutputSize.ContentMode = OutputSize.ContentMode.AspectFit
+
+        fun uiDefaultTargetDimension(dimensionPx: Int): Int = dimensionPx / 2 + dimensionPx % 2
+    }
 }
 
 /**
@@ -139,12 +162,8 @@ internal data class ImageSettings(
 @Serializable
 internal data class NetworkSettings(
     @Serializable(with = FilterSerializer::class)
-    val filter: NetworkAddressFilter = NetworkAddressFilter(
-        families = setOf(AddressFamily.Ipv4),
-        interfaceTypes = setOf(InterfaceType.Wifi, InterfaceType.Ethernet),
-        categories = setOf(AddressCategory.Private),
-    ),
-    val httpPort: Int = 8080,
+    val filter: NetworkAddressFilter = DEFAULT_FILTER,
+    val httpPort: Int = DEFAULT_HTTP_PORT,
 ) {
     init {
         require(filter.families.isNotEmpty() && filter.interfaceTypes.isNotEmpty() && filter.categories.isNotEmpty()) {
@@ -171,6 +190,15 @@ internal data class NetworkSettings(
             return NetworkAddressFilter(value.families, value.interfaceTypes, value.categories)
         }
     }
+
+    companion object {
+        val DEFAULT_FILTER: NetworkAddressFilter = NetworkAddressFilter(
+            families = setOf(AddressFamily.Ipv4),
+            interfaceTypes = setOf(InterfaceType.Wifi, InterfaceType.Ethernet),
+            categories = setOf(AddressCategory.Private),
+        )
+        const val DEFAULT_HTTP_PORT: Int = 8080
+    }
 }
 
 /**
@@ -186,12 +214,12 @@ internal data class NetworkSettings(
 @Immutable
 @Serializable
 internal data class AccessSettings(
-    val pinEnabled: Boolean = false,
-    val pinPolicy: PinPolicy = PinPolicy.NewOnModuleStart,
-    val pin: SecretValue? = null,
-    val hidePinOnCaptureStart: Boolean = true,
-    val limitWrongPins: Boolean = true,
-    val blockMinutes: Int = 1,
+    val pinEnabled: Boolean = DEFAULT_PIN_ENABLED,
+    val pinPolicy: PinPolicy = DEFAULT_PIN_POLICY,
+    val pin: SecretValue? = DEFAULT_PIN,
+    val hidePinOnCaptureStart: Boolean = DEFAULT_HIDE_PIN_ON_CAPTURE_START,
+    val limitWrongPins: Boolean = DEFAULT_LIMIT_WRONG_PINS,
+    val blockMinutes: Int = DEFAULT_BLOCK_MINUTES,
 ) {
     init {
         require(blockMinutes >= 1) { "Block duration must be at least one minute" }
@@ -211,6 +239,13 @@ internal data class AccessSettings(
     }
 
     companion object {
+        const val DEFAULT_PIN_ENABLED: Boolean = false
+        val DEFAULT_PIN_POLICY: PinPolicy = PinPolicy.NewOnModuleStart
+        val DEFAULT_PIN: SecretValue? = null
+        const val DEFAULT_HIDE_PIN_ON_CAPTURE_START: Boolean = true
+        const val DEFAULT_LIMIT_WRONG_PINS: Boolean = true
+        const val DEFAULT_BLOCK_MINUTES: Int = 3
+
         private const val PIN_RANGE = 1_000_000
         private const val PIN_DIGITS = 6
 
@@ -237,12 +272,12 @@ internal class SecretValue(val value: String) {
 @Immutable
 @Serializable
 internal data class WebPageSettings(
-    val background: String = "#101418",
+    val background: String = DEFAULT_BACKGROUND,
     @EncodeDefault(EncodeDefault.Mode.ALWAYS)
-    val title: String = deviceTitle(),
-    val titleEnabled: Boolean = true,
-    val titleLayout: BlockLayout = BlockLayout(Edge.Top, Presentation.Overlay, true),
-    val controlsLayout: BlockLayout = BlockLayout(Edge.Bottom, Presentation.Overlay, true),
+    val title: String = defaultTitle(),
+    val titleEnabled: Boolean = DEFAULT_TITLE_ENABLED,
+    val titleLayout: BlockLayout = DEFAULT_TITLE_LAYOUT,
+    val controlsLayout: BlockLayout = DEFAULT_CONTROLS_LAYOUT,
 ) {
     init {
         require(background.matches(Regex("#[0-9a-fA-F]{6}"))) { "Background must be an RGB color" }
@@ -266,8 +301,13 @@ internal data class WebPageSettings(
     @Serializable
     data class BlockLayout(val position: Edge, val presentation: Presentation, val autoHide: Boolean)
 
-    private companion object {
-        private fun deviceTitle(): String {
+    companion object {
+        const val DEFAULT_BACKGROUND: String = "#101418"
+        const val DEFAULT_TITLE_ENABLED: Boolean = true
+        val DEFAULT_TITLE_LAYOUT: BlockLayout = BlockLayout(Edge.Top, Presentation.Overlay, true)
+        val DEFAULT_CONTROLS_LAYOUT: BlockLayout = BlockLayout(Edge.Bottom, Presentation.Overlay, true)
+
+        fun defaultTitle(): String {
             val manufacturer = Build.MANUFACTURER.trim()
             val model = Build.MODEL.trim()
             return when {
@@ -288,11 +328,11 @@ internal data class WebPageSettings(
 @Immutable
 @Serializable
 internal data class StreamBehaviorSettings(
-    val keepScreenAwake: Boolean = false,
-    val stopOnScreenOff: Boolean = false,
-    val stopAfterNetworkLossSeconds: Int = 60,
-    val postStopImage: PostStopImage = PostStopImage.Placeholder,
-    val notifySlowViewers: Boolean = true,
+    val keepScreenAwake: Boolean = DEFAULT_KEEP_SCREEN_AWAKE,
+    val stopOnScreenOff: Boolean = DEFAULT_STOP_ON_SCREEN_OFF,
+    val stopAfterNetworkLossSeconds: Int = DEFAULT_STOP_AFTER_NETWORK_LOSS_SECONDS,
+    val postStopImage: PostStopImage = DEFAULT_POST_STOP_IMAGE,
+    val notifySlowViewers: Boolean = DEFAULT_NOTIFY_SLOW_VIEWERS,
 ) {
     init {
         require(stopAfterNetworkLossSeconds in 10..1800) { "Network-loss timeout must be in 10..1800 seconds" }
@@ -300,10 +340,16 @@ internal data class StreamBehaviorSettings(
 
     @Serializable
     enum class PostStopImage {
-        None,
-
         Placeholder,
 
         LastAvailableFrame,
+    }
+
+    companion object {
+        const val DEFAULT_KEEP_SCREEN_AWAKE: Boolean = false
+        const val DEFAULT_STOP_ON_SCREEN_OFF: Boolean = false
+        const val DEFAULT_STOP_AFTER_NETWORK_LOSS_SECONDS: Int = 60
+        val DEFAULT_POST_STOP_IMAGE: PostStopImage = PostStopImage.Placeholder
+        const val DEFAULT_NOTIFY_SLOW_VIEWERS: Boolean = true
     }
 }

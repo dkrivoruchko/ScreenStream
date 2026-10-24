@@ -64,7 +64,7 @@ internal fun MirrorSettingItem(
                     options = CaptureMirror.entries,
                     optionLabel = { option ->
                         val label = stringResource(MirrorSearch.labelResIds.getValue(option))
-                        if (option == CaptureMirror.None) stringResource(R.string.mjpeg_pref_default_option, label) else label
+                        if (option == ImageSettings.DEFAULT_MIRROR) stringResource(R.string.mjpeg_pref_default_option, label) else label
                     },
                     onValueSelected = { selected -> if (selected != mirror) onImageChange { copy(mirror = selected) } },
                     onDismissRequest = {

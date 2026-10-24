@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import androidx.annotation.MainThread
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -102,14 +103,12 @@ internal class StreamingModuleManagerImpl internal constructor(
         beginPreparation(moduleId)
     }
 
-    /** Restart only the current launch whose applied error still permits it. */
+    /** Replace the exact current launch through the usual bounded shutdown and startup path. */
     @MainThread
     override fun restartModule(expectedInstanceId: StreamingModule.InstanceId) {
         if (transitionJob != null || selectedModuleId == null) return
         val instance = currentInstance ?: return
-        if (instance.instanceId != expectedInstanceId ||
-            (instance.state !is LaunchState.Failed && instance.state !is LaunchState.Unresponsive)
-        ) return
+        if (instance.instanceId != expectedInstanceId || (!instance.hasLiveStatus() && instance.state !is LaunchState.Failed)) return
         beginPreparation(expectedInstanceId.moduleId)
     }
 
@@ -159,7 +158,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 val instance = launchInstance(target)
                 val started = awaitUntil(instance.startupSettled, instance.firstStatusDeadlineElapsedMillis)
                 if (transitionJob !== opening) return@launch
-                if (!started) failInstance(instance, StreamingModuleManager.Failure.LaunchFailed)
+                if (!started) failInstance(instance)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 XLog.e(this@StreamingModuleManagerImpl.getLog("Initialize", "Failed to open streaming module"), error)
@@ -297,8 +296,8 @@ internal class StreamingModuleManagerImpl internal constructor(
         return instance
     }
 
-    private fun failInstance(instance: LaunchRecord, failure: StreamingModuleManager.Failure) {
-        if (!instance.fail(failure)) return
+    private fun failInstance(instance: LaunchRecord, @StringRes messageResource: Int? = null) {
+        if (!instance.fail(messageResource)) return
         if (!instance.isFinishReported) instance.requestModuleShutdown(shutdownDeadline())
         try {
             if (currentInstance === instance && !instance.isClosing) publishState()
@@ -317,7 +316,7 @@ internal class StreamingModuleManagerImpl internal constructor(
         if (instance.state == LaunchState.Starting &&
             SystemClock.elapsedRealtime() > instance.firstStatusDeadlineElapsedMillis
         ) {
-            failInstance(instance, StreamingModuleManager.Failure.LaunchFailed)
+            failInstance(instance)
             return
         }
         if (!instance.acceptStatus(status, heartbeatAtUptimeMillis)) return
@@ -330,7 +329,7 @@ internal class StreamingModuleManagerImpl internal constructor(
 
     private fun handleFailureReport(instance: LaunchRecord, messageResource: Int?) {
         if (currentInstance !== instance || instance.isClosing || instance.isFinishReported) return
-        failInstance(instance, instance.failureFor(messageResource))
+        failInstance(instance, if (instance.hasLiveStatus()) messageResource else null)
     }
 
     private fun handleFinishedReport(instance: LaunchRecord, cleanupCompleted: Boolean) {
@@ -350,17 +349,13 @@ internal class StreamingModuleManagerImpl internal constructor(
                 when (val launch = instance.state) {
                     is LaunchState.Running -> StreamingModuleManager.State.Running(instance.instanceId, launch.status)
                     is LaunchState.Unresponsive -> StreamingModuleManager.State.Unresponsive(instance.instanceId, launch.lastStatus)
-                    is LaunchState.Failed -> StreamingModuleManager.State.Failed(instance.instanceId, launch.failure)
+                    is LaunchState.Failed -> StreamingModuleManager.State.Failed(instance.instanceId, launch.messageResource)
                     LaunchState.Starting, LaunchState.Stopped -> StreamingModuleManager.State.NoModule
                 }
             } ?: StreamingModuleManager.State.NoModule
         }
         // A synchronous collector may publish a newer state during assignment.
-        when (val current = state.value) {
-            is StreamingModuleManager.State.Failed -> errorNotification.show(current)
-            is StreamingModuleManager.State.Unresponsive -> errorNotification.show(current)
-            else -> errorNotification.cancel()
-        }
+        errorNotification.update(state)
     }
 
     @Composable
@@ -430,10 +425,13 @@ internal class StreamingModuleManagerImpl internal constructor(
         private var pendingFailure: Report.Failed? = null
         private var pendingFinished: Report.Finished? = null
         private var draining = false
+
         @Volatile
         private var failureQueued = false
+
         @Volatile
         private var shutdownRequested = false
+
         @Volatile
         private var admittedUntilElapsedMillis = Long.MIN_VALUE
         var state: LaunchState = LaunchState.Starting
@@ -449,6 +447,7 @@ internal class StreamingModuleManagerImpl internal constructor(
         private val runtime = object : StreamingModule.Controller.Runtime {
             override val instanceId: StreamingModule.InstanceId = this@LaunchRecord.instanceId
             override fun isCurrent(): Boolean = isAdmitted()
+
             override fun reportRunning(status: StreamingModule.Status, heartbeatAtUptimeMillis: Long) {
                 synchronized(gate) {
                     if (!isAdmitted()) return
@@ -528,7 +527,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 synchronized(gate) { controllerSetupCompletion }.await()
                 val ownedController = synchronized(gate) { controller }
                 if (ownedController != null) withContext(dispatcher) { requestControllerShutdown(ownedController) }
-                val succeeded = if (ownedController == null) true else try {
+                val succeeded = ownedController == null || try {
                     ownedController.awaitCleanup()
                 } catch (error: Throwable) {
                     XLog.e(this@StreamingModuleManagerImpl.getLog("Cleanup", "Module cleanup failed"), error)
@@ -613,13 +612,9 @@ internal class StreamingModuleManagerImpl internal constructor(
             return true
         }
 
-        fun failureFor(messageResource: Int?): StreamingModuleManager.Failure =
-            if (state is LaunchState.Running || state is LaunchState.Unresponsive) StreamingModuleManager.Failure.ModuleFailed(messageResource)
-            else StreamingModuleManager.Failure.LaunchFailed
-
-        fun fail(failure: StreamingModuleManager.Failure): Boolean {
+        fun fail(@StringRes messageResource: Int?): Boolean {
             if (state is LaunchState.Failed) return false
-            state = LaunchState.Failed(failure)
+            state = LaunchState.Failed(messageResource)
             revokeAdmission()
             heartbeatCheck?.cancel()
             heartbeatCheck = null
@@ -643,8 +638,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             state = when {
                 previous is LaunchState.Failed -> previous
                 isClosing || shutdownDeadlineElapsedMillis != null -> LaunchState.Stopped
-                previous is LaunchState.Running || previous is LaunchState.Unresponsive -> LaunchState.Failed(StreamingModuleManager.Failure.ModuleFailed())
-                else -> LaunchState.Failed(StreamingModuleManager.Failure.LaunchFailed)
+                else -> LaunchState.Failed()
             }
             if (!cleanupCompleted) XLog.w(this@StreamingModuleManagerImpl.getLog("Finished", "Cleanup failed or unconfirmed for instance=$instanceId"))
             return true
@@ -690,7 +684,7 @@ internal class StreamingModuleManagerImpl internal constructor(
         data object Starting : LaunchState
         class Running(val status: StreamingModule.Status, val heartbeatAtUptimeMillis: Long) : LaunchState
         class Unresponsive(val lastStatus: StreamingModule.Status, val heartbeatAtUptimeMillis: Long) : LaunchState
-        class Failed(val failure: StreamingModuleManager.Failure) : LaunchState
+        class Failed(@get:StringRes val messageResource: Int? = null) : LaunchState
         data object Stopped : LaunchState
     }
 

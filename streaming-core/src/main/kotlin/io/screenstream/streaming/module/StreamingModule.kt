@@ -72,11 +72,13 @@ public interface StreamingModule {
      * @property hasConsumer Whether a consumer is present, independently of capture state.
      * @property captureAttempt Accepted Start identity, retained through its cleanup; null when
      * no capture attempt is active.
+     * @property errorMessage Current operation diagnostic while the module can continue; null when healthy.
      */
     public data class Status(
         public val isStreaming: Boolean,
         public val hasConsumer: Boolean,
         public val captureAttempt: CaptureAttemptId?,
+        public val errorMessage: String?,
     )
 
     /**
@@ -136,8 +138,8 @@ public interface StreamingModule {
 
         /**
          * Created by the manager for one reserved launch and passed to the Service's controller
-         * factory. Keep it for that controller's lifetime to check admission and report progress;
-         * it never redirects reports to another instance and owns no Android resources.
+         * factory. Keep it for that controller's lifetime to check admission and report progress.
+         * It stays bound to that instance and owns no Android resources.
          */
         public interface Runtime {
             /** Identity the created controller must expose for its whole lifetime. */

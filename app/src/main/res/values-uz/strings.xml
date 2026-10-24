@@ -3,6 +3,9 @@
     <string name="app_error_title">Xato</string>
     <string name="app_error_recover">Qayta tiklash</string>
 
+    <string name="app_module_error_title">Nimadir xato ketdi</string>
+    <string name="app_module_error_restart">Modulni qayta ishga tushirish</string>
+
     <string name="app_activity_update_dialog_title">Yangilanish mavjud</string>
     <string name="app_activity_update_dialog_message">Yangilanish endigina yuklab olindi. Ilova hozir qayta ishga tushirilsinmi?</string>
     <string name="app_activity_update_dialog_restart">Qayta ishga tushirish</string>

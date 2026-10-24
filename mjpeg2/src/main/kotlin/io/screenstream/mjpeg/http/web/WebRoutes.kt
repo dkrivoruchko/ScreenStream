@@ -37,9 +37,11 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.net.InetAddress
@@ -193,7 +195,8 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
                     this@coroutineScope.cancel()
                 }
             }
-            requestHandler.webState.collect { state ->
+            while (true) {
+                val state = requestHandler.webState.value
                 if (state == null || state.credentialGeneration != credentialGeneration) {
                     throw CancellationException("Viewing access unavailable")
                 }
@@ -202,6 +205,9 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
                     throw CancellationException("Viewing access revoked")
                 }
                 sendStateSnapshot(jsonState)
+                withTimeoutOrNull(STATE_KEEPALIVE_INTERVAL) {
+                    requestHandler.webState.first { it != state }
+                }
             }
         }
     }
@@ -309,5 +315,6 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
         const val COOKIE_NAME = "screenstream_access"
         const val MAX_PIN_BODY_BYTES = 256
         val SEND_TIMEOUT = 5.seconds
+        val STATE_KEEPALIVE_INTERVAL = 2.seconds
     }
 }

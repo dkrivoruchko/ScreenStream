@@ -12,14 +12,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
@@ -38,6 +36,7 @@ import io.screenstream.mjpeg.ui.settings.SettingInfo
 import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingsItem
+import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object NetworkFilterSearch {
     val ipVersionRes: Int = R.string.mjpeg_pref_network_filter_ip_version
@@ -76,14 +75,7 @@ internal fun NetworkFilterSettingItem(
     onNetworkChange: (NetworkSettings.() -> NetworkSettings) -> Unit,
 ) {
     var showEditor by retain { mutableStateOf(false) }
-    val openerFocusRequester = remember { FocusRequester() }
-    var shouldRestoreFocus by remember { mutableStateOf(false) }
-    LaunchedEffect(showEditor) {
-        if (!showEditor && shouldRestoreFocus) {
-            openerFocusRequester.requestFocus()
-            shouldRestoreFocus = false
-        }
-    }
+    val openerFocus = rememberSettingOpenerFocus(editorVisible = showEditor)
     val resources = LocalResources.current
     val configuration = LocalConfiguration.current
     val familySummary = remember(filter.families, resources, configuration) {
@@ -100,7 +92,7 @@ internal fun NetworkFilterSettingItem(
         summary = stringResource(NetworkFilterSearch.info.summaryRes),
         iconRes = R.drawable.mjpeg_icon_filter_alt,
         onClick = { showEditor = true },
-        modifier = Modifier.focusRequester(openerFocusRequester),
+        modifier = Modifier.focusRequester(openerFocus.requester),
         valueContent = {
             Text(
                 "$familySummary · $interfaceSummary · $categorySummary",
@@ -117,7 +109,7 @@ internal fun NetworkFilterSettingItem(
     if (showEditor) {
         NetworkFilterEditor(filter, onNetworkChange) {
             showEditor = false
-            shouldRestoreFocus = true
+            openerFocus.markDismissed()
         }
     }
 }
@@ -128,6 +120,7 @@ private fun NetworkFilterEditor(
     onNetworkChange: (NetworkSettings.() -> NetworkSettings) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val resources = LocalResources.current
     val initialFilter = retain { filter }
     var draftFilter by retain { mutableStateOf(initialFilter) }
     SettingEditor(
@@ -142,12 +135,12 @@ private fun NetworkFilterEditor(
         Text(
             stringResource(
                 R.string.mjpeg_pref_network_filter_default,
-                stringResource(NetworkFilterSearch.familyLabelResIds.getValue(AddressFamily.Ipv4)),
-                listOf(
-                    stringResource(NetworkFilterSearch.interfaceLabelResIds.getValue(InterfaceType.Wifi)),
-                    stringResource(NetworkFilterSearch.interfaceLabelResIds.getValue(InterfaceType.Ethernet)),
-                ).joinToString(),
-                stringResource(NetworkFilterSearch.categoryLabelResIds.getValue(AddressCategory.Private)),
+                NetworkFilterSearch.familyLabelResIds.filterKeys { it in NetworkSettings.DEFAULT_FILTER.families }
+                    .values.joinToString { resources.getString(it) },
+                NetworkFilterSearch.interfaceLabelResIds.filterKeys { it in NetworkSettings.DEFAULT_FILTER.interfaceTypes }
+                    .values.joinToString { resources.getString(it) },
+                NetworkFilterSearch.categoryLabelResIds.filterKeys { it in NetworkSettings.DEFAULT_FILTER.categories }
+                    .values.joinToString { resources.getString(it) },
             ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,

@@ -79,7 +79,7 @@ internal fun JpegBackendSettingItem(
                     options = JpegBackendPolicy.entries,
                     optionLabel = { option ->
                         val label = stringResource(JpegBackendSearch.options.getValue(option).labelRes)
-                        if (option == JpegBackendPolicy.Auto) stringResource(R.string.mjpeg_pref_default_option, label) else label
+                        if (option == ImageSettings.DEFAULT_JPEG_BACKEND_POLICY) stringResource(R.string.mjpeg_pref_default_option, label) else label
                     },
                     enabled = canEditStreamSetup,
                     optionSupportingText = { option ->
@@ -121,7 +121,7 @@ internal fun JpegBackendSettingItem(
                         supportingContent = { Text(stringResource(optionText.descriptionRes), style = MaterialTheme.typography.bodySmall) },
                         content = {
                             val label = stringResource(optionText.labelRes)
-                            Text(if (option == JpegBackendPolicy.Auto) stringResource(R.string.mjpeg_pref_default_option, label) else label)
+                            Text(if (option == ImageSettings.DEFAULT_JPEG_BACKEND_POLICY) stringResource(R.string.mjpeg_pref_default_option, label) else label)
                         },
                     )
                 }

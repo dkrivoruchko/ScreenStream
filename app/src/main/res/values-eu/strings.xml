@@ -3,6 +3,9 @@
     <string name="app_error_title">Errorea</string>
     <string name="app_error_recover">Leheneratu</string>
 
+    <string name="app_module_error_title">Zerbait gaizki joan da</string>
+    <string name="app_module_error_restart">Berrabiarazi modulua</string>
+
     <string name="app_activity_update_dialog_title">Bertsio-berritze bat eskuragai</string>
     <string name="app_activity_update_dialog_message">Bertsio berri bat deskargatu da. Berrabiarazi nahi duzu aplikazioa?</string>
     <string name="app_activity_update_dialog_restart">Berrabiarazi</string>

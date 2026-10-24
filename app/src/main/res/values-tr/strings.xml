@@ -3,6 +3,9 @@
     <string name="app_error_title">Hata</string>
     <string name="app_error_recover">Kurtar</string>
 
+    <string name="app_module_error_title">Bir hata oluştu</string>
+    <string name="app_module_error_restart">Modülü yeniden başlat</string>
+
     <string name="app_activity_update_dialog_title">Güncelleme var</string>
     <string name="app_activity_update_dialog_message">Bir güncelleme indirildi. Uygulama şimdi yeniden başlatılsın mı?</string>
     <string name="app_activity_update_dialog_restart">Yeniden başlat</string>

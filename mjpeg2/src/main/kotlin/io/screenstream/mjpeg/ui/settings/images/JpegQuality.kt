@@ -103,7 +103,7 @@ internal fun JpegQualitySettingItem(
                             .padding(16.dp)
                     ) {
                         Text(
-                            stringResource(R.string.mjpeg_pref_image_quality_popup_description, numberFormat.format(80)),
+                            stringResource(R.string.mjpeg_pref_image_quality_popup_description, numberFormat.format(ImageSettings.DEFAULT_JPEG_QUALITY)),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium,
                         )

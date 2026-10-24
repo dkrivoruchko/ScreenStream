@@ -17,7 +17,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +24,6 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -42,6 +40,7 @@ import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingSwitch
 import io.screenstream.mjpeg.ui.settings.SettingsItem
+import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object PinProtectionSearch {
     val policyLabelRes: Int = R.string.mjpeg_pref_access_policy_label
@@ -67,20 +66,13 @@ internal fun PinProtectionSettingItem(
     onAccessChange: (AccessSettings.() -> AccessSettings) -> Unit,
 ) {
     var showEditor by retain { mutableStateOf(false) }
-    val openerFocusRequester = remember { FocusRequester() }
-    var shouldRestoreFocus by remember { mutableStateOf(false) }
-    LaunchedEffect(showEditor) {
-        if (!showEditor && shouldRestoreFocus) {
-            openerFocusRequester.requestFocus()
-            shouldRestoreFocus = false
-        }
-    }
+    val openerFocus = rememberSettingOpenerFocus(editorVisible = showEditor)
     SettingsItem(
         title = stringResource(PinProtectionSearch.info.titleRes),
         summary = stringResource(PinProtectionSearch.info.summaryRes),
         iconRes = R.drawable.mjpeg_icon_pin,
         onClick = { showEditor = true },
-        modifier = Modifier.focusRequester(openerFocusRequester),
+        modifier = Modifier.focusRequester(openerFocus.requester),
         valueContent = {
             Text(
                 stringResource(PinProtectionSearch.policyLabelResIds.getValue(pinPolicy)),
@@ -128,7 +120,7 @@ internal fun PinProtectionSettingItem(
     if (showEditor) {
         PinProtectionEditor(pinPolicy, canEditStreamSetup, onAccessChange) {
             showEditor = false
-            shouldRestoreFocus = true
+            openerFocus.markDismissed()
         }
     }
 }
@@ -155,7 +147,11 @@ private fun PinProtectionEditor(
         },
     ) {
         Text(
-            stringResource(R.string.mjpeg_pref_access_protection_default),
+            stringResource(
+                R.string.mjpeg_pref_access_protection_default,
+                stringResource(if (AccessSettings.DEFAULT_PIN_ENABLED) R.string.mjpeg_pref_value_on else R.string.mjpeg_pref_value_off),
+                stringResource(PinProtectionSearch.policyLabelResIds.getValue(AccessSettings.DEFAULT_PIN_POLICY)),
+            ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )

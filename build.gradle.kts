@@ -25,3 +25,15 @@ subprojects {
         }
     }
 }
+
+// Keep the raw CIO binary available to its patch while every consumer uses the complete merged jar.
+subprojects {
+    val isCioPatchProject = name == "ktor-server-cio-patched"
+    configurations.configureEach {
+        if (!isCioPatchProject || name != "upstreamCio") {
+            resolutionStrategy.dependencySubstitution {
+                substitute(module("io.ktor:ktor-server-cio-jvm")).using(project(":ktor-server-cio-patched"))
+            }
+        }
+    }
+}

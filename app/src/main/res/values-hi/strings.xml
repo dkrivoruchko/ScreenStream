@@ -3,6 +3,9 @@
     <string name="app_error_title">त्रुटि</string>
     <string name="app_error_recover">पुनर्प्राप्त करें</string>
 
+    <string name="app_module_error_title">कुछ गलत हो गया</string>
+    <string name="app_module_error_restart">मॉड्यूल फिर से शुरू करें</string>
+
     <string name="app_activity_update_dialog_title">अपडेट उपलब्ध है</string>
     <string name="app_activity_update_dialog_message">एक अपडेट अभी डाउनलोड की गई है। क्या आप अब ऐप्लिकेशन को फिर से चालना चाहेंगे?</string>
     <string name="app_activity_update_dialog_restart">रीस्टार्ट करें</string>

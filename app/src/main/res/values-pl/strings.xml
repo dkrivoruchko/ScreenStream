@@ -3,6 +3,9 @@
     <string name="app_error_title">Błąd</string>
     <string name="app_error_recover">Odzyskaj</string>
 
+    <string name="app_module_error_title">Coś poszło nie tak</string>
+    <string name="app_module_error_restart">Uruchom moduł ponownie</string>
+
     <string name="app_activity_update_dialog_title">Dostępna aktualizacja</string>
     <string name="app_activity_update_dialog_message">Pobrano aktualizację. Zrestartować aplikację?</string>
     <string name="app_activity_update_dialog_restart">Uruchom ponownie</string>

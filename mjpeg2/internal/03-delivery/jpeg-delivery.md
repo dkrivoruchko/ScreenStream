@@ -5,7 +5,7 @@ One store accepts synchronous copies from the capture consumer and exposes lease
 ## Contents
 
 - [Copying and publication authority](#copying-and-publication-authority)
-- [Capture source and image selection](#capture-source-and-image-selection)
+- [Capture generation and image selection](#capture-generation-and-image-selection)
 - [Reader pinning and leases](#reader-pinning-and-leases)
 - [Pooling and memory limits](#pooling-and-memory-limits)
 - [Writing JPEG and MJPEG](#writing-jpeg-and-mjpeg)
@@ -14,45 +14,47 @@ One store accepts synchronous copies from the capture consumer and exposes lease
 
 ## Copying and publication authority
 
-`JpegStore` owns one logo, one latest real frame, an optional spare buffer and `captureSourceToken`. Selection is derived rather than separately owned. The token identifies an allowed period of image production; each frame's `publicationVersion` identifies its publication, independently of that source. The store monitor follows the runtime control monitor in lock order and never calls runtime while locked. Reader wakeups and producer copies run outside the store monitor.
+`JpegStore` owns one logo, one latest real frame, an optional spare buffer and the applied `captureGeneration`. The capture session decides generation identity; the store atomically applies its status/generation pair and enforces that identity, without creating tokens or interpreting phase transitions. Image selection is derived rather than separately owned. The token identifies an allowed period of image production; each frame's `publicationVersion` identifies its publication, independently of that generation. The store monitor follows the runtime control monitor in lock order and never calls runtime while locked. Reader wakeups and producer copies run outside the store monitor.
 
-The engine adapter exposes each borrowed `EncodedFrame` as `MjpegBorrowedJpeg`. The capture attempt forwards its byte count and synchronous copier to HTTP, which can decline the offer or copy during the same callback. The borrowed frame and copier are usable only on the callback thread before it returns; neither may be retained for asynchronous writes. `offerJpeg(attempt, byteCount, copyTo)` reserves the current source and storage under the store monitor, invokes `copyTo` at most once outside both monitors, then commits only if the source identity still matches. The callback writes exactly `byteCount` bytes at offset zero and must not retain the array.
+The engine adapter exposes each borrowed `EncodedFrame` as `MjpegBorrowedJpeg`. The capture attempt samples fresh engine state and captures the current `captureGeneration` identity under its state gate, then forwards that capability, byte count and synchronous copier to HTTP outside the gate. The borrowed frame and copier are usable only on the callback thread before it returns; neither may be retained for asynchronous writes. `offerJpeg(expectedCaptureGeneration, byteCount, copyTo)` reserves storage only if the exact captured generation remains current, invokes `copyTo` at most once outside the session gate and both HTTP/store monitors, then commits only if that same generation identity still matches. A delayed callback cannot adopt a replacement generation between admission and copying. The callback writes exactly `byteCount` bytes at offset zero and must not retain the array.
 
-Closed/stale attempts and missing capture source reject before invoking the copy. Positive length is required for an admitted offer. Allocation/copy failure returns eligible storage before rethrowing. A successfully copied stale source does not publish or increment the publication version. Disposal prevents late copies from publishing or repopulating the spare pool.
+Closed/stale attempts and missing capture generation reject before invoking the copy. Positive length is required for an admitted offer. Allocation/copy failure returns eligible storage before rethrowing. A successfully copied stale generation does not publish or increment the publication version. Disposal prevents late copies from publishing or repopulating the spare pool.
 
 ```mermaid
 sequenceDiagram
     participant E as Engine consumer callback
     participant S as JPEG store
     participant W as HTTP writer
-    E->>S: Reserve attempt/source and buffer
+    E->>S: Reserve generation and buffer
     S-->>E: Owned destination
     E->>E: Copy borrowed JPEG synchronously
-    E->>S: Commit if exact source is current
+    E->>S: Commit if exact generation is current
     S-->>W: Wake revision changes
     W->>S: Acquire selected frame lease
     W->>W: Read valid payload prefix
     W->>S: Release in finally
 ```
 
-`publicationVersion` advances on logo installation and accepted capture publications. `changeRevision` wakes waiting readers for status, policy, cutoff or publication changes. Neither value queues payloads. [Engine delivery](../../../screen-capture-engine/internal/03-output/delivery.md#borrowed-frame-lifetime) defines the upstream borrow boundary.
+`publicationVersion` advances on logo installation and accepted capture publications. `changeRevision` wakes waiting readers for status, policy, cutoff or publication changes. Neither value queues payloads. The public [engine frame contract](../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames) defines the upstream borrow boundary.
 
-## Capture source and image selection
+<a id="capture-source-and-image-selection"></a>
 
-Capture attempt identity rejects work from older attempts; source identity rejects work from an earlier production period within the same attempt. `registerCapture` sets `Starting`, creates a fresh token and retains the latest real frame/readers. Until a current-source frame arrives, selection follows the fallback. Permission and startup preserve that token so a first JPEG need not wait for asynchronous Active observation. `Active` creates a source if suspension revoked it. Suspend/resume within the same attempt therefore rejects a delayed copy from the earlier source.
+## Capture generation and image selection
+
+Capture attempt identity rejects stale control updates. Each capture generation is a fresh `Any()` identity, never reused within or across attempts, so that identity alone rejects JPEG offers from old attempts and earlier observed production periods. The JPEG offer therefore needs no repeated attempt ID. `registerCapture(attempt, initialCaptureGeneration)` sets `Starting`, applies the fresh generation already supplied to the inert session and retains the latest real frame/readers. Until a current-generation frame arrives, selection follows the fallback. Permission and startup preserve that token so a first JPEG need not wait for successful `start` return. The session is the sole phase/generation decision owner. Its state wakeups and frame callbacks sample current engine state under one gate; the commit selects the generation from the effective status after sticky Stop/failure precedence. Active creates a generation if an observed suspension revoked it, before the callback reads the committed capability. A late Engine Active cannot reopen production after accepted Stop or failure. Recovery does not depend on controller queue progress. A delayed copy holding the revoked generation cannot publish after it is replaced. StateFlow can skip transitions, so this fences observed revocation rather than reconstructing every physical engine suspension.
 
 | Current status / change | Selection effect |
 | --- | --- |
 | Register a new attempt / `Starting` | Retain latest real frame, replace producer token and apply fallback until a current frame arrives |
-| `Active` | Keep selection; ensure a current source exists |
+| `Active` | Keep selection; ensure a current generation exists |
 | `Reconfiguring`, `WaitingForPermission` | No additional selection change |
-| `Suspended`, `Failed` | Revoke source and apply fallback without erasing latest real frame |
-| `Stopping`, `Stopped` | Revoke source and apply the same fallback |
+| `Suspended`, `Failed` | Revoke generation and apply fallback without erasing latest real frame |
+| `Stopping`, `Stopped` | Revoke generation and apply the same fallback |
 | Terminal store disposal | Drop latest-real/logo/spare ownership and close admission; outstanding leases remain valid |
 
-The [saved fallback](../02-configuration/settings.md#stream-behavior) applies whenever the latest real frame does not belong to the current non-null producer token: `None` selects nothing; `Placeholder` selects the cached logo; `LastAvailableFrame` selects the latest real frame, or logo if absent. A current-source real frame always wins. This one rule covers initial idle, consent, startup before the first frame, suspension, Stop and failure. Policy edits apply immediately to fallback selection without erasing the latest real frame. It remains available across capture attempts, policy edits, listener changes and credential rotation until replacement or delivery disposal. The controller keeps failure status until accepting a new capture attempt.
+The [saved fallback](../02-configuration/settings.md#stream-behavior) applies whenever the latest real frame does not belong to the current non-null producer token: `Placeholder` (App logo) selects the cached logo; `LastAvailableFrame` selects the latest real frame, or logo if absent. A current-generation real frame always wins. This one rule covers initial idle, consent, startup before the first frame, suspension, Stop and failure. Policy edits apply immediately to fallback selection without erasing the latest real frame. It remains available across capture attempts, policy edits, listener changes and credential rotation until replacement or delivery disposal. The controller keeps failure status until accepting a new capture attempt.
 
-Availability is independent of capture phase: startup may show retained content, and a stopped stream may expose a logo or last image. Ordinary capture Stop/source changes keep the HTTP response alive. An existing MJPEG reader with no selected image waits for selection or cutoff; a new request without an image is rejected at [HTTP admission](http-delivery.md#request-admission-and-cutoff).
+Availability is independent of capture phase: startup may show retained content, and a stopped stream may expose a logo or last image. Ordinary capture Stop/generation changes keep the HTTP response alive. An existing MJPEG reader with no selected image waits for selection or cutoff; a new request without an image is rejected at [HTTP admission](http-delivery.md#request-admission-and-cutoff).
 
 ## Reader pinning and leases
 
@@ -86,15 +88,15 @@ Counts advance once the payload write completes, before multipart footer/flush. 
 
 ## Slow-reader observations
 
-Slow status measures skipped accepted capture publications, not bandwidth, latency or decode speed. Each MJPEG writer observes the acquired frame's immutable non-null capture source token and publication version without querying current store authority. A retained or since-revoked source can update its internal baseline; logo frames and `/jpeg` polling leave slow observations unchanged.
+Slow status measures skipped accepted capture publications, not bandwidth, latency or decode speed. Each MJPEG writer observes the acquired frame's immutable non-null capture generation identity and publication version without querying current store authority. A retained or since-revoked generation can update its internal baseline; logo frames and `/jpeg` polling leave slow observations unchanged.
 
-The first frame from an observed source sets a baseline and zero skipped count. A later different publication adds `max(currentVersion - priorVersion - 1, 0)` to the cumulative count, capped at five. Five accumulated skipped publications marks the response slow. A consecutive publication with gap zero resets the count and clears slow status. Repeating the same publication is neutral. A different observed source resets the baseline. An internal reset or clear for an obsolete source does not establish live recovery.
+The first frame from an observed generation sets a baseline and zero skipped count. A later different publication adds `max(currentVersion - priorVersion - 1, 0)` to the cumulative count, capped at five. Five accumulated skipped publications marks the response slow. A consecutive publication with gap zero resets the count and clears slow status. Repeating the same publication is neutral. A different observed generation resets the baseline. An internal reset or clear for an obsolete generation does not establish live recovery.
 
-The response tracks its publication-version baseline and accumulated skips in private fields. `Progress` contains source identity, slow status and completed-payload counts, never a leased array. It is an immutable volatile snapshot written by the response. The store allocates fresh source tokens after revocation and never restores an old token. Public slow status is filtered for freshness only during [HTTP sampling](http-delivery.md#client-history-and-statistics): it is displayed only when the observed source matches the current non-null token and the response belongs to a current listener. The current token and listeners are captured under the delivery control monitor; adjacent store/progress observations can still differ, so this is not one atomic frame measurement. Slow status does not disconnect a client. The controller separately consumes sampled slow status for the live [slow-viewer warning policy](../01-lifecycle/coordination.md#slow-viewer-warnings); statistics remain independent of the notification preference.
+The response tracks its publication-version baseline and accumulated skips in private fields. `Progress` contains generation identity, slow status and completed-payload counts, never a leased array. It is an immutable volatile snapshot written by the response. The capture session allocates fresh generation tokens on recovery after revocation and never restores an old token. Public slow status is filtered for freshness only during [HTTP sampling](http-delivery.md#client-history-and-statistics): it is displayed only when the observed generation matches the current non-null token and the response belongs to a current listener. The current token and listeners are captured under the delivery control monitor; adjacent store/progress observations can still differ, so this is not one atomic frame measurement. Slow status does not disconnect a client. The controller separately consumes sampled slow status for the live [slow-viewer warning policy](../01-lifecycle/coordination.md#slow-viewer-warnings); statistics remain independent of the notification preference.
 
 ## Implementation and verification
 
-- [JpegStore](../../src/main/kotlin/io/screenstream/mjpeg/http/media/JpegStore.kt) owns copies, source fences, selection and Reader leases; [JpegResponse](../../src/main/kotlin/io/screenstream/mjpeg/http/media/JpegResponse.kt) owns framing, writing, repeats and progress.
+- [JpegStore](../../src/main/kotlin/io/screenstream/mjpeg/http/media/JpegStore.kt) owns copies, generation fences, selection and Reader leases; [JpegResponse](../../src/main/kotlin/io/screenstream/mjpeg/http/media/JpegResponse.kt) owns framing, writing, repeats and progress.
 - [MjpegCaptureSession](../../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureSession.kt) connects borrowed JPEG callbacks from the [engine adapter](../../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureEngineAdapter.kt) to HTTP; [HTTP delivery](http-delivery.md) owns physical call completion and terminal cancellation.
 - [Testing](../04-testing/testing.md) describes verification scope and evidence requirements.
 

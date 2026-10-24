@@ -21,7 +21,7 @@ Read the guides:
 
 Copied links containing the current access token authorize protected viewing automatically. Address actions fall back to a plain HTTP endpoint when no applied viewing link is available. The browser also supports PIN entry when protection is enabled.
 
-Selection prepares the module and its HTTP servers; it does not start screen capture. **Stop stream** ends the current capture attempt while leaving the selected module and HTTP delivery open. Whenever capture has no current image, the saved fallback selects the logo, the last real frame (or logo if none exists), or no image. The latest real frame survives capture attempts and fallback changes until HTTP delivery is disposed. [Usage](docs/usage.md#start-view-and-stop) explains readiness, permissions and failures.
+Selection prepares the module and its HTTP servers; it does not start screen capture. **Stop stream** ends the current capture attempt while leaving the selected module and HTTP delivery open. Whenever capture has no current image, the saved fallback selects the app logo or the last real frame (falling back to the logo if none exists). The latest real frame survives capture attempts and fallback changes until HTTP delivery is disposed. [Usage](docs/usage.md#start-view-and-stop) explains readiness, permissions and failures.
 
 ## Capabilities
 

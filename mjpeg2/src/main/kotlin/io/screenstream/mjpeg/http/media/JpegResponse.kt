@@ -29,7 +29,7 @@ internal class JpegResponse(
     @Volatile
     var progress: Progress = Progress()
         private set
-    private var lastObservedCaptureVersion = 0L
+    private var lastObservedPublicationVersion = 0L
     private var skippedPublications = 0
 
     /**
@@ -76,7 +76,7 @@ internal class JpegResponse(
         }
 
         val changeRevision = reader.changeRevision
-        var lastWrittenVersion = -1L
+        var lastWrittenPublicationVersion = -1L
         var nextRepeatAtMillis = 0L
         channel.writeFully(PART_BEGIN)
         while (true) {
@@ -91,7 +91,7 @@ internal class JpegResponse(
             }
             val publicationVersion = frame.publicationVersion
             val wrotePayload = try {
-                val repeatPending = publicationVersion == lastWrittenVersion && SystemClock.elapsedRealtime() < nextRepeatAtMillis
+                val repeatPending = publicationVersion == lastWrittenPublicationVersion && SystemClock.elapsedRealtime() < nextRepeatAtMillis
                 if (repeatPending) {
                     false
                 } else {
@@ -115,7 +115,7 @@ internal class JpegResponse(
             }
             channel.writeFully(PART_END)
             channel.flush()
-            lastWrittenVersion = publicationVersion
+            lastWrittenPublicationVersion = publicationVersion
             nextRepeatAtMillis = SystemClock.elapsedRealtime() + 1_000L
         }
     }
@@ -133,44 +133,44 @@ internal class JpegResponse(
     }
 
     /**
-     * Count skipped publications within one observed capture source; consecutive publications reset
-     * the count. A different source resets the baseline; repeats and the logo are neutral.
-     * Store versions/source identity, never leased arrays; runtime filters obsolete sources.
+     * Count skipped publications within one observed capture generation; consecutive publications reset
+     * the count. A different generation resets the baseline; repeats and the logo are neutral.
+     * Store versions/generation identity, never leased arrays; runtime filters obsolete generations.
      */
     private fun updateSlowStatus(frame: Frame) {
-        if (frame.captureSourceToken == null) return
+        if (frame.captureGeneration == null) return
         val previous = progress
-        if (previous.observedCaptureSource !== frame.captureSourceToken) {
+        if (previous.observedCaptureGeneration !== frame.captureGeneration) {
             skippedPublications = 0
-        } else if (lastObservedCaptureVersion == frame.publicationVersion) {
+        } else if (lastObservedPublicationVersion == frame.publicationVersion) {
             return
         } else {
-            val skippedSinceLastObservation = (frame.publicationVersion - lastObservedCaptureVersion - 1).coerceAtLeast(0)
+            val skippedSinceLastObservation = (frame.publicationVersion - lastObservedPublicationVersion - 1).coerceAtLeast(0)
             skippedPublications = if (skippedSinceLastObservation == 0L) {
                 0
             } else {
                 minOf(SLOW_FRAME_THRESHOLD.toLong(), skippedPublications + skippedSinceLastObservation).toInt()
             }
         }
-        lastObservedCaptureVersion = frame.publicationVersion
+        lastObservedPublicationVersion = frame.publicationVersion
         val isSlow = skippedPublications >= SLOW_FRAME_THRESHOLD
-        if (previous.isSlow != isSlow || previous.observedCaptureSource !== frame.captureSourceToken) {
-            progress = previous.copy(isSlow = isSlow, observedCaptureSource = frame.captureSourceToken)
+        if (previous.isSlow != isSlow || previous.observedCaptureGeneration !== frame.captureGeneration) {
+            progress = previous.copy(isSlow = isSlow, observedCaptureGeneration = frame.captureGeneration)
         }
     }
 
     /**
      * Completed JPEG payload counts advance before footer/flush. Repeats count; framing and
      * partial writes do not.
-     * [observedCaptureSource] remains the baseline even when [isSlow] is false. Retained frames may
-     * update an obsolete baseline. Runtime displays slow status only for the current source; store
+     * [observedCaptureGeneration] remains the baseline even when [isSlow] is false. Retained frames may
+     * update an obsolete baseline. Runtime displays slow status only for the current generation; store
      * and progress samples can observe adjacent moments.
      */
     data class Progress(
         val completedJpegs: Long = 0,
         val completedJpegBytes: Long = 0,
         val isSlow: Boolean = false,
-        val observedCaptureSource: Any? = null,
+        val observedCaptureGeneration: Any? = null,
     )
 
     private companion object {

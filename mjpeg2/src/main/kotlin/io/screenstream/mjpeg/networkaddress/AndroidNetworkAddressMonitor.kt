@@ -238,14 +238,14 @@ internal class AndroidNetworkAddressMonitor(
             activeScan = null
             // One coherent snapshot includes callbacks whose notification has not been consumed yet.
             platformSnapshot = platform.snapshot()
-            val currentEvidence = result.platformSnapshot.revision == platformSnapshot.revision
+            val isPlatformSnapshotCurrent = result.platformSnapshot.revision == platformSnapshot.revision
             this@AndroidNetworkAddressMonitor.logV(
                 "onScanFinished",
                 "Interface scan completed; snapshotRevision=${result.platformSnapshot.revision}, " +
-                        "currentSnapshot=$currentEvidence, complete=${result.complete}, unreadableInterfaces=${result.failedInterfaces}",
+                        "currentSnapshot=$isPlatformSnapshotCurrent, complete=${result.complete}, unreadableInterfaces=${result.failedInterfaces}",
             )
-            applyScan(result = result, currentEvidence = currentEvidence)
-            if (currentEvidence) {
+            applyScan(result = result, isPlatformSnapshotCurrent = isPlatformSnapshotCurrent)
+            if (isPlatformSnapshotCurrent) {
                 val refreshDelay = when {
                     result.complete -> {
                         retryIndex = 0
@@ -265,7 +265,7 @@ internal class AndroidNetworkAddressMonitor(
          * Retain previous addresses until current evidence confirms absence; temporary unreadability must
          * not replace their identities or tear down listeners.
          */
-        private fun applyScan(result: ScanResult, currentEvidence: Boolean) {
+        private fun applyScan(result: ScanResult, isPlatformSnapshotCurrent: Boolean) {
             val types = platformSnapshot.interfaceTypes
             val freshCandidates = result.interfaces.flatMap { item ->
                 val type = types[item.interfaceName] ?: inferInterfaceType(item.interfaceName)
@@ -275,7 +275,7 @@ internal class AndroidNetworkAddressMonitor(
 
             val retainedCandidates = addressesByIp.values.flatMap { it.candidates }.filter { candidate ->
                 val replaced = (candidate.interfaceName to candidate.ipKey) in freshInterfaceIps
-                val confirmedAbsent = currentEvidence && result.canConfirmAbsence(interfaceName = candidate.interfaceName)
+                val confirmedAbsent = isPlatformSnapshotCurrent && result.canConfirmAbsence(interfaceName = candidate.interfaceName)
                 !replaced && !confirmedAbsent
             }.map { candidate ->
                 candidate.copy(interfaceType = types[candidate.interfaceName] ?: candidate.interfaceType)

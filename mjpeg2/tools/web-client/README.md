@@ -39,14 +39,15 @@ npm run check
    changes apply live, preserving connections and viewer choices. PIN/Blocked deliberately start a fresh
    protected preview context; leaving them restores open access. The viewer reloads at these access boundaries.
    The test PIN is shown; blocks last 20 seconds.
-2. **Inactive image** selects Logo (default), Last frame or None whenever no current frame is available.
+2. **Inactive stream image** selects App logo (default) or Last frame whenever no current frame is available.
    A current frame always wins. **Current frame available** controls Normal, PIN required and PIN blocked;
    when off, those canonical fixtures have no earlier frame. Other scenarios use **Last frame available**:
    Last frame selects one frozen sample in the chosen stream orientation, falling back to Logo when off.
-   None selects no media. Each scenario is independent of earlier choices; the preview does not simulate
+   Each scenario is independent of earlier choices; the preview does not simulate
    Android capture history. Diagnostics reports the selected `imageKind`: `none`, `logo`, `live` or `retained`.
-   The web viewer shows its centered permission screen even when direct media selects a retained frame;
-   other retained frames show a persistent capture-status badge, red for Failed.
+   The web viewer uses the same retained selection during permission as direct media. Selected logo uses
+   the centered DOM logo without a media request; notices use the current message surface, which connection
+   or media recovery can replace.
 3. **Stream image: Portrait / Landscape** chooses the animated sample orientation. **Browser frame** independently changes the
    browser frame size. Changing stream orientation also updates the Last frame sample.
 4. Appearance saves automatically: title and valid HEX wait 450 ms after typing; other controls apply
@@ -78,8 +79,10 @@ Run these four checks in Chrome and Safari after changing viewer behavior; no br
 3. Use **Open viewer** and choose JPEG plus a nondefault sizing mode. In the panel, switch Normal → PIN required;
    enter the shown PIN in the standalone viewer and check both choices survive. The panel's iframe reloads
    at access boundaries, so use the standalone viewer for this check.
-4. Keep that standalone viewer open. Stop the server until **Server unavailable**, restart on the same port,
-   then press **Retry connection** and check viewing and local choices recover. A full panel reload resets defaults.
+4. Keep that standalone viewer open. Stop the server until **Reconnecting**, then restart on the same port.
+   Check that the compact message follows the visible HUD, viewing recovers automatically and local choices survive.
+   The preview repeats authorized state snapshots every two seconds, matching the production liveness contract.
+   A full panel reload resets defaults.
 
 The desktop harness follows the [HTTP viewing API](../../docs/http-viewing-api.md), serving its viewer at
 `/viewer`. It does not run Android capture or Ktor/CIO and does not replace Kotlin protocol tests or device

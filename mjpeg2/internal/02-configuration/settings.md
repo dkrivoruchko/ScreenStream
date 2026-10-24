@@ -16,6 +16,8 @@
 
 One `Data` snapshot contains five groups: `image`, `network`, `access`, `web` and `behavior`. The native UI presents them as Image, Connection, Access, Web page and Automation, with search across all five groups. Behavior switches apply live; saving a field does not confirm that the controller has applied it.
 
+Each settings group owns its saved defaults in companion `DEFAULT_*` members, used by constructors, native default descriptions and migration fallbacks. The device-title default remains a companion function evaluated when needed. Image editor seeds use separate `UI_DEFAULT_*` members: 30 FPS, a one-second sampling interval and AspectFit for an unset target size; `uiDefaultTargetDimension` rounds half the screen dimension up. These draft seeds do not replace the saved `Auto` frame rate or nullable target size, and historical wire decoding defaults remain independent.
+
 ### Image
 
 | Field | Values | Default |
@@ -55,7 +57,7 @@ Selecting every option saves the full set. Address support, category meanings an
 | `pin` | `SecretValue` containing six ASCII digits, or null | `null` |
 | `hidePinOnCaptureStart` | Main PIN-row display preference | `true`; capture-state changes hide a manually revealed PIN |
 | `limitWrongPins` | Boolean | `true` |
-| `blockMinutes` | Integer, at least 1 | `1` |
+| `blockMinutes` | Integer, at least 1 | `3` |
 
 Leading zeros are valid. `SecretValue.toString()` returns `<redacted>`; serialization preserves its actual value. Reveal `value` only for an explicit user action. The saved PIN differs from the unsaved URL token and viewing cookie described in [HTTP access](../03-delivery/http-delivery.md#access-generations-and-pin-blocks).
 
@@ -80,7 +82,7 @@ Native placement editors show the Auto-hide switch only for overlays and no auto
 | `keepScreenAwake` | Boolean | `false`; best-effort screen-on request during confirmed capture |
 | `stopOnScreenOff` | Boolean | `false`; device sleep stops the current capture attempt when enabled |
 | `stopAfterNetworkLossSeconds` | Integer 10–1800, with no Never value | `60`; implemented |
-| `postStopImage` | `None`, `Placeholder`, `LastAvailableFrame` | `Placeholder`; fallback whenever no current capture image exists |
+| `postStopImage` | `Placeholder` (App logo), `LastAvailableFrame` (Last frame) | `Placeholder`; fallback whenever no current capture image exists |
 | `notifySlowViewers` | Boolean | `true`; live device Toast warnings for sampled slow MJPEG responses during active capture |
 
 The implemented timeout watches an empty selected-address list, independently of bind failure. [Coordination](../01-lifecycle/coordination.md#network-loss-deadline) defines network-loss timing, [keep-awake ownership](../01-lifecycle/coordination.md#keep-screen-awake) and the separate [slow-viewer warning policy](../01-lifecycle/coordination.md#slow-viewer-warnings); [JPEG selection](../03-delivery/jpeg-delivery.md#capture-source-and-image-selection) defines the common inactive-image fallback. The historical saved field and enum names remain unchanged; Last frame uses the logo if no real frame exists. Slow statistics continue independently of notification settings, and Android can terminate MediaProjection regardless of saved behavior choices.

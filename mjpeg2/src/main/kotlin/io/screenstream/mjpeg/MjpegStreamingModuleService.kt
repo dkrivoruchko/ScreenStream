@@ -15,7 +15,7 @@ import org.koin.android.ext.android.inject
 import org.koin.core.parameter.parametersOf
 
 /**
- * Creates native MJPEG's inert controller and performs foreground and notification operations.
+ * Creates native MJPEG's inert controller and performs foreground operations.
  * The shared base owns exact Service startup, destruction and timeout callbacks.
  */
 public class MjpegStreamingModuleService : StreamingModuleService() {
@@ -45,18 +45,5 @@ public class MjpegStreamingModuleService : StreamingModuleService() {
             is ReleaseResult.Failed -> throw release.cause
             ReleaseResult.Unconfirmed -> error("Foreground release unconfirmed")
         }
-    }
-
-    internal suspend fun showCaptureError() {
-        withContext(Dispatchers.Main.immediate) {
-            notifications.showNotification(
-                ERROR_NOTIFICATION_ID,
-                notifications.getErrorNotification(this@MjpegStreamingModuleService, getString(R.string.mjpeg_capture_error), null),
-            )
-        }
-    }
-
-    private companion object {
-        const val ERROR_NOTIFICATION_ID = 410
     }
 }

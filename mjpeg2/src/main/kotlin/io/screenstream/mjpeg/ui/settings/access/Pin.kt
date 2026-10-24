@@ -13,14 +13,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -40,6 +38,7 @@ import io.screenstream.mjpeg.ui.settings.SettingInfo
 import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingsItem
+import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object PinSearch {
     val fieldLabelRes: Int = R.string.mjpeg_pref_access_pin_label
@@ -63,20 +62,13 @@ internal fun PinSettingItem(
 ) {
     var pinRevealed by remember(pin) { mutableStateOf(false) }
     var showEditor by remember { mutableStateOf(false) }
-    val openerFocusRequester = remember { FocusRequester() }
-    var shouldRestoreFocus by remember { mutableStateOf(false) }
-    LaunchedEffect(showEditor) {
-        if (!showEditor && shouldRestoreFocus) {
-            openerFocusRequester.requestFocus()
-            shouldRestoreFocus = false
-        }
-    }
+    val openerFocus = rememberSettingOpenerFocus(editorVisible = showEditor)
     SettingsItem(
         title = stringResource(PinSearch.info.titleRes),
         summary = stringResource(PinSearch.info.summaryRes),
         iconRes = R.drawable.mjpeg_icon_dialpad,
         onClick = { showEditor = true },
-        modifier = Modifier.focusRequester(openerFocusRequester),
+        modifier = Modifier.focusRequester(openerFocus.requester),
         valueContent = {
             Text(
                 when {
@@ -105,7 +97,7 @@ internal fun PinSettingItem(
     if (showEditor) {
         PinEditor(pin, pinPolicy, canEditStreamSetup, onAccessChange) {
             showEditor = false
-            shouldRestoreFocus = true
+            openerFocus.markDismissed()
         }
     }
 }

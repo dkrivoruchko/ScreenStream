@@ -1,6 +1,7 @@
 package io.screenstream.mjpeg.http.media
 
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
+import io.screenstream.mjpeg.settings.StreamBehaviorSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import io.screenstream.streaming.module.StreamingModule.CaptureAttemptId
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,16 +20,16 @@ internal class JpegStore {
     private var captureId: CaptureAttemptId? = null
     private var captureStatus = Status.Stopped
     private var logoFrame: Frame? = null
-    private var fallbackPolicy = PostStopImage.Placeholder
+    private var fallbackPolicy = StreamBehaviorSettings.DEFAULT_POST_STOP_IMAGE
 
     private var latestRealFrame: PooledFrame? = null
     private var spareBuffer: ByteArray? = null
-    private var captureSourceToken: Any? = null
+    private var captureGeneration: Any? = null
 
     // Logo is installed before capture; subsequent increments count only accepted publications.
     private var lastPublicationVersion = 0L
 
-    fun snapshot(): Snapshot = synchronized(monitor) { Snapshot(captureStatus, imageKind(), captureSourceToken) }
+    fun snapshot(): Snapshot = synchronized(monitor) { Snapshot(captureStatus, imageKind(), captureGeneration) }
 
     /** Transfer immutable logo bytes once before capture begins; the caller must not modify them. */
     fun installLogo(bytes: ByteArray) {
@@ -38,7 +39,7 @@ internal class JpegStore {
         }
     }
 
-    /** Apply the saved fallback whenever no frame belongs to the current capture source. */
+    /** Apply the saved fallback whenever no frame belongs to the current capture generation. */
     fun updateFallbackPolicy(policy: PostStopImage) {
         synchronized(monitor) {
             if (closed) return
@@ -49,52 +50,40 @@ internal class JpegStore {
 
     /**
      * Fence old producer copies while retaining latest real frame storage and readers.
-     * Recompute selection from a fresh source and the fallback; false after disposal.
+     * Apply the capture attempt's fresh generation and the fallback; false after disposal.
      */
-    fun registerCapture(id: CaptureAttemptId): Boolean {
+    fun registerCapture(id: CaptureAttemptId, initialCaptureGeneration: Any): Boolean {
         synchronized(monitor) {
             if (closed) return false
             captureId = id
-            captureSourceToken = Any()
+            captureGeneration = initialCaptureGeneration
             captureStatus = Status.Starting
         }
         wakeReaders()
         return true
     }
 
-    /** Ignore stale attempts; capture transitions change selection without draining HTTP readers. */
-    fun updateCaptureStatus(id: CaptureAttemptId, status: Status): Boolean {
+    /** Apply the capture session's phase/generation pair atomically; ignore stale attempts without draining readers. */
+    fun updateCaptureStatus(id: CaptureAttemptId, status: Status, captureGeneration: Any?) {
         synchronized(monitor) {
-            if (closed || captureId != id) return false
+            if (closed || captureId != id) return
             captureStatus = status
-            when (status) {
-                Status.Active -> {
-                    if (captureSourceToken == null) captureSourceToken = Any()
-                }
-
-                Status.Suspended, Status.Failed, Status.Stopping, Status.Stopped -> {
-                    captureSourceToken = null
-                }
-
-                Status.Starting, Status.WaitingForPermission, Status.Reconfiguring -> Unit
-            }
+            this.captureGeneration = captureGeneration
         }
         wakeReaders()
-        return true
     }
 
     /**
      * [copyTo] runs at most once, synchronously outside the monitor, writing exactly [byteCount]
      * bytes from offset zero without retaining the array; [byteCount] must be positive.
-     * Stale attempts/closed sources admit no copy; source replacement rejects publication.
+     * Generation identity is never reused, including across attempts. Closed/stale generations admit no copy;
+     * generation replacement rejects publication.
      * Failed copies return eligible storage before rethrowing.
      * True means the selected image kind changed, avoiding a web-state refresh for every JPEG.
      */
-    fun offerJpeg(id: CaptureAttemptId, byteCount: Int, copyTo: (ByteArray) -> Unit): Boolean {
-        val reservedSource: Any
+    fun offerJpeg(expectedCaptureGeneration: Any, byteCount: Int, copyTo: (ByteArray) -> Unit): Boolean {
         var copyBuffer = synchronized(monitor) {
-            if (closed || captureId != id) return false
-            reservedSource = captureSourceToken ?: return false
+            if (closed || captureGeneration !== expectedCaptureGeneration) return false
             val buffer = spareBuffer
             spareBuffer = null
             buffer
@@ -112,13 +101,13 @@ internal class JpegStore {
             copyTo(buffer)
             synchronized(monitor) {
                 val previousKind = imageKind()
-                if (captureSourceToken === reservedSource) {
+                if (captureGeneration === expectedCaptureGeneration) {
                     replaceLatestRealFrame(
                         PooledFrame(
                             bytes = buffer,
                             byteCount = byteCount,
                             publicationVersion = ++lastPublicationVersion,
-                            captureSourceToken = reservedSource,
+                            captureGeneration = expectedCaptureGeneration,
                         )
                     )
                 } else {
@@ -153,7 +142,7 @@ internal class JpegStore {
             if (closed) return
             closed = true
             captureId = null
-            captureSourceToken = null
+            captureGeneration = null
             replaceLatestRealFrame(null)
             logoFrame = null
             spareBuffer = null
@@ -163,9 +152,8 @@ internal class JpegStore {
 
     private fun selectedFrame(): Frame? {
         val latest = latestRealFrame
-        if (latest != null && latest.captureSourceToken === captureSourceToken) return latest
+        if (latest != null && latest.captureGeneration === captureGeneration) return latest
         return when (fallbackPolicy) {
-            PostStopImage.None -> null
             PostStopImage.Placeholder -> logoFrame
             PostStopImage.LastAvailableFrame -> latest ?: logoFrame
         }
@@ -174,8 +162,8 @@ internal class JpegStore {
     private fun imageKind(): ImageKind {
         val frame = selectedFrame() ?: return ImageKind.None
         return when {
-            frame.captureSourceToken == null -> ImageKind.Logo
-            frame.captureSourceToken === captureSourceToken -> ImageKind.Live
+            frame.captureGeneration == null -> ImageKind.Logo
+            frame.captureGeneration === captureGeneration -> ImageKind.Live
             else -> ImageKind.Retained
         }
     }
@@ -213,18 +201,18 @@ internal class JpegStore {
 
     /**
      * Read [bytes] only while holding an acquisition; never modify them. Only [byteCount] bytes
-     * are valid. Null [captureSourceToken] identifies the logo. [publicationVersion] advances on
+     * are valid. Null [captureGeneration] identifies the logo. [publicationVersion] advances on
      * logo installation and accepted capture publications, not reselection or rejected copies.
      */
     open class Frame internal constructor(
         val bytes: ByteArray,
         val byteCount: Int,
         val publicationVersion: Long,
-        val captureSourceToken: Any? = null,
+        val captureGeneration: Any? = null,
     )
 
-    private class PooledFrame(bytes: ByteArray, byteCount: Int, publicationVersion: Long, captureSourceToken: Any) :
-        Frame(bytes, byteCount, publicationVersion, captureSourceToken) {
+    private class PooledFrame(bytes: ByteArray, byteCount: Int, publicationVersion: Long, captureGeneration: Any) :
+        Frame(bytes, byteCount, publicationVersion, captureGeneration) {
         var leaseCount = 0
     }
 
@@ -278,6 +266,6 @@ internal class JpegStore {
 
     enum class ImageKind { None, Logo, Live, Retained }
 
-    /** Selection is independent of capture phase; [captureSourceToken] fences obsolete slow observations. */
-    data class Snapshot(val captureStatus: Status, val imageKind: ImageKind, val captureSourceToken: Any?)
+    /** Selection is independent of capture phase; [captureGeneration] fences obsolete slow observations. */
+    data class Snapshot(val captureStatus: Status, val imageKind: ImageKind, val captureGeneration: Any?)
 }

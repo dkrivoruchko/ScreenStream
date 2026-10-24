@@ -7,7 +7,7 @@ koin-android = "4.2.2"
 koin-plugin = "1.2.1"
 
 kotlinx-coroutines = "1.11.0"
-kotlinx-serialization = "1.11.0"
+kotlinx-serialization = "1.12.0"
 junit = "4.13.2"
 robolectric = "4.17"
 
@@ -19,11 +19,11 @@ androidx-fragment = "1.9.1"
 androidx-appcompat = "1.8.0"
 androidx-lifecycle = "2.11.0"
 androidx-window = "1.5.1"
-androidx-datastore-preferences = "1.2.1"
+androidx-datastore-preferences = "1.3.0"
 androidx-work = "2.12.0"
 
 compose-bom = "2026.09.00"
-compose-material3 = "1.5.0-beta01"
+compose-material3 = "1.5.0-beta02"
 
 xlog = "1.11.1"
 
@@ -36,13 +36,13 @@ play-services-tasks = "18.4.1"
 play-integrity = "1.6.0"
 socket = "2.1.2"
 okio = "3.18.2"
-okhttp = "5.5.0"
+okhttp = "5.5.1"
 
 #PlayStore-App
 play-app-update = "2.1.0"
 play-app-review = "2.0.2"
-ads-mobile-sdk = "1.5.0"
-firebase-bom = "35.0.2"
+ads-mobile-sdk = "1.6.0"
+firebase-bom = "35.1.0"
 google-services = "4.5.0"
 crashlytics-gradle = "3.0.8"
 

@@ -19,13 +19,18 @@ function decodeSnapshot(data) {
 }
 
 function createConnection(callbacks) {
-    const delays = [0, 1000, 2000, 4000, 8000];
-    let socket = null, timer = null;
-    let retries = 0, paused = false, pinRequest = null;
+    const delays = [0, 1000, 2000, 4000, 5000];
+    const livenessTimeout = 5000;
+    const admissionInterval = 5000;
+    let socket = null, timer = null, livenessTimer = null;
+    let lastSnapshotAt = 0;
+    let retries = 0, paused = false, pinRequest = null, accessDenied = false;
 
     function disposeSocket() {
         clearTimeout(timer);
-        timer = null;
+        clearTimeout(livenessTimer);
+        timer = livenessTimer = null;
+        lastSnapshotAt = 0;
         const ws = socket;
         socket = null;
         if (ws) {
@@ -33,15 +38,7 @@ function createConnection(callbacks) {
             ws.close();
         }
     }
-    function failed(ws) {
-        if (ws !== socket || paused) return;
-        disposeSocket();
-        if (retries >= delays.length) {
-            callbacks.state('unavailable');
-            return;
-        }
-        callbacks.state('reconnecting');
-        const delay = delays[retries++];
+    function schedule(delay) {
         const retryTimer = setTimeout(() => {
             if (timer !== retryTimer || paused) return;
             timer = null;
@@ -49,9 +46,26 @@ function createConnection(callbacks) {
         }, delay);
         timer = retryTimer;
     }
+    function denied(value) {
+        accessDenied = true;
+        retries = 0;
+        disposeSocket();
+        callbacks.snapshot(value);
+        // Denied sockets remain short-lived; only a foreground page rechecks admission.
+        const remaining = value.access === 'blocked' && isFinite(value.retryAfterMs) ? value.retryAfterMs : admissionInterval;
+        schedule(Math.max(100, Math.min(admissionInterval, remaining)));
+    }
+    function failed(ws) {
+        if (ws !== socket || paused) return;
+        disposeSocket();
+        if (!accessDenied) callbacks.state('reconnecting');
+        const delay = delays[retries];
+        retries = Math.min(retries + 1, delays.length - 1);
+        schedule(delay);
+    }
     function open() {
         disposeSocket();
-        if (paused) return;
+        if (paused || pinRequest || accessDenied && document.hidden) return;
         if (!window.WebSocket) { callbacks.state('unsupported'); return; }
         const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
         let ws;
@@ -66,14 +80,20 @@ function createConnection(callbacks) {
             const value = decodeSnapshot(event.data);
             if (!value) { failed(ws); return; }
             if (value.access === 'pin_required' || value.access === 'blocked') {
-                retries = 0;
-                disposeSocket();
-                callbacks.snapshot(value);
+                denied(value);
                 return;
             }
+            accessDenied = false;
             clearTimeout(timer);
             timer = null;
             retries = 0;
+            lastSnapshotAt = Date.now();
+            clearTimeout(livenessTimer);
+            livenessTimer = setTimeout(() => {
+                livenessTimer = null;
+                // Background throttling is revalidated by the page's visibility-return path.
+                if (ws === socket && !paused && !document.hidden) failed(ws);
+            }, livenessTimeout);
             callbacks.snapshot(value);
         };
         ws.onclose = ws.onerror = () => failed(ws);
@@ -87,20 +107,27 @@ function createConnection(callbacks) {
     function submitPin(pin) {
         if (pinRequest) return;
         if (!/^[0-9]{6}$/.test(pin)) { callbacks.pin('pinInvalid'); return; }
+        // Do not let an older admission reply race the explicit login result.
+        disposeSocket();
         const request = new XMLHttpRequest();
         pinRequest = request;
         callbacks.pin('pinSending');
         request.open('POST', '/pin', true);
         request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         request.timeout = 10000;
-        const finish = () => { if (pinRequest !== request) return false; pinRequest = null; return true; };
+        const finish = () => {
+            if (pinRequest !== request) return false;
+            pinRequest = null;
+            if (accessDenied) schedule(admissionInterval);
+            return true;
+        };
         request.onload = () => {
             if (!finish()) return;
             if (request.status === 204) { callbacks.pin('success'); retry(); }
             else if (request.status === 403) callbacks.pin('pinWrong');
             else if (request.status === 429) {
                 const seconds = parseInt(request.getResponseHeader('Retry-After'), 10);
-                callbacks.snapshot({ access: 'blocked', retryAfterMs: (isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000 });
+                denied({ access: 'blocked', retryAfterMs: (isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000 });
             } else callbacks.pin('pinNetwork');
         };
         request.onerror = request.ontimeout = () => { if (finish()) callbacks.pin('pinNetwork'); };
@@ -111,5 +138,6 @@ function createConnection(callbacks) {
         disposeSocket();
         if (pinRequest) { const request = pinRequest; pinRequest = null; request.abort(); }
     }
-    return { retry, submitPin, pause, healthy: () => !!socket && socket.readyState === 1 && !timer };
+    return { retry, submitPin, pause,
+        healthy: () => !!socket && socket.readyState === 1 && lastSnapshotAt > 0 && Date.now() - lastSnapshotAt < livenessTimeout };
 }

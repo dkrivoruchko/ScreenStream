@@ -23,20 +23,26 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 #viewport.view-fit { overflow: hidden; }
 #viewport.view-width { overflow-x: hidden; overflow-y: auto; }
 #image-stage { position: relative; min-width: 100%; min-height: 100%; }
+/* The width stage grows with tall images; only spare vertical space is centered. */
+#viewport.view-width #image-stage { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
 .stream-image { display: block; position: absolute; left: 50%; top: 50%; max-width: none; max-height: none; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); }
-#viewport.view-width .stream-image { position: relative; left: 0; top: 0; width: 100%; height: auto; -webkit-transform: none; transform: none; }
+#viewport.view-width .stream-image { position: relative; left: 0; top: 0; width: 100%; height: auto; -webkit-flex: 0 0 100%; flex: 0 0 100%; -webkit-transform: none; transform: none; }
 .stream-candidate { position: absolute; left: 0; top: 0; width: 0; height: 0; visibility: hidden; }
 .edge { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 3; }
 .edge.bar { background: inherit; }
 #top-bar { top: 0; }
 #bottom-bar { bottom: 0; }
-.block { position: absolute; z-index: 3; left: 50%; -webkit-transform: translateX(-50%); transform: translateX(-50%); pointer-events: auto; max-width: 100%; }
-.block.autohidden { visibility: hidden; pointer-events: none; }
+.block { position: absolute; z-index: 3; left: 50%; -webkit-transform: translateX(-50%); transform: translateX(-50%); pointer-events: auto; max-width: 100%; opacity: 1; -webkit-transition: opacity 110ms ease 110ms, -webkit-transform 110ms ease 110ms, visibility 0s; transition: opacity 110ms ease 110ms, transform 110ms ease 110ms, visibility 0s; }
+.block.autohidden { opacity: 0; visibility: hidden; pointer-events: none; -webkit-transform: translate(-50%, 8px); transform: translate(-50%, 8px); -webkit-transition-delay: 0s, 0s, 110ms; transition-delay: 0s, 0s, 110ms; }
+.caption:not(.separate-bar) { -webkit-transition: opacity 110ms ease 110ms, -webkit-transform 110ms ease 110ms, top 110ms ease, bottom 110ms ease, visibility 0s; transition: opacity 110ms ease 110ms, transform 110ms ease 110ms, top 110ms ease, bottom 110ms ease, visibility 0s; }
+.caption:not(.separate-bar).autohidden { -webkit-transition-delay: 0s, 0s, 0s, 0s, 110ms; transition-delay: 0s, 0s, 0s, 0s, 110ms; }
+#shell.hud-hiding .caption:not(.separate-bar):not(.autohidden) { -webkit-transition-delay: 110ms, 110ms, 110ms, 110ms, 0s; transition-delay: 110ms, 110ms, 110ms, 110ms, 0s; }
+.block.at-top.autohidden { -webkit-transform: translate(-50%, -8px); transform: translate(-50%, -8px); }
 
 /* The player surfaces stay neutral over any image and browser theme. */
 .caption { max-width: 95%; min-height: 36px; padding: 7px 12px; color: #fff; font-size: 14px; font-weight: 500; line-height: 24px; }
-.caption span { display: block; padding: 3px 12px; border-radius: 9px; color: inherit; background: #121212; background: rgba(0, 0, 0, .62); box-shadow: 0 2px 10px rgba(0, 0, 0, .15); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.controls { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; width: -webkit-max-content; width: -moz-max-content; width: max-content; padding: 6px; border: 0; border-radius: 30px; color: #fff; background: #121212; background: rgba(0, 0, 0, .62); box-shadow: 0 4px 16px rgba(0, 0, 0, .14); }
+.caption span { display: block; padding: 3px 12px; border-radius: 9px; color: inherit; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .15); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.controls { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; width: -webkit-max-content; width: -moz-max-content; width: max-content; padding: 6px; border: 0; border-radius: 30px; color: #fff; background: #24272b; box-shadow: 0 4px 16px rgba(0, 0, 0, .14); }
 .controls > * { margin: 0; }
 .controls > button, .size-modes button + button { margin-left: 6px; }
 .controls button { display: block; position: relative; -webkit-flex: 0 0 48px; flex: 0 0 48px; width: 48px; min-width: 48px; max-width: 48px; height: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 8px; color: inherit; background: transparent; box-shadow: none; text-align: center; }
@@ -53,7 +59,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 .native-size { font-size: 20px; font-weight: 700; line-height: 24px; }
 #fullscreen .fullscreen-exit, #fullscreen[aria-pressed="true"] .fullscreen-enter { display: none; }
 #fullscreen[aria-pressed="true"] .fullscreen-exit { display: inline-block; }
-.control-tooltip { position: absolute; z-index: 7; max-width: 220px; padding: 6px 10px; border-radius: 8px; color: #fff; background: #121212; background: rgba(0, 0, 0, .88); box-shadow: 0 2px 10px rgba(0, 0, 0, .2); font-size: 12px; line-height: 18px; pointer-events: none; white-space: nowrap; }
+.control-tooltip { position: absolute; z-index: 7; max-width: 220px; padding: 6px 10px; border-radius: 8px; color: #fff; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .2); font-size: 12px; line-height: 18px; pointer-events: none; white-space: nowrap; }
 
 /* Separate bars retain the configured background and matching foreground. */
 .caption.separate-bar { width: 100%; max-width: 100%; text-align: center; }
@@ -74,14 +80,18 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 #shell.empty-screen .controls.separate-bar button[aria-pressed="true"]:hover, #shell.empty-screen .controls.separate-bar button[aria-expanded="true"]:hover { background: rgba(128, 128, 128, .22); }
 #shell.empty-screen:not(.pointer-input) .controls.separate-bar button:focus, #shell.empty-screen .controls.separate-bar button:active { background: rgba(128, 128, 128, .22); }
 
-.status { position: absolute; z-index: 4; left: 10%; width: 80%; padding: 10px 12px; color: #fff; text-align: center; pointer-events: none; line-height: 1.4; font-size: 15px; text-shadow: 0 1px 3px #000, 0 0 8px #000; }
-.status:empty { display: none; }
-.status.capture-failed { color: #ffb4ab; }
-.capture-notice.capture-failed { color: #ffb4ab; }
-.capture-notice { position: absolute; z-index: 4; left: 50%; width: 280px; width: -webkit-max-content; width: -moz-max-content; width: max-content; max-width: calc(100% - 24px); padding: 8px 12px; border-radius: 10px; color: #fff; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .2); font-size: 14px; line-height: 20px; text-align: center; pointer-events: none; -webkit-transform: translateX(-50%); transform: translateX(-50%); }
+.status-panel { width: 100%; text-align: center; }
+.status-overlay { position: absolute; z-index: 4; width: 360px; padding: 12px; overflow: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; color: #fff; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .2); -webkit-transform: translateX(-50%); transform: translateX(-50%); -webkit-transition: bottom 110ms ease; transition: bottom 110ms ease; }
+#shell.hud-hiding .status-overlay { -webkit-transition-delay: 110ms; transition-delay: 110ms; }
+.status-overlay.status-compact { width: 280px; width: -webkit-max-content; width: -moz-max-content; width: max-content; padding: 7px 12px; }
+.status-overlay #state-message { color: inherit; font-size: 15px; line-height: 1.4; }
+.status-panel.status-failed #state-message { color: #ffb4ab; }
+#shell.menu-open #status-panel { visibility: hidden; pointer-events: none; }
+.recovery { width: 100%; }
+.recovery button { display: block; width: 100%; margin-top: 8px; }
 .panel { position: absolute; z-index: 6; left: 50%; width: 360px; max-width: 96%; max-height: 80%; margin-left: -180px; padding: 20px; overflow: auto; -webkit-overflow-scrolling: touch; border: 1px solid #73777f; border-radius: 15px; background: #e6e8ee; box-shadow: 0 16px 64px rgba(0, 0, 0, .3); }
 .panel button { display: block; width: 100%; margin-top: 8px; }
-#menu { width: 344px; margin-left: -172px; padding: 14px; border: 0; border-radius: 14px; color: #fff; background: #121212; background: rgba(0, 0, 0, .88); color-scheme: dark; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); }
+#menu { width: 344px; margin-left: -172px; padding: 14px; border: 0; border-radius: 14px; color: #fff; background: #24272b; color-scheme: dark; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); }
 #menu:focus { outline: none; }
 .menu-heading { margin: 16px 8px 4px; color: #fff; font-size: 14px; font-weight: 500; line-height: 20px; }
 #method-label { margin-top: 0; margin-bottom: 8px; }
@@ -105,19 +115,29 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 .legal-links a:hover { color: #fff; }
 .legal-links a:focus { outline: 2px solid #fff; outline-offset: 3px; border-radius: 2px; }
 
+/* Keep a readable dark backing even when blur is unavailable or the image is white. */
+.controls:not(.separate-bar), .caption:not(.separate-bar) span, .status-overlay { background: rgba(24, 27, 31, .8); }
 @supports ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
-  .controls:not(.separate-bar), .caption:not(.separate-bar) span { background: rgba(0, 0, 0, .33); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-  #menu { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .controls:not(.separate-bar), .caption:not(.separate-bar) span, .status-overlay { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .block, .block.autohidden, .caption:not(.separate-bar), .status-overlay { -webkit-transition: none; transition: none; }
 }
 
 /* Access and no-image states keep the system palette. */
 .open-state, #pin-panel { position: absolute; top: 50%; left: 50%; width: 392px; max-width: calc(100% - 32px); max-height: calc(100% - 32px); margin-left: 0; padding: 16px 12px; overflow: auto; text-align: center; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); }
+.open-state { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; }
+.open-state > * { -webkit-flex-shrink: 0; flex-shrink: 0; }
 .open-content { width: 100%; min-width: 0; }
-#state-message { margin: 16px 0 0; color: #526070; font-size: 16px; line-height: 1.6; }
-.open-state.capture-failed #state-message { color: #ba1a1a; }
+.open-actions { width: 100%; max-width: 320px; margin: 0 auto; }
+.open-state .recovery { margin-top: 16px; }
+.open-state .recovery button:first-child { margin-top: 0; }
+#state-message { margin: 0; color: #526070; font-size: 16px; line-height: 1.6; }
+.open-state .status-panel.status-failed #state-message { color: #ba1a1a; }
 #pin-panel { border: 0; border-radius: 0; color: inherit; background: transparent; box-shadow: none; }
 /* Leave 264px for compact PIN content and outer insets. */
 #pin-logo, #state-logo { display: block; width: 192px; min-width: 40px; max-width: 192px; height: auto; margin: 0 auto 24px; }
+#state-logo { margin-bottom: 16px; }
 #pin-title { margin: 0; font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -.02em; }
 #pin-form { width: 100%; max-width: 320px; margin: 0 auto; }
 #pin-panel p { margin: 16px 0 26px; color: #526070; font-size: 16px; line-height: 1.6; }
@@ -125,12 +145,12 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 #pin-entry { margin-top: 26px; }
 #pin-entry label { display: block; margin-bottom: 12px; color: #526070; font-size: 16px; line-height: 1.5; }
 #pin { display: block; width: 100%; min-height: 56px; margin: 0; padding: 10px 16px; border: 1px solid #73777f; border-radius: 10px; color: #191c20; background: #fff; font: 26px Menlo, Consolas, monospace; letter-spacing: .18em; text-align: center; }
+#pin-panel #pin-error { margin: 8px 0 0; color: #ba1a1a; font-size: 14px; line-height: 1.5; }
 #unlock { min-height: 50px; margin-top: 16px; border-radius: 10px; background: #32628d; border-color: #32628d; color: #fff; font-size: 15px; font-weight: 600; }
 #unlock:focus { outline-color: #fff; }
 #pin-retry { width: 100%; max-width: 320px; min-height: 48px; margin: 12px auto 0; background: transparent; color: inherit; }
 #pin-countdown { margin-top: 28px; }
 #pin-countdown-value { display: block; margin-top: 0; font: 500 40px Menlo, Consolas, monospace; line-height: 48px; letter-spacing: -.03em; }
-.recovery { top: 35%; }
 #pip-video { position: absolute; width: 1px; height: 1px; left: 0; bottom: 0; opacity: .01; pointer-events: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 @media (max-width: 380px) {
@@ -144,7 +164,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 }
 @media (max-height: 600px) {
   #pin-panel, .open-state { padding: 8px; }
-  #pin-logo, #state-logo { margin-bottom: 8px; }
+  #pin-logo { margin-bottom: 8px; }
   #pin-title { font-size: 26px; }
   #pin-entry label { margin-bottom: 8px; font-size: 14px; line-height: 1.4; }
   #unlock { margin-top: 12px; }
@@ -160,12 +180,13 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
   #shell.access-screen, #shell.empty-screen { background-color: #101418; }
   #shell.empty-screen .block.separate-bar { color: #e0e2e8; }
   #state-message { color: #c2c7cf; }
-  .open-state.capture-failed #state-message { color: #ffb4ab; }
+  .open-state .status-panel.status-failed #state-message { color: #ffb4ab; }
   button { background: #1d2024; border-color: #8c9199; color: #e0e2e8; }
   button:hover { background: #32353a; }
   button:focus, input:focus, a:focus, #viewport:focus { outline-color: #9dcafc; }
   .panel { background: #272a2f; border-color: #8c9199; }
   #pin { background: #191c20; border-color: #8c9199; color: #e0e2e8; }
+  #pin-panel #pin-error { color: #ffb4ab; }
   #pin-panel p, #pin-entry label { color: #c2c7cf; }
   #unlock { background: #9dcafc; border-color: #9dcafc; color: #003355; }
   #unlock:focus { outline-color: #003355; }
@@ -178,9 +199,17 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
   <div id="top-bar" class="edge bar"></div>
   <div id="viewport" tabindex="0" aria-label="Stream image. Use arrow keys to scroll.">
     <div id="image-stage"></div>
-    <section id="placeholder" class="open-state" role="status" aria-live="polite">
+    <section id="placeholder" class="open-state">
       <img id="state-logo" width="192" height="192" alt="" aria-hidden="true" hidden>
-      <div class="open-content"><p id="state-message"></p></div>
+      <div id="status-panel" class="status-panel">
+        <div class="open-content"><p id="state-message" role="status" aria-live="polite"></p></div>
+        <div class="open-actions">
+          <div id="recovery" class="recovery" hidden>
+            <button id="recovery-retry" type="button" data-word="retry"></button>
+            <button id="recovery-alternate" type="button" data-word="useJpeg"></button>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
   <div id="bottom-bar" class="edge bar"></div>
@@ -208,8 +237,6 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     </button>
   </div>
   <div id="control-tooltip" class="control-tooltip" aria-hidden="true" hidden></div>
-  <div id="status" class="status" role="status" aria-live="polite"></div>
-  <div id="capture-notice" class="capture-notice" role="status" aria-live="polite" hidden></div>
   <section id="menu" class="panel" role="region" aria-label="More viewing options" tabindex="-1" hidden>
     <h2 id="method-label" class="menu-heading" data-word="connection"></h2>
     <div class="method-choices" role="group" aria-labelledby="method-label">
@@ -239,7 +266,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     <img id="pin-logo" src="data:image/jpeg;base64,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" width="192" height="192" alt="" aria-hidden="true">
     <div class="open-content">
       <h1 id="pin-title" data-word="pinTitle"></h1>
-      <form id="pin-form" method="post" action="/pin">
+      <form id="pin-form" method="post" action="/pin" novalidate>
         <p id="pin-message" role="status" aria-live="polite"></p>
         <p id="pin-block-copy" data-word="pinBlocked" aria-hidden="true" hidden></p>
         <div id="pin-countdown" aria-hidden="true" hidden>
@@ -247,17 +274,14 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
         </div>
         <div id="pin-entry">
           <label for="pin" data-word="pinRequired"></label>
-          <input id="pin" name="pin" type="text" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message">
+          <input id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message pin-error" aria-invalid="false">
+          <p id="pin-error" role="status" aria-live="polite" hidden></p>
           <button id="unlock" type="submit" data-word="unlock"></button>
         </div>
       </form>
       <button id="pin-retry" type="button" data-word="retry" hidden></button>
     </div>
   </section>
-  <div id="recovery" class="panel recovery" hidden>
-    <button id="recovery-retry" type="button" data-word="retry"></button>
-    <button id="recovery-alternate" type="button" data-word="useJpeg"></button>
-  </div>
   <video id="pip-video" muted playsinline aria-hidden="true"></video>
   <noscript><p class="panel">Enable JavaScript to view this stream and enter its PIN.</p></noscript>
 </main>
@@ -269,11 +293,10 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     app: 'ScreenStream',
     connecting: 'Connecting…',
     connected: 'Connected',
-    reconnecting: 'Reconnecting…',
-    unavailable: 'Server unavailable. Retry the connection.',
+    reconnecting: 'Reconnecting',
     mediaStarting: 'Waiting for an image…',
     mediaRetrying: 'Restoring image…',
-    mediaFailed: 'Image unavailable. Retry or choose another viewing method.',
+    mediaFailed: 'Image unavailable.',
     viewing: 'Viewing',
     pinTitle: 'Enter PIN',
     pinRequired: 'Enter the six-digit PIN shown on the streaming device:',
@@ -344,15 +367,22 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     return value;
   }
   function createConnection(callbacks) {
-    var delays = [0, 1000, 2000, 4000, 8000];
+    var delays = [0, 1000, 2000, 4000, 5000];
+    var livenessTimeout = 5000;
+    var admissionInterval = 5000;
     var socket = null,
-      timer = null;
+      timer = null,
+      livenessTimer = null;
+    var lastSnapshotAt = 0;
     var retries = 0,
       paused = false,
-      pinRequest = null;
+      pinRequest = null,
+      accessDenied = false;
     function disposeSocket() {
       clearTimeout(timer);
-      timer = null;
+      clearTimeout(livenessTimer);
+      timer = livenessTimer = null;
+      lastSnapshotAt = 0;
       var ws = socket;
       socket = null;
       if (ws) {
@@ -360,15 +390,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
         ws.close();
       }
     }
-    function failed(ws) {
-      if (ws !== socket || paused) return;
-      disposeSocket();
-      if (retries >= delays.length) {
-        callbacks.state('unavailable');
-        return;
-      }
-      callbacks.state('reconnecting');
-      var delay = delays[retries++];
+    function schedule(delay) {
       var retryTimer = setTimeout(function () {
         if (timer !== retryTimer || paused) return;
         timer = null;
@@ -376,9 +398,26 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       }, delay);
       timer = retryTimer;
     }
+    function denied(value) {
+      accessDenied = true;
+      retries = 0;
+      disposeSocket();
+      callbacks.snapshot(value);
+      // Denied sockets remain short-lived; only a foreground page rechecks admission.
+      var remaining = value.access === 'blocked' && isFinite(value.retryAfterMs) ? value.retryAfterMs : admissionInterval;
+      schedule(Math.max(100, Math.min(admissionInterval, remaining)));
+    }
+    function failed(ws) {
+      if (ws !== socket || paused) return;
+      disposeSocket();
+      if (!accessDenied) callbacks.state('reconnecting');
+      var delay = delays[retries];
+      retries = Math.min(retries + 1, delays.length - 1);
+      schedule(delay);
+    }
     function open() {
       disposeSocket();
-      if (paused) return;
+      if (paused || pinRequest || accessDenied && document.hidden) return;
       if (!window.WebSocket) {
         callbacks.state('unsupported');
         return;
@@ -404,14 +443,20 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
           return;
         }
         if (value.access === 'pin_required' || value.access === 'blocked') {
-          retries = 0;
-          disposeSocket();
-          callbacks.snapshot(value);
+          denied(value);
           return;
         }
+        accessDenied = false;
         clearTimeout(timer);
         timer = null;
         retries = 0;
+        lastSnapshotAt = Date.now();
+        clearTimeout(livenessTimer);
+        livenessTimer = setTimeout(function () {
+          livenessTimer = null;
+          // Background throttling is revalidated by the page's visibility-return path.
+          if (ws === socket && !paused && !document.hidden) failed(ws);
+        }, livenessTimeout);
         callbacks.snapshot(value);
       };
       ws.onclose = ws.onerror = function () {
@@ -430,6 +475,8 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
         callbacks.pin('pinInvalid');
         return;
       }
+      // Do not let an older admission reply race the explicit login result.
+      disposeSocket();
       var request = new XMLHttpRequest();
       pinRequest = request;
       callbacks.pin('pinSending');
@@ -439,6 +486,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       var finish = function finish() {
         if (pinRequest !== request) return false;
         pinRequest = null;
+        if (accessDenied) schedule(admissionInterval);
         return true;
       };
       request.onload = function () {
@@ -448,7 +496,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
           retry();
         } else if (request.status === 403) callbacks.pin('pinWrong');else if (request.status === 429) {
           var seconds = parseInt(request.getResponseHeader('Retry-After'), 10);
-          callbacks.snapshot({
+          denied({
             access: 'blocked',
             retryAfterMs: (isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000
           });
@@ -473,9 +521,12 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       submitPin: submitPin,
       pause: pause,
       healthy: function healthy() {
-        return !!socket && socket.readyState === 1 && !timer;
+        return !!socket && socket.readyState === 1 && lastSnapshotAt > 0 && Date.now() - lastSnapshotAt < livenessTimeout;
       }
     };
+  }
+  function canLoadScreenImage(snapshot) {
+    return !!snapshot && (snapshot.access === 'open' || snapshot.access === 'authorized') && (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
   }
 
   // At most one displayed image and one replacement candidate.
@@ -487,8 +538,10 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     var firstTimer = null,
       nextTimer = null,
       sizeTimer = null;
-    var hasImage = false,
-      _method = 'mjpeg';
+    var mediaEligible = false,
+      _method = 'mjpeg',
+      imageKind = 'none';
+    var retainedWait = false;
     var retries = 0,
       width = 0,
       height = 0;
@@ -503,6 +556,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       clearTimeout(firstTimer);
       clearTimeout(nextTimer);
       firstTimer = nextTimer = null;
+      retainedWait = false;
       discard(candidate);
       candidate = null;
     }
@@ -532,7 +586,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       if (displayed) sizeTimer = setTimeout(observeSize, 500);
     }
     function retryLater() {
-      if (!hasImage) return;
+      if (!mediaEligible) return;
       if (retries >= delays.length) {
         callbacks.state('failed');
         return;
@@ -579,12 +633,17 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       callbacks.image(displayed, width, height);
       observeSize();
       callbacks.state('viewing');
-      // Poll after promotion so a slow JPEG load delays the next request.
-      if (_method === 'jpeg') nextTimer = setTimeout(start, 500);
+      // Live JPEGs remain single-flight; retained frames do not need maximum-speed polling.
+      if (_method === 'jpeg') {
+        if (imageKind === 'live') start();else {
+          retainedWait = true;
+          nextTimer = setTimeout(start, 500);
+        }
+      }
     }
     function start() {
       cancelCandidate();
-      if (!hasImage) return;
+      if (!mediaEligible) return;
       var id = generation;
       var image = new Image();
       candidate = image;
@@ -619,23 +678,27 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       image.src = '/' + _method + '?requestSequence=' + id;
     }
     function configure(snapshot, firstSnapshot) {
-      var previousHasImage = hasImage;
-      hasImage = (snapshot.access === 'open' || snapshot.access === 'authorized') && snapshot.notice !== 'permission_required' && (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
-      if (!hasImage) {
-        cancelCandidate();
-        clearDisplayed();
-        retries = 0;
-        callbacks.state('idle');
+      var previousMediaEligible = mediaEligible;
+      var previousImageKind = imageKind;
+      imageKind = snapshot.imageKind;
+      mediaEligible = canLoadScreenImage(snapshot);
+      if (!mediaEligible) {
+        if (previousMediaEligible) {
+          cancelCandidate();
+          clearDisplayed();
+          retries = 0;
+          callbacks.state('idle');
+        }
         return;
       }
-      if (firstSnapshot || !previousHasImage) {
+      if (firstSnapshot || !previousMediaEligible) {
         retries = 0;
         start();
-      }
-      // Ordinary state updates leave healthy and exhausted attempts alone.
+      } else if (_method === 'jpeg' && previousImageKind === 'retained' && imageKind === 'live' && retainedWait && !candidate) start();
+      // Other state updates leave healthy, retrying and exhausted attempts alone.
     }
     function retry() {
-      if (!hasImage) return;
+      if (!mediaEligible) return;
       retries = 0;
       callbacks.state('retrying');
       start();
@@ -651,7 +714,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       clearDisplayed();
     }
     function resume() {
-      if (hasImage && !candidate && (!displayed || !displayed.naturalWidth)) retry();
+      if (mediaEligible && !candidate && (!displayed || !displayed.naturalWidth)) retry();
     }
     return {
       configure: configure,
@@ -930,6 +993,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     var title = byId('pin-title'),
       message = byId('pin-message'),
       entry = byId('pin-entry');
+    var fieldError = byId('pin-error');
     var blockCopy = byId('pin-block-copy'),
       countdown = byId('pin-countdown');
     var logo = byId('pin-logo'),
@@ -937,11 +1001,18 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       countdownValue = byId('pin-countdown-value');
     var blockedUntil = 0,
       blockedTimer = null,
-      networkFailure = false;
+      networkFailure = false,
+      accessState = null,
+      sending = false;
     function clearBlock() {
       clearTimeout(blockedTimer);
       blockedTimer = null;
       blockedUntil = 0;
+    }
+    function showFieldError(value) {
+      text(fieldError, value);
+      fieldError.hidden = !value;
+      input.setAttribute('aria-invalid', value ? 'true' : 'false');
     }
     function showMessage(value) {
       text(title, words.pinTitle);
@@ -955,7 +1026,11 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     function formatRemaining(seconds) {
       return seconds < 60 ? seconds + words.secondsShort : Math.floor(seconds / 60) + ':' + (seconds % 60 < 10 ? '0' : '') + seconds % 60;
     }
-    function showBlocked(ms) {
+    function showBlocked(ms, repeated) {
+      sending = false;
+      clearTimeout(blockedTimer);
+      blockedTimer = null;
+      if (!repeated) showFieldError('');
       blockedUntil = Date.now() + Math.max(0, isFinite(ms) ? ms : 1000);
       text(title, words.pinBlockedTitle);
       entry.hidden = true;
@@ -964,7 +1039,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       message.classList.add('sr-only');
       message.hidden = false;
       countdown.hidden = false;
-      text(message, words.pinBlocked + ' ' + words.tryAgainIn + ' ' + formatRemaining(Math.ceil((blockedUntil - Date.now()) / 1000)) + '.');
+      if (!repeated) text(message, words.pinBlocked + ' ' + words.tryAgainIn + ' ' + formatRemaining(Math.ceil((blockedUntil - Date.now()) / 1000)) + '.');
       var _tick = function tick() {
         var seconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
         input.disabled = submitButton.disabled = seconds > 0;
@@ -972,6 +1047,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
         if (seconds > 0) blockedTimer = setTimeout(_tick, 1000);else {
           blockedTimer = null;
           blockedUntil = 0;
+          accessState = 'pin_required';
           showMessage('');
           callbacks.expired();
         }
@@ -979,8 +1055,15 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       _tick();
     }
     function show(value) {
+      if (!panel.hidden && accessState === value.access) {
+        if (value.access === 'blocked') showBlocked(value.retryAfterMs, true);
+        return;
+      }
       clearBlock();
       networkFailure = false;
+      sending = false;
+      accessState = value.access;
+      showFieldError('');
       layout();
       var wasHidden = panel.hidden;
       panel.hidden = false;
@@ -993,24 +1076,55 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     function hide() {
       clearBlock();
       networkFailure = false;
+      sending = false;
+      accessState = null;
+      showFieldError('');
       panel.hidden = true;
       input.value = '';
     }
     function result(value) {
+      sending = value === 'pinSending';
       networkFailure = value === 'pinNetwork';
       submitButton.disabled = false;
+      showFieldError('');
       if (value === 'success') {
+        accessState = null;
         input.value = '';
         panel.hidden = true;
       } else {
         submitButton.disabled = value === 'pinSending';
-        showMessage(words[value]);
-        if (value === 'pinWrong') {
-          input.select();
+        var invalid = value === 'pinWrong' || value === 'pinInvalid';
+        showMessage(invalid ? '' : words[value]);
+        if (invalid) {
+          showFieldError(words[value]);
+          if (value === 'pinWrong') input.select();
           input.focus();
         }
       }
     }
+    input.addEventListener('input', function () {
+      var value = input.value,
+        start = input.selectionStart,
+        end = input.selectionEnd;
+      var digits = value.replace(/[^0-9]/g, '').slice(0, 6);
+      if (value !== digits) {
+        input.value = digits;
+        input.setSelectionRange(Math.min(digits.length, value.slice(0, start).replace(/[^0-9]/g, '').length), Math.min(digits.length, value.slice(0, end).replace(/[^0-9]/g, '').length));
+      }
+      showFieldError('');
+    });
+    input.addEventListener('paste', function (event) {
+      if (!event.clipboardData) return;
+      event.preventDefault();
+      var start = input.selectionStart,
+        end = input.selectionEnd;
+      var digits = event.clipboardData.getData('text').replace(/[^0-9]/g, '');
+      var inserted = digits.slice(0, 6 - input.value.length + end - start);
+      if (!inserted) return;
+      input.value = input.value.slice(0, start) + inserted + input.value.slice(end);
+      input.setSelectionRange(start + inserted.length, start + inserted.length);
+      showFieldError('');
+    });
     function layout(value) {
       var visible = value || viewportLayout.bounds();
       panel.style.left = visible.left + visible.width / 2 + 'px';
@@ -1033,16 +1147,22 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       visible: function visible() {
         return !panel.hidden;
       },
-      updateRetry: function updateRetry(state) {
-        retryButton.hidden = panel.hidden || !networkFailure && state !== 'unavailable';
+      updateRetry: function updateRetry() {
+        retryButton.hidden = panel.hidden || !networkFailure;
       },
       pause: function pause() {
         clearTimeout(blockedTimer);
         blockedTimer = null;
+        // The page aborts its PIN request before pausing this panel.
+        if (sending) {
+          sending = false;
+          submitButton.disabled = false;
+          showMessage('');
+        }
       },
       resume: function resume() {
         layout();
-        if (blockedUntil) showBlocked(Math.max(0, blockedUntil - Date.now()));
+        if (blockedUntil) showBlocked(Math.max(0, blockedUntil - Date.now()), true);
       }
     };
   }
@@ -1057,13 +1177,15 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       more = byId('more');
     var topBar = byId('top-bar'),
       bottomBar = byId('bottom-bar');
-    var status = byId('status'),
-      recovery = byId('recovery'),
+    var statusPanel = byId('status-panel'),
+      stateMessage = byId('state-message'),
       placeholder = byId('placeholder');
+    var recovery = byId('recovery'),
+      retryButton = byId('recovery-retry'),
+      alternateButton = byId('recovery-alternate');
     var stateLogo = byId('state-logo'),
-      captionText = byId('caption-text');
-    var tooltip = byId('control-tooltip'),
-      captureNotice = byId('capture-notice');
+      captionText = byId('caption-text'),
+      tooltip = byId('control-tooltip');
     var tooltipButton = null,
       hoveredControl = null,
       touchUntil = 0;
@@ -1075,9 +1197,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     var inactivity = null,
       interacting = false,
       menuOpen = false;
-    var captureMessage = '',
-      captureFailed = false,
-      fullscreenAttempt = null;
+    var fullscreenAttempt = null;
     var fullRequest = shell.requestFullscreen || shell.webkitRequestFullscreen || shell.mozRequestFullScreen || shell.msRequestFullscreen;
     var fullExit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
     fullscreenButton.hidden = !fullRequest || !fullExit;
@@ -1086,12 +1206,13 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
     }
     function showBlocks() {
+      var changed = caption.classList.contains('autohidden') || controls.classList.contains('autohidden');
       caption.classList.remove('autohidden');
       controls.classList.remove('autohidden');
-    }
-    function positionCaptureNotice() {
-      captureNotice.style.left = viewport.offsetLeft + viewport.clientWidth / 2 + 'px';
-      captureNotice.style.maxWidth = Math.max(1, viewport.clientWidth - 24) + 'px';
+      if (changed) {
+        shell.classList.remove('hud-hiding');
+        layout();
+      }
     }
     function hideTooltip() {
       tooltip.hidden = true;
@@ -1126,10 +1247,19 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       inactivity = setTimeout(function () {
         inactivity = null;
         if (!display || interacting || menuOpen || hoveredControl || holdsFocus()) return;
-        if (display.titleLayout.presentation === 'overlay' && display.titleLayout.autoHide) caption.classList.add('autohidden');
+        var changed = false;
+        if (display.titleLayout.presentation === 'overlay' && display.titleLayout.autoHide) {
+          caption.classList.add('autohidden');
+          changed = true;
+        }
         if (display.controlsLayout.presentation === 'overlay' && display.controlsLayout.autoHide) {
           controls.classList.add('autohidden');
           hideTooltip();
+          changed = true;
+        }
+        if (changed) {
+          shell.classList.add('hud-hiding');
+          layout();
         }
       }, 4000);
     }
@@ -1139,10 +1269,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       // The stage owns only natural extent; CSS follows the final viewport after scrollbars.
       stage.style.width = image && mode === 'original' ? width + 'px' : '100%';
       stage.style.height = image && mode === 'original' ? height + 'px' : mode === 'width' ? 'auto' : '100%';
-      if (!image || !width || !height) {
-        positionCaptureNotice();
-        return;
-      }
+      if (!image || !width || !height) return;
       if (mode === 'fit') {
         // Fit removes scrollbars before measuring, so a previous mode cannot narrow it.
         var scale = Math.min(viewport.clientWidth / width, viewport.clientHeight / height);
@@ -1156,7 +1283,6 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
         // Native width/auto-height layout resolves vertical overflow without a JS feedback loop.
         image.style.width = image.style.height = '';
       }
-      positionCaptureNotice();
     }
     function layout(value) {
       var visible = value || viewportLayout.bounds();
@@ -1169,15 +1295,11 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
         node: caption,
         settings: display.titleLayout
       }] : [];
-      var totals = {
-          top: visible.top,
-          bottom: bottom
-        },
-        reserved = {
-          top: visible.top,
-          bottom: bottom
-        };
-      // Controls are outermost; the caption sits nearer the image.
+      var reserved = {
+        top: visible.top,
+        bottom: bottom
+      };
+      // Measure after applying presentation and width; only bars reserve image space.
       blocks.forEach(function (block) {
         var node = block.node,
           settings = block.settings;
@@ -1186,30 +1308,58 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
         node.style.left = center + 'px';
         var inset = node === caption && settings.presentation !== 'bar' ? visible.width <= 600 ? 16 : visible.width * .05 : 0;
         node.style.maxWidth = Math.max(0, visible.width - inset) + 'px';
-        node.style.top = node.style.bottom = '';
-        var edge = settings.position === 'top' ? 'top' : 'bottom';
-        node.style[edge] = totals[edge] + 'px';
-        totals[edge] += node.offsetHeight;
-        if (settings.presentation === 'bar') reserved[edge] = totals[edge];
+        block.edge = settings.position === 'top' ? 'top' : 'bottom';
+        block.height = node.offsetHeight;
+        node.classList.toggle('at-top', block.edge === 'top');
+        node.style[block.edge === 'top' ? 'bottom' : 'top'] = '';
+        if (settings.presentation === 'bar') {
+          node.style[block.edge] = reserved[block.edge] + 'px';
+          reserved[block.edge] += block.height;
+        }
+      });
+      var totals = {
+        top: reserved.top,
+        bottom: reserved.bottom
+      };
+      var occupied = {
+        top: reserved.top,
+        bottom: reserved.bottom
+      };
+      // Each group keeps controls outermost. Visible overlays pack inside the bars;
+      // hidden overlays retain their full-stack position while fading out.
+      blocks.forEach(function (block) {
+        var node = block.node;
+        if (node.hidden || block.settings.presentation === 'bar') return;
+        var edge = block.edge,
+          hidden = node.classList.contains('autohidden');
+        node.style[edge] = (hidden ? totals[edge] : occupied[edge]) + 'px';
+        totals[edge] += block.height;
+        if (!hidden) occupied[edge] += block.height;
       });
       topBar.style.height = reserved.top + 'px';
       bottomBar.style.height = reserved.bottom + 'px';
-      captureNotice.style.bottom = totals.bottom + 8 + 'px';
       viewport.style.top = reserved.top + 'px';
       viewport.style.bottom = reserved.bottom + 'px';
       viewport.style.left = visible.left + 'px';
       viewport.style.right = shell.clientWidth - visible.right + 'px';
-      status.style.top = totals.top + 'px';
-      status.style.left = visible.left + visible.width * .1 + 'px';
-      status.style.width = visible.width * .8 + 'px';
-      [menu, recovery].forEach(function (node) {
-        node.style.left = center + 'px';
-        node.style.marginLeft = '0';
-        node.style.webkitTransform = node.style.transform = 'translateX(-50%)';
-        node.style.maxWidth = Math.max(0, visible.width - 16) + 'px';
-      });
-      recovery.style.top = visible.top + visible.height * .35 + 'px';
-      recovery.style.maxHeight = Math.max(0, visible.height * .65 - 16) + 'px';
+      menu.style.left = center + 'px';
+      menu.style.marginLeft = '0';
+      menu.style.webkitTransform = menu.style.transform = 'translateX(-50%)';
+      menu.style.maxWidth = Math.max(0, visible.width - 16) + 'px';
+      if (statusPanel.parentNode === shell) {
+        var statusBottom = occupied.bottom + 8;
+        var statusHeight = Math.max(0, shell.clientHeight - occupied.top - statusBottom - 8);
+        if (statusHeight < (recovery.hidden ? 48 : 96)) {
+          // Recovery stays scrollable above the HUD when the free strip is too short.
+          statusBottom = bottom + 4;
+          statusHeight = Math.max(0, visible.height - 8);
+        }
+        statusPanel.style.bottom = statusBottom + 'px';
+        statusPanel.style.left = center + 'px';
+        statusPanel.style.maxWidth = Math.max(0, visible.width - 24) + 'px';
+        statusPanel.style.maxHeight = statusHeight + 'px';
+        viewportLayout.keepFocusVisible(statusPanel);
+      }
       menu.style.top = menu.style.bottom = '';
       var edge = display && display.controlsLayout.position === 'top' ? 'top' : 'bottom';
       menu.style[edge] = totals[edge] + 4 + 'px';
@@ -1221,7 +1371,12 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       }
       menu.style.maxHeight = Math.max(0, menuSpace < 48 ? visible.height - 8 : menuSpace) + 'px';
       viewportLayout.keepFocusVisible(menu);
-      stateLogo.style.width = Math.max(40, viewport.clientHeight - 264) + 'px';
+      var stateTop = totals.top - reserved.top,
+        stateBottom = totals.bottom - reserved.bottom;
+      var stateHeight = Math.max(0, viewport.clientHeight - stateTop - stateBottom);
+      placeholder.style.top = stateTop + stateHeight / 2 + 'px';
+      placeholder.style.maxHeight = Math.max(0, stateHeight - 32) + 'px';
+      stateLogo.style.width = Math.max(40, stateHeight - 264) + 'px';
       sizeImage();
       positionTooltip();
     }
@@ -1236,18 +1391,36 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       shell.style.backgroundColor = shell.classList.contains('empty-screen') || shell.classList.contains('access-screen') ? '' : background;
       return background;
     }
-    function setCaptureNotice(message, failed) {
-      if (captureMessage === message && captureFailed === failed) return;
-      captureMessage = message;
-      captureFailed = failed;
-      text(captureNotice, message);
-      captureNotice.hidden = !message;
-      captureNotice.classList.toggle('capture-failed', failed);
-      layout();
-    }
-    function setEmptyState(value) {
-      shell.classList.toggle('empty-screen', value);
+    function setStatus(value) {
+      var focused = recovery.contains(document.activeElement) ? document.activeElement : null;
+      var parent = value.empty ? placeholder : shell;
+      var moved = statusPanel.parentNode !== parent;
+      var changed = moved || stateMessage.textContent !== value.message || stateLogo.hidden !== !value.logo || statusPanel.hidden !== (value.access || !value.message) || retryButton.hidden === value.retry || alternateButton.hidden === value.alternate || statusPanel.classList.contains('status-failed') !== value.failed;
+      shell.classList.toggle('empty-screen', value.empty);
       applyBackground();
+      placeholder.style.display = value.access ? 'none' : '';
+      stateLogo.hidden = !value.logo;
+      if (moved) {
+        parent.appendChild(statusPanel);
+        statusPanel.removeAttribute('style');
+      }
+      statusPanel.classList.toggle('status-overlay', !value.empty);
+      statusPanel.classList.toggle('status-compact', !value.retry && !value.alternate);
+      statusPanel.classList.toggle('status-failed', value.failed);
+      if (stateMessage.textContent !== value.message) text(stateMessage, value.message);
+      statusPanel.hidden = value.access || !value.message;
+      retryButton.hidden = !value.retry;
+      alternateButton.hidden = !value.alternate;
+      recovery.hidden = !value.retry && !value.alternate;
+      if (changed) layout();
+      if (focused && !value.access) {
+        if (!focused.hidden && !recovery.hidden && !statusPanel.hidden) {
+          if (document.activeElement !== focused) focused.focus();
+        } else {
+          activity();
+          (controls.hidden ? viewport : more).focus();
+        }
+      }
     }
     function configure(value, force) {
       // Unchanged snapshots must not reset the viewer's inactivity timer.
@@ -1282,6 +1455,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       menuOpen = false;
       menu.hidden = true;
       more.setAttribute('aria-expanded', 'false');
+      shell.classList.remove('menu-open');
       if (focus) more.focus();
       hideTooltip();
       activity();
@@ -1295,6 +1469,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       menuOpen = true;
       menu.hidden = false;
       more.setAttribute('aria-expanded', 'true');
+      shell.classList.add('menu-open');
       activity();
       layout();
       var method = byId('method-mjpeg').getAttribute('aria-pressed') === 'true' ? byId('method-mjpeg') : byId('method-jpeg');
@@ -1417,8 +1592,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     return {
       configure: configure,
       setImage: setImage,
-      setEmptyState: setEmptyState,
-      setCaptureNotice: setCaptureNotice,
+      setStatus: setStatus,
       closeMenu: closeMenu,
       activity: activity,
       pause: function pause() {
@@ -1445,11 +1619,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
   for (var i = 0; i < labels.length; i += 1) text(labels[i], words[labels[i].getAttribute('data-word')]);
   var controlLabels = document.querySelectorAll('[data-label]');
   for (var _i = 0; _i < controlLabels.length; _i += 1) labelControl(controlLabels[_i], words[controlLabels[_i].getAttribute('data-label')]);
-  var placeholder = byId('placeholder'),
-    stateLogo = byId('state-logo'),
-    stateMessage = byId('state-message');
-  var statusMessage = byId('status'),
-    recovery = byId('recovery'),
+  var stateLogo = byId('state-logo'),
     recoveryAlternate = byId('recovery-alternate');
   var infoConnection = byId('info-connection'),
     infoImage = byId('info-image'),
@@ -1464,7 +1634,8 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
   });
   var snapshot = null,
     connectionState = 'connecting',
-    imageState = 'idle';
+    imageState = 'idle',
+    displayedImage = null;
   var noticeTimer = null,
     transientMessage = '';
   var hiddenAt = 0,
@@ -1490,6 +1661,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
       renderState();
     },
     image: function image(value, w, h) {
+      displayedImage = value;
       presentation.setImage(value, w, h);
       text(infoSize, w && h ? w + ' × ' + h : words.unknownSize);
     },
@@ -1509,47 +1681,53 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
   function authorized() {
     return snapshot && (snapshot.access === 'open' || snapshot.access === 'authorized');
   }
-  function hasScreenImage() {
-    return authorized() && snapshot.notice !== 'permission_required' && (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
+  function hasDisplayedImage() {
+    return !!(displayedImage && displayedImage.naturalWidth && displayedImage.naturalHeight);
   }
   function captureNoticeText() {
-    return authorized() && snapshot.notice !== null ? words[snapshot.notice] : '';
+    return connectionState === 'connected' && authorized() && snapshot.notice !== null ? words[snapshot.notice] : '';
   }
-  function joinMessages(messages) {
-    return messages.filter(Boolean).join(' · ');
+  function selectPrimary() {
+    var result = function result(message, retry, alternate, failed) {
+      return {
+        message: message,
+        retry: !!retry,
+        alternate: !!alternate,
+        failed: !!failed
+      };
+    };
+    if (access.visible() || connectionState === 'pin_required' || connectionState === 'blocked') return result('');
+    if (connectionState === 'unsupported') return result(words.unsupported);
+    if (connectionState !== 'connected') return result(words[connectionState] || words.connecting);
+    if (canLoadScreenImage(snapshot)) {
+      if (imageState === 'failed') return result(words.mediaFailed, true, true, true);
+      if (imageState === 'retrying') return result(words.mediaRetrying);
+    }
+    var captureNotice = captureNoticeText();
+    if (captureNotice) return result(captureNotice, false, false, snapshot.notice === 'failed');
+    if (!hasDisplayedImage() && canLoadScreenImage(snapshot)) return result(words.mediaStarting);
+    return null;
+  }
+  function clearNotice() {
+    clearTimeout(noticeTimer);
+    noticeTimer = null;
+    transientMessage = '';
   }
   function renderState() {
+    var primary = selectPrimary();
+    if (primary) clearNotice();
+    var current = primary || {
+      message: transientMessage,
+      retry: false,
+      alternate: false,
+      failed: false
+    };
     var captureNotice = captureNoticeText();
-    var connectionMessage = connectionState !== 'connected' && connectionState !== 'pin_required' && connectionState !== 'blocked' ? words[connectionState] || words.connecting : '';
-    var imageMessage = imageState === 'starting' ? words.mediaStarting : imageState === 'retrying' ? words.mediaRetrying : imageState === 'failed' ? words.mediaFailed : '';
-    var retainedWithImage = !!(authorized() && snapshot.imageKind === 'retained' && placeholder.hidden);
-    var failed = authorized() && snapshot.notice === 'failed';
-    presentation.setCaptureNotice(retainedWithImage ? captureNotice || words.mediaStarting : '', failed);
-    var messages = [connectionMessage];
-    if (authorized()) {
-      if (!retainedWithImage) messages.push(captureNotice);
-      if (!captureNotice || retainedWithImage || imageState !== 'starting') messages.push(imageMessage);
-    }
-    messages.push(transientMessage);
     var pinVisible = access.visible();
-    var emptyState = !pinVisible && !placeholder.hidden;
-    stateLogo.hidden = false;
-    // The access form and no-image state each own one message; hidden remains the actual-image fact.
-    placeholder.style.display = pinVisible ? 'none' : '';
-    presentation.setEmptyState(emptyState);
-    placeholder.classList.toggle('capture-failed', failed);
-    statusMessage.classList.toggle('capture-failed', failed);
-    text(statusMessage, placeholder.hidden || pinVisible ? joinMessages(messages) : '');
-    if (emptyState) {
-      var body = !authorized() ? connectionMessage || words.connecting : captureNotice || imageMessage || words.mediaStarting;
-      var details = [body];
-      if (authorized() && connectionMessage) details.push(connectionMessage);
-      if (captureNotice && imageMessage && imageState !== 'starting') details.push(imageMessage);
-      details.push(transientMessage);
-      var message = joinMessages(details);
-      text(stateMessage, message);
-      stateMessage.hidden = !message;
-    }
+    current.access = pinVisible;
+    current.empty = !pinVisible && !hasDisplayedImage();
+    current.logo = !pinVisible && (!authorized() || connectionState !== 'connected' || snapshot.imageKind === 'logo');
+    presentation.setStatus(current);
     var mediaText = {
       idle: words.unknownSize,
       starting: words.mediaStarting,
@@ -1561,14 +1739,12 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     text(infoImage, mediaText[imageState]);
     text(infoNotice, captureNotice);
     infoNoticeLabel.hidden = infoNotice.hidden = !captureNotice;
-    recovery.hidden = pinVisible || connectionState !== 'unavailable' && imageState !== 'failed';
-    access.updateRetry(connectionState);
-    recoveryAlternate.hidden = !hasScreenImage();
+    access.updateRetry();
     renderMethod();
   }
   function renderMethod() {
     var method = media.method(),
-      enabled = hasScreenImage();
+      enabled = canLoadScreenImage(snapshot);
     text(recoveryAlternate, method === 'mjpeg' ? words.useJpeg : words.useMjpeg);
     methodButtons.forEach(function (choice) {
       choice.button.setAttribute('aria-pressed', choice.method === method ? 'true' : 'false');
@@ -1576,6 +1752,10 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     });
   }
   function showNotice(key) {
+    if (selectPrimary()) {
+      clearNotice();
+      return;
+    }
     transientMessage = words[key];
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(function () {
@@ -1622,9 +1802,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
     media.pause();
     presentation.pause();
     access.pause();
-    clearTimeout(noticeTimer);
-    noticeTimer = null;
-    transientMessage = '';
+    clearNotice();
   }
   function resumePage() {
     if (!paused) return;

@@ -8,17 +8,17 @@ Behavior: [maintained contract](../../03-delivery/jpeg-delivery.md). Use L0 for 
 
 <a id="mjpeg-img-01"></a>
 
-- **Initial logo and stopped-image policy.** Install a recognizable immutable logo before capture, apply None/Placeholder/LastAvailableFrame while Stopped, then open a reader. Without a real-frame history, Placeholder and LastAvailableFrame select logo; None selects nothing. Logo installation is once/pre-capture only.
+- **Initial logo and stopped-image policy.** Install a recognizable immutable logo before capture, apply Placeholder/LastAvailableFrame while Stopped, then open a reader. Without a real-frame history, both choices select logo. Logo installation is once/pre-capture only.
 
 <a id="mjpeg-img-03"></a>
 
-- **Live policy edits and retained history.** Captures have a current-source real frame, a retained real frame or only logo. Change policy among all three choices, then transition through every capture status. A current-source real frame always wins. Otherwise, policy edits immediately select nothing for None, logo for Placeholder, or the latest real frame (logo if absent) for LastAvailableFrame. None and Placeholder do not erase real-frame history: switching back to LastAvailableFrame restores it. The latest real frame survives capture attempts and policy edits until replacement or store disposal.
+- **Live policy edits and retained history.** Captures have a current-source real frame, a retained real frame or only logo. Change policy between both choices, then transition through every capture status. A current-source real frame always wins. Otherwise, policy edits immediately select logo for Placeholder, or the latest real frame (logo if absent) for LastAvailableFrame. Placeholder does not erase real-frame history: switching back to LastAvailableFrame restores it. The latest real frame survives capture attempts and policy edits until replacement or store disposal.
 
 ## Capture status and selected image
 
 <a id="mjpeg-img-02"></a>
 
-Logo or a real frame exists under an exact attempt; stale attempt and every current capture status are variants. Register/update status and read selection. Register sets Starting, creates a fresh source and retains the latest real frame and readers; selection follows the common fallback until a current-source frame arrives. WaitingForPermission/Starting/Reconfiguring preserve the source token; Active creates one if it was revoked. Suspended/Failed/Stopping/Stopped revoke the source and apply the same None/Placeholder/LastAvailableFrame fallback without erasing real-frame history. Stale status cannot change current facts; Failed can coexist with a selected logo or retained real frame.
+Logo or a real frame exists under an exact attempt; stale attempt and every current capture status are variants. Register with a supplied fresh generation, then apply status/generation pairs from the capture session and read selection. Register sets Starting and retains the latest real frame and readers; selection follows the common fallback until a current-generation frame arrives. The capture session preserves the generation through WaitingForPermission/Starting/Reconfiguring, creates one on Active after revocation, and revokes it on Suspended/Failed/Stopping/Stopped. The store applies those decisions and the same Placeholder/LastAvailableFrame fallback without erasing real-frame history. Stale status cannot change current facts; Failed can coexist with a selected logo or retained real frame.
 
 ## Admitted copies and stale production sources
 
@@ -72,7 +72,7 @@ Logo or a real frame exists under an exact attempt; stale attempt and every curr
 
 <a id="mjpeg-img-14"></a>
 
-- **Slow threshold, recovery and neutral observations.** Consume controlled consecutive publications, skipped runs totalling below/at five and a new source. Include threshold/recovery/source reset, neutral repeat and retained-image histories separately. Five accumulated skips mark slow; a consecutive current publication resets skips/slow. Repeats and retained images are neutral; source replacement resets baseline; JPEG format never contributes slow. Runtime exposes slow only for current source.
+- **Slow threshold, recovery and neutral observations.** Consume controlled consecutive publications, skipped runs totalling below/at five and a new source. Include threshold/recovery/source reset, neutral repeat and retained-image histories separately. Five accumulated skips mark slow; a consecutive publication resets skips/slow. Repeats and logo are neutral; a newly observed generation resets the baseline. Retained frames can update an obsolete generation's baseline, but runtime exposes slow only for the current non-null generation. JPEG format never contributes slow.
 
 ## Response cancellation and completion
 

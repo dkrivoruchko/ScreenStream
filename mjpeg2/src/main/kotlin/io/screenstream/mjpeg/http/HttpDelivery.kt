@@ -46,23 +46,27 @@ internal interface HttpDelivery {
     fun updateConfiguration(accessSettings: AccessSettings, postStopImage: PostStopImage, webSettings: WebPageSettings): Boolean
 
     /**
-     * Register before capture construction, retaining the last real image and setting Starting.
+     * Register an inert capture's fresh initial generation before starting it, retaining the last real image
+     * and setting Starting. Generation identity is never reused, including across attempts.
      * False means not activated or terminally stopped.
      */
-    fun registerCapture(id: CaptureAttemptId): Boolean
+    fun registerCapture(id: CaptureAttemptId, initialCaptureGeneration: Any): Boolean
 
     /**
      * Ignore stale attempts. Without a current capture image, apply the configured image fallback.
-     * The caller retains Failed after a capture or cleanup failure until an accepted [registerCapture].
+     * The capture session owns and serializes phase/generation decisions, retaining Failed until a new
+     * [registerCapture]. Apply the pair atomically; null generation revokes production. Closure independently
+     * rejects updates and JPEG offers. Unexpected operation failure terminates HTTP.
      */
-    fun updateCaptureStatus(id: CaptureAttemptId, state: Status)
+    fun updateCaptureStatus(id: CaptureAttemptId, state: Status, captureGeneration: Any?)
 
     /**
-     * Copy borrowed bytes synchronously outside both monitors, fencing publication by attempt and source.
+     * Copy borrowed bytes synchronously outside both monitors, fencing admission and publication by
+     * the generation captured by the session before entering this call. Its unique identity also rejects old attempts.
      * [copyTo] runs at most once, writes [byteCount] bytes at offset zero or throws, and must not retain the buffer.
-     * Closed/stale sources ignore the offer; failed copies return reusable storage.
+     * Closed/stale generations ignore the offer; failed copies return reusable storage.
      */
-    fun offerJpeg(id: CaptureAttemptId, byteCount: Int, copyTo: (ByteArray) -> Unit)
+    fun offerJpeg(expectedCaptureGeneration: Any, byteCount: Int, copyTo: (ByteArray) -> Unit)
 
     /** Close admission immediately, force cancellation, and start cleanup independent of its waiter. */
     fun requestStop()
