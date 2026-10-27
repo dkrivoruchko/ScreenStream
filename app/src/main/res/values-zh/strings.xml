@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">错误通知</string>
+    <string name="app_notification_waiting_content">点按以打开应用</string>
     <string name="app_notification_streaming_title">串流中…</string>
     <string name="app_notification_streaming_content">点按停止以结束串流</string>
     <string name="app_notification_stop">停止</string>

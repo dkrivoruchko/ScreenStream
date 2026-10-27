@@ -9,12 +9,14 @@ import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import io.screenstream.streaming.StreamingModuleManager
 import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.streaming.module.StreamingModuleNotifications
 import io.screenstream.streaming.settings.StreamingSettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
@@ -48,7 +50,7 @@ import kotlin.uuid.Uuid
  *
  * @param modules Available modules, ordered by priority for selection.
  * @param streamingSettings Saved streaming selection and its updates.
- * @param errorNotification Owner of the process notification for coordinator errors.
+ * @param notifications App presentation and delivery for streaming notifications.
  * @param dispatcher Dispatcher for process-owned work and queued module reports.
  */
 @Singleton(binds = [StreamingModuleManager::class])
@@ -56,7 +58,7 @@ internal class StreamingModuleManagerImpl internal constructor(
     modules: List<StreamingModule>,
     private val androidContext: Context,
     private val streamingSettings: StreamingSettings,
-    private val errorNotification: StreamingModuleErrorNotification,
+    notifications: StreamingModuleNotifications,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Main,
 ) : StreamingModuleManager {
     /** Registered modules copied for the selector, highest priority first. */
@@ -67,12 +69,26 @@ internal class StreamingModuleManagerImpl internal constructor(
     private val moduleById: Map<StreamingModule.Id, StreamingModule> = this.modules.associateBy { it.id }.also {
         require(it.size == this.modules.size) { "Streaming module IDs must be unique" }
     }
+    private val foregroundSlotByService: Map<Class<out Service>, StreamingModuleNotifications.ForegroundSlot> = buildMap {
+        for (module in this@StreamingModuleManagerImpl.modules) {
+            val foregroundSlot = module.foregroundSlot
+            require(foregroundSlot.id > 0 && foregroundSlot.id != StreamingModuleNotifications.NOTIFICATION_ID_MODULE_ERROR) {
+                "Foreground slots must be positive and distinct from the module error slot"
+            }
+            val previous = put(module.serviceClass, foregroundSlot)
+            require(previous == null || previous.id == foregroundSlot.id) {
+                "A Service component must use the same foreground slot for every module"
+            }
+        }
+        require(values.map { it.id }.distinct().size == size) { "Different Service components must use different foreground slots" }
+    }
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val errorNotification = ModuleErrorNotificationCoordinator(notifications)
 
     private var selectedModuleId: StreamingModule.Id? = null
     private var currentInstance: LaunchRecord? = null
     private var transitionJob: Job? = null
-    private var exitCompletion: CompletableDeferred<Unit>? = null
+    private var isExiting: Boolean = false
     private val deadlineWake = Channel<Unit>(Channel.CONFLATED)
     private var lastSettingsWrite: Job? = null
 
@@ -112,20 +128,20 @@ internal class StreamingModuleManagerImpl internal constructor(
         beginPreparation(expectedInstanceId.moduleId)
     }
 
-    /**
-     * Give Exit priority over opening. Repeated callers share the first Exit barrier; cancellation
-     * ends only their wait. Cleanup continues in the process after the three-second UI deadline.
-     */
+    /** Give Exit priority over opening while retaining exact ownership for notification commands. */
     @MainThread
-    override suspend fun exit() {
-        val completion = exitCompletion ?: beginExit()
+    override fun exit(expectedInstanceId: StreamingModule.InstanceId?) {
+        if (expectedInstanceId != null) {
+            val instance = currentInstance ?: return
+            if (instance.instanceId != expectedInstanceId || !instance.isAdmitted()) return
+        }
+        if (!isExiting) beginExit()
         wakeTransitionWaiter()
-        completion.await()
     }
 
     /** Install the transition before publication so synchronous callers cannot open another one. */
     private fun beginPreparation(requestedModuleId: StreamingModule.Id?) {
-        exitCompletion = null
+        isExiting = false
         val loadedTarget = selectedModuleId?.let { requestedModuleId ?: it }
         val previous = currentInstance
         val previousDeadline = previous?.takeUnless { it.isFinishReported }?.let {
@@ -188,8 +204,7 @@ internal class StreamingModuleManagerImpl internal constructor(
     }
 
     /** Install Exit before cancelling an opening; that cancellation never cancels instance cleanup. */
-    private fun beginExit(): CompletableDeferred<Unit> {
-        val completion = CompletableDeferred<Unit>()
+    private fun beginExit() {
         val previousTransition = transitionJob
         val instance = currentInstance
         lateinit var exiting: Job
@@ -202,15 +217,11 @@ internal class StreamingModuleManagerImpl internal constructor(
                 if (transitionJob === exiting) {
                     currentInstance = null
                     transitionJob = null
-                    try {
-                        publishState()
-                    } finally {
-                        completion.complete(Unit)
-                    }
+                    publishState()
                 }
             }
         }
-        exitCompletion = completion
+        isExiting = true
         transitionJob = exiting
         previousTransition?.cancel()
         instance?.beginClosing()
@@ -220,7 +231,6 @@ internal class StreamingModuleManagerImpl internal constructor(
         } finally {
             exiting.start()
         }
-        return completion
     }
 
     /** Wait against elapsed time, recomputing after reports and deep-sleep wake-ups. */
@@ -286,7 +296,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 putExtra(EXTRA_MODULE, instance.instanceId.moduleId.value)
                 putExtra(EXTRA_UUID, instance.instanceId.uuid.toString())
             }
-            if (androidContext.startService(startup) == null) instance.reportFailure(null)
+            ContextCompat.startForegroundService(androidContext, startup)
         } catch (error: Throwable) {
             XLog.e(this@StreamingModuleManagerImpl.getLog("Startup", "Android module startup failed"), error)
             instance.reportFailure(null)
@@ -343,7 +353,7 @@ internal class StreamingModuleManagerImpl internal constructor(
 
     private fun publishState() {
         state.value = when {
-            exitCompletion != null -> StreamingModuleManager.State.Exiting
+            isExiting -> StreamingModuleManager.State.Exiting
             transitionJob != null -> StreamingModuleManager.State.Switching
             else -> currentInstance?.let { instance ->
                 when (val launch = instance.state) {
@@ -446,6 +456,7 @@ internal class StreamingModuleManagerImpl internal constructor(
 
         private val runtime = object : StreamingModule.Controller.Runtime {
             override val instanceId: StreamingModule.InstanceId = this@LaunchRecord.instanceId
+            override val foregroundSlot: StreamingModuleNotifications.ForegroundSlot = foregroundSlotByService.getValue(serviceClass)
             override fun isCurrent(): Boolean = isAdmitted()
 
             override fun reportRunning(status: StreamingModule.Status, heartbeatAtUptimeMillis: Long) {

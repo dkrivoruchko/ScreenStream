@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.koin.compiler)
 }
 
@@ -11,7 +11,7 @@ kotlin {
 }
 
 android {
-    namespace = "info.dvkr.screenstream.mjpeg"
+    namespace = "io.screenstream.mjpeg"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 
@@ -23,29 +23,31 @@ android {
         compose = true
     }
 
-    androidResources {
-        ignoreAssetsPattern = "!dev"
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
+            it.javaLauncher.set(
+                javaToolchains.launcherFor {
+                    languageVersion = JavaLanguageVersion.of(21)
+                },
+            )
+        }
     }
 }
 
 dependencies {
     implementation(projects.common)
     implementation(projects.streamingCore)
-    implementation(projects.streamingLegacy)
+    implementation(projects.screenCaptureEngine)
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)
-
     implementation(libs.ktor.server.cio)
-    implementation(libs.ktor.server.compression)
-    implementation(libs.ktor.server.caching.headers)
-    implementation(libs.ktor.server.default.headers)
-    implementation(libs.ktor.server.forwarded.header)
-    implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.websockets)
-    implementation(libs.ktor.server.status.pages)
-}
 
-configurations.all {
-    exclude("org.fusesource.jansi", "jansi")
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.ktor.server.test.host)
 }

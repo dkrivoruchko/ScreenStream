@@ -1,140 +1,222 @@
 package io.screenstream.streaming.module
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.app.AppOpsManager
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
+import androidx.annotation.AnyThread
+import androidx.annotation.MainThread
 import androidx.core.app.ServiceCompat
 import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.streaming.manager.StreamingModuleActionReceiver
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
 /**
- * Android Service for one streaming module controller. The concrete Service supplies its notification
- * ID and inert controller factory; startup is admitted by the manager before that factory is called.
+ * Android Service for one streaming module controller. The concrete Service supplies its inert
+ * controller factory; admitted startup provides the runtime and its validated foreground slot.
  * The original controller owns work through full cleanup completion, which may outlive this Service.
  * Foreground calls are synchronous: the module's independent attempt worker serializes them and
  * checks capture admission before calling. This Service has no worker or capture-resource owner.
  */
 public abstract class StreamingModuleService : Service() {
-    /** Positive notification ID reserved by the concrete streaming Service. */
-    protected abstract val foregroundNotificationId: Int
-
     /** Create an inert controller for this Service; the manager adopts it before calling startModule. */
     protected abstract fun createController(runtime: StreamingModule.Controller.Runtime): StreamingModule.Controller
 
     private val manager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
+    private val notifications: StreamingModuleNotifications by inject(mode = LazyThreadSafetyMode.NONE)
     private val gate: Any = Any()
     private var controller: StreamingModule.Controller? = null
     private var runtime: StreamingModule.Controller.Runtime? = null
-    private var destroyed: Boolean = false
     private var foregroundAdmissionClosed: Boolean = false
-    private var foregroundRemovalRequired: Boolean = false
-    private var removalFailure: ReleaseResult? = null
-    private val destruction: CompletableDeferred<Unit> = CompletableDeferred()
+    private var foregroundNotification: Notification? = null
+    private var terminalStopRequested: Boolean = false
+    private var timedOut: Boolean = false
+    private val destruction: CompletableDeferred<Boolean> = CompletableDeferred()
+    private val notificationHandler: Handler = Handler(Looper.getMainLooper())
+    private val refreshNotification: Runnable = Runnable { refreshForegroundNotification() }
+    private val notificationPermissionListener: AppOpsManager.OnOpChangedListener = AppOpsManager.OnOpChangedListener { _, changedPackage ->
+        if (changedPackage == null || changedPackage == packageName) notificationHandler.post(refreshNotification)
+    }
 
     final override fun onBind(intent: Intent?): IBinder? = null
 
-    final override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == StreamingModuleManager.ACTION_START_MODULE) {
-            manager.onServiceStart(service = this, existingController = controller, intent = intent) { originalRuntime ->
-                createController(originalRuntime).also { created ->
-                    synchronized(gate) {
-                        runtime = originalRuntime
-                        controller = created
-                    }
-                }
+    final override fun onCreate() {
+        super.onCreate()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            try {
+                val op = AppOpsManager.permissionToOp(Manifest.permission.POST_NOTIFICATIONS)
+                if (op != null) getSystemService(AppOpsManager::class.java).startWatchingMode(op, packageName, notificationPermissionListener)
+            } catch (failure: RuntimeException) {
+                Log.w(TAG, "Could not watch notification permission", failure)
             }
         }
-        if (controller == null) stopSelfResult(startId)
+    }
+
+    final override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        try {
+            if (intent?.action == StreamingModuleManager.ACTION_START_MODULE) {
+                manager.onServiceStart(service = this, existingController = controller, intent = intent) { originalRuntime ->
+                    synchronized(gate) { runtime = originalRuntime }
+                    check(tryEnterWaitingForeground()) { "Initial foreground promotion rejected" }
+                    createController(originalRuntime).also { created -> synchronized(gate) { controller = created } }
+                }
+            }
+        } finally {
+            if (controller == null) {
+                closeForegroundAdmission()
+                stopSelfResult(startId)
+            }
+        }
         return START_NOT_STICKY
     }
 
-    /** Prevent further promotion immediately; required foreground removal remains permitted. */
+    /** Build an Exit presentation even when notification delivery is blocked. */
+    @MainThread
+    protected fun buildExitNotification(): Notification {
+        val originalRuntime = synchronized(gate) { checkNotNull(runtime) }
+        val action = StreamingModuleActionReceiver.exitAction(this, originalRuntime.instanceId)
+        return notifications.buildForeground(StreamingModuleNotifications.ForegroundAction.Exit(action))
+    }
+
+    /** The compat layer filters SPECIAL_USE on older Android versions without leaving foreground. */
+    @MainThread
+    @SuppressLint("InlinedApi")
+    protected fun tryEnterWaitingForeground(): Boolean =
+        tryPromoteForeground(ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE, buildExitNotification())
+
+    /** Prevent further promotion and notification updates immediately. */
+    @AnyThread
     public fun closeForegroundAdmission() {
-        synchronized(gate) { foregroundAdmissionClosed = true }
-    }
-
-    /** Wait for this Service's destruction; cancelling the caller cancels only this wait. */
-    public suspend fun awaitDestroyed() {
-        destruction.await()
-    }
-
-    /**
-     * Promote this exact Service with its fixed notification ID. The caller must serialize platform
-     * calls and check its capture attempt before entering. A cleanup obligation is recorded before
-     * Android is called, including when Android throws. Return describes that API call, not visibility.
-     */
-    public fun promoteForeground(serviceTypes: Int, notification: Notification): PromotionResult {
-        val admitted = synchronized(gate) {
-            if (destroyed || foregroundAdmissionClosed || foregroundRemovalRequired || removalFailure != null ||
-                serviceTypes <= 0 || foregroundNotificationId <= 0 || runtime?.isCurrent() != true
-            ) false else {
-                foregroundRemovalRequired = true
-                true
-            }
-        }
-        if (!admitted) return PromotionResult.Rejected
-        return try {
-            ServiceCompat.startForeground(this, foregroundNotificationId, notification, serviceTypes)
-            PromotionResult.ApiCompleted
-        } catch (cause: Throwable) {
-            PromotionResult.Failed(cause)
+        synchronized(gate) {
+            foregroundAdmissionClosed = true
+            foregroundNotification = null
         }
     }
 
     /**
-     * Remove foreground after the caller's capture work permits it. Serialize this call with
-     * promotion. No promotion gives NotRequired even after host loss; a required call that fails
-     * or cannot run closes future promotion and shuts down the original controller, without retry.
+     * Promote this exact Service with its fixed notification ID. The caller checks its capture
+     * attempt before entering. False means admission was rejected without calling Android; true
+     * means API completion, not notification visibility. Platform failures close admission and throw.
      */
-    public fun removeForeground(): ReleaseResult {
-        val immediate = synchronized(gate) {
-            removalFailure ?: when {
-                !foregroundRemovalRequired -> ReleaseResult.NotRequired
-                destroyed -> ReleaseResult.Unconfirmed.also {
-                    removalFailure = it
-                    foregroundAdmissionClosed = true
-                }
+    @MainThread
+    protected fun tryPromoteForeground(serviceTypes: Int, notification: Notification): Boolean {
+        val failure = synchronized(gate) {
+            val originalRuntime = runtime ?: return false
+            if (foregroundAdmissionClosed || serviceTypes <= 0 || !originalRuntime.isCurrent()) return false
+            try {
+                ServiceCompat.startForeground(this, originalRuntime.foregroundSlot.id, notification, serviceTypes)
+                foregroundNotification = notification
+                null
+            } catch (cause: Throwable) {
+                foregroundAdmissionClosed = true
+                foregroundNotification = null
+                cause
+            }
+        }
+        if (failure != null) {
+            reportServiceFailure()
+            throw failure
+        }
+        return true
+    }
 
-                else -> null
+    /** Content-only update: retain the resource-required mask without revalidating a revoked projection grant. */
+    @MainThread
+    protected fun updateForegroundNotification(notification: Notification): Boolean {
+        try {
+            synchronized(gate) {
+                val original = runtime ?: return false
+                if (foregroundAdmissionClosed || foregroundNotification == null || !original.isCurrent()) return false
+                getSystemService(NotificationManager::class.java).notify(original.foregroundSlot.id, notification)
+                foregroundNotification = notification
+                return true // API completion only; notification visibility is not guaranteed.
             }
+        } catch (failure: Throwable) {
+            closeForegroundAdmission()
+            reportServiceFailure()
+            throw failure
         }
-        if (immediate != null) {
-            if (immediate == ReleaseResult.Unconfirmed) reportFailure()
-            return immediate
+    }
+
+    @MainThread
+    private fun refreshForegroundNotification() {
+        try {
+            synchronized(gate) {
+                val original = runtime ?: return
+                val notification = foregroundNotification ?: return
+                if (foregroundAdmissionClosed || !original.isCurrent() ||
+                    !notifications.areNotificationsEnabled(StreamingModuleNotifications.Channel.Streaming)
+                ) return
+                getSystemService(NotificationManager::class.java).notify(original.foregroundSlot.id, notification)
+            }
+        } catch (failure: RuntimeException) {
+            Log.w(TAG, "Could not refresh foreground notification", failure)
         }
-        val result = try {
-            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-            synchronized(gate) { foregroundRemovalRequired = false }
-            ReleaseResult.ApiCompleted
-        } catch (cause: Throwable) {
-            ReleaseResult.Failed(cause).also {
-                synchronized(gate) {
-                    foregroundAdmissionClosed = true
-                    removalFailure = it
+    }
+
+    /**
+     * Stop this exact Service after capture cleanup has settled, then await its destruction.
+     * The controller calls this once from its independently owned cleanup operation. Android
+     * removes foreground state and its notification when stopping the Service. A failed stop
+     * request still waits for destruction and returns false, as do timeout and destruction before
+     * this request.
+     */
+    @AnyThread
+    public suspend fun stopAndAwaitDestruction(): Boolean {
+        closeForegroundAdmission()
+        val stopSucceeded = try {
+            withContext(Dispatchers.Main.immediate) {
+                if (!destruction.isCompleted) {
+                    synchronized(gate) { terminalStopRequested = true }
+                    stopSelf()
                 }
             }
+            true
+        } catch (cause: Throwable) {
+            Log.e(TAG, "Android Service stop failed", cause)
+            false
         }
-        if (result is ReleaseResult.Failed) reportFailure()
-        return result
+        val expectedStop = destruction.await()
+        return stopSucceeded && expectedStop
     }
 
     final override fun onDestroy() {
-        val original = synchronized(gate) {
-            destroyed = true
+        val (original, expectedStop) = synchronized(gate) {
             foregroundAdmissionClosed = true
-            controller.also { controller = null }
+            foregroundNotification = null
+            val original = controller
+            controller = null
+            original to (terminalStopRequested && !timedOut)
         }
         try {
-            super.onDestroy()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                getSystemService(AppOpsManager::class.java).stopWatchingMode(notificationPermissionListener)
+            }
+        } catch (failure: RuntimeException) {
+            Log.w(TAG, "Could not stop watching notification permission", failure)
         } finally {
+            notificationHandler.removeCallbacks(refreshNotification)
             try {
-                original?.onServiceDestroyed()
+                super.onDestroy()
             } finally {
-                synchronized(gate) { runtime = null }
-                destruction.complete(Unit)
+                try {
+                    original?.onServiceDestroyed()
+                } finally {
+                    synchronized(gate) { runtime = null }
+                    destruction.complete(expectedStop)
+                }
             }
         }
     }
@@ -149,17 +231,18 @@ public abstract class StreamingModuleService : Service() {
 
     /** Stop this exact platform Service before asking its controller to close ordinary work. */
     private fun stopTimedOutService() {
+        synchronized(gate) { timedOut = true }
         closeForegroundAdmission()
         try {
             stopSelf()
         } catch (cause: Throwable) {
             Log.e(TAG, "Android Service timeout stop failed", cause)
         } finally {
-            reportFailure()
+            reportServiceFailure()
         }
     }
 
-    private fun reportFailure() {
+    private fun reportServiceFailure() {
         val original = synchronized(gate) { runtime to controller }
         try {
             original.first?.reportFailed()
@@ -174,34 +257,7 @@ public abstract class StreamingModuleService : Service() {
         }
     }
 
-    /** Outcome of the synchronous Android promotion call. */
-    public sealed interface PromotionResult {
-        /** Android accepted the promotion API call; notification visibility is not guaranteed. */
-        public data object ApiCompleted : PromotionResult
-
-        /** This Service cannot admit promotion; Android was not called. */
-        public data object Rejected : PromotionResult
-
-        /** Android threw during promotion; foreground removal is still required. */
-        public class Failed(public val cause: Throwable) : PromotionResult
-    }
-
-    /** Outcome of foreground removal; these are API results, not proof of physical cleanup. */
-    public sealed interface ReleaseResult {
-        /** No removal obligation remains, including after a successful removal or host loss. */
-        public data object NotRequired : ReleaseResult
-
-        /** Android accepted removal; this promotion obligation is complete. */
-        public data object ApiCompleted : ReleaseResult
-
-        /** The Service was destroyed before required removal could be admitted. */
-        public data object Unconfirmed : ReleaseResult
-
-        /** Android threw during removal; later promotion is permanently blocked. */
-        public class Failed(public val cause: Throwable) : ReleaseResult
-    }
-
     private companion object {
-        const val TAG: String = "StreamingModuleService"
+        const val TAG: String = "StreamingModuleService" //TODO Remove
     }
 }

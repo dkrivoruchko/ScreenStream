@@ -7,23 +7,28 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.app.SingleActivityViewModel
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.app.settings.AppSettings
-import info.dvkr.screenstream.ui.ScreenStreamContent
+import info.dvkr.screenstream.settings.AppSettings
+import info.dvkr.screenstream.ui.AppNavigation
+import info.dvkr.screenstream.ui.AppUpdateHost
+import info.dvkr.screenstream.ui.RuntimePermissionHost
 import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
 import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.streaming.capture.ScreenCaptureConsentHost
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
-import org.koin.androidx.viewmodel.ext.android.viewModel
-import org.koin.core.qualifier.named
 import kotlin.coroutines.cancellation.CancellationException
 
 public class SingleActivity : AppUpdateActivity() {
@@ -33,14 +38,24 @@ public class SingleActivity : AppUpdateActivity() {
     }
 
     private val streamingModulesManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
-    private val streamingViewModel: SingleActivityViewModel by viewModel(qualifier = named("SingleActivityViewModel"))
     private val appSettings: AppSettings by inject(mode = LazyThreadSafetyMode.NONE)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         XLog.d(this@SingleActivity.getLog("onCreate", "Bug workaround: ${window.decorView}"))
         super.onCreate(savedInstanceState)
-        streamingViewModel.onActivityCreated()
+
+        if (savedInstanceState == null ||
+            streamingModulesManager.state.value == StreamingModuleManager.State.NoModule ||
+            streamingModulesManager.state.value == StreamingModuleManager.State.Exiting
+        ) {
+            streamingModulesManager.selectModule()
+        }
+
+        if (streamingModulesManager.state.value == StreamingModuleManager.State.Exiting) {
+            finishAndRemoveTask()
+            return
+        }
 
         var waitingForSettings = true
         splashScreen.setKeepOnScreenCondition { waitingForSettings }
@@ -55,7 +70,18 @@ public class SingleActivity : AppUpdateActivity() {
 
             setContent {
                 ScreenStreamTheme {
-                    ScreenStreamContent(updateFlow = updateFlow)
+                    RuntimePermissionHost(appSettings) {
+                        AppNavigation(
+                            streamingModulesManager,
+                            modifier = Modifier
+                                .windowInsetsPadding(WindowInsets.safeDrawing)
+                                .fillMaxSize()
+                        )
+                    }
+
+                    AppUpdateHost(updateFlow)
+
+                    ScreenCaptureConsentHost()
                 }
             }
 
@@ -66,10 +92,6 @@ public class SingleActivity : AppUpdateActivity() {
                 .onEach { applyNightMode(it) }
                 .launchIn(lifecycleScope)
         }
-
-        streamingViewModel.exitState
-            .onEach { state -> if (state == SingleActivityViewModel.ExitState.Finished) finishAndRemoveTask() }
-            .launchIn(lifecycleScope)
     }
 
     private fun applyNightMode(mode: Int) {

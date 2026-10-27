@@ -1,5 +1,6 @@
 package info.dvkr.screenstream.webrtc.ui
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,7 +31,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessStarted
-import info.dvkr.screenstream.common.notification.NotificationHelper
+import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.get
 import info.dvkr.screenstream.common.ui.mediaprojection.ScreenCapturePermissionFlow
@@ -46,6 +48,7 @@ import info.dvkr.screenstream.webrtc.ui.main.cards.OtherSettingsCard
 import info.dvkr.screenstream.webrtc.ui.main.cards.StreamCard
 import io.screenstream.streaming.legacy.LegacyPermissionActionEffect
 import io.screenstream.streaming.legacy.rememberLegacyPermissionActions
+import io.screenstream.streaming.module.StreamingModuleNotifications
 import io.screenstream.streaming.permission.LocalRuntimePermissions
 import io.screenstream.streaming.permission.RuntimePermission
 import kotlinx.coroutines.currentCoroutineContext
@@ -61,7 +64,7 @@ internal fun WebRtcMainScreenUI(
     onProjectionGranted: (startAttemptId: String, intent: Intent) -> Unit,
     modifier: Modifier = Modifier,
     webRtcSettings: WebRtcSettings = koinInject(),
-    notificationHelper: NotificationHelper = koinInject()
+    notifications: StreamingModuleNotifications = koinInject()
 ) {
     val webRtcState = webRtcStateFlow.collectAsStateWithLifecycle()
     val webRtcSettingsState = webRtcSettings.data.collectAsStateWithLifecycle()
@@ -192,7 +195,16 @@ internal fun WebRtcMainScreenUI(
                             if (runtimePermissions.isGranted(RuntimePermission.Notifications)) {
                                 permissionActions.cancel()
                                 sendEvent(WebRtcEvent.Intentable.RecoverError)
-                                context.startActivity(notificationHelper.getStreamNotificationSettingsIntent())
+                                val settingsIntent = notifications.channelSettingsIntent(StreamingModuleNotifications.Channel.Streaming)
+                                if (settingsIntent != null) {
+                                    try {
+                                        context.startActivity(settingsIntent)
+                                    } catch (failure: ActivityNotFoundException) {
+                                        XLog.w(context.getLog("NotificationSettings", "Settings Activity is unavailable"), failure)
+                                    } catch (failure: SecurityException) {
+                                        XLog.w(context.getLog("NotificationSettings", "Settings Activity launch was denied"), failure)
+                                    }
+                                }
                             } else {
                                 requestPermissionForError(RuntimePermission.Notifications)
                             }

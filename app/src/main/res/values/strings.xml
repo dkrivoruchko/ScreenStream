@@ -42,6 +42,7 @@
 
     <string name="app_notification_channel_streaming">Streaming notifications</string>
     <string name="app_notification_channel_error">Error notifications</string>
+    <string name="app_notification_waiting_content">Tap to open the app</string>
     <string name="app_notification_streaming_title">Streaming…</string>
     <string name="app_notification_streaming_content">Tap Stop to end the stream</string>
     <string name="app_notification_stop">Stop</string>

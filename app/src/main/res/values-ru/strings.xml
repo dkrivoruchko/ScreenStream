@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Уведомления о трансляции</string>
     <string name="app_notification_channel_error">Уведомления об ошибках</string>
+    <string name="app_notification_waiting_content">Нажмите, чтобы открыть приложение</string>
     <string name="app_notification_streaming_title">Транслирую…</string>
     <string name="app_notification_streaming_content">Нажмите Стоп, чтобы завершить трансляцию</string>
     <string name="app_notification_stop">Остановить</string>

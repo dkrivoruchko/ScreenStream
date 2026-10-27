@@ -355,4 +355,7 @@ public class ProjectionCoordinator(
     }
 
     public fun getActiveGeneration(): Long? = synchronized(lock) { activeSession?.generation }
+
+    /** Includes pending starts so an old cleanup cannot replace a newer preflight's foreground type. */
+    public fun getLatestGeneration(): Long = synchronized(lock) { generationCounter }
 }

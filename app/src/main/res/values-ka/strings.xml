@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">სტრიმინგის შეტყობინებები</string>
     <string name="app_notification_channel_error">შეცდომის შეტყობინებები</string>
+    <string name="app_notification_waiting_content">შეეხეთ აპის გასახსნელად</string>
     <string name="app_notification_streaming_title">სტრიმინგი…</string>
     <string name="app_notification_streaming_content">ნაკადის დასასრულებლად შეეხეთ შეჩერებას</string>
     <string name="app_notification_stop">გაჩერდი</string>

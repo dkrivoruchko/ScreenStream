@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">স্ট্রিমিং বিজ্ঞপ্তি</string>
     <string name="app_notification_channel_error">ত্রুটি বিজ্ঞপ্তি</string>
+    <string name="app_notification_waiting_content">অ্যাপ খুলতে ট্যাপ করুন</string>
     <string name="app_notification_streaming_title">স্ট্রিমিং…</string>
     <string name="app_notification_streaming_content">স্ট্রিম শেষ করতে বন্ধ করুন-এ ট্যাপ করুন</string>
     <string name="app_notification_stop">থামুন</string>

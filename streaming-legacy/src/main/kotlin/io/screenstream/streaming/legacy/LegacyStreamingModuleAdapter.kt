@@ -1,6 +1,5 @@
 package io.screenstream.streaming.legacy
 
-import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
@@ -42,9 +41,10 @@ public abstract class LegacyStreamingModuleAdapter(
     protected abstract fun startLegacyStream(module: StreamingModuleLegacy)
 
     /** Create an inert controller only inside the exact Service after the manager admits its startup. */
-    public fun createController(runtime: StreamingModule.Controller.Runtime, service: Service): LegacyController =
+    public fun createController(runtime: StreamingModule.Controller.Runtime, service: LegacyStreamingModuleService): LegacyController =
         synchronized(lock) {
             check(lease == null) { "Legacy module is already launched" }
+            service.attachRuntime(runtime)
             LegacyController(runtime, service).also { lease = it }
         }
 
@@ -60,7 +60,7 @@ public abstract class LegacyStreamingModuleAdapter(
      */
     public inner class LegacyController internal constructor(
         private val runtime: StreamingModule.Controller.Runtime,
-        private val service: Service,
+        private val service: LegacyStreamingModuleService,
     ) : StreamingModule.Controller {
         override val instanceId: StreamingModule.InstanceId = runtime.instanceId
         private val workJob = SupervisorJob()
@@ -74,6 +74,7 @@ public abstract class LegacyStreamingModuleAdapter(
         }
         private var started = false
         private val serviceDestroyed = CompletableDeferred<Unit>()
+
         @Volatile
         private var closing = false
         internal var backend: StreamingModuleLegacy? = null
@@ -91,11 +92,13 @@ public abstract class LegacyStreamingModuleAdapter(
 
         /** Admit only ordinary legacy commands addressed to this original launch. */
         public fun acceptsCommand(intent: Intent?): Boolean = isCurrent() &&
-            intent?.data == addressLegacyCommand(Intent()).data
+                intent?.data == addressLegacyCommand(Intent()).data
 
         private fun addressLegacyCommand(intent: Intent): Intent = Intent(intent)
-            .setData(Uri.Builder().scheme("screenstream").authority("legacy-command")
-                .appendPath(instanceId.moduleId.value).appendPath(instanceId.uuid.toString()).build())
+            .setData(
+                Uri.Builder().scheme("screenstream").authority("legacy-command")
+                    .appendPath(instanceId.moduleId.value).appendPath(instanceId.uuid.toString()).build()
+            )
 
         override fun startModule() {
             synchronized(lock) {
@@ -122,7 +125,10 @@ public abstract class LegacyStreamingModuleAdapter(
                 })
                 workScope.launch {
                     while (isCurrent()) {
-                        if (running) runtime.reportRunning(StreamingModule.Status(streaming, hasActiveConsumer, attempt, errorMessage = null), SystemClock.uptimeMillis())
+                        if (running) runtime.reportRunning(
+                            StreamingModule.Status(streaming, hasActiveConsumer, attempt, errorMessage = null),
+                            SystemClock.uptimeMillis()
+                        )
                         delay(1.seconds)
                     }
                 }
@@ -151,8 +157,13 @@ public abstract class LegacyStreamingModuleAdapter(
                     }
                 }
             }
-            workJob.cancel()
-            cleanupTask.start()
+            try {
+                service.closeForegroundAdmission()
+                service.closeErrorNotifications()
+            } finally {
+                workJob.cancel()
+                cleanupTask.start()
+            }
         }
 
         private suspend fun finishCleanup(): Boolean {
@@ -164,7 +175,11 @@ public abstract class LegacyStreamingModuleAdapter(
             workJob.join()
             val serviceStopped = runCatching {
                 withContext(Dispatchers.Main.immediate) {
-                    if (!serviceDestroyed.isCompleted) service.stopSelf()
+                    try {
+                        service.stopForeground()
+                    } finally {
+                        if (!serviceDestroyed.isCompleted) service.stopSelf()
+                    }
                 }
             }
                 .onFailure { XLog.e("Legacy Service stop failed", it) }.isSuccess

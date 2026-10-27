@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Notifications de diffusion</string>
     <string name="app_notification_channel_error">Notifications d\'erreur</string>
+    <string name="app_notification_waiting_content">Appuyez pour ouvrir l\'application</string>
     <string name="app_notification_streaming_title">Diffusion…</string>
     <string name="app_notification_streaming_content">Appuyez sur Arrêter pour terminer la diffusion</string>
     <string name="app_notification_stop">Arrêter</string>

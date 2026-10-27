@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Streaming-Benachrichtigungen</string>
     <string name="app_notification_channel_error">Fehlerbenachrichtigungen</string>
+    <string name="app_notification_waiting_content">Zum Öffnen der App tippen</string>
     <string name="app_notification_streaming_title">Streaming läuft …</string>
     <string name="app_notification_streaming_content">Tippen Sie auf Stopp, um den Stream zu beenden</string>
     <string name="app_notification_stop">Stopp</string>

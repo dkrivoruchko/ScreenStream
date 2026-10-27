@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.get
 
 public class TileActionService : TileService() {
@@ -52,8 +53,9 @@ public class TileActionService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
 
-        streamingModulesManager = runCatching { get<StreamingModuleManager>() }.getOrNull() ?: return
-        streamingModulesManager!!.state
+        val manager = runCatching { get<StreamingModuleManager>() }.getOrNull() ?: return
+        streamingModulesManager = manager
+        manager.state
             .map { state ->
                 when (state) {
                     is StreamingModuleManager.State.Running -> state.status.isStreaming
@@ -62,26 +64,21 @@ public class TileActionService : TileService() {
                 }
             }
             .distinctUntilChanged()
-            .map { isStreaming ->
-                qsTile?.icon = Icon.createWithResource(this, R.drawable.ic_tile_24dp)
-                qsTile?.state = if (isStreaming == null) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
-                when {
-                    isStreaming == null -> {
-                        qsTile?.label = getString(R.string.app_name)
-                        qsTile?.contentDescription = getString(R.string.app_name)
-                    }
-
-                    isStreaming -> {
-                        qsTile?.label = getString(R.string.app_tile_stop)
-                        qsTile?.contentDescription = getString(R.string.app_tile_stop)
-                    }
-
-                    else -> {
-                        qsTile?.label = getString(R.string.app_tile_start)
-                        qsTile?.contentDescription = getString(R.string.app_tile_start)
-                    }
+            .onEach { isStreaming ->
+                qsTile?.apply {
+                    val tileLabel = getString(
+                        when (isStreaming) {
+                            null -> R.string.app_name
+                            true -> R.string.app_tile_stop
+                            false -> R.string.app_tile_start
+                        }
+                    )
+                    icon = Icon.createWithResource(this@TileActionService, R.drawable.ic_tile_24dp)
+                    state = if (isStreaming == null) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
+                    label = tileLabel
+                    contentDescription = tileLabel
+                    updateTile()
                 }
-                qsTile?.updateTile()
             }
             .catch { XLog.i(getLog("TileActionService", "onStartListening: ${it.message}"), it) }
             .launchIn(CoroutineScope(Job() + Dispatchers.Main.immediate).also { coroutineScope = it })
@@ -103,8 +100,7 @@ public class TileActionService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val state = streamingModulesManager?.state?.value
-        val status = when (state) {
+        val status = when (val state = streamingModulesManager?.state?.value) {
             is StreamingModuleManager.State.Running -> state.status
             is StreamingModuleManager.State.Unresponsive -> state.lastStatus
             else -> null

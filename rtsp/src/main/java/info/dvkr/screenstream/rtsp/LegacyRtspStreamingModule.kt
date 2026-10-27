@@ -6,6 +6,7 @@ import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
 import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
 import io.screenstream.streaming.legacy.StreamingModuleLegacy
 import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.streaming.module.StreamingModuleNotifications
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Singleton
 
@@ -22,6 +23,9 @@ public class LegacyRtspStreamingModule(
     override val descriptionResource: Int = R.string.rtsp_stream_mode_description
     override val detailsResource: Int = R.string.rtsp_stream_mode_details
     override val serviceClass: Class<out Service> = RtspModuleService::class.java
+    override val foregroundSlot: StreamingModuleNotifications.ForegroundSlot = object : StreamingModuleNotifications.ForegroundSlot {
+        override val id: Int = 300
+    }
 
     override fun startLegacyStream(module: StreamingModuleLegacy) {
         (module as RtspStreamingModuleLegacy).sendEvent(RtspStreamingService.InternalEvent.StartStream(permissionEducationShown = false))

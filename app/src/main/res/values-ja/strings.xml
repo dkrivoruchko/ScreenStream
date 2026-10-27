@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">ストリーミング通知</string>
     <string name="app_notification_channel_error">エラー通知</string>
+    <string name="app_notification_waiting_content">タップしてアプリを開く</string>
     <string name="app_notification_streaming_title">ストリーム中…</string>
     <string name="app_notification_streaming_content">ストリームを終了するには停止をタップ</string>
     <string name="app_notification_stop">停止</string>

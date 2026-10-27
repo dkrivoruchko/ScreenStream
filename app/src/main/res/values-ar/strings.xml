@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">إشعارات البث</string>
     <string name="app_notification_channel_error">إشعارات الأخطاء</string>
+    <string name="app_notification_waiting_content">اضغط لفتح التطبيق</string>
     <string name="app_notification_streaming_title">البث…</string>
     <string name="app_notification_streaming_content">اضغط على إيقاف لإنهاء البث</string>
     <string name="app_notification_stop">إيقاف</string>

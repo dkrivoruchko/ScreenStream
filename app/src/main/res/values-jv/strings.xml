@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Kabar streaming</string>
     <string name="app_notification_channel_error">Kabar kesalahan</string>
+    <string name="app_notification_waiting_content">Tutul kanggo mbukak aplikasi</string>
     <string name="app_notification_streaming_title">Streaming…</string>
     <string name="app_notification_streaming_content">Tutul Mandheg kanggo mungkasi stream</string>
     <string name="app_notification_stop">Mandeg</string>

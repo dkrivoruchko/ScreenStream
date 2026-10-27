@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Meldingen voor streaming</string>
     <string name="app_notification_channel_error">Foutmeldingen</string>
+    <string name="app_notification_waiting_content">Tik om de app te openen</string>
     <string name="app_notification_streaming_title">Stream…</string>
     <string name="app_notification_streaming_content">Tik op Stop om de stream te beëindigen</string>
     <string name="app_notification_stop">Stop</string>

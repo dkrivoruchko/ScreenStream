@@ -9,9 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
@@ -74,7 +72,3 @@ public fun Context.openStringUrl(url: String, onError: (Throwable) -> Unit = {})
         onError.invoke(it)
     }
 }
-
-public fun Context.getAppSettingsIntent(): Intent =
-    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-        .setData(Uri.fromParts("package", packageName, null))

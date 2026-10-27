@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Yayın bildirimleri</string>
     <string name="app_notification_channel_error">Hata bildirimleri</string>
+    <string name="app_notification_waiting_content">Uygulamayı açmak için dokunun</string>
     <string name="app_notification_streaming_title">Yayınlanıyor…</string>
     <string name="app_notification_streaming_content">Yayını bitirmek için Durdur\'a dokunun</string>
     <string name="app_notification_stop">Durdur</string>

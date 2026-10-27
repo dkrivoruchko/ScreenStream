@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">اسٹریمنگ اطلاعات</string>
     <string name="app_notification_channel_error">خرابی اطلاعات</string>
+    <string name="app_notification_waiting_content">ایپ کھولنے کے لیے ٹیپ کریں</string>
     <string name="app_notification_streaming_title">اسٹریمنگ…</string>
     <string name="app_notification_streaming_content">اسٹریم ختم کرنے کے لیے روکیں پر ٹیپ کریں</string>
     <string name="app_notification_stop">روکیں</string>

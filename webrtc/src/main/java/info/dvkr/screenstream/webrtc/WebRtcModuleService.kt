@@ -4,15 +4,16 @@ import android.app.ActivityManager
 import android.app.ServiceStartNotAllowedException
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import info.dvkr.screenstream.webrtc.ui.isExpectedEnvironmentIssue
 import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
-import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
 import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
+import io.screenstream.streaming.legacy.LegacyStreamingModuleService
 import org.koin.android.ext.android.inject
 import java.net.ConnectException
 import java.net.UnknownHostException
@@ -21,7 +22,7 @@ import java.net.UnknownHostException
  * Creates one legacy controller for accepted core startup, before dispatching the backend's old commands.
  * Retains that original controller for this Service lifetime; lifecycle callbacks never wait for cleanup.
  */
-public class WebRtcModuleService : StreamingModuleService() {
+public class WebRtcModuleService : LegacyStreamingModuleService() {
 
     internal companion object {
         internal fun getIntent(context: Context): Intent = Intent(context, WebRtcModuleService::class.java).addIntentId().let { intent ->
@@ -47,7 +48,6 @@ public class WebRtcModuleService : StreamingModuleService() {
         }
     }
 
-    override val notificationIdForeground: Int = 200
     override val notificationIdError: Int = 210
 
     private val webRtcStreamingModule: WebRtcStreamingModuleLegacy by inject(WebRtcKoinQualifier, LazyThreadSafetyMode.NONE)
@@ -61,10 +61,13 @@ public class WebRtcModuleService : StreamingModuleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == StreamingModuleManager.ACTION_START_MODULE) {
-            streamingModuleManager.onServiceStart(service = this, intent = intent, existingController = legacyOwner) { runtime ->
-                legacyWebRtcStreamingModule.createController(runtime, this).also { legacyOwner = it }
+            try {
+                streamingModuleManager.onServiceStart(service = this, intent = intent, existingController = legacyOwner) { runtime ->
+                    legacyWebRtcStreamingModule.createController(runtime, this).also { legacyOwner = it }
+                }
+            } finally {
+                if (legacyOwner == null) stopUnownedHost(startId)
             }
-            if (legacyOwner == null) stopSelfResult(startId)
             return START_NOT_STICKY
         }
         val originalOwner = legacyOwner
@@ -101,6 +104,7 @@ public class WebRtcModuleService : StreamingModuleService() {
                 XLog.i(getLog("onStartCommand", "SP_TRACE route=service_cached_permission stage=service_dispatch event=StartProjection startAttemptId=${webRtcEvent.startAttemptId} startId=$startId"))
                 webRtcStreamingModule.startProjection(webRtcEvent.startAttemptId, webRtcEvent.intent)
             }
+
             is WebRtcEvent.Intentable.StopStream -> webRtcStreamingModule.sendEvent(webRtcEvent)
             WebRtcEvent.Intentable.RecoverError -> webRtcStreamingModule.sendEvent(webRtcEvent)
         }
@@ -134,24 +138,18 @@ public class WebRtcModuleService : StreamingModuleService() {
         }
     }
 
-    @Throws(IllegalStateException::class)
-    internal fun startForeground(fgsType: Int) {
-        XLog.d(
-            getLog(
-                "startForeground",
-                "fgsType=$fgsType notificationPermissionGranted=${notificationHelper.notificationPermissionGranted(this)} " +
-                        "foregroundNotificationsEnabled=${notificationHelper.foregroundNotificationsEnabled()}"
-            )
-        )
-
-        startForeground(
-            WebRtcEvent.Intentable.StopStream("WebRtcModuleService. User action: Notification").toIntent(this),
-            fgsType
+    internal fun onCaptureStarted(generation: Long) {
+        showCaptureForeground(
+            WebRtcEvent.Intentable.StopStream("WebRtcModuleService. User action: Notification", generation).toIntent(this),
+            generation,
         )
     }
 
     internal fun showErrorNotification(error: WebRtcError, showRecoverAction: Boolean = true) {
-        if (error is WebRtcError.NotificationPermissionRequired) return
+        if (error is WebRtcError.NotificationPermissionRequired) {
+            hideErrorNotification()
+            return
+        }
 
         val startupPolicyError = error.isStartupPolicyError()
         if (error is WebRtcError.NetworkError && (error.cause is UnknownHostException || error.cause is ConnectException)) {
@@ -165,7 +163,7 @@ public class WebRtcModuleService : StreamingModuleService() {
         }
 
         showErrorNotification(
-            message = error.toString(this),
+            message = error.toString(ContextCompat.getContextForLanguage(this)),
             recoverIntent = if (showRecoverAction) WebRtcEvent.Intentable.RecoverError.toIntent(this) else null
         )
     }

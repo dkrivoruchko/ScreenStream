@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
  * Running confirms live module control work, not capture, HTTP, or consumer readiness.
  *
  * Selection, restart, Start, and Stop return without confirming acceptance or success. Stale, unknown,
- * or busy requests can have no effect; [exit] has its own bounded wait. A slow StateFlow collector
- * may skip brief transition states and sees the latest value.
+ * or busy requests can have no effect; [exit] starts process-owned shutdown without waiting.
+ * A slow StateFlow collector may skip brief transition states and sees the latest value.
  */
 public interface StreamingModuleManager {
     /**
@@ -81,14 +81,14 @@ public interface StreamingModuleManager {
     public fun restartModule(expectedInstanceId: StreamingModule.InstanceId)
 
     /**
-     * Close launch admission and request shutdown of the current instance. Its shutdown wait
-     * deadline is no later than three seconds after the first Exit request; repeated calls share
-     * the operation and deadline. Completion is processed when Main can run, so this is not a
-     * wall-clock return bound. Return means waiting ended, including when cleanup is unconfirmed.
-     * Cancelling this caller ends only its wait, not process-owned shutdown or cleanup.
+     * Begin app Exit and close launch admission without waiting for cleanup. When
+     * [expectedInstanceId] is supplied, ignore the request unless it still owns the admitted
+     * current launch, including startup. Repeated requests share the existing operation and its
+     * three-second shutdown wait deadline; cleanup continues independently after that wait ends.
+     * Return confirms neither completed cleanup nor removal of the app's tasks.
      */
     @MainThread
-    public suspend fun exit()
+    public fun exit(expectedInstanceId: StreamingModule.InstanceId? = null)
 
     /**
      * Queue external capture Start for [instanceId]. The module rechecks current admission and

@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Powiadomienia o przesyłaniu</string>
     <string name="app_notification_channel_error">Powiadomienia o błędach</string>
+    <string name="app_notification_waiting_content">Dotknij, aby otworzyć aplikację</string>
     <string name="app_notification_streaming_title">Transmisja…</string>
     <string name="app_notification_streaming_content">Dotknij Zatrzymaj, aby zakończyć transmisję</string>
     <string name="app_notification_stop">Stop</string>

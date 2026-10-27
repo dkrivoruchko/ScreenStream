@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Oqimli bildirishnomalar</string>
     <string name="app_notification_channel_error">Xato bildirishnomalari</string>
+    <string name="app_notification_waiting_content">Ilovani ochish uchun bosing</string>
     <string name="app_notification_streaming_title">Oqim qilinmoqda…</string>
     <string name="app_notification_streaming_content">Translatsiyani tugatish uchun To\'xtatish tugmasini bosing</string>
     <string name="app_notification_stop">To‘xtatish</string>

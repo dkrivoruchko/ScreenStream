@@ -10,7 +10,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import info.dvkr.screenstream.app.settings.AppSettings
+import info.dvkr.screenstream.settings.AppSettings
 import org.koin.compose.koinInject
 
 private val lightScheme = lightColorScheme(
@@ -100,8 +100,11 @@ internal fun ScreenStreamTheme(
     val appSettingsState = appSettings.data.collectAsStateWithLifecycle()
 
     val colorScheme = when {
-        dynamicThemeAvailable && appSettingsState.value.dynamicTheme && darkTheme -> dynamicDarkColorScheme(LocalContext.current)
-        dynamicThemeAvailable && appSettingsState.value.dynamicTheme && darkTheme.not() -> dynamicLightColorScheme(LocalContext.current)
+        dynamicThemeAvailable && appSettingsState.value.dynamicTheme -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+
         darkTheme -> darkScheme
         else -> lightScheme
     }

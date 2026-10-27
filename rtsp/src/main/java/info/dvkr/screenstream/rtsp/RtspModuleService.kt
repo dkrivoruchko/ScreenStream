@@ -3,14 +3,15 @@ package info.dvkr.screenstream.rtsp
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.ContextCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import info.dvkr.screenstream.rtsp.ui.isStartupPolicyError
-import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
 import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
+import io.screenstream.streaming.legacy.LegacyStreamingModuleService
 import org.koin.android.ext.android.inject
 import org.koin.core.qualifier.named
 
@@ -18,7 +19,7 @@ import org.koin.core.qualifier.named
  * Creates one legacy controller for accepted core startup, before dispatching the backend's old commands.
  * Retains that original controller for this Service lifetime; lifecycle callbacks never wait for cleanup.
  */
-public class RtspModuleService : StreamingModuleService() {
+public class RtspModuleService : LegacyStreamingModuleService() {
 
     internal companion object {
         internal fun getIntent(context: Context): Intent = Intent(context, RtspModuleService::class.java).addIntentId().let { intent ->
@@ -42,7 +43,6 @@ public class RtspModuleService : StreamingModuleService() {
         }
     }
 
-    override val notificationIdForeground: Int = 300
     override val notificationIdError: Int = 310
 
     private val rtspStreamingModule: RtspStreamingModuleLegacy by inject(RtspKoinQualifier, LazyThreadSafetyMode.NONE)
@@ -52,10 +52,13 @@ public class RtspModuleService : StreamingModuleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == StreamingModuleManager.ACTION_START_MODULE) {
-            streamingModuleManager.onServiceStart(service = this, intent = intent, existingController = legacyOwner) { runtime ->
-                legacyRtspStreamingModule.createController(runtime, this).also { legacyOwner = it }
+            try {
+                streamingModuleManager.onServiceStart(service = this, intent = intent, existingController = legacyOwner) { runtime ->
+                    legacyRtspStreamingModule.createController(runtime, this).also { legacyOwner = it }
+                }
+            } finally {
+                if (legacyOwner == null) stopUnownedHost(startId)
             }
-            if (legacyOwner == null) stopSelfResult(startId)
             return START_NOT_STICKY
         }
         val originalOwner = legacyOwner
@@ -136,24 +139,18 @@ public class RtspModuleService : StreamingModuleService() {
         }
     }
 
-    @Throws(IllegalStateException::class)
-    internal fun startForeground(fgsType: Int) {
-        XLog.d(
-            getLog(
-                "startForeground",
-                "fgsType=$fgsType notificationPermissionGranted=${notificationHelper.notificationPermissionGranted(this)} " +
-                        "foregroundNotificationsEnabled=${notificationHelper.foregroundNotificationsEnabled()}"
-            )
-        )
-
-        startForeground(
-            RtspEvent.Intentable.StopStream("RtspModuleService. User action: Notification").toIntent(this),
-            fgsType
+    internal fun onCaptureStarted(generation: Long) {
+        showCaptureForeground(
+            RtspEvent.Intentable.StopStream("RtspModuleService. User action: Notification", generation).toIntent(this),
+            generation,
         )
     }
 
     internal fun showErrorNotification(error: RtspError) {
-        if (error is RtspError.NotificationPermissionRequired || error is RtspError.LocalNetworkPermissionRequired) return
+        if (error is RtspError.NotificationPermissionRequired || error is RtspError.LocalNetworkPermissionRequired) {
+            hideErrorNotification()
+            return
+        }
 
         val startupPolicyError = error.isStartupPolicyError()
         if (error is RtspError.ServerError.AddressNotFoundException) {
@@ -165,7 +162,7 @@ public class RtspModuleService : StreamingModuleService() {
         }
 
         showErrorNotification(
-            message = error.toString(this),
+            message = error.toString(ContextCompat.getContextForLanguage(this)),
             recoverIntent = if (startupPolicyError) null else RtspEvent.Intentable.RecoverError.toIntent(this)
         )
     }

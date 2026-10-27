@@ -45,6 +45,9 @@ public interface StreamingModule {
     /** Android Service the manager starts to open this module. */
     public val serviceClass: Class<out Service>
 
+    /** Stable foreground notification slot reserved for [serviceClass]. */
+    public val foregroundSlot: StreamingModuleNotifications.ForegroundSlot
+
     /**
      * Logical launch identity allocated before a [Controller] exists. Each launch or restart gets a
      * new UUID; data equality uses both [moduleId] and [uuid].
@@ -120,8 +123,8 @@ public interface StreamingModule {
          * Wait until all work and cleanup owned by this controller has finished after
          * [requestModuleShutdown]. Return true only when that cleanup succeeded. The controller
          * owns this work independently of callers, so cancelling a waiter cancels only its wait.
-         * This includes foreground release, stopping the original Service and its destruction.
-         * No instance-owned work may remain or start afterward.
+         * This includes stopping the original Service after capture cleanup settles and awaiting
+         * its destruction. No instance-owned work may remain or start afterward.
          */
         public suspend fun awaitCleanup(): Boolean
 
@@ -144,6 +147,9 @@ public interface StreamingModule {
         public interface Runtime {
             /** Identity the created controller must expose for its whole lifetime. */
             public val instanceId: InstanceId
+
+            /** Validated foreground slot for this admitted instance's exact Service component. */
+            public val foregroundSlot: StreamingModuleNotifications.ForegroundSlot
 
             /** Whether this instance may still accept work; recheck before taking new resources. */
             public fun isCurrent(): Boolean

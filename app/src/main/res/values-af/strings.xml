@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Stroomkennisgewings</string>
     <string name="app_notification_channel_error">Foutkennisgewings</string>
+    <string name="app_notification_waiting_content">Tik om die toepassing oop te maak</string>
     <string name="app_notification_streaming_title">Stroom tans …</string>
     <string name="app_notification_streaming_content">Tik Stop om die stroom te beëindig</string>
     <string name="app_notification_stop">Stop</string>

@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">स्ट्रीमिंग सूचनाएँ</string>
     <string name="app_notification_channel_error">त्रुटि सूचनाएँ</string>
+    <string name="app_notification_waiting_content">ऐप खोलने के लिए टैप करें</string>
     <string name="app_notification_streaming_title">प्रवाह…</string>
     <string name="app_notification_streaming_content">स्ट्रीम समाप्त करने के लिए रोकें पर टैप करें</string>
     <string name="app_notification_stop">रुकें</string>

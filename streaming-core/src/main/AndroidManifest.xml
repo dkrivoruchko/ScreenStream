@@ -3,7 +3,7 @@
 
     <application>
         <receiver
-            android:name="io.screenstream.streaming.manager.CaptureStopReceiver"
+            android:name="io.screenstream.streaming.manager.StreamingModuleActionReceiver"
             android:exported="false" />
     </application>
 </manifest>

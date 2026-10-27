@@ -36,8 +36,10 @@ public enum class RuntimePermission(public val androidPermission: String) {
         (!isRequired(context) || context.checkSelfPermission(androidPermission) == PackageManager.PERMISSION_GRANTED) &&
                 (this != Notifications || context.getSystemService(NotificationManager::class.java).areNotificationsEnabled())
 
-    public fun shouldShowRequestPermissionRationale(activity: Activity): Boolean =
-        activity.shouldShowRequestPermissionRationale(androidPermission)
+    /** Whether a denied runtime permission currently has an Android rationale to show. */
+    public fun shouldShowRationale(activity: Activity): Boolean =
+        isRequired(activity) && activity.checkSelfPermission(androidPermission) == PackageManager.PERMISSION_DENIED &&
+                activity.shouldShowRequestPermissionRationale(androidPermission)
 
     /**
      * Settings route for notifications disabled at app level with no missing runtime grant,
@@ -46,7 +48,7 @@ public enum class RuntimePermission(public val androidPermission: String) {
     public fun suggestsSettings(activity: Activity, permissionsWithObservedRationale: Collection<String>): Boolean =
         (this == Notifications && !isGranted(activity) &&
                 (!isRequired(activity) || activity.checkSelfPermission(androidPermission) == PackageManager.PERMISSION_GRANTED)) ||
-                (androidPermission in permissionsWithObservedRationale && !shouldShowRequestPermissionRationale(activity))
+                (androidPermission in permissionsWithObservedRationale && !activity.shouldShowRequestPermissionRationale(androidPermission))
 
     /** Open this permission's settings destination; the caller handles launch failures. */
     @Throws(ActivityNotFoundException::class, SecurityException::class)

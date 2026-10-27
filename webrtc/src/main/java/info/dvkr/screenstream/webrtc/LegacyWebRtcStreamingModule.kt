@@ -6,6 +6,7 @@ import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
 import io.screenstream.streaming.legacy.LegacyStreamingModuleAdapter
 import io.screenstream.streaming.legacy.StreamingModuleLegacy
 import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.streaming.module.StreamingModuleNotifications
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Singleton
 
@@ -22,6 +23,9 @@ public class LegacyWebRtcStreamingModule(
     override val descriptionResource: Int = R.string.webrtc_stream_mode_description
     override val detailsResource: Int = R.string.webrtc_stream_mode_details
     override val serviceClass: Class<out Service> = WebRtcModuleService::class.java
+    override val foregroundSlot: StreamingModuleNotifications.ForegroundSlot = object : StreamingModuleNotifications.ForegroundSlot {
+        override val id: Int = 200
+    }
 
     override fun startLegacyStream(module: StreamingModuleLegacy) {
         (module as WebRtcStreamingModuleLegacy).sendEvent(WebRtcStreamingService.InternalEvent.StartStream(permissionEducationShown = false))

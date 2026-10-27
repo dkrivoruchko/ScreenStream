@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Igorpen-jakinarazpenak</string>
     <string name="app_notification_channel_error">Errore-jakinarazpenak</string>
+    <string name="app_notification_waiting_content">Sakatu aplikazioa irekitzeko</string>
     <string name="app_notification_streaming_title">Igortzen…</string>
     <string name="app_notification_streaming_content">Sakatu Gelditu transmisioa amaitzeko</string>
     <string name="app_notification_stop">Gelditu</string>

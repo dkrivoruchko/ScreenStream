@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Notifiche di streaming</string>
     <string name="app_notification_channel_error">Notifiche di errore</string>
+    <string name="app_notification_waiting_content">Tocca per aprire l\'app</string>
     <string name="app_notification_streaming_title">Trasmissione…</string>
     <string name="app_notification_streaming_content">Tocca Interrompi per terminare lo streaming</string>
     <string name="app_notification_stop">Ferma</string>

@@ -40,6 +40,7 @@
 
     <string name="app_notification_channel_streaming">Pemberitahuan streaming</string>
     <string name="app_notification_channel_error">Pemberitahuan kesalahan</string>
+    <string name="app_notification_waiting_content">Ketuk untuk membuka aplikasi</string>
     <string name="app_notification_streaming_title">Streaming…</string>
     <string name="app_notification_streaming_content">Ketuk Berhenti untuk mengakhiri streaming</string>
     <string name="app_notification_stop">Berhenti</string>

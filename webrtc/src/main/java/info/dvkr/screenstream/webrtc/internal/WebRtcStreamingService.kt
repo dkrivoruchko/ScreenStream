@@ -48,6 +48,7 @@ import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.android.asCoroutineDispatcher
@@ -58,6 +59,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
@@ -106,7 +108,7 @@ internal class WebRtcStreamingService(
             tag = "WEBRTC",
             projectionManager = projectionManager,
             callbackHandler = handler,
-            startForeground = { fgsType -> service.startForeground(fgsType) },
+            startForeground = service::startCaptureForeground,
             onProjectionStopped = { generation ->
                 XLog.i(getLog("ProjectionCoordinator.onStop", "g=$generation, streaming=${isStreaming()}"))
                 sendEvent(WebRtcEvent.Intentable.StopStream("ProjectionCoordinator.onStop[generation=$generation]"))
@@ -158,10 +160,17 @@ internal class WebRtcStreamingService(
         return foregroundStartError
     }
 
-    private fun clearPreparedProjectionStartIfNeeded(foregroundStartProcessed: Boolean, foregroundStartError: Throwable?) {
+    private suspend fun clearPreparedProjectionStartIfNeeded(startAttemptId: String, foregroundStartProcessed: Boolean, foregroundStartError: Throwable?) {
         if (!foregroundStartProcessed || foregroundStartError != null) return
-        projectionCoordinator.stop()
-        service.stopForeground()
+        val generation = projectionCoordinator.getLatestGeneration()
+        withContext(Dispatchers.Main.immediate) {
+            val preflight = foregroundPreflightStartAttemptId
+            if ((preflight != null && preflight != startAttemptId) ||
+                projectionCoordinator.getLatestGeneration() != generation || projectionCoordinator.getActiveGeneration() != null
+            ) return@withContext
+            projectionCoordinator.stop()
+            service.returnToWaiting()
+        }
     }
 
     private val sessionAnalyticsTracker by lazy(LazyThreadSafetyMode.NONE) {
@@ -533,7 +542,7 @@ internal class WebRtcStreamingService(
         if (timeout > 0) XLog.d(getLog("sendEvent", "New event [Timeout: $timeout] => $event"))
         else XLog.d(getLog("sendEvent", "New event => $event"))
 
-        if (event is WebRtcEvent.Intentable.StopStream) {
+        if (event is WebRtcEvent.Intentable.StopStream && event.expectedGeneration == null) {
             handler.removeMessages(WebRtcEvent.Priority.STOP_IGNORE)
         }
         if (event is WebRtcEvent.Intentable.RecoverError) {
@@ -583,6 +592,9 @@ internal class WebRtcStreamingService(
 
     // On WebRTC-HT only
     private suspend fun processEvent(event: WebRtcEvent) {
+        if (event is WebRtcEvent.Intentable.StopStream && event.expectedGeneration != null &&
+            event.expectedGeneration != projectionCoordinator.getActiveGeneration()
+        ) return
         when (event) {
             is InternalEvent.InitState -> {
                 if (destroyPending) {
@@ -960,13 +972,13 @@ internal class WebRtcStreamingService(
                 val currentStartAttemptId = pendingStartAttemptId
                 if (currentStartAttemptId != event.startAttemptId) {
                     XLog.i(getLog("StartProjection", "MP_UI stale id=${event.startAttemptId} current=${currentStartAttemptId ?: "none"}"))
-                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
+                    clearPreparedProjectionStartIfNeeded(event.startAttemptId, event.foregroundStartProcessed, event.foregroundStartError)
                     if (foregroundPreflightStartAttemptId == event.startAttemptId) foregroundPreflightStartAttemptId = null
                     return
                 }
                 waitingForPermission = false
                 if (destroyPending) {
-                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
+                    clearPreparedProjectionStartIfNeeded(event.startAttemptId, event.foregroundStartProcessed, event.foregroundStartError)
                     clearPendingStart()
                     sessionAnalyticsTracker.onStartAborted()
                     XLog.i(getLog("StartProjection", "DestroyPending. abort"), IllegalStateException("StartProjection: DestroyPending"))
@@ -974,7 +986,7 @@ internal class WebRtcStreamingService(
                 }
 
                 if (isStreaming()) {
-                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
+                    clearPreparedProjectionStartIfNeeded(event.startAttemptId, event.foregroundStartProcessed, event.foregroundStartError)
                     clearPendingStart()
                     sessionAnalyticsTracker.onStartAborted()
                     XLog.d(getLog("StartProjection", "Already streaming. stale callback"))
@@ -986,7 +998,7 @@ internal class WebRtcStreamingService(
                 val hasAudioPermission =
                     ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
                 if (!hasAudioPermission && (userRequestedMic || userRequestedDeviceAudio)) {
-                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
+                    clearPreparedProjectionStartIfNeeded(event.startAttemptId, event.foregroundStartProcessed, event.foregroundStartError)
                     clearPendingStart()
                     sessionAnalyticsTracker.onStartFailed(StartFailGroup.BLOCKED)
                     val error = WebRtcError.AudioPermissionRequired()
@@ -1002,7 +1014,7 @@ internal class WebRtcStreamingService(
                     return
                 }
                 val prj = projection ?: run {
-                    clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
+                    clearPreparedProjectionStartIfNeeded(event.startAttemptId, event.foregroundStartProcessed, event.foregroundStartError)
                     clearPendingStart()
                     throw IllegalStateException("StartProjection: projection == null")
                 }
@@ -1067,7 +1079,9 @@ internal class WebRtcStreamingService(
                         startProjection()
                     }
                 } else {
-                    val foregroundError = projectionCoordinator.startForegroundForProjection(wantsAudioForegroundService)
+                    val foregroundError = withContext(Dispatchers.Main.immediate) {
+                        projectionCoordinator.startForegroundForProjection(wantsAudioForegroundService)
+                    }
                     if (foregroundError != null) {
                         startPhase = "foreground promotion"
                         projectionCoordinator.asForegroundStartResult(foregroundError)
@@ -1078,6 +1092,9 @@ internal class WebRtcStreamingService(
                 }
                 when (startResult) {
                     is ProjectionCoordinator.StartResult.Started -> {
+                        withContext(Dispatchers.Main.immediate) {
+                            if (projectionCoordinator.getActiveGeneration() == startResult.generation) service.onCaptureStarted(startResult.generation)
+                        }
                         requireNotNull(signaling).sendStreamStart()
                         clients.forEach { (_, session) ->
                             session.client.start(prj.localMediaSteam!!)
@@ -1671,9 +1688,11 @@ internal class WebRtcStreamingService(
 
     private fun isStreaming(): Boolean = projection?.isRunning ?: false
 
-    // Inline Only
-    @Suppress("NOTHING_TO_INLINE")
-    private inline fun stopStream(stopReason: String? = null) {
+    private suspend fun stopStream(stopReason: String? = null) {
+        val stoppedGeneration = projectionCoordinator.getLatestGeneration()
+        withContext(Dispatchers.Main.immediate) {
+            if (projectionCoordinator.getLatestGeneration() == stoppedGeneration) service.captureStopping()
+        }
         val wasStreaming = isStreaming()
         val activeConsumersAtStop = currentActiveConsumersCount()
         val logMessage = buildString {
@@ -1706,7 +1725,9 @@ internal class WebRtcStreamingService(
         wakeLock?.apply { if (isHeld) release() }
         wakeLock = null
 
-        service.stopForeground()
+        withContext(Dispatchers.Main.immediate) {
+            if (projectionCoordinator.getLatestGeneration() == stoppedGeneration) service.returnToWaiting()
+        }
     }
 
     // Inline Only
