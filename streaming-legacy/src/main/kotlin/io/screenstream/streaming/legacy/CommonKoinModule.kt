@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.common
+package io.screenstream.streaming.legacy
 
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Configuration

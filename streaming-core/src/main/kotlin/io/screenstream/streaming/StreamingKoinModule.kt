@@ -6,5 +6,9 @@ import org.koin.core.annotation.Module
 
 @Module
 @Configuration
-@ComponentScan
+@ComponentScan(
+    "io.screenstream.streaming.capture",
+    "io.screenstream.streaming.manager",
+    "io.screenstream.streaming.settings",
+)
 public class StreamingKoinModule

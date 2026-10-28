@@ -1,4 +1,4 @@
-package io.screenstream.streaming.capture
+package io.screenstream.streaming.compose
 
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -21,7 +21,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.R
-import io.screenstream.streaming.settings.StreamingSettings
+import io.screenstream.streaming.capture.ScreenCaptureAccessImpl
+import io.screenstream.streaming.settings.StreamingSettingsStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ensureActive
@@ -58,7 +59,7 @@ private fun ConsentRequestLauncher(access: ScreenCaptureAccessImpl, token: Any, 
     val contract = remember { ActivityResultContracts.StartActivityForResult() }
     val launcher = rememberLauncherForActivityResult(contract) { result -> access.deliver(requestKey, result) }
 
-    val settings: StreamingSettings = koinInject()
+    val settings: StreamingSettingsStore = koinInject()
     val persistenceScope = rememberCoroutineScope()
     var educationGate: Boolean? by remember(requestKey) { mutableStateOf(null) }
     val educationGateOpen = submitted || educationGate == true

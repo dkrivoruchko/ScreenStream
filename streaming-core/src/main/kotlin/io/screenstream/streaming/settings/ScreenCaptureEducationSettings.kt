@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.common.settings
+package io.screenstream.streaming.settings
 
 /** The screen-capture education preference shared by streaming modes. */
 public interface ScreenCaptureEducationSettings {

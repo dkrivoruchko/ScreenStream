@@ -63,7 +63,7 @@ import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.ui.UiController
-import io.screenstream.streaming.permission.LocalRuntimePermissions
+import io.screenstream.streaming.compose.LocalRuntimePermissions
 import io.screenstream.streaming.permission.PermissionState
 import io.screenstream.streaming.permission.RuntimePermission
 import kotlinx.coroutines.CancellationException

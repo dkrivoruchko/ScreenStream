@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.common.ui.mediaprojection
+package io.screenstream.streaming.legacy
 
 import android.app.Activity
 import android.content.Intent
@@ -12,7 +12,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.settings.ScreenCaptureEducationSettings
+import io.screenstream.streaming.settings.ScreenCaptureEducationSettings
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 import java.io.IOException
@@ -166,7 +166,12 @@ internal class ScreenCapturePermissionViewModel(
 
         val waitMs = grant.waitMs()
         if (waitMs >= GRANT_DELIVERY_TIMEOUT.inWholeMilliseconds) {
-            XLog.i(getLog("ScreenCapturePermission", "MP_UI result_timeout id=${grant.attemptId} waitMs=$waitMs permissionUiMs=${grant.permissionUiDurationMs} source=deliver"))
+            XLog.i(
+                getLog(
+                    "ScreenCapturePermission",
+                    "MP_UI result_timeout id=${grant.attemptId} waitMs=$waitMs permissionUiMs=${grant.permissionUiDurationMs} source=deliver"
+                )
+            )
             state = PermissionState.RetryRequired
             onPermissionDenied?.invoke(grant.attemptId)
             return false
@@ -185,7 +190,12 @@ internal class ScreenCapturePermissionViewModel(
         if (waitMs < GRANT_DELIVERY_TIMEOUT.inWholeMilliseconds) return
 
         state = PermissionState.RetryRequired
-        XLog.i(getLog("ScreenCapturePermission", "MP_UI result_timeout id=$startAttemptId waitMs=$waitMs permissionUiMs=${grant.permissionUiDurationMs} source=timer"))
+        XLog.i(
+            getLog(
+                "ScreenCapturePermission",
+                "MP_UI result_timeout id=$startAttemptId waitMs=$waitMs permissionUiMs=${grant.permissionUiDurationMs} source=timer"
+            )
+        )
         onPermissionDenied(startAttemptId)
     }
 

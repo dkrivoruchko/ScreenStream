@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
 import info.dvkr.screenstream.common.settings.JsonPreferencesStore
-import info.dvkr.screenstream.common.settings.ScreenCaptureEducationSettings
 import io.screenstream.streaming.module.StreamingModule
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -24,7 +23,7 @@ import org.koin.core.annotation.Singleton
  * [initialize] awaits the first stored value; this store does not migrate former app preferences.
  */
 @Singleton(binds = [ScreenCaptureEducationSettings::class], createdAtStart = true)
-internal class StreamingSettings(
+internal class StreamingSettingsStore(
     context: Context,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ScreenCaptureEducationSettings {
@@ -53,7 +52,7 @@ internal class StreamingSettings(
 
     /** Latest published value after [initialize] completes, potentially lagging a completed edit. */
     internal val data: StateFlow<Data>
-        get() = checkNotNull(readyData) { "StreamingSettings.initialize() must complete before reading data" }
+        get() = checkNotNull(readyData) { "StreamingSettingsStore.initialize() must complete before reading data" }
 
     /** Atomically transforms the latest stored value; an admitted edit survives caller cancellation. */
     internal suspend fun updateData(transform: Data.() -> Data): Unit = withContext(NonCancellable + dispatcher) {

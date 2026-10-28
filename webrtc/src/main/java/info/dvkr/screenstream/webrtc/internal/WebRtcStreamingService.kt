@@ -35,8 +35,6 @@ import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
-import info.dvkr.screenstream.common.module.ProjectionCoordinator
-import io.screenstream.streaming.legacy.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.WebRtcKoinScope
 import info.dvkr.screenstream.webrtc.WebRtcModuleService
@@ -45,6 +43,14 @@ import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
 import info.dvkr.screenstream.webrtc.ui.isExpectedEnvironmentIssue
 import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
+import io.screenstream.streaming.legacy.ProjectionCoordinator
+import io.screenstream.streaming.legacy.isStreamingModuleStartBlocked
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -68,12 +74,6 @@ import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
 import org.webrtc.IceCandidate
 import org.webrtc.PeerConnection.IceServer
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
-import kotlin.math.min
-import kotlin.math.pow
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.uuid.Uuid
 
 @Scoped
 @Scope(WebRtcKoinScope::class)

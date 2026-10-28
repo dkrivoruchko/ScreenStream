@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.common.ui.mediaprojection
+package io.screenstream.streaming.legacy
 
 import android.content.Intent
 import android.media.projection.MediaProjectionManager

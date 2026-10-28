@@ -25,7 +25,7 @@ import androidx.lifecycle.compose.currentStateAsState
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.settings.AppSettings
-import io.screenstream.streaming.permission.LocalRuntimePermissions
+import io.screenstream.streaming.compose.LocalRuntimePermissions
 import io.screenstream.streaming.permission.PermissionState
 import io.screenstream.streaming.permission.RuntimePermission
 import io.screenstream.streaming.permission.RuntimePermissions

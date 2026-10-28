@@ -1,4 +1,4 @@
-package info.dvkr.screenstream.common.module
+package io.screenstream.streaming.legacy
 
 import android.app.Activity
 import android.app.ActivityManager
@@ -106,7 +106,12 @@ public class ProjectionCoordinator(
             ).also {
                 generationCounter = it.generation
                 pendingStart = it
-                XLog.d(getLog("startForegroundForProjection[$tag]", "Starting generation=${it.generation}, requiresAudioFgs=${it.requiresAudioForegroundService}"))
+                XLog.d(
+                    getLog(
+                        "startForegroundForProjection[$tag]",
+                        "Starting generation=${it.generation}, requiresAudioFgs=${it.requiresAudioForegroundService}"
+                    )
+                )
             }
         }
 
@@ -152,6 +157,7 @@ public class ProjectionCoordinator(
             XLog.i(getLog("asForegroundStartResult[$tag]", "Fatal foreground start on Android 14+. cause=${cause.javaClass.simpleName}: ${cause.message}"))
             StartResult.Fatal(cause)
         }
+
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && cause is ServiceStartNotAllowedException -> StartResult.Blocked(cause)
         else -> StartResult.Fatal(cause)
     }
@@ -172,7 +178,12 @@ public class ProjectionCoordinator(
         val foregroundStartDelay =
             if (pending.foregroundStartedAtMs > 0L) SystemClock.elapsedRealtime() - pending.foregroundStartedAtMs else -1L
 
-        XLog.d(getLog("startProjection[$tag]", "Starting generation=$generation, requiresAudioFgs=$requiresAudioForegroundService, afterForeground=${foregroundStartDelay}ms"))
+        XLog.d(
+            getLog(
+                "startProjection[$tag]",
+                "Starting generation=$generation, requiresAudioFgs=$requiresAudioForegroundService, afterForeground=${foregroundStartDelay}ms"
+            )
+        )
 
         var mediaProjection: MediaProjection? = null
         var callback: MediaProjection.Callback? = null
@@ -205,7 +216,12 @@ public class ProjectionCoordinator(
                     return StartResult.Fatal(cause, CachedIntentAction.INVALIDATE, FailureReason.PROJECTION_ACQUIRE_REJECTED)
                 }
                 projectionRetried = true
-                XLog.w(getLog("startProjection[$tag]", "Projection acquisition failed on first attempt. Retrying in ${PROJECTION_ACQUIRE_RETRY_DELAY_MS}ms. generation=$generation afterForeground=${foregroundStartDelay}ms cause=${cause.javaClass.simpleName}: ${cause.message}"))
+                XLog.w(
+                    getLog(
+                        "startProjection[$tag]",
+                        "Projection acquisition failed on first attempt. Retrying in ${PROJECTION_ACQUIRE_RETRY_DELAY_MS}ms. generation=$generation afterForeground=${foregroundStartDelay}ms cause=${cause.javaClass.simpleName}: ${cause.message}"
+                    )
+                )
                 SystemClock.sleep(PROJECTION_ACQUIRE_RETRY_DELAY_MS)
                 try {
                     XLog.i(
@@ -245,7 +261,12 @@ public class ProjectionCoordinator(
                 )
             )
             if (projectionRetried) {
-                XLog.i(getLog("startProjection[$tag]", "Projection acquisition recovered after retry. generation=$generation, elapsed=${SystemClock.elapsedRealtime() - projectionStartTime}ms"))
+                XLog.i(
+                    getLog(
+                        "startProjection[$tag]",
+                        "Projection acquisition recovered after retry. generation=$generation, elapsed=${SystemClock.elapsedRealtime() - projectionStartTime}ms"
+                    )
+                )
             }
 
             callback = object : MediaProjection.Callback() {

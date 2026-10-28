@@ -22,7 +22,7 @@ import info.dvkr.screenstream.ui.AppUpdateHost
 import info.dvkr.screenstream.ui.RuntimePermissionHost
 import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
 import io.screenstream.streaming.StreamingModuleManager
-import io.screenstream.streaming.capture.ScreenCaptureConsentHost
+import io.screenstream.streaming.compose.ScreenCaptureConsentHost
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map

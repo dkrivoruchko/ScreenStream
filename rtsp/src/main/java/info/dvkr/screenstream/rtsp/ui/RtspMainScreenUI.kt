@@ -42,8 +42,6 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.get
-import info.dvkr.screenstream.common.ui.mediaprojection.ScreenCapturePermissionFlow
-import info.dvkr.screenstream.common.ui.mediaprojection.rememberScreenCaptureStartRequester
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.internal.RtspStreamingService
@@ -55,10 +53,12 @@ import info.dvkr.screenstream.rtsp.ui.main.cards.ErrorCard
 import info.dvkr.screenstream.rtsp.ui.main.cards.ModeCard
 import info.dvkr.screenstream.rtsp.ui.main.cards.ServerSettingsCard
 import info.dvkr.screenstream.rtsp.ui.main.cards.VideoCard
+import io.screenstream.streaming.compose.LocalRuntimePermissions
 import io.screenstream.streaming.legacy.LegacyPermissionActionEffect
+import io.screenstream.streaming.legacy.ScreenCapturePermissionFlow
 import io.screenstream.streaming.legacy.rememberLegacyPermissionActions
+import io.screenstream.streaming.legacy.rememberScreenCaptureStartRequester
 import io.screenstream.streaming.module.StreamingModuleNotifications
-import io.screenstream.streaming.permission.LocalRuntimePermissions
 import io.screenstream.streaming.permission.PermissionState
 import io.screenstream.streaming.permission.RuntimePermission
 import kotlinx.coroutines.currentCoroutineContext

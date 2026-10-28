@@ -34,8 +34,6 @@ import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.isLocalNetworkPermissionGranted
-import info.dvkr.screenstream.common.module.ProjectionCoordinator
-import io.screenstream.streaming.legacy.isStreamingModuleStartBlocked
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.RtspKoinScope
 import info.dvkr.screenstream.rtsp.RtspModuleService
@@ -56,6 +54,11 @@ import info.dvkr.screenstream.rtsp.ui.RtspClientStatus
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import info.dvkr.screenstream.rtsp.ui.RtspState
 import info.dvkr.screenstream.rtsp.ui.isStartupPolicyError
+import io.screenstream.streaming.legacy.ProjectionCoordinator
+import io.screenstream.streaming.legacy.isStreamingModuleStartBlocked
+import java.net.URISyntaxException
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -80,9 +83,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
-import java.net.URISyntaxException
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.uuid.Uuid
 
 @Scoped
 @Scope(RtspKoinScope::class)

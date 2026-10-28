@@ -22,7 +22,7 @@ import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
-import io.screenstream.streaming.permission.LocalRuntimePermissions
+import io.screenstream.streaming.compose.LocalRuntimePermissions
 import io.screenstream.streaming.permission.PermissionState
 import io.screenstream.streaming.permission.RuntimePermission
 

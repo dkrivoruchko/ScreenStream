@@ -10,8 +10,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
-import androidx.compose.runtime.ProvidableCompositionLocal
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.net.toUri
 import kotlinx.coroutines.flow.StateFlow
 
@@ -91,9 +89,4 @@ public interface RuntimePermissions {
      * originating screen's exit.
      */
     public fun tryRequest(permission: RuntimePermission): Boolean
-}
-
-/** Provided by the app's Activity root; modules receive the same permission host capability. */
-public val LocalRuntimePermissions: ProvidableCompositionLocal<RuntimePermissions> = staticCompositionLocalOf {
-    error("RuntimePermissions is not provided")
 }

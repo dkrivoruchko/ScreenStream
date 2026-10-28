@@ -17,7 +17,7 @@ import info.dvkr.screenstream.common.getLog
 import io.screenstream.streaming.StreamingModuleManager
 import io.screenstream.streaming.module.StreamingModule
 import io.screenstream.streaming.module.StreamingModuleNotifications
-import io.screenstream.streaming.settings.StreamingSettings
+import io.screenstream.streaming.settings.StreamingSettingsStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -57,7 +57,7 @@ import kotlin.uuid.Uuid
 internal class StreamingModuleManagerImpl internal constructor(
     modules: List<StreamingModule>,
     private val androidContext: Context,
-    private val streamingSettings: StreamingSettings,
+    private val streamingSettings: StreamingSettingsStore,
     notifications: StreamingModuleNotifications,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Main,
 ) : StreamingModuleManager {
@@ -405,7 +405,7 @@ internal class StreamingModuleManagerImpl internal constructor(
         instance.installController(createController)
     }
 
-    private fun persistSettings(transform: StreamingSettings.Data.() -> StreamingSettings.Data) {
+    private fun persistSettings(transform: StreamingSettingsStore.Data.() -> StreamingSettingsStore.Data) {
         val previousWrite = lastSettingsWrite
         lastSettingsWrite = scope.launch {
             previousWrite?.join()

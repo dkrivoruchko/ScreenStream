@@ -35,8 +35,6 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.ui.DoubleClickProtection
 import info.dvkr.screenstream.common.ui.get
-import info.dvkr.screenstream.common.ui.mediaprojection.ScreenCapturePermissionFlow
-import info.dvkr.screenstream.common.ui.mediaprojection.rememberScreenCaptureStartRequester
 import info.dvkr.screenstream.webrtc.R
 import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.internal.WebRtcStreamingService
@@ -46,10 +44,12 @@ import info.dvkr.screenstream.webrtc.ui.main.cards.ClientsCard
 import info.dvkr.screenstream.webrtc.ui.main.cards.ErrorCard
 import info.dvkr.screenstream.webrtc.ui.main.cards.OtherSettingsCard
 import info.dvkr.screenstream.webrtc.ui.main.cards.StreamCard
+import io.screenstream.streaming.compose.LocalRuntimePermissions
 import io.screenstream.streaming.legacy.LegacyPermissionActionEffect
+import io.screenstream.streaming.legacy.ScreenCapturePermissionFlow
 import io.screenstream.streaming.legacy.rememberLegacyPermissionActions
+import io.screenstream.streaming.legacy.rememberScreenCaptureStartRequester
 import io.screenstream.streaming.module.StreamingModuleNotifications
-import io.screenstream.streaming.permission.LocalRuntimePermissions
 import io.screenstream.streaming.permission.RuntimePermission
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.StateFlow

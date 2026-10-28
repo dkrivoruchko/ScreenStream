@@ -12,7 +12,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
-import io.screenstream.streaming.permission.LocalRuntimePermissions
+import io.screenstream.streaming.compose.LocalRuntimePermissions
 import io.screenstream.streaming.permission.PermissionState
 import io.screenstream.streaming.permission.RuntimePermission
 import io.screenstream.streaming.permission.RuntimePermissions
