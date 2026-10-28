@@ -1,17 +1,12 @@
 package info.dvkr.screenstream.webrtc.internal
 
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.os.Parcelable
 import android.util.Base64
 import info.dvkr.screenstream.common.randomString
-import info.dvkr.screenstream.webrtc.WebRtcModuleService
-import kotlinx.parcelize.Parcelize
 import org.webrtc.AudioTrack
 import org.webrtc.SessionDescription
 import org.webrtc.VideoTrack
 import java.security.MessageDigest
+import kotlin.uuid.Uuid
 
 internal open class WebRtcEvent(val priority: Int) {
 
@@ -23,31 +18,11 @@ internal open class WebRtcEvent(val priority: Int) {
         internal const val DESTROY_IGNORE: Int = 30
     }
 
-    internal sealed class Intentable(priority: Int) : WebRtcEvent(priority), Parcelable {
-        internal companion object {
-            private const val EXTRA_PARCELABLE = "EXTRA_PARCELABLE"
-
-            @Suppress("DEPRECATION")
-            internal fun fromIntent(intent: Intent): Intentable? =
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) intent.getParcelableExtra(EXTRA_PARCELABLE)
-                else intent.getParcelableExtra(EXTRA_PARCELABLE, Intentable::class.java)
-        }
-
-        @Parcelize internal data class StartService(val token: String) : Intentable(Priority.NONE)
-        @Parcelize internal data class StartProjection(val startAttemptId: String, val intent: Intent) : Intentable(Priority.START_PROJECTION)
-        @Parcelize internal data class StopStream(val reason: String, val expectedGeneration: Long? = null) : Intentable(Priority.RECOVER_IGNORE)
-        @Parcelize internal data object RecoverError : Intentable(Priority.RECOVER_IGNORE)
-
-        internal fun toIntent(context: Context): Intent = WebRtcModuleService.getIntent(context).putExtra(EXTRA_PARCELABLE, this)
-    }
-
+    internal data class StopStream(val reason: String, val expectedGeneration: Long? = null) : WebRtcEvent(Priority.RECOVER_IGNORE)
+    internal data class RecoverError(val errorToken: Uuid) : WebRtcEvent(Priority.RECOVER_IGNORE)
     internal data object GetNewStreamId : WebRtcEvent(Priority.DESTROY_IGNORE)
     internal data object CreateNewPassword : WebRtcEvent(Priority.DESTROY_IGNORE)
-    internal data class StartProjection(
-        val startAttemptId: String, val intent: Intent, val foregroundStartProcessed: Boolean = false, val foregroundStartError: Throwable? = null
-    ) : WebRtcEvent(Priority.START_PROJECTION)
     internal data class RemoveClient(val clientId: ClientId, val notifyServer: Boolean, val reason: String) : WebRtcEvent(Priority.RECOVER_IGNORE)
-    internal data class CastPermissionsDenied(val startAttemptId: String) : WebRtcEvent(Priority.RECOVER_IGNORE)
     internal data object UpdateState : WebRtcEvent(Priority.RECOVER_IGNORE)
 }
 

@@ -1,4 +1,4 @@
-package io.screenstream.streaming.legacy
+package info.dvkr.screenstream.rtsp.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,22 +17,22 @@ import io.screenstream.streaming.permission.PermissionState
 import io.screenstream.streaming.permission.RuntimePermission
 import io.screenstream.streaming.permission.RuntimePermissions
 
-/** Retains legacy action data across Activity recreation, without retaining its permission host. */
-public class LegacyPermissionActions<A : Any> internal constructor() {
+/** Retains RTSP action data across Activity recreation, without retaining its permission host. */
+internal class RtspPermissionActions<A : Any> internal constructor() {
     internal var request by mutableStateOf<Request<A>?>(null)
         private set
 
-    public val pending: A? get() = request?.action
+    internal val pending: A? get() = request?.action
 
-    public fun isCurrent(action: A): Boolean = request?.action === action
+    internal fun isCurrent(action: A): Boolean = request?.action === action
 
-    public fun request(permission: RuntimePermission, action: A, permissions: RuntimePermissions): Boolean {
+    internal fun request(permission: RuntimePermission, action: A, permissions: RuntimePermissions): Boolean {
         if (!permissions.tryRequest(permission)) return false
         request = Request(permission, action)
         return true
     }
 
-    public fun cancel() {
+    internal fun cancel() {
         request = null
     }
 
@@ -40,16 +40,16 @@ public class LegacyPermissionActions<A : Any> internal constructor() {
 }
 
 @Composable
-public fun <A : Any> rememberLegacyPermissionActions(ownerKey: Any? = Unit): LegacyPermissionActions<A> {
-    val actions = retain(ownerKey) { LegacyPermissionActions<A>() }
+internal fun <A : Any> rememberRtspPermissionActions(ownerKey: Any? = Unit): RtspPermissionActions<A> {
+    val actions = retain(ownerKey) { RtspPermissionActions<A>() }
     RetainedEffect(actions) { onRetire { actions.cancel() } }
     return actions
 }
 
-/** Observes the current Activity's permission host; business checks stay with the legacy module. */
+/** Observes the current Activity's permission host; business checks stay with the RTSP controller. */
 @Composable
-public fun <A : Any> LegacyPermissionActionEffect(
-    actions: LegacyPermissionActions<A>,
+internal fun <A : Any> RtspPermissionActionEffect(
+    actions: RtspPermissionActions<A>,
     vararg relevanceKeys: Any?,
     isRelevant: (A) -> Boolean,
     onGranted: suspend (A) -> Unit,

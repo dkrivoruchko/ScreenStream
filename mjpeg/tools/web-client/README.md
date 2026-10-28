@@ -3,7 +3,7 @@
 Use Node.js **24.21.0** and npm **12.2.0**, pinned in `.nvmrc` and `package.json`. From the repository root:
 
 ```sh
-cd mjpeg2/tools/web-client
+cd mjpeg/tools/web-client
 npm ci
 npm start
 ```
@@ -20,7 +20,7 @@ npm run check
 ```
 
 1. `src/` contains the production HTML, CSS and JavaScript. Edit these files, not the generated
-   `mjpeg2/src/main/assets/mjpeg/index.html`. Commit authored sources and regenerated HTML together.
+   `mjpeg/src/main/assets/mjpeg/index.html`. Commit authored sources and regenerated HTML together.
 2. `build.cjs` supplies the shared HTML builder. Babel targets Chrome 49, Firefox 45, Safari 9.1 and iOS 9.3;
    Acorn verifies ES5 syntax. Keep exactly one `/* INLINE_STYLE */`, `/* INLINE_SCRIPT */`,
    `/* INLINE_LOGO */` template marker. The viewer receives appearance through its authorized state connection.

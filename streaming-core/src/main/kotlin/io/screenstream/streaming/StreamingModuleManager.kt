@@ -1,7 +1,5 @@
 package io.screenstream.streaming
 
-import android.app.Service
-import android.content.Intent
 import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
@@ -9,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
 import io.screenstream.streaming.module.StreamingModule
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.uuid.Uuid
 
 /**
  * Process-level selection and launch contract for streaming modules. One [state] value contains
@@ -29,14 +28,6 @@ public interface StreamingModuleManager {
      */
     public val modules: List<StreamingModule>
 
-    /**
-     * Identifies the streaming module currently presented in the app.
-     * A module with an error or one that has stopped responding remains identified while it is presented.
-     * Null when no module is open, or while a module is switching or closing.
-     * Having an identifier does not mean a stream is active.
-     */
-    public val currentInstanceId: StateFlow<StreamingModule.InstanceId?>
-
     /** Process state, independently observable from any Activity. */
     public val state: StateFlow<State>
 
@@ -47,22 +38,6 @@ public interface StreamingModuleManager {
         window: WindowSizeClass,
         modifier: Modifier = Modifier,
         fallback: @Composable () -> Unit
-    )
-
-    /**
-     * The module Service calls this on a startup delivery, before creating ordinary module work.
-     * Validate the reserved identity and component before invoking [createController]. A Service
-     * with [existingController] cannot adopt a second controller. The factory must store its result
-     * in that Service before returning; the manager takes ownership before checking identity or
-     * calling startModule. Rejected deliveries do not invoke the factory. Once stored, the original
-     * controller stays owned by the Service even if startup fails.
-     */
-    @MainThread
-    public fun onServiceStart(
-        service: Service,
-        existingController: StreamingModule.Controller?,
-        intent: Intent?,
-        createController: (StreamingModule.Controller.Runtime) -> StreamingModule.Controller,
     )
 
     /**
@@ -99,14 +74,17 @@ public interface StreamingModuleManager {
     /**
      * Synchronously route Stop for the exact [attempt] of an admitted current instance. The
      * module validates whether that capture attempt is still live. Return is not a Stop result.
+     * [fromNotification] identifies the notification's Stop action; other callers retain false.
      */
     @MainThread
-    public fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId) // TODO Add the string param for place where it was called from.
+    public fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId, fromNotification: Boolean = false)
 
-    public companion object {
-        /** Startup-only action; module commands use their own implementation's protocol. */
-        public const val ACTION_START_MODULE: String = "io.screenstream.streaming.START_MODULE"
-    }
+    /**
+     * Queue in-place operation recovery for this exact instance. Admission is checked again when
+     * dispatched; the module validates [errorToken] against its current error episode. Return does
+     * not confirm acceptance or success and never requests a module restart.
+     */
+    public fun requestRecovery(instanceId: StreamingModule.InstanceId, errorToken: Uuid)
 
     /** One complete, observable process state. */
     public sealed interface State {

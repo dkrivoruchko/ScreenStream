@@ -1,6 +1,7 @@
 package io.screenstream.streaming.module
 
 import android.app.Service
+import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
@@ -98,33 +99,47 @@ public interface StreamingModule {
          * Begin ordinary control work after installation without blocking the caller. Recheck
          * [Runtime.isCurrent] before admitting resources because shutdown may win this race.
          */
+        @MainThread
         public fun startModule()
 
         /**
          * Request capture Start for this controller's instance without starting a new module launch.
          * A stale or unready request may be ignored. Return confirms neither admission nor processing.
          */
+        @AnyThread
         public fun requestStreamStart()
 
         /**
          * Request capture Stop for the exact [attempt] owned by this controller's instance.
          * It must not stop a newer attempt or shut down the module. Return confirms neither
-         * processing nor release of capture resources.
+         * processing nor release of capture resources. [fromNotification] retains the action's origin.
          */
-        public fun requestStreamStop(attempt: CaptureAttemptId)
+        @AnyThread
+        public fun requestStreamStop(attempt: CaptureAttemptId, fromNotification: Boolean = false)
+
+        /**
+         * Request in-place recovery of this instance's current operation error. A module that offers
+         * recovery validates [errorToken] against its current error episode before handling it. The
+         * default has no action; recovery never implies a manager restart or a new Service.
+         */
+        @AnyThread
+        public fun requestRecovery(errorToken: Uuid): Unit = Unit
 
         /**
          * Idempotently close new work and start cleanup independently of the control loop. This
          * must also work before [startModule] and must not wait for the loop to exit.
          */
+        @AnyThread
         public fun requestModuleShutdown()
 
         /**
-         * Wait until all work and cleanup owned by this controller has finished after
-         * [requestModuleShutdown]. Return true only when that cleanup succeeded. The controller
+         * Wait until controller orchestration and its declared cleanup operations have settled after
+         * [requestModuleShutdown]. Return true only when those operations succeeded. The controller
          * owns this work independently of callers, so cancelling a waiter cancels only its wait.
          * This includes stopping the original Service after capture cleanup settles and awaiting
-         * its destruction. No instance-owned work may remain or start afterward.
+         * its destruction. New controller work remains closed afterward. Best-effort media owners
+         * may report false for failure or uncertainty; completion is not proof of physical resource
+         * release beyond each owner's contract. Existing owners may provide stronger guarantees.
          */
         public suspend fun awaitCleanup(): Boolean
 
@@ -152,12 +167,15 @@ public interface StreamingModule {
             public val foregroundSlot: StreamingModuleNotifications.ForegroundSlot
 
             /** Whether this instance may still accept work; recheck before taking new resources. */
+            @AnyThread
             public fun isCurrent(): Boolean
 
             /** Tell the manager about completed control work using its SystemClock.uptimeMillis timestamp. */
+            @AnyThread
             public fun reportRunning(status: Status, heartbeatAtUptimeMillis: Long)
 
             /** Tell the manager this instance cannot continue; it closes admission and requests shutdown. */
+            @AnyThread
             public fun reportFailed(@StringRes messageResource: Int? = null)
 
         }

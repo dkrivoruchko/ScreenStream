@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
+import androidx.annotation.MainThread
 import androidx.core.net.toUri
 import kotlinx.coroutines.flow.StateFlow
 
@@ -76,6 +77,7 @@ public interface RuntimePermissions {
      * Last-known request/UI hint, initialized on first observation and updated for this permission's
      * requests. Unrelated OS changes are not monitored; use [isGranted] for the current grant.
      */
+    @MainThread
     public fun state(permission: RuntimePermission): StateFlow<PermissionState>
 
     /** Read the current grant and notification enablement; recheck before performing protected work. */
@@ -88,5 +90,6 @@ public interface RuntimePermissions {
      * Call from the UI thread. Requests are not queued; an admitted explanation survives the
      * originating screen's exit.
      */
+    @MainThread
     public fun tryRequest(permission: RuntimePermission): Boolean
 }

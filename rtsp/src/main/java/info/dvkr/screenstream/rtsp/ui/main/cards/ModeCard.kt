@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.settings.RtspSettings

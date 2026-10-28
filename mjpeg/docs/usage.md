@@ -158,9 +158,9 @@ Copy/Open/Share/QR use the row's supplied snapshot, so an older link can become 
 
 ## Close and reopen
 
-Module shutdown closes new work and starts independent cleanup. The manager bounds its scheduled startup and shutdown waits to three seconds each; switching or restarting can wait separately for old shutdown and new startup. Blocked Android calls or Main scheduling can delay API return, and `exit()` can return while cleanup remains pending or unconfirmed. See [Streaming host](../internal/01-lifecycle/streaming-host.md#reports-clocks-and-deadlines) and [Module lifecycle](../internal/01-lifecycle/module-lifecycle.md#controller-shutdown-and-complete-module-cleanup).
+Module shutdown closes new work and starts independent cleanup. The manager bounds its scheduled startup and shutdown waits to three seconds each; switching or restarting can wait separately for old shutdown and new startup. `exit()` requests a process-owned transition without awaiting cleanup; its return confirms neither release nor removal of the app's tasks. Main scheduling or blocked Android calls can delay transition progress. See [Streaming host](../internal/01-lifecycle/streaming-host.md#reports-clocks-and-deadlines) and [Module lifecycle](../internal/01-lifecycle/module-lifecycle.md#controller-shutdown-and-complete-module-cleanup).
 
-[SingleActivity](../../app/src/main/java/info/dvkr/screenstream/SingleActivity.kt) requests module selection before observing Exit when `savedInstanceState` is null or the manager is `NoModule`. On saved-state recreation during `Exiting`, it skips selection and joins the manager's shared `exit()` wait. Cancelling an Activity's wait does not cancel manager-owned shutdown or cleanup. After the wait returns, the current Activity calls `finishAndRemoveTask()` without forcibly killing the process.
+[SingleActivity](../../app/src/main/java/info/dvkr/screenstream/SingleActivity.kt) requests module selection for a fresh Activity or when the manager is `NoModule`/`Exiting`. If the manager remains Exiting, that Activity calls `finishAndRemoveTask()` and returns. [BaseApp](../../app/src/main/java/info/dvkr/screenstream/BaseApp.kt) independently observes Exiting on queued Main and removes the app's tasks without awaiting cleanup or forcing process termination. Controller cleanup continues independently.
 
 Home/rotation and removing Recents are not capture Stop commands. Process death leaves saved preferences but does not restore capture, consent or cleanup callbacks. A later opening after completed Exit may select a module again.
 
@@ -172,11 +172,11 @@ Public host entry points belong to `streaming-core`; MJPEG's controller, setting
 
 The [MJPEG manifest](../src/main/AndroidManifest.xml) declares network permissions, foreground-service permissions and the non-exported `mediaProjection` Service. The [core manifest](../../streaming-core/src/main/AndroidManifest.xml) declares the exact capture Stop receiver. Preserve these components and their DI dependencies when changing integration.
 
-The app hosts [ScreenCaptureConsentHost](../../streaming-core/src/main/kotlin/io/screenstream/streaming/capture/ScreenCaptureConsentHost.kt) outside stream tabs in [SingleActivity](../../app/src/main/java/info/dvkr/screenstream/SingleActivity.kt). A new dialog needs a resumed Activity. The host presents the education gate and correlates Android results with the original request. It does not own the projection or capture session.
+The app hosts [ScreenCaptureConsentHost](../../streaming-core/src/main/kotlin/io/screenstream/streaming/compose/ScreenCaptureConsentHost.kt) outside stream tabs in [SingleActivity](../../app/src/main/java/info/dvkr/screenstream/SingleActivity.kt). A new dialog needs a resumed Activity. The host presents the education gate and correlates Android results with the original request. It does not own the projection or capture session.
 
-MJPEG acquires consent, promotes its original Service to the `mediaProjection` foreground type, then creates the projection and capture-engine session. Android's [media-projection](https://developer.android.com/media/grow/media-projection) and [foreground-service](https://developer.android.com/develop/background-work/services/fgs/service-types#media-projection) requirements remain applicable. For a new session on API 34+, fresh consent is required. The pre-34 process-only reuse path and exact ownership rules are in [Streaming host](../internal/01-lifecycle/streaming-host.md#consent-and-projection-handoff).
+MJPEG requests consent with its explicit attempt Job and a mandatory synchronous Main foreground callback. Matching consent immediately invokes that callback to promote the original Service to `mediaProjection`, then returns a resource-free Grant. The worker creates and immediately stores the projection before creating the capture-engine session. Android's [media-projection](https://developer.android.com/media/grow/media-projection) and [foreground-service](https://developer.android.com/develop/background-work/services/fgs/service-types#media-projection) requirements remain applicable. For a new session on API 34+, fresh consent is required. The pre-34 process-only reuse path and exact ownership rules are in [Streaming host](../internal/01-lifecycle/streaming-host.md#consent-and-projection-handoff).
 
-Ordinary permissions use the public [RuntimePermissions](../../streaming-core/src/main/kotlin/io/screenstream/streaming/permission/RuntimePermissions.kt) capability supplied through `LocalRuntimePermissions` at the Activity root. One `RuntimePermission` enum owns the Android names, applicability rules and explanation choices. Its `isGranted(Context)` member performs a fresh grant check with applicability handling; for Notifications it also requires Android's app-wide notifications to be enabled. `shouldShowRequestPermissionRationale(Activity)` delegates Android's rationale signal:
+Ordinary permissions use the public [RuntimePermissions](../../streaming-core/src/main/kotlin/io/screenstream/streaming/permission/RuntimePermissions.kt) capability supplied through `LocalRuntimePermissions` at the Activity root. One `RuntimePermission` enum owns the Android names, applicability rules and explanation choices. Its `isGranted(Context)` member performs a fresh grant check with applicability handling; for Notifications it also requires Android's app-wide notifications to be enabled. `shouldShowRationale(Activity)` delegates Android's rationale signal:
 
 | `RuntimePermission` | Android permission | Explanation |
 | --- | --- | --- |
@@ -192,7 +192,7 @@ The repository's [RuntimePermissionHost](../../app/src/main/java/info/dvkr/scree
 
 ## Select and control the module
 
-[StreamingModuleManager](../../streaming-core/src/main/kotlin/io/screenstream/streaming/StreamingModuleManager.kt) owns the fixed catalog, selection and process state. Its catalog is ordered by descending priority. A listed module is metadata, not an active launch.
+[StreamingModuleManager](../../streaming-core/src/main/kotlin/io/screenstream/streaming/StreamingModuleManager.kt) owns selection and process state for its registered modules. The catalog is ordered by descending priority and remains unchanged for that manager's lifetime. A listed module is metadata, not an active launch.
 
 The following example uses existing public APIs. Run selection, restart, exact Stop and Exit on Main as required by their declarations. The caller supplies an already initialized/injected manager; this snippet does not replace app bootstrap or consent hosting.
 
@@ -218,7 +218,7 @@ Commands are requests. Their return does not prove admission, startup, JPEG avai
 | `requestStreamStart(instanceId)` | Requests capture from the original admitted launch; stale/unready requests can do nothing. |
 | `requestStreamStop(attempt)` | Requests Stop for the original exact capture attempt; does not close the module. |
 | `InstanceContent(...)` | Renders only the exact installed/admitted controller; otherwise calls the supplied fallback. UI collection does not own streaming resources. |
-| `exit()` | Closes admission and joins the shared bounded shutdown wait. Caller cancellation ends its wait, not cleanup. |
+| `exit(expectedInstanceId?)` | Closes admission and requests process-owned Exit without awaiting cleanup. An optional exact instance rejects stale Exit requests; repeated requests retain the existing shutdown deadline. |
 
-Use [manager state](#observe-state-and-failures) to understand the result. `currentInstanceId` and `state` are independently collected flows; use one `state` value when identity and phase must agree.
+Use [manager state](#observe-state-and-failures) to understand the result. One canonical `state` value supplies phase, identity and available status together; read the instance ID from Running, Unresponsive or Failed when routing an exact command.
 

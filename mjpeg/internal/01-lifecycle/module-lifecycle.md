@@ -16,9 +16,12 @@ sequenceDiagram
     participant X as Capture Access
     participant S as Original Service
     participant E as Engine
-    A->>X: requestConsent(attempt)
-    X-->>A: Grant or no grant
-    A->>S: Enter capture foreground
+    A->>X: requestConsent(attempt, attemptJob, prepareForeground)
+    X->>A: Synchronous Main prepareForeground after consent
+    A->>S: enterCaptureForeground(exact attempt)
+    S-->>A: Foreground API completed
+    A-->>X: true
+    X-->>A: ConsentResult.Granted(grant)
     A->>X: createProjection(grant)
     X-->>A: Projection
     A->>E: Factory creates session(projection)
@@ -28,7 +31,7 @@ sequenceDiagram
     E-->>A: Startup completed
 ```
 
-The sequence shows successful startup. No grant sets the first Stop cause to User and proceeds to cleanup; it does not repeat consent. Failures are tagged by acquisition stage. Consent is obtained in the lifetime coroutine so its requesting Job remains valid for projection admission. [Streaming host](streaming-host.md#consent-and-projection-handoff) owns Access correlation and version rules.
+The sequence shows successful startup. `ConsentResult.NotGranted` sets the first Stop cause to User and proceeds to cleanup; it does not repeat consent. Failures are tagged by acquisition stage. Consent is bound to the explicitly supplied attempt Job, which must remain active through projection admission. The mandatory foreground callback runs immediately on Main after matching consent, before grant delivery, without waiting for host resume. [Streaming host](streaming-host.md#consent-and-projection-handoff) owns Access correlation and version rules.
 
 The capture session stores a returned raw projection immediately. Failed engine construction leaves it session-owned. After successful construction the engine owns it, the raw variable is cleared and the creation guard is released. Late platform return after Stop still enters rollback/handoff; cancellation cannot make a returned resource ownerless.
 
@@ -89,8 +92,8 @@ The diagram separates simplified capture session phases from controller cleanup 
 
 | Retained capture stage | Boundary that failed |
 | --- | --- |
-| `Startup.consent` | `requestConsent` threw. A null/declined grant is instead normal User Stop, without a capture failure. |
-| `Startup.foreground` | Entering the original Service's capture foreground lifetime. Projection creation has not followed successful admission. |
+| `Startup.consent` | `requestConsent` threw before the foreground callback. A matching launcher failure uses `ConsentLaunchException`; cancellation is handled separately. `NotGranted` is normal User Stop, without a capture failure. |
+| `Startup.foreground` | The mandatory consent callback threw while entering the original Service's capture foreground lifetime. A false callback result is instead normal `NotGranted(ForegroundRejected)`. Projection creation has not begun. |
 | `Startup.projection` | Creating the projection through Access. Returned raw resources still follow rollback ownership. |
 | `Engine.creation` | Constructing the engine session; failed construction leaves the raw projection with the attempt. |
 | `Startup.projectionHandoff` | Releasing the projection-creation guard after successful engine construction; the engine already owns the projection. |
@@ -137,7 +140,7 @@ Each operation retains the first cleanup failure without hiding the first captur
 
 Successful engine stop confirms logical stop and projection-stop return, **not complete internal engine physical cleanup**. Consumer unregister supplies the separate exact callback-completion boundary. Successful capture session cleanup means these available operations completed without error; it cannot strengthen engine/Android guarantees. Pending/failed engine stop does not authorize normal foreground removal after handoff.
 
-Consent reuse requires successful startup, successful capture session cleanup, no capture failure, first Stop cause User or Shutdown and engine `Stopped(Requested)`. The Access coordinator then permits only the latest admitted consumed Grant to save once on SDK 24–33. Failed startup, failure/system revocation and failed cleanup do not save. The cancelled requesting Job need not remain active to save after cleanup.
+Consent reuse requires successful startup, successful capture session cleanup, no capture failure, first Stop cause User or Shutdown and engine `Stopped(Requested)`. The Access coordinator then permits only the latest admitted consumed Grant to save once on SDK 24–33. Failed startup, failure/system revocation and failed cleanup do not save. The attempt Job need not remain active to save after cleanup.
 
 ## Controller shutdown and complete module cleanup
 

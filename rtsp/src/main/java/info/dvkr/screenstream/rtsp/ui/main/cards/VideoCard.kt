@@ -277,11 +277,11 @@ private fun ImageSize(
                     sliderPosition = it
                     currentResultSize = IntSize((screenSize.width * it / 100F).roundToInt(), (screenSize.height * it / 100F).roundToInt())
                 },
-                enabled = enabled,
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
                     .weight(1f)
                     .align(Alignment.CenterVertically),
+                enabled = enabled,
                 valueRange = 10F..100F,
                 onValueChangeFinished = { onValueChange.invoke(sliderPosition); scope.launch { delay(250.milliseconds); counter = counter + 1 } }
             )

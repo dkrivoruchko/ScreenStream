@@ -30,7 +30,6 @@ rootProject.name = "ScreenStream"
 include(":app")
 include(":common")
 include(":streaming-core")
-include(":streaming-legacy")
 include(":mjpeg")
 include(":ktor-network-patched")
 include(":ktor-server-cio-patched")

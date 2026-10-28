@@ -132,7 +132,7 @@ internal class MjpegStreamingModuleController(
         enqueue(Event.UiCommand(UiController.Command.Start))
     }
 
-    override fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId) {
+    override fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId, fromNotification: Boolean) {
         enqueue(Event.UiCommand(UiController.Command.Stop(attempt)))
     }
 
@@ -309,13 +309,13 @@ internal class MjpegStreamingModuleController(
                 controllerScope = controllerScope,
                 captureAccess = captureAccess,
                 http = http,
-                enterForeground = { service.enterCaptureForeground(id) },
+                enterForeground = { service.enterCaptureForeground(id, requiresMicrophoneType = false) },
                 leaveForeground = { service.leaveCaptureForeground(id) },
             )
             val attempt = CaptureAttempt(session = session, failureBeforeStart = lastFailure)
             if (!http.registerCapture(id, initialCaptureGeneration)) return@synchronized null
-            session.start()
             captureAttempt = attempt
+            session.start()
             attempt
         }
 

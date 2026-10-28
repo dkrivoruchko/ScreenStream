@@ -31,12 +31,12 @@ The arrows show interaction. Settings, manager and `ScreenCaptureAccess` live at
 | Component | Responsibility |
 | --- | --- |
 | `:app` | Application DI, Activity/bootstrap/Exit, projection consent hosting, shared ordinary-permission UI, module recovery UI and notification presentation. |
-| `:streaming-core` | Fixed module catalog/manager, instance/attempt API, Service base, selection/education settings, foreground Stop, capture Access and the typed ordinary-permission port. |
-| `:common` | Shared UI, notification interfaces, preference storage and helpers. |
-| `:mjpeg2` | Native descriptor/Service/controller, saved mode settings, address discovery, capture session and engine adapter, HTTP delivery and current native screen. |
+| `:streaming-core` | Registered module manager, instance/attempt API, Service base, notification interface/actions, selection/education settings, capture Access and the typed ordinary-permission port. |
+| `:common` | Shared UI, analytics, preference storage and helpers. |
+| `:mjpeg` | Descriptor/Service/controller, saved mode settings, address discovery, capture session and engine adapter, HTTP delivery and current screen. |
 | `:screen-capture-engine` | Projection-backed image production, transformations, JPEG encoding and bounded borrowed-frame delivery. |
 
-Legacy MJPEG, RTSP and PlayStore WebRTC use a separate `:streaming-legacy` adapter and retain their own media, settings and projection-consent paths. Native and legacy ordinary-permission requests share the app-owned permission host through the core capability. Core has no dependency on that adapter. Native `MJPEG` has the lifecycle described here; [Streaming host](../internal/01-lifecycle/streaming-host.md#activity-lifetime-and-legacy-boundary) explains the legacy boundary.
+MJPEG, RTSP and PlayStore-only WebRTC integrate directly with the same manager, Service base and Controller contract. Each module owns its media, protocol, settings and per-instance workers; the shared Activity hosts projection consent and ordinary permission UI. RTSP/WebRTC retain their existing media internals and best-effort teardown. MJPEG's capture and cleanup contracts are described here; [Streaming host](../internal/01-lifecycle/streaming-host.md#activity-lifetime-and-module-boundaries) explains the shared boundaries.
 
 ## Lifetimes and identities
 

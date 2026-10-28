@@ -28,7 +28,14 @@ internal fun StreamScreen( //TODO Add foldable support
     streamingModulesManager: StreamingModuleManager = koinInject()
 ) {
     val managerState = streamingModulesManager.state.collectAsStateWithLifecycle().value
-    val selectedModuleId = streamingModulesManager.currentInstanceId.collectAsStateWithLifecycle().value?.moduleId
+    val selectedModuleId = when (managerState) {
+        is StreamingModuleManager.State.Running -> managerState.instanceId.moduleId
+        is StreamingModuleManager.State.Unresponsive -> managerState.instanceId.moduleId
+        is StreamingModuleManager.State.Failed -> managerState.instanceId.moduleId
+        StreamingModuleManager.State.NoModule,
+        StreamingModuleManager.State.Switching,
+        StreamingModuleManager.State.Exiting -> null
+    }
     val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
     val selectorExpanded = rememberSaveable {
         mutableStateOf(windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND))

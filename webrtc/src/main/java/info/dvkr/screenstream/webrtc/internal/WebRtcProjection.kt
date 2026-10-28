@@ -63,8 +63,10 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     private val lock = Any()
 
     private var mediaProjection: MediaProjection? = null
-    @Volatile private var deviceAudioMute: Boolean = true
-    @Volatile private var deviceAudioRecord: AudioRecord? = null
+    @Volatile
+    private var deviceAudioMute: Boolean = true
+    @Volatile
+    private var deviceAudioRecord: AudioRecord? = null
     private var deviceAudioRecoveryUsed: Boolean = false
     private var unsupportedDeviceAudioMixLogged: Boolean = false
     private var reusableDeviceAudioBuffer: ByteBuffer? = null
@@ -361,8 +363,12 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
             if (unsupportedDeviceAudioMixLogged) return false
             unsupportedDeviceAudioMixLogged = true
         }
-        XLog.w(getLog("onAudioDataRecorded", "Device-audio mix requires direct PCM16 mono buffer. " +
-                "format=$audioFormat, channelCount=$channelCount, isDirect=${audioBuffer.isDirect}."))
+        XLog.w(
+            getLog(
+                "onAudioDataRecorded", "Device-audio mix requires direct PCM16 mono buffer. " +
+                        "format=$audioFormat, channelCount=$channelCount, isDirect=${audioBuffer.isDirect}."
+            )
+        )
         return false
     }
 

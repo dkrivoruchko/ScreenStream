@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.koin.compiler)
 }
@@ -27,7 +26,6 @@ android {
 dependencies {
     implementation(projects.common)
     implementation(projects.streamingCore)
-    implementation(projects.streamingLegacy)
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)

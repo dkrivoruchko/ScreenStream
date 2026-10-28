@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -49,8 +50,9 @@ import kotlinx.coroutines.withContext
  * Register the fresh [initialCaptureGeneration] with HTTP before [start]. JPEG offers carry the generation
  * captured under the state gate, then synchronously copy borrowed bytes outside the gates. The copier is
  * valid only during that callback on its thread; never retain it. Callback failure ends capture.
- * [enterForeground] precedes projection creation after consent. [leaveForeground] follows media cleanup
- * and must tolerate rollback before promotion. Both signal failure by throwing.
+ * [enterForeground] runs synchronously on Main after consent and before grant delivery. Its true
+ * result confirms foreground API completion. [leaveForeground] follows media cleanup and tolerates
+ * rollback before promotion. Technical foreground failures throw.
  */
 internal class MjpegCaptureSession(
     val id: StreamingModule.CaptureAttemptId,
@@ -60,7 +62,7 @@ internal class MjpegCaptureSession(
     private val controllerScope: CoroutineScope,
     private val captureAccess: ScreenCaptureAccess,
     private val http: HttpDelivery,
-    private val enterForeground: suspend () -> Unit,
+    private val enterForeground: () -> Boolean,
     private val leaveForeground: suspend () -> Unit,
     private val engineFactory: MjpegEngineFactory = DefaultMjpegEngineFactory,
 ) {
@@ -368,17 +370,24 @@ internal class MjpegCaptureSession(
                     http.updateCaptureStatus(id, snapshot.status, snapshot.captureGeneration)
                 }
             }
-            consent = captureAccess.requestConsent(id)
-            if (consent == null) {
-                acceptStop(StopReason.User)
-                return
+            val consentResult = captureAccess.requestConsent(
+                attempt = id,
+                attemptJob = currentCoroutineContext().job,
+                prepareForeground = {
+                    failureStage = "Startup.foreground"
+                    enterForeground()
+                },
+            )
+            consent = when (consentResult) {
+                is ScreenCaptureAccess.ConsentResult.Granted -> consentResult.grant
+                is ScreenCaptureAccess.ConsentResult.NotGranted -> {
+                    acceptStop(StopReason.User)
+                    return
+                }
             }
 
-            failureStage = "Startup.foreground"
-            enterForeground()
-
             failureStage = "Startup.projection"
-            projectionBeforeHandoff = captureAccess.createProjection(consent)
+            projectionBeforeHandoff = captureAccess.createProjection(consent, retryAfterRecentForegroundStart = false)
             failureStage = "Engine.creation"
             val createdEngineSession = engineFactory.create(
                 context = context,

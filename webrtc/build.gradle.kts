@@ -2,7 +2,6 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.koin.compiler)
 }
@@ -46,7 +45,6 @@ android {
 dependencies {
     implementation(projects.common)
     implementation(projects.streamingCore)
-    implementation(projects.streamingLegacy)
     implementation(projects.webrtcRuntime)
 
     implementation(libs.koin.core)

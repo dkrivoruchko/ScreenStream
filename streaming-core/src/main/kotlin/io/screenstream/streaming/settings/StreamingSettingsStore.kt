@@ -22,11 +22,11 @@ import org.koin.core.annotation.Singleton
  * Process-owned streaming choices in `streaming_settings.preferences_pb`.
  * [initialize] awaits the first stored value; this store does not migrate former app preferences.
  */
-@Singleton(binds = [ScreenCaptureEducationSettings::class], createdAtStart = true)
+@Singleton(createdAtStart = true)
 internal class StreamingSettingsStore(
     context: Context,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
-) : ScreenCaptureEducationSettings {
+) {
     @Immutable
     @Serializable
     internal data class Data(
@@ -59,10 +59,10 @@ internal class StreamingSettingsStore(
         storage.updateData(transform)
     }
 
-    override val screenCaptureEducationCompleted: Boolean
+    internal val screenCaptureEducationCompleted: Boolean
         get() = data.value.screenCaptureEducationCompleted
 
-    override suspend fun markEducationCompleted(): Unit = updateData {
+    internal suspend fun markEducationCompleted(): Unit = updateData {
         copy(screenCaptureEducationCompleted = true)
     }
 }

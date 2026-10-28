@@ -37,6 +37,7 @@ internal class TcpStreamSocket private constructor(
 
     private var input: ByteReadChannel? = null
     private var output: ByteWriteChannel? = null
+
     @Volatile
     private var connected = false
 

@@ -40,7 +40,8 @@ internal class AudioCapture(
 
     private var _isRunning: Boolean = false
     private var _isMuted: Boolean = false
-    @Volatile private var _stopping: Boolean = false
+    @Volatile
+    private var _stopping: Boolean = false
 
     @get:Synchronized
     @set:Synchronized

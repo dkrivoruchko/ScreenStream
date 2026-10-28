@@ -5,6 +5,8 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.google.android.play.core.integrity.model.StandardIntegrityErrorCode
 import info.dvkr.screenstream.webrtc.R
+import io.screenstream.streaming.module.StreamingModule
+import kotlin.uuid.Uuid
 
 @Immutable
 internal data class WebRtcState(
@@ -17,7 +19,10 @@ internal data class WebRtcState(
     val isStreaming: Boolean = false,
     val networkRecovery: Boolean = false,
     val clients: List<Client> = emptyList(),
-    val error: WebRtcError? = null
+    val error: WebRtcError? = null,
+    val captureAttempt: StreamingModule.CaptureAttemptId? = null,
+    val errorToken: Uuid? = null,
+    val showCaptureRetry: Boolean = false
 ) {
     @Immutable
     internal data class Client(val id: String, val publicId: String, val address: String)

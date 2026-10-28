@@ -19,7 +19,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.webrtc.R
-import info.dvkr.screenstream.webrtc.internal.WebRtcEvent
 import info.dvkr.screenstream.webrtc.ui.WebRtcError
 import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
 import io.screenstream.streaming.compose.LocalRuntimePermissions
@@ -29,7 +28,7 @@ import io.screenstream.streaming.permission.RuntimePermission
 @Composable
 internal fun ErrorCard(
     error: WebRtcError,
-    sendEvent: (event: WebRtcEvent) -> Unit,
+    recoverError: () -> Unit,
     hasEnabledAudioSource: Boolean,
     retryStartupPolicyError: () -> Unit,
     requestAudioPermission: () -> Unit,
@@ -68,7 +67,7 @@ internal fun ErrorCard(
                             startupPolicyError -> retryStartupPolicyError()
                             error is WebRtcError.NotificationPermissionRequired -> requestNotificationPermission()
 
-                            else -> sendEvent(WebRtcEvent.Intentable.RecoverError)
+                            else -> recoverError()
                         }
                     },
                     modifier = Modifier

@@ -69,7 +69,7 @@ internal fun ErrorCard(
                         error is RtspError.NotificationPermissionRequired -> requestNotificationPermission()
                         error is RtspError.LocalNetworkPermissionRequired -> requestLocalNetworkPermission()
 
-                        else -> sendEvent(RtspEvent.Intentable.RecoverError)
+                        else -> sendEvent(RtspEvent.RecoverError())
                     }
                 },
                 modifier = Modifier

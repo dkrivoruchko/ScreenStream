@@ -16,8 +16,8 @@ import android.util.Log
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.core.app.ServiceCompat
-import io.screenstream.streaming.StreamingModuleManager
 import io.screenstream.streaming.manager.StreamingModuleActionReceiver
+import io.screenstream.streaming.manager.StreamingModuleManagerImpl
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -34,13 +34,17 @@ public abstract class StreamingModuleService : Service() {
     /** Create an inert controller for this Service; the manager adopts it before calling startModule. */
     protected abstract fun createController(runtime: StreamingModule.Controller.Runtime): StreamingModule.Controller
 
-    private val manager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
+    private val manager: StreamingModuleManagerImpl by inject(mode = LazyThreadSafetyMode.NONE)
     private val notifications: StreamingModuleNotifications by inject(mode = LazyThreadSafetyMode.NONE)
     private val gate: Any = Any()
     private var controller: StreamingModule.Controller? = null
     private var runtime: StreamingModule.Controller.Runtime? = null
     private var foregroundAdmissionClosed: Boolean = false
     private var foregroundNotification: Notification? = null
+
+    // Main owns this attempt and its presentation until rollback or media cleanup settles.
+    private var foregroundAttempt: StreamingModule.CaptureAttemptId? = null
+    private var showsCaptureStop: Boolean = false
     private var terminalStopRequested: Boolean = false
     private var timedOut: Boolean = false
     private val destruction: CompletableDeferred<Boolean> = CompletableDeferred()
@@ -59,14 +63,14 @@ public abstract class StreamingModuleService : Service() {
                 val op = AppOpsManager.permissionToOp(Manifest.permission.POST_NOTIFICATIONS)
                 if (op != null) getSystemService(AppOpsManager::class.java).startWatchingMode(op, packageName, notificationPermissionListener)
             } catch (failure: RuntimeException) {
-                Log.w(TAG, "Could not watch notification permission", failure)
+                Log.w("StreamingModuleService", "Could not watch notification permission", failure)
             }
         }
     }
 
     final override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         try {
-            if (intent?.action == StreamingModuleManager.ACTION_START_MODULE) {
+            if (intent?.action == StreamingModuleManagerImpl.ACTION_START_MODULE) {
                 manager.onServiceStart(service = this, existingController = controller, intent = intent) { originalRuntime ->
                     synchronized(gate) { runtime = originalRuntime }
                     check(tryEnterWaitingForeground()) { "Initial foreground promotion rejected" }
@@ -74,9 +78,9 @@ public abstract class StreamingModuleService : Service() {
                 }
             }
         } finally {
-            if (controller == null) {
+            // A newer pending start can retain this unowned host for its own admission.
+            if (controller == null && stopSelfResult(startId)) {
                 closeForegroundAdmission()
-                stopSelfResult(startId)
             }
         }
         return START_NOT_STICKY
@@ -84,7 +88,7 @@ public abstract class StreamingModuleService : Service() {
 
     /** Build an Exit presentation even when notification delivery is blocked. */
     @MainThread
-    protected fun buildExitNotification(): Notification {
+    private fun buildExitNotification(): Notification {
         val originalRuntime = synchronized(gate) { checkNotNull(runtime) }
         val action = StreamingModuleActionReceiver.exitAction(this, originalRuntime.instanceId)
         return notifications.buildForeground(StreamingModuleNotifications.ForegroundAction.Exit(action))
@@ -93,8 +97,46 @@ public abstract class StreamingModuleService : Service() {
     /** The compat layer filters SPECIAL_USE on older Android versions without leaving foreground. */
     @MainThread
     @SuppressLint("InlinedApi")
-    protected fun tryEnterWaitingForeground(): Boolean =
+    private fun tryEnterWaitingForeground(): Boolean =
         tryPromoteForeground(ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE, buildExitNotification())
+
+    /** Prepare this original Service for the exact attempt before projection acquisition. */
+    @MainThread
+    @SuppressLint("InlinedApi")
+    public fun enterCaptureForeground(attempt: StreamingModule.CaptureAttemptId, requiresMicrophoneType: Boolean): Boolean {
+        synchronized(gate) {
+            val original = runtime ?: return false
+            if (foregroundAdmissionClosed || original.instanceId != attempt.instanceId || !original.isCurrent()) return false
+            check(foregroundAttempt == null) { "Another capture owns foreground" }
+            foregroundAttempt = attempt
+            showsCaptureStop = false
+        }
+        val types = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
+                if (requiresMicrophoneType && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
+        return tryPromoteForeground(types, buildExitNotification())
+    }
+
+    /** Presentation follows confirmed capture without revalidating its projection-required mask. */
+    public suspend fun updateCaptureNotification(attempt: StreamingModule.CaptureAttemptId, active: Boolean): Unit =
+        withContext(Dispatchers.Main.immediate) {
+            if (foregroundAttempt != attempt || showsCaptureStop == active) return@withContext
+            val notification = if (active) {
+                val action = StreamingModuleActionReceiver.stopAction(this@StreamingModuleService, attempt)
+                notifications.buildForeground(StreamingModuleNotifications.ForegroundAction.StopStream(action))
+            } else buildExitNotification()
+            if (updateForegroundNotification(notification)) showsCaptureStop = active
+        }
+
+    /** The attempt owner calls after its declared media cleanup; rollback before promotion is safe. */
+    public suspend fun leaveCaptureForeground(attempt: StreamingModule.CaptureAttemptId): Unit = withContext(Dispatchers.Main.immediate) {
+        if (foregroundAttempt != attempt) return@withContext
+        try {
+            tryEnterWaitingForeground()
+        } finally {
+            foregroundAttempt = null
+            showsCaptureStop = false
+        }
+    }
 
     /** Prevent further promotion and notification updates immediately. */
     @AnyThread
@@ -111,7 +153,7 @@ public abstract class StreamingModuleService : Service() {
      * means API completion, not notification visibility. Platform failures close admission and throw.
      */
     @MainThread
-    protected fun tryPromoteForeground(serviceTypes: Int, notification: Notification): Boolean {
+    private fun tryPromoteForeground(serviceTypes: Int, notification: Notification): Boolean {
         val failure = synchronized(gate) {
             val originalRuntime = runtime ?: return false
             if (foregroundAdmissionClosed || serviceTypes <= 0 || !originalRuntime.isCurrent()) return false
@@ -134,7 +176,7 @@ public abstract class StreamingModuleService : Service() {
 
     /** Content-only update: retain the resource-required mask without revalidating a revoked projection grant. */
     @MainThread
-    protected fun updateForegroundNotification(notification: Notification): Boolean {
+    private fun updateForegroundNotification(notification: Notification): Boolean {
         try {
             synchronized(gate) {
                 val original = runtime ?: return false
@@ -162,7 +204,7 @@ public abstract class StreamingModuleService : Service() {
                 getSystemService(NotificationManager::class.java).notify(original.foregroundSlot.id, notification)
             }
         } catch (failure: RuntimeException) {
-            Log.w(TAG, "Could not refresh foreground notification", failure)
+            Log.w("StreamingModuleService", "Could not refresh foreground notification", failure)
         }
     }
 
@@ -185,7 +227,7 @@ public abstract class StreamingModuleService : Service() {
             }
             true
         } catch (cause: Throwable) {
-            Log.e(TAG, "Android Service stop failed", cause)
+            Log.e("StreamingModuleService", "Android Service stop failed", cause)
             false
         }
         val expectedStop = destruction.await()
@@ -205,7 +247,7 @@ public abstract class StreamingModuleService : Service() {
                 getSystemService(AppOpsManager::class.java).stopWatchingMode(notificationPermissionListener)
             }
         } catch (failure: RuntimeException) {
-            Log.w(TAG, "Could not stop watching notification permission", failure)
+            Log.w("StreamingModuleService", "Could not stop watching notification permission", failure)
         } finally {
             notificationHandler.removeCallbacks(refreshNotification)
             try {
@@ -236,7 +278,7 @@ public abstract class StreamingModuleService : Service() {
         try {
             stopSelf()
         } catch (cause: Throwable) {
-            Log.e(TAG, "Android Service timeout stop failed", cause)
+            Log.e("StreamingModuleService", "Android Service timeout stop failed", cause)
         } finally {
             reportServiceFailure()
         }
@@ -247,17 +289,13 @@ public abstract class StreamingModuleService : Service() {
         try {
             original.first?.reportFailed()
         } catch (cause: Throwable) {
-            Log.e(TAG, "Failed to report Service loss", cause)
+            Log.e("StreamingModuleService", "Failed to report Service loss", cause)
         } finally {
             try {
                 original.second?.requestModuleShutdown()
             } catch (cause: Throwable) {
-                Log.e(TAG, "Failed to request module shutdown", cause)
+                Log.e("StreamingModuleService", "Failed to request module shutdown", cause)
             }
         }
-    }
-
-    private companion object {
-        const val TAG: String = "StreamingModuleService" //TODO Remove
     }
 }

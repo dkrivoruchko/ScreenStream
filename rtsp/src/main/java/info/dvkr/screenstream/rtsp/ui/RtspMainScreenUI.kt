@@ -1,7 +1,6 @@
 package info.dvkr.screenstream.rtsp.ui
 
 import android.content.ActivityNotFoundException
-import android.content.Intent
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,21 +11,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.retain.retain
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -54,10 +53,7 @@ import info.dvkr.screenstream.rtsp.ui.main.cards.ModeCard
 import info.dvkr.screenstream.rtsp.ui.main.cards.ServerSettingsCard
 import info.dvkr.screenstream.rtsp.ui.main.cards.VideoCard
 import io.screenstream.streaming.compose.LocalRuntimePermissions
-import io.screenstream.streaming.legacy.LegacyPermissionActionEffect
-import io.screenstream.streaming.legacy.ScreenCapturePermissionFlow
-import io.screenstream.streaming.legacy.rememberLegacyPermissionActions
-import io.screenstream.streaming.legacy.rememberScreenCaptureStartRequester
+import io.screenstream.streaming.module.StreamingModule
 import io.screenstream.streaming.module.StreamingModuleNotifications
 import io.screenstream.streaming.permission.PermissionState
 import io.screenstream.streaming.permission.RuntimePermission
@@ -66,12 +62,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import kotlin.uuid.Uuid
+import info.dvkr.screenstream.common.R as CommonR
 
 @Composable
 internal fun RtspMainScreenUI(
+    instanceId: StreamingModule.InstanceId,
     rtspStateFlow: StateFlow<RtspState>,
     sendEvent: (event: RtspEvent) -> Unit,
-    onProjectionGranted: (startAttemptId: String, intent: Intent) -> Unit,
     windowSizeClass: WindowSizeClass,
     claimInitialLocalNetworkRequest: (request: () -> Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -81,7 +79,6 @@ internal fun RtspMainScreenUI(
     val rtspState = rtspStateFlow.collectAsStateWithLifecycle()
     val rtspSettingsState = rtspSettings.data.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val screenCaptureStartRequester = rememberScreenCaptureStartRequester()
     val context = LocalContext.current
     val state = rtspState.value
     val settings = rtspSettingsState.value
@@ -89,8 +86,8 @@ internal fun RtspMainScreenUI(
     val runtimePermissions = LocalRuntimePermissions.current
     val currentSendEvent by rememberUpdatedState(sendEvent)
     val currentClaimInitialLocalNetworkRequest by rememberUpdatedState(claimInitialLocalNetworkRequest)
-    val permissionActions = rememberLegacyPermissionActions<PendingPermissionAction>()
-    var recoveredLocalNetworkError by retain { mutableStateOf<RtspError?>(null) }
+    val permissionActions = rememberRtspPermissionActions<PendingPermissionAction>(instanceId)
+    val localNetworkRecovery = retain { LocalNetworkRecovery() }
     val localNetworkPermissionState by runtimePermissions.state(RuntimePermission.LocalNetwork).collectAsStateWithLifecycle()
     val notificationPermissionState by runtimePermissions.state(RuntimePermission.Notifications).collectAsStateWithLifecycle()
     val audioPermissionState by runtimePermissions.state(RuntimePermission.RecordAudio).collectAsStateWithLifecycle()
@@ -98,15 +95,29 @@ internal fun RtspMainScreenUI(
         scope.launch { rtspSettings.updateData(transform) }
     }
 
-    fun recoverGrantedLocalNetworkError(allowStreaming: Boolean = false) {
+    fun requestStart(expectedError: RtspError? = null, expectedToken: Uuid? = null) {
+        val latest = rtspStateFlow.value
+        if (latest.captureAttempt != null) return
+        if (expectedError != null && (latest.error !== expectedError || expectedToken == null || latest.errorToken != expectedToken)) return
+        currentSendEvent(
+            RtspStreamingService.InternalEvent.StartStream(
+                clearStartupPolicyError = latest.error?.isStartupPolicyError() == true,
+                expectedErrorToken = expectedToken,
+            )
+        )
+    }
+
+    fun recoverGrantedLocalNetworkError(allowStreaming: Boolean = false, expectedRecovery: PendingPermissionAction.RecoverError? = null) {
         val latestState = rtspStateFlow.value
         val latestSettings = rtspSettings.data.value
         val error = latestState.error
-        if (error !is RtspError.LocalNetworkPermissionRequired || error === recoveredLocalNetworkError) return
+        if (error !is RtspError.LocalNetworkPermissionRequired || error === localNetworkRecovery.error) return
+        val errorToken = latestState.errorToken ?: return
+        if (expectedRecovery != null && (error !== expectedRecovery.expectedError || errorToken != expectedRecovery.errorToken)) return
         if ((!allowStreaming && latestState.isStreaming) || latestState.waitingCastPermission || latestState.startAttemptId != null) return
         if (latestState.mode != latestSettings.mode || !runtimePermissions.isGranted(RuntimePermission.LocalNetwork)) return
-        recoveredLocalNetworkError = error
-        currentSendEvent(RtspEvent.Intentable.RecoverError)
+        localNetworkRecovery.error = error
+        currentSendEvent(RtspEvent.RecoverError(errorToken))
     }
 
     fun changeAudioEnabled(isMicrophone: Boolean, enabled: Boolean) {
@@ -123,10 +134,12 @@ internal fun RtspMainScreenUI(
         }
     }
 
-    fun requestPermissionForError(permission: RuntimePermission) {
+    fun requestPermissionForError(permission: RuntimePermission, expectedError: RtspError, expectedToken: Uuid?) {
         val latestState = rtspStateFlow.value
         val latestSettings = rtspSettings.data.value
         val error = latestState.error ?: return
+        val errorToken = latestState.errorToken ?: return
+        if (error !== expectedError || errorToken != expectedToken) return
         if (latestState.waitingCastPermission || latestState.startAttemptId != null) return
         if (latestState.mode != latestSettings.mode) return
         val matchesCurrentError = when (permission) {
@@ -144,7 +157,7 @@ internal fun RtspMainScreenUI(
             else -> RuntimePermission.DeviceAudio
         }
         val accepted =
-            permissionActions.request(requestedPermission, PendingPermissionAction.RecoverError(permission, error, latestSettings), runtimePermissions)
+            permissionActions.request(requestedPermission, PendingPermissionAction.RecoverError(permission, error, errorToken, latestSettings), runtimePermissions)
         if (accepted && permission == RuntimePermission.LocalNetwork) currentClaimInitialLocalNetworkRequest { true }
     }
 
@@ -179,14 +192,14 @@ internal fun RtspMainScreenUI(
         return when (action) {
             is PendingPermissionAction.EnableAudio -> !latestState.isStreaming && audioSettingsUnchanged
             is PendingPermissionAction.LocalNetworkAssessment -> !latestState.isStreaming
-            is PendingPermissionAction.RecoverError -> latestState.error === action.expectedError &&
+            is PendingPermissionAction.RecoverError -> latestState.error === action.expectedError && latestState.errorToken == action.errorToken &&
                     (action.permission.androidPermission != RuntimePermission.RecordAudio.androidPermission ||
                             (!latestState.isStreaming && audioSettingsUnchanged &&
                                     (latestSettings.enableMic || latestSettings.enableDeviceAudio)))
         }
     }
 
-    LegacyPermissionActionEffect(
+    RtspPermissionActionEffect(
         permissionActions, settings.enableMic, settings.enableDeviceAudio, selectedMode, state.mode,
         state.isStreaming, state.waitingCastPermission, state.startAttemptId, state.error,
         isRelevant = ::isActionRelevant,
@@ -207,31 +220,33 @@ internal fun RtspMainScreenUI(
 
                 is PendingPermissionAction.LocalNetworkAssessment -> recoverGrantedLocalNetworkError()
                 is PendingPermissionAction.RecoverError -> when (action.permission) {
-                    RuntimePermission.RecordAudio, RuntimePermission.Microphone, RuntimePermission.DeviceAudio -> screenCaptureStartRequester.request()
-                    RuntimePermission.LocalNetwork -> recoverGrantedLocalNetworkError(allowStreaming = true)
-                    RuntimePermission.Notifications -> currentSendEvent(RtspEvent.Intentable.RecoverError)
+                    RuntimePermission.RecordAudio, RuntimePermission.Microphone, RuntimePermission.DeviceAudio ->
+                        requestStart(action.expectedError, action.errorToken)
+                    RuntimePermission.LocalNetwork -> recoverGrantedLocalNetworkError(allowStreaming = true, expectedRecovery = action)
+                    RuntimePermission.Notifications -> currentSendEvent(RtspEvent.RecoverError(action.errorToken))
                 }
             }
         }
     )
 
     BoxWithConstraints(modifier = modifier) {
-        ScreenCapturePermissionFlow(
-            startRequester = screenCaptureStartRequester,
-            permissionScopeKey = "rtsp",
-            startAttemptId = state.startAttemptId?.takeIf { state.waitingCastPermission },
-            onStartRequested = onStartRequested@{ educationShown ->
-                if (state.isStreaming) return@onStartRequested
-                sendEvent(
-                    RtspStreamingService.InternalEvent.StartStream(
-                        permissionEducationShown = educationShown,
-                        clearStartupPolicyError = state.error?.isStartupPolicyError() == true
-                    )
-                )
-            },
-            onPermissionGranted = { startAttemptId, intent -> if (state.startAttemptId == startAttemptId) onProjectionGranted(startAttemptId, intent) },
-            onPermissionDenied = { startAttemptId -> if (state.startAttemptId == startAttemptId) sendEvent(RtspEvent.CastPermissionsDenied(startAttemptId)) },
-        )
+        state.consentRetryToken?.let { retryToken ->
+            AlertDialog(
+                onDismissRequest = {},
+                confirmButton = {
+                    TextButton(onClick = { sendEvent(RtspEvent.RetryConsent(retryToken, retry = true)) }) {
+                        Text(stringResource(CommonR.string.common_try_again))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { sendEvent(RtspEvent.RetryConsent(retryToken, retry = false)) }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                },
+                title = { Text(stringResource(CommonR.string.common_screen_capture_permission_required_title)) },
+                text = { Text(stringResource(CommonR.string.common_screen_capture_permission_denied_message)) },
+            )
+        }
 
         val lazyVerticalStaggeredGridState = rememberLazyStaggeredGridState()
         LazyVerticalStaggeredGrid(
@@ -249,15 +264,25 @@ internal fun RtspMainScreenUI(
                 item(key = "ERROR") {
                     ErrorCard(
                         error = error,
-                        sendEvent = sendEvent,
+                        sendEvent = { event ->
+                            val displayedToken = state.errorToken
+                            val latest = rtspStateFlow.value
+                            if (displayedToken != null && latest.error === error && latest.errorToken == displayedToken) {
+                                sendEvent(if (event is RtspEvent.RecoverError) event.copy(errorToken = displayedToken) else event)
+                            }
+                        },
                         hasEnabledAudioSource = settings.enableMic || settings.enableDeviceAudio,
-                        retryStartupPolicyError = { screenCaptureStartRequester.request() },
-                        requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio) },
+                        retryStartupPolicyError = { requestStart(error, state.errorToken) },
+                        requestAudioPermission = { requestPermissionForError(RuntimePermission.RecordAudio, error, state.errorToken) },
                         requestNotificationPermission = requestNotificationPermission@{
-                            if (rtspStateFlow.value.error !is RtspError.NotificationPermissionRequired) return@requestNotificationPermission
+                            val latest = rtspStateFlow.value
+                            val errorToken = latest.errorToken ?: return@requestNotificationPermission
+                            if (latest.error !== error || errorToken != state.errorToken || error !is RtspError.NotificationPermissionRequired) {
+                                return@requestNotificationPermission
+                            }
                             if (runtimePermissions.isGranted(RuntimePermission.Notifications)) {
                                 permissionActions.cancel()
-                                sendEvent(RtspEvent.Intentable.RecoverError)
+                                sendEvent(RtspEvent.RecoverError(errorToken))
                                 val settingsIntent = notifications.channelSettingsIntent(StreamingModuleNotifications.Channel.Streaming)
                                 if (settingsIntent != null) {
                                     try {
@@ -269,10 +294,10 @@ internal fun RtspMainScreenUI(
                                     }
                                 }
                             } else {
-                                requestPermissionForError(RuntimePermission.Notifications)
+                                requestPermissionForError(RuntimePermission.Notifications, error, errorToken)
                             }
                         },
-                        requestLocalNetworkPermission = { requestPermissionForError(RuntimePermission.LocalNetwork) },
+                        requestLocalNetworkPermission = { requestPermissionForError(RuntimePermission.LocalNetwork, error, state.errorToken) },
                         modifier = Modifier.padding(8.dp)
                     )
                 }
@@ -283,7 +308,7 @@ internal fun RtspMainScreenUI(
                     sendEvent = sendEvent,
                     selectedMode = selectedMode,
                     onModeSelected = { mode -> updateSettings { copy(mode = mode) } },
-                    isStreaming = state.isStreaming,
+                    isStreaming = state.captureAttempt != null,
                     serverBindings = state.serverBindings,
                     clientStatus = state.clientStatus,
                     error = state.error,
@@ -296,7 +321,7 @@ internal fun RtspMainScreenUI(
                         settings = settings,
                         updateSettings = updateSettings,
                         windowSizeClass = windowSizeClass,
-                        enabled = state.isStreaming.not(),
+                        enabled = state.captureAttempt == null,
                         modifier = Modifier.padding(8.dp)
                     )
                 }
@@ -307,14 +332,14 @@ internal fun RtspMainScreenUI(
                         settings = settings,
                         updateSettings = updateSettings,
                         windowSizeClass = windowSizeClass,
-                        enabled = state.isStreaming.not(),
+                        enabled = state.captureAttempt == null,
                         modifier = Modifier.padding(8.dp)
                     )
                 }
             }
             item(key = "VIDEO") {
                 VideoCard(
-                    isStreaming = state.isStreaming,
+                    isStreaming = state.captureAttempt != null,
                     selectedVideoEncoder = state.selectedVideoEncoder,
                     settings = settings,
                     updateSettings = updateSettings,
@@ -323,7 +348,7 @@ internal fun RtspMainScreenUI(
             }
             item(key = "AUDIO") {
                 AudioCard(
-                    isStreaming = state.isStreaming || state.waitingCastPermission || state.startAttemptId != null,
+                    isStreaming = state.captureAttempt != null,
                     selectedAudioEncoder = state.selectedAudioEncoder,
                     settings = settings,
                     updateSettings = updateSettings,
@@ -347,9 +372,9 @@ internal fun RtspMainScreenUI(
             onClick = dropUnlessStarted {
                 doubleClickProtection.processClick {
                     if (state.isStreaming) {
-                        sendEvent(RtspEvent.Intentable.StopStream("User action: Button"))
+                        state.captureAttempt?.let { sendEvent(RtspEvent.StopStream("User action: Button", it)) }
                     } else {
-                        screenCaptureStartRequester.request()
+                        requestStart()
                     }
                 }
             },
@@ -381,6 +406,10 @@ internal fun RtspMainScreenUI(
     }
 }
 
+private class LocalNetworkRecovery {
+    var error: RtspError? = null
+}
+
 private sealed interface PendingPermissionAction {
     val settingsAtRequest: RtspSettings.Data
 
@@ -396,6 +425,7 @@ private sealed interface PendingPermissionAction {
     class RecoverError(
         val permission: RuntimePermission,
         val expectedError: RtspError,
+        val errorToken: Uuid,
         override val settingsAtRequest: RtspSettings.Data
     ) : PendingPermissionAction
 }

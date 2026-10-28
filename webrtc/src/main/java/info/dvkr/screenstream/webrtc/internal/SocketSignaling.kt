@@ -611,7 +611,7 @@ internal class SocketSignaling(
 
     private class SocketAck private constructor(json: JSONObject?) {
         companion object {
-            internal fun fromAck(response: Array<Any?>?): SocketAck = SocketAck(response?.firstOrNull() as? JSONObject)
+            fun fromAck(response: Array<Any?>?): SocketAck = SocketAck(response?.firstOrNull() as? JSONObject)
         }
 
         val status: String = json?.optString(Payload.STATUS) ?: ""
@@ -621,7 +621,7 @@ internal class SocketSignaling(
 
     private class SocketPayload(private val json: JSONObject?, private val ack: Ack?) {
         companion object {
-            internal fun fromPayload(payload: Array<Any?>?): SocketPayload =
+            fun fromPayload(payload: Array<Any?>?): SocketPayload =
                 SocketPayload(payload?.firstOrNull() as? JSONObject, payload?.lastOrNull() as? Ack)
         }
 

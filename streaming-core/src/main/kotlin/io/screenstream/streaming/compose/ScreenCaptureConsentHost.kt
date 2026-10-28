@@ -62,6 +62,7 @@ private fun ConsentRequestLauncher(access: ScreenCaptureAccessImpl, token: Any, 
     val settings: StreamingSettingsStore = koinInject()
     val persistenceScope = rememberCoroutineScope()
     var educationGate: Boolean? by remember(requestKey) { mutableStateOf(null) }
+    var educationAccepted by remember(requestKey) { mutableStateOf(false) }
     val educationGateOpen = submitted || educationGate == true
 
     LaunchedEffect(settings, access, token, requestKey) {
@@ -78,6 +79,7 @@ private fun ConsentRequestLauncher(access: ScreenCaptureAccessImpl, token: Any, 
             confirmButton = {
                 TextButton(onClick = {
                     if (educationGate == false && access.canSubmit(requestKey, token)) {
+                        educationAccepted = true
                         educationGate = true
                         persistenceScope.launch(start = CoroutineStart.UNDISPATCHED) {
                             try {
@@ -103,7 +105,7 @@ private fun ConsentRequestLauncher(access: ScreenCaptureAccessImpl, token: Any, 
     LaunchedEffect(access, token, requestKey, launcher, educationGateOpen) {
         if (!educationGateOpen) return@LaunchedEffect
         coroutineContext.ensureActive()
-        val intent = access.submit(requestKey, token) ?: return@LaunchedEffect
+        val intent = access.submit(requestKey, token, educationAccepted) ?: return@LaunchedEffect
         try {
             launcher.launch(intent)
         } catch (cause: Throwable) {

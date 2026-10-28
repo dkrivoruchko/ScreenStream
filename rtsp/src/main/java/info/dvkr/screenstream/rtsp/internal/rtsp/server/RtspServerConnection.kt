@@ -114,7 +114,7 @@ internal class RtspServerConnection(
     @Volatile
     private var audioSetupDone: Boolean = false
 
-    internal class ParamInjector() {
+    internal class ParamInjector {
         private var lastInjectNs: Long = 0L
 
         fun maybeInjectForH264(packet: H264Packet, isKeyFrame: Boolean) {
@@ -143,7 +143,8 @@ internal class RtspServerConnection(
     private val paramInjector = ParamInjector()
     private var waitingForKeyframe: Boolean = false
     private var sendRtpPackets: suspend (trackId: Int, packets: List<RtpFrame>) -> Unit = { _, _ -> }
-    @Volatile private var videoParamsChanged: Boolean = false
+    @Volatile
+    private var videoParamsChanged: Boolean = false
 
     private val videoQueue = Channel<VideoBlob>(capacity = 32) { it.buf.releaseOne() }
     private val audioQueue = Channel<AudioBlob>(capacity = 64) { it.buf.releaseOne() }
@@ -335,7 +336,7 @@ internal class RtspServerConnection(
                         val sameAsCurrent = currentPair?.let { it.first == channelPair.first && it.second == channelPair.second } == true
                         if (!sameAsCurrent &&
                             (negotiatedInterleavedChannels.contains(channelPair.first) ||
-                                negotiatedInterleavedChannels.contains(channelPair.second))
+                                    negotiatedInterleavedChannels.contains(channelPair.second))
                         ) {
                             tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(461, cSeq)) }
                             continue
@@ -467,8 +468,7 @@ internal class RtspServerConnection(
                                 protocol = protocol,
                                 writeToTcpSocket = { header, data ->
                                     socket.withWriteLock {
-                                        val channelId = header[1].toInt() and 0xFF
-                                        val mapped = when (channelId) {
+                                        val mapped = when (val channelId = header[1].toInt() and 0xFF) {
                                             1 -> videoCh.second
                                             3 -> audioCh.second
                                             else -> channelId

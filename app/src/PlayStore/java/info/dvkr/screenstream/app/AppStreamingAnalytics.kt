@@ -2,19 +2,50 @@ package info.dvkr.screenstream.app
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingAnalyticsEvent
 import info.dvkr.screenstream.common.analytics.StreamingAnalyticsMappers
 import info.dvkr.screenstream.common.analytics.StreamingAnalyticsSchema
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import org.koin.core.annotation.Singleton
 
 @Singleton(binds = [StreamingAnalytics::class], createdAtStart = true)
 public class AppStreamingAnalytics(context: Context) : StreamingAnalytics {
 
     private val firebaseAnalytics: FirebaseAnalytics = FirebaseAnalytics.getInstance(context)
+    private val events: Channel<StreamingAnalyticsEvent> = Channel(Channel.UNLIMITED)
+    private val exportScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        exportScope.launch {
+            for (event in events) {
+                try {
+                    exportEvent(event)
+                } catch (failure: Throwable) {
+                    currentCoroutineContext().ensureActive()
+                    Log.e("StreamingAnalytics", "Streaming analytics export failed", failure)
+                }
+            }
+        }
+    }
 
     override fun logEvent(event: StreamingAnalyticsEvent) {
+        try {
+            if (events.trySend(event).isFailure) Log.e("StreamingAnalytics", "Streaming analytics export queue is closed")
+        } catch (failure: Throwable) {
+            Log.e("StreamingAnalytics", "Streaming analytics event was not accepted", failure)
+        }
+    }
+
+    private fun exportEvent(event: StreamingAnalyticsEvent) {
         when (event) {
             is StreamingAnalyticsEvent.StreamStartAttempt -> {
                 firebaseAnalytics.logEvent(

@@ -24,7 +24,12 @@ public class StreamingModuleActionReceiver : BroadcastReceiver(), KoinComponent 
 
             ACTION_STOP_STREAM -> {
                 val attempt = receivedIntent.decodeStopAttempt() ?: return
-                get<StreamingModuleManager>().requestStreamStop(attempt)
+                get<StreamingModuleManager>().requestStreamStop(attempt, fromNotification = true)
+            }
+
+            ACTION_RECOVER -> {
+                val (instance, errorToken) = receivedIntent.decodeRecovery() ?: return
+                get<StreamingModuleManager>().requestRecovery(instance, errorToken)
             }
         }
     }
@@ -32,9 +37,11 @@ public class StreamingModuleActionReceiver : BroadcastReceiver(), KoinComponent 
     public companion object {
         private const val ACTION_STOP_STREAM: String = "io.screenstream.action.STOP_CAPTURE"
         private const val ACTION_EXIT: String = "io.screenstream.action.EXIT"
+        private const val ACTION_RECOVER: String = "io.screenstream.action.RECOVER_MODULE"
         private const val SCHEME: String = "screenstream"
         private const val STOP_AUTHORITY: String = "capture-stop"
         private const val EXIT_AUTHORITY: String = "module-exit"
+        private const val RECOVERY_AUTHORITY: String = "module-recovery"
 
         /** Immutable Exit for this original module instance, including during startup. */
         public fun exitAction(context: Context, instance: StreamingModule.InstanceId): PendingIntent = PendingIntent.getBroadcast(
@@ -93,6 +100,37 @@ public class StreamingModuleActionReceiver : BroadcastReceiver(), KoinComponent 
             .appendPath(instanceId.moduleId.value)
             .appendPath(instanceId.uuid.toString())
             .appendPath(uuid.toString())
+            .build()
+
+        /** In-place recovery for this original instance and its exact current error episode. */
+        public fun recoveryAction(context: Context, instanceId: StreamingModule.InstanceId, errorToken: Uuid): PendingIntent = PendingIntent.getBroadcast(
+            context,
+            0,
+            Intent(context, StreamingModuleActionReceiver::class.java)
+                .setAction(ACTION_RECOVER)
+                .setData(instanceId.recoveryUri(errorToken)),
+            PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        private fun Intent.decodeRecovery(): Pair<StreamingModule.InstanceId, Uuid>? {
+            val uri = data ?: return null
+            if (uri.scheme != SCHEME || uri.authority != RECOVERY_AUTHORITY || uri.pathSegments.size != 3 ||
+                uri.query != null || uri.fragment != null
+            ) return null
+            val (moduleId, instanceText, errorText) = uri.pathSegments
+            if (moduleId.isBlank()) return null
+            val instanceUuid = Uuid.parseOrNull(instanceText) ?: return null
+            val errorToken = Uuid.parseOrNull(errorText) ?: return null
+            val instance = StreamingModule.InstanceId(StreamingModule.Id(moduleId), instanceUuid)
+            return (instance to errorToken).takeIf { instance.recoveryUri(errorToken) == uri }
+        }
+
+        private fun StreamingModule.InstanceId.recoveryUri(errorToken: Uuid): Uri = Uri.Builder()
+            .scheme(SCHEME)
+            .authority(RECOVERY_AUTHORITY)
+            .appendPath(moduleId.value)
+            .appendPath(uuid.toString())
+            .appendPath(errorToken.toString())
             .build()
     }
 }

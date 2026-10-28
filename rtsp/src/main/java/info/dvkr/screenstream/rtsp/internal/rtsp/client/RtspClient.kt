@@ -610,8 +610,7 @@ internal class RtspClient(
             protocol = protocol,
             writeToTcpSocket = { tcpHeader, data ->
                 if (protocol == Protocol.TCP) {
-                    val channelId = tcpHeader[1].toInt() and 0xFF
-                    val mapped = when (channelId) {
+                    val mapped = when (val channelId = tcpHeader[1].toInt() and 0xFF) {
                         1 -> videoRtcpChannel
                         3 -> audioRtcpChannel
                         else -> channelId

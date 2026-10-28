@@ -238,13 +238,16 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
         fun lebLenInt(x: Int): Int {
             var v = x
             var n = 0
-            do { n++; v = v ushr 7 } while (v != 0)
+            do {
+                n++; v = v ushr 7
+            } while (v != 0)
             return n
         }
 
         while (obuIndex < listForPacket.size) {
             // Build list of elements for this RTP packet
             data class Elem(val idx: Int, val start: Int, val len: Int, val isContinuation: Boolean)
+
             val elems = mutableListOf<Elem>()
             var remaining = maxPayload
             var startingWithContinuation = offsetInObu > 0
@@ -266,9 +269,12 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
                     fun lebLen(x: Int): Int {
                         var v = x
                         var n = 0
-                        do { n++; v = v ushr 7 } while (v != 0)
+                        do {
+                            n++; v = v ushr 7
+                        } while (v != 0)
                         return n
                     }
+
                     val fullNeed = lebLen(totalLen) + totalLen
                     if (fullNeed <= remaining) {
                         toCopy = totalLen
@@ -285,9 +291,12 @@ internal class Av1Packet : BaseRtpPacket(VIDEO_CLOCK_FREQUENCY, PAYLOAD_TYPE) {
                     fun lebLen(x: Int): Int {
                         var v = x
                         var n = 0
-                        do { n++; v = v ushr 7 } while (v != 0)
+                        do {
+                            n++; v = v ushr 7
+                        } while (v != 0)
                         return n
                     }
+
                     val remainInObu = totalLen - offsetInObu
                     var maxData = remaining - 1
                     if (maxData <= 0) break

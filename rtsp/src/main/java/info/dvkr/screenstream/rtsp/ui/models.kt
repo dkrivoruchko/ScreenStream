@@ -8,6 +8,8 @@ import info.dvkr.screenstream.rtsp.internal.AudioCodecInfo
 import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.ClientStats
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import io.screenstream.streaming.module.StreamingModule
+import kotlin.uuid.Uuid
 
 @Immutable
 internal enum class RtspClientStatus { IDLE, STARTING, ACTIVE, ERROR }
@@ -30,6 +32,9 @@ internal data class RtspState(
     val waitingCastPermission: Boolean = false,
     val startAttemptId: String? = null,
     val isStreaming: Boolean = false,
+    val captureAttempt: StreamingModule.CaptureAttemptId? = null,
+    val consentRetryToken: Uuid? = null,
+    val errorToken: Uuid? = null,
     val selectedVideoEncoder: VideoCodecInfo? = null,
     val selectedAudioEncoder: AudioCodecInfo? = null,
     val serverBindings: List<RtspBinding> = emptyList(),
@@ -52,6 +57,7 @@ internal sealed class RtspError(@field:StringRes open val id: Int, override val 
     internal open class UnknownError(override val cause: Throwable?) : RtspError(R.string.rtsp_error_unspecified) {
         override fun toString(context: Context): String = context.getString(id) + " [${cause.toString()}]"
     }
+
     internal class VideoCodecError(override val cause: Throwable?) : UnknownError(cause)
     internal class VideoRendererError(override val cause: Throwable?) : UnknownError(cause)
     internal class VideoReconfigureError(override val cause: Throwable?) : UnknownError(cause)
@@ -60,7 +66,7 @@ internal sealed class RtspError(@field:StringRes open val id: Int, override val 
     @Immutable
     internal sealed class ClientError(@StringRes id: Int) : RtspError(id) {
         internal class Failed(override val message: String?) : ClientError(R.string.rtsp_connection_error)
-        internal class AccessDenied() : ClientError(R.string.rtsp_connection_access_denied)
+        internal class AccessDenied : ClientError(R.string.rtsp_connection_access_denied)
         internal class NoCredentialsError : ClientError(R.string.rtsp_connection_no_credentials)
         internal class AuthError : ClientError(R.string.rtsp_connection_invalid_credentials)
     }

@@ -187,7 +187,7 @@ private fun AudioSource(
                 modifier = Modifier.weight(1f),
                 enabled = active,
                 valueRange = 0f..200f,
-                onValueChangeFinished = { onVolumeChange((sliderPosition / 100).coerceIn(0f, 2f)) },
+                onValueChangeFinished = { onVolumeChange((sliderPosition / 100).coerceIn(0f, 2f)) }
             )
 
             Text(text = "${sliderPosition.roundToInt()}%", modifier = Modifier.padding(start = 16.dp, end = 8.dp))

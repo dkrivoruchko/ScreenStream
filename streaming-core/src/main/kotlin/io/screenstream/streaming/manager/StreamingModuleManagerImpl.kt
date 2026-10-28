@@ -29,10 +29,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
@@ -53,7 +50,7 @@ import kotlin.uuid.Uuid
  * @param notifications App presentation and delivery for streaming notifications.
  * @param dispatcher Dispatcher for process-owned work and queued module reports.
  */
-@Singleton(binds = [StreamingModuleManager::class])
+@Singleton(binds = [StreamingModuleManager::class, StreamingModuleManagerImpl::class])
 internal class StreamingModuleManagerImpl internal constructor(
     modules: List<StreamingModule>,
     private val androidContext: Context,
@@ -95,17 +92,6 @@ internal class StreamingModuleManagerImpl internal constructor(
     /** One complete process state, independent of Activity collection. */
     override val state: StateFlow<StreamingModuleManager.State>
         field = MutableStateFlow<StreamingModuleManager.State>(StreamingModuleManager.State.NoModule)
-
-    override val currentInstanceId: StateFlow<StreamingModule.InstanceId?> = state.map { current ->
-        when (current) {
-            is StreamingModuleManager.State.Running -> current.instanceId
-            is StreamingModuleManager.State.Unresponsive -> current.instanceId
-            is StreamingModuleManager.State.Failed -> current.instanceId
-            StreamingModuleManager.State.NoModule,
-            StreamingModuleManager.State.Switching,
-            StreamingModuleManager.State.Exiting -> null
-        }
-    }.stateIn(scope, SharingStarted.Eagerly, null)
 
     /** Select a known module, keeping one process-owned transition until startup settles. */
     @MainThread
@@ -274,13 +260,26 @@ internal class StreamingModuleManagerImpl internal constructor(
      * may lag the notification that first exposed the Stop action.
      */
     @MainThread
-    override fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId) {
+    override fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId, fromNotification: Boolean) {
         val instance = currentInstance ?: return
         if (transitionJob != null || !instance.isAdmitted() || instance.instanceId != attempt.instanceId || !instance.hasLiveStatus()) return
         try {
-            instance.controllerForCommands()?.requestStreamStop(attempt)
+            instance.controllerForCommands()?.requestStreamStop(attempt, fromNotification)
         } catch (error: Exception) {
             XLog.e(this@StreamingModuleManagerImpl.getLog("ExternalStop", "Failed to dispatch Stop for attempt=$attempt"), error)
+        }
+    }
+
+    override fun requestRecovery(instanceId: StreamingModule.InstanceId, errorToken: Uuid) {
+        scope.launch(dispatcher) {
+            wakeTransitionWaiter()
+            val instance = currentInstance ?: return@launch
+            if (transitionJob != null || !instance.isAdmitted() || instance.instanceId != instanceId || !instance.hasLiveStatus()) return@launch
+            try {
+                instance.controllerForCommands()?.requestRecovery(errorToken)
+            } catch (error: Exception) {
+                XLog.e(this@StreamingModuleManagerImpl.getLog("Recovery", "Failed to dispatch recovery for instanceId=$instanceId"), error)
+            }
         }
     }
 
@@ -292,7 +291,7 @@ internal class StreamingModuleManagerImpl internal constructor(
         instance.admit(instance.firstStatusDeadlineElapsedMillis)
         try {
             val startup = Intent(androidContext, instance.serviceClass).apply {
-                action = StreamingModuleManager.ACTION_START_MODULE
+                action = ACTION_START_MODULE
                 putExtra(EXTRA_MODULE, instance.instanceId.moduleId.value)
                 putExtra(EXTRA_UUID, instance.instanceId.uuid.toString())
             }
@@ -380,15 +379,20 @@ internal class StreamingModuleManagerImpl internal constructor(
         if (installed != null && owner.isAdmitted()) installed.Content(window, modifier) else fallback()
     }
 
+    /**
+     * Validate startup before invoking the inert factory. The original Service stores the returned
+     * controller before the manager adopts it, checks identity and starts ordinary module work.
+     * Rejected deliveries never invoke the factory or replace an existing Service controller.
+     */
     @MainThread
-    override fun onServiceStart(
+    internal fun onServiceStart(
         service: Service,
         existingController: StreamingModule.Controller?,
         intent: Intent?,
         createController: (StreamingModule.Controller.Runtime) -> StreamingModule.Controller,
     ) {
         wakeTransitionWaiter()
-        if (intent?.action != StreamingModuleManager.ACTION_START_MODULE) return
+        if (intent?.action != ACTION_START_MODULE) return
         val module = intent.getStringExtra(EXTRA_MODULE) ?: return
         val uuid = intent.getStringExtra(EXTRA_UUID) ?: return
         val instanceId = runCatching { StreamingModule.InstanceId(StreamingModule.Id(module), Uuid.parse(uuid)) }.getOrNull() ?: return
@@ -699,11 +703,12 @@ internal class StreamingModuleManagerImpl internal constructor(
         data object Stopped : LaunchState
     }
 
-    private companion object {
-        const val EXTRA_MODULE = "io.screenstream.streaming.MODULE_ID"
-        const val EXTRA_UUID = "io.screenstream.streaming.INSTANCE_UUID"
-        val HEARTBEAT_TIMEOUT = 3.seconds
-        val FIRST_STATUS_TIMEOUT = 3.seconds
-        val SHUTDOWN_TIMEOUT = 3.seconds
+    internal companion object {
+        const val ACTION_START_MODULE = "io.screenstream.streaming.START_MODULE"
+        private const val EXTRA_MODULE = "io.screenstream.streaming.MODULE_ID"
+        private const val EXTRA_UUID = "io.screenstream.streaming.INSTANCE_UUID"
+        private val HEARTBEAT_TIMEOUT = 3.seconds
+        private val FIRST_STATUS_TIMEOUT = 3.seconds
+        private val SHUTDOWN_TIMEOUT = 3.seconds
     }
 }
