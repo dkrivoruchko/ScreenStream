@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">Открыть %1$s</string>
     <string name="mjpeg_address_copy_url">Копировать ссылку</string>
     <string name="mjpeg_address_copy_description">Копировать ссылку на %1$s</string>
+    <string name="mjpeg_address_copy_options_description">Выбрать ссылку %1$s для копирования</string>
+    <string name="mjpeg_address_copy_page">Копировать ссылку на страницу</string>
+    <string name="mjpeg_address_copy_mjpeg">Копировать ссылку на поток (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Копировать ссылку на изображение (JPEG)</string>
     <string name="mjpeg_address_share">Поделиться</string>
     <string name="mjpeg_address_share_description">Поделиться ссылкой на %1$s</string>
     <string name="mjpeg_address_qr_code">Показать QR-код</string>

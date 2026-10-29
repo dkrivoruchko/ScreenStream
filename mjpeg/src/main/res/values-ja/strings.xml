@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">%1$s を開く</string>
     <string name="mjpeg_address_copy_url">リンクをコピー</string>
     <string name="mjpeg_address_copy_description">%1$s のリンクをコピー</string>
+    <string name="mjpeg_address_copy_options_description">コピーするリンクを選択（%1$s）</string>
+    <string name="mjpeg_address_copy_page">ページのリンクをコピー</string>
+    <string name="mjpeg_address_copy_mjpeg">ストリームのリンクをコピー（MJPEG）</string>
+    <string name="mjpeg_address_copy_jpeg">画像のリンクをコピー（JPEG）</string>
     <string name="mjpeg_address_share">共有</string>
     <string name="mjpeg_address_share_description">%1$s のリンクを共有</string>
     <string name="mjpeg_address_qr_code">QR コードを表示</string>

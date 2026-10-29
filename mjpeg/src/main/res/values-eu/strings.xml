@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">Ireki %1$s</string>
     <string name="mjpeg_address_copy_url">Kopiatu esteka</string>
     <string name="mjpeg_address_copy_description">Kopiatu %1$s helbidearen esteka</string>
+    <string name="mjpeg_address_copy_options_description">Aukeratu %1$s helbiderako kopiatzeko esteka</string>
+    <string name="mjpeg_address_copy_page">Kopiatu orriaren esteka</string>
+    <string name="mjpeg_address_copy_mjpeg">Kopiatu igorpenaren esteka (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Kopiatu irudiaren esteka (JPEG)</string>
     <string name="mjpeg_address_share">Partekatu</string>
     <string name="mjpeg_address_share_description">Partekatu %1$s helbidearen esteka</string>
     <string name="mjpeg_address_qr_code">Erakutsi QR kodea</string>

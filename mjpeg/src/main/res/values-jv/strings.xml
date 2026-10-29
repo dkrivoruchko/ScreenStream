@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">Bukak %1$s</string>
     <string name="mjpeg_address_copy_url">Salin pranala</string>
     <string name="mjpeg_address_copy_description">Salin pranala kanggo %1$s</string>
+    <string name="mjpeg_address_copy_options_description">Pilih pranala sing arep disalin kanggo %1$s</string>
+    <string name="mjpeg_address_copy_page">Salin pranala kaca</string>
+    <string name="mjpeg_address_copy_mjpeg">Salin pranala stream (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Salin pranala gambar (JPEG)</string>
     <string name="mjpeg_address_share">Nuduhake</string>
     <string name="mjpeg_address_share_description">Nuduhake pranala kanggo %1$s</string>
     <string name="mjpeg_address_qr_code">Tampilake kode QR</string>

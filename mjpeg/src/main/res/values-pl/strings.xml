@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">Otwórz %1$s</string>
     <string name="mjpeg_address_copy_url">Kopiuj link</string>
     <string name="mjpeg_address_copy_description">Kopiuj link do %1$s</string>
+    <string name="mjpeg_address_copy_options_description">Wybierz link do skopiowania dla %1$s</string>
+    <string name="mjpeg_address_copy_page">Kopiuj link do strony</string>
+    <string name="mjpeg_address_copy_mjpeg">Kopiuj link do strumienia (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Kopiuj link do obrazu (JPEG)</string>
     <string name="mjpeg_address_share">Udostępnij</string>
     <string name="mjpeg_address_share_description">Udostępnij link do %1$s</string>
     <string name="mjpeg_address_qr_code">Pokaż kod QR</string>

@@ -1,5 +1,5 @@
 [versions]
-agp = "9.4.1"
+agp = "9.5.0"
 kotlin = "2.4.21"
 android-tools-desugar = "2.1.5"
 
@@ -88,12 +88,8 @@ xlog = { module = "com.elvishew:xlog", version.ref = "xlog" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 ktor-server-compression = { module = "io.ktor:ktor-server-compression", version.ref = "ktor" }
-ktor-server-caching-headers = { module = "io.ktor:ktor-server-caching-headers", version.ref = "ktor" }
 ktor-server-default-headers = { module = "io.ktor:ktor-server-default-headers", version.ref = "ktor" }
-ktor-server-forwarded-header = { module = "io.ktor:ktor-server-forwarded-header", version.ref = "ktor" }
-ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
-ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
 
 #Tests
 junit = { module = "junit:junit", version.ref = "junit" }

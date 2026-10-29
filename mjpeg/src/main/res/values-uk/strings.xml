@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">Відкрити %1$s</string>
     <string name="mjpeg_address_copy_url">Копіювати посилання</string>
     <string name="mjpeg_address_copy_description">Копіювати посилання на %1$s</string>
+    <string name="mjpeg_address_copy_options_description">Вибрати посилання %1$s для копіювання</string>
+    <string name="mjpeg_address_copy_page">Копіювати посилання на сторінку</string>
+    <string name="mjpeg_address_copy_mjpeg">Копіювати посилання на потік (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Копіювати посилання на зображення (JPEG)</string>
     <string name="mjpeg_address_share">Поділитися</string>
     <string name="mjpeg_address_share_description">Поділитися посиланням на %1$s</string>
     <string name="mjpeg_address_qr_code">Показати QR-код</string>

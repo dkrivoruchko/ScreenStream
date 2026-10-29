@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">%1$s adresini aç</string>
     <string name="mjpeg_address_copy_url">Bağlantıyı kopyala</string>
     <string name="mjpeg_address_copy_description">%1$s için bağlantıyı kopyala</string>
+    <string name="mjpeg_address_copy_options_description">%1$s için kopyalanacak bağlantıyı seç</string>
+    <string name="mjpeg_address_copy_page">Sayfa bağlantısını kopyala</string>
+    <string name="mjpeg_address_copy_mjpeg">Yayın bağlantısını kopyala (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Görüntü bağlantısını kopyala (JPEG)</string>
     <string name="mjpeg_address_share">Paylaş</string>
     <string name="mjpeg_address_share_description">%1$s için bağlantıyı paylaş</string>
     <string name="mjpeg_address_qr_code">QR kodunu göster</string>

@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)
     implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.compression)
+    implementation(libs.ktor.server.default.headers)
     implementation(libs.ktor.server.websockets)
 
     testImplementation(libs.junit)

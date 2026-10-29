@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">فتح %1$s</string>
     <string name="mjpeg_address_copy_url">نسخ الرابط</string>
     <string name="mjpeg_address_copy_description">نسخ رابط %1$s</string>
+    <string name="mjpeg_address_copy_options_description">اختر رابطًا لنسخه لـ %1$s</string>
+    <string name="mjpeg_address_copy_page">نسخ رابط الصفحة</string>
+    <string name="mjpeg_address_copy_mjpeg">نسخ رابط البث (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">نسخ رابط الصورة (JPEG)</string>
     <string name="mjpeg_address_share">مشاركة</string>
     <string name="mjpeg_address_share_description">مشاركة رابط %1$s</string>
     <string name="mjpeg_address_qr_code">عرض رمز QR</string>

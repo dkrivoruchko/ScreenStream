@@ -8,25 +8,30 @@ Use the supplied device URL with its current port. Opening the HTML page, author
 
 ## Connect a viewer
 
-1. Open `/` for the packaged browser page, or select `/jpeg` or `/mjpeg` for a media client.
-2. With protection enabled, exchange a copied link's `accessToken` at `/` for the viewing cookie, or submit the PIN. Media clients can instead supply the current token directly on their media request.
+1. Open `/` for the packaged browser page, or select `/jpeg` or `/mjpeg` for a media client. The main Copy button copies the page link. Its adjacent dropdown offers Copy page link, Copy stream link (MJPEG), and Copy image link (JPEG); each copies immediately without changing that main-button default. Open, Share and QR continue to use the page link.
+2. With protection enabled, exchange a copied page link's `accessToken` at `/` for the viewing cookie, or submit the PIN. Copied media links supply the current token directly on their media request and do not require PIN entry. Changing the URI path preserves its authority, port and query credential, including bracketed IPv6 addresses.
 3. Browser/state clients open `/ws` with the matching Origin and a current cookie when protected. Apply each complete snapshot, including authorization, `notice`, `hasImage` and `imageKind`; do not treat it as one event per captured frame.
 4. Reauthorize after protection or an enabled PIN changes. A connection can end before it receives another state, and reconnecting does not start capture.
 
 ## Routes and response headers
 
-These results assume a trusted current listener; PIN and WebSocket also require the Origin checks below. The common authority/listener check can reject a request with 403 before its route runs.
+These results assume a trusted current listener; PIN and WebSocket also require the Origin checks below. Before routing, missing, duplicate or structurally malformed Host returns 400; a valid but unsupported authority or inactive listener returns 403.
 
 | Request | Current result |
 | --- | --- |
 | `GET /` | One packaged HTML page; protected viewing is established separately through `/ws` |
 | `GET /?accessToken=…` | Always `303` to `/`; valid protected token also sets the existing viewing cookie |
 | `POST /pin` | Same-origin check, bounded form parsing, then `204` + cookie on success; `403` on wrong PIN; `429` + `Retry-After` while blocked |
-| `GET /jpeg` | One JPEG, authorized by open access, token or cookie; `403` if denied; `503` + `Retry-After: 1` if unavailable |
+| `GET /jpeg` | One JPEG, authorized by open access or token, or cookie when not identified as cross-origin; `403` if denied; `503` + `Retry-After: 1` if unavailable |
 | `GET /mjpeg` | Multipart stream with the same authorization/unavailability policy |
+| `OPTIONS /jpeg`, `OPTIONS /mjpeg` | `204` + `Allow: GET, OPTIONS` and fixed media CORS permission headers, regardless of preflight fields |
 | `GET /ws` upgrade | Read-only full state snapshots, authorized by open access or cookie; token is not accepted directly |
 
-The common interceptor adds `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`. `Referrer-Policy` is `no-referrer` whenever the query contains an `accessToken` parameter, otherwise `same-origin`. It rejects untrusted authority or an inactive exact listener with `403` before normal route work. Unknown paths then follow Ktor routing behavior; there is no separate asset-route family because CSS/JavaScript are embedded in HTML.
+The common interceptor adds `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`. Default headers add `Date` and the neutral `Server: ScreenStream`. `Referrer-Policy` is `no-referrer` whenever the query contains an `accessToken` parameter, otherwise `same-origin`. It rejects malformed Host with `400`, or untrusted authority or an inactive exact listener with `403`, before normal route work. Unknown paths then follow Ktor routing behavior; there is no separate asset-route family because CSS/JavaScript are embedded in HTML.
+
+Only an ordinary `200` HTML response to `GET /` is eligible for negotiated gzip compression. Credential redirects, PIN responses, JPEG, multipart MJPEG and WebSocket traffic are excluded. There is no HEAD implementation or byte-range/seek/resume API. Range is ignored and does not produce a partial `206` response or `Content-Range`; multipart part lengths describe JPEG payloads, not byte ranges. OPTIONS advertises only GET and OPTIONS, not HEAD or POST.
+
+Method-not-allowed responses for known resources include `Allow`: `GET` for `/` and `/ws`, `POST` for `/pin`, and `GET, OPTIONS` for `/jpeg` and `/mjpeg`. WebSocket GET still requires its upgrade conditions. Unknown paths return 404.
 
 `GET /` returns the cached packaged HTML bytes without configured display settings, image state or credentials. Access screens and states without a displayed image use a neutral system-theme background. An authorized snapshot supplies `display.background`, which fills the viewing canvas and separate bars when an image is displayed. Standalone HTML uses the same neutral access-screen fallback.
 
@@ -34,13 +39,37 @@ Presence of the token parameter, including an invalid or empty value, triggers t
 
 ## Request authority, origin and credentials
 
-Use a numeric device IP and listening port as the request authority. Exactly one `Host` header must match that listener; `localhost` is accepted only for a loopback listener. IPv6 URLs use brackets. Arbitrary DNS aliases, reverse-proxy authority and forwarded host/scheme headers are not accepted as substitutes for the direct address. A reachable socket can therefore still return 403 for an unsupported Host.
+Use a numeric device IP and listening port as the request authority. Exactly one syntactically valid `Host` header is required; missing or duplicate Host, malformed brackets, nondecimal ports, userinfo, paths, queries and fragments return 400. A syntactically valid authority must also match the listener; `localhost` is accepted only for a loopback listener. IPv6 URLs use brackets. Arbitrary DNS aliases, a different IP or port, reverse-proxy authority and forwarded host/scheme headers are not accepted as substitutes for the direct address. A reachable socket therefore returns 403 for a valid but unsupported Host.
 
-`POST /pin` requires a matching HTTP Origin. When Origin is absent, a matching Referer can supply it, including its path/query. `/ws` requires Origin and has no Referer fallback. Match the actual scheme, host spelling and effective port; equivalent IPv6 bytes with different textual spellings are not automatically the same Origin. Media authorization does not require this PIN/WebSocket Origin check. Origin alone is never a viewing credential.
+`POST /pin` requires a matching HTTP Origin. When Origin is absent, a matching Referer can supply it, including its path/query. `/ws` requires Origin and has no Referer fallback. Match the actual scheme, host spelling and effective port; equivalent IPv6 bytes with different textual spellings are not automatically the same Origin. Media can be requested from another origin under the policy below. Origin alone is never a viewing credential.
 
 The viewing cookie is `screenstream_access=<hex>; Path=/; HttpOnly; SameSite=Lax`, without Domain, expiry or Max-Age. It is host-only and session-lived by browser policy; switching to a different device IP does not automatically carry that host's cookie. Use a current protected link or PIN on that address. Cookie authorization still depends on the current in-memory delivery credentials; retaining a browser cookie does not preserve access across a new delivery lifetime. There is no Secure attribute because the listeners use ordinary HTTP. HTTP exposes content and credentials to the network.
 
-Correct PIN login and valid token exchange return the existing cookie without rotating other tabs' credentials. The token and cookie independently authorize media; the token does not directly authorize `/ws`. These are delivery-wide credentials, not a per-page session identifier. Changing protection or an enabled PIN revokes old next-frame and WebSocket authority. A JPEG payload already acquired by a response can finish. Wrong-PIN blocks apply to the immediate peer IP across listeners, without invalidating already valid viewing credentials; see [Usage](usage.md#urls-and-viewing).
+The URL token is an opaque **bearer viewing credential**, distinct from the six-digit PIN: anyone holding a current protected link can view without entering the PIN. Keep it when copying a media URI into another client. Correct PIN login and valid token exchange return the existing cookie without rotating other tabs' credentials. Either token or cookie can authorize ordinary same-origin/browser/native media requests; an identified cross-origin request must use the token when protected. The token does not directly authorize `/ws`.
+
+These are delivery-wide credentials, not per-viewer sessions or permanent integration keys. Capture Start/Stop and unchanged PIN settings preserve them; a new delivery lifetime creates new credentials even with the same saved PIN. Changing protection or an enabled PIN revokes old next-frame and WebSocket authority. A JPEG payload already acquired by a response can finish. Wrong-PIN blocks apply to the immediate peer IP across listeners, without invalidating already valid viewing credentials; see [Usage](usage.md#urls-and-viewing).
+
+`no-store` and the referrer policy do not encrypt HTTP or erase links from recipients, clipboard history or client/proxy logs. Sensitive-clipboard marking only limits supported Android clipboard previews. A copied link is not made safe to publish by those headers. Stop ends capture while the selected module's HTTP server can still serve the configured fallback; leaving the module disposes that delivery lifetime.
+
+## External media clients and CORS
+
+CORS is enabled by default only for media GET and OPTIONS routes; there is no CORS setting. The media GET handlers add `Access-Control-Allow-Origin: *` regardless of the Origin header. The exposed metadata includes Content-Length, Content-Range and Retry-After; Content-Type is already a browser-safelisted response header. Exposing a name does not create that header: Content-Range is not generated by this API. No `Access-Control-Allow-Credentials` is sent.
+
+OPTIONS returns 204 with fixed `Allow: GET, OPTIONS`, `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, OPTIONS` and `Access-Control-Allow-Headers: Content-Type, Range`, including when preflight fields are absent, malformed or request unsupported methods/headers. Browsers apply their CORS method/header checks, including safelisted-method exceptions; actual HEAD and POST remain unsupported. OPTIONS describes transport capabilities without allocating a media reader. Actual media GET still validates the listener and viewing access.
+
+When protected, a cross-origin Origin (including `null`), a non-same-origin Referer, or Sec-Fetch-Site indicating another origin suppresses cookie authorization on the server. Invalid, duplicate or conflicting indicators also prevent cookie-only viewing. These indicators are best effort: without any Origin, Fetch Metadata or Referer, the server cannot distinguish a native request from a browser request. Native requests without those browser indicators can still use a current viewing cookie. Identified cross-origin protected requests require the URL token; cross-origin clients should use the copied URL token and omit browser credentials. For example, using a copied JPEG link:
+
+```javascript
+const response = await fetch(copiedJpegLink, { credentials: "omit" });
+if (!response.ok) throw new Error(`JPEG request failed: ${response.status}`);
+const jpeg = await response.blob();
+```
+
+A native client can request that same copied JPEG URL for one image, or the copied MJPEG URL for continuous multipart delivery; no HTML loading, PIN form or WebSocket session is needed. When using a token, keep it in the query on each new protected request. Older `/stream.mjpeg`, `/stream.jpeg`, randomized protected paths and `/socket` URLs are not aliases: copy current Page/MJPEG/JPEG links and use `/ws` only under its documented contract.
+
+Wildcard CORS lets arbitrary websites visited by a browser on a reachable network read **open** screen media when browser policy permits, even when the website's own server cannot reach the device. Media authorization still applies under the credential policy above. Ordinary cross-origin image display and iframe navigation do not generally require CORS; fetch/XHR reading and readable canvas pixels do. CORS does not authorize `/pin` or an external browser WebSocket origin. A protected cross-site iframe cannot assume the SameSite=Lax viewing cookie will be set or sent; use direct token media links for media integration.
+
+Browser secure-context, mixed-content and local-network permission policies are separate from server CORS. Current Chrome Local Network Access can require permission for an external site to contact a LAN/loopback address; enabling CORS cannot grant it. Follow the [current Chrome guidance](https://developer.chrome.com/docs/modern-web-guidance/guides/security/local-network-access), not obsolete Private Network Access preflight headers. Browser and network behavior must be qualified in the actual client environment. Protocol references: [Fetch CORS](https://fetch.spec.whatwg.org/#cors-protocol), [canvas security](https://html.spec.whatwg.org/multipage/canvas.html#security-with-canvas-elements) and [HTTP Range](https://www.rfc-editor.org/rfc/rfc9110.html#section-14.2).
 
 ## PIN submission
 

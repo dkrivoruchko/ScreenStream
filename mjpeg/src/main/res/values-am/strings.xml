@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">%1$sን ክፈት</string>
     <string name="mjpeg_address_copy_url">አገናኝ ቅዳ</string>
     <string name="mjpeg_address_copy_description">የ%1$s አገናኝ ቅዳ</string>
+    <string name="mjpeg_address_copy_options_description">ለ%1$s የሚቀዳ አገናኝ ይምረጡ</string>
+    <string name="mjpeg_address_copy_page">የገጽ አገናኝ ቅዳ</string>
+    <string name="mjpeg_address_copy_mjpeg">የስርጭት አገናኝ ቅዳ (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">የምስል አገናኝ ቅዳ (JPEG)</string>
     <string name="mjpeg_address_share">አጋራ</string>
     <string name="mjpeg_address_share_description">የ%1$s አገናኝ አጋራ</string>
     <string name="mjpeg_address_qr_code">የQR ኮድ አሳይ</string>

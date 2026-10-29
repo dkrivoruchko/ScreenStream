@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">%1$s-ის გახსნა</string>
     <string name="mjpeg_address_copy_url">ბმულის კოპირება</string>
     <string name="mjpeg_address_copy_description">%1$s-ის ბმულის კოპირება</string>
+    <string name="mjpeg_address_copy_options_description">აირჩიეთ %1$s-ის დასაკოპირებელი ბმული</string>
+    <string name="mjpeg_address_copy_page">გვერდის ბმულის კოპირება</string>
+    <string name="mjpeg_address_copy_mjpeg">ნაკადის ბმულის კოპირება (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">სურათის ბმულის კოპირება (JPEG)</string>
     <string name="mjpeg_address_share">გაზიარება</string>
     <string name="mjpeg_address_share_description">%1$s-ის ბმულის გაზიარება</string>
     <string name="mjpeg_address_qr_code">QR კოდის ჩვენება</string>

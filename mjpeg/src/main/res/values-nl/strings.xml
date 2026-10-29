@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">%1$s openen</string>
     <string name="mjpeg_address_copy_url">Link kopiëren</string>
     <string name="mjpeg_address_copy_description">Link voor %1$s kopiëren</string>
+    <string name="mjpeg_address_copy_options_description">Kies een link om te kopiëren voor %1$s</string>
+    <string name="mjpeg_address_copy_page">Paginalink kopiëren</string>
+    <string name="mjpeg_address_copy_mjpeg">Streamlink kopiëren (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Afbeeldingslink kopiëren (JPEG)</string>
     <string name="mjpeg_address_share">Delen</string>
     <string name="mjpeg_address_share_description">Link voor %1$s delen</string>
     <string name="mjpeg_address_qr_code">QR-code tonen</string>

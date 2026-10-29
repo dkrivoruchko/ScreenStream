@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">打开 %1$s</string>
     <string name="mjpeg_address_copy_url">复制链接</string>
     <string name="mjpeg_address_copy_description">复制 %1$s 的链接</string>
+    <string name="mjpeg_address_copy_options_description">选择要复制的 %1$s 链接</string>
+    <string name="mjpeg_address_copy_page">复制页面链接</string>
+    <string name="mjpeg_address_copy_mjpeg">复制流链接（MJPEG）</string>
+    <string name="mjpeg_address_copy_jpeg">复制图像链接（JPEG）</string>
     <string name="mjpeg_address_share">分享</string>
     <string name="mjpeg_address_share_description">分享 %1$s 的链接</string>
     <string name="mjpeg_address_qr_code">显示二维码</string>

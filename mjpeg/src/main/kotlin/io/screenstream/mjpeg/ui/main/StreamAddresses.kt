@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,12 +23,17 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -177,10 +183,35 @@ private fun StreamAddressRow(
         }
     }
 
+    val interfaceLabelRes = if (server.isLoopback) {
+        R.string.mjpeg_network_loopback
+    } else {
+        when (server.interfaceType) {
+            InterfaceType.Wifi -> R.string.mjpeg_network_wifi
+            InterfaceType.Ethernet -> R.string.mjpeg_network_ethernet
+            InterfaceType.Mobile -> R.string.mjpeg_network_mobile
+            InterfaceType.Vpn -> R.string.mjpeg_network_vpn
+            InterfaceType.Other -> R.string.mjpeg_network_other
+        }
+    }
+    val addressScopeLabelRes = when (server.family) {
+        AddressFamily.Ipv4 -> when {
+            server.isLoopback -> R.string.mjpeg_network_ipv4
+            server.isLinkLocal -> R.string.mjpeg_network_ipv4_link_local
+            server.isPrivate -> R.string.mjpeg_address_private_ipv4
+            else -> R.string.mjpeg_address_non_private_ipv4
+        }
+
+        AddressFamily.Ipv6 -> when {
+            server.isLoopback -> R.string.mjpeg_network_ipv6
+            server.isPrivate -> R.string.mjpeg_address_ipv6_ula
+            else -> R.string.mjpeg_address_non_private_ipv6
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
     ) {
         TextButton(
             onClick = onOpen,
@@ -192,47 +223,24 @@ private fun StreamAddressRow(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val interfaceLabelRes = if (server.isLoopback) {
-                R.string.mjpeg_network_loopback
-            } else {
-                when (server.interfaceType) {
-                    InterfaceType.Wifi -> R.string.mjpeg_network_wifi
-                    InterfaceType.Ethernet -> R.string.mjpeg_network_ethernet
-                    InterfaceType.Mobile -> R.string.mjpeg_network_mobile
-                    InterfaceType.Vpn -> R.string.mjpeg_network_vpn
-                    InterfaceType.Other -> R.string.mjpeg_network_other
-                }
-            }
-            val addressScopeLabelRes = when (server.family) {
-                AddressFamily.Ipv4 -> when {
-                    server.isLoopback -> R.string.mjpeg_network_ipv4
-                    server.isLinkLocal -> R.string.mjpeg_network_ipv4_link_local
-                    server.isPrivate -> R.string.mjpeg_address_private_ipv4
-                    else -> R.string.mjpeg_address_non_private_ipv4
-                }
-
-                AddressFamily.Ipv6 -> when {
-                    server.isLoopback -> R.string.mjpeg_network_ipv6
-                    server.isPrivate -> R.string.mjpeg_address_ipv6_ula
-                    else -> R.string.mjpeg_address_non_private_ipv6
-                }
-            }
             Text(
                 text = stringResource(
                     R.string.mjpeg_address_network_details,
                     stringResource(interfaceLabelRes),
                     stringResource(addressScopeLabelRes),
                 ),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 4.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             StreamAddressActions(
                 displayUrl = displayUrl,
                 actionUrl = actionUrl,
-                onOpen = onOpen,
                 onShowQrCode = { showQrCode = true },
                 onShowMessage = onShowMessage,
+                modifier = Modifier.weight(1.5f),
             )
         }
         if (server.isLoopback) {
@@ -264,69 +272,109 @@ private fun StreamAddressRow(
 private fun StreamAddressActions(
     displayUrl: String,
     actionUrl: String,
-    onOpen: () -> Unit,
     onShowQrCode: () -> Unit,
     onShowMessage: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val resources = LocalResources.current
+    var showCopyMenu by remember(actionUrl) { mutableStateOf(false) }
+    val copyLink: (String) -> Unit = { url ->
+        scope.launch {
+            val clip = ClipData.newPlainText(resources.getString(R.string.mjpeg_address_copy_url), url)
+            clip.description.extras = PersistableBundle().apply {
+                putBoolean("android.content.extra.IS_SENSITIVE", true)
+            }
+            clipboard.setClipEntry(ClipEntry(clip))
+        }
+    }
 
-    IconButton(
-        onClick = onOpen,
-        modifier = Modifier.size(48.dp),
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.mjpeg_icon_open),
-            contentDescription = stringResource(R.string.mjpeg_address_open_description, displayUrl),
-        )
-    }
-    IconButton(
-        onClick = {
-            scope.launch {
-                val clip = ClipData.newPlainText(resources.getString(R.string.mjpeg_address_copy_url), actionUrl)
-                clip.description.extras = PersistableBundle().apply {
-                    putBoolean("android.content.extra.IS_SENSITIVE", true)
-                }
-                clipboard.setClipEntry(ClipEntry(clip))
+    val actionShape = MaterialTheme.shapes.medium
+    val iconColors = IconButtonDefaults.filledTonalIconButtonColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    val shareLink: () -> Unit = {
+        try {
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, actionUrl)
             }
-        },
-        modifier = Modifier.size(48.dp),
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.mjpeg_icon_copy),
-            contentDescription = stringResource(R.string.mjpeg_address_copy_description, displayUrl),
-        )
+            val chooser = Intent.createChooser(intent, resources.getString(R.string.mjpeg_address_share))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } catch (_: ActivityNotFoundException) {
+            onShowMessage(resources.getString(R.string.mjpeg_address_error_share))
+        } catch (_: SecurityException) {
+            onShowMessage(resources.getString(R.string.mjpeg_address_error_share))
+        }
     }
-    IconButton(
-        onClick = {
-            try {
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, actionUrl)
+
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        SplitButtonLayout(
+            leadingButton = {
+                FilledTonalIconButton(
+                    onClick = { copyLink(actionUrl) },
+                    shape = actionShape,
+                    colors = iconColors,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.mjpeg_icon_copy),
+                        contentDescription = stringResource(R.string.mjpeg_address_copy_description, displayUrl),
+                    )
                 }
-                val chooser = Intent.createChooser(intent, resources.getString(R.string.mjpeg_address_share))
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(chooser)
-            } catch (_: ActivityNotFoundException) {
-                onShowMessage(resources.getString(R.string.mjpeg_address_error_share))
-            } catch (_: SecurityException) {
-                onShowMessage(resources.getString(R.string.mjpeg_address_error_share))
+            },
+            trailingButton = {
+                Box {
+                    FilledTonalIconButton(
+                        onClick = { showCopyMenu = true },
+                        shape = actionShape,
+                        colors = iconColors,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.mjpeg_icon_arrow_drop_down),
+                            contentDescription = stringResource(R.string.mjpeg_address_copy_options_description, displayUrl),
+                        )
+                    }
+                    DropdownMenu(expanded = showCopyMenu, onDismissRequest = { showCopyMenu = false }) {
+                        listOf(
+                            R.string.mjpeg_address_copy_page to "/",
+                            R.string.mjpeg_address_copy_mjpeg to "/mjpeg",
+                            R.string.mjpeg_address_copy_jpeg to "/jpeg",
+                        ).forEach { (label, path) ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(label)) },
+                                onClick = {
+                                    showCopyMenu = false
+                                    copyLink(actionUrl.toUri().buildUpon().path(path).build().toString())
+                                },
+                            )
+                        }
+                    }
+                }
+            },
+        )
+        Row {
+            FilledTonalIconButton(onClick = shareLink, shape = actionShape, colors = iconColors) {
+                Icon(
+                    painter = painterResource(R.drawable.mjpeg_icon_share),
+                    contentDescription = stringResource(R.string.mjpeg_address_share_description, displayUrl),
+                )
             }
-        },
-        modifier = Modifier.size(48.dp),
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.mjpeg_icon_share),
-            contentDescription = stringResource(R.string.mjpeg_address_share_description, displayUrl),
-        )
-    }
-    IconButton(onClick = onShowQrCode, modifier = Modifier.size(48.dp)) {
-        Icon(
-            painter = painterResource(R.drawable.mjpeg_icon_qr),
-            contentDescription = stringResource(R.string.mjpeg_address_qr_code_description, displayUrl),
-        )
+            FilledTonalIconButton(onClick = onShowQrCode, shape = actionShape, colors = iconColors) {
+                Icon(
+                    painter = painterResource(R.drawable.mjpeg_icon_qr),
+                    contentDescription = stringResource(R.string.mjpeg_address_qr_code_description, displayUrl),
+                )
+            }
+        }
     }
 }
 

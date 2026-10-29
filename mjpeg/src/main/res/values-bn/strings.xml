@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">%1$s খুলুন</string>
     <string name="mjpeg_address_copy_url">লিঙ্ক কপি করুন</string>
     <string name="mjpeg_address_copy_description">%1$s-এর লিঙ্ক কপি করুন</string>
+    <string name="mjpeg_address_copy_options_description">%1$s-এর জন্য কপি করার লিঙ্ক বেছে নিন</string>
+    <string name="mjpeg_address_copy_page">পৃষ্ঠার লিঙ্ক কপি করুন</string>
+    <string name="mjpeg_address_copy_mjpeg">স্ট্রিমের লিঙ্ক কপি করুন (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">ছবির লিঙ্ক কপি করুন (JPEG)</string>
     <string name="mjpeg_address_share">শেয়ার করুন</string>
     <string name="mjpeg_address_share_description">%1$s-এর লিঙ্ক শেয়ার করুন</string>
     <string name="mjpeg_address_qr_code">QR কোড দেখান</string>

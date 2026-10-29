@@ -17,9 +17,11 @@ Read the guides:
 
 1. In ScreenStream, select native MJPEG. If an address needs local-network access, use its Request permission/Open settings action and complete the app prompt.
 2. Wait until **Start stream** becomes available, then press it and complete Android's screen-capture consent.
-3. Use **Copy URL** on that server and open the link on a device that can reach its address. Loopback addresses work only on the streaming device.
+3. Use **Copy URL** on that server and open the link on a device that can reach its address. The Copy icon always copies the page; its adjacent dropdown copies Page, MJPEG or JPEG immediately. Open/Share/QR still use the page link. Loopback addresses work only on the streaming device.
 
-Copied links containing the current access token authorize protected viewing automatically. Address actions fall back to a plain HTTP endpoint when no applied viewing link is available. The browser also supports PIN entry when protection is enabled.
+Copied links containing the current access token authorize protected viewing automatically. This URL token is a bearer viewing credential distinct from the six-digit PIN: recipients need not enter the PIN. Copied media links retain it and can be used directly by other clients. Address actions fall back to a plain HTTP endpoint when no applied viewing link is available. The browser also supports PIN entry when protection is enabled.
+
+Media GET/OPTIONS routes enable CORS by default for external web apps; protected cross-origin media requires the URL token and cannot rely on a viewing cookie alone. This does not enable external PIN submission or WebSocket origins. There is no HEAD or byte-range API. See the [HTTP viewing API](docs/http-viewing-api.md#external-media-clients-and-cors) for request examples, authorization/lifetime rules and browser-policy limitations. Wildcard CORS permits arbitrary websites visited by a reachable browser to read open screen media when the browser allows the network request.
 
 Selection prepares the module and its HTTP servers; it does not start screen capture. **Stop stream** ends the current capture attempt while leaving the selected module and HTTP delivery open. Whenever capture has no current image, the saved fallback selects the app logo or the last real frame (falling back to the logo if none exists). The latest real frame survives capture attempts and fallback changes until HTTP delivery is disposed. [Usage](docs/usage.md#start-view-and-stop) explains readiness, permissions and failures.
 

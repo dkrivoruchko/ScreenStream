@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">Buka %1$s</string>
     <string name="mjpeg_address_copy_url">Salin link</string>
     <string name="mjpeg_address_copy_description">Salin link untuk %1$s</string>
+    <string name="mjpeg_address_copy_options_description">Pilih link yang akan disalin untuk %1$s</string>
+    <string name="mjpeg_address_copy_page">Salin link halaman</string>
+    <string name="mjpeg_address_copy_mjpeg">Salin link stream (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Salin link gambar (JPEG)</string>
     <string name="mjpeg_address_share">Bagikan</string>
     <string name="mjpeg_address_share_description">Bagikan link untuk %1$s</string>
     <string name="mjpeg_address_qr_code">Tampilkan kode QR</string>

@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">%1$s manzilini ochish</string>
     <string name="mjpeg_address_copy_url">Havolani nusxalash</string>
     <string name="mjpeg_address_copy_description">%1$s havolasini nusxalash</string>
+    <string name="mjpeg_address_copy_options_description">%1$s uchun nusxalanadigan havolani tanlang</string>
+    <string name="mjpeg_address_copy_page">Sahifa havolasini nusxalash</string>
+    <string name="mjpeg_address_copy_mjpeg">Translatsiya havolasini nusxalash (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Rasm havolasini nusxalash (JPEG)</string>
     <string name="mjpeg_address_share">Ulashish</string>
     <string name="mjpeg_address_share_description">%1$s havolasini ulashish</string>
     <string name="mjpeg_address_qr_code">QR kodni koʻrsatish</string>

@@ -57,6 +57,10 @@
     <string name="mjpeg_address_open_description">Maak %1$s oop</string>
     <string name="mjpeg_address_copy_url">Kopieer skakel</string>
     <string name="mjpeg_address_copy_description">Kopieer skakel vir %1$s</string>
+    <string name="mjpeg_address_copy_options_description">Kies ’n skakel om te kopieer vir %1$s</string>
+    <string name="mjpeg_address_copy_page">Kopieer bladsyskakel</string>
+    <string name="mjpeg_address_copy_mjpeg">Kopieer stroomskakel (MJPEG)</string>
+    <string name="mjpeg_address_copy_jpeg">Kopieer beeldskakel (JPEG)</string>
     <string name="mjpeg_address_share">Deel</string>
     <string name="mjpeg_address_share_description">Deel skakel vir %1$s</string>
     <string name="mjpeg_address_qr_code">Wys QR-kode</string>
