@@ -37,8 +37,8 @@ internal object JpegBackendSearch {
             R.string.mjpeg_pref_image_encoder_auto_description
         ),
         JpegBackendPolicy.FrameworkOnly to SettingSearchOptionText(
-            R.string.mjpeg_pref_image_encoder_system,
-            R.string.mjpeg_pref_image_encoder_system_description
+            R.string.mjpeg_pref_image_encoder_standard,
+            R.string.mjpeg_pref_image_encoder_standard_description
         ),
     )
 

@@ -39,9 +39,9 @@ import io.screenstream.mjpeg.ui.settings.SettingsItem
 import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object NetworkFilterSearch {
-    val ipVersionRes: Int = R.string.mjpeg_pref_network_filter_ip_version
-    val networkTypeRes: Int = R.string.mjpeg_pref_network_filter_network_type
-    val addressTypeRes: Int = R.string.mjpeg_pref_network_filter_address_type
+    val ipVersionRes: Int = R.string.mjpeg_pref_connection_filter_ip_version
+    val networkTypeRes: Int = R.string.mjpeg_pref_connection_filter_network_type
+    val addressTypeRes: Int = R.string.mjpeg_pref_connection_filter_address_type
     val familyLabelResIds: Map<AddressFamily, Int> = mapOf(
         AddressFamily.Ipv4 to R.string.mjpeg_network_ipv4,
         AddressFamily.Ipv6 to R.string.mjpeg_network_ipv6,
@@ -54,16 +54,16 @@ internal object NetworkFilterSearch {
         InterfaceType.Other to R.string.mjpeg_network_other,
     )
     val categoryLabelResIds: Map<AddressCategory, Int> = mapOf(
-        AddressCategory.Private to R.string.mjpeg_pref_network_filter_private,
-        AddressCategory.NonPrivate to R.string.mjpeg_pref_network_filter_non_private,
+        AddressCategory.Private to R.string.mjpeg_pref_connection_filter_private,
+        AddressCategory.NonPrivate to R.string.mjpeg_pref_connection_filter_non_private,
         AddressCategory.Loopback to R.string.mjpeg_network_loopback,
-        AddressCategory.LinkLocal to R.string.mjpeg_pref_network_filter_link_local,
+        AddressCategory.LinkLocal to R.string.mjpeg_network_ipv4_link_local,
     )
 
     val info: SettingSearchInfo = SettingSearchInfo(
         group = SettingSearchGroup.Connection,
-        titleRes = R.string.mjpeg_pref_network_filter,
-        summaryRes = R.string.mjpeg_pref_network_filter_summary,
+        titleRes = R.string.mjpeg_pref_connection_filter,
+        summaryRes = R.string.mjpeg_pref_connection_filter_summary,
         extraTermResIds = listOf(ipVersionRes, networkTypeRes, addressTypeRes) +
                 familyLabelResIds.values + interfaceLabelResIds.values + categoryLabelResIds.values,
     )
@@ -134,7 +134,7 @@ private fun NetworkFilterEditor(
     ) {
         Text(
             stringResource(
-                R.string.mjpeg_pref_network_filter_default,
+                R.string.mjpeg_pref_connection_filter_default,
                 NetworkFilterSearch.familyLabelResIds.filterKeys { it in NetworkSettings.DEFAULT_FILTER.families }
                     .values.joinToString { resources.getString(it) },
                 NetworkFilterSearch.interfaceLabelResIds.filterKeys { it in NetworkSettings.DEFAULT_FILTER.interfaceTypes }
@@ -145,9 +145,9 @@ private fun NetworkFilterEditor(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )
-        Text(stringResource(R.string.mjpeg_pref_network_filter_purpose), style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.mjpeg_pref_connection_filter_selection_help), style = MaterialTheme.typography.bodyMedium)
         NetworkFilterGroups(draftFilter) { transform -> draftFilter = draftFilter.transform() }
-        SettingInfo(stringResource(R.string.mjpeg_pref_network_filter_help))
+        SettingInfo(stringResource(R.string.mjpeg_pref_connection_filter_help))
     }
 }
 

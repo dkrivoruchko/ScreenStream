@@ -258,7 +258,7 @@ internal class WebRtcStreamingService(
     private fun reportStatus() {
         if (destroyPending) return
         runtime.reportRunning(
-            StreamingModule.Status(isStreaming(), clients.isNotEmpty(), captureAttempt?.id, errorMessage = null),
+            StreamingModule.Status(isStreaming(), clients.isNotEmpty(), captureAttempt?.id, error = null),
             SystemClock.uptimeMillis(),
         )
     }

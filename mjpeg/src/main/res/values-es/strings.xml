@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">Modo local · MJPEG</string>
+    <string name="mjpeg_mode_description">Acerca de MJPEG</string>
+    <string name="mjpeg_mode_details">Transmite la pantalla del dispositivo directamente a un navegador como imágenes JPEG. No se transmite audio.\n\n• Funciona en una red local sin Internet. Los espectadores deben poder acceder a la dirección de transmisión.\n• La protección por PIN es opcional. Si está activada, los espectadores pueden introducir el PIN o usar un enlace de acceso.\n• La transmisión usa HTTP sin cifrar. Usa una red de confianza.\n• El filtro de red ofrece Wi-Fi, Ethernet, datos móviles, VPN, IPv4 e IPv6.\n• Ajusta el tamaño de imagen, la calidad JPEG y la frecuencia de fotogramas.\n• Las imágenes se envían por separado a cada espectador, lo que aumenta el consumo de datos.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">Cerrar</string>
+
+    <string name="mjpeg_pref_value_on">Activado</string>
+    <string name="mjpeg_pref_value_off">Desactivado</string>
+    <string name="mjpeg_pref_value_automatic">Auto</string>
+    <string name="mjpeg_pref_value_not_set">Sin definir</string>
+    <string name="mjpeg_pref_value_unavailable">Aún no disponible</string>
+    <string name="mjpeg_pref_default_option">%1$s (predeterminado)</string>
+    <string name="mjpeg_pref_default_value">Predeterminado: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">Disponible cuando la captura de pantalla se haya detenido por completo</string>
+
+    <string name="mjpeg_pref_search_placeholder">Buscar ajustes</string>
+    <string name="mjpeg_pref_search_clear">Borrar búsqueda</string>
+    <string name="mjpeg_pref_search_no_results">No se han encontrado ajustes</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">Datos móviles</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">Otra</string>
+    <string name="mjpeg_network_loopback">Bucle local</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">Iniciar transmisión</string>
+    <string name="mjpeg_stream_stop_capture">Detener transmisión</string>
+    <string name="mjpeg_stream_skipped_frames_warning">Fotogramas omitidos</string>
+    <string name="mjpeg_stream_stop_delayed">Se está terminando de compartir la pantalla…</string>
+    <string name="mjpeg_capture_error">Error de captura de pantalla</string>
+    <string name="mjpeg_error_suspension_invalid_request">Captura en pausa: los ajustes de imagen no se adaptan al área de captura actual</string>
+    <string name="mjpeg_error_suspension_unavailable">Captura en pausa: la fuente de captura no está disponible</string>
+    <string name="mjpeg_error_suspension_resources">Captura en pausa: recursos insuficientes</string>
+
+    <string name="mjpeg_address_list_title">Direcciones de transmisión</string>
+    <string name="mjpeg_address_list_empty">No hay direcciones disponibles para transmitir.\nRevisa el filtro de red en los ajustes de conexión.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">Red:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">Solo este dispositivo</string>
+    <string name="mjpeg_address_private_ipv4">IPv4 privada</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">IPv4 no privada</string>
+    <string name="mjpeg_address_non_private_ipv6">IPv6 no privada</string>
+
+    <string name="mjpeg_address_open">Abrir</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">Abrir %1$s</string>
+    <string name="mjpeg_address_copy_url">Copiar enlace</string>
+    <string name="mjpeg_address_copy_description">Copiar enlace de %1$s</string>
+    <string name="mjpeg_address_share">Compartir</string>
+    <string name="mjpeg_address_share_description">Compartir enlace de %1$s</string>
+    <string name="mjpeg_address_qr_code">Mostrar código QR</string>
+    <string name="mjpeg_address_qr_code_description">Mostrar código QR de %1$s</string>
+    <string name="mjpeg_address_qr_image_description">Escanea este código para abrir el enlace de transmisión</string>
+
+    <string name="mjpeg_address_error_browser_not_found">No se ha encontrado un navegador</string>
+    <string name="mjpeg_address_error_open">No se ha podido abrir el enlace</string>
+    <string name="mjpeg_address_error_share">No se ha podido compartir el enlace</string>
+    <string name="mjpeg_address_error_qr_generation">No se ha podido crear el código QR</string>
+
+    <string name="mjpeg_local_network_permission_request">Solicitar permiso</string>
+    <string name="mjpeg_local_network_permission_open_settings">Abrir ajustes</string>
+    <string name="mjpeg_local_network_permission_required">Se necesita permiso de red local</string>
+
+    <string name="mjpeg_server_pending">Pendiente</string>
+    <string name="mjpeg_server_address_in_use">Dirección en uso</string>
+    <string name="mjpeg_server_address_unavailable">Dirección no disponible</string>
+    <string name="mjpeg_server_permission_denied">Permiso denegado</string>
+    <string name="mjpeg_server_io_failure">Servidor no disponible</string>
+    <string name="mjpeg_server_unknown_failure">Error del servidor</string>
+    <string name="mjpeg_server_retry">Reintentar</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">Reintentar el servidor en %1$s</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN oculto</string>
+    <string name="mjpeg_pin_show_label">Mostrar</string>
+    <string name="mjpeg_pin_show_description">Mostrar PIN</string>
+    <string name="mjpeg_pin_hide_label">Ocultar</string>
+    <string name="mjpeg_pin_hide_description">Ocultar PIN</string>
+    <string name="mjpeg_stream_pin_copy">Copiar PIN</string>
+    <string name="mjpeg_stream_pin_copied">PIN copiado</string>
+    <string name="mjpeg_stream_pin_hint_access">Abre un enlace de transmisión o escanea su código QR.\nIntroduce este PIN si se solicita.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">Ajustes de imagen</string>
+    <string name="mjpeg_pref_image_save_error">No se han podido guardar los ajustes de imagen</string>
+
+    <string name="mjpeg_pref_image_region">Área de captura</string>
+    <string name="mjpeg_pref_image_region_summary">Elige el área que se transmitirá</string>
+    <string name="mjpeg_pref_image_region_full">Área completa</string>
+    <string name="mjpeg_pref_image_region_left">Mitad izquierda</string>
+    <string name="mjpeg_pref_image_region_right">Mitad derecha</string>
+
+    <string name="mjpeg_pref_image_crop">Recorte</string>
+    <string name="mjpeg_pref_image_crop_summary">Recorta los bordes de la imagen</string>
+    <string name="mjpeg_pref_image_crop_purpose">Indica cuántos píxeles se quitarán de cada borde</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">Deja visible parte de la imagen. De lo contrario, no se podrán capturar nuevos fotogramas.</string>
+    <string name="mjpeg_pref_image_crop_enabled">Activar recorte</string>
+    <string name="mjpeg_pref_image_crop_left">Izquierda (px)</string>
+    <string name="mjpeg_pref_image_crop_top">Arriba (px)</string>
+    <string name="mjpeg_pref_image_crop_right">Derecha (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">Abajo (px)</string>
+    <string name="mjpeg_pref_image_crop_error">Introduce un entero igual o mayor que 0</string>
+    <string name="mjpeg_pref_image_crop_required">Introduce un valor</string>
+
+    <string name="mjpeg_pref_image_size">Tamaño de imagen</string>
+    <string name="mjpeg_pref_image_size_summary">Define la escala o las dimensiones</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">Estirar imagen</string>
+    <string name="mjpeg_pref_image_size_stretch_value">Estirar</string>
+    <string name="mjpeg_pref_image_size_fit_description">Se ajusta al ancho y alto; mantiene las proporciones</string>
+    <string name="mjpeg_pref_image_size_stretch_description">Ancho y alto exactos; las proporciones pueden cambiar</string>
+    <string name="mjpeg_pref_image_size_estimate_note">Estimación según la pantalla; una app compartida puede tener otro tamaño</string>
+    <string name="mjpeg_pref_image_size_source">Pantalla: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">Tamaño de imagen estimado: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">No disponible</string>
+    <string name="mjpeg_pref_image_size_scale">Escala</string>
+    <string name="mjpeg_pref_image_size_target">Tamaño</string>
+    <string name="mjpeg_pref_image_size_default">Predeterminado: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Escala (mayor que 0, hasta 200%)</string>
+    <string name="mjpeg_pref_image_size_width_label">Ancho (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">Alto (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">Introduce un número mayor que 0, hasta 200</string>
+    <string name="mjpeg_pref_image_size_dimension_error">Introduce un entero de 1 a 8192</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">Ampliar la imagen no añade detalle y puede ralentizar la transmisión</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">Rotación</string>
+    <string name="mjpeg_pref_image_rotation_summary">Gira la imagen en sentido horario</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">Reflejo</string>
+    <string name="mjpeg_pref_image_mirror_summary">Refleja la imagen horizontal o verticalmente</string>
+    <string name="mjpeg_pref_image_mirror_none">Ninguno</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">Horizontal</string>
+    <string name="mjpeg_pref_image_mirror_vertical">Vertical</string>
+
+    <string name="mjpeg_pref_image_grayscale">Escala de grises</string>
+    <string name="mjpeg_pref_image_grayscale_summary">Muestra la imagen en tonos de gris</string>
+
+    <string name="mjpeg_pref_image_quality">Calidad JPEG</string>
+    <string name="mjpeg_pref_image_quality_summary">Equilibra detalle y consumo de datos</string>
+    <string name="mjpeg_pref_image_quality_popup_description">Una mayor calidad muestra más detalle y consume más datos. Predeterminado: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">Frecuencia de fotogramas</string>
+    <string name="mjpeg_pref_image_rate_summary">Define la frecuencia de actualización de la imagen</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">Intenta mantener la frecuencia de fotogramas más alta</string>
+
+    <string name="mjpeg_pref_image_rate_fps">Límite de FPS</string>
+    <string name="mjpeg_pref_image_rate_fps_description">Limita los fotogramas por segundo</string>
+    <string name="mjpeg_pref_image_rate_fps_value">Hasta %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">Fotogramas/segundo (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">Introduce un entero de 1 a 120</string>
+    <string name="mjpeg_pref_image_rate_fps_help">La frecuencia real puede ser inferior al límite</string>
+
+    <string name="mjpeg_pref_image_rate_interval">Intervalo</string>
+    <string name="mjpeg_pref_image_rate_interval_description">Define el intervalo mínimo de captura</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s s</string>
+    <string name="mjpeg_pref_image_rate_interval_label">Intervalo (1–3600 segundos)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">Introduce un intervalo de 1 a 3600 segundos</string>
+    <string name="mjpeg_pref_image_rate_interval_help">El intervalo limita la frecuencia de captura de nuevos fotogramas</string>
+
+    <string name="mjpeg_pref_image_encoder">Codificador JPEG</string>
+    <string name="mjpeg_pref_image_encoder_summary">Elige cómo se crean las imágenes JPEG</string>
+    <string name="mjpeg_pref_image_encoder_standard">Estándar</string>
+    <string name="mjpeg_pref_image_encoder_locked">Disponible cuando se haya dejado de compartir la pantalla por completo</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">Codificación optimizada cuando esté disponible</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">Desactiva la optimización de codificación</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">Ajustes de automatización</string>
+    <string name="mjpeg_pref_automation_save_error">No se han podido guardar los ajustes de automatización</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">Detener al perder las direcciones</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Detener la transmisión cuando no queden direcciones seleccionadas</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">Tras %1$d s</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">Espera (10–1800 segundos)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">Predeterminado: %1$s segundos</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">Introduce un entero de 10 a 1800</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Si las direcciones vuelven, se cancela el temporizador</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">Imagen de transmisión inactiva</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Imagen cuando no está disponible la imagen en directo</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">Logotipo de la app</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Último fotograma</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">Mantener pantalla encendida</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">Mantener la pantalla encendida durante la captura, si es posible</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">Detener al apagarse la pantalla</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Detener la transmisión cuando se apague la pantalla</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">Avisar de fotogramas omitidos</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Algunos dispositivos pueden recibir menos imágenes</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">Ajustes de conexión</string>
+    <string name="mjpeg_pref_connection_save_error">No se han podido guardar los ajustes de red</string>
+
+    <string name="mjpeg_pref_connection_filter">Filtro de red</string>
+    <string name="mjpeg_pref_connection_filter_summary">Elige las direcciones de red para transmitir</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">Versión de IP</string>
+    <string name="mjpeg_pref_connection_filter_network_type">Tipo de red</string>
+    <string name="mjpeg_pref_connection_filter_address_type">Tipo de dirección</string>
+    <string name="mjpeg_pref_connection_filter_private">Privada</string>
+    <string name="mjpeg_pref_connection_filter_non_private">No privada</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">Selecciona al menos una opción en cada grupo</string>
+    <string name="mjpeg_pref_connection_filter_default">Predeterminado: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">Las direcciones deben coincidir con los tres grupos. Los cambios pueden desconectar a los espectadores.</string>
+
+    <string name="mjpeg_pref_connection_http_port">Puerto HTTP</string>
+    <string name="mjpeg_pref_connection_http_port_summary">Define el puerto de conexión de los espectadores</string>
+    <string name="mjpeg_pref_connection_http_port_label">Puerto (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">Introduce un entero de 1024 a 65535</string>
+    <string name="mjpeg_pref_connection_http_port_help">Cambiar el puerto actualiza las direcciones de transmisión</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">Ajustes de la página web</string>
+    <string name="mjpeg_pref_web_save_error">No se han podido guardar los ajustes de la página web</string>
+
+    <string name="mjpeg_pref_web_background">Fondo</string>
+    <string name="mjpeg_pref_web_background_summary">Elige el color de fondo de la página web</string>
+    <string name="mjpeg_pref_web_background_hex_label">Color hexadecimal</string>
+    <string name="mjpeg_pref_web_background_hex_error">Usa 6 caracteres: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">Rojo</string>
+    <string name="mjpeg_pref_web_background_green">Verde</string>
+    <string name="mjpeg_pref_web_background_blue">Azul</string>
+    <string name="mjpeg_pref_web_background_palette">Colores predefinidos</string>
+    <string name="mjpeg_pref_web_background_color_option">Color %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">Color seleccionado %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">Nombre de transmisión</string>
+    <string name="mjpeg_pref_web_stream_name_summary">Define el nombre que verán los espectadores</string>
+    <string name="mjpeg_pref_web_stream_name_label">Nombre de transmisión (hasta 64 caracteres)</string>
+    <string name="mjpeg_pref_web_stream_name_error">Usa como máximo %1$d caracteres</string>
+    <string name="mjpeg_pref_web_stream_name_help">Título de la pestaña del navegador y etiqueta de la transmisión</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">Mostrar nombre de transmisión</string>
+    <string name="mjpeg_pref_web_stream_name_empty">Sin nombre</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">Ubicación del nombre de transmisión</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">Elige dónde y cómo aparece el nombre</string>
+
+    <string name="mjpeg_pref_web_controls_placement">Ubicación de los controles</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">Elige dónde y cómo aparecen los controles</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">Posición</string>
+    <string name="mjpeg_pref_web_position_top">Arriba</string>
+    <string name="mjpeg_pref_web_position_bottom">Abajo</string>
+    <string name="mjpeg_pref_web_presentation">Mostrar como</string>
+    <string name="mjpeg_pref_web_presentation_overlay">Sobre la imagen</string>
+    <string name="mjpeg_pref_web_presentation_bar">Barra separada</string>
+    <string name="mjpeg_pref_web_auto_hide_on">Ocultar automáticamente</string>
+    <string name="mjpeg_pref_web_auto_hide_off">Siempre visible</string>
+    <string name="mjpeg_pref_web_auto_hide_help">Ocultar tras 4 segundos sin interacción</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">Ajustes de acceso</string>
+    <string name="mjpeg_pref_access_save_error">No se han podido guardar los ajustes de acceso</string>
+
+    <string name="mjpeg_pref_access_protection">Protección por PIN</string>
+    <string name="mjpeg_pref_access_protection_summary">Exigir un PIN o enlace de acceso para ver la transmisión</string>
+    <string name="mjpeg_pref_access_protection_default">Predeterminado: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">Política de PIN</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">Nuevo PIN al abrir</string>
+    <string name="mjpeg_pref_access_policy_permanent">PIN permanente</string>
+    <string name="mjpeg_pref_access_policy_help">Si se elige «Nuevo PIN al abrir» y la protección está activada, se genera un PIN cada vez que se abre el modo MJPEG. Iniciar la captura no lo cambia.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">PIN guardado para acceder a la transmisión</string>
+    <string name="mjpeg_pref_access_pin_unavailable">Sin PIN guardado</string>
+    <string name="mjpeg_pref_access_pin_label">PIN (6 dígitos)</string>
+    <string name="mjpeg_pref_access_pin_error">Introduce seis dígitos (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">Generar nuevo PIN</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">Elige PIN permanente para introducir tu propio PIN</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">Limitar intentos de PIN</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">Pausar el acceso por PIN tras cinco intentos incorrectos</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">Minutos: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">Duración del bloqueo (1–60 minutos)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">Predeterminado: %1$s · %2$s min</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">Introduce un entero de 1 a 60</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">Bloquea nuevos intentos de PIN desde esa IP. Los espectadores conectados siguen conectados.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">Ocultar PIN al iniciar una transmisión</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">Puedes volver a mostrar el PIN</string>
+</resources>

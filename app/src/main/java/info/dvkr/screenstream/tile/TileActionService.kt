@@ -70,7 +70,7 @@ public class TileActionService : TileService() {
                         when (isStreaming) {
                             null -> R.string.app_name
                             true -> R.string.app_tile_stop
-                            false -> R.string.app_tile_start
+                            false -> R.string.app_tile_open
                         }
                     )
                     icon = Icon.createWithResource(this@TileActionService, R.drawable.ic_tile_24dp)

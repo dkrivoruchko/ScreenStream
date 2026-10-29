@@ -6,10 +6,10 @@
     <string name="app_error_recover">Recover</string>
 
     <string name="app_module_error_title">Something went wrong</string>
-    <string name="app_module_error_restart">Restart module</string>
+    <string name="app_module_error_restart">Restart mode</string>
 
     <string name="app_activity_update_dialog_title">Update available</string>
-    <string name="app_activity_update_dialog_message">An update has just been downloaded. Restart app now?</string>
+    <string name="app_activity_update_dialog_message">An update is ready. Restart the app now?</string>
     <string name="app_activity_update_dialog_restart">Restart</string>
 
     <string name="app_tab_stream">Stream</string>
@@ -18,8 +18,9 @@
     <string name="app_tab_exit">Exit</string>
 
     <string name="app_tab_stream_select_mode">Select stream mode:</string>
-    <string name="app_tab_stream_switching_modules">Switching modules</string>
+    <string name="app_tab_stream_switching_modules">Switching modes…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Not now</string>
     <string name="app_permission_open_settings">Open settings</string>
 
@@ -38,7 +39,7 @@
 
     <string name="app_permission_audio_title">Microphone and device audio</string>
     <string name="app_permission_audio_message">Allow microphone access to stream microphone and device audio.\n\nDevice audio can be streamed only when Android and the playing app allow sharing it.</string>
-    <string name="app_permission_audio_settings_message">Enable microphone permission in app settings to stream microphone or internal audio.\n\nWithout it, the stream has no sound.</string>
+    <string name="app_permission_audio_settings_message">Allow microphone access in app settings to stream microphone or device audio.\n\nWithout it, audio cannot be streamed.</string>
 
     <string name="app_notification_channel_streaming">Streaming notifications</string>
     <string name="app_notification_channel_error">Error notifications</string>
@@ -47,7 +48,8 @@
     <string name="app_notification_streaming_content">Tap Stop to end the stream</string>
     <string name="app_notification_stop">Stop</string>
 
-    <string name="app_tile_start">Start</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Open ScreenStream</string>
     <string name="app_tile_stop">Stop</string>
 
     <string name="app_pref_back">Back</string>
@@ -56,6 +58,7 @@
     <string name="app_pref_locale_summary">Open app language settings</string>
     <string name="app_pref_locale_default">System default</string>
     <string name="app_pref_night_mode">Dark theme</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Always</item>
         <item>Set by Battery Saver</item>
@@ -63,21 +66,21 @@
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Always</item>
-        <item>Automatically (follow system)</item>
+        <item>Follow system</item>
         <item>Never</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Dynamic color</string>
     <string name="app_pref_dynamic_theme_summary">Adjust the appearance based on your wallpaper\'s colors</string>
-    <string name="app_pref_notification">Device notification settings</string>
-    <string name="app_pref_notification_summary">Open system notification settings</string>
-    <string name="app_pref_tile">Add application tile</string>
-    <string name="app_pref_tile_summary">Add application tile to Quick Settings</string>
+    <string name="app_pref_notification">App notifications</string>
+    <string name="app_pref_notification_summary">Manage notifications in system settings</string>
+    <string name="app_pref_tile">Add Quick Settings tile</string>
+    <string name="app_pref_tile_summary">Add ScreenStream to Quick Settings</string>
 
     <string name="app_tab_about_app_version">Version: %1$s</string>
     <string name="app_tab_about_developer_name">Developed by Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Rate app</string>
-    <string name="app_tab_about_app_sources">Application sources</string>
-    <string name="app_tab_about_terms_conditions">Terms and Conditions</string>
+    <string name="app_tab_about_app_sources">Source code</string>
+    <string name="app_tab_about_terms_conditions">Terms and conditions</string>
     <string name="app_tab_about_privacy_policy">Privacy policy</string>
     <string name="app_tab_about_privacy_options">Privacy options</string>
     <string name="app_tab_about_license">License</string>

@@ -28,12 +28,12 @@ import io.screenstream.mjpeg.ui.settings.rememberSettingNumberFormat
 import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object HttpPortSearch {
-    val fieldLabelRes: Int = R.string.mjpeg_pref_network_port_label
+    val fieldLabelRes: Int = R.string.mjpeg_pref_connection_http_port_label
 
     val info: SettingSearchInfo = SettingSearchInfo(
         group = SettingSearchGroup.Connection,
-        titleRes = R.string.mjpeg_pref_network_port,
-        summaryRes = R.string.mjpeg_pref_network_port_summary,
+        titleRes = R.string.mjpeg_pref_connection_http_port,
+        summaryRes = R.string.mjpeg_pref_connection_http_port_summary,
         extraTermResIds = listOf(fieldLabelRes),
     )
 }
@@ -83,7 +83,7 @@ private fun HttpPortEditor(
     val initialPort = retain { httpPort }
     var portInput by retain { mutableStateOf(TextFieldValue(numberFormat.format(initialPort))) }
     val errorText = if (parseSettingInteger(portInput.text, numberFormat) !in 1024..65535) {
-        stringResource(R.string.mjpeg_pref_network_port_error)
+        stringResource(R.string.mjpeg_pref_connection_http_port_error)
     } else null
 
     SettingEditor(
@@ -111,6 +111,6 @@ private fun HttpPortEditor(
             modifier = Modifier.fillMaxWidth(),
             enabled = canEditStreamSetup,
         )
-        SettingInfo(stringResource(if (canEditStreamSetup) R.string.mjpeg_pref_network_port_help else R.string.mjpeg_pref_setup_locked))
+        SettingInfo(stringResource(if (canEditStreamSetup) R.string.mjpeg_pref_connection_http_port_help else R.string.mjpeg_pref_setup_locked))
     }
 }

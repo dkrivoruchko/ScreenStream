@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">ლოკალური რეჟიმი · MJPEG</string>
+    <string name="mjpeg_mode_description">MJPEG-ის შესახებ</string>
+    <string name="mjpeg_mode_details">მოწყობილობის ეკრანი პირდაპირ ვებბრაუზერში JPEG სურათების სახით გადაიცემა. ხმა არ გადაიცემა.\n\n• მუშაობს ლოკალურ ქსელში ინტერნეტის გარეშე. მაყურებლებს სტრიმის მისამართზე წვდომა უნდა შეეძლოთ.\n• PIN-ით დაცვა არჩევითია. ჩართვისას მაყურებლებს შეუძლიათ PIN-ის შეყვანა ან წვდომის ბმულის გამოყენება.\n• სტრიმი იყენებს დაუშიფრავ HTTP-ს. გამოიყენეთ სანდო ქსელი.\n• ქსელის ფილტრი გთავაზობთ Wi-Fi, Ethernet, მობილური მონაცემების, VPN, IPv4 და IPv6 ვარიანტებს.\n• შეცვალეთ სურათის ზომა, JPEG ხარისხი და კადრების სიხშირე.\n• სურათები თითოეულ მაყურებელს ცალ-ცალკე ეგზავნება, რაც მონაცემთა მოხმარებას ზრდის.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">დახურვა</string>
+
+    <string name="mjpeg_pref_value_on">ჩართულია</string>
+    <string name="mjpeg_pref_value_off">გამორთულია</string>
+    <string name="mjpeg_pref_value_automatic">ავტომატური</string>
+    <string name="mjpeg_pref_value_not_set">არ არის დაყენებული</string>
+    <string name="mjpeg_pref_value_unavailable">ჯერ მიუწვდომელია</string>
+    <string name="mjpeg_pref_default_option">%1$s (ნაგულისხმევი)</string>
+    <string name="mjpeg_pref_default_value">ნაგულისხმევი: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">ხელმისაწვდომია ეკრანის გადაღების სრულად შეწყვეტის შემდეგ</string>
+
+    <string name="mjpeg_pref_search_placeholder">პარამეტრების ძებნა</string>
+    <string name="mjpeg_pref_search_clear">ძიების გასუფთავება</string>
+    <string name="mjpeg_pref_search_no_results">პარამეტრები ვერ მოიძებნა</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">მობილური მონაცემები</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">სხვა</string>
+    <string name="mjpeg_network_loopback">Loopback</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">სტრიმის დაწყება</string>
+    <string name="mjpeg_stream_stop_capture">სტრიმის შეწყვეტა</string>
+    <string name="mjpeg_stream_skipped_frames_warning">კადრები გამოტოვებულია</string>
+    <string name="mjpeg_stream_stop_delayed">ეკრანის გაზიარება ჯერ კიდევ ითიშება…</string>
+    <string name="mjpeg_capture_error">ეკრანის გადაღება ვერ მოხერხდა</string>
+    <string name="mjpeg_error_suspension_invalid_request">გადაღება დროებით შეჩერებულია: სურათის პარამეტრები მიმდინარე გადაღების არეს არ შეესაბამება</string>
+    <string name="mjpeg_error_suspension_unavailable">გადაღება დროებით შეჩერებულია: გადაღების წყარო მიუწვდომელია</string>
+    <string name="mjpeg_error_suspension_resources">გადაღება დროებით შეჩერებულია: რესურსები არასაკმარისია</string>
+
+    <string name="mjpeg_address_list_title">სტრიმის მისამართები</string>
+    <string name="mjpeg_address_list_empty">სტრიმისთვის მისამართები მიუწვდომელია.\nშეამოწმეთ ქსელის ფილტრი კავშირის პარამეტრებში.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">ქსელი:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">მხოლოდ ეს მოწყობილობა</string>
+    <string name="mjpeg_address_private_ipv4">პირადი IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">არაპირადი IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">არაპირადი IPv6</string>
+
+    <string name="mjpeg_address_open">გახსნა</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">%1$s-ის გახსნა</string>
+    <string name="mjpeg_address_copy_url">ბმულის კოპირება</string>
+    <string name="mjpeg_address_copy_description">%1$s-ის ბმულის კოპირება</string>
+    <string name="mjpeg_address_share">გაზიარება</string>
+    <string name="mjpeg_address_share_description">%1$s-ის ბმულის გაზიარება</string>
+    <string name="mjpeg_address_qr_code">QR კოდის ჩვენება</string>
+    <string name="mjpeg_address_qr_code_description">%1$s-ის QR კოდის ჩვენება</string>
+    <string name="mjpeg_address_qr_image_description">სტრიმის ბმულის გასახსნელად დაასკანირეთ ეს კოდი</string>
+
+    <string name="mjpeg_address_error_browser_not_found">ვებბრაუზერი ვერ მოიძებნა</string>
+    <string name="mjpeg_address_error_open">ბმული ვერ გაიხსნა</string>
+    <string name="mjpeg_address_error_share">ბმულის გაზიარება ვერ მოხერხდა</string>
+    <string name="mjpeg_address_error_qr_generation">QR კოდის შექმნა ვერ მოხერხდა</string>
+
+    <string name="mjpeg_local_network_permission_request">ნებართვის მოთხოვნა</string>
+    <string name="mjpeg_local_network_permission_open_settings">პარამეტრების გახსნა</string>
+    <string name="mjpeg_local_network_permission_required">საჭიროა ლოკალური ქსელის ნებართვა</string>
+
+    <string name="mjpeg_server_pending">მოლოდინშია</string>
+    <string name="mjpeg_server_address_in_use">მისამართი დაკავებულია</string>
+    <string name="mjpeg_server_address_unavailable">მისამართი მიუწვდომელია</string>
+    <string name="mjpeg_server_permission_denied">ნებართვა უარყოფილია</string>
+    <string name="mjpeg_server_io_failure">სერვერი მიუწვდომელია</string>
+    <string name="mjpeg_server_unknown_failure">სერვერის შეცდომა</string>
+    <string name="mjpeg_server_retry">ხელახლა ცდა</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">%1$s-ის სერვერის ხელახლა ცდა</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN დამალულია</string>
+    <string name="mjpeg_pin_show_label">ჩვენება</string>
+    <string name="mjpeg_pin_show_description">PIN-ის ჩვენება</string>
+    <string name="mjpeg_pin_hide_label">დამალვა</string>
+    <string name="mjpeg_pin_hide_description">PIN-ის დამალვა</string>
+    <string name="mjpeg_stream_pin_copy">PIN-ის კოპირება</string>
+    <string name="mjpeg_stream_pin_copied">PIN დაკოპირდა</string>
+    <string name="mjpeg_stream_pin_hint_access">გახსენით სტრიმის ბმული ან დაასკანირეთ მისი QR კოდი.\nმოთხოვნისას შეიყვანეთ ეს PIN.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">სურათის პარამეტრები</string>
+    <string name="mjpeg_pref_image_save_error">სურათის პარამეტრების შენახვა ვერ მოხერხდა</string>
+
+    <string name="mjpeg_pref_image_region">გადაღების არე</string>
+    <string name="mjpeg_pref_image_region_summary">აირჩიეთ გადასაცემი არე</string>
+    <string name="mjpeg_pref_image_region_full">მთელი არე</string>
+    <string name="mjpeg_pref_image_region_left">მარცხენა ნახევარი</string>
+    <string name="mjpeg_pref_image_region_right">მარჯვენა ნახევარი</string>
+
+    <string name="mjpeg_pref_image_crop">მოჭრა</string>
+    <string name="mjpeg_pref_image_crop_summary">მოჭერით სურათის კიდეები</string>
+    <string name="mjpeg_pref_image_crop_purpose">შეიყვანეთ თითოეული კიდიდან მოსაჭრელი პიქსელების რაოდენობა</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">სურათის ნაწილი ხილული დატოვეთ. წინააღმდეგ შემთხვევაში ახალი კადრების გადაღება შეუძლებელი იქნება.</string>
+    <string name="mjpeg_pref_image_crop_enabled">მოჭრის ჩართვა</string>
+    <string name="mjpeg_pref_image_crop_left">მარცხნივ (px)</string>
+    <string name="mjpeg_pref_image_crop_top">ზემოთ (px)</string>
+    <string name="mjpeg_pref_image_crop_right">მარჯვნივ (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">ქვემოთ (px)</string>
+    <string name="mjpeg_pref_image_crop_error">შეიყვანეთ 0 ან მეტი მთელი რიცხვი</string>
+    <string name="mjpeg_pref_image_crop_required">შეიყვანეთ მნიშვნელობა</string>
+
+    <string name="mjpeg_pref_image_size">სურათის ზომა</string>
+    <string name="mjpeg_pref_image_size_summary">დააყენეთ მასშტაბი ან ზომები</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">სურათის გაჭიმვა</string>
+    <string name="mjpeg_pref_image_size_stretch_value">გაჭიმვა</string>
+    <string name="mjpeg_pref_image_size_fit_description">ეტევა სიგანისა და სიმაღლის ფარგლებში; ინარჩუნებს პროპორციებს</string>
+    <string name="mjpeg_pref_image_size_stretch_description">ზუსტი სიგანე და სიმაღლე; პროპორციები შეიძლება შეიცვალოს</string>
+    <string name="mjpeg_pref_image_size_estimate_note">შეფასება ეკრანის მიხედვით; გაზიარებული აპის ზომა შეიძლება განსხვავდებოდეს</string>
+    <string name="mjpeg_pref_image_size_source">ეკრანი: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">სურათის სავარაუდო ზომა: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">მიუწვდომელია</string>
+    <string name="mjpeg_pref_image_size_scale">მასშტაბი</string>
+    <string name="mjpeg_pref_image_size_target">ზომა</string>
+    <string name="mjpeg_pref_image_size_default">ნაგულისხმევი: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">მასშტაბი (0-ზე მეტი, 200%-მდე)</string>
+    <string name="mjpeg_pref_image_size_width_label">სიგანე (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">სიმაღლე (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">შეიყვანეთ 0-ზე მეტი და არაუმეტეს 200-ის რიცხვი</string>
+    <string name="mjpeg_pref_image_size_dimension_error">შეიყვანეთ მთელი რიცხვი 1-დან 8192-მდე</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">სურათის გადიდება დეტალებს არ ამატებს და შეიძლება სტრიმი შეანელოს</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">შემობრუნება</string>
+    <string name="mjpeg_pref_image_rotation_summary">დაატრიალეთ სურათი საათის ისრის მიმართულებით</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">სარკისებური ასახვა</string>
+    <string name="mjpeg_pref_image_mirror_summary">შეაბრუნეთ სურათი ჰორიზონტალურად ან ვერტიკალურად</string>
+    <string name="mjpeg_pref_image_mirror_none">არცერთი</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">ჰორიზონტალური</string>
+    <string name="mjpeg_pref_image_mirror_vertical">ვერტიკალური</string>
+
+    <string name="mjpeg_pref_image_grayscale">ნაცრისფერი ტონები</string>
+    <string name="mjpeg_pref_image_grayscale_summary">აჩვენეთ სურათი ნაცრისფერი ტონებით</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG ხარისხი</string>
+    <string name="mjpeg_pref_image_quality_summary">დააბალანსეთ დეტალები და მონაცემთა მოხმარება</string>
+    <string name="mjpeg_pref_image_quality_popup_description">უფრო მაღალი ხარისხი მეტ დეტალს აჩვენებს და მეტ მონაცემს მოიხმარს. ნაგულისხმევი: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">კადრების სიხშირე</string>
+    <string name="mjpeg_pref_image_rate_summary">დააყენეთ, რამდენად ხშირად განახლდება სურათი</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">ცდილობს კადრების მაქსიმალური სიხშირის შენარჩუნებას</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS-ის ზღვარი</string>
+    <string name="mjpeg_pref_image_rate_fps_description">ზღუდავს კადრებს წამში</string>
+    <string name="mjpeg_pref_image_rate_fps_value">არაუმეტეს %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">კადრი/წამი (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">შეიყვანეთ მთელი რიცხვი 1-დან 120-მდე</string>
+    <string name="mjpeg_pref_image_rate_fps_help">კადრების რეალური სიხშირე შეიძლება ზღვარზე დაბალი იყოს</string>
+
+    <string name="mjpeg_pref_image_rate_interval">ინტერვალი</string>
+    <string name="mjpeg_pref_image_rate_interval_description">გადაღების მინიმალურ ინტერვალს ადგენს</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s წმ</string>
+    <string name="mjpeg_pref_image_rate_interval_label">ინტერვალი (1–3600 წამი)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">შეიყვანეთ ინტერვალი 1-დან 3600 წამამდე</string>
+    <string name="mjpeg_pref_image_rate_interval_help">ინტერვალი ზღუდავს ახალი კადრების გადაღების სიხშირეს</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG კოდერი</string>
+    <string name="mjpeg_pref_image_encoder_summary">აირჩიეთ JPEG სურათების შექმნის მეთოდი</string>
+    <string name="mjpeg_pref_image_encoder_standard">სტანდარტული</string>
+    <string name="mjpeg_pref_image_encoder_locked">ხელმისაწვდომია ეკრანის გაზიარების სრულად შეწყვეტის შემდეგ</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">ოპტიმიზებული კოდირება, თუ ხელმისაწვდომია</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">თიშავს კოდირების ოპტიმიზაციას</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">ავტომატიზაციის პარამეტრები</string>
+    <string name="mjpeg_pref_automation_save_error">ავტომატიზაციის პარამეტრების შენახვა ვერ მოხერხდა</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">მისამართების დაკარგვის შემდეგ სტრიმის შეწყვეტა</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">სტრიმის შეწყვეტა, როცა არჩეული მისამართები აღარ რჩება</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">%1$d წმ-ის შემდეგ</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">დაყოვნება (10–1800 წამი)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">ნაგულისხმევი: %1$s წამი</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">შეიყვანეთ მთელი რიცხვი 10-დან 1800-მდე</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">მისამართების დაბრუნება ტაიმერს აუქმებს</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">არააქტიური სტრიმის სურათი</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">სურათი, რომელიც პირდაპირი გამოსახულების მიუწვდომლობისას ჩანს</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">აპის ლოგო</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">ბოლო კადრი</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">ეკრანის ჩართულად შენარჩუნება</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">შეძლებისდაგვარად შეინარჩუნეთ ეკრანი ჩართული გადაღებისას</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">შეწყვეტა ეკრანის გამორთვისას</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">სტრიმის შეწყვეტა ეკრანის გამორთვისას</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">გამოტოვებული კადრების შესახებ გაფრთხილება</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">ზოგიერთმა მოწყობილობამ შეიძლება ნაკლები სურათი მიიღოს</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">კავშირის პარამეტრები</string>
+    <string name="mjpeg_pref_connection_save_error">ქსელის პარამეტრების შენახვა ვერ მოხერხდა</string>
+
+    <string name="mjpeg_pref_connection_filter">ქსელის ფილტრი</string>
+    <string name="mjpeg_pref_connection_filter_summary">აირჩიეთ სტრიმის ქსელური მისამართები</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP ვერსია</string>
+    <string name="mjpeg_pref_connection_filter_network_type">ქსელის ტიპი</string>
+    <string name="mjpeg_pref_connection_filter_address_type">მისამართის ტიპი</string>
+    <string name="mjpeg_pref_connection_filter_private">პირადი</string>
+    <string name="mjpeg_pref_connection_filter_non_private">არაპირადი</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">თითოეულ ჯგუფში მინიმუმ ერთი ვარიანტი აირჩიეთ</string>
+    <string name="mjpeg_pref_connection_filter_default">ნაგულისხმევი: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">მისამართები სამივე ჯგუფს უნდა შეესაბამებოდეს. ცვლილებებმა შეიძლება მაყურებლები გათიშოს.</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP პორტი</string>
+    <string name="mjpeg_pref_connection_http_port_summary">დააყენეთ პორტი, რომელსაც მაყურებლები დასაკავშირებლად იყენებენ</string>
+    <string name="mjpeg_pref_connection_http_port_label">პორტი (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">შეიყვანეთ მთელი რიცხვი 1024-დან 65535-მდე</string>
+    <string name="mjpeg_pref_connection_http_port_help">პორტის შეცვლა სტრიმის მისამართებს განაახლებს</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">ვებგვერდის პარამეტრები</string>
+    <string name="mjpeg_pref_web_save_error">ვებგვერდის პარამეტრების შენახვა ვერ მოხერხდა</string>
+
+    <string name="mjpeg_pref_web_background">ფონი</string>
+    <string name="mjpeg_pref_web_background_summary">აირჩიეთ ვებგვერდის ფონის ფერი</string>
+    <string name="mjpeg_pref_web_background_hex_label">თექვსმეტობითი ფერი</string>
+    <string name="mjpeg_pref_web_background_hex_error">გამოიყენეთ 6 სიმბოლო: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">წითელი</string>
+    <string name="mjpeg_pref_web_background_green">მწვანე</string>
+    <string name="mjpeg_pref_web_background_blue">ლურჯი</string>
+    <string name="mjpeg_pref_web_background_palette">მზა ფერები</string>
+    <string name="mjpeg_pref_web_background_color_option">ფერი %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">არჩეული ფერი %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">სტრიმის სახელი</string>
+    <string name="mjpeg_pref_web_stream_name_summary">დააყენეთ მაყურებლებისთვის ნაჩვენები სახელი</string>
+    <string name="mjpeg_pref_web_stream_name_label">სტრიმის სახელი (მაქსიმუმ 64 სიმბოლო)</string>
+    <string name="mjpeg_pref_web_stream_name_error">გამოიყენეთ არაუმეტეს %1$d სიმბოლო</string>
+    <string name="mjpeg_pref_web_stream_name_help">გამოიყენება ბრაუზერის ჩანართის სათაურად და სტრიმის წარწერად</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">სტრიმის სახელის ჩვენება</string>
+    <string name="mjpeg_pref_web_stream_name_empty">სახელის გარეშე</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">სტრიმის სახელის განლაგება</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">აირჩიეთ, სად და როგორ გამოჩნდება სახელი</string>
+
+    <string name="mjpeg_pref_web_controls_placement">მართვის ელემენტების განლაგება</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">აირჩიეთ, სად და როგორ გამოჩნდება მართვის ელემენტები</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">მდებარეობა</string>
+    <string name="mjpeg_pref_web_position_top">ზემოთ</string>
+    <string name="mjpeg_pref_web_position_bottom">ქვემოთ</string>
+    <string name="mjpeg_pref_web_presentation">ჩვენების ფორმა</string>
+    <string name="mjpeg_pref_web_presentation_overlay">სურათზე</string>
+    <string name="mjpeg_pref_web_presentation_bar">ცალკე ზოლი</string>
+    <string name="mjpeg_pref_web_auto_hide_on">ავტომატურად დამალვა</string>
+    <string name="mjpeg_pref_web_auto_hide_off">ყოველთვის ხილული</string>
+    <string name="mjpeg_pref_web_auto_hide_help">დამალვა 4 წამის უმოქმედობის შემდეგ</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">წვდომის პარამეტრები</string>
+    <string name="mjpeg_pref_access_save_error">წვდომის პარამეტრების შენახვა ვერ მოხერხდა</string>
+
+    <string name="mjpeg_pref_access_protection">PIN-ით დაცვა</string>
+    <string name="mjpeg_pref_access_protection_summary">სტრიმის საყურებლად PIN-ის ან წვდომის ბმულის მოთხოვნა</string>
+    <string name="mjpeg_pref_access_protection_default">ნაგულისხმევი: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PIN-ის წესი</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">ახალი PIN გახსნისას</string>
+    <string name="mjpeg_pref_access_policy_permanent">მუდმივი PIN</string>
+    <string name="mjpeg_pref_access_policy_help">როდესაც არჩეულია „ახალი PIN გახსნისას“ და დაცვა ჩართულია, PIN იქმნება MJPEG რეჟიმის ყოველი გახსნისას. გადაღების დაწყება მას არ ცვლის.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">სტრიმზე წვდომისთვის შენახული PIN</string>
+    <string name="mjpeg_pref_access_pin_unavailable">შენახული PIN არ არის</string>
+    <string name="mjpeg_pref_access_pin_label">PIN (6 ციფრი)</string>
+    <string name="mjpeg_pref_access_pin_error">შეიყვანეთ ექვსი ციფრი (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">ახალი PIN-ის შექმნა</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">საკუთარი PIN-ის შესაყვანად აირჩიეთ „მუდმივი PIN“</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">PIN-ის მცდელობების შეზღუდვა</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">ხუთი არასწორი მცდელობის შემდეგ PIN-ით შესვლის დროებით შეჩერება</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">წუთი: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">დაბლოკვის ხანგრძლივობა (1–60 წუთი)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">ნაგულისხმევი: %1$s · %2$s წთ</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">შეიყვანეთ მთელი რიცხვი 1-დან 60-მდე</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">ბლოკავს ამ IP-დან PIN-ის ახალ მცდელობებს. უკვე დაკავშირებული მაყურებლები კავშირს ინარჩუნებენ.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">სტრიმის დაწყებისას PIN-ის დამალვა</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">შეგიძლიათ PIN ხელახლა აჩვენოთ</string>
+</resources>

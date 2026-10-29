@@ -4,10 +4,10 @@
     <string name="app_error_recover">恢复</string>
 
     <string name="app_module_error_title">出了点问题</string>
-    <string name="app_module_error_restart">重启模块</string>
+    <string name="app_module_error_restart">重启模式</string>
 
     <string name="app_activity_update_dialog_title">有新版本</string>
-    <string name="app_activity_update_dialog_message">更新已下载完毕，是否现在重启应用？</string>
+    <string name="app_activity_update_dialog_message">更新已就绪。现在重启应用？</string>
     <string name="app_activity_update_dialog_restart">重启应用</string>
 
     <string name="app_tab_stream">串流</string>
@@ -16,13 +16,14 @@
     <string name="app_tab_exit">退出</string>
 
     <string name="app_tab_stream_select_mode">选择串流模式：</string>
-    <string name="app_tab_stream_switching_modules">正在切换模块</string>
+    <string name="app_tab_stream_switching_modules">正在切换模式…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">暂时不要</string>
     <string name="app_permission_open_settings">打开设置</string>
 
     <string name="app_permission_notifications_title">允许通知</string>
-    <string name="app_permission_notifications_message">通知会显示串流状态和错误提醒。 您可以通过通知停止串流或重新打开 ScreenStream。</string>
+    <string name="app_permission_notifications_message">通知会显示串流状态和错误提醒。您可以通过通知停止串流或重新打开 ScreenStream。</string>
 
     <string name="app_permission_local_network_title">本地网络访问</string>
     <string name="app_permission_local_network_message">允许 ScreenStream 使用您的本地网络，向同一网络上的其他设备串流。\n\nAndroid 将此权限描述为访问“附近的设备”，并可能提及确定这些设备的相对位置。</string>
@@ -36,16 +37,17 @@
 
     <string name="app_permission_audio_title">麦克风和设备音频</string>
     <string name="app_permission_audio_message">允许访问麦克风，以串流麦克风和设备音频。\n\n只有在 Android 和播放音频的应用允许共享时，才能串流设备音频。</string>
-    <string name="app_permission_audio_settings_message">请在应用设置中启用麦克风权限，以串流麦克风或内部音频。\n\n没有该权限，串流将没有声音。</string>
+    <string name="app_permission_audio_settings_message">请在应用设置中允许访问麦克风，以串流麦克风或设备音频。\n\n没有此权限，就无法串流音频。</string>
 
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">错误通知</string>
     <string name="app_notification_waiting_content">点按以打开应用</string>
     <string name="app_notification_streaming_title">串流中…</string>
-    <string name="app_notification_streaming_content">点按停止以结束串流</string>
+    <string name="app_notification_streaming_content">点按“停止”以结束串流</string>
     <string name="app_notification_stop">停止</string>
 
-    <string name="app_tile_start">开始</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">打开 ScreenStream</string>
     <string name="app_tile_stop">停止</string>
 
     <string name="app_pref_back">返回</string>
@@ -54,27 +56,28 @@
     <string name="app_pref_locale_summary">打开应用语言设置</string>
     <string name="app_pref_locale_default">系统默认</string>
     <string name="app_pref_night_mode">深色主题</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>始终</item>
-        <item>由节电器设置</item>
+        <item>根据省电模式设置</item>
         <item>从不</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>始终</item>
-        <item>自动（跟随系统）</item>
+        <item>跟随系统</item>
         <item>从不</item>
     </string-array>
     <string name="app_pref_dynamic_theme">动态颜色</string>
     <string name="app_pref_dynamic_theme_summary">根据您的壁纸颜色调整外观</string>
-    <string name="app_pref_notification">设备通知设置</string>
-    <string name="app_pref_notification_summary">打开系统通知设置</string>
-    <string name="app_pref_tile">添加应用快捷设置图块</string>
-    <string name="app_pref_tile_summary">将应用快捷设置图块添加到快速设置</string>
+    <string name="app_pref_notification">应用通知</string>
+    <string name="app_pref_notification_summary">在系统设置中管理通知</string>
+    <string name="app_pref_tile">添加快捷设置图块</string>
+    <string name="app_pref_tile_summary">将 ScreenStream 添加到快捷设置</string>
 
     <string name="app_tab_about_app_version">版本：%1$s</string>
     <string name="app_tab_about_developer_name">开发者：Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">评价应用</string>
-    <string name="app_tab_about_app_sources">应用源代码</string>
+    <string name="app_tab_about_app_sources">源代码</string>
     <string name="app_tab_about_terms_conditions">条款和条件</string>
     <string name="app_tab_about_privacy_policy">隐私政策</string>
     <string name="app_tab_about_privacy_options">隐私选项</string>

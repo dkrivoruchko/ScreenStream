@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">局域网模式 · MJPEG</string>
+    <string name="mjpeg_mode_description">关于 MJPEG</string>
+    <string name="mjpeg_mode_details">将设备屏幕以 JPEG 图片直接传输到网页浏览器，不传输音频。\n\n• 可在无互联网的局域网中使用。观看者必须能够访问串流地址。\n• PIN 码保护为可选功能。启用后，观看者可以输入 PIN 码或使用访问链接。\n• 串流使用未加密的 HTTP，请使用可信网络。\n• 网络过滤器提供 Wi-Fi、Ethernet、移动数据、VPN、IPv4 和 IPv6 选项。\n• 可调整图片大小、JPEG 质量和帧率。\n• 图片会分别发送给每位观看者，因此会增加流量消耗。</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">关闭</string>
+
+    <string name="mjpeg_pref_value_on">开启</string>
+    <string name="mjpeg_pref_value_off">关闭</string>
+    <string name="mjpeg_pref_value_automatic">自动</string>
+    <string name="mjpeg_pref_value_not_set">未设置</string>
+    <string name="mjpeg_pref_value_unavailable">暂不可用</string>
+    <string name="mjpeg_pref_default_option">%1$s（默认）</string>
+    <string name="mjpeg_pref_default_value">默认：%1$s</string>
+    <string name="mjpeg_pref_setup_locked">屏幕采集完全停止后可用</string>
+
+    <string name="mjpeg_pref_search_placeholder">搜索设置</string>
+    <string name="mjpeg_pref_search_clear">清除搜索</string>
+    <string name="mjpeg_pref_search_no_results">未找到设置</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">移动数据</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">其他</string>
+    <string name="mjpeg_network_loopback">回环</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">开始串流</string>
+    <string name="mjpeg_stream_stop_capture">停止串流</string>
+    <string name="mjpeg_stream_skipped_frames_warning">已跳过帧</string>
+    <string name="mjpeg_stream_stop_delayed">仍在停止屏幕共享…</string>
+    <string name="mjpeg_capture_error">屏幕采集失败</string>
+    <string name="mjpeg_error_suspension_invalid_request">采集已暂停：图片设置不适用于当前采集区域</string>
+    <string name="mjpeg_error_suspension_unavailable">采集已暂停：采集来源不可用</string>
+    <string name="mjpeg_error_suspension_resources">采集已暂停：资源不足</string>
+
+    <string name="mjpeg_address_list_title">串流地址</string>
+    <string name="mjpeg_address_list_empty">没有可用于串流的地址。\n请检查连接设置中的网络过滤器。</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">网络：\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">仅限此设备</string>
+    <string name="mjpeg_address_private_ipv4">私有 IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">非私有 IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">非私有 IPv6</string>
+
+    <string name="mjpeg_address_open">打开</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">打开 %1$s</string>
+    <string name="mjpeg_address_copy_url">复制链接</string>
+    <string name="mjpeg_address_copy_description">复制 %1$s 的链接</string>
+    <string name="mjpeg_address_share">分享</string>
+    <string name="mjpeg_address_share_description">分享 %1$s 的链接</string>
+    <string name="mjpeg_address_qr_code">显示二维码</string>
+    <string name="mjpeg_address_qr_code_description">显示 %1$s 的二维码</string>
+    <string name="mjpeg_address_qr_image_description">扫描此码以打开串流链接</string>
+
+    <string name="mjpeg_address_error_browser_not_found">未找到网页浏览器</string>
+    <string name="mjpeg_address_error_open">无法打开链接</string>
+    <string name="mjpeg_address_error_share">无法分享链接</string>
+    <string name="mjpeg_address_error_qr_generation">无法生成二维码</string>
+
+    <string name="mjpeg_local_network_permission_request">请求权限</string>
+    <string name="mjpeg_local_network_permission_open_settings">打开设置</string>
+    <string name="mjpeg_local_network_permission_required">需要局域网权限</string>
+
+    <string name="mjpeg_server_pending">等待中</string>
+    <string name="mjpeg_server_address_in_use">地址已被占用</string>
+    <string name="mjpeg_server_address_unavailable">地址不可用</string>
+    <string name="mjpeg_server_permission_denied">权限被拒绝</string>
+    <string name="mjpeg_server_io_failure">服务器不可用</string>
+    <string name="mjpeg_server_unknown_failure">服务器出错</string>
+    <string name="mjpeg_server_retry">重试</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">重试位于 %1$s 的服务器</string>
+
+    <string name="mjpeg_stream_pin_label">PIN 码：</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN 码已隐藏</string>
+    <string name="mjpeg_pin_show_label">显示</string>
+    <string name="mjpeg_pin_show_description">显示 PIN 码</string>
+    <string name="mjpeg_pin_hide_label">隐藏</string>
+    <string name="mjpeg_pin_hide_description">隐藏 PIN 码</string>
+    <string name="mjpeg_stream_pin_copy">复制 PIN 码</string>
+    <string name="mjpeg_stream_pin_copied">已复制 PIN 码</string>
+    <string name="mjpeg_stream_pin_hint_access">打开串流链接或扫描其二维码。\n如有提示，请输入此 PIN 码。</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">图片设置</string>
+    <string name="mjpeg_pref_image_save_error">无法保存图片设置</string>
+
+    <string name="mjpeg_pref_image_region">采集区域</string>
+    <string name="mjpeg_pref_image_region_summary">选择串流区域</string>
+    <string name="mjpeg_pref_image_region_full">完整区域</string>
+    <string name="mjpeg_pref_image_region_left">左半部分</string>
+    <string name="mjpeg_pref_image_region_right">右半部分</string>
+
+    <string name="mjpeg_pref_image_crop">裁剪</string>
+    <string name="mjpeg_pref_image_crop_summary">裁剪图片边缘</string>
+    <string name="mjpeg_pref_image_crop_purpose">输入要从各边移除的像素数</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">请保留部分可见图片，否则无法采集新帧。</string>
+    <string name="mjpeg_pref_image_crop_enabled">启用裁剪</string>
+    <string name="mjpeg_pref_image_crop_left">左侧（px）</string>
+    <string name="mjpeg_pref_image_crop_top">顶部（px）</string>
+    <string name="mjpeg_pref_image_crop_right">右侧（px）</string>
+    <string name="mjpeg_pref_image_crop_bottom">底部（px）</string>
+    <string name="mjpeg_pref_image_crop_error">请输入大于或等于 0 的整数</string>
+    <string name="mjpeg_pref_image_crop_required">请输入数值</string>
+
+    <string name="mjpeg_pref_image_size">图片大小</string>
+    <string name="mjpeg_pref_image_size_summary">设置缩放比例或尺寸</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">拉伸图片</string>
+    <string name="mjpeg_pref_image_size_stretch_value">拉伸</string>
+    <string name="mjpeg_pref_image_size_fit_description">适应宽高限制，保持比例</string>
+    <string name="mjpeg_pref_image_size_stretch_description">使用指定宽高，比例可能改变</string>
+    <string name="mjpeg_pref_image_size_estimate_note">根据屏幕估算；共享应用的大小可能不同</string>
+    <string name="mjpeg_pref_image_size_source">屏幕：%1$s</string>
+    <string name="mjpeg_pref_image_size_result">预计图片大小：%1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">不可用</string>
+    <string name="mjpeg_pref_image_size_scale">缩放比例</string>
+    <string name="mjpeg_pref_image_size_target">大小</string>
+    <string name="mjpeg_pref_image_size_default">默认：%1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">缩放比例（大于 0，最高 200%）</string>
+    <string name="mjpeg_pref_image_size_width_label">宽度（1–8192 px）</string>
+    <string name="mjpeg_pref_image_size_height_label">高度（1–8192 px）</string>
+    <string name="mjpeg_pref_image_size_scale_error">请输入大于 0 且不超过 200 的数值</string>
+    <string name="mjpeg_pref_image_size_dimension_error">请输入 1 到 8192 的整数</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">放大图片不会增加细节，并可能降低串流速度</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">旋转</string>
+    <string name="mjpeg_pref_image_rotation_summary">顺时针旋转图片</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">镜像</string>
+    <string name="mjpeg_pref_image_mirror_summary">水平或垂直翻转图片</string>
+    <string name="mjpeg_pref_image_mirror_none">无</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">水平</string>
+    <string name="mjpeg_pref_image_mirror_vertical">垂直</string>
+
+    <string name="mjpeg_pref_image_grayscale">灰度</string>
+    <string name="mjpeg_pref_image_grayscale_summary">以灰度显示图片</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG 质量</string>
+    <string name="mjpeg_pref_image_quality_summary">平衡细节与流量消耗</string>
+    <string name="mjpeg_pref_image_quality_popup_description">质量越高，细节越多，流量消耗也越大。默认：%1$s。</string>
+
+    <string name="mjpeg_pref_image_rate">帧率</string>
+    <string name="mjpeg_pref_image_rate_summary">设置图片更新频率</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">尝试保持最高帧率</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS 上限</string>
+    <string name="mjpeg_pref_image_rate_fps_description">限制每秒帧数</string>
+    <string name="mjpeg_pref_image_rate_fps_value">最高 %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">每秒帧数（1–120）</string>
+    <string name="mjpeg_pref_image_rate_fps_error">请输入 1 到 120 的整数</string>
+    <string name="mjpeg_pref_image_rate_fps_help">实际帧率可能低于上限</string>
+
+    <string name="mjpeg_pref_image_rate_interval">间隔</string>
+    <string name="mjpeg_pref_image_rate_interval_description">设置最短采集间隔</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s 秒</string>
+    <string name="mjpeg_pref_image_rate_interval_label">间隔（1–3600 秒）</string>
+    <string name="mjpeg_pref_image_rate_interval_error">请输入 1 到 3600 秒的间隔</string>
+    <string name="mjpeg_pref_image_rate_interval_help">间隔会限制新帧的采集频率</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG 编码器</string>
+    <string name="mjpeg_pref_image_encoder_summary">选择 JPEG 图片的生成方式</string>
+    <string name="mjpeg_pref_image_encoder_standard">标准</string>
+    <string name="mjpeg_pref_image_encoder_locked">屏幕共享完全停止后可用</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">可用时采用优化编码</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">停用编码优化</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">自动化设置</string>
+    <string name="mjpeg_pref_automation_save_error">无法保存自动化设置</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">地址丢失后停止串流</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">没有任何所选地址时停止串流</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">%1$d 秒后</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">延迟（10–1800 秒）</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">默认：%1$s 秒</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">请输入 10 到 1800 的整数</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">地址恢复后将取消计时器</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">串流未运行时的图片</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">实时图片不可用时显示的图片</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">应用标志</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">最后一帧</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">保持屏幕常亮</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">采集期间尽可能保持屏幕常亮</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">屏幕关闭时停止</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">屏幕关闭时停止串流</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">提醒跳过帧</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">部分设备收到的图片可能较少</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">连接设置</string>
+    <string name="mjpeg_pref_connection_save_error">无法保存网络设置</string>
+
+    <string name="mjpeg_pref_connection_filter">网络过滤器</string>
+    <string name="mjpeg_pref_connection_filter_summary">选择用于串流的网络地址</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP 版本</string>
+    <string name="mjpeg_pref_connection_filter_network_type">网络类型</string>
+    <string name="mjpeg_pref_connection_filter_address_type">地址类型</string>
+    <string name="mjpeg_pref_connection_filter_private">私有</string>
+    <string name="mjpeg_pref_connection_filter_non_private">非私有</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">每组至少选择一个选项</string>
+    <string name="mjpeg_pref_connection_filter_default">默认：%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">地址必须符合全部三个组。更改可能会断开观看者的连接。</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP 端口</string>
+    <string name="mjpeg_pref_connection_http_port_summary">设置观看者连接时使用的端口</string>
+    <string name="mjpeg_pref_connection_http_port_label">端口（1024–65535）</string>
+    <string name="mjpeg_pref_connection_http_port_error">请输入 1024 到 65535 的整数</string>
+    <string name="mjpeg_pref_connection_http_port_help">更改端口会更新串流地址</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">网页设置</string>
+    <string name="mjpeg_pref_web_save_error">无法保存网页设置</string>
+
+    <string name="mjpeg_pref_web_background">背景</string>
+    <string name="mjpeg_pref_web_background_summary">选择网页背景颜色</string>
+    <string name="mjpeg_pref_web_background_hex_label">十六进制颜色</string>
+    <string name="mjpeg_pref_web_background_hex_error">请使用 6 个字符：0–9、A–F</string>
+    <string name="mjpeg_pref_web_background_red">红色</string>
+    <string name="mjpeg_pref_web_background_green">绿色</string>
+    <string name="mjpeg_pref_web_background_blue">蓝色</string>
+    <string name="mjpeg_pref_web_background_palette">预设颜色</string>
+    <string name="mjpeg_pref_web_background_color_option">颜色 %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">所选颜色 %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">串流名称</string>
+    <string name="mjpeg_pref_web_stream_name_summary">设置观看者看到的名称</string>
+    <string name="mjpeg_pref_web_stream_name_label">串流名称（最多 64 个字符）</string>
+    <string name="mjpeg_pref_web_stream_name_error">请勿超过 %1$d 个字符</string>
+    <string name="mjpeg_pref_web_stream_name_help">用作浏览器标签页标题和串流标签</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">显示串流名称</string>
+    <string name="mjpeg_pref_web_stream_name_empty">未命名</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">串流名称位置</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">选择名称的显示位置和方式</string>
+
+    <string name="mjpeg_pref_web_controls_placement">控件位置</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">选择控件的显示位置和方式</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">位置</string>
+    <string name="mjpeg_pref_web_position_top">顶部</string>
+    <string name="mjpeg_pref_web_position_bottom">底部</string>
+    <string name="mjpeg_pref_web_presentation">显示方式</string>
+    <string name="mjpeg_pref_web_presentation_overlay">覆盖在图片上</string>
+    <string name="mjpeg_pref_web_presentation_bar">独立栏</string>
+    <string name="mjpeg_pref_web_auto_hide_on">自动隐藏</string>
+    <string name="mjpeg_pref_web_auto_hide_off">始终显示</string>
+    <string name="mjpeg_pref_web_auto_hide_help">无操作 4 秒后隐藏</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">访问设置</string>
+    <string name="mjpeg_pref_access_save_error">无法保存访问设置</string>
+
+    <string name="mjpeg_pref_access_protection">PIN 码保护</string>
+    <string name="mjpeg_pref_access_protection_summary">要求输入 PIN 码或使用访问链接才能观看串流</string>
+    <string name="mjpeg_pref_access_protection_default">默认：%1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PIN 码规则</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">打开时生成新 PIN 码</string>
+    <string name="mjpeg_pref_access_policy_permanent">固定 PIN 码</string>
+    <string name="mjpeg_pref_access_policy_help">选择“打开时生成新 PIN 码”并启用保护后，每次打开 MJPEG 模式都会生成 PIN 码。开始采集不会更改 PIN 码。</string>
+
+    <string name="mjpeg_pref_access_pin">PIN 码</string>
+    <string name="mjpeg_pref_access_pin_summary">用于访问串流的已保存 PIN 码</string>
+    <string name="mjpeg_pref_access_pin_unavailable">无已保存的 PIN 码</string>
+    <string name="mjpeg_pref_access_pin_label">PIN 码（6 位数字）</string>
+    <string name="mjpeg_pref_access_pin_error">请输入六位数字（0–9）</string>
+    <string name="mjpeg_pref_access_pin_regenerate">生成新 PIN 码</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">选择“固定 PIN 码”即可输入自定义 PIN 码</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">限制 PIN 码尝试次数</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">输入错误五次后暂停 PIN 码登录</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">分钟：%1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">封锁时间（1–60 分钟）</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">默认：%1$s · %2$s 分钟</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">请输入 1 到 60 的整数</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">阻止该 IP 的新 PIN 码尝试。已连接的观看者保持连接。</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">开始串流时隐藏 PIN 码</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">可再次显示 PIN 码</string>
+</resources>

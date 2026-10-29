@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">Mode lokal · MJPEG</string>
+    <string name="mjpeg_mode_description">Tentang MJPEG</string>
+    <string name="mjpeg_mode_details">Streaming layar perangkat langsung ke browser sebagai gambar JPEG. Audio tidak disiarkan.\n\n• Berfungsi di jaringan lokal tanpa internet. Penonton harus dapat mengakses alamat streaming.\n• Perlindungan PIN bersifat opsional. Jika diaktifkan, penonton dapat memasukkan PIN atau menggunakan link akses.\n• Streaming menggunakan HTTP tanpa enkripsi. Gunakan jaringan tepercaya.\n• Filter jaringan menyediakan opsi Wi-Fi, Ethernet, data seluler, VPN, IPv4, dan IPv6.\n• Sesuaikan ukuran gambar, kualitas JPEG, dan frekuensi frame.\n• Gambar dikirim secara terpisah ke setiap penonton sehingga penggunaan data meningkat.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">Tutup</string>
+
+    <string name="mjpeg_pref_value_on">Aktif</string>
+    <string name="mjpeg_pref_value_off">Nonaktif</string>
+    <string name="mjpeg_pref_value_automatic">Otomatis</string>
+    <string name="mjpeg_pref_value_not_set">Belum disetel</string>
+    <string name="mjpeg_pref_value_unavailable">Belum tersedia</string>
+    <string name="mjpeg_pref_default_option">%1$s (default)</string>
+    <string name="mjpeg_pref_default_value">Default: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">Tersedia setelah perekaman layar benar-benar berhenti</string>
+
+    <string name="mjpeg_pref_search_placeholder">Cari setelan</string>
+    <string name="mjpeg_pref_search_clear">Hapus pencarian</string>
+    <string name="mjpeg_pref_search_no_results">Setelan tidak ditemukan</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">Data seluler</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">Lainnya</string>
+    <string name="mjpeg_network_loopback">Loopback</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">Mulai streaming</string>
+    <string name="mjpeg_stream_stop_capture">Hentikan streaming</string>
+    <string name="mjpeg_stream_skipped_frames_warning">Frame terlewati</string>
+    <string name="mjpeg_stream_stop_delayed">Masih menghentikan berbagi layar…</string>
+    <string name="mjpeg_capture_error">Perekaman layar gagal</string>
+    <string name="mjpeg_error_suspension_invalid_request">Perekaman dijeda: setelan gambar tidak sesuai dengan area perekaman saat ini</string>
+    <string name="mjpeg_error_suspension_unavailable">Perekaman dijeda: sumber perekaman tidak tersedia</string>
+    <string name="mjpeg_error_suspension_resources">Perekaman dijeda: sumber daya tidak memadai</string>
+
+    <string name="mjpeg_address_list_title">Alamat streaming</string>
+    <string name="mjpeg_address_list_empty">Tidak ada alamat yang tersedia untuk streaming.\nPeriksa filter jaringan di Setelan koneksi.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">Jaringan:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">Hanya perangkat ini</string>
+    <string name="mjpeg_address_private_ipv4">IPv4 privat</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">IPv4 nonprivat</string>
+    <string name="mjpeg_address_non_private_ipv6">IPv6 nonprivat</string>
+
+    <string name="mjpeg_address_open">Buka</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">Buka %1$s</string>
+    <string name="mjpeg_address_copy_url">Salin link</string>
+    <string name="mjpeg_address_copy_description">Salin link untuk %1$s</string>
+    <string name="mjpeg_address_share">Bagikan</string>
+    <string name="mjpeg_address_share_description">Bagikan link untuk %1$s</string>
+    <string name="mjpeg_address_qr_code">Tampilkan kode QR</string>
+    <string name="mjpeg_address_qr_code_description">Tampilkan kode QR untuk %1$s</string>
+    <string name="mjpeg_address_qr_image_description">Pindai kode ini untuk membuka link streaming</string>
+
+    <string name="mjpeg_address_error_browser_not_found">Browser tidak ditemukan</string>
+    <string name="mjpeg_address_error_open">Tidak dapat membuka link</string>
+    <string name="mjpeg_address_error_share">Tidak dapat membagikan link</string>
+    <string name="mjpeg_address_error_qr_generation">Tidak dapat membuat kode QR</string>
+
+    <string name="mjpeg_local_network_permission_request">Minta izin</string>
+    <string name="mjpeg_local_network_permission_open_settings">Buka setelan</string>
+    <string name="mjpeg_local_network_permission_required">Izin jaringan lokal diperlukan</string>
+
+    <string name="mjpeg_server_pending">Menunggu</string>
+    <string name="mjpeg_server_address_in_use">Alamat sedang digunakan</string>
+    <string name="mjpeg_server_address_unavailable">Alamat tidak tersedia</string>
+    <string name="mjpeg_server_permission_denied">Izin ditolak</string>
+    <string name="mjpeg_server_io_failure">Server tidak tersedia</string>
+    <string name="mjpeg_server_unknown_failure">Server mengalami error</string>
+    <string name="mjpeg_server_retry">Coba lagi</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">Coba lagi server di %1$s</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN disembunyikan</string>
+    <string name="mjpeg_pin_show_label">Tampilkan</string>
+    <string name="mjpeg_pin_show_description">Tampilkan PIN</string>
+    <string name="mjpeg_pin_hide_label">Sembunyikan</string>
+    <string name="mjpeg_pin_hide_description">Sembunyikan PIN</string>
+    <string name="mjpeg_stream_pin_copy">Salin PIN</string>
+    <string name="mjpeg_stream_pin_copied">PIN disalin</string>
+    <string name="mjpeg_stream_pin_hint_access">Buka link streaming atau pindai kode QR-nya.\nMasukkan PIN ini jika diminta.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">Setelan gambar</string>
+    <string name="mjpeg_pref_image_save_error">Tidak dapat menyimpan setelan gambar</string>
+
+    <string name="mjpeg_pref_image_region">Area perekaman</string>
+    <string name="mjpeg_pref_image_region_summary">Pilih area untuk di-streaming</string>
+    <string name="mjpeg_pref_image_region_full">Seluruh area</string>
+    <string name="mjpeg_pref_image_region_left">Separuh kiri</string>
+    <string name="mjpeg_pref_image_region_right">Separuh kanan</string>
+
+    <string name="mjpeg_pref_image_crop">Pangkas</string>
+    <string name="mjpeg_pref_image_crop_summary">Pangkas tepi gambar</string>
+    <string name="mjpeg_pref_image_crop_purpose">Masukkan jumlah piksel yang akan dihapus dari setiap tepi</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">Sisakan sebagian gambar agar tetap terlihat. Jika tidak, frame baru tidak dapat direkam.</string>
+    <string name="mjpeg_pref_image_crop_enabled">Aktifkan pemangkasan</string>
+    <string name="mjpeg_pref_image_crop_left">Kiri (px)</string>
+    <string name="mjpeg_pref_image_crop_top">Atas (px)</string>
+    <string name="mjpeg_pref_image_crop_right">Kanan (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">Bawah (px)</string>
+    <string name="mjpeg_pref_image_crop_error">Masukkan bilangan bulat 0 atau lebih</string>
+    <string name="mjpeg_pref_image_crop_required">Masukkan nilai</string>
+
+    <string name="mjpeg_pref_image_size">Ukuran gambar</string>
+    <string name="mjpeg_pref_image_size_summary">Setel skala atau dimensi</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">Regangkan gambar</string>
+    <string name="mjpeg_pref_image_size_stretch_value">Regangkan</string>
+    <string name="mjpeg_pref_image_size_fit_description">Pas dalam batas lebar dan tinggi; proporsi tetap</string>
+    <string name="mjpeg_pref_image_size_stretch_description">Lebar dan tinggi tepat; proporsi dapat berubah</string>
+    <string name="mjpeg_pref_image_size_estimate_note">Perkiraan berdasarkan layar; ukuran aplikasi yang dibagikan dapat berbeda</string>
+    <string name="mjpeg_pref_image_size_source">Layar: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">Perkiraan ukuran gambar: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">Tidak tersedia</string>
+    <string name="mjpeg_pref_image_size_scale">Skala</string>
+    <string name="mjpeg_pref_image_size_target">Ukuran</string>
+    <string name="mjpeg_pref_image_size_default">Default: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Skala (lebih dari 0, hingga 200%)</string>
+    <string name="mjpeg_pref_image_size_width_label">Lebar (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">Tinggi (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">Masukkan angka lebih dari 0, hingga 200</string>
+    <string name="mjpeg_pref_image_size_dimension_error">Masukkan bilangan bulat dari 1 hingga 8192</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">Memperbesar gambar tidak menambah detail dan dapat memperlambat streaming</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">Rotasi</string>
+    <string name="mjpeg_pref_image_rotation_summary">Putar gambar searah jarum jam</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">Cerminkan</string>
+    <string name="mjpeg_pref_image_mirror_summary">Balik gambar secara horizontal atau vertikal</string>
+    <string name="mjpeg_pref_image_mirror_none">Tidak ada</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">Horizontal</string>
+    <string name="mjpeg_pref_image_mirror_vertical">Vertikal</string>
+
+    <string name="mjpeg_pref_image_grayscale">Skala abu-abu</string>
+    <string name="mjpeg_pref_image_grayscale_summary">Tampilkan gambar dalam skala abu-abu</string>
+
+    <string name="mjpeg_pref_image_quality">Kualitas JPEG</string>
+    <string name="mjpeg_pref_image_quality_summary">Seimbangkan detail dan penggunaan data</string>
+    <string name="mjpeg_pref_image_quality_popup_description">Kualitas lebih tinggi menampilkan lebih banyak detail dan menggunakan lebih banyak data. Default: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">Frekuensi frame</string>
+    <string name="mjpeg_pref_image_rate_summary">Setel seberapa sering gambar diperbarui</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">Mencoba mempertahankan frekuensi frame tertinggi</string>
+
+    <string name="mjpeg_pref_image_rate_fps">Batas FPS</string>
+    <string name="mjpeg_pref_image_rate_fps_description">Membatasi frame per detik</string>
+    <string name="mjpeg_pref_image_rate_fps_value">Hingga %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">Frame per detik (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">Masukkan bilangan bulat dari 1 hingga 120</string>
+    <string name="mjpeg_pref_image_rate_fps_help">Frekuensi frame sebenarnya dapat lebih rendah dari batas</string>
+
+    <string name="mjpeg_pref_image_rate_interval">Interval</string>
+    <string name="mjpeg_pref_image_rate_interval_description">Menetapkan interval perekaman minimum</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s dtk</string>
+    <string name="mjpeg_pref_image_rate_interval_label">Interval (1–3600 detik)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">Masukkan interval dari 1 hingga 3600 detik</string>
+    <string name="mjpeg_pref_image_rate_interval_help">Interval membatasi seberapa sering frame baru direkam</string>
+
+    <string name="mjpeg_pref_image_encoder">Encoder JPEG</string>
+    <string name="mjpeg_pref_image_encoder_summary">Pilih cara membuat gambar JPEG</string>
+    <string name="mjpeg_pref_image_encoder_standard">Standar</string>
+    <string name="mjpeg_pref_image_encoder_locked">Tersedia setelah berbagi layar benar-benar berhenti</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">Encoding dioptimalkan jika tersedia</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">Menonaktifkan optimasi encoding</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">Setelan otomatisasi</string>
+    <string name="mjpeg_pref_automation_save_error">Tidak dapat menyimpan setelan otomatisasi</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">Hentikan streaming setelah alamat hilang</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Hentikan streaming jika tidak ada alamat yang dipilih tersisa</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">Setelah %1$d dtk</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">Penundaan (10–1800 detik)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">Default: %1$s detik</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">Masukkan bilangan bulat dari 10 hingga 1800</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Kembalinya alamat membatalkan timer</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">Gambar saat streaming tidak aktif</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Gambar yang ditampilkan saat gambar langsung tidak tersedia</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">Logo aplikasi</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Frame terakhir</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">Jaga layar tetap menyala</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">Jaga layar tetap menyala saat merekam, jika memungkinkan</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">Hentikan saat layar mati</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Hentikan streaming saat layar mati</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">Peringatkan tentang frame yang terlewati</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Beberapa perangkat mungkin menerima lebih sedikit gambar</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">Setelan koneksi</string>
+    <string name="mjpeg_pref_connection_save_error">Tidak dapat menyimpan setelan jaringan</string>
+
+    <string name="mjpeg_pref_connection_filter">Filter jaringan</string>
+    <string name="mjpeg_pref_connection_filter_summary">Pilih alamat jaringan untuk streaming</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">Versi IP</string>
+    <string name="mjpeg_pref_connection_filter_network_type">Jenis jaringan</string>
+    <string name="mjpeg_pref_connection_filter_address_type">Jenis alamat</string>
+    <string name="mjpeg_pref_connection_filter_private">Privat</string>
+    <string name="mjpeg_pref_connection_filter_non_private">Nonprivat</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">Pilih setidaknya satu opsi di setiap grup</string>
+    <string name="mjpeg_pref_connection_filter_default">Default: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">Alamat harus cocok dengan ketiga grup. Perubahan dapat memutus koneksi penonton.</string>
+
+    <string name="mjpeg_pref_connection_http_port">Port HTTP</string>
+    <string name="mjpeg_pref_connection_http_port_summary">Setel port yang digunakan penonton untuk terhubung</string>
+    <string name="mjpeg_pref_connection_http_port_label">Port (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">Masukkan bilangan bulat dari 1024 hingga 65535</string>
+    <string name="mjpeg_pref_connection_http_port_help">Mengubah port akan memperbarui alamat streaming</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">Setelan halaman web</string>
+    <string name="mjpeg_pref_web_save_error">Tidak dapat menyimpan setelan halaman web</string>
+
+    <string name="mjpeg_pref_web_background">Latar belakang</string>
+    <string name="mjpeg_pref_web_background_summary">Pilih warna latar belakang halaman web</string>
+    <string name="mjpeg_pref_web_background_hex_label">Warna heksadesimal</string>
+    <string name="mjpeg_pref_web_background_hex_error">Gunakan 6 karakter: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">Merah</string>
+    <string name="mjpeg_pref_web_background_green">Hijau</string>
+    <string name="mjpeg_pref_web_background_blue">Biru</string>
+    <string name="mjpeg_pref_web_background_palette">Warna bawaan</string>
+    <string name="mjpeg_pref_web_background_color_option">Warna %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">Warna terpilih %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">Nama streaming</string>
+    <string name="mjpeg_pref_web_stream_name_summary">Setel nama yang ditampilkan kepada penonton</string>
+    <string name="mjpeg_pref_web_stream_name_label">Nama streaming (maksimal 64 karakter)</string>
+    <string name="mjpeg_pref_web_stream_name_error">Gunakan maksimal %1$d karakter</string>
+    <string name="mjpeg_pref_web_stream_name_help">Digunakan sebagai judul tab browser dan label streaming</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">Tampilkan nama streaming</string>
+    <string name="mjpeg_pref_web_stream_name_empty">Tanpa nama</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">Penempatan nama streaming</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">Pilih tempat dan cara nama ditampilkan</string>
+
+    <string name="mjpeg_pref_web_controls_placement">Penempatan kontrol</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">Pilih tempat dan cara kontrol ditampilkan</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">Posisi</string>
+    <string name="mjpeg_pref_web_position_top">Atas</string>
+    <string name="mjpeg_pref_web_position_bottom">Bawah</string>
+    <string name="mjpeg_pref_web_presentation">Tampilkan sebagai</string>
+    <string name="mjpeg_pref_web_presentation_overlay">Di atas gambar</string>
+    <string name="mjpeg_pref_web_presentation_bar">Bilah terpisah</string>
+    <string name="mjpeg_pref_web_auto_hide_on">Sembunyikan otomatis</string>
+    <string name="mjpeg_pref_web_auto_hide_off">Selalu terlihat</string>
+    <string name="mjpeg_pref_web_auto_hide_help">Sembunyikan setelah 4 detik tanpa interaksi</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">Setelan akses</string>
+    <string name="mjpeg_pref_access_save_error">Tidak dapat menyimpan setelan akses</string>
+
+    <string name="mjpeg_pref_access_protection">Perlindungan PIN</string>
+    <string name="mjpeg_pref_access_protection_summary">Wajibkan PIN atau link akses untuk melihat streaming</string>
+    <string name="mjpeg_pref_access_protection_default">Default: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">Kebijakan PIN</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">PIN baru saat dibuka</string>
+    <string name="mjpeg_pref_access_policy_permanent">PIN permanen</string>
+    <string name="mjpeg_pref_access_policy_help">Jika “PIN baru saat dibuka” dipilih dan perlindungan aktif, PIN dibuat setiap kali mode MJPEG dibuka. Memulai perekaman tidak mengubahnya.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">PIN tersimpan untuk mengakses streaming</string>
+    <string name="mjpeg_pref_access_pin_unavailable">Tidak ada PIN tersimpan</string>
+    <string name="mjpeg_pref_access_pin_label">PIN (6 digit)</string>
+    <string name="mjpeg_pref_access_pin_error">Masukkan enam digit (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">Buat PIN baru</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">Pilih “PIN permanen” untuk memasukkan PIN sendiri</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">Batasi percobaan PIN</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">Jeda login PIN setelah lima percobaan salah</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">Menit: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">Durasi pemblokiran (1–60 menit)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">Default: %1$s · %2$s mnt</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">Masukkan bilangan bulat dari 1 hingga 60</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">Memblokir percobaan PIN baru dari IP tersebut. Penonton yang sudah terhubung tetap terhubung.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">Sembunyikan PIN saat memulai streaming</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">Anda dapat menampilkan PIN lagi</string>
+</resources>

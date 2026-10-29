@@ -4,20 +4,21 @@
     <string name="app_error_recover">Ripristina</string>
 
     <string name="app_module_error_title">Si è verificato un errore</string>
-    <string name="app_module_error_restart">Riavvia modulo</string>
+    <string name="app_module_error_restart">Riavvia la modalità</string>
 
     <string name="app_activity_update_dialog_title">Aggiornamento disponibile</string>
-    <string name="app_activity_update_dialog_message">È stato scaricato un aggiornamento. Riavviare l\'app adesso?</string>
+    <string name="app_activity_update_dialog_message">Un aggiornamento è pronto. Riavviare l’app ora?</string>
     <string name="app_activity_update_dialog_restart">Riavvia</string>
 
     <string name="app_tab_stream">Streaming</string>
     <string name="app_tab_settings">Impostazioni</string>
-    <string name="app_tab_about">Al riguardo</string>
+    <string name="app_tab_about">Informazioni</string>
     <string name="app_tab_exit">Esci</string>
 
     <string name="app_tab_stream_select_mode">Seleziona la modalità di streaming:</string>
-    <string name="app_tab_stream_switching_modules">Cambio dei moduli</string>
+    <string name="app_tab_stream_switching_modules">Cambio di modalità…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Non ora</string>
     <string name="app_permission_open_settings">Apri impostazioni</string>
 
@@ -36,47 +37,49 @@
 
     <string name="app_permission_audio_title">Audio del microfono e del dispositivo</string>
     <string name="app_permission_audio_message">Consenti l’accesso al microfono per trasmettere l’audio del microfono e del dispositivo.\n\nL’audio del dispositivo può essere trasmesso solo se Android e l’app che lo riproduce ne consentono la condivisione.</string>
-    <string name="app_permission_audio_settings_message">Abilita l\'autorizzazione del microfono nelle impostazioni dell\'app per trasmettere audio del microfono o audio interno.\n\nSenza di essa, lo stream non avrà audio.</string>
+    <string name="app_permission_audio_settings_message">Consenti l’accesso al microfono nelle impostazioni dell’app per trasmettere l’audio del microfono o del dispositivo.\n\nSenza questa autorizzazione, l’audio non può essere trasmesso.</string>
 
-    <string name="app_notification_channel_streaming">Notifiche di streaming</string>
+    <string name="app_notification_channel_streaming">Notifiche di trasmissione</string>
     <string name="app_notification_channel_error">Notifiche di errore</string>
     <string name="app_notification_waiting_content">Tocca per aprire l\'app</string>
     <string name="app_notification_streaming_title">Trasmissione…</string>
-    <string name="app_notification_streaming_content">Tocca Interrompi per terminare lo streaming</string>
-    <string name="app_notification_stop">Ferma</string>
+    <string name="app_notification_streaming_content">Tocca Interrompi per terminare la trasmissione</string>
+    <string name="app_notification_stop">Interrompi</string>
 
-    <string name="app_tile_start">Avvia</string>
-    <string name="app_tile_stop">Ferma</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Apri ScreenStream</string>
+    <string name="app_tile_stop">Interrompi</string>
 
     <string name="app_pref_back">Indietro</string>
     <string name="app_pref_settings">Impostazioni</string>
-    <string name="app_pref_locale">Lingua dell\'applicazione</string>
-    <string name="app_pref_locale_summary">Apri le impostazioni della lingua dell\'applicazione</string>
-    <string name="app_pref_locale_default">Impostazione predefinita di sistema</string>
+    <string name="app_pref_locale">Lingua dell’app</string>
+    <string name="app_pref_locale_summary">Apri le impostazioni della lingua dell’app</string>
+    <string name="app_pref_locale_default">Predefinita di sistema</string>
     <string name="app_pref_night_mode">Tema scuro</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Sempre</item>
-        <item>Solo risparmio batteria</item>
+        <item>In base al Risparmio energetico</item>
         <item>Mai</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Sempre</item>
-        <item>Automaticamente (segui il sistema)</item>
+        <item>Segui il sistema</item>
         <item>Mai</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Colore dinamico</string>
     <string name="app_pref_dynamic_theme_summary">Regola l\'aspetto in base ai colori dello sfondo</string>
-    <string name="app_pref_notification">Impostazioni di notifica del dispositivo</string>
-    <string name="app_pref_notification_summary">Apri impostazioni di notifica di sistema</string>
-    <string name="app_pref_tile">Aggiungi riquadro applicazione</string>
-    <string name="app_pref_tile_summary">Aggiungi riquadro applicazione alle Impostazioni rapide</string>
+    <string name="app_pref_notification">Notifiche dell’app</string>
+    <string name="app_pref_notification_summary">Gestisci le notifiche nelle impostazioni di sistema</string>
+    <string name="app_pref_tile">Aggiungi riquadro alle Impostazioni rapide</string>
+    <string name="app_pref_tile_summary">Aggiungi ScreenStream alle Impostazioni rapide</string>
 
     <string name="app_tab_about_app_version">Versione: %1$s</string>
     <string name="app_tab_about_developer_name">Sviluppato da Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Valuta l\'app</string>
-    <string name="app_tab_about_app_sources">Sorgenti dell\'applicazione</string>
-    <string name="app_tab_about_terms_conditions">Termini e Condizioni</string>
-    <string name="app_tab_about_privacy_policy">Informativa sulla Privacy</string>
+    <string name="app_tab_about_app_sources">Codice sorgente</string>
+    <string name="app_tab_about_terms_conditions">Termini e condizioni</string>
+    <string name="app_tab_about_privacy_policy">Informativa sulla privacy</string>
     <string name="app_tab_about_privacy_options">Opzioni privacy</string>
     <string name="app_tab_about_license">Licenza</string>
 </resources>

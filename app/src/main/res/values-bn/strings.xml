@@ -4,10 +4,10 @@
     <string name="app_error_recover">পুনরুদ্ধার করুন</string>
 
     <string name="app_module_error_title">কিছু ভুল হয়েছে</string>
-    <string name="app_module_error_restart">মডিউল পুনরায় চালু করুন</string>
+    <string name="app_module_error_restart">মোড আবার চালু করুন</string>
 
     <string name="app_activity_update_dialog_title">আপডেট এখন উপলব্ধ</string>
-    <string name="app_activity_update_dialog_message">একটি আপডেট সবেমাত্র ডাউনলোড করা হয়েছে। এখন অ্যাপ রিস্টার্ট করবেন?</string>
+    <string name="app_activity_update_dialog_message">আপডেট প্রস্তুত। এখন অ্যাপ আবার চালু করবেন?</string>
     <string name="app_activity_update_dialog_restart">পুনরারম্ভ</string>
 
     <string name="app_tab_stream">স্ট্রিম</string>
@@ -16,8 +16,9 @@
     <string name="app_tab_exit">প্রস্থান</string>
 
     <string name="app_tab_stream_select_mode">স্ট্রিম মোড নির্বাচন করুন:</string>
-    <string name="app_tab_stream_switching_modules">মডিউল পরিবর্তন করা হচ্ছে</string>
+    <string name="app_tab_stream_switching_modules">মোড বদলানো হচ্ছে…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">এখন নয়</string>
     <string name="app_permission_open_settings">সেটিংস খুলুন</string>
 
@@ -25,7 +26,7 @@
     <string name="app_permission_notifications_message">বিজ্ঞপ্তিতে স্ট্রিমের অবস্থা ও ত্রুটির সতর্কতা দেখা যায়। সেগুলো ব্যবহার করে স্ট্রিমিং বন্ধ করুন বা ScreenStream আবার খুলুন।</string>
 
     <string name="app_permission_local_network_title">স্থানীয় নেটওয়ার্ক অ্যাক্সেস</string>
-    <string name="app_permission_local_network_message">একই নেটওয়ার্কের অন্য ডিভাইসে স্ট্রিম করতে ScreenStream-কে আপনার স্থানীয় নেটওয়ার্ক ব্যবহার করার অনুমতি দিন।\n\nAndroid এই অনুমতিকে কাছাকাছি থাকা ডিভাইসে অ্যাক্সেস হিসেবে বর্ণনা করে এবং সেগুলোর আপেক্ষিক অবস্থান নির্ধারণের কথা উল্লেখ করতে পারে।</string>
+    <string name="app_permission_local_network_message">একই নেটওয়ার্কের অন্য ডিভাইসে স্ট্রিম করতে ScreenStream-কে আপনার স্থানীয় নেটওয়ার্ক ব্যবহার করার অনুমতি দিন।\n\nAndroid এই অনুমতিকে আশেপাশের ডিভাইসে অ্যাক্সেস হিসেবে বর্ণনা করে এবং সেগুলোর আপেক্ষিক অবস্থান নির্ধারণের কথা উল্লেখ করতে পারে।</string>
     <string name="app_permission_local_network_off_title">স্থানীয় নেটওয়ার্ক অ্যাক্সেস বন্ধ আছে</string>
     <string name="app_permission_local_network_settings_message">একই স্থানীয় নেটওয়ার্কের ডিভাইসে স্ট্রিম করতে অ্যাপ সেটিংসে অনুমতি খুলে আশেপাশের ডিভাইসের অনুমতি দিন।</string>
 
@@ -36,45 +37,47 @@
 
     <string name="app_permission_audio_title">মাইক্রোফোন ও ডিভাইসের অডিও</string>
     <string name="app_permission_audio_message">মাইক্রোফোন ও ডিভাইসের অডিও স্ট্রিম করতে মাইক্রোফোন অ্যাক্সেসের অনুমতি দিন।\n\nAndroid এবং অডিও চালানো অ্যাপ শেয়ার করার অনুমতি দিলেই ডিভাইসের অডিও স্ট্রিম করা যাবে।</string>
-    <string name="app_permission_audio_settings_message">মাইক্রোফোনের অডিও বা ইন্টারনাল অডিও স্ট্রিম করতে অ্যাপ সেটিংসে মাইক্রোফোনের অনুমতি চালু করুন।\n\nএই অনুমতি না থাকলে স্ট্রিমে শব্দ থাকবে না।</string>
+    <string name="app_permission_audio_settings_message">মাইক্রোফোন বা ডিভাইসের অডিও স্ট্রিম করতে অ্যাপের সেটিংসে মাইক্রোফোন অ্যাক্সেসের অনুমতি দিন।\n\nএটি ছাড়া অডিও স্ট্রিম করা যাবে না।</string>
 
     <string name="app_notification_channel_streaming">স্ট্রিমিং বিজ্ঞপ্তি</string>
     <string name="app_notification_channel_error">ত্রুটি বিজ্ঞপ্তি</string>
     <string name="app_notification_waiting_content">অ্যাপ খুলতে ট্যাপ করুন</string>
     <string name="app_notification_streaming_title">স্ট্রিমিং…</string>
-    <string name="app_notification_streaming_content">স্ট্রিম শেষ করতে বন্ধ করুন-এ ট্যাপ করুন</string>
-    <string name="app_notification_stop">থামুন</string>
+    <string name="app_notification_streaming_content">স্ট্রিম শেষ করতে থামান-এ ট্যাপ করুন</string>
+    <string name="app_notification_stop">থামান</string>
 
-    <string name="app_tile_start">শুরু করুন</string>
-    <string name="app_tile_stop">থামুন</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream খুলুন</string>
+    <string name="app_tile_stop">থামান</string>
 
     <string name="app_pref_back">ফিরে যান</string>
     <string name="app_pref_settings">সেটিংস</string>
-    <string name="app_pref_locale">অ্যাপ্লিকেশন ভাষা</string>
-    <string name="app_pref_locale_summary">অ্যাপ্লিকেশন ভাষা সেটিংস খুলুন</string>
-    <string name="app_pref_locale_default">সিস্টেমের ডিফল্ট</string>
-    <string name="app_pref_night_mode">গাঢ় থিম</string>
+    <string name="app_pref_locale">অ্যাপের ভাষা</string>
+    <string name="app_pref_locale_summary">অ্যাপের ভাষার সেটিংস খুলুন</string>
+    <string name="app_pref_locale_default">সিস্টেম ডিফল্ট</string>
+    <string name="app_pref_night_mode">ডার্ক থিম</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>সবসময়</item>
-        <item>ব্যাটারি সেভারের দ্বারা সেট করুন</item>
-        <item>কখনো না</item>
+        <item>ব্যাটারি সেভার অনুযায়ী</item>
+        <item>কখনও না</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>সবসময়</item>
-        <item>স্বয়ংক্রিয় (সিস্টেম অনুসরণ করুন)</item>
-        <item>কখনো না</item>
+        <item>সিস্টেম অনুসরণ করুন</item>
+        <item>কখনও না</item>
     </string-array>
     <string name="app_pref_dynamic_theme">গতিশীল রঙ</string>
     <string name="app_pref_dynamic_theme_summary">আপনার ওয়ালপেপারের রঙের উপর ভিত্তি করে চেহারা সামঞ্জস্য করুন</string>
-    <string name="app_pref_notification">ডিভাইস বিজ্ঞপ্তি সেটিংস</string>
-    <string name="app_pref_notification_summary">সিস্টেম বিজ্ঞপ্তি সেটিংস খুলুন</string>
-    <string name="app_pref_tile">অ্যাপ্লিকেশন টাইল যোগ করুন</string>
-    <string name="app_pref_tile_summary">দ্রুত সেটিংসে অ্যাপ্লিকেশন টাইল যোগ করুন</string>
+    <string name="app_pref_notification">অ্যাপের বিজ্ঞপ্তি</string>
+    <string name="app_pref_notification_summary">সিস্টেম সেটিংসে বিজ্ঞপ্তি ম্যানেজ করুন</string>
+    <string name="app_pref_tile">দ্রুত সেটিংস টাইল যোগ করুন</string>
+    <string name="app_pref_tile_summary">দ্রুত সেটিংসে ScreenStream যোগ করুন</string>
 
     <string name="app_tab_about_app_version">সংস্করণ: %1$s</string>
-    <string name="app_tab_about_developer_name">Dmytro Kryvoruchko দ্বারা বিকশিত</string>
-    <string name="app_tab_about_rate_app">রেট অ্যাপ্লিকেশন</string>
-    <string name="app_tab_about_app_sources">অ্যাপ্লিকেশন সূত্র</string>
+    <string name="app_tab_about_developer_name">তৈরি করেছেন Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_rate_app">অ্যাপকে রেটিং দিন</string>
+    <string name="app_tab_about_app_sources">সোর্স কোড</string>
     <string name="app_tab_about_terms_conditions">শর্তাবলী</string>
     <string name="app_tab_about_privacy_policy">গোপনীয়তা নীতি</string>
     <string name="app_tab_about_privacy_options">গোপনীয়তা বিকল্প</string>

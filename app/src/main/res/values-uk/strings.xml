@@ -4,20 +4,21 @@
     <string name="app_error_recover">Відновити</string>
 
     <string name="app_module_error_title">Щось пішло не так</string>
-    <string name="app_module_error_restart">Перезапустити модуль</string>
+    <string name="app_module_error_restart">Перезапустити режим</string>
 
     <string name="app_activity_update_dialog_title">Доступне оновлення</string>
-    <string name="app_activity_update_dialog_message">Оновлення завантажено. Перезапустити додаток зараз?</string>
+    <string name="app_activity_update_dialog_message">Оновлення готове. Перезапустити застосунок зараз?</string>
     <string name="app_activity_update_dialog_restart">Перезапустити</string>
 
     <string name="app_tab_stream">Трансляція</string>
     <string name="app_tab_settings">Налаштування</string>
-    <string name="app_tab_about">Про додаток</string>
+    <string name="app_tab_about">Про застосунок</string>
     <string name="app_tab_exit">Вийти</string>
 
     <string name="app_tab_stream_select_mode">Оберіть режим трансляції:</string>
-    <string name="app_tab_stream_switching_modules">Перемикання модулів</string>
+    <string name="app_tab_stream_switching_modules">Перемикання режимів…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Не зараз</string>
     <string name="app_permission_open_settings">Відкрити налаштування</string>
 
@@ -36,47 +37,49 @@
 
     <string name="app_permission_audio_title">Звук мікрофона та пристрою</string>
     <string name="app_permission_audio_message">Дозвольте доступ до мікрофона для трансляції звуку мікрофона та пристрою.\n\nЗвук пристрою може транслюватися лише тоді, коли Android і застосунок, що його відтворює, дозволяють ділитися ним.</string>
-    <string name="app_permission_audio_settings_message">Увімкніть дозвіл на мікрофон у налаштуваннях застосунку, щоб транслювати звук з мікрофона або внутрішній звук.\n\nБез нього трансляція буде без звуку.</string>
+    <string name="app_permission_audio_settings_message">Надайте доступ до мікрофона в налаштуваннях застосунку, щоб транслювати звук із мікрофона або пристрою.\n\nБез цього дозволу звук не може транслюватися.</string>
 
     <string name="app_notification_channel_streaming">Сповіщення про трансляцію</string>
     <string name="app_notification_channel_error">Сповіщення про помилки</string>
     <string name="app_notification_waiting_content">Торкніться, щоб відкрити застосунок</string>
     <string name="app_notification_streaming_title">Трансляція…</string>
-    <string name="app_notification_streaming_content">Натисніть Зупинити, щоб завершити трансляцію</string>
-    <string name="app_notification_stop">Стоп</string>
+    <string name="app_notification_streaming_content">Торкніться «Зупинити», щоб завершити трансляцію</string>
+    <string name="app_notification_stop">Зупинити</string>
 
-    <string name="app_tile_start">Старт</string>
-    <string name="app_tile_stop">Стоп</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Відкрити ScreenStream</string>
+    <string name="app_tile_stop">Зупинити</string>
 
     <string name="app_pref_back">Назад</string>
     <string name="app_pref_settings">Налаштування</string>
-    <string name="app_pref_locale">Мова додадку</string>
-    <string name="app_pref_locale_summary">Перейти до налаштувань мови додатку</string>
-    <string name="app_pref_locale_default">Системні налаштування</string>
-    <string name="app_pref_night_mode">Чорна тема</string>
+    <string name="app_pref_locale">Мова застосунку</string>
+    <string name="app_pref_locale_summary">Відкрити налаштування мови застосунку</string>
+    <string name="app_pref_locale_default">Як у системі</string>
+    <string name="app_pref_night_mode">Темна тема</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Завжди</item>
-        <item>Налаштовано Збереженням Енергії</item>
+        <item>За режимом енергозбереження</item>
         <item>Ніколи</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Завжди</item>
-        <item>Автоматично (так само як в системі)</item>
+        <item>Як у системі</item>
         <item>Ніколи</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Динамічний колір</string>
     <string name="app_pref_dynamic_theme_summary">Налаштувати вигляд на основі кольорів шпалер</string>
-    <string name="app_pref_notification">Налаштування повідомлень пристрою</string>
-    <string name="app_pref_notification_summary">Перейти в системні налаштування повідомлень</string>
-    <string name="app_pref_tile">Додати плитку додатка</string>
-    <string name="app_pref_tile_summary">Додати плитку додатка до Швидких налаштувань</string>
+    <string name="app_pref_notification">Сповіщення застосунку</string>
+    <string name="app_pref_notification_summary">Керувати сповіщеннями в налаштуваннях системи</string>
+    <string name="app_pref_tile">Додати плитку швидких налаштувань</string>
+    <string name="app_pref_tile_summary">Додати ScreenStream до швидких налаштувань</string>
 
     <string name="app_tab_about_app_version">Версія: %1$s</string>
     <string name="app_tab_about_developer_name">Розробник Дмитро Криворучко</string>
-    <string name="app_tab_about_rate_app">Оцінити додаток</string>
-    <string name="app_tab_about_app_sources">Вихідний код додатку</string>
-    <string name="app_tab_about_terms_conditions">Умови та Положення</string>
-    <string name="app_tab_about_privacy_policy">Політика приватності</string>
-    <string name="app_tab_about_privacy_options">Налаштування конфіденційності</string>
+    <string name="app_tab_about_rate_app">Оцінити застосунок</string>
+    <string name="app_tab_about_app_sources">Вихідний код</string>
+    <string name="app_tab_about_terms_conditions">Умови використання</string>
+    <string name="app_tab_about_privacy_policy">Політика конфіденційності</string>
+    <string name="app_tab_about_privacy_options">Параметри конфіденційності</string>
     <string name="app_tab_about_license">Ліцензія</string>
 </resources>

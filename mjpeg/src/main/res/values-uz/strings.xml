@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">Mahalliy rejim · MJPEG</string>
+    <string name="mjpeg_mode_description">MJPEG haqida</string>
+    <string name="mjpeg_mode_details">Qurilma ekranini JPEG tasvirlari sifatida bevosita veb-brauzerga uzating. Audio uzatilmaydi.\n\n• Internetsiz mahalliy tarmoqda ishlaydi. Tomoshabinlar translatsiya manziliga ulana olishi kerak.\n• PIN himoyasi ixtiyoriy. Yoqilganda tomoshabinlar PIN kiritishi yoki kirish havolasidan foydalanishi mumkin.\n• Translatsiya shifrlanmagan HTTP ishlatadi. Ishonchli tarmoqdan foydalaning.\n• Tarmoq filtri Wi-Fi, Ethernet, mobil maʼlumotlar, VPN, IPv4 va IPv6 variantlarini taklif qiladi.\n• Tasvir oʻlchami, JPEG sifati va kadr tezligini sozlang.\n• Tasvirlar har bir tomoshabinga alohida yuboriladi, bu esa trafik sarfini oshiradi.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">Yopish</string>
+
+    <string name="mjpeg_pref_value_on">Yoqilgan</string>
+    <string name="mjpeg_pref_value_off">Oʻchirilgan</string>
+    <string name="mjpeg_pref_value_automatic">Avtomatik</string>
+    <string name="mjpeg_pref_value_not_set">Belgilanmagan</string>
+    <string name="mjpeg_pref_value_unavailable">Hali mavjud emas</string>
+    <string name="mjpeg_pref_default_option">%1$s (birlamchi)</string>
+    <string name="mjpeg_pref_default_value">Birlamchi: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">Ekran tasvirini olish toʻliq toʻxtagach mavjud boʻladi</string>
+
+    <string name="mjpeg_pref_search_placeholder">Sozlamalarni qidirish</string>
+    <string name="mjpeg_pref_search_clear">Qidiruvni tozalash</string>
+    <string name="mjpeg_pref_search_no_results">Sozlamalar topilmadi</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">Mobil maʼlumotlar</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">Boshqa</string>
+    <string name="mjpeg_network_loopback">Loopback</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">Translatsiyani boshlash</string>
+    <string name="mjpeg_stream_stop_capture">Translatsiyani toʻxtatish</string>
+    <string name="mjpeg_stream_skipped_frames_warning">Kadrlar oʻtkazib yuborildi</string>
+    <string name="mjpeg_stream_stop_delayed">Ekranni ulashish hali toʻxtatilmoqda…</string>
+    <string name="mjpeg_capture_error">Ekran tasvirini olib boʻlmadi</string>
+    <string name="mjpeg_error_suspension_invalid_request">Tasvirga olish toʻxtatib turildi: tasvir sozlamalari joriy tasvirga olish hududiga mos emas</string>
+    <string name="mjpeg_error_suspension_unavailable">Tasvirga olish toʻxtatib turildi: tasvirga olish manbasi mavjud emas</string>
+    <string name="mjpeg_error_suspension_resources">Tasvirga olish toʻxtatib turildi: resurslar yetarli emas</string>
+
+    <string name="mjpeg_address_list_title">Translatsiya manzillari</string>
+    <string name="mjpeg_address_list_empty">Translatsiya uchun manzillar mavjud emas.\nUlanish sozlamalaridagi tarmoq filtrini tekshiring.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">Tarmoq:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">Faqat shu qurilma</string>
+    <string name="mjpeg_address_private_ipv4">Xususiy IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">Xususiy boʻlmagan IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">Xususiy boʻlmagan IPv6</string>
+
+    <string name="mjpeg_address_open">Ochish</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">%1$s manzilini ochish</string>
+    <string name="mjpeg_address_copy_url">Havolani nusxalash</string>
+    <string name="mjpeg_address_copy_description">%1$s havolasini nusxalash</string>
+    <string name="mjpeg_address_share">Ulashish</string>
+    <string name="mjpeg_address_share_description">%1$s havolasini ulashish</string>
+    <string name="mjpeg_address_qr_code">QR kodni koʻrsatish</string>
+    <string name="mjpeg_address_qr_code_description">%1$s uchun QR kodni koʻrsatish</string>
+    <string name="mjpeg_address_qr_image_description">Translatsiya havolasini ochish uchun bu kodni skanerlang</string>
+
+    <string name="mjpeg_address_error_browser_not_found">Veb-brauzer topilmadi</string>
+    <string name="mjpeg_address_error_open">Havolani ochib boʻlmadi</string>
+    <string name="mjpeg_address_error_share">Havolani ulashib boʻlmadi</string>
+    <string name="mjpeg_address_error_qr_generation">QR kodni yaratib boʻlmadi</string>
+
+    <string name="mjpeg_local_network_permission_request">Ruxsat soʻrash</string>
+    <string name="mjpeg_local_network_permission_open_settings">Sozlamalarni ochish</string>
+    <string name="mjpeg_local_network_permission_required">Mahalliy tarmoq uchun ruxsat kerak</string>
+
+    <string name="mjpeg_server_pending">Kutilmoqda</string>
+    <string name="mjpeg_server_address_in_use">Manzil band</string>
+    <string name="mjpeg_server_address_unavailable">Manzil mavjud emas</string>
+    <string name="mjpeg_server_permission_denied">Ruxsat berilmadi</string>
+    <string name="mjpeg_server_io_failure">Server mavjud emas</string>
+    <string name="mjpeg_server_unknown_failure">Server xatosi</string>
+    <string name="mjpeg_server_retry">Qayta urinish</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">%1$s manzilidagi serverni qayta ishga tushirishga urinish</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN yashirilgan</string>
+    <string name="mjpeg_pin_show_label">Koʻrsatish</string>
+    <string name="mjpeg_pin_show_description">PINni koʻrsatish</string>
+    <string name="mjpeg_pin_hide_label">Yashirish</string>
+    <string name="mjpeg_pin_hide_description">PINni yashirish</string>
+    <string name="mjpeg_stream_pin_copy">PINni nusxalash</string>
+    <string name="mjpeg_stream_pin_copied">PIN nusxalandi</string>
+    <string name="mjpeg_stream_pin_hint_access">Translatsiya havolasini oching yoki uning QR kodini skanerlang.\nSoʻralsa, ushbu PINni kiriting.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">Tasvir sozlamalari</string>
+    <string name="mjpeg_pref_image_save_error">Tasvir sozlamalarini saqlab boʻlmadi</string>
+
+    <string name="mjpeg_pref_image_region">Tasvirga olish hududi</string>
+    <string name="mjpeg_pref_image_region_summary">Uzatish uchun hududni tanlang</string>
+    <string name="mjpeg_pref_image_region_full">Butun hudud</string>
+    <string name="mjpeg_pref_image_region_left">Chap yarmi</string>
+    <string name="mjpeg_pref_image_region_right">Oʻng yarmi</string>
+
+    <string name="mjpeg_pref_image_crop">Kesish</string>
+    <string name="mjpeg_pref_image_crop_summary">Tasvir chetlarini kesing</string>
+    <string name="mjpeg_pref_image_crop_purpose">Har bir chetdan olib tashlanadigan piksellar sonini kiriting</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">Tasvirning bir qismini koʻrinadigan qoldiring. Aks holda yangi kadrlarni olib boʻlmaydi.</string>
+    <string name="mjpeg_pref_image_crop_enabled">Kesishni yoqish</string>
+    <string name="mjpeg_pref_image_crop_left">Chap (px)</string>
+    <string name="mjpeg_pref_image_crop_top">Yuqori (px)</string>
+    <string name="mjpeg_pref_image_crop_right">Oʻng (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">Past (px)</string>
+    <string name="mjpeg_pref_image_crop_error">0 yoki undan katta butun son kiriting</string>
+    <string name="mjpeg_pref_image_crop_required">Qiymat kiriting</string>
+
+    <string name="mjpeg_pref_image_size">Tasvir oʻlchami</string>
+    <string name="mjpeg_pref_image_size_summary">Masshtab yoki oʻlchamlarni sozlang</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">Tasvirni choʻzish</string>
+    <string name="mjpeg_pref_image_size_stretch_value">Choʻzish</string>
+    <string name="mjpeg_pref_image_size_fit_description">Kenglik va balandlikka sigʻadi; nisbatni saqlaydi</string>
+    <string name="mjpeg_pref_image_size_stretch_description">Aniq kenglik va balandlik; nisbat oʻzgarishi mumkin</string>
+    <string name="mjpeg_pref_image_size_estimate_note">Ekran asosida taxmin; ulashilgan ilova oʻlchami boshqacha boʻlishi mumkin</string>
+    <string name="mjpeg_pref_image_size_source">Ekran: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">Taxminiy tasvir oʻlchami: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">Mavjud emas</string>
+    <string name="mjpeg_pref_image_size_scale">Masshtab</string>
+    <string name="mjpeg_pref_image_size_target">Oʻlcham</string>
+    <string name="mjpeg_pref_image_size_default">Birlamchi: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Masshtab (0 dan katta, 200% gacha)</string>
+    <string name="mjpeg_pref_image_size_width_label">Kenglik (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">Balandlik (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">0 dan katta, 200 gacha son kiriting</string>
+    <string name="mjpeg_pref_image_size_dimension_error">1 dan 8192 gacha butun son kiriting</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">Tasvirni kattalashtirish tafsilot qoʻshmaydi va translatsiyani sekinlashtirishi mumkin</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">Burish</string>
+    <string name="mjpeg_pref_image_rotation_summary">Tasvirni soat yoʻnalishida buring</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">Akslantirish</string>
+    <string name="mjpeg_pref_image_mirror_summary">Tasvirni gorizontal yoki vertikal akslantiring</string>
+    <string name="mjpeg_pref_image_mirror_none">Yoʻq</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">Gorizontal</string>
+    <string name="mjpeg_pref_image_mirror_vertical">Vertikal</string>
+
+    <string name="mjpeg_pref_image_grayscale">Kulrang tuslar</string>
+    <string name="mjpeg_pref_image_grayscale_summary">Tasvirni kulrang tuslarda koʻrsating</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG sifati</string>
+    <string name="mjpeg_pref_image_quality_summary">Tafsilot va trafik sarfini muvozanatlang</string>
+    <string name="mjpeg_pref_image_quality_popup_description">Yuqori sifat koʻproq tafsilot koʻrsatadi va koʻproq trafik sarflaydi. Birlamchi: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">Kadr tezligi</string>
+    <string name="mjpeg_pref_image_rate_summary">Tasvir qanchalik tez yangilanishini sozlang</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">Eng yuqori kadr tezligini saqlashga harakat qiladi</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS chegarasi</string>
+    <string name="mjpeg_pref_image_rate_fps_description">Soniyadagi kadrlar sonini cheklaydi</string>
+    <string name="mjpeg_pref_image_rate_fps_value">Koʻpi bilan %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">Kadr/soniya (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">1 dan 120 gacha butun son kiriting</string>
+    <string name="mjpeg_pref_image_rate_fps_help">Haqiqiy kadr tezligi chegaradan past boʻlishi mumkin</string>
+
+    <string name="mjpeg_pref_image_rate_interval">Interval</string>
+    <string name="mjpeg_pref_image_rate_interval_description">Tasvirga olishning minimal intervalini belgilaydi</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s s</string>
+    <string name="mjpeg_pref_image_rate_interval_label">Interval (1–3600 soniya)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">1 dan 3600 soniyagacha interval kiriting</string>
+    <string name="mjpeg_pref_image_rate_interval_help">Interval yangi kadrlar qanchalik tez olinishini cheklaydi</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG kodlagich</string>
+    <string name="mjpeg_pref_image_encoder_summary">JPEG tasvirlari qanday yaratilishini tanlang</string>
+    <string name="mjpeg_pref_image_encoder_standard">Standart</string>
+    <string name="mjpeg_pref_image_encoder_locked">Ekranni ulashish toʻliq toʻxtagach mavjud boʻladi</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">Mavjud boʻlsa, optimallashtirilgan kodlash</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">Kodlash optimallashtirishini oʻchiradi</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">Avtomatlashtirish sozlamalari</string>
+    <string name="mjpeg_pref_automation_save_error">Avtomatlashtirish sozlamalarini saqlab boʻlmadi</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">Manzillar yoʻqolgach translatsiyani toʻxtatish</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Tanlangan manzillar qolmaganda translatsiyani toʻxtatish</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">%1$d soniyadan soʻng</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">Kechikish (10–1800 soniya)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">Birlamchi: %1$s soniya</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">10 dan 1800 gacha butun son kiriting</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Manzillar qaytsa, taymer bekor qilinadi</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">Faol boʻlmagan translatsiya tasviri</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Jonli tasvir mavjud boʻlmaganda koʻrsatiladigan tasvir</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">Ilova logotipi</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Oxirgi kadr</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">Ekranni yoniq saqlash</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">Imkon boʻlsa, tasvirga olish vaqtida ekranni yoniq saqlash</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">Ekran oʻchganda toʻxtatish</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Ekran oʻchganda translatsiyani toʻxtatish</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">Oʻtkazib yuborilgan kadrlar haqida ogohlantirish</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Ayrim qurilmalar kamroq tasvir olishi mumkin</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">Ulanish sozlamalari</string>
+    <string name="mjpeg_pref_connection_save_error">Tarmoq sozlamalarini saqlab boʻlmadi</string>
+
+    <string name="mjpeg_pref_connection_filter">Tarmoq filtri</string>
+    <string name="mjpeg_pref_connection_filter_summary">Translatsiya uchun tarmoq manzillarini tanlang</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP versiyasi</string>
+    <string name="mjpeg_pref_connection_filter_network_type">Tarmoq turi</string>
+    <string name="mjpeg_pref_connection_filter_address_type">Manzil turi</string>
+    <string name="mjpeg_pref_connection_filter_private">Xususiy</string>
+    <string name="mjpeg_pref_connection_filter_non_private">Xususiy boʻlmagan</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">Har bir guruhda kamida bitta variantni tanlang</string>
+    <string name="mjpeg_pref_connection_filter_default">Birlamchi: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">Manzillar uchala guruhga mos kelishi kerak. Oʻzgarishlar tomoshabinlarni uzib qoʻyishi mumkin.</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP porti</string>
+    <string name="mjpeg_pref_connection_http_port_summary">Tomoshabinlar ulanishda ishlatadigan portni sozlang</string>
+    <string name="mjpeg_pref_connection_http_port_label">Port (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">1024 dan 65535 gacha butun son kiriting</string>
+    <string name="mjpeg_pref_connection_http_port_help">Port oʻzgartirilganda translatsiya manzillari yangilanadi</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">Veb-sahifa sozlamalari</string>
+    <string name="mjpeg_pref_web_save_error">Veb-sahifa sozlamalarini saqlab boʻlmadi</string>
+
+    <string name="mjpeg_pref_web_background">Fon</string>
+    <string name="mjpeg_pref_web_background_summary">Veb-sahifa fonining rangini tanlang</string>
+    <string name="mjpeg_pref_web_background_hex_label">Oʻn oltilik rang</string>
+    <string name="mjpeg_pref_web_background_hex_error">6 ta belgi ishlating: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">Qizil</string>
+    <string name="mjpeg_pref_web_background_green">Yashil</string>
+    <string name="mjpeg_pref_web_background_blue">Koʻk</string>
+    <string name="mjpeg_pref_web_background_palette">Tayyor ranglar</string>
+    <string name="mjpeg_pref_web_background_color_option">Rang %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">Tanlangan rang %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">Translatsiya nomi</string>
+    <string name="mjpeg_pref_web_stream_name_summary">Tomoshabinlarga koʻrsatiladigan nomni belgilang</string>
+    <string name="mjpeg_pref_web_stream_name_label">Translatsiya nomi (64 tagacha belgi)</string>
+    <string name="mjpeg_pref_web_stream_name_error">Koʻpi bilan %1$d ta belgi ishlating</string>
+    <string name="mjpeg_pref_web_stream_name_help">Brauzer varagʻi sarlavhasi va translatsiya yorligʻi sifatida ishlatiladi</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">Translatsiya nomini koʻrsatish</string>
+    <string name="mjpeg_pref_web_stream_name_empty">Nomsiz</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">Translatsiya nomining joylashuvi</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">Nom qayerda va qanday koʻrsatilishini tanlang</string>
+
+    <string name="mjpeg_pref_web_controls_placement">Boshqaruv elementlarining joylashuvi</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">Boshqaruv elementlari qayerda va qanday koʻrsatilishini tanlang</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">Joylashuv</string>
+    <string name="mjpeg_pref_web_position_top">Yuqorida</string>
+    <string name="mjpeg_pref_web_position_bottom">Pastda</string>
+    <string name="mjpeg_pref_web_presentation">Koʻrsatish usuli</string>
+    <string name="mjpeg_pref_web_presentation_overlay">Tasvir ustida</string>
+    <string name="mjpeg_pref_web_presentation_bar">Alohida panel</string>
+    <string name="mjpeg_pref_web_auto_hide_on">Avtomatik yashirish</string>
+    <string name="mjpeg_pref_web_auto_hide_off">Doim koʻrinadi</string>
+    <string name="mjpeg_pref_web_auto_hide_help">4 soniya harakat boʻlmasa yashirish</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">Kirish sozlamalari</string>
+    <string name="mjpeg_pref_access_save_error">Kirish sozlamalarini saqlab boʻlmadi</string>
+
+    <string name="mjpeg_pref_access_protection">PIN himoyasi</string>
+    <string name="mjpeg_pref_access_protection_summary">Translatsiyani koʻrish uchun PIN yoki kirish havolasini talab qilish</string>
+    <string name="mjpeg_pref_access_protection_default">Birlamchi: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PIN qoidasi</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">Ochilganda yangi PIN</string>
+    <string name="mjpeg_pref_access_policy_permanent">Doimiy PIN</string>
+    <string name="mjpeg_pref_access_policy_help">“Ochilganda yangi PIN” tanlangan va himoya yoqilgan boʻlsa, MJPEG rejimi har ochilganda PIN yaratiladi. Tasvirga olishni boshlash uni oʻzgartirmaydi.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">Translatsiyaga kirish uchun saqlangan PIN</string>
+    <string name="mjpeg_pref_access_pin_unavailable">Saqlangan PIN yoʻq</string>
+    <string name="mjpeg_pref_access_pin_label">PIN (6 raqam)</string>
+    <string name="mjpeg_pref_access_pin_error">Oltita raqam kiriting (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">Yangi PIN yaratish</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">Oʻz PINingizni kiritish uchun “Doimiy PIN”ni tanlang</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">PIN urinishlarini cheklash</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">Besh marta notoʻgʻri kiritilgandan soʻng PIN orqali kirishni toʻxtatib turish</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">Daqiqa: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">Bloklash muddati (1–60 daqiqa)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">Birlamchi: %1$s · %2$s daq</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">1 dan 60 gacha butun son kiriting</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">Shu IP manzildan yangi PIN urinishlarini bloklaydi. Ulangan tomoshabinlar ulanishda qoladi.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">Translatsiya boshlanganda PINni yashirish</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">PINni yana koʻrsatishingiz mumkin</string>
+</resources>

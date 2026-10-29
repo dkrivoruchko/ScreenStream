@@ -9,14 +9,14 @@
 <style>/* INLINE_STYLE */</style>
 </head>
 <body>
-<main id="shell" class="access-screen" aria-label="ScreenStream viewer">
+<main id="shell" class="access-screen" aria-label="ScreenStream viewer" data-a11y="viewerLabel">
   <div id="safe-area" aria-hidden="true"></div>
   <div id="top-bar" class="edge bar"></div>
-  <div id="viewport" tabindex="0" aria-label="Stream image. Use arrow keys to scroll.">
+  <div id="viewport" tabindex="0" dir="ltr" aria-label="Stream image. Use arrow keys to scroll." data-a11y="viewportLabel">
     <div id="image-stage"></div>
-    <section id="placeholder" class="open-state">
+    <section id="placeholder" class="open-state" data-locale-dir>
       <img id="state-logo" width="192" height="192" alt="" aria-hidden="true" hidden>
-      <div id="status-panel" class="status-panel">
+      <div id="status-panel" class="status-panel" data-locale-dir>
         <div class="open-content"><p id="state-message" role="status" aria-live="polite"></p></div>
         <div class="open-actions">
           <div id="recovery" class="recovery" hidden>
@@ -28,14 +28,14 @@
     </section>
   </div>
   <div id="bottom-bar" class="edge bar"></div>
-  <div id="caption" class="block caption" hidden><span id="caption-text"></span></div>
+  <div id="caption" class="block caption" dir="auto" hidden><span id="caption-text" dir="auto"></span></div>
   <!-- Material Icons SVG paths: google/material-design-icons, Apache 2.0. Fit to width uses a custom path. -->
-  <div id="controls" class="block controls" role="group" aria-label="Viewing controls" hidden>
-    <div class="size-modes" role="group" aria-label="Image size">
+  <div id="controls" class="block controls" role="group" aria-label="Viewing controls" data-a11y="controlsLabel" hidden>
+    <div class="size-modes" role="group" aria-label="Image size" data-a11y="sizeModesLabel">
       <button id="view-fit" type="button" aria-pressed="true" data-label="fit">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M17 4h3c1.1 0 2 .9 2 2v2h-2V6h-3V4zM4 8V6h3V4H4c-1.1 0-2 .9-2 2v2h2zm16 8v2h-3v2h3c1.1 0 2-.9 2-2v-2h-2zM7 18H4v-2H2v2c0 1.1.9 2 2 2h3v-2zM18 8H6v8h12V8z"/></svg>
       </button>
-      <button id="view-original" type="button" aria-pressed="false" data-label="original"><span class="native-size" aria-hidden="true">1:1</span></button>
+      <button id="view-original" type="button" aria-pressed="false" data-label="original"><span class="native-size" dir="ltr" aria-hidden="true">1:1</span></button>
       <button id="view-width" type="button" aria-pressed="false" data-label="width">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M3 5v14M21 5v14M5 12h14M8 9l-3 3 3 3M16 9l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
@@ -52,7 +52,7 @@
     </button>
   </div>
   <div id="control-tooltip" class="control-tooltip" aria-hidden="true" hidden></div>
-  <section id="menu" class="panel" role="region" aria-label="More viewing options" tabindex="-1" hidden>
+  <section id="menu" class="panel" role="region" aria-label="More viewing options" data-a11y="menuLabel" tabindex="-1" hidden>
     <h2 id="method-label" class="menu-heading" data-word="connection"></h2>
     <div class="method-choices" role="group" aria-labelledby="method-label">
       <button id="method-mjpeg" type="button" aria-pressed="true" aria-labelledby="method-mjpeg-label" aria-describedby="method-mjpeg-description">
@@ -70,7 +70,7 @@
       <dt data-word="status"></dt><dd id="info-connection"></dd>
       <dt data-word="image"></dt><dd id="info-image"></dd>
       <dt id="info-notice-label" data-word="notice" hidden></dt><dd id="info-notice" hidden></dd>
-      <dt data-word="size"></dt><dd id="info-size"></dd>
+      <dt data-word="size"></dt><dd id="info-size" data-locale-dir></dd>
     </dl>
     <div class="legal-links">
       <a href="https://screenstream.io/privacy.html" target="_blank" rel="noopener noreferrer" data-word="privacy"></a>
@@ -85,11 +85,11 @@
         <p id="pin-message" role="status" aria-live="polite"></p>
         <p id="pin-block-copy" data-word="pinBlocked" aria-hidden="true" hidden></p>
         <div id="pin-countdown" aria-hidden="true" hidden>
-          <strong id="pin-countdown-value"></strong>
+          <strong id="pin-countdown-value" dir="ltr"></strong>
         </div>
         <div id="pin-entry">
           <label for="pin" data-word="pinRequired"></label>
-          <input id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message pin-error" aria-invalid="false">
+          <input id="pin" name="pin" dir="ltr" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message pin-error" aria-invalid="false">
           <p id="pin-error" role="status" aria-live="polite" hidden></p>
           <button id="unlock" type="submit" data-word="unlock"></button>
         </div>

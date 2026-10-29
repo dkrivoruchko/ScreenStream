@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">ローカルモード · MJPEG</string>
+    <string name="mjpeg_mode_description">MJPEG について</string>
+    <string name="mjpeg_mode_details">デバイスの画面を JPEG 画像としてウェブブラウザに直接配信します。音声は配信しません。\n\n• インターネットなしでローカルネットワーク内で使えます。視聴者が配信アドレスに接続できる必要があります。\n• PIN による保護は任意です。有効にすると、視聴者は PIN を入力するか、アクセスリンクを使って視聴できます。\n• 配信には暗号化されていない HTTP を使います。信頼できるネットワークを使ってください。\n• ネットワークフィルタで Wi-Fi、Ethernet、モバイルデータ、VPN、IPv4、IPv6 を選べます。\n• 画像サイズ、JPEG 画質、フレームレートを調整できます。\n• 画像は視聴者ごとに送信するため、データ使用量が増えます。</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">閉じる</string>
+
+    <string name="mjpeg_pref_value_on">オン</string>
+    <string name="mjpeg_pref_value_off">オフ</string>
+    <string name="mjpeg_pref_value_automatic">自動</string>
+    <string name="mjpeg_pref_value_not_set">未設定</string>
+    <string name="mjpeg_pref_value_unavailable">まだ利用できません</string>
+    <string name="mjpeg_pref_default_option">%1$s（デフォルト）</string>
+    <string name="mjpeg_pref_default_value">デフォルト: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">画面キャプチャが完全に停止すると利用できます</string>
+
+    <string name="mjpeg_pref_search_placeholder">設定を検索</string>
+    <string name="mjpeg_pref_search_clear">検索をクリア</string>
+    <string name="mjpeg_pref_search_no_results">設定が見つかりません</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">モバイルデータ</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">その他</string>
+    <string name="mjpeg_network_loopback">ループバック</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">配信を開始</string>
+    <string name="mjpeg_stream_stop_capture">配信を停止</string>
+    <string name="mjpeg_stream_skipped_frames_warning">フレームがスキップされました</string>
+    <string name="mjpeg_stream_stop_delayed">画面共有の停止処理中…</string>
+    <string name="mjpeg_capture_error">画面キャプチャに失敗しました</string>
+    <string name="mjpeg_error_suspension_invalid_request">キャプチャを一時停止中: 画像設定が現在のキャプチャ範囲に適していません</string>
+    <string name="mjpeg_error_suspension_unavailable">キャプチャを一時停止中: キャプチャ元を利用できません</string>
+    <string name="mjpeg_error_suspension_resources">キャプチャを一時停止中: リソースが不足しています</string>
+
+    <string name="mjpeg_address_list_title">配信アドレス</string>
+    <string name="mjpeg_address_list_empty">配信に使えるアドレスがありません。\n接続設定のネットワークフィルタを確認してください。</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">ネットワーク:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">このデバイスのみ</string>
+    <string name="mjpeg_address_private_ipv4">プライベート IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">非プライベート IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">非プライベート IPv6</string>
+
+    <string name="mjpeg_address_open">開く</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">%1$s を開く</string>
+    <string name="mjpeg_address_copy_url">リンクをコピー</string>
+    <string name="mjpeg_address_copy_description">%1$s のリンクをコピー</string>
+    <string name="mjpeg_address_share">共有</string>
+    <string name="mjpeg_address_share_description">%1$s のリンクを共有</string>
+    <string name="mjpeg_address_qr_code">QR コードを表示</string>
+    <string name="mjpeg_address_qr_code_description">%1$s の QR コードを表示</string>
+    <string name="mjpeg_address_qr_image_description">このコードをスキャンして配信リンクを開きます</string>
+
+    <string name="mjpeg_address_error_browser_not_found">ウェブブラウザが見つかりません</string>
+    <string name="mjpeg_address_error_open">リンクを開けませんでした</string>
+    <string name="mjpeg_address_error_share">リンクを共有できませんでした</string>
+    <string name="mjpeg_address_error_qr_generation">QR コードを作成できませんでした</string>
+
+    <string name="mjpeg_local_network_permission_request">権限をリクエスト</string>
+    <string name="mjpeg_local_network_permission_open_settings">設定を開く</string>
+    <string name="mjpeg_local_network_permission_required">ローカルネットワークへのアクセス権限が必要です</string>
+
+    <string name="mjpeg_server_pending">待機中</string>
+    <string name="mjpeg_server_address_in_use">アドレスは使用中です</string>
+    <string name="mjpeg_server_address_unavailable">アドレスを利用できません</string>
+    <string name="mjpeg_server_permission_denied">権限が拒否されました</string>
+    <string name="mjpeg_server_io_failure">サーバーを利用できません</string>
+    <string name="mjpeg_server_unknown_failure">サーバーでエラーが発生しました</string>
+    <string name="mjpeg_server_retry">再試行</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">%1$s のサーバーを再試行</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN は非表示です</string>
+    <string name="mjpeg_pin_show_label">表示</string>
+    <string name="mjpeg_pin_show_description">PIN を表示</string>
+    <string name="mjpeg_pin_hide_label">非表示</string>
+    <string name="mjpeg_pin_hide_description">PIN を非表示</string>
+    <string name="mjpeg_stream_pin_copy">PIN をコピー</string>
+    <string name="mjpeg_stream_pin_copied">PIN をコピーしました</string>
+    <string name="mjpeg_stream_pin_hint_access">配信リンクを開くか、その QR コードをスキャンしてください。\n求められた場合は、この PIN を入力してください。</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">画像設定</string>
+    <string name="mjpeg_pref_image_save_error">画像設定を保存できませんでした</string>
+
+    <string name="mjpeg_pref_image_region">キャプチャ範囲</string>
+    <string name="mjpeg_pref_image_region_summary">配信する範囲を選択</string>
+    <string name="mjpeg_pref_image_region_full">範囲全体</string>
+    <string name="mjpeg_pref_image_region_left">左半分</string>
+    <string name="mjpeg_pref_image_region_right">右半分</string>
+
+    <string name="mjpeg_pref_image_crop">切り抜き</string>
+    <string name="mjpeg_pref_image_crop_summary">画像の端を切り取る</string>
+    <string name="mjpeg_pref_image_crop_purpose">各辺から削除するピクセル数を入力</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">画像の一部を残してください。全体を切り取ると、新しいフレームをキャプチャできません。</string>
+    <string name="mjpeg_pref_image_crop_enabled">切り抜きを有効にする</string>
+    <string name="mjpeg_pref_image_crop_left">左（px）</string>
+    <string name="mjpeg_pref_image_crop_top">上（px）</string>
+    <string name="mjpeg_pref_image_crop_right">右（px）</string>
+    <string name="mjpeg_pref_image_crop_bottom">下（px）</string>
+    <string name="mjpeg_pref_image_crop_error">0 以上の整数を入力してください</string>
+    <string name="mjpeg_pref_image_crop_required">値を入力してください</string>
+
+    <string name="mjpeg_pref_image_size">画像サイズ</string>
+    <string name="mjpeg_pref_image_size_summary">倍率または寸法を設定</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">画像を引き伸ばす</string>
+    <string name="mjpeg_pref_image_size_stretch_value">引き伸ばす</string>
+    <string name="mjpeg_pref_image_size_fit_description">縦横比を保って幅と高さの範囲内に収めます</string>
+    <string name="mjpeg_pref_image_size_stretch_description">指定した幅と高さにします。縦横比は変わる場合があります</string>
+    <string name="mjpeg_pref_image_size_estimate_note">画面に基づく推定です。共有するアプリのサイズは異なる場合があります</string>
+    <string name="mjpeg_pref_image_size_source">画面: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">推定画像サイズ: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">利用不可</string>
+    <string name="mjpeg_pref_image_size_scale">倍率</string>
+    <string name="mjpeg_pref_image_size_target">サイズ</string>
+    <string name="mjpeg_pref_image_size_default">デフォルト: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">倍率（0 より大きく、最大 200%）</string>
+    <string name="mjpeg_pref_image_size_width_label">幅（1–8192 px）</string>
+    <string name="mjpeg_pref_image_size_height_label">高さ（1–8192 px）</string>
+    <string name="mjpeg_pref_image_size_scale_error">0 より大きく 200 以下の数値を入力してください</string>
+    <string name="mjpeg_pref_image_size_dimension_error">1 から 8192 の整数を入力してください</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">拡大しても細部は増えず、配信が遅くなる場合があります</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">回転</string>
+    <string name="mjpeg_pref_image_rotation_summary">画像を時計回りに回転</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">反転</string>
+    <string name="mjpeg_pref_image_mirror_summary">画像を左右または上下に反転</string>
+    <string name="mjpeg_pref_image_mirror_none">なし</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">左右</string>
+    <string name="mjpeg_pref_image_mirror_vertical">上下</string>
+
+    <string name="mjpeg_pref_image_grayscale">グレースケール</string>
+    <string name="mjpeg_pref_image_grayscale_summary">画像をグレースケールで表示</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG 画質</string>
+    <string name="mjpeg_pref_image_quality_summary">細部とデータ使用量を調整</string>
+    <string name="mjpeg_pref_image_quality_popup_description">画質を上げると細部が鮮明になり、データ使用量が増えます。デフォルト: %1$s。</string>
+
+    <string name="mjpeg_pref_image_rate">フレームレート</string>
+    <string name="mjpeg_pref_image_rate_summary">画像の更新頻度を設定</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">最高のフレームレートを維持しようとします</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS 上限</string>
+    <string name="mjpeg_pref_image_rate_fps_description">1 秒あたりのフレーム数を制限</string>
+    <string name="mjpeg_pref_image_rate_fps_value">最大 %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">フレーム/秒（1–120）</string>
+    <string name="mjpeg_pref_image_rate_fps_error">1 から 120 の整数を入力してください</string>
+    <string name="mjpeg_pref_image_rate_fps_help">実際のフレームレートは上限より低くなる場合があります</string>
+
+    <string name="mjpeg_pref_image_rate_interval">間隔</string>
+    <string name="mjpeg_pref_image_rate_interval_description">キャプチャの最小間隔を設定</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s 秒</string>
+    <string name="mjpeg_pref_image_rate_interval_label">間隔（1–3600 秒）</string>
+    <string name="mjpeg_pref_image_rate_interval_error">1 から 3600 秒の間隔を入力してください</string>
+    <string name="mjpeg_pref_image_rate_interval_help">間隔は新しいフレームのキャプチャ頻度を制限します</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG エンコーダ</string>
+    <string name="mjpeg_pref_image_encoder_summary">JPEG 画像の作成方法を選択</string>
+    <string name="mjpeg_pref_image_encoder_standard">標準</string>
+    <string name="mjpeg_pref_image_encoder_locked">画面共有が完全に停止すると利用できます</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">利用可能な場合は最適化したエンコードを使用</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">エンコードの最適化を無効にする</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">自動化設定</string>
+    <string name="mjpeg_pref_automation_save_error">自動化設定を保存できませんでした</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">アドレス消失後に配信を停止</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">選択したアドレスがすべてなくなったら配信を停止</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">%1$d 秒後</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">待ち時間（10–1800 秒）</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">デフォルト: %1$s 秒</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">10 から 1800 の整数を入力してください</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">アドレスが戻るとタイマーを取り消します</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">配信休止中の画像</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">ライブ画像を利用できないときに表示する画像</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">アプリのロゴ</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">最後のフレーム</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">画面をオンに保つ</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">キャプチャ中は可能な限り画面をオンに保つ</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">画面オフで停止</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">画面がオフになったら配信を停止</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">フレームのスキップを通知</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">一部のデバイスでは受信する画像が少なくなる場合があります</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">接続設定</string>
+    <string name="mjpeg_pref_connection_save_error">ネットワーク設定を保存できませんでした</string>
+
+    <string name="mjpeg_pref_connection_filter">ネットワークフィルタ</string>
+    <string name="mjpeg_pref_connection_filter_summary">配信に使うネットワークアドレスを選択</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP バージョン</string>
+    <string name="mjpeg_pref_connection_filter_network_type">ネットワークの種類</string>
+    <string name="mjpeg_pref_connection_filter_address_type">アドレスの種類</string>
+    <string name="mjpeg_pref_connection_filter_private">プライベート</string>
+    <string name="mjpeg_pref_connection_filter_non_private">非プライベート</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">各グループで少なくとも 1 つ選択してください</string>
+    <string name="mjpeg_pref_connection_filter_default">デフォルト: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">アドレスは 3 つのグループすべてに一致する必要があります。変更すると視聴者の接続が切れる場合があります。</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP ポート</string>
+    <string name="mjpeg_pref_connection_http_port_summary">視聴者の接続に使うポートを設定</string>
+    <string name="mjpeg_pref_connection_http_port_label">ポート（1024–65535）</string>
+    <string name="mjpeg_pref_connection_http_port_error">1024 から 65535 の整数を入力してください</string>
+    <string name="mjpeg_pref_connection_http_port_help">ポートを変更すると配信アドレスも変わります</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">ウェブページ設定</string>
+    <string name="mjpeg_pref_web_save_error">ウェブページ設定を保存できませんでした</string>
+
+    <string name="mjpeg_pref_web_background">背景</string>
+    <string name="mjpeg_pref_web_background_summary">ウェブページの背景色を選択</string>
+    <string name="mjpeg_pref_web_background_hex_label">16 進数の色</string>
+    <string name="mjpeg_pref_web_background_hex_error">0–9、A–F の 6 文字で入力してください</string>
+    <string name="mjpeg_pref_web_background_red">赤</string>
+    <string name="mjpeg_pref_web_background_green">緑</string>
+    <string name="mjpeg_pref_web_background_blue">青</string>
+    <string name="mjpeg_pref_web_background_palette">プリセットの色</string>
+    <string name="mjpeg_pref_web_background_color_option">色 %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">選択した色 %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">配信名</string>
+    <string name="mjpeg_pref_web_stream_name_summary">視聴者に表示する名前を設定</string>
+    <string name="mjpeg_pref_web_stream_name_label">配信名（最大 64 文字）</string>
+    <string name="mjpeg_pref_web_stream_name_error">%1$d 文字以下にしてください</string>
+    <string name="mjpeg_pref_web_stream_name_help">ブラウザのタブ名と配信ラベルに使用</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">配信名を表示</string>
+    <string name="mjpeg_pref_web_stream_name_empty">名前なし</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">配信名の配置</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">名前の表示位置と表示方法を選択</string>
+
+    <string name="mjpeg_pref_web_controls_placement">操作ボタンの配置</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">操作ボタンの表示位置と表示方法を選択</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">位置</string>
+    <string name="mjpeg_pref_web_position_top">上</string>
+    <string name="mjpeg_pref_web_position_bottom">下</string>
+    <string name="mjpeg_pref_web_presentation">表示方法</string>
+    <string name="mjpeg_pref_web_presentation_overlay">画像に重ねる</string>
+    <string name="mjpeg_pref_web_presentation_bar">独立したバー</string>
+    <string name="mjpeg_pref_web_auto_hide_on">自動で隠す</string>
+    <string name="mjpeg_pref_web_auto_hide_off">常に表示</string>
+    <string name="mjpeg_pref_web_auto_hide_help">操作がない状態が 4 秒続くと非表示にする</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">アクセス設定</string>
+    <string name="mjpeg_pref_access_save_error">アクセス設定を保存できませんでした</string>
+
+    <string name="mjpeg_pref_access_protection">PIN による保護</string>
+    <string name="mjpeg_pref_access_protection_summary">視聴に PIN またはアクセスリンクを必須にする</string>
+    <string name="mjpeg_pref_access_protection_default">デフォルト: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PIN の設定</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">開くたびに新しい PIN</string>
+    <string name="mjpeg_pref_access_policy_permanent">固定 PIN</string>
+    <string name="mjpeg_pref_access_policy_help">「開くたびに新しい PIN」を選択して保護を有効にすると、MJPEG モードを開くたびに PIN を生成します。キャプチャを開始しても PIN は変わりません。</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">配信へのアクセス用に保存した PIN</string>
+    <string name="mjpeg_pref_access_pin_unavailable">保存した PIN なし</string>
+    <string name="mjpeg_pref_access_pin_label">PIN（6 桁）</string>
+    <string name="mjpeg_pref_access_pin_error">6 桁の数字（0–9）を入力してください</string>
+    <string name="mjpeg_pref_access_pin_regenerate">新しい PIN を生成</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">独自の PIN を入力するには「固定 PIN」を選択</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">PIN の試行回数を制限</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">PIN を 5 回間違えると PIN でのログインを一時停止</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">分: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">ブロック時間（1–60 分）</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">デフォルト: %1$s · %2$s 分</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">1 から 60 の整数を入力してください</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">その IP からの新しい PIN 試行をブロックします。接続済みの視聴者は接続を維持します。</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">配信開始時に PIN を隠す</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">PIN は再表示できます</string>
+</resources>

@@ -1,67 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mjpeg_mode_name">MJPEG</string>
-    <string name="mjpeg_mode_description">В разработке</string>
-    <string name="mjpeg_mode_details">Трансляция экрана устройства в веб-браузер</string>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">Локальный режим · MJPEG</string>
+    <string name="mjpeg_mode_description">О режиме MJPEG</string>
+    <string name="mjpeg_mode_details">Трансляция экрана устройства прямо в браузер в виде изображений JPEG. Звук не передаётся.\n\n• Работает в локальной сети без интернета. Зрителям нужен доступ к адресу трансляции.\n• Защита PIN-кодом необязательна. При включённой защите зрители могут ввести PIN-код или открыть ссылку доступа.\n• Трансляция использует HTTP без шифрования. Используйте доверенную сеть.\n• Сетевой фильтр позволяет выбрать Wi-Fi, Ethernet, мобильные данные, VPN, IPv4 и IPv6.\n• Настраивайте размер изображения, качество JPEG и частоту кадров.\n• Изображения отправляются каждому зрителю отдельно, увеличивая расход трафика.</string>
 
+    <!-- Shared UI and settings -->
     <string name="mjpeg_action_close">Закрыть</string>
-
-    <string name="mjpeg_stream_start_capture">Начать трансляцию</string>
-    <string name="mjpeg_stream_stop_capture">Остановить трансляцию</string>
-    <string name="mjpeg_stream_slow_viewer_warning">Медленное соединение с клиентом.</string>
-    <string name="mjpeg_capture_error">Ошибка захвата экрана</string>
-    <string name="mjpeg_error_suspension_invalid_request">Захват приостановлен: настройки изображения не подходят для текущей области захвата</string>
-    <string name="mjpeg_error_suspension_unavailable">Захват приостановлен: источник захвата недоступен</string>
-    <string name="mjpeg_error_suspension_resources">Захват приостановлен: недостаточно ресурсов</string>
-
-    <string name="mjpeg_network_ipv4">IPv4</string>
-    <string name="mjpeg_network_ipv6">IPv6</string>
-    <string name="mjpeg_network_wifi">Wi-Fi</string>
-    <string name="mjpeg_network_ethernet">Ethernet</string>
-    <string name="mjpeg_network_mobile">Мобильная сеть</string>
-    <string name="mjpeg_network_vpn">VPN</string>
-    <string name="mjpeg_network_other">Другое</string>
-    <string name="mjpeg_network_loopback">Loopback</string>
-
-    <string name="mjpeg_address_list_title">Адреса трансляции</string>
-    <string name="mjpeg_address_list_empty">Нет адресов для трансляции.\nПроверьте «Сетевой фильтр» в разделе «Настройки подключения».</string>
-    <string name="mjpeg_address_network_details">Интерфейс:\n%1$s (%2$s)</string>
-    <string name="mjpeg_address_same_device">Только это устройство</string>
-    <string name="mjpeg_address_private_ipv4">IPv4 LAN</string>
-    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
-    <string name="mjpeg_address_non_private_ipv4">Нечастный IPv4</string>
-    <string name="mjpeg_address_non_private_ipv6">Нечастный IPv6</string>
-
-    <string name="mjpeg_address_open">Открыть</string>
-    <string name="mjpeg_address_copy_url">Копировать URL</string>
-    <string name="mjpeg_address_share">Поделиться</string>
-    <string name="mjpeg_address_qr_code">QR-код</string>
-    <string name="mjpeg_address_qr_description">Отсканируйте код, чтобы открыть ссылку на трансляцию</string>
-
-    <string name="mjpeg_address_error_browser_not_found">Браузер не найден</string>
-    <string name="mjpeg_address_error_open">Не удалось открыть ссылку</string>
-    <string name="mjpeg_address_error_share">Не удалось передать ссылку</string>
-    <string name="mjpeg_address_error_qr_generation">Не удалось создать QR-код</string>
-
-    <string name="mjpeg_stream_pin_label">PIN-код:</string>
-    <string name="mjpeg_stream_pin_hidden">PIN-код скрыт</string>
-    <string name="mjpeg_stream_pin_show">Показать PIN-код</string>
-    <string name="mjpeg_stream_pin_hide">Скрыть PIN-код</string>
-    <string name="mjpeg_stream_pin_copy">Копировать PIN</string>
-    <string name="mjpeg_stream_pin_copied">PIN-код скопирован</string>
-    <string name="mjpeg_stream_pin_hint_access">Ссылки доступа и их QR-коды открываются без PIN-кода.\nПри вводе адреса вручную используйте PIN-код.</string>
-
-    <string name="mjpeg_local_network_permission_request">Запросить доступ</string>
-    <string name="mjpeg_local_network_permission_open_settings">Открыть настройки</string>
-    <string name="mjpeg_local_network_permission_required">Нужно разрешение на доступ к локальной сети</string>
-
-    <string name="mjpeg_server_pending">Подготовка адреса…</string>
-    <string name="mjpeg_server_address_in_use">Адрес занят</string>
-    <string name="mjpeg_server_address_unavailable">Адрес недоступен</string>
-    <string name="mjpeg_server_permission_denied">Доступ запрещён</string>
-    <string name="mjpeg_server_io_failure">Не удалось открыть сервер</string>
-    <string name="mjpeg_server_unknown_failure">Ошибка сервера</string>
-    <string name="mjpeg_server_retry">Повторить</string>
 
     <string name="mjpeg_pref_value_on">Вкл.</string>
     <string name="mjpeg_pref_value_off">Выкл.</string>
@@ -76,6 +21,79 @@
     <string name="mjpeg_pref_search_clear">Очистить поиск</string>
     <string name="mjpeg_pref_search_no_results">Настройки не найдены</string>
 
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">Мобильные данные</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">Другое</string>
+    <string name="mjpeg_network_loopback">Loopback</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">Начать трансляцию</string>
+    <string name="mjpeg_stream_stop_capture">Остановить трансляцию</string>
+    <string name="mjpeg_stream_skipped_frames_warning">Пропущены кадры</string>
+    <string name="mjpeg_stream_stop_delayed">Завершение показа экрана…</string>
+    <string name="mjpeg_capture_error">Ошибка захвата экрана</string>
+    <string name="mjpeg_error_suspension_invalid_request">Захват приостановлен: настройки изображения не подходят для текущей области захвата</string>
+    <string name="mjpeg_error_suspension_unavailable">Захват приостановлен: источник захвата недоступен</string>
+    <string name="mjpeg_error_suspension_resources">Захват приостановлен: недостаточно ресурсов</string>
+
+    <string name="mjpeg_address_list_title">Адреса трансляции</string>
+    <string name="mjpeg_address_list_empty">Нет адресов для трансляции.\nПроверьте «Сетевой фильтр» в разделе «Настройки подключения».</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">Сеть:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">Только это устройство</string>
+    <string name="mjpeg_address_private_ipv4">Частный IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">Нечастный IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">Нечастный IPv6</string>
+
+    <string name="mjpeg_address_open">Открыть</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">Открыть %1$s</string>
+    <string name="mjpeg_address_copy_url">Копировать ссылку</string>
+    <string name="mjpeg_address_copy_description">Копировать ссылку на %1$s</string>
+    <string name="mjpeg_address_share">Поделиться</string>
+    <string name="mjpeg_address_share_description">Поделиться ссылкой на %1$s</string>
+    <string name="mjpeg_address_qr_code">Показать QR-код</string>
+    <string name="mjpeg_address_qr_code_description">Показать QR-код для %1$s</string>
+    <string name="mjpeg_address_qr_image_description">Отсканируйте код, чтобы открыть ссылку на трансляцию</string>
+
+    <string name="mjpeg_address_error_browser_not_found">Браузер не найден</string>
+    <string name="mjpeg_address_error_open">Не удалось открыть ссылку</string>
+    <string name="mjpeg_address_error_share">Не удалось передать ссылку</string>
+    <string name="mjpeg_address_error_qr_generation">Не удалось создать QR-код</string>
+
+    <string name="mjpeg_local_network_permission_request">Запросить разрешение</string>
+    <string name="mjpeg_local_network_permission_open_settings">Открыть настройки</string>
+    <string name="mjpeg_local_network_permission_required">Нужно разрешение на доступ к локальной сети</string>
+
+    <string name="mjpeg_server_pending">Ожидание</string>
+    <string name="mjpeg_server_address_in_use">Адрес занят</string>
+    <string name="mjpeg_server_address_unavailable">Адрес недоступен</string>
+    <string name="mjpeg_server_permission_denied">Доступ запрещён</string>
+    <string name="mjpeg_server_io_failure">Сервер недоступен</string>
+    <string name="mjpeg_server_unknown_failure">Ошибка сервера</string>
+    <string name="mjpeg_server_retry">Повторить</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">Повторить запуск сервера по адресу %1$s</string>
+
+    <string name="mjpeg_stream_pin_label">PIN-код:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN-код скрыт</string>
+    <string name="mjpeg_pin_show_label">Показать</string>
+    <string name="mjpeg_pin_show_description">Показать PIN-код</string>
+    <string name="mjpeg_pin_hide_label">Скрыть</string>
+    <string name="mjpeg_pin_hide_description">Скрыть PIN-код</string>
+    <string name="mjpeg_stream_pin_copy">Копировать PIN-код</string>
+    <string name="mjpeg_stream_pin_copied">PIN-код скопирован</string>
+    <string name="mjpeg_stream_pin_hint_access">Откройте ссылку на трансляцию или отсканируйте её QR-код.\nВведите этот PIN-код, если потребуется.</string>
+
+    <!-- Image settings -->
     <string name="mjpeg_pref_image_group">Настройки изображения</string>
     <string name="mjpeg_pref_image_save_error">Не удалось сохранить настройки изображения</string>
 
@@ -88,7 +106,7 @@
     <string name="mjpeg_pref_image_crop">Обрезка</string>
     <string name="mjpeg_pref_image_crop_summary">Обрежьте края изображения</string>
     <string name="mjpeg_pref_image_crop_purpose">Укажите, сколько пикселей убрать с каждой стороны</string>
-    <string name="mjpeg_pref_image_crop_empty_warning">Оставьте часть изображения. Иначе новые кадры не будут поступать.</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">Оставьте часть изображения видимой. Иначе захват новых кадров будет невозможен.</string>
     <string name="mjpeg_pref_image_crop_enabled">Включить обрезку</string>
     <string name="mjpeg_pref_image_crop_left">Слева (пикс.)</string>
     <string name="mjpeg_pref_image_crop_top">Сверху (пикс.)</string>
@@ -104,9 +122,9 @@
     <string name="mjpeg_pref_image_size_stretch_value">Растяжение</string>
     <string name="mjpeg_pref_image_size_fit_description">Вписывает в ширину и высоту, сохраняя пропорции</string>
     <string name="mjpeg_pref_image_size_stretch_description">Точные ширина и высота; пропорции могут измениться</string>
-    <string name="mjpeg_pref_image_size_estimate_note">Оценка по экрану; размер приложения может отличаться</string>
-    <string name="mjpeg_pref_image_size_source">Исходный: %1$s</string>
-    <string name="mjpeg_pref_image_size_result">Результат: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_note">Оценка по экрану; размер транслируемого приложения может отличаться</string>
+    <string name="mjpeg_pref_image_size_source">Экран: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">Примерный размер: %1$s</string>
     <string name="mjpeg_pref_image_size_estimate_unavailable">Недоступно</string>
     <string name="mjpeg_pref_image_size_scale">Масштаб</string>
     <string name="mjpeg_pref_image_size_target">Размер</string>
@@ -138,80 +156,85 @@
 
     <string name="mjpeg_pref_image_rate">Частота кадров</string>
     <string name="mjpeg_pref_image_rate_summary">Задайте частоту обновления изображения</string>
-    <string name="mjpeg_pref_image_rate_fps_value">До %1$d кадр/с</string>
-    <string name="mjpeg_pref_image_rate_interval_value">%1$s с</string>
-    <string name="mjpeg_pref_image_rate_fps">Лимит FPS</string>
-    <string name="mjpeg_pref_image_rate_interval">Интервал</string>
-    <string name="mjpeg_pref_image_rate_fps_label">Кадров в секунду (1–120)</string>
-    <string name="mjpeg_pref_image_rate_interval_label">Интервал (1–3600 секунд)</string>
-    <string name="mjpeg_pref_image_rate_fps_error">Введите целое число от 1 до 120</string>
-    <string name="mjpeg_pref_image_rate_interval_error">Введите интервал от 1 до 3600 секунд</string>
+
     <string name="mjpeg_pref_image_rate_auto_description">Стремится к максимальной частоте кадров</string>
+
+    <string name="mjpeg_pref_image_rate_fps">Лимит FPS</string>
     <string name="mjpeg_pref_image_rate_fps_description">Ограничивает частоту кадров</string>
-    <string name="mjpeg_pref_image_rate_fps_help">Фактическая частота кадров может быть ниже лимита и зависит от устройства</string>
+    <string name="mjpeg_pref_image_rate_fps_value">До %1$d кадр/с</string>
+    <string name="mjpeg_pref_image_rate_fps_label">Кадров в секунду (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">Введите целое число от 1 до 120</string>
+    <string name="mjpeg_pref_image_rate_fps_help">Фактическая частота кадров может быть ниже лимита</string>
+
+    <string name="mjpeg_pref_image_rate_interval">Интервал</string>
     <string name="mjpeg_pref_image_rate_interval_description">Задаёт минимальный интервал захвата</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s с</string>
+    <string name="mjpeg_pref_image_rate_interval_label">Интервал (1–3600 секунд)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">Введите интервал от 1 до 3600 секунд</string>
     <string name="mjpeg_pref_image_rate_interval_help">Интервал ограничивает частоту захвата новых кадров</string>
 
     <string name="mjpeg_pref_image_encoder">Кодировщик JPEG</string>
     <string name="mjpeg_pref_image_encoder_summary">Выберите способ создания изображений JPEG</string>
-    <string name="mjpeg_pref_image_encoder_system">Стандартный</string>
-    <string name="mjpeg_pref_image_encoder_locked">Выберите кодировщик перед началом трансляции</string>
+    <string name="mjpeg_pref_image_encoder_standard">Стандартный</string>
+    <string name="mjpeg_pref_image_encoder_locked">Доступно после полного завершения показа экрана</string>
     <string name="mjpeg_pref_image_encoder_auto_description">Оптимизированное кодирование, если доступно</string>
-    <string name="mjpeg_pref_image_encoder_system_description">Без оптимизации кодирования</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">Без оптимизации кодирования</string>
 
+    <!-- Automation settings -->
     <string name="mjpeg_pref_automation_group">Настройки автоматизации</string>
     <string name="mjpeg_pref_automation_save_error">Не удалось сохранить настройки автоматизации</string>
 
-    <string name="mjpeg_pref_stream_network_loss_timeout">Останавливать трансляцию при потере адресов</string>
-    <string name="mjpeg_pref_stream_network_loss_timeout_summary">Останавливать трансляцию, когда не остаётся выбранных адресов</string>
-    <string name="mjpeg_pref_stream_network_loss_timeout_value">Через %1$d с</string>
-    <string name="mjpeg_pref_stream_network_loss_timeout_label">Задержка (10–1800 секунд)</string>
-    <string name="mjpeg_pref_stream_network_loss_timeout_default">По умолчанию: %1$s секунд</string>
-    <string name="mjpeg_pref_stream_network_loss_timeout_error">Введите целое число от 10 до 1800</string>
-    <string name="mjpeg_pref_stream_network_loss_timeout_help">Возвращение адресов отменяет таймер</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout">Останавливать трансляцию при потере адресов</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Останавливать трансляцию, когда не остаётся выбранных адресов</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">Через %1$d с</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">Задержка (10–1800 секунд)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">По умолчанию: %1$s секунд</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">Введите целое число от 10 до 1800</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Возвращение адресов отменяет таймер</string>
 
-    <string name="mjpeg_pref_stream_post_stop_image">Изображение при неактивном потоке</string>
-    <string name="mjpeg_pref_stream_post_stop_image_summary">Что видят зрители без трансляции.</string>
-    <string name="mjpeg_pref_stream_post_stop_placeholder">Логотип приложения</string>
-    <string name="mjpeg_pref_stream_post_stop_last_frame">Последний кадр</string>
+    <string name="mjpeg_pref_automation_inactive_image">Изображение неактивной трансляции</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Изображение на случай, когда кадры трансляции недоступны</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">Логотип приложения</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Последний кадр</string>
 
-    <string name="mjpeg_pref_stream_keep_awake">Не выключать экран</string>
-    <string name="mjpeg_pref_stream_keep_awake_summary">По возможности не выключать экран во время захвата.</string>
+    <string name="mjpeg_pref_automation_keep_awake">Не выключать экран</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">По возможности не выключать экран во время захвата</string>
 
-    <string name="mjpeg_pref_stream_stop_on_screen_off">Останавливать при выключении экрана</string>
-    <string name="mjpeg_pref_stream_stop_on_screen_off_summary">Останавливать захват при переходе устройства в сон</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off">Останавливать при выключении экрана</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Останавливать трансляцию при выключении экрана</string>
 
-    <string name="mjpeg_pref_stream_notify_slow_viewers">Уведомлять о медленных зрителях</string>
-    <string name="mjpeg_pref_stream_notify_slow_viewers_summary">Уведомления о медленных подключениях</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning">Предупреждать о пропущенных кадрах</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Некоторые устройства могут получать меньше изображений</string>
 
+    <!-- Connection settings -->
     <string name="mjpeg_pref_connection_group">Настройки подключения</string>
-    <string name="mjpeg_pref_network_save_error">Не удалось сохранить настройки сети</string>
+    <string name="mjpeg_pref_connection_save_error">Не удалось сохранить настройки сети</string>
 
-    <string name="mjpeg_pref_network_filter">Сетевой фильтр</string>
-    <string name="mjpeg_pref_network_filter_summary">Выберите сетевые адреса для трансляции</string>
-    <string name="mjpeg_pref_network_filter_ip_version">Версия IP</string>
-    <string name="mjpeg_pref_network_filter_network_type">Тип сети</string>
-    <string name="mjpeg_pref_network_filter_address_type">Тип адреса</string>
-    <string name="mjpeg_pref_network_filter_private">Частный</string>
-    <string name="mjpeg_pref_network_filter_non_private">Нечастный</string>
-    <string name="mjpeg_pref_network_filter_link_local">IPv4 link-local</string>
-    <string name="mjpeg_pref_network_filter_purpose">Выберите хотя бы один вариант в каждой группе</string>
-    <string name="mjpeg_pref_network_filter_default">По умолчанию: %1$s · %2$s · %3$s</string>
-    <string name="mjpeg_pref_network_filter_help">Адрес должен соответствовать всем трём группам. Изменения могут отключить зрителей.</string>
+    <string name="mjpeg_pref_connection_filter">Сетевой фильтр</string>
+    <string name="mjpeg_pref_connection_filter_summary">Выберите сетевые адреса для трансляции</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">Версия IP</string>
+    <string name="mjpeg_pref_connection_filter_network_type">Тип сети</string>
+    <string name="mjpeg_pref_connection_filter_address_type">Тип адреса</string>
+    <string name="mjpeg_pref_connection_filter_private">Частный</string>
+    <string name="mjpeg_pref_connection_filter_non_private">Нечастный</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">Выберите хотя бы один вариант в каждой группе</string>
+    <string name="mjpeg_pref_connection_filter_default">По умолчанию: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">Адрес должен соответствовать всем трём группам. Изменения могут отключить зрителей.</string>
 
-    <string name="mjpeg_pref_network_port">Порт HTTP</string>
-    <string name="mjpeg_pref_network_port_summary">Задайте порт для подключения зрителей</string>
-    <string name="mjpeg_pref_network_port_label">Порт (1024–65535)</string>
-    <string name="mjpeg_pref_network_port_error">Введите целое число от 1024 до 65535</string>
-    <string name="mjpeg_pref_network_port_help">Изменение порта обновляет адреса трансляции</string>
+    <string name="mjpeg_pref_connection_http_port">Порт HTTP</string>
+    <string name="mjpeg_pref_connection_http_port_summary">Задайте порт для подключения зрителей</string>
+    <string name="mjpeg_pref_connection_http_port_label">Порт (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">Введите целое число от 1024 до 65535</string>
+    <string name="mjpeg_pref_connection_http_port_help">Изменение порта обновляет адреса трансляции</string>
 
+    <!-- Web page settings -->
     <string name="mjpeg_pref_web_group">Настройки веб-страницы</string>
     <string name="mjpeg_pref_web_save_error">Не удалось сохранить настройки веб-страницы</string>
 
     <string name="mjpeg_pref_web_background">Фон</string>
     <string name="mjpeg_pref_web_background_summary">Выберите цвет фона веб-страницы</string>
     <string name="mjpeg_pref_web_background_hex_label">HEX-цвет</string>
-    <string name="mjpeg_pref_web_background_hex_error">Введите шесть шестнадцатеричных цифр</string>
+    <string name="mjpeg_pref_web_background_hex_error">Введите 6 символов: 0–9, A–F</string>
     <string name="mjpeg_pref_web_background_red">Красный</string>
     <string name="mjpeg_pref_web_background_green">Зелёный</string>
     <string name="mjpeg_pref_web_background_blue">Синий</string>
@@ -221,7 +244,7 @@
 
     <string name="mjpeg_pref_web_stream_name">Название трансляции</string>
     <string name="mjpeg_pref_web_stream_name_summary">Задайте название для зрителей</string>
-    <string name="mjpeg_pref_web_stream_name_label">Название (до 64 символов)</string>
+    <string name="mjpeg_pref_web_stream_name_label">Название трансляции (до 64 символов)</string>
     <string name="mjpeg_pref_web_stream_name_error">Используйте не более %1$d символов</string>
     <string name="mjpeg_pref_web_stream_name_help">Название вкладки браузера и подпись трансляции</string>
     <string name="mjpeg_pref_web_stream_name_enabled">Показывать название трансляции</string>
@@ -244,6 +267,7 @@
     <string name="mjpeg_pref_web_auto_hide_off">Всегда показывать</string>
     <string name="mjpeg_pref_web_auto_hide_help">Скрывать через 4 секунды без взаимодействия</string>
 
+    <!-- Access settings -->
     <string name="mjpeg_pref_access_group">Настройки доступа</string>
     <string name="mjpeg_pref_access_save_error">Не удалось сохранить настройки доступа</string>
 
@@ -253,14 +277,11 @@
     <string name="mjpeg_pref_access_policy_label">Режим PIN-кода</string>
     <string name="mjpeg_pref_access_policy_new_on_module_start">Новый PIN при открытии</string>
     <string name="mjpeg_pref_access_policy_permanent">Постоянный PIN-код</string>
-    <string name="mjpeg_pref_access_policy_help">В режиме «Новый PIN при открытии» код создаётся при открытии режима MJPEG, если защита включена. Начало захвата не меняет PIN-код.</string>
+    <string name="mjpeg_pref_access_policy_help">Если выбран «Новый PIN при открытии» и включена защита, PIN-код создаётся при каждом открытии режима MJPEG. Начало захвата его не меняет.</string>
 
     <string name="mjpeg_pref_access_pin">PIN-код</string>
-    <string name="mjpeg_pref_access_pin_summary">Сохранённый PIN-код для доступа к потоку</string>
+    <string name="mjpeg_pref_access_pin_summary">Сохранённый PIN-код для доступа к трансляции</string>
     <string name="mjpeg_pref_access_pin_unavailable">PIN-код не сохранён</string>
-    <string name="mjpeg_pref_access_pin_mask">••••••</string>
-    <string name="mjpeg_pref_access_pin_show">Показать</string>
-    <string name="mjpeg_pref_access_pin_hide">Скрыть</string>
     <string name="mjpeg_pref_access_pin_label">PIN-код (6 цифр)</string>
     <string name="mjpeg_pref_access_pin_error">Введите шесть цифр (0–9)</string>
     <string name="mjpeg_pref_access_pin_regenerate">Создать новый PIN-код</string>
@@ -272,8 +293,8 @@
     <string name="mjpeg_pref_access_wrong_pins_label">Блокировка (1–60 минут)</string>
     <string name="mjpeg_pref_access_wrong_pins_default">По умолчанию: %1$s · %2$s мин</string>
     <string name="mjpeg_pref_access_wrong_pins_error">Введите целое число от 1 до 60</string>
-    <string name="mjpeg_pref_access_wrong_pins_help">Блокирует новые попытки входа с этого IP. Подключённые зрители продолжают просмотр.</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">Блокирует новые попытки ввода PIN-кода с этого IP. Подключённые зрители продолжают просмотр.</string>
 
-    <string name="mjpeg_pref_access_hide_pin_on_start">Скрывать PIN-код при начале захвата</string>
-    <string name="mjpeg_pref_access_hide_pin_on_start_summary">Скрывать PIN-код под адресами трансляции при начале захвата</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start">Скрывать PIN-код при запуске трансляции</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">PIN-код можно показать снова</string>
 </resources>

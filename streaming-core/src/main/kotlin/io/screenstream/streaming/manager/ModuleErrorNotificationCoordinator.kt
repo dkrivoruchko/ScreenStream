@@ -27,7 +27,7 @@ internal class ModuleErrorNotificationCoordinator(private val notifications: Str
         try {
             while (true) {
                 val target = when (val current = states.value) {
-                    is StreamingModuleManager.State.Running -> if (current.status.errorMessage != null) Problem(current.instanceId) else null
+                    is StreamingModuleManager.State.Running -> if (current.status.error != null) Problem(current.instanceId) else null
                     is StreamingModuleManager.State.Unresponsive -> Problem(current.instanceId)
                     is StreamingModuleManager.State.Failed -> Problem(current.instanceId, isTerminal = true, messageResource = current.messageResource)
                     else -> null

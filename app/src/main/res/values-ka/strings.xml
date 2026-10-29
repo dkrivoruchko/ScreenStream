@@ -4,20 +4,21 @@
     <string name="app_error_recover">აღდგენა</string>
 
     <string name="app_module_error_title">რაღაც შეცდომა მოხდა</string>
-    <string name="app_module_error_restart">მოდულის გადატვირთვა</string>
+    <string name="app_module_error_restart">რეჟიმის გადატვირთვა</string>
 
-    <string name="app_activity_update_dialog_title">Განახლება შესაძლებელია</string>
-    <string name="app_activity_update_dialog_message">განახლება ახლახან ჩამოიტვირთა. გადატვირთოთ აპი ახლა?</string>
-    <string name="app_activity_update_dialog_restart">Რესტარტი</string>
+    <string name="app_activity_update_dialog_title">განახლება ხელმისაწვდომია</string>
+    <string name="app_activity_update_dialog_message">განახლება მზადაა. გადაიტვირთოს აპი ახლა?</string>
+    <string name="app_activity_update_dialog_restart">გადატვირთვა</string>
 
-    <string name="app_tab_stream">ნაკადი</string>
+    <string name="app_tab_stream">სტრიმი</string>
     <string name="app_tab_settings">პარამეტრები</string>
     <string name="app_tab_about">შესახებ</string>
     <string name="app_tab_exit">გასვლა</string>
 
-    <string name="app_tab_stream_select_mode">აირჩიეთ ნაკადის რეჟიმი:</string>
-    <string name="app_tab_stream_switching_modules">მოდულების გადართვა</string>
+    <string name="app_tab_stream_select_mode">აირჩიეთ სტრიმის რეჟიმი:</string>
+    <string name="app_tab_stream_switching_modules">რეჟიმების გადართვა…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">ახლა არა</string>
     <string name="app_permission_open_settings">გახსენით პარამეტრები</string>
 
@@ -25,7 +26,7 @@
     <string name="app_permission_notifications_message">შეტყობინებები აჩვენებს სტრიმინგის სტატუსსა და შეცდომების შესახებ გაფრთხილებებს. მათი მეშვეობით შეგიძლიათ შეწყვიტოთ სტრიმინგი ან ხელახლა გახსნათ ScreenStream.</string>
 
     <string name="app_permission_local_network_title">ლოკალურ ქსელზე წვდომა</string>
-    <string name="app_permission_local_network_message">ნება დართეთ ScreenStream-ს გამოიყენოს თქვენი ლოკალური ქსელი იმავე ქსელში სხვა მოწყობილობებზე სტრიმინგისთვის.\n\nAndroid ამ ნებართვას აღწერს, როგორც ახლომდებარე მოწყობილობებზე წვდომას და შეიძლება ახსენოს მათი ერთმანეთის მიმართ მდებარეობის განსაზღვრა.</string>
+    <string name="app_permission_local_network_message">ნება დართეთ ScreenStream-ს გამოიყენოს თქვენი ლოკალური ქსელი იმავე ქსელში სხვა მოწყობილობებზე სტრიმინგისთვის.\n\nAndroid ამ ნებართვას აღწერს, როგორც ახლომახლო მოწყობილობებზე წვდომას და შეიძლება ახსენოს მათი ერთმანეთის მიმართ მდებარეობის განსაზღვრა.</string>
     <string name="app_permission_local_network_off_title">ლოკალურ ქსელზე წვდომა გამორთულია</string>
     <string name="app_permission_local_network_settings_message">იმავე ლოკალურ ქსელში მოწყობილობებზე სტრიმინგისთვის აპის პარამეტრებში გახსენით „ნებართვები“ და დაუშვით „ახლომახლო მოწყობილობები“.</string>
 
@@ -36,47 +37,49 @@
 
     <string name="app_permission_audio_title">მიკროფონისა და მოწყობილობის აუდიო</string>
     <string name="app_permission_audio_message">დაუშვით მიკროფონზე წვდომა მიკროფონისა და მოწყობილობის აუდიოს გადასაცემად.\n\nმოწყობილობის აუდიო გადაიცემა მხოლოდ მაშინ, თუ Android და მისი დამკვრელი აპი გაზიარებას დაუშვებენ.</string>
-    <string name="app_permission_audio_settings_message">ჩართეთ მიკროფონის ნებართვა აპის პარამეტრებში მიკროფონის ან შიდა აუდიოს სტრიმისთვის.\n\nამის გარეშე სტრიმს ხმა არ ექნება.</string>
+    <string name="app_permission_audio_settings_message">მიკროფონის ან მოწყობილობის აუდიოს გადასაცემად აპის პარამეტრებში დაუშვით მიკროფონზე წვდომა.\n\nამის გარეშე აუდიო ვერ გადაიცემა.</string>
 
     <string name="app_notification_channel_streaming">სტრიმინგის შეტყობინებები</string>
     <string name="app_notification_channel_error">შეცდომის შეტყობინებები</string>
     <string name="app_notification_waiting_content">შეეხეთ აპის გასახსნელად</string>
-    <string name="app_notification_streaming_title">სტრიმინგი…</string>
-    <string name="app_notification_streaming_content">ნაკადის დასასრულებლად შეეხეთ შეჩერებას</string>
-    <string name="app_notification_stop">გაჩერდი</string>
+    <string name="app_notification_streaming_title">მიმდინარეობს სტრიმინგი…</string>
+    <string name="app_notification_streaming_content">სტრიმის დასასრულებლად შეეხეთ „შეჩერებას“</string>
+    <string name="app_notification_stop">შეჩერება</string>
 
-    <string name="app_tile_start">დაწყება</string>
-    <string name="app_tile_stop">გაჩერდი</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream-ის გახსნა</string>
+    <string name="app_tile_stop">შეჩერება</string>
 
     <string name="app_pref_back">უკან</string>
     <string name="app_pref_settings">პარამეტრები</string>
-    <string name="app_pref_locale">განაცხადის ენა</string>
-    <string name="app_pref_locale_summary">გახსენით აპლიკაციის ენის პარამეტრები</string>
+    <string name="app_pref_locale">აპის ენა</string>
+    <string name="app_pref_locale_summary">აპის ენის პარამეტრების გახსნა</string>
     <string name="app_pref_locale_default">სისტემის ნაგულისხმევი</string>
     <string name="app_pref_night_mode">მუქი თემა</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>ყოველთვის</item>
-        <item>დააყენეთ ბატარეის დამზოგით</item>
+        <item>ბატარეის დამზოგის მიხედვით</item>
         <item>არასოდეს</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>ყოველთვის</item>
-        <item>ავტომატურად (მიდევნეთ სისტემას)</item>
+        <item>სისტემის მიხედვით</item>
         <item>არასოდეს</item>
     </string-array>
     <string name="app_pref_dynamic_theme">დინამიური ფერი</string>
     <string name="app_pref_dynamic_theme_summary">დაარეგულირეთ გარეგნობა თქვენი ფონის ფერების მიხედვით</string>
-    <string name="app_pref_notification">მოწყობილობის შეტყობინებების პარამეტრები</string>
-    <string name="app_pref_notification_summary">გახსენით სისტემის შეტყობინებების პარამეტრები</string>
-    <string name="app_pref_tile">დაუმატეთ აპლიკაციის ფილა</string>
-    <string name="app_pref_tile_summary">დაუმატეთ აპლიკაციის ფილა სწრაფი პარამეტრებისათვის</string>
+    <string name="app_pref_notification">აპის შეტყობინებები</string>
+    <string name="app_pref_notification_summary">შეტყობინებების მართვა სისტემის პარამეტრებში</string>
+    <string name="app_pref_tile">სწრაფი პარამეტრების ფილის დამატება</string>
+    <string name="app_pref_tile_summary">ScreenStream-ის დამატება სწრაფ პარამეტრებში</string>
 
     <string name="app_tab_about_app_version">ვერსია: %1$s</string>
-    <string name="app_tab_about_developer_name">შემუშავებულია დმიტრო კრივორუჩკოს მიერ</string>
-    <string name="app_tab_about_rate_app">Შეაფასე აპლიკაცია</string>
-    <string name="app_tab_about_app_sources">განაცხადის წყაროები</string>
-    <string name="app_tab_about_terms_conditions">Ვადები და პირობები</string>
-    <string name="app_tab_about_privacy_policy">Კონფიდენციალურობის პოლიტიკა</string>
+    <string name="app_tab_about_developer_name">შემქმნელი: Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_rate_app">აპის შეფასება</string>
+    <string name="app_tab_about_app_sources">საწყისი კოდი</string>
+    <string name="app_tab_about_terms_conditions">წესები და პირობები</string>
+    <string name="app_tab_about_privacy_policy">კონფიდენციალურობის პოლიტიკა</string>
     <string name="app_tab_about_privacy_options">კონფიდენციალურობის პარამეტრები</string>
     <string name="app_tab_about_license">ლიცენზია</string>
 </resources>

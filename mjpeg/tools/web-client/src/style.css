@@ -51,7 +51,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 .native-size { font-size: 20px; font-weight: 700; line-height: 24px; }
 #fullscreen .fullscreen-exit, #fullscreen[aria-pressed="true"] .fullscreen-enter { display: none; }
 #fullscreen[aria-pressed="true"] .fullscreen-exit { display: inline-block; }
-.control-tooltip { position: absolute; z-index: 7; max-width: 220px; padding: 6px 10px; border-radius: 8px; color: #fff; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .2); font-size: 12px; line-height: 18px; pointer-events: none; white-space: nowrap; }
+.control-tooltip { position: absolute; z-index: 7; max-width: 220px; padding: 6px 10px; border-radius: 8px; color: #fff; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .2); font-size: 12px; line-height: 18px; pointer-events: none; white-space: normal; text-align: center; overflow-wrap: break-word; word-wrap: break-word; }
 
 /* Separate bars retain the configured background and matching foreground. */
 .caption.separate-bar { width: 100%; max-width: 100%; text-align: center; }
@@ -107,6 +107,16 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 .legal-links a:hover { color: #fff; }
 .legal-links a:focus { outline: 2px solid #fff; outline-offset: 3px; border-radius: 2px; }
 
+/* Keep physical image coordinates LTR; mirror only the surrounding viewer UI. */
+[dir="rtl"] .controls > button, [dir="rtl"] .size-modes button + button { margin-left: 0; margin-right: 6px; }
+[dir="rtl"] #view-fit { border-radius: 8px 24px 24px 8px; }
+[dir="rtl"] #more { border-radius: 24px 8px 8px 24px; }
+[dir="rtl"] #menu .method-choices button { padding: 10px 10px 10px 38px; text-align: right; }
+[dir="rtl"] .method-check { left: 12px; right: auto; }
+[dir="rtl"] .information-list dt { float: right; clear: right; }
+[dir="rtl"] .information-list dd { margin: 0 96px 0 0; }
+[dir="rtl"] #info-size { text-align: right; }
+
 /* Keep a readable dark backing even when blur is unavailable or the image is white. */
 .controls:not(.separate-bar), .caption:not(.separate-bar) span, .status-overlay { background: rgba(24, 27, 31, .8); }
 @supports ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
@@ -147,6 +157,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 @media (max-width: 380px) {
   .controls > button, .size-modes button + button { margin-left: 3px; }
+  [dir="rtl"] .controls > button, [dir="rtl"] .size-modes button + button { margin-right: 3px; }
   .panel, #menu { left: 2%; margin-left: 0; width: 96%; }
   button { padding: 8px 6px; }
 }

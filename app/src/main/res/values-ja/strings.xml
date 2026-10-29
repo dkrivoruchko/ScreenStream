@@ -4,25 +4,26 @@
     <string name="app_error_recover">回復</string>
 
     <string name="app_module_error_title">問題が発生しました</string>
-    <string name="app_module_error_restart">モジュールを再起動</string>
+    <string name="app_module_error_restart">モードを再起動</string>
 
     <string name="app_activity_update_dialog_title">更新が利用可能</string>
-    <string name="app_activity_update_dialog_message">アップデートをダウンロードしました。 今すぐアプリを再起動しますか?</string>
+    <string name="app_activity_update_dialog_message">アップデートの準備ができました。今すぐアプリを再起動しますか？</string>
     <string name="app_activity_update_dialog_restart">再起動</string>
 
-    <string name="app_tab_stream">ストリーム</string>
+    <string name="app_tab_stream">配信</string>
     <string name="app_tab_settings">設定</string>
     <string name="app_tab_about">情報</string>
     <string name="app_tab_exit">終了</string>
 
-    <string name="app_tab_stream_select_mode">ストリームモードを選択：</string>
-    <string name="app_tab_stream_switching_modules">モジュールを切り替えています</string>
+    <string name="app_tab_stream_select_mode">配信モードを選択：</string>
+    <string name="app_tab_stream_switching_modules">モードを切り替えています…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">後で</string>
     <string name="app_permission_open_settings">設定を開く</string>
 
     <string name="app_permission_notifications_title">通知を許可</string>
-    <string name="app_permission_notifications_message">通知で配信状況やエラーをお知らせします。 通知から配信を停止したり、ScreenStream を開き直したりできます。</string>
+    <string name="app_permission_notifications_message">通知で配信状況やエラーをお知らせします。通知から配信を停止したり、ScreenStream を開き直したりできます。</string>
 
     <string name="app_permission_local_network_title">ローカルネットワークへのアクセス</string>
     <string name="app_permission_local_network_message">同じネットワーク上の他のデバイスに配信するため、ScreenStream にローカルネットワークの使用を許可してください。\n\nAndroid では、この権限を「付近のデバイス」へのアクセスと説明し、デバイスの相対的な位置の特定に言及する場合があります。</string>
@@ -36,45 +37,47 @@
 
     <string name="app_permission_audio_title">マイクとデバイスの音声</string>
     <string name="app_permission_audio_message">マイクへのアクセスを許可して、マイクとデバイスの音声を配信します。\n\nデバイスの音声は、Android と音声を再生するアプリが共有を許可した場合のみ配信できます。</string>
-    <string name="app_permission_audio_settings_message">マイク音声または内部音声を配信するには、アプリ設定でマイク権限を有効にしてください。\n\n許可しない場合、配信に音声は含まれません。</string>
+    <string name="app_permission_audio_settings_message">マイクまたはデバイスの音声を配信するには、アプリの設定でマイクへのアクセスを許可してください。\n\n許可しない場合、音声は配信できません。</string>
 
-    <string name="app_notification_channel_streaming">ストリーミング通知</string>
+    <string name="app_notification_channel_streaming">配信の通知</string>
     <string name="app_notification_channel_error">エラー通知</string>
     <string name="app_notification_waiting_content">タップしてアプリを開く</string>
-    <string name="app_notification_streaming_title">ストリーム中…</string>
-    <string name="app_notification_streaming_content">ストリームを終了するには停止をタップ</string>
+    <string name="app_notification_streaming_title">配信中…</string>
+    <string name="app_notification_streaming_content">［停止］をタップして配信を終了</string>
     <string name="app_notification_stop">停止</string>
 
-    <string name="app_tile_start">開始</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream を開く</string>
     <string name="app_tile_stop">停止</string>
 
     <string name="app_pref_back">戻る</string>
     <string name="app_pref_settings">設定</string>
-    <string name="app_pref_locale">アプリケーション言語</string>
-    <string name="app_pref_locale_summary">アプリケーション言語設定を開く</string>
-    <string name="app_pref_locale_default">システムデフォルト</string>
-    <string name="app_pref_night_mode">ダークテーマ</string>
+    <string name="app_pref_locale">アプリの言語</string>
+    <string name="app_pref_locale_summary">アプリの言語設定を開く</string>
+    <string name="app_pref_locale_default">システムのデフォルト</string>
+    <string name="app_pref_night_mode">ダークモード</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
-        <item>常時オン</item>
-        <item>バッテリー セーバー有効時にオン</item>
-        <item>オフ</item>
+        <item>常にオン</item>
+        <item>バッテリー セーバーに従う</item>
+        <item>常にオフ</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
-        <item>常時オン</item>
-        <item>自動 (システムに従う)</item>
-        <item>オフ</item>
+        <item>常にオン</item>
+        <item>システムに従う</item>
+        <item>常にオフ</item>
     </string-array>
     <string name="app_pref_dynamic_theme">ダイナミックカラー</string>
     <string name="app_pref_dynamic_theme_summary">壁紙の色に基づいて外観を調整します</string>
-    <string name="app_pref_notification">端末の通知設定</string>
-    <string name="app_pref_notification_summary">システムの通知設定を開きます</string>
-    <string name="app_pref_tile">アプリのタイルを追加</string>
-    <string name="app_pref_tile_summary">クイック設定にアプリのタイルを追加</string>
+    <string name="app_pref_notification">アプリの通知</string>
+    <string name="app_pref_notification_summary">システム設定で通知を管理</string>
+    <string name="app_pref_tile">クイック設定タイルを追加</string>
+    <string name="app_pref_tile_summary">クイック設定に ScreenStream を追加</string>
 
     <string name="app_tab_about_app_version">バージョン: %1$s</string>
     <string name="app_tab_about_developer_name">開発者: Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">アプリを評価</string>
-    <string name="app_tab_about_app_sources">アプリケーションのソースコード</string>
+    <string name="app_tab_about_app_sources">ソースコード</string>
     <string name="app_tab_about_terms_conditions">利用規約</string>
     <string name="app_tab_about_privacy_policy">プライバシーポリシー</string>
     <string name="app_tab_about_privacy_options">プライバシーオプション</string>

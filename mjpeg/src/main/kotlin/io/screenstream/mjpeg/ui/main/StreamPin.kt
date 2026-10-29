@@ -47,7 +47,7 @@ internal fun StreamPinContent(
     val resources = LocalResources.current
     val coroutineScope = rememberCoroutineScope()
     val hiddenPinDescription = stringResource(R.string.mjpeg_stream_pin_hidden)
-    val revealActionDescription = stringResource(if (pinRevealed) R.string.mjpeg_stream_pin_hide else R.string.mjpeg_stream_pin_show)
+    val revealActionDescription = stringResource(if (pinRevealed) R.string.mjpeg_pin_hide_description else R.string.mjpeg_pin_show_description)
     val onCopyPin: () -> Unit = {
         coroutineScope.launch {
             val clip = ClipData.newPlainText(resources.getString(R.string.mjpeg_stream_pin_copy), pin.value)
@@ -84,7 +84,7 @@ internal fun StreamPinContent(
             ) {
                 Text(stringResource(R.string.mjpeg_stream_pin_label), style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    text = if (pinRevealed) pin.value else stringResource(R.string.mjpeg_pref_access_pin_mask),
+                    text = if (pinRevealed) pin.value else stringResource(R.string.mjpeg_pin_mask),
                     modifier = Modifier.clearAndSetSemantics {
                         contentDescription = if (pinRevealed) pin.value.toList().joinToString(" ") else hiddenPinDescription
                     },
@@ -103,7 +103,7 @@ internal fun StreamPinContent(
                         .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                         .semantics { contentDescription = revealActionDescription },
                 ) {
-                    Text(stringResource(if (pinRevealed) R.string.mjpeg_pref_access_pin_hide else R.string.mjpeg_pref_access_pin_show))
+                    Text(stringResource(if (pinRevealed) R.string.mjpeg_pin_hide_label else R.string.mjpeg_pin_show_label))
                 }
                 TextButton(
                     onClick = onCopyPin,

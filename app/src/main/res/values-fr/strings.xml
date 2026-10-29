@@ -4,10 +4,10 @@
     <string name="app_error_recover">Rétablir</string>
 
     <string name="app_module_error_title">Un problème est survenu</string>
-    <string name="app_module_error_restart">Redémarrer le module</string>
+    <string name="app_module_error_restart">Redémarrer le mode</string>
 
     <string name="app_activity_update_dialog_title">Mise à jour disponible</string>
-    <string name="app_activity_update_dialog_message">Une mise à jour vient d\'être téléchargée. Redémarrer l\'application maintenant ?</string>
+    <string name="app_activity_update_dialog_message">Une mise à jour est prête. Redémarrer l’application maintenant ?</string>
     <string name="app_activity_update_dialog_restart">Redémarrer</string>
 
     <string name="app_tab_stream">Diffusion</string>
@@ -16,8 +16,9 @@
     <string name="app_tab_exit">Quitter</string>
 
     <string name="app_tab_stream_select_mode">Sélectionnez le mode de diffusion :</string>
-    <string name="app_tab_stream_switching_modules">Changement de modules</string>
+    <string name="app_tab_stream_switching_modules">Changement de mode…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Pas maintenant</string>
     <string name="app_permission_open_settings">Ouvrir les paramètres</string>
 
@@ -36,7 +37,7 @@
 
     <string name="app_permission_audio_title">Son du microphone et de l’appareil</string>
     <string name="app_permission_audio_message">Autorisez l’accès au microphone pour diffuser le son du microphone et de l’appareil.\n\nLe son de l’appareil ne peut être diffusé que si Android et l’application qui le lit autorisent son partage.</string>
-    <string name="app_permission_audio_settings_message">Activez l\'autorisation du microphone dans les paramètres de l\'application pour diffuser le son du micro ou l\'audio interne.\n\nSans elle, la diffusion sera sans son.</string>
+    <string name="app_permission_audio_settings_message">Autorisez l’accès au microphone dans les paramètres de l’application pour diffuser le son du microphone ou de l’appareil.\n\nSans cette autorisation, aucun son ne peut être diffusé.</string>
 
     <string name="app_notification_channel_streaming">Notifications de diffusion</string>
     <string name="app_notification_channel_error">Notifications d\'erreur</string>
@@ -45,36 +46,38 @@
     <string name="app_notification_streaming_content">Appuyez sur Arrêter pour terminer la diffusion</string>
     <string name="app_notification_stop">Arrêter</string>
 
-    <string name="app_tile_start">Démarrer</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Ouvrir ScreenStream</string>
     <string name="app_tile_stop">Arrêter</string>
 
     <string name="app_pref_back">Retour</string>
     <string name="app_pref_settings">Paramètres</string>
     <string name="app_pref_locale">Langue de l\'application</string>
     <string name="app_pref_locale_summary">Ouvrir les paramètres de langue de l\'application</string>
-    <string name="app_pref_locale_default">Langue du système</string>
+    <string name="app_pref_locale_default">Valeur par défaut du système</string>
     <string name="app_pref_night_mode">Thème sombre</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Toujours</item>
-        <item>Économiseur de batterie seulement</item>
+        <item>Selon l’économiseur de batterie</item>
         <item>Jamais</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Toujours</item>
-        <item>Automatique (selon le système)</item>
+        <item>Selon le système</item>
         <item>Jamais</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Couleur dynamique</string>
     <string name="app_pref_dynamic_theme_summary">Adapter l\'apparence aux couleurs de votre fond d\'écran</string>
-    <string name="app_pref_notification">Paramètres de notification de l\'appareil</string>
-    <string name="app_pref_notification_summary">Ouvrir les paramètres de notification du système</string>
-    <string name="app_pref_tile">Ajouter une tuile d\'application</string>
-    <string name="app_pref_tile_summary">Ajouter une tuile d\'application aux Paramètres rapides</string>
+    <string name="app_pref_notification">Notifications de l’application</string>
+    <string name="app_pref_notification_summary">Gérer les notifications dans les paramètres système</string>
+    <string name="app_pref_tile">Ajouter une tuile aux Réglages rapides</string>
+    <string name="app_pref_tile_summary">Ajouter ScreenStream aux Réglages rapides</string>
 
     <string name="app_tab_about_app_version">Version : %1$s</string>
     <string name="app_tab_about_developer_name">Développé par Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Évaluer l\'application</string>
-    <string name="app_tab_about_app_sources">Code source de l\'application</string>
+    <string name="app_tab_about_app_sources">Code source</string>
     <string name="app_tab_about_terms_conditions">Conditions générales</string>
     <string name="app_tab_about_privacy_policy">Politique de confidentialité</string>
     <string name="app_tab_about_privacy_options">Options de confidentialité</string>

@@ -999,7 +999,7 @@ internal class RtspStreamingService(
                         isStreaming = captureAttempt?.let { it.started && !it.stopRequested } == true,
                         hasConsumer = currentActiveConsumersCount() > 0,
                         captureAttempt = captureAttempt?.id,
-                        errorMessage = null,
+                        error = null,
                     ),
                     SystemClock.uptimeMillis(),
                 )

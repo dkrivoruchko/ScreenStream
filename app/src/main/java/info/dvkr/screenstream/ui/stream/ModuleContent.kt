@@ -39,9 +39,10 @@ internal fun ColumnScope.ModuleContent(
 ) {
     when (state) {
         is StreamingModuleManager.State.Running -> key(state.instanceId) {
-            if (state.status.errorMessage != null) {
+            val error = state.status.error
+            if (error != null) {
                 ModuleRecoveryMessage(
-                    detail = state.status.errorMessage,
+                    detail = error.message,
                     onRestart = { onRestart(state.instanceId) },
                     modifier = Modifier
                         .fillMaxWidth()

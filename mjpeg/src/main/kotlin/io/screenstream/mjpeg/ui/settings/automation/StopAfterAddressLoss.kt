@@ -28,13 +28,13 @@ import io.screenstream.mjpeg.ui.settings.rememberSettingNumberFormat
 import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object StopAfterAddressLossSearch {
-    val fieldLabelRes: Int = R.string.mjpeg_pref_stream_network_loss_timeout_label
-    val helpRes: Int = R.string.mjpeg_pref_stream_network_loss_timeout_help
+    val fieldLabelRes: Int = R.string.mjpeg_pref_automation_address_loss_timeout_label
+    val helpRes: Int = R.string.mjpeg_pref_automation_address_loss_timeout_help
 
     val info: SettingSearchInfo = SettingSearchInfo(
         group = SettingSearchGroup.Automation,
-        titleRes = R.string.mjpeg_pref_stream_network_loss_timeout,
-        summaryRes = R.string.mjpeg_pref_stream_network_loss_timeout_summary,
+        titleRes = R.string.mjpeg_pref_automation_address_loss_timeout,
+        summaryRes = R.string.mjpeg_pref_automation_address_loss_timeout_summary,
         extraTermResIds = listOf(fieldLabelRes, helpRes),
     )
 }
@@ -54,7 +54,7 @@ internal fun StopAfterAddressLossSettingItem(
         modifier = Modifier.focusRequester(openerFocus.requester),
         trailingContent = {
             Text(
-                stringResource(R.string.mjpeg_pref_stream_network_loss_timeout_value, timeoutSeconds),
+                stringResource(R.string.mjpeg_pref_automation_address_loss_timeout_value, timeoutSeconds),
                 Modifier.widthIn(max = 128.dp),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.bodyMedium,
@@ -81,7 +81,7 @@ private fun StopAfterAddressLossEditor(
     val initialTimeoutSeconds = retain { timeoutSeconds }
     var timeoutInput by retain { mutableStateOf(TextFieldValue(numberFormat.format(initialTimeoutSeconds))) }
     val errorText = if (parseSettingInteger(timeoutInput.text, numberFormat) !in 10..1800) {
-        stringResource(R.string.mjpeg_pref_stream_network_loss_timeout_error)
+        stringResource(R.string.mjpeg_pref_automation_address_loss_timeout_error)
     } else null
 
     SettingEditor(
@@ -97,7 +97,7 @@ private fun StopAfterAddressLossEditor(
     ) {
         Text(
             stringResource(
-                R.string.mjpeg_pref_stream_network_loss_timeout_default,
+                R.string.mjpeg_pref_automation_address_loss_timeout_default,
                 numberFormat.format(StreamBehaviorSettings.DEFAULT_STOP_AFTER_NETWORK_LOSS_SECONDS),
             ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,

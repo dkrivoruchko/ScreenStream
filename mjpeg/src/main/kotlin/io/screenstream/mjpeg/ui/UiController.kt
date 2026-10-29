@@ -61,6 +61,7 @@ internal interface UiController {
         val status: ServerStatus,
         val accessUrl: SecretValue?,
         val isLoopback: Boolean,
+        val isLinkLocal: Boolean,
     )
 
     /** Local availability; a failure does not stop other servers or capture. */

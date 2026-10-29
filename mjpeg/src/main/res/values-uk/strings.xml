@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">Локальний режим · MJPEG</string>
+    <string name="mjpeg_mode_description">Про MJPEG</string>
+    <string name="mjpeg_mode_details">Транслюйте екран пристрою просто в браузер як зображення JPEG. Звук не передається.\n\n• Працює в локальній мережі без інтернету. Глядачі мають мати доступ до адреси трансляції.\n• Захист PIN-кодом необов’язковий. Коли його ввімкнено, глядачі можуть ввести PIN-код або скористатися посиланням доступу.\n• Трансляція використовує HTTP без шифрування. Користуйтеся довіреною мережею.\n• Фільтр мережі пропонує Wi-Fi, Ethernet, мобільні дані, VPN, IPv4 та IPv6.\n• Налаштовуйте розмір зображення, якість JPEG і частоту кадрів.\n• Зображення надсилаються кожному глядачеві окремо, збільшуючи витрати трафіку.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">Закрити</string>
+
+    <string name="mjpeg_pref_value_on">Увімк.</string>
+    <string name="mjpeg_pref_value_off">Вимк.</string>
+    <string name="mjpeg_pref_value_automatic">Авто</string>
+    <string name="mjpeg_pref_value_not_set">Не задано</string>
+    <string name="mjpeg_pref_value_unavailable">Поки недоступно</string>
+    <string name="mjpeg_pref_default_option">%1$s (типово)</string>
+    <string name="mjpeg_pref_default_value">Типово: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">Доступно після повного завершення захоплення екрана</string>
+
+    <string name="mjpeg_pref_search_placeholder">Пошук налаштувань</string>
+    <string name="mjpeg_pref_search_clear">Очистити пошук</string>
+    <string name="mjpeg_pref_search_no_results">Налаштувань не знайдено</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">Мобільні дані</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">Інше</string>
+    <string name="mjpeg_network_loopback">Loopback</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">Почати трансляцію</string>
+    <string name="mjpeg_stream_stop_capture">Зупинити трансляцію</string>
+    <string name="mjpeg_stream_skipped_frames_warning">Пропущено кадри</string>
+    <string name="mjpeg_stream_stop_delayed">Показ екрана ще завершується…</string>
+    <string name="mjpeg_capture_error">Не вдалося захопити екран</string>
+    <string name="mjpeg_error_suspension_invalid_request">Захоплення призупинено: налаштування зображення не підходять для поточної області захоплення</string>
+    <string name="mjpeg_error_suspension_unavailable">Захоплення призупинено: джерело захоплення недоступне</string>
+    <string name="mjpeg_error_suspension_resources">Захоплення призупинено: недостатньо ресурсів</string>
+
+    <string name="mjpeg_address_list_title">Адреси трансляції</string>
+    <string name="mjpeg_address_list_empty">Немає адрес для трансляції.\nПеревірте фільтр мережі в налаштуваннях підключення.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">Мережа:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">Лише цей пристрій</string>
+    <string name="mjpeg_address_private_ipv4">Приватна IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">Неприватна IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">Неприватна IPv6</string>
+
+    <string name="mjpeg_address_open">Відкрити</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">Відкрити %1$s</string>
+    <string name="mjpeg_address_copy_url">Копіювати посилання</string>
+    <string name="mjpeg_address_copy_description">Копіювати посилання на %1$s</string>
+    <string name="mjpeg_address_share">Поділитися</string>
+    <string name="mjpeg_address_share_description">Поділитися посиланням на %1$s</string>
+    <string name="mjpeg_address_qr_code">Показати QR-код</string>
+    <string name="mjpeg_address_qr_code_description">Показати QR-код для %1$s</string>
+    <string name="mjpeg_address_qr_image_description">Відскануйте код, щоб відкрити посилання на трансляцію</string>
+
+    <string name="mjpeg_address_error_browser_not_found">Браузер не знайдено</string>
+    <string name="mjpeg_address_error_open">Не вдалося відкрити посилання</string>
+    <string name="mjpeg_address_error_share">Не вдалося поділитися посиланням</string>
+    <string name="mjpeg_address_error_qr_generation">Не вдалося створити QR-код</string>
+
+    <string name="mjpeg_local_network_permission_request">Запросити дозвіл</string>
+    <string name="mjpeg_local_network_permission_open_settings">Відкрити налаштування</string>
+    <string name="mjpeg_local_network_permission_required">Потрібен дозвіл на доступ до локальної мережі</string>
+
+    <string name="mjpeg_server_pending">Очікування</string>
+    <string name="mjpeg_server_address_in_use">Адреса зайнята</string>
+    <string name="mjpeg_server_address_unavailable">Адреса недоступна</string>
+    <string name="mjpeg_server_permission_denied">Доступ заборонено</string>
+    <string name="mjpeg_server_io_failure">Сервер недоступний</string>
+    <string name="mjpeg_server_unknown_failure">Помилка сервера</string>
+    <string name="mjpeg_server_retry">Повторити</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">Повторити запуск сервера за адресою %1$s</string>
+
+    <string name="mjpeg_stream_pin_label">PIN-код:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN-код приховано</string>
+    <string name="mjpeg_pin_show_label">Показати</string>
+    <string name="mjpeg_pin_show_description">Показати PIN-код</string>
+    <string name="mjpeg_pin_hide_label">Приховати</string>
+    <string name="mjpeg_pin_hide_description">Приховати PIN-код</string>
+    <string name="mjpeg_stream_pin_copy">Копіювати PIN-код</string>
+    <string name="mjpeg_stream_pin_copied">PIN-код скопійовано</string>
+    <string name="mjpeg_stream_pin_hint_access">Відкрийте посилання на трансляцію або відскануйте його QR-код.\nВведіть цей PIN-код, якщо з’явиться запит.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">Налаштування зображення</string>
+    <string name="mjpeg_pref_image_save_error">Не вдалося зберегти налаштування зображення</string>
+
+    <string name="mjpeg_pref_image_region">Область захоплення</string>
+    <string name="mjpeg_pref_image_region_summary">Виберіть область трансляції</string>
+    <string name="mjpeg_pref_image_region_full">Уся область</string>
+    <string name="mjpeg_pref_image_region_left">Ліва половина</string>
+    <string name="mjpeg_pref_image_region_right">Права половина</string>
+
+    <string name="mjpeg_pref_image_crop">Обрізання</string>
+    <string name="mjpeg_pref_image_crop_summary">Обріжте краї зображення</string>
+    <string name="mjpeg_pref_image_crop_purpose">Укажіть, скільки пікселів прибрати з кожного краю</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">Залиште частину зображення видимою. Інакше захоплення нових кадрів буде неможливим.</string>
+    <string name="mjpeg_pref_image_crop_enabled">Увімкнути обрізання</string>
+    <string name="mjpeg_pref_image_crop_left">Ліворуч (пікс.)</string>
+    <string name="mjpeg_pref_image_crop_top">Угорі (пікс.)</string>
+    <string name="mjpeg_pref_image_crop_right">Праворуч (пікс.)</string>
+    <string name="mjpeg_pref_image_crop_bottom">Унизу (пікс.)</string>
+    <string name="mjpeg_pref_image_crop_error">Введіть ціле число від 0</string>
+    <string name="mjpeg_pref_image_crop_required">Введіть значення</string>
+
+    <string name="mjpeg_pref_image_size">Розмір зображення</string>
+    <string name="mjpeg_pref_image_size_summary">Задайте масштаб або розміри</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">Розтягувати зображення</string>
+    <string name="mjpeg_pref_image_size_stretch_value">Розтягування</string>
+    <string name="mjpeg_pref_image_size_fit_description">Вписує в ширину й висоту зі збереженням пропорцій</string>
+    <string name="mjpeg_pref_image_size_stretch_description">Точні ширина й висота; пропорції можуть змінитися</string>
+    <string name="mjpeg_pref_image_size_estimate_note">Оцінка за екраном; розмір трансльованого додатка може відрізнятися</string>
+    <string name="mjpeg_pref_image_size_source">Екран: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">Орієнтовний розмір: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">Недоступно</string>
+    <string name="mjpeg_pref_image_size_scale">Масштаб</string>
+    <string name="mjpeg_pref_image_size_target">Розмір</string>
+    <string name="mjpeg_pref_image_size_default">Типово: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Масштаб (більше 0, до 200%)</string>
+    <string name="mjpeg_pref_image_size_width_label">Ширина (1–8192 пікс.)</string>
+    <string name="mjpeg_pref_image_size_height_label">Висота (1–8192 пікс.)</string>
+    <string name="mjpeg_pref_image_size_scale_error">Введіть число більше 0, до 200</string>
+    <string name="mjpeg_pref_image_size_dimension_error">Введіть ціле число від 1 до 8192</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">Збільшення не додає деталей і може сповільнити трансляцію</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">Поворот</string>
+    <string name="mjpeg_pref_image_rotation_summary">Поверніть зображення за годинниковою стрілкою</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">Віддзеркалення</string>
+    <string name="mjpeg_pref_image_mirror_summary">Віддзеркальте зображення горизонтально або вертикально</string>
+    <string name="mjpeg_pref_image_mirror_none">Немає</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">Горизонтально</string>
+    <string name="mjpeg_pref_image_mirror_vertical">Вертикально</string>
+
+    <string name="mjpeg_pref_image_grayscale">Відтінки сірого</string>
+    <string name="mjpeg_pref_image_grayscale_summary">Показувати зображення у відтінках сірого</string>
+
+    <string name="mjpeg_pref_image_quality">Якість JPEG</string>
+    <string name="mjpeg_pref_image_quality_summary">Збалансуйте деталізацію й витрати трафіку</string>
+    <string name="mjpeg_pref_image_quality_popup_description">Вища якість дає більше деталей і збільшує витрати трафіку. Типово: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">Частота кадрів</string>
+    <string name="mjpeg_pref_image_rate_summary">Задайте частоту оновлення зображення</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">Прагне підтримувати найвищу частоту кадрів</string>
+
+    <string name="mjpeg_pref_image_rate_fps">Ліміт FPS</string>
+    <string name="mjpeg_pref_image_rate_fps_description">Обмежує кількість кадрів за секунду</string>
+    <string name="mjpeg_pref_image_rate_fps_value">До %1$d кадр/с</string>
+    <string name="mjpeg_pref_image_rate_fps_label">Кадрів за секунду (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">Введіть ціле число від 1 до 120</string>
+    <string name="mjpeg_pref_image_rate_fps_help">Фактична частота кадрів може бути нижчою за ліміт</string>
+
+    <string name="mjpeg_pref_image_rate_interval">Інтервал</string>
+    <string name="mjpeg_pref_image_rate_interval_description">Задає мінімальний інтервал захоплення</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s с</string>
+    <string name="mjpeg_pref_image_rate_interval_label">Інтервал (1–3600 секунд)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">Введіть інтервал від 1 до 3600 секунд</string>
+    <string name="mjpeg_pref_image_rate_interval_help">Інтервал обмежує частоту захоплення нових кадрів</string>
+
+    <string name="mjpeg_pref_image_encoder">Кодувальник JPEG</string>
+    <string name="mjpeg_pref_image_encoder_summary">Виберіть спосіб створення зображень JPEG</string>
+    <string name="mjpeg_pref_image_encoder_standard">Стандартний</string>
+    <string name="mjpeg_pref_image_encoder_locked">Доступно після повного завершення показу екрана</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">Оптимізоване кодування, якщо доступне</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">Вимикає оптимізацію кодування</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">Налаштування автоматизації</string>
+    <string name="mjpeg_pref_automation_save_error">Не вдалося зберегти налаштування автоматизації</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">Зупиняти трансляцію після втрати адрес</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Зупиняти трансляцію, коли не залишається вибраних адрес</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">Через %1$d с</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">Затримка (10–1800 секунд)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">Типово: %1$s секунд</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">Введіть ціле число від 10 до 1800</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Повернення адрес скасовує таймер</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">Зображення неактивної трансляції</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Зображення на випадок, коли кадри трансляції недоступні</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">Логотип додатка</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Останній кадр</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">Не вимикати екран</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">За можливості не вимикати екран під час захоплення</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">Зупиняти після вимкнення екрана</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Зупиняти трансляцію, коли екран вимикається</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">Попереджати про пропущені кадри</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Деякі пристрої можуть отримувати менше зображень</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">Налаштування підключення</string>
+    <string name="mjpeg_pref_connection_save_error">Не вдалося зберегти налаштування мережі</string>
+
+    <string name="mjpeg_pref_connection_filter">Фільтр мережі</string>
+    <string name="mjpeg_pref_connection_filter_summary">Виберіть мережеві адреси трансляції</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">Версія IP</string>
+    <string name="mjpeg_pref_connection_filter_network_type">Тип мережі</string>
+    <string name="mjpeg_pref_connection_filter_address_type">Тип адреси</string>
+    <string name="mjpeg_pref_connection_filter_private">Приватна</string>
+    <string name="mjpeg_pref_connection_filter_non_private">Неприватна</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">Виберіть принаймні один варіант у кожній групі</string>
+    <string name="mjpeg_pref_connection_filter_default">Типово: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">Адреси мають відповідати всім трьом групам. Зміни можуть від’єднати глядачів.</string>
+
+    <string name="mjpeg_pref_connection_http_port">Порт HTTP</string>
+    <string name="mjpeg_pref_connection_http_port_summary">Задайте порт для підключення глядачів</string>
+    <string name="mjpeg_pref_connection_http_port_label">Порт (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">Введіть ціле число від 1024 до 65535</string>
+    <string name="mjpeg_pref_connection_http_port_help">Зміна порту оновлює адреси трансляції</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">Налаштування вебсторінки</string>
+    <string name="mjpeg_pref_web_save_error">Не вдалося зберегти налаштування вебсторінки</string>
+
+    <string name="mjpeg_pref_web_background">Фон</string>
+    <string name="mjpeg_pref_web_background_summary">Виберіть колір фону вебсторінки</string>
+    <string name="mjpeg_pref_web_background_hex_label">Колір HEX</string>
+    <string name="mjpeg_pref_web_background_hex_error">Введіть 6 символів: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">Червоний</string>
+    <string name="mjpeg_pref_web_background_green">Зелений</string>
+    <string name="mjpeg_pref_web_background_blue">Синій</string>
+    <string name="mjpeg_pref_web_background_palette">Готові кольори</string>
+    <string name="mjpeg_pref_web_background_color_option">Колір %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">Вибраний колір %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">Назва трансляції</string>
+    <string name="mjpeg_pref_web_stream_name_summary">Задайте назву для глядачів</string>
+    <string name="mjpeg_pref_web_stream_name_label">Назва трансляції (до 64 символів)</string>
+    <string name="mjpeg_pref_web_stream_name_error">Використовуйте не більше %1$d символів</string>
+    <string name="mjpeg_pref_web_stream_name_help">Назва вкладки браузера й підпис трансляції</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">Показувати назву трансляції</string>
+    <string name="mjpeg_pref_web_stream_name_empty">Без назви</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">Розташування назви трансляції</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">Виберіть місце й вигляд назви</string>
+
+    <string name="mjpeg_pref_web_controls_placement">Розташування керування</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">Виберіть місце й вигляд елементів керування</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">Розташування</string>
+    <string name="mjpeg_pref_web_position_top">Угорі</string>
+    <string name="mjpeg_pref_web_position_bottom">Унизу</string>
+    <string name="mjpeg_pref_web_presentation">Відображення</string>
+    <string name="mjpeg_pref_web_presentation_overlay">Поверх зображення</string>
+    <string name="mjpeg_pref_web_presentation_bar">Окрема смуга</string>
+    <string name="mjpeg_pref_web_auto_hide_on">Автоматично приховувати</string>
+    <string name="mjpeg_pref_web_auto_hide_off">Завжди показувати</string>
+    <string name="mjpeg_pref_web_auto_hide_help">Приховувати через 4 секунди без взаємодії</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">Налаштування доступу</string>
+    <string name="mjpeg_pref_access_save_error">Не вдалося зберегти налаштування доступу</string>
+
+    <string name="mjpeg_pref_access_protection">Захист PIN-кодом</string>
+    <string name="mjpeg_pref_access_protection_summary">Вимагати PIN-код або посилання доступу для перегляду трансляції</string>
+    <string name="mjpeg_pref_access_protection_default">Типово: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">Режим PIN-коду</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">Новий PIN-код при відкритті</string>
+    <string name="mjpeg_pref_access_policy_permanent">Постійний PIN-код</string>
+    <string name="mjpeg_pref_access_policy_help">Якщо вибрано «Новий PIN-код при відкритті» й увімкнено захист, PIN-код створюється щоразу при відкритті режиму MJPEG. Початок захоплення його не змінює.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN-код</string>
+    <string name="mjpeg_pref_access_pin_summary">Збережений PIN-код для доступу до трансляції</string>
+    <string name="mjpeg_pref_access_pin_unavailable">Немає збереженого PIN-коду</string>
+    <string name="mjpeg_pref_access_pin_label">PIN-код (6 цифр)</string>
+    <string name="mjpeg_pref_access_pin_error">Введіть шість цифр (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">Створити новий PIN-код</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">Виберіть постійний PIN-код, щоб ввести власний</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">Обмежувати спроби введення PIN-коду</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">Призупиняти вхід за PIN-кодом після п’яти хибних спроб</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">Хвилини: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">Тривалість блокування (1–60 хвилин)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">Типово: %1$s · %2$s хв</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">Введіть ціле число від 1 до 60</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">Блокує нові спроби введення PIN-коду з цієї IP-адреси. Підключені глядачі залишаються підключеними.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">Приховувати PIN-код при запуску трансляції</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">PIN-код можна показати знову</string>
+</resources>

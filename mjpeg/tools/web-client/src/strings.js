@@ -1,36 +1,44 @@
-const words = {
-    app: 'ScreenStream', connecting: 'Connecting…', connected: 'Connected',
-    reconnecting: 'Reconnecting',
-    mediaStarting: 'Waiting for an image…', mediaRetrying: 'Restoring image…',
-    mediaFailed: 'Image unavailable.', viewing: 'Viewing',
-    pinTitle: 'Enter PIN',
-    pinRequired: 'Enter the six-digit PIN shown on the streaming device:',
-    pinBlockedTitle: 'Access temporarily blocked',
-    pinBlocked: 'Too many incorrect PIN attempts.\nPlease wait before trying again.',
-    tryAgainIn: 'Try again in', secondsShort: ' s',
-    pinWrong: 'Incorrect PIN. Try again.', pinInvalid: 'Enter six digits (0–9).',
-    pinSending: 'Checking PIN…', pinNetwork: 'Could not check PIN. Retry the connection.',
-    retry: 'Retry connection', useJpeg: 'Use JPEG', useMjpeg: 'Use MJPEG',
-    mjpeg: 'MJPEG', jpeg: 'JPEG',
-    mjpegDescription: 'Recommended',
-    jpegDescription: 'Use if MJPEG won’t load.',
-    fit: 'Fit', original: 'Original size', width: 'Fit to width',
-    fullscreen: 'Full screen', leaveFullscreen: 'Exit full screen', pip: 'Picture in picture',
-    pipReady: 'Picture in picture is ready. Press Picture in picture again to open it.',
-    pipError: 'Picture in picture could not open. Normal viewing continues.',
-    fullscreenError: 'Full screen could not open. Normal viewing continues.',
-    more: 'More',
-    privacy: 'Privacy Policy', terms: 'Terms & Conditions',
-    unlock: 'Connect',
-    connection: 'Connection', status: 'Status', image: 'Image',
-    size: 'Dimensions', unknownSize: 'No image', notice: 'Notice',
-    permission_required: 'Confirm screen sharing on the streaming device.',
-    stopped: 'Stream stopped on device.', paused: 'Screen sharing is paused on the streaming device.',
-    failed: 'Stream failed. Check the streaming device.',
-    unsupported: 'This browser cannot connect to the stream. Use a browser with WebSocket support.'
+const localeScripts = {
+    en: 'latn', af: 'latn', am: 'ethi', ar: 'arab', bn: 'beng', de: 'latn',
+    es: 'latn', eu: 'latn', fr: 'latn', hi: 'deva', id: 'latn', it: 'latn',
+    ja: 'jpan', jv: 'latn', ka: 'geor', nl: 'latn', pl: 'latn', pt: 'latn',
+    ru: 'cyrl', tr: 'latn', uk: 'cyrl', ur: 'arab', uz: 'latn'
 };
+function chooseLocale(preferences) {
+    for (let i = 0; i < preferences.length; i += 1) {
+        if (typeof preferences[i] !== 'string') continue;
+        const tag = preferences[i].toLowerCase().replace(/_/g, '-');
+        if (!/^[a-z]{2,3}(?:-[a-z0-9]{1,8})*$/.test(tag)) continue;
+        const parts = tag.split('-');
+        let language = parts[0];
+        if (language === 'in') language = 'id';
+        if (language === 'jw') language = 'jv';
+        const script = /^[a-z]{4}$/.test(parts[1] || '') ? parts[1] : '';
+        const region = parts[script ? 2 : 1] || '';
+        if (language === 'zh') {
+            if (script && script !== 'hans' && script !== 'hant') continue;
+            return script === 'hant' || !script && (region === 'tw' || region === 'hk' || region === 'mo') ? 'zh-TW' : 'zh';
+        }
+        if (Object.prototype.hasOwnProperty.call(localeScripts, language) &&
+            (!script || script === localeScripts[language])) return language;
+    }
+    return 'en';
+}
+const preferences = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+const locale = catalogs[chooseLocale(preferences)] || catalogs.en;
+const words = {};
+for (const key in catalogs.en.messages) {
+    if (Object.prototype.hasOwnProperty.call(catalogs.en.messages, key)) {
+        words[key] = typeof locale.messages[key] === 'string' ? locale.messages[key] : catalogs.en.messages[key];
+    }
+}
+document.documentElement.lang = locale.lang;
+document.documentElement.dir = locale.dir;
 function text(node, value) { node.textContent = value; }
 function byId(id) { return document.getElementById(id); }
+function secondsText(key, seconds) {
+    return words[key].replace('{seconds}', () => String(seconds));
+}
 function labelControl(node, value) {
     node.setAttribute('aria-label', value);
     node.setAttribute('data-tooltip', value);

@@ -4,10 +4,10 @@
     <string name="app_error_recover">Odzyskaj</string>
 
     <string name="app_module_error_title">Coś poszło nie tak</string>
-    <string name="app_module_error_restart">Uruchom moduł ponownie</string>
+    <string name="app_module_error_restart">Uruchom tryb ponownie</string>
 
     <string name="app_activity_update_dialog_title">Dostępna aktualizacja</string>
-    <string name="app_activity_update_dialog_message">Pobrano aktualizację. Zrestartować aplikację?</string>
+    <string name="app_activity_update_dialog_message">Aktualizacja jest gotowa. Uruchomić aplikację ponownie teraz?</string>
     <string name="app_activity_update_dialog_restart">Uruchom ponownie</string>
 
     <string name="app_tab_stream">Transmisja</string>
@@ -15,9 +15,10 @@
     <string name="app_tab_about">O aplikacji</string>
     <string name="app_tab_exit">Wyjście</string>
 
-    <string name="app_tab_stream_select_mode">Wybierz tryb strumienia:</string>
-    <string name="app_tab_stream_switching_modules">Przełączanie modułów</string>
+    <string name="app_tab_stream_select_mode">Wybierz tryb transmisji:</string>
+    <string name="app_tab_stream_switching_modules">Przełączanie trybów…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Nie teraz</string>
     <string name="app_permission_open_settings">Otwórz ustawienia</string>
 
@@ -36,45 +37,47 @@
 
     <string name="app_permission_audio_title">Dźwięk mikrofonu i urządzenia</string>
     <string name="app_permission_audio_message">Zezwól na dostęp do mikrofonu, aby przesyłać dźwięk mikrofonu i urządzenia.\n\nDźwięk urządzenia można przesyłać tylko wtedy, gdy Android i odtwarzająca go aplikacja zezwalają na jego udostępnianie.</string>
-    <string name="app_permission_audio_settings_message">Włącz uprawnienie do mikrofonu w ustawieniach aplikacji, aby przesyłać dźwięk z mikrofonu lub dźwięk wewnętrzny.\n\nBez niego transmisja będzie bez dźwięku.</string>
+    <string name="app_permission_audio_settings_message">Zezwól na dostęp do mikrofonu w ustawieniach aplikacji, aby przesyłać dźwięk mikrofonu lub urządzenia.\n\nBez tego uprawnienia nie można przesyłać dźwięku.</string>
 
-    <string name="app_notification_channel_streaming">Powiadomienia o przesyłaniu</string>
+    <string name="app_notification_channel_streaming">Powiadomienia o transmisji</string>
     <string name="app_notification_channel_error">Powiadomienia o błędach</string>
     <string name="app_notification_waiting_content">Dotknij, aby otworzyć aplikację</string>
     <string name="app_notification_streaming_title">Transmisja…</string>
     <string name="app_notification_streaming_content">Dotknij Zatrzymaj, aby zakończyć transmisję</string>
-    <string name="app_notification_stop">Stop</string>
+    <string name="app_notification_stop">Zatrzymaj</string>
 
-    <string name="app_tile_start">Start</string>
-    <string name="app_tile_stop">Stop</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Otwórz ScreenStream</string>
+    <string name="app_tile_stop">Zatrzymaj</string>
 
     <string name="app_pref_back">Powrót</string>
     <string name="app_pref_settings">Ustawienia</string>
     <string name="app_pref_locale">Język aplikacji</string>
-    <string name="app_pref_locale_summary">Otwiera ustawienia języka aplikacji</string>
+    <string name="app_pref_locale_summary">Otwórz ustawienia języka aplikacji</string>
     <string name="app_pref_locale_default">Domyślny dla systemu</string>
     <string name="app_pref_night_mode">Ciemny motyw</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Zawsze</item>
-        <item>Ustaw przez Oszczędzanie baterii</item>
+        <item>Zgodnie z oszczędzaniem baterii</item>
         <item>Nigdy</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Zawsze</item>
-        <item>Automatyczny (zgodny z systemem)</item>
+        <item>Zgodnie z systemem</item>
         <item>Nigdy</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Dynamiczny kolor</string>
     <string name="app_pref_dynamic_theme_summary">Dostosuj wygląd na podstawie kolorów tapety</string>
-    <string name="app_pref_notification">Ustawienia powiadomień</string>
-    <string name="app_pref_notification_summary">Otwiera ustawienia powiadomień systemu</string>
-    <string name="app_pref_tile">Dodaj kafelek aplikacji</string>
-    <string name="app_pref_tile_summary">Dodaj kafelek aplikacji do Szybkich ustawień</string>
+    <string name="app_pref_notification">Powiadomienia aplikacji</string>
+    <string name="app_pref_notification_summary">Zarządzaj powiadomieniami w ustawieniach systemu</string>
+    <string name="app_pref_tile">Dodaj kafelek Szybkich ustawień</string>
+    <string name="app_pref_tile_summary">Dodaj ScreenStream do Szybkich ustawień</string>
 
     <string name="app_tab_about_app_version">Wersja: %1$s</string>
-    <string name="app_tab_about_developer_name">Programista Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_developer_name">Autor: Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Oceń aplikację</string>
-    <string name="app_tab_about_app_sources">Kod źródłowy aplikacji</string>
+    <string name="app_tab_about_app_sources">Kod źródłowy</string>
     <string name="app_tab_about_terms_conditions">Regulamin</string>
     <string name="app_tab_about_privacy_policy">Polityka prywatności</string>
     <string name="app_tab_about_privacy_options">Opcje prywatności</string>

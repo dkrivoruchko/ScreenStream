@@ -4,20 +4,21 @@
     <string name="app_error_recover">Pulih</string>
 
     <string name="app_module_error_title">Terjadi kesalahan</string>
-    <string name="app_module_error_restart">Mulai ulang modul</string>
+    <string name="app_module_error_restart">Mulai ulang mode</string>
 
     <string name="app_activity_update_dialog_title">Pembaruan tersedia</string>
-    <string name="app_activity_update_dialog_message">Pembaruan baru saja diunduh. Mulai ulang aplikasi sekarang?</string>
-    <string name="app_activity_update_dialog_restart">Mengulang kembali</string>
+    <string name="app_activity_update_dialog_message">Pembaruan siap. Mulai ulang aplikasi sekarang?</string>
+    <string name="app_activity_update_dialog_restart">Mulai ulang</string>
 
     <string name="app_tab_stream">Streaming</string>
-    <string name="app_tab_settings">Pengaturan</string>
+    <string name="app_tab_settings">Setelan</string>
     <string name="app_tab_about">Tentang</string>
     <string name="app_tab_exit">Keluar</string>
 
     <string name="app_tab_stream_select_mode">Pilih mode streaming:</string>
-    <string name="app_tab_stream_switching_modules">Beralih modul</string>
+    <string name="app_tab_stream_switching_modules">Beralih mode…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Jangan sekarang</string>
     <string name="app_permission_open_settings">Buka setelan</string>
 
@@ -36,45 +37,47 @@
 
     <string name="app_permission_audio_title">Audio mikrofon dan perangkat</string>
     <string name="app_permission_audio_message">Izinkan akses mikrofon untuk streaming audio mikrofon dan perangkat.\n\nAudio perangkat hanya dapat di-streaming jika Android dan aplikasi pemutarnya mengizinkan berbagi audio tersebut.</string>
-    <string name="app_permission_audio_settings_message">Aktifkan izin mikrofon di setelan aplikasi untuk streaming audio mikrofon atau audio internal.\n\nTanpa izin ini, streaming tidak bersuara.</string>
+    <string name="app_permission_audio_settings_message">Izinkan akses mikrofon di setelan aplikasi untuk streaming audio mikrofon atau perangkat.\n\nTanpa izin ini, audio tidak dapat di-streaming.</string>
 
-    <string name="app_notification_channel_streaming">Pemberitahuan streaming</string>
-    <string name="app_notification_channel_error">Pemberitahuan kesalahan</string>
+    <string name="app_notification_channel_streaming">Notifikasi streaming</string>
+    <string name="app_notification_channel_error">Notifikasi kesalahan</string>
     <string name="app_notification_waiting_content">Ketuk untuk membuka aplikasi</string>
     <string name="app_notification_streaming_title">Streaming…</string>
     <string name="app_notification_streaming_content">Ketuk Berhenti untuk mengakhiri streaming</string>
     <string name="app_notification_stop">Berhenti</string>
 
-    <string name="app_tile_start">Mulai</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Buka ScreenStream</string>
     <string name="app_tile_stop">Berhenti</string>
 
     <string name="app_pref_back">Kembali</string>
-    <string name="app_pref_settings">Pengaturan</string>
+    <string name="app_pref_settings">Setelan</string>
     <string name="app_pref_locale">Bahasa aplikasi</string>
-    <string name="app_pref_locale_summary">Buka pengaturan bahasa aplikasi</string>
-    <string name="app_pref_locale_default">Bawaan sistem</string>
+    <string name="app_pref_locale_summary">Buka setelan bahasa aplikasi</string>
+    <string name="app_pref_locale_default">Default sistem</string>
     <string name="app_pref_night_mode">Tema gelap</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Selalu</item>
         <item>Diatur oleh Penghemat Baterai</item>
-        <item>Tidak Pernah</item>
+        <item>Tidak pernah</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Selalu</item>
-        <item>Otomatis (ikuti sistem)</item>
-        <item>Tidak Pernah</item>
+        <item>Ikuti sistem</item>
+        <item>Tidak pernah</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Warna dinamis</string>
     <string name="app_pref_dynamic_theme_summary">Sesuaikan tampilan berdasarkan warna wallpaper Anda</string>
-    <string name="app_pref_notification">Pengaturan notifikasi perangkat</string>
-    <string name="app_pref_notification_summary">Buka pengaturan notifikasi sistem</string>
-    <string name="app_pref_tile">Tambahkan ubin aplikasi</string>
-    <string name="app_pref_tile_summary">Tambahkan ubin aplikasi ke Pengaturan Cepat</string>
+    <string name="app_pref_notification">Notifikasi aplikasi</string>
+    <string name="app_pref_notification_summary">Kelola notifikasi di setelan sistem</string>
+    <string name="app_pref_tile">Tambahkan ubin Setelan Cepat</string>
+    <string name="app_pref_tile_summary">Tambahkan ScreenStream ke Setelan Cepat</string>
 
     <string name="app_tab_about_app_version">Versi: %1$s</string>
     <string name="app_tab_about_developer_name">Dikembangkan oleh Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Nilai aplikasi</string>
-    <string name="app_tab_about_app_sources">Sumber aplikasi</string>
+    <string name="app_tab_about_app_sources">Kode sumber</string>
     <string name="app_tab_about_terms_conditions">Syarat dan Ketentuan</string>
     <string name="app_tab_about_privacy_policy">Kebijakan privasi</string>
     <string name="app_tab_about_privacy_options">Opsi privasi</string>

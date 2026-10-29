@@ -18,8 +18,8 @@ import io.screenstream.mjpeg.ui.settings.SettingsItem
 internal object StopWhenScreenTurnsOffSearch {
     val info: SettingSearchInfo = SettingSearchInfo(
         group = SettingSearchGroup.Automation,
-        titleRes = R.string.mjpeg_pref_stream_stop_on_screen_off,
-        summaryRes = R.string.mjpeg_pref_stream_stop_on_screen_off_summary,
+        titleRes = R.string.mjpeg_pref_automation_stop_on_screen_off,
+        summaryRes = R.string.mjpeg_pref_automation_stop_on_screen_off_summary,
     )
 }
 

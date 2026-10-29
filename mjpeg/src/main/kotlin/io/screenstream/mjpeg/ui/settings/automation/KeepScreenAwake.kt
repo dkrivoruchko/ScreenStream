@@ -18,8 +18,8 @@ import io.screenstream.mjpeg.ui.settings.SettingsItem
 internal object KeepScreenAwakeSearch {
     val info: SettingSearchInfo = SettingSearchInfo(
         group = SettingSearchGroup.Automation,
-        titleRes = R.string.mjpeg_pref_stream_keep_awake,
-        summaryRes = R.string.mjpeg_pref_stream_keep_awake_summary,
+        titleRes = R.string.mjpeg_pref_automation_keep_awake,
+        summaryRes = R.string.mjpeg_pref_automation_keep_awake_summary,
     )
 }
 

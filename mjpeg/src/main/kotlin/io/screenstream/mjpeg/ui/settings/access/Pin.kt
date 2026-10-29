@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -63,6 +64,7 @@ internal fun PinSettingItem(
     var pinRevealed by remember(pin) { mutableStateOf(false) }
     var showEditor by remember { mutableStateOf(false) }
     val openerFocus = rememberSettingOpenerFocus(editorVisible = showEditor)
+    val revealActionDescription = stringResource(if (pinRevealed) R.string.mjpeg_pin_hide_description else R.string.mjpeg_pin_show_description)
     SettingsItem(
         title = stringResource(PinSearch.info.titleRes),
         summary = stringResource(PinSearch.info.summaryRes),
@@ -74,7 +76,7 @@ internal fun PinSettingItem(
                 when {
                     pin == null -> stringResource(R.string.mjpeg_pref_access_pin_unavailable)
                     pinRevealed -> pin.value
-                    else -> stringResource(R.string.mjpeg_pref_access_pin_mask)
+                    else -> stringResource(R.string.mjpeg_pin_mask)
                 },
                 color = if (pin == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.bodyMedium,
@@ -86,10 +88,11 @@ internal fun PinSettingItem(
                     onClick = { pinRevealed = !pinRevealed },
                     modifier = Modifier
                         .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                        .offset(x = 8.dp),
+                        .offset(x = 8.dp)
+                        .semantics { contentDescription = revealActionDescription },
                     contentPadding = PaddingValues(0.dp),
                 ) {
-                    Text(stringResource(if (pinRevealed) R.string.mjpeg_pref_access_pin_hide else R.string.mjpeg_pref_access_pin_show))
+                    Text(stringResource(if (pinRevealed) R.string.mjpeg_pin_hide_label else R.string.mjpeg_pin_show_label))
                 }
             }
         } else null,
@@ -111,6 +114,7 @@ private fun PinEditor(
     onDismiss: () -> Unit,
 ) {
     var pinRevealed by remember { mutableStateOf(false) }
+    val revealActionDescription = stringResource(if (pinRevealed) R.string.mjpeg_pin_hide_description else R.string.mjpeg_pin_show_description)
     val isPermanentPin = pinPolicy == AccessSettings.PinPolicy.Permanent
     var pinInput by remember(pinPolicy) { mutableStateOf(TextFieldValue(pin?.value.orEmpty())) }
     var followSavedPin by remember(pinPolicy) { mutableStateOf(true) }
@@ -163,8 +167,13 @@ private fun PinEditor(
                 .semantics { if (errorText != null) error(errorText) },
             label = { Text(stringResource(PinSearch.fieldLabelRes)) },
             trailingIcon = {
-                TextButton(onClick = { pinRevealed = !pinRevealed }, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text(stringResource(if (pinRevealed) R.string.mjpeg_pref_access_pin_hide else R.string.mjpeg_pref_access_pin_show))
+                TextButton(
+                    onClick = { pinRevealed = !pinRevealed },
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .semantics { contentDescription = revealActionDescription },
+                ) {
+                    Text(stringResource(if (pinRevealed) R.string.mjpeg_pin_hide_label else R.string.mjpeg_pin_show_label))
                 }
             },
             readOnly = !canEditPin,

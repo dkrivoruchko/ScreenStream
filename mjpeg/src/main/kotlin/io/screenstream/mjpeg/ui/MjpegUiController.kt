@@ -123,5 +123,6 @@ internal fun NetworkAddress.mapAddressServer(
         status = status,
         accessUrl = accessUrl,
         isLoopback = ip.isLoopbackAddress,
+        isLinkLocal = ip.isLinkLocalAddress,
     )
 }

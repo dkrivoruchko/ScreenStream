@@ -4,10 +4,10 @@
     <string name="app_error_recover">بحال کریں</string>
 
     <string name="app_module_error_title">کچھ غلط ہو گیا</string>
-    <string name="app_module_error_restart">ماڈیول دوبارہ شروع کریں</string>
+    <string name="app_module_error_restart">موڈ دوبارہ شروع کریں</string>
 
     <string name="app_activity_update_dialog_title">اپ ڈیٹ دستیاب ہے</string>
-    <string name="app_activity_update_dialog_message">اپ ڈیٹ ڈاؤن لوڈ ہو چکی ہے۔ ایپ دوبارہ شروع کریں؟</string>
+    <string name="app_activity_update_dialog_message">اپ ڈیٹ تیار ہے۔ کیا ابھی ایپ دوبارہ شروع کریں؟</string>
     <string name="app_activity_update_dialog_restart">دوبارہ شروع کریں</string>
 
     <string name="app_tab_stream">اسٹریم</string>
@@ -16,8 +16,9 @@
     <string name="app_tab_exit">خروج</string>
 
     <string name="app_tab_stream_select_mode">اسٹریم موڈ منتخب کریں:</string>
-    <string name="app_tab_stream_switching_modules">ماڈیول تبدیل کیے جا رہے ہیں</string>
+    <string name="app_tab_stream_switching_modules">موڈ تبدیل ہو رہے ہیں…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">ابھی نہیں</string>
     <string name="app_permission_open_settings">ترتیبات کھولیں</string>
 
@@ -36,16 +37,17 @@
 
     <string name="app_permission_audio_title">مائیکروفون اور آلے کی آڈیو</string>
     <string name="app_permission_audio_message">مائیکروفون اور آلے کی آڈیو اسٹریم کرنے کے لیے مائیکروفون تک رسائی کی اجازت دیں۔\n\nآلے کی آڈیو صرف اسی وقت اسٹریم کی جا سکتی ہے جب Android اور آڈیو چلانے والی ایپ اسے شیئر کرنے کی اجازت دیں۔</string>
-    <string name="app_permission_audio_settings_message">مائیکروفون یا اندرونی آڈیو اسٹریم کرنے کے لیے ایپ کی ترتیبات میں مائیکروفون کی اجازت فعال کریں۔\n\nاس اجازت کے بغیر اسٹریم میں آواز نہیں ہوگی۔</string>
+    <string name="app_permission_audio_settings_message">مائیکروفون یا آلے کی آڈیو اسٹریم کرنے کے لیے ایپ کی ترتیبات میں مائیکروفون تک رسائی کی اجازت دیں۔\n\nاس کے بغیر آڈیو اسٹریم نہیں کی جا سکتی۔</string>
 
-    <string name="app_notification_channel_streaming">اسٹریمنگ اطلاعات</string>
-    <string name="app_notification_channel_error">خرابی اطلاعات</string>
+    <string name="app_notification_channel_streaming">اسٹریمنگ کی اطلاعات</string>
+    <string name="app_notification_channel_error">خرابی کی اطلاعات</string>
     <string name="app_notification_waiting_content">ایپ کھولنے کے لیے ٹیپ کریں</string>
     <string name="app_notification_streaming_title">اسٹریمنگ…</string>
     <string name="app_notification_streaming_content">اسٹریم ختم کرنے کے لیے روکیں پر ٹیپ کریں</string>
     <string name="app_notification_stop">روکیں</string>
 
-    <string name="app_tile_start">شروع کریں</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream کھولیں</string>
     <string name="app_tile_stop">روکیں</string>
 
     <string name="app_pref_back">واپس</string>
@@ -53,7 +55,8 @@
     <string name="app_pref_locale">ایپ کی زبان</string>
     <string name="app_pref_locale_summary">ایپ زبان کی ترتیبات کھولیں</string>
     <string name="app_pref_locale_default">سسٹم ڈیفالٹ</string>
-    <string name="app_pref_night_mode">ڈارک تھیم</string>
+    <string name="app_pref_night_mode">گہری تھیم</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>ہمیشہ</item>
         <item>بیٹری سیور کے مطابق</item>
@@ -61,20 +64,20 @@
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>ہمیشہ</item>
-        <item>خودکار (سسٹم کے مطابق)</item>
+        <item>سسٹم کے مطابق</item>
         <item>کبھی نہیں</item>
     </string-array>
     <string name="app_pref_dynamic_theme">ڈائنامک رنگ</string>
     <string name="app_pref_dynamic_theme_summary">وال پیپر کے رنگوں کے مطابق انداز بدلیں</string>
-    <string name="app_pref_notification">ڈیوائس اطلاعی ترتیبات</string>
-    <string name="app_pref_notification_summary">سسٹم اطلاعی ترتیبات کھولیں</string>
-    <string name="app_pref_tile">ایپ ٹائل شامل کریں</string>
-    <string name="app_pref_tile_summary">کوئک سیٹنگز میں ایپ ٹائل شامل کریں</string>
+    <string name="app_pref_notification">ایپ کی اطلاعات</string>
+    <string name="app_pref_notification_summary">سسٹم کی ترتیبات میں اطلاعات کا نظم کریں</string>
+    <string name="app_pref_tile">فوری ترتیبات کی ٹائل شامل کریں</string>
+    <string name="app_pref_tile_summary">ScreenStream کو فوری ترتیبات میں شامل کریں</string>
 
     <string name="app_tab_about_app_version">ورژن: %1$s</string>
     <string name="app_tab_about_developer_name">تیار کردہ: Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">ایپ ریٹ کریں</string>
-    <string name="app_tab_about_app_sources">ایپ کے ماخذ</string>
+    <string name="app_tab_about_app_sources">سورس کوڈ</string>
     <string name="app_tab_about_terms_conditions">شرائط و ضوابط</string>
     <string name="app_tab_about_privacy_policy">رازداری کی پالیسی</string>
     <string name="app_tab_about_privacy_options">رازداری کے اختیارات</string>

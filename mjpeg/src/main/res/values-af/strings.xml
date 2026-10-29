@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">Plaaslike modus · MJPEG</string>
+    <string name="mjpeg_mode_description">Oor MJPEG</string>
+    <string name="mjpeg_mode_details">Stroom die toestel se skerm direk na \'n webblaaier as JPEG-beelde. Oudio word nie gestroom nie.\n\n• Werk op \'n plaaslike netwerk sonder internet. Kykers moet die stroomadres kan bereik.\n• PIN-beskerming is opsioneel. Wanneer dit aan is, kan kykers die PIN invoer of \'n toegangskakel gebruik.\n• Die stroom gebruik ongeënkripteerde HTTP. Gebruik \'n betroubare netwerk.\n• Die netwerkfilter bied opsies vir Wi-Fi, Ethernet, mobiele data, VPN, IPv4 en IPv6.\n• Pas beeldgrootte, JPEG-gehalte en raamtempo aan.\n• Beelde word afsonderlik aan elke kyker gestuur, wat datagebruik verhoog.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">Maak toe</string>
+
+    <string name="mjpeg_pref_value_on">Aan</string>
+    <string name="mjpeg_pref_value_off">Af</string>
+    <string name="mjpeg_pref_value_automatic">Outomaties</string>
+    <string name="mjpeg_pref_value_not_set">Nie gestel nie</string>
+    <string name="mjpeg_pref_value_unavailable">Nog nie beskikbaar nie</string>
+    <string name="mjpeg_pref_default_option">%1$s (verstek)</string>
+    <string name="mjpeg_pref_default_value">Verstek: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">Beskikbaar nadat skermvaslegging heeltemal gestop het</string>
+
+    <string name="mjpeg_pref_search_placeholder">Soek instellings</string>
+    <string name="mjpeg_pref_search_clear">Vee soektog uit</string>
+    <string name="mjpeg_pref_search_no_results">Geen instellings gevind nie</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">Mobiele data</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">Ander</string>
+    <string name="mjpeg_network_loopback">Teruglus</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">Begin stroom</string>
+    <string name="mjpeg_stream_stop_capture">Stop stroom</string>
+    <string name="mjpeg_stream_skipped_frames_warning">Rame oorgeslaan</string>
+    <string name="mjpeg_stream_stop_delayed">Skermdeling word steeds gestop…</string>
+    <string name="mjpeg_capture_error">Skermvaslegging het misluk</string>
+    <string name="mjpeg_error_suspension_invalid_request">Vaslegging onderbreek: die beeldinstellings pas nie by die huidige vasleggingsgebied nie</string>
+    <string name="mjpeg_error_suspension_unavailable">Vaslegging onderbreek: die vasleggingsbron is nie beskikbaar nie</string>
+    <string name="mjpeg_error_suspension_resources">Vaslegging onderbreek: onvoldoende hulpbronne</string>
+
+    <string name="mjpeg_address_list_title">Stroomadresse</string>
+    <string name="mjpeg_address_list_empty">Geen adresse vir stroom beskikbaar nie.\nGaan die netwerkfilter in Verbindingsinstellings na.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">Netwerk:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">Slegs hierdie toestel</string>
+    <string name="mjpeg_address_private_ipv4">Private IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">Nie-private IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">Nie-private IPv6</string>
+
+    <string name="mjpeg_address_open">Maak oop</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">Maak %1$s oop</string>
+    <string name="mjpeg_address_copy_url">Kopieer skakel</string>
+    <string name="mjpeg_address_copy_description">Kopieer skakel vir %1$s</string>
+    <string name="mjpeg_address_share">Deel</string>
+    <string name="mjpeg_address_share_description">Deel skakel vir %1$s</string>
+    <string name="mjpeg_address_qr_code">Wys QR-kode</string>
+    <string name="mjpeg_address_qr_code_description">Wys QR-kode vir %1$s</string>
+    <string name="mjpeg_address_qr_image_description">Skandeer hierdie kode om die stroomskakel oop te maak</string>
+
+    <string name="mjpeg_address_error_browser_not_found">Geen webblaaier gevind nie</string>
+    <string name="mjpeg_address_error_open">Kon nie die skakel oopmaak nie</string>
+    <string name="mjpeg_address_error_share">Kon nie die skakel deel nie</string>
+    <string name="mjpeg_address_error_qr_generation">Kon nie die QR-kode skep nie</string>
+
+    <string name="mjpeg_local_network_permission_request">Vra toestemming</string>
+    <string name="mjpeg_local_network_permission_open_settings">Maak instellings oop</string>
+    <string name="mjpeg_local_network_permission_required">Toestemming vir plaaslike netwerk vereis</string>
+
+    <string name="mjpeg_server_pending">Hangende</string>
+    <string name="mjpeg_server_address_in_use">Adres in gebruik</string>
+    <string name="mjpeg_server_address_unavailable">Adres nie beskikbaar nie</string>
+    <string name="mjpeg_server_permission_denied">Toestemming geweier</string>
+    <string name="mjpeg_server_io_failure">Bediener nie beskikbaar nie</string>
+    <string name="mjpeg_server_unknown_failure">Bedienerfout</string>
+    <string name="mjpeg_server_retry">Probeer weer</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">Probeer bediener by %1$s weer</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN versteek</string>
+    <string name="mjpeg_pin_show_label">Wys</string>
+    <string name="mjpeg_pin_show_description">Wys PIN</string>
+    <string name="mjpeg_pin_hide_label">Versteek</string>
+    <string name="mjpeg_pin_hide_description">Versteek PIN</string>
+    <string name="mjpeg_stream_pin_copy">Kopieer PIN</string>
+    <string name="mjpeg_stream_pin_copied">PIN gekopieer</string>
+    <string name="mjpeg_stream_pin_hint_access">Maak \'n stroomskakel oop of skandeer sy QR-kode.\nVoer hierdie PIN in as jy gevra word.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">Beeldinstellings</string>
+    <string name="mjpeg_pref_image_save_error">Kon nie beeldinstellings stoor nie</string>
+
+    <string name="mjpeg_pref_image_region">Vasleggingsgebied</string>
+    <string name="mjpeg_pref_image_region_summary">Kies die gebied om te stroom</string>
+    <string name="mjpeg_pref_image_region_full">Volle gebied</string>
+    <string name="mjpeg_pref_image_region_left">Linkerhelfte</string>
+    <string name="mjpeg_pref_image_region_right">Regterhelfte</string>
+
+    <string name="mjpeg_pref_image_crop">Sny</string>
+    <string name="mjpeg_pref_image_crop_summary">Sny die beeldrande af</string>
+    <string name="mjpeg_pref_image_crop_purpose">Voer in hoeveel pieksels van elke rand verwyder moet word</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">Laat \'n deel van die beeld sigbaar. Anders kan nuwe rame nie vasgelê word nie.</string>
+    <string name="mjpeg_pref_image_crop_enabled">Aktiveer sny</string>
+    <string name="mjpeg_pref_image_crop_left">Links (px)</string>
+    <string name="mjpeg_pref_image_crop_top">Bo (px)</string>
+    <string name="mjpeg_pref_image_crop_right">Regs (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">Onder (px)</string>
+    <string name="mjpeg_pref_image_crop_error">Voer \'n heelgetal van 0 of groter in</string>
+    <string name="mjpeg_pref_image_crop_required">Voer \'n waarde in</string>
+
+    <string name="mjpeg_pref_image_size">Beeldgrootte</string>
+    <string name="mjpeg_pref_image_size_summary">Stel die skaal of afmetings</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">Rek beeld</string>
+    <string name="mjpeg_pref_image_size_stretch_value">Rek</string>
+    <string name="mjpeg_pref_image_size_fit_description">Pas binne breedte en hoogte; behou verhoudings</string>
+    <string name="mjpeg_pref_image_size_stretch_description">Presiese breedte en hoogte; verhoudings kan verander</string>
+    <string name="mjpeg_pref_image_size_estimate_note">Skatting van skerm; \'n gedeelde program kan \'n ander grootte hê</string>
+    <string name="mjpeg_pref_image_size_source">Skerm: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">Geskatte beeldgrootte: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">Nie beskikbaar nie</string>
+    <string name="mjpeg_pref_image_size_scale">Skaal</string>
+    <string name="mjpeg_pref_image_size_target">Grootte</string>
+    <string name="mjpeg_pref_image_size_default">Verstek: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Skaal (groter as 0, tot 200%)</string>
+    <string name="mjpeg_pref_image_size_width_label">Breedte (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">Hoogte (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">Voer \'n getal groter as 0, tot 200, in</string>
+    <string name="mjpeg_pref_image_size_dimension_error">Voer \'n heelgetal van 1 tot 8192 in</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">Vergroting voeg geen detail by nie en kan die stroom vertraag</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">Rotasie</string>
+    <string name="mjpeg_pref_image_rotation_summary">Draai die beeld kloksgewys</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">Spieël</string>
+    <string name="mjpeg_pref_image_mirror_summary">Draai die beeld horisontaal of vertikaal om</string>
+    <string name="mjpeg_pref_image_mirror_none">Geen</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">Horisontaal</string>
+    <string name="mjpeg_pref_image_mirror_vertical">Vertikaal</string>
+
+    <string name="mjpeg_pref_image_grayscale">Grysskaal</string>
+    <string name="mjpeg_pref_image_grayscale_summary">Wys die beeld in grys skakerings</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG-gehalte</string>
+    <string name="mjpeg_pref_image_quality_summary">Balanseer detail en datagebruik</string>
+    <string name="mjpeg_pref_image_quality_popup_description">Hoër gehalte wys meer detail en gebruik meer data. Verstek: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">Raamtempo</string>
+    <string name="mjpeg_pref_image_rate_summary">Stel hoe gereeld die beeld vernuwe word</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">Probeer die hoogste raamtempo handhaaf</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS-limiet</string>
+    <string name="mjpeg_pref_image_rate_fps_description">Beperk rame per sekonde</string>
+    <string name="mjpeg_pref_image_rate_fps_value">Tot %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">Rame per sekonde (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">Voer \'n heelgetal van 1 tot 120 in</string>
+    <string name="mjpeg_pref_image_rate_fps_help">Die werklike raamtempo kan laer as die limiet wees</string>
+
+    <string name="mjpeg_pref_image_rate_interval">Interval</string>
+    <string name="mjpeg_pref_image_rate_interval_description">Stel \'n minimum vasleggingsinterval</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s s</string>
+    <string name="mjpeg_pref_image_rate_interval_label">Interval (1–3600 sekondes)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">Voer \'n interval van 1 tot 3600 sekondes in</string>
+    <string name="mjpeg_pref_image_rate_interval_help">Die interval beperk hoe gereeld nuwe rame vasgelê word</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG-enkodeerder</string>
+    <string name="mjpeg_pref_image_encoder_summary">Kies hoe JPEG-beelde geskep word</string>
+    <string name="mjpeg_pref_image_encoder_standard">Standaard</string>
+    <string name="mjpeg_pref_image_encoder_locked">Beskikbaar nadat skermdeling heeltemal gestop het</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">Geoptimaliseerde enkodering indien beskikbaar</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">Deaktiveer enkoderingsoptimalisering</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">Outomatiseringsinstellings</string>
+    <string name="mjpeg_pref_automation_save_error">Kon nie outomatiseringsinstellings stoor nie</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">Stop stroom ná adresverlies</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Stop die stroom wanneer geen gekose adresse oorbly nie</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">Ná %1$d s</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">Vertraging (10–1800 sekondes)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">Verstek: %1$s sekondes</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">Voer \'n heelgetal van 10 tot 1800 in</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Adresse wat terugkeer kanselleer die tydteller</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">Onaktiewe stroombeeld</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Beeld wat gewys word wanneer \'n regstreekse beeld nie beskikbaar is nie</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">Programlogo</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Laaste raam</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">Hou skerm aan</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">Hou die skerm aan tydens vaslegging, indien moontlik</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">Stop wanneer die skerm afgaan</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Stop die stroom wanneer die skerm afgaan</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">Waarsku oor oorgeslane rame</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Sommige toestelle kan minder beelde ontvang</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">Verbindingsinstellings</string>
+    <string name="mjpeg_pref_connection_save_error">Kon nie netwerkinstellings stoor nie</string>
+
+    <string name="mjpeg_pref_connection_filter">Netwerkfilter</string>
+    <string name="mjpeg_pref_connection_filter_summary">Kies netwerkadresse vir die stroom</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP-weergawe</string>
+    <string name="mjpeg_pref_connection_filter_network_type">Netwerktipe</string>
+    <string name="mjpeg_pref_connection_filter_address_type">Adrestipe</string>
+    <string name="mjpeg_pref_connection_filter_private">Privaat</string>
+    <string name="mjpeg_pref_connection_filter_non_private">Nie-privaat</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">Kies minstens een opsie in elke groep</string>
+    <string name="mjpeg_pref_connection_filter_default">Verstek: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">Adresse moet by al drie groepe pas. Veranderings kan kykers ontkoppel.</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP-poort</string>
+    <string name="mjpeg_pref_connection_http_port_summary">Stel die poort wat kykers gebruik om te verbind</string>
+    <string name="mjpeg_pref_connection_http_port_label">Poort (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">Voer \'n heelgetal van 1024 tot 65535 in</string>
+    <string name="mjpeg_pref_connection_http_port_help">As die poort verander, word die stroomadresse opgedateer</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">Webbladinstellings</string>
+    <string name="mjpeg_pref_web_save_error">Kon nie webbladinstellings stoor nie</string>
+
+    <string name="mjpeg_pref_web_background">Agtergrond</string>
+    <string name="mjpeg_pref_web_background_summary">Kies die webblad se agtergrondkleur</string>
+    <string name="mjpeg_pref_web_background_hex_label">Heksadesimale kleur</string>
+    <string name="mjpeg_pref_web_background_hex_error">Gebruik 6 karakters: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">Rooi</string>
+    <string name="mjpeg_pref_web_background_green">Groen</string>
+    <string name="mjpeg_pref_web_background_blue">Blou</string>
+    <string name="mjpeg_pref_web_background_palette">Vooraf ingestelde kleure</string>
+    <string name="mjpeg_pref_web_background_color_option">Kleur %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">Gekose kleur %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">Stroomnaam</string>
+    <string name="mjpeg_pref_web_stream_name_summary">Stel die naam wat kykers sien</string>
+    <string name="mjpeg_pref_web_stream_name_label">Stroomnaam (tot 64 karakters)</string>
+    <string name="mjpeg_pref_web_stream_name_error">Gebruik hoogstens %1$d karakters</string>
+    <string name="mjpeg_pref_web_stream_name_help">Word gebruik as blaaieroortjie se titel en stroometiket</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">Wys stroomnaam</string>
+    <string name="mjpeg_pref_web_stream_name_empty">Geen naam nie</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">Stroomnaam se plasing</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">Kies waar en hoe die naam verskyn</string>
+
+    <string name="mjpeg_pref_web_controls_placement">Kontroles se plasing</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">Kies waar en hoe kontroles verskyn</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">Posisie</string>
+    <string name="mjpeg_pref_web_position_top">Bo</string>
+    <string name="mjpeg_pref_web_position_bottom">Onder</string>
+    <string name="mjpeg_pref_web_presentation">Wys as</string>
+    <string name="mjpeg_pref_web_presentation_overlay">Oor beeld</string>
+    <string name="mjpeg_pref_web_presentation_bar">Afsonderlike balk</string>
+    <string name="mjpeg_pref_web_auto_hide_on">Versteek outomaties</string>
+    <string name="mjpeg_pref_web_auto_hide_off">Altyd sigbaar</string>
+    <string name="mjpeg_pref_web_auto_hide_help">Versteek ná 4 sekondes sonder interaksie</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">Toegangsinstellings</string>
+    <string name="mjpeg_pref_access_save_error">Kon nie toegangsinstellings stoor nie</string>
+
+    <string name="mjpeg_pref_access_protection">PIN-beskerming</string>
+    <string name="mjpeg_pref_access_protection_summary">Vereis \'n PIN of toegangskakel om die stroom te kyk</string>
+    <string name="mjpeg_pref_access_protection_default">Verstek: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PIN-beleid</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">Nuwe PIN by oopmaak</string>
+    <string name="mjpeg_pref_access_policy_permanent">Permanente PIN</string>
+    <string name="mjpeg_pref_access_policy_help">As “Nuwe PIN by oopmaak” gekies is en beskerming aan is, word \'n PIN elke keer geskep wanneer MJPEG-modus oopmaak. Vaslegging se begin verander dit nie.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">Gestoorde PIN vir toegang tot die stroom</string>
+    <string name="mjpeg_pref_access_pin_unavailable">Geen PIN gestoor nie</string>
+    <string name="mjpeg_pref_access_pin_label">PIN (6 syfers)</string>
+    <string name="mjpeg_pref_access_pin_error">Voer ses syfers in (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">Skep nuwe PIN</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">Kies “Permanente PIN” om jou eie PIN in te voer</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">Beperk PIN-pogings</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">Onderbreek PIN-aanmelding ná vyf verkeerde pogings</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">Minute: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">Blokkeringstyd (1–60 minute)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">Verstek: %1$s · %2$s min</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">Voer \'n heelgetal van 1 tot 60 in</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">Blokkeer nuwe PIN-pogings vanaf daardie IP. Bestaande kykers bly verbind.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">Versteek PIN wanneer \'n stroom begin</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">Jy kan die PIN weer wys</string>
+</resources>

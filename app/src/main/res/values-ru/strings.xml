@@ -4,10 +4,10 @@
     <string name="app_error_recover">Восстановить</string>
 
     <string name="app_module_error_title">Что-то пошло не так</string>
-    <string name="app_module_error_restart">Перезапустить модуль</string>
+    <string name="app_module_error_restart">Перезапустить режим</string>
 
     <string name="app_activity_update_dialog_title">Доступно обновление</string>
-    <string name="app_activity_update_dialog_message">Обновление было только что загружено. Перезапустить приложение сейчас?</string>
+    <string name="app_activity_update_dialog_message">Обновление готово. Перезапустить приложение сейчас?</string>
     <string name="app_activity_update_dialog_restart">Перезапустить</string>
 
     <string name="app_tab_stream">Трансляция</string>
@@ -16,8 +16,9 @@
     <string name="app_tab_exit">Выход</string>
 
     <string name="app_tab_stream_select_mode">Выберите режим трансляции:</string>
-    <string name="app_tab_stream_switching_modules">Переключение модулей</string>
+    <string name="app_tab_stream_switching_modules">Переключение режимов…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Не сейчас</string>
     <string name="app_permission_open_settings">Открыть настройки</string>
 
@@ -36,45 +37,47 @@
 
     <string name="app_permission_audio_title">Звук микрофона и устройства</string>
     <string name="app_permission_audio_message">Разрешите доступ к микрофону для трансляции звука микрофона и устройства.\n\nЗвук устройства может транслироваться только тогда, когда Android и воспроизводящее его приложение разрешают делиться им.</string>
-    <string name="app_permission_audio_settings_message">Включите разрешение на микрофон в настройках приложения, чтобы транслировать звук с микрофона или внутренний звук.\n\nБез него трансляция будет без звука.</string>
+    <string name="app_permission_audio_settings_message">Разрешите доступ к микрофону в настройках приложения, чтобы транслировать звук с микрофона или устройства.\n\nБез этого разрешения звук не может транслироваться.</string>
 
     <string name="app_notification_channel_streaming">Уведомления о трансляции</string>
     <string name="app_notification_channel_error">Уведомления об ошибках</string>
     <string name="app_notification_waiting_content">Нажмите, чтобы открыть приложение</string>
-    <string name="app_notification_streaming_title">Транслирую…</string>
-    <string name="app_notification_streaming_content">Нажмите Стоп, чтобы завершить трансляцию</string>
+    <string name="app_notification_streaming_title">Идёт трансляция…</string>
+    <string name="app_notification_streaming_content">Нажмите «Остановить», чтобы завершить трансляцию</string>
     <string name="app_notification_stop">Остановить</string>
 
-    <string name="app_tile_start">Запустить</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Открыть ScreenStream</string>
     <string name="app_tile_stop">Остановить</string>
 
     <string name="app_pref_back">Назад</string>
     <string name="app_pref_settings">Настройки</string>
     <string name="app_pref_locale">Язык приложения</string>
     <string name="app_pref_locale_summary">Открыть настройки языка приложения</string>
-    <string name="app_pref_locale_default">Системные настройки</string>
-    <string name="app_pref_night_mode">Темная тема</string>
+    <string name="app_pref_locale_default">Как в системе</string>
+    <string name="app_pref_night_mode">Тёмная тема</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Всегда</item>
-        <item>Только при экономии батареи</item>
+        <item>По режиму энергосбережения</item>
         <item>Никогда</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Всегда</item>
-        <item>Автоматически (следовать за системой)</item>
+        <item>Как в системе</item>
         <item>Никогда</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Динамический цвет</string>
     <string name="app_pref_dynamic_theme_summary">Настроить внешний вид на основе цветов обоев</string>
-    <string name="app_pref_notification">Настройки уведомлений устройства</string>
-    <string name="app_pref_notification_summary">Открыть настройки уведомлений системы</string>
-    <string name="app_pref_tile">Добавить плитку приложения</string>
-    <string name="app_pref_tile_summary">Добавить плитку приложения в Быстрые настройки</string>
+    <string name="app_pref_notification">Уведомления приложения</string>
+    <string name="app_pref_notification_summary">Управлять уведомлениями в настройках системы</string>
+    <string name="app_pref_tile">Добавить плитку быстрых настроек</string>
+    <string name="app_pref_tile_summary">Добавить ScreenStream в быстрые настройки</string>
 
     <string name="app_tab_about_app_version">Версия: %1$s</string>
-    <string name="app_tab_about_developer_name">Разработчик Дмитрий Криворучко</string>
+    <string name="app_tab_about_developer_name">Разработчик: Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Оценить приложение</string>
-    <string name="app_tab_about_app_sources">Исходный код приложения</string>
+    <string name="app_tab_about_app_sources">Исходный код</string>
     <string name="app_tab_about_terms_conditions">Условия использования</string>
     <string name="app_tab_about_privacy_policy">Политика конфиденциальности</string>
     <string name="app_tab_about_privacy_options">Опции конфиденциальности</string>

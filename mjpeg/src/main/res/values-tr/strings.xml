@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">Yerel mod · MJPEG</string>
+    <string name="mjpeg_mode_description">MJPEG hakkında</string>
+    <string name="mjpeg_mode_details">Cihaz ekranını JPEG görüntüleri olarak doğrudan web tarayıcısına aktarın. Ses aktarılmaz.\n\n• İnternet olmadan yerel ağda çalışır. İzleyiciler yayın adresine erişebilmelidir.\n• PIN koruması isteğe bağlıdır. Açıldığında izleyiciler PIN girebilir veya erişim bağlantısını kullanabilir.\n• Yayın şifrelenmemiş HTTP kullanır. Güvenilir bir ağ kullanın.\n• Ağ filtresi Wi-Fi, Ethernet, mobil veri, VPN, IPv4 ve IPv6 seçenekleri sunar.\n• Görüntü boyutunu, JPEG kalitesini ve kare hızını ayarlayın.\n• Görüntüler her izleyiciye ayrı gönderilir, bu da veri kullanımını artırır.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">Kapat</string>
+
+    <string name="mjpeg_pref_value_on">Açık</string>
+    <string name="mjpeg_pref_value_off">Kapalı</string>
+    <string name="mjpeg_pref_value_automatic">Otomatik</string>
+    <string name="mjpeg_pref_value_not_set">Ayarlanmadı</string>
+    <string name="mjpeg_pref_value_unavailable">Henüz kullanılamıyor</string>
+    <string name="mjpeg_pref_default_option">%1$s (varsayılan)</string>
+    <string name="mjpeg_pref_default_value">Varsayılan: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">Ekran yakalama tamamen durduktan sonra kullanılabilir</string>
+
+    <string name="mjpeg_pref_search_placeholder">Ayarlarda ara</string>
+    <string name="mjpeg_pref_search_clear">Aramayı temizle</string>
+    <string name="mjpeg_pref_search_no_results">Ayar bulunamadı</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">Mobil veri</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">Diğer</string>
+    <string name="mjpeg_network_loopback">Geri döngü</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">Yayını başlat</string>
+    <string name="mjpeg_stream_stop_capture">Yayını durdur</string>
+    <string name="mjpeg_stream_skipped_frames_warning">Kareler atlandı</string>
+    <string name="mjpeg_stream_stop_delayed">Ekran paylaşımı hâlâ durduruluyor…</string>
+    <string name="mjpeg_capture_error">Ekran yakalama başarısız</string>
+    <string name="mjpeg_error_suspension_invalid_request">Yakalama duraklatıldı: görüntü ayarları mevcut yakalama alanına uymuyor</string>
+    <string name="mjpeg_error_suspension_unavailable">Yakalama duraklatıldı: yakalama kaynağı kullanılamıyor</string>
+    <string name="mjpeg_error_suspension_resources">Yakalama duraklatıldı: yetersiz kaynak</string>
+
+    <string name="mjpeg_address_list_title">Yayın adresleri</string>
+    <string name="mjpeg_address_list_empty">Yayın için kullanılabilir adres yok.\nBağlantı ayarlarındaki ağ filtresini kontrol edin.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">Ağ:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">Yalnızca bu cihaz</string>
+    <string name="mjpeg_address_private_ipv4">Özel IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">Özel olmayan IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">Özel olmayan IPv6</string>
+
+    <string name="mjpeg_address_open">Aç</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">%1$s adresini aç</string>
+    <string name="mjpeg_address_copy_url">Bağlantıyı kopyala</string>
+    <string name="mjpeg_address_copy_description">%1$s için bağlantıyı kopyala</string>
+    <string name="mjpeg_address_share">Paylaş</string>
+    <string name="mjpeg_address_share_description">%1$s için bağlantıyı paylaş</string>
+    <string name="mjpeg_address_qr_code">QR kodunu göster</string>
+    <string name="mjpeg_address_qr_code_description">%1$s için QR kodunu göster</string>
+    <string name="mjpeg_address_qr_image_description">Yayın bağlantısını açmak için bu kodu tarayın</string>
+
+    <string name="mjpeg_address_error_browser_not_found">Web tarayıcısı bulunamadı</string>
+    <string name="mjpeg_address_error_open">Bağlantı açılamadı</string>
+    <string name="mjpeg_address_error_share">Bağlantı paylaşılamadı</string>
+    <string name="mjpeg_address_error_qr_generation">QR kodu oluşturulamadı</string>
+
+    <string name="mjpeg_local_network_permission_request">İzin iste</string>
+    <string name="mjpeg_local_network_permission_open_settings">Ayarları aç</string>
+    <string name="mjpeg_local_network_permission_required">Yerel ağ izni gerekli</string>
+
+    <string name="mjpeg_server_pending">Beklemede</string>
+    <string name="mjpeg_server_address_in_use">Adres kullanımda</string>
+    <string name="mjpeg_server_address_unavailable">Adres kullanılamıyor</string>
+    <string name="mjpeg_server_permission_denied">İzin reddedildi</string>
+    <string name="mjpeg_server_io_failure">Sunucu kullanılamıyor</string>
+    <string name="mjpeg_server_unknown_failure">Sunucu hatası</string>
+    <string name="mjpeg_server_retry">Tekrar dene</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">%1$s adresindeki sunucuyu tekrar dene</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN gizli</string>
+    <string name="mjpeg_pin_show_label">Göster</string>
+    <string name="mjpeg_pin_show_description">PIN\'i göster</string>
+    <string name="mjpeg_pin_hide_label">Gizle</string>
+    <string name="mjpeg_pin_hide_description">PIN\'i gizle</string>
+    <string name="mjpeg_stream_pin_copy">PIN\'i kopyala</string>
+    <string name="mjpeg_stream_pin_copied">PIN kopyalandı</string>
+    <string name="mjpeg_stream_pin_hint_access">Bir yayın bağlantısı açın veya QR kodunu tarayın.\nİstenirse bu PIN\'i girin.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">Görüntü ayarları</string>
+    <string name="mjpeg_pref_image_save_error">Görüntü ayarları kaydedilemedi</string>
+
+    <string name="mjpeg_pref_image_region">Yakalama alanı</string>
+    <string name="mjpeg_pref_image_region_summary">Yayınlanacak alanı seçin</string>
+    <string name="mjpeg_pref_image_region_full">Tüm alan</string>
+    <string name="mjpeg_pref_image_region_left">Sol yarı</string>
+    <string name="mjpeg_pref_image_region_right">Sağ yarı</string>
+
+    <string name="mjpeg_pref_image_crop">Kırp</string>
+    <string name="mjpeg_pref_image_crop_summary">Görüntünün kenarlarını kırpın</string>
+    <string name="mjpeg_pref_image_crop_purpose">Her kenardan kaç piksel kaldırılacağını girin</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">Görüntünün bir kısmını görünür bırakın. Aksi halde yeni kareler yakalanamaz.</string>
+    <string name="mjpeg_pref_image_crop_enabled">Kırpmayı etkinleştir</string>
+    <string name="mjpeg_pref_image_crop_left">Sol (px)</string>
+    <string name="mjpeg_pref_image_crop_top">Üst (px)</string>
+    <string name="mjpeg_pref_image_crop_right">Sağ (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">Alt (px)</string>
+    <string name="mjpeg_pref_image_crop_error">0 veya daha büyük bir tam sayı girin</string>
+    <string name="mjpeg_pref_image_crop_required">Bir değer girin</string>
+
+    <string name="mjpeg_pref_image_size">Görüntü boyutu</string>
+    <string name="mjpeg_pref_image_size_summary">Ölçeği veya boyutları ayarlayın</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">Görüntüyü uzat</string>
+    <string name="mjpeg_pref_image_size_stretch_value">Uzat</string>
+    <string name="mjpeg_pref_image_size_fit_description">Genişlik ve yüksekliğe sığar; oranları korur</string>
+    <string name="mjpeg_pref_image_size_stretch_description">Tam genişlik ve yükseklik; oranlar değişebilir</string>
+    <string name="mjpeg_pref_image_size_estimate_note">Ekrana göre tahmindir; paylaşılan uygulamanın boyutu farklı olabilir</string>
+    <string name="mjpeg_pref_image_size_source">Ekran: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">Tahmini görüntü boyutu: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">Kullanılamıyor</string>
+    <string name="mjpeg_pref_image_size_scale">Ölçek</string>
+    <string name="mjpeg_pref_image_size_target">Boyut</string>
+    <string name="mjpeg_pref_image_size_default">Varsayılan: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Ölçek (0\'dan büyük, en fazla %200)</string>
+    <string name="mjpeg_pref_image_size_width_label">Genişlik (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">Yükseklik (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">0\'dan büyük, en fazla 200 olan bir sayı girin</string>
+    <string name="mjpeg_pref_image_size_dimension_error">1 ile 8192 arasında bir tam sayı girin</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">Görüntüyü büyütmek ayrıntı eklemez ve yayını yavaşlatabilir</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">Döndürme</string>
+    <string name="mjpeg_pref_image_rotation_summary">Görüntüyü saat yönünde döndürün</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">Yansıtma</string>
+    <string name="mjpeg_pref_image_mirror_summary">Görüntüyü yatay veya dikey çevirin</string>
+    <string name="mjpeg_pref_image_mirror_none">Yok</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">Yatay</string>
+    <string name="mjpeg_pref_image_mirror_vertical">Dikey</string>
+
+    <string name="mjpeg_pref_image_grayscale">Gri tonlama</string>
+    <string name="mjpeg_pref_image_grayscale_summary">Görüntüyü gri tonlarda gösterin</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG kalitesi</string>
+    <string name="mjpeg_pref_image_quality_summary">Ayrıntı ve veri kullanımını dengeleyin</string>
+    <string name="mjpeg_pref_image_quality_popup_description">Daha yüksek kalite daha fazla ayrıntı gösterir ve daha fazla veri kullanır. Varsayılan: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">Kare hızı</string>
+    <string name="mjpeg_pref_image_rate_summary">Görüntünün ne sıklıkla yenileneceğini ayarlayın</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">En yüksek kare hızını korumaya çalışır</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS sınırı</string>
+    <string name="mjpeg_pref_image_rate_fps_description">Saniyedeki kare sayısını sınırlar</string>
+    <string name="mjpeg_pref_image_rate_fps_value">En fazla %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">Kare/saniye (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">1 ile 120 arasında bir tam sayı girin</string>
+    <string name="mjpeg_pref_image_rate_fps_help">Gerçek kare hızı sınırdan düşük olabilir</string>
+
+    <string name="mjpeg_pref_image_rate_interval">Aralık</string>
+    <string name="mjpeg_pref_image_rate_interval_description">En kısa yakalama aralığını belirler</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s sn</string>
+    <string name="mjpeg_pref_image_rate_interval_label">Aralık (1–3600 saniye)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">1 ile 3600 saniye arasında bir aralık girin</string>
+    <string name="mjpeg_pref_image_rate_interval_help">Aralık, yeni karelerin yakalanma sıklığını sınırlar</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG kodlayıcı</string>
+    <string name="mjpeg_pref_image_encoder_summary">JPEG görüntülerinin nasıl oluşturulacağını seçin</string>
+    <string name="mjpeg_pref_image_encoder_standard">Standart</string>
+    <string name="mjpeg_pref_image_encoder_locked">Ekran paylaşımı tamamen durduktan sonra kullanılabilir</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">Kullanılabiliyorsa optimize kodlama</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">Kodlama optimizasyonunu devre dışı bırakır</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">Otomasyon ayarları</string>
+    <string name="mjpeg_pref_automation_save_error">Otomasyon ayarları kaydedilemedi</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">Adres kaybından sonra yayını durdur</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Seçili adres kalmadığında yayını durdur</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">%1$d sn sonra</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">Gecikme (10–1800 saniye)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">Varsayılan: %1$s saniye</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">10 ile 1800 arasında bir tam sayı girin</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Adreslerin geri gelmesi zamanlayıcıyı iptal eder</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">Etkin olmayan yayın görüntüsü</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Canlı görüntü kullanılamadığında gösterilen görüntü</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">Uygulama logosu</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Son kare</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">Ekranı açık tut</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">Mümkünse yakalama sırasında ekranı açık tut</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">Ekran kapandığında durdur</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Ekran kapandığında yayını durdur</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">Atlanan kareler için uyar</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Bazı cihazlar daha az görüntü alabilir</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">Bağlantı ayarları</string>
+    <string name="mjpeg_pref_connection_save_error">Ağ ayarları kaydedilemedi</string>
+
+    <string name="mjpeg_pref_connection_filter">Ağ filtresi</string>
+    <string name="mjpeg_pref_connection_filter_summary">Yayın için ağ adreslerini seçin</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP sürümü</string>
+    <string name="mjpeg_pref_connection_filter_network_type">Ağ türü</string>
+    <string name="mjpeg_pref_connection_filter_address_type">Adres türü</string>
+    <string name="mjpeg_pref_connection_filter_private">Özel</string>
+    <string name="mjpeg_pref_connection_filter_non_private">Özel değil</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">Her grupta en az bir seçenek belirleyin</string>
+    <string name="mjpeg_pref_connection_filter_default">Varsayılan: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">Adresler üç grubun tümüyle eşleşmelidir. Değişiklikler izleyicilerin bağlantısını kesebilir.</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP bağlantı noktası</string>
+    <string name="mjpeg_pref_connection_http_port_summary">İzleyicilerin bağlanmak için kullandığı bağlantı noktasını ayarlayın</string>
+    <string name="mjpeg_pref_connection_http_port_label">Bağlantı noktası (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">1024 ile 65535 arasında bir tam sayı girin</string>
+    <string name="mjpeg_pref_connection_http_port_help">Bağlantı noktası değiştiğinde yayın adresleri güncellenir</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">Web sayfası ayarları</string>
+    <string name="mjpeg_pref_web_save_error">Web sayfası ayarları kaydedilemedi</string>
+
+    <string name="mjpeg_pref_web_background">Arka plan</string>
+    <string name="mjpeg_pref_web_background_summary">Web sayfasının arka plan rengini seçin</string>
+    <string name="mjpeg_pref_web_background_hex_label">Onaltılık renk</string>
+    <string name="mjpeg_pref_web_background_hex_error">6 karakter kullanın: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">Kırmızı</string>
+    <string name="mjpeg_pref_web_background_green">Yeşil</string>
+    <string name="mjpeg_pref_web_background_blue">Mavi</string>
+    <string name="mjpeg_pref_web_background_palette">Hazır renkler</string>
+    <string name="mjpeg_pref_web_background_color_option">Renk %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">Seçili renk %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">Yayın adı</string>
+    <string name="mjpeg_pref_web_stream_name_summary">İzleyicilere gösterilen adı ayarlayın</string>
+    <string name="mjpeg_pref_web_stream_name_label">Yayın adı (en fazla 64 karakter)</string>
+    <string name="mjpeg_pref_web_stream_name_error">En fazla %1$d karakter kullanın</string>
+    <string name="mjpeg_pref_web_stream_name_help">Tarayıcı sekmesi başlığı ve yayın etiketi olarak kullanılır</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">Yayın adını göster</string>
+    <string name="mjpeg_pref_web_stream_name_empty">Adsız</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">Yayın adı yerleşimi</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">Adın nerede ve nasıl görüneceğini seçin</string>
+
+    <string name="mjpeg_pref_web_controls_placement">Kontrollerin yerleşimi</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">Kontrollerin nerede ve nasıl görüneceğini seçin</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">Konum</string>
+    <string name="mjpeg_pref_web_position_top">Üst</string>
+    <string name="mjpeg_pref_web_position_bottom">Alt</string>
+    <string name="mjpeg_pref_web_presentation">Gösterim biçimi</string>
+    <string name="mjpeg_pref_web_presentation_overlay">Görüntünün üzerinde</string>
+    <string name="mjpeg_pref_web_presentation_bar">Ayrı çubuk</string>
+    <string name="mjpeg_pref_web_auto_hide_on">Otomatik gizle</string>
+    <string name="mjpeg_pref_web_auto_hide_off">Her zaman görünür</string>
+    <string name="mjpeg_pref_web_auto_hide_help">Etkileşim olmazsa 4 saniye sonra gizle</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">Erişim ayarları</string>
+    <string name="mjpeg_pref_access_save_error">Erişim ayarları kaydedilemedi</string>
+
+    <string name="mjpeg_pref_access_protection">PIN koruması</string>
+    <string name="mjpeg_pref_access_protection_summary">Yayını izlemek için PIN veya erişim bağlantısı gerektir</string>
+    <string name="mjpeg_pref_access_protection_default">Varsayılan: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PIN politikası</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">Açıldığında yeni PIN</string>
+    <string name="mjpeg_pref_access_policy_permanent">Kalıcı PIN</string>
+    <string name="mjpeg_pref_access_policy_help">“Açıldığında yeni PIN” seçiliyken ve koruma açıkken MJPEG modu her açıldığında bir PIN oluşturulur. Yakalamayı başlatmak PIN\'i değiştirmez.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">Yayına erişmek için kayıtlı PIN</string>
+    <string name="mjpeg_pref_access_pin_unavailable">Kayıtlı PIN yok</string>
+    <string name="mjpeg_pref_access_pin_label">PIN (6 rakam)</string>
+    <string name="mjpeg_pref_access_pin_error">Altı rakam girin (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">Yeni PIN oluştur</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">Kendi PIN\'inizi girmek için “Kalıcı PIN” seçeneğini belirleyin</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">PIN denemelerini sınırla</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">Beş yanlış denemeden sonra PIN ile oturum açmayı duraklat</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">Dakika: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">Engelleme süresi (1–60 dakika)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">Varsayılan: %1$s · %2$s dk</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">1 ile 60 arasında bir tam sayı girin</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">Bu IP\'den yeni PIN denemelerini engeller. Bağlı izleyiciler bağlı kalır.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">Yayın başlatılırken PIN\'i gizle</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">PIN\'i tekrar gösterebilirsiniz</string>
+</resources>

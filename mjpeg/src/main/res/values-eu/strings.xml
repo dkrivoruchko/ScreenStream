@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">Modu lokala · MJPEG</string>
+    <string name="mjpeg_mode_description">MJPEG-i buruz</string>
+    <string name="mjpeg_mode_details">Igorri gailuaren pantaila zuzenean web-arakatzailera, JPEG irudi gisa. Audioa ez da igortzen.\n\n• Internetik gabeko sare lokal batean funtzionatzen du. Ikusleek transmisioaren helbidera iristeko aukera izan behar dute.\n• PIN bidezko babesa aukerakoa da. Aktibatuta dagoenean, ikusleek PINa sar dezakete edo sarbide-esteka erabil dezakete.\n• Transmisioak zifratu gabeko HTTP erabiltzen du. Erabili sare fidagarri bat.\n• Sare-iragazkiak Wi-Fi, Ethernet, datu mugikorrak, VPN, IPv4 eta IPv6 aukerak eskaintzen ditu.\n• Doitu irudiaren tamaina, JPEG kalitatea eta fotograma-tasa.\n• Irudiak ikusle bakoitzari bereiz bidaltzen zaizkio; horrek datu-kontsumoa handitzen du.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">Itxi</string>
+
+    <string name="mjpeg_pref_value_on">Aktibatuta</string>
+    <string name="mjpeg_pref_value_off">Desaktibatuta</string>
+    <string name="mjpeg_pref_value_automatic">Automatikoa</string>
+    <string name="mjpeg_pref_value_not_set">Ezarri gabe</string>
+    <string name="mjpeg_pref_value_unavailable">Oraindik ez dago erabilgarri</string>
+    <string name="mjpeg_pref_default_option">%1$s (lehenetsia)</string>
+    <string name="mjpeg_pref_default_value">Lehenetsia: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">Pantaila-harrapaketa erabat gelditu ondoren erabilgarri</string>
+
+    <string name="mjpeg_pref_search_placeholder">Bilatu ezarpenak</string>
+    <string name="mjpeg_pref_search_clear">Garbitu bilaketa</string>
+    <string name="mjpeg_pref_search_no_results">Ez da ezarpenik aurkitu</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">Datu mugikorrak</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">Beste bat</string>
+    <string name="mjpeg_network_loopback">Loopback</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">Hasi transmisioa</string>
+    <string name="mjpeg_stream_stop_capture">Gelditu transmisioa</string>
+    <string name="mjpeg_stream_skipped_frames_warning">Fotogramak saltatu dira</string>
+    <string name="mjpeg_stream_stop_delayed">Pantaila partekatzeari uzten ari da oraindik…</string>
+    <string name="mjpeg_capture_error">Ezin izan da pantaila harrapatu</string>
+    <string name="mjpeg_error_suspension_invalid_request">Harrapaketa pausatuta: irudiaren ezarpenak ez datoz bat uneko harrapaketa-eremuarekin</string>
+    <string name="mjpeg_error_suspension_unavailable">Harrapaketa pausatuta: harrapaketa-iturria ez dago erabilgarri</string>
+    <string name="mjpeg_error_suspension_resources">Harrapaketa pausatuta: baliabide nahikorik ez</string>
+
+    <string name="mjpeg_address_list_title">Transmisioaren helbideak</string>
+    <string name="mjpeg_address_list_empty">Ez dago igortzeko helbiderik erabilgarri.\nEgiaztatu sare-iragazkia konexio-ezarpenetan.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">Sarea:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">Gailu hau soilik</string>
+    <string name="mjpeg_address_private_ipv4">IPv4 pribatua</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">IPv4 ez-pribatua</string>
+    <string name="mjpeg_address_non_private_ipv6">IPv6 ez-pribatua</string>
+
+    <string name="mjpeg_address_open">Ireki</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">Ireki %1$s</string>
+    <string name="mjpeg_address_copy_url">Kopiatu esteka</string>
+    <string name="mjpeg_address_copy_description">Kopiatu %1$s helbidearen esteka</string>
+    <string name="mjpeg_address_share">Partekatu</string>
+    <string name="mjpeg_address_share_description">Partekatu %1$s helbidearen esteka</string>
+    <string name="mjpeg_address_qr_code">Erakutsi QR kodea</string>
+    <string name="mjpeg_address_qr_code_description">Erakutsi %1$s helbidearen QR kodea</string>
+    <string name="mjpeg_address_qr_image_description">Eskaneatu kode hau transmisioaren esteka irekitzeko</string>
+
+    <string name="mjpeg_address_error_browser_not_found">Ez da web-arakatzailerik aurkitu</string>
+    <string name="mjpeg_address_error_open">Ezin izan da esteka ireki</string>
+    <string name="mjpeg_address_error_share">Ezin izan da esteka partekatu</string>
+    <string name="mjpeg_address_error_qr_generation">Ezin izan da QR kodea sortu</string>
+
+    <string name="mjpeg_local_network_permission_request">Eskatu baimena</string>
+    <string name="mjpeg_local_network_permission_open_settings">Ireki ezarpenak</string>
+    <string name="mjpeg_local_network_permission_required">Sare lokalerako baimena behar da</string>
+
+    <string name="mjpeg_server_pending">Zain</string>
+    <string name="mjpeg_server_address_in_use">Helbidea erabilita dago</string>
+    <string name="mjpeg_server_address_unavailable">Helbidea ez dago erabilgarri</string>
+    <string name="mjpeg_server_permission_denied">Baimena ukatu da</string>
+    <string name="mjpeg_server_io_failure">Zerbitzaria ez dago erabilgarri</string>
+    <string name="mjpeg_server_unknown_failure">Zerbitzariaren errorea</string>
+    <string name="mjpeg_server_retry">Saiatu berriro</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">Saiatu berriro %1$s helbideko zerbitzariarekin</string>
+
+    <string name="mjpeg_stream_pin_label">PINa:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PINa ezkutatuta</string>
+    <string name="mjpeg_pin_show_label">Erakutsi</string>
+    <string name="mjpeg_pin_show_description">Erakutsi PINa</string>
+    <string name="mjpeg_pin_hide_label">Ezkutatu</string>
+    <string name="mjpeg_pin_hide_description">Ezkutatu PINa</string>
+    <string name="mjpeg_stream_pin_copy">Kopiatu PINa</string>
+    <string name="mjpeg_stream_pin_copied">PINa kopiatu da</string>
+    <string name="mjpeg_stream_pin_hint_access">Ireki transmisioaren esteka edo eskaneatu haren QR kodea.\nEskatzen bazaizu, idatzi PIN hau.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">Irudiaren ezarpenak</string>
+    <string name="mjpeg_pref_image_save_error">Ezin izan dira irudiaren ezarpenak gorde</string>
+
+    <string name="mjpeg_pref_image_region">Harrapaketa-eremua</string>
+    <string name="mjpeg_pref_image_region_summary">Aukeratu igortzeko eremua</string>
+    <string name="mjpeg_pref_image_region_full">Eremu osoa</string>
+    <string name="mjpeg_pref_image_region_left">Ezkerreko erdia</string>
+    <string name="mjpeg_pref_image_region_right">Eskuineko erdia</string>
+
+    <string name="mjpeg_pref_image_crop">Moztu</string>
+    <string name="mjpeg_pref_image_crop_summary">Moztu irudiaren ertzak</string>
+    <string name="mjpeg_pref_image_crop_purpose">Idatzi ertz bakoitzetik kendu beharreko pixel kopurua</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">Utzi irudiaren zati bat ikusgai. Bestela, ezin dira fotograma berriak harrapatu.</string>
+    <string name="mjpeg_pref_image_crop_enabled">Aktibatu mozketa</string>
+    <string name="mjpeg_pref_image_crop_left">Ezkerra (px)</string>
+    <string name="mjpeg_pref_image_crop_top">Goia (px)</string>
+    <string name="mjpeg_pref_image_crop_right">Eskuina (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">Behea (px)</string>
+    <string name="mjpeg_pref_image_crop_error">Idatzi 0 edo handiagoa den zenbaki oso bat</string>
+    <string name="mjpeg_pref_image_crop_required">Idatzi balio bat</string>
+
+    <string name="mjpeg_pref_image_size">Irudiaren tamaina</string>
+    <string name="mjpeg_pref_image_size_summary">Ezarri eskala edo neurriak</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">Luzatu irudia</string>
+    <string name="mjpeg_pref_image_size_stretch_value">Luzatu</string>
+    <string name="mjpeg_pref_image_size_fit_description">Zabaleraren eta altueraren barruan sartzen da; proportzioak mantentzen ditu</string>
+    <string name="mjpeg_pref_image_size_stretch_description">Zabalera eta altuera zehatzak; proportzioak alda daitezke</string>
+    <string name="mjpeg_pref_image_size_estimate_note">Pantailaren araberako estimazioa; partekatutako aplikazioaren tamaina desberdina izan daiteke</string>
+    <string name="mjpeg_pref_image_size_source">Pantaila: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">Irudiaren tamaina estimatua: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">Ez dago erabilgarri</string>
+    <string name="mjpeg_pref_image_size_scale">Eskala</string>
+    <string name="mjpeg_pref_image_size_target">Tamaina</string>
+    <string name="mjpeg_pref_image_size_default">Lehenetsia: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Eskala (0 baino handiagoa, gehienez %200)</string>
+    <string name="mjpeg_pref_image_size_width_label">Zabalera (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">Altuera (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">Idatzi 0 baino handiagoa eta 200era artekoa den zenbaki bat</string>
+    <string name="mjpeg_pref_image_size_dimension_error">Idatzi 1etik 8192ra arteko zenbaki oso bat</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">Irudia handitzeak ez du xehetasunik gehitzen eta transmisioa moteldu dezake</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">Biraketa</string>
+    <string name="mjpeg_pref_image_rotation_summary">Biratu irudia erlojuaren orratzen noranzkoan</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">Ispilatu</string>
+    <string name="mjpeg_pref_image_mirror_summary">Irauli irudia horizontalean edo bertikalean</string>
+    <string name="mjpeg_pref_image_mirror_none">Bat ere ez</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">Horizontala</string>
+    <string name="mjpeg_pref_image_mirror_vertical">Bertikala</string>
+
+    <string name="mjpeg_pref_image_grayscale">Gris-eskala</string>
+    <string name="mjpeg_pref_image_grayscale_summary">Erakutsi irudia gris-tonutan</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG kalitatea</string>
+    <string name="mjpeg_pref_image_quality_summary">Orekatu xehetasuna eta datu-kontsumoa</string>
+    <string name="mjpeg_pref_image_quality_popup_description">Kalitate handiagoak xehetasun gehiago erakusten ditu eta datu gehiago erabiltzen ditu. Lehenetsia: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">Fotograma-tasa</string>
+    <string name="mjpeg_pref_image_rate_summary">Ezarri irudia zenbat aldiz eguneratzen den</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">Fotograma-tasa handiena mantentzen saiatzen da</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS muga</string>
+    <string name="mjpeg_pref_image_rate_fps_description">Segundoko fotogramak mugatzen ditu</string>
+    <string name="mjpeg_pref_image_rate_fps_value">Gehienez %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">Fotogramak/segundo (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">Idatzi 1etik 120ra arteko zenbaki oso bat</string>
+    <string name="mjpeg_pref_image_rate_fps_help">Benetako fotograma-tasa muga baino txikiagoa izan daiteke</string>
+
+    <string name="mjpeg_pref_image_rate_interval">Tartea</string>
+    <string name="mjpeg_pref_image_rate_interval_description">Harrapaketen arteko gutxieneko tartea ezartzen du</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s s</string>
+    <string name="mjpeg_pref_image_rate_interval_label">Tartea (1–3600 segundo)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">Idatzi 1 eta 3600 segundo arteko tartea</string>
+    <string name="mjpeg_pref_image_rate_interval_help">Tarteak fotograma berriak harrapatzeko maiztasuna mugatzen du</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG kodetzailea</string>
+    <string name="mjpeg_pref_image_encoder_summary">Aukeratu nola sortu JPEG irudiak</string>
+    <string name="mjpeg_pref_image_encoder_standard">Estandarra</string>
+    <string name="mjpeg_pref_image_encoder_locked">Pantaila partekatzea erabat gelditu ondoren erabilgarri</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">Kodetze optimizatua, erabilgarri badago</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">Kodetzearen optimizazioa desaktibatzen du</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">Automatizazio-ezarpenak</string>
+    <string name="mjpeg_pref_automation_save_error">Ezin izan dira automatizazio-ezarpenak gorde</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">Gelditu transmisioa helbideak galtzean</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Gelditu transmisioa hautatutako helbiderik geratzen ez denean</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">%1$d s geroago</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">Atzerapena (10–1800 segundo)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">Lehenetsia: %1$s segundo</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">Idatzi 10etik 1800era arteko zenbaki oso bat</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Helbideak itzultzean tenporizadorea bertan behera geratzen da</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">Transmisio inaktiboaren irudia</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Zuzeneko irudia erabilgarri ez dagoenean erakusten den irudia</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">Aplikazioaren logotipoa</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Azken fotograma</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">Mantendu pantaila piztuta</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">Mantendu pantaila piztuta harrapatzean, ahal bada</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">Gelditu pantaila itzaltzean</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Gelditu transmisioa pantaila itzaltzean</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">Ohartarazi saltatutako fotogramez</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Baliteke gailu batzuek irudi gutxiago jasotzea</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">Konexio-ezarpenak</string>
+    <string name="mjpeg_pref_connection_save_error">Ezin izan dira sare-ezarpenak gorde</string>
+
+    <string name="mjpeg_pref_connection_filter">Sare-iragazkia</string>
+    <string name="mjpeg_pref_connection_filter_summary">Aukeratu transmisioaren sare-helbideak</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP bertsioa</string>
+    <string name="mjpeg_pref_connection_filter_network_type">Sare mota</string>
+    <string name="mjpeg_pref_connection_filter_address_type">Helbide mota</string>
+    <string name="mjpeg_pref_connection_filter_private">Pribatua</string>
+    <string name="mjpeg_pref_connection_filter_non_private">Ez-pribatua</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">Hautatu gutxienez aukera bat talde bakoitzean</string>
+    <string name="mjpeg_pref_connection_filter_default">Lehenetsia: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">Helbideek hiru taldeekin bat etorri behar dute. Aldaketek ikusleen konexioa eten dezakete.</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP ataka</string>
+    <string name="mjpeg_pref_connection_http_port_summary">Ezarri ikusleek konektatzeko erabiltzen duten ataka</string>
+    <string name="mjpeg_pref_connection_http_port_label">Ataka (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">Idatzi 1024tik 65535era arteko zenbaki oso bat</string>
+    <string name="mjpeg_pref_connection_http_port_help">Ataka aldatzeak transmisioaren helbideak eguneratzen ditu</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">Web-orriaren ezarpenak</string>
+    <string name="mjpeg_pref_web_save_error">Ezin izan dira web-orriaren ezarpenak gorde</string>
+
+    <string name="mjpeg_pref_web_background">Atzeko planoa</string>
+    <string name="mjpeg_pref_web_background_summary">Aukeratu web-orriaren atzeko planoaren kolorea</string>
+    <string name="mjpeg_pref_web_background_hex_label">Kolore hamaseitarra</string>
+    <string name="mjpeg_pref_web_background_hex_error">Erabili 6 karaktere: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">Gorria</string>
+    <string name="mjpeg_pref_web_background_green">Berdea</string>
+    <string name="mjpeg_pref_web_background_blue">Urdina</string>
+    <string name="mjpeg_pref_web_background_palette">Aurrez ezarritako koloreak</string>
+    <string name="mjpeg_pref_web_background_color_option">Kolorea: %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">Hautatutako kolorea: %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">Transmisioaren izena</string>
+    <string name="mjpeg_pref_web_stream_name_summary">Ezarri ikusleei erakutsiko zaien izena</string>
+    <string name="mjpeg_pref_web_stream_name_label">Transmisioaren izena (gehienez 64 karaktere)</string>
+    <string name="mjpeg_pref_web_stream_name_error">Erabili gehienez %1$d karaktere</string>
+    <string name="mjpeg_pref_web_stream_name_help">Arakatzailearen fitxaren izenburu eta transmisioaren etiketa gisa erabiltzen da</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">Erakutsi transmisioaren izena</string>
+    <string name="mjpeg_pref_web_stream_name_empty">Izenik gabe</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">Transmisioaren izenaren kokapena</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">Aukeratu izena non eta nola agertuko den</string>
+
+    <string name="mjpeg_pref_web_controls_placement">Kontrolen kokapena</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">Aukeratu kontrolak non eta nola agertuko diren</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">Kokapena</string>
+    <string name="mjpeg_pref_web_position_top">Goian</string>
+    <string name="mjpeg_pref_web_position_bottom">Behean</string>
+    <string name="mjpeg_pref_web_presentation">Erakutsi honela</string>
+    <string name="mjpeg_pref_web_presentation_overlay">Irudiaren gainean</string>
+    <string name="mjpeg_pref_web_presentation_bar">Barra bereizia</string>
+    <string name="mjpeg_pref_web_auto_hide_on">Ezkutatu automatikoki</string>
+    <string name="mjpeg_pref_web_auto_hide_off">Beti ikusgai</string>
+    <string name="mjpeg_pref_web_auto_hide_help">Ezkutatu 4 segundoz elkarreraginik ez badago</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">Sarbide-ezarpenak</string>
+    <string name="mjpeg_pref_access_save_error">Ezin izan dira sarbide-ezarpenak gorde</string>
+
+    <string name="mjpeg_pref_access_protection">PIN bidezko babesa</string>
+    <string name="mjpeg_pref_access_protection_summary">Eskatu PINa edo sarbide-esteka transmisioa ikusteko</string>
+    <string name="mjpeg_pref_access_protection_default">Lehenetsia: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PINaren politika</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">PIN berria irekitzean</string>
+    <string name="mjpeg_pref_access_policy_permanent">PIN iraunkorra</string>
+    <string name="mjpeg_pref_access_policy_help">«PIN berria irekitzean» hautatuta eta babesa aktibatuta daudenean, MJPEG modua irekitzen den bakoitzean PIN bat sortzen da. Harrapaketa hasteak ez du aldatzen.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">Transmisiora sartzeko gordetako PINa</string>
+    <string name="mjpeg_pref_access_pin_unavailable">Ez dago gordetako PINik</string>
+    <string name="mjpeg_pref_access_pin_label">PINa (6 digitu)</string>
+    <string name="mjpeg_pref_access_pin_error">Idatzi sei digitu (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">Sortu PIN berria</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">Hautatu «PIN iraunkorra» zure PINa idazteko</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">Mugatu PIN saiakerak</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">Pausatu PIN bidezko saioa bost saiakera okerren ondoren</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">Minutuak: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">Blokeatze-denbora (1–60 minutu)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">Lehenetsia: %1$s · %2$s min</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">Idatzi 1etik 60ra arteko zenbaki oso bat</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">IP horretako PIN saiakera berriak blokeatzen ditu. Konektatutako ikusleek konektatuta jarraitzen dute.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">Ezkutatu PINa transmisioa hastean</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">PINa berriro erakuts dezakezu</string>
+</resources>

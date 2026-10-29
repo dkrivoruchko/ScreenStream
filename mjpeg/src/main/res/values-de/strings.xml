@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">Lokaler Modus · MJPEG</string>
+    <string name="mjpeg_mode_description">Über MJPEG</string>
+    <string name="mjpeg_mode_details">Überträgt den Gerätebildschirm als JPEG-Bilder direkt an einen Webbrowser. Audio wird nicht übertragen.\n\n• Funktioniert im lokalen Netzwerk ohne Internet. Zuschauer müssen die Streamadresse erreichen können.\n• PIN-Schutz ist optional. Bei aktiviertem Schutz können Zuschauer die PIN eingeben oder einen Zugangslink nutzen.\n• Der Stream nutzt unverschlüsseltes HTTP. Verwende ein vertrauenswürdiges Netzwerk.\n• Der Netzwerkfilter bietet Optionen für Wi-Fi, Ethernet, mobile Daten, VPN, IPv4 und IPv6.\n• Bildgröße, JPEG-Qualität und Bildrate sind einstellbar.\n• Bilder werden an jeden Zuschauer einzeln gesendet. Das erhöht den Datenverbrauch.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">Schließen</string>
+
+    <string name="mjpeg_pref_value_on">An</string>
+    <string name="mjpeg_pref_value_off">Aus</string>
+    <string name="mjpeg_pref_value_automatic">Automatisch</string>
+    <string name="mjpeg_pref_value_not_set">Nicht festgelegt</string>
+    <string name="mjpeg_pref_value_unavailable">Noch nicht verfügbar</string>
+    <string name="mjpeg_pref_default_option">%1$s (Standard)</string>
+    <string name="mjpeg_pref_default_value">Standard: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">Verfügbar, sobald die Bildschirmaufnahme vollständig beendet ist</string>
+
+    <string name="mjpeg_pref_search_placeholder">Einstellungen suchen</string>
+    <string name="mjpeg_pref_search_clear">Suche löschen</string>
+    <string name="mjpeg_pref_search_no_results">Keine Einstellungen gefunden</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">Mobile Daten</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">Andere</string>
+    <string name="mjpeg_network_loopback">Loopback</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">Stream starten</string>
+    <string name="mjpeg_stream_stop_capture">Stream stoppen</string>
+    <string name="mjpeg_stream_skipped_frames_warning">Bilder übersprungen</string>
+    <string name="mjpeg_stream_stop_delayed">Bildschirmfreigabe wird noch beendet…</string>
+    <string name="mjpeg_capture_error">Bildschirmaufnahme fehlgeschlagen</string>
+    <string name="mjpeg_error_suspension_invalid_request">Aufnahme pausiert: Bildeinstellungen passen nicht zum aktuellen Aufnahmebereich</string>
+    <string name="mjpeg_error_suspension_unavailable">Aufnahme pausiert: Aufnahmequelle nicht verfügbar</string>
+    <string name="mjpeg_error_suspension_resources">Aufnahme pausiert: unzureichende Ressourcen</string>
+
+    <string name="mjpeg_address_list_title">Streamadressen</string>
+    <string name="mjpeg_address_list_empty">Keine Adressen zum Streamen verfügbar.\nPrüfe den Netzwerkfilter in den Verbindungseinstellungen.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">Netzwerk:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">Nur dieses Gerät</string>
+    <string name="mjpeg_address_private_ipv4">Privates IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">Nicht privates IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">Nicht privates IPv6</string>
+
+    <string name="mjpeg_address_open">Öffnen</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">%1$s öffnen</string>
+    <string name="mjpeg_address_copy_url">Link kopieren</string>
+    <string name="mjpeg_address_copy_description">Link für %1$s kopieren</string>
+    <string name="mjpeg_address_share">Teilen</string>
+    <string name="mjpeg_address_share_description">Link für %1$s teilen</string>
+    <string name="mjpeg_address_qr_code">QR-Code anzeigen</string>
+    <string name="mjpeg_address_qr_code_description">QR-Code für %1$s anzeigen</string>
+    <string name="mjpeg_address_qr_image_description">Scanne diesen Code, um den Streamlink zu öffnen</string>
+
+    <string name="mjpeg_address_error_browser_not_found">Kein Webbrowser gefunden</string>
+    <string name="mjpeg_address_error_open">Link konnte nicht geöffnet werden</string>
+    <string name="mjpeg_address_error_share">Link konnte nicht geteilt werden</string>
+    <string name="mjpeg_address_error_qr_generation">QR-Code konnte nicht erstellt werden</string>
+
+    <string name="mjpeg_local_network_permission_request">Berechtigung anfordern</string>
+    <string name="mjpeg_local_network_permission_open_settings">Einstellungen öffnen</string>
+    <string name="mjpeg_local_network_permission_required">Berechtigung für lokales Netzwerk erforderlich</string>
+
+    <string name="mjpeg_server_pending">Ausstehend</string>
+    <string name="mjpeg_server_address_in_use">Adresse wird verwendet</string>
+    <string name="mjpeg_server_address_unavailable">Adresse nicht verfügbar</string>
+    <string name="mjpeg_server_permission_denied">Zugriff verweigert</string>
+    <string name="mjpeg_server_io_failure">Server nicht verfügbar</string>
+    <string name="mjpeg_server_unknown_failure">Serverfehler</string>
+    <string name="mjpeg_server_retry">Erneut versuchen</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">Server unter %1$s erneut starten</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN ausgeblendet</string>
+    <string name="mjpeg_pin_show_label">Anzeigen</string>
+    <string name="mjpeg_pin_show_description">PIN anzeigen</string>
+    <string name="mjpeg_pin_hide_label">Ausblenden</string>
+    <string name="mjpeg_pin_hide_description">PIN ausblenden</string>
+    <string name="mjpeg_stream_pin_copy">PIN kopieren</string>
+    <string name="mjpeg_stream_pin_copied">PIN kopiert</string>
+    <string name="mjpeg_stream_pin_hint_access">Öffne einen Streamlink oder scanne dessen QR-Code.\nGib diese PIN ein, wenn du dazu aufgefordert wirst.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">Bildeinstellungen</string>
+    <string name="mjpeg_pref_image_save_error">Bildeinstellungen konnten nicht gespeichert werden</string>
+
+    <string name="mjpeg_pref_image_region">Aufnahmebereich</string>
+    <string name="mjpeg_pref_image_region_summary">Wähle den zu übertragenden Bereich</string>
+    <string name="mjpeg_pref_image_region_full">Gesamter Bereich</string>
+    <string name="mjpeg_pref_image_region_left">Linke Hälfte</string>
+    <string name="mjpeg_pref_image_region_right">Rechte Hälfte</string>
+
+    <string name="mjpeg_pref_image_crop">Zuschneiden</string>
+    <string name="mjpeg_pref_image_crop_summary">Bildränder beschneiden</string>
+    <string name="mjpeg_pref_image_crop_purpose">Gib die Anzahl der Pixel an, die an jedem Rand entfernt werden</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">Ein Teil des Bildes muss sichtbar bleiben. Sonst können keine neuen Bilder aufgenommen werden.</string>
+    <string name="mjpeg_pref_image_crop_enabled">Zuschneiden aktivieren</string>
+    <string name="mjpeg_pref_image_crop_left">Links (px)</string>
+    <string name="mjpeg_pref_image_crop_top">Oben (px)</string>
+    <string name="mjpeg_pref_image_crop_right">Rechts (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">Unten (px)</string>
+    <string name="mjpeg_pref_image_crop_error">Gib eine ganze Zahl ab 0 ein</string>
+    <string name="mjpeg_pref_image_crop_required">Gib einen Wert ein</string>
+
+    <string name="mjpeg_pref_image_size">Bildgröße</string>
+    <string name="mjpeg_pref_image_size_summary">Skalierung oder Abmessungen festlegen</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">Bild strecken</string>
+    <string name="mjpeg_pref_image_size_stretch_value">Strecken</string>
+    <string name="mjpeg_pref_image_size_fit_description">Passt in Breite und Höhe; behält das Seitenverhältnis bei</string>
+    <string name="mjpeg_pref_image_size_stretch_description">Exakte Breite und Höhe; Seitenverhältnis kann sich ändern</string>
+    <string name="mjpeg_pref_image_size_estimate_note">Schätzung anhand des Bildschirms; eine freigegebene App kann eine andere Größe haben</string>
+    <string name="mjpeg_pref_image_size_source">Bildschirm: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">Geschätzte Bildgröße: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">Nicht verfügbar</string>
+    <string name="mjpeg_pref_image_size_scale">Skalierung</string>
+    <string name="mjpeg_pref_image_size_target">Größe</string>
+    <string name="mjpeg_pref_image_size_default">Standard: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Skalierung (größer als 0, bis 200%)</string>
+    <string name="mjpeg_pref_image_size_width_label">Breite (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">Höhe (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">Gib eine Zahl größer als 0 bis 200 ein</string>
+    <string name="mjpeg_pref_image_size_dimension_error">Gib eine ganze Zahl von 1 bis 8192 ein</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">Vergrößern liefert keine zusätzlichen Details und kann den Stream verlangsamen</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">Drehung</string>
+    <string name="mjpeg_pref_image_rotation_summary">Bild im Uhrzeigersinn drehen</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">Spiegeln</string>
+    <string name="mjpeg_pref_image_mirror_summary">Bild horizontal oder vertikal spiegeln</string>
+    <string name="mjpeg_pref_image_mirror_none">Keine</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">Horizontal</string>
+    <string name="mjpeg_pref_image_mirror_vertical">Vertikal</string>
+
+    <string name="mjpeg_pref_image_grayscale">Graustufen</string>
+    <string name="mjpeg_pref_image_grayscale_summary">Bild in Graustufen anzeigen</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG-Qualität</string>
+    <string name="mjpeg_pref_image_quality_summary">Details und Datenverbrauch abstimmen</string>
+    <string name="mjpeg_pref_image_quality_popup_description">Höhere Qualität zeigt mehr Details und verbraucht mehr Daten. Standard: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">Bildrate</string>
+    <string name="mjpeg_pref_image_rate_summary">Häufigkeit der Bildaktualisierung festlegen</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">Versucht, die höchste Bildrate beizubehalten</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS-Limit</string>
+    <string name="mjpeg_pref_image_rate_fps_description">Begrenzt die Bilder pro Sekunde</string>
+    <string name="mjpeg_pref_image_rate_fps_value">Bis zu %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">Bilder/Sekunde (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">Gib eine ganze Zahl von 1 bis 120 ein</string>
+    <string name="mjpeg_pref_image_rate_fps_help">Die tatsächliche Bildrate kann unter dem Limit liegen</string>
+
+    <string name="mjpeg_pref_image_rate_interval">Intervall</string>
+    <string name="mjpeg_pref_image_rate_interval_description">Legt den Mindestabstand zwischen Aufnahmen fest</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s s</string>
+    <string name="mjpeg_pref_image_rate_interval_label">Intervall (1–3600 Sekunden)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">Gib ein Intervall von 1 bis 3600 Sekunden ein</string>
+    <string name="mjpeg_pref_image_rate_interval_help">Das Intervall begrenzt, wie oft neue Bilder aufgenommen werden</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG-Encoder</string>
+    <string name="mjpeg_pref_image_encoder_summary">Wähle, wie JPEG-Bilder erstellt werden</string>
+    <string name="mjpeg_pref_image_encoder_standard">Standard</string>
+    <string name="mjpeg_pref_image_encoder_locked">Verfügbar, sobald die Bildschirmfreigabe vollständig beendet ist</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">Optimierte Codierung, wenn verfügbar</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">Deaktiviert die Codierungsoptimierung</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">Automatisierungseinstellungen</string>
+    <string name="mjpeg_pref_automation_save_error">Automatisierungseinstellungen konnten nicht gespeichert werden</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">Stream bei Adressverlust stoppen</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Stream stoppen, wenn keine ausgewählten Adressen mehr vorhanden sind</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">Nach %1$d s</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">Verzögerung (10–1800 Sekunden)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">Standard: %1$s Sekunden</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">Gib eine ganze Zahl von 10 bis 1800 ein</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Wieder verfügbare Adressen brechen den Timer ab</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">Bild bei inaktivem Stream</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Bild, wenn kein Livebild verfügbar ist</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">App-Logo</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Letztes Bild</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">Bildschirm eingeschaltet lassen</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">Bildschirm während der Aufnahme nach Möglichkeit eingeschaltet lassen</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">Bei ausgeschaltetem Bildschirm stoppen</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Stream stoppen, wenn sich der Bildschirm ausschaltet</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">Vor übersprungenen Bildern warnen</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Einige Geräte erhalten möglicherweise weniger Bilder</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">Verbindungseinstellungen</string>
+    <string name="mjpeg_pref_connection_save_error">Netzwerkeinstellungen konnten nicht gespeichert werden</string>
+
+    <string name="mjpeg_pref_connection_filter">Netzwerkfilter</string>
+    <string name="mjpeg_pref_connection_filter_summary">Netzwerkadressen für den Stream auswählen</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP-Version</string>
+    <string name="mjpeg_pref_connection_filter_network_type">Netzwerktyp</string>
+    <string name="mjpeg_pref_connection_filter_address_type">Adresstyp</string>
+    <string name="mjpeg_pref_connection_filter_private">Privat</string>
+    <string name="mjpeg_pref_connection_filter_non_private">Nicht privat</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">Wähle in jeder Gruppe mindestens eine Option</string>
+    <string name="mjpeg_pref_connection_filter_default">Standard: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">Adressen müssen zu allen drei Gruppen passen. Änderungen können Zuschauer trennen.</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP-Port</string>
+    <string name="mjpeg_pref_connection_http_port_summary">Port für die Zuschauerverbindung festlegen</string>
+    <string name="mjpeg_pref_connection_http_port_label">Port (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">Gib eine ganze Zahl von 1024 bis 65535 ein</string>
+    <string name="mjpeg_pref_connection_http_port_help">Ein anderer Port ändert die Streamadressen</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">Webseiteneinstellungen</string>
+    <string name="mjpeg_pref_web_save_error">Webseiteneinstellungen konnten nicht gespeichert werden</string>
+
+    <string name="mjpeg_pref_web_background">Hintergrund</string>
+    <string name="mjpeg_pref_web_background_summary">Hintergrundfarbe der Webseite auswählen</string>
+    <string name="mjpeg_pref_web_background_hex_label">Hex-Farbe</string>
+    <string name="mjpeg_pref_web_background_hex_error">Verwende 6 Zeichen: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">Rot</string>
+    <string name="mjpeg_pref_web_background_green">Grün</string>
+    <string name="mjpeg_pref_web_background_blue">Blau</string>
+    <string name="mjpeg_pref_web_background_palette">Vorgegebene Farben</string>
+    <string name="mjpeg_pref_web_background_color_option">Farbe %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">Ausgewählte Farbe %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">Streamname</string>
+    <string name="mjpeg_pref_web_stream_name_summary">Namen festlegen, den Zuschauer sehen</string>
+    <string name="mjpeg_pref_web_stream_name_label">Streamname (bis zu 64 Zeichen)</string>
+    <string name="mjpeg_pref_web_stream_name_error">Verwende höchstens %1$d Zeichen</string>
+    <string name="mjpeg_pref_web_stream_name_help">Wird als Browsertabtitel und Streambeschriftung verwendet</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">Streamname anzeigen</string>
+    <string name="mjpeg_pref_web_stream_name_empty">Kein Name</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">Position des Streamnamens</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">Position und Darstellung des Namens auswählen</string>
+
+    <string name="mjpeg_pref_web_controls_placement">Position der Bedienelemente</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">Position und Darstellung der Bedienelemente auswählen</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">Position</string>
+    <string name="mjpeg_pref_web_position_top">Oben</string>
+    <string name="mjpeg_pref_web_position_bottom">Unten</string>
+    <string name="mjpeg_pref_web_presentation">Darstellung</string>
+    <string name="mjpeg_pref_web_presentation_overlay">Über dem Bild</string>
+    <string name="mjpeg_pref_web_presentation_bar">Separate Leiste</string>
+    <string name="mjpeg_pref_web_auto_hide_on">Automatisch ausblenden</string>
+    <string name="mjpeg_pref_web_auto_hide_off">Immer sichtbar</string>
+    <string name="mjpeg_pref_web_auto_hide_help">Nach 4 Sekunden ohne Interaktion ausblenden</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">Zugriffseinstellungen</string>
+    <string name="mjpeg_pref_access_save_error">Zugriffseinstellungen konnten nicht gespeichert werden</string>
+
+    <string name="mjpeg_pref_access_protection">PIN-Schutz</string>
+    <string name="mjpeg_pref_access_protection_summary">PIN oder Zugangslink zum Ansehen des Streams verlangen</string>
+    <string name="mjpeg_pref_access_protection_default">Standard: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PIN-Regel</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">Neue PIN beim Öffnen</string>
+    <string name="mjpeg_pref_access_policy_permanent">Feste PIN</string>
+    <string name="mjpeg_pref_access_policy_help">Bei „Neue PIN beim Öffnen“ und aktiviertem Schutz wird bei jedem Öffnen des MJPEG-Modus eine PIN erstellt. Der Aufnahmestart ändert sie nicht.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">Gespeicherte PIN für den Streamzugriff</string>
+    <string name="mjpeg_pref_access_pin_unavailable">Keine gespeicherte PIN</string>
+    <string name="mjpeg_pref_access_pin_label">PIN (6 Ziffern)</string>
+    <string name="mjpeg_pref_access_pin_error">Gib sechs Ziffern (0–9) ein</string>
+    <string name="mjpeg_pref_access_pin_regenerate">Neue PIN erstellen</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">Wähle Feste PIN, um eine eigene PIN einzugeben</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">PIN-Versuche begrenzen</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">PIN-Anmeldung nach fünf Fehlversuchen pausieren</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">Minuten: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">Sperrdauer (1–60 Minuten)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">Standard: %1$s · %2$s min</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">Gib eine ganze Zahl von 1 bis 60 ein</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">Sperrt neue PIN-Versuche von dieser IP. Bereits verbundene Zuschauer bleiben verbunden.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">PIN beim Streamstart ausblenden</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">Du kannst die PIN wieder anzeigen</string>
+</resources>

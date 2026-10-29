@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">區域網路模式 · MJPEG</string>
+    <string name="mjpeg_mode_description">關於 MJPEG</string>
+    <string name="mjpeg_mode_details">將裝置螢幕以 JPEG 圖片直接串流至網頁瀏覽器，不會串流音訊。\n\n• 可在沒有網際網路的區域網路中使用。觀看者必須能連上串流位址。\n• 可選擇啟用 PIN 碼保護。啟用後，觀看者可輸入 PIN 碼或使用存取連結。\n• 串流使用未加密的 HTTP，請使用可信任的網路。\n• 網路篩選器提供 Wi-Fi、Ethernet、行動數據、VPN、IPv4 和 IPv6 選項。\n• 可調整圖片大小、JPEG 品質和影格速率。\n• 圖片會分別傳送給每位觀看者，因此會增加數據用量。</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">關閉</string>
+
+    <string name="mjpeg_pref_value_on">開啟</string>
+    <string name="mjpeg_pref_value_off">關閉</string>
+    <string name="mjpeg_pref_value_automatic">自動</string>
+    <string name="mjpeg_pref_value_not_set">未設定</string>
+    <string name="mjpeg_pref_value_unavailable">尚未提供</string>
+    <string name="mjpeg_pref_default_option">%1$s (預設)</string>
+    <string name="mjpeg_pref_default_value">預設：%1$s</string>
+    <string name="mjpeg_pref_setup_locked">螢幕擷取完全停止後即可使用</string>
+
+    <string name="mjpeg_pref_search_placeholder">搜尋設定</string>
+    <string name="mjpeg_pref_search_clear">清除搜尋</string>
+    <string name="mjpeg_pref_search_no_results">找不到設定</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">行動數據</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">其他</string>
+    <string name="mjpeg_network_loopback">本機迴路</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">開始串流</string>
+    <string name="mjpeg_stream_stop_capture">停止串流</string>
+    <string name="mjpeg_stream_skipped_frames_warning">已略過影格</string>
+    <string name="mjpeg_stream_stop_delayed">仍在停止螢幕分享…</string>
+    <string name="mjpeg_capture_error">螢幕擷取失敗</string>
+    <string name="mjpeg_error_suspension_invalid_request">擷取已暫停：圖片設定不適用於目前的擷取範圍</string>
+    <string name="mjpeg_error_suspension_unavailable">擷取已暫停：擷取來源無法使用</string>
+    <string name="mjpeg_error_suspension_resources">擷取已暫停：資源不足</string>
+
+    <string name="mjpeg_address_list_title">串流位址</string>
+    <string name="mjpeg_address_list_empty">沒有可用於串流的位址。\n請檢查連線設定中的網路篩選器。</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">網路：\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">僅限此裝置</string>
+    <string name="mjpeg_address_private_ipv4">私人 IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">非私人 IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">非私人 IPv6</string>
+
+    <string name="mjpeg_address_open">開啟</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">開啟 %1$s</string>
+    <string name="mjpeg_address_copy_url">複製連結</string>
+    <string name="mjpeg_address_copy_description">複製 %1$s 的連結</string>
+    <string name="mjpeg_address_share">分享</string>
+    <string name="mjpeg_address_share_description">分享 %1$s 的連結</string>
+    <string name="mjpeg_address_qr_code">顯示 QR 碼</string>
+    <string name="mjpeg_address_qr_code_description">顯示 %1$s 的 QR 碼</string>
+    <string name="mjpeg_address_qr_image_description">掃描此代碼以開啟串流連結</string>
+
+    <string name="mjpeg_address_error_browser_not_found">找不到網頁瀏覽器</string>
+    <string name="mjpeg_address_error_open">無法開啟連結</string>
+    <string name="mjpeg_address_error_share">無法分享連結</string>
+    <string name="mjpeg_address_error_qr_generation">無法建立 QR 碼</string>
+
+    <string name="mjpeg_local_network_permission_request">要求權限</string>
+    <string name="mjpeg_local_network_permission_open_settings">開啟設定</string>
+    <string name="mjpeg_local_network_permission_required">需要區域網路權限</string>
+
+    <string name="mjpeg_server_pending">等待中</string>
+    <string name="mjpeg_server_address_in_use">位址已被使用</string>
+    <string name="mjpeg_server_address_unavailable">位址無法使用</string>
+    <string name="mjpeg_server_permission_denied">權限遭拒</string>
+    <string name="mjpeg_server_io_failure">伺服器無法使用</string>
+    <string name="mjpeg_server_unknown_failure">伺服器發生錯誤</string>
+    <string name="mjpeg_server_retry">重試</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">重試 %1$s 的伺服器</string>
+
+    <string name="mjpeg_stream_pin_label">PIN 碼：</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN 碼已隱藏</string>
+    <string name="mjpeg_pin_show_label">顯示</string>
+    <string name="mjpeg_pin_show_description">顯示 PIN 碼</string>
+    <string name="mjpeg_pin_hide_label">隱藏</string>
+    <string name="mjpeg_pin_hide_description">隱藏 PIN 碼</string>
+    <string name="mjpeg_stream_pin_copy">複製 PIN 碼</string>
+    <string name="mjpeg_stream_pin_copied">已複製 PIN 碼</string>
+    <string name="mjpeg_stream_pin_hint_access">開啟串流連結或掃描其 QR 碼。\n如有提示，請輸入此 PIN 碼。</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">圖片設定</string>
+    <string name="mjpeg_pref_image_save_error">無法儲存圖片設定</string>
+
+    <string name="mjpeg_pref_image_region">擷取範圍</string>
+    <string name="mjpeg_pref_image_region_summary">選擇要串流的範圍</string>
+    <string name="mjpeg_pref_image_region_full">整個範圍</string>
+    <string name="mjpeg_pref_image_region_left">左半部</string>
+    <string name="mjpeg_pref_image_region_right">右半部</string>
+
+    <string name="mjpeg_pref_image_crop">裁剪</string>
+    <string name="mjpeg_pref_image_crop_summary">裁剪圖片邊緣</string>
+    <string name="mjpeg_pref_image_crop_purpose">輸入要從各邊移除的像素數</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">請保留部分可見的圖片，否則無法擷取新影格。</string>
+    <string name="mjpeg_pref_image_crop_enabled">啟用裁剪</string>
+    <string name="mjpeg_pref_image_crop_left">左側 (px)</string>
+    <string name="mjpeg_pref_image_crop_top">頂部 (px)</string>
+    <string name="mjpeg_pref_image_crop_right">右側 (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">底部 (px)</string>
+    <string name="mjpeg_pref_image_crop_error">請輸入大於或等於 0 的整數</string>
+    <string name="mjpeg_pref_image_crop_required">請輸入數值</string>
+
+    <string name="mjpeg_pref_image_size">圖片大小</string>
+    <string name="mjpeg_pref_image_size_summary">設定縮放比例或尺寸</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">拉伸圖片</string>
+    <string name="mjpeg_pref_image_size_stretch_value">拉伸</string>
+    <string name="mjpeg_pref_image_size_fit_description">符合寬度和高度限制，並保留比例</string>
+    <string name="mjpeg_pref_image_size_stretch_description">使用指定的寬度和高度，比例可能改變</string>
+    <string name="mjpeg_pref_image_size_estimate_note">根據螢幕估算；分享的應用程式大小可能不同</string>
+    <string name="mjpeg_pref_image_size_source">螢幕：%1$s</string>
+    <string name="mjpeg_pref_image_size_result">預估圖片大小：%1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">無法使用</string>
+    <string name="mjpeg_pref_image_size_scale">縮放比例</string>
+    <string name="mjpeg_pref_image_size_target">大小</string>
+    <string name="mjpeg_pref_image_size_default">預設：%1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">縮放比例 (大於 0，最高 200%)</string>
+    <string name="mjpeg_pref_image_size_width_label">寬度 (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">高度 (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">請輸入大於 0 且不超過 200 的數值</string>
+    <string name="mjpeg_pref_image_size_dimension_error">請輸入 1 到 8192 的整數</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">放大圖片不會增加細節，且可能降低串流速度</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">旋轉</string>
+    <string name="mjpeg_pref_image_rotation_summary">順時針旋轉圖片</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">鏡像</string>
+    <string name="mjpeg_pref_image_mirror_summary">水平或垂直翻轉圖片</string>
+    <string name="mjpeg_pref_image_mirror_none">無</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">水平</string>
+    <string name="mjpeg_pref_image_mirror_vertical">垂直</string>
+
+    <string name="mjpeg_pref_image_grayscale">灰階</string>
+    <string name="mjpeg_pref_image_grayscale_summary">以灰階顯示圖片</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG 品質</string>
+    <string name="mjpeg_pref_image_quality_summary">平衡細節與數據用量</string>
+    <string name="mjpeg_pref_image_quality_popup_description">品質越高，細節越多，數據用量也越大。預設：%1$s。</string>
+
+    <string name="mjpeg_pref_image_rate">影格速率</string>
+    <string name="mjpeg_pref_image_rate_summary">設定圖片更新頻率</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">嘗試維持最高影格速率</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS 上限</string>
+    <string name="mjpeg_pref_image_rate_fps_description">限制每秒影格數</string>
+    <string name="mjpeg_pref_image_rate_fps_value">最高 %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">每秒影格數 (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">請輸入 1 到 120 的整數</string>
+    <string name="mjpeg_pref_image_rate_fps_help">實際影格速率可能低於上限</string>
+
+    <string name="mjpeg_pref_image_rate_interval">間隔</string>
+    <string name="mjpeg_pref_image_rate_interval_description">設定最短擷取間隔</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s 秒</string>
+    <string name="mjpeg_pref_image_rate_interval_label">間隔 (1–3600 秒)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">請輸入 1 到 3600 秒的間隔</string>
+    <string name="mjpeg_pref_image_rate_interval_help">間隔會限制擷取新影格的頻率</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG 編碼器</string>
+    <string name="mjpeg_pref_image_encoder_summary">選擇建立 JPEG 圖片的方式</string>
+    <string name="mjpeg_pref_image_encoder_standard">標準</string>
+    <string name="mjpeg_pref_image_encoder_locked">螢幕分享完全停止後即可使用</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">可用時使用最佳化編碼</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">停用編碼最佳化</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">自動化設定</string>
+    <string name="mjpeg_pref_automation_save_error">無法儲存自動化設定</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">位址遺失後停止串流</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">不再有任何已選位址時停止串流</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">%1$d 秒後</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">延遲 (10–1800 秒)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">預設：%1$s 秒</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">請輸入 10 到 1800 的整數</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">位址恢復後會取消計時器</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">串流閒置圖片</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">即時圖片無法使用時顯示的圖片</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">應用程式標誌</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">最後一個影格</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">保持螢幕開啟</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">擷取期間盡可能保持螢幕開啟</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">螢幕關閉時停止</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">螢幕關閉時停止串流</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">提醒影格遭略過</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">部分裝置收到的圖片可能較少</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">連線設定</string>
+    <string name="mjpeg_pref_connection_save_error">無法儲存網路設定</string>
+
+    <string name="mjpeg_pref_connection_filter">網路篩選器</string>
+    <string name="mjpeg_pref_connection_filter_summary">選擇用於串流的網路位址</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP 版本</string>
+    <string name="mjpeg_pref_connection_filter_network_type">網路類型</string>
+    <string name="mjpeg_pref_connection_filter_address_type">位址類型</string>
+    <string name="mjpeg_pref_connection_filter_private">私人</string>
+    <string name="mjpeg_pref_connection_filter_non_private">非私人</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">每個群組至少選擇一個選項</string>
+    <string name="mjpeg_pref_connection_filter_default">預設：%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">位址必須符合全部三個群組。變更可能中斷觀看者的連線。</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP 連接埠</string>
+    <string name="mjpeg_pref_connection_http_port_summary">設定觀看者連線時使用的連接埠</string>
+    <string name="mjpeg_pref_connection_http_port_label">連接埠 (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">請輸入 1024 到 65535 的整數</string>
+    <string name="mjpeg_pref_connection_http_port_help">變更連接埠會更新串流位址</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">網頁設定</string>
+    <string name="mjpeg_pref_web_save_error">無法儲存網頁設定</string>
+
+    <string name="mjpeg_pref_web_background">背景</string>
+    <string name="mjpeg_pref_web_background_summary">選擇網頁背景顏色</string>
+    <string name="mjpeg_pref_web_background_hex_label">十六進位顏色</string>
+    <string name="mjpeg_pref_web_background_hex_error">請使用 6 個字元：0–9、A–F</string>
+    <string name="mjpeg_pref_web_background_red">紅色</string>
+    <string name="mjpeg_pref_web_background_green">綠色</string>
+    <string name="mjpeg_pref_web_background_blue">藍色</string>
+    <string name="mjpeg_pref_web_background_palette">預設顏色</string>
+    <string name="mjpeg_pref_web_background_color_option">顏色 %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">已選顏色 %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">串流名稱</string>
+    <string name="mjpeg_pref_web_stream_name_summary">設定觀看者看到的名稱</string>
+    <string name="mjpeg_pref_web_stream_name_label">串流名稱 (最多 64 個字元)</string>
+    <string name="mjpeg_pref_web_stream_name_error">請使用不超過 %1$d 個字元</string>
+    <string name="mjpeg_pref_web_stream_name_help">用作瀏覽器分頁標題和串流標籤</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">顯示串流名稱</string>
+    <string name="mjpeg_pref_web_stream_name_empty">無名稱</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">串流名稱位置</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">選擇名稱的顯示位置和方式</string>
+
+    <string name="mjpeg_pref_web_controls_placement">控制項位置</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">選擇控制項的顯示位置和方式</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">位置</string>
+    <string name="mjpeg_pref_web_position_top">頂部</string>
+    <string name="mjpeg_pref_web_position_bottom">底部</string>
+    <string name="mjpeg_pref_web_presentation">顯示方式</string>
+    <string name="mjpeg_pref_web_presentation_overlay">覆蓋於圖片上</string>
+    <string name="mjpeg_pref_web_presentation_bar">獨立列</string>
+    <string name="mjpeg_pref_web_auto_hide_on">自動隱藏</string>
+    <string name="mjpeg_pref_web_auto_hide_off">一律顯示</string>
+    <string name="mjpeg_pref_web_auto_hide_help">沒有互動 4 秒後隱藏</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">存取設定</string>
+    <string name="mjpeg_pref_access_save_error">無法儲存存取設定</string>
+
+    <string name="mjpeg_pref_access_protection">PIN 碼保護</string>
+    <string name="mjpeg_pref_access_protection_summary">觀看串流時要求 PIN 碼或存取連結</string>
+    <string name="mjpeg_pref_access_protection_default">預設：%1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PIN 碼規則</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">開啟時產生新 PIN 碼</string>
+    <string name="mjpeg_pref_access_policy_permanent">固定 PIN 碼</string>
+    <string name="mjpeg_pref_access_policy_help">選擇「開啟時產生新 PIN 碼」並啟用保護後，每次開啟 MJPEG 模式時都會產生 PIN 碼。開始擷取不會變更 PIN 碼。</string>
+
+    <string name="mjpeg_pref_access_pin">PIN 碼</string>
+    <string name="mjpeg_pref_access_pin_summary">用於存取串流的已儲存 PIN 碼</string>
+    <string name="mjpeg_pref_access_pin_unavailable">沒有已儲存的 PIN 碼</string>
+    <string name="mjpeg_pref_access_pin_label">PIN 碼 (6 位數)</string>
+    <string name="mjpeg_pref_access_pin_error">請輸入六位數字 (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">產生新 PIN 碼</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">選擇「固定 PIN 碼」即可自行輸入 PIN 碼</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">限制 PIN 碼嘗試次數</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">輸入錯誤五次後暫停 PIN 碼登入</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">分鐘：%1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">封鎖時間 (1–60 分鐘)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">預設：%1$s · %2$s 分鐘</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">請輸入 1 到 60 的整數</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">封鎖該 IP 位址的新 PIN 碼嘗試。已連線的觀看者會保持連線。</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">開始串流時隱藏 PIN 碼</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">可再次顯示 PIN 碼</string>
+</resources>

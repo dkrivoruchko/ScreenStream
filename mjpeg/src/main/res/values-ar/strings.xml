@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">الوضع المحلي · MJPEG</string>
+    <string name="mjpeg_mode_description">حول MJPEG</string>
+    <string name="mjpeg_mode_details">بث شاشة الجهاز مباشرةً إلى متصفح ويب كصور JPEG. لا يُبث الصوت.\n\n• يعمل على شبكة محلية دون إنترنت. يجب أن يتمكن المشاهدون من الوصول إلى عنوان البث.\n• الحماية برمز PIN اختيارية. عند تفعيلها، يمكن للمشاهدين إدخال PIN أو استخدام رابط وصول.\n• يستخدم البث HTTP غير مشفّر. استخدم شبكة موثوقة.\n• يوفّر فلتر الشبكة خيارات Wi-Fi وEthernet وبيانات الجوّال وVPN وIPv4 وIPv6.\n• اضبط حجم الصورة وجودة JPEG ومعدّل الإطارات.\n• تُرسَل الصور إلى كل مشاهد بشكل منفصل، مما يزيد استهلاك البيانات.</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">إغلاق</string>
+
+    <string name="mjpeg_pref_value_on">مفعّل</string>
+    <string name="mjpeg_pref_value_off">غير مفعّل</string>
+    <string name="mjpeg_pref_value_automatic">تلقائي</string>
+    <string name="mjpeg_pref_value_not_set">غير محدّد</string>
+    <string name="mjpeg_pref_value_unavailable">غير متاح بعد</string>
+    <string name="mjpeg_pref_default_option">%1$s (افتراضي)</string>
+    <string name="mjpeg_pref_default_value">الافتراضي: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">متاح بعد توقف التقاط الشاشة تمامًا</string>
+
+    <string name="mjpeg_pref_search_placeholder">البحث في الإعدادات</string>
+    <string name="mjpeg_pref_search_clear">محو البحث</string>
+    <string name="mjpeg_pref_search_no_results">لم يتم العثور على إعدادات</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">بيانات الجوّال</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">أخرى</string>
+    <string name="mjpeg_network_loopback">الاسترجاع المحلي</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">بدء البث</string>
+    <string name="mjpeg_stream_stop_capture">إيقاف البث</string>
+    <string name="mjpeg_stream_skipped_frames_warning">تم تخطّي إطارات</string>
+    <string name="mjpeg_stream_stop_delayed">جارٍ إيقاف مشاركة الشاشة…</string>
+    <string name="mjpeg_capture_error">تعذّر التقاط الشاشة</string>
+    <string name="mjpeg_error_suspension_invalid_request">الالتقاط متوقف مؤقتًا: إعدادات الصورة لا تناسب منطقة الالتقاط الحالية</string>
+    <string name="mjpeg_error_suspension_unavailable">الالتقاط متوقف مؤقتًا: مصدر الالتقاط غير متاح</string>
+    <string name="mjpeg_error_suspension_resources">الالتقاط متوقف مؤقتًا: الموارد غير كافية</string>
+
+    <string name="mjpeg_address_list_title">عناوين البث</string>
+    <string name="mjpeg_address_list_empty">لا توجد عناوين متاحة للبث.\nتحقّق من فلتر الشبكة في إعدادات الاتصال.</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">الشبكة:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">هذا الجهاز فقط</string>
+    <string name="mjpeg_address_private_ipv4">IPv4 خاص</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">IPv4 غير خاص</string>
+    <string name="mjpeg_address_non_private_ipv6">IPv6 غير خاص</string>
+
+    <string name="mjpeg_address_open">فتح</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">فتح %1$s</string>
+    <string name="mjpeg_address_copy_url">نسخ الرابط</string>
+    <string name="mjpeg_address_copy_description">نسخ رابط %1$s</string>
+    <string name="mjpeg_address_share">مشاركة</string>
+    <string name="mjpeg_address_share_description">مشاركة رابط %1$s</string>
+    <string name="mjpeg_address_qr_code">عرض رمز QR</string>
+    <string name="mjpeg_address_qr_code_description">عرض رمز QR لعنوان %1$s</string>
+    <string name="mjpeg_address_qr_image_description">امسح هذا الرمز لفتح رابط البث</string>
+
+    <string name="mjpeg_address_error_browser_not_found">لم يتم العثور على متصفح ويب</string>
+    <string name="mjpeg_address_error_open">تعذّر فتح الرابط</string>
+    <string name="mjpeg_address_error_share">تعذّرت مشاركة الرابط</string>
+    <string name="mjpeg_address_error_qr_generation">تعذّر إنشاء رمز QR</string>
+
+    <string name="mjpeg_local_network_permission_request">طلب الإذن</string>
+    <string name="mjpeg_local_network_permission_open_settings">فتح الإعدادات</string>
+    <string name="mjpeg_local_network_permission_required">يلزم إذن الوصول إلى الشبكة المحلية</string>
+
+    <string name="mjpeg_server_pending">قيد الانتظار</string>
+    <string name="mjpeg_server_address_in_use">العنوان قيد الاستخدام</string>
+    <string name="mjpeg_server_address_unavailable">العنوان غير متاح</string>
+    <string name="mjpeg_server_permission_denied">تم رفض الإذن</string>
+    <string name="mjpeg_server_io_failure">الخادم غير متاح</string>
+    <string name="mjpeg_server_unknown_failure">تعطّل الخادم</string>
+    <string name="mjpeg_server_retry">إعادة المحاولة</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">إعادة محاولة تشغيل الخادم على %1$s</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">رمز PIN مخفي</string>
+    <string name="mjpeg_pin_show_label">عرض</string>
+    <string name="mjpeg_pin_show_description">عرض PIN</string>
+    <string name="mjpeg_pin_hide_label">إخفاء</string>
+    <string name="mjpeg_pin_hide_description">إخفاء PIN</string>
+    <string name="mjpeg_stream_pin_copy">نسخ PIN</string>
+    <string name="mjpeg_stream_pin_copied">تم نسخ PIN</string>
+    <string name="mjpeg_stream_pin_hint_access">افتح رابط البث أو امسح رمز QR الخاص به.\nأدخل رمز PIN هذا إذا طُلب منك ذلك.</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">إعدادات الصورة</string>
+    <string name="mjpeg_pref_image_save_error">تعذّر حفظ إعدادات الصورة</string>
+
+    <string name="mjpeg_pref_image_region">منطقة الالتقاط</string>
+    <string name="mjpeg_pref_image_region_summary">اختر المنطقة المراد بثّها</string>
+    <string name="mjpeg_pref_image_region_full">المنطقة كاملة</string>
+    <string name="mjpeg_pref_image_region_left">النصف الأيسر</string>
+    <string name="mjpeg_pref_image_region_right">النصف الأيمن</string>
+
+    <string name="mjpeg_pref_image_crop">الاقتصاص</string>
+    <string name="mjpeg_pref_image_crop_summary">اقتصاص حواف الصورة</string>
+    <string name="mjpeg_pref_image_crop_purpose">أدخل عدد وحدات البكسل المراد حذفها من كل حافة</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">اترك جزءًا من الصورة ظاهرًا، وإلا لن يمكن التقاط إطارات جديدة.</string>
+    <string name="mjpeg_pref_image_crop_enabled">تفعيل الاقتصاص</string>
+    <string name="mjpeg_pref_image_crop_left">اليسار (px)</string>
+    <string name="mjpeg_pref_image_crop_top">الأعلى (px)</string>
+    <string name="mjpeg_pref_image_crop_right">اليمين (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">الأسفل (px)</string>
+    <string name="mjpeg_pref_image_crop_error">أدخل عددًا صحيحًا يساوي 0 أو أكثر</string>
+    <string name="mjpeg_pref_image_crop_required">أدخل قيمة</string>
+
+    <string name="mjpeg_pref_image_size">حجم الصورة</string>
+    <string name="mjpeg_pref_image_size_summary">اضبط المقياس أو الأبعاد</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">تمديد الصورة</string>
+    <string name="mjpeg_pref_image_size_stretch_value">تمديد</string>
+    <string name="mjpeg_pref_image_size_fit_description">تلائم حدود العرض والارتفاع مع الحفاظ على النسب</string>
+    <string name="mjpeg_pref_image_size_stretch_description">عرض وارتفاع محدّدان؛ قد تتغير النسب</string>
+    <string name="mjpeg_pref_image_size_estimate_note">تقدير حسب الشاشة؛ قد يختلف حجم التطبيق المُشارَك</string>
+    <string name="mjpeg_pref_image_size_source">الشاشة: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">حجم الصورة المقدّر: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">غير متاح</string>
+    <string name="mjpeg_pref_image_size_scale">المقياس</string>
+    <string name="mjpeg_pref_image_size_target">الحجم</string>
+    <string name="mjpeg_pref_image_size_default">الافتراضي: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">المقياس (أكبر من 0، حتى 200%)</string>
+    <string name="mjpeg_pref_image_size_width_label">العرض (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">الارتفاع (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">أدخل عددًا أكبر من 0 ولا يتجاوز 200</string>
+    <string name="mjpeg_pref_image_size_dimension_error">أدخل عددًا صحيحًا من 1 إلى 8192</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">تكبير الصورة لا يضيف تفاصيل وقد يبطئ البث</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">التدوير</string>
+    <string name="mjpeg_pref_image_rotation_summary">تدوير الصورة باتجاه عقارب الساعة</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">الانعكاس</string>
+    <string name="mjpeg_pref_image_mirror_summary">قلب الصورة أفقيًا أو رأسيًا</string>
+    <string name="mjpeg_pref_image_mirror_none">بلا</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">أفقي</string>
+    <string name="mjpeg_pref_image_mirror_vertical">رأسي</string>
+
+    <string name="mjpeg_pref_image_grayscale">تدرّج رمادي</string>
+    <string name="mjpeg_pref_image_grayscale_summary">عرض الصورة بدرجات الرمادي</string>
+
+    <string name="mjpeg_pref_image_quality">جودة JPEG</string>
+    <string name="mjpeg_pref_image_quality_summary">وازن بين التفاصيل واستهلاك البيانات</string>
+    <string name="mjpeg_pref_image_quality_popup_description">الجودة الأعلى تعرض تفاصيل أكثر وتستهلك بيانات أكثر. الافتراضي: %1$s.</string>
+
+    <string name="mjpeg_pref_image_rate">معدّل الإطارات</string>
+    <string name="mjpeg_pref_image_rate_summary">اضبط عدد مرات تحديث الصورة</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">يحاول الحفاظ على أعلى معدّل إطارات</string>
+
+    <string name="mjpeg_pref_image_rate_fps">حدّ FPS</string>
+    <string name="mjpeg_pref_image_rate_fps_description">يحدّ عدد الإطارات في الثانية</string>
+    <string name="mjpeg_pref_image_rate_fps_value">حتى %1$d إطار/ث</string>
+    <string name="mjpeg_pref_image_rate_fps_label">إطارات/ثانية (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">أدخل عددًا صحيحًا من 1 إلى 120</string>
+    <string name="mjpeg_pref_image_rate_fps_help">قد يكون معدّل الإطارات الفعلي أقل من الحدّ</string>
+
+    <string name="mjpeg_pref_image_rate_interval">الفاصل الزمني</string>
+    <string name="mjpeg_pref_image_rate_interval_description">يحدّد الحد الأدنى للفاصل بين اللقطات</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s ث</string>
+    <string name="mjpeg_pref_image_rate_interval_label">الفاصل الزمني (1–3600 ثانية)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">أدخل فاصلًا زمنيًا من 1 إلى 3600 ثانية</string>
+    <string name="mjpeg_pref_image_rate_interval_help">يحدّ الفاصل الزمني عدد مرات التقاط إطارات جديدة</string>
+
+    <string name="mjpeg_pref_image_encoder">برنامج ترميز JPEG</string>
+    <string name="mjpeg_pref_image_encoder_summary">اختر طريقة إنشاء صور JPEG</string>
+    <string name="mjpeg_pref_image_encoder_standard">قياسي</string>
+    <string name="mjpeg_pref_image_encoder_locked">متاح بعد توقف مشاركة الشاشة تمامًا</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">ترميز محسّن عند توفّره</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">يوقف تحسين الترميز</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">إعدادات الأتمتة</string>
+    <string name="mjpeg_pref_automation_save_error">تعذّر حفظ إعدادات الأتمتة</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">إيقاف البث بعد فقدان العناوين</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">إيقاف البث عندما لا يبقى أي عنوان محدّد</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">بعد %1$d ث</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">التأخير (10–1800 ثانية)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">الافتراضي: %1$s ثانية</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">أدخل عددًا صحيحًا من 10 إلى 1800</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">تلغي عودة العناوين المؤقّت</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">صورة البث غير النشط</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">الصورة المعروضة عندما لا تتوفر الصورة المباشرة</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">شعار التطبيق</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">آخر إطار</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">إبقاء الشاشة مضاءة</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">إبقاء الشاشة مضاءة أثناء الالتقاط، إن أمكن</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">الإيقاف عند انطفاء الشاشة</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">إيقاف البث عند انطفاء الشاشة</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">التحذير من الإطارات المتخطّاة</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">قد تتلقى بعض الأجهزة صورًا أقل</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">إعدادات الاتصال</string>
+    <string name="mjpeg_pref_connection_save_error">تعذّر حفظ إعدادات الشبكة</string>
+
+    <string name="mjpeg_pref_connection_filter">فلتر الشبكة</string>
+    <string name="mjpeg_pref_connection_filter_summary">اختر عناوين الشبكة المستخدمة للبث</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">إصدار IP</string>
+    <string name="mjpeg_pref_connection_filter_network_type">نوع الشبكة</string>
+    <string name="mjpeg_pref_connection_filter_address_type">نوع العنوان</string>
+    <string name="mjpeg_pref_connection_filter_private">خاص</string>
+    <string name="mjpeg_pref_connection_filter_non_private">غير خاص</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">حدّد خيارًا واحدًا على الأقل في كل مجموعة</string>
+    <string name="mjpeg_pref_connection_filter_default">الافتراضي: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">يجب أن تتطابق العناوين مع المجموعات الثلاث. قد تؤدي التغييرات إلى قطع اتصال المشاهدين.</string>
+
+    <string name="mjpeg_pref_connection_http_port">منفذ HTTP</string>
+    <string name="mjpeg_pref_connection_http_port_summary">حدّد المنفذ الذي يتصل به المشاهدون</string>
+    <string name="mjpeg_pref_connection_http_port_label">المنفذ (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">أدخل عددًا صحيحًا من 1024 إلى 65535</string>
+    <string name="mjpeg_pref_connection_http_port_help">يؤدي تغيير المنفذ إلى تحديث عناوين البث</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">إعدادات صفحة الويب</string>
+    <string name="mjpeg_pref_web_save_error">تعذّر حفظ إعدادات صفحة الويب</string>
+
+    <string name="mjpeg_pref_web_background">الخلفية</string>
+    <string name="mjpeg_pref_web_background_summary">اختر لون خلفية صفحة الويب</string>
+    <string name="mjpeg_pref_web_background_hex_label">لون سداسي عشري</string>
+    <string name="mjpeg_pref_web_background_hex_error">استخدم 6 رموز: 0–9، A–F</string>
+    <string name="mjpeg_pref_web_background_red">أحمر</string>
+    <string name="mjpeg_pref_web_background_green">أخضر</string>
+    <string name="mjpeg_pref_web_background_blue">أزرق</string>
+    <string name="mjpeg_pref_web_background_palette">ألوان مسبقة</string>
+    <string name="mjpeg_pref_web_background_color_option">اللون %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">اللون المحدّد %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">اسم البث</string>
+    <string name="mjpeg_pref_web_stream_name_summary">حدّد الاسم الذي يظهر للمشاهدين</string>
+    <string name="mjpeg_pref_web_stream_name_label">اسم البث (حتى 64 حرفًا)</string>
+    <string name="mjpeg_pref_web_stream_name_error">الحد الأقصى للأحرف: %1$d</string>
+    <string name="mjpeg_pref_web_stream_name_help">يُستخدم لعنوان علامة تبويب المتصفح وتسمية البث</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">عرض اسم البث</string>
+    <string name="mjpeg_pref_web_stream_name_empty">بلا اسم</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">موضع اسم البث</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">اختر مكان الاسم وطريقة عرضه</string>
+
+    <string name="mjpeg_pref_web_controls_placement">موضع عناصر التحكّم</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">اختر مكان عناصر التحكّم وطريقة عرضها</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">الموضع</string>
+    <string name="mjpeg_pref_web_position_top">الأعلى</string>
+    <string name="mjpeg_pref_web_position_bottom">الأسفل</string>
+    <string name="mjpeg_pref_web_presentation">العرض كـ</string>
+    <string name="mjpeg_pref_web_presentation_overlay">فوق الصورة</string>
+    <string name="mjpeg_pref_web_presentation_bar">شريط منفصل</string>
+    <string name="mjpeg_pref_web_auto_hide_on">إخفاء تلقائي</string>
+    <string name="mjpeg_pref_web_auto_hide_off">ظاهر دائمًا</string>
+    <string name="mjpeg_pref_web_auto_hide_help">الإخفاء بعد 4 ثوانٍ دون تفاعل</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">إعدادات الوصول</string>
+    <string name="mjpeg_pref_access_save_error">تعذّر حفظ إعدادات الوصول</string>
+
+    <string name="mjpeg_pref_access_protection">حماية برمز PIN</string>
+    <string name="mjpeg_pref_access_protection_summary">طلب PIN أو رابط وصول لمشاهدة البث</string>
+    <string name="mjpeg_pref_access_protection_default">الافتراضي: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">سياسة PIN</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">PIN جديد عند الفتح</string>
+    <string name="mjpeg_pref_access_policy_permanent">PIN دائم</string>
+    <string name="mjpeg_pref_access_policy_help">عند اختيار «PIN جديد عند الفتح» وتفعيل الحماية، يُنشأ PIN عند كل فتح لوضع MJPEG. لا يتغير عند بدء الالتقاط.</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">رمز PIN محفوظ للوصول إلى البث</string>
+    <string name="mjpeg_pref_access_pin_unavailable">لا يوجد PIN محفوظ</string>
+    <string name="mjpeg_pref_access_pin_label">PIN (6 أرقام)</string>
+    <string name="mjpeg_pref_access_pin_error">أدخل ستة أرقام (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">إنشاء PIN جديد</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">اختر «PIN دائم» لإدخال PIN خاص بك</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">تقييد محاولات PIN</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">تعليق تسجيل الدخول برمز PIN بعد خمس محاولات خاطئة</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">الدقائق: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">مدة الحظر (1–60 دقيقة)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">الافتراضي: %1$s · %2$s د</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">أدخل عددًا صحيحًا من 1 إلى 60</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">يحظر محاولات PIN الجديدة من عنوان IP هذا. يظل المشاهدون المتصلون على اتصال.</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">إخفاء PIN عند بدء البث</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">يمكنك عرض PIN مجددًا</string>
+</resources>

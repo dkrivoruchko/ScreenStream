@@ -4,10 +4,10 @@
     <string name="app_error_recover">復原</string>
 
     <string name="app_module_error_title">發生問題</string>
-    <string name="app_module_error_restart">重新啟動模組</string>
+    <string name="app_module_error_restart">重新啟動模式</string>
 
     <string name="app_activity_update_dialog_title">有新版本可用</string>
-    <string name="app_activity_update_dialog_message">更新已下載完畢，是否要立即重新啟動應用程式？</string>
+    <string name="app_activity_update_dialog_message">更新已就緒。要立即重新啟動應用程式嗎？</string>
     <string name="app_activity_update_dialog_restart">重新啟動應用程式</string>
 
     <string name="app_tab_stream">串流</string>
@@ -16,16 +16,17 @@
     <string name="app_tab_exit">離開</string>
 
     <string name="app_tab_stream_select_mode">選擇串流模式：</string>
-    <string name="app_tab_stream_switching_modules">正在切換模組</string>
+    <string name="app_tab_stream_switching_modules">正在切換模式…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">暫時不要</string>
     <string name="app_permission_open_settings">開啟設定</string>
 
     <string name="app_permission_notifications_title">允許通知</string>
-    <string name="app_permission_notifications_message">通知會顯示串流狀態和錯誤提醒。 您可以透過通知停止串流或重新開啟 ScreenStream。</string>
+    <string name="app_permission_notifications_message">通知會顯示串流狀態和錯誤提醒。您可以透過通知停止串流或重新開啟 ScreenStream。</string>
 
     <string name="app_permission_local_network_title">區域網路存取權</string>
-    <string name="app_permission_local_network_message">允許 ScreenStream 使用您的區域網路，向同一網路上的其他裝置串流。\n\nAndroid 將此權限描述為存取「附近的裝置」，並可能提及判斷這些裝置的相對位置。</string>
+    <string name="app_permission_local_network_message">允許 ScreenStream 使用您的區域網路，向同一網路上的其他裝置串流。\n\nAndroid 將此權限描述為存取「鄰近裝置」，並可能提及判斷這些裝置的相對位置。</string>
     <string name="app_permission_local_network_off_title">區域網路存取權已關閉</string>
     <string name="app_permission_local_network_settings_message">如要向同一區域網路上的裝置串流，請在應用程式設定中開啟「權限」，並允許存取「鄰近裝置」。</string>
 
@@ -36,16 +37,17 @@
 
     <string name="app_permission_audio_title">麥克風和裝置音訊</string>
     <string name="app_permission_audio_message">允許存取麥克風，以串流麥克風和裝置音訊。\n\n只有在 Android 和播放音訊的應用程式允許分享時，才能串流裝置音訊。</string>
-    <string name="app_permission_audio_settings_message">請在應用程式設定中啟用麥克風權限，以串流麥克風或內部音訊。\n\n沒有此權限，串流將沒有聲音。</string>
+    <string name="app_permission_audio_settings_message">請在應用程式設定中允許存取麥克風，以串流麥克風或裝置音訊。\n\n沒有此權限，就無法串流音訊。</string>
 
     <string name="app_notification_channel_streaming">串流通知</string>
     <string name="app_notification_channel_error">錯誤通知</string>
-    <string name="app_notification_waiting_content">點選以開啟應用程式</string>
+    <string name="app_notification_waiting_content">輕觸以開啟應用程式</string>
     <string name="app_notification_streaming_title">串流…</string>
-    <string name="app_notification_streaming_content">點選停止以結束串流</string>
+    <string name="app_notification_streaming_content">輕觸「停止」以結束串流</string>
     <string name="app_notification_stop">停止</string>
 
-    <string name="app_tile_start">開始</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">開啟 ScreenStream</string>
     <string name="app_tile_stop">停止</string>
 
     <string name="app_pref_back">返回</string>
@@ -53,28 +55,29 @@
     <string name="app_pref_locale">應用程式語言</string>
     <string name="app_pref_locale_summary">開啟應用程式語言設定</string>
     <string name="app_pref_locale_default">系統預設</string>
-    <string name="app_pref_night_mode">夜間模式</string>
+    <string name="app_pref_night_mode">深色主題</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
-        <item>總是</item>
+        <item>一律</item>
         <item>依省電模式設定</item>
         <item>永不</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
-        <item>總是</item>
-        <item>自動 (跟隨系統設定)</item>
+        <item>一律</item>
+        <item>依系統設定</item>
         <item>永不</item>
     </string-array>
     <string name="app_pref_dynamic_theme">動態顏色</string>
     <string name="app_pref_dynamic_theme_summary">根據您的桌布顏色調整外觀</string>
-    <string name="app_pref_notification">裝置通知設定</string>
-    <string name="app_pref_notification_summary">開啟系統通知設定</string>
-    <string name="app_pref_tile">新增應用程式快速設定方塊</string>
-    <string name="app_pref_tile_summary">將應用程式快速設定方塊新增至快速設定</string>
+    <string name="app_pref_notification">應用程式通知</string>
+    <string name="app_pref_notification_summary">在系統設定中管理通知</string>
+    <string name="app_pref_tile">新增快速設定方塊</string>
+    <string name="app_pref_tile_summary">將 ScreenStream 新增至快速設定</string>
 
     <string name="app_tab_about_app_version">版本：%1$s</string>
     <string name="app_tab_about_developer_name">由 Dmytro Kryvoruchko 開發</string>
-    <string name="app_tab_about_rate_app">給評分</string>
-    <string name="app_tab_about_app_sources">應用程式原始碼</string>
+    <string name="app_tab_about_rate_app">為應用程式評分</string>
+    <string name="app_tab_about_app_sources">原始碼</string>
     <string name="app_tab_about_terms_conditions">使用條款和條件</string>
     <string name="app_tab_about_privacy_policy">隱私政策</string>
     <string name="app_tab_about_privacy_options">隱私選項</string>

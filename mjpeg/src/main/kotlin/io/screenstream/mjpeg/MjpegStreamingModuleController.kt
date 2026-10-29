@@ -109,10 +109,12 @@ internal class MjpegStreamingModuleController(
                     SystemClock.elapsedRealtime() - stoppingSince >= STOP_WARNING_MILLIS
         }
 
-    private val errorMessage: String?
-        get() = lastFailure?.let { failure ->
-            failure.cause.message?.trim()?.takeIf { it.isNotEmpty() } ?: failure.stage.ifBlank { failure.cause.javaClass.name }
-        } ?: "Capture cleanup is still pending".takeIf { isStopDelayed }
+    private val error: StreamingModule.Status.Error?
+        get() = when {
+            lastFailure != null -> StreamingModule.Status.Error()
+            isStopDelayed -> StreamingModule.Status.Error(service.getString(R.string.mjpeg_stream_stop_delayed))
+            else -> null
+        }
 
     private val editPolicy: MjpegSettings.EditPolicy
         get() = if (isCaptureIdle) MjpegSettings.EditPolicy.All else MjpegSettings.EditPolicy.LiveOnly
@@ -585,7 +587,7 @@ internal class MjpegStreamingModuleController(
                 return@withContext
             }
             try {
-                Toast.makeText(service, R.string.mjpeg_stream_slow_viewer_warning, Toast.LENGTH_LONG).show()
+                Toast.makeText(service, R.string.mjpeg_stream_skipped_frames_warning, Toast.LENGTH_LONG).show()
             } catch (failure: CancellationException) {
                 throw failure
             } catch (failure: Exception) {
@@ -620,7 +622,7 @@ internal class MjpegStreamingModuleController(
             isStreaming = activeCaptureAttempt?.processedState?.isStreaming == true,
             hasConsumer = delivery.hasConsumer,
             captureAttempt = capture?.takeUnless { it.processedState.cleanupSucceeded == true }?.session?.id,
-            errorMessage = errorMessage,
+            error = error,
         )
     }
 

@@ -24,7 +24,10 @@ function createAccessPanel(viewportLayout, callbacks) {
         message.hidden = !value;
     }
     function formatRemaining(seconds) {
-        return seconds < 60 ? seconds + words.secondsShort : Math.floor(seconds / 60) + ':' + (seconds % 60 < 10 ? '0' : '') + seconds % 60;
+        return seconds < 60 ? secondsText('countdownSeconds', seconds) : Math.floor(seconds / 60) + ':' + (seconds % 60 < 10 ? '0' : '') + seconds % 60;
+    }
+    function formatSpokenRemaining(seconds) {
+        return seconds === 1 ? words.pinBlockedAnnouncementSecond : secondsText('pinBlockedAnnouncementSeconds', seconds);
     }
     function showBlocked(ms, repeated) {
         sending = false;
@@ -38,10 +41,11 @@ function createAccessPanel(viewportLayout, callbacks) {
         message.classList.add('sr-only');
         message.hidden = false;
         countdown.hidden = false;
-        if (!repeated) text(message, words.pinBlocked + ' ' + words.tryAgainIn + ' ' + formatRemaining(Math.ceil((blockedUntil - Date.now()) / 1000)) + '.');
+        if (!repeated) text(message, formatSpokenRemaining(Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000))));
         const tick = () => {
             const seconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
             input.disabled = submitButton.disabled = seconds > 0;
+            countdownValue.dir = seconds < 60 ? locale.dir : 'ltr';
             text(countdownValue, formatRemaining(seconds));
             if (seconds > 0) blockedTimer = setTimeout(tick, 1000);
             else {

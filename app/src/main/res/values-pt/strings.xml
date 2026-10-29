@@ -4,10 +4,10 @@
     <string name="app_error_recover">Recuperar</string>
 
     <string name="app_module_error_title">Algo deu errado</string>
-    <string name="app_module_error_restart">Reiniciar módulo</string>
+    <string name="app_module_error_restart">Reiniciar modo</string>
 
     <string name="app_activity_update_dialog_title">Atualização disponível</string>
-    <string name="app_activity_update_dialog_message">Uma atualização foi baixada. Reiniciar o aplicativo agora?</string>
+    <string name="app_activity_update_dialog_message">Uma atualização está pronta. Reiniciar o app agora?</string>
     <string name="app_activity_update_dialog_restart">Reiniciar</string>
 
     <string name="app_tab_stream">Transmissão</string>
@@ -16,8 +16,9 @@
     <string name="app_tab_exit">Sair</string>
 
     <string name="app_tab_stream_select_mode">Selecionar modo de transmissão:</string>
-    <string name="app_tab_stream_switching_modules">Alternando módulos</string>
+    <string name="app_tab_stream_switching_modules">Alternando modos…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Agora não</string>
     <string name="app_permission_open_settings">Abrir configurações</string>
 
@@ -36,7 +37,7 @@
 
     <string name="app_permission_audio_title">Áudio do microfone e do dispositivo</string>
     <string name="app_permission_audio_message">Permita o acesso ao microfone para transmitir o áudio do microfone e do dispositivo.\n\nO áudio do dispositivo só pode ser transmitido quando o Android e o app que o reproduz permitem compartilhá-lo.</string>
-    <string name="app_permission_audio_settings_message">Ative a permissão de microfone nas configurações do app para transmitir áudio do microfone ou áudio interno.\n\nSem ela, a transmissão ficará sem som.</string>
+    <string name="app_permission_audio_settings_message">Permita o acesso ao microfone nas configurações do app para transmitir áudio do microfone ou do dispositivo.\n\nSem essa permissão, o áudio não pode ser transmitido.</string>
 
     <string name="app_notification_channel_streaming">Notificações de transmissão</string>
     <string name="app_notification_channel_error">Notificações de erro</string>
@@ -45,15 +46,17 @@
     <string name="app_notification_streaming_content">Toque em Parar para encerrar a transmissão</string>
     <string name="app_notification_stop">Parar</string>
 
-    <string name="app_tile_start">Iniciar</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Abrir ScreenStream</string>
     <string name="app_tile_stop">Parar</string>
 
     <string name="app_pref_back">Voltar</string>
     <string name="app_pref_settings">Configurações</string>
-    <string name="app_pref_locale">Idioma do aplicativo</string>
-    <string name="app_pref_locale_summary">Abrir configurações de idioma do aplicativo</string>
+    <string name="app_pref_locale">Idioma do app</string>
+    <string name="app_pref_locale_summary">Abrir configurações de idioma do app</string>
     <string name="app_pref_locale_default">Padrão do sistema</string>
     <string name="app_pref_night_mode">Tema escuro</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Sempre</item>
         <item>Definido pela Economia de bateria</item>
@@ -61,22 +64,22 @@
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Sempre</item>
-        <item>Automático (seguir sistema)</item>
+        <item>Seguir o sistema</item>
         <item>Nunca</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Cor dinâmica</string>
     <string name="app_pref_dynamic_theme_summary">Ajustar a aparência com base nas cores do seu papel de parede</string>
-    <string name="app_pref_notification">Configurações de notificação do dispositivo</string>
-    <string name="app_pref_notification_summary">Abrir configurações de notificação do sistema</string>
-    <string name="app_pref_tile">Adicionar bloco de aplicativo</string>
-    <string name="app_pref_tile_summary">Adicionar bloco de aplicativo às Configurações Rápidas</string>
+    <string name="app_pref_notification">Notificações do app</string>
+    <string name="app_pref_notification_summary">Gerenciar notificações nas configurações do sistema</string>
+    <string name="app_pref_tile">Adicionar bloco de Configurações rápidas</string>
+    <string name="app_pref_tile_summary">Adicionar ScreenStream às Configurações rápidas</string>
 
     <string name="app_tab_about_app_version">Versão: %1$s</string>
     <string name="app_tab_about_developer_name">Desenvolvido por Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Avaliar o aplicativo</string>
-    <string name="app_tab_about_app_sources">Fontes do aplicativo</string>
-    <string name="app_tab_about_terms_conditions">Termos e Condições</string>
-    <string name="app_tab_about_privacy_policy">Política de Privacidade</string>
+    <string name="app_tab_about_app_sources">Código-fonte</string>
+    <string name="app_tab_about_terms_conditions">Termos e condições</string>
+    <string name="app_tab_about_privacy_policy">Política de privacidade</string>
     <string name="app_tab_about_privacy_options">Opções de privacidade</string>
     <string name="app_tab_about_license">Licença</string>
 </resources>

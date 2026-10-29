@@ -18,8 +18,8 @@ import io.screenstream.mjpeg.ui.settings.SettingsItem
 internal object NotifySlowViewersSearch {
     val info: SettingSearchInfo = SettingSearchInfo(
         group = SettingSearchGroup.Automation,
-        titleRes = R.string.mjpeg_pref_stream_notify_slow_viewers,
-        summaryRes = R.string.mjpeg_pref_stream_notify_slow_viewers_summary,
+        titleRes = R.string.mjpeg_pref_automation_skipped_frames_warning,
+        summaryRes = R.string.mjpeg_pref_automation_skipped_frames_warning_summary,
     )
 }
 

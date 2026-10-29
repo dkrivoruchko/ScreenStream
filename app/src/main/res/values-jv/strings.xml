@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_error_title">Kesalahan</string>
-    <string name="app_error_recover">Waras</string>
+    <string name="app_error_recover">Pulihake</string>
 
     <string name="app_module_error_title">Ana kesalahan</string>
-    <string name="app_module_error_restart">Wiwiti maneh modul</string>
+    <string name="app_module_error_restart">Wiwiti maneh mode</string>
 
     <string name="app_activity_update_dialog_title">Nganyari kasedhiya</string>
-    <string name="app_activity_update_dialog_message">Nganyari lagi wae diundhuh. Wiwiti maneh app saiki?</string>
+    <string name="app_activity_update_dialog_message">Nganyari wis siyap. Wiwiti maneh aplikasi saiki?</string>
     <string name="app_activity_update_dialog_restart">Wiwiti maneh</string>
 
     <string name="app_tab_stream">Streaming</string>
@@ -16,8 +16,9 @@
     <string name="app_tab_exit">Metu</string>
 
     <string name="app_tab_stream_select_mode">Pilih mode stream:</string>
-    <string name="app_tab_stream_switching_modules">Ngalih modul</string>
+    <string name="app_tab_stream_switching_modules">Ngalih mode…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Saiki ora</string>
     <string name="app_permission_open_settings">Bukak setelan</string>
 
@@ -27,7 +28,7 @@
     <string name="app_permission_local_network_title">Akses jaringan lokal</string>
     <string name="app_permission_local_network_message">Idini ScreenStream nggunakake jaringan lokal kanggo streaming menyang piranti liyane ing jaringan sing padha.\n\nAndroid njlentrehake idin iki minangka akses menyang Piranti ing sacedhake lan bisa nyebutake nemtokake posisi relatif piranti kasebut.</string>
     <string name="app_permission_local_network_off_title">Akses jaringan lokal dipateni</string>
-    <string name="app_permission_local_network_settings_message">Ing setelan aplikasi, bukak Ijin lan idini Piranti ing sacedhake kanggo streaming menyang piranti ing jaringan lokal sing padha.</string>
+    <string name="app_permission_local_network_settings_message">Ing setelan aplikasi, bukak Idin lan idini Piranti ing sacedhake kanggo streaming menyang piranti ing jaringan lokal sing padha.</string>
 
     <string name="app_permission_microphone_title">Akses mikropon</string>
     <string name="app_permission_microphone_message">Idini akses mikropon supaya swara saka mikropon sampeyan kalebu ing streaming.\n\nTanpa idin iki, audio mikropon ora bisa di-streaming.</string>
@@ -36,17 +37,18 @@
 
     <string name="app_permission_audio_title">Audio mikropon lan piranti</string>
     <string name="app_permission_audio_message">Idini akses mikropon kanggo streaming audio mikropon lan piranti.\n\nAudio piranti mung bisa di-streaming yen Android lan aplikasi sing muter audio kasebut ngidini audio kasebut dienggo bareng.</string>
-    <string name="app_permission_audio_settings_message">Aktifake ijin mikropon ing setelan aplikasi kanggo streaming audio mikropon utawa audio internal.\n\nTanpa ijin iki, stream ora ana swarane.</string>
+    <string name="app_permission_audio_settings_message">Idini akses mikropon ing setelan aplikasi kanggo streaming audio mikropon utawa piranti.\n\nTanpa idin iki, audio ora bisa di-streaming.</string>
 
     <string name="app_notification_channel_streaming">Kabar streaming</string>
     <string name="app_notification_channel_error">Kabar kesalahan</string>
     <string name="app_notification_waiting_content">Tutul kanggo mbukak aplikasi</string>
     <string name="app_notification_streaming_title">Streaming…</string>
-    <string name="app_notification_streaming_content">Tutul Mandheg kanggo mungkasi stream</string>
-    <string name="app_notification_stop">Mandeg</string>
+    <string name="app_notification_streaming_content">Tutul Mandheg kanggo mungkasi streaming</string>
+    <string name="app_notification_stop">Mandheg</string>
 
-    <string name="app_tile_start">Miwiti</string>
-    <string name="app_tile_stop">Mandeg</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Bukak ScreenStream</string>
+    <string name="app_tile_stop">Mandheg</string>
 
     <string name="app_pref_back">Mbalik</string>
     <string name="app_pref_settings">Setelan</string>
@@ -54,6 +56,7 @@
     <string name="app_pref_locale_summary">Bukak setelan basa aplikasi</string>
     <string name="app_pref_locale_default">Standar sistem</string>
     <string name="app_pref_night_mode">Tema peteng</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Tansah</item>
         <item>Diatur déning Pangirit Baterei</item>
@@ -61,20 +64,20 @@
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Tansah</item>
-        <item>Otomatis (melu sistem)</item>
+        <item>Melu sistem</item>
         <item>Ora tau</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Warna dinamis</string>
     <string name="app_pref_dynamic_theme_summary">Setel tampilan adhedhasar warna wallpaper sampeyan</string>
-    <string name="app_pref_notification">Setelan kabar piranti</string>
-    <string name="app_pref_notification_summary">Bukak setelan kabar sistem</string>
-    <string name="app_pref_tile">Tambah jubin aplikasi</string>
-    <string name="app_pref_tile_summary">Tambah jubin aplikasi menyang Pengaturan Cepat</string>
+    <string name="app_pref_notification">Kabar aplikasi</string>
+    <string name="app_pref_notification_summary">Atur kabar ing setelan sistem</string>
+    <string name="app_pref_tile">Tambah kothak Setelan cepet</string>
+    <string name="app_pref_tile_summary">Tambah ScreenStream menyang Setelan cepet</string>
 
     <string name="app_tab_about_app_version">Versi: %1$s</string>
-    <string name="app_tab_about_developer_name">Ngembangake dening Dmytro Kryvoruchko</string>
+    <string name="app_tab_about_developer_name">Dikembangake dening Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">Wenehi rating aplikasi</string>
-    <string name="app_tab_about_app_sources">Sumber aplikasi</string>
+    <string name="app_tab_about_app_sources">Kode sumber</string>
     <string name="app_tab_about_terms_conditions">Syarat-syarat lan kahanan</string>
     <string name="app_tab_about_privacy_policy">Kebijakan privasi</string>
     <string name="app_tab_about_privacy_options">Pilihan privasi</string>

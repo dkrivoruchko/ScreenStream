@@ -2,6 +2,10 @@ const labels = document.querySelectorAll('[data-word]');
 for (let i = 0; i < labels.length; i += 1) text(labels[i], words[labels[i].getAttribute('data-word')]);
 const controlLabels = document.querySelectorAll('[data-label]');
 for (let i = 0; i < controlLabels.length; i += 1) labelControl(controlLabels[i], words[controlLabels[i].getAttribute('data-label')]);
+const accessibleLabels = document.querySelectorAll('[data-a11y]');
+for (let i = 0; i < accessibleLabels.length; i += 1) accessibleLabels[i].setAttribute('aria-label', words[accessibleLabels[i].getAttribute('data-a11y')]);
+const directionalSurfaces = document.querySelectorAll('[data-locale-dir]');
+for (let i = 0; i < directionalSurfaces.length; i += 1) directionalSurfaces[i].dir = locale.dir;
 const stateLogo = byId('state-logo'), recoveryAlternate = byId('recovery-alternate');
 const infoConnection = byId('info-connection'), infoImage = byId('info-image'), infoSize = byId('info-size');
 const infoNotice = byId('info-notice'), infoNoticeLabel = byId('info-notice-label');
@@ -22,6 +26,7 @@ const media = createMedia(byId('image-stage'), {
     image: (value, w, h) => {
         displayedImage = value;
         presentation.setImage(value, w, h);
+        infoSize.dir = w && h ? 'ltr' : locale.dir;
         text(infoSize, w && h ? w + ' × ' + h : words.unknownSize);
     },
     method: renderMethod

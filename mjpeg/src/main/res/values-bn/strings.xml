@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode -->
+    <string name="mjpeg_mode_name">লোকাল মোড · MJPEG</string>
+    <string name="mjpeg_mode_description">MJPEG সম্পর্কে</string>
+    <string name="mjpeg_mode_details">ডিভাইসের স্ক্রিন সরাসরি JPEG ছবি হিসেবে ওয়েব ব্রাউজারে স্ট্রিম করুন। অডিও স্ট্রিম হয় না।\n\n• ইন্টারনেট ছাড়াই লোকাল নেটওয়ার্কে কাজ করে। দর্শকদের স্ট্রিমের ঠিকানা অ্যাক্সেস করতে পারতে হবে।\n• PIN সুরক্ষা ঐচ্ছিক। চালু থাকলে দর্শকরা PIN লিখতে বা অ্যাক্সেস লিঙ্ক ব্যবহার করতে পারেন।\n• স্ট্রিমে এনক্রিপশনবিহীন HTTP ব্যবহার হয়। বিশ্বস্ত নেটওয়ার্ক ব্যবহার করুন।\n• নেটওয়ার্ক ফিল্টারে Wi-Fi, Ethernet, মোবাইল ডেটা, VPN, IPv4 ও IPv6 বিকল্প আছে।\n• ছবির আকার, JPEG কোয়ালিটি ও ফ্রেম রেট বদলান।\n• প্রতিটি দর্শকের কাছে আলাদাভাবে ছবি পাঠানো হয়, ফলে ডেটার ব্যবহার বাড়ে।</string>
+
+    <!-- Shared UI and settings -->
+    <string name="mjpeg_action_close">বন্ধ করুন</string>
+
+    <string name="mjpeg_pref_value_on">চালু</string>
+    <string name="mjpeg_pref_value_off">বন্ধ</string>
+    <string name="mjpeg_pref_value_automatic">অটো</string>
+    <string name="mjpeg_pref_value_not_set">সেট করা নেই</string>
+    <string name="mjpeg_pref_value_unavailable">এখনও উপলভ্য নয়</string>
+    <string name="mjpeg_pref_default_option">%1$s (ডিফল্ট)</string>
+    <string name="mjpeg_pref_default_value">ডিফল্ট: %1$s</string>
+    <string name="mjpeg_pref_setup_locked">স্ক্রিন ক্যাপচার পুরোপুরি বন্ধ হওয়ার পর উপলভ্য</string>
+
+    <string name="mjpeg_pref_search_placeholder">সেটিংস খুঁজুন</string>
+    <string name="mjpeg_pref_search_clear">সার্চ মুছুন</string>
+    <string name="mjpeg_pref_search_no_results">কোনও সেটিংস পাওয়া যায়নি</string>
+
+    <!-- Shared network labels -->
+    <string name="mjpeg_network_ipv4">IPv4</string>
+    <string name="mjpeg_network_ipv6">IPv6</string>
+    <string name="mjpeg_network_wifi">Wi-Fi</string>
+    <string name="mjpeg_network_ethernet">Ethernet</string>
+    <string name="mjpeg_network_mobile">মোবাইল ডেটা</string>
+    <string name="mjpeg_network_vpn">VPN</string>
+    <string name="mjpeg_network_other">অন্যান্য</string>
+    <string name="mjpeg_network_loopback">লুপব্যাক</string>
+    <string name="mjpeg_network_ipv4_link_local">IPv4 link-local</string>
+
+    <!-- Stream screen and shared PIN controls -->
+    <string name="mjpeg_stream_start_capture">স্ট্রিম শুরু করুন</string>
+    <string name="mjpeg_stream_stop_capture">স্ট্রিম বন্ধ করুন</string>
+    <string name="mjpeg_stream_skipped_frames_warning">ফ্রেম বাদ পড়েছে</string>
+    <string name="mjpeg_stream_stop_delayed">স্ক্রিন শেয়ার এখনও বন্ধ হচ্ছে…</string>
+    <string name="mjpeg_capture_error">স্ক্রিন ক্যাপচার ব্যর্থ হয়েছে</string>
+    <string name="mjpeg_error_suspension_invalid_request">ক্যাপচার পজ করা আছে: ছবির সেটিংস বর্তমান ক্যাপচার এলাকার সাথে মানানসই নয়</string>
+    <string name="mjpeg_error_suspension_unavailable">ক্যাপচার পজ করা আছে: ক্যাপচারের সোর্স উপলভ্য নয়</string>
+    <string name="mjpeg_error_suspension_resources">ক্যাপচার পজ করা আছে: পর্যাপ্ত রিসোর্স নেই</string>
+
+    <string name="mjpeg_address_list_title">স্ট্রিমের ঠিকানা</string>
+    <string name="mjpeg_address_list_empty">স্ট্রিম করার জন্য কোনও ঠিকানা উপলভ্য নেই।\nকানেকশন সেটিংসে নেটওয়ার্ক ফিল্টার দেখুন।</string>
+    <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
+    <string name="mjpeg_address_network_details">নেটওয়ার্ক:\n%1$s (%2$s)</string>
+    <string name="mjpeg_address_same_device">শুধু এই ডিভাইস</string>
+    <string name="mjpeg_address_private_ipv4">প্রাইভেট IPv4</string>
+    <string name="mjpeg_address_ipv6_ula">IPv6 ULA</string>
+    <string name="mjpeg_address_non_private_ipv4">নন-প্রাইভেট IPv4</string>
+    <string name="mjpeg_address_non_private_ipv6">নন-প্রাইভেট IPv6</string>
+
+    <string name="mjpeg_address_open">খুলুন</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_address_open_description">%1$s খুলুন</string>
+    <string name="mjpeg_address_copy_url">লিঙ্ক কপি করুন</string>
+    <string name="mjpeg_address_copy_description">%1$s-এর লিঙ্ক কপি করুন</string>
+    <string name="mjpeg_address_share">শেয়ার করুন</string>
+    <string name="mjpeg_address_share_description">%1$s-এর লিঙ্ক শেয়ার করুন</string>
+    <string name="mjpeg_address_qr_code">QR কোড দেখান</string>
+    <string name="mjpeg_address_qr_code_description">%1$s-এর QR কোড দেখান</string>
+    <string name="mjpeg_address_qr_image_description">স্ট্রিমের লিঙ্ক খুলতে এই কোড স্ক্যান করুন</string>
+
+    <string name="mjpeg_address_error_browser_not_found">কোনও ওয়েব ব্রাউজার পাওয়া যায়নি</string>
+    <string name="mjpeg_address_error_open">লিঙ্ক খোলা যায়নি</string>
+    <string name="mjpeg_address_error_share">লিঙ্ক শেয়ার করা যায়নি</string>
+    <string name="mjpeg_address_error_qr_generation">QR কোড তৈরি করা যায়নি</string>
+
+    <string name="mjpeg_local_network_permission_request">অনুমতি চান</string>
+    <string name="mjpeg_local_network_permission_open_settings">সেটিংস খুলুন</string>
+    <string name="mjpeg_local_network_permission_required">লোকাল নেটওয়ার্কের অনুমতি প্রয়োজন</string>
+
+    <string name="mjpeg_server_pending">অপেক্ষমাণ</string>
+    <string name="mjpeg_server_address_in_use">ঠিকানা ব্যবহৃত হচ্ছে</string>
+    <string name="mjpeg_server_address_unavailable">ঠিকানা উপলভ্য নয়</string>
+    <string name="mjpeg_server_permission_denied">অনুমতি দেওয়া হয়নি</string>
+    <string name="mjpeg_server_io_failure">সার্ভার উপলভ্য নয়</string>
+    <string name="mjpeg_server_unknown_failure">সার্ভারে সমস্যা হয়েছে</string>
+    <string name="mjpeg_server_retry">আবার চেষ্টা করুন</string>
+    <!-- %1$s is the public displayed URL, without an access token. -->
+    <string name="mjpeg_server_retry_description">%1$s-এ সার্ভারের জন্য আবার চেষ্টা করুন</string>
+
+    <string name="mjpeg_stream_pin_label">PIN:</string>
+    <string name="mjpeg_pin_mask">••••••</string>
+    <string name="mjpeg_stream_pin_hidden">PIN লুকানো আছে</string>
+    <string name="mjpeg_pin_show_label">দেখান</string>
+    <string name="mjpeg_pin_show_description">PIN দেখান</string>
+    <string name="mjpeg_pin_hide_label">লুকান</string>
+    <string name="mjpeg_pin_hide_description">PIN লুকান</string>
+    <string name="mjpeg_stream_pin_copy">PIN কপি করুন</string>
+    <string name="mjpeg_stream_pin_copied">PIN কপি করা হয়েছে</string>
+    <string name="mjpeg_stream_pin_hint_access">একটি স্ট্রিমের লিঙ্ক খুলুন বা তার QR কোড স্ক্যান করুন।\nচাওয়া হলে এই PIN লিখুন।</string>
+
+    <!-- Image settings -->
+    <string name="mjpeg_pref_image_group">ছবির সেটিংস</string>
+    <string name="mjpeg_pref_image_save_error">ছবির সেটিংস সেভ করা যায়নি</string>
+
+    <string name="mjpeg_pref_image_region">ক্যাপচারের এলাকা</string>
+    <string name="mjpeg_pref_image_region_summary">স্ট্রিম করার এলাকা বেছে নিন</string>
+    <string name="mjpeg_pref_image_region_full">পুরো এলাকা</string>
+    <string name="mjpeg_pref_image_region_left">বাম অর্ধেক</string>
+    <string name="mjpeg_pref_image_region_right">ডান অর্ধেক</string>
+
+    <string name="mjpeg_pref_image_crop">ক্রপ</string>
+    <string name="mjpeg_pref_image_crop_summary">ছবির প্রান্ত ছাঁটুন</string>
+    <string name="mjpeg_pref_image_crop_purpose">প্রতিটি প্রান্ত থেকে কত পিক্সেল সরাবেন তা লিখুন</string>
+    <string name="mjpeg_pref_image_crop_empty_warning">ছবির কিছু অংশ দৃশ্যমান রাখুন। নইলে নতুন ফ্রেম ক্যাপচার করা যাবে না।</string>
+    <string name="mjpeg_pref_image_crop_enabled">ক্রপ চালু করুন</string>
+    <string name="mjpeg_pref_image_crop_left">বাম (px)</string>
+    <string name="mjpeg_pref_image_crop_top">উপরে (px)</string>
+    <string name="mjpeg_pref_image_crop_right">ডান (px)</string>
+    <string name="mjpeg_pref_image_crop_bottom">নিচে (px)</string>
+    <string name="mjpeg_pref_image_crop_error">0 বা তার বেশি পূর্ণসংখ্যা লিখুন</string>
+    <string name="mjpeg_pref_image_crop_required">একটি মান লিখুন</string>
+
+    <string name="mjpeg_pref_image_size">ছবির আকার</string>
+    <string name="mjpeg_pref_image_size_summary">স্কেল বা মাত্রা সেট করুন</string>
+    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_stretch">ছবি প্রসারিত করুন</string>
+    <string name="mjpeg_pref_image_size_stretch_value">প্রসারিত করুন</string>
+    <string name="mjpeg_pref_image_size_fit_description">প্রস্থ ও উচ্চতার মধ্যে ফিট করে; অনুপাত বজায় রাখে</string>
+    <string name="mjpeg_pref_image_size_stretch_description">নির্দিষ্ট প্রস্থ ও উচ্চতা; অনুপাত বদলাতে পারে</string>
+    <string name="mjpeg_pref_image_size_estimate_note">স্ক্রিনের ভিত্তিতে অনুমান; শেয়ার করা অ্যাপের আকার ভিন্ন হতে পারে</string>
+    <string name="mjpeg_pref_image_size_source">স্ক্রিন: %1$s</string>
+    <string name="mjpeg_pref_image_size_result">ছবির আনুমানিক আকার: %1$s</string>
+    <string name="mjpeg_pref_image_size_estimate_unavailable">উপলভ্য নয়</string>
+    <string name="mjpeg_pref_image_size_scale">স্কেল</string>
+    <string name="mjpeg_pref_image_size_target">আকার</string>
+    <string name="mjpeg_pref_image_size_default">ডিফল্ট: %1$s %2$s</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">স্কেল (0-এর বেশি, সর্বোচ্চ 200%)</string>
+    <string name="mjpeg_pref_image_size_width_label">প্রস্থ (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_height_label">উচ্চতা (1–8192 px)</string>
+    <string name="mjpeg_pref_image_size_scale_error">0-এর বেশি ও সর্বোচ্চ 200 পর্যন্ত একটি সংখ্যা লিখুন</string>
+    <string name="mjpeg_pref_image_size_dimension_error">1 থেকে 8192 পর্যন্ত একটি পূর্ণসংখ্যা লিখুন</string>
+    <string name="mjpeg_pref_image_size_enlargement_warning">ছবি বড় করলে বিস্তারিত বাড়ে না এবং স্ট্রিম ধীর হতে পারে</string>
+    <string name="mjpeg_pref_image_size_value">%1$d × %2$d</string>
+
+    <string name="mjpeg_pref_image_rotation">ঘোরানো</string>
+    <string name="mjpeg_pref_image_rotation_summary">ছবি ঘড়ির কাঁটার দিকে ঘোরান</string>
+    <string name="mjpeg_pref_image_rotation_option">%1$d°</string>
+
+    <string name="mjpeg_pref_image_mirror">মিরর</string>
+    <string name="mjpeg_pref_image_mirror_summary">ছবি অনুভূমিক বা উল্লম্বভাবে উল্টান</string>
+    <string name="mjpeg_pref_image_mirror_none">কোনওটিই নয়</string>
+    <string name="mjpeg_pref_image_mirror_horizontal">অনুভূমিক</string>
+    <string name="mjpeg_pref_image_mirror_vertical">উল্লম্ব</string>
+
+    <string name="mjpeg_pref_image_grayscale">গ্রেস্কেল</string>
+    <string name="mjpeg_pref_image_grayscale_summary">ছবি ধূসর রঙের বিভিন্ন শেডে দেখান</string>
+
+    <string name="mjpeg_pref_image_quality">JPEG কোয়ালিটি</string>
+    <string name="mjpeg_pref_image_quality_summary">বিস্তারিত ও ডেটা ব্যবহারের ভারসাম্য রাখুন</string>
+    <string name="mjpeg_pref_image_quality_popup_description">বেশি কোয়ালিটিতে আরও বিস্তারিত দেখা যায় এবং বেশি ডেটা লাগে। ডিফল্ট: %1$s।</string>
+
+    <string name="mjpeg_pref_image_rate">ফ্রেম রেট</string>
+    <string name="mjpeg_pref_image_rate_summary">ছবি কত ঘন ঘন আপডেট হবে সেট করুন</string>
+
+    <string name="mjpeg_pref_image_rate_auto_description">সর্বোচ্চ ফ্রেম রেট বজায় রাখার চেষ্টা করে</string>
+
+    <string name="mjpeg_pref_image_rate_fps">FPS সীমা</string>
+    <string name="mjpeg_pref_image_rate_fps_description">প্রতি সেকেন্ডে ফ্রেমের সংখ্যা সীমিত করে</string>
+    <string name="mjpeg_pref_image_rate_fps_value">সর্বোচ্চ %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_label">ফ্রেম/সেকেন্ড (1–120)</string>
+    <string name="mjpeg_pref_image_rate_fps_error">1 থেকে 120 পর্যন্ত একটি পূর্ণসংখ্যা লিখুন</string>
+    <string name="mjpeg_pref_image_rate_fps_help">প্রকৃত ফ্রেম রেট সীমার চেয়ে কম হতে পারে</string>
+
+    <string name="mjpeg_pref_image_rate_interval">ব্যবধান</string>
+    <string name="mjpeg_pref_image_rate_interval_description">সর্বনিম্ন ক্যাপচার ব্যবধান সেট করে</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s সেকেন্ড</string>
+    <string name="mjpeg_pref_image_rate_interval_label">ব্যবধান (1–3600 সেকেন্ড)</string>
+    <string name="mjpeg_pref_image_rate_interval_error">1 থেকে 3600 সেকেন্ড পর্যন্ত ব্যবধান লিখুন</string>
+    <string name="mjpeg_pref_image_rate_interval_help">ব্যবধান নতুন ফ্রেম কত ঘন ঘন ক্যাপচার হবে তা সীমিত করে</string>
+
+    <string name="mjpeg_pref_image_encoder">JPEG এনকোডার</string>
+    <string name="mjpeg_pref_image_encoder_summary">JPEG ছবি কীভাবে তৈরি হবে তা বেছে নিন</string>
+    <string name="mjpeg_pref_image_encoder_standard">স্ট্যান্ডার্ড</string>
+    <string name="mjpeg_pref_image_encoder_locked">স্ক্রিন শেয়ার পুরোপুরি বন্ধ হওয়ার পর উপলভ্য</string>
+    <string name="mjpeg_pref_image_encoder_auto_description">উপলভ্য থাকলে অপ্টিমাইজ করা এনকোডিং</string>
+    <string name="mjpeg_pref_image_encoder_standard_description">এনকোডিং অপ্টিমাইজেশন বন্ধ করে</string>
+
+    <!-- Automation settings -->
+    <string name="mjpeg_pref_automation_group">অটোমেশন সেটিংস</string>
+    <string name="mjpeg_pref_automation_save_error">অটোমেশন সেটিংস সেভ করা যায়নি</string>
+
+    <string name="mjpeg_pref_automation_address_loss_timeout">ঠিকানা হারালে স্ট্রিম বন্ধ করুন</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">বেছে নেওয়া কোনও ঠিকানা অবশিষ্ট না থাকলে স্ট্রিম বন্ধ করুন</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">%1$d সেকেন্ড পরে</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_label">দেরি (10–1800 সেকেন্ড)</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_default">ডিফল্ট: %1$s সেকেন্ড</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_error">10 থেকে 1800 পর্যন্ত একটি পূর্ণসংখ্যা লিখুন</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">ঠিকানা ফিরে এলে টাইমার বাতিল হয়</string>
+
+    <string name="mjpeg_pref_automation_inactive_image">নিষ্ক্রিয় স্ট্রিমের ছবি</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">লাইভ ছবি উপলভ্য না থাকলে দেখানো ছবি</string>
+    <string name="mjpeg_pref_automation_inactive_image_placeholder_option">অ্যাপের লোগো</string>
+    <string name="mjpeg_pref_automation_inactive_image_last_frame_option">শেষ ফ্রেম</string>
+
+    <string name="mjpeg_pref_automation_keep_awake">স্ক্রিন চালু রাখুন</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">সম্ভব হলে ক্যাপচারের সময় স্ক্রিন চালু রাখুন</string>
+
+    <string name="mjpeg_pref_automation_stop_on_screen_off">স্ক্রিন বন্ধ হলে থামান</string>
+    <string name="mjpeg_pref_automation_stop_on_screen_off_summary">স্ক্রিন বন্ধ হলে স্ট্রিম বন্ধ করুন</string>
+
+    <string name="mjpeg_pref_automation_skipped_frames_warning">বাদ পড়া ফ্রেম সম্পর্কে সতর্ক করুন</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">কিছু ডিভাইস কম ছবি পেতে পারে</string>
+
+    <!-- Connection settings -->
+    <string name="mjpeg_pref_connection_group">কানেকশন সেটিংস</string>
+    <string name="mjpeg_pref_connection_save_error">নেটওয়ার্ক সেটিংস সেভ করা যায়নি</string>
+
+    <string name="mjpeg_pref_connection_filter">নেটওয়ার্ক ফিল্টার</string>
+    <string name="mjpeg_pref_connection_filter_summary">স্ট্রিমের জন্য নেটওয়ার্কের ঠিকানা বেছে নিন</string>
+    <string name="mjpeg_pref_connection_filter_ip_version">IP ভার্সন</string>
+    <string name="mjpeg_pref_connection_filter_network_type">নেটওয়ার্কের ধরন</string>
+    <string name="mjpeg_pref_connection_filter_address_type">ঠিকানার ধরন</string>
+    <string name="mjpeg_pref_connection_filter_private">প্রাইভেট</string>
+    <string name="mjpeg_pref_connection_filter_non_private">নন-প্রাইভেট</string>
+    <string name="mjpeg_pref_connection_filter_selection_help">প্রতিটি গ্রুপে অন্তত একটি বিকল্প বেছে নিন</string>
+    <string name="mjpeg_pref_connection_filter_default">ডিফল্ট: %1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_connection_filter_help">ঠিকানাগুলি তিনটি গ্রুপের সাথেই মিলতে হবে। পরিবর্তনের ফলে দর্শকদের কানেকশন বিচ্ছিন্ন হতে পারে।</string>
+
+    <string name="mjpeg_pref_connection_http_port">HTTP পোর্ট</string>
+    <string name="mjpeg_pref_connection_http_port_summary">দর্শকরা কানেক্ট করতে যে পোর্ট ব্যবহার করবেন তা সেট করুন</string>
+    <string name="mjpeg_pref_connection_http_port_label">পোর্ট (1024–65535)</string>
+    <string name="mjpeg_pref_connection_http_port_error">1024 থেকে 65535 পর্যন্ত একটি পূর্ণসংখ্যা লিখুন</string>
+    <string name="mjpeg_pref_connection_http_port_help">পোর্ট বদলালে স্ট্রিমের ঠিকানা আপডেট হয়</string>
+
+    <!-- Web page settings -->
+    <string name="mjpeg_pref_web_group">ওয়েব পেজের সেটিংস</string>
+    <string name="mjpeg_pref_web_save_error">ওয়েব পেজের সেটিংস সেভ করা যায়নি</string>
+
+    <string name="mjpeg_pref_web_background">ব্যাকগ্রাউন্ড</string>
+    <string name="mjpeg_pref_web_background_summary">ওয়েব পেজের ব্যাকগ্রাউন্ডের রঙ বেছে নিন</string>
+    <string name="mjpeg_pref_web_background_hex_label">হেক্স রঙ</string>
+    <string name="mjpeg_pref_web_background_hex_error">6টি অক্ষর ব্যবহার করুন: 0–9, A–F</string>
+    <string name="mjpeg_pref_web_background_red">লাল</string>
+    <string name="mjpeg_pref_web_background_green">সবুজ</string>
+    <string name="mjpeg_pref_web_background_blue">নীল</string>
+    <string name="mjpeg_pref_web_background_palette">আগে থেকে সেট করা রঙ</string>
+    <string name="mjpeg_pref_web_background_color_option">রঙ %1$s</string>
+    <string name="mjpeg_pref_web_background_color_preview">বেছে নেওয়া রঙ %1$s</string>
+
+    <string name="mjpeg_pref_web_stream_name">স্ট্রিমের নাম</string>
+    <string name="mjpeg_pref_web_stream_name_summary">দর্শকদের দেখানো নাম সেট করুন</string>
+    <string name="mjpeg_pref_web_stream_name_label">স্ট্রিমের নাম (সর্বোচ্চ 64টি অক্ষর)</string>
+    <string name="mjpeg_pref_web_stream_name_error">সর্বোচ্চ %1$dটি অক্ষর ব্যবহার করুন</string>
+    <string name="mjpeg_pref_web_stream_name_help">ব্রাউজার ট্যাবের শিরোনাম ও স্ট্রিমের লেবেল হিসেবে ব্যবহৃত হয়</string>
+    <string name="mjpeg_pref_web_stream_name_enabled">স্ট্রিমের নাম দেখান</string>
+    <string name="mjpeg_pref_web_stream_name_empty">নাম নেই</string>
+
+    <string name="mjpeg_pref_web_stream_name_placement">স্ট্রিমের নামের অবস্থান</string>
+    <string name="mjpeg_pref_web_stream_name_placement_summary">নাম কোথায় ও কীভাবে দেখাবে তা বেছে নিন</string>
+
+    <string name="mjpeg_pref_web_controls_placement">কন্ট্রোলের অবস্থান</string>
+    <string name="mjpeg_pref_web_controls_placement_summary">কন্ট্রোল কোথায় ও কীভাবে দেখাবে তা বেছে নিন</string>
+
+    <string name="mjpeg_pref_web_placement_value">%1$s · %2$s · %3$s</string>
+    <string name="mjpeg_pref_web_position">অবস্থান</string>
+    <string name="mjpeg_pref_web_position_top">উপরে</string>
+    <string name="mjpeg_pref_web_position_bottom">নিচে</string>
+    <string name="mjpeg_pref_web_presentation">যেভাবে দেখাবে</string>
+    <string name="mjpeg_pref_web_presentation_overlay">ছবির উপর</string>
+    <string name="mjpeg_pref_web_presentation_bar">আলাদা বার</string>
+    <string name="mjpeg_pref_web_auto_hide_on">অটো লুকান</string>
+    <string name="mjpeg_pref_web_auto_hide_off">সবসময় দেখান</string>
+    <string name="mjpeg_pref_web_auto_hide_help">4 সেকেন্ড কোনও ইন্টারঅ্যাকশন না হলে লুকান</string>
+
+    <!-- Access settings -->
+    <string name="mjpeg_pref_access_group">অ্যাক্সেস সেটিংস</string>
+    <string name="mjpeg_pref_access_save_error">অ্যাক্সেস সেটিংস সেভ করা যায়নি</string>
+
+    <string name="mjpeg_pref_access_protection">PIN সুরক্ষা</string>
+    <string name="mjpeg_pref_access_protection_summary">স্ট্রিম দেখতে PIN বা অ্যাক্সেস লিঙ্ক প্রয়োজন</string>
+    <string name="mjpeg_pref_access_protection_default">ডিফল্ট: %1$s · %2$s</string>
+    <string name="mjpeg_pref_access_policy_label">PIN নীতি</string>
+    <string name="mjpeg_pref_access_policy_new_on_module_start">খোলার সময় নতুন PIN</string>
+    <string name="mjpeg_pref_access_policy_permanent">স্থায়ী PIN</string>
+    <string name="mjpeg_pref_access_policy_help">“খোলার সময় নতুন PIN” বেছে নেওয়া থাকলে ও সুরক্ষা চালু থাকলে MJPEG মোড প্রতিবার খোলার সময় PIN তৈরি হয়। ক্যাপচার শুরু করলে PIN বদলায় না।</string>
+
+    <string name="mjpeg_pref_access_pin">PIN</string>
+    <string name="mjpeg_pref_access_pin_summary">স্ট্রিমে অ্যাক্সেসের জন্য সেভ করা PIN</string>
+    <string name="mjpeg_pref_access_pin_unavailable">কোনও PIN সেভ করা নেই</string>
+    <string name="mjpeg_pref_access_pin_label">PIN (6 অঙ্ক)</string>
+    <string name="mjpeg_pref_access_pin_error">ছয়টি অঙ্ক লিখুন (0–9)</string>
+    <string name="mjpeg_pref_access_pin_regenerate">নতুন PIN তৈরি করুন</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">নিজের PIN লিখতে “স্থায়ী PIN” বেছে নিন</string>
+
+    <string name="mjpeg_pref_access_wrong_pins">PIN-এর প্রচেষ্টা সীমিত করুন</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">পাঁচবার ভুলের পর PIN দিয়ে সাইন-ইন পজ করুন</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">মিনিট: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_label">ব্লক করার সময় (1–60 মিনিট)</string>
+    <string name="mjpeg_pref_access_wrong_pins_default">ডিফল্ট: %1$s · %2$s মিনিট</string>
+    <string name="mjpeg_pref_access_wrong_pins_error">1 থেকে 60 পর্যন্ত একটি পূর্ণসংখ্যা লিখুন</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">ওই IP থেকে নতুন PIN প্রচেষ্টা ব্লক করে। আগে থেকে কানেক্ট করা দর্শকরা কানেক্ট থাকেন।</string>
+
+    <string name="mjpeg_pref_access_hide_pin_on_start">স্ট্রিম শুরু করলে PIN লুকান</string>
+    <string name="mjpeg_pref_access_hide_pin_on_start_summary">PIN আবার দেখাতে পারবেন</string>
+</resources>

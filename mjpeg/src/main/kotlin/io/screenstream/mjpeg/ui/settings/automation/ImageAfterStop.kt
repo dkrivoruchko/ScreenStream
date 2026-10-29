@@ -23,14 +23,14 @@ import io.screenstream.mjpeg.ui.settings.rememberSettingOpenerFocus
 
 internal object ImageAfterStopSearch {
     val labelResIds: Map<StreamBehaviorSettings.PostStopImage, Int> = mapOf(
-        StreamBehaviorSettings.PostStopImage.Placeholder to R.string.mjpeg_pref_stream_post_stop_placeholder,
-        StreamBehaviorSettings.PostStopImage.LastAvailableFrame to R.string.mjpeg_pref_stream_post_stop_last_frame,
+        StreamBehaviorSettings.PostStopImage.Placeholder to R.string.mjpeg_pref_automation_inactive_image_placeholder_option,
+        StreamBehaviorSettings.PostStopImage.LastAvailableFrame to R.string.mjpeg_pref_automation_inactive_image_last_frame_option,
     )
 
     val info: SettingSearchInfo = SettingSearchInfo(
         group = SettingSearchGroup.Automation,
-        titleRes = R.string.mjpeg_pref_stream_post_stop_image,
-        summaryRes = R.string.mjpeg_pref_stream_post_stop_image_summary,
+        titleRes = R.string.mjpeg_pref_automation_inactive_image,
+        summaryRes = R.string.mjpeg_pref_automation_inactive_image_summary,
         extraTermResIds = labelResIds.values.toList(),
     )
 }

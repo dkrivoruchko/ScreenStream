@@ -206,6 +206,7 @@ private fun StreamAddressRow(
             val addressScopeLabelRes = when (server.family) {
                 AddressFamily.Ipv4 -> when {
                     server.isLoopback -> R.string.mjpeg_network_ipv4
+                    server.isLinkLocal -> R.string.mjpeg_network_ipv4_link_local
                     server.isPrivate -> R.string.mjpeg_address_private_ipv4
                     else -> R.string.mjpeg_address_non_private_ipv4
                 }
@@ -227,6 +228,7 @@ private fun StreamAddressRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             StreamAddressActions(
+                displayUrl = displayUrl,
                 actionUrl = actionUrl,
                 onOpen = onOpen,
                 onShowQrCode = { showQrCode = true },
@@ -246,6 +248,7 @@ private fun StreamAddressRow(
             is UiController.ServerStatus.Failed -> StreamAddressFailure(
                 reason = status.reason,
                 serverId = server.serverId,
+                displayUrl = displayUrl,
                 onRetry = onRetry,
             )
         }
@@ -259,6 +262,7 @@ private fun StreamAddressRow(
 
 @Composable
 private fun StreamAddressActions(
+    displayUrl: String,
     actionUrl: String,
     onOpen: () -> Unit,
     onShowQrCode: () -> Unit,
@@ -275,7 +279,7 @@ private fun StreamAddressActions(
     ) {
         Icon(
             painter = painterResource(R.drawable.mjpeg_icon_open),
-            contentDescription = stringResource(R.string.mjpeg_address_open),
+            contentDescription = stringResource(R.string.mjpeg_address_open_description, displayUrl),
         )
     }
     IconButton(
@@ -292,7 +296,7 @@ private fun StreamAddressActions(
     ) {
         Icon(
             painter = painterResource(R.drawable.mjpeg_icon_copy),
-            contentDescription = stringResource(R.string.mjpeg_address_copy_url),
+            contentDescription = stringResource(R.string.mjpeg_address_copy_description, displayUrl),
         )
     }
     IconButton(
@@ -315,13 +319,13 @@ private fun StreamAddressActions(
     ) {
         Icon(
             painter = painterResource(R.drawable.mjpeg_icon_share),
-            contentDescription = stringResource(R.string.mjpeg_address_share),
+            contentDescription = stringResource(R.string.mjpeg_address_share_description, displayUrl),
         )
     }
     IconButton(onClick = onShowQrCode, modifier = Modifier.size(48.dp)) {
         Icon(
             painter = painterResource(R.drawable.mjpeg_icon_qr),
-            contentDescription = stringResource(R.string.mjpeg_address_qr_code),
+            contentDescription = stringResource(R.string.mjpeg_address_qr_code_description, displayUrl),
         )
     }
 }
@@ -330,6 +334,7 @@ private fun StreamAddressActions(
 private fun StreamAddressFailure(
     reason: UiController.ServerFailureReason,
     serverId: Uuid?,
+    displayUrl: String,
     onRetry: (Uuid) -> Unit,
 ) {
     if (reason == UiController.ServerFailureReason.PermissionDenied && serverId == null) {
@@ -374,7 +379,7 @@ private fun StreamAddressFailure(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.mjpeg_icon_retry),
-                    contentDescription = stringResource(R.string.mjpeg_server_retry),
+                    contentDescription = stringResource(R.string.mjpeg_server_retry_description, displayUrl),
                 )
             }
         }
@@ -477,7 +482,7 @@ private fun QrCodeDialog(
 
                     else -> Image(
                         bitmap = image,
-                        contentDescription = stringResource(R.string.mjpeg_address_qr_description),
+                        contentDescription = stringResource(R.string.mjpeg_address_qr_image_description),
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

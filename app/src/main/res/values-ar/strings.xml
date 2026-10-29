@@ -4,10 +4,10 @@
     <string name="app_error_recover">استعادة</string>
 
     <string name="app_module_error_title">حدث خطأ ما</string>
-    <string name="app_module_error_restart">إعادة تشغيل الوحدة</string>
+    <string name="app_module_error_restart">إعادة تشغيل الوضع</string>
 
     <string name="app_activity_update_dialog_title">التحديث متاح</string>
-    <string name="app_activity_update_dialog_message">تم تنزيل تحديث للتو. أعد تشغيل التطبيق الآن؟</string>
+    <string name="app_activity_update_dialog_message">التحديث جاهز. هل تريد إعادة تشغيل التطبيق الآن؟</string>
     <string name="app_activity_update_dialog_restart">إعادة التشغيل</string>
 
     <string name="app_tab_stream">بث</string>
@@ -16,8 +16,9 @@
     <string name="app_tab_exit">خروج</string>
 
     <string name="app_tab_stream_select_mode">اختر وضع البث:</string>
-    <string name="app_tab_stream_switching_modules">جارٍ تبديل الوحدات</string>
+    <string name="app_tab_stream_switching_modules">جارٍ تبديل الأوضاع…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">ليس الآن</string>
     <string name="app_permission_open_settings">فتح الإعدادات</string>
 
@@ -25,7 +26,7 @@
     <string name="app_permission_notifications_message">تعرض الإشعارات حالة البث وتنبيهات الأخطاء. استخدمها لإيقاف البث أو إعادة فتح ScreenStream.</string>
 
     <string name="app_permission_local_network_title">الوصول إلى الشبكة المحلية</string>
-    <string name="app_permission_local_network_message">اسمح لـ ScreenStream باستخدام شبكتك المحلية للبث إلى أجهزة أخرى على الشبكة نفسها.\n\nيصف Android هذا الإذن بأنه وصول إلى الأجهزة القريبة، وقد يذكر تحديد مواضعها بالنسبة إلى بعضها.</string>
+    <string name="app_permission_local_network_message">اسمح لـ ScreenStream باستخدام شبكتك المحلية للبث إلى أجهزة أخرى على الشبكة نفسها.\n\nيصف Android هذا الإذن بأنه وصول إلى الأجهزة المجاورة، وقد يذكر تحديد مواضعها بالنسبة إلى بعضها.</string>
     <string name="app_permission_local_network_off_title">الوصول إلى الشبكة المحلية متوقف</string>
     <string name="app_permission_local_network_settings_message">في إعدادات التطبيق، افتح «الأذونات» واسمح بالوصول إلى «الأجهزة المجاورة» للبث إلى أجهزة على الشبكة المحلية نفسها.</string>
 
@@ -36,7 +37,7 @@
 
     <string name="app_permission_audio_title">صوت الميكروفون والجهاز</string>
     <string name="app_permission_audio_message">اسمح بالوصول إلى الميكروفون لبث صوت الميكروفون والجهاز.\n\nلا يمكن بث صوت الجهاز إلا إذا سمح Android والتطبيق الذي يشغّله بمشاركته.</string>
-    <string name="app_permission_audio_settings_message">فعّل إذن الميكروفون في إعدادات التطبيق لبث صوت الميكروفون أو الصوت الداخلي.\n\nبدونه سيكون البث بلا صوت.</string>
+    <string name="app_permission_audio_settings_message">اسمح بالوصول إلى الميكروفون في إعدادات التطبيق لبث صوت الميكروفون أو الجهاز.\n\nبدون ذلك، لا يمكن بث الصوت.</string>
 
     <string name="app_notification_channel_streaming">إشعارات البث</string>
     <string name="app_notification_channel_error">إشعارات الأخطاء</string>
@@ -45,7 +46,8 @@
     <string name="app_notification_streaming_content">اضغط على إيقاف لإنهاء البث</string>
     <string name="app_notification_stop">إيقاف</string>
 
-    <string name="app_tile_start">بدء</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">فتح ScreenStream</string>
     <string name="app_tile_stop">إيقاف</string>
 
     <string name="app_pref_back">رجوع</string>
@@ -54,6 +56,7 @@
     <string name="app_pref_locale_summary">افتح إعدادات لغة التطبيق</string>
     <string name="app_pref_locale_default">الافتراضي للنظام</string>
     <string name="app_pref_night_mode">المظهر الداكن</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>دائمًا</item>
         <item>حسب توفير شحن البطارية</item>
@@ -61,20 +64,20 @@
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>دائمًا</item>
-        <item>تلقائيًا (حسب النظام)</item>
+        <item>حسب النظام</item>
         <item>أبدًا</item>
     </string-array>
     <string name="app_pref_dynamic_theme">اللون الديناميكي</string>
     <string name="app_pref_dynamic_theme_summary">اضبط المظهر استنادًا إلى ألوان خلفية الشاشة لديك</string>
-    <string name="app_pref_notification">إعدادات إشعار الجهاز</string>
-    <string name="app_pref_notification_summary">افتح إعدادات إشعار النظام</string>
-    <string name="app_pref_tile">إضافة مربع التطبيق</string>
-    <string name="app_pref_tile_summary">إضافة مربع التطبيق إلى الإعدادات السريعة</string>
+    <string name="app_pref_notification">إشعارات التطبيق</string>
+    <string name="app_pref_notification_summary">إدارة الإشعارات في إعدادات النظام</string>
+    <string name="app_pref_tile">إضافة مربّع الإعدادات السريعة</string>
+    <string name="app_pref_tile_summary">إضافة ScreenStream إلى الإعدادات السريعة</string>
 
     <string name="app_tab_about_app_version">الإصدار: %1$s</string>
-    <string name="app_tab_about_developer_name">تم تطويره بواسطة دميترو كريفوروشكو</string>
+    <string name="app_tab_about_developer_name">طوّره Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">قيّم التطبيق</string>
-    <string name="app_tab_about_app_sources">مصادر التطبيق</string>
+    <string name="app_tab_about_app_sources">الرمز المصدري</string>
     <string name="app_tab_about_terms_conditions">الشروط والأحكام</string>
     <string name="app_tab_about_privacy_policy">سياسة الخصوصية</string>
     <string name="app_tab_about_privacy_options">خيارات الخصوصية</string>

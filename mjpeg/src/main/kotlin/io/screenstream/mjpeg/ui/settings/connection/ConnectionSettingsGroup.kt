@@ -35,7 +35,7 @@ internal fun ConnectionSettingsGroup(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
 ) {
-    val saveErrorText = stringResource(R.string.mjpeg_pref_network_save_error)
+    val saveErrorText = stringResource(R.string.mjpeg_pref_connection_save_error)
     val currentEditPolicy by rememberUpdatedState(editPolicy)
     val coroutineScope = rememberCoroutineScope()
 

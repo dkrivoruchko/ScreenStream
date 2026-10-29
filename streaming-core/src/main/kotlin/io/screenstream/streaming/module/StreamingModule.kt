@@ -76,14 +76,20 @@ public interface StreamingModule {
      * @property hasConsumer Whether a consumer is present, independently of capture state.
      * @property captureAttempt Accepted Start identity, retained through its cleanup; null when
      * no capture attempt is active.
-     * @property errorMessage Current operation diagnostic while the module can continue; null when healthy.
+     * @property error Current operation error while the module can continue; null when healthy.
      */
     public data class Status(
         public val isStreaming: Boolean,
         public val hasConsumer: Boolean,
         public val captureAttempt: CaptureAttemptId?,
-        public val errorMessage: String?,
-    )
+        public val error: Error?,
+    ) {
+        /**
+         * Recoverable operation error, with an optional localized message for the user.
+         * Technical diagnostics belong in logs.
+         */
+        public data class Error(public val message: String? = null)
+    }
 
     /**
      * Control and cleanup for one [InstanceId], separate from the process-level module entry.

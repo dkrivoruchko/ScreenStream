@@ -4,30 +4,31 @@
     <string name="app_error_recover">पुनर्प्राप्त करें</string>
 
     <string name="app_module_error_title">कुछ गलत हो गया</string>
-    <string name="app_module_error_restart">मॉड्यूल फिर से शुरू करें</string>
+    <string name="app_module_error_restart">मोड रीस्टार्ट करें</string>
 
     <string name="app_activity_update_dialog_title">अपडेट उपलब्ध है</string>
-    <string name="app_activity_update_dialog_message">एक अपडेट अभी डाउनलोड की गई है। क्या आप अब ऐप्लिकेशन को फिर से चालना चाहेंगे?</string>
+    <string name="app_activity_update_dialog_message">अपडेट तैयार है। अभी ऐप्लिकेशन रीस्टार्ट करें?</string>
     <string name="app_activity_update_dialog_restart">रीस्टार्ट करें</string>
 
     <string name="app_tab_stream">स्ट्रीम</string>
-    <string name="app_tab_settings">सेटिंग्स</string>
-    <string name="app_tab_about">विषय में</string>
+    <string name="app_tab_settings">सेटिंग</string>
+    <string name="app_tab_about">परिचय</string>
     <string name="app_tab_exit">बाहर</string>
 
     <string name="app_tab_stream_select_mode">स्ट्रीम मोड चुनें:</string>
-    <string name="app_tab_stream_switching_modules">मॉड्यूल बदले जा रहे हैं</string>
+    <string name="app_tab_stream_switching_modules">मोड बदले जा रहे हैं…</string>
 
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">अभी नहीं</string>
-    <string name="app_permission_open_settings">सेटिंग्स खोलें</string>
+    <string name="app_permission_open_settings">सेटिंग खोलें</string>
 
     <string name="app_permission_notifications_title">सूचनाओं की अनुमति दें</string>
     <string name="app_permission_notifications_message">सूचनाओं में स्ट्रीम की स्थिति और त्रुटियों की चेतावनियाँ दिखती हैं। इनसे स्ट्रीमिंग रोकें या ScreenStream दोबारा खोलें।</string>
 
     <string name="app_permission_local_network_title">स्थानीय नेटवर्क एक्सेस</string>
-    <string name="app_permission_local_network_message">उसी नेटवर्क के अन्य डिवाइसों पर स्ट्रीम करने के लिए ScreenStream को अपना स्थानीय नेटवर्क इस्तेमाल करने दें।\n\nAndroid इस अनुमति को आस-पास के डिवाइसों के एक्सेस के रूप में बताता है और उनकी सापेक्ष स्थिति का पता लगाने का उल्लेख कर सकता है।</string>
+    <string name="app_permission_local_network_message">उसी नेटवर्क के अन्य डिवाइसों पर स्ट्रीम करने के लिए ScreenStream को अपना स्थानीय नेटवर्क इस्तेमाल करने दें।\n\nAndroid इस अनुमति को आस-पास मौजूद डिवाइस के ऐक्सेस के रूप में बताता है और उनकी सापेक्ष स्थिति का पता लगाने का उल्लेख कर सकता है।</string>
     <string name="app_permission_local_network_off_title">स्थानीय नेटवर्क एक्सेस बंद है</string>
-    <string name="app_permission_local_network_settings_message">उसी स्थानीय नेटवर्क के डिवाइसों पर स्ट्रीम करने के लिए ऐप सेटिंग में अनुमतियाँ खोलें और आस-पास मौजूद डिवाइस की अनुमति दें।</string>
+    <string name="app_permission_local_network_settings_message">उसी स्थानीय नेटवर्क के डिवाइसों पर स्ट्रीम करने के लिए, ऐप्लिकेशन की सेटिंग में अनुमतियां खोलें और आस-पास मौजूद डिवाइस की अनुमति दें।</string>
 
     <string name="app_permission_microphone_title">माइक्रोफ़ोन एक्सेस</string>
     <string name="app_permission_microphone_message">स्ट्रीम में अपने माइक्रोफ़ोन की आवाज़ शामिल करने के लिए माइक्रोफ़ोन एक्सेस की अनुमति दें।\n\nइसके बिना, माइक्रोफ़ोन का ऑडियो स्ट्रीम नहीं किया जा सकता।</string>
@@ -36,45 +37,47 @@
 
     <string name="app_permission_audio_title">माइक्रोफ़ोन और डिवाइस का ऑडियो</string>
     <string name="app_permission_audio_message">माइक्रोफ़ोन और डिवाइस का ऑडियो स्ट्रीम करने के लिए माइक्रोफ़ोन एक्सेस की अनुमति दें।\n\nडिवाइस का ऑडियो तभी स्ट्रीम किया जा सकता है जब Android और ऑडियो चलाने वाला ऐप इसे शेयर करने की अनुमति दें।</string>
-    <string name="app_permission_audio_settings_message">माइक्रोफ़ोन या आंतरिक ऑडियो स्ट्रीम करने के लिए ऐप सेटिंग में माइक्रोफ़ोन अनुमति चालू करें।\n\nइसके बिना स्ट्रीम में ध्वनि नहीं होगी।</string>
+    <string name="app_permission_audio_settings_message">माइक्रोफ़ोन या डिवाइस का ऑडियो स्ट्रीम करने के लिए, ऐप्लिकेशन की सेटिंग में माइक्रोफ़ोन ऐक्सेस की अनुमति दें।\n\nइसके बिना ऑडियो स्ट्रीम नहीं किया जा सकता।</string>
 
     <string name="app_notification_channel_streaming">स्ट्रीमिंग सूचनाएँ</string>
     <string name="app_notification_channel_error">त्रुटि सूचनाएँ</string>
     <string name="app_notification_waiting_content">ऐप खोलने के लिए टैप करें</string>
-    <string name="app_notification_streaming_title">प्रवाह…</string>
-    <string name="app_notification_streaming_content">स्ट्रीम समाप्त करने के लिए रोकें पर टैप करें</string>
-    <string name="app_notification_stop">रुकें</string>
+    <string name="app_notification_streaming_title">स्ट्रीमिंग…</string>
+    <string name="app_notification_streaming_content">स्ट्रीम खत्म करने के लिए रोकें पर टैप करें</string>
+    <string name="app_notification_stop">रोकें</string>
 
-    <string name="app_tile_start">शुरू</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream खोलें</string>
     <string name="app_tile_stop">रोकें</string>
 
     <string name="app_pref_back">पीछे</string>
-    <string name="app_pref_settings">सेटिंग्स</string>
-    <string name="app_pref_locale">ऐप्लिकेशन भाषा</string>
-    <string name="app_pref_locale_summary">ऐप्लिकेशन भाषा सेटिंग्स खोलें</string>
+    <string name="app_pref_settings">सेटिंग</string>
+    <string name="app_pref_locale">ऐप्लिकेशन की भाषा</string>
+    <string name="app_pref_locale_summary">ऐप्लिकेशन की भाषा की सेटिंग खोलें</string>
     <string name="app_pref_locale_default">सिस्टम डिफ़ॉल्ट</string>
-    <string name="app_pref_night_mode">डार्क थीम</string>
+    <string name="app_pref_night_mode">गहरे रंग वाली थीम</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>हमेशा</item>
-        <item>बैटरी सेवर</item>
-        <item>कभी नहीँ</item>
+        <item>बैटरी सेवर के मुताबिक</item>
+        <item>कभी नहीं</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>हमेशा</item>
-        <item>स्वचालित रूप से (सिस्टम का अनुसरण करें)</item>
-        <item>कभी नहीँ</item>
+        <item>सिस्टम के मुताबिक</item>
+        <item>कभी नहीं</item>
     </string-array>
     <string name="app_pref_dynamic_theme">डायनामिक रंग</string>
     <string name="app_pref_dynamic_theme_summary">अपने वॉलपेपर के रंगों के आधार पर दिखावट को समायोजित करें</string>
-    <string name="app_pref_notification">डिवाइस अधिसूचना सेटिंग्स</string>
-    <string name="app_pref_notification_summary">सिस्टम अधिसूचना सेटिंग्स खोलें</string>
-    <string name="app_pref_tile">एप्लिकेशन टाइल जोड़ें</string>
-    <string name="app_pref_tile_summary">त्वरित सेटिंग्स में एप्लिकेशन टाइल जोड़ें</string>
+    <string name="app_pref_notification">ऐप्लिकेशन की सूचनाएं</string>
+    <string name="app_pref_notification_summary">सिस्टम सेटिंग में सूचनाएं मैनेज करें</string>
+    <string name="app_pref_tile">क्विक सेटिंग टाइल जोड़ें</string>
+    <string name="app_pref_tile_summary">क्विक सेटिंग में ScreenStream जोड़ें</string>
 
     <string name="app_tab_about_app_version">संस्करण: %1$s</string>
     <string name="app_tab_about_developer_name">Dmytro Kryvoruchko द्वारा विकसित</string>
-    <string name="app_tab_about_rate_app">एप्लिकेशन का मूल्यांकन करें</string>
-    <string name="app_tab_about_app_sources">आवेदन के स्रोत</string>
+    <string name="app_tab_about_rate_app">ऐप्लिकेशन को रेटिंग दें</string>
+    <string name="app_tab_about_app_sources">सोर्स कोड</string>
     <string name="app_tab_about_terms_conditions">शर्तें और नियम</string>
     <string name="app_tab_about_privacy_policy">गोपनीयता नीति</string>
     <string name="app_tab_about_privacy_options">गोपनीयता विकल्प</string>

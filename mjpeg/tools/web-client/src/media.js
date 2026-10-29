@@ -73,7 +73,7 @@ function createMedia(stage, callbacks) {
         displayed = image; candidate = null;
         image.style.visibility = 'visible';
         image.removeAttribute('aria-hidden');
-        image.alt = 'Stream image';
+        image.alt = words.streamImageAlt;
         image.onload = () => { if (image === displayed) dimensions(); };
         image.onerror = () => displayedUnavailable(image);
         retries = 0;
