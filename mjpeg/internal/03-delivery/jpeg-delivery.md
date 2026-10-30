@@ -72,7 +72,7 @@ A spare array is reusable when large enough for the offered JPEG and no more tha
 
 One latest-real owner and one spare are not a global two-array bound. Memory may include logo, latest-real/spare arrays, an in-flight copy, distinct retired arrays held by concurrent slow writers and library/transport buffers. The implementation assumes one serialized producer and permits multiple readers; it does not cap connections or total leased payloads.
 
-There is no full-JPEG copy per response and no growing application frame queue. This is still not zero-copy transport: Ktor/CIO and multipart chunked encoding can buffer or copy payload. [HTTP transport limits](http-delivery.md#cio-writer-patch-and-limits) describe the patch and absent media watchdog/write timeout.
+There is no full-JPEG copy per response and no growing application frame queue. This is still not zero-copy transport: Ktor/CIO and multipart chunked encoding can buffer or copy payload. [HTTP transport limits](http-delivery.md#cio-transport-and-limits) describe upstream CIO behavior and the absent media watchdog/write timeout.
 
 ## Writing JPEG and MJPEG
 

@@ -10,7 +10,7 @@ One `HttpDelivery` serves a module's selected addresses. Listeners share credent
 - [Request admission and cutoff](#request-admission-and-cutoff)
 - [Client history and statistics](#client-history-and-statistics)
 - [Terminal cleanup](#terminal-cleanup)
-- [CIO writer patch and limits](#cio-writer-patch-and-limits)
+- [CIO transport and limits](#cio-transport-and-limits)
 - [Implementation and verification](#implementation-and-verification)
 
 ## Owners and activation
@@ -121,11 +121,11 @@ Noncancellable retirement requests engine cancellation and joins the engine job,
 
 Operational `fatalCause` and `cleanupCause` are distinct: operational failure can coexist with successful resource cleanup, while failed cancellation/listener cleanup makes the shared stop fail. [Capture cleanup](../01-lifecycle/module-lifecycle.md) has its independent result. A join establishes managed coroutine completion; this documentation does not assert instantaneous closure of every OS socket/FD on a device.
 
-## CIO writer patch and limits
+## CIO transport and limits
 
-The root build substitutes `io.ktor:ktor-network-jvm` with [ktor-network-patched](../../../ktor-network-patched/build.gradle.kts). The module pins Ktor 3.6.0 and the upstream binary SHA-256, compiles its replacement as a friend of that binary and merges the complete upstream jar while replacing the `CIOWriterKt` class family. Consumers require that merged jar, not a directory variant containing only the writer.
+The CIO JVM writer leaves `channel.read` after a zero socket write before suspending on the WRITE selector. It preserves FIFO and image-selection policy and adds no write timeout.
 
-The [replacement writer](../../../ktor-network-patched/src/main/kotlin/io/ktor/network/sockets/CIOWriter.kt) leaves `channel.read` after a zero socket write before suspending on the WRITE selector. It preserves FIFO and image-selection policy and adds no write timeout. A Ktor version/checksum change requires separately maintaining the patch; the build checks are not compatibility evidence for a different version.
+The CIO accept loop ends when its server socket is closed and waits 100 ms before retrying other I/O failures. The retry delay observes cancellation and avoids a busy loop after a failed accept.
 
 `HttpRequestLifecycle.cancelCallOnClose` helps cancel a call when CIO observes I/O disconnection, including during an image wait. There is no media watchdog or connection-count limit. A stalled connected reader can retain its lease, transport buffers and socket resources; `isSlow` reports skipped publications and does not cancel it. [JPEG memory limits](jpeg-delivery.md#pooling-and-memory-limits) explains why latest-frame storage is not a total memory bound.
 

@@ -30,7 +30,7 @@ compose-material3 = "1.5.0-beta02"
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.6.0"
+ktor = "3.6.1"
 
 #PlayStore-WebRTC
 play-services-base = "18.11.1"
