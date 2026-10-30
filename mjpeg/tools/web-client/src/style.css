@@ -34,7 +34,7 @@ button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d
 /* The player surfaces stay neutral over any image and browser theme. */
 .caption { max-width: 95%; min-height: 36px; padding: 7px 12px; color: #fff; font-size: 14px; font-weight: 500; line-height: 24px; }
 .caption span { display: block; padding: 3px 12px; border-radius: 9px; color: inherit; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .15); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.controls { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; width: -webkit-max-content; width: -moz-max-content; width: max-content; padding: 6px; border: 0; border-radius: 30px; color: #fff; background: #24272b; box-shadow: 0 4px 16px rgba(0, 0, 0, .14); }
+.controls { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; row-gap: 6px; width: -webkit-max-content; width: -moz-max-content; width: max-content; padding: 6px; border: 0; border-radius: 30px; color: #fff; background: #24272b; box-shadow: 0 4px 16px rgba(0, 0, 0, .14); }
 .controls > * { margin: 0; }
 .controls > button, .size-modes button + button { margin-left: 6px; }
 .controls button { display: block; position: relative; -webkit-flex: 0 0 48px; flex: 0 0 48px; width: 48px; min-width: 48px; max-width: 48px; height: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 8px; color: inherit; background: transparent; box-shadow: none; text-align: center; }

@@ -13,6 +13,7 @@ import io.screenstream.capture.ScreenCaptureState
 import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.ScreenCaptureStopReason
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 
 /** Successful creation transfers projection ownership; a thrown construction step leaves it with the caller. */
@@ -40,7 +41,7 @@ internal data class MjpegEngineState(
 internal interface MjpegEngineSession {
     val currentState: MjpegEngineState
     val states: Flow<MjpegEngineState>
-    val stats: Flow<ScreenCaptureStats>
+    val stats: StateFlow<ScreenCaptureStats>
 
     suspend fun start(parameters: ScreenCaptureParameters)
     fun updateParameters(parameters: ScreenCaptureParameters)
@@ -78,7 +79,7 @@ private class ForwardingMjpegEngineSession : MjpegEngineSession {
         engine.state.collect { emit(it.toMjpegState()) }
     }
 
-    override val stats: Flow<ScreenCaptureStats>
+    override val stats: StateFlow<ScreenCaptureStats>
         get() = engine.stats
 
     override suspend fun start(parameters: ScreenCaptureParameters): Unit = engine.start(parameters)

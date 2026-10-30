@@ -37,6 +37,7 @@ internal class MjpegUiController(
         appliedPin: SecretValue?,
         hidePinOnCapture: Boolean,
         editPolicy: MjpegSettings.EditPolicy,
+        statistics: UiController.Statistics,
     ) {
         val addressServers = if (port == null) emptyList() else selectedAddresses.map { address ->
             address.mapAddressServer(
@@ -55,6 +56,7 @@ internal class MjpegUiController(
             editPolicy = editPolicy,
             appliedPin = appliedPin,
             hidePinOnCapture = hidePinOnCapture,
+            statistics = statistics,
         )
     }
 

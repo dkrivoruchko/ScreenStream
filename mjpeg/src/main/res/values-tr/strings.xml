@@ -21,6 +21,45 @@
     <string name="mjpeg_pref_search_clear">Aramayı temizle</string>
     <string name="mjpeg_pref_search_no_results">Ayar bulunamadı</string>
 
+    <!-- Statistics -->
+    <string name="mjpeg_stats_title">İstatistikler</string>
+    <string name="mjpeg_stats_connected_clients_count">Bağlı istemciler: %1$s</string>
+    <string name="mjpeg_stats_outgoing_traffic">Giden trafik</string>
+    <string name="mjpeg_stats_engine_title">Motor istatistikleri</string>
+    <string name="mjpeg_stats_frame_rate">Kare hızı</string>
+    <string name="mjpeg_stats_recently_disconnected">Yakın zamanda bağlantısı kesilenler</string>
+    <string name="mjpeg_stats_no_clients">Bağlı istemci yok</string>
+    <string name="mjpeg_stats_slow_reader">Yavaş okuyucu</string>
+    <string name="mjpeg_stats_unavailable">—</string>
+    <string name="mjpeg_stats_fps_value">%1$s FPS</string>
+    <string name="mjpeg_stats_mbps_value">%1$s Mbps</string>
+    <string name="mjpeg_stats_sent_value">Gönderilen: %1$s MB</string>
+    <string name="mjpeg_stats_client_current_value">Şu an: %1$s</string>
+    <string name="mjpeg_stats_chart_title">%1$s: %2$s</string>
+    <string name="mjpeg_stats_chart_recorded_range">%1$s. Kaydedilen aralık: %2$s ile %3$s arası.</string>
+    <string name="mjpeg_stats_ms_value">%1$s msn</string>
+    <string name="mjpeg_stats_kb_value">%1$s kB</string>
+    <string name="mjpeg_stats_chart_start">−60 sn.</string>
+    <string name="mjpeg_stats_chart_middle">−30 sn.</string>
+    <string name="mjpeg_stats_chart_now">Şimdi</string>
+
+    <string name="mjpeg_stats_frames">Kareler</string>
+    <string name="mjpeg_stats_encoded">Kodlanan</string>
+    <string name="mjpeg_stats_produced">Üretilen</string>
+    <string name="mjpeg_stats_mean_fps">Ortalama FPS</string>
+    <string name="mjpeg_stats_processing">İşleme</string>
+    <string name="mjpeg_stats_mean_read">Ortalama GPU geri okuması</string>
+    <string name="mjpeg_stats_mean_encode">Ortalama JPEG kodlaması</string>
+    <string name="mjpeg_stats_last_jpeg">Son JPEG boyutu</string>
+    <string name="mjpeg_stats_mean_jpeg">Ortalama JPEG boyutu</string>
+    <string name="mjpeg_stats_skipped_frames">Atlanan kareler ve teslimatlar</string>
+    <string name="mjpeg_stats_production_stale">Üretim · eski</string>
+    <string name="mjpeg_stats_production_failed">Üretim · başarısız</string>
+    <string name="mjpeg_stats_production_total">Üretim · toplam</string>
+    <string name="mjpeg_stats_delivery_busy">Teslimat · meşgul</string>
+    <string name="mjpeg_stats_delivery_errors">Teslimat · geri çağırma hataları</string>
+    <string name="mjpeg_stats_delivery_total">Teslimat · toplam</string>
+
     <!-- Shared network labels -->
     <string name="mjpeg_network_ipv4">IPv4</string>
     <string name="mjpeg_network_ipv6">IPv6</string>

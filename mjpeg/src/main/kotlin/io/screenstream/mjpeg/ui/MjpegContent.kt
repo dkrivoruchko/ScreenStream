@@ -43,6 +43,7 @@ import io.screenstream.mjpeg.MjpegCaptureSession
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.ui.main.StreamAddressesContent
+import io.screenstream.mjpeg.ui.main.StreamStatisticsContent
 import io.screenstream.mjpeg.ui.settings.SearchSettingsField
 import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.access.AccessSettingsGroup
@@ -75,6 +76,7 @@ internal fun MjpegContent(
     val searchQuery = rememberTextFieldState()
     val matchingSettings = rememberMatchingSettings(searchQuery.text.toString())
     var addressesExpanded by retain { mutableStateOf(true) }
+    var statisticsExpanded by retain { mutableStateOf(false) }
     var expandedGroups by retain { mutableStateOf(emptySet<SettingSearchGroup>()) }
 
     fun isGroupVisible(group: SettingSearchGroup): Boolean =
@@ -135,6 +137,13 @@ internal fun MjpegContent(
                             onExpandedChange = { addressesExpanded = it },
                             onRetry = { serverId -> uiController.send(UiController.Command.RetryServer(serverId)) },
                             onShowMessage = ::showSnackbarMessage,
+                        )
+                    }
+                    item(key = "statistics", contentType = "statistics") {
+                        StreamStatisticsContent(
+                            statistics = uiState.statistics,
+                            expanded = statisticsExpanded,
+                            onExpandedChange = { statisticsExpanded = it },
                         )
                     }
                     item(key = "settings-search", contentType = "settings-search") {

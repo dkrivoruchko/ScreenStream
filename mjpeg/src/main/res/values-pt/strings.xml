@@ -21,6 +21,45 @@
     <string name="mjpeg_pref_search_clear">Limpar busca</string>
     <string name="mjpeg_pref_search_no_results">Nenhuma configuração encontrada</string>
 
+    <!-- Statistics -->
+    <string name="mjpeg_stats_title">Estatísticas</string>
+    <string name="mjpeg_stats_connected_clients_count">Clientes conectados: %1$s</string>
+    <string name="mjpeg_stats_outgoing_traffic">Tráfego de saída</string>
+    <string name="mjpeg_stats_engine_title">Estatísticas do mecanismo</string>
+    <string name="mjpeg_stats_frame_rate">Taxa de quadros</string>
+    <string name="mjpeg_stats_recently_disconnected">Desconectados recentemente</string>
+    <string name="mjpeg_stats_no_clients">Nenhum cliente conectado</string>
+    <string name="mjpeg_stats_slow_reader">Leitura lenta</string>
+    <string name="mjpeg_stats_unavailable">—</string>
+    <string name="mjpeg_stats_fps_value">%1$s FPS</string>
+    <string name="mjpeg_stats_mbps_value">%1$s Mbps</string>
+    <string name="mjpeg_stats_sent_value">Enviado: %1$s MB</string>
+    <string name="mjpeg_stats_client_current_value">Atual: %1$s</string>
+    <string name="mjpeg_stats_chart_title">%1$s: %2$s</string>
+    <string name="mjpeg_stats_chart_recorded_range">%1$s. Intervalo registrado: de %2$s a %3$s.</string>
+    <string name="mjpeg_stats_ms_value">%1$s ms</string>
+    <string name="mjpeg_stats_kb_value">%1$s kB</string>
+    <string name="mjpeg_stats_chart_start">−60 s</string>
+    <string name="mjpeg_stats_chart_middle">−30 s</string>
+    <string name="mjpeg_stats_chart_now">Agora</string>
+
+    <string name="mjpeg_stats_frames">Quadros</string>
+    <string name="mjpeg_stats_encoded">Codificados</string>
+    <string name="mjpeg_stats_produced">Produzidos</string>
+    <string name="mjpeg_stats_mean_fps">FPS médio</string>
+    <string name="mjpeg_stats_processing">Processamento</string>
+    <string name="mjpeg_stats_mean_read">Leitura média da GPU</string>
+    <string name="mjpeg_stats_mean_encode">Codificação JPEG média</string>
+    <string name="mjpeg_stats_last_jpeg">Tamanho do último JPEG</string>
+    <string name="mjpeg_stats_mean_jpeg">Tamanho médio do JPEG</string>
+    <string name="mjpeg_stats_skipped_frames">Quadros e entregas descartados</string>
+    <string name="mjpeg_stats_production_stale">Produção · obsoletos</string>
+    <string name="mjpeg_stats_production_failed">Produção · falhas</string>
+    <string name="mjpeg_stats_production_total">Produção · total</string>
+    <string name="mjpeg_stats_delivery_busy">Entrega · ocupado</string>
+    <string name="mjpeg_stats_delivery_errors">Entrega · erros de callback</string>
+    <string name="mjpeg_stats_delivery_total">Entrega · total</string>
+
     <!-- Shared network labels -->
     <string name="mjpeg_network_ipv4">IPv4</string>
     <string name="mjpeg_network_ipv6">IPv6</string>

@@ -2,11 +2,13 @@ package io.screenstream.mjpeg.ui.settings.images
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -28,6 +30,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -41,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowSizeClass
 import androidx.window.layout.WindowMetricsCalculator
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.OutputSize
@@ -145,6 +150,7 @@ private fun SizeEditor(
     val currentLocale = LocalConfiguration.current.locales[0]
     val inputLocale = retain { currentLocale }
     val numberFormat = rememberSettingNumberFormat(inputLocale)
+    val labelAbove = LocalDensity.current.fontScale > 1f
     val context = LocalContext.current
     val initialImageSettings = retain { imageSettings }
     val configuration = LocalConfiguration.current
@@ -257,6 +263,7 @@ private fun SizeEditor(
                 onValueChange = { scaleInput = it },
                 inputLocale = inputLocale,
                 label = stringResource(SizeSearch.scaleLabelRes),
+                labelAbove = labelAbove,
                 modifier = Modifier.fillMaxWidth(),
                 allowDecimal = true,
                 errorText = scaleErrorText.takeIf { parsedScalePercent == null },
@@ -285,6 +292,7 @@ private fun SizeEditor(
                     value = widthInput,
                     inputLocale = inputLocale,
                     label = stringResource(SizeSearch.widthLabelRes),
+                    labelAbove = labelAbove,
                     modifier = Modifier.weight(1f),
                     imeAction = ImeAction.Next,
                     errorText = widthErrorText,
@@ -298,6 +306,7 @@ private fun SizeEditor(
                     value = heightInput,
                     inputLocale = inputLocale,
                     label = stringResource(SizeSearch.heightLabelRes),
+                    labelAbove = labelAbove,
                     modifier = Modifier.weight(1f),
                     errorText = heightErrorText,
                     showSupportingError = false,
@@ -351,6 +360,8 @@ private fun SizeEditor(
         if (showEnlargementWarning) {
             SettingInfo(stringResource(R.string.mjpeg_pref_image_size_enlargement_warning), iconRes = R.drawable.mjpeg_icon_warning)
         }
+        val windowWidthDp = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
+        val stackSizeValues = windowWidthDp < WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
         Row(
             Modifier
                 .fillMaxWidth()
@@ -358,31 +369,43 @@ private fun SizeEditor(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                stringResource(
-                    R.string.mjpeg_pref_image_size_source,
-                    if (screenSize.width > 0 && screenSize.height > 0) {
-                        stringResource(R.string.mjpeg_pref_image_size_value, screenSize.width, screenSize.height)
-                    } else stringResource(R.string.mjpeg_pref_image_size_estimate_unavailable),
-                ),
+            SizeSummary(
+                label = stringResource(R.string.mjpeg_pref_image_size_source, "").trimEnd(),
+                value = if (screenSize.width > 0 && screenSize.height > 0) {
+                    stringResource(R.string.mjpeg_pref_image_size_value, screenSize.width, screenSize.height)
+                } else stringResource(R.string.mjpeg_pref_image_size_estimate_unavailable),
+                stacked = stackSizeValues,
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
             )
             VerticalDivider()
-            Text(
-                stringResource(
-                    R.string.mjpeg_pref_image_size_result,
-                    estimatedImageSize?.let {
-                        stringResource(R.string.mjpeg_pref_image_size_value, it.width, it.height)
-                    } ?: stringResource(R.string.mjpeg_pref_image_size_estimate_unavailable),
-                ),
+            SizeSummary(
+                label = stringResource(R.string.mjpeg_pref_image_size_result, "").trimEnd(),
+                value = estimatedImageSize?.let {
+                    stringResource(R.string.mjpeg_pref_image_size_value, it.width, it.height)
+                } ?: stringResource(R.string.mjpeg_pref_image_size_estimate_unavailable),
+                stacked = stackSizeValues,
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
             )
         }
         SettingInfo(stringResource(R.string.mjpeg_pref_image_size_estimate_note), centered = true)
+    }
+}
+
+@Composable
+private fun SizeSummary(label: String, value: String, stacked: Boolean, modifier: Modifier = Modifier) {
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+        maxItemsInEachRow = if (stacked) 1 else 2,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+        Text(
+            value,
+            modifier = Modifier.width(IntrinsicSize.Max),
+            style = MaterialTheme.typography.bodyMedium,
+            softWrap = false,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

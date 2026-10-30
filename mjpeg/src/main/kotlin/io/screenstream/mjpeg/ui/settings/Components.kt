@@ -70,6 +70,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -203,8 +205,8 @@ internal fun SettingsItem(
 @Composable
 internal fun SettingEditor(
     title: String,
-    description: String,
     onDismiss: () -> Unit,
+    description: String = "",
     content: @Composable () -> Unit,
 ) {
     val windowWidthDp = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
@@ -270,7 +272,9 @@ private fun SettingEditorContent(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+            if (description.isNotEmpty()) {
+                Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+            }
             content()
         }
         SnackbarHost(LocalMjpegSnackbarHostState.current)
@@ -334,36 +338,52 @@ internal fun SettingNumberField(
     imeAction: ImeAction = ImeAction.Done,
     showSupportingError: Boolean = true,
     enabled: Boolean = true,
+    labelAbove: Boolean = false,
 ) {
     val numberFormat = rememberSettingNumberFormat(inputLocale)
     val focusManager = LocalFocusManager.current
-    OutlinedTextField(
-        value = value,
-        onValueChange = { next ->
-            if (!enabled) return@OutlinedTextField
-            if (
-                next.text == value.text ||
-                acceptsSettingNumberInput(
-                    next.text,
-                    numberFormat,
-                    allowDecimal = allowDecimal,
-                    maximumValue = maximumValue,
-                )
-            ) {
-                onValueChange(next)
-            }
-        },
-        modifier = modifier.semantics { if (errorText != null) error(errorText) },
-        enabled = enabled,
-        label = { Text(label) },
-        isError = errorText != null,
-        supportingText = if (showSupportingError && errorText != null) {
-            { Text(errorText) }
-        } else null,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = if (allowDecimal) KeyboardType.Decimal else KeyboardType.Number, imeAction = imeAction),
-        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }, onNext = { focusManager.moveFocus(FocusDirection.Next) }),
-    )
+    val field: @Composable (Modifier) -> Unit = { fieldModifier ->
+        OutlinedTextField(
+            value = value,
+            onValueChange = { next ->
+                if (!enabled) return@OutlinedTextField
+                if (
+                    next.text == value.text ||
+                    acceptsSettingNumberInput(next.text, numberFormat, allowDecimal = allowDecimal, maximumValue = maximumValue)
+                ) {
+                    onValueChange(next)
+                }
+            },
+            modifier = fieldModifier.semantics {
+                if (errorText != null) error(errorText)
+                if (labelAbove) contentDescription = label
+            },
+            enabled = enabled,
+            label = if (labelAbove) null else ({ Text(label) }),
+            isError = errorText != null,
+            supportingText = if (showSupportingError && errorText != null) {
+                { Text(errorText) }
+            } else null,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = if (allowDecimal) KeyboardType.Decimal else KeyboardType.Number, imeAction = imeAction),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }, onNext = { focusManager.moveFocus(FocusDirection.Next) }),
+        )
+    }
+    if (labelAbove) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                label,
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .clearAndSetSemantics {},
+                color = if (errorText != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            field(Modifier.fillMaxWidth())
+        }
+    } else {
+        field(modifier)
+    }
 }
 
 @Composable

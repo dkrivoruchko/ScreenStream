@@ -21,6 +21,45 @@
     <string name="mjpeg_pref_search_clear">Qidiruvni tozalash</string>
     <string name="mjpeg_pref_search_no_results">Sozlamalar topilmadi</string>
 
+    <!-- Statistics -->
+    <string name="mjpeg_stats_title">Statistika</string>
+    <string name="mjpeg_stats_connected_clients_count">Ulangan mijozlar: %1$s</string>
+    <string name="mjpeg_stats_outgoing_traffic">Chiquvchi trafik</string>
+    <string name="mjpeg_stats_engine_title">Dvigatel statistikasi</string>
+    <string name="mjpeg_stats_frame_rate">Kadr tezligi</string>
+    <string name="mjpeg_stats_recently_disconnected">Yaqinda uzilganlar</string>
+    <string name="mjpeg_stats_no_clients">Ulangan mijozlar yoʻq</string>
+    <string name="mjpeg_stats_slow_reader">Sekin oʻquvchi</string>
+    <string name="mjpeg_stats_unavailable">—</string>
+    <string name="mjpeg_stats_fps_value">%1$s FPS</string>
+    <string name="mjpeg_stats_mbps_value">%1$s Mbps</string>
+    <string name="mjpeg_stats_sent_value">Yuborildi: %1$s MB</string>
+    <string name="mjpeg_stats_client_current_value">Hozir: %1$s</string>
+    <string name="mjpeg_stats_chart_title">%1$s: %2$s</string>
+    <string name="mjpeg_stats_chart_recorded_range">%1$s. Qayd etilgan oraliq: %2$s dan %3$s gacha.</string>
+    <string name="mjpeg_stats_ms_value">%1$s ms</string>
+    <string name="mjpeg_stats_kb_value">%1$s kB</string>
+    <string name="mjpeg_stats_chart_start">−60 son.</string>
+    <string name="mjpeg_stats_chart_middle">−30 son.</string>
+    <string name="mjpeg_stats_chart_now">Hozir</string>
+
+    <string name="mjpeg_stats_frames">Kadrlar</string>
+    <string name="mjpeg_stats_encoded">Kodlangan</string>
+    <string name="mjpeg_stats_produced">Yaratilgan</string>
+    <string name="mjpeg_stats_mean_fps">Oʻrtacha FPS</string>
+    <string name="mjpeg_stats_processing">Qayta ishlash</string>
+    <string name="mjpeg_stats_mean_read">GPUdan oʻrtacha oʻqish</string>
+    <string name="mjpeg_stats_mean_encode">Oʻrtacha JPEG kodlash</string>
+    <string name="mjpeg_stats_last_jpeg">Oxirgi JPEG oʻlchami</string>
+    <string name="mjpeg_stats_mean_jpeg">Oʻrtacha JPEG oʻlchami</string>
+    <string name="mjpeg_stats_skipped_frames">Tashlab ketilgan kadr va yetkazishlar</string>
+    <string name="mjpeg_stats_production_stale">Yaratish · eskirgan</string>
+    <string name="mjpeg_stats_production_failed">Yaratish · xato</string>
+    <string name="mjpeg_stats_production_total">Yaratish · jami</string>
+    <string name="mjpeg_stats_delivery_busy">Yetkazish · band</string>
+    <string name="mjpeg_stats_delivery_errors">Yetkazish · qayta chaqirish xatolari</string>
+    <string name="mjpeg_stats_delivery_total">Yetkazish · jami</string>
+
     <!-- Shared network labels -->
     <string name="mjpeg_network_ipv4">IPv4</string>
     <string name="mjpeg_network_ipv6">IPv6</string>

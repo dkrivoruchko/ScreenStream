@@ -4,12 +4,14 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.media.projection.MediaProjection
 import android.os.PowerManager
+import android.os.SystemClock
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.JpegBackendPolicy
 import io.screenstream.capture.OutputSize
 import io.screenstream.capture.ScreenCaptureConfig
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureProblem
+import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.ScreenCaptureStopReason
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Failure
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
@@ -40,6 +42,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.DurationUnit
 
 /**
  * One inert capture attempt; call [start] once before [requestStop] or [updateImageSettings].
@@ -64,8 +68,16 @@ internal class MjpegCaptureSession(
     private val http: HttpDelivery,
     private val enterForeground: () -> Boolean,
     private val leaveForeground: suspend () -> Unit,
+    private val onStatisticsChanged: () -> Unit = {},
     private val engineFactory: MjpegEngineFactory = DefaultMjpegEngineFactory,
 ) {
+    class EngineStatistics(val engineStats: ScreenCaptureStats, val currentFps: Double?)
+
+    /** Written by the statistics collector, then by cleanup after that collector has finished. */
+    @Volatile
+    var engineStatistics: EngineStatistics? = null
+        private set
+
     /** First accepted Stop cause; later failures do not replace it. */
     enum class StopReason {
         /** The user requested Stop, or consent acquisition returned no grant. */
@@ -473,7 +485,18 @@ internal class MjpegCaptureSession(
             }
         }.launchIn(this)
 
+        var previousProducedFrameCount: Long? = null
+        var previousReceivedAtMillis = 0L
         engineSession.stats.onEach { stats ->
+            val receivedAtMillis = SystemClock.elapsedRealtime()
+            val previousCount = previousProducedFrameCount
+            val elapsedMillis = receivedAtMillis - previousReceivedAtMillis
+            val fps = if (previousCount != null && stats.producedFrameCount >= previousCount && elapsedMillis > 0L) {
+                (stats.producedFrameCount - previousCount).toDouble() / elapsedMillis.milliseconds.toDouble(DurationUnit.SECONDS)
+            } else null
+            previousProducedFrameCount = stats.producedFrameCount
+            previousReceivedAtMillis = receivedAtMillis
+            publishEngineStatistics(stats, fps)
             this@MjpegCaptureSession.logV("Engine.stats", "frames=${stats.producedFrameCount}, fps=${stats.averageProducedFps}")
         }.catch { cause ->
             this@MjpegCaptureSession.logE("Engine.statsObservation", "Statistics observation failed", cause)
@@ -482,6 +505,11 @@ internal class MjpegCaptureSession(
         engineSession.start(initialParameters)
         synchronized(stateGate) { commitCaptureStateLocked(state.value.copy(startSucceeded = true)) }
         awaitCancellation()
+    }
+
+    private fun publishEngineStatistics(stats: ScreenCaptureStats, currentFps: Double? = null) {
+        engineStatistics = EngineStatistics(stats, currentFps)
+        onStatisticsChanged()
     }
 
     /** Stop media and unregister the JPEG consumer independently; foreground release follows the media result. */
@@ -505,6 +533,8 @@ internal class MjpegCaptureSession(
                         failCleanup("Cleanup.media", cause)
                     }.isSuccess
                 if (engineSession != null) {
+                    // Terminal-state collection can cancel the statistics collector before its final emission.
+                    publishEngineStatistics(engineSession.stats.value)
                     synchronized(stateGate) { refreshEngineStateLocked(engineSession) }
                 }
 

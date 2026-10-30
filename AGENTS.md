@@ -13,7 +13,7 @@ ScreenStream streams Android screen + audio. Modes: Local (MJPEG), Global (WebRT
 
 ## Build & SDK Baseline
 - Kotlin `explicitApi()` with JVM toolchain 17.
-- SDKs: min 23, target/compile 36; build tools 36.0.0; NDK 28.2.13676358.
+- SDKs: min 24, target/compile 37; build tools 37.0.0; NDK 29.0.14206865.
 - `./gradlew :app:assembleFDroidDebug` — build the F-Droid debug APK.
 - `./gradlew :app:assemblePlayStoreDebug` — build the Play Store debug APK.
 - Build types: release enables minify/shrink + Crashlytics mapping upload.

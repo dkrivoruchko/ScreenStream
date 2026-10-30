@@ -21,6 +21,45 @@
     <string name="mjpeg_pref_search_clear">Busak panelusuran</string>
     <string name="mjpeg_pref_search_no_results">Ora ana setelan sing ditemokake</string>
 
+    <!-- Statistics -->
+    <string name="mjpeg_stats_title">Statistik</string>
+    <string name="mjpeg_stats_connected_clients_count">Klien sing nyambung: %1$s</string>
+    <string name="mjpeg_stats_outgoing_traffic">Trafik metu</string>
+    <string name="mjpeg_stats_engine_title">Statistik mesin</string>
+    <string name="mjpeg_stats_frame_rate">Laju frame</string>
+    <string name="mjpeg_stats_recently_disconnected">Bubar pedhot</string>
+    <string name="mjpeg_stats_no_clients">Ora ana klien sing nyambung</string>
+    <string name="mjpeg_stats_slow_reader">Pembaca alon</string>
+    <string name="mjpeg_stats_unavailable">—</string>
+    <string name="mjpeg_stats_fps_value">%1$s FPS</string>
+    <string name="mjpeg_stats_mbps_value">%1$s Mbps</string>
+    <string name="mjpeg_stats_sent_value">Dikirim: %1$s MB</string>
+    <string name="mjpeg_stats_client_current_value">Saiki: %1$s</string>
+    <string name="mjpeg_stats_chart_title">%1$s: %2$s</string>
+    <string name="mjpeg_stats_chart_recorded_range">%1$s. Rentang sing kacathet: %2$s nganti %3$s.</string>
+    <string name="mjpeg_stats_ms_value">%1$s md</string>
+    <string name="mjpeg_stats_kb_value">%1$s kB</string>
+    <string name="mjpeg_stats_chart_start">−60 dtk</string>
+    <string name="mjpeg_stats_chart_middle">−30 dtk</string>
+    <string name="mjpeg_stats_chart_now">Saiki</string>
+
+    <string name="mjpeg_stats_frames">Frame</string>
+    <string name="mjpeg_stats_encoded">Dienkode</string>
+    <string name="mjpeg_stats_produced">Dihasilake</string>
+    <string name="mjpeg_stats_mean_fps">FPS rata-rata</string>
+    <string name="mjpeg_stats_processing">Pangolahan</string>
+    <string name="mjpeg_stats_mean_read">Rata-rata maca saka GPU</string>
+    <string name="mjpeg_stats_mean_encode">Enkoding JPEG rata-rata</string>
+    <string name="mjpeg_stats_last_jpeg">Ukuran JPEG pungkasan</string>
+    <string name="mjpeg_stats_mean_jpeg">Ukuran JPEG rata-rata</string>
+    <string name="mjpeg_stats_skipped_frames">Frame lan pangiriman sing dilewati</string>
+    <string name="mjpeg_stats_production_stale">Produksi · kedaluwarsa</string>
+    <string name="mjpeg_stats_production_failed">Produksi · gagal</string>
+    <string name="mjpeg_stats_production_total">Produksi · total</string>
+    <string name="mjpeg_stats_delivery_busy">Pangiriman · sibuk</string>
+    <string name="mjpeg_stats_delivery_errors">Pangiriman · kesalahan callback</string>
+    <string name="mjpeg_stats_delivery_total">Pangiriman · total</string>
+
     <!-- Shared network labels -->
     <string name="mjpeg_network_ipv4">IPv4</string>
     <string name="mjpeg_network_ipv6">IPv6</string>

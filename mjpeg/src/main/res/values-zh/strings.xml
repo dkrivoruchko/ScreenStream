@@ -21,6 +21,45 @@
     <string name="mjpeg_pref_search_clear">清除搜索</string>
     <string name="mjpeg_pref_search_no_results">未找到设置</string>
 
+    <!-- Statistics -->
+    <string name="mjpeg_stats_title">统计信息</string>
+    <string name="mjpeg_stats_connected_clients_count">已连接的客户端：%1$s</string>
+    <string name="mjpeg_stats_outgoing_traffic">出站流量</string>
+    <string name="mjpeg_stats_engine_title">引擎统计信息</string>
+    <string name="mjpeg_stats_frame_rate">帧率</string>
+    <string name="mjpeg_stats_recently_disconnected">最近断开连接</string>
+    <string name="mjpeg_stats_no_clients">没有已连接的客户端</string>
+    <string name="mjpeg_stats_slow_reader">读取速度慢</string>
+    <string name="mjpeg_stats_unavailable">—</string>
+    <string name="mjpeg_stats_fps_value">%1$s FPS</string>
+    <string name="mjpeg_stats_mbps_value">%1$s Mbps</string>
+    <string name="mjpeg_stats_sent_value">已发送：%1$s MB</string>
+    <string name="mjpeg_stats_client_current_value">当前：%1$s</string>
+    <string name="mjpeg_stats_chart_title">%1$s：%2$s</string>
+    <string name="mjpeg_stats_chart_recorded_range">%1$s。记录范围：%2$s 至 %3$s。</string>
+    <string name="mjpeg_stats_ms_value">%1$s 毫秒</string>
+    <string name="mjpeg_stats_kb_value">%1$s kB</string>
+    <string name="mjpeg_stats_chart_start">−60 秒</string>
+    <string name="mjpeg_stats_chart_middle">−30 秒</string>
+    <string name="mjpeg_stats_chart_now">现在</string>
+
+    <string name="mjpeg_stats_frames">帧</string>
+    <string name="mjpeg_stats_encoded">已编码</string>
+    <string name="mjpeg_stats_produced">已生成</string>
+    <string name="mjpeg_stats_mean_fps">平均 FPS</string>
+    <string name="mjpeg_stats_processing">处理</string>
+    <string name="mjpeg_stats_mean_read">平均 GPU 回读</string>
+    <string name="mjpeg_stats_mean_encode">平均 JPEG 编码</string>
+    <string name="mjpeg_stats_last_jpeg">上一个 JPEG 的大小</string>
+    <string name="mjpeg_stats_mean_jpeg">平均 JPEG 大小</string>
+    <string name="mjpeg_stats_skipped_frames">丢弃的帧和交付</string>
+    <string name="mjpeg_stats_production_stale">生成 · 已过期</string>
+    <string name="mjpeg_stats_production_failed">生成 · 失败</string>
+    <string name="mjpeg_stats_production_total">生成 · 总计</string>
+    <string name="mjpeg_stats_delivery_busy">交付 · 繁忙</string>
+    <string name="mjpeg_stats_delivery_errors">交付 · 回调错误</string>
+    <string name="mjpeg_stats_delivery_total">交付 · 总计</string>
+
     <!-- Shared network labels -->
     <string name="mjpeg_network_ipv4">IPv4</string>
     <string name="mjpeg_network_ipv6">IPv6</string>

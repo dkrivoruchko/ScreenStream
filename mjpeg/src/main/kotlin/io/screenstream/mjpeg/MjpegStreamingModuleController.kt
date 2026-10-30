@@ -47,6 +47,7 @@ import org.koin.core.annotation.Factory
 import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 import kotlin.uuid.Uuid
 
 /**
@@ -92,6 +93,11 @@ internal class MjpegStreamingModuleController(
     private var slowSampleWatermarkMillis: Long? = null
     private var slowEpisodeWarningConsumed = false
     private var lastSlowToastAttemptMillis: Long? = null
+    private var previousHttpSample: HttpDelivery.Info? = null
+    private var outgoingBytesPerSecond: Double? = null
+    private var clientBytesPerSecond: Map<Long, Double> = emptyMap()
+    private val statisticsHistory = ArrayDeque<UiController.HistoryPoint>()
+    private var historySnapshot: List<UiController.HistoryPoint> = emptyList()
 
     private var reportedStatus: StreamingModule.Status? = null
     private var localNetworkPermissionGranted = RuntimePermission.LocalNetwork.isGranted(service)
@@ -263,6 +269,7 @@ internal class MjpegStreamingModuleController(
             }
 
             Event.DeliveryChanged -> Unit // The fresh delivery snapshot is read below for this turn.
+            Event.StatisticsChanged -> Unit
             is Event.ScreenOff -> {
                 val registration = screenOffRegistration
                 if (registration != null && registration.attempt == event.attempt && registration.id == event.registrationId &&
@@ -313,6 +320,7 @@ internal class MjpegStreamingModuleController(
                 http = http,
                 enterForeground = { service.enterCaptureForeground(id, requiresMicrophoneType = false) },
                 leaveForeground = { service.leaveCaptureForeground(id) },
+                onStatisticsChanged = { enqueue(Event.StatisticsChanged) },
             )
             val attempt = CaptureAttempt(session = session, failureBeforeStart = lastFailure)
             if (!http.registerCapture(id, initialCaptureGeneration)) return@synchronized null
@@ -613,8 +621,64 @@ internal class MjpegStreamingModuleController(
             appliedPin = settings?.access?.takeIf { it.pinEnabled }?.pin,
             hidePinOnCapture = capture != null && settings?.access?.hidePinOnCaptureStart == true,
             editPolicy = editPolicy,
+            statistics = updateStatistics(delivery, SystemClock.elapsedRealtime()),
         )
     }
+
+    private fun updateStatistics(delivery: HttpDelivery.Info, nowElapsedRealtimeMillis: Long): UiController.Statistics {
+        val sampledAt = delivery.sampledAtElapsedRealtimeMillis
+        val previous = previousHttpSample
+        if (sampledAt > 0L && sampledAt != previous?.sampledAtElapsedRealtimeMillis) {
+            val elapsedMillis = if (previous == null) 0L else sampledAt - previous.sampledAtElapsedRealtimeMillis
+            outgoingBytesPerSecond = previous?.let { byteRate(delivery.completedJpegBytes, it.completedJpegBytes, elapsedMillis) }
+            val previousClients = previous?.clients?.associateBy { it.id }.orEmpty()
+            clientBytesPerSecond = buildMap {
+                for (client in delivery.clients) {
+                    val previousClient = previousClients[client.id] ?: continue
+                    val rate = byteRate(client.completedJpegBytes, previousClient.completedJpegBytes, elapsedMillis) ?: continue
+                    put(client.id, rate)
+                }
+            }
+            previousHttpSample = delivery
+        }
+
+        val session = captureAttempt?.session
+        val engineStatistics = session?.engineStatistics
+        val fps = engineStatistics?.currentFps?.takeIf { session.state.value.status == MjpegCaptureSession.State.Status.Active }
+        val intervalMillis = UiController.Statistics.HISTORY_INTERVAL.inWholeMilliseconds
+        val historyMillis = UiController.Statistics.HISTORY_DURATION.inWholeMilliseconds
+        val lastPoint = statisticsHistory.lastOrNull()
+        var historyChanged = false
+        if (lastPoint == null || lastPoint.atElapsedRealtimeMillis / intervalMillis != nowElapsedRealtimeMillis / intervalMillis) {
+            statisticsHistory.addLast(UiController.HistoryPoint(nowElapsedRealtimeMillis, fps, outgoingBytesPerSecond))
+            historyChanged = true
+        } else if (lastPoint.fps != fps || lastPoint.outgoingBytesPerSecond != outgoingBytesPerSecond) {
+            statisticsHistory.removeLast()
+            statisticsHistory.addLast(UiController.HistoryPoint(nowElapsedRealtimeMillis, fps, outgoingBytesPerSecond))
+            historyChanged = true
+        }
+        while (statisticsHistory.isNotEmpty() &&
+            (statisticsHistory.first().atElapsedRealtimeMillis <= nowElapsedRealtimeMillis - historyMillis ||
+                    statisticsHistory.size > historyMillis / intervalMillis)
+        ) {
+            statisticsHistory.removeFirst()
+            historyChanged = true
+        }
+        if (historyChanged) historySnapshot = statisticsHistory.toList()
+        return UiController.Statistics(
+            currentFps = fps,
+            outgoingBytesPerSecond = outgoingBytesPerSecond,
+            clients = delivery.clients,
+            clientBytesPerSecond = clientBytesPerSecond,
+            engineStats = engineStatistics?.engineStats,
+            history = historySnapshot,
+        )
+    }
+
+    private fun byteRate(currentBytes: Long, previousBytes: Long, elapsedMillis: Long): Double? =
+        if (elapsedMillis > 0L && currentBytes >= previousBytes) {
+            (currentBytes - previousBytes).toDouble() / elapsedMillis.milliseconds.toDouble(DurationUnit.SECONDS)
+        } else null
 
     private fun moduleStatus(delivery: HttpDelivery.Info = readDeliveryOrThrow()): StreamingModule.Status {
         val capture = captureAttempt
@@ -716,6 +780,7 @@ internal class MjpegStreamingModuleController(
         data class SettingsObserved(val settings: MjpegSettings.Data) : Event
         data class AddressStateChanged(val state: NetworkAddressMonitor.State) : Event
         data object DeliveryChanged : Event
+        data object StatisticsChanged : Event
         data class CaptureChanged(val attempt: StreamingModule.CaptureAttemptId) : Event
         data class ScreenOff(val attempt: StreamingModule.CaptureAttemptId, val registrationId: Uuid) : Event
         data class ComponentFailed(val source: FailureSource, val cause: Throwable) : Event

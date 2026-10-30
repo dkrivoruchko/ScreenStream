@@ -58,6 +58,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.dismiss
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.net.toUri
@@ -217,7 +218,7 @@ private fun StreamAddressRow(
             onClick = onOpen,
             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
         ) {
-            Text(displayUrl, style = MaterialTheme.typography.titleMedium)
+            Text(displayUrl, style = MaterialTheme.typography.titleMedium.copy(textDirection = TextDirection.Ltr))
         }
         Row(
             modifier = Modifier.fillMaxWidth(),

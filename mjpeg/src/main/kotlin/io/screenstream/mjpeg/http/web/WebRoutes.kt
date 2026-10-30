@@ -62,6 +62,7 @@ import kotlin.time.Duration.Companion.seconds
 internal class WebRoutes(context: Context, private val requestHandler: RequestHandler) {
     private val applicationContext = context.applicationContext
     private val indexHtml: ByteArray by lazy { applicationContext.assets.open("mjpeg/index.html").use { it.readBytes() } }
+    private val favicon: ByteArray by lazy { applicationContext.assets.open("mjpeg/favicon.ico").use { it.readBytes() } }
 
     fun installRoutes(application: Application, listener: HttpListener) {
         application.install(DefaultHeaders) {
@@ -105,6 +106,9 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
                     content.contentType?.withoutParameters() == ContentType.Text.Html &&
                             (content.status ?: response.status() ?: HttpStatusCode.OK) == HttpStatusCode.OK
                 }
+            }
+            get("/favicon.ico") {
+                call.respondBytes(favicon, ContentType.Image.XIcon)
             }
             post("/pin") {
                 if (!hasSameOrigin(call, listener, refererAllowed = true)) {
@@ -156,7 +160,7 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
                     else -> when (segments.single()) {
                         "pin" -> "POST"
                         "jpeg", "mjpeg" -> "GET, OPTIONS"
-                        "ws" -> "GET"
+                        "ws", "favicon.ico" -> "GET"
                         else -> null
                     }
                 }

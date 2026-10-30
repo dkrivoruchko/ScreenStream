@@ -21,6 +21,45 @@
     <string name="mjpeg_pref_search_clear">محو البحث</string>
     <string name="mjpeg_pref_search_no_results">لم يتم العثور على إعدادات</string>
 
+    <!-- Statistics -->
+    <string name="mjpeg_stats_title">الإحصاءات</string>
+    <string name="mjpeg_stats_connected_clients_count">العملاء المتصلون: %1$s</string>
+    <string name="mjpeg_stats_outgoing_traffic">حركة البيانات الصادرة</string>
+    <string name="mjpeg_stats_engine_title">إحصاءات المحرّك</string>
+    <string name="mjpeg_stats_frame_rate">معدّل الإطارات</string>
+    <string name="mjpeg_stats_recently_disconnected">انقطع اتصالهم مؤخرًا</string>
+    <string name="mjpeg_stats_no_clients">لا يوجد عملاء متصلون</string>
+    <string name="mjpeg_stats_slow_reader">قراءة بطيئة</string>
+    <string name="mjpeg_stats_unavailable">—</string>
+    <string name="mjpeg_stats_fps_value">%1$s إطار/ث</string>
+    <string name="mjpeg_stats_mbps_value">%1$s ميغابت/ث</string>
+    <string name="mjpeg_stats_sent_value">تم إرسال: %1$s MB</string>
+    <string name="mjpeg_stats_client_current_value">حاليًا: %1$s</string>
+    <string name="mjpeg_stats_chart_title">%1$s: %2$s</string>
+    <string name="mjpeg_stats_chart_recorded_range">%1$s. النطاق المسجّل: من %2$s إلى %3$s.</string>
+    <string name="mjpeg_stats_ms_value">%1$s ملي ث</string>
+    <string name="mjpeg_stats_kb_value">%1$s kB</string>
+    <string name="mjpeg_stats_chart_start">−60 ث</string>
+    <string name="mjpeg_stats_chart_middle">−30 ث</string>
+    <string name="mjpeg_stats_chart_now">الآن</string>
+
+    <string name="mjpeg_stats_frames">الإطارات</string>
+    <string name="mjpeg_stats_encoded">المرمّزة</string>
+    <string name="mjpeg_stats_produced">المنتَجة</string>
+    <string name="mjpeg_stats_mean_fps">متوسط الإطارات/ث</string>
+    <string name="mjpeg_stats_processing">المعالجة</string>
+    <string name="mjpeg_stats_mean_read">متوسط القراءة من GPU</string>
+    <string name="mjpeg_stats_mean_encode">متوسط ترميز JPEG</string>
+    <string name="mjpeg_stats_last_jpeg">حجم آخر JPEG</string>
+    <string name="mjpeg_stats_mean_jpeg">متوسط حجم JPEG</string>
+    <string name="mjpeg_stats_skipped_frames">الإطارات وعمليات التسليم المسقَطة</string>
+    <string name="mjpeg_stats_production_stale">الإنتاج · عمل متقادم</string>
+    <string name="mjpeg_stats_production_failed">الإنتاج · فشل</string>
+    <string name="mjpeg_stats_production_total">الإنتاج · الإجمالي</string>
+    <string name="mjpeg_stats_delivery_busy">التسليم · مشغول</string>
+    <string name="mjpeg_stats_delivery_errors">التسليم · أخطاء ردّ النداء</string>
+    <string name="mjpeg_stats_delivery_total">التسليم · الإجمالي</string>
+
     <!-- Shared network labels -->
     <string name="mjpeg_network_ipv4">IPv4</string>
     <string name="mjpeg_network_ipv6">IPv6</string>

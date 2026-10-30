@@ -1,13 +1,17 @@
 package io.screenstream.mjpeg.ui
 
 import androidx.compose.runtime.Immutable
+import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.mjpeg.MjpegCaptureSession.State.SuspensionProblem
+import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.streaming.module.StreamingModule
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
 /**
@@ -39,6 +43,27 @@ internal interface UiController {
         val editPolicy: MjpegSettings.EditPolicy = MjpegSettings.EditPolicy.LiveOnly,
         val appliedPin: SecretValue? = null,
         val hidePinOnCapture: Boolean = false,
+        val statistics: Statistics = Statistics(),
+    )
+
+    data class Statistics(
+        val currentFps: Double? = null,
+        val outgoingBytesPerSecond: Double? = null,
+        val clients: List<HttpDelivery.ClientInfo> = emptyList(),
+        val clientBytesPerSecond: Map<Long, Double> = emptyMap(),
+        val engineStats: ScreenCaptureStats? = null,
+        val history: List<HistoryPoint> = emptyList(),
+    ) {
+        companion object {
+            val HISTORY_DURATION: Duration = 60.seconds
+            val HISTORY_INTERVAL: Duration = 1.seconds
+        }
+    }
+
+    data class HistoryPoint(
+        val atElapsedRealtimeMillis: Long,
+        val fps: Double?,
+        val outgoingBytesPerSecond: Double?,
     )
 
     /**

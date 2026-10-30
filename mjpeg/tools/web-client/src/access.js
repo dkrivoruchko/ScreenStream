@@ -59,6 +59,11 @@ function createAccessPanel(viewportLayout, callbacks) {
     function show(value) {
         if (!panel.hidden && accessState === value.access) {
             if (value.access === 'blocked') showBlocked(value.retryAfterMs, true);
+            else if (value.access === 'pin_required' && networkFailure) {
+                networkFailure = false;
+                showMessage('');
+                if (document.activeElement === retryButton) input.focus();
+            }
             return;
         }
         clearBlock(); networkFailure = false;

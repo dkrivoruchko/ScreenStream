@@ -24,6 +24,7 @@ import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.ImageSettings
 import io.screenstream.mjpeg.ui.settings.SettingDropdownMenu
 import io.screenstream.mjpeg.ui.settings.SettingEditor
+import io.screenstream.mjpeg.ui.settings.SettingInfo
 import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingSearchOptionText
@@ -111,8 +112,14 @@ internal fun JpegBackendSettingItem(
                     val optionText = JpegBackendSearch.options.getValue(option)
                     ListItem(
                         selected = backendPolicy == option,
-                        onClick = {},
-                        enabled = false,
+                        onClick = {
+                            if (canEditStreamSetup) {
+                                if (option != backendPolicy) onImageChange { copy(jpegBackendPolicy = option) }
+                                showEditor = false
+                                openerFocus.markDismissed()
+                            }
+                        },
+                        enabled = canEditStreamSetup,
                         verticalAlignment = Alignment.CenterVertically,
                         colors = ListItemDefaults.colors(
                             containerColor = Color.Transparent,
@@ -126,7 +133,9 @@ internal fun JpegBackendSettingItem(
                     )
                 }
             }
-            Text(stringResource(R.string.mjpeg_pref_image_encoder_locked), style = MaterialTheme.typography.bodyMedium)
+            if (!canEditStreamSetup) {
+                SettingInfo(stringResource(R.string.mjpeg_pref_image_encoder_locked))
+            }
         }
     }
 }

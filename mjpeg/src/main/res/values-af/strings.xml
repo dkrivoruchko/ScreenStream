@@ -21,6 +21,45 @@
     <string name="mjpeg_pref_search_clear">Vee soektog uit</string>
     <string name="mjpeg_pref_search_no_results">Geen instellings gevind nie</string>
 
+    <!-- Statistics -->
+    <string name="mjpeg_stats_title">Statistiek</string>
+    <string name="mjpeg_stats_connected_clients_count">Gekoppelde kliënte: %1$s</string>
+    <string name="mjpeg_stats_outgoing_traffic">Uitgaande verkeer</string>
+    <string name="mjpeg_stats_engine_title">Enjinstatistiek</string>
+    <string name="mjpeg_stats_frame_rate">Raamtempo</string>
+    <string name="mjpeg_stats_recently_disconnected">Onlangs ontkoppel</string>
+    <string name="mjpeg_stats_no_clients">Geen kliënte gekoppel nie</string>
+    <string name="mjpeg_stats_slow_reader">Lees stadig</string>
+    <string name="mjpeg_stats_unavailable">—</string>
+    <string name="mjpeg_stats_fps_value">%1$s FPS</string>
+    <string name="mjpeg_stats_mbps_value">%1$s Mbps</string>
+    <string name="mjpeg_stats_sent_value">Gestuur: %1$s MB</string>
+    <string name="mjpeg_stats_client_current_value">Huidig: %1$s</string>
+    <string name="mjpeg_stats_chart_title">%1$s: %2$s</string>
+    <string name="mjpeg_stats_chart_recorded_range">%1$s. Aangetekende reeks: %2$s tot %3$s.</string>
+    <string name="mjpeg_stats_ms_value">%1$s ms</string>
+    <string name="mjpeg_stats_kb_value">%1$s kB</string>
+    <string name="mjpeg_stats_chart_start">−60 s</string>
+    <string name="mjpeg_stats_chart_middle">−30 s</string>
+    <string name="mjpeg_stats_chart_now">Nou</string>
+
+    <string name="mjpeg_stats_frames">Rame</string>
+    <string name="mjpeg_stats_encoded">Geënkodeer</string>
+    <string name="mjpeg_stats_produced">Geproduseer</string>
+    <string name="mjpeg_stats_mean_fps">Gemiddelde FPS</string>
+    <string name="mjpeg_stats_processing">Verwerking</string>
+    <string name="mjpeg_stats_mean_read">Gemiddelde GPU-teruglees</string>
+    <string name="mjpeg_stats_mean_encode">Gemiddelde JPEG-enkodering</string>
+    <string name="mjpeg_stats_last_jpeg">Laaste JPEG-grootte</string>
+    <string name="mjpeg_stats_mean_jpeg">Gemiddelde JPEG-grootte</string>
+    <string name="mjpeg_stats_skipped_frames">Raam- en afleweringsverliese</string>
+    <string name="mjpeg_stats_production_stale">Produksie · verouderd</string>
+    <string name="mjpeg_stats_production_failed">Produksie · misluk</string>
+    <string name="mjpeg_stats_production_total">Produksie · totaal</string>
+    <string name="mjpeg_stats_delivery_busy">Aflewering · besig</string>
+    <string name="mjpeg_stats_delivery_errors">Aflewering · terugroepfoute</string>
+    <string name="mjpeg_stats_delivery_total">Aflewering · totaal</string>
+
     <!-- Shared network labels -->
     <string name="mjpeg_network_ipv4">IPv4</string>
     <string name="mjpeg_network_ipv6">IPv6</string>

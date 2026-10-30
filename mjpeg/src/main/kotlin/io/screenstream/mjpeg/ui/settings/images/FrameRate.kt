@@ -1,6 +1,9 @@
 package io.screenstream.mjpeg.ui.settings.images
 
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +21,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.ImageSettings
@@ -157,17 +161,20 @@ private fun FrameRateEditor(
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
+                .height(IntrinsicSize.Min)
         ) {
             SegmentedButton(
                 selected = selectedFrameRate == CaptureFrameRate.Auto,
                 onClick = { selectedFrameRate = CaptureFrameRate.Auto },
                 shape = SegmentedButtonDefaults.itemShape(0, 3),
+                modifier = Modifier.fillMaxHeight(),
                 label = {
                     val label = stringResource(FrameRateSearch.automaticOption.labelRes)
                     Text(
                         if (ImageSettings.DEFAULT_FRAME_RATE == CaptureFrameRate.Auto) {
                             stringResource(R.string.mjpeg_pref_default_option, label)
-                        } else label
+                        } else label,
+                        textAlign = TextAlign.Center,
                     )
                 },
             )
@@ -175,6 +182,7 @@ private fun FrameRateEditor(
                 selected = selectedFrameRate is CaptureFrameRate.MaxFps,
                 onClick = { selectedFrameRate = CaptureFrameRate.MaxFps(ImageSettings.UI_DEFAULT_MANUAL_FPS) },
                 shape = SegmentedButtonDefaults.itemShape(1, 3),
+                modifier = Modifier.fillMaxHeight(),
                 label = {
                     val label = stringResource(FrameRateSearch.fpsLimitOption.labelRes)
                     Text(
@@ -188,6 +196,7 @@ private fun FrameRateEditor(
                 selected = selectedFrameRate is CaptureFrameRate.SamplingInterval,
                 onClick = { selectedFrameRate = CaptureFrameRate.SamplingInterval(ImageSettings.UI_DEFAULT_SAMPLING_INTERVAL) },
                 shape = SegmentedButtonDefaults.itemShape(2, 3),
+                modifier = Modifier.fillMaxHeight(),
                 label = {
                     val label = stringResource(FrameRateSearch.intervalOption.labelRes)
                     Text(
