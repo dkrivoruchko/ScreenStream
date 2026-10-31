@@ -6,6 +6,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
+import io.screenstream.core.logE
+import io.screenstream.core.module.StreamingModule.CaptureAttemptId
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.http.HttpDelivery.Info
 import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
@@ -23,8 +25,6 @@ import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import io.screenstream.mjpeg.settings.WebPageSettings
-import io.screenstream.streaming.logE
-import io.screenstream.streaming.module.StreamingModule.CaptureAttemptId
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart

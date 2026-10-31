@@ -1,6 +1,6 @@
 package io.screenstream.mjpeg.networkaddress
 
-import io.screenstream.streaming.logW
+import io.screenstream.core.logW
 import java.net.InetAddress
 import java.util.Collections
 

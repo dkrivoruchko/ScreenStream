@@ -12,8 +12,8 @@ import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
-import io.screenstream.streaming.capture.ConsentRequestObserver
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.capture.ConsentRequestObserver
+import io.screenstream.core.module.StreamingModule
 import org.koin.core.annotation.Singleton
 import java.util.concurrent.atomic.AtomicBoolean
 

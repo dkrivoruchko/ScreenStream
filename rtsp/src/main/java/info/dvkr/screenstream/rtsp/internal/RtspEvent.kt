@@ -1,7 +1,7 @@
 package info.dvkr.screenstream.rtsp.internal
 
-import io.screenstream.streaming.capture.ScreenCaptureAccess
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.module.StreamingModule
 import kotlin.uuid.Uuid
 
 /** Process-local commands and observations; Android only transports native module startup. */

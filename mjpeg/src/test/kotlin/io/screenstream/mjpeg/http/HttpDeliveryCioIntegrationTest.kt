@@ -17,7 +17,7 @@ import io.screenstream.mjpeg.http.HttpDelivery.ServerFailure
 import io.screenstream.mjpeg.http.HttpDelivery.ServerState
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable

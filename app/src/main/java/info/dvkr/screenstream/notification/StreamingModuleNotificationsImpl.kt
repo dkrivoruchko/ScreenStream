@@ -19,7 +19,7 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.SingleActivity
 import info.dvkr.screenstream.common.getLog
-import io.screenstream.streaming.module.StreamingModuleNotifications
+import io.screenstream.core.module.StreamingModuleNotifications
 import org.koin.core.annotation.Singleton
 
 @Singleton(binds = [StreamingModuleNotifications::class])

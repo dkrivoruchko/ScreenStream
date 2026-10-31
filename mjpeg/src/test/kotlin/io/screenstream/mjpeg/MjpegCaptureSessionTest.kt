@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.media.projection.MediaProjection
 import io.screenstream.mjpeg.settings.ImageSettings
-import io.screenstream.streaming.capture.ScreenCaptureAccess
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart

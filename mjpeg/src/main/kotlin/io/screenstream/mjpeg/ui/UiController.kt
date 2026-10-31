@@ -2,13 +2,13 @@ package io.screenstream.mjpeg.ui
 
 import androidx.compose.runtime.Immutable
 import io.screenstream.capture.ScreenCaptureStats
+import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.MjpegCaptureSession.State.SuspensionProblem
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.SecretValue
-import io.screenstream.streaming.module.StreamingModule
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds

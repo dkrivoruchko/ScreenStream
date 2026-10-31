@@ -51,11 +51,11 @@ import info.dvkr.screenstream.rtsp.ui.RtspError
 import info.dvkr.screenstream.rtsp.ui.RtspMainScreenUI
 import info.dvkr.screenstream.rtsp.ui.RtspState
 import info.dvkr.screenstream.rtsp.ui.isStartupPolicyError
-import io.screenstream.streaming.capture.ConsentLaunchException
-import io.screenstream.streaming.capture.ScreenCaptureAccess
-import io.screenstream.streaming.manager.StreamingModuleActionReceiver
-import io.screenstream.streaming.module.StreamingModule
-import io.screenstream.streaming.module.StreamingModuleNotifications
+import io.screenstream.core.capture.ConsentLaunchException
+import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.manager.StreamingModuleActionReceiver
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.module.StreamingModuleNotifications
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
@@ -90,7 +90,7 @@ import kotlin.uuid.Uuid
 
 @Factory(binds = [])
 internal class RtspStreamingService(
-    @InjectedParam private val runtime: StreamingModule.Controller.Runtime,
+    @InjectedParam private val managerHandle: StreamingModule.Controller.ManagerHandle,
     @InjectedParam private val service: RtspModuleService,
     private val captureAccess: ScreenCaptureAccess,
     private val notifications: StreamingModuleNotifications,
@@ -106,7 +106,7 @@ internal class RtspStreamingService(
     private val coroutineDispatcher: CoroutineDispatcher by lazy(LazyThreadSafetyMode.NONE) { handler.asCoroutineDispatcher("RTSP-HT_Dispatcher") }
     private val supervisorJob = SupervisorJob()
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(supervisorJob + coroutineDispatcher) }
-    override val instanceId: StreamingModule.InstanceId = runtime.instanceId
+    override val instanceId: StreamingModule.InstanceId = managerHandle.instanceId
     private val mutableRtspStateFlow = MutableStateFlow(RtspState())
     private val rtspStateFlow = mutableRtspStateFlow.asStateFlow()
     private val admissionGate = Any()
@@ -138,7 +138,7 @@ internal class RtspStreamingService(
 
     override fun startModule() {
         synchronized(admissionGate) {
-            if (closing || !runtime.isCurrent() || workerStarted) return
+            if (closing || !managerHandle.isCurrent() || workerStarted) return
             workerStarted = true
             start()
         }
@@ -195,7 +195,7 @@ internal class RtspStreamingService(
     override fun onServiceDestroyed() {
         invalidateConsentReuse()
         try {
-            runtime.reportFailed()
+            managerHandle.reportFailed()
         } finally {
             requestModuleShutdown()
         }
@@ -224,7 +224,7 @@ internal class RtspStreamingService(
     }
 
     private fun isAttemptCurrent(attempt: CaptureAttempt): Boolean = synchronized(admissionGate) {
-        !closing && runtime.isCurrent() && captureAttempt === attempt && !attempt.stopRequested
+        !closing && managerHandle.isCurrent() && captureAttempt === attempt && !attempt.stopRequested
     }
 
     private fun invalidateConsentReuse(attemptId: StreamingModule.CaptureAttemptId? = null) {
@@ -464,7 +464,7 @@ internal class RtspStreamingService(
                             }
 
                             synchronized(admissionGate) {
-                                if (closing || !runtime.isCurrent()) return@runCatching
+                                if (closing || !managerHandle.isCurrent()) return@runCatching
                                 val admittedGeneration = ++serverGeneration
                                 generation = admittedGeneration
                                 server = RtspServer(
@@ -480,7 +480,7 @@ internal class RtspStreamingService(
                                         sendEvent(it)
                                     },
                                     onRequestKeyFrame = {
-                                        if (!closing && runtime.isCurrent() && generation == admittedGeneration) {
+                                        if (!closing && managerHandle.isCurrent() && generation == admittedGeneration) {
                                             projectionState.active?.videoEncoder?.requestKeyFrame()
                                         }
                                     }
@@ -507,7 +507,7 @@ internal class RtspStreamingService(
                 }
 
                 is InternalEvent.RtspServer.OnStart -> {
-                    if (closing || !runtime.isCurrent()) return
+                    if (closing || !managerHandle.isCurrent()) return
                     isActive = true
                     currentError = null
                     onvifServer = OnvifServer(
@@ -636,7 +636,7 @@ internal class RtspStreamingService(
                     if (generation == admittedGeneration && (event is InternalEvent.Error || event is InternalEvent.RtspClient.OnError)) {
                         invalidateConsentReuse(attempt.id)
                     }
-                    if (!closing && runtime.isCurrent() && generation == admittedGeneration) {
+                    if (!closing && managerHandle.isCurrent() && generation == admittedGeneration) {
                         XLog.d(getLog("RtspClient.sendEvent", event.toString()))
                         sendEvent(if (event is InternalEvent.Error) event.copy(attempt = attempt.id) else event)
                     }
@@ -993,8 +993,8 @@ internal class RtspStreamingService(
 
             publishError()
             mutableRtspStateFlow.value = buildViewState()
-            if (!closing && runtime.isCurrent()) {
-                runtime.reportRunning(
+            if (!closing && managerHandle.isCurrent()) {
+                managerHandle.reportRunning(
                     StreamingModule.Status(
                         isStreaming = captureAttempt?.let { it.started && !it.stopRequested } == true,
                         hasConsumer = currentActiveConsumersCount() > 0,
@@ -1011,7 +1011,7 @@ internal class RtspStreamingService(
 
     // On RTSP-HT only
     private suspend fun processEvent(event: RtspEvent) {
-        if ((closing || !runtime.isCurrent()) && event !is InternalEvent.Destroy) return
+        if ((closing || !managerHandle.isCurrent()) && event !is InternalEvent.Destroy) return
         if (event is RtspEvent.StopStream && event.expectedAttempt != null && event.expectedAttempt != captureAttempt?.id) return
         if (event is RtspEvent.RecoverError && event.errorToken != null && event.errorToken != errorToken) return
         val observationAttempt = when (event) {
@@ -1096,7 +1096,7 @@ internal class RtspStreamingService(
                 selectedVideoEncoderInfo = videoEncoder
                 selectedAudioEncoderInfo = audioEncoder
                 val attempt = synchronized(admissionGate) {
-                    if (closing || !runtime.isCurrent() || captureAttempt != null) return
+                    if (closing || !managerHandle.isCurrent() || captureAttempt != null) return
                     CaptureAttempt(
                         id = StreamingModule.CaptureAttemptId(instanceId),
                         settings = settings,
@@ -1668,7 +1668,7 @@ internal class RtspStreamingService(
 
     private fun publishError() {
         synchronized(errorGate) {
-            if (errorNotificationsClosed || closing || !runtime.isCurrent() || previousError === currentError) return
+            if (errorNotificationsClosed || closing || !managerHandle.isCurrent() || previousError === currentError) return
             previousError = currentError
             errorToken = currentError?.let { Uuid.random() }
             val error = currentError?.takeUnless {
@@ -1696,7 +1696,7 @@ internal class RtspStreamingService(
         audioIssueToastShown = true
         val attempt = captureAttempt?.id
         mainHandler.post {
-            if (!closing && runtime.isCurrent() && captureAttempt?.id == attempt) {
+            if (!closing && managerHandle.isCurrent() && captureAttempt?.id == attempt) {
                 Toast.makeText(service, R.string.rtsp_audio_capture_issue_detected, Toast.LENGTH_LONG).show()
             }
         }

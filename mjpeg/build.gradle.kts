@@ -38,7 +38,7 @@ android {
 
 dependencies {
     implementation(projects.common)
-    implementation(projects.streamingCore)
+    implementation(projects.core)
     implementation(projects.screenCaptureEngine)
 
     implementation(libs.koin.core)

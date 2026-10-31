@@ -8,7 +8,7 @@ import info.dvkr.screenstream.rtsp.internal.AudioCodecInfo
 import info.dvkr.screenstream.rtsp.internal.VideoCodecInfo
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.ClientStats
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.module.StreamingModule
 import kotlin.uuid.Uuid
 
 @Immutable

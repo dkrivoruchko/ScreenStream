@@ -5,7 +5,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.settings.MjpegSettings
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
@@ -45,7 +45,7 @@ internal class MjpegStreamingModuleServiceTest {
     fun capturePromotionUsesModuleNotificationAndProjectionTypeThenRemovesForeground() = runBlocking {
         val host = createHost()
         try {
-            val attempt = StreamingModule.CaptureAttemptId(host.runtime.instanceId)
+            val attempt = StreamingModule.CaptureAttemptId(host.managerHandle.instanceId)
             host.service.enterCaptureForeground(attempt)
             val serviceShadow = shadowOf(host.service)
             assertEquals(400, serviceShadow.lastForegroundNotificationId)
@@ -79,13 +79,13 @@ internal class MjpegStreamingModuleServiceTest {
     fun secondPromotionIsRejectedUntilFirstObligationIsRemoved() = runBlocking {
         val host = createHost()
         try {
-            host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.runtime.instanceId))
+            host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.managerHandle.instanceId))
             val rejected = runCatching {
-                host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.runtime.instanceId))
+                host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.managerHandle.instanceId))
             }.exceptionOrNull()
             assertEquals("Foreground promotion rejected", rejected?.message)
             host.service.leaveCaptureForeground()
-            host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.runtime.instanceId))
+            host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.managerHandle.instanceId))
             assertFalse(shadowOf(host.service).isForegroundStopped)
             host.service.leaveCaptureForeground()
         } finally {
@@ -102,7 +102,7 @@ internal class MjpegStreamingModuleServiceTest {
             val serviceShadow = shadowOf(host.service)
             serviceShadow.setThrowInStartForeground(failure)
             val thrown = runCatching {
-                host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.runtime.instanceId))
+                host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.managerHandle.instanceId))
             }.exceptionOrNull()!!
             assertEquals(failure.javaClass, thrown.javaClass)
             assertEquals(failure.message, thrown.message)
@@ -121,7 +121,7 @@ internal class MjpegStreamingModuleServiceTest {
     fun throwingForegroundRemovalRetainsFailureWithoutRetryAndClosesOriginalController() = runBlocking {
         val host = createHost()
         try {
-            val attempt = StreamingModule.CaptureAttemptId(host.runtime.instanceId)
+            val attempt = StreamingModule.CaptureAttemptId(host.managerHandle.instanceId)
             host.service.enterCaptureForeground(attempt)
             val serviceShadow = Shadow.extract<ThrowingForegroundRemovalShadow>(host.service)
             val failure = IllegalStateException("Platform foreground removal failed")
@@ -135,7 +135,7 @@ internal class MjpegStreamingModuleServiceTest {
             assertFalse(serviceShadow.isForegroundStopped)
             assertTrue(serviceShadow.isLastForegroundNotificationAttached)
             withTimeout(5.seconds) {
-                host.runtime.failed.await()
+                host.managerHandle.failed.await()
                 host.http.stopSettled.await()
                 host.monitor.closeSettled.await()
             }
@@ -168,12 +168,12 @@ internal class MjpegStreamingModuleServiceTest {
     fun destroyedPromotedServiceMakesRemovalUnconfirmedAndCleanupUnsuccessful() = runBlocking {
         val host = createHost()
         try {
-            host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.runtime.instanceId))
+            host.service.enterCaptureForeground(StreamingModule.CaptureAttemptId(host.managerHandle.instanceId))
             host.destroy()
             val failure = runCatching { host.service.leaveCaptureForeground() }.exceptionOrNull()
             assertEquals("Foreground release unconfirmed", failure?.message)
             assertFalse(withTimeout(5.seconds) { host.controller.awaitCleanup() })
-            assertTrue(host.runtime.failed.isCompleted)
+            assertTrue(host.managerHandle.failed.isCompleted)
             assertTrue(host.http.closed)
             assertTrue(host.monitor.closeEntered.isCompleted)
             assertEquals("Foreground release unconfirmed", runCatching { host.service.leaveCaptureForeground() }.exceptionOrNull()?.message)

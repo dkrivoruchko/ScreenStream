@@ -25,9 +25,9 @@ import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings
 import io.screenstream.mjpeg.settings.WebPageSettings
-import io.screenstream.streaming.StreamingModuleManager
-import io.screenstream.streaming.capture.ScreenCaptureAccess
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.StreamingModuleManager
+import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -67,18 +67,18 @@ internal suspend fun savedSettingsJson(context: Context): String = context.prefe
     checkNotNull(PreferencesFileSerializer.readFrom(it)[stringPreferencesKey("DATA")])
 }
 
-/** Public Service startup stores the real controller and bound runtime before tests start ordinary work. */
+/** Public Service startup stores the real controller and bound manager handle before tests start ordinary work. */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class MjpegServiceHost(
     settings: MjpegSettings,
     val http: TestHttpDelivery = TestHttpDelivery(),
     val monitor: TestAddressMonitor = TestAddressMonitor(),
     val access: TestCaptureAccess = TestCaptureAccess(),
-    val runtime: TestRuntime = TestRuntime(),
+    val managerHandle: TestManagerHandle = TestManagerHandle(),
     targetSdk: Int? = null,
 ) {
     val notifications = TestNotifications()
-    private val manager = AdmittingManager(runtime)
+    private val manager = AdmittingManager(managerHandle)
     val serviceController: ServiceController<MjpegStreamingModuleService>
     val service: MjpegStreamingModuleService get() = serviceController.get()
     val controller: MjpegStreamingModuleController get() = checkNotNull(manager.createdController)
@@ -98,7 +98,7 @@ internal class MjpegServiceHost(
                     single<StreamingModuleManager> { manager }
                     factory { parameters ->
                         MjpegStreamingModuleController(
-                            runtime = parameters.get(), service = parameters.get(), settings = lazyOf(settings),
+                            managerHandle = parameters.get(), service = parameters.get(), settings = lazyOf(settings),
                             addressMonitor = monitor, captureAccess = access, http = http,
                         )
                     }
@@ -163,22 +163,22 @@ internal class MjpegServiceHost(
         }
     }
 
-    private class AdmittingManager(private val runtime: TestRuntime) : StreamingModuleManager {
+    private class AdmittingManager(private val managerHandle: TestManagerHandle) : StreamingModuleManager {
         var createdController: MjpegStreamingModuleController? = null
             private set
         override val modules: List<StreamingModule> = emptyList()
-        override val currentInstanceId: StateFlow<StreamingModule.InstanceId?> = MutableStateFlow(runtime.instanceId)
+        override val currentInstanceId: StateFlow<StreamingModule.InstanceId?> = MutableStateFlow(managerHandle.instanceId)
         override val state: StateFlow<StreamingModuleManager.State> = MutableStateFlow(StreamingModuleManager.State.NoModule)
 
         override fun onServiceStart(
             service: Service,
             existingController: StreamingModule.Controller?,
             intent: Intent?,
-            createController: (StreamingModule.Controller.Runtime) -> StreamingModule.Controller,
+            createController: (StreamingModule.Controller.ManagerHandle) -> StreamingModule.Controller,
         ) {
             check(intent?.action == StreamingModuleManager.ACTION_START_MODULE)
             check(existingController == null)
-            createdController = createController(runtime) as MjpegStreamingModuleController
+            createdController = createController(managerHandle) as MjpegStreamingModuleController
         }
 
         @Composable
@@ -197,7 +197,7 @@ internal class MjpegServiceHost(
     }
 }
 
-internal class TestRuntime : StreamingModule.Controller.Runtime {
+internal class TestManagerHandle : StreamingModule.Controller.ManagerHandle {
     override val instanceId: StreamingModule.InstanceId = StreamingModule.InstanceId(StreamingModule.Id("MJPEG"))
 
     @Volatile

@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.PowerManager
-import io.screenstream.streaming.logE
+import io.screenstream.core.logE
 import kotlin.uuid.Uuid
 
 /** Owns a conditional Android screen-off subscription and its synchronous cleanup. */

@@ -5,7 +5,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.google.android.play.core.integrity.model.StandardIntegrityErrorCode
 import info.dvkr.screenstream.webrtc.R
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.module.StreamingModule
 import kotlin.uuid.Uuid
 
 @Immutable

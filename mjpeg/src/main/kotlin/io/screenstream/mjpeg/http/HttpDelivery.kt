@@ -1,12 +1,12 @@
 package io.screenstream.mjpeg.http
 
+import io.screenstream.core.module.StreamingModule.CaptureAttemptId
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import io.screenstream.mjpeg.settings.WebPageSettings
-import io.screenstream.streaming.module.StreamingModule.CaptureAttemptId
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.uuid.Uuid
 

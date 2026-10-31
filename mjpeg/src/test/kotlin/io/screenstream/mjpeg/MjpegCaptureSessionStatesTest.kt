@@ -18,7 +18,7 @@ import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.MjpegCaptureSession.State.SuspensionProblem
 import io.screenstream.mjpeg.MjpegEngineState.Phase
 import io.screenstream.mjpeg.settings.ImageSettings
-import io.screenstream.streaming.capture.ScreenCaptureAccess
+import io.screenstream.core.capture.ScreenCaptureAccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi

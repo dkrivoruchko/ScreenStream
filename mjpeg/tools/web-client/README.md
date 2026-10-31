@@ -84,6 +84,6 @@ Run these four checks in Chrome and Safari after changing viewer behavior; no br
    The preview repeats authorized state snapshots every two seconds, matching the production liveness contract.
    A full panel reload resets defaults.
 
-The desktop harness follows the [HTTP viewing API](../../docs/http-viewing-api.md), serving its viewer at
+The desktop harness follows the [HTTP server and viewing protocol](../../docs/http-server.md), serving its viewer at
 `/viewer`. It does not run Android capture or Ktor/CIO and does not replace Kotlin protocol tests or device
-checks. See [web client internals](../../internal/03-delivery/web-client.md) for the production contract.
+checks. See [web client internals](../../internal/03-delivery/web-client.md) for implementation and recovery details.

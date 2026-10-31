@@ -2,8 +2,8 @@ package io.screenstream.mjpeg.http.media
 
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
-import io.screenstream.streaming.module.StreamingModule
-import io.screenstream.streaming.module.StreamingModule.CaptureAttemptId
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.module.StreamingModule.CaptureAttemptId
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async

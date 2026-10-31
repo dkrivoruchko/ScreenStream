@@ -22,9 +22,9 @@ import info.dvkr.screenstream.rtsp.R
 import info.dvkr.screenstream.rtsp.internal.RtspEvent
 import info.dvkr.screenstream.rtsp.ui.RtspError
 import info.dvkr.screenstream.rtsp.ui.isStartupPolicyError
-import io.screenstream.streaming.compose.LocalRuntimePermissions
-import io.screenstream.streaming.permission.PermissionState
-import io.screenstream.streaming.permission.RuntimePermission
+import io.screenstream.core.compose.LocalRuntimePermissions
+import io.screenstream.core.permission.PermissionState
+import io.screenstream.core.permission.RuntimePermission
 
 @Composable
 internal fun ErrorCard(

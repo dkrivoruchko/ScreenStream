@@ -16,7 +16,7 @@ import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.settings.WebPageSettings
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -71,7 +71,7 @@ internal class MjpegStreamingModuleControllerTest {
         try {
             assertNull(host.http.configuration.value)
             assertNull(host.monitor.filter.value)
-            assertNull(host.runtime.status.value)
+            assertNull(host.managerHandle.status.value)
             assertTrue(host.access.requested.value.isEmpty())
             host.controller.requestStreamStart()
             host.controller.startModule()
@@ -79,13 +79,13 @@ internal class MjpegStreamingModuleControllerTest {
             val configuration = host.http.configuration.await { it != null }
             assertEquals("Fixture device", configuration!!.web.title)
             host.monitor.filter.await { it != null }
-            host.runtime.status.await { it != null }
+            host.managerHandle.status.await { it != null }
             applySettingsCheckpoint(settings, host, "Repeated start remains healthy")
             assertEquals(1, host.http.startCalls.value)
-            assertTrue(host.runtime.isCurrent())
-            assertFalse(host.runtime.failed.isCompleted)
+            assertTrue(host.managerHandle.isCurrent())
+            assertFalse(host.managerHandle.failed.isCompleted)
             assertFalse(host.http.closed)
-            assertFalse(host.runtime.status.value!!.isStreaming)
+            assertFalse(host.managerHandle.status.value!!.isStreaming)
             assertTrue(host.http.captures.value.isEmpty())
             val packagedLogo = host.service.assets.open("mjpeg/screenstream-logo.jpg").use { it.readBytes() }
             assertTrue(packagedLogo.isNotEmpty())
@@ -99,8 +99,8 @@ internal class MjpegStreamingModuleControllerTest {
     @Test
     fun staleStartAndShutdownBeforeStartCloseAdmissionWithoutOrdinaryWork() = runBlocking {
         for (stale in listOf(false, true)) {
-            val runtime = TestRuntime().also { it.current = !stale }
-            val host = MjpegServiceHost(settings(), runtime = runtime)
+            val managerHandle = TestManagerHandle().also { it.current = !stale }
+            val host = MjpegServiceHost(settings(), managerHandle = managerHandle)
             try {
                 if (!stale) host.controller.requestModuleShutdown()
                 host.controller.startModule()
@@ -193,7 +193,7 @@ internal class MjpegStreamingModuleControllerTest {
                 host.controller.requestStreamStart()
                 host.access.requested.await { it.size == 1 }
                 assertEquals(host.http.captures.value.single(), host.access.requested.value.single())
-                assertFalse(host.runtime.status.await { it?.captureAttempt != null }!!.isStreaming)
+                assertFalse(host.managerHandle.status.await { it?.captureAttempt != null }!!.isStreaming)
             } finally {
                 assertTrue(host.close())
             }
@@ -210,11 +210,11 @@ internal class MjpegStreamingModuleControllerTest {
             host.controller.requestStreamStart()
             val first = host.access.requested.await { it.size == 1 }.single()
             host.controller.requestStreamStart()
-            host.controller.requestStreamStop(StreamingModule.CaptureAttemptId(host.runtime.instanceId))
+            host.controller.requestStreamStop(StreamingModule.CaptureAttemptId(host.managerHandle.instanceId))
             applySettingsCheckpoint(settings, host, "Stale Stop processed")
             assertEquals(listOf(first), host.http.captures.value)
             assertTrue(host.access.finishCalls.value.isEmpty())
-            assertEquals(first, host.runtime.status.await { it?.captureAttempt == first }!!.captureAttempt)
+            assertEquals(first, host.managerHandle.status.await { it?.captureAttempt == first }!!.captureAttempt)
             val delivery = host.http.info.value
             host.http.info.value = delivery.copy(
                 clients = listOf(
@@ -225,19 +225,19 @@ internal class MjpegStreamingModuleControllerTest {
                     ),
                 ),
             )
-            val consumed = host.runtime.status.await { it?.hasConsumer == true }!!
+            val consumed = host.managerHandle.status.await { it?.hasConsumer == true }!!
             assertEquals(first, consumed.captureAttempt)
             assertFalse(consumed.isStreaming)
             host.controller.requestStreamStop(first)
             host.http.captureStatus.await { it?.first == first && it.second == MjpegCaptureSession.State.Status.Stopped }
-            host.runtime.status.await { it?.captureAttempt == null }
+            host.managerHandle.status.await { it?.captureAttempt == null }
             assertFalse(host.http.closed)
             host.controller.requestStreamStart()
             val second = host.access.requested.await { it.size == 2 }.last()
             assertNotEquals(first, second)
             host.controller.requestStreamStop(first)
             applySettingsCheckpoint(settings, host, "Old Stop after replacement")
-            assertEquals(second, host.runtime.status.await { it?.captureAttempt == second }!!.captureAttempt)
+            assertEquals(second, host.managerHandle.status.await { it?.captureAttempt == second }!!.captureAttempt)
             assertEquals(listOf(first), host.access.finishCalls.value)
             host.controller.requestStreamStop(second)
             host.http.captureStatus.await { it?.first == second && it.second == MjpegCaptureSession.State.Status.Stopped }
@@ -296,9 +296,9 @@ internal class MjpegStreamingModuleControllerTest {
             host.controller.requestStreamStart()
             applySettingsCheckpoint(settings, host, "Replacement rejected")
             assertEquals(listOf(attempt), host.http.captures.value)
-            assertEquals(attempt, host.runtime.status.value!!.captureAttempt)
+            assertEquals(attempt, host.managerHandle.status.value!!.captureAttempt)
             assertEquals(8080, host.http.plan.value!!.port)
-            assertFalse(host.runtime.status.value!!.isStreaming)
+            assertFalse(host.managerHandle.status.value!!.isStreaming)
         } finally {
             assertFalse(host.close())
         }
@@ -346,7 +346,7 @@ internal class MjpegStreamingModuleControllerTest {
                 val attempt = host.access.requested.await { it.size == 1 }.single()
                 host.controller.requestStreamStop(attempt)
                 host.http.captureStatus.await { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
-                host.runtime.status.await { it?.captureAttempt == null }
+                host.managerHandle.status.await { it?.captureAttempt == null }
                 host.controller.startModule()
                 applySettingsCheckpoint(settings, host, "Same module")
                 assertEquals(applied, settings.data.first().access)
@@ -381,7 +381,7 @@ internal class MjpegStreamingModuleControllerTest {
                 assertEquals(applied, host.http.configuration.value!!.access)
                 host.controller.requestStreamStop(attempt)
                 host.http.captureStatus.await { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
-                host.runtime.status.await { it?.captureAttempt == null }
+                host.managerHandle.status.await { it?.captureAttempt == null }
                 host.controller.startModule()
                 applySettingsCheckpoint(settings, host, "Protection remains prepared")
                 assertEquals(applied, settings.data.first().access)
@@ -507,7 +507,7 @@ internal class MjpegStreamingModuleControllerTest {
                     "service-destroyed" -> host.destroy()
                 }
                 withTimeout(5.seconds) {
-                    host.runtime.failed.await()
+                    host.managerHandle.failed.await()
                     host.http.stopEntered.await()
                     host.monitor.closeEntered.await()
                 }
@@ -650,7 +650,7 @@ internal class MjpegStreamingModuleControllerTest {
             applySettingsCheckpoint(settings, host, "Second loss deadline reached")
             host.http.captureStatus.await { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
             assertEquals(listOf(attempt), host.access.finishCalls.value)
-            host.runtime.status.await { it?.captureAttempt == null }
+            host.managerHandle.status.await { it?.captureAttempt == null }
             assertFalse(host.http.closed)
         } finally {
             assertTrue(host.close())
@@ -689,7 +689,7 @@ internal class MjpegStreamingModuleControllerTest {
             applySettingsCheckpoint(settings, host, "Twenty seconds since original loss")
             host.http.captureStatus.await { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
             assertEquals(listOf(attempt), host.access.finishCalls.value)
-            host.runtime.status.await { it?.captureAttempt == null }
+            host.managerHandle.status.await { it?.captureAttempt == null }
             assertFalse(host.http.closed)
         } finally {
             assertTrue(host.close())
@@ -731,7 +731,7 @@ internal class MjpegStreamingModuleControllerTest {
             applySettingsCheckpoint(settings, host, "Elapsed deadline turn completed")
             host.http.captureStatus.await { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
             assertEquals(listOf(attempt), host.access.finishCalls.value)
-            host.runtime.status.await { it?.captureAttempt == null }
+            host.managerHandle.status.await { it?.captureAttempt == null }
             assertFalse(host.http.closed)
         } finally {
             assertTrue(host.close())
@@ -816,7 +816,7 @@ internal class MjpegStreamingModuleControllerTest {
     private fun assertHeldConsent(host: MjpegServiceHost, attempt: StreamingModule.CaptureAttemptId) {
         assertEquals(attempt to MjpegCaptureSession.State.Status.WaitingForPermission, host.http.captureStatus.value)
         assertTrue(host.access.finishCalls.value.isEmpty())
-        assertEquals(attempt, host.runtime.status.value!!.captureAttempt)
+        assertEquals(attempt, host.managerHandle.status.value!!.captureAttempt)
     }
 
     private fun address(id: Long = 1, ip: String = "192.168.1.2", type: InterfaceType = InterfaceType.Wifi): NetworkAddress =

@@ -52,11 +52,11 @@ import info.dvkr.screenstream.rtsp.ui.main.cards.ErrorCard
 import info.dvkr.screenstream.rtsp.ui.main.cards.ModeCard
 import info.dvkr.screenstream.rtsp.ui.main.cards.ServerSettingsCard
 import info.dvkr.screenstream.rtsp.ui.main.cards.VideoCard
-import io.screenstream.streaming.compose.LocalRuntimePermissions
-import io.screenstream.streaming.module.StreamingModule
-import io.screenstream.streaming.module.StreamingModuleNotifications
-import io.screenstream.streaming.permission.PermissionState
-import io.screenstream.streaming.permission.RuntimePermission
+import io.screenstream.core.compose.LocalRuntimePermissions
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.module.StreamingModuleNotifications
+import io.screenstream.core.permission.PermissionState
+import io.screenstream.core.permission.RuntimePermission
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.job

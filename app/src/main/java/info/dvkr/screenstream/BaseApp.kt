@@ -9,8 +9,8 @@ import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.XLog
 import com.elvishew.xlog.printer.AndroidPrinter
 import com.elvishew.xlog.printer.Printer
-import io.screenstream.streaming.StreamingModuleManager
-import io.screenstream.streaming.logV
+import io.screenstream.core.StreamingModuleManager
+import io.screenstream.core.logV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

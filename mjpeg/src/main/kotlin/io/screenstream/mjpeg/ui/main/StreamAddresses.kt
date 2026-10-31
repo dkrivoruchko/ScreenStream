@@ -65,14 +65,14 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.generateQRBitmap
 import info.dvkr.screenstream.common.ui.ExpandableCard
+import io.screenstream.core.compose.LocalRuntimePermissions
+import io.screenstream.core.permission.PermissionState
+import io.screenstream.core.permission.RuntimePermission
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.ui.UiController
-import io.screenstream.streaming.compose.LocalRuntimePermissions
-import io.screenstream.streaming.permission.PermissionState
-import io.screenstream.streaming.permission.RuntimePermission
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

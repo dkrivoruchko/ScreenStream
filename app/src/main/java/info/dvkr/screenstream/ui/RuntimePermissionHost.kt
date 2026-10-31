@@ -25,10 +25,10 @@ import androidx.lifecycle.compose.currentStateAsState
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.settings.AppSettings
-import io.screenstream.streaming.compose.LocalRuntimePermissions
-import io.screenstream.streaming.permission.PermissionState
-import io.screenstream.streaming.permission.RuntimePermission
-import io.screenstream.streaming.permission.RuntimePermissions
+import io.screenstream.core.compose.LocalRuntimePermissions
+import io.screenstream.core.permission.PermissionState
+import io.screenstream.core.permission.RuntimePermission
+import io.screenstream.core.permission.RuntimePermissions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

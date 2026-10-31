@@ -28,7 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.common.ui.ExpandableCard
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.module.StreamingModule
 
 @Composable
 internal fun ModuleSelector(

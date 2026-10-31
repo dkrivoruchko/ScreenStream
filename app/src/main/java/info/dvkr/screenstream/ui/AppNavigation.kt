@@ -54,7 +54,7 @@ import info.dvkr.screenstream.ui.about.AboutScreen
 import info.dvkr.screenstream.ui.settings.SettingsDetail
 import info.dvkr.screenstream.ui.settings.SettingsRoute
 import info.dvkr.screenstream.ui.stream.StreamScreen
-import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.core.StreamingModuleManager
 import kotlinx.serialization.Serializable
 
 @Composable

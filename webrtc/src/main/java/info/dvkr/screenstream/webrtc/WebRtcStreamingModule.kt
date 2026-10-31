@@ -1,8 +1,8 @@
 package info.dvkr.screenstream.webrtc
 
 import android.app.Service
-import io.screenstream.streaming.module.StreamingModule
-import io.screenstream.streaming.module.StreamingModuleNotifications
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.module.StreamingModuleNotifications
 import org.koin.core.annotation.Singleton
 
 /** Selection metadata only; the admitted Service creates each independent controller. */

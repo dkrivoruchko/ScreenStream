@@ -5,6 +5,10 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
+import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.logE
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.permission.RuntimePermission
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
@@ -15,10 +19,6 @@ import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.ui.MjpegUiController
 import io.screenstream.mjpeg.ui.UiController
 import io.screenstream.mjpeg.ui.UiController.Action
-import io.screenstream.streaming.capture.ScreenCaptureAccess
-import io.screenstream.streaming.logE
-import io.screenstream.streaming.module.StreamingModule
-import io.screenstream.streaming.permission.RuntimePermission
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -56,14 +56,14 @@ import kotlin.uuid.Uuid
  */
 @Factory(binds = [])
 internal class MjpegStreamingModuleController(
-    @InjectedParam private val runtime: StreamingModule.Controller.Runtime,
+    @InjectedParam private val managerHandle: StreamingModule.Controller.ManagerHandle,
     @InjectedParam private val service: MjpegStreamingModuleService,
     private val settings: Lazy<MjpegSettings>,
     private val addressMonitor: NetworkAddressMonitor,
     private val captureAccess: ScreenCaptureAccess,
     private val http: HttpDelivery,
 ) : StreamingModule.Controller {
-    override val instanceId: StreamingModule.InstanceId = runtime.instanceId
+    override val instanceId: StreamingModule.InstanceId = managerHandle.instanceId
 
     private val controllerJob = SupervisorJob()
     private val controllerScope = CoroutineScope(controllerJob + Dispatchers.Default)
@@ -133,7 +133,7 @@ internal class MjpegStreamingModuleController(
     }
 
     override fun startModule() {
-        if (!runtime.isCurrent()) requestModuleShutdown() else eventLoopJob.start()
+        if (!managerHandle.isCurrent()) requestModuleShutdown() else eventLoopJob.start()
     }
 
     override fun requestStreamStart() {
@@ -175,7 +175,7 @@ internal class MjpegStreamingModuleController(
 
     override fun onServiceDestroyed() {
         try {
-            runtime.reportFailed()
+            managerHandle.reportFailed()
         } finally {
             requestModuleShutdown()
         }
@@ -218,7 +218,7 @@ internal class MjpegStreamingModuleController(
             observeInputs()
 
             var nextHeartbeatAtUptimeMillis = SystemClock.uptimeMillis()
-            while (!shutdownRequested.isCompleted && runtime.isCurrent()) {
+            while (!shutdownRequested.isCompleted && managerHandle.isCurrent()) {
                 currentCoroutineContext().ensureActive()
 
                 val now = SystemClock.uptimeMillis()
@@ -235,7 +235,7 @@ internal class MjpegStreamingModuleController(
                     eventQueue.onReceive { it }
                     onTimeout(waitMillis.milliseconds) { null }
                 }
-                if (shutdownRequested.isCompleted || !runtime.isCurrent()) break
+                if (shutdownRequested.isCompleted || !managerHandle.isCurrent()) break
 
                 handleEvent(event)
 
@@ -374,7 +374,7 @@ internal class MjpegStreamingModuleController(
         capture.processedState = latestState
 
         if (latestState.cleanupSucceeded == false) {
-            runtime.reportFailed()
+            managerHandle.reportFailed()
             requestModuleShutdown()
             return
         }
@@ -544,7 +544,7 @@ internal class MjpegStreamingModuleController(
         val network = effectiveSettings?.network ?: return false
         val observed = addressMonitor.state.value as? NetworkAddressMonitor.State.Observed ?: return false
         val addresses = observed.inventory.select(network.filter)
-        return !shutdownRequested.isCompleted && runtime.isCurrent() &&
+        return !shutdownRequested.isCompleted && managerHandle.isCurrent() &&
                 delivery.servers.any { listener ->
                     listener.state == HttpDelivery.ServerState.Listening && listener.port == network.httpPort &&
                             addresses.any { address ->
@@ -703,7 +703,7 @@ internal class MjpegStreamingModuleController(
     }
 
     private fun reportStatus(heartbeatAtUptimeMillis: Long, status: StreamingModule.Status = moduleStatus()) {
-        runtime.reportRunning(status, heartbeatAtUptimeMillis)
+        managerHandle.reportRunning(status, heartbeatAtUptimeMillis)
         reportedStatus = status
     }
 
@@ -760,7 +760,7 @@ internal class MjpegStreamingModuleController(
         if (shutdownRequested.isCompleted) return
         if (cause !== http.info.value.fatalCause) logE("fail", "Controller failed: $source", cause)
         try {
-            runtime.reportFailed()
+            managerHandle.reportFailed()
         } finally {
             requestModuleShutdown()
         }

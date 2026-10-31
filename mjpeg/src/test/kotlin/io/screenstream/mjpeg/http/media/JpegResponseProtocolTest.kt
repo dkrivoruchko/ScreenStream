@@ -15,7 +15,7 @@ import io.screenstream.mjpeg.http.HttpListener
 import io.screenstream.mjpeg.http.HttpRequests
 import io.screenstream.mjpeg.http.UnstartedHttpListener
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable

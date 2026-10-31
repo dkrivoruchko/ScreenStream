@@ -10,13 +10,13 @@ import android.net.TetheringInterface
 import android.net.TetheringManager
 import android.os.Build
 import androidx.annotation.RequiresApi
+import io.screenstream.core.logD
+import io.screenstream.core.logE
+import io.screenstream.core.logV
+import io.screenstream.core.logW
 import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.InterfaceAddresses
 import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.ScanResult
 import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.Snapshot
-import io.screenstream.streaming.logD
-import io.screenstream.streaming.logE
-import io.screenstream.streaming.logV
-import io.screenstream.streaming.logW
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope

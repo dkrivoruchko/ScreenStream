@@ -12,9 +12,9 @@ import info.dvkr.screenstream.common.analytics.StreamingSessionAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import info.dvkr.screenstream.rtsp.ui.RtspError
-import io.screenstream.streaming.capture.ConsentLaunchException
-import io.screenstream.streaming.capture.ScreenCaptureAccess
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.capture.ConsentLaunchException
+import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CancellationException
 
 /** Module-private telemetry ownership; it neither admits capture nor changes its lifetime. */

@@ -2,8 +2,8 @@ package io.screenstream.mjpeg
 
 import android.content.Context
 import android.media.projection.MediaProjection
-import io.screenstream.streaming.capture.ScreenCaptureAccess
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CoroutineScope
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.shadow.api.Shadow

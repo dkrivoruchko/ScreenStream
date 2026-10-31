@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.app.AnchoredAdaptiveBanner
-import io.screenstream.streaming.StreamingModuleManager
-import io.screenstream.streaming.module.StreamingModule
+import io.screenstream.core.StreamingModuleManager
+import io.screenstream.core.module.StreamingModule
 import org.koin.compose.koinInject
 
 @Composable

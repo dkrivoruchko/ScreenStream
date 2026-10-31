@@ -7,7 +7,7 @@ import com.elvishew.xlog.interceptor.AbstractFilterInterceptor
 import com.elvishew.xlog.internal.util.StackTraceUtil
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
-import io.screenstream.streaming.configureLogWriter
+import io.screenstream.core.configureLogWriter
 
 public class ScreenStreamApp : BaseApp() {
 

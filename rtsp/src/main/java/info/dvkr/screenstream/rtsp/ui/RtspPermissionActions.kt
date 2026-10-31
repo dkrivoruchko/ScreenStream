@@ -12,10 +12,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
-import io.screenstream.streaming.compose.LocalRuntimePermissions
-import io.screenstream.streaming.permission.PermissionState
-import io.screenstream.streaming.permission.RuntimePermission
-import io.screenstream.streaming.permission.RuntimePermissions
+import io.screenstream.core.compose.LocalRuntimePermissions
+import io.screenstream.core.permission.PermissionState
+import io.screenstream.core.permission.RuntimePermission
+import io.screenstream.core.permission.RuntimePermissions
 
 /** Retains RTSP action data across Activity recreation, without retaining its permission host. */
 internal class RtspPermissionActions<A : Any> internal constructor() {

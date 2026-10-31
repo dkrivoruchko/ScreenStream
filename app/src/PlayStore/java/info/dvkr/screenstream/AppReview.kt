@@ -14,7 +14,7 @@ import com.google.android.play.core.ktx.launchReview
 import com.google.android.play.core.ktx.requestReview
 import com.google.android.play.core.review.ReviewManagerFactory
 import info.dvkr.screenstream.common.getLog
-import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.core.StreamingModuleManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch

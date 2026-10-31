@@ -1,8 +1,8 @@
 package io.screenstream.mjpeg
 
 import android.app.Service
-import io.screenstream.streaming.module.StreamingModule
-import io.screenstream.streaming.module.StreamingModuleNotifications
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.module.StreamingModuleNotifications
 import org.koin.core.annotation.Singleton
 
 /**

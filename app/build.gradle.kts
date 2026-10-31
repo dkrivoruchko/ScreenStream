@@ -124,7 +124,7 @@ dependencies {
     coreLibraryDesugaring(libs.android.tools.desugar)
 
     implementation(projects.common)
-    implementation(projects.streamingCore)
+    implementation(projects.core)
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)

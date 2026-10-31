@@ -1,9 +1,9 @@
 package io.screenstream.mjpeg.http.media
 
+import io.screenstream.core.module.StreamingModule.CaptureAttemptId
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
-import io.screenstream.streaming.module.StreamingModule.CaptureAttemptId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update

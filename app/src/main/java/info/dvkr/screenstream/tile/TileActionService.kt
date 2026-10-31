@@ -16,7 +16,7 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.R
 import info.dvkr.screenstream.SingleActivity
 import info.dvkr.screenstream.common.getLog
-import io.screenstream.streaming.StreamingModuleManager
+import io.screenstream.core.StreamingModuleManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

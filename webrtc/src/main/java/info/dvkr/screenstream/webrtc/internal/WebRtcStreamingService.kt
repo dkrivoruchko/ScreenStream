@@ -49,11 +49,11 @@ import info.dvkr.screenstream.webrtc.ui.WebRtcMainScreenUI
 import info.dvkr.screenstream.webrtc.ui.WebRtcState
 import info.dvkr.screenstream.webrtc.ui.isExpectedEnvironmentIssue
 import info.dvkr.screenstream.webrtc.ui.isStartupPolicyError
-import io.screenstream.streaming.capture.ConsentLaunchException
-import io.screenstream.streaming.capture.ScreenCaptureAccess
-import io.screenstream.streaming.manager.StreamingModuleActionReceiver
-import io.screenstream.streaming.module.StreamingModule
-import io.screenstream.streaming.module.StreamingModuleNotifications
+import io.screenstream.core.capture.ConsentLaunchException
+import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.manager.StreamingModuleActionReceiver
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.module.StreamingModuleNotifications
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CompletableJob
@@ -93,7 +93,7 @@ import kotlin.uuid.Uuid
 
 @Factory(binds = [])
 internal class WebRtcStreamingService(
-    @InjectedParam private val runtime: StreamingModule.Controller.Runtime,
+    @InjectedParam private val managerHandle: StreamingModule.Controller.ManagerHandle,
     @InjectedParam private val service: WebRtcModuleService,
     private val environmentProvider: Lazy<WebRtcEnvironment>,
     private val captureAccess: ScreenCaptureAccess,
@@ -104,7 +104,7 @@ internal class WebRtcStreamingService(
 
     private data class ClientSession(val key: ClientSessionKey, val client: WebRtcClient)
 
-    override val instanceId: StreamingModule.InstanceId = runtime.instanceId
+    override val instanceId: StreamingModule.InstanceId = managerHandle.instanceId
     private val mutableWebRtcStateFlow = MutableStateFlow(WebRtcState())
     private val environment: WebRtcEnvironment get() = environmentProvider.value
     private val versionName by lazy { service.getVersionName("com.google.android.gms", "-") }
@@ -157,12 +157,12 @@ internal class WebRtcStreamingService(
     }
     private val heartbeat = object : Runnable {
         override fun run() {
-            if (destroyPending || !runtime.isCurrent()) return
+            if (destroyPending || !managerHandle.isCurrent()) return
             runCatching {
                 publishState()
                 reportStatus()
             }.onFailure {
-                runtime.reportFailed()
+                managerHandle.reportFailed()
                 requestModuleShutdown()
             }
             if (!destroyPending) handler.postDelayed(this, 1_000L)
@@ -171,7 +171,7 @@ internal class WebRtcStreamingService(
 
     override fun startModule() {
         synchronized(ownerGate) {
-            if (destroyPending || started || !runtime.isCurrent()) {
+            if (destroyPending || started || !managerHandle.isCurrent()) {
                 if (!started) startupSettled.complete(Unit)
                 return
             }
@@ -181,7 +181,7 @@ internal class WebRtcStreamingService(
             start()
         } catch (cause: Throwable) {
             try {
-                runtime.reportFailed()
+                managerHandle.reportFailed()
             } finally {
                 requestModuleShutdown()
             }
@@ -232,7 +232,7 @@ internal class WebRtcStreamingService(
 
     override fun onServiceDestroyed() {
         try {
-            runtime.reportFailed()
+            managerHandle.reportFailed()
         } finally {
             requestModuleShutdown()
         }
@@ -257,7 +257,7 @@ internal class WebRtcStreamingService(
 
     private fun reportStatus() {
         if (destroyPending) return
-        runtime.reportRunning(
+        managerHandle.reportRunning(
             StreamingModule.Status(isStreaming(), clients.isNotEmpty(), captureAttempt?.id, error = null),
             SystemClock.uptimeMillis(),
         )
@@ -668,7 +668,7 @@ internal class WebRtcStreamingService(
         expectedSignalingSocket: Any? = null,
     ) {
         if (!workerStarted || (destroyPending && event !is InternalEvent.Destroy) ||
-            (event !is InternalEvent.Destroy && !runtime.isCurrent())
+            (event !is InternalEvent.Destroy && !managerHandle.isCurrent())
         ) return
         if (event is InternalEvent.Destroy) {
             handler.removeCallbacksAndMessages(null)
@@ -681,7 +681,7 @@ internal class WebRtcStreamingService(
         val event = queued.event
         if (queued.signalingEpoch != null && queued.signalingEpoch != signalingEpoch) return@runBlocking true
         if (queued.signalingSocket != null && queued.signalingSocket !== signalingSocket) return@runBlocking true
-        if (event !is InternalEvent.Destroy && (destroyPending || !runtime.isCurrent())) {
+        if (event !is InternalEvent.Destroy && (destroyPending || !managerHandle.isCurrent())) {
             requestModuleShutdown()
             return@runBlocking true
         }
@@ -936,12 +936,12 @@ internal class WebRtcStreamingService(
                 require(event.streamId.isEmpty().not())
 
                 webRtcSettings.updateData { copy(lastStreamId = event.streamId.value) }
-                if (destroyPending || !runtime.isCurrent()) return
+                if (destroyPending || !managerHandle.isCurrent()) return
 
                 if (currentStreamId.isEmpty().not()) {
                     if (currentStreamId != event.streamId) {
                         stopStream("StreamCreated: New StreamID")
-                        if (destroyPending || !runtime.isCurrent()) return
+                        if (destroyPending || !managerHandle.isCurrent()) return
                         currentStreamPassword = StreamPassword.EMPTY
                     }
 
@@ -956,7 +956,7 @@ internal class WebRtcStreamingService(
                 currentStreamId = event.streamId
                 if (currentStreamPassword.isEmpty()) currentStreamPassword = StreamPassword.generateNew()
                 if (projection == null) {
-                    if (synchronized(ownerGate) { destroyPending || !runtime.isCurrent() }) return
+                    if (synchronized(ownerGate) { destroyPending || !managerHandle.isCurrent() }) return
                     val created = try {
                         WebRtcProjection(service)
                     } catch (cause: UnsatisfiedLinkError) {
@@ -970,7 +970,7 @@ internal class WebRtcStreamingService(
                         throw WebRtcError.IncompleteInstallation(cause)
                     }
                     val installed = synchronized(ownerGate) {
-                        if (destroyPending || !runtime.isCurrent() || projection != null) false else {
+                        if (destroyPending || !managerHandle.isCurrent() || projection != null) false else {
                             projection = created
                             true
                         }
@@ -1250,7 +1250,7 @@ internal class WebRtcStreamingService(
             }
 
             is InternalEvent.StartStream -> {
-                if (destroyPending || !runtime.isCurrent()) return
+                if (destroyPending || !managerHandle.isCurrent()) return
                 if (event.clearStartupPolicyError && currentError.get()?.isStartupPolicyError() == true) currentError.set(null)
                 if (captureAttempt != null) return
                 val settings = webRtcSettings.data.value
@@ -1264,7 +1264,7 @@ internal class WebRtcStreamingService(
                     (signaling?.socketId() == null && !networkRecovery.value)
                 ) return
                 val attempt = synchronized(ownerGate) {
-                    if (destroyPending || !runtime.isCurrent()) return
+                    if (destroyPending || !managerHandle.isCurrent()) return
                     val accepted =
                         CaptureAttempt(StreamingModule.CaptureAttemptId(instanceId), ++captureGeneration, settings.enableMic, settings.enableDeviceAudio)
                     captureAnalytics = WebRtcSessionAnalytics(analyticsFactory, accepted.id)
@@ -1710,7 +1710,7 @@ internal class WebRtcStreamingService(
         ContextCompat.checkSelfPermission(service, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
     private fun isCurrent(attempt: CaptureAttempt): Boolean =
-        !destroyPending && !attempt.stopRequested && captureAttempt === attempt && runtime.isCurrent()
+        !destroyPending && !attempt.stopRequested && captureAttempt === attempt && managerHandle.isCurrent()
 
     private fun analyticsFor(attempt: CaptureAttempt): WebRtcSessionAnalytics? =
         captureAnalytics?.takeIf { it.belongsTo(attempt.id) }

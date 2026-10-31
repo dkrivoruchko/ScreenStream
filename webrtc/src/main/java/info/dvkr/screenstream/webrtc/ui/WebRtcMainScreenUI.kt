@@ -49,11 +49,11 @@ import info.dvkr.screenstream.webrtc.ui.main.cards.ClientsCard
 import info.dvkr.screenstream.webrtc.ui.main.cards.ErrorCard
 import info.dvkr.screenstream.webrtc.ui.main.cards.OtherSettingsCard
 import info.dvkr.screenstream.webrtc.ui.main.cards.StreamCard
-import io.screenstream.streaming.compose.LocalRuntimePermissions
-import io.screenstream.streaming.module.StreamingModule
-import io.screenstream.streaming.module.StreamingModuleNotifications
-import io.screenstream.streaming.permission.PermissionState
-import io.screenstream.streaming.permission.RuntimePermission
+import io.screenstream.core.compose.LocalRuntimePermissions
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.core.module.StreamingModuleNotifications
+import io.screenstream.core.permission.PermissionState
+import io.screenstream.core.permission.RuntimePermission
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.job
