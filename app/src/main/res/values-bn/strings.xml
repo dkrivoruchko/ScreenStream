@@ -12,11 +12,22 @@
 
     <string name="app_tab_stream">স্ট্রিম</string>
     <string name="app_tab_settings">সেটিংস</string>
-    <string name="app_tab_about">সম্পর্কিত</string>
+    <string name="app_tab_about">সম্পর্কে</string>
     <string name="app_tab_exit">প্রস্থান</string>
 
     <string name="app_tab_stream_select_mode">স্ট্রিম মোড নির্বাচন করুন:</string>
     <string name="app_tab_stream_switching_modules">মোড বদলানো হচ্ছে…</string>
+
+    <string name="app_mode_selected_method">সক্রিয় স্ট্রিমিং পদ্ধতি</string>
+    <string name="app_mode_choose_method">স্ট্রিমিং পদ্ধতি বেছে নিন</string>
+    <string name="app_mode_choose_another_method">অন্য পদ্ধতি বেছে নিন</string>
+    <string name="app_mode_change">বদলান</string>
+    <string name="app_mode_chooser_title">স্ক্রিন শেয়ার করার পদ্ধতি বেছে নিন</string>
+    <string name="app_mode_close_chooser">বন্ধ করুন</string>
+    <string name="app_mode_details">বিস্তারিত</string>
+    <string name="app_mode_details_description">%1$s-এর বিস্তারিত</string>
+    <string name="app_mode_benefits">সুবিধা</string>
+    <string name="app_mode_things_to_know">যা জানা দরকার</string>
 
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">এখন নয়</string>

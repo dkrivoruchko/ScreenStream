@@ -2,6 +2,8 @@ package io.screenstream.core.module
 
 import android.app.Service
 import androidx.annotation.AnyThread
+import androidx.annotation.ArrayRes
+import androidx.annotation.DrawableRes
 import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
@@ -30,17 +32,29 @@ public interface StreamingModule {
     /** Selection order; modules with higher values appear first. */
     public val priority: Int
 
-    /** Localized name used in module selection. */
-    @get:StringRes
-    public val nameResource: Int
+    /** Localized resources owned by this module for method selection and details. */
+    public val description: Description
 
-    /** Localized short description used in module selection. */
-    @get:StringRes
-    public val descriptionResource: Int
-
-    /** Localized details for the module's UI. */
-    @get:StringRes
-    public val detailsResource: Int
+    /**
+     * Immutable resource IDs for a streaming method's selection and details UI.
+     *
+     * @property iconRes Monochrome method icon used in the selected-method card and chooser.
+     * @property titleRes Method title used in the selected-method card, chooser, and details header.
+     * @property summaryRes Short explanation shown in the chooser.
+     * @property introRes Introduction shown in the details body.
+     * @property conditionsRes Concise requirements and limitations shown in the chooser.
+     * @property benefitsRes List of benefits shown in the details body.
+     * @property thingsToKnowRes List of requirements and limitations shown in the details body.
+     */
+    public data class Description(
+        @get:DrawableRes @param:DrawableRes public val iconRes: Int,
+        @get:StringRes @param:StringRes public val titleRes: Int,
+        @get:StringRes @param:StringRes public val summaryRes: Int,
+        @get:StringRes @param:StringRes public val introRes: Int,
+        @get:StringRes @param:StringRes public val conditionsRes: Int,
+        @get:ArrayRes @param:ArrayRes public val benefitsRes: Int,
+        @get:ArrayRes @param:ArrayRes public val thingsToKnowRes: Int,
+    )
 
     /** Concrete [StreamingModuleService] subclass the manager starts to open this module. */
     public val serviceClass: Class<out Service>

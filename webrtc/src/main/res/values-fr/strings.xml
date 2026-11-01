@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Autoriser le micro</string>
     <string name="webrtc_error_signaling_server_unavailable">Impossible de joindre le serveur. Il se peut que les spectateurs ne puissent pas se connecter.</string>
 
-    <string name="webrtc_stream_mode">Mode global · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Diffuser sur Internet avec WebRTC</string>
-    <string name="webrtc_stream_mode_details">
-- Basé sur la technologie WebRTC.\n
-- Communication chiffrée de bout en bout.\n
-- Diffusion protégée par mot de passe.\n
-- Peut envoyer de la vidéo et de l\'audio.\n
-- Connexion avec un ID de diffusion unique et un mot de passe.\n
-- Nécessite une connexion Internet pour la diffusion en continu.\n
-- Chaque client utilise une bande passante Internet distincte.
-</string>
+    <string name="webrtc_method_title">WebRTC : partage dans le monde entier</string>
+    <string name="webrtc_method_summary">Partagez votre écran avec des spectateurs partout grâce à un lien.</string>
+    <string name="webrtc_method_conditions">Lecture dans le navigateur · Son facultatif · Internet requis</string>
+    <string name="webrtc_method_intro">WebRTC envoie la vidéo en direct, et le son si vous le souhaitez, aux navigateurs des spectateurs via Internet. Les spectateurs rejoignent la diffusion avec votre lien de partage, ou avec votre ID de diffusion et votre mot de passe.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Invitez des spectateurs d’autres réseaux sur screenstream.io avec votre ID de diffusion et votre mot de passe.</item>
+        <item>La vidéo et le son sont chiffrés, et chaque diffusion a un mot de passe.</item>
+        <item>Ajoutez le son du microphone, le son de l’appareil, ou les deux.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Cet appareil et chaque spectateur ont besoin d’Internet.</item>
+        <item>Chaque spectateur reçoit un flux distinct, donc plus de spectateurs consomment plus de données en envoi.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Connexion perdue. Reconnexion…</string>
     <string name="webrtc_stream_server_address">Accéder à la diffusion à l\'adresse :\n%1$s</string>

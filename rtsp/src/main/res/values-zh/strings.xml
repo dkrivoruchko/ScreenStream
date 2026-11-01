@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">允许麦克风</string>
     <string name="rtsp_error_local_network_permission_required">需要访问本地网络，以便设备可以连接到您的串流。</string>
 
-    <string name="rtsp_stream_mode">RTSP 模式 · RTSP</string>
-    <string name="rtsp_stream_mode_description">通过 RTSP 客户端或服务器串流</string>
-    <string name="rtsp_stream_mode_details">
-- 基于RTSP协议。\n
-- 服务器模式（默认）将此设备作为RTSP服务器。\n
-- 客户端模式连接到远程RTSP服务器。\n
-- 支持视频和音频，并可配置编解码器。\n
-- 服务器模式增加协议、接口/地址过滤、IPv4/IPv6 和端口设置。\n
-- 通过 Wi‑Fi/移动网络 和 IPv4/IPv6 工作。\n
-- 需要RTSP客户端或播放器观看。
-</string>
+    <string name="rtsp_method_title">RTSP：播放器和媒体服务器</string>
+    <string name="rtsp_method_summary">在视频播放器中观看，或将串流发送到媒体服务器。</string>
+    <string name="rtsp_method_conditions">兼容的 RTSP 软件 · 可选音频</string>
+    <string name="rtsp_method_intro">RTSP 是视频播放器和媒体服务器常用的串流标准。默认情况下，此设备托管串流。您也可以将串流发送到媒体服务器。</string>
+    <string-array name="rtsp_method_benefits">
+        <item>在 VLC 等播放器中打开应用内显示的 RTSP 地址即可观看。</item>
+        <item>将串流发送到媒体服务器，包括需要用户名和密码的服务器。</item>
+        <item>可添加麦克风音频、设备音频或两者。</item>
+        <item>选择视频和音频格式、大小和质量，以适配您的播放器或服务器。</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>播放器必须能连接到此设备，例如在同一 Wi-Fi 中。由此设备托管时无需互联网。</item>
+        <item>发送到服务器时，此设备必须能访问该服务器。如需加密连接，请使用 rtsps:// 地址，并将 RTSP 协议设为 TCP。</item>
+        <item>您的播放器或服务器必须支持您选择的视频和音频格式。</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">选择 RTSP 模式：</string>
     <string name="rtsp_mode_server">服务器</string>

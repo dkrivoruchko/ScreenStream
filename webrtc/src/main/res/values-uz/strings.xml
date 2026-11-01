@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Mikrofonga ruxsat berish</string>
     <string name="webrtc_error_signaling_server_unavailable">Serverga ulanib bo‘lmadi. Tomoshabinlar qo‘shila olmasligi mumkin.</string>
 
-    <string name="webrtc_stream_mode">Global rejim · WebRTC</string>
-    <string name="webrtc_stream_mode_description">WebRTC bilan internet orqali translatsiya qiling</string>
-    <string name="webrtc_stream_mode_details">
-- WebRTC texnologiyasi asosida ishlaydi.\n
-- End-to-end shifrlangan aloqa.\n
-- Parol bilan oqim himoyasi.\n
-- Video va audio yuborish mumkin.\n
-- Noyob oqim identifikatori va parol yordamida ulaning.\n
-- Striming uchun internet ulanishini talab qiladi.\n
-- Har bir mijoz alohida internet o\'tkazish qobiliyatidan foydalanadi.
-</string>
+    <string name="webrtc_method_title">WebRTC: Butun dunyo boʻylab ulashish</string>
+    <string name="webrtc_method_summary">Ekraningizni havola orqali istalgan joydagi tomoshabinlar bilan ulashing.</string>
+    <string name="webrtc_method_conditions">Brauzerda koʻrish · Ixtiyoriy audio · Internet kerak</string>
+    <string name="webrtc_method_intro">WebRTC jonli videoni, tanlasangiz audioni ham, internet orqali tomoshabinlar brauzeriga yuboradi. Tomoshabinlar ulashish havolangiz yoki translatsiya ID va parolingiz orqali qoʻshiladi.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Boshqa tarmoqlardagi tomoshabinlarni translatsiya ID va parolingiz bilan screenstream.io saytiga taklif qiling.</item>
+        <item>Video va audio shifrlanadi, har bir translatsiyaning paroli bor.</item>
+        <item>Mikrofon audiosi, qurilma audiosi yoki ikkalasini qoʻshing.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Shu qurilma va har bir tomoshabinga internet kerak.</item>
+        <item>Har bir tomoshabin alohida translatsiya oladi, shuning uchun tomoshabinlar koʻpaysa, chiquvchi trafik ham oshadi.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Aloqa uzildi. Qayta ulanmoqda…</string>
     <string name="webrtc_stream_server_address">Translatsiyani shu manzilda oching:\n%1$s</string>

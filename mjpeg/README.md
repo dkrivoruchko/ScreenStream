@@ -1,44 +1,50 @@
-# ScreenStream MJPEG
+# MJPEG mode
 
-MJPEG is ScreenStream's native Android screen-streaming module. It captures screen content as JPEG images and serves them over HTTP to browsers and other viewers, without audio. A reachable local network is enough; viewing does not require an internet service.
-
-The module combines the [capture engine](../screen-capture-engine/README.md) with device-address discovery, an HTTP listener for each selected address, optional PIN protection, and a browser page. All listeners and viewers share the captured JPEG.
-
-This is an Android library module in this repository, integrated with `:streaming-core`, `:common`, and `:app`. It is not a separately published capture or streaming SDK. Its stable selection ID is `MJPEG`.
-
-Read the guides:
-
-- [Usage](docs/usage.md) — start viewing, configure image/network/access behavior, recover from failures and integrate the Android host.
-- [Architecture](docs/architecture.md) — components, image flow, readiness boundaries, lifetimes and resource ownership.
-- [HTTP viewing API](docs/http-viewing-api.md) — direct address/Origin requirements, routes, authorization and browser-state schema.
-- [Internals](internal/README.md) — lifecycle, configuration and delivery contracts for maintainers.
+**Local mode · MJPEG** shares an Android screen or app window as JPEG images. The app runs an HTTP server on the streaming device, and viewers open its address in a browser or another image client. The stream contains images only; the devices need a reachable network connection, and viewing works offline.
 
 ## Start viewing
 
-1. In ScreenStream, select native MJPEG. If an address needs local-network access, use its Request permission/Open settings action and complete the app prompt.
-2. Wait until **Start stream** becomes available, then press it and complete Android's screen-capture consent.
-3. Use **Copy URL** on that server and open the link on a device that can reach its address. The Copy icon always copies the page; its adjacent dropdown copies Page, MJPEG or JPEG immediately. Open/Share/QR still use the page link. Loopback addresses work only on the streaming device.
+1. Select **Local mode · MJPEG** in the app. Connect the viewing device to a network that reaches the streaming device. Complete any **Request permission** or **Open settings** action shown under Stream addresses.
+2. Press **Start stream** when available and complete Android's screen-sharing consent.
+3. Use **Copy URL** on a listening address and open the link in the viewer's browser. Open, Share and QR use the page link; the Copy dropdown also offers direct MJPEG and JPEG links.
 
-Copied links containing the current access token authorize protected viewing automatically. This URL token is a bearer viewing credential distinct from the six-digit PIN: recipients need not enter the PIN. Copied media links retain it and can be used directly by other clients. Address actions fall back to a plain HTTP endpoint when no applied viewing link is available. The browser also supports PIN entry when protection is enabled.
-
-Media GET/OPTIONS routes enable CORS by default for external web apps; protected cross-origin media requires the URL token and cannot rely on a viewing cookie alone. This does not enable external PIN submission or WebSocket origins. There is no HEAD or byte-range API. See the [HTTP viewing API](docs/http-viewing-api.md#external-media-clients-and-cors) for request examples, authorization/lifetime rules and browser-policy limitations. Wildcard CORS permits arbitrary websites visited by a reachable browser to read open screen media when the browser allows the network request.
-
-Selection prepares the module and its HTTP servers; it does not start screen capture. **Stop stream** ends the current capture attempt while leaving the selected module and HTTP delivery open. Whenever capture has no current image, the saved fallback selects the app logo or the last real frame (falling back to the logo if none exists). The latest real frame survives capture attempts and fallback changes until HTTP delivery is disposed. [Usage](docs/usage.md#start-view-and-stop) explains readiness, permissions and failures.
+With PIN protection enabled, a copied access link authorizes its recipient directly. Treat that link like a password and share it with intended viewers. HTTP exposes screen images and viewing credentials to the network, so use a trusted network.
 
 ## Capabilities
 
-- **Viewing.** Use the bundled browser page, a multipart MJPEG response, or a single JPEG response. The page offers image sizing, connection retry and an alternate viewing method; fullscreen and picture in picture depend on browser support.
-- **Shared delivery.** Slow viewers skip intermediate images instead of building an unbounded frame queue. An ordinary bind failure does not stop the other listeners or capture.
-- **Saved configuration.** Five searchable settings groups provide image controls, automation, connection, web appearance and access settings. Keep screen awake and slow-viewer warnings use live switches.
-- **Live changes.** Saved image parameters, address filters and page appearance can apply during capture. The HTTP port, access configuration and JPEG backend remain fixed until successful capture cleanup.
-- **Access protection.** A six-digit PIN authorizes viewing; copied protected links carry a runtime access token. Native controls provide protection policy, PIN reveal/edit/generation and wrong-PIN limiting. Credentials rotate when protection or the PIN changes.
+- **Viewing**
+  - MJPEG or JPEG selection in the browser.
+  - Image sizing controls.
+  - Automatic connection recovery.
+  - Fullscreen and picture in picture where the browser supports them.
+- **Image controls**
+  - Capture region selection and cropping.
+  - Image rotation and mirroring.
+  - Image size, color and JPEG quality settings.
+  - Frame-rate limits and capture intervals.
+  - Live updates for most image settings.
+- **Access and appearance**
+  - Optional six-digit PIN protection.
+  - Access links for direct viewing.
+  - Automatic wrong-PIN blocking.
+  - Custom stream name, background and title/control placement.
+- **Monitoring and automation**
+  - Approximate production FPS, JPEG payload traffic and media client statistics.
+  - Screen-awake requests.
+  - Optional capture Stop when the screen turns off.
+  - Capture Stop after sustained loss of all selected addresses.
+  - Slow-reader warnings.
 
-The current [build configuration](../build.gradle.kts) uses Android API 24 as its minimum, target/compile SDK 37 and JVM toolchain 17. See the [module build](build.gradle.kts) and [version catalog](../gradle/libs.versions.toml) for dependencies.
+Viewers share produced JPEG bytes and receive separate HTTP transfers. Additional viewers increase outgoing data use; slow MJPEG readers advance to the latest image and skip intermediate publications.
 
-## Limits
+## Guides
 
-The native screen provides Start/Stop, settings search and editors, server status, server Retry, Copy/Open/Share/QR actions and local-network permission handling. It has no capture preview, viewer/statistics presentation or capture Retry action. The [testing guide](internal/04-testing/testing.md) defines verification scope and evidence requirements; browser compatibility and device behavior require qualification in their environment.
+| Guide | Purpose |
+| --- | --- |
+| [Usage](docs/usage.md) | Start, share, protect and configure a stream; interpret statistics and recover from problems. |
+| [Architecture](docs/architecture.md) | Understand the Android app, capture, HTTP and viewer responsibilities and lifetimes. |
+| [HTTP server and viewing protocol](docs/http-server.md) | Connect a client using the routes, authorization, media format and browser-state protocol. |
 
-HTTP does not encrypt screen images or viewing credentials. Selected addresses and a successful bind do not guarantee viewer reachability. Frame rate is best effort; browser rendering and actual network delivery are not proved by server counters. Capture may pause in `Suspended`; there is no automatic timed capture retry. Protected content and color/output limits follow the [capture engine contract](../screen-capture-engine/docs/usage.md).
+## Practical limits
 
-HTTPS and mDNS are not implemented. Keep screen awake makes a best-effort request during confirmed capture, including while other apps are visible; manual sleep and Android projection restrictions still apply. Slow-viewer warnings use the existing MJPEG skipped-publication signal and do not measure viewer bandwidth or rendering; see [warning policy](internal/01-lifecycle/coordination.md#slow-viewer-warnings). Legacy settings receive a one-time import attempt that deletes the old file even on failure; see [settings migration](internal/02-configuration/settings.md#legacy-import).
+The server uses direct HTTP connections to numeric device addresses. Viewer reachability depends on routing, network isolation and permissions; loopback addresses reach only the streaming device. Frame rate is best effort, and server statistics measure production and payload writes. Peer receipt and browser rendering require observation at the viewer.

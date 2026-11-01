@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">মাইক্রোফোনের অনুমতি দিন</string>
     <string name="webrtc_error_signaling_server_unavailable">সার্ভারে পৌঁছানো যাচ্ছে না। দর্শকরা যোগ দিতে নাও পারতে পারেন।</string>
 
-    <string name="webrtc_stream_mode">গ্লোবাল মোড · WebRTC</string>
-    <string name="webrtc_stream_mode_description">WebRTC দিয়ে ইন্টারনেটে স্ট্রিম করুন</string>
-    <string name="webrtc_stream_mode_details">
-- WebRTC প্রযুক্তি দ্বারা চালিত।\n
-- এন্ড-টু-এন্ড এনক্রিপ্ট করা যোগাযোগ।\n
-- পাসওয়ার্ড সহ স্ট্রিম সুরক্ষা।\n
-- ভিডিও এবং অডিও পাঠাতে পারেন।\n
-- অনন্য স্ট্রিম আইডি এবং পাসওয়ার্ড ব্যবহার করে সংযোগ করুন।\n
-- স্ট্রিমিংয়ের জন্য একটি ইন্টারনেট সংযোগ প্রয়োজন।\n
-- প্রতিটি ক্লায়েন্ট আলাদা ইন্টারনেট ব্যান্ডউইথ ব্যবহার করে।
-</string>
+    <string name="webrtc_method_title">WebRTC: বিশ্বজুড়ে শেয়ার</string>
+    <string name="webrtc_method_summary">একটি লিঙ্ক দিয়ে যেকোনো জায়গার দর্শকদের সাথে আপনার স্ক্রিন শেয়ার করুন।</string>
+    <string name="webrtc_method_conditions">ব্রাউজারে দেখা · ঐচ্ছিক অডিও · ইন্টারনেট প্রয়োজন</string>
+    <string name="webrtc_method_intro">WebRTC ইন্টারনেটের মাধ্যমে দর্শকদের ব্রাউজারে লাইভ ভিডিও পাঠায়, আর আপনি চাইলে অডিওও। দর্শকরা আপনার শেয়ার লিঙ্ক দিয়ে, বা আপনার স্ট্রিম আইডি ও পাসওয়ার্ড দিয়ে যোগ দেন।</string>
+    <string-array name="webrtc_method_benefits">
+        <item>অন্য নেটওয়ার্কের দর্শকদের আপনার স্ট্রিম আইডি ও পাসওয়ার্ড দিয়ে screenstream.io-তে আমন্ত্রণ জানান।</item>
+        <item>ভিডিও ও অডিও এনক্রিপ্ট করা থাকে, আর প্রতিটি স্ট্রিমের একটি পাসওয়ার্ড আছে।</item>
+        <item>মাইক্রোফোনের অডিও, ডিভাইসের অডিও বা দুটোই যোগ করুন।</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>এই ডিভাইস ও প্রত্যেক দর্শকের ইন্টারনেট প্রয়োজন।</item>
+        <item>প্রতিটি দর্শক আলাদা স্ট্রিম পান, তাই দর্শক বেশি হলে আপলোড ডেটাও বেশি লাগে।</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">সংযোগ হারিয়েছে। পুনঃসংযোগ হচ্ছে…</string>
     <string name="webrtc_stream_server_address">এখানে স্ট্রিম অ্যাক্সেস করুন:\n%1$s</string>

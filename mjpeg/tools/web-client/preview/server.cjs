@@ -111,7 +111,7 @@ function createPreviewServer(options = {}) {
     function commonHeaders(response, url) {
         response.setHeader('Cache-Control', 'no-store');
         response.setHeader('X-Content-Type-Options', 'nosniff');
-        response.setHeader('Referrer-Policy', url.searchParams.has('accessToken') ? 'no-referrer' : 'same-origin');
+        response.setHeader('Referrer-Policy', url.searchParams.has('token') ? 'no-referrer' : 'same-origin');
     }
     function respond(response, status, body = '', contentType = 'text/plain; charset=utf-8') {
         const bytes = Buffer.isBuffer(body) ? body : Buffer.from(body);
@@ -164,7 +164,7 @@ function createPreviewServer(options = {}) {
         respond(response, result.status);
     }
     function serveMedia(request, response, url) {
-        if (!device.allowsViewing(accessCookie(request), url.searchParams.get('accessToken'))) return respond(response, 403);
+        if (!device.allowsViewing(accessCookie(request), url.searchParams.get('token'))) return respond(response, 403);
         const initialImage = failImageRequests ? null : device.image();
         if (initialImage === null) {
             response.setHeader('Retry-After', '1');
@@ -253,8 +253,8 @@ function createPreviewServer(options = {}) {
             if (!origin) return respond(response, 403);
             if (request.method === 'GET') {
                 if (url.pathname === '/viewer') {
-                    if (url.searchParams.has('accessToken')) {
-                        const exchanged = device.exchangeToken(url.searchParams.get('accessToken'));
+                    if (url.searchParams.has('token')) {
+                        const exchanged = device.exchangeToken(url.searchParams.get('token'));
                         if (exchanged) setCookie(response, exchanged);
                         response.setHeader('Location', '/viewer');
                         return respond(response, 303);
@@ -292,13 +292,13 @@ function createPreviewServer(options = {}) {
     sockets.on('headers', (headers, request) => {
         const url = new URL(request.url, 'http://127.0.0.1');
         headers.push('Cache-Control: no-store', 'X-Content-Type-Options: nosniff',
-            'Referrer-Policy: ' + (url.searchParams.has('accessToken') ? 'no-referrer' : 'same-origin'));
+            'Referrer-Policy: ' + (url.searchParams.has('token') ? 'no-referrer' : 'same-origin'));
     });
     server.on('upgrade', (request, socket, head) => {
         const origin = currentOrigin(request);
         let url;
         function reject(status) {
-            const referrer = url?.searchParams.has('accessToken') ? 'no-referrer' : 'same-origin';
+            const referrer = url?.searchParams.has('token') ? 'no-referrer' : 'same-origin';
             socket.end(`HTTP/1.1 ${status}\r\nConnection: close\r\nContent-Length: 0\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: ${referrer}\r\n\r\n`);
         }
         try { url = new URL(request.url, origin || 'http://127.0.0.1'); }

@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">ማይክሮፎንን ይፍቀዱ</string>
     <string name="rtsp_error_local_network_permission_required">መሣሪያዎች ወደ ስርጭትዎ እንዲገናኙ የአካባቢ አውታረ መረብ መዳረሻ ያስፈልጋል።</string>
 
-    <string name="rtsp_stream_mode">RTSP ሁነታ · RTSP</string>
-    <string name="rtsp_stream_mode_description">በRTSP ደንበኛ ወይም አገልጋይ ያስተላልፉ</string>
-    <string name="rtsp_stream_mode_details">
-- በRTSP ፕሮቶኮል የሚሰራ።\n
-- የሰርቨር ሞድ (ነባሪ) ይህን መሣሪያ RTSP ሰርቨር ያደርጋል።\n
-- የደንበኛ ሞድ ወደ ርቀት ያለ RTSP ሰርቨር ይገናኛል።\n
-- በኮዴክ ማቀናበሪያ ቪዲዮና ድምጽን ይደግፋል።\n
-- የሰርቨር ሞድ ፕሮቶኮል፣ ኢንተርፌስ/አድራሻ ማጣሪያዎች፣ IPv4/IPv6 እና የፖርት ቅንብሮችን ይጨምራል።\n
-- በWi‑Fi/ሞባይል አውታረ መረቦች እና IPv4/IPv6 ላይ ይሰራል።\n
-- ለማየት RTSP ደንበኛ ወይም ማጫወቻ ያስፈልጋል።
-</string>
+    <string name="rtsp_method_title">RTSP፦ ማጫወቻዎች እና የሚዲያ አገልጋዮች</string>
+    <string name="rtsp_method_summary">በቪዲዮ ማጫወቻ ይመልከቱ፣ ወይም ስርጭቱን ወደ ሚዲያ አገልጋይ ይላኩ።</string>
+    <string name="rtsp_method_conditions">ተኳሃኝ የRTSP ሶፍትዌር · አማራጭ ድምፅ</string>
+    <string name="rtsp_method_intro">RTSP በቪዲዮ ማጫወቻዎች እና በሚዲያ አገልጋዮች የሚጠቀሙበት የተለመደ የስርጭት መስፈርት ነው። በነባሪ፣ ይህ መሣሪያ ስርጭቱን ያስተናግዳል። ወደ ሚዲያ አገልጋይም መላክ ይችላሉ።</string>
+    <string-array name="rtsp_method_benefits">
+        <item>በመተግበሪያው ውስጥ የሚታየውን የRTSP አድራሻ በመክፈት እንደ VLC ባሉ ማጫወቻዎች ይመልከቱ።</item>
+        <item>የተጠቃሚ ስም እና የይለፍ ቃል የሚጠይቁ አገልጋዮችን ጨምሮ ስርጭቱን ወደ ሚዲያ አገልጋይ ይላኩ።</item>
+        <item>የማይክሮፎን ድምፅ፣ የመሣሪያ ድምፅ ወይም ሁለቱንም ያክሉ።</item>
+        <item>ለማጫወቻዎ ወይም ለአገልጋይዎ የሚስማሙ የቪዲዮ እና የድምፅ ቅርጸቶችን፣ መጠንን እና ጥራትን ይምረጡ።</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>ማጫወቻዎች ከዚህ መሣሪያ ጋር መገናኘት መቻል አለባቸው፣ ለምሳሌ በተመሳሳይ Wi-Fi። ማስተናገድ ያለ በይነመረብ ይሰራል።</item>
+        <item>ወደ አገልጋይ ሲልኩ ይህ መሣሪያ አገልጋዩን መድረስ መቻል አለበት። ለተመሰጠረ ግንኙነት rtsps:// አድራሻ ይጠቀሙ እና የRTSP ፕሮቶኮልን ወደ TCP ያቀናብሩ።</item>
+        <item>ማጫወቻዎ ወይም አገልጋይዎ የሚመርጧቸውን የቪዲዮ እና የድምፅ ቅርጸቶች መደገፍ አለበት።</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">የRTSP ሁነታ ይምረጡ፡</string>
     <string name="rtsp_mode_server">አገልጋይ</string>

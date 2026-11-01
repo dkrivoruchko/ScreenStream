@@ -79,8 +79,8 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
         }
         application.intercept(ApplicationCallPipeline.Plugins) {
             call.response.headers.append(HttpHeaders.CacheControl, "no-store")
-            val hasAccessTokenParameter = call.request.queryParameters.contains("accessToken")
-            call.response.headers.append("Referrer-Policy", if (hasAccessTokenParameter) "no-referrer" else "same-origin")
+            val hasTokenParameter = call.request.queryParameters.contains("token")
+            call.response.headers.append("Referrer-Policy", if (hasTokenParameter) "no-referrer" else "same-origin")
             call.response.headers.append("X-Content-Type-Options", "nosniff")
             if (!hasValidHostHeader(call)) {
                 call.respond(HttpStatusCode.BadRequest)
@@ -92,8 +92,8 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
         }
         val routing = application.routing {
             get("/") {
-                if (call.request.queryParameters.contains("accessToken")) {
-                    requestHandler.exchangeAccessToken(listener, call.request.queryParameters["accessToken"])?.let { setAccessCookie(call, it.value) }
+                if (call.request.queryParameters.contains("token")) {
+                    requestHandler.exchangeToken(listener, call.request.queryParameters["token"])?.let { setAccessCookie(call, it.value) }
                     call.response.headers.append(HttpHeaders.Location, "/")
                     call.respond(HttpStatusCode.SeeOther)
                 } else {
@@ -217,7 +217,7 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
             call = call,
             listener = listener,
             format = format,
-            accessToken = call.request.queryParameters["accessToken"],
+            token = call.request.queryParameters["token"],
             accessCookie = call.request.cookies[COOKIE_NAME]?.takeUnless { isCrossOriginMediaRequest(call, listener) },
         )
     }
@@ -376,11 +376,11 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
 
         fun isListenerActive(listener: HttpListener): Boolean
 
-        fun exchangeAccessToken(listener: HttpListener, accessToken: String?): SecretValue?
+        fun exchangeToken(listener: HttpListener, token: String?): SecretValue?
 
         fun verifyPin(listener: HttpListener, pin: String?, peerIp: String): HttpAccess.PinResult?
 
-        suspend fun respondMedia(call: ApplicationCall, listener: HttpListener, format: MediaFormat, accessToken: String?, accessCookie: String?)
+        suspend fun respondMedia(call: ApplicationCall, listener: HttpListener, format: MediaFormat, token: String?, accessCookie: String?)
 
         fun admitWebSocket(listener: HttpListener, accessCookie: String?, peerIp: String, requestJob: Job): WebSocketAdmission
 

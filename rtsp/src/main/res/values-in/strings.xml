@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">Izinkan mikrofon</string>
     <string name="rtsp_error_local_network_permission_required">Akses jaringan lokal diperlukan agar perangkat dapat terhubung ke streaming Anda.</string>
 
-    <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
-    <string name="rtsp_stream_mode_description">Streaming dengan klien atau server RTSP</string>
-    <string name="rtsp_stream_mode_details">
-- Didukung oleh protokol RTSP.\n
-- Mode server (default) menjadikan perangkat ini sebagai server RTSP.\n
-- Mode klien terhubung ke server RTSP jarak jauh.\n
-- Mendukung video dan audio dengan konfigurasi codec.\n
-- Mode server menambahkan protokol, filter antarmuka/alamat, IPv4/IPv6, dan pengaturan port.\n
-- Bekerja di jaringan Wi‑Fi/seluler dan IPv4/IPv6.\n
-- Memerlukan klien atau pemutar RTSP untuk menonton.
-</string>
+    <string name="rtsp_method_title">RTSP: Pemutar dan server media</string>
+    <string name="rtsp_method_summary">Tonton di pemutar video, atau kirim streaming ke server media.</string>
+    <string name="rtsp_method_conditions">Software RTSP yang kompatibel · Audio opsional</string>
+    <string name="rtsp_method_intro">RTSP adalah standar streaming umum yang digunakan oleh pemutar video dan server media. Secara default, perangkat ini menjadi host streaming. Anda juga dapat mengirimnya ke server media.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Tonton di pemutar seperti VLC dengan membuka alamat RTSP yang ditampilkan di aplikasi.</item>
+        <item>Kirim streaming ke server media, termasuk server yang meminta nama pengguna dan sandi.</item>
+        <item>Tambahkan audio mikrofon, audio perangkat, atau keduanya.</item>
+        <item>Pilih format video dan audio, ukuran, serta kualitas yang sesuai dengan pemutar atau server Anda.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Pemutar harus dapat terhubung ke perangkat ini, misalnya di Wi-Fi yang sama. Hosting berfungsi tanpa internet.</item>
+        <item>Saat mengirim ke server, perangkat ini harus dapat menjangkaunya. Untuk koneksi terenkripsi, gunakan alamat rtsps:// dan setel protokol RTSP ke TCP.</item>
+        <item>Pemutar atau server Anda harus mendukung format video dan audio yang Anda pilih.</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">Pilih mode RTSP:</string>
     <string name="rtsp_mode_server">Server</string>

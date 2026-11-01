@@ -25,9 +25,9 @@ internal class HttpDeliveryLifecycleTest {
         val delivery = KtorHttpDelivery(httpTestContext())
         try {
             assertTrue(delivery.start(httpTestProtection(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(1, 2, 3)))
-            val token = checkNotNull(delivery.appliedAccessToken)
+            val token = checkNotNull(delivery.appliedToken)
             assertFalse(delivery.start(AccessSettings(), PostStopImage.None, httpTestPage(), byteArrayOf(4)))
-            assertEquals(token, delivery.appliedAccessToken)
+            assertEquals(token, delivery.appliedToken)
             assertTrue(checkNotNull(delivery.webState.value).hasImage)
             assertTrue(delivery.info.value.servers.isEmpty())
             delivery.requestStop()
@@ -44,7 +44,7 @@ internal class HttpDeliveryLifecycleTest {
                 assertFalse(checkNotNull(fresh.webState.value).hasImage)
                 assertEquals(0L, fresh.info.value.completedJpegs)
                 assertEquals(0L, fresh.info.value.completedJpegBytes)
-                assertEquals(null, fresh.appliedAccessToken)
+                assertEquals(null, fresh.appliedToken)
             } finally {
                 fresh.finishHttpTest()
             }

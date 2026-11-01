@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Оберіть режим трансляції:</string>
     <string name="app_tab_stream_switching_modules">Перемикання режимів…</string>
 
+    <string name="app_mode_selected_method">Активний спосіб трансляції</string>
+    <string name="app_mode_choose_method">Виберіть спосіб трансляції</string>
+    <string name="app_mode_choose_another_method">Виберіть інший спосіб</string>
+    <string name="app_mode_change">Змінити</string>
+    <string name="app_mode_chooser_title">Виберіть, як поділитися екраном</string>
+    <string name="app_mode_close_chooser">Закрити</string>
+    <string name="app_mode_details">Докладніше</string>
+    <string name="app_mode_details_description">Докладніше: %1$s</string>
+    <string name="app_mode_benefits">Переваги</string>
+    <string name="app_mode_things_to_know">Що варто знати</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Не зараз</string>
     <string name="app_permission_open_settings">Відкрити налаштування</string>

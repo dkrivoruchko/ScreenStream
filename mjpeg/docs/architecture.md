@@ -1,128 +1,97 @@
-[Usage](usage.md) · Architecture · [Internals](../internal/README.md)
-
 # MJPEG architecture
 
-MJPEG connects one Android capture attempt to multiple HTTP viewers. Shared streaming infrastructure owns launch admission and Android coordination; the native controller owns its module's working state and cleanup. HTTP can remain open while capture is idle or stopped. This separation lets Stop end screen production without treating every browser response or address listener as a new capture session.
+[Overview](../README.md) · [Usage](usage.md) · Architecture · [HTTP server](http-server.md)
 
-Read [Usage](usage.md) for controls, configuration and host integration, the [HTTP viewing API](http-viewing-api.md) for client-facing routes/state, and the [internal pages](../internal/README.md) for exact algorithms and outcomes. This page explains how the components fit together; the internal pages extend these technical foundations with exact implementation contracts.
+MJPEG mode makes the Android screen or an approved app window available as JPEG images using the HTTP protocol. Selecting the mode prepares viewing; **Start stream** begins a separate capture attempt. A normal **Stop stream** ends capture while the selected HTTP server continues to serve the configured inactive image. Viewers connect independently and share the selected image.
 
-## Components and boundaries
+This guide follows the path from [opening the mode](#opening-the-mode) through [capture](#starting-capture), [delivery](#delivering-images), and [closing](#stopping-and-closing). It then explains [settings and readiness](#settings-and-readiness) and the boundaries between observations at the app and viewer.
 
-```mermaid
-flowchart TD
-    App["App / Activity"] --> Manager["Streaming manager"]
-    Manager --> Service["Original module Service"]
-    Service --> Controller["MJPEG controller"]
-    App --> ConsentHost["Activity consent host"]
-    ConsentHost --> Access["Process capture Access"]
-    Controller --> Capture["Capture attempt"]
-    Capture --> Access
-    Capture --> Engine["Capture engine"]
-    Controller --> Monitor["Address monitor"]
-    Controller --> ScreenOff["Android screen-off observer"]
-    Controller --> Http["HTTP delivery"]
-    Engine -->|"borrowed JPEG"| Capture
-    Capture -->|"synchronous copy"| Http
-    Http --> Viewer["HTTP viewers"]
-```
+<a name="components-and-boundaries"></a>
 
-The arrows show interaction. Settings, manager and `ScreenCaptureAccess` live at process scope; the consent host belongs to the Activity. Each controller owns its address monitor, screen-off observer and HTTP delivery and retains the latest capture attempt for cleanup. Its original Android Service retains the controller reference and performs platform foreground calls, without a separate media worker.
+## The pieces
 
-| Component | Responsibility |
-| --- | --- |
-| `:app` | Application DI, Activity/bootstrap/Exit, projection consent hosting, shared ordinary-permission UI, module recovery UI and notification presentation. |
-| `:streaming-core` | Registered module manager, instance/attempt API, Service base, notification interface/actions, selection/education settings, capture Access and the typed ordinary-permission port. |
-| `:common` | Shared UI, analytics, preference storage and helpers. |
-| `:mjpeg` | Descriptor/Service/controller, saved mode settings, address discovery, capture session and engine adapter, HTTP delivery and current screen. |
-| `:screen-capture-engine` | Projection-backed image production, transformations, JPEG encoding and bounded borrowed-frame delivery. |
+The app uses [Core module](../../core/README.md) to select and manage streaming modes, coordinate screen-sharing access and permissions, and present notifications. MJPEG mode supplies the behavior specific to capturing and serving images:
 
-MJPEG, RTSP and PlayStore-only WebRTC integrate directly with the same manager, Service base and Controller contract. Each module owns its media, protocol, settings and per-instance workers; the shared Activity hosts projection consent and ordinary permission UI. RTSP/WebRTC retain their existing media internals and best-effort teardown. MJPEG's capture and cleanup contracts are described here; [Streaming host](../internal/01-lifecycle/streaming-host.md#activity-lifetime-and-module-boundaries) explains the shared boundaries.
-
-## Lifetimes and identities
-
-An immutable module descriptor identifies a selectable mode without opening resources. The manager reserves a launch before dispatching the descriptor's Service. Only an accepted delivery invokes the Service factory and installs an inert controller; ordinary work starts after installation.
-
-| Identity | Lifetime and purpose |
-| --- | --- |
-| Module `Id` | Stable catalog selection, `MJPEG` for native MJPEG. |
-| `InstanceId` | One module launch; replacement/restart gets a new UUID. |
-| `CaptureAttemptId` | One accepted Start in that instance; retained through attempt cleanup. |
-| Discovery address ID | One observed IP plus IPv6 scope, retained across filters/metadata until confirmed disappearance. |
-| HTTP server UUID | One planned address/port incarnation; physical retries preserve it. |
-| Physical listener identity | One bind attempt/CIO engine; request admission addresses this exact listener. |
-| Capture generation identity | One production epoch selected by the capture attempt; suspension/recovery can replace it within the same attempt. |
-| Credential generation | One runtime viewing-authorization epoch; independent of capture. |
-
-These identities solve different races. Exact attempt Stop cannot end replacement capture. A stale server Retry cannot reset a replacement server. Late JPEG copies cannot restore an image after their capture generation is revoked. Old WebSocket state cannot authorize a later credential generation. [Coordination](../internal/01-lifecycle/coordination.md) and [HTTP delivery](../internal/03-delivery/http-delivery.md) describe where each comparison occurs.
-
-## Control and observation
-
-The manager handles process transitions on Main, Android's main thread. Its Runtime binds admission and reports to the original launch. The native controller serializes commands, settings, address changes and capture observations in one event loop on the background Default dispatcher. Each owner checks whether new work is still allowed when admitting it; shutdown closes admission independently of that loop and begins cleanup even if the loop is blocked.
-
-The app derives generic recovery UI from manager state and routes Restart directly with that state's instance ID. Operation diagnostics travel in `Status.errorMessage`; heartbeat loss and terminal failure remain manager states. Error-notification delivery is process-owned and independent of rendered UI. [Usage](usage.md#observe-state-and-failures) describes the resulting cards and recovery controls.
-
-The capture attempt runs in controller scope and continues entered cleanup in `NonCancellable`. HTTP has its own runtime on the IO dispatcher and control monitor; discovery has independent scan/close work. These owners can begin cleanup independently, although one stuck obligation can leave total cleanup pending. Exact scheduling and admission rules are in [Coordination](../internal/01-lifecycle/coordination.md).
-
-StateFlows provide latest snapshots, not a guaranteed history of every transition. Manager state and current instance ID are not an atomic pair. Capture state, HTTP Info, permission and saved settings also come from separate observations. Each owner reads the facts it needs at its own admission boundary rather than assuming a global snapshot.
-
-### Readiness across boundaries
-
-A host or viewer crosses several independently observed boundaries. Use the fact owned by that boundary rather than deriving all readiness from one phase:
-
-| Observed fact | What it establishes | What it does not establish |
-| --- | --- | --- |
-| Manager Running | The admitted module reports live control work. | Capture, a matching listener or an image is ready. |
-| Start command returned | The caller finished issuing Start; a stale or unadmitted target can be ignored. | Routing/admission, consent, engine startup or a first JPEG. |
-| Capture `isStreaming` | Engine startup succeeded and the attempt has not accepted Stop/failure/cleanup. It can remain true while Suspended. | A selected image, current viewer or successful network write. |
-| HTTP Listening / browser `hasImage` | Respectively, a listener started / a selected image exists. | External reachability, a new capture frame or repaint. |
-| Completed JPEG payload counter | The output path completed that payload's bytes. | Peer receipt, decode or display. |
-| Capture Stop returned | The caller finished issuing exact-attempt Stop; a stale or unadmitted target can be ignored. | Routing/admission, JPEG callback completion or capture cleanup. |
-| Exit wait ended | The bounded wait ended; cancelling its caller ends only that wait. | Every media, foreground, graphics or socket obligation completed successfully. |
-
-These distinctions explain the [usage and recovery path](usage.md#troubleshoot-viewing-and-capture). A custom viewer follows the separate [HTTP viewing API](http-viewing-api.md); it does not route Android capture commands through WebSocket.
-
-### Saved, accepted and applied values
+- **Module manager and Android Service.** Core's [manager](../../core/docs/module-contract-and-manager.md) opens a module instance for the selected mode. Its Android Service hosts that instance and maintains foreground presentation while it is available.
+- **MJPEG Controller.** The Controller coordinates the instance's screen, settings, addresses, capture attempts, HTTP delivery and shutdown.
+- **Capture attempt and Capture Engine.** An accepted Start creates an attempt. It obtains screen-sharing access and prepares capture; [Capture Engine](../../screen-capture-engine/README.md) turns the approved content into JPEG images.
+- **HTTP delivery.** The server listens on selected device addresses, controls viewing access, holds the shared image and serves it to clients.
+- **Viewer.** A browser or another HTTP client receives images. The packaged browser page also receives viewing state, including capture notices and display settings.
 
 ```mermaid
-flowchart TD
-    Stored["Saved preferences"] --> Observed["Controller observation"]
-    Observed --> Effective["Effective settings / edit policy"]
-    Effective --> Engine["Desired image parameters"]
-    Effective --> Selection["Address filter / permission"]
-    Selection --> Plan["HTTP server plan"]
-    Effective --> Access["HTTP access / page configuration"]
+flowchart LR
+    Controller[MJPEG Controller] --> Attempt[Capture attempt]
+    Controller --> HTTP[HTTP delivery]
+    Attempt <-->|Session / borrowed JPEG| Engine[Capture Engine]
+    Attempt -->|JPEG copy| HTTP
+    HTTP --> Viewer[Viewer]
 ```
 
-Saved values become effective only after controller observation and edit-policy checks. Backend, HTTP port and access settings other than PIN visibility stay fixed through consent, capture and cleanup; live fields can change. The live PIN-visibility preference affects only the native screen and does not update HTTP configuration. Successful cleanup allows deferred setup values to apply. Copy URL uses applied HTTP credentials, and engine convergence follows its own frame-metadata contract. [Settings](../internal/02-configuration/settings.md) and [Coordination](../internal/01-lifecycle/coordination.md#effective-settings-and-saves) describe these boundaries.
+<a name="lifetimes-and-identities"></a>
 
-## Capture and image delivery
+## Opening the mode
 
-The capture attempt obtains consent, promotes its original Service to foreground, then creates the projection. Successful engine construction transfers projection ownership to the engine. [MjpegCaptureSession](../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureSession.kt) owns one immutable snapshot of capture/cleanup outcomes and the capture generation. Its concrete transitions commit the effective status and generation together; HTTP applies that pair without deciding or returning generation identity. State wakeups and borrowed JPEG callbacks sample fresh engine state under one session gate. The callback captures the committed generation there, then forwards it with byte count and synchronous copier outside the gate; recovery admission does not wait for the controller queue. The engine owns geometry, metrics, configuration/output metadata, timing and encoding; [Module lifecycle](../internal/01-lifecycle/module-lifecycle.md) describes startup and cleanup.
+One opening of MJPEG mode creates a **module instance**. Its Service creates and hosts the Controller, and HTTP delivery belongs to the instance. The Controller discovers device addresses and prepares listeners for the selected, permitted addresses. This work can take time or fail before a usable server is available. A listener reported as **Listening** is open on the streaming device; a viewer also needs a route through the network to that address.
 
-The copier is borrowed authority: it is usable only on the frame callback's thread before the callback returns. HTTP can decline an offer or copy it once into owned storage outside its monitors, then checks generation identity before publishing. The selected immutable byte prefix can be leased by multiple responses. Old frames remain valid for existing writers until their leases end; selection changes do not overwrite them.
+The Service stays in the foreground while the selected mode is waiting or capturing. Its notification offers Exit while waiting and Stop stream for the current capture when available. Android notification settings affect visibility. [Core notifications](../../core/docs/notifications.md#foreground-presentation) describes foreground presentation, and [Usage](usage.md#permissions-and-readiness) explains the permission actions and listener status shown in the app.
 
-Each media response pins its initial JPEG before sending headers. A single JPEG response sends that pin; MJPEG advances to the newest selected frame and skips intermediate publications. If there is no newer publication, MJPEG can repeat the current JPEG after one second without another capture/encode. This bounds ordinary frame queuing, not total byte memory: JPEG sizes, active response leases and copies outside the module still matter. [JPEG delivery](../internal/03-delivery/jpeg-delivery.md) owns the pool, lease and write rules.
+```mermaid
+flowchart LR
+    Select[Select MJPEG] --> Waiting[Servers available and capture idle]
+    Waiting -->|Start and consent| Capture[Capture attempt]
+    Capture -->|Normal Stop and successful cleanup| Waiting
+    Waiting -->|Exit or switch sreaming module| Closed[Module closes]
+    Capture -->|Exit or switch sreaming module| Closed
+    Capture -->|Cleanup failure| Failed[Terminal module failure and shutdown]
+```
 
-Capture phase and selected image availability are separate. One latest real frame is retained until replacement or HTTP disposal. Whenever no real frame belongs to the current capture generation, the two fallback choices are App logo or Last frame; Last frame uses the logo when no retained real frame exists. `imageKind` is `none` when no selected image is available, not as a third fallback choice. Fallback applies before the first frame, during consent, suspension, Stop and failure; fallback edits do not replace a current real frame. An existing MJPEG reader can wait for image availability; a new request without a pin receives 503. A capture failure remains Failed through successful cleanup until a new accepted attempt.
+## Starting capture
 
-## HTTP and networks
+Start is available when the current settings, selected addresses, permission and matching listener are ready and the previous capture has cleaned up. The Controller checks these conditions again when it receives the request. An older listening address can remain visible while a changed configuration is still being prepared.
 
-Discovery publishes an immutable inventory of supported scoped IPs and their interface alternatives, retaining candidates whose absence a scan cannot confirm. The controller starts discovery on first settings acceptance, selects one matching interface per scoped IP using its effective filter, and passes permitted addresses to HTTP. Filter changes select synchronously from its processed inventory. Start also selects from the freshest inventory and requires matching permitted addresses in both fresh and retained selections plus a Listening server at the applied port. The monitor uses one admission gate for callback metadata and observer handles and owns their independent cleanup; its native source only reads interface evidence. See [Network addresses](../internal/02-configuration/network-addresses.md) and [Start readiness](../internal/01-lifecycle/coordination.md#discovery-plan-and-start-readiness).
+For an accepted Start, the attempt uses [Core screen-capture access](../../core/docs/screen-capture.md) to obtain consent and the Android projection for the approved screen or app window. The instance Service prepares its capture foreground role. If consent is declined, access is busy or startup fails, that attempt ends; another explicit Start can be made when the sreaming module is ready again.
 
-Each scoped IP/port has a socket owner serializing bind and cleanup. A bind failure affects that server, while uncertain listener cleanup stops delivery to prevent a successor from assuming the socket is free. Retry targets the exact failed server UUID. [HTTP delivery](../internal/03-delivery/http-delivery.md) defines retry, cleanup and transport limits.
+The attempt holds the projection until Capture Engine accepts it. A failed handoff leaves cleanup with the attempt; after a successful session creation, the Engine owns the projection and image production. Startup establishes readiness to produce images, so the first JPEG can arrive later. Capture can also pause and recover when image settings or capture conditions change. The [Engine usage guide](../../screen-capture-engine/docs/usage.md) describes its public capture contract.
 
-Listeners share access, routes and selected JPEG. Credential rotation prevents old readers from acquiring another frame and revokes old WebSockets; an acquired JPEG lease may still finish. Sampled endpoint history rows are separate from physical response jobs. Counters include completed payload writes from active and finished responses, without proving network receipt or display. See [HTTP accounting](../internal/03-delivery/http-delivery.md#client-history-and-statistics).
+<a name="capture-and-image-delivery"></a>
 
-The browser is an independent viewer. Separate connection, media, access, viewport, presentation and picture-in-picture owners coordinate through the page; they do not issue capture commands. The desktop preview has its own virtual-device, HTTP/WebSocket, build/watch and panel owners and does not run Android capture or Ktor/CIO. The [HTTP viewing API](http-viewing-api.md) owns the client protocol; [Web client](../internal/03-delivery/web-client.md) extends it with transport and browser behavior; the existing [build guide](../tools/web-client/README.md) owns authored/generated assets and preview operation.
+## Delivering images
 
-## Shutdown and completion evidence
+Capture Engine lends each JPEG for the duration of its callback. The sreaming module copies the bytes on the callback thread before returning, giving HTTP delivery an image it can retain and share. Each response keeps its chosen image valid while writing it. A stopped attempt can no longer publish delayed images.
 
-There are three completion boundaries:
+HTTP delivery selects one shared image for viewers. During capture this can be the latest produced frame; when capture output is unavailable, **Inactive stream image** selects the logo or a retained frame. The retained frame may therefore expose the last captured screen after Stop. [Usage](usage.md#automation) explains that setting.
 
-1. **Capture Stop** requests cancellation of the exact attempt; the module remains open.
-2. **Capture session cleanup** settles available media, consumer, foreground and projection-guard obligations. Successful engine stop confirms logical shutdown and projection-stop return, not every internal engine resource release.
-3. **Module cleanup** joins admitted controller work, HTTP and monitor close, capture cleanup, final foreground removal and original Service destruction.
+MJPEG readers advance to the latest selected image, skipping intermediate publications when they cannot keep up. Unchanged images can be repeated while capture is quiet. This avoids an unbounded queue of frames per slow reader, although memory and network use still depend on image sizes and active clients. [HTTP server](http-server.md#consume-images) describes the media responses and unavailable-image behavior.
 
-Manager deadlines bound waiting and allow UI progress while cleanup is unconfirmed; owners continue their cleanup independently. A deadline does not prove physical resource release or successful cleanup. Failed manager outcomes are retained; Unresponsive can recover with a fresh report. See [Streaming host](../internal/01-lifecycle/streaming-host.md#reports-clocks-and-deadlines) and [Module lifecycle](../internal/01-lifecycle/module-lifecycle.md#controller-shutdown-and-complete-module-cleanup).
+The packaged page receives state separately from image data. A capture notice, an available image and the image actually rendered by the browser describe different observations. The [HTTP guide](http-server.md#websocket-state) defines the state protocol; [Usage](usage.md#browser-controls) explains browser recovery.
 
-Device/OEM lifecycle, browser compatibility, memory/FD behavior and rendering require qualification in the relevant environment. The [testing guide](../internal/04-testing/testing.md) defines verification scope and evidence requirements; results belong with the change or release being verified.
+<a name="shutdown-and-completion-evidence"></a>
+
+## Stopping and closing
+
+**Stop stream** targets the current capture attempt. After a normal Stop, capture cleanup runs and the Service returns to its waiting foreground presentation. The instance's HTTP server and viewing credentials remain available, including access to the selected inactive image. A later Start creates a new capture attempt; a delayed Stop for an earlier attempt does not stop the new one.
+
+Exit, switching modes and **Restart module** close the instance to new work and start cleanup of capture, HTTP delivery, address discovery and the Service. Restart opens a replacement that waits for another Start. A capture failure can leave the instance available after successful cleanup; capture cleanup failure terminates the instance and requests shutdown.
+
+A shutdown request and a completed resource release are separate events. The manager waits within its transition limits, while the resource owners continue cleanup. A replacement can start while an older instance is still cleaning up. Capture cleanup waits for the Engine stop and frame-consumer completion, and the Engine's public stop contract defines its completion; some internal resources may finish releasing later. See [Core's Exit contract](../../core/docs/module-contract-and-manager.md#exit) and the [Engine lifecycle contract](../../screen-capture-engine/docs/usage.md#run-a-capture-session) for these completion boundaries.
+
+<a name="readiness-across-boundaries"></a>
+<a name="saved-accepted-and-applied-values"></a>
+
+## Settings and readiness
+
+Saving a setting records the desired value. The Controller accepts changes according to the live or idle policy, and capture or HTTP delivery applies the accepted configuration. These are separate stages: a successful save establishes persistence, while the relevant owner makes application observable. Image settings can update during capture, and a frame already being processed can still use earlier parameters. Stream setup settings wait until capture cleanup succeeds. [Usage](usage.md#change-configuration) lists the apply timing for each setting.
+
+<a name="http-and-networks"></a>
+
+Address filters can change listeners during capture. Permission checks govern which selected addresses can be prepared; an ordinary listener failure can leave other listeners and capture usable, and **Retry** targets the failed listener. Local listening alone does not establish remote reachability: routing, network isolation and viewer conditions also matter. [Core runtime permissions](../../core/docs/runtime-permissions.md) owns the shared permission flow, while [Usage](usage.md#permissions-and-readiness) covers the mode's actions.
+
+Viewing credentials belong to HTTP delivery, separately from capture attempts and the app's local PIN display. Normal capture Start and Stop preserve them. Closing or restarting the mode, or changing applied access protection or the enabled PIN, replaces them. The [HTTP guide](http-server.md#viewing-credentials) defines their scope and use.
+
+<a name="control-and-observation"></a>
+
+## Reading status
+
+The manager's instance health describes the progress of the mode as a whole. A running instance can still be waiting for capture or a listener, and an unresponsive instance can recover when progress resumes. Capture, listener, permission and settings observations can reflect adjacent moments as each owner reports independently. The [Core health contract](../../core/docs/module-contract-and-manager.md#observable-process-and-instance-health) explains manager status; [Usage](usage.md#observe-state-and-failures) covers recovery in the app.
+
+Statistics report image production and completed JPEG payload writes at the server. They do not establish that a peer received, decoded or displayed an image. Media and browser state also travel independently. Use the viewer to check the end-to-end result, and see [Usage statistics](usage.md#read-statistics) for the measurements and their limits.

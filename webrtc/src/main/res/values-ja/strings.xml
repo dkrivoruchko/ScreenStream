@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">マイクを許可</string>
     <string name="webrtc_error_signaling_server_unavailable">サーバーに接続できません。視聴者が参加できない可能性があります。</string>
 
-    <string name="webrtc_stream_mode">グローバルモード · WebRTC</string>
-    <string name="webrtc_stream_mode_description">WebRTCでインターネット配信</string>
-    <string name="webrtc_stream_mode_details">
-- WebRTCテクノロジーにより動作します。\n
-- 端から端まで暗号化された通信。\n
-- パスワードでストリームを保護します。\n
-- ビデオとオーディオを送信できます。\n
-- ユニークなストリームIDとパスワードを使用して接続します。\n
-- ストリーミングにはインターネット接続が必要です。\n
-- 各クライアントが個別のインターネット帯域幅を使用します。
-</string>
+    <string name="webrtc_method_title">WebRTC: 世界中に共有</string>
+    <string name="webrtc_method_summary">リンクを使って、どこにいる視聴者とも画面を共有できます。</string>
+    <string name="webrtc_method_conditions">ブラウザで視聴 · 音声は任意 · インターネットが必要</string>
+    <string name="webrtc_method_intro">WebRTC は、ライブ映像と、選んだ場合は音声を、インターネット経由で視聴者のブラウザに送信します。視聴者は共有リンク、または配信 ID とパスワードで参加します。</string>
+    <string-array name="webrtc_method_benefits">
+        <item>別のネットワークにいる視聴者を、配信 ID とパスワードで screenstream.io に招待できます。</item>
+        <item>映像と音声は暗号化され、配信ごとにパスワードが設定されます。</item>
+        <item>マイクの音声、デバイスの音声、またはその両方を追加できます。</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>このデバイスとすべての視聴者にインターネット接続が必要です。</item>
+        <item>視聴者ごとに個別の配信を送るため、視聴者が増えるほどアップロードのデータ量が増えます。</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">接続が失われました。再接続中…</string>
     <string name="webrtc_stream_server_address">ストリームへのアクセス先:\n%1$s</string>

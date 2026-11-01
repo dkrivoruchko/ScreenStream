@@ -248,7 +248,7 @@ test('scenario pairs are canonical, preserve settings and fully reset to default
             assert.equal(wire.notice, notice);
             assert.deepEqual(wire.display, appearance);
         }
-        const jpeg = await request(device, '/jpeg' + (protectedAccess ? '?accessToken=' + encodeURIComponent(current.delivery.credentials.accessToken) : ''));
+        const jpeg = await request(device, '/jpeg' + (protectedAccess ? '?token=' + encodeURIComponent(current.delivery.credentials.token) : ''));
         assert.equal(jpeg.status, 200);
         const bytes = Buffer.from(await jpeg.arrayBuffer());
         if (live) assert.ok(landscape.some(frame => frame.equals(bytes)));
@@ -263,8 +263,8 @@ test('scenario pairs are canonical, preserve settings and fully reset to default
         const unavailable = await scenario(device, id);
         assert.equal(unavailable.delivery.notice, null);
         assert.equal(unavailable.delivery.imageKind, 'logo');
-        const token = unavailable.delivery.credentials.accessToken;
-        assert.deepEqual(Buffer.from(await (await request(device, '/jpeg?accessToken=' + encodeURIComponent(token))).arrayBuffer()),
+        const token = unavailable.delivery.credentials.token;
+        assert.deepEqual(Buffer.from(await (await request(device, '/jpeg?token=' + encodeURIComponent(token))).arrayBuffer()),
             fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg')));
     }
     await update(device, 'options', { postStopImage: 'last', imageAvailable: false });
@@ -311,20 +311,20 @@ test('PIN cookies are reused and remain valid during a peer block', async t => {
 test('token exchange and access scenario boundaries revoke old credentials', async t => {
     const device = await fixture(t);
     const configured = await scenario(device, 'pin');
-    const token = configured.delivery.credentials.accessToken;
+    const token = configured.delivery.credentials.token;
     for (const supplied of ['', 'invalid']) {
-        const denied = await request(device, '/viewer?accessToken=' + supplied);
+        const denied = await request(device, '/viewer?token=' + supplied);
         assert.equal(denied.status, 303);
         assert.equal(denied.headers.get('location'), '/viewer');
         assert.equal(denied.headers.get('set-cookie'), null);
         assert.equal(denied.headers.get('referrer-policy'), 'no-referrer');
     }
-    const exchanged = await request(device, '/viewer?accessToken=' + encodeURIComponent(token));
+    const exchanged = await request(device, '/viewer?token=' + encodeURIComponent(token));
     assert.equal(exchanged.status, 303);
     assert.equal(exchanged.headers.get('location'), '/viewer');
     const cookie = accessCookie(exchanged);
     assert.equal(accessCookie(await pin(device, configured.delivery.credentials.pin)), cookie);
-    assert.equal((await request(device, '/jpeg?accessToken=' + encodeURIComponent(token))).status, 200);
+    assert.equal((await request(device, '/jpeg?token=' + encodeURIComponent(token))).status, 200);
     authorizedSnapshot(await snapshot(device, cookie), 'authorized');
     await update(device, 'action', { id: 'fail-image-requests', enabled: true });
     for (const path of ['/jpeg', '/mjpeg']) {
@@ -334,10 +334,10 @@ test('token exchange and access scenario boundaries revoke old credentials', asy
     assert.equal(authorizedSnapshot(await snapshot(device, cookie), 'authorized').hasImage, true);
     await update(device, 'reset', {});
     const rotated = await scenario(device, 'pin');
-    assert.notEqual(rotated.delivery.credentials.accessToken, token);
+    assert.notEqual(rotated.delivery.credentials.token, token);
     assert.equal((await request(device, '/jpeg', { headers: { Cookie: cookie } })).status, 403);
     assert.deepEqual(await snapshot(device, cookie), { access: 'pin_required' });
-    assert.equal((await request(device, '/viewer?accessToken=' + encodeURIComponent(token))).headers.get('set-cookie'), null);
+    assert.equal((await request(device, '/viewer?token=' + encodeURIComponent(token))).headers.get('set-cookie'), null);
     const currentCookie = accessCookie(await pin(device, rotated.delivery.credentials.pin));
     const admitted = socketClient(device, currentCookie);
     authorizedSnapshot(await admitted.next(), 'authorized');
@@ -434,7 +434,7 @@ test('capture changes preserve transports and request faults affect only media',
         assert.equal(authorizedSnapshot(await client.next(), 'open').hasImage, true);
         await until(() => multipartImages(stream.body()).length > missingCount, 'Media did not resume after image availability returned');
         const current = await state(device);
-        assert.equal(current.delivery.credentials.accessToken, configured.delivery.credentials.accessToken);
+        assert.equal(current.delivery.credentials.token, configured.delivery.credentials.token);
         assert.equal(current.connection.clients, 1);
         assert.equal(client.socket.readyState, WebSocket.OPEN);
         assert.equal(stream.response.destroyed, false);
@@ -469,7 +469,7 @@ test('inactive image policies share JPEG, MJPEG and state selection across canon
         const selected = await scenario(device, id);
         const protectedAccess = selected.delivery.access === 'protected';
         const cookie = protectedAccess ? accessCookie(await request(device,
-            '/viewer?accessToken=' + encodeURIComponent(selected.delivery.credentials.accessToken))) : undefined;
+            '/viewer?token=' + encodeURIComponent(selected.delivery.credentials.token))) : undefined;
         for (const postStopImage of ['logo', 'last']) for (const imageAvailable of [false, true]) {
             const live = ['normal', 'pin', 'blocked'].includes(id) && imageAvailable;
             const expected = live ? 'live' :

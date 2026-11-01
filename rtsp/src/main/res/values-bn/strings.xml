@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">মাইক্রোফোনের অনুমতি দিন</string>
     <string name="rtsp_error_local_network_permission_required">ডিভাইসগুলো যাতে আপনার স্ট্রিমে যুক্ত হতে পারে, সে জন্য স্থানীয় নেটওয়ার্ক অ্যাক্সেস প্রয়োজন।</string>
 
-    <string name="rtsp_stream_mode">RTSP মোড · RTSP</string>
-    <string name="rtsp_stream_mode_description">RTSP ক্লায়েন্ট বা সার্ভার দিয়ে স্ট্রিম করুন</string>
-    <string name="rtsp_stream_mode_details">
-- RTSP প্রোটোকল দ্বারা চালিত।\n
-- সার্ভার মোড (ডিফল্ট) এই ডিভাইসকে RTSP সার্ভার হিসেবে হোস্ট করে।\n
-- ক্লায়েন্ট মোড দূরবর্তী RTSP সার্ভারে সংযোগ করে।\n
-- কোডেক কনফিগারেশনসহ ভিডিও ও অডিও সমর্থন করে।\n
-- সার্ভার মোড প্রোটোকল, ইন্টারফেস/অ্যাড্রেস ফিল্টার, IPv4/IPv6 এবং পোর্ট সেটিংস যোগ করে।\n
-- Wi‑Fi/মোবাইল নেটওয়ার্ক এবং IPv4/IPv6-এ কাজ করে।\n
-- দেখার জন্য RTSP ক্লায়েন্ট বা প্লেয়ার প্রয়োজন।
-</string>
+    <string name="rtsp_method_title">RTSP: প্লেয়ার ও মিডিয়া সার্ভার</string>
+    <string name="rtsp_method_summary">ভিডিও প্লেয়ারে দেখুন, বা স্ট্রিম মিডিয়া সার্ভারে পাঠান।</string>
+    <string name="rtsp_method_conditions">RTSP-সমর্থিত সফটওয়্যার · ঐচ্ছিক অডিও</string>
+    <string name="rtsp_method_intro">RTSP একটি প্রচলিত স্ট্রিমিং স্ট্যান্ডার্ড, যা ভিডিও প্লেয়ার ও মিডিয়া সার্ভার ব্যবহার করে। ডিফল্টভাবে এই ডিভাইস স্ট্রিম হোস্ট করে। আপনি এটি মিডিয়া সার্ভারেও পাঠাতে পারেন।</string>
+    <string-array name="rtsp_method_benefits">
+        <item>অ্যাপে দেখানো RTSP ঠিকানা খুলে VLC-এর মতো প্লেয়ারে দেখুন।</item>
+        <item>যেসব সার্ভার ইউজারনেম ও পাসওয়ার্ড চায় সেগুলোসহ মিডিয়া সার্ভারে স্ট্রিম পাঠান।</item>
+        <item>মাইক্রোফোনের অডিও, ডিভাইসের অডিও বা দুটোই যোগ করুন।</item>
+        <item>আপনার প্লেয়ার বা সার্ভারের উপযোগী ভিডিও ও অডিও ফরম্যাট, আকার এবং কোয়ালিটি বেছে নিন।</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>প্লেয়ারকে এই ডিভাইসে সংযুক্ত হতে পারতে হবে, যেমন একই Wi-Fi-তে। হোস্টিং ইন্টারনেট ছাড়াই কাজ করে।</item>
+        <item>সার্ভারে পাঠানোর সময় এই ডিভাইসকে সার্ভারে পৌঁছাতে পারতে হবে। এনক্রিপ্ট করা সংযোগের জন্য rtsps:// ঠিকানা ব্যবহার করুন এবং RTSP প্রোটোকল TCP-তে সেট করুন।</item>
+        <item>আপনার বেছে নেওয়া ভিডিও ও অডিও ফরম্যাট আপনার প্লেয়ার বা সার্ভারে সমর্থিত হতে হবে।</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">RTSP মোড নির্বাচন করুন:</string>
     <string name="rtsp_mode_server">সার্ভার</string>

@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Mode -->
-    <string name="mjpeg_mode_name">የአካባቢ ሁነታ · MJPEG</string>
-    <string name="mjpeg_mode_description">ስለ MJPEG</string>
-    <string name="mjpeg_mode_details">የመሣሪያውን ማያ ገጽ እንደ JPEG ምስሎች በቀጥታ ወደ ድር አሳሽ ያሰራጩ። ድምፅ አይሰራጭም።\n\n• ያለ በይነመረብ በአካባቢ አውታረ መረብ ላይ ይሰራል። ተመልካቾች የስርጭቱን አድራሻ መድረስ መቻል አለባቸው።\n• የPIN ጥበቃ አማራጭ ነው። ሲበራ፣ ተመልካቾች PIN ማስገባት ወይም የመዳረሻ አገናኝ መጠቀም ይችላሉ።\n• ስርጭቱ ያልተመሰጠረ HTTP ይጠቀማል። የሚታመን አውታረ መረብ ይጠቀሙ።\n• የአውታረ መረብ ማጣሪያው Wi-Fi፣ Ethernet፣ የተንቀሳቃሽ ስልክ ውሂብ፣ VPN፣ IPv4 እና IPv6 አማራጮች አሉት።\n• የምስል መጠን፣ የJPEG ጥራት እና የፍሬም ፍጥነት ያስተካክሉ።\n• ምስሎች ለእያንዳንዱ ተመልካች በተለየ ይላካሉ፣ ስለዚህ የውሂብ አጠቃቀም ይጨምራል።</string>
+    <string name="mjpeg_method_title">MJPEG፦ በአሳሽ በቀጥታ መመልከት</string>
+    <string name="mjpeg_method_summary">ተመልካቾች ከዚህ መሣሪያ ጋር በቀጥታ ተገናኝተው በአሳሽ ይመለከታሉ። በይነመረብ አያስፈልግም።</string>
+    <string name="mjpeg_method_conditions">ድምፅ የለም · ሊደረስበት የሚችል፣ የታመነ አውታረ መረብ · ያልተመሰጠረ HTTP</string>
+    <string name="mjpeg_method_intro">MJPEG ማያ ገጽዎን እንደ ፈጣን ተከታታይ ስዕሎች ያሳያል። ተመልካቾች በአሳሽ አገናኝ ከፍተው ከዚህ መሣሪያ ጋር በቀጥታ ይገናኛሉ።</string>
+    <string-array name="mjpeg_method_benefits">
+        <item>ተመልካቾች አገናኝ መክፈት ብቻ ነው ያለባቸው። መተግበሪያ ወይም መለያ አያስፈልግም።</item>
+        <item>ተመልካቾች ይህን መሣሪያ መድረስ ሲችሉ ያለ በይነመረብ ይሰራል።</item>
+        <item>ስዕሉን ይከርክሙ፣ መጠኑን ይቀይሩ፣ ያሽከርክሩ ወይም ያንጸባርቁ።</item>
+        <item>መመልከትን በአማራጭ PIN ይጠብቁ። የመዳረሻ አገናኞች የተጋበዙ ተመልካቾች PIN ሳይተይቡ እንዲገቡ ያስችላሉ።</item>
+        <item>MJPEG ወይም JPEG አገናኞችን የሚቀበሉ ሌሎች መተግበሪያዎችም ስርጭቱን ማሳየት ይችላሉ።</item>
+    </string-array>
+    <string-array name="mjpeg_method_things_to_know">
+        <item>ስዕሎች ብቻ። ድምፅ የለም።</item>
+        <item>ተመልካቾች ከዚህ መሣሪያ ጋር በቀጥታ መገናኘት አለባቸው፣ ለምሳሌ በተመሳሳይ Wi-Fi ወይም በVPN በኩል። የእንግዳ እና የሕዝብ አውታረ መረቦች ብዙ ጊዜ ይህን ያግዳሉ።</item>
+        <item>ግንኙነቱ የተመሰጠረ አይደለም። የሚያምኑትን አውታረ መረብ ይጠቀሙ።</item>
+        <item>እያንዳንዱ ተመልካች የተለዩ ምስሎችን ይቀበላል፣ ስለዚህ ብዙ ተመልካቾች ብዙ ውሂብ ይጠቀማሉ።</item>
+    </string-array>
 
     <!-- Shared UI and settings -->
     <string name="mjpeg_action_close">ዝጋ</string>
@@ -15,7 +29,7 @@
     <string name="mjpeg_pref_value_unavailable">ገና አይገኝም</string>
     <string name="mjpeg_pref_default_option">%1$s (ነባሪ)</string>
     <string name="mjpeg_pref_default_value">ነባሪ፦ %1$s</string>
-    <string name="mjpeg_pref_setup_locked">የማያ ገጽ ቀረጻ ሙሉ በሙሉ ከቆመ በኋላ ይገኛል</string>
+    <string name="mjpeg_pref_setup_locked">ስርጭቱ ሙሉ በሙሉ ከቆመ በኋላ ይገኛል</string>
 
     <string name="mjpeg_pref_search_placeholder">ቅንብሮችን ፈልግ</string>
     <string name="mjpeg_pref_search_clear">ፍለጋን አጽዳ</string>
@@ -23,13 +37,13 @@
 
     <!-- Statistics -->
     <string name="mjpeg_stats_title">ስታቲስቲክስ</string>
-    <string name="mjpeg_stats_connected_clients_count">የተገናኙ ደንበኞች፦ %1$s</string>
+    <string name="mjpeg_stats_connected_clients_count">የተመልካች ግንኙነቶች፦ %1$s</string>
     <string name="mjpeg_stats_outgoing_traffic">ወጪ ትራፊክ</string>
     <string name="mjpeg_stats_engine_title">የሞተር ስታቲስቲክስ</string>
     <string name="mjpeg_stats_frame_rate">የፍሬም ፍጥነት</string>
     <string name="mjpeg_stats_recently_disconnected">በቅርቡ የተቋረጡ</string>
-    <string name="mjpeg_stats_no_clients">የተገናኙ ደንበኞች የሉም</string>
-    <string name="mjpeg_stats_slow_reader">ዝግተኛ ንባብ</string>
+    <string name="mjpeg_stats_no_clients">ምንም የተመልካች ግንኙነት የለም</string>
+    <string name="mjpeg_stats_slow_reader">ወደ ኋላ እየቀረ ነው</string>
     <string name="mjpeg_stats_unavailable">—</string>
     <string name="mjpeg_stats_fps_value">%1$s FPS</string>
     <string name="mjpeg_stats_mbps_value">%1$s Mbps</string>
@@ -48,16 +62,16 @@
     <string name="mjpeg_stats_produced">የተመረቱ</string>
     <string name="mjpeg_stats_mean_fps">አማካይ FPS</string>
     <string name="mjpeg_stats_processing">ማቀናበር</string>
-    <string name="mjpeg_stats_mean_read">ከGPU አማካይ ንባብ</string>
-    <string name="mjpeg_stats_mean_encode">አማካይ የJPEG ኢንኮዲንግ</string>
+    <string name="mjpeg_stats_mean_read">አማካይ የፍሬም ንባብ ጊዜ</string>
+    <string name="mjpeg_stats_mean_encode">አማካይ የኢንኮዲንግ ጊዜ</string>
     <string name="mjpeg_stats_last_jpeg">የመጨረሻው JPEG መጠን</string>
     <string name="mjpeg_stats_mean_jpeg">አማካይ የJPEG መጠን</string>
-    <string name="mjpeg_stats_skipped_frames">የተተዉ ፍሬሞችና ርክክቦች</string>
-    <string name="mjpeg_stats_production_stale">ምርት · ያረጀ ሥራ</string>
+    <string name="mjpeg_stats_skipped_frames">የተጣሉ ፍሬሞች</string>
+    <string name="mjpeg_stats_production_stale">ምርት · ጊዜው ያለፈበት</string>
     <string name="mjpeg_stats_production_failed">ምርት · ያልተሳካ</string>
     <string name="mjpeg_stats_production_total">ምርት · ጠቅላላ</string>
     <string name="mjpeg_stats_delivery_busy">ማስረከብ · ተጠምዷል</string>
-    <string name="mjpeg_stats_delivery_errors">ማስረከብ · የመልሶ ጥሪ ስህተቶች</string>
+    <string name="mjpeg_stats_delivery_errors">ማስረከብ · ስህተቶች</string>
     <string name="mjpeg_stats_delivery_total">ማስረከብ · ጠቅላላ</string>
 
     <!-- Shared network labels -->
@@ -75,14 +89,14 @@
     <string name="mjpeg_stream_start_capture">ስርጭት ጀምር</string>
     <string name="mjpeg_stream_stop_capture">ስርጭት አቁም</string>
     <string name="mjpeg_stream_skipped_frames_warning">ፍሬሞች ተዘለሉ</string>
-    <string name="mjpeg_stream_stop_delayed">የማያ ገጽ ማጋራት ገና በመቆም ላይ ነው…</string>
+    <string name="mjpeg_stream_stop_delayed">ስርጭቱ ገና በመቆም ላይ ነው…</string>
     <string name="mjpeg_capture_error">የማያ ገጽ ቀረጻ አልተሳካም</string>
-    <string name="mjpeg_error_suspension_invalid_request">ቀረጻ ለጊዜው ቆሟል፦ የምስል ቅንብሮቹ ከአሁኑ የቀረጻ ቦታ ጋር አይስማሙም</string>
-    <string name="mjpeg_error_suspension_unavailable">ቀረጻ ለጊዜው ቆሟል፦ የቀረጻ ምንጩ አይገኝም</string>
-    <string name="mjpeg_error_suspension_resources">ቀረጻ ለጊዜው ቆሟል፦ በቂ ሀብቶች የሉም</string>
+    <string name="mjpeg_error_suspension_invalid_request">ስርጭቱ ለጊዜው ቆሟል፦ የምስል ቅንብሮቹ ከሚጋራው ጋር አይስማሙም</string>
+    <string name="mjpeg_error_suspension_unavailable">ስርጭቱ ለጊዜው ቆሟል፦ የማያ ገጽ ቀረጻ አሁን አይገኝም</string>
+    <string name="mjpeg_error_suspension_resources">ስርጭቱ ለጊዜው ቆሟል፦ በቂ የመሣሪያ ሀብቶች የሉም። ያነሰ የምስል መጠን ይሞክሩ።</string>
 
     <string name="mjpeg_address_list_title">የስርጭት አድራሻዎች</string>
-    <string name="mjpeg_address_list_empty">ለስርጭት የሚገኙ አድራሻዎች የሉም።\nበግንኙነት ቅንብሮች ውስጥ ያለውን የአውታረ መረብ ማጣሪያ ያረጋግጡ።</string>
+    <string name="mjpeg_address_list_empty">ምንም የስርጭት አድራሻ የለም።\nከአውታረ መረብ ጋር ይገናኙ ወይም በግንኙነት ቅንብሮች ውስጥ የአውታረ መረብ ማጣሪያን ያረጋግጡ።</string>
     <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
     <string name="mjpeg_address_network_details">አውታረ መረብ፦\n%1$s (%2$s)</string>
     <string name="mjpeg_address_same_device">ይህ መሣሪያ ብቻ</string>
@@ -92,7 +106,7 @@
     <string name="mjpeg_address_non_private_ipv6">የግል ያልሆነ IPv6</string>
 
     <string name="mjpeg_address_open">ክፈት</string>
-    <!-- %1$s is the public displayed URL, without an access token. -->
+    <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">%1$sን ክፈት</string>
     <string name="mjpeg_address_copy_url">አገናኝ ቅዳ</string>
     <string name="mjpeg_address_copy_description">የ%1$s አገናኝ ቅዳ</string>
@@ -104,7 +118,7 @@
     <string name="mjpeg_address_share_description">የ%1$s አገናኝ አጋራ</string>
     <string name="mjpeg_address_qr_code">የQR ኮድ አሳይ</string>
     <string name="mjpeg_address_qr_code_description">የ%1$s QR ኮድ አሳይ</string>
-    <string name="mjpeg_address_qr_image_description">የስርጭቱን አገናኝ ለመክፈት ይህን ኮድ ይቃኙ</string>
+    <string name="mjpeg_address_qr_image_description">ስርጭቱን ለመክፈት የQR ኮድ</string>
 
     <string name="mjpeg_address_error_browser_not_found">ምንም ድር አሳሽ አልተገኘም</string>
     <string name="mjpeg_address_error_open">አገናኙን መክፈት አልተቻለም</string>
@@ -115,14 +129,14 @@
     <string name="mjpeg_local_network_permission_open_settings">ቅንብሮችን ክፈት</string>
     <string name="mjpeg_local_network_permission_required">የአካባቢ አውታረ መረብ ፈቃድ ያስፈልጋል</string>
 
-    <string name="mjpeg_server_pending">በመጠባበቅ ላይ</string>
+    <string name="mjpeg_server_pending">በማዘጋጀት ላይ…</string>
     <string name="mjpeg_server_address_in_use">አድራሻው በአገልግሎት ላይ ነው</string>
     <string name="mjpeg_server_address_unavailable">አድራሻው አይገኝም</string>
     <string name="mjpeg_server_permission_denied">ፈቃድ ተከልክሏል</string>
     <string name="mjpeg_server_io_failure">አገልጋዩ አይገኝም</string>
     <string name="mjpeg_server_unknown_failure">የአገልጋይ ስህተት</string>
     <string name="mjpeg_server_retry">እንደገና ሞክር</string>
-    <!-- %1$s is the public displayed URL, without an access token. -->
+    <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_server_retry_description">በ%1$s ያለውን አገልጋይ እንደገና ሞክር</string>
 
     <string name="mjpeg_stream_pin_label">PIN፦</string>
@@ -134,7 +148,7 @@
     <string name="mjpeg_pin_hide_description">PIN ደብቅ</string>
     <string name="mjpeg_stream_pin_copy">PIN ቅዳ</string>
     <string name="mjpeg_stream_pin_copied">PIN ተቀድቷል</string>
-    <string name="mjpeg_stream_pin_hint_access">የስርጭት አገናኝ ይክፈቱ ወይም የQR ኮዱን ይቃኙ።\nከተጠየቁ ይህን PIN ያስገቡ።</string>
+    <string name="mjpeg_stream_pin_hint_access">ከላይ አገናኝ ወይም የQR ኮድ ያጋሩ።\nከተጠየቁ ተመልካቾች ይህን PIN ያስገባሉ።</string>
 
     <!-- Image settings -->
     <string name="mjpeg_pref_image_group">የምስል ቅንብሮች</string>
@@ -162,9 +176,9 @@
     <string name="mjpeg_pref_image_size_summary">መጠነ ልኬት ወይም ስፋትና ቁመት ያዘጋጁ</string>
     <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
     <string name="mjpeg_pref_image_size_stretch">ምስል ዘርጋ</string>
-    <string name="mjpeg_pref_image_size_stretch_value">ዘርጋ</string>
+    <string name="mjpeg_pref_image_size_stretch_value">የተዘረጋ</string>
     <string name="mjpeg_pref_image_size_fit_description">በስፋትና ቁመት ውስጥ ይገጥማል፤ ምጥጥን ይጠብቃል</string>
-    <string name="mjpeg_pref_image_size_stretch_description">ትክክለኛ ስፋትና ቁመት፤ ምጥጥን ሊለወጥ ይችላል</string>
+    <string name="mjpeg_pref_image_size_stretch_description">ትክክለኛውን ስፋትና ቁመት ይሞላል። ምስሉ የተዘረጋ ሊመስል ይችላል።</string>
     <string name="mjpeg_pref_image_size_estimate_note">በማያ ገጹ ላይ የተመሠረተ ግምት፤ የተጋራ መተግበሪያ መጠን ሊለይ ይችላል</string>
     <string name="mjpeg_pref_image_size_source">ማያ ገጽ፦ %1$s</string>
     <string name="mjpeg_pref_image_size_result">የምስል መጠን ግምት፦ %1$s</string>
@@ -172,7 +186,7 @@
     <string name="mjpeg_pref_image_size_scale">መጠነ ልኬት</string>
     <string name="mjpeg_pref_image_size_target">መጠን</string>
     <string name="mjpeg_pref_image_size_default">ነባሪ፦ %1$s %2$s</string>
-    <string name="mjpeg_pref_image_size_scale_label" formatted="false">መጠነ ልኬት (ከ0 በላይ፣ እስከ 200%)</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">መጠነ ልኬት (እስከ 200%)</string>
     <string name="mjpeg_pref_image_size_width_label">ስፋት (1–8192 px)</string>
     <string name="mjpeg_pref_image_size_height_label">ቁመት (1–8192 px)</string>
     <string name="mjpeg_pref_image_size_scale_error">ከ0 በላይ እና እስከ 200 የሆነ ቁጥር ያስገቡ</string>
@@ -204,14 +218,14 @@
 
     <string name="mjpeg_pref_image_rate_fps">የFPS ገደብ</string>
     <string name="mjpeg_pref_image_rate_fps_description">በሰከንድ የሚታዩ ፍሬሞችን ይገድባል</string>
-    <string name="mjpeg_pref_image_rate_fps_value">እስከ %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_value">እስከ %1$d FPS</string>
     <string name="mjpeg_pref_image_rate_fps_label">ፍሬሞች/ሰከንድ (1–120)</string>
     <string name="mjpeg_pref_image_rate_fps_error">ከ1 እስከ 120 ያለ ሙሉ ቁጥር ያስገቡ</string>
     <string name="mjpeg_pref_image_rate_fps_help">ትክክለኛው የፍሬም ፍጥነት ከገደቡ በታች ሊሆን ይችላል</string>
 
     <string name="mjpeg_pref_image_rate_interval">ክፍተት</string>
     <string name="mjpeg_pref_image_rate_interval_description">አነስተኛውን የቀረጻ ክፍተት ያዘጋጃል</string>
-    <string name="mjpeg_pref_image_rate_interval_value">%1$s ሰ</string>
+    <string name="mjpeg_pref_image_rate_interval_value">%1$s ሰከ</string>
     <string name="mjpeg_pref_image_rate_interval_label">ክፍተት (1–3600 ሰከንድ)</string>
     <string name="mjpeg_pref_image_rate_interval_error">ከ1 እስከ 3600 ሰከንድ የሆነ ክፍተት ያስገቡ</string>
     <string name="mjpeg_pref_image_rate_interval_help">ክፍተቱ አዲስ ፍሬሞች ምን ያህል ጊዜ እንደሚቀረጹ ይገድባል</string>
@@ -219,7 +233,7 @@
     <string name="mjpeg_pref_image_encoder">የJPEG ኢንኮደር</string>
     <string name="mjpeg_pref_image_encoder_summary">የJPEG ምስሎች እንዴት እንደሚፈጠሩ ይምረጡ</string>
     <string name="mjpeg_pref_image_encoder_standard">መደበኛ</string>
-    <string name="mjpeg_pref_image_encoder_locked">ማያ ገጽ ማጋራት ሙሉ በሙሉ ከቆመ በኋላ ይገኛል</string>
+    <string name="mjpeg_pref_image_encoder_locked">ስርጭቱ ሙሉ በሙሉ ከቆመ በኋላ ይገኛል</string>
     <string name="mjpeg_pref_image_encoder_auto_description">ሲገኝ የተመቻቸ ኢንኮዲንግ</string>
     <string name="mjpeg_pref_image_encoder_standard_description">የኢንኮዲንግ ማመቻቸትን ያቦዝናል</string>
 
@@ -228,33 +242,33 @@
     <string name="mjpeg_pref_automation_save_error">የአውቶሜሽን ቅንብሮችን ማስቀመጥ አልተቻለም</string>
 
     <string name="mjpeg_pref_automation_address_loss_timeout">አድራሻዎች ከጠፉ በኋላ ስርጭት አቁም</string>
-    <string name="mjpeg_pref_automation_address_loss_timeout_summary">ምንም የተመረጠ አድራሻ በማይቀርበት ጊዜ ስርጭት አቁም</string>
-    <string name="mjpeg_pref_automation_address_loss_timeout_value">ከ%1$d ሰ በኋላ</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">ምንም የስርጭት አድራሻ በማይቀርበት ጊዜ ስርጭቱን አቁም</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_value">ከ%1$d ሰከ በኋላ</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_label">መዘግየት (10–1800 ሰከንድ)</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_default">ነባሪ፦ %1$s ሰከንድ</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_error">ከ10 እስከ 1800 ያለ ሙሉ ቁጥር ያስገቡ</string>
-    <string name="mjpeg_pref_automation_address_loss_timeout_help">አድራሻዎች ሲመለሱ ቆጣሪው ይሰረዛል</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">አድራሻ ጊዜው ከማለቁ በፊት ከተመለሰ፣ ይህ ራስ-ሰር ማቆም ይሰረዛል።</string>
 
     <string name="mjpeg_pref_automation_inactive_image">ያልነቃ ስርጭት ምስል</string>
-    <string name="mjpeg_pref_automation_inactive_image_summary">የቀጥታ ምስል በማይገኝበት ጊዜ የሚታይ ምስል</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">የቀጥታ ምስል በሌለበት ጊዜ ተመልካቾች የሚያዩት</string>
     <string name="mjpeg_pref_automation_inactive_image_placeholder_option">የመተግበሪያ አርማ</string>
     <string name="mjpeg_pref_automation_inactive_image_last_frame_option">የመጨረሻ ፍሬም</string>
 
     <string name="mjpeg_pref_automation_keep_awake">ማያ ገጹን በርቶ አቆይ</string>
-    <string name="mjpeg_pref_automation_keep_awake_summary">በሚቻልበት ጊዜ በቀረጻ ወቅት ማያ ገጹን በርቶ አቆይ</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">በሚቻልበት ጊዜ በማሰራጨት ላይ ሳለ ማያ ገጹን በርቶ አቆይ</string>
 
     <string name="mjpeg_pref_automation_stop_on_screen_off">ማያ ገጹ ሲጠፋ አቁም</string>
     <string name="mjpeg_pref_automation_stop_on_screen_off_summary">ማያ ገጹ ሲጠፋ ስርጭት አቁም</string>
 
     <string name="mjpeg_pref_automation_skipped_frames_warning">ስለተዘለሉ ፍሬሞች አስጠንቅቅ</string>
-    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">አንዳንድ መሣሪያዎች ያነሱ ምስሎች ሊቀበሉ ይችላሉ</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">አንድ ተመልካች ወደ ኋላ ሲቀር መልዕክት አሳይ</string>
 
     <!-- Connection settings -->
     <string name="mjpeg_pref_connection_group">የግንኙነት ቅንብሮች</string>
-    <string name="mjpeg_pref_connection_save_error">የአውታረ መረብ ቅንብሮችን ማስቀመጥ አልተቻለም</string>
+    <string name="mjpeg_pref_connection_save_error">የግንኙነት ቅንብሮችን ማስቀመጥ አልተቻለም</string>
 
     <string name="mjpeg_pref_connection_filter">የአውታረ መረብ ማጣሪያ</string>
-    <string name="mjpeg_pref_connection_filter_summary">ለስርጭት የሚውሉ የአውታረ መረብ አድራሻዎችን ይምረጡ</string>
+    <string name="mjpeg_pref_connection_filter_summary">ለተመልካቾች የሚቀርቡ አድራሻዎችን ይምረጡ</string>
     <string name="mjpeg_pref_connection_filter_ip_version">የIP ስሪት</string>
     <string name="mjpeg_pref_connection_filter_network_type">የአውታረ መረብ ዓይነት</string>
     <string name="mjpeg_pref_connection_filter_address_type">የአድራሻ ዓይነት</string>
@@ -268,7 +282,7 @@
     <string name="mjpeg_pref_connection_http_port_summary">ተመልካቾች ለመገናኘት የሚጠቀሙበትን ወደብ ያዘጋጁ</string>
     <string name="mjpeg_pref_connection_http_port_label">ወደብ (1024–65535)</string>
     <string name="mjpeg_pref_connection_http_port_error">ከ1024 እስከ 65535 ያለ ሙሉ ቁጥር ያስገቡ</string>
-    <string name="mjpeg_pref_connection_http_port_help">ወደቡን መቀየር የስርጭት አድራሻዎችን ያዘምናል</string>
+    <string name="mjpeg_pref_connection_http_port_help">ወደቡን መቀየር ሁሉንም የስርጭት አድራሻዎች ይቀይራል። ቀደም ብለው የተጋሩ አገናኞች መስራት ያቆማሉ።</string>
 
     <!-- Web page settings -->
     <string name="mjpeg_pref_web_group">የድረ ገጽ ቅንብሮች</string>
@@ -289,7 +303,7 @@
     <string name="mjpeg_pref_web_stream_name_summary">ለተመልካቾች የሚታየውን ስም ያዘጋጁ</string>
     <string name="mjpeg_pref_web_stream_name_label">የስርጭት ስም (እስከ 64 ቁምፊዎች)</string>
     <string name="mjpeg_pref_web_stream_name_error">ከ%1$d የማይበልጡ ቁምፊዎችን ይጠቀሙ</string>
-    <string name="mjpeg_pref_web_stream_name_help">እንደ አሳሽ ትር ርዕስ እና የስርጭት መለያ ይጠቀማል</string>
+    <string name="mjpeg_pref_web_stream_name_help">ስሙ በተደበቀ ጊዜም እንደ አሳሽ ትር ርዕስ ያገለግላል</string>
     <string name="mjpeg_pref_web_stream_name_enabled">የስርጭት ስም አሳይ</string>
     <string name="mjpeg_pref_web_stream_name_empty">ስም የለም</string>
 
@@ -320,7 +334,7 @@
     <string name="mjpeg_pref_access_policy_label">የPIN ፖሊሲ</string>
     <string name="mjpeg_pref_access_policy_new_on_module_start">ሲከፈት አዲስ PIN</string>
     <string name="mjpeg_pref_access_policy_permanent">ቋሚ PIN</string>
-    <string name="mjpeg_pref_access_policy_help">«ሲከፈት አዲስ PIN» ተመርጦ ጥበቃው ሲበራ፣ የMJPEG ሁነታ በተከፈተ ቁጥር PIN ይፈጠራል። ቀረጻ መጀመር PINን አይቀይረውም።</string>
+    <string name="mjpeg_pref_access_policy_help">የPIN ጥበቃ ሲበራ፣ «ሲከፈት አዲስ PIN» የMJPEG ሁነታን በከፈቱ ቁጥር አዲስ PIN ይፈጥራል። ስርጭቱን መጀመር PINን አይቀይረውም።</string>
 
     <string name="mjpeg_pref_access_pin">PIN</string>
     <string name="mjpeg_pref_access_pin_summary">ስርጭቱን ለመድረስ የተቀመጠ PIN</string>
@@ -328,15 +342,15 @@
     <string name="mjpeg_pref_access_pin_label">PIN (6 አሃዞች)</string>
     <string name="mjpeg_pref_access_pin_error">ስድስት አሃዞችን (0–9) ያስገቡ</string>
     <string name="mjpeg_pref_access_pin_regenerate">አዲስ PIN ፍጠር</string>
-    <string name="mjpeg_pref_access_pin_permanent_help">የራስዎን PIN ለማስገባት «ቋሚ PIN» ይምረጡ</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">የራስዎን PIN ለማስገባት በPIN ጥበቃ ውስጥ «ቋሚ PIN»ን ይምረጡ</string>
 
     <string name="mjpeg_pref_access_wrong_pins">የPIN ሙከራዎችን ገድብ</string>
-    <string name="mjpeg_pref_access_wrong_pins_summary">ከአምስት የተሳሳቱ ሙከራዎች በኋላ በPIN መግባትን ለጊዜው አቁም</string>
-    <string name="mjpeg_pref_access_wrong_pins_value">ደቂቃዎች፦ %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">ከአምስት የተሳሳቱ ሙከራዎች በኋላ PIN ማስገባትን አግድ</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">%1$d ደቂቃ</string>
     <string name="mjpeg_pref_access_wrong_pins_label">የእገዳ ጊዜ (1–60 ደቂቃዎች)</string>
     <string name="mjpeg_pref_access_wrong_pins_default">ነባሪ፦ %1$s · %2$s ደቂቃ</string>
     <string name="mjpeg_pref_access_wrong_pins_error">ከ1 እስከ 60 ያለ ሙሉ ቁጥር ያስገቡ</string>
-    <string name="mjpeg_pref_access_wrong_pins_help">ከዚያ IP የሚመጡ አዲስ የPIN ሙከራዎችን ያግዳል። የተገናኙ ተመልካቾች ተገናኝተው ይቀጥላሉ።</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">ሙከራዎቹን ካደረገው IP አድራሻ PIN ማስገባትን ያግዳል። አስቀድመው የሚመለከቱ ተመልካቾች እንደተገናኙ ይቆያሉ።</string>
 
     <string name="mjpeg_pref_access_hide_pin_on_start">ስርጭት ሲጀመር PIN ደብቅ</string>
     <string name="mjpeg_pref_access_hide_pin_on_start_summary">PINን እንደገና ማሳየት ይችላሉ</string>

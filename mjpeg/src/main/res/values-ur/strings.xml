@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Mode -->
-    <string name="mjpeg_mode_name">مقامی موڈ · MJPEG</string>
-    <string name="mjpeg_mode_description">MJPEG کے بارے میں</string>
-    <string name="mjpeg_mode_details">آلے کی اسکرین براہ راست ویب براؤزر پر JPEG تصاویر کی صورت میں اسٹریم کریں۔ آڈیو اسٹریم نہیں ہوتا۔\n\n• انٹرنیٹ کے بغیر مقامی نیٹ ورک پر کام کرتا ہے۔ ناظرین کا اسٹریم پتے تک پہنچنا ضروری ہے۔\n• PIN تحفظ اختیاری ہے۔ اسے آن کرنے پر ناظرین PIN درج کر سکتے ہیں یا رسائی کا لنک استعمال کر سکتے ہیں۔\n• اسٹریم غیر خفیہ کردہ HTTP استعمال کرتا ہے۔ قابل اعتماد نیٹ ورک استعمال کریں۔\n• نیٹ ورک فلٹر میں Wi-Fi، Ethernet، موبائل ڈیٹا، VPN، IPv4 اور IPv6 کے اختیارات ہیں۔\n• تصویر کا سائز، JPEG معیار اور فریم ریٹ تبدیل کریں۔\n• تصاویر ہر ناظر کو الگ بھیجی جاتی ہیں، اس سے ڈیٹا کا استعمال بڑھتا ہے۔</string>
+    <string name="mjpeg_method_title">MJPEG: براؤزر میں براہ راست دیکھنا</string>
+    <string name="mjpeg_method_summary">ناظرین براؤزر میں دیکھتے ہیں اور براہ راست اس آلے سے منسلک ہوتے ہیں۔ انٹرنیٹ کی ضرورت نہیں۔</string>
+    <string name="mjpeg_method_conditions">آڈیو نہیں · قابلِ رسائی، قابل اعتماد نیٹ ورک · غیر خفیہ کردہ HTTP</string>
+    <string name="mjpeg_method_intro">MJPEG آپ کی اسکرین کو تیزی سے بدلتی تصاویر کی صورت میں دکھاتا ہے۔ ناظرین براؤزر میں لنک کھولتے ہیں اور براہ راست اس آلے سے منسلک ہوتے ہیں۔</string>
+    <string-array name="mjpeg_method_benefits">
+        <item>ناظرین بس لنک کھولتے ہیں۔ کسی ایپ یا اکاؤنٹ کی ضرورت نہیں۔</item>
+        <item>جب ناظرین اس آلے تک پہنچ سکیں تو انٹرنیٹ کے بغیر کام کرتا ہے۔</item>
+        <item>تصویر کو کراپ کریں، اس کا سائز بدلیں، گھمائیں یا پلٹیں۔</item>
+        <item>اختیاری PIN سے دیکھنے کو محفوظ کریں۔ رسائی کے لنکس مدعو ناظرین کو PIN ٹائپ کیے بغیر داخل ہونے دیتے ہیں۔</item>
+        <item>MJPEG یا JPEG لنکس قبول کرنے والی دوسری ایپس بھی اسٹریم دکھا سکتی ہیں۔</item>
+    </string-array>
+    <string-array name="mjpeg_method_things_to_know">
+        <item>صرف تصاویر۔ آڈیو نہیں۔</item>
+        <item>ناظرین کا اس آلے سے براہ راست منسلک ہونا ضروری ہے، مثلاً ایک ہی Wi-Fi پر یا VPN کے ذریعے۔ مہمان اور عوامی نیٹ ورک اکثر اسے بلاک کرتے ہیں۔</item>
+        <item>کنکشن خفیہ کردہ نہیں ہے۔ قابل اعتماد نیٹ ورک استعمال کریں۔</item>
+        <item>ہر ناظر کو الگ تصاویر ملتی ہیں، اس لیے زیادہ ناظرین زیادہ ڈیٹا استعمال کرتے ہیں۔</item>
+    </string-array>
 
     <!-- Shared UI and settings -->
     <string name="mjpeg_action_close">بند کریں</string>
@@ -15,7 +29,7 @@
     <string name="mjpeg_pref_value_unavailable">ابھی دستیاب نہیں</string>
     <string name="mjpeg_pref_default_option">%1$s (ڈیفالٹ)</string>
     <string name="mjpeg_pref_default_value">ڈیفالٹ: %1$s</string>
-    <string name="mjpeg_pref_setup_locked">اسکرین کیپچر مکمل طور پر رکنے کے بعد دستیاب</string>
+    <string name="mjpeg_pref_setup_locked">اسٹریم مکمل طور پر رکنے کے بعد دستیاب</string>
 
     <string name="mjpeg_pref_search_placeholder">ترتیبات تلاش کریں</string>
     <string name="mjpeg_pref_search_clear">تلاش صاف کریں</string>
@@ -23,13 +37,13 @@
 
     <!-- Statistics -->
     <string name="mjpeg_stats_title">اعداد و شمار</string>
-    <string name="mjpeg_stats_connected_clients_count">منسلک کلائنٹس: %1$s</string>
+    <string name="mjpeg_stats_connected_clients_count">ناظرین کے کنکشن: %1$s</string>
     <string name="mjpeg_stats_outgoing_traffic">باہر جانے والا ٹریفک</string>
     <string name="mjpeg_stats_engine_title">انجن کے اعداد و شمار</string>
     <string name="mjpeg_stats_frame_rate">فریم ریٹ</string>
     <string name="mjpeg_stats_recently_disconnected">حال ہی میں منقطع</string>
-    <string name="mjpeg_stats_no_clients">کوئی کلائنٹ منسلک نہیں</string>
-    <string name="mjpeg_stats_slow_reader">سست ریڈر</string>
+    <string name="mjpeg_stats_no_clients">ناظرین کا کوئی کنکشن نہیں</string>
+    <string name="mjpeg_stats_slow_reader">پیچھے رہ رہا ہے</string>
     <string name="mjpeg_stats_unavailable">—</string>
     <string name="mjpeg_stats_fps_value">%1$s FPS</string>
     <string name="mjpeg_stats_mbps_value">%1$s Mbps</string>
@@ -48,16 +62,16 @@
     <string name="mjpeg_stats_produced">تیار کردہ</string>
     <string name="mjpeg_stats_mean_fps">اوسط FPS</string>
     <string name="mjpeg_stats_processing">پروسیسنگ</string>
-    <string name="mjpeg_stats_mean_read">GPU سے اوسط ریڈ بیک</string>
-    <string name="mjpeg_stats_mean_encode">اوسط JPEG انکوڈنگ</string>
+    <string name="mjpeg_stats_mean_read">فریم پڑھنے کا اوسط وقت</string>
+    <string name="mjpeg_stats_mean_encode">انکوڈنگ کا اوسط وقت</string>
     <string name="mjpeg_stats_last_jpeg">آخری JPEG کا سائز</string>
     <string name="mjpeg_stats_mean_jpeg">JPEG کا اوسط سائز</string>
-    <string name="mjpeg_stats_skipped_frames">چھوڑے گئے فریم اور ترسیل</string>
+    <string name="mjpeg_stats_skipped_frames">ضائع شدہ فریم</string>
     <string name="mjpeg_stats_production_stale">پیداوار · پرانا</string>
     <string name="mjpeg_stats_production_failed">پیداوار · ناکام</string>
     <string name="mjpeg_stats_production_total">پیداوار · کل</string>
     <string name="mjpeg_stats_delivery_busy">ترسیل · مصروف</string>
-    <string name="mjpeg_stats_delivery_errors">ترسیل · کال بیک کی خرابیاں</string>
+    <string name="mjpeg_stats_delivery_errors">ترسیل · خرابیاں</string>
     <string name="mjpeg_stats_delivery_total">ترسیل · کل</string>
 
     <!-- Shared network labels -->
@@ -75,14 +89,14 @@
     <string name="mjpeg_stream_start_capture">اسٹریم شروع کریں</string>
     <string name="mjpeg_stream_stop_capture">اسٹریم روکیں</string>
     <string name="mjpeg_stream_skipped_frames_warning">فریم چھوڑ دیے گئے</string>
-    <string name="mjpeg_stream_stop_delayed">اسکرین شیئرنگ ابھی بند ہو رہی ہے…</string>
+    <string name="mjpeg_stream_stop_delayed">اسٹریم ابھی تک روکا جا رہا ہے…</string>
     <string name="mjpeg_capture_error">اسکرین کیپچر ناکام ہوا</string>
-    <string name="mjpeg_error_suspension_invalid_request">کیپچر موقوف ہے: تصویر کی ترتیبات موجودہ کیپچر علاقے کے مطابق نہیں</string>
-    <string name="mjpeg_error_suspension_unavailable">کیپچر موقوف ہے: کیپچر کا ماخذ دستیاب نہیں</string>
-    <string name="mjpeg_error_suspension_resources">کیپچر موقوف ہے: وسائل ناکافی ہیں</string>
+    <string name="mjpeg_error_suspension_invalid_request">اسٹریمنگ موقوف ہے: تصویر کی ترتیبات شیئر کیے جانے والے مواد سے مطابقت نہیں رکھتیں</string>
+    <string name="mjpeg_error_suspension_unavailable">اسٹریمنگ موقوف ہے: اسکرین کیپچر فی الحال دستیاب نہیں</string>
+    <string name="mjpeg_error_suspension_resources">اسٹریمنگ موقوف ہے: آلے کے وسائل ناکافی ہیں۔ تصویر کا چھوٹا سائز آزمائیں۔</string>
 
     <string name="mjpeg_address_list_title">اسٹریم کے پتے</string>
-    <string name="mjpeg_address_list_empty">اسٹریم کے لیے کوئی پتہ دستیاب نہیں۔\nکنکشن کی ترتیبات میں نیٹ ورک فلٹر چیک کریں۔</string>
+    <string name="mjpeg_address_list_empty">اسٹریم کا کوئی پتہ دستیاب نہیں۔\nکسی نیٹ ورک سے منسلک ہوں یا کنکشن کی ترتیبات میں نیٹ ورک فلٹر چیک کریں۔</string>
     <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
     <string name="mjpeg_address_network_details">نیٹ ورک:\n%1$s (%2$s)</string>
     <string name="mjpeg_address_same_device">صرف یہ آلہ</string>
@@ -92,7 +106,7 @@
     <string name="mjpeg_address_non_private_ipv6">غیر نجی IPv6</string>
 
     <string name="mjpeg_address_open">کھولیں</string>
-    <!-- %1$s is the public displayed URL, without an access token. -->
+    <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">%1$s کھولیں</string>
     <string name="mjpeg_address_copy_url">لنک کاپی کریں</string>
     <string name="mjpeg_address_copy_description">%1$s کا لنک کاپی کریں</string>
@@ -104,7 +118,7 @@
     <string name="mjpeg_address_share_description">%1$s کا لنک شیئر کریں</string>
     <string name="mjpeg_address_qr_code">QR کوڈ دکھائیں</string>
     <string name="mjpeg_address_qr_code_description">%1$s کا QR کوڈ دکھائیں</string>
-    <string name="mjpeg_address_qr_image_description">اسٹریم لنک کھولنے کے لیے یہ کوڈ اسکین کریں</string>
+    <string name="mjpeg_address_qr_image_description">اسٹریم کھولنے کا QR کوڈ</string>
 
     <string name="mjpeg_address_error_browser_not_found">کوئی ویب براؤزر نہیں ملا</string>
     <string name="mjpeg_address_error_open">لنک نہیں کھل سکا</string>
@@ -115,14 +129,14 @@
     <string name="mjpeg_local_network_permission_open_settings">ترتیبات کھولیں</string>
     <string name="mjpeg_local_network_permission_required">مقامی نیٹ ورک کی اجازت درکار ہے</string>
 
-    <string name="mjpeg_server_pending">انتظار میں</string>
+    <string name="mjpeg_server_pending">تیاری ہو رہی ہے…</string>
     <string name="mjpeg_server_address_in_use">پتہ استعمال میں ہے</string>
     <string name="mjpeg_server_address_unavailable">پتہ دستیاب نہیں</string>
     <string name="mjpeg_server_permission_denied">اجازت مسترد</string>
     <string name="mjpeg_server_io_failure">سرور دستیاب نہیں</string>
     <string name="mjpeg_server_unknown_failure">سرور میں خرابی</string>
     <string name="mjpeg_server_retry">دوبارہ کوشش کریں</string>
-    <!-- %1$s is the public displayed URL, without an access token. -->
+    <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_server_retry_description">%1$s پر سرور کے لیے دوبارہ کوشش کریں</string>
 
     <string name="mjpeg_stream_pin_label">PIN:</string>
@@ -134,7 +148,7 @@
     <string name="mjpeg_pin_hide_description">PIN چھپائیں</string>
     <string name="mjpeg_stream_pin_copy">PIN کاپی کریں</string>
     <string name="mjpeg_stream_pin_copied">PIN کاپی ہو گیا</string>
-    <string name="mjpeg_stream_pin_hint_access">اسٹریم کا لنک کھولیں یا اس کا QR کوڈ اسکین کریں۔\nکہے جانے پر یہ PIN درج کریں۔</string>
+    <string name="mjpeg_stream_pin_hint_access">اوپر سے لنک یا QR کوڈ شیئر کریں۔\nپوچھے جانے پر ناظرین یہ PIN درج کریں۔</string>
 
     <!-- Image settings -->
     <string name="mjpeg_pref_image_group">تصویر کی ترتیبات</string>
@@ -164,7 +178,7 @@
     <string name="mjpeg_pref_image_size_stretch">تصویر پھیلائیں</string>
     <string name="mjpeg_pref_image_size_stretch_value">پھیلائیں</string>
     <string name="mjpeg_pref_image_size_fit_description">چوڑائی اور اونچائی کے اندر فٹ ہوتا ہے؛ تناسب برقرار رکھتا ہے</string>
-    <string name="mjpeg_pref_image_size_stretch_description">عین چوڑائی اور اونچائی؛ تناسب بدل سکتا ہے</string>
+    <string name="mjpeg_pref_image_size_stretch_description">عین چوڑائی اور اونچائی بھرتا ہے۔ تصویر کھنچی ہوئی لگ سکتی ہے۔</string>
     <string name="mjpeg_pref_image_size_estimate_note">اسکرین کا تخمینہ؛ شیئر کردہ ایپ کا سائز مختلف ہو سکتا ہے</string>
     <string name="mjpeg_pref_image_size_source">اسکرین: %1$s</string>
     <string name="mjpeg_pref_image_size_result">تصویر کا تخمینی سائز: %1$s</string>
@@ -172,7 +186,7 @@
     <string name="mjpeg_pref_image_size_scale">اسکیل</string>
     <string name="mjpeg_pref_image_size_target">سائز</string>
     <string name="mjpeg_pref_image_size_default">ڈیفالٹ: %1$s %2$s</string>
-    <string name="mjpeg_pref_image_size_scale_label" formatted="false">اسکیل (0 سے زیادہ، زیادہ سے زیادہ 200%)</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">اسکیل (200% تک)</string>
     <string name="mjpeg_pref_image_size_width_label">چوڑائی (1–8192 px)</string>
     <string name="mjpeg_pref_image_size_height_label">اونچائی (1–8192 px)</string>
     <string name="mjpeg_pref_image_size_scale_error">0 سے زیادہ اور 200 تک کا عدد درج کریں</string>
@@ -204,7 +218,7 @@
 
     <string name="mjpeg_pref_image_rate_fps">FPS کی حد</string>
     <string name="mjpeg_pref_image_rate_fps_description">فی سیکنڈ فریم محدود کرتا ہے</string>
-    <string name="mjpeg_pref_image_rate_fps_value">زیادہ سے زیادہ %1$d fps</string>
+    <string name="mjpeg_pref_image_rate_fps_value">زیادہ سے زیادہ %1$d FPS</string>
     <string name="mjpeg_pref_image_rate_fps_label">فریم فی سیکنڈ (1–120)</string>
     <string name="mjpeg_pref_image_rate_fps_error">1 سے 120 تک صحیح عدد درج کریں</string>
     <string name="mjpeg_pref_image_rate_fps_help">اصل فریم ریٹ حد سے کم ہو سکتا ہے</string>
@@ -219,7 +233,7 @@
     <string name="mjpeg_pref_image_encoder">JPEG انکوڈر</string>
     <string name="mjpeg_pref_image_encoder_summary">JPEG تصاویر بنانے کا طریقہ منتخب کریں</string>
     <string name="mjpeg_pref_image_encoder_standard">معیاری</string>
-    <string name="mjpeg_pref_image_encoder_locked">اسکرین شیئرنگ مکمل طور پر رکنے کے بعد دستیاب</string>
+    <string name="mjpeg_pref_image_encoder_locked">اسٹریم مکمل طور پر رکنے کے بعد دستیاب</string>
     <string name="mjpeg_pref_image_encoder_auto_description">دستیاب ہونے پر آپٹمائزڈ انکوڈنگ</string>
     <string name="mjpeg_pref_image_encoder_standard_description">انکوڈنگ کی آپٹمائزیشن بند کرتا ہے</string>
 
@@ -228,33 +242,33 @@
     <string name="mjpeg_pref_automation_save_error">خودکاری کی ترتیبات محفوظ نہیں ہو سکیں</string>
 
     <string name="mjpeg_pref_automation_address_loss_timeout">پتے کھونے کے بعد اسٹریم روکیں</string>
-    <string name="mjpeg_pref_automation_address_loss_timeout_summary">جب کوئی منتخب پتہ باقی نہ رہے تو اسٹریم روکیں</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">جب اسٹریم کا کوئی پتہ باقی نہ رہے تو اسٹریم روکیں</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_value">%1$d سیکنڈ بعد</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_label">تاخیر (10–1800 سیکنڈ)</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_default">ڈیفالٹ: %1$s سیکنڈ</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_error">10 سے 1800 تک صحیح عدد درج کریں</string>
-    <string name="mjpeg_pref_automation_address_loss_timeout_help">پتے واپس آنے پر ٹائمر منسوخ ہو جاتا ہے</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">اگر کوئی پتہ وقت پر واپس آ جائے تو یہ خودکار طور پر رکنا منسوخ ہو جاتا ہے۔</string>
 
     <string name="mjpeg_pref_automation_inactive_image">غیر فعال اسٹریم کی تصویر</string>
-    <string name="mjpeg_pref_automation_inactive_image_summary">لائیو تصویر دستیاب نہ ہونے پر دکھائی جانے والی تصویر</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">لائیو تصویر نہ ہونے پر ناظرین کیا دیکھتے ہیں</string>
     <string name="mjpeg_pref_automation_inactive_image_placeholder_option">ایپ کا لوگو</string>
     <string name="mjpeg_pref_automation_inactive_image_last_frame_option">آخری فریم</string>
 
     <string name="mjpeg_pref_automation_keep_awake">اسکرین آن رکھیں</string>
-    <string name="mjpeg_pref_automation_keep_awake_summary">ممکن ہو تو کیپچر کے دوران اسکرین آن رکھیں</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">ممکن ہو تو اسٹریمنگ کے دوران اسکرین آن رکھیں</string>
 
     <string name="mjpeg_pref_automation_stop_on_screen_off">اسکرین بند ہونے پر روکیں</string>
     <string name="mjpeg_pref_automation_stop_on_screen_off_summary">اسکرین بند ہونے پر اسٹریم روکیں</string>
 
     <string name="mjpeg_pref_automation_skipped_frames_warning">چھوڑے گئے فریموں کی وارننگ دیں</string>
-    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">کچھ آلات کو کم تصاویر مل سکتی ہیں</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">جب کوئی ناظر پیچھے رہ جائے تو پیغام دکھائیں</string>
 
     <!-- Connection settings -->
     <string name="mjpeg_pref_connection_group">کنکشن کی ترتیبات</string>
-    <string name="mjpeg_pref_connection_save_error">نیٹ ورک کی ترتیبات محفوظ نہیں ہو سکیں</string>
+    <string name="mjpeg_pref_connection_save_error">کنکشن کی ترتیبات محفوظ نہیں ہو سکیں</string>
 
     <string name="mjpeg_pref_connection_filter">نیٹ ورک فلٹر</string>
-    <string name="mjpeg_pref_connection_filter_summary">اسٹریم کے لیے نیٹ ورک پتے منتخب کریں</string>
+    <string name="mjpeg_pref_connection_filter_summary">منتخب کریں کہ ناظرین کو کون سے پتے پیش کیے جائیں</string>
     <string name="mjpeg_pref_connection_filter_ip_version">IP ورژن</string>
     <string name="mjpeg_pref_connection_filter_network_type">نیٹ ورک کی قسم</string>
     <string name="mjpeg_pref_connection_filter_address_type">پتے کی قسم</string>
@@ -268,7 +282,7 @@
     <string name="mjpeg_pref_connection_http_port_summary">ناظرین کے کنکشن کے لیے پورٹ سیٹ کریں</string>
     <string name="mjpeg_pref_connection_http_port_label">پورٹ (1024–65535)</string>
     <string name="mjpeg_pref_connection_http_port_error">1024 سے 65535 تک صحیح عدد درج کریں</string>
-    <string name="mjpeg_pref_connection_http_port_help">پورٹ بدلنے سے اسٹریم کے پتے اپ ڈیٹ ہوتے ہیں</string>
+    <string name="mjpeg_pref_connection_http_port_help">پورٹ بدلنے سے اسٹریم کے تمام پتے بدل جاتے ہیں۔ پہلے شیئر کیے گئے لنکس کام کرنا بند کر دیں گے۔</string>
 
     <!-- Web page settings -->
     <string name="mjpeg_pref_web_group">ویب صفحہ کی ترتیبات</string>
@@ -289,7 +303,7 @@
     <string name="mjpeg_pref_web_stream_name_summary">ناظرین کو دکھایا جانے والا نام سیٹ کریں</string>
     <string name="mjpeg_pref_web_stream_name_label">اسٹریم کا نام (زیادہ سے زیادہ 64 حروف)</string>
     <string name="mjpeg_pref_web_stream_name_error">زیادہ سے زیادہ %1$d حروف استعمال کریں</string>
-    <string name="mjpeg_pref_web_stream_name_help">براؤزر ٹیب کے عنوان اور اسٹریم کے لیبل کے طور پر استعمال ہوتا ہے</string>
+    <string name="mjpeg_pref_web_stream_name_help">نام چھپا ہونے پر بھی براؤزر ٹیب کے عنوان کے طور پر استعمال ہوتا ہے</string>
     <string name="mjpeg_pref_web_stream_name_enabled">اسٹریم کا نام دکھائیں</string>
     <string name="mjpeg_pref_web_stream_name_empty">بے نام</string>
 
@@ -320,7 +334,7 @@
     <string name="mjpeg_pref_access_policy_label">PIN پالیسی</string>
     <string name="mjpeg_pref_access_policy_new_on_module_start">کھولنے پر نیا PIN</string>
     <string name="mjpeg_pref_access_policy_permanent">مستقل PIN</string>
-    <string name="mjpeg_pref_access_policy_help">جب “کھولنے پر نیا PIN” منتخب ہو اور تحفظ آن ہو تو ہر بار MJPEG موڈ کھولنے پر PIN بنتا ہے۔ کیپچر شروع کرنے سے یہ نہیں بدلتا۔</string>
+    <string name="mjpeg_pref_access_policy_help">PIN تحفظ آن ہونے پر، “کھولنے پر نیا PIN” ہر بار MJPEG موڈ کھولنے پر نیا PIN بناتا ہے۔ اسٹریم شروع کرنے سے وہی PIN برقرار رہتا ہے۔</string>
 
     <string name="mjpeg_pref_access_pin">PIN</string>
     <string name="mjpeg_pref_access_pin_summary">اسٹریم تک رسائی کے لیے محفوظ PIN</string>
@@ -328,15 +342,15 @@
     <string name="mjpeg_pref_access_pin_label">PIN (6 ہندسے)</string>
     <string name="mjpeg_pref_access_pin_error">چھ ہندسے درج کریں (0–9)</string>
     <string name="mjpeg_pref_access_pin_regenerate">نیا PIN بنائیں</string>
-    <string name="mjpeg_pref_access_pin_permanent_help">اپنا PIN درج کرنے کے لیے “مستقل PIN” منتخب کریں</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">اپنا PIN درج کرنے کے لیے PIN تحفظ میں “مستقل PIN” منتخب کریں</string>
 
     <string name="mjpeg_pref_access_wrong_pins">PIN کی کوششیں محدود کریں</string>
-    <string name="mjpeg_pref_access_wrong_pins_summary">پانچ غلط کوششوں کے بعد PIN سائن ان موقوف کریں</string>
-    <string name="mjpeg_pref_access_wrong_pins_value">منٹ: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">پانچ غلط کوششوں کے بعد PIN کا اندراج بلاک کریں</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">%1$d منٹ</string>
     <string name="mjpeg_pref_access_wrong_pins_label">بلاک کی مدت (1–60 منٹ)</string>
     <string name="mjpeg_pref_access_wrong_pins_default">ڈیفالٹ: %1$s · %2$s منٹ</string>
     <string name="mjpeg_pref_access_wrong_pins_error">1 سے 60 تک صحیح عدد درج کریں</string>
-    <string name="mjpeg_pref_access_wrong_pins_help">اس IP سے PIN کی نئی کوششیں بلاک کرتا ہے۔ پہلے سے جڑے ناظرین جڑے رہتے ہیں۔</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">کوششیں کرنے والے IP پتے سے PIN کا اندراج بلاک کرتا ہے۔ پہلے سے دیکھ رہے ناظرین منسلک رہتے ہیں۔</string>
 
     <string name="mjpeg_pref_access_hide_pin_on_start">اسٹریم شروع کرتے وقت PIN چھپائیں</string>
     <string name="mjpeg_pref_access_hide_pin_on_start_summary">آپ PIN دوبارہ دکھا سکتے ہیں</string>

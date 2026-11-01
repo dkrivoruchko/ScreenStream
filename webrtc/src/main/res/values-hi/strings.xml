@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">माइक्रोफ़ोन की अनुमति दें</string>
     <string name="webrtc_error_signaling_server_unavailable">सर्वर तक नहीं पहुंचा जा सकता। दर्शक शायद जुड़ न पाएं।</string>
 
-    <string name="webrtc_stream_mode">वैश्विक मोड · WebRTC</string>
-    <string name="webrtc_stream_mode_description">WebRTC से इंटरनेट पर स्ट्रीम करें</string>
-    <string name="webrtc_stream_mode_details">
-- WebRTC प्रौद्योगिकी द्वारा संचालित।\n
-- एंड-टू-एंड एन्क्रिप्टेड संचार।\n
-- पासवर्ड के साथ स्ट्रीम सुरक्षा।\n
-- वीडियो और ऑडियो भेज सकते हैं।\n
-- अद्वितीय स्ट्रीम ID और पासवर्ड से कनेक्ट करें।\n
-- स्ट्रीमिंग के लिए इंटरनेट कनेक्शन की आवश्यकता है।\n
-- हर क्लाइंट अलग इंटरनेट बैंडविड्थ उपयोग करता है।
-</string>
+    <string name="webrtc_method_title">WebRTC: दुनिया भर में शेयरिंग</string>
+    <string name="webrtc_method_summary">लिंक के ज़रिए कहीं भी मौजूद दर्शकों के साथ अपनी स्क्रीन शेयर करें।</string>
+    <string name="webrtc_method_conditions">ब्राउज़र में देखें · ऑडियो वैकल्पिक · इंटरनेट ज़रूरी</string>
+    <string name="webrtc_method_intro">WebRTC इंटरनेट के ज़रिए दर्शकों के ब्राउज़र पर लाइव वीडियो भेजता है, और आप चाहें तो ऑडियो भी। दर्शक आपके शेयर लिंक से, या आपकी स्ट्रीम ID और पासवर्ड से जुड़ते हैं।</string>
+    <string-array name="webrtc_method_benefits">
+        <item>दूसरे नेटवर्क पर मौजूद दर्शकों को अपनी स्ट्रीम ID और पासवर्ड के साथ screenstream.io पर बुलाएं।</item>
+        <item>वीडियो और ऑडियो एन्क्रिप्ट होते हैं, और हर स्ट्रीम का एक पासवर्ड होता है।</item>
+        <item>माइक्रोफ़ोन का ऑडियो, डिवाइस का ऑडियो या दोनों जोड़ें।</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>इस डिवाइस और हर दर्शक को इंटरनेट चाहिए।</item>
+        <item>हर दर्शक को अलग स्ट्रीम मिलती है, इसलिए ज़्यादा दर्शकों से ज़्यादा अपलोड डेटा खर्च होता है।</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">कनेक्शन खो गया। फिर से जुड़ रहा है…</string>
     <string name="webrtc_stream_server_address">स्ट्रीम यहाँ खोलें:\n%1$s</string>

@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Mikrofon zulassen</string>
     <string name="webrtc_error_signaling_server_unavailable">Server nicht erreichbar. Zuschauer können möglicherweise nicht beitreten.</string>
 
-    <string name="webrtc_stream_mode">Globaler Modus · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Über das Internet mit WebRTC streamen</string>
-    <string name="webrtc_stream_mode_details">
-- Basiert auf der WebRTC-Technologie.\n
-- Ende-zu-Ende-verschlüsselte Kommunikation.\n
-- Stream-Schutz mit Passwort.\n
-- Kann Video und Audio senden.\n
-- Verbindung über eindeutige Stream-ID und Passwort.\n
-- Erfordert eine Internetverbindung für das Streaming.\n
-- Jeder Client nutzt eine separate Internetbandbreite.
-</string>
+    <string name="webrtc_method_title">WebRTC: Weltweit teilen</string>
+    <string name="webrtc_method_summary">Bildschirm per Link mit Zuschauern überall teilen.</string>
+    <string name="webrtc_method_conditions">Im Browser ansehen · Optionales Audio · Internet erforderlich</string>
+    <string name="webrtc_method_intro">WebRTC sendet Live-Video und auf Wunsch Audio über das Internet an die Browser der Zuschauer. Zuschauer treten über Ihren Freigabelink oder mit Ihrer Stream-ID und Ihrem Passwort bei.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Zuschauer in anderen Netzwerken mit Ihrer Stream-ID und Ihrem Passwort zu screenstream.io einladen.</item>
+        <item>Video und Audio sind verschlüsselt, und jeder Stream hat ein Passwort.</item>
+        <item>Mikrofonaudio, Geräteaudio oder beides hinzufügen.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Dieses Gerät und alle Zuschauer brauchen Internet.</item>
+        <item>Jeder Zuschauer erhält einen eigenen Stream. Mehr Zuschauer verbrauchen daher mehr Upload-Daten.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Verbindung verloren. Verbindung wird wiederhergestellt…</string>
     <string name="webrtc_stream_server_address">Stream verfügbar unter:\n%1$s</string>

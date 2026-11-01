@@ -98,8 +98,8 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
         synchronized(controlMonitor) { cleanupCause }?.let { throw it }
     }
 
-    override val appliedAccessToken: SecretValue?
-        get() = synchronized(controlMonitor) { access.accessToken }
+    override val appliedToken: SecretValue?
+        get() = synchronized(controlMonitor) { access.token }
 
     override suspend fun start(
         accessSettings: AccessSettings,
@@ -266,8 +266,8 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
 
     override fun isListenerActive(listener: HttpListener): Boolean = synchronized(controlMonitor) { isListenerActiveLocked(listener) }
 
-    override fun exchangeAccessToken(listener: HttpListener, accessToken: String?): SecretValue? = synchronized(controlMonitor) {
-        if (isListenerActiveLocked(listener)) access.exchangeAccessToken(accessToken) else null
+    override fun exchangeToken(listener: HttpListener, token: String?): SecretValue? = synchronized(controlMonitor) {
+        if (isListenerActiveLocked(listener)) access.exchangeToken(token) else null
     }
 
     override fun verifyPin(listener: HttpListener, pin: String?, peerIp: String): HttpAccess.PinResult? = synchronized(controlMonitor) {
@@ -278,12 +278,12 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
         call: ApplicationCall,
         listener: HttpListener,
         format: MediaFormat,
-        accessToken: String?,
+        token: String?,
         accessCookie: String?,
     ) {
         val job = checkNotNull(call.coroutineContext[Job])
         val admission = synchronized(controlMonitor) {
-            admitMediaResponseLocked(call, listener, job, format, accessToken, accessCookie)
+            admitMediaResponseLocked(call, listener, job, format, token, accessCookie)
         }
         when (admission) {
             is MediaAdmission.Rejected -> {
@@ -310,11 +310,11 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
         listener: HttpListener,
         job: Job,
         format: MediaFormat,
-        accessToken: String?,
+        token: String?,
         accessCookie: String?,
     ): MediaAdmission {
         val now = SystemClock.elapsedRealtime()
-        if (!access.allowsViewing(accessToken, accessCookie)) return MediaAdmission.Rejected(HttpStatusCode.Forbidden)
+        if (!access.allowsViewing(token, accessCookie)) return MediaAdmission.Rejected(HttpStatusCode.Forbidden)
         val server = plannedServers.values.firstOrNull { it.listener === listener }
         if (closing || server == null || !job.isActive) {
             return MediaAdmission.Rejected(HttpStatusCode.ServiceUnavailable)

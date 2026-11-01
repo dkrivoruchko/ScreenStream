@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">माइक्रोफ़ोन की अनुमति दें</string>
     <string name="rtsp_error_local_network_permission_required">डिवाइस आपकी स्ट्रीम से जुड़ सकें, इसके लिए स्थानीय नेटवर्क ऐक्सेस आवश्यक है।</string>
 
-    <string name="rtsp_stream_mode">RTSP मोड · RTSP</string>
-    <string name="rtsp_stream_mode_description">RTSP क्लाइंट या सर्वर से स्ट्रीम करें</string>
-    <string name="rtsp_stream_mode_details">
-- RTSP प्रोटोकॉल द्वारा संचालित।\n
-- सर्वर मोड (डिफ़ॉल्ट) इस डिवाइस को RTSP सर्वर के रूप में होस्ट करता है।\n
-- क्लाइंट मोड दूरस्थ RTSP सर्वर से जुड़ता है।\n
-- कोडेक कॉन्फ़िगरेशन के साथ वीडियो और ऑडियो समर्थित।\n
-- सर्वर मोड प्रोटोकॉल, इंटरफ़ेस/पता फ़िल्टर, IPv4/IPv6 और पोर्ट सेटिंग जोड़ता है।\n
-- Wi‑Fi/मोबाइल नेटवर्क और IPv4/IPv6 पर काम करता है।\n
-- देखने के लिए RTSP क्लाइंट या प्लेयर की आवश्यकता है।
-</string>
+    <string name="rtsp_method_title">RTSP: प्लेयर और मीडिया सर्वर</string>
+    <string name="rtsp_method_summary">वीडियो प्लेयर में देखें, या स्ट्रीम को मीडिया सर्वर पर भेजें।</string>
+    <string name="rtsp_method_conditions">संगत RTSP सॉफ़्टवेयर · ऑडियो वैकल्पिक</string>
+    <string name="rtsp_method_intro">RTSP एक आम स्ट्रीमिंग स्टैंडर्ड है, जिसे वीडियो प्लेयर और मीडिया सर्वर इस्तेमाल करते हैं। डिफ़ॉल्ट रूप से, यह डिवाइस स्ट्रीम होस्ट करता है। आप इसे मीडिया सर्वर पर भी भेज सकते हैं।</string>
+    <string-array name="rtsp_method_benefits">
+        <item>ऐप में दिखाया गया RTSP पता खोलकर VLC जैसे प्लेयर में देखें।</item>
+        <item>स्ट्रीम को मीडिया सर्वर पर भेजें, उन सर्वर पर भी जो उपयोगकर्ता नाम और पासवर्ड मांगते हैं।</item>
+        <item>माइक्रोफ़ोन का ऑडियो, डिवाइस का ऑडियो या दोनों जोड़ें।</item>
+        <item>अपने प्लेयर या सर्वर के हिसाब से वीडियो और ऑडियो फ़ॉर्मैट, साइज़ और क्वालिटी चुनें।</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>प्लेयर का इस डिवाइस से जुड़ पाना ज़रूरी है, जैसे एक ही Wi-Fi पर। होस्टिंग इंटरनेट के बिना काम करती है।</item>
+        <item>सर्वर पर भेजते समय, इस डिवाइस का उस सर्वर तक पहुंच पाना ज़रूरी है। एन्क्रिप्ट किए गए कनेक्शन के लिए rtsps:// पता इस्तेमाल करें और RTSP प्रोटोकॉल को TCP पर सेट करें।</item>
+        <item>आपके प्लेयर या सर्वर को आपके चुने हुए वीडियो और ऑडियो फ़ॉर्मैट सपोर्ट करने चाहिए।</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">RTSP मोड चुनें:</string>
     <string name="rtsp_mode_server">सर्वर</string>

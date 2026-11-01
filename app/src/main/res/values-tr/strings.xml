@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Yayın modunu seçin:</string>
     <string name="app_tab_stream_switching_modules">Modlar değiştiriliyor…</string>
 
+    <string name="app_mode_selected_method">Aktif yayın yöntemi</string>
+    <string name="app_mode_choose_method">Bir yayın yöntemi seçin</string>
+    <string name="app_mode_choose_another_method">Başka bir yöntem seçin</string>
+    <string name="app_mode_change">Değiştir</string>
+    <string name="app_mode_chooser_title">Ekranınızı paylaşmak için bir yöntem seçin</string>
+    <string name="app_mode_close_chooser">Kapat</string>
+    <string name="app_mode_details">Ayrıntılar</string>
+    <string name="app_mode_details_description">Ayrıntılar: %1$s</string>
+    <string name="app_mode_benefits">Avantajlar</string>
+    <string name="app_mode_things_to_know">Bilinmesi gerekenler</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Şimdi değil</string>
     <string name="app_permission_open_settings">Ayarları aç</string>

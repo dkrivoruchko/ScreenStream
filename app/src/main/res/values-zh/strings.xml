@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">选择串流模式：</string>
     <string name="app_tab_stream_switching_modules">正在切换模式…</string>
 
+    <string name="app_mode_selected_method">当前串流方式</string>
+    <string name="app_mode_choose_method">选择串流方式</string>
+    <string name="app_mode_choose_another_method">选择其他方式</string>
+    <string name="app_mode_change">更改</string>
+    <string name="app_mode_chooser_title">选择共享屏幕的方式</string>
+    <string name="app_mode_close_chooser">关闭</string>
+    <string name="app_mode_details">详情</string>
+    <string name="app_mode_details_description">%1$s 详情</string>
+    <string name="app_mode_benefits">优点</string>
+    <string name="app_mode_things_to_know">注意事项</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">暂时不要</string>
     <string name="app_permission_open_settings">打开设置</string>

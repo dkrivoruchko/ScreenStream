@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Stream-Modus auswählen:</string>
     <string name="app_tab_stream_switching_modules">Modi werden gewechselt…</string>
 
+    <string name="app_mode_selected_method">Aktive Streaming-Methode</string>
+    <string name="app_mode_choose_method">Streaming-Methode auswählen</string>
+    <string name="app_mode_choose_another_method">Andere Methode auswählen</string>
+    <string name="app_mode_change">Ändern</string>
+    <string name="app_mode_chooser_title">Methode zum Teilen des Bildschirms auswählen</string>
+    <string name="app_mode_close_chooser">Schließen</string>
+    <string name="app_mode_details">Details</string>
+    <string name="app_mode_details_description">Details zu %1$s</string>
+    <string name="app_mode_benefits">Vorteile</string>
+    <string name="app_mode_things_to_know">Wissenswertes</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Nicht jetzt</string>
     <string name="app_permission_open_settings">Einstellungen öffnen</string>

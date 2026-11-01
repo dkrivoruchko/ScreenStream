@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Sélectionnez le mode de diffusion :</string>
     <string name="app_tab_stream_switching_modules">Changement de mode…</string>
 
+    <string name="app_mode_selected_method">Méthode de diffusion active</string>
+    <string name="app_mode_choose_method">Choisissez une méthode de diffusion</string>
+    <string name="app_mode_choose_another_method">Choisissez une autre méthode</string>
+    <string name="app_mode_change">Modifier</string>
+    <string name="app_mode_chooser_title">Choisissez une méthode pour partager votre écran</string>
+    <string name="app_mode_close_chooser">Fermer</string>
+    <string name="app_mode_details">Détails</string>
+    <string name="app_mode_details_description">Détails sur %1$s</string>
+    <string name="app_mode_benefits">Avantages</string>
+    <string name="app_mode_things_to_know">À savoir</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Pas maintenant</string>
     <string name="app_permission_open_settings">Ouvrir les paramètres</string>

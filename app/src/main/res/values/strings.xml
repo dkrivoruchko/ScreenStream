@@ -20,6 +20,18 @@
     <string name="app_tab_stream_select_mode">Select stream mode:</string>
     <string name="app_tab_stream_switching_modules">Switching modes…</string>
 
+    <!-- Draft method chooser copy: English fallback until translations are requested. -->
+    <string name="app_mode_selected_method">Active streaming method</string>
+    <string name="app_mode_choose_method">Choose a streaming method</string>
+    <string name="app_mode_choose_another_method">Choose another method</string>
+    <string name="app_mode_change">Change</string>
+    <string name="app_mode_chooser_title">Choose a method for sharing your screen</string>
+    <string name="app_mode_close_chooser">Close</string>
+    <string name="app_mode_details">Details</string>
+    <string name="app_mode_details_description">Details for %1$s</string>
+    <string name="app_mode_benefits">Benefits</string>
+    <string name="app_mode_things_to_know">Things to know</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Not now</string>
     <string name="app_permission_open_settings">Open settings</string>

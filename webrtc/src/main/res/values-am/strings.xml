@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">ማይክሮፎንን ይፍቀዱ</string>
     <string name="webrtc_error_signaling_server_unavailable">አገልጋዩን መድረስ አልተቻለም። ተመልካቾች መቀላቀል ላይችሉ ይችላሉ።</string>
 
-    <string name="webrtc_stream_mode">ሁለንተናዊ ሁነታ · WebRTC</string>
-    <string name="webrtc_stream_mode_description">በWebRTC በይነመረብ ላይ ያስተላልፉ</string>
-    <string name="webrtc_stream_mode_details">
-- በWebRTC ቴክኖሎጂ የተጎላበተ።\n
-- ከጫፍ እስከ ጫፍ የተመሰጠረ ግንኙነት።\n
-- በይለፍ ቃል የዥረት ጥበቃ።\n
-- ቪዲዮ እና ድምጽ መላክ ይችላል.\n
-- ልዩ የዥረት መታወቂያ እና የይለፍ ቃል በመጠቀም ይገናኙ።\n
-- ለመልቀቅ የበይነመረብ ግንኙነት ይፈልጋል።\n
-- እያንዳንዱ ደንበኛ የተለየ የኢንተርኔት ባንድዊድዝ ይጠቀማል።
-</string>
+    <string name="webrtc_method_title">WebRTC፦ በዓለም ዙሪያ ማጋራት</string>
+    <string name="webrtc_method_summary">ማያ ገጽዎን በየትኛውም ቦታ ካሉ ተመልካቾች ጋር በአገናኝ ያጋሩ።</string>
+    <string name="webrtc_method_conditions">በአሳሽ መመልከት · አማራጭ ድምፅ · በይነመረብ ያስፈልጋል</string>
+    <string name="webrtc_method_intro">WebRTC የቀጥታ ቪዲዮን፣ ከመረጡም ድምፅን፣ በበይነመረብ በኩል ወደ ተመልካቾች አሳሾች ይልካል። ተመልካቾች በማጋሪያ አገናኝዎ፣ ወይም በስርጭት መታወቂያዎ እና የይለፍ ቃልዎ ይቀላቀላሉ።</string>
+    <string-array name="webrtc_method_benefits">
+        <item>በሌሎች አውታረ መረቦች ላይ ያሉ ተመልካቾችን በስርጭት መታወቂያዎ እና የይለፍ ቃልዎ ወደ screenstream.io ይጋብዙ።</item>
+        <item>ቪዲዮ እና ድምፅ የተመሰጠሩ ናቸው፣ እና እያንዳንዱ ስርጭት የይለፍ ቃል አለው።</item>
+        <item>የማይክሮፎን ድምፅ፣ የመሣሪያ ድምፅ ወይም ሁለቱንም ያክሉ።</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>ይህ መሣሪያ እና እያንዳንዱ ተመልካች በይነመረብ ያስፈልጋቸዋል።</item>
+        <item>እያንዳንዱ ተመልካች የተለየ ስርጭት ያገኛል፣ ስለዚህ ብዙ ተመልካቾች ብዙ የሚሰቀል ውሂብ ይጠቀማሉ።</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">ግንኙነት ጠፋ። እንደገና በመገናኘት ላይ…</string>
     <string name="webrtc_stream_server_address">ዥረቱን እዚህ ይክፈቱ፡\n%1$s</string>

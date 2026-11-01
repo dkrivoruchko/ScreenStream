@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Hautatu transmisio-modua:</string>
     <string name="app_tab_stream_switching_modules">Moduak aldatzen…</string>
 
+    <string name="app_mode_selected_method">Transmisio-metodo aktiboa</string>
+    <string name="app_mode_choose_method">Aukeratu transmisio-metodo bat</string>
+    <string name="app_mode_choose_another_method">Aukeratu beste metodo bat</string>
+    <string name="app_mode_change">Aldatu</string>
+    <string name="app_mode_chooser_title">Aukeratu pantaila partekatzeko metodo bat</string>
+    <string name="app_mode_close_chooser">Itxi</string>
+    <string name="app_mode_details">Xehetasunak</string>
+    <string name="app_mode_details_description">Xehetasunak: %1$s</string>
+    <string name="app_mode_benefits">Abantailak</string>
+    <string name="app_mode_things_to_know">Jakin beharrekoak</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Orain ez</string>
     <string name="app_permission_open_settings">Ireki ezarpenak</string>

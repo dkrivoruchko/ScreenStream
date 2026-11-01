@@ -617,7 +617,7 @@ internal class MjpegStreamingModuleController(
             servers = delivery.servers,
             localNetworkPermissionGranted = localNetworkPermissionGranted,
             accessApplied = settings != null,
-            appliedAccessToken = http.appliedAccessToken,
+            appliedToken = http.appliedToken,
             appliedPin = settings?.access?.takeIf { it.pinEnabled }?.pin,
             hidePinOnCapture = capture != null && settings?.access?.hidePinOnCaptureStart == true,
             editPolicy = editPolicy,

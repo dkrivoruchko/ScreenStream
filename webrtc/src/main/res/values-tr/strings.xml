@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Mikrofona izin ver</string>
     <string name="webrtc_error_signaling_server_unavailable">Sunucuya ulaşılamıyor. İzleyiciler katılamayabilir.</string>
 
-    <string name="webrtc_stream_mode">Global mod · WebRTC</string>
-    <string name="webrtc_stream_mode_description">WebRTC ile internet üzerinden yayın yapın</string>
-    <string name="webrtc_stream_mode_details">
-- WebRTC teknolojisiyle çalışır.\n
-- Uçtan uca şifreli iletişim.\n
-- Yayın parola ile korunur.\n
-- Video ve ses gönderebilir.\n
-- Benzersiz yayın kimliği ve parola ile bağlanılır.\n
-- Yayın için internet bağlantısı gerekir.\n
-- Her istemci ayrı internet bant genişliği kullanır.
-</string>
+    <string name="webrtc_method_title">WebRTC: dünya çapında paylaşım</string>
+    <string name="webrtc_method_summary">Ekranınızı bir bağlantıyla her yerdeki izleyicilerle paylaşın.</string>
+    <string name="webrtc_method_conditions">Tarayıcıda izleme · İsteğe bağlı ses · İnternet gerekli</string>
+    <string name="webrtc_method_intro">WebRTC, canlı videoyu ve isterseniz sesi internet üzerinden izleyicilerin tarayıcılarına gönderir. İzleyiciler paylaşım bağlantınızla veya yayın kimliğiniz ve şifrenizle katılır.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Farklı ağlardaki izleyicileri yayın kimliğiniz ve şifrenizle screenstream.io’ya davet edin.</item>
+        <item>Video ve ses şifrelenir ve her yayının bir şifresi vardır.</item>
+        <item>Mikrofon sesi, cihaz sesi veya ikisini birden ekleyin.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Bu cihazın ve her izleyicinin internete ihtiyacı vardır.</item>
+        <item>Her izleyici ayrı bir yayın alır, bu yüzden izleyici sayısı arttıkça yükleme verisi kullanımı da artar.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Bağlantı kesildi. Yeniden bağlanıyor…</string>
     <string name="webrtc_stream_server_address">Yayına şu adresten erişin:\n%1$s</string>

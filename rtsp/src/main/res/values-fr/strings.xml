@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">Autoriser le micro</string>
     <string name="rtsp_error_local_network_permission_required">L\'accès au réseau local est requis pour que les appareils puissent se connecter à votre diffusion.</string>
 
-    <string name="rtsp_stream_mode">Mode RTSP · RTSP</string>
-    <string name="rtsp_stream_mode_description">Diffuser avec un client ou serveur RTSP</string>
-    <string name="rtsp_stream_mode_details">
-- Basé sur le protocole RTSP.\n
-- Le mode serveur (par défaut) héberge cet appareil en tant que serveur RTSP.\n
-- Le mode client se connecte à un serveur RTSP distant.\n
-- Prend en charge la vidéo et l\'audio avec configuration des codecs.\n
-- Le mode serveur ajoute le protocole, les filtres d\'interface/adresse, IPv4/IPv6 et les paramètres de port.\n
-- Fonctionne sur Wi‑Fi/réseaux mobiles et IPv4/IPv6.\n
-- Nécessite un client ou lecteur RTSP pour la visualisation.
-</string>
+    <string name="rtsp_method_title">RTSP : lecteurs et serveurs multimédias</string>
+    <string name="rtsp_method_summary">Regardez dans un lecteur vidéo ou envoyez le flux à un serveur multimédia.</string>
+    <string name="rtsp_method_conditions">Logiciel RTSP compatible · Son facultatif</string>
+    <string name="rtsp_method_intro">RTSP est une norme courante de diffusion en continu utilisée par les lecteurs vidéo et les serveurs multimédias. Par défaut, cet appareil héberge le flux. Vous pouvez aussi l’envoyer à un serveur multimédia.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Regardez dans des lecteurs comme VLC en ouvrant l’adresse RTSP affichée dans l’application.</item>
+        <item>Envoyez le flux à un serveur multimédia, y compris aux serveurs qui demandent un nom d’utilisateur et un mot de passe.</item>
+        <item>Ajoutez le son du microphone, le son de l’appareil, ou les deux.</item>
+        <item>Choisissez les formats vidéo et audio, la taille et la qualité adaptés à votre lecteur ou serveur.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Les lecteurs doivent pouvoir se connecter à cet appareil, par exemple sur le même réseau Wi-Fi. L’hébergement fonctionne sans Internet.</item>
+        <item>Pour envoyer vers un serveur, cet appareil doit pouvoir l’atteindre. Pour une connexion chiffrée, utilisez une adresse rtsps:// et réglez le protocole RTSP sur TCP.</item>
+        <item>Votre lecteur ou serveur doit prendre en charge les formats vidéo et audio choisis.</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">Sélectionnez le mode RTSP :</string>
     <string name="rtsp_mode_server">Serveur</string>

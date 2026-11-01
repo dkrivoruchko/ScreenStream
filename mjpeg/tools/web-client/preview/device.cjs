@@ -19,7 +19,7 @@ function createDevice() {
         fixtures[name] = fs.readFileSync(path.join(__dirname, 'fixtures', name + '.jpg'));
     }
     let appearance, options, scenarioId, orientation;
-    let cookie, accessToken, generation = 0;
+    let cookie, token, generation = 0;
     let blockedUntil = 0, wrongAttempts = 0;
 
     function protectedAccess() { return scenarioId === 'pin' || scenarioId === 'blocked'; }
@@ -39,7 +39,7 @@ function createDevice() {
     }
     function newAccessContext() {
         cookie = crypto.randomBytes(32).toString('hex');
-        accessToken = crypto.randomBytes(24).toString('base64url');
+        token = crypto.randomBytes(24).toString('base64url');
         generation += 1;
         wrongAttempts = 0;
         blockedUntil = 0;
@@ -99,9 +99,9 @@ function createDevice() {
     }
     function remainingBlock() { return Math.max(0, Math.ceil(blockedUntil - performance.now())); }
     function allowsViewing(suppliedCookie, suppliedToken) {
-        return !protectedAccess() || suppliedCookie === cookie || suppliedToken === accessToken;
+        return !protectedAccess() || suppliedCookie === cookie || suppliedToken === token;
     }
-    function exchangeToken(supplied) { return protectedAccess() && supplied === accessToken ? cookie : null; }
+    function exchangeToken(supplied) { return protectedAccess() && supplied === token ? cookie : null; }
     function verifyPin(supplied) {
         if (!protectedAccess()) return { status: 204 };
         const remaining = remainingBlock();
@@ -130,7 +130,7 @@ function createDevice() {
             scenario: { id: scenarioId, label: preset.label },
             appearance: structuredClone(appearance), options: { ...options },
             delivery: { access: protectedAccess() ? 'protected' : 'open', notice: notice(),
-                imageKind: kind, hasImage: kind !== 'none', orientation, credentials: { pin: PIN, accessToken }, blockedRemainingMs: remainingBlock() }
+                imageKind: kind, hasImage: kind !== 'none', orientation, credentials: { pin: PIN, token }, blockedRemainingMs: remainingBlock() }
         };
     }
 

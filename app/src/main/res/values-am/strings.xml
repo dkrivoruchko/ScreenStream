@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_error_title">ስህተት</string>
-    <string name="app_error_recover">መልስ</string>
+    <string name="app_error_recover">ወደነበረበት መልስ</string>
 
     <string name="app_module_error_title">የሆነ ችግር ተፈጥሯል</string>
     <string name="app_module_error_restart">ሁነታውን ዳግም አስጀምር</string>
@@ -17,6 +17,17 @@
 
     <string name="app_tab_stream_select_mode">የዥረት ሁነታን ይምረጡ፡</string>
     <string name="app_tab_stream_switching_modules">ሁነታዎችን በመቀየር ላይ…</string>
+
+    <string name="app_mode_selected_method">ንቁ የስርጭት ዘዴ</string>
+    <string name="app_mode_choose_method">የስርጭት ዘዴ ይምረጡ</string>
+    <string name="app_mode_choose_another_method">ሌላ ዘዴ ይምረጡ</string>
+    <string name="app_mode_change">ቀይር</string>
+    <string name="app_mode_chooser_title">ማያ ገጽዎን ለማጋራት ዘዴ ይምረጡ</string>
+    <string name="app_mode_close_chooser">ዝጋ</string>
+    <string name="app_mode_details">ዝርዝሮች</string>
+    <string name="app_mode_details_description">የ%1$s ዝርዝሮች</string>
+    <string name="app_mode_benefits">ጥቅሞች</string>
+    <string name="app_mode_things_to_know">ማወቅ ያለብዎት</string>
 
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">አሁን አይደለም</string>
@@ -68,7 +79,7 @@
         <item>በጭራሽ</item>
     </string-array>
     <string name="app_pref_dynamic_theme">ተለዋዋጭ ቀለም</string>
-    <string name="app_pref_dynamic_theme_summary">በግድግዳ ወረቀትዎ ቀለሞች ላይ በመመስረት መልክውን ያስተካክሉ</string>
+    <string name="app_pref_dynamic_theme_summary">በግድግዳ ወረቀትዎ ቀለሞች ላይ በመመስረት መልኩን ያስተካክሉ</string>
     <string name="app_pref_notification">የመተግበሪያ ማሳወቂያዎች</string>
     <string name="app_pref_notification_summary">ማሳወቂያዎችን በሥርዓት ቅንብሮች ውስጥ ያስተዳድሩ</string>
     <string name="app_pref_tile">የፈጣን ቅንብሮች ንጣፍ ያክሉ</string>

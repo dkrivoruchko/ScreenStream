@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Laat mikrofoon toe</string>
     <string name="webrtc_error_signaling_server_unavailable">Kan nie die bediener bereik nie. Kykers kan dalk nie aansluit nie.</string>
 
-    <string name="webrtc_stream_mode">Globale modus · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Stroom oor die internet met WebRTC</string>
-    <string name="webrtc_stream_mode_details">
-- Gebaseer op WebRTC-tegnologie.\n
-- End-tot-end geënkripteerde kommunikasie.\n
-- Stroombeskerming met wagwoord.\n
-- Kan video en klank stuur.\n
-- Koppel met unieke stroom-ID en wagwoord.\n
-- Vereis \'n internetverbinding vir stroom.\n
-- Elke kliënt gebruik aparte internetbandwydte.
-</string>
+    <string name="webrtc_method_title">WebRTC: Wêreldwye deling</string>
+    <string name="webrtc_method_summary">Deel jou skerm met kykers oral met \'n skakel.</string>
+    <string name="webrtc_method_conditions">Kyk in blaaier · Opsionele klank · Internet vereis</string>
+    <string name="webrtc_method_intro">WebRTC stuur regstreekse video, en klank as jy dit kies, oor die internet na kykers se blaaiers. Kykers sluit aan met jou deelskakel, of met jou stroom-ID en wagwoord.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Nooi kykers op ander netwerke na screenstream.io met jou stroom-ID en wagwoord.</item>
+        <item>Video en klank is geënkripteer, en elke stroom het \'n wagwoord.</item>
+        <item>Voeg mikrofoonklank, toestelklank of albei by.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Hierdie toestel en elke kyker het internet nodig.</item>
+        <item>Elke kyker kry \'n afsonderlike stroom, so meer kykers gebruik meer oplaaidata.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Verbinding verloor. Herkoppel tans…</string>
     <string name="webrtc_stream_server_address">Toegang tot die stroom by:\n%1$s</string>

@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Permitir microfone</string>
     <string name="webrtc_error_signaling_server_unavailable">Não foi possível acessar o servidor. Os espectadores talvez não consigam entrar.</string>
 
-    <string name="webrtc_stream_mode">Modo global · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Transmitir pela internet com WebRTC</string>
-    <string name="webrtc_stream_mode_details">
-- Usa a tecnologia WebRTC.\n
-- Comunicação criptografada de ponta a ponta.\n
-- Proteção da transmissão com senha.\n
-- Pode enviar vídeo e áudio.\n
-- Conecte-se usando um ID de transmissão exclusivo e uma senha.\n
-- Requer conexão com a Internet para transmitir.\n
-- Cada cliente consome largura de banda de internet separadamente.
-</string>
+    <string name="webrtc_method_title">WebRTC: compartilhamento global</string>
+    <string name="webrtc_method_summary">Compartilhe sua tela com espectadores em qualquer lugar usando um link.</string>
+    <string name="webrtc_method_conditions">Visualização no navegador · Áudio opcional · Requer internet</string>
+    <string name="webrtc_method_intro">O WebRTC envia vídeo ao vivo, e áudio se você quiser, para os navegadores dos espectadores pela internet. Os espectadores entram com seu link de compartilhamento ou com o ID e a senha da sua transmissão.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Convide espectadores em outras redes para o screenstream.io com o ID e a senha da sua transmissão.</item>
+        <item>Vídeo e áudio são criptografados, e cada transmissão tem uma senha.</item>
+        <item>Adicione áudio do microfone, áudio do dispositivo ou ambos.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Este dispositivo e todos os espectadores precisam de internet.</item>
+        <item>Cada espectador recebe uma transmissão separada, então mais espectadores usam mais dados de upload.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Conexão perdida. Reconectando…</string>
     <string name="webrtc_stream_server_address">Acesse a transmissão em:\n%1$s</string>

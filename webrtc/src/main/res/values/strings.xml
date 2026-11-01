@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Allow microphone</string>
     <string name="webrtc_error_signaling_server_unavailable">Unable to reach the server. Viewers may not be able to join.</string>
 
-    <string name="webrtc_stream_mode">Global mode · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Stream over the internet with WebRTC</string>
-    <string name="webrtc_stream_mode_details">
-- Powered by WebRTC technology.\n
-- End-to-end encrypted communication.\n
-- Stream protection with password.\n
-- Can send video and audio.\n
-- Connect using unique stream ID and password.\n
-- Requires an internet connection for streaming.\n
-- Each client uses separate internet bandwidth.
-</string>
+    <string name="webrtc_method_title">WebRTC: Worldwide sharing</string>
+    <string name="webrtc_method_summary">Share your screen with viewers anywhere using a link.</string>
+    <string name="webrtc_method_conditions">Browser viewing · Optional audio · Internet required</string>
+    <string name="webrtc_method_intro">WebRTC sends live video, and audio if you choose, to viewers\' browsers over the internet. Viewers join with your share link, or with your stream ID and password.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Invite viewers on other networks to screenstream.io with your stream ID and password.</item>
+        <item>Video and audio are encrypted, and each stream has a password.</item>
+        <item>Add microphone audio, device audio, or both.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>This device and every viewer need internet.</item>
+        <item>Each viewer gets a separate stream, so more viewers use more upload data.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Connection lost. Reconnecting…</string>
     <string name="webrtc_stream_server_address">Access the stream at:\n%1$s</string>

@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Kies stroommodus:</string>
     <string name="app_tab_stream_switching_modules">Wissel modusse…</string>
 
+    <string name="app_mode_selected_method">Aktiewe stroommetode</string>
+    <string name="app_mode_choose_method">Kies \'n stroommetode</string>
+    <string name="app_mode_choose_another_method">Kies \'n ander metode</string>
+    <string name="app_mode_change">Verander</string>
+    <string name="app_mode_chooser_title">Kies \'n metode om jou skerm te deel</string>
+    <string name="app_mode_close_chooser">Maak toe</string>
+    <string name="app_mode_details">Besonderhede</string>
+    <string name="app_mode_details_description">Besonderhede vir %1$s</string>
+    <string name="app_mode_benefits">Voordele</string>
+    <string name="app_mode_things_to_know">Goed om te weet</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Nie nou nie</string>
     <string name="app_permission_open_settings">Maak instellings oop</string>

@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Microfoon toestaan</string>
     <string name="webrtc_error_signaling_server_unavailable">Kan de server niet bereiken. Kijkers kunnen mogelijk niet deelnemen.</string>
 
-    <string name="webrtc_stream_mode">Wereldwijde modus · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Streamen via internet met WebRTC</string>
-    <string name="webrtc_stream_mode_details">
-- Gebaseerd op WebRTC-technologie.\n
-- Eind-tot-eind versleutelde communicatie.\n
-- Streambeveiliging met wachtwoord.\n
-- Kan video en audio verzenden.\n
-- Verbinding maken met unieke stream-ID en wachtwoord.\n
-- Vereist een internetverbinding voor streamen.\n
-- Elke client gebruikt aparte internetbandbreedte.
-</string>
+    <string name="webrtc_method_title">WebRTC: Wereldwijd delen</string>
+    <string name="webrtc_method_summary">Deel je scherm via een link met kijkers waar ook ter wereld.</string>
+    <string name="webrtc_method_conditions">Kijken in browser · Optionele audio · Internet vereist</string>
+    <string name="webrtc_method_intro">WebRTC stuurt live video, en desgewenst audio, via internet naar de browsers van kijkers. Kijkers doen mee via je deellink of met je stream-ID en wachtwoord.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Nodig kijkers op andere netwerken uit op screenstream.io met je stream-ID en wachtwoord.</item>
+        <item>Video en audio zijn versleuteld en elke stream heeft een wachtwoord.</item>
+        <item>Voeg microfoonaudio, apparaataudio of beide toe.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Dit apparaat en elke kijker hebben internet nodig.</item>
+        <item>Elke kijker krijgt een eigen stream, dus meer kijkers verbruiken meer uploaddata.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Verbinding verbroken. Opnieuw verbinding maken…</string>
     <string name="webrtc_stream_server_address">Open de stream op:\n%1$s</string>

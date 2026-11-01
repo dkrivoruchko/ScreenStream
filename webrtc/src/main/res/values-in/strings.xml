@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Izinkan mikrofon</string>
     <string name="webrtc_error_signaling_server_unavailable">Tidak dapat menjangkau server. Penonton mungkin tidak dapat bergabung.</string>
 
-    <string name="webrtc_stream_mode">Modus global · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Streaming melalui internet dengan WebRTC</string>
-    <string name="webrtc_stream_mode_details">
-- Didukung oleh teknologi WebRTC.\n
-- Komunikasi terenkripsi ujung ke ujung.\n
-- Perlindungan streaming dengan kata sandi.\n
-- Dapat mengirim video dan audio.\n
-- Hubungkan menggunakan ID aliran unik dan kata sandi.\n
-- Membutuhkan koneksi internet untuk streaming.\n
-- Setiap klien memakai bandwidth internet terpisah.
-</string>
+    <string name="webrtc_method_title">WebRTC: Berbagi ke seluruh dunia</string>
+    <string name="webrtc_method_summary">Bagikan layar Anda kepada penonton di mana saja menggunakan link.</string>
+    <string name="webrtc_method_conditions">Tonton di browser · Audio opsional · Perlu internet</string>
+    <string name="webrtc_method_intro">WebRTC mengirim video langsung, dan audio jika Anda mau, ke browser penonton melalui internet. Penonton bergabung dengan link berbagi Anda, atau dengan ID streaming dan sandi Anda.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Undang penonton di jaringan lain ke screenstream.io dengan ID streaming dan sandi Anda.</item>
+        <item>Video dan audio dienkripsi, dan setiap streaming memiliki sandi.</item>
+        <item>Tambahkan audio mikrofon, audio perangkat, atau keduanya.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Perangkat ini dan setiap penonton memerlukan internet.</item>
+        <item>Setiap penonton menerima streaming tersendiri, jadi makin banyak penonton, makin banyak data unggahan yang digunakan.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Koneksi terputus. Menyambung kembali…</string>
     <string name="webrtc_stream_server_address">Akses streaming di:\n%1$s</string>

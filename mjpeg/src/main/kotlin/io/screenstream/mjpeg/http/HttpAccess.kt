@@ -15,7 +15,7 @@ internal class HttpAccess {
     private val pinAttemptsByPeer = HashMap<String, PinAttempts>()
 
     /** Unsaved URL credential; null while access is open. */
-    val accessToken: SecretValue? get() = viewingCredentials?.token
+    val token: SecretValue? get() = viewingCredentials?.token
 
     /** Credential incarnation used to fence admitted WebSocket state. */
     var credentialGeneration: Long = 0
@@ -34,7 +34,7 @@ internal class HttpAccess {
         if (credentialsChanged) {
             viewingCredentials = if (settings.pinEnabled) {
                 ViewingCredentials(
-                    token = SecretValue(Base64.UrlSafe.encode(ByteArray(ACCESS_TOKEN_BYTES).also(random::nextBytes))),
+                    token = SecretValue(Base64.UrlSafe.encode(ByteArray(TOKEN_BYTES).also(random::nextBytes))),
                     cookie = SecretValue(ByteArray(COOKIE_BYTES).also(random::nextBytes).toHexString()),
                 )
             } else null
@@ -49,15 +49,15 @@ internal class HttpAccess {
         pinEnabled != settings.pinEnabled || settings.pinEnabled && appliedSettings.pin != settings.pin
 
     /** PIN blocks restrict verification, not existing viewing credentials. */
-    fun allowsViewing(accessToken: String?, cookie: String?): Boolean {
+    fun allowsViewing(token: String?, cookie: String?): Boolean {
         val credentials = viewingCredentials ?: return true
-        return matches(credentials.token, accessToken) || matches(credentials.cookie, cookie)
+        return matches(credentials.token, token) || matches(credentials.cookie, cookie)
     }
 
     /** Valid links exchange for the existing cookie without rotating credentials. */
-    fun exchangeAccessToken(accessToken: String?): SecretValue? {
+    fun exchangeToken(token: String?): SecretValue? {
         val credentials = viewingCredentials ?: return null
-        return if (matches(credentials.token, accessToken)) credentials.cookie else null
+        return if (matches(credentials.token, token)) credentials.cookie else null
     }
 
     /**
@@ -127,6 +127,6 @@ internal class HttpAccess {
         const val MAX_PIN_ATTEMPT_RECORDS = 1_024
         val PIN_ATTEMPT_IDLE_TIMEOUT_MILLIS = 15.minutes.inWholeMilliseconds
         const val COOKIE_BYTES = 32
-        const val ACCESS_TOKEN_BYTES = 24
+        const val TOKEN_BYTES = 24
     }
 }

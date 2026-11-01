@@ -33,7 +33,7 @@ internal class MjpegUiController(
         servers: List<HttpDelivery.ServerInfo>,
         localNetworkPermissionGranted: Boolean,
         accessApplied: Boolean,
-        appliedAccessToken: SecretValue?,
+        appliedToken: SecretValue?,
         appliedPin: SecretValue?,
         hidePinOnCapture: Boolean,
         editPolicy: MjpegSettings.EditPolicy,
@@ -45,7 +45,7 @@ internal class MjpegUiController(
                 server = servers.firstOrNull { it.address.id == address.id && it.port == port },
                 allowed = !address.requiresLocalNetworkPermission || localNetworkPermissionGranted,
                 accessApplied = accessApplied,
-                appliedAccessToken = appliedAccessToken,
+                appliedToken = appliedToken,
             )
         }
         state.value = UiController.State(
@@ -78,7 +78,7 @@ internal fun NetworkAddress.mapAddressServer(
     server: HttpDelivery.ServerInfo?,
     allowed: Boolean,
     accessApplied: Boolean,
-    appliedAccessToken: SecretValue?,
+    appliedToken: SecretValue?,
 ): UiController.AddressServer {
     val host = ip.hostAddress.orEmpty()
     val status = when {
@@ -107,7 +107,7 @@ internal fun NetworkAddress.mapAddressServer(
             .scheme("http")
             .encodedAuthority(if (ip is Inet6Address) "[$portableHost]:$port" else "$portableHost:$port")
             .path("/")
-        appliedAccessToken?.let { builder.appendQueryParameter("accessToken", it.value) }
+        appliedToken?.let { builder.appendQueryParameter("token", it.value) }
         SecretValue(builder.build().toString())
     } else {
         null

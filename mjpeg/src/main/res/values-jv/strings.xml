@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Mode -->
-    <string name="mjpeg_mode_name">Mode lokal · MJPEG</string>
-    <string name="mjpeg_mode_description">Babagan MJPEG</string>
-    <string name="mjpeg_mode_details">Streaming layar piranti langsung menyang browser web minangka gambar JPEG. Audio ora di-streaming.\n\n• Bisa digunakake ing jaringan lokal tanpa internet. Pamirsa kudu bisa ngakses alamat streaming.\n• Perlindungan PIN iku pilihan. Yen diuripake, pamirsa bisa ngetik PIN utawa nggunakake pranala akses.\n• Streaming nggunakake HTTP tanpa enkripsi. Gunakna jaringan sing dipercaya.\n• Filter jaringan nyedhiyakake pilihan Wi-Fi, Ethernet, data seluler, VPN, IPv4, lan IPv6.\n• Atur ukuran gambar, kualitas JPEG, lan laju frame.\n• Gambar dikirim kapisah menyang saben pamirsa, mula panggunaan data mundhak.</string>
+    <string name="mjpeg_method_title">MJPEG: Nonton langsung ing browser</string>
+    <string name="mjpeg_method_summary">Pamirsa nonton ing browser, nyambung langsung menyang piranti iki. Ora butuh internet.</string>
+    <string name="mjpeg_method_conditions">Tanpa audio · Jaringan sing bisa digayuh lan dipercaya · HTTP tanpa enkripsi</string>
+    <string name="mjpeg_method_intro">MJPEG nampilake layar sampeyan minangka urutan gambar sing cepet. Pamirsa mbukak pranala ing browser lan nyambung langsung menyang piranti iki.</string>
+    <string-array name="mjpeg_method_benefits">
+        <item>Pamirsa cukup mbukak pranala. Ora butuh aplikasi utawa akun.</item>
+        <item>Bisa tanpa internet yen pamirsa bisa nggayuh piranti iki.</item>
+        <item>Potong, owahi ukuran, puter utawa walikke gambar.</item>
+        <item>Lindhungi tontonan nganggo PIN opsional. Pranala akses ngidini pamirsa sing diundang mlebu tanpa ngetik PIN.</item>
+        <item>Aplikasi liya sing nampa pranala MJPEG utawa JPEG uga bisa nampilake streaming.</item>
+    </string-array>
+    <string-array name="mjpeg_method_things_to_know">
+        <item>Mung gambar. Tanpa audio.</item>
+        <item>Pamirsa kudu nyambung langsung menyang piranti iki, contone ing Wi-Fi sing padha utawa liwat VPN. Jaringan tamu lan umum asring mblokir iki.</item>
+        <item>Sambungan ora dienkripsi. Gunakake jaringan sing sampeyan percaya.</item>
+        <item>Saben pamirsa nampa gambar kapisah, mula luwih akeh pamirsa nggunakake luwih akeh data.</item>
+    </string-array>
 
     <!-- Shared UI and settings -->
     <string name="mjpeg_action_close">Tutup</string>
@@ -15,7 +29,7 @@
     <string name="mjpeg_pref_value_unavailable">Durung kasedhiya</string>
     <string name="mjpeg_pref_default_option">%1$s (standar)</string>
     <string name="mjpeg_pref_default_value">Standar: %1$s</string>
-    <string name="mjpeg_pref_setup_locked">Kasedhiya sawise panangkepan layar mandheg kabeh</string>
+    <string name="mjpeg_pref_setup_locked">Kasedhiya sawise streaming mandheg babar pisan</string>
 
     <string name="mjpeg_pref_search_placeholder">Goleki setelan</string>
     <string name="mjpeg_pref_search_clear">Busak panelusuran</string>
@@ -23,13 +37,13 @@
 
     <!-- Statistics -->
     <string name="mjpeg_stats_title">Statistik</string>
-    <string name="mjpeg_stats_connected_clients_count">Klien sing nyambung: %1$s</string>
+    <string name="mjpeg_stats_connected_clients_count">Sambungan pamirsa: %1$s</string>
     <string name="mjpeg_stats_outgoing_traffic">Trafik metu</string>
     <string name="mjpeg_stats_engine_title">Statistik mesin</string>
     <string name="mjpeg_stats_frame_rate">Laju frame</string>
     <string name="mjpeg_stats_recently_disconnected">Bubar pedhot</string>
-    <string name="mjpeg_stats_no_clients">Ora ana klien sing nyambung</string>
-    <string name="mjpeg_stats_slow_reader">Pembaca alon</string>
+    <string name="mjpeg_stats_no_clients">Ora ana sambungan pamirsa</string>
+    <string name="mjpeg_stats_slow_reader">Ketinggalan</string>
     <string name="mjpeg_stats_unavailable">—</string>
     <string name="mjpeg_stats_fps_value">%1$s FPS</string>
     <string name="mjpeg_stats_mbps_value">%1$s Mbps</string>
@@ -48,16 +62,16 @@
     <string name="mjpeg_stats_produced">Dihasilake</string>
     <string name="mjpeg_stats_mean_fps">FPS rata-rata</string>
     <string name="mjpeg_stats_processing">Pangolahan</string>
-    <string name="mjpeg_stats_mean_read">Rata-rata maca saka GPU</string>
-    <string name="mjpeg_stats_mean_encode">Enkoding JPEG rata-rata</string>
+    <string name="mjpeg_stats_mean_read">Rata-rata wektu maca frame</string>
+    <string name="mjpeg_stats_mean_encode">Rata-rata wektu enkode</string>
     <string name="mjpeg_stats_last_jpeg">Ukuran JPEG pungkasan</string>
     <string name="mjpeg_stats_mean_jpeg">Ukuran JPEG rata-rata</string>
-    <string name="mjpeg_stats_skipped_frames">Frame lan pangiriman sing dilewati</string>
+    <string name="mjpeg_stats_skipped_frames">Frame sing dibuwang</string>
     <string name="mjpeg_stats_production_stale">Produksi · kedaluwarsa</string>
     <string name="mjpeg_stats_production_failed">Produksi · gagal</string>
     <string name="mjpeg_stats_production_total">Produksi · total</string>
     <string name="mjpeg_stats_delivery_busy">Pangiriman · sibuk</string>
-    <string name="mjpeg_stats_delivery_errors">Pangiriman · kesalahan callback</string>
+    <string name="mjpeg_stats_delivery_errors">Pangiriman · kesalahan</string>
     <string name="mjpeg_stats_delivery_total">Pangiriman · total</string>
 
     <!-- Shared network labels -->
@@ -75,14 +89,14 @@
     <string name="mjpeg_stream_start_capture">Miwiti streaming</string>
     <string name="mjpeg_stream_stop_capture">Mungkasi streaming</string>
     <string name="mjpeg_stream_skipped_frames_warning">Frame dilewati</string>
-    <string name="mjpeg_stream_stop_delayed">Nuduhake layar isih diendhegake…</string>
+    <string name="mjpeg_stream_stop_delayed">Streaming isih lagi diendhegake…</string>
     <string name="mjpeg_capture_error">Gagal nangkep layar</string>
-    <string name="mjpeg_error_suspension_invalid_request">Panangkepan ngaso: setelan gambar ora cocog karo area panangkepan saiki</string>
-    <string name="mjpeg_error_suspension_unavailable">Panangkepan ngaso: sumber panangkepan ora kasedhiya</string>
-    <string name="mjpeg_error_suspension_resources">Panangkepan ngaso: sumber daya ora cukup</string>
+    <string name="mjpeg_error_suspension_invalid_request">Streaming dijeda: setelan gambar ora cocog karo sing lagi dienggo bareng</string>
+    <string name="mjpeg_error_suspension_unavailable">Streaming dijeda: panangkepan layar saiki ora kasedhiya</string>
+    <string name="mjpeg_error_suspension_resources">Streaming dijeda: sumber daya piranti ora cukup. Coba ukuran gambar sing luwih cilik.</string>
 
     <string name="mjpeg_address_list_title">Alamat streaming</string>
-    <string name="mjpeg_address_list_empty">Ora ana alamat kanggo streaming.\nPriksa filter jaringan ing Setelan sambungan.</string>
+    <string name="mjpeg_address_list_empty">Ora ana alamat streaming sing kasedhiya.\nSambungake menyang jaringan utawa priksa Filter jaringan ing Setelan sambungan.</string>
     <!-- %1$s is the network type or Loopback; %2$s is the IP version and address scope. -->
     <string name="mjpeg_address_network_details">Jaringan:\n%1$s (%2$s)</string>
     <string name="mjpeg_address_same_device">Mung piranti iki</string>
@@ -92,19 +106,19 @@
     <string name="mjpeg_address_non_private_ipv6">IPv6 nonprivat</string>
 
     <string name="mjpeg_address_open">Bukak</string>
-    <!-- %1$s is the public displayed URL, without an access token. -->
+    <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">Bukak %1$s</string>
     <string name="mjpeg_address_copy_url">Salin pranala</string>
     <string name="mjpeg_address_copy_description">Salin pranala kanggo %1$s</string>
     <string name="mjpeg_address_copy_options_description">Pilih pranala sing arep disalin kanggo %1$s</string>
     <string name="mjpeg_address_copy_page">Salin pranala kaca</string>
-    <string name="mjpeg_address_copy_mjpeg">Salin pranala stream (MJPEG)</string>
+    <string name="mjpeg_address_copy_mjpeg">Salin pranala streaming (MJPEG)</string>
     <string name="mjpeg_address_copy_jpeg">Salin pranala gambar (JPEG)</string>
-    <string name="mjpeg_address_share">Nuduhake</string>
-    <string name="mjpeg_address_share_description">Nuduhake pranala kanggo %1$s</string>
+    <string name="mjpeg_address_share">Enggo bareng</string>
+    <string name="mjpeg_address_share_description">Enggo bareng pranala kanggo %1$s</string>
     <string name="mjpeg_address_qr_code">Tampilake kode QR</string>
     <string name="mjpeg_address_qr_code_description">Tampilake kode QR kanggo %1$s</string>
-    <string name="mjpeg_address_qr_image_description">Pindai kode iki kanggo mbukak pranala streaming</string>
+    <string name="mjpeg_address_qr_image_description">Kode QR kanggo mbukak streaming</string>
 
     <string name="mjpeg_address_error_browser_not_found">Browser web ora ditemokake</string>
     <string name="mjpeg_address_error_open">Pranala ora bisa dibukak</string>
@@ -115,14 +129,14 @@
     <string name="mjpeg_local_network_permission_open_settings">Bukak setelan</string>
     <string name="mjpeg_local_network_permission_required">Idin jaringan lokal dibutuhake</string>
 
-    <string name="mjpeg_server_pending">Ngenteni</string>
+    <string name="mjpeg_server_pending">Nyiapake…</string>
     <string name="mjpeg_server_address_in_use">Alamat lagi digunakake</string>
     <string name="mjpeg_server_address_unavailable">Alamat ora kasedhiya</string>
     <string name="mjpeg_server_permission_denied">Idin ditolak</string>
     <string name="mjpeg_server_io_failure">Server ora kasedhiya</string>
     <string name="mjpeg_server_unknown_failure">Server gagal</string>
     <string name="mjpeg_server_retry">Coba maneh</string>
-    <!-- %1$s is the public displayed URL, without an access token. -->
+    <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_server_retry_description">Coba maneh server ing %1$s</string>
 
     <string name="mjpeg_stream_pin_label">PIN:</string>
@@ -134,7 +148,7 @@
     <string name="mjpeg_pin_hide_description">Singidaken PIN</string>
     <string name="mjpeg_stream_pin_copy">Salin PIN</string>
     <string name="mjpeg_stream_pin_copied">PIN disalin</string>
-    <string name="mjpeg_stream_pin_hint_access">Bukak pranala streaming utawa pindai kode QR-né.\nLebokake PIN iki yen dijaluk.</string>
+    <string name="mjpeg_stream_pin_hint_access">Enggo bareng pranala utawa kode QR ing ndhuwur.\nPamirsa ngetik PIN iki yen dijaluk.</string>
 
     <!-- Image settings -->
     <string name="mjpeg_pref_image_group">Setelan gambar</string>
@@ -172,7 +186,7 @@
     <string name="mjpeg_pref_image_size_scale">Skala</string>
     <string name="mjpeg_pref_image_size_target">Ukuran</string>
     <string name="mjpeg_pref_image_size_default">Standar: %1$s %2$s</string>
-    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Skala (luwih saka 0, maksimal 200%)</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Skala (nganti 200%)</string>
     <string name="mjpeg_pref_image_size_width_label">Ambane (1–8192 px)</string>
     <string name="mjpeg_pref_image_size_height_label">Dhuwure (1–8192 px)</string>
     <string name="mjpeg_pref_image_size_scale_error">Lebokake angka luwih saka 0, maksimal 200</string>
@@ -218,8 +232,8 @@
 
     <string name="mjpeg_pref_image_encoder">Enkoder JPEG</string>
     <string name="mjpeg_pref_image_encoder_summary">Pilih cara nggawe gambar JPEG</string>
-    <string name="mjpeg_pref_image_encoder_standard">Standar</string>
-    <string name="mjpeg_pref_image_encoder_locked">Kasedhiya sawise nuduhake layar mandheg kabeh</string>
+    <string name="mjpeg_pref_image_encoder_standard">Biasa</string>
+    <string name="mjpeg_pref_image_encoder_locked">Kasedhiya sawise streaming mandheg babar pisan</string>
     <string name="mjpeg_pref_image_encoder_auto_description">Enkode sing dioptimalake yen kasedhiya</string>
     <string name="mjpeg_pref_image_encoder_standard_description">Mateni optimasi enkode</string>
 
@@ -228,33 +242,33 @@
     <string name="mjpeg_pref_automation_save_error">Setelan otomatisasi ora bisa disimpen</string>
 
     <string name="mjpeg_pref_automation_address_loss_timeout">Mungkasi streaming sawise alamat ilang</string>
-    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Mungkasi streaming nalika ora ana alamat pilihan sing isih kasedhiya</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_summary">Mungkasi streaming nalika ora ana alamat streaming sing isih ana</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_value">Sawise %1$d dtk</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_label">Tundha (10–1800 detik)</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_default">Standar: %1$s detik</string>
     <string name="mjpeg_pref_automation_address_loss_timeout_error">Lebokake wilangan bulat saka 10 nganti 1800</string>
-    <string name="mjpeg_pref_automation_address_loss_timeout_help">Alamat bali mbatalake timer</string>
+    <string name="mjpeg_pref_automation_address_loss_timeout_help">Yen alamat bali tepat wektu, mandheg otomatis iki dibatalake.</string>
 
     <string name="mjpeg_pref_automation_inactive_image">Gambar streaming ora aktif</string>
-    <string name="mjpeg_pref_automation_inactive_image_summary">Gambar sing ditampilake nalika gambar langsung ora kasedhiya</string>
+    <string name="mjpeg_pref_automation_inactive_image_summary">Apa sing dideleng pamirsa nalika ora ana gambar langsung</string>
     <string name="mjpeg_pref_automation_inactive_image_placeholder_option">Logo aplikasi</string>
     <string name="mjpeg_pref_automation_inactive_image_last_frame_option">Frame pungkasan</string>
 
     <string name="mjpeg_pref_automation_keep_awake">Layar tetep urip</string>
-    <string name="mjpeg_pref_automation_keep_awake_summary">Yen bisa, layar tetep urip nalika nangkep</string>
+    <string name="mjpeg_pref_automation_keep_awake_summary">Yen bisa, layar tetep urip nalika streaming</string>
 
     <string name="mjpeg_pref_automation_stop_on_screen_off">Mungkasi nalika layar mati</string>
     <string name="mjpeg_pref_automation_stop_on_screen_off_summary">Mungkasi streaming nalika layar mati</string>
 
     <string name="mjpeg_pref_automation_skipped_frames_warning">Elingake babagan frame sing dilewati</string>
-    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Sawetara piranti bisa nampa gambar luwih sithik</string>
+    <string name="mjpeg_pref_automation_skipped_frames_warning_summary">Tampilake pesen nalika pamirsa ketinggalan</string>
 
     <!-- Connection settings -->
     <string name="mjpeg_pref_connection_group">Setelan sambungan</string>
-    <string name="mjpeg_pref_connection_save_error">Setelan jaringan ora bisa disimpen</string>
+    <string name="mjpeg_pref_connection_save_error">Setelan sambungan ora bisa disimpen</string>
 
     <string name="mjpeg_pref_connection_filter">Filter jaringan</string>
-    <string name="mjpeg_pref_connection_filter_summary">Pilih alamat jaringan kanggo streaming</string>
+    <string name="mjpeg_pref_connection_filter_summary">Pilih alamat sing ditawakake marang pamirsa</string>
     <string name="mjpeg_pref_connection_filter_ip_version">Versi IP</string>
     <string name="mjpeg_pref_connection_filter_network_type">Jinis jaringan</string>
     <string name="mjpeg_pref_connection_filter_address_type">Jinis alamat</string>
@@ -268,7 +282,7 @@
     <string name="mjpeg_pref_connection_http_port_summary">Setel port sing digunakake pamirsa kanggo nyambung</string>
     <string name="mjpeg_pref_connection_http_port_label">Port (1024–65535)</string>
     <string name="mjpeg_pref_connection_http_port_error">Lebokake wilangan bulat saka 1024 nganti 65535</string>
-    <string name="mjpeg_pref_connection_http_port_help">Ngganti port nganyari alamat streaming</string>
+    <string name="mjpeg_pref_connection_http_port_help">Ngganti port ngganti kabeh alamat streaming. Pranala sing wis dienggo bareng sadurunge ora bakal bisa digunakake maneh.</string>
 
     <!-- Web page settings -->
     <string name="mjpeg_pref_web_group">Setelan kaca web</string>
@@ -289,7 +303,7 @@
     <string name="mjpeg_pref_web_stream_name_summary">Setel jeneng sing dideleng pamirsa</string>
     <string name="mjpeg_pref_web_stream_name_label">Jeneng streaming (maksimal 64 karakter)</string>
     <string name="mjpeg_pref_web_stream_name_error">Gunakake maksimal %1$d karakter</string>
-    <string name="mjpeg_pref_web_stream_name_help">Digunakake minangka judhul tab browser lan label streaming</string>
+    <string name="mjpeg_pref_web_stream_name_help">Uga digunakake minangka judhul tab browser, sanajan jenenge didhelikake</string>
     <string name="mjpeg_pref_web_stream_name_enabled">Tampilake jeneng streaming</string>
     <string name="mjpeg_pref_web_stream_name_empty">Ora ana jeneng</string>
 
@@ -320,7 +334,7 @@
     <string name="mjpeg_pref_access_policy_label">Aturan PIN</string>
     <string name="mjpeg_pref_access_policy_new_on_module_start">PIN anyar nalika mbukak</string>
     <string name="mjpeg_pref_access_policy_permanent">PIN permanen</string>
-    <string name="mjpeg_pref_access_policy_help">Yen “PIN anyar nalika mbukak” dipilih lan perlindungan urip, PIN digawe saben mode MJPEG dibukak. Miwiti panangkepan ora ngganti PIN.</string>
+    <string name="mjpeg_pref_access_policy_help">Yen perlindungan PIN urip, “PIN anyar nalika mbukak” nggawe PIN anyar saben sampeyan mbukak mode MJPEG. Miwiti streaming tetep nganggo PIN sing padha.</string>
 
     <string name="mjpeg_pref_access_pin">PIN</string>
     <string name="mjpeg_pref_access_pin_summary">PIN sing disimpen kanggo akses streaming</string>
@@ -328,15 +342,15 @@
     <string name="mjpeg_pref_access_pin_label">PIN (6 digit)</string>
     <string name="mjpeg_pref_access_pin_error">Lebokake enem digit (0–9)</string>
     <string name="mjpeg_pref_access_pin_regenerate">Gawe PIN anyar</string>
-    <string name="mjpeg_pref_access_pin_permanent_help">Pilih “PIN permanen” kanggo ngetik PIN dhewe</string>
+    <string name="mjpeg_pref_access_pin_permanent_help">Kanggo ngetik PIN dhewe, pilih “PIN permanen” ing Perlindungan PIN</string>
 
     <string name="mjpeg_pref_access_wrong_pins">Watesi upaya PIN</string>
-    <string name="mjpeg_pref_access_wrong_pins_summary">Ngaso mlebu nganggo PIN sawise limang upaya salah</string>
-    <string name="mjpeg_pref_access_wrong_pins_value">Menit: %1$d</string>
+    <string name="mjpeg_pref_access_wrong_pins_summary">Blokir pangetikan PIN sawise limang upaya salah</string>
+    <string name="mjpeg_pref_access_wrong_pins_value">%1$d menit</string>
     <string name="mjpeg_pref_access_wrong_pins_label">Suwene blokir (1–60 menit)</string>
     <string name="mjpeg_pref_access_wrong_pins_default">Standar: %1$s · %2$s menit</string>
     <string name="mjpeg_pref_access_wrong_pins_error">Lebokake wilangan bulat saka 1 nganti 60</string>
-    <string name="mjpeg_pref_access_wrong_pins_help">Mblokir upaya PIN anyar saka IP kasebut. Pamirsa sing wis nyambung tetep nyambung.</string>
+    <string name="mjpeg_pref_access_wrong_pins_help">Mblokir pangetikan PIN saka alamat IP sing nindakake upaya kasebut. Pamirsa sing wis nonton tetep nyambung.</string>
 
     <string name="mjpeg_pref_access_hide_pin_on_start">Singidaken PIN nalika miwiti streaming</string>
     <string name="mjpeg_pref_access_hide_pin_on_start_summary">PIN bisa ditampilake maneh</string>

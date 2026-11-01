@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">مائیکروفون کی اجازت دیں</string>
     <string name="webrtc_error_signaling_server_unavailable">سرور تک رسائی نہیں ہو رہی۔ ناظرین شاید شامل نہ ہو سکیں۔</string>
 
-    <string name="webrtc_stream_mode">عالمی موڈ · WebRTC</string>
-    <string name="webrtc_stream_mode_description">WebRTC کے ساتھ انٹرنیٹ پر اسٹریم کریں</string>
-    <string name="webrtc_stream_mode_details">
-- WebRTC ٹیکنالوجی پر مبنی۔\n
-- اینڈ ٹو اینڈ انکرپشن۔\n
-- پاس ورڈ سے اسٹریم محفوظ۔\n
-- ویڈیو اور آڈیو دونوں۔\n
-- منفرد اسٹریم ID اور پاس ورڈ سے کنکشن۔\n
-- اسٹریم کیلئے انٹرنیٹ درکار ہے۔\n
-- ہر کلائنٹ الگ انٹرنیٹ بینڈوڈتھ استعمال کرتا ہے۔
-</string>
+    <string name="webrtc_method_title">WebRTC: دنیا بھر میں شیئرنگ</string>
+    <string name="webrtc_method_summary">لنک کے ذریعے کہیں بھی موجود ناظرین کے ساتھ اپنی اسکرین شیئر کریں۔</string>
+    <string name="webrtc_method_conditions">براؤزر میں دیکھنا · اختیاری آڈیو · انٹرنیٹ درکار</string>
+    <string name="webrtc_method_intro">WebRTC انٹرنیٹ کے ذریعے ناظرین کے براؤزرز کو لائیو ویڈیو بھیجتا ہے، اور اگر آپ چاہیں تو آڈیو بھی۔ ناظرین آپ کے شیئر لنک سے، یا آپ کی اسٹریم ID اور پاس ورڈ سے شامل ہوتے ہیں۔</string>
+    <string-array name="webrtc_method_benefits">
+        <item>دوسرے نیٹ ورکس پر موجود ناظرین کو اپنی اسٹریم ID اور پاس ورڈ کے ساتھ screenstream.io پر مدعو کریں۔</item>
+        <item>ویڈیو اور آڈیو خفیہ کردہ ہیں، اور ہر اسٹریم کا پاس ورڈ ہوتا ہے۔</item>
+        <item>مائیکروفون کی آڈیو، آلے کی آڈیو، یا دونوں شامل کریں۔</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>اس آلے اور ہر ناظر کو انٹرنیٹ درکار ہے۔</item>
+        <item>ہر ناظر کو الگ اسٹریم ملتی ہے، اس لیے زیادہ ناظرین زیادہ اپ لوڈ ڈیٹا استعمال کرتے ہیں۔</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">کنکشن ٹوٹ گیا۔ دوبارہ جڑ رہے ہیں…</string>
     <string name="webrtc_stream_server_address">اس پتے پر اسٹریم کھولیں:\n%1$s</string>

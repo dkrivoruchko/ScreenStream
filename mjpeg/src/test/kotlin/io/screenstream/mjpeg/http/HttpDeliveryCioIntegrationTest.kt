@@ -76,16 +76,16 @@ internal class HttpDeliveryCioIntegrationTest {
             assertEquals(ServerState.Pending, delivery.info.value.servers.single().state)
             assertTrue(delivery.start(httpTestProtection(), PostStopImage.None, httpTestPage(), logo))
             delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
-            val token = checkNotNull(delivery.appliedAccessToken).value
+            val token = checkNotNull(delivery.appliedToken).value
             for (path in listOf("/jpeg", "/mjpeg")) {
                 RawHttp(port, path).use { assertEquals(path, 403, it.status) }
-                RawHttp(port, "$path?accessToken=$token").use {
+                RawHttp(port, "$path?token=$token").use {
                     assertEquals(path, 503, it.status)
                     assertEquals(path, "1", it.headers["retry-after"])
                 }
             }
             delivery.updateConfiguration(httpTestProtection(), PostStopImage.Placeholder, httpTestPage())
-            RawHttp(port, "/jpeg?accessToken=$token").use {
+            RawHttp(port, "/jpeg?token=$token").use {
                 assertEquals(200, it.status)
                 assertEquals("image/jpeg", it.headers["content-type"])
                 assertEquals(logo.size.toString(), it.headers["content-length"])
@@ -96,7 +96,7 @@ internal class HttpDeliveryCioIntegrationTest {
             delivery.updateCaptureStatus(attempt, Status.Active)
             val capture = byteArrayOf(21, 22, 23)
             delivery.offerJpeg(attempt, capture.size) { capture.copyInto(it) }
-            RawHttp(port, "/jpeg?accessToken=$token").use { assertArrayEquals(capture, it.readBody()) }
+            RawHttp(port, "/jpeg?token=$token").use { assertArrayEquals(capture, it.readBody()) }
             delivery.finishHttpTest()
             val completed = delivery.info.value
             assertEquals(2L, completed.completedJpegs)
@@ -240,11 +240,11 @@ internal class HttpDeliveryCioIntegrationTest {
             assertTrue(delivery.start(httpTestProtection(), PostStopImage.Placeholder, httpTestPage(), logo))
             delivery.configureServers(listOf(httpTestAddress()), port)
             delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
-            val oldToken = checkNotNull(delivery.appliedAccessToken).value
-            val oldCookie = RawHttp(port, "/?accessToken=$oldToken").use {
+            val oldToken = checkNotNull(delivery.appliedToken).value
+            val oldCookie = RawHttp(port, "/?token=$oldToken").use {
                 checkNotNull(it.headers["set-cookie"]).substringBefore(';')
             }
-            val live = RawHttp(port, "/mjpeg?accessToken=$oldToken")
+            val live = RawHttp(port, "/mjpeg?token=$oldToken")
             connection = live
             assertEquals(200, live.status)
             assertArrayEquals(logo, MultipartReader(live.body).nextPart())
@@ -256,10 +256,10 @@ internal class HttpDeliveryCioIntegrationTest {
             assertTrue(rotated.completedJpegs >= 1L)
             assertTrue(rotated.completedJpegBytes >= logo.size.toLong())
             live.awaitExternalEnd()
-            RawHttp(port, "/jpeg?accessToken=$oldToken").use { assertEquals(403, it.status) }
+            RawHttp(port, "/jpeg?token=$oldToken").use { assertEquals(403, it.status) }
             RawHttp(port, "/jpeg", listOf("Cookie: $oldCookie")).use { assertEquals(403, it.status) }
-            val currentToken = checkNotNull(delivery.appliedAccessToken).value
-            RawHttp(port, "/jpeg?accessToken=$currentToken").use {
+            val currentToken = checkNotNull(delivery.appliedToken).value
+            RawHttp(port, "/jpeg?token=$currentToken").use {
                 assertEquals(200, it.status)
                 assertArrayEquals(logo, it.readBody())
             }
@@ -289,13 +289,13 @@ internal class HttpDeliveryCioIntegrationTest {
             delivery.start(httpTestProtection(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(1))
             delivery.configureServers(listOf(httpTestAddress()), port)
             delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
-            val token = checkNotNull(delivery.appliedAccessToken).value
+            val token = checkNotNull(delivery.appliedToken).value
             val origin = "http://127.0.0.1:$port"
-            val tokenOnly = httpClient.observeWebSocket("ws://127.0.0.1:$port/ws?accessToken=$token", "Origin" to origin)
+            val tokenOnly = httpClient.observeWebSocket("ws://127.0.0.1:$port/ws?token=$token", "Origin" to origin)
             sockets += tokenOnly
             assertEquals("pin_required", tokenOnly.nextJson().getValue("access").jsonPrimitive.content)
             assertEquals(1000, tokenOnly.ended.get(15, TimeUnit.SECONDS))
-            val cookie = RawHttp(port, "/?accessToken=$token").use {
+            val cookie = RawHttp(port, "/?token=$token").use {
                 assertEquals(303, it.status)
                 checkNotNull(it.headers["set-cookie"]).substringBefore(';')
             }
@@ -335,8 +335,8 @@ internal class HttpDeliveryCioIntegrationTest {
             delivery.start(httpTestProtection(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(1))
             delivery.configureServers(listOf(httpTestAddress()), port)
             delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
-            val token = checkNotNull(delivery.appliedAccessToken).value
-            val cookie = RawHttp(port, "/?accessToken=$token").use { checkNotNull(it.headers["set-cookie"]).substringBefore(';') }
+            val token = checkNotNull(delivery.appliedToken).value
+            val cookie = RawHttp(port, "/?token=$token").use { checkNotNull(it.headers["set-cookie"]).substringBefore(';') }
             val current = httpClient.observeWebSocket("ws://127.0.0.1:$port/ws", "Origin" to "http://127.0.0.1:$port", "Cookie" to cookie)
             sockets += current
             assertTrue(current.nextJson().getValue("hasImage").jsonPrimitive.boolean)
@@ -349,7 +349,7 @@ internal class HttpDeliveryCioIntegrationTest {
             val edited = current.nextJson()
             assertEquals("Edited", edited.getValue("display").jsonObject.getValue("title").jsonPrimitive.content)
             assertFalse(edited.getValue("hasImage").jsonPrimitive.boolean)
-            assertEquals(token, checkNotNull(delivery.appliedAccessToken).value)
+            assertEquals(token, checkNotNull(delivery.appliedToken).value)
             assertFalse(current.ended.isDone)
             val ping = byteArrayOf(7, 0, 9)
             current.send(Frame.Ping(ping))
@@ -364,10 +364,10 @@ internal class HttpDeliveryCioIntegrationTest {
             current.awaitJson { it.getValue("hasImage").jsonPrimitive.boolean }
             delivery.updateConfiguration(httpTestProtection("654321"), PostStopImage.Placeholder, httpTestPage("New generation"))
             current.awaitTermination()
-            RawHttp(port, "/jpeg?accessToken=$token").use { assertEquals(403, it.status) }
+            RawHttp(port, "/jpeg?token=$token").use { assertEquals(403, it.status) }
             RawHttp(port, "/jpeg", listOf("Cookie: $cookie")).use { assertEquals(403, it.status) }
-            val newToken = checkNotNull(delivery.appliedAccessToken).value
-            val newCookie = RawHttp(port, "/?accessToken=$newToken").use { checkNotNull(it.headers["set-cookie"]).substringBefore(';') }
+            val newToken = checkNotNull(delivery.appliedToken).value
+            val newCookie = RawHttp(port, "/?token=$newToken").use { checkNotNull(it.headers["set-cookie"]).substringBefore(';') }
             val successor = httpClient.observeWebSocket("ws://127.0.0.1:$port/ws", "Origin" to "http://127.0.0.1:$port", "Cookie" to newCookie)
             sockets += successor
             assertEquals("New generation", successor.nextJson().getValue("display").jsonObject.getValue("title").jsonPrimitive.content)

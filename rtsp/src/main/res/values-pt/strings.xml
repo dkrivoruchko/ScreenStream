@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">Permitir microfone</string>
     <string name="rtsp_error_local_network_permission_required">O acesso à rede local é necessário para que dispositivos possam se conectar à sua transmissão.</string>
 
-    <string name="rtsp_stream_mode">Modo RTSP · RTSP</string>
-    <string name="rtsp_stream_mode_description">Transmitir com cliente ou servidor RTSP</string>
-    <string name="rtsp_stream_mode_details">
-- Funciona com protocolo RTSP.\n
-- O modo servidor (padrão) hospeda este dispositivo como servidor RTSP.\n
-- O modo cliente conecta-se a um servidor RTSP remoto.\n
-- Suporta vídeo e áudio com configuração de codecs.\n
-- O modo servidor adiciona protocolo, filtros de interface/endereço, IPv4/IPv6 e configurações de porta.\n
-- Funciona em redes Wi‑Fi/móveis e IPv4/IPv6.\n
-- Requer cliente ou player RTSP para visualização.
-</string>
+    <string name="rtsp_method_title">RTSP: players e servidores de mídia</string>
+    <string name="rtsp_method_summary">Assista em um player de vídeo ou envie a transmissão para um servidor de mídia.</string>
+    <string name="rtsp_method_conditions">Software RTSP compatível · Áudio opcional</string>
+    <string name="rtsp_method_intro">O RTSP é um padrão de transmissão comum usado por players de vídeo e servidores de mídia. Por padrão, este dispositivo hospeda a transmissão. Você também pode enviá-la para um servidor de mídia.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Assista em players como o VLC abrindo o endereço RTSP mostrado no app.</item>
+        <item>Envie a transmissão para um servidor de mídia, inclusive servidores que pedem nome de usuário e senha.</item>
+        <item>Adicione áudio do microfone, áudio do dispositivo ou ambos.</item>
+        <item>Escolha formatos de vídeo e áudio, tamanho e qualidade de acordo com seu player ou servidor.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Os players precisam conseguir se conectar a este dispositivo, por exemplo na mesma rede Wi-Fi. A hospedagem funciona sem internet.</item>
+        <item>Ao enviar para um servidor, este dispositivo precisa conseguir acessá-lo. Para uma conexão criptografada, use um endereço rtsps:// e defina o protocolo RTSP como TCP.</item>
+        <item>Seu player ou servidor precisa ser compatível com os formatos de vídeo e áudio escolhidos.</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">Selecionar modo RTSP:</string>
     <string name="rtsp_mode_server">Servidor</string>

@@ -264,7 +264,7 @@ internal class TestHttpDelivery(holdStop: Boolean = false, private val onStart: 
     data class Plan(val addresses: List<NetworkAddress>, val port: Int)
 
     override val info = MutableStateFlow(HttpDelivery.Info())
-    override val appliedAccessToken: SecretValue? = null
+    override val appliedToken: SecretValue? = null
     val configuration = MutableStateFlow<Configuration?>(null)
     val startCalls = MutableStateFlow(0)
     val plan = MutableStateFlow<Plan?>(null)

@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Baimendu mikrofonoa</string>
     <string name="webrtc_error_signaling_server_unavailable">Ezin da zerbitzarira iritsi. Baliteke ikusleek bat egin ezin izatea.</string>
 
-    <string name="webrtc_stream_mode">Modu globala · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Streamatu Interneten WebRTC bidez</string>
-    <string name="webrtc_stream_mode_details">
-- WebRTC teknologia erabiltzen du.\n
-- Muturretik muturrerako komunikazio zifratua.\n
-- Emisioa pasahitzarekin babestuta.\n
-- Bideoa eta audioa bidal ditzake.\n
-- Konektatu emisio-ID bakarra eta pasahitza erabiliz.\n
-- Emisiorako Interneteko konexioa behar da.\n
-- Bezero bakoitzak Interneteko banda-zabalera bereizia erabiltzen du.
-</string>
+    <string name="webrtc_method_title">WebRTC: Partekatu mundu osoan</string>
+    <string name="webrtc_method_summary">Partekatu zure pantaila edonon dauden ikusleekin esteka baten bidez.</string>
+    <string name="webrtc_method_conditions">Arakatzailean ikustea · Aukerako audioa · Internet behar da</string>
+    <string name="webrtc_method_intro">WebRTCk zuzeneko bideoa, eta nahi baduzu audioa, bidaltzen du Internet bidez ikusleen arakatzaileetara. Ikusleak zure partekatze-estekarekin edo zure transmisio-IDarekin eta pasahitzarekin sartzen dira.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Gonbidatu beste sare batzuetako ikusleak screenstream.io-ra zure transmisio-IDarekin eta pasahitzarekin.</item>
+        <item>Bideoa eta audioa zifratuta daude, eta transmisio bakoitzak pasahitz bat du.</item>
+        <item>Gehitu mikrofonoaren audioa, gailuaren audioa edo biak.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Gailu honek eta ikusle guztiek Internet behar dute.</item>
+        <item>Ikusle bakoitzak transmisio bereizi bat jasotzen du; beraz, zenbat eta ikusle gehiago, orduan eta igotze-datu gehiago erabiltzen dira.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Konexioa galdu da. Berriro konektatzen…</string>
     <string name="webrtc_stream_server_address">Sartu transmisiora hemen:\n%1$s</string>

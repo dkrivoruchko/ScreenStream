@@ -15,7 +15,7 @@ internal interface HttpDelivery {
     val info: StateFlow<Info>
 
     /** URL credential for Copy URL; null before activation or while access is open. */
-    val appliedAccessToken: SecretValue?
+    val appliedToken: SecretValue?
 
     /**
      * Activate once. True means admission is open, even with an empty or unbound plan;

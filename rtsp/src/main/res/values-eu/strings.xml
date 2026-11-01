@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">Baimendu mikrofonoa</string>
     <string name="rtsp_error_local_network_permission_required">Tokiko sarerako sarbidea behar da, gailuak zure transmisiora konektatu ahal izateko.</string>
 
-    <string name="rtsp_stream_mode">RTSP modua · RTSP</string>
-    <string name="rtsp_stream_mode_description">Streamatu RTSP bezero edo zerbitzari batekin</string>
-    <string name="rtsp_stream_mode_details">
-- RTSP protokoloak bultzatuta.\n
-- Zerbitzari moduak (lehenetsia) gailu hau RTSP zerbitzari gisa ostatatzen du.\n
-- Bezero moduak urruneko RTSP zerbitzarira konektatzen da.\n
-- Bideoa eta audioa onartzen ditu kodek-konfigurazioarekin.\n
-- Zerbitzari moduak protokoloa, interfazea/helbidea iragazkiak, IPv4/IPv6 eta portu-ezarpenak gehitzen ditu.\n
-- Wi‑Fi/mugikor sareetan eta IPv4/IPv6n funtzionatzen du.\n
-- RTSP bezero edo erreproduzitzailea behar du ikusteko.
-</string>
+    <string name="rtsp_method_title">RTSP: Erreproduzigailuak eta multimedia-zerbitzariak</string>
+    <string name="rtsp_method_summary">Ikusi bideo-erreproduzigailu batean, edo bidali transmisioa multimedia-zerbitzari batera.</string>
+    <string name="rtsp_method_conditions">RTSP software bateragarria · Aukerako audioa</string>
+    <string name="rtsp_method_intro">RTSP bideo-erreproduzigailuek eta multimedia-zerbitzariek erabiltzen duten transmisio-estandar ohikoa da. Modu lehenetsian, gailu honek ostatatzen du transmisioa. Multimedia-zerbitzari batera ere bidal dezakezu.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Ikusi VLC bezalako erreproduzigailuetan, aplikazioan ageri den RTSP helbidea irekita.</item>
+        <item>Bidali transmisioa multimedia-zerbitzari batera, baita erabiltzaile-izena eta pasahitza eskatzen dituzten zerbitzarietara ere.</item>
+        <item>Gehitu mikrofonoaren audioa, gailuaren audioa edo biak.</item>
+        <item>Aukeratu bideo- eta audio-formatuak, tamaina eta kalitatea zure erreproduzigailuaren edo zerbitzariaren arabera.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Erreproduzigailuek gailu honetara konektatu ahal izan behar dute, adibidez Wi-Fi sare beretik. Ostatatzeak Internetik gabe funtzionatzen du.</item>
+        <item>Zerbitzari batera bidaltzean, gailu honek hara iristeko aukera izan behar du. Konexio zifratu baterako, erabili rtsps:// helbide bat eta ezarri RTSP protokoloa TCP gisa.</item>
+        <item>Zure erreproduzigailuak edo zerbitzariak aukeratzen dituzun bideo- eta audio-formatuak onartu behar ditu.</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">Hautatu RTSP modua:</string>
     <string name="rtsp_mode_server">Zerbitzaria</string>

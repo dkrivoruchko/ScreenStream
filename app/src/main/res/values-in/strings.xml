@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_error_title">Kesalahan</string>
-    <string name="app_error_recover">Pulih</string>
+    <string name="app_error_recover">Pulihkan</string>
 
     <string name="app_module_error_title">Terjadi kesalahan</string>
     <string name="app_module_error_restart">Mulai ulang mode</string>
@@ -17,6 +17,17 @@
 
     <string name="app_tab_stream_select_mode">Pilih mode streaming:</string>
     <string name="app_tab_stream_switching_modules">Beralih mode…</string>
+
+    <string name="app_mode_selected_method">Metode streaming aktif</string>
+    <string name="app_mode_choose_method">Pilih metode streaming</string>
+    <string name="app_mode_choose_another_method">Pilih metode lain</string>
+    <string name="app_mode_change">Ubah</string>
+    <string name="app_mode_chooser_title">Pilih metode untuk berbagi layar Anda</string>
+    <string name="app_mode_close_chooser">Tutup</string>
+    <string name="app_mode_details">Detail</string>
+    <string name="app_mode_details_description">Detail untuk %1$s</string>
+    <string name="app_mode_benefits">Kelebihan</string>
+    <string name="app_mode_things_to_know">Yang perlu diketahui</string>
 
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Jangan sekarang</string>

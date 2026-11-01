@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">السماح بالميكروفون</string>
     <string name="webrtc_error_signaling_server_unavailable">تعذّر الوصول إلى الخادم. قد لا يتمكن المشاهدون من الانضمام.</string>
 
-    <string name="webrtc_stream_mode">الوضع العالمي · WebRTC</string>
-    <string name="webrtc_stream_mode_description">البث عبر الإنترنت باستخدام WebRTC</string>
-    <string name="webrtc_stream_mode_details">
-- يعمل بتقنية WebRTC.\n
-- اتصال مشفر من طرف إلى طرف.\n
-- حماية البث بكلمة مرور.\n
-- يمكنه إرسال الفيديو والصوت.\n
-- اتصل باستخدام معرف بث فريد وكلمة مرور.\n
-- يتطلب اتصالًا بالإنترنت للبث.\n
-- يستخدم كل عميل نطاقًا تردديًا منفصلًا للإنترنت.
-</string>
+    <string name="webrtc_method_title">WebRTC: مشاركة حول العالم</string>
+    <string name="webrtc_method_summary">شارك شاشتك مع مشاهدين في أي مكان باستخدام رابط.</string>
+    <string name="webrtc_method_conditions">مشاهدة في المتصفح · صوت اختياري · يلزم الإنترنت</string>
+    <string name="webrtc_method_intro">يرسل WebRTC فيديو مباشرًا، وصوتًا إذا اخترت ذلك، إلى متصفحات المشاهدين عبر الإنترنت. ينضم المشاهدون باستخدام رابط المشاركة، أو باستخدام معرّف البث وكلمة المرور.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>ادعُ مشاهدين على شبكات أخرى إلى screenstream.io باستخدام معرّف البث وكلمة المرور.</item>
+        <item>الفيديو والصوت مشفّران، ولكل بث كلمة مرور.</item>
+        <item>أضف صوت الميكروفون أو صوت الجهاز أو كليهما.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>يحتاج هذا الجهاز وكل مشاهد إلى الإنترنت.</item>
+        <item>يحصل كل مشاهد على بث منفصل، لذا يستهلك المزيد من المشاهدين بيانات رفع أكثر.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">فُقد الاتصال. جارٍ إعادة الاتصال…</string>
     <string name="webrtc_stream_server_address">الوصول إلى البث عبر:\n%1$s</string>

@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">Zezwól na mikrofon</string>
     <string name="rtsp_error_local_network_permission_required">Dostęp do sieci lokalnej jest wymagany, aby urządzenia mogły połączyć się z Twoją transmisją.</string>
 
-    <string name="rtsp_stream_mode">Tryb RTSP · RTSP</string>
-    <string name="rtsp_stream_mode_description">Strumieniuj z klientem lub serwerem RTSP</string>
-    <string name="rtsp_stream_mode_details">
-- Oparty na protokole RTSP.\n
-- Tryb serwera (domyślny) hostuje to urządzenie jako serwer RTSP.\n
-- Tryb klienta łączy się ze zdalnym serwerem RTSP.\n
-- Obsługuje wideo i audio z konfiguracją kodeków.\n
-- Tryb serwera dodaje protokół, filtry interfejsu/adresu, IPv4/IPv6 i ustawienia portu.\n
-- Działa przez Wi‑Fi/sieci mobilne i IPv4/IPv6.\n
-- Wymaga klienta lub odtwarzacza RTSP do oglądania.
-</string>
+    <string name="rtsp_method_title">RTSP: Odtwarzacze i serwery multimediów</string>
+    <string name="rtsp_method_summary">Oglądaj w odtwarzaczu wideo lub wysyłaj transmisję do serwera multimediów.</string>
+    <string name="rtsp_method_conditions">Zgodne oprogramowanie RTSP · Opcjonalny dźwięk</string>
+    <string name="rtsp_method_intro">RTSP to popularny standard przesyłania strumieniowego używany przez odtwarzacze wideo i serwery multimediów. Domyślnie to urządzenie udostępnia transmisję. Możesz też wysłać ją do serwera multimediów.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Oglądaj w odtwarzaczach, takich jak VLC, otwierając adres RTSP widoczny w aplikacji.</item>
+        <item>Wysyłaj transmisję do serwera multimediów, także do serwerów wymagających nazwy użytkownika i hasła.</item>
+        <item>Dodaj dźwięk mikrofonu, dźwięk urządzenia lub oba.</item>
+        <item>Wybierz formaty wideo i audio, rozmiar oraz jakość odpowiednie dla odtwarzacza lub serwera.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Odtwarzacze muszą mieć możliwość połączenia z tym urządzeniem, na przykład w tej samej sieci Wi-Fi. Udostępnianie transmisji z tego urządzenia działa bez internetu.</item>
+        <item>Przy wysyłaniu do serwera to urządzenie musi mieć do niego dostęp. Aby połączenie było szyfrowane, użyj adresu rtsps:// i ustaw protokół RTSP na TCP.</item>
+        <item>Odtwarzacz lub serwer musi obsługiwać wybrane formaty wideo i audio.</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">Wybierz tryb RTSP:</string>
     <string name="rtsp_mode_server">Serwer</string>

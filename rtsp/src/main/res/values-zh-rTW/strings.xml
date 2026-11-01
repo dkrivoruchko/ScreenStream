@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">允許麥克風</string>
     <string name="rtsp_error_local_network_permission_required">需要區域網路存取權，讓裝置可以連線到您的串流。</string>
 
-    <string name="rtsp_stream_mode">RTSP 模式 · RTSP</string>
-    <string name="rtsp_stream_mode_description">透過 RTSP 用戶端或伺服器串流</string>
-    <string name="rtsp_stream_mode_details">
-- 基於 RTSP 通訊協定。\n
-- 伺服器模式（預設）將此裝置作為 RTSP 伺服器。\n
-- 用戶端模式連線到遠端 RTSP 伺服器。\n
-- 支援視訊與音訊，並可設定編解碼器。\n
-- 伺服器模式新增通訊協定、介面/位址篩選、IPv4/IPv6 和連接埠設定。\n
-- 可在 Wi‑Fi/行動網路 與 IPv4/IPv6 上運作。\n
-- 需要 RTSP 客戶端或播放器觀看。
-</string>
+    <string name="rtsp_method_title">RTSP：播放器和媒體伺服器</string>
+    <string name="rtsp_method_summary">在影片播放器中觀看，或將串流傳送到媒體伺服器。</string>
+    <string name="rtsp_method_conditions">相容的 RTSP 軟體 · 選用音訊</string>
+    <string name="rtsp_method_intro">RTSP 是影片播放器和媒體伺服器常用的串流標準。根據預設，此裝置會代管串流。您也可以將串流傳送到媒體伺服器。</string>
+    <string-array name="rtsp_method_benefits">
+        <item>在 VLC 等播放器中開啟應用程式顯示的 RTSP 位址即可觀看。</item>
+        <item>將串流傳送到媒體伺服器，包括要求使用者名稱和密碼的伺服器。</item>
+        <item>可加入麥克風音訊、裝置音訊，或兩者皆加入。</item>
+        <item>選擇視訊和音訊格式、大小和品質，以配合您的播放器或伺服器。</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>播放器必須能連線到此裝置，例如在同一個 Wi-Fi 上。由此裝置代管時不需要網際網路。</item>
+        <item>傳送到伺服器時，此裝置必須能連上該伺服器。如需加密連線，請使用 rtsps:// 位址，並將 RTSP 通訊協定設為 TCP。</item>
+        <item>您的播放器或伺服器必須支援您選擇的視訊和音訊格式。</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">選擇 RTSP 模式：</string>
     <string name="rtsp_mode_server">伺服器</string>

@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Idini mikropon</string>
     <string name="webrtc_error_signaling_server_unavailable">Server ora bisa digayuh. Pamirsa bisa uga ora bisa melu.</string>
 
-    <string name="webrtc_stream_mode">Mode Global · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Streaming liwat internet nganggo WebRTC</string>
-    <string name="webrtc_stream_mode_details">
-- Didhukung dening teknologi WebRTC.\n
-- Komunikasi enkripsi end-to-end.\n
-- Perlindhungan stream nganggo sandhi.\n
-- Bisa ngirim video lan audio.\n
-- Sambungake nggunakake ID stream unik lan sandhi.\n
-- Mbutuhake sambungan internet kanggo streaming.\n
-- Saben klien nggunakake bandwidth internet kapisah.
-</string>
+    <string name="webrtc_method_title">WebRTC: Enggo bareng ing saindenging donya</string>
+    <string name="webrtc_method_summary">Enggo bareng layar sampeyan karo pamirsa ing ngendi wae nganggo pranala.</string>
+    <string name="webrtc_method_conditions">Nonton ing browser · Audio opsional · Butuh internet</string>
+    <string name="webrtc_method_intro">WebRTC ngirim video langsung, uga audio yen sampeyan milih, menyang browser pamirsa liwat internet. Pamirsa gabung nganggo pranala enggo bareng sampeyan, utawa nganggo ID streaming lan sandhi sampeyan.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Undang pamirsa ing jaringan liya menyang screenstream.io nganggo ID streaming lan sandhi sampeyan.</item>
+        <item>Video lan audio dienkripsi, lan saben streaming duwe sandhi.</item>
+        <item>Tambah audio mikropon, audio piranti, utawa loro-lorone.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Piranti iki lan saben pamirsa butuh internet.</item>
+        <item>Saben pamirsa nampa streaming kapisah, mula luwih akeh pamirsa nggunakake luwih akeh data unggahan.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">Sambungan ilang. Nyambung maneh…</string>
     <string name="webrtc_stream_server_address">Akses stream ing:\n%1$s</string>

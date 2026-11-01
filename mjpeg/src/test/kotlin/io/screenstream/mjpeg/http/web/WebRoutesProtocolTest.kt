@@ -71,7 +71,7 @@ internal class WebRoutesProtocolTest {
                 "127.0.0.1:8080?query",
                 "127.0.0.1:8080#fragment"
             )) {
-                val response = client.get("http://localhost/?accessToken=") {
+                val response = client.get("http://localhost/?token=") {
                     header(HttpHeaders.Host, host)
                     header("X-Forwarded-Host", "127.0.0.1:8080")
                     header("Forwarded", "host=127.0.0.1:8080")
@@ -157,9 +157,9 @@ internal class WebRoutesProtocolTest {
             assertArrayEquals(packagedHtml, configuredHtml)
             assertFalse(configuredHtml.decodeToString().contains("Confidential viewer title"))
             assertNull(configuredPage.headers[HttpHeaders.SetCookie])
-            val token = checkNotNull(handler.access.accessToken).value
+            val token = checkNotNull(handler.access.token).value
             val redirects = listOf("", "wrong", token, token).map { supplied ->
-                client.get("http://localhost/?accessToken=$supplied") { header(HttpHeaders.Host, "127.0.0.1:8080") }
+                client.get("http://localhost/?token=$supplied") { header(HttpHeaders.Host, "127.0.0.1:8080") }
             }
             redirects.forEach { response ->
                 assertEquals(HttpStatusCode.SeeOther, response.status)
@@ -414,8 +414,8 @@ internal class WebRoutesProtocolTest {
         var now: Long = 0L
         override val webState: MutableStateFlow<WebState?> = MutableStateFlow(null)
         override fun isListenerActive(listener: HttpListener): Boolean = active && listener === this.listener
-        override fun exchangeAccessToken(listener: HttpListener, accessToken: String?): SecretValue? =
-            if (isListenerActive(listener)) access.exchangeAccessToken(accessToken) else null
+        override fun exchangeToken(listener: HttpListener, token: String?): SecretValue? =
+            if (isListenerActive(listener)) access.exchangeToken(token) else null
 
         val verifiedPins: MutableList<String?> = mutableListOf()
         override fun verifyPin(listener: HttpListener, pin: String?, peerIp: String): HttpAccess.PinResult? {
@@ -423,10 +423,10 @@ internal class WebRoutesProtocolTest {
             return if (isListenerActive(listener)) access.verifyPin(pin, peerIp, now) else null
         }
 
-        override suspend fun respondMedia(call: ApplicationCall, listener: HttpListener, format: MediaFormat, accessToken: String?, accessCookie: String?) {
+        override suspend fun respondMedia(call: ApplicationCall, listener: HttpListener, format: MediaFormat, token: String?, accessCookie: String?) {
             call.respond(
                 if (isListenerActive(listener) && access.allowsViewing(
-                        accessToken,
+                        token,
                         accessCookie
                     )
                 ) HttpStatusCode.NoContent else HttpStatusCode.Forbidden

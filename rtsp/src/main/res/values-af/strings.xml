@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">Laat mikrofoon toe</string>
     <string name="rtsp_error_local_network_permission_required">Toegang tot die plaaslike netwerk is nodig sodat toestelle met jou stroom kan verbind.</string>
 
-    <string name="rtsp_stream_mode">RTSP-modus · RTSP</string>
-    <string name="rtsp_stream_mode_description">Stroom met RTSP-kliënt of -bediener</string>
-    <string name="rtsp_stream_mode_details">
-- Aangedryf deur RTSP-protokol.\n
-- Bedienermodus (verstek) huisves hierdie toestel as \'n RTSP-bediener.\n
-- Kliëntmodus koppel aan \'n afgeleë RTSP-bediener.\n
-- Ondersteun video en klank met kodek-opstelling.\n
-- Bedienermodus voeg protokol, koppelvlak-/adresfilters, IPv4/IPv6 en poortinstellings by.\n
-- Werk oor Wi‑Fi/mobiele netwerke en IPv4/IPv6.\n
-- Vereis \'n RTSP-kliënt of speler vir besigtiging.
-</string>
+    <string name="rtsp_method_title">RTSP: Spelers en mediabedieners</string>
+    <string name="rtsp_method_summary">Kyk in \'n videospeler, of stuur die stroom na \'n mediabediener.</string>
+    <string name="rtsp_method_conditions">Versoenbare RTSP-sagteware · Opsionele klank</string>
+    <string name="rtsp_method_intro">RTSP is \'n algemene stroomstandaard wat deur videospelers en mediabedieners gebruik word. By verstek huisves hierdie toestel die stroom. Jy kan dit ook na \'n mediabediener stuur.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Kyk in spelers soos VLC deur die RTSP-adres oop te maak wat in die app gewys word.</item>
+        <item>Stuur die stroom na \'n mediabediener, insluitend bedieners wat \'n gebruikersnaam en wagwoord vra.</item>
+        <item>Voeg mikrofoonklank, toestelklank of albei by.</item>
+        <item>Kies video- en klankformate, grootte en gehalte wat by jou speler of bediener pas.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Spelers moet aan hierdie toestel kan koppel, byvoorbeeld op dieselfde Wi-Fi. Huisvesting werk sonder internet.</item>
+        <item>Wanneer jy na \'n bediener stuur, moet hierdie toestel dit kan bereik. Vir \'n geënkripteerde verbinding, gebruik \'n rtsps://-adres en stel RTSP-protokol op TCP.</item>
+        <item>Jou speler of bediener moet die video- en klankformate wat jy kies, ondersteun.</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">Kies RTSP-modus:</string>
     <string name="rtsp_mode_server">Server</string>

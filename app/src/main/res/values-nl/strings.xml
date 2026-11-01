@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Selecteer streammodus:</string>
     <string name="app_tab_stream_switching_modules">Modi wisselen…</string>
 
+    <string name="app_mode_selected_method">Actieve streammethode</string>
+    <string name="app_mode_choose_method">Kies een streammethode</string>
+    <string name="app_mode_choose_another_method">Kies een andere methode</string>
+    <string name="app_mode_change">Wijzigen</string>
+    <string name="app_mode_chooser_title">Kies hoe je je scherm deelt</string>
+    <string name="app_mode_close_chooser">Sluiten</string>
+    <string name="app_mode_details">Details</string>
+    <string name="app_mode_details_description">Details voor %1$s</string>
+    <string name="app_mode_benefits">Voordelen</string>
+    <string name="app_mode_things_to_know">Goed om te weten</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Niet nu</string>
     <string name="app_permission_open_settings">Instellingen openen</string>

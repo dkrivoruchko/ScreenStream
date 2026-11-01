@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">允许麦克风</string>
     <string name="webrtc_error_signaling_server_unavailable">无法连接服务器。观看者可能无法加入。</string>
 
-    <string name="webrtc_stream_mode">全局模式 · WebRTC</string>
-    <string name="webrtc_stream_mode_description">使用 WebRTC 通过互联网串流</string>
-    <string name="webrtc_stream_mode_details">
-- 基于 WebRTC 技术。\n
-- 端到端加密通信。\n
-- 使用密码保护串流。\n
-- 可发送视频和音频。\n
-- 使用唯一的串流 ID 和密码进行连接。\n
-- 需要互联网连接才能进行传输。\n
-- 每个客户端使用独立互联网带宽。
-</string>
+    <string name="webrtc_method_title">WebRTC：全球共享</string>
+    <string name="webrtc_method_summary">通过链接与任何地方的观看者共享屏幕。</string>
+    <string name="webrtc_method_conditions">浏览器观看 · 可选音频 · 需要互联网</string>
+    <string name="webrtc_method_intro">WebRTC 通过互联网将实时视频发送到观看者的浏览器，也可按您的选择发送音频。观看者可通过您的分享链接加入，或使用您的串流 ID 和密码加入。</string>
+    <string-array name="webrtc_method_benefits">
+        <item>使用您的串流 ID 和密码，邀请其他网络上的观看者访问 screenstream.io。</item>
+        <item>视频和音频均已加密，且每个串流都有密码。</item>
+        <item>可添加麦克风音频、设备音频或两者。</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>此设备和每位观看者都需要互联网。</item>
+        <item>每位观看者都会获得单独的串流，因此观看者越多，上传流量越大。</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">连接已断开。正在重连…</string>
     <string name="webrtc_stream_server_address">在此访问串流：\n%1$s</string>

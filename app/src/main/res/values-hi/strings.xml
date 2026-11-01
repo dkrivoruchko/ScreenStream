@@ -13,10 +13,21 @@
     <string name="app_tab_stream">स्ट्रीम</string>
     <string name="app_tab_settings">सेटिंग</string>
     <string name="app_tab_about">परिचय</string>
-    <string name="app_tab_exit">बाहर</string>
+    <string name="app_tab_exit">बाहर निकलें</string>
 
     <string name="app_tab_stream_select_mode">स्ट्रीम मोड चुनें:</string>
     <string name="app_tab_stream_switching_modules">मोड बदले जा रहे हैं…</string>
+
+    <string name="app_mode_selected_method">स्ट्रीमिंग का सक्रिय तरीका</string>
+    <string name="app_mode_choose_method">स्ट्रीमिंग का तरीका चुनें</string>
+    <string name="app_mode_choose_another_method">दूसरा तरीका चुनें</string>
+    <string name="app_mode_change">बदलें</string>
+    <string name="app_mode_chooser_title">अपनी स्क्रीन शेयर करने का तरीका चुनें</string>
+    <string name="app_mode_close_chooser">बंद करें</string>
+    <string name="app_mode_details">विवरण</string>
+    <string name="app_mode_details_description">%1$s का विवरण</string>
+    <string name="app_mode_benefits">फ़ायदे</string>
+    <string name="app_mode_things_to_know">ध्यान रखने वाली बातें</string>
 
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">अभी नहीं</string>

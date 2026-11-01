@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">Mikrofona izin ver</string>
     <string name="rtsp_error_local_network_permission_required">Cihazların yayınınıza bağlanabilmesi için yerel ağ erişimi gereklidir.</string>
 
-    <string name="rtsp_stream_mode">RTSP modu · RTSP</string>
-    <string name="rtsp_stream_mode_description">RTSP istemcisi veya sunucusuyla yayın yapın</string>
-    <string name="rtsp_stream_mode_details">
-- RTSP protokolüyle çalışır.\n
-- Sunucu modu (varsayılan), bu cihazı RTSP sunucusu olarak kullanır.\n
-- İstemci modu uzak bir RTSP sunucusuna bağlanır.\n
-- Kodlayıcı yapılandırmasıyla video ve sesi destekler.\n
-- Sunucu modu protokol, arayüz/adres filtreleri, IPv4/IPv6 ve bağlantı noktası ayarları ekler.\n
-- Wi‑Fi/mobil ağlarda ve IPv4/IPv6 ile çalışır.\n
-- İzlemek için RTSP istemcisi veya oynatıcı gerekir.
-</string>
+    <string name="rtsp_method_title">RTSP: oynatıcılar ve medya sunucuları</string>
+    <string name="rtsp_method_summary">Bir video oynatıcıda izleyin veya yayını bir medya sunucusuna gönderin.</string>
+    <string name="rtsp_method_conditions">Uyumlu RTSP yazılımı · İsteğe bağlı ses</string>
+    <string name="rtsp_method_intro">RTSP, video oynatıcılar ve medya sunucuları tarafından kullanılan yaygın bir yayın standardıdır. Varsayılan olarak yayını bu cihaz barındırır. Yayını bir medya sunucusuna da gönderebilirsiniz.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Uygulamada gösterilen RTSP adresini açarak VLC gibi oynatıcılarda izleyin.</item>
+        <item>Yayını, kullanıcı adı ve şifre isteyen sunucular dahil bir medya sunucusuna gönderin.</item>
+        <item>Mikrofon sesi, cihaz sesi veya ikisini birden ekleyin.</item>
+        <item>Video ve ses biçimlerini, boyutu ve kaliteyi oynatıcınıza veya sunucunuza göre seçin.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Oynatıcılar bu cihaza bağlanabilmelidir, örneğin aynı Wi-Fi ağında. Barındırma internet olmadan çalışır.</item>
+        <item>Bir sunucuya gönderirken bu cihaz sunucuya erişebilmelidir. Şifreli bağlantı için rtsps:// adresi kullanın ve RTSP protokolünü TCP olarak ayarlayın.</item>
+        <item>Oynatıcınız veya sunucunuz seçtiğiniz video ve ses biçimlerini desteklemelidir.</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">RTSP modunu seçin:</string>
     <string name="rtsp_mode_server">Sunucu</string>

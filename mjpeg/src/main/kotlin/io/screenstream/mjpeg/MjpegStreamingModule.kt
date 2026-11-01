@@ -18,9 +18,15 @@ internal class MjpegStreamingModule : StreamingModule {
 
     override val id: StreamingModule.Id = Id
     override val priority: Int = 40
-    override val nameResource: Int = R.string.mjpeg_mode_name
-    override val descriptionResource: Int = R.string.mjpeg_mode_description
-    override val detailsResource: Int = R.string.mjpeg_mode_details
+    override val description: StreamingModule.Description = StreamingModule.Description(
+        iconRes = R.drawable.mjpeg_method_24px,
+        titleRes = R.string.mjpeg_method_title,
+        summaryRes = R.string.mjpeg_method_summary,
+        introRes = R.string.mjpeg_method_intro,
+        conditionsRes = R.string.mjpeg_method_conditions,
+        benefitsRes = R.array.mjpeg_method_benefits,
+        thingsToKnowRes = R.array.mjpeg_method_things_to_know,
+    )
     override val serviceClass: Class<out Service> = MjpegStreamingModuleService::class.java
     override val foregroundSlot: StreamingModuleNotifications.ForegroundSlot = object : StreamingModuleNotifications.ForegroundSlot {
         override val id: Int = 400

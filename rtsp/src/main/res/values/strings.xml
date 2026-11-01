@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">Allow microphone</string>
     <string name="rtsp_error_local_network_permission_required">Local network access is required so devices can connect to your stream.</string>
 
-    <string name="rtsp_stream_mode">RTSP mode · RTSP</string>
-    <string name="rtsp_stream_mode_description">Stream with an RTSP client or server</string>
-    <string name="rtsp_stream_mode_details">
-- Powered by RTSP protocol.\n
-- Server mode (default) hosts this device as an RTSP server.\n
-- Client mode connects to a remote RTSP server.\n
-- Supports video and audio with codec configuration.\n
-- Server mode adds protocol, interface/address filters, IPv4/IPv6, and port settings.\n
-- Works over Wi‑Fi/mobile networks and IPv4/IPv6.\n
-- Requires an RTSP client or player for viewing.
-</string>
+    <string name="rtsp_method_title">RTSP: Players and media servers</string>
+    <string name="rtsp_method_summary">Watch in a video player, or send the stream to a media server.</string>
+    <string name="rtsp_method_conditions">Compatible RTSP software · Optional audio</string>
+    <string name="rtsp_method_intro">RTSP is a common streaming standard used by video players and media servers. By default, this device hosts the stream. You can also send it to a media server.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Watch in players such as VLC by opening the RTSP address shown in the app.</item>
+        <item>Send the stream to a media server, including servers that ask for a username and password.</item>
+        <item>Add microphone audio, device audio, or both.</item>
+        <item>Choose video and audio formats, size and quality to suit your player or server.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Players must be able to connect to this device, for example on the same Wi-Fi. Hosting works without internet.</item>
+        <item>When sending to a server, this device must be able to reach it. For an encrypted connection, use an rtsps:// address and set RTSP protocol to TCP.</item>
+        <item>Your player or server must support the video and audio formats you choose.</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">Select RTSP mode:</string>
     <string name="rtsp_mode_server">Server</string>

@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Pilih mode stream:</string>
     <string name="app_tab_stream_switching_modules">Ngalih mode…</string>
 
+    <string name="app_mode_selected_method">Cara streaming aktif</string>
+    <string name="app_mode_choose_method">Pilih cara streaming</string>
+    <string name="app_mode_choose_another_method">Pilih cara liyane</string>
+    <string name="app_mode_change">Ganti</string>
+    <string name="app_mode_chooser_title">Pilih cara kanggo enggo bareng layar sampeyan</string>
+    <string name="app_mode_close_chooser">Tutup</string>
+    <string name="app_mode_details">Rincian</string>
+    <string name="app_mode_details_description">Rincian kanggo %1$s</string>
+    <string name="app_mode_benefits">Kaluwihan</string>
+    <string name="app_mode_things_to_know">Prelu dingerteni</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Saiki ora</string>
     <string name="app_permission_open_settings">Bukak setelan</string>

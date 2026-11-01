@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">اختر وضع البث:</string>
     <string name="app_tab_stream_switching_modules">جارٍ تبديل الأوضاع…</string>
 
+    <string name="app_mode_selected_method">طريقة البث النشطة</string>
+    <string name="app_mode_choose_method">اختر طريقة البث</string>
+    <string name="app_mode_choose_another_method">اختر طريقة أخرى</string>
+    <string name="app_mode_change">تغيير</string>
+    <string name="app_mode_chooser_title">اختر طريقة لمشاركة شاشتك</string>
+    <string name="app_mode_close_chooser">إغلاق</string>
+    <string name="app_mode_details">التفاصيل</string>
+    <string name="app_mode_details_description">تفاصيل %1$s</string>
+    <string name="app_mode_benefits">المزايا</string>
+    <string name="app_mode_things_to_know">ما يجب معرفته</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">ليس الآن</string>
     <string name="app_permission_open_settings">فتح الإعدادات</string>
@@ -42,7 +53,7 @@
     <string name="app_notification_channel_streaming">إشعارات البث</string>
     <string name="app_notification_channel_error">إشعارات الأخطاء</string>
     <string name="app_notification_waiting_content">اضغط لفتح التطبيق</string>
-    <string name="app_notification_streaming_title">البث…</string>
+    <string name="app_notification_streaming_title">جارٍ البث…</string>
     <string name="app_notification_streaming_content">اضغط على إيقاف لإنهاء البث</string>
     <string name="app_notification_stop">إيقاف</string>
 

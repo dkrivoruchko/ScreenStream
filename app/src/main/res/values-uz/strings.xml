@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Translatsiya rejimini tanlang:</string>
     <string name="app_tab_stream_switching_modules">Rejimlar almashtirilmoqda…</string>
 
+    <string name="app_mode_selected_method">Faol translatsiya usuli</string>
+    <string name="app_mode_choose_method">Translatsiya usulini tanlang</string>
+    <string name="app_mode_choose_another_method">Boshqa usulni tanlang</string>
+    <string name="app_mode_change">Oʻzgartirish</string>
+    <string name="app_mode_chooser_title">Ekraningizni ulashish usulini tanlang</string>
+    <string name="app_mode_close_chooser">Yopish</string>
+    <string name="app_mode_details">Batafsil</string>
+    <string name="app_mode_details_description">%1$s haqida batafsil</string>
+    <string name="app_mode_benefits">Afzalliklar</string>
+    <string name="app_mode_things_to_know">Bilib qoʻying</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Hozir emas</string>
     <string name="app_permission_open_settings">Sozlamalarni oching</string>

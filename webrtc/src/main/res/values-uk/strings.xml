@@ -7,17 +7,19 @@
     <string name="webrtc_error_allow_microphone">Дозволити мікрофон</string>
     <string name="webrtc_error_signaling_server_unavailable">Не вдається підключитися до сервера. Можливо, глядачі не зможуть приєднатися.</string>
 
-    <string name="webrtc_stream_mode">Глобальний режим · WebRTC</string>
-    <string name="webrtc_stream_mode_description">Трансляція через інтернет із WebRTC</string>
-    <string name="webrtc_stream_mode_details">
-- Працює на основі технології WebRTC\n
-- Захищена комунікація з повним шифруванням\n
-- Захист трансляції за допомогою пароля\n
-- Можливість надсилання відео та аудіо\n
-- Підключення до трансляції за допомогою унікального ідентифікатора та пароля\n
-- Для надсилання та отримання трансляції необхідне підключення до Інтернету\n
-- Кожен клієнт використовує окрему інтернет-пропускну здатність.
-</string>
+    <string name="webrtc_method_title">WebRTC: трансляція на весь світ</string>
+    <string name="webrtc_method_summary">Діліться екраном із глядачами будь-де за посиланням.</string>
+    <string name="webrtc_method_conditions">Перегляд у браузері · Звук за бажанням · Потрібен інтернет</string>
+    <string name="webrtc_method_intro">WebRTC передає відео в реальному часі, а за бажанням і звук, у браузери глядачів через інтернет. Глядачі приєднуються за вашим посиланням або за ID трансляції та паролем.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Запрошуйте глядачів з інших мереж на screenstream.io за ID трансляції та паролем.</item>
+        <item>Відео й звук шифруються, а кожна трансляція має пароль.</item>
+        <item>Додавайте звук мікрофона, звук пристрою або обидва.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Цьому пристрою й кожному глядачеві потрібен інтернет.</item>
+        <item>Кожен глядач отримує окремий потік, тому з більшою кількістю глядачів зростає вихідний трафік.</item>
+    </string-array>
 
     <string name="webrtc_stream_network_recovery">З\'єднання втрачено. Перепідключення…</string>
     <string name="webrtc_stream_server_address">Відкрийте трансляцію за адресою:\n%1$s</string>

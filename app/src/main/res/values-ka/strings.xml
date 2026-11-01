@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">აირჩიეთ სტრიმის რეჟიმი:</string>
     <string name="app_tab_stream_switching_modules">რეჟიმების გადართვა…</string>
 
+    <string name="app_mode_selected_method">სტრიმინგის აქტიური მეთოდი</string>
+    <string name="app_mode_choose_method">აირჩიეთ სტრიმინგის მეთოდი</string>
+    <string name="app_mode_choose_another_method">აირჩიეთ სხვა მეთოდი</string>
+    <string name="app_mode_change">შეცვლა</string>
+    <string name="app_mode_chooser_title">აირჩიეთ ეკრანის გაზიარების მეთოდი</string>
+    <string name="app_mode_close_chooser">დახურვა</string>
+    <string name="app_mode_details">დეტალები</string>
+    <string name="app_mode_details_description">დეტალები: %1$s</string>
+    <string name="app_mode_benefits">უპირატესობები</string>
+    <string name="app_mode_things_to_know">რა უნდა იცოდეთ</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">ახლა არა</string>
     <string name="app_permission_open_settings">გახსენით პარამეტრები</string>

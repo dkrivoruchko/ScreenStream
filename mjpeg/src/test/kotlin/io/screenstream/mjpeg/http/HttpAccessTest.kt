@@ -17,7 +17,7 @@ internal class HttpAccessTest {
 
         assertTrue(access.allowsViewing(null, null))
         assertEquals(HttpAccess.PinResult.Authorized(null), access.verifyPin(null, "peer", 0))
-        assertNull(access.exchangeAccessToken("irrelevant"))
+        assertNull(access.exchangeToken("irrelevant"))
         assertThrows(IllegalArgumentException::class.java) {
             access.updateSettings(AccessSettings(pinEnabled = true))
         }
@@ -29,7 +29,7 @@ internal class HttpAccessTest {
     fun protectedViewingRequiresCurrentTokenOrCookieAndSixAsciiDigitPin() {
         val access = HttpAccess()
         access.updateSettings(protectedSettings().copy(limitWrongPins = false))
-        val token = checkNotNull(access.accessToken)
+        val token = checkNotNull(access.token)
         val cookie = authorizedCookie(access, "123456")
         val wrongToken = token.value.dropLast(1) + if (token.value.last() == 'A') "B" else "A"
         val wrongCookie = cookie.value.dropLast(1) + if (cookie.value.last() == '0') "1" else "0"
@@ -38,7 +38,7 @@ internal class HttpAccessTest {
         assertFalse(access.allowsViewing("wrong", "wrong"))
         assertFalse(access.allowsViewing(wrongToken, null))
         assertFalse(access.allowsViewing(null, wrongCookie))
-        assertNull(access.exchangeAccessToken(wrongToken))
+        assertNull(access.exchangeToken(wrongToken))
         assertTrue(access.allowsViewing(token.value, null))
         assertTrue(access.allowsViewing(null, cookie.value))
         assertTrue(access.allowsViewing(token.value, wrongCookie))
@@ -54,15 +54,15 @@ internal class HttpAccessTest {
     fun repeatedPinLoginAndTokenExchangeKeepCookieAndWrongAttemptBudget() {
         val access = HttpAccess()
         access.updateSettings(protectedSettings())
-        val token = checkNotNull(access.accessToken)
+        val token = checkNotNull(access.token)
         val cookie = authorizedCookie(access, "123456")
         val generation = access.generation
 
         assertEquals(cookie, authorizedCookie(access, "123456"))
         wrongAttempts(access, count = 4)
-        repeat(2) { assertEquals(cookie, access.exchangeAccessToken(token.value)) }
-        assertNull(access.exchangeAccessToken(null))
-        assertNull(access.exchangeAccessToken("wrong"))
+        repeat(2) { assertEquals(cookie, access.exchangeToken(token.value)) }
+        assertNull(access.exchangeToken(null))
+        assertNull(access.exchangeToken("wrong"))
         assertEquals(generation, access.generation)
         assertEquals(HttpAccess.PinResult.Blocked(60_000), access.verifyPin("wrong", "peer", 0))
         assertTrue(access.allowsViewing(null, cookie.value))
@@ -74,7 +74,7 @@ internal class HttpAccessTest {
         val access = HttpAccess()
         val settings = protectedSettings()
         access.updateSettings(settings)
-        val token = checkNotNull(access.accessToken)
+        val token = checkNotNull(access.token)
         val cookie = authorizedCookie(access, "123456")
         val generation = access.generation
         val edited = settings.copy(
@@ -88,8 +88,8 @@ internal class HttpAccessTest {
         assertFalse(access.requiresCredentialRotation(edited))
         assertFalse(access.updateSettings(edited))
         assertEquals(generation, access.generation)
-        assertEquals(token, access.accessToken)
-        assertEquals(cookie, access.exchangeAccessToken(token.value))
+        assertEquals(token, access.token)
+        assertEquals(cookie, access.exchangeToken(token.value))
         assertTrue(access.allowsViewing(token.value, cookie.value))
     }
 
@@ -99,7 +99,7 @@ internal class HttpAccessTest {
         val access = HttpAccess()
         val settings = protectedSettings()
         assertTrue(access.updateSettings(settings))
-        val oldToken = checkNotNull(access.accessToken)
+        val oldToken = checkNotNull(access.token)
         val oldCookie = authorizedCookie(access, "123456")
         val generation = access.generation
         val changedPin = settings.copy(pin = SecretValue("654321"))
@@ -108,20 +108,20 @@ internal class HttpAccessTest {
         assertTrue(access.updateSettings(changedPin))
         assertEquals(generation + 1, access.generation)
         assertFalse(access.allowsViewing(oldToken.value, oldCookie.value))
-        assertNull(access.exchangeAccessToken(oldToken.value))
-        val rotatedToken = checkNotNull(access.accessToken)
+        assertNull(access.exchangeToken(oldToken.value))
+        val rotatedToken = checkNotNull(access.token)
         val rotatedCookie = authorizedCookie(access, "654321")
         assertTrue(access.allowsViewing(rotatedToken.value, rotatedCookie.value))
 
         assertTrue(access.updateSettings(changedPin.copy(pinEnabled = false)))
         assertEquals(generation + 2, access.generation)
-        assertNull(access.accessToken)
-        assertNull(access.exchangeAccessToken(rotatedToken.value))
+        assertNull(access.token)
+        assertNull(access.exchangeToken(rotatedToken.value))
         assertTrue(access.allowsViewing(null, null))
         assertTrue(access.updateSettings(changedPin))
         assertEquals(generation + 3, access.generation)
         assertFalse(access.allowsViewing(rotatedToken.value, rotatedCookie.value))
-        assertTrue(access.allowsViewing(checkNotNull(access.accessToken).value, null))
+        assertTrue(access.allowsViewing(checkNotNull(access.token).value, null))
     }
 
     // Cases: MJPEG-ACC-04
@@ -142,7 +142,7 @@ internal class HttpAccessTest {
     fun blockedPinRequestsCannotBypassOrExtendDeadlineButViewingStillWorks() {
         val access = HttpAccess()
         access.updateSettings(protectedSettings())
-        val token = checkNotNull(access.accessToken)
+        val token = checkNotNull(access.token)
         val cookie = authorizedCookie(access, "123456")
         wrongAttempts(access, count = 4, nowMillis = 1_000)
         assertEquals(HttpAccess.PinResult.Blocked(60_000), access.verifyPin("wrong", "peer", 1_000))

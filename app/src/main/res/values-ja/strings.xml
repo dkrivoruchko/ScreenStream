@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">配信モードを選択：</string>
     <string name="app_tab_stream_switching_modules">モードを切り替えています…</string>
 
+    <string name="app_mode_selected_method">現在の配信方法</string>
+    <string name="app_mode_choose_method">配信方法を選択</string>
+    <string name="app_mode_choose_another_method">別の方法を選択</string>
+    <string name="app_mode_change">変更</string>
+    <string name="app_mode_chooser_title">画面を共有する方法を選択</string>
+    <string name="app_mode_close_chooser">閉じる</string>
+    <string name="app_mode_details">詳細</string>
+    <string name="app_mode_details_description">%1$s の詳細</string>
+    <string name="app_mode_benefits">メリット</string>
+    <string name="app_mode_things_to_know">注意点</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">後で</string>
     <string name="app_permission_open_settings">設定を開く</string>

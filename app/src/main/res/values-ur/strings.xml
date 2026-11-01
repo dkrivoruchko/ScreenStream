@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">اسٹریم موڈ منتخب کریں:</string>
     <string name="app_tab_stream_switching_modules">موڈ تبدیل ہو رہے ہیں…</string>
 
+    <string name="app_mode_selected_method">اسٹریمنگ کا فعال طریقہ</string>
+    <string name="app_mode_choose_method">اسٹریمنگ کا طریقہ منتخب کریں</string>
+    <string name="app_mode_choose_another_method">کوئی دوسرا طریقہ منتخب کریں</string>
+    <string name="app_mode_change">تبدیل کریں</string>
+    <string name="app_mode_chooser_title">اپنی اسکرین شیئر کرنے کا طریقہ منتخب کریں</string>
+    <string name="app_mode_close_chooser">بند کریں</string>
+    <string name="app_mode_details">تفصیلات</string>
+    <string name="app_mode_details_description">%1$s کی تفصیلات</string>
+    <string name="app_mode_benefits">فوائد</string>
+    <string name="app_mode_things_to_know">جاننے کی باتیں</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">ابھی نہیں</string>
     <string name="app_permission_open_settings">ترتیبات کھولیں</string>

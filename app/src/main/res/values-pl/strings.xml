@@ -18,6 +18,17 @@
     <string name="app_tab_stream_select_mode">Wybierz tryb transmisji:</string>
     <string name="app_tab_stream_switching_modules">Przełączanie trybów…</string>
 
+    <string name="app_mode_selected_method">Aktywna metoda transmisji</string>
+    <string name="app_mode_choose_method">Wybierz metodę transmisji</string>
+    <string name="app_mode_choose_another_method">Wybierz inną metodę</string>
+    <string name="app_mode_change">Zmień</string>
+    <string name="app_mode_chooser_title">Wybierz sposób udostępniania ekranu</string>
+    <string name="app_mode_close_chooser">Zamknij</string>
+    <string name="app_mode_details">Szczegóły</string>
+    <string name="app_mode_details_description">Szczegóły: %1$s</string>
+    <string name="app_mode_benefits">Zalety</string>
+    <string name="app_mode_things_to_know">Warto wiedzieć</string>
+
     <!-- Permission explanations distinguish microphone input from device playback audio. -->
     <string name="app_permission_not_now">Nie teraz</string>
     <string name="app_permission_open_settings">Otwórz ustawienia</string>

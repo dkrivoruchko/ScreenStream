@@ -7,17 +7,21 @@
     <string name="rtsp_error_allow_microphone">マイクを許可</string>
     <string name="rtsp_error_local_network_permission_required">デバイスがストリームに接続できるように、ローカルネットワークへのアクセスが必要です。</string>
 
-    <string name="rtsp_stream_mode">RTSPモード · RTSP</string>
-    <string name="rtsp_stream_mode_description">RTSPクライアントまたはサーバーでストリーミング</string>
-    <string name="rtsp_stream_mode_details">
-- RTSPプロトコルで動作。\n
-- サーバーモード（デフォルト）ではこの端末をRTSPサーバーとしてホストします。\n
-- クライアントモードはリモートRTSPサーバーに接続します。\n
-- コーデック設定付きで動画と音声をサポート。\n
-- サーバーモードはプロトコル、インターフェース/アドレスのフィルター、IPv4/IPv6、ポート設定を追加します。\n
-- Wi‑Fi/モバイルネットワークおよびIPv4/IPv6で動作。\n
-- 視聴にはRTSPクライアントまたはプレーヤーが必要。
-</string>
+    <string name="rtsp_method_title">RTSP: プレーヤーとメディアサーバー</string>
+    <string name="rtsp_method_summary">動画プレーヤーで視聴するか、メディアサーバーに配信を送信します。</string>
+    <string name="rtsp_method_conditions">対応する RTSP ソフトウェア · 音声は任意</string>
+    <string name="rtsp_method_intro">RTSP は、動画プレーヤーやメディアサーバーで使われる一般的な配信規格です。デフォルトでは、このデバイスが配信をホストします。メディアサーバーに送信することもできます。</string>
+    <string-array name="rtsp_method_benefits">
+        <item>アプリに表示される RTSP アドレスを開くと、VLC などのプレーヤーで視聴できます。</item>
+        <item>ユーザー名とパスワードを求めるサーバーを含め、メディアサーバーに配信を送信できます。</item>
+        <item>マイクの音声、デバイスの音声、またはその両方を追加できます。</item>
+        <item>プレーヤーやサーバーに合わせて、映像と音声の形式、サイズ、画質を選べます。</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>たとえば同じ Wi-Fi 上で、プレーヤーがこのデバイスに接続できる必要があります。ホストする場合、インターネットは不要です。</item>
+        <item>サーバーに送信する場合、このデバイスからサーバーに接続できる必要があります。暗号化された接続にするには、rtsps:// アドレスを使い、RTSP プロトコルを TCP に設定してください。</item>
+        <item>選択した映像と音声の形式に、プレーヤーやサーバーが対応している必要があります。</item>
+    </string-array>
 
     <string name="rtsp_mode_card_title">RTSPモードを選択：</string>
     <string name="rtsp_mode_server">サーバー</string>

@@ -1,6 +1,10 @@
 # MJPEG web client
 
-Use Node.js **24.21.0** and npm **12.2.0**, pinned in `.nvmrc` and `package.json`. From the repository root:
+This workspace builds the packaged browser viewer and provides a desktop preview for development. Android serves the generated HTML; the preview composes the same viewer with a virtual device and a separate HTTP/WebSocket server. Read [web-client internals](../../internal/03-delivery/web-client.md) for production ownership and recovery contracts, and the [HTTP guide](../../docs/http-server.md) for the protocol it consumes.
+
+## Development workflow
+
+Use Node.js **24.21.0** and npm **12.2.0**, pinned in [.nvmrc](.nvmrc) and [package.json](package.json). From the repository root:
 
 ```sh
 cd mjpeg/tools/web-client
@@ -8,10 +12,9 @@ npm ci
 npm start
 ```
 
-Open `http://127.0.0.1:8765/` for the desktop preview panel. **Open viewer** opens the actual packaged page at
-`/viewer`. Ctrl+C stops the server. Optional: `npm start -- --port 8877 --no-watch`.
+Open `http://127.0.0.1:8765/` for the preview panel. **Open viewer** opens the packaged page at `/viewer`. Ctrl+C stops the server. To choose another port and disable source watching, use `npm start -- --port 8877 --no-watch`.
 
-Run the checks and regenerate the Android asset after editing `src/`:
+After editing the authored inputs, run the preview checks, regenerate the Android asset and compare it with a fresh build:
 
 ```sh
 npm test
@@ -19,19 +22,23 @@ npm run build
 npm run check
 ```
 
-1. `src/` contains the production HTML, CSS and JavaScript. Edit these files, not the generated
-   `mjpeg/src/main/assets/mjpeg/index.html`. Commit authored sources and regenerated HTML together.
-2. `build.cjs` supplies the shared HTML builder. Babel targets Chrome 49, Firefox 45, Safari 9.1 and iOS 9.3;
-   Acorn verifies ES5 syntax. Keep exactly one `/* INLINE_STYLE */`, `/* INLINE_SCRIPT */`,
-   `/* INLINE_LOGO */` template marker. The viewer receives appearance through its authorized state connection.
-   `check` compares the generated asset without writing it. Syntax targets do not prove runtime API support.
-3. `preview/server.cjs` owns desktop HTTP/WS and `viewer-build.cjs` owns in-memory builds and source watching.
-   `device.cjs` derives canonical visual presets from the chosen scenario and options; `scenarios.cjs` declares
-   their catalog and defaults. `panel.js` controls the preview. Eight predefined JPEG frames per orientation animate a small spinner at
-   4 fps; `logo.jpg` remains static. No image-processing dependency is needed at runtime. Android packages
-   only the generated HTML and requires no Node/npm build step. Watching covers the authored sources and
-   packaged logo, with one-second polling when native watching is unavailable. Restart the preview server
-   after changing `build.cjs`, including its JavaScript module list.
+These commands are the maintenance workflow. Record fresh results with a change; this guide and the scenario catalogue make no execution claim. `npm test` targets the preview/build fixtures, while the Kotlin suite has its own [preparation and execution requirements](../../internal/04-testing/testing.md#current-verification-status).
+
+## Sources and generated output
+
+Edit production HTML, CSS, JavaScript and locale inputs in [`src/`](src). [build.cjs](build.cjs) combines them with the packaged logo into [`mjpeg/src/main/assets/mjpeg/index.html`](../../src/main/assets/mjpeg/index.html). Commit authored inputs and regenerated HTML together. The Android package consumes the checked-in asset directly.
+
+The builder requires exactly one `/* INLINE_STYLE */`, `/* INLINE_SCRIPT */` and `/* INLINE_LOGO */` template marker. It supplies the ordered script module list, inlines CSS/logo and escapes embedded script content. Appearance reaches the viewer through authorized state, so the build contains no per-device settings or credentials.
+
+Babel targets Chrome 49, Firefox 45, Safari 9.1 and iOS 9.3; Acorn verifies ES5 syntax. These are syntax checks. Browser APIs, policy, layout and rendering require separate qualification. `npm run check` compares the generated asset with the current build and writes no output.
+
+## Preview ownership and reloads
+
+[preview/server.cjs](preview/server.cjs) owns desktop HTTP/WebSocket transport. [device.cjs](preview/device.cjs) derives canonical visual presets from [scenarios.cjs](preview/scenarios.cjs), and [panel.js](preview/panel.js) controls that shared virtual device. Eight predefined JPEG frames per orientation animate a spinner at 4 fps; `logo.jpg` stays static. Preview runtime reads those fixtures directly.
+
+[viewer-build.cjs](preview/viewer-build.cjs) builds HTML in memory and watches authored inputs plus the packaged logo. Input changes are debounced for 100 ms; native-watch failure switches to one-second polling. A failed rebuild retains the last good viewer and records the error in Diagnostics. A successful rebuild needs an explicit viewer reload. Restart the server after changing `build.cjs`, including its script module list.
+
+The server defaults to loopback. All tabs share one virtual device, settings and credentials; cookies are host-scoped rather than port-scoped. Source watching and full panel reload have different effects: watching prepares new HTML, while panel reload restores the canonical default device.
 
 ## Preview controls
 
@@ -61,11 +68,7 @@ npm run check
    Capture failed uses the same inactive image policy; the fault checkbox remains independent. Closing an already
    displayed MJPEG response does not guarantee a browser error event or removal of its image.
 
-The server defaults to loopback. All tabs share one virtual device and its settings/credentials; cookies are
-host-scoped rather than port-scoped. Eight HTTP/WS checks use isolated ephemeral servers and cover the
-routes, credentials, live transitions, canonical presets, multipart framing, reset and cleanup. One build
-lifecycle check covers watched inputs, fallback polling and last-good output. They do not run
-viewer JavaScript or check browser rendering. Frame sizes do not emulate iOS.
+The existing [preview fixture suite](preview/fixture.test.cjs) uses isolated ephemeral servers to exercise routes, credentials, canonical transitions, multipart framing, reset and cleanup. Its build-lifecycle fixture exercises watched inputs, fallback polling and last-good output. These fixtures exercise the harness and builder; browser smoke below exercises viewer JavaScript and rendering. Browser-frame dimensions select a viewport size, not an emulated operating system.
 
 ## Browser smoke
 
@@ -84,6 +87,4 @@ Run these four checks in Chrome and Safari after changing viewer behavior; no br
    The preview repeats authorized state snapshots every two seconds, matching the production liveness contract.
    A full panel reload resets defaults.
 
-The desktop harness follows the [HTTP server and viewing protocol](../../docs/http-server.md), serving its viewer at
-`/viewer`. It does not run Android capture or Ktor/CIO and does not replace Kotlin protocol tests or device
-checks. See [web client internals](../../internal/03-delivery/web-client.md) for implementation and recovery details.
+The preview's `/viewer` consumes the [HTTP server and viewing protocol](../../docs/http-server.md) through the harness implementation. Record browser/version and observed results for smoke checks. Actual Android capture, Ktor/CIO, LAN permission enforcement and incoming reachability require their own Kotlin/device evidence.
