@@ -1,6 +1,6 @@
 # MJPEG web client
 
-This workspace builds the packaged browser viewer and provides a desktop preview for development. Android serves the generated HTML; the preview composes the same viewer with a virtual device and a separate HTTP/WebSocket server. Read [web-client internals](../../internal/03-delivery/web-client.md) for production ownership and recovery contracts, and the [HTTP guide](../../docs/http-server.md) for the protocol it consumes.
+This workspace builds the packaged browser viewer and provides a desktop preview for development. Android serves the generated HTML; the preview composes the same viewer with a virtual device and a separate HTTP/WebSocket server. Read [web-client internals](../../internal/02-delivery/03-web-client.md) for production ownership and recovery contracts, and the [HTTP guide](../../docs/server.md) for the protocol it consumes.
 
 ## Development workflow
 
@@ -22,7 +22,7 @@ npm run build
 npm run check
 ```
 
-These commands are the maintenance workflow. Record fresh results with a change; this guide and the scenario catalogue make no execution claim. `npm test` targets the preview/build fixtures, while the Kotlin suite has its own [preparation and execution requirements](../../internal/04-testing/testing.md#current-verification-status).
+These commands are the maintenance workflow. Record fresh results with a change; this guide and the scenario catalogue make no execution claim. `npm test` targets the preview/build fixtures, while the Kotlin suite has its own [preparation and execution requirements](../../internal/03-testing/01-testing.md#current-state-of-the-test-sources).
 
 ## Sources and generated output
 
@@ -87,4 +87,4 @@ Run these four checks in Chrome and Safari after changing viewer behavior; no br
    The preview repeats authorized state snapshots every two seconds, matching the production liveness contract.
    A full panel reload resets defaults.
 
-The preview's `/viewer` consumes the [HTTP server and viewing protocol](../../docs/http-server.md) through the harness implementation. Record browser/version and observed results for smoke checks. Actual Android capture, Ktor/CIO, LAN permission enforcement and incoming reachability require their own Kotlin/device evidence.
+The preview's `/viewer` consumes the [HTTP server and viewing protocol](../../docs/server.md) through the harness implementation. Record browser/version and observed results for smoke checks. Actual Android capture, Ktor/CIO, LAN permission enforcement and incoming reachability require their own Kotlin/device evidence.
