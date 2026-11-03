@@ -126,22 +126,28 @@ internal class WebRtcStreamingService(
     private val ownerGate = Any()
     private val errorGate = Any()
     private var started = false
+
     @Volatile
     private var workerStarted = false
+
     @Volatile
     private var signalingEpoch = 0L
     private val startupSettled = CompletableDeferred<Unit>()
+
     @Volatile
     private var captureAttempt: CaptureAttempt? = null
+
     @Volatile
     private var captureAnalytics: WebRtcSessionAnalytics? = null
     private var captureGeneration = 0L
+
     @Volatile
     private var currentErrorToken: Uuid? = null
     private var errorPublicationClosed = false
     private var showCaptureRetry = false
     private var receiverRegistered = false
     private var networkRegistered = false
+
     @Volatile
     private var shutdownSucceeded = true
     private val cleanup: Deferred<Boolean> = CoroutineScope(Dispatchers.Default).async(start = CoroutineStart.LAZY) {
@@ -271,14 +277,17 @@ internal class WebRtcStreamingService(
     ) {
         val job: Job = SupervisorJob()
         val scope = CoroutineScope(job + Dispatchers.Default)
+
         @Volatile
         var stopRequested = false
         var grant: ScreenCaptureAccess.Grant? = null
         var mediaProjection: MediaProjection? = null
         var callback: MediaProjection.Callback? = null
         var started = false
+
         @Volatile
         var revoked = false
+
         @Volatile
         var failed = false
         val audioEnabled: Boolean get() = enableMic || enableDeviceAudio
@@ -287,10 +296,13 @@ internal class WebRtcStreamingService(
     // All Volatile vars must be write on this (WebRTC-HT) thread
     @Volatile
     private var wakeLock: PowerManager.WakeLock? = null
+
     @Volatile
     private var currentStreamId: StreamId = StreamId.EMPTY
+
     @Volatile
     private var currentStreamPassword: StreamPassword = StreamPassword.EMPTY
+
     @Volatile
     private var projection: WebRtcProjection? = null
     // All Volatile vars must be write on this (WebRTC-HT) thread
@@ -300,6 +312,7 @@ internal class WebRtcStreamingService(
     private var signalingRecoveryAttempts: Int = 0
     private var signaling: SocketSignaling? = null
     private var signalingSocket: Any? = null
+
     @Volatile
     private var pendingStartAttemptId: String? = null
     private var waitingForPermission: Boolean = false
@@ -958,7 +971,7 @@ internal class WebRtcStreamingService(
                 if (projection == null) {
                     if (synchronized(ownerGate) { destroyPending || !managerHandle.isCurrent() }) return
                     val created = try {
-                        WebRtcProjection(service)
+                        WebRtcProjection(service, handler)
                     } catch (cause: UnsatisfiedLinkError) {
                         if (cause.message?.contains("libjingle_peerconnection_so.so") != true) throw cause
                         XLog.w(
@@ -1210,6 +1223,7 @@ internal class WebRtcStreamingService(
                 }
                 if (captureAttempt?.generation != event.generation) return
                 captureAttempt?.failed = true
+                projection?.markCaptureFailed()
                 XLog.e(getLog("CaptureFatal", "Stopping stream"), event.cause)
                 sendEvent(WebRtcEvent.StopStream("CaptureFatal:${event.cause.javaClass.simpleName}:${event.cause.message}", event.generation))
             }

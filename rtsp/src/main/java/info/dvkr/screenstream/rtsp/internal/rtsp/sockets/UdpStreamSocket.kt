@@ -22,28 +22,31 @@ internal class UdpStreamSocket(
 ) {
     private val readMutex = Mutex()
     private val writeMutex = Mutex()
+
+    @Volatile
     private var udpSocket: ConnectedDatagramSocket? = null
     private var remoteSocketAddress: InetSocketAddress? = null
 
     suspend fun connect() = writeMutex.withLock {
-        readMutex.withLock {
-            runCatching { udpSocket?.close() }
-            udpSocket = null
-            val remoteAddress = InetAddress.getByName(remoteHost)
-            val resolvedRemote = InetSocketAddress(remoteAddress.hostAddress ?: remoteHost, remotePort)
-            val localBindHost = if (remoteAddress is Inet6Address) "::" else "0.0.0.0"
-            udpSocket = aSocket(selectorManager)
-                .udp()
-                .connect(resolvedRemote, InetSocketAddress(localBindHost, localPort))
-            remoteSocketAddress = resolvedRemote
-        }
+        closeSocket()
+        val remoteAddress = InetAddress.getByName(remoteHost)
+        val resolvedRemote = InetSocketAddress(remoteAddress.hostAddress ?: remoteHost, remotePort)
+        val localBindHost = if (remoteAddress is Inet6Address) "::" else "0.0.0.0"
+        udpSocket = aSocket(selectorManager)
+            .udp()
+            .connect(resolvedRemote, InetSocketAddress(localBindHost, localPort))
+        remoteSocketAddress = resolvedRemote
     }
 
     suspend fun close() = writeMutex.withLock {
-        readMutex.withLock {
-            runCatching { udpSocket?.close() }
-            udpSocket = null
-        }
+        closeSocket()
+    }
+
+    private fun closeSocket() {
+        val socket = udpSocket
+        udpSocket = null
+        // Closing the socket must wake a reader suspended while holding readMutex.
+        runCatching { socket?.close() }
     }
 
     suspend fun write(bytes: ByteArray) = writeMutex.withLock {

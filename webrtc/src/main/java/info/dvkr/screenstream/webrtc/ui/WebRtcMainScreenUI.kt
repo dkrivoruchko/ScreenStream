@@ -202,7 +202,7 @@ internal fun WebRtcMainScreenUI(
             columns = StaggeredGridCells.Fixed(if (this.maxWidth >= 800.dp) 2 else 1),
             modifier = Modifier.fillMaxSize(),
             state = lazyVerticalStaggeredGridState,
-            contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),
+            contentPadding = PaddingValues(start = 4.dp, end = 4.dp, bottom = 64.dp),
         ) {
             state.error?.let {
                 item(key = "ERROR") {

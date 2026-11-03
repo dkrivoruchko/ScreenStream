@@ -96,18 +96,18 @@ internal class RtspClient(
         fun trySendFrame(frame: MediaFrame, videoGeneration: Int?): ChannelResult<Unit> =
             itemsChannel.trySend(QueuedItem.Frame(frame, videoGeneration))
                 .onSuccess { bufferedFrameCount.incrementAndGet() }
-                .onFailure {
-                    XLog.w(getLog("trySendFrame", "Frame discarded"))
-                    frame.release()
-                    when (frame) {
-                        is MediaFrame.VideoFrame -> droppedVideoFrames.incrementAndGet()
-                        is MediaFrame.AudioFrame -> droppedAudioFrames.incrementAndGet()
-                    }
-                }
+                .onFailure { discardFrame(frame) }
 
-        fun trySendNewVideoParams(videoParams: VideoParams, videoGeneration: Int): ChannelResult<Unit> =
-            itemsChannel.trySend(QueuedItem.NewVideoParams(videoParams, videoGeneration))
-                .onFailure { XLog.w(getLog("trySendNewVideoParams", "NewVideoParams discarded")) }
+        fun discardFrame(frame: MediaFrame) {
+            XLog.w(getLog("discardFrame", "Frame discarded"))
+            frame.release()
+            when (frame) {
+                is MediaFrame.VideoFrame -> droppedVideoFrames.incrementAndGet()
+                is MediaFrame.AudioFrame -> droppedAudioFrames.incrementAndGet()
+            }
+        }
+
+        fun trySendNewVideoParams(params: QueuedItem.NewVideoParams): ChannelResult<Unit> = itemsChannel.trySend(params)
 
         suspend fun receiveItemWithTimeoutOrNull(timeMillis: Long = 100): QueuedItem? {
             val item = withTimeoutOrNull(timeMillis.milliseconds) { itemsChannel.receive() } ?: return null
@@ -211,6 +211,7 @@ internal class RtspClient(
     private var connectionJob = AtomicReference<Job?>(null)
     private var currentVideoGeneration = 0
     private var acceptVideoFrames = true
+    private var pendingVideoParams: QueuedItem.NewVideoParams? = null
 
     @Throws
     @AnyThread
@@ -223,8 +224,9 @@ internal class RtspClient(
             Codec.Video.AV1 -> VideoParams(videoCodec, sps, pps, vps)
         }
         if (currentState == State.STREAMING) {
-            mediaFramesBuffer.trySendNewVideoParams(params, currentVideoGeneration)
-            acceptVideoFrames = true
+            pendingVideoParams = QueuedItem.NewVideoParams(params, currentVideoGeneration)
+            acceptVideoFrames = false
+            tryEnqueuePendingVideoParams()
         } else {
             videoParams.get().complete(params)
         }
@@ -246,6 +248,11 @@ internal class RtspClient(
 
     @AnyThread
     internal fun enqueueFrame(frame: MediaFrame) = synchronized(rtspLock) {
+        if (currentState == State.STREAMING && !tryEnqueuePendingVideoParams()) {
+            mediaFramesBuffer.discardFrame(frame)
+            return@synchronized
+        }
+
         val detachedFrame = runCatching { frame.detachedCopy() }
             .onFailure { XLog.w(getLog("enqueueFrame", "Failed to detach frame. Dropping.")) }
             .getOrNull()
@@ -273,12 +280,22 @@ internal class RtspClient(
         }
     }
 
+    // Guarded by rtspLock
+    private fun tryEnqueuePendingVideoParams(): Boolean {
+        val pending = pendingVideoParams ?: return true
+        if (mediaFramesBuffer.trySendNewVideoParams(pending).isFailure) return false
+        pendingVideoParams = null
+        acceptVideoFrames = true
+        return true
+    }
+
     @AnyThread
     internal fun beginVideoReconfigure() {
         synchronized(rtspLock) {
             if (currentState != State.STREAMING) return
             currentVideoGeneration++
             acceptVideoFrames = false
+            pendingVideoParams = null
         }
     }
 
@@ -292,6 +309,7 @@ internal class RtspClient(
                     currentState = State.CONNECTING
                     currentVideoGeneration = 0
                     acceptVideoFrames = true
+                    pendingVideoParams = null
                 }
 
                 val videoParams = withTimeoutOrNull(5_000.milliseconds) { this@RtspClient.videoParams.get().await() }
@@ -360,7 +378,10 @@ internal class RtspClient(
 
                 videoParams.getAndSet(CompletableDeferred()).cancel()
                 audioParams.set(null)
-                synchronized(rtspLock) { currentState = State.IDLE }
+                synchronized(rtspLock) {
+                    currentState = State.IDLE
+                    pendingVideoParams = null
+                }
 
                 if (error == null) onEvent(RtspStreamingService.InternalEvent.RtspClient.OnDisconnect(generation))
             }
@@ -644,6 +665,7 @@ internal class RtspClient(
         try {
             synchronized(rtspLock) {
                 currentState = State.STREAMING
+                pendingVideoParams = null
                 mediaFramesBuffer.clear()
             }
             bitrateCalculator.start()
@@ -741,6 +763,7 @@ internal class RtspClient(
                 currentState = State.IDLE
                 currentVideoGeneration = 0
                 acceptVideoFrames = true
+                pendingVideoParams = null
                 mediaFramesBuffer.clear()
             }
         }

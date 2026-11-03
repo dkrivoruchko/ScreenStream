@@ -17,6 +17,7 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.webrtc.R
 import org.webrtc.AudioSource
+import org.webrtc.AudioTrack
 import org.webrtc.DefaultVideoDecoderFactory
 import org.webrtc.DefaultVideoEncoderFactory
 import org.webrtc.EglBase
@@ -26,14 +27,16 @@ import org.webrtc.MediaStreamTrack
 import org.webrtc.PeerConnectionFactory
 import org.webrtc.RtpCapabilities
 import org.webrtc.SurfaceTextureHelper
+import org.webrtc.ThreadUtils
 import org.webrtc.VideoSource
+import org.webrtc.VideoTrack
 import org.webrtc.audio.AudioRecordDataCallback
 import org.webrtc.audio.JavaAudioDeviceModule
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.min
 
-internal class WebRtcProjection(private val serviceContext: Context) : AudioRecordDataCallback {
+internal class WebRtcProjection(private val serviceContext: Context, private val ownerHandler: Handler) : AudioRecordDataCallback {
 
     private companion object {
         @JvmStatic
@@ -63,8 +66,10 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     private val lock = Any()
 
     private var mediaProjection: MediaProjection? = null
+
     @Volatile
     private var deviceAudioMute: Boolean = true
+
     @Volatile
     private var deviceAudioRecord: AudioRecord? = null
     private var deviceAudioRecoveryUsed: Boolean = false
@@ -184,75 +189,119 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
         onCaptureFatal: (Throwable) -> Unit,
         isStartupStillValid: () -> Boolean
     ): Boolean {
+        checkOwnerThread()
         synchronized(lock) {
             XLog.d(getLog("start"))
+            check(screenCapturer == null && videoSource == null && audioSource == null && localMediaSteam == null) {
+                "Previous capture resources have not been released"
+            }
 
-            val videoSource = peerConnectionFactory.createVideoSource(true)
-            val audioSource = peerConnectionFactory.createAudioSource(audioMediaConstraints)
-
-            val screenCapturer = ScreenCapturerAndroid(
-                SurfaceTextureHelper.create("ScreenStreamSurfaceTexture", rootEglBase.eglBaseContext),
-                object : MediaProjection.Callback() {
-                    override fun onStop() {
-                        XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onStop"))
-                        synchronized(lock) { isStopped = true }
-                    }
-
-                    override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
-                        XLog.v(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
-                    }
-
-                    override fun onCapturedContentResize(width: Int, height: Int) {
-                        XLog.v(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentResize: width:$width, height:$height"))
-                        changeCaptureFormat(width, height)
-                    }
-                },
-                onCaptureFatal = { cause ->
-                    synchronized(lock) { isStopped = true }
-                    onCaptureFatal(cause)
+            var newVideoSource: VideoSource? = null
+            var newAudioSource: AudioSource? = null
+            var newHelper: SurfaceTextureHelper? = null
+            var newCapturer: ScreenCapturerAndroid? = null
+            var newVideoTrack: VideoTrack? = null
+            var newAudioTrack: AudioTrack? = null
+            var ownershipTransferred = false
+            var startupFailure: Throwable? = null
+            try {
+                val videoSource = peerConnectionFactory.createVideoSource(true)
+                newVideoSource = videoSource
+                val audioSource = peerConnectionFactory.createAudioSource(audioMediaConstraints)
+                newAudioSource = audioSource
+                val helper = checkNotNull(SurfaceTextureHelper.create("ScreenStreamSurfaceTexture", rootEglBase.eglBaseContext)) {
+                    "Cannot create SurfaceTextureHelper"
                 }
-            )
+                newHelper = helper
+                val capturer = ScreenCapturerAndroid(
+                    helper,
+                    object : MediaProjection.Callback() {
+                        override fun onStop() {
+                            XLog.i(this@WebRtcProjection.getLog("MediaProjection.Callback", "onStop"))
+                            synchronized(lock) {
+                                if (this@WebRtcProjection.mediaProjection === mediaProjection) isStopped = true
+                            }
+                        }
 
-            val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
-            val captureStarted = screenCapturer.startCapture(
-                mediaProjection, screeSize.width(), screeSize.height(), videoSource.capturerObserver, isStartupStillValid
-            )
-            if (!captureStarted) {
-                XLog.i(getLog("start", "Capture start failed. Stopping projection."))
-                screenCapturer.dispose()
-                videoSource.dispose()
-                audioSource.dispose()
-                return false
+                        override fun onCapturedContentVisibilityChanged(isVisible: Boolean) {
+                            XLog.v(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentVisibilityChanged: $isVisible"))
+                        }
+
+                        override fun onCapturedContentResize(width: Int, height: Int) {
+                            XLog.v(this@WebRtcProjection.getLog("MediaProjection.Callback", "onCapturedContentResize: width:$width, height:$height"))
+                            synchronized(lock) {
+                                if (this@WebRtcProjection.mediaProjection === mediaProjection) changeCaptureFormat(width, height)
+                            }
+                        }
+                    },
+                    callbackHandler = ownerHandler,
+                    onCaptureFatal = onCaptureFatal
+                )
+                newCapturer = capturer
+                newHelper = null
+
+                val screeSize = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
+                val captureStarted = capturer.startCapture(
+                    mediaProjection, screeSize.width(), screeSize.height(), videoSource.capturerObserver, isStartupStillValid
+                )
+                if (!captureStarted) {
+                    XLog.i(getLog("start", "Capture start failed. Stopping projection."))
+                    return false
+                }
+
+                val mediaStreamId = MediaStreamId.create(streamId)
+                val videoTrack = peerConnectionFactory.createVideoTrack("VideoTrack@$mediaStreamId", videoSource)
+                newVideoTrack = videoTrack
+                val audioTrack = peerConnectionFactory.createAudioTrack("AudioTrack@$mediaStreamId", audioSource)
+                newAudioTrack = audioTrack
+                val mediaStream = LocalMediaSteam(mediaStreamId, videoTrack, audioTrack)
+                XLog.d(getLog("start", "MediaStreamId: $mediaStreamId"))
+                if (!isStartupStillValid()) {
+                    XLog.i(getLog("start", "Startup invalidated after capture start."))
+                    return false
+                }
+
+                this.mediaProjection = mediaProjection
+                this.videoSource = videoSource
+                this.audioSource = audioSource
+                screenCapturer = capturer
+                localMediaSteam = mediaStream
+                deviceAudioRecoveryUsed = false
+                isStopped = false
+                isRunning = true
+                ownershipTransferred = true
+                return true
+            } catch (cause: Throwable) {
+                startupFailure = cause
+                throw cause
+            } finally {
+                if (!ownershipTransferred) {
+                    try {
+                        releaseMediaResources(
+                            capturer = newCapturer,
+                            helper = newHelper,
+                            videoTrack = newVideoTrack,
+                            audioTrack = newAudioTrack,
+                            videoSource = newVideoSource,
+                            audioSource = newAudioSource
+                        )
+                    } catch (cleanupFailure: Throwable) {
+                        val cause = startupFailure
+                        if (cause == null) throw cleanupFailure
+                        if (cause !== cleanupFailure) runCatching { cause.addSuppressed(cleanupFailure) }
+                    }
+                }
             }
-            if (!isStartupStillValid()) {
-                XLog.i(getLog("start", "Startup invalidated after capture start."))
-                screenCapturer.stopCapture()
-                screenCapturer.dispose()
-                videoSource.dispose()
-                audioSource.dispose()
-                return false
-            }
-
-            val mediaStreamId = MediaStreamId.create(streamId)
-            localMediaSteam = LocalMediaSteam(
-                mediaStreamId,
-                peerConnectionFactory.createVideoTrack("VideoTrack@$mediaStreamId", videoSource),
-                peerConnectionFactory.createAudioTrack("AudioTrack@$mediaStreamId", audioSource)
-            )
-
-            this.mediaProjection = mediaProjection
-            this.videoSource = videoSource
-            this.audioSource = audioSource
-            this.screenCapturer = screenCapturer
-            deviceAudioRecoveryUsed = false
-            isStopped = false
-            isRunning = true
-            XLog.d(getLog("start", "MediaStreamId: $mediaStreamId"))
-            return true
         }
     }
 
+    internal fun markCaptureFailed() {
+        checkOwnerThread()
+        synchronized(lock) { isStopped = true }
+    }
+
     internal fun changeCaptureFormat(width: Int, height: Int) {
+        checkOwnerThread()
         synchronized(lock) {
             if (isStopped || isRunning.not()) {
                 XLog.i(this@WebRtcProjection.getLog("changeCaptureFormat", "Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
@@ -271,6 +320,7 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     }
 
     internal fun forceKeyFrame() {
+        checkOwnerThread()
         synchronized(lock) {
             if (isStopped || isRunning.not()) {
                 XLog.i(this@WebRtcProjection.getLog("forceKeyFrame", "Ignoring: isStopped=$isStopped, isRunning=$isRunning"))
@@ -286,41 +336,112 @@ internal class WebRtcProjection(private val serviceContext: Context) : AudioReco
     }
 
     internal fun stop() {
+        checkOwnerThread()
         synchronized(lock) {
             XLog.d(getLog("stop"))
 
-            screenCapturer?.stopCapture()
-            screenCapturer?.dispose()
+            val capturer = screenCapturer
+            val mediaStream = localMediaSteam
+            val videoSource = videoSource
+            val audioSource = audioSource
+            val audioRecord = deviceAudioRecord
             screenCapturer = null
-
             mediaProjection = null
-
-            localMediaSteam?.videoTrack?.dispose()
-            localMediaSteam?.audioTrack?.dispose()
             localMediaSteam = null
-
-            audioSource?.dispose()
-            audioSource = null
-
-            videoSource?.dispose()
-            videoSource = null
-
-            deviceAudioRecord?.release()
+            this.videoSource = null
+            this.audioSource = null
             deviceAudioRecord = null
             deviceAudioRecoveryUsed = false
             reusableDeviceAudioBuffer = null
 
             isStopped = true
             isRunning = false
+
+            var failure: Throwable? = null
+            try {
+                releaseMediaResources(
+                    capturer = capturer,
+                    helper = null,
+                    videoTrack = mediaStream?.videoTrack,
+                    audioTrack = mediaStream?.audioTrack,
+                    videoSource = videoSource,
+                    audioSource = audioSource
+                )
+            } catch (cause: Throwable) {
+                failure = cause
+            }
+            try {
+                audioRecord?.release()
+            } catch (cause: Throwable) {
+                val firstFailure = failure
+                if (firstFailure == null) failure = cause
+                else if (firstFailure !== cause) runCatching { firstFailure.addSuppressed(cause) }
+            }
+            failure?.let { throw it }
         }
     }
 
+    // Releases one live or staged pipeline under lock.
+    private fun releaseMediaResources(
+        capturer: ScreenCapturerAndroid?,
+        helper: SurfaceTextureHelper?,
+        videoTrack: VideoTrack?,
+        audioTrack: AudioTrack?,
+        videoSource: VideoSource?,
+        audioSource: AudioSource?
+    ) {
+        var failure: Throwable? = null
+        fun cleanup(action: () -> Unit) {
+            try {
+                action()
+            } catch (cause: Throwable) {
+                val firstFailure = failure
+                if (firstFailure == null) failure = cause
+                else if (firstFailure !== cause) runCatching { firstFailure.addSuppressed(cause) }
+            }
+        }
+
+        cleanup { capturer?.dispose() }
+        if (helper != null) {
+            cleanup {
+                var helperFailure: Throwable? = null
+                ThreadUtils.invokeAtFrontUninterruptibly(helper.handler) {
+                    try {
+                        helper.dispose()
+                    } catch (cause: Throwable) {
+                        helperFailure = cause
+                    }
+                }
+                helperFailure?.let { throw it }
+            }
+        }
+        cleanup { videoTrack?.dispose() }
+        cleanup { audioTrack?.dispose() }
+        cleanup { audioSource?.dispose() }
+        if (capturer == null || capturer.isFrameDeliveryStopped) {
+            cleanup { videoSource?.dispose() }
+        } else {
+            // Keep the native source alive while a helper callback might still reach its observer.
+            screenCapturer = capturer
+            this.videoSource = videoSource
+            isStopped = true
+            isRunning = false
+            cleanup { error("Capture frame delivery did not stop; native video source retained") }
+        }
+        failure?.let { throw it }
+    }
+
     internal fun destroy() {
+        checkOwnerThread()
         XLog.d(getLog("destroy"))
         stop()
         peerConnectionFactory.dispose()
         rootEglBase.release()
         audioDeviceModule.release()
+    }
+
+    private fun checkOwnerThread() {
+        check(Looper.myLooper() === ownerHandler.looper) { "Capture lifecycle must run on the owner thread" }
     }
 
     @SuppressLint("MissingPermission")

@@ -21,6 +21,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.packets.OpusPacket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.UdpStreamSocket
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -143,6 +144,7 @@ internal class RtspServerConnection(
     private val paramInjector = ParamInjector()
     private var waitingForKeyframe: Boolean = false
     private var sendRtpPackets: suspend (trackId: Int, packets: List<RtpFrame>) -> Unit = { _, _ -> }
+
     @Volatile
     private var videoParamsChanged: Boolean = false
 
@@ -409,6 +411,7 @@ internal class RtspServerConnection(
                             audioRtpSocket = rtp; audioRtcpSocket = rtcp
                             scope.launch { drainRtcp(audioRtcpSocket) }
                         }
+                        rtcpReporter?.setUdpSockets(videoRtcpSocket, audioRtcpSocket)
 
                         val sender: suspend (trackId: Int, packets: List<RtpFrame>) -> Unit = { tid, packets ->
                             val sock = if (tid == RtpFrame.VIDEO_TRACK_ID) videoRtpSocket else audioRtpSocket
@@ -480,7 +483,8 @@ internal class RtspServerConnection(
                                 videoUdpSocket = videoRtcpSocket,
                                 audioUdpSocket = audioRtcpSocket,
                                 ssrcVideo = videoSsrc,
-                                ssrcAudio = audioSsrc
+                                ssrcAudio = audioSsrc,
+                                ownsUdpSockets = false
                             )
                         }
                         val trackInfo = mutableMapOf<Int, RtspServerMessageHandler.PlayTrackInfo>()
@@ -515,8 +519,6 @@ internal class RtspServerConnection(
                     tcpStreamSocket.withWriteLock {
                         stateLock.withLock { isStreaming = false }
                         state = State.Ready
-                        rtcpReporter?.close()
-                        rtcpReporter = null
                         writeAndFlush(serverMessageHandler.createPauseResponse(cSeq, sessionId))
                     }
                 }
@@ -753,9 +755,16 @@ internal class RtspServerConnection(
     }
 
     private suspend fun drainRtcp(sock: UdpStreamSocket?) {
+        if (sock == null) return
         val buffer = ByteArray(1500)
-        while (scope.isActive) {
-            runCatching { sock?.readInto(buffer)?.let { if (it < 0) break } }
+        try {
+            while (scope.isActive) {
+                if (sock.readInto(buffer) < 0) return
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
+            // Closing or replacing this track's socket ends its reader.
         }
     }
 

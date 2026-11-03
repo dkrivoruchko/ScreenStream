@@ -23,10 +23,11 @@ internal class RtcpReporter(
     scope: CoroutineScope,
     private val protocol: Protocol,
     private val writeToTcpSocket: suspend (ByteArray, ByteArray) -> Unit,
-    private val videoUdpSocket: UdpStreamSocket?,
-    private val audioUdpSocket: UdpStreamSocket?,
+    private var videoUdpSocket: UdpStreamSocket?,
+    private var audioUdpSocket: UdpStreamSocket?,
     ssrcVideo: Long,
-    ssrcAudio: Long
+    ssrcAudio: Long,
+    private val ownsUdpSockets: Boolean = true
 ) {
     private companion object {
         private const val REPORT_PACKET_LENGTH = 28
@@ -59,7 +60,7 @@ internal class RtcpReporter(
     private var videoSdes: ByteArray = buildSdesPacket(ssrcVideo)
     private var audioSdes: ByteArray = buildSdesPacket(ssrcAudio)
 
-    private val audioEnabled = ssrcAudio != 0L
+    private var audioEnabled = ssrcAudio != 0L
 
     private val lock = Mutex()
     private var closed = false
@@ -110,8 +111,15 @@ internal class RtcpReporter(
         runCatching { sendBye(0, videoTrack.buffer) }
         if (audioEnabled) runCatching { sendBye(1, audioTrack.buffer) }
 
-        videoUdpSocket?.close()
-        audioUdpSocket?.close()
+        if (ownsUdpSockets) {
+            videoUdpSocket?.close()
+            audioUdpSocket?.close()
+        }
+    }
+
+    internal suspend fun setUdpSockets(videoSocket: UdpStreamSocket?, audioSocket: UdpStreamSocket?) = lock.withLock {
+        videoUdpSocket = videoSocket
+        audioUdpSocket = audioSocket
     }
 
     internal suspend fun setSsrcVideo(newSsrc: Long) = lock.withLock {
@@ -126,6 +134,7 @@ internal class RtcpReporter(
     }
 
     internal suspend fun setSsrcAudio(newSsrc: Long) = lock.withLock {
+        audioEnabled = newSsrc != 0L
         audioTrack.apply {
             buffer.setLong(newSsrc, 4, 8)
             packetCount = 0

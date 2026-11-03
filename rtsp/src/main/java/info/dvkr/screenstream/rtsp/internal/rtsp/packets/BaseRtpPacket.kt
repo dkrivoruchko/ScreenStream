@@ -48,12 +48,12 @@ internal abstract class BaseRtpPacket(private var clock: Long, private val paylo
     }
 
     protected fun updateTimeStamp(buffer: ByteArray, timestamp: Long): Long {
-        val ts = timestamp * clock / 1_000_000_000L
+        val ts = toRtpTimestampFromNs(timestamp)
         buffer.setLong(ts, 4, 8)
         return ts
     }
 
-    protected fun toRtpTimestampFromNs(timestampNs: Long): Long = (timestampNs * clock) / 1_000_000_000L
+    protected fun toRtpTimestampFromNs(timestampNs: Long): Long = scaleToRtpTimestamp(timestampNs, 1_000_000_000L)
 
     protected fun setRtpTimestamp(buffer: ByteArray, rtpTs: Long) {
         buffer.setLong(rtpTs, 4, 8)
@@ -66,7 +66,13 @@ internal abstract class BaseRtpPacket(private var clock: Long, private val paylo
 
     internal fun peekNextSeq(): Int = (seq + 1) and 0xFFFF
 
-    internal fun rtpTimestampFromUs(timestampUs: Long): Long = (timestampUs * clock) / 1_000_000L
+    internal fun rtpTimestampFromUs(timestampUs: Long): Long = scaleToRtpTimestamp(timestampUs, 1_000_000L)
+
+    private fun scaleToRtpTimestamp(timestamp: Long, unitsPerSecond: Long): Long {
+        val wholeSeconds = timestamp / unitsPerSecond
+        val remainingUnits = timestamp % unitsPerSecond
+        return wholeSeconds * clock + remainingUnits * clock / unitsPerSecond
+    }
 
     protected fun markPacket(buffer: ByteArray) {
         buffer[1] = buffer[1] or 0x80.toByte()

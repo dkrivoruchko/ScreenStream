@@ -157,7 +157,11 @@ internal fun RtspMainScreenUI(
             else -> RuntimePermission.DeviceAudio
         }
         val accepted =
-            permissionActions.request(requestedPermission, PendingPermissionAction.RecoverError(permission, error, errorToken, latestSettings), runtimePermissions)
+            permissionActions.request(
+                requestedPermission,
+                PendingPermissionAction.RecoverError(permission, error, errorToken, latestSettings),
+                runtimePermissions
+            )
         if (accepted && permission == RuntimePermission.LocalNetwork) currentClaimInitialLocalNetworkRequest { true }
     }
 
@@ -222,6 +226,7 @@ internal fun RtspMainScreenUI(
                 is PendingPermissionAction.RecoverError -> when (action.permission) {
                     RuntimePermission.RecordAudio, RuntimePermission.Microphone, RuntimePermission.DeviceAudio ->
                         requestStart(action.expectedError, action.errorToken)
+
                     RuntimePermission.LocalNetwork -> recoverGrantedLocalNetworkError(allowStreaming = true, expectedRecovery = action)
                     RuntimePermission.Notifications -> currentSendEvent(RtspEvent.RecoverError(action.errorToken))
                 }
@@ -253,7 +258,7 @@ internal fun RtspMainScreenUI(
             columns = StaggeredGridCells.Fixed(if (this.maxWidth >= 800.dp) 2 else 1),
             modifier = Modifier.fillMaxSize(),
             state = lazyVerticalStaggeredGridState,
-            contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 64.dp),
+            contentPadding = PaddingValues(start = 4.dp, end = 4.dp, bottom = 64.dp),
         ) {
             state.error?.takeIf { error ->
                 error is RtspError.UnknownError ||
