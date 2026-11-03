@@ -26,11 +26,16 @@ public interface StreamingSessionAnalyticsFactory {
     public fun preflightFailed(streamMode: StreamMode, entryPoint: EntryPoint, startFailGroup: StartFailGroup)
 }
 
-/** One attempt, retained by its original module adapter through the existing media-stop milestone. */
+/**
+ * One attempt, retained by its original module adapter through the existing media-stop milestone.
+ * Repeated startup/terminal observations are ignored. Consumers are recorded only after a successful
+ * start and before the first end. The first startup outcome wins, except as documented by [foregroundFailed].
+ */
 public interface StreamingSessionAnalytics {
     public fun started(activeConsumers: Int, atElapsedRealtimeMs: Long)
     public fun startFailed(startFailGroup: StartFailGroup)
     public fun startAborted()
+    public fun foregroundFailed(startFailGroup: StartFailGroup): Unit = startFailed(startFailGroup)
     public fun consumersChanged(activeConsumers: Int, atElapsedRealtimeMs: Long)
     public fun ended(stopReasonRaw: String?, activeConsumers: Int, atElapsedRealtimeMs: Long)
 

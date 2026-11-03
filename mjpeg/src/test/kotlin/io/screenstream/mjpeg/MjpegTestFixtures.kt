@@ -15,6 +15,15 @@ import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.window.core.layout.WindowSizeClass
+import info.dvkr.screenstream.common.analytics.EntryPoint
+import info.dvkr.screenstream.common.analytics.SessionKey
+import info.dvkr.screenstream.common.analytics.StartFailGroup
+import info.dvkr.screenstream.common.analytics.StreamMode
+import info.dvkr.screenstream.common.analytics.StreamingAnalytics
+import info.dvkr.screenstream.common.analytics.StreamingAnalyticsEvent
+import info.dvkr.screenstream.common.analytics.StreamingSessionAnalytics
+import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
+import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
 import info.dvkr.screenstream.common.notification.NotificationHelper
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
@@ -100,6 +109,7 @@ internal class MjpegServiceHost(
                         MjpegStreamingModuleController(
                             managerHandle = parameters.get(), service = parameters.get(), settings = lazyOf(settings),
                             addressMonitor = monitor, captureAccess = access, http = http,
+                            analyticsFactory = TestSessionAnalyticsFactory,
                         )
                     }
                 })
@@ -370,4 +380,15 @@ internal class TestNotifications : NotificationHelper {
     override fun getStreamNotificationSettingsIntent(): Intent = Intent()
     override fun createForegroundNotification(context: Context, stopIntent: Intent): Notification = error("The attempt Stop action must be supplied")
     override fun cancelNotification(notificationId: Int) = Unit
+}
+
+private object TestSessionAnalyticsFactory : StreamingSessionAnalyticsFactory {
+    private val sink = object : StreamingAnalytics {
+        override fun logEvent(event: StreamingAnalyticsEvent) = Unit
+    }
+
+    override fun beginConsent(key: SessionKey, streamMode: StreamMode, entryPoint: EntryPoint): StreamingSessionAnalytics =
+        StreamingSessionAnalyticsTracker(sink, streamMode, entryPoint)
+
+    override fun preflightFailed(streamMode: StreamMode, entryPoint: EntryPoint, startFailGroup: StartFailGroup) = Unit
 }

@@ -70,6 +70,7 @@ internal class MjpegCaptureSession(
     private val leaveForeground: suspend () -> Unit,
     private val onStatisticsChanged: () -> Unit = {},
     private val engineFactory: MjpegEngineFactory = DefaultMjpegEngineFactory,
+    private val analytics: MjpegSessionAnalytics? = null,
 ) {
     class EngineStatistics(val engineStats: ScreenCaptureStats, val currentFps: Double?)
 
@@ -351,6 +352,9 @@ internal class MjpegCaptureSession(
             Status.Suspended, Status.Failed, Status.Stopping, Status.Stopped -> null
         }
         val next = candidate.copy(captureGeneration = captureGeneration)
+        if (previous.stopReason == null && next.stopReason != null) {
+            analytics?.stopAccepted(next.stopReason, SystemClock.elapsedRealtime()) { activeConsumers() }
+        }
         state.value = next
         if (next.isStopRequested) releaseScreenAwakeLocked()
         if (previous.status != next.status || previous.captureGeneration !== captureGeneration) {
@@ -382,14 +386,13 @@ internal class MjpegCaptureSession(
                     http.updateCaptureStatus(id, snapshot.status, snapshot.captureGeneration)
                 }
             }
-            val consentResult = captureAccess.requestConsent(
-                attempt = id,
-                attemptJob = currentCoroutineContext().job,
-                prepareForeground = {
-                    failureStage = "Startup.foreground"
-                    enterForeground()
-                },
-            )
+            val prepareForeground = {
+                failureStage = "Startup.foreground"
+                enterForeground()
+            }
+            val attemptJob = currentCoroutineContext().job
+            val consentResult = analytics?.requestConsent(captureAccess, attemptJob, prepareForeground)
+                ?: captureAccess.requestConsent(id, attemptJob, prepareForeground)
             consent = when (consentResult) {
                 is ScreenCaptureAccess.ConsentResult.Granted -> consentResult.grant
                 is ScreenCaptureAccess.ConsentResult.NotGranted -> {
@@ -450,6 +453,7 @@ internal class MjpegCaptureSession(
         } catch (cause: Throwable) {
             failCapture(failureStage, cause)
         } finally {
+            analytics?.startupFinished(state.value.captureFailure)
             acceptStop(StopReason.System)
             releaseResources(consent, projectionBeforeHandoff, engineSession, frameRegistration)
         }
@@ -457,6 +461,7 @@ internal class MjpegCaptureSession(
 
     private suspend fun runEngineSession(engineSession: MjpegEngineSession): Nothing = coroutineScope {
         val initialParameters = desiredParameters.value
+        analytics?.observeConsumers({ http.info }, this)
         // Parameter submission must not backpressure terminal-state handling.
         engineSession.states.onEach {
             val engineState = synchronized(stateGate) { refreshEngineStateLocked(engineSession) }
@@ -503,7 +508,10 @@ internal class MjpegCaptureSession(
         }.launchIn(this)
 
         engineSession.start(initialParameters)
-        synchronized(stateGate) { commitCaptureStateLocked(state.value.copy(startSucceeded = true)) }
+        synchronized(stateGate) {
+            commitCaptureStateLocked(state.value.copy(startSucceeded = true))
+            analytics?.started({ activeConsumers() }, SystemClock.elapsedRealtime())
+        }
         awaitCancellation()
     }
 
@@ -511,6 +519,8 @@ internal class MjpegCaptureSession(
         engineStatistics = EngineStatistics(stats, currentFps)
         onStatisticsChanged()
     }
+
+    private fun activeConsumers(): Int = http.info.value.clients.count { it.state == HttpDelivery.ClientInfo.State.Active }
 
     /** Stop media and unregister the JPEG consumer independently; foreground release follows the media result. */
     private suspend fun releaseResources(
@@ -528,10 +538,11 @@ internal class MjpegCaptureSession(
                             failCleanup("Cleanup.consumer", cause)
                         }
                 }
-                val mediaReleased = runCatching { if (engineSession != null) engineSession.stop() else projectionBeforeHandoff?.stop() }
-                    .onFailure { cause ->
-                        failCleanup("Cleanup.media", cause)
-                    }.isSuccess
+                val mediaStopResult = runCatching { if (engineSession != null) engineSession.stop() else projectionBeforeHandoff?.stop() }
+                analytics?.mediaStopped(SystemClock.elapsedRealtime())
+                val mediaReleased = mediaStopResult.onFailure { cause ->
+                    failCleanup("Cleanup.media", cause)
+                }.isSuccess
                 if (engineSession != null) {
                     // Terminal-state collection can cancel the statistics collector before its final emission.
                     publishEngineStatistics(engineSession.stats.value)

@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
+import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.logE
 import io.screenstream.core.module.StreamingModule
@@ -62,6 +63,7 @@ internal class MjpegStreamingModuleController(
     private val addressMonitor: NetworkAddressMonitor,
     private val captureAccess: ScreenCaptureAccess,
     private val http: HttpDelivery,
+    private val analyticsFactory: StreamingSessionAnalyticsFactory,
 ) : StreamingModule.Controller {
     override val instanceId: StreamingModule.InstanceId = managerHandle.instanceId
 
@@ -321,6 +323,7 @@ internal class MjpegStreamingModuleController(
                 enterForeground = { service.enterCaptureForeground(id, requiresMicrophoneType = false) },
                 leaveForeground = { service.leaveCaptureForeground(id) },
                 onStatisticsChanged = { enqueue(Event.StatisticsChanged) },
+                analytics = MjpegSessionAnalytics(analyticsFactory, id),
             )
             val attempt = CaptureAttempt(session = session, failureBeforeStart = lastFailure)
             if (!http.registerCapture(id, initialCaptureGeneration)) return@synchronized null

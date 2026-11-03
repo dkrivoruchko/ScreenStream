@@ -28,6 +28,8 @@ public object StreamingAnalyticsMappers {
         val normalized: String = rawReason.orEmpty().trim().lowercase(Locale.US)
         return when {
             normalized.isBlank() -> StopReasonGroup.UNKNOWN
+            normalized == "user" -> StopReasonGroup.USER
+            normalized == "system" -> StopReasonGroup.SYSTEM
             normalized.contains("user action") -> StopReasonGroup.USER
             normalized.contains("tileactionservice.onclick") -> StopReasonGroup.USER
             normalized.contains("startstopfromwebpage") -> StopReasonGroup.USER

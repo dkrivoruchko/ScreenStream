@@ -64,8 +64,12 @@ public class StreamingSessionAnalyticsTracker(
 
     override fun startAborted(): Unit = finishStartup(StartupOutcome.Aborted)
 
-    private fun finishStartup(outcome: StartupOutcome): Unit = update {
-        if (phase == Phase.Started || phase == Phase.Finished || pendingOutcome != null) return@update
+    override fun foregroundFailed(startFailGroup: StartFailGroup): Unit =
+        finishStartup(StartupOutcome.Failed(startFailGroup), replaceProvisionalAbort = true)
+
+    private fun finishStartup(outcome: StartupOutcome, replaceProvisionalAbort: Boolean = false): Unit = update {
+        val canReplaceAbort = replaceProvisionalAbort && !consentSettled && pendingOutcome == StartupOutcome.Aborted
+        if (phase == Phase.Started || phase == Phase.Finished || (pendingOutcome != null && !canReplaceAbort)) return@update
         pendingOutcome = outcome
         if (consentSettled) applyStartupOutcome()
     }
