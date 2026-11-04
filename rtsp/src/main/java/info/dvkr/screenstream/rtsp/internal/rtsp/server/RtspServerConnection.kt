@@ -24,6 +24,7 @@ import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
@@ -33,6 +34,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicInteger
@@ -46,6 +48,7 @@ internal class RtspServerConnection(
     private val videoParams: AtomicReference<VideoParams?>,
     private val audioParams: AtomicReference<AudioParams?>,
     private val serverProtocolPolicy: RtspSettings.Values.ProtocolPolicy,
+    private val auth: RtspServerAuth,
     private val onRequestKeyFrame: () -> Unit,
     private val onClosed: (RtspServerConnection) -> Unit,
 ) {
@@ -81,6 +84,13 @@ internal class RtspServerConnection(
 
     @Volatile
     internal var isStreaming: Boolean = false
+
+    internal val remoteHost: String
+        get() = tcpStreamSocket.remoteHost
+
+    // Monotonic time (ms) of last client activity: RTSP request, interleaved data or RTCP over UDP
+    @Volatile
+    private var lastActivityMs: Long = nowMs()
 
     // Interleaved channels for TCP mode (video 0/1, audio 2/3 by default)
     private var videoCh: Pair<Int, Int> = 0 to 1
@@ -155,6 +165,7 @@ internal class RtspServerConnection(
         if (protocol == Protocol.TCP) negotiatedInterleavedChannels.toSet() else emptySet()
 
     private suspend fun onInterleavedChunk(channel: Int, data: ByteArray, length: Int, isLast: Boolean) {
+        lastActivityMs = nowMs()
         val isRtcp = channel == videoCh.second || channel == audioCh.second
         if (!isRtcp) return
         // Currently no RTCP parsing; hook kept to allow future receiver-report handling.
@@ -227,9 +238,10 @@ internal class RtspServerConnection(
                 commandLoop()
             } catch (_: Throwable) {
             } finally {
-                stop()
+                withContext(NonCancellable) { stop() }
             }
         }
+        scope.launch { idleWatchdogLoop() }
         videoWriterJob = scope.launch { videoWriterLoop() }
         audioWriterJob = scope.launch { audioWriterLoop() }
     }
@@ -240,11 +252,48 @@ internal class RtspServerConnection(
                 allowedInterleavedChannels = allowedInterleavedChannels(),
                 onInterleavedChunk = ::onInterleavedChunk
             )?.let { String(it.header, Charsets.ISO_8859_1) } ?: break
+            lastActivityMs = nowMs()
             val (method, cSeq) = serverMessageHandler.parseRequest(request)
 
             if (cSeq < 0) {
                 tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(400)) }
                 continue
+            }
+
+            if (method != RtspBaseMessageHandler.Method.OPTIONS && method != RtspBaseMessageHandler.Method.UNKNOWN) {
+                val requestUri = serverMessageHandler.getRequestUri(request)
+                if (requestUri == null) {
+                    tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(400, cSeq)) }
+                    continue
+                }
+
+                val authorization = serverMessageHandler.getAuthorizationHeader(request)
+                when (val decision = auth.authorize(method.name, requestUri, authorization, tcpStreamSocket.remoteHost)) {
+                    RtspServerAuth.Decision.Allowed -> Unit
+
+                    is RtspServerAuth.Decision.Challenge -> {
+                        if (decision.failedAttempt) delay(AUTH_FAILURE_DELAY_MS.milliseconds)
+                        tcpStreamSocket.withWriteLock {
+                            writeAndFlush(serverMessageHandler.createUnauthorizedResponse(cSeq, decision.wwwAuthenticate))
+                        }
+                        continue
+                    }
+
+                    RtspServerAuth.Decision.Blocked -> {
+                        delay(AUTH_FAILURE_DELAY_MS.milliseconds)
+                        runCatching {
+                            tcpStreamSocket.withWriteLock {
+                                writeAndFlush(serverMessageHandler.createUnauthorizedResponse(cSeq, auth.createChallenge(stale = false)))
+                            }
+                        }
+                        break
+                    }
+                }
+
+                if (!serverMessageHandler.isRequestUriAllowed(requestUri)) {
+                    tcpStreamSocket.withWriteLock { writeAndFlush(serverMessageHandler.createErrorResponse(404, cSeq)) }
+                    continue
+                }
             }
 
             when (method) {
@@ -755,9 +804,38 @@ internal class RtspServerConnection(
     private suspend fun drainRtcp(sock: UdpStreamSocket?) {
         val buffer = ByteArray(1500)
         while (scope.isActive) {
-            runCatching { sock?.readInto(buffer)?.let { if (it < 0) break } }
+            runCatching {
+                sock?.readInto(buffer)?.let {
+                    if (it < 0) break
+                    if (it > 0) lastActivityMs = nowMs() // RTCP receiver reports keep UDP sessions alive
+                }
+            }
         }
     }
+
+    /**
+     * Closes connections that send nothing for too long:
+     * - before SETUP: [INITIAL_IDLE_TIMEOUT_MS];
+     * - with a session: advertised session timeout (+grace), unless PLAYing over TCP-interleaved.
+     */
+    private suspend fun idleWatchdogLoop() {
+        while (scope.isActive) {
+            delay(IDLE_CHECK_INTERVAL_MS.milliseconds)
+            val limitMs = when (state) {
+                State.Init -> INITIAL_IDLE_TIMEOUT_MS
+                State.Playing -> if (protocol == Protocol.TCP) continue else SESSION_IDLE_TIMEOUT_MS
+                State.Ready -> SESSION_IDLE_TIMEOUT_MS
+                State.Closed -> break
+            }
+            if (nowMs() - lastActivityMs > limitMs) {
+                runCatching { tcpStreamSocket.close() }
+                clientJob?.cancel()
+                break
+            }
+        }
+    }
+
+    private fun nowMs(): Long = System.nanoTime() / 1_000_000L
 
     override fun toString(): String = "RtspServerConnection(address='${tcpStreamSocket.remoteHost}')"
 
@@ -776,5 +854,10 @@ internal class RtspServerConnection(
 
     private companion object {
         private val HEX_CHARS = "0123456789abcdef".toCharArray()
+
+        private const val AUTH_FAILURE_DELAY_MS: Long = 1000L
+        private const val IDLE_CHECK_INTERVAL_MS: Long = 5_000L
+        private const val INITIAL_IDLE_TIMEOUT_MS: Long = 30_000L
+        private const val SESSION_IDLE_TIMEOUT_MS: Long = 60_000L + 10_000L // Advertised 60s session timeout + grace
     }
 }

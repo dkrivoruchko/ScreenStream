@@ -153,6 +153,7 @@ internal fun RtspMainScreenUI(
                     onModeSelected = { mode -> updateSettings { copy(mode = mode) } },
                     isStreaming = state.isStreaming,
                     serverBindings = state.serverBindings,
+                    serverCredentials = if (settings.serverAuthEnabled) settings.serverAuthUsername to settings.serverAuthPassword else null,
                     clientStatus = state.clientStatus,
                     error = state.error,
                     modifier = Modifier.padding(8.dp)

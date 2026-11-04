@@ -6,6 +6,7 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.Codec
 import info.dvkr.screenstream.rtsp.internal.RtspServerEndpoint
 import info.dvkr.screenstream.rtsp.internal.VideoParams
+import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspServerAuth
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -22,12 +23,13 @@ internal class OnvifServer(
     appVersion: String,
     protocolPolicy: RtspSettings.Values.ProtocolPolicy,
     endpoints: List<RtspServerEndpoint>,
+    auth: RtspServerAuth,
 ) {
     private val scopeJob: Job = SupervisorJob()
     private val scope: CoroutineScope = CoroutineScope(scopeJob + Dispatchers.IO)
     private val endpoints: List<RtspServerEndpoint> = endpoints.filterNot { it.address.isLoopbackAddress }
     private val deviceInfo = OnvifDeviceInfo(deviceId = deviceId, appVersion = appVersion)
-    private val httpServer = OnvifHttpServer(deviceInfo, protocolPolicy)
+    private val httpServer = OnvifHttpServer(deviceInfo, protocolPolicy, auth)
     private val discoveryServer = OnvifDiscoveryServer(context, deviceInfo)
     private val stateMutex = Mutex()
     private var videoMetadata: OnvifVideoMetadata? = null

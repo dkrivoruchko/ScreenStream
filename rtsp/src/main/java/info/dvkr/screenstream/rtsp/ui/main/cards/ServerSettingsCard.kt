@@ -27,6 +27,9 @@ import info.dvkr.screenstream.rtsp.ui.main.settings.server.EnableIPv6Row
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.InterfaceFilterEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.InterfaceFilterRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.OnvifDiscoveryRow
+import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerAuthRow
+import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerCredentialsEditor
+import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerCredentialsRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerPortEditor
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerPortRow
 import info.dvkr.screenstream.rtsp.ui.main.settings.server.ServerProtocolEditor
@@ -118,6 +121,22 @@ internal fun ServerSettingsCard(
 
         HorizontalDivider()
 
+        ServerAuthRow(
+            enabled = enabled,
+            serverAuthEnabled = settings.serverAuthEnabled
+        ) { newValue ->
+            updateSettings { copy(serverAuthEnabled = newValue) }
+        }
+
+        HorizontalDivider()
+
+        ServerCredentialsRow(
+            enabled = enabled && settings.serverAuthEnabled,
+            username = settings.serverAuthUsername
+        ) { selectedSheet = ServerSettingSheet.Credentials }
+
+        HorizontalDivider()
+
         OnvifDiscoveryRow(
             enabled = enabled,
             onvifDiscoveryEnabled = settings.onvifDiscoveryEnabled
@@ -143,7 +162,8 @@ private enum class ServerSettingSheet(@get:StringRes val titleRes: Int) {
     Protocol(R.string.rtsp_pref_protocol),
     InterfaceFilter(R.string.rtsp_pref_interface_filter),
     AddressFilter(R.string.rtsp_pref_address_filter),
-    ServerPort(R.string.rtsp_pref_server_port)
+    ServerPort(R.string.rtsp_pref_server_port),
+    Credentials(R.string.rtsp_pref_server_credentials)
 }
 
 @Composable
@@ -184,6 +204,16 @@ private fun ServerSettingSheet.Editor(
             onValueChange = { value ->
                 if (settings.serverPort != value) {
                     updateSettings { copy(serverPort = value) }
+                }
+            }
+        )
+
+        ServerSettingSheet.Credentials -> ServerCredentialsEditor(
+            username = settings.serverAuthUsername,
+            password = settings.serverAuthPassword,
+            onValueChange = { username, password ->
+                if (settings.serverAuthUsername != username || settings.serverAuthPassword != password) {
+                    updateSettings { copy(serverAuthUsername = username, serverAuthPassword = password) }
                 }
             }
         )

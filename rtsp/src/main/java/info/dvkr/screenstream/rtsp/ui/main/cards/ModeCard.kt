@@ -43,6 +43,7 @@ internal fun ModeCard(
     onModeSelected: (RtspSettings.Values.Mode) -> Unit,
     isStreaming: Boolean,
     serverBindings: List<RtspBinding>,
+    serverCredentials: Pair<String, String>?,
     clientStatus: RtspClientStatus,
     error: RtspError?,
     modifier: Modifier = Modifier,
@@ -76,6 +77,7 @@ internal fun ModeCard(
                 when (selectedMode) {
                     RtspSettings.Values.Mode.SERVER -> ServerMode(
                         serverBindings = serverBindings,
+                        serverCredentials = serverCredentials,
                         error = error,
                         isStreaming = isStreaming,
                         sendEvent = sendEvent

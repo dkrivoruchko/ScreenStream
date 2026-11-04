@@ -60,7 +60,7 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
                     XLog.w(this@PlayIntegrity.getLog("getNonce", "Read failed: ${it.message}"))
                     callback(Result.failure(if (it is WebRtcError.NetworkError) it else WebRtcError.NetworkError(0, it.message, it)))
                 }.onSuccess {
-                    XLog.d(this@PlayIntegrity.getLog("getNonce", "Got nonce: $it"))
+                    XLog.d(this@PlayIntegrity.getLog("getNonce", "Got nonce, length=${it.length}"))
                     callback(Result.success(it))
                 }
             }
@@ -126,7 +126,7 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
         requestHash: String,
         callback: Result<PlayIntegrityToken>.() -> Unit
     ) {
-        XLog.d(getLog("getPlayIntegrityToken", "requestHash: $requestHash"))
+        XLog.d(getLog("getPlayIntegrityToken"))
 
         val tokenRequest = StandardIntegrityManager.StandardIntegrityTokenRequest.builder()
             .setRequestHash(requestHash)
@@ -135,7 +135,7 @@ internal class PlayIntegrity(serviceContext: Context, private val environment: W
         tokenProvider.request(tokenRequest)
             .addOnSuccessListener { response -> // @MainThread
                 val integrityToken = PlayIntegrityToken(response.token())
-                XLog.d(getLog("getPlayIntegrityToken", "Success: $integrityToken"))
+                XLog.d(getLog("getPlayIntegrityToken", "Success"))
                 callback(Result.success(integrityToken))
             }.addOnFailureListener { error -> // @MainThread
                 XLog.e(getLog("getPlayIntegrityToken", "Failed: ${error.message}"))

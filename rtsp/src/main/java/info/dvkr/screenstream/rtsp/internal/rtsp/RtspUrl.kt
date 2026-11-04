@@ -15,6 +15,15 @@ internal class RtspUrl(
     internal fun hasAuth(): Boolean = !user.isNullOrEmpty()
 
     internal companion object {
+        /** Removes `user:password@` from a URL-like string so it can be logged safely. */
+        internal fun redactUserInfo(endpoint: String): String {
+            val schemeEnd = endpoint.indexOf("://")
+            val start = if (schemeEnd >= 0) schemeEnd + 3 else 0
+            val at = endpoint.lastIndexOf('@')
+            if (at < start) return endpoint
+            return endpoint.substring(0, start) + "***@" + endpoint.substring(at + 1)
+        }
+
         @Throws(URISyntaxException::class)
         internal fun parse(endpoint: String): RtspUrl {
             val uri = URI(endpoint)

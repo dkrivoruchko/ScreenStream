@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.security.SecureRandom
 import kotlin.uuid.Uuid
 
 internal class RtspSettingsImpl(
@@ -51,6 +52,9 @@ internal class RtspSettingsImpl(
             dataStore.edit { preferences ->
                 if (preferences[RtspSettings.Key.ONVIF_DEVICE_ID].isNullOrBlank()) {
                     preferences[RtspSettings.Key.ONVIF_DEVICE_ID] = Uuid.random().toString()
+                }
+                if (preferences[RtspSettings.Key.SERVER_AUTH_PASSWORD].isNullOrBlank()) {
+                    preferences[RtspSettings.Key.SERVER_AUTH_PASSWORD] = generateRtspServerPassword()
                 }
             }
         }
@@ -164,6 +168,15 @@ internal class RtspSettingsImpl(
 
                 if (newSettings.onvifDeviceId != RtspSettings.Default.ONVIF_DEVICE_ID)
                     set(RtspSettings.Key.ONVIF_DEVICE_ID, newSettings.onvifDeviceId)
+
+                if (newSettings.serverAuthEnabled != RtspSettings.Default.SERVER_AUTH_ENABLED)
+                    set(RtspSettings.Key.SERVER_AUTH_ENABLED, newSettings.serverAuthEnabled)
+
+                if (newSettings.serverAuthUsername != RtspSettings.Default.SERVER_AUTH_USERNAME)
+                    set(RtspSettings.Key.SERVER_AUTH_USERNAME, newSettings.serverAuthUsername)
+
+                // Never persist an empty password: regenerate instead
+                set(RtspSettings.Key.SERVER_AUTH_PASSWORD, newSettings.serverAuthPassword.ifBlank { generateRtspServerPassword() })
             }
         }
         Unit
@@ -215,5 +228,17 @@ internal class RtspSettingsImpl(
         serverPath = this[RtspSettings.Key.SERVER_PATH] ?: RtspSettings.Default.SERVER_PATH,
         onvifDiscoveryEnabled = this[RtspSettings.Key.ONVIF_DISCOVERY_ENABLED] ?: RtspSettings.Default.ONVIF_DISCOVERY_ENABLED,
         onvifDeviceId = this[RtspSettings.Key.ONVIF_DEVICE_ID] ?: RtspSettings.Default.ONVIF_DEVICE_ID,
+        serverAuthEnabled = this[RtspSettings.Key.SERVER_AUTH_ENABLED] ?: RtspSettings.Default.SERVER_AUTH_ENABLED,
+        serverAuthUsername = this[RtspSettings.Key.SERVER_AUTH_USERNAME] ?: RtspSettings.Default.SERVER_AUTH_USERNAME,
+        serverAuthPassword = this[RtspSettings.Key.SERVER_AUTH_PASSWORD] ?: RtspSettings.Default.SERVER_AUTH_PASSWORD,
     )
+}
+
+private const val RTSP_PASSWORD_LENGTH: Int = 12
+private const val RTSP_PASSWORD_ALPHABET: String = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
+private val rtspPasswordRandom: SecureRandom by lazy { SecureRandom() }
+
+/** Generates a random alphanumeric password for the RTSP server using [SecureRandom]. */
+internal fun generateRtspServerPassword(): String = buildString(RTSP_PASSWORD_LENGTH) {
+    repeat(RTSP_PASSWORD_LENGTH) { append(RTSP_PASSWORD_ALPHABET[rtspPasswordRandom.nextInt(RTSP_PASSWORD_ALPHABET.length)]) }
 }

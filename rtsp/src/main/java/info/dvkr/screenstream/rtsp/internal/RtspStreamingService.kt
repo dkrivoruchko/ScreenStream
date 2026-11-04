@@ -44,6 +44,8 @@ import info.dvkr.screenstream.rtsp.internal.audio.AudioEncoder
 import info.dvkr.screenstream.rtsp.internal.audio.AudioSource
 import info.dvkr.screenstream.rtsp.internal.onvif.OnvifServer
 import info.dvkr.screenstream.rtsp.internal.rtsp.RtspUrl
+import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspServerAuth
+import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspServerCredentials
 import info.dvkr.screenstream.rtsp.internal.rtsp.client.RtspClient
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.ClientStats
 import info.dvkr.screenstream.rtsp.internal.rtsp.server.NetworkHelper
@@ -311,9 +313,16 @@ internal class RtspStreamingService(
 
         private var server: RtspServer? = null
 
+        // Shared by RTSP server and ONVIF device service. Credentials are read live from settings.
+        private val serverAuth: RtspServerAuth = RtspServerAuth {
+            val settings = rtspSettings.data.value
+            if (settings.serverAuthEnabled) RtspServerCredentials(settings.serverAuthUsername, settings.serverAuthPassword) else null
+        }
+
         suspend fun onEvent(event: InternalEvent.RtspServer) {
             if (event !is InternalEvent.RtspServer.DiscoverAddress &&
                 event !is InternalEvent.RtspServer.OnvifDiscoveryChanged &&
+                event !is InternalEvent.RtspServer.AuthChanged &&
                 event.generation != generation
             ) {
                 XLog.d(getLog("RtspServer:${event::class.simpleName}", "Stale generation=${event.generation}. Ignoring."))
@@ -372,6 +381,7 @@ internal class RtspStreamingService(
                             server = RtspServer(
                                 appVersion = appVersion,
                                 generation = ++generation,
+                                auth = serverAuth,
                                 onEvent = {
                                     XLog.d(getLog("RtspServer.onEvent", it.toString()))
                                     sendEvent(it)
@@ -406,7 +416,8 @@ internal class RtspStreamingService(
                         deviceId = rtspSettings.data.value.onvifDeviceId,
                         appVersion = appVersion,
                         protocolPolicy = rtspSettings.data.value.serverProtocol,
-                        endpoints = event.endpoints
+                        endpoints = event.endpoints,
+                        auth = serverAuth
                     ).also { server ->
                         updateOnvifVideoMetadata(server, projectionState.lastVideoParams)
                         server.setEnabled(rtspSettings.data.value.onvifDiscoveryEnabled)
@@ -429,6 +440,11 @@ internal class RtspStreamingService(
                 is InternalEvent.RtspServer.OnClientStats -> Unit // Intentional to trigger serverClientStats update
                 is InternalEvent.RtspServer.OnvifDiscoveryChanged -> {
                     onvifServer?.setEnabled(rtspSettings.data.value.onvifDiscoveryEnabled)
+                }
+
+                is InternalEvent.RtspServer.AuthChanged -> {
+                    // Credentials changed: drop clients authenticated with the old ones
+                    server?.disconnectAllClients()
                 }
             }
         }
@@ -633,6 +649,9 @@ internal class RtspStreamingService(
             data object OnvifDiscoveryChanged : RtspServer(Priority.RECOVER_IGNORE) {
                 override val generation: Long = -1L
             }
+            data object AuthChanged : RtspServer(Priority.RECOVER_IGNORE) {
+                override val generation: Long = -1L
+            }
         }
 
         data class OnVideoFps(val fps: Int) : InternalEvent(Priority.DESTROY_IGNORE)
@@ -725,6 +744,11 @@ internal class RtspStreamingService(
 
         rtspSettings.data.map { it.onvifDiscoveryEnabled }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RtspServer.OnvifDiscoveryChanged)
+        }
+
+        // Do not log the value: it contains the password
+        rtspSettings.data.map { Triple(it.serverAuthEnabled, it.serverAuthUsername, it.serverAuthPassword) }.listenForChange(coroutineScope, 1) {
+            sendEvent(InternalEvent.RtspServer.AuthChanged)
         }
 
         coroutineScope.launch {
@@ -1176,7 +1200,7 @@ internal class RtspStreamingService(
                         clearPreparedProjectionStartIfNeeded(event.foregroundStartProcessed, event.foregroundStartError)
                         projectionState.pendingStartAttemptId = null
                         projectionState.foregroundPreflightStartAttemptId = null
-                        XLog.w(getLog("StartProjection", "Bad RTSP URL: ${settings.serverAddress}"), e)
+                        XLog.w(getLog("StartProjection", "Bad RTSP URL: ${RtspUrl.redactUserInfo(settings.serverAddress)} (${e.reason})"))
                         sessionAnalyticsTracker.onStartFailed(StartFailGroup.UNKNOWN)
                         stopStream(stopServer = true, stopReason = "StartProjectionInvalidRtspUrl")
                         currentError = RtspError.ClientError.Failed(e.reason ?: e.message)
