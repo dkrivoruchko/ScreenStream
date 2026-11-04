@@ -24,7 +24,7 @@ Keep run reports with the change or release that produced them. A report lists c
 
 ## Current state of the test sources
 
-The Kotlin sources under `mjpeg/src/test/kotlin` target current production behavior. Alignment with production is a property of the source, not a result: only a fresh run with inspected results, recorded with its change, is execution evidence. Not every scenario has an automated history, and platform-only parts stay deferred. Successful app assembly and web-client checks are separate evidence: they neither compile nor run this suite.
+The Kotlin sources under `streaming/mjpeg/src/test/kotlin` target current production behavior. Alignment with production is a property of the source, not a result: only a fresh run with inspected results, recorded with its change, is execution evidence. Not every scenario has an automated history, and platform-only parts stay deferred. Successful app assembly and web-client checks are separate evidence: they neither compile nor run this suite.
 
 When you read or change these tests:
 
@@ -55,7 +55,7 @@ Several neighbors need their own verification, even when an MJPEG test supplies 
 | Neighbor | Where its verification belongs |
 | --- | --- |
 | Core's manager, Service base class, consent coordination, permission host and notifications | Core's [testing guide](../../../core/internal/testing/01-testing.md), against its [public contracts](../../../core/README.md) |
-| Capture Engine sessions, frames and statistics | The [Capture Engine](../../../screen-capture-engine/README.md) |
+| Capture Engine sessions, frames and statistics | The [Capture Engine](../../../../screen-capture-engine/README.md) |
 | Viewer page build, desktop preview with its Node fixture checks, Node owner tests of the viewer's scripts, and manual browser smoke | The [web client tools guide](../../tools/web-client/README.md) |
 | Compose screens, clipboard, QR codes, and the app's permission and consent UI | Android UI checks in the app |
 | Ktor server internals | Ktor. MJPEG tests only its own use of the CIO engine. |
@@ -92,7 +92,7 @@ Some production seams determine what each level can reach:
 
 ## Android versions
 
-The [root build](../../../build.gradle.kts) defines the minimum, compile and target SDK levels; read the current values there. The [module build](../../build.gradle.kts) takes its minimum SDK, compile SDK and build tools from the root build and declares no target of its own. Android enforces the packaged app's target SDK, which the [app build](../../../app/build.gradle.kts) sets.
+The [root build](../../../../build.gradle.kts) defines the minimum, compile and target SDK levels; read the current values there. The [module build](../../build.gradle.kts) takes its minimum SDK, compile SDK and build tools from the root build and declares no target of its own. Android enforces the packaged app's target SDK, which the [app build](../../../../app/build.gradle.kts) sets.
 
 Compile and target SDK are build baselines, not an upper limit on the Android versions MJPEG runs on.
 
@@ -117,10 +117,10 @@ The [module build](../../build.gradle.kts) owns the test dependencies, the inclu
 Run this from the repository root:
 
 ```shell
-./gradlew :mjpeg:testDebugUnitTest
+./gradlew :streaming:mjpeg:testDebugUnitTest
 ```
 
-To select one class, add `--tests 'fully.qualified.TestClass'`. Then inspect `mjpeg/build/reports/tests/testDebugUnitTest/` and `mjpeg/build/test-results/testDebugUnitTest/`. A successful build without fresh test results isn't execution evidence. That includes a task that was up to date or skipped. CIO histories that bind IPv4 and IPv6 addresses independently need both loopback families configured on the host.
+To select one class, add `--tests 'fully.qualified.TestClass'`. Then inspect `streaming/mjpeg/build/reports/tests/testDebugUnitTest/` and `streaming/mjpeg/build/test-results/testDebugUnitTest/`. A successful build without fresh test results isn't execution evidence. That includes a task that was up to date or skipped. CIO histories that bind IPv4 and IPv6 addresses independently need both loopback families configured on the host.
 
 In Android Studio, run a test class or method from its gutter icon, or run the `mjpeg` module's `testDebugUnitTest` task from the Gradle tool window. A saved run configuration keeps the module and class names it was created with. If one names a module or class that no longer exists, delete it and create a new one from the current test source.
 
@@ -138,7 +138,7 @@ Use the narrowest supported control for the boundary under test:
 
 Ktor's test engine is a model of the server, not CIO. Check these points before you treat a test-engine result as evidence for the history it names.
 
-These traps, the Robolectric screen-broadcast observation under [Doubles, shadows and fault adapters](#doubles-shadows-and-fault-adapters) and the WebSocket queue observations in [Web client](../02-delivery/03-web-client.md#limits-and-settlement) describe library implementation, not documented API. Their source links are pinned to the inspected release, so recheck them when the [version catalog](../../../gradle/libs.versions.toml) changes that library.
+These traps, the Robolectric screen-broadcast observation under [Doubles, shadows and fault adapters](#doubles-shadows-and-fault-adapters) and the WebSocket queue observations in [Web client](../02-delivery/03-web-client.md#limits-and-settlement) describe library implementation, not documented API. Their source links are pinned to the inspected release, so recheck them when the [version catalog](../../../../gradle/libs.versions.toml) changes that library.
 
 - **Repeated request headers.** In the linked source, the test client merges repeated values of a request header into one comma-joined field before the call reaches the server. `Cookie` values are joined with `; `, and only date headers stay separate ([test client engine](https://github.com/ktorio/ktor/blob/3.6.1/ktor-server/ktor-server-test-host/common/src/io/ktor/server/testing/client/TestHttpClientEngine.kt), [`mergeHeaders`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-client/ktor-client-core/common/src/io/ktor/client/engine/Utils.kt)). Before you claim repeated-field coverage, assert the values the server actually saw with `getAll`. When a history needs genuinely separate field lines, send them from a raw socket to a CIO listener, as the [duplicate-header test](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebRoutesDuplicateHeaderCioTest.kt) does.
 - **Response and upgrade lifetimes.** The test engine runs response producers and WebSocket upgrades under Jobs whose lifetimes differ from CIO's. Observations at the public send boundary, such as a controlled writer, or of the routing call's Job from `RoutingCallStarted`, are model evidence for MJPEG's own ownership. Physical settlement, meaning call completion and socket closure, needs real CIO.

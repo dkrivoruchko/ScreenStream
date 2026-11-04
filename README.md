@@ -150,9 +150,9 @@ To contribute a translation, translate the following five files:
 
 1. [app/src/main/res/values/strings.xml](app/src/main/res/values/strings.xml)
 1. [common/src/main/res/values/strings.xml](common/src/main/res/values/strings.xml)
-1. [mjpeg/src/main/res/values/strings.xml](mjpeg/src/main/res/values/strings.xml)
-1. [webrtc/src/main/res/values/strings.xml](webrtc/src/main/res/values/strings.xml)
-1. [rtsp/src/main/res/values/strings.xml](rtsp/src/main/res/values/strings.xml)
+1. [streaming/mjpeg/src/main/res/values/strings.xml](streaming/mjpeg/src/main/res/values/strings.xml)
+1. [streaming/webrtc/src/main/res/values/strings.xml](streaming/webrtc/src/main/res/values/strings.xml)
+1. [streaming/rtsp/src/main/res/values/strings.xml](streaming/rtsp/src/main/res/values/strings.xml)
 
 Keep the same key order and blank-line placement as the English source files, and preserve all formatting placeholders such as `%1$s` and `%1$d`.
 

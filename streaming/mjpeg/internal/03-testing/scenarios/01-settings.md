@@ -12,7 +12,7 @@ The scenarios build on these owners:
 | When each change takes effect, and which settings wait until capture has stopped | [Architecture: Settings](../../../docs/architecture.md#settings) |
 | Saved model, validation, transactions, PIN preparation, edit policy and read recovery | [Settings](../../01-module/04-settings.md) |
 | The order in which the controller applies observed settings | [Coordination](../../01-module/03-coordination.md) |
-| Crop, output size and frame-rate value types and their ranges | Capture Engine [Image and geometry](../../../../screen-capture-engine/docs/usage.md#image-and-geometry) and [Frame timing](../../../../screen-capture-engine/docs/usage.md#frame-timing) |
+| Crop, output size and frame-rate value types and their ranges | Capture Engine [Image and geometry](../../../../../screen-capture-engine/docs/usage.md#image-and-geometry) and [Frame timing](../../../../../screen-capture-engine/docs/usage.md#frame-timing) |
 
 ## Components and terms
 

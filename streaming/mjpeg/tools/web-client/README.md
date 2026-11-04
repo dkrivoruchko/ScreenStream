@@ -4,7 +4,7 @@ This workspace builds the browser viewer that Android serves and runs a desktop 
 
 ## Sources and generated asset
 
-Edit the HTML template, CSS, JavaScript and locale catalogs in [`src/`](src). [build.cjs](build.cjs) combines them with the packaged logo into one self-contained Android asset, [`mjpeg/src/main/assets/mjpeg/index.html`](../../src/main/assets/mjpeg/index.html). Don't edit that file by hand; commit it together with the sources that produced it.
+Edit the HTML template, CSS, JavaScript and locale catalogs in [`src/`](src). [build.cjs](build.cjs) combines them with the packaged logo into one self-contained Android asset, [`streaming/mjpeg/src/main/assets/mjpeg/index.html`](../../src/main/assets/mjpeg/index.html). Don't edit that file by hand; commit it together with the sources that produced it.
 
 The builder checks every locale catalog against English and requires each template marker exactly once. It wraps the scripts, in the order it lists, in one strict-mode function, escapes the inline script, and checks that the final script parses as ES2015.
 
@@ -13,7 +13,7 @@ The builder checks every locale catalog against English and requires each templa
 Use the Node.js release in [.nvmrc](.nvmrc). [package.json](package.json) declares the supported Node.js and npm ranges and the preferred npm release. From the repository root:
 
 ```sh
-cd mjpeg/tools/web-client
+cd streaming/mjpeg/tools/web-client
 npm ci          # install the locked dependencies
 npm run build   # regenerate the Android asset
 npm run check   # fail if the asset is stale; writes nothing

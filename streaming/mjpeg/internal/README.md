@@ -17,7 +17,7 @@ This page maps the module's components and who owns each contract, then sets out
 
 ## Components and responsibilities
 
-MJPEG plugs into [Core](../../core/README.md) and drives the [Capture Engine](../../screen-capture-engine/README.md) through their public contracts. Within the module, a few owners divide the work. In the diagram, "creates" and "admits" arrows show ownership; the other arrows show control and data flow.
+MJPEG plugs into [Core](../../core/README.md) and drives the [Capture Engine](../../../screen-capture-engine/README.md) through their public contracts. Within the module, a few owners divide the work. In the diagram, "creates" and "admits" arrows show ownership; the other arrows show control and data flow.
 
 ```mermaid
 flowchart TB
@@ -96,7 +96,7 @@ Public pages own observable behavior, including technical contracts such as the 
 | How do consent, projection handoff and legacy consent reuse work? | [Screen Capture Access](../../core/docs/screen-capture.md) | [Module integration](01-module/01-module-integration.md), [Capture lifecycle](01-module/02-module-lifecycle.md) |
 | How is the local-network permission checked and requested? | [Runtime Permissions](../../core/docs/runtime-permissions.md) | [Coordination](01-module/03-coordination.md), [Network addresses](01-module/05-network-addresses.md) |
 | How are the foreground notification and errors presented? | [Streaming Module Notifications](../../core/docs/notifications.md) | [Module integration](01-module/01-module-integration.md) |
-| What do Engine sessions, borrowed frames, parameters and stop guarantee? | [Capture Engine usage](../../screen-capture-engine/docs/usage.md) | [Capture lifecycle](01-module/02-module-lifecycle.md), [JPEG delivery](02-delivery/02-jpeg-delivery.md) |
+| What do Engine sessions, borrowed frames, parameters and stop guarantee? | [Capture Engine usage](../../../screen-capture-engine/docs/usage.md) | [Capture lifecycle](01-module/02-module-lifecycle.md), [JPEG delivery](02-delivery/02-jpeg-delivery.md) |
 | How is the viewer page built and previewed? | [Web client tools](../tools/web-client/README.md) | [Web client](02-delivery/03-web-client.md) |
 
 ## Reading path

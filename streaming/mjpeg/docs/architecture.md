@@ -32,7 +32,7 @@ This guide explains how MJPEG mode fits together: which component owns each kind
 MJPEG mode is built from three parts:
 
 - [Core](../../core/README.md) opens the mode and hosts it in an Android Service. It also coordinates screen-sharing consent, runtime permissions and notifications.
-- [Capture Engine](../../screen-capture-engine/README.md) turns the screen content that Android allows the app to capture into complete JPEG images.
+- [Capture Engine](../../../screen-capture-engine/README.md) turns the screen content that Android allows the app to capture into complete JPEG images.
 - MJPEG mode supplies everything needed to serve those images over HTTP from the device's own network addresses.
 
 | Component | Responsibility | Lifetime |
@@ -141,13 +141,13 @@ A Start is a request. The Controller decides it when it handles the request: if 
 - **Screen access.** The approval gives the attempt Android's handle to the shared screen or app. The attempt owns it until a Capture Engine session takes it over. If no session can be created, the attempt releases the handle itself.
 - **Engine session.** The session starts with the latest image settings, including changes made while the dialog was open. When the session reports a successful start, capture is confirmed, which means the Engine has a usable configuration. The app and the notification then offer Stop. The first image can arrive shortly afterwards.
 
-If the user declines, the attempt ends without an error and the mode stays ready. A capture startup failure ends the attempt with an error. If cleanup succeeds and the mode is still open, Start becomes available again. If Android refuses to let the Service enter its capture phase, the whole mode closes instead, because its foreground host has failed. On older Android versions, Core can reuse the approval from a normally stopped capture, so the dialog may not appear ([legacy reuse](../../core/docs/screen-capture.md#legacy-reuse-and-cleanup)). Core's [projection handoff](../../core/docs/screen-capture.md#projection-creation-and-handoff) and the Engine's [session contract](../../screen-capture-engine/docs/usage.md#run-a-capture-session) define the shared rules.
+If the user declines, the attempt ends without an error and the mode stays ready. A capture startup failure ends the attempt with an error. If cleanup succeeds and the mode is still open, Start becomes available again. If Android refuses to let the Service enter its capture phase, the whole mode closes instead, because its foreground host has failed. On older Android versions, Core can reuse the approval from a normally stopped capture, so the dialog may not appear ([legacy reuse](../../core/docs/screen-capture.md#legacy-reuse-and-cleanup)). Core's [projection handoff](../../core/docs/screen-capture.md#projection-creation-and-handoff) and the Engine's [session contract](../../../screen-capture-engine/docs/usage.md#run-a-capture-session) define the shared rules.
 
 ## Delivering images
 
 ### From Engine frame to shared image
 
-The Engine lends each JPEG for the duration of one callback. On the callback thread, the attempt copies the bytes into storage owned by HTTP delivery, then returns. The Engine skips delivery opportunities while a callback is busy rather than queueing them. HTTP delivery, in turn, keeps only the latest frame. Only a running capture can publish: once capture is paused, stopping or stopped, late copies are discarded. [Handle JPEG frames](../../screen-capture-engine/docs/usage.md#handle-jpeg-frames) defines the borrowing rules.
+The Engine lends each JPEG for the duration of one callback. On the callback thread, the attempt copies the bytes into storage owned by HTTP delivery, then returns. The Engine skips delivery opportunities while a callback is busy rather than queueing them. HTTP delivery, in turn, keeps only the latest frame. Only a running capture can publish: once capture is paused, stopping or stopped, late copies are discarded. [Handle JPEG frames](../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames) defines the borrowing rules.
 
 HTTP delivery holds one selected image for all viewers. Each response keeps the image it is writing valid until that write completes, so replacing the image never disturbs a transfer in progress. MJPEG readers always advance to the newest image and skip any images they missed. When capture is quiet, the unchanged image is repeated periodically. The server keeps no backlog of old frames for a slow reader; each client handles its own buffering and display. Each viewer receives its own HTTP transfer, so outgoing data grows with the number of viewers.
 
@@ -195,7 +195,7 @@ A Stop can come from **Stop stream** in the app, Stop in the notification, Andro
 
 Each Stop targets one capture attempt, so a delayed Stop for an earlier attempt cannot end a newer one.
 
-When Stop is accepted, the attempt stops publishing at once, and viewers switch to the inactive stream image with the stopped notice. Cleanup then stops the Engine session, which closes frame delivery and ends screen access, and waits until the attempt's frame handler has returned. It also settles the attempt's consent records with Core. When every step succeeds, the Service returns to its waiting phase. The Engine's own [stop contract](../../screen-capture-engine/docs/usage.md#stop-a-capture-run) governs when its internal graphics and buffer resources are physically released.
+When Stop is accepted, the attempt stops publishing at once, and viewers switch to the inactive stream image with the stopped notice. Cleanup then stops the Engine session, which closes frame delivery and ends screen access, and waits until the attempt's frame handler has returned. It also settles the attempt's consent records with Core. When every step succeeds, the Service returns to its waiting phase. The Engine's own [stop contract](../../../screen-capture-engine/docs/usage.md#stop-a-capture-run) governs when its internal graphics and buffer resources are physically released.
 
 Start becomes available again, and setup settings saved in the meantime take effect, only after this cleanup succeeds. Listeners, credentials and connected viewers are not affected. If cleanup is slow, the app reports "Still stopping the stream…" and offers **Restart mode**. If cleanup fails, the whole mode closes ([Pauses and failures](#pauses-and-failures)).
 
@@ -210,7 +210,7 @@ MJPEG mode distinguishes problems that a capture attempt can survive from proble
 | Capture cleanup fails | Ends | Reports failure and shuts down | The app shows a mode failure and offers **Restart mode** |
 | HTTP delivery, address discovery or settings fail, Android refuses the Service's capture phase, or Android destroys the Service | Stopped | Reports failure and shuts down | Same as above |
 
-A paused capture resumes when capture conditions change or a changed image setting reaches the Engine; the app does not retry on a timer. [Handle errors and recovery](../../screen-capture-engine/docs/usage.md#handle-errors-and-recovery) defines the Engine's pause categories, and [Streaming Module Notifications](../../core/docs/notifications.md#error-presentation) describes how Core presents operation errors and failures.
+A paused capture resumes when capture conditions change or a changed image setting reaches the Engine; the app does not retry on a timer. [Handle errors and recovery](../../../screen-capture-engine/docs/usage.md#handle-errors-and-recovery) defines the Engine's pause categories, and [Streaming Module Notifications](../../core/docs/notifications.md#error-presentation) describes how Core presents operation errors and failures.
 
 ### Closing the mode
 

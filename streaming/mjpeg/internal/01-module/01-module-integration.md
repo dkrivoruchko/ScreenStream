@@ -126,7 +126,7 @@ Shutdown has a single entry point, `requestModuleShutdown()`. The controller's c
 - every job in the controller's scope, including the capture coroutine and the open-time PIN save described in [Coordination](03-coordination.md#effective-settings-and-saves);
 - stopping the original Service and awaiting its destruction.
 
-The outcome stays pending until every obligation settles, even after Core's bounded wait has ended and a replacement instance is running. It does not include the engine's physical resource release, which follows the engine's [stop contract](../../../screen-capture-engine/docs/usage.md#stop-a-capture-run). [Controller shutdown](02-module-lifecycle.md#controller-shutdown-and-complete-module-cleanup) defines the order.
+The outcome stays pending until every obligation settles, even after Core's bounded wait has ended and a replacement instance is running. It does not include the engine's physical resource release, which follows the engine's [stop contract](../../../../screen-capture-engine/docs/usage.md#stop-a-capture-run). [Controller shutdown](02-module-lifecycle.md#controller-shutdown-and-complete-module-cleanup) defines the order.
 
 The cleanup coroutine is created lazily and started by the shutdown request. Awaiting a lazily started coroutine also starts it ([`async`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/async.html)). A caller that awaited cleanup before requesting shutdown would therefore begin cleanup while admission was still open. Core's manager requests shutdown before it waits, as its [closing sequence](../../../core/docs/module-contract-and-manager.md#closing-a-module-instance) shows. Keep that order in any new caller.
 

@@ -1,4 +1,4 @@
-<!-- Copied from rtsp/src/main/res/drawable/arrow_drop_down_24px.xml for app-owned UI. -->
+<!-- Copied from streaming/rtsp/src/main/res/drawable/arrow_drop_down_24px.xml for app-owned UI. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"

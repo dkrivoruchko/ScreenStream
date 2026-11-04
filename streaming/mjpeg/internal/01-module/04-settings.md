@@ -12,7 +12,7 @@ This guide continues from there for people maintaining the module. It follows a 
 | --- | --- | --- |
 | [`MjpegSettings`](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettings.kt) | Owns the store, the save transaction and the edit-policy rules | Process singleton |
 | [Settings models](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) | Define the five groups, their defaults, local validation and saved encoding | Immutable values |
-| Shared [`JsonPreferencesStore`](../../../common/src/main/java/info/dvkr/screenstream/common/settings/JsonPreferencesStore.kt) | Keeps the model as JSON in a Preferences DataStore and recovers from unreadable data | Owned by `MjpegSettings` |
+| Shared [`JsonPreferencesStore`](../../../../common/src/main/java/info/dvkr/screenstream/common/settings/JsonPreferencesStore.kt) | Keeps the model as JSON in a Preferences DataStore and recovers from unreadable data | Owned by `MjpegSettings` |
 | Settings editors (`ui/settings`) | Hold drafts and save changed fields | One settings screen; drafts survive UI recreation |
 | `MjpegStreamingModuleController` | Decides which saved values take effect and hands them to their owners | One module instance |
 | HTTP delivery | Creates viewing credentials from the applied access settings | One module instance |
@@ -52,7 +52,7 @@ Editors also have **seed values** for modes that have no saved value yet:
 
 Seeds only fill a draft. Saved data changes only when the user closes the editor with a valid draft that differs from the value the editor opened with.
 
-Some saved values are dormant. The crop insets stay saved while crop is off, and the unselected choice of scale or target size stays saved too, so the user can switch back without retyping. A capture attempt sends `CropInsetsPx.ZERO` when crop is off and sends only the selected output-size variant. The JPEG backend belongs to the Engine session's configuration and is read once, when the attempt is admitted. The other image values are Engine parameters that can change during a run, as [Change capture parameters](../../../screen-capture-engine/docs/usage.md#change-capture-parameters) describes.
+Some saved values are dormant. The crop insets stay saved while crop is off, and the unselected choice of scale or target size stays saved too, so the user can switch back without retyping. A capture attempt sends `CropInsetsPx.ZERO` when crop is off and sends only the selected output-size variant. The JPEG backend belongs to the Engine session's configuration and is read once, when the attempt is admitted. The other image values are Engine parameters that can change during a run, as [Change capture parameters](../../../../screen-capture-engine/docs/usage.md#change-capture-parameters) describes.
 
 ## Validation
 
@@ -73,7 +73,7 @@ Validation happens at three levels, each of which can catch different problems:
    - **At Engine startup.** Startup fails, the attempt ends with an error, and Start becomes available again after cleanup.
    - **During a run**, after a parameter change or a change in capture geometry. The Engine can suspend output instead. The attempt stays alive and paused, and Stop remains available. MJPEG schedules no retries of its own. A pause can end when capture conditions change or a changed image setting reaches the Engine, but a persistent problem can pause the same settings again.
 
-   See [Image and geometry](../../../screen-capture-engine/docs/usage.md#image-and-geometry) and [Handle errors and recovery](../../../screen-capture-engine/docs/usage.md#handle-errors-and-recovery).
+   See [Image and geometry](../../../../screen-capture-engine/docs/usage.md#image-and-geometry) and [Handle errors and recovery](../../../../screen-capture-engine/docs/usage.md#handle-errors-and-recovery).
 
 The size editor's estimate is based on the device's maximum window size and is only guidance. Sharing a single app or rotating the device can produce a different result.
 
@@ -196,6 +196,6 @@ Seeing defaults does not always mean storage holds defaults. After a failed repa
 
 ## Implementation and verification
 
-The [models](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) own defaults, validation and encoding. [`MjpegSettings`](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettings.kt) owns the transaction and the edit-policy mapping. The shared [JSON store](../../../common/src/main/java/info/dvkr/screenstream/common/settings/JsonPreferencesStore.kt) owns repair behavior.
+The [models](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) own defaults, validation and encoding. [`MjpegSettings`](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettings.kt) owns the transaction and the edit-policy mapping. The shared [JSON store](../../../../common/src/main/java/info/dvkr/screenstream/common/settings/JsonPreferencesStore.kt) owns repair behavior.
 
-Changes to recovery need payloads written in a damaged format, kept separate from the current model's own encoding. The Engine's [parameter contract](../../../screen-capture-engine/docs/usage.md#change-capture-parameters) governs image values during capture. [Settings scenarios](../03-testing/scenarios/01-settings.md) describe the required histories, and [Testing](../03-testing/01-testing.md) defines the evidence a settings change needs.
+Changes to recovery need payloads written in a damaged format, kept separate from the current model's own encoding. The Engine's [parameter contract](../../../../screen-capture-engine/docs/usage.md#change-capture-parameters) governs image values during capture. [Settings scenarios](../03-testing/scenarios/01-settings.md) describe the required histories, and [Testing](../03-testing/01-testing.md) defines the evidence a settings change needs.

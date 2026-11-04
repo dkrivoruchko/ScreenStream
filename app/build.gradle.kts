@@ -124,7 +124,7 @@ dependencies {
     coreLibraryDesugaring(libs.android.tools.desugar)
 
     implementation(projects.common)
-    implementation(projects.core)
+    implementation(projects.streaming.core)
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)
@@ -136,10 +136,10 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
 
-    implementation(projects.mjpeg)
-    implementation(projects.rtsp)
+    implementation(projects.streaming.mjpeg)
+    implementation(projects.streaming.rtsp)
 
-    "PlayStoreImplementation"(projects.webrtc)
+    "PlayStoreImplementation"(projects.streaming.webrtc)
     "PlayStoreImplementation"(libs.play.app.update)
     "PlayStoreImplementation"(libs.play.app.review)
     "PlayStoreImplementation"(libs.ads.mobile.sdk)

@@ -25,7 +25,7 @@ android {
 
 dependencies {
     implementation(projects.common)
-    implementation(projects.core)
+    implementation(projects.streaming.core)
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)

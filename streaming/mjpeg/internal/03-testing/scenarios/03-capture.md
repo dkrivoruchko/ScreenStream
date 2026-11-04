@@ -12,7 +12,7 @@
 These scenarios exercise that attempt from admission to its cleanup receipt. [Capture lifecycle](../../01-module/02-module-lifecycle.md) owns the rules. The external boundaries are:
 
 - the public [startup flow](../../../docs/architecture.md#starting-capture) and [Stop behavior](../../../docs/architecture.md#stop)
-- the [Capture Engine usage guide](../../../../screen-capture-engine/docs/usage.md)
+- the [Capture Engine usage guide](../../../../../screen-capture-engine/docs/usage.md)
 - Core's [Screen Capture Access](../../../../core/docs/screen-capture.md)
 
 ## Test boundary
@@ -188,7 +188,7 @@ Then race Stop against each of them.
 - **Suspended problems.** Suspended reports `InvalidRequest`, `CaptureUnavailable` and `ResourceExhausted` as separate problems.
 - **Engine failure.** An Engine Failed records `Engine.state`. Later successful cleanup keeps the status Failed.
 - **Confirmed startup.** Streaming requires a returned Engine start and no accepted Stop. An Active state seen before start returned isn't enough, and a confirmed session stays streaming while Suspended.
-- **First image is separate.** Confirmed startup can come before the first JPEG, so check image availability separately ([Engine startup](../../../../screen-capture-engine/docs/usage.md#startup-details)).
+- **First image is separate.** Confirmed startup can come before the first JPEG, so check image availability separately ([Engine startup](../../../../../screen-capture-engine/docs/usage.md#startup-details)).
 
 ## Borrowed output
 
@@ -214,11 +214,11 @@ Then race Stop against each of them.
 - **Exact bytes.** Copied bytes are exactly six bytes with the fixture's payload, and any spare capacity in a reused buffer stays outside that prefix.
 - **Pairing.** The copied JPEG stays paired with the generation that admitted it.
 - **Stale offers.** No offer is made without a generation. A stale offer never invokes the copier and can't revive output.
-- **Callback lifetime.** All access to the borrowed frame happens on the callback's thread, within that callback ([Engine frame rules](../../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames)).
+- **Callback lifetime.** All access to the borrowed frame happens on the callback's thread, within that callback ([Engine frame rules](../../../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames)).
 
 **Defensive inputs.** A conforming Engine and HTTP store never produce these, so label them as defensive:
 
-- **Short destination.** Give a truthful six-byte frame a five-byte destination. The copy is rejected before the destination changes ([`copyTo`](../../../../screen-capture-engine/docs/usage.md#reuse-app-storage)), and no output is committed. The session records `Output.frame`, requests an Error Stop and still cleans up.
+- **Short destination.** Give a truthful six-byte frame a five-byte destination. The copy is rejected before the destination changes ([`copyTo`](../../../../../screen-capture-engine/docs/usage.md#reuse-app-storage)), and no output is committed. The session records `Output.frame`, requests an Error Stop and still cleans up.
 - **Wrong copy count.** Make a copier that advertises six bytes return five or seven. The session records `IllegalStateException("Incomplete JPEG copy")` at `Output.frame`.
 - **Unreadable metadata.** When reading the byte count or metadata fails, the session records that original cause rather than inventing a frame.
 
@@ -256,8 +256,8 @@ Cleanup runs without cancellation once it has started. In these scenarios, **for
 
 - **Both receipts.** Cleanup waits for both receipts. Foreground release waits for the consumer and depends on the media result.
 - **No substitutes.** A cancelled waiter or a terminal Engine state can't stand in for consumer completion.
-- **Unregister waits.** An ordinary unregister is a wait, not a step that normally fails ([consumer removal](../../../../screen-capture-engine/docs/usage.md#replace-or-remove-the-consumer)).
-- **Logical completion only.** Media stop confirms logical completion and the projection stop. Physical release follows the [Engine's stop contract](../../../../screen-capture-engine/docs/usage.md#stop-a-capture-run).
+- **Unregister waits.** An ordinary unregister is a wait, not a step that normally fails ([consumer removal](../../../../../screen-capture-engine/docs/usage.md#replace-or-remove-the-consumer)).
+- **Logical completion only.** Media stop confirms logical completion and the projection stop. Physical release follows the [Engine's stop contract](../../../../../screen-capture-engine/docs/usage.md#stop-a-capture-run).
 
 <a id="mjpeg-cap-11"></a>
 
@@ -329,6 +329,6 @@ Run on SDK levels before 29, from 29 to 33, and 34 or later.
 
 - **State observation failure.** It records `Engine.stateObservation`, ends capture with an Error stop and cleans up.
 - **Statistics observation failure.** It is only logged. No values are invented, and capture success is unchanged.
-- **Undocumented Suspended problem.** The Engine allows only three Suspended problems ([lifecycle states](../../../../screen-capture-engine/docs/usage.md#lifecycle-states)). Any other value makes the session's suspension problem throw when the controller reads it, which fails the module rather than one attempt.
+- **Undocumented Suspended problem.** The Engine allows only three Suspended problems ([lifecycle states](../../../../../screen-capture-engine/docs/usage.md#lifecycle-states)). Any other value makes the session's suspension problem throw when the controller reads it, which fails the module rather than one attempt.
 
 **Evidence boundary.** Engine `StateFlow`s don't normally throw. A fabricated throwing flow, an undocumented problem or a logger fault is defensive evidence only, not evidence about the real integration.

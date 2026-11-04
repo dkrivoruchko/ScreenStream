@@ -2,7 +2,7 @@
 
 [Internals](../README.md) · [HTTP delivery](01-http-delivery.md) · [Web client](03-web-client.md)
 
-JPEG delivery turns the JPEGs that Capture Engine lends to the capture attempt into images that many HTTP responses can read at the same time. It decides which single image every viewer gets, keeps that image's bytes valid while responses write them, and writes the single-JPEG and MJPEG responses. [Architecture](../../docs/architecture.md#from-engine-frame-to-shared-image) describes the ownership boundary and [what viewers receive](../../docs/architecture.md#what-viewers-receive). The [HTTP server guide](../../docs/server.md#images) defines the wire format. The Engine's [frame contract](../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames) defines the borrowed frame that all of this starts from.
+JPEG delivery turns the JPEGs that Capture Engine lends to the capture attempt into images that many HTTP responses can read at the same time. It decides which single image every viewer gets, keeps that image's bytes valid while responses write them, and writes the single-JPEG and MJPEG responses. [Architecture](../../docs/architecture.md#from-engine-frame-to-shared-image) describes the ownership boundary and [what viewers receive](../../docs/architecture.md#what-viewers-receive). The [HTTP server guide](../../docs/server.md#images) defines the wire format. The Engine's [frame contract](../../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames) defines the borrowed frame that all of this starts from.
 
 This guide is for maintainers who change copying, image selection, reader leases, response writing or slow-reader detection.
 
@@ -87,7 +87,7 @@ The capture session decides the generation, and the store applies it and enforce
 
 Before an attempt starts, the Controller creates its initial generation and registers it through HTTP delivery. The store records the attempt and the generation and sets the status to Starting. It keeps the latest real frame and doesn't disturb readers. That frame belongs to an older generation, so selection follows the inactive-image policy until a frame of the new generation arrives.
 
-The initial generation stays in force through consent and Engine startup. Publication therefore doesn't depend on the order in which the attempt sees `start()` return and the first callback. A return from `start()` confirms a usable configuration, not a JPEG ([Engine session contract](../../../screen-capture-engine/docs/usage.md#run-a-capture-session)).
+The initial generation stays in force through consent and Engine startup. Publication therefore doesn't depend on the order in which the attempt sees `start()` return and the first callback. A return from `start()` confirms a usable configuration, not a JPEG ([Engine session contract](../../../../screen-capture-engine/docs/usage.md#run-a-capture-session)).
 
 ### Status and generation
 

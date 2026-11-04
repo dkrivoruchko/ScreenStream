@@ -6,9 +6,9 @@ ScreenStream streams Android screen + audio. Modes: Local (MJPEG), Global (WebRT
 ## Project Structure & Modules
 - `app`: Compose UI shell, DI wiring, and flavors (`app/src/PlayStore` adds ads/WebRTC; `app/src/FDroid` strips them).
 - `common`: shared UI, preferences helpers, logging, utilities.
-- `mjpeg`: embedded Ktor HTTP server for local MJPEG streaming.
-- `rtsp`: RTSP server/client implementation and settings.
-- `webrtc`: WebRTC streaming (PlayStore flavor only).
+- `streaming/mjpeg`: embedded Ktor HTTP server for local MJPEG streaming.
+- `streaming/rtsp`: RTSP server/client implementation and settings.
+- `streaming/webrtc`: WebRTC streaming (PlayStore flavor only).
 - `screen-capture-engine`: embeddable Android screen-to-JPEG capture library.
 
 ## Build & SDK Baseline
@@ -27,7 +27,7 @@ Product flavors are PascalCase (`FDroid`, `PlayStore`), and module names are low
 ## Localization Rules (Strings)
 - English `values/strings.xml` is the source of truth for **key order and blank lines**.
 - Every locale file must mirror English key order **and** blank-line placement between `<string>` tags exactly.
-- Strings live in module `res/values` (app, mjpeg, rtsp, webrtc). Avoid hardcoded literals.
+- Strings live in module `res/values` (app, streaming/mjpeg, streaming/rtsp, streaming/webrtc). Avoid hardcoded literals.
 - Use compact AOSP‑style UI terms; prefer “stream”/“device”. Use loanwords when standard, otherwise localize.
 
 

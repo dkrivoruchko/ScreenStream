@@ -69,7 +69,7 @@ Each step adds evidence that the earlier ones can't provide. Reading a declarati
 
 ## MJPEG-CFG-03: Manifest, dependency and host boundaries
 
-**History.** Inspect the current build declarations: the [module build](../../../build.gradle.kts), the [root build](../../../../build.gradle.kts), the [app build](../../../../app/build.gradle.kts), the [settings build](../../../../settings.gradle.kts) and the [version catalog](../../../../gradle/libs.versions.toml). Those files own the current SDK, toolchain and dependency values, and this page doesn't repeat them. Then separately inspect the packaged app: its merged manifest, its resolved dependencies and the hosts it supplies. Record what you find as inspection evidence. An inspection runs nothing.
+**History.** Inspect the current build declarations: the [module build](../../../build.gradle.kts), the [root build](../../../../../build.gradle.kts), the [app build](../../../../../app/build.gradle.kts), the [settings build](../../../../../settings.gradle.kts) and the [version catalog](../../../../../gradle/libs.versions.toml). Those files own the current SDK, toolchain and dependency values, and this page doesn't repeat them. Then separately inspect the packaged app: its merged manifest, its resolved dependencies and the hosts it supplies. Record what you find as inspection evidence. An inspection runs nothing.
 
 **Expected.**
 

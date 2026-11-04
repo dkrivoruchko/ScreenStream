@@ -10,7 +10,7 @@ This guide follows one capture attempt through MJPEG in this order:
 4. Stop and cleanup;
 5. the controller shutdown that retires the whole module instance.
 
-It continues [Starting capture](../../docs/architecture.md#starting-capture) and [Stopping, closing and recovery](../../docs/architecture.md#stopping-closing-and-recovery) in the public architecture guide. Core's [Screen Capture Access](../../../core/docs/screen-capture.md) owns the consent and projection rules. The [Capture Engine usage guide](../../../screen-capture-engine/docs/usage.md) owns the engine's session, frame and stop contracts. This page records MJPEG's internal obligations on top of them, and it describes those external guarantees only as far as MJPEG depends on them.
+It continues [Starting capture](../../docs/architecture.md#starting-capture) and [Stopping, closing and recovery](../../docs/architecture.md#stopping-closing-and-recovery) in the public architecture guide. Core's [Screen Capture Access](../../../core/docs/screen-capture.md) owns the consent and projection rules. The [Capture Engine usage guide](../../../../screen-capture-engine/docs/usage.md) owns the engine's session, frame and stop contracts. This page records MJPEG's internal obligations on top of them, and it describes those external guarantees only as far as MJPEG depends on them.
 
 ## Participants
 
@@ -88,7 +88,7 @@ Each step has a stage tag that appears in logs when the step fails:
 
 Stage tags are diagnostic labels, not API. The tag stays at `Engine.start` after startup, so an unexpected failure from a later parameter submission is also logged under it.
 
-**Startup confirmation** means the engine's `start()` returned normally: a usable `Active` configuration was assigned and startup success was settled ([startup details](../../../screen-capture-engine/docs/usage.md#startup-details)). Confirmation does not wait for a JPEG; the first JPEG normally follows it. However, the code that resumes after `start()` can run late. By then the engine may already be delivering frames. For that reason the initial generation is installed at admission, and a JPEG that arrives before confirmation is committed is still published. On Android 14 (API 34) and later, the engine also waits for Android's first captured-content size before `Active`.
+**Startup confirmation** means the engine's `start()` returned normally: a usable `Active` configuration was assigned and startup success was settled ([startup details](../../../../screen-capture-engine/docs/usage.md#startup-details)). Confirmation does not wait for a JPEG; the first JPEG normally follows it. However, the code that resumes after `start()` can run late. By then the engine may already be delivering frames. For that reason the initial generation is installed at admission, and a JPEG that arrives before confirmation is committed is still published. On Android 14 (API 34) and later, the engine also waits for Android's first captured-content size before `Active`.
 
 A Stop during startup makes the engine's `start()` end with cancellation. MJPEG treats that as a normal end, and records a capture failure only if the engine already reports `Failed` at that moment. A genuine Engine startup failure is a capture failure. If the attempt then cleans up successfully and the instance is still admitting ordinary work, the module stays open and Start becomes available again. A terminal failure of another owner, or a shutdown that has already begun, closes the instance even when capture cleanup succeeds. A platform failure while the original Service enters capture foreground is one such terminal failure. Core's Service closes foreground admission, reports module failure and requests the controller's shutdown. The attempt still cleans up, and the instance closes.
 
@@ -148,7 +148,7 @@ The session keeps one **desired parameters** value. `updateImageSettings()` repl
 - no Stop has been accepted;
 - the value differs from the last one submitted.
 
-An `IllegalStateException` from `updateParameters()` means the engine closed admission during a race. It is logged and ignored, and the attempt continues. Any other exception ends the attempt as a capture failure. MJPEG never resubmits equal parameters, so it does not use the engine's [equal-parameter retry](../../../screen-capture-engine/docs/usage.md#retry-suspended-capture). A paused capture resumes when engine conditions change or when a changed setting reaches the engine. The JPEG backend cannot change within an attempt.
+An `IllegalStateException` from `updateParameters()` means the engine closed admission during a race. It is logged and ignored, and the attempt continues. Any other exception ends the attempt as a capture failure. MJPEG never resubmits equal parameters, so it does not use the engine's [equal-parameter retry](../../../../screen-capture-engine/docs/usage.md#retry-suspended-capture). A paused capture resumes when engine conditions change or when a changed setting reaches the engine. The JPEG backend cannot change within an attempt.
 
 Settings map directly to Engine parameters. Only the selected crop and output-size choices are sent. [Settings](04-settings.md#saved-model-and-defaults) owns the dormant values and their validation, and [MJPEG-CAP-05](../03-testing/scenarios/03-capture.md#mjpeg-cap-05) keeps the exact mapping.
 
@@ -180,7 +180,7 @@ These rules have visible consequences:
 
 ### Frame callbacks
 
-The engine lends each JPEG only for the duration of its callback, on the callback's thread ([handle JPEG frames](../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames)). Each callback:
+The engine lends each JPEG only for the duration of its callback, on the callback's thread ([handle JPEG frames](../../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames)). Each callback:
 
 1. reads the engine's current state under the state gate, commits any change and captures the current generation;
 2. skips the frame if publication is revoked;
@@ -190,7 +190,7 @@ The engine lends each JPEG only for the duration of its callback, on the callbac
 
 The copier must write exactly the advertised `byteCount`. A copy exception, a short copy, or any other exception in this sequence records the first capture failure at stage `Output.frame` with stop cause Error. Step 5 then ends the attempt. Never retain the copier or the frame, and never use either outside the callback thread. [Capture scenarios](../03-testing/scenarios/03-capture.md#mjpeg-cap-08) separate truthful borrowed-byte checks from deliberately broken boundary stimuli. [JPEG delivery](../02-delivery/02-jpeg-delivery.md) owns storage, rejection and reader leases.
 
-Callbacks follow the engine's [parameter contract](../../../screen-capture-engine/docs/usage.md#change-capture-parameters), including its allowance for a frame produced under older settings. Suspension keeps the same engine session and the same foreground.
+Callbacks follow the engine's [parameter contract](../../../../screen-capture-engine/docs/usage.md#change-capture-parameters), including its allowance for a frame produced under older settings. Suspension keeps the same engine session and the same foreground.
 
 ## Stop and capture cleanup
 
@@ -228,7 +228,7 @@ The cleanup rules are:
 - **Outcome.** The cleanup outcome is true when every step that applied succeeded and no cleanup failure is recorded. A capture failure can coexist with a true outcome.
 - **Hangs.** No step has a timeout. A required operation that never returns, including a frame callback that never returns, keeps the outcome pending.
 
-A successful engine stop confirms three things: new work and frame delivery are closed, final state and statistics are assigned, and the projection-stop call has returned. Physical graphics and buffer release follows the engine's own limits. Exact consumer unregistration adds a separate guarantee: no frame callback is still running. See the engine's [stop](../../../screen-capture-engine/docs/usage.md#stop-a-capture-run) and [consumer removal](../../../screen-capture-engine/docs/usage.md#replace-or-remove-the-consumer) contracts.
+A successful engine stop confirms three things: new work and frame delivery are closed, final state and statistics are assigned, and the projection-stop call has returned. Physical graphics and buffer release follows the engine's own limits. Exact consumer unregistration adds a separate guarantee: no frame callback is still running. See the engine's [stop](../../../../screen-capture-engine/docs/usage.md#stop-a-capture-run) and [consumer removal](../../../../screen-capture-engine/docs/usage.md#replace-or-remove-the-consumer) contracts.
 
 A capture failure that cleans up successfully returns the controller to idle while the instance is still admitting ordinary work, and the user must Start again. A shutdown that has already begun for another reason still closes the instance. [Coordination](03-coordination.md#capture-availability-and-command-admission) describes how the controller applies each cleanup outcome.
 
