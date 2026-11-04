@@ -221,7 +221,8 @@ internal class HttpServer(
                     XLog.e(getLog("mjpegFlow", "Producer completed with error"), cause)
                 }
             }
-            .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
+            // Only JPEG-encode while someone is actually watching the MJPEG stream (saves CPU/battery)
+            .shareIn(coroutineScope, SharingStarted.WhileSubscribed(stopTimeoutMillis = 2000, replayExpirationMillis = 0), 1)
 
         mjpegSharedFlow.set(mjpegFlow)
 
@@ -363,7 +364,12 @@ internal class HttpServer(
                     val remoteAddress = call.request.origin.remoteAddress
                     val remotePort = call.request.origin.remotePort
                     serverData.addConnected(clientId, remoteAddress, remotePort)
-                    val bytes = lastJPEG.get()
+                    val bytes = withContext(Dispatchers.IO) {
+                        // MJPEG encoding only runs while /stream clients are subscribed, so encode the current frame on demand
+                        ByteArrayOutputStream().also { out ->
+                            bitmapStateFlow.value.compress(Bitmap.CompressFormat.JPEG, mjpegSettings.data.value.jpegQuality, out)
+                        }.toByteArray()
+                    }
                     call.respondBytes(bytes, ContentType.Image.JPEG)
                     serverData.setNextBytes(clientId, remoteAddress, remotePort, bytes.size)
                     serverData.setDisconnected(clientId, remoteAddress, remotePort)
