@@ -36,6 +36,8 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
         private const val ADDRESS_BLOCK_TIME_MILLIS = 5 * 60 * 1000
         private const val TRAFFIC_HISTORY_SECONDS = 30
         private const val DISCONNECT_HOLD_TIME_MILLIS = 10 * 1000
+        private const val GLOBAL_FAIL_WINDOW_MILLIS = 10 * 60 * 1000L
+        private const val GLOBAL_FAIL_MAX_COUNT = 30
 
         internal fun ApplicationRequest.getClientId(): String =
             queryParameters["clientId"] ?: "${origin.remoteAddress}:${origin.remotePort}".toByteArray().toSHA256Bytes().toBase64()
@@ -204,20 +206,49 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
         return clients[clientId]?.isDisconnected(remoteAddress, remotePort.toString()) ?: true
     }
 
-    internal fun isPinValid(clientId: String, remoteAddress: String, pinHash: String?): Boolean {
-        val client = clients[clientId] ?: run { Client(clientId).also { clients[clientId] = it } }
+    internal enum class PinResult { VALID, WRONG, BLOCKED }
 
-        val isPinValid = (clientId + pin).encodeToByteArray().toSHA256Bytes().toHexString() == pinHash
-        val blockAddress = client.onPinCheck(isPinValid, blockAddress)
-        if (blockAddress) blockedAddresses[remoteAddress] = System.currentTimeMillis() + ADDRESS_BLOCK_TIME_MILLIS
-        return isPinValid
+    // Failed attempts are tracked per real remote address (not per client-chosen clientId) plus globally,
+    // so rotating clientIds or spreading over many addresses cannot brute-force the PIN.
+    private val addressFailures = ConcurrentHashMap<String, AtomicInteger>()
+    private val globalFailures = LinkedList<Long>()
+
+    private fun isGloballyThrottled(now: Long): Boolean = synchronized(globalFailures) {
+        while (globalFailures.isNotEmpty() && globalFailures.first <= now - GLOBAL_FAIL_WINDOW_MILLIS) globalFailures.removeFirst()
+        globalFailures.size >= GLOBAL_FAIL_MAX_COUNT
+    }
+
+    internal fun checkPin(clientId: String, remoteAddress: String, pinHash: String?): PinResult {
+        val now = System.currentTimeMillis()
+        // Check blocks BEFORE validating, so a blocked or throttled address learns nothing about the PIN.
+        if (blockedAddresses.containsKey(remoteAddress) || isGloballyThrottled(now)) return PinResult.BLOCKED
+
+        val client = clients[clientId] ?: run { Client(clientId).also { clients[clientId] = it } }
+        val expected = (clientId + pin).encodeToByteArray().toSHA256Bytes().toHexString().encodeToByteArray()
+        val isPinValid = pinHash != null && MessageDigest.isEqual(expected, pinHash.lowercase().encodeToByteArray())
+        client.onPinCheck(isPinValid, false)
+
+        if (isPinValid) {
+            addressFailures.remove(remoteAddress)
+            return PinResult.VALID
+        }
+
+        synchronized(globalFailures) { globalFailures.addLast(now) }
+        val failures = addressFailures.getOrPut(remoteAddress) { AtomicInteger(0) }.incrementAndGet()
+        // Address blocking is always enforced; the `blockAddress` setting only controls how long (5 min vs 30 s).
+        if (failures >= WRONG_PIN_MAX_COUNT) {
+            addressFailures.remove(remoteAddress)
+            blockedAddresses[remoteAddress] = now + if (blockAddress) ADDRESS_BLOCK_TIME_MILLIS else 30_000
+            return PinResult.BLOCKED
+        }
+        return PinResult.WRONG
     }
 
     internal fun isClientAuthorized(clientId: String): Boolean =
         enablePin.not() || (clients[clientId]?.isAuthorized() ?: false)
 
     internal fun isAddressBlocked(remoteAddress: String): Boolean =
-        enablePin && blockAddress && blockedAddresses.containsKey(remoteAddress)
+        enablePin && blockedAddresses.containsKey(remoteAddress)
 
     internal fun isClientAllowed(clientId: String, remoteAddress: String): Boolean =
         isClientAuthorized(clientId) && isAddressBlocked(remoteAddress).not()
@@ -246,6 +277,8 @@ internal class HttpServerData(private val sendEvent: (MjpegEvent) -> Unit) {
     internal fun clear() {
         clients.clear()
         blockedAddresses.clear()
+        addressFailures.clear()
+        synchronized(globalFailures) { globalFailures.clear() }
     }
 
     internal fun destroy() {

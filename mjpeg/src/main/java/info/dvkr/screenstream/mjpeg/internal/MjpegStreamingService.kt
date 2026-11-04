@@ -897,9 +897,7 @@ internal class MjpegStreamingService(
         }
     }
 
-    private fun randomPin(): String = Random.nextInt(10).toString() + Random.nextInt(10).toString() +
-            Random.nextInt(10).toString() + Random.nextInt(10).toString() +
-            Random.nextInt(10).toString() + Random.nextInt(10).toString()
+    private fun randomPin(): String = info.dvkr.screenstream.common.randomDigits(6)
 
     private fun getStartBitmap(): Bitmap {
         startBitmap?.let { return it }
