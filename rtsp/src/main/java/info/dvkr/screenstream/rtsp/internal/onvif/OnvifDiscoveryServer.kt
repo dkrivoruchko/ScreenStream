@@ -38,7 +38,22 @@ internal class OnvifDiscoveryServer(
         val MESSAGE_ID_REGEX = Regex("<[^>:/]*:?MessageID[^>]*>(.*?)</[^>:/]*:?MessageID>", RegexOption.DOT_MATCHES_ALL)
         val TYPES_REGEX = Regex("<[^>:/]*:?Types[^>]*>(.*?)</[^>:/]*:?Types>", RegexOption.DOT_MATCHES_ALL)
         val SCOPES_REGEX = Regex("<[^>:/]*:?Scopes[^>]*>(.*?)</[^>:/]*:?Scopes>", RegexOption.DOT_MATCHES_ALL)
+        val ENVELOPE_OPEN_REGEX = Regex("<([A-Za-z0-9_.-]+:)?Envelope[\\s>]")
+        val ENVELOPE_CLOSE_REGEX = Regex("</([A-Za-z0-9_.-]+:)?Envelope\\s*>\\s*$")
+        val BODY_REGEX = Regex("<([A-Za-z0-9_.-]+:)?Body[\\s>]")
+        const val SOAP12_NS: String = "http://www.w3.org/2003/05/soap-envelope"
+        const val SOAP11_NS: String = "http://schemas.xmlsoap.org/soap/envelope/"
+
+        const val MAX_PROBES_PER_SOURCE_PER_SECOND: Int = 5
+        const val MAX_PROBES_PER_SECOND: Int = 50
+        const val MAX_TRACKED_SOURCES: Int = 256
     }
+
+    private class RateWindow(var windowStartMs: Long, var count: Int)
+
+    private val rateLock = Any()
+    private val perSourceRate = HashMap<InetAddress, RateWindow>()
+    private val globalRate = RateWindow(0L, 0)
 
     suspend fun start(scope: CoroutineScope, endpoints: List<OnvifServiceEndpoint>) {
         multicastLock = wifiManager?.createMulticastLock("ScreenStream:OnvifDiscovery")?.apply {
@@ -91,7 +106,7 @@ internal class OnvifDiscoveryServer(
                     joinGroup(multicastAddress)
                 }
             }
-            Listener(socket, multicastAddress, endpoint)
+            Listener(socket, multicastAddress, endpoint, networkInterface)
         }.onFailure { error ->
             XLog.w(getLog("OnvifDiscoveryServer", "Failed to listen on ${endpoint.rtspEndpoint.bindHost}: ${error.message}"), error)
         }.getOrNull()
@@ -101,8 +116,38 @@ internal class OnvifDiscoveryServer(
         val socket: MulticastSocket,
         private val multicastAddress: InetAddress,
         private val endpoint: OnvifServiceEndpoint,
+        networkInterface: NetworkInterface?,
     ) {
         var job: Job? = null
+
+        // Prefix length of the endpoint address on its interface, if known
+        private val prefixLength: Int? = networkInterface?.interfaceAddresses
+            ?.firstOrNull { it.address == endpoint.rtspEndpoint.address }
+            ?.networkPrefixLength?.toInt()
+
+        /**
+         * WS-Discovery answers are only sent to hosts on the same subnet as the selected server address.
+         * This prevents spoofed unicast probes from turning the device into a reflector.
+         */
+        private fun isFromLocalSubnet(source: InetAddress): Boolean {
+            val local = endpoint.rtspEndpoint.address
+            if (source.javaClass != local.javaClass) return false
+            if (source.isLinkLocalAddress) return true // Link-local sources are on-link by definition (IPv6 discovery uses fe80::)
+            val prefix = prefixLength
+            if (prefix == null || prefix <= 0) {
+                // Unknown prefix: accept only private / link-local sources
+                return source.isSiteLocalAddress ||
+                        (source is Inet6Address && (source.address[0].toInt() and 0xFE) == 0xFC)
+            }
+            val a = source.address
+            val b = local.address
+            val fullBytes = prefix / 8
+            for (i in 0 until minOf(fullBytes, a.size)) if (a[i] != b[i]) return false
+            val remainingBits = prefix % 8
+            if (remainingBits == 0 || fullBytes >= a.size) return true
+            val mask = (0xFF shl (8 - remainingBits)) and 0xFF
+            return (a[fullBytes].toInt() and mask) == (b[fullBytes].toInt() and mask)
+        }
 
         suspend fun send(xml: String) {
             val data = xml.toByteArray(Charsets.UTF_8)
@@ -125,12 +170,23 @@ internal class OnvifDiscoveryServer(
                     break
                 }
 
+                val source = packet.address
+                if (source == null || !isFromLocalSubnet(source)) {
+                    XLog.v(getLog("OnvifDiscoveryServer", "Ignoring datagram from outside local subnet: ${source?.hostAddress}"))
+                    continue
+                }
+
                 val request = String(packet.data, packet.offset, packet.length, Charsets.UTF_8)
                 val messageId = MESSAGE_ID_REGEX.find(request)?.groupValues?.get(1)?.trim()
+                if (!isWellFormedSoapEnvelope(request) || messageId.isNullOrEmpty()) {
+                    XLog.v(getLog("OnvifDiscoveryServer", "Ignoring malformed datagram from ${source.hostAddress}:${packet.port}"))
+                    continue
+                }
                 if (!PROBE_REGEX.containsMatchIn(request)) {
                     XLog.v(getLog("OnvifDiscoveryServer", "Ignoring non-Probe datagram from ${packet.address.hostAddress}:${packet.port}"))
                     continue
                 }
+                if (!allowProbeFrom(source)) continue
                 if (!acceptsProbe(request)) {
                     XLog.d(
                         getLog(
@@ -165,6 +221,34 @@ internal class OnvifDiscoveryServer(
                 )
             }
         }
+    }
+
+    private fun isWellFormedSoapEnvelope(request: String): Boolean {
+        val trimmed = request.trim { it <= ' ' }
+        if (!ENVELOPE_OPEN_REGEX.containsMatchIn(trimmed) || !ENVELOPE_CLOSE_REGEX.containsMatchIn(trimmed)) return false
+        if (!trimmed.contains(SOAP12_NS) && !trimmed.contains(SOAP11_NS)) return false
+        return BODY_REGEX.containsMatchIn(trimmed)
+    }
+
+    /** Simple fixed-window rate limit: per source and global. */
+    private fun allowProbeFrom(source: InetAddress): Boolean = synchronized(rateLock) {
+        val now = System.nanoTime() / 1_000_000L
+        if (now - globalRate.windowStartMs >= 1000L) {
+            globalRate.windowStartMs = now
+            globalRate.count = 0
+        }
+        if (++globalRate.count > MAX_PROBES_PER_SECOND) return@synchronized false
+
+        if (perSourceRate.size >= MAX_TRACKED_SOURCES) {
+            perSourceRate.entries.removeAll { (_, window) -> now - window.windowStartMs >= 1000L }
+            if (perSourceRate.size >= MAX_TRACKED_SOURCES) perSourceRate.clear()
+        }
+        val window = perSourceRate.getOrPut(source) { RateWindow(now, 0) }
+        if (now - window.windowStartMs >= 1000L) {
+            window.windowStartMs = now
+            window.count = 0
+        }
+        ++window.count <= MAX_PROBES_PER_SOURCE_PER_SECOND
     }
 
     private fun acceptsProbe(request: String): Boolean {

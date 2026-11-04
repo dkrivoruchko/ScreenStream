@@ -192,7 +192,7 @@ internal class RtspClient(
     )
 
     private val commandsManager = RtspClientMessageHandler(
-        appVersion, rtspUrl.host, rtspUrl.port, rtspUrl.fullPath, rtspUrl.user, rtspUrl.password
+        appVersion, rtspUrl.host, rtspUrl.port, rtspUrl.fullPath, rtspUrl.user, rtspUrl.password, rtspUrl.tlsEnabled
     )
     private val selectorManager = SelectorManager(scope.coroutineContext)
     private val mediaFramesBuffer = MediaFramesBuffer()

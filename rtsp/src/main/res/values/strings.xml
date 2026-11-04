@@ -107,6 +107,7 @@
     <string name="rtsp_connection_access_denied">Access denied</string>
     <string name="rtsp_connection_no_credentials">Specify username and password</string>
     <string name="rtsp_connection_invalid_credentials">Username or password is invalid</string>
+    <string name="rtsp_connection_insecure_auth">Server requests unencrypted password (Basic). Use rtsps:// or Digest authentication</string>
 
     <string name="rtsp_close">Close</string>
     <string name="rtsp_pref_protocol">RTSP protocol</string>
@@ -133,4 +134,13 @@
     <string name="rtsp_pref_server_port_text">Set server port for incoming connections.\nValues: 1025–65535\nDefault: 8554</string>
     <string name="rtsp_pref_onvif_discovery">ONVIF discovery</string>
     <string name="rtsp_pref_onvif_discovery_summary">Let ONVIF clients find this stream. Supports H.264 only</string>
+    <string name="rtsp_pref_server_auth">Require password</string>
+    <string name="rtsp_pref_server_auth_summary">Ask clients for username and password (Digest)</string>
+    <string name="rtsp_pref_server_credentials">Username and password</string>
+    <string name="rtsp_pref_server_credentials_summary">Credentials for clients to access the stream</string>
+    <string name="rtsp_pref_server_credentials_text">Clients must use these credentials to access the stream and ONVIF service.</string>
+    <string name="rtsp_pref_server_username">Username</string>
+    <string name="rtsp_pref_server_password">Password</string>
+    <string name="rtsp_pref_server_password_regenerate">Generate new password</string>
+    <string name="rtsp_server_credentials_hint">User: %1$s  Password: %2$s</string>
 </resources>

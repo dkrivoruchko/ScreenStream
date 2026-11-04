@@ -3,6 +3,8 @@ package info.dvkr.screenstream.rtsp.internal.onvif
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.rtsp.internal.RtspServerEndpoint
+import info.dvkr.screenstream.rtsp.internal.rtsp.server.RtspServerAuth
+import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.readLineBounded
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
 import io.ktor.network.selector.SelectorManager
 import io.ktor.network.sockets.ServerSocket
@@ -10,10 +12,10 @@ import io.ktor.network.sockets.Socket
 import io.ktor.network.sockets.aSocket
 import io.ktor.network.sockets.openReadChannel
 import io.ktor.network.sockets.openWriteChannel
+import io.ktor.network.sockets.toJavaAddress
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.readFully
-import io.ktor.utils.io.readLine
 import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +35,7 @@ import io.ktor.network.sockets.InetSocketAddress as KtorInetSocketAddress
 internal class OnvifHttpServer(
     private val deviceInfo: OnvifDeviceInfo,
     private val protocolPolicy: RtspSettings.Values.ProtocolPolicy,
+    private val auth: RtspServerAuth,
 ) {
     private var selectorManager: SelectorManager? = null
     private var clientJob: Job? = null
@@ -46,6 +49,7 @@ internal class OnvifHttpServer(
     private companion object {
         const val PREFERRED_DEVICE_SERVICE_PORT: Int = 8000
         const val MAX_HTTP_HEADER_BYTES: Int = 16 * 1024
+        const val MAX_HTTP_LINE_BYTES: Int = 8 * 1024
         const val MAX_HTTP_BODY_BYTES: Int = 64 * 1024
         const val MAX_ACTIVE_HTTP_CLIENTS: Int = 16
         val HTTP_REQUEST_TIMEOUT = 10.seconds
@@ -58,6 +62,7 @@ internal class OnvifHttpServer(
         val GET_PROFILES_REGEX = Regex("<[^>:/]*:?GetProfiles[\\s>/]")
         val GET_STREAM_URI_REGEX = Regex("<[^>:/]*:?GetStreamUri[\\s>/]")
         val GET_VIDEO_SOURCES_REGEX = Regex("<[^>:/]*:?GetVideoSources[\\s>/]")
+        val PRE_AUTH_ACTIONS: Set<String> = setOf("GetCapabilities", "GetServices", "GetSystemDateAndTime")
         val PROFILE_TOKEN_REGEX = Regex("<[^>:/]*:?ProfileToken[^>]*>(.*?)</[^>:/]*:?ProfileToken>", RegexOption.DOT_MATCHES_ALL)
         val STREAM_TYPE_REGEX = Regex("<[^>:/]*:?Stream(?:\\s[^>]*)?>(.*?)</[^>:/]*:?Stream>", RegexOption.DOT_MATCHES_ALL)
         val STREAM_PROTOCOL_REGEX = Regex("<[^>:/]*:?Protocol[^>]*>(.*?)</[^>:/]*:?Protocol>", RegexOption.DOT_MATCHES_ALL)
@@ -140,6 +145,13 @@ internal class OnvifHttpServer(
                 continue
             }
 
+            val remoteIp = (socket.remoteAddress.toJavaAddress() as? java.net.InetSocketAddress)?.address?.hostAddress ?: "unknown"
+            if (auth.isBlocked(remoteIp)) {
+                activeSocketsMutex.withLock { activeSockets -= socket }
+                runCatching { socket.close() }
+                continue
+            }
+
             clientScope.launch {
                 try {
                     withTimeout(HTTP_REQUEST_TIMEOUT) {
@@ -147,6 +159,7 @@ internal class OnvifHttpServer(
                             readChannel = socket.openReadChannel(),
                             writeChannel = socket.openWriteChannel(autoFlush = true),
                             endpoint = endpoint,
+                            remoteIp = remoteIp,
                         )
                     }
                 } catch (error: CancellationException) {
@@ -161,18 +174,22 @@ internal class OnvifHttpServer(
         }
     }
 
-    private suspend fun handleHttpRequest(readChannel: ByteReadChannel, writeChannel: ByteWriteChannel, endpoint: OnvifServiceEndpoint) {
-        val requestLine = readChannel.readLine() ?: return
+    private suspend fun handleHttpRequest(
+        readChannel: ByteReadChannel, writeChannel: ByteWriteChannel, endpoint: OnvifServiceEndpoint, remoteIp: String
+    ) {
+        val requestLine = readChannel.readLineBounded(MAX_HTTP_LINE_BYTES) ?: return
         val requestLineParts = requestLine.split(' ', limit = 3)
         val method = requestLineParts.getOrNull(0).orEmpty()
-        val path = requestLineParts.getOrNull(1)?.substringBefore('?').orEmpty()
+        val requestUri = requestLineParts.getOrNull(1).orEmpty()
+        val path = requestUri.substringBefore('?')
         XLog.v(getLog("OnvifHttpServer", "HTTP request: $method $path"))
         if ((method != "POST") || (path != endpoint.deviceServicePath)) {
             XLog.d(getLog("OnvifHttpServer", "HTTP response: $method $path -> 404 Not Found"))
             return sendHttpResponse(writeChannel, 404, "Not Found", "")
         }
 
-        val contentLength = readChannel.readContentLength(requestLine.length + 2)
+        val headers = readChannel.readRequestHeaders(requestLine.length + 2)
+        val contentLength = headers.contentLength
         if (contentLength <= 0) {
             XLog.d(getLog("OnvifHttpServer", "HTTP response: POST $path -> 404 Not Found, empty body"))
             return sendHttpResponse(writeChannel, 404, "Not Found", "")
@@ -189,58 +206,51 @@ internal class OnvifHttpServer(
             XLog.d(getLog("OnvifHttpServer", "HTTP client disconnected while reading body: contentLength=$contentLength"))
             return
         }
+
+        val action = when {
+            GET_CAPABILITIES_REGEX.containsMatchIn(requestBody) -> "GetCapabilities"
+            GET_SERVICES_REGEX.containsMatchIn(requestBody) -> "GetServices"
+            GET_DEVICE_INFORMATION_REGEX.containsMatchIn(requestBody) -> "GetDeviceInformation"
+            GET_SYSTEM_DATE_AND_TIME_REGEX.containsMatchIn(requestBody) -> "GetSystemDateAndTime"
+            GET_SCOPES_REGEX.containsMatchIn(requestBody) -> "GetScopes"
+            GET_DISCOVERY_MODE_REGEX.containsMatchIn(requestBody) -> "GetDiscoveryMode"
+            GET_PROFILES_REGEX.containsMatchIn(requestBody) -> "GetProfiles"
+            GET_STREAM_URI_REGEX.containsMatchIn(requestBody) -> "GetStreamUri"
+            GET_VIDEO_SOURCES_REGEX.containsMatchIn(requestBody) -> "GetVideoSources"
+            else -> "Unsupported"
+        }
+
+        // ONVIF PRE_AUTH operations stay open; everything else requires the RTSP server credentials (when enabled).
+        if (action !in PRE_AUTH_ACTIONS && auth.isEnabled()) {
+            // Accept either WS-Security UsernameToken (PasswordDigest) or HTTP Digest
+            val decision = when (auth.verifyWsUsernameToken(requestBody, remoteIp)) {
+                true -> RtspServerAuth.Decision.Allowed
+                false -> RtspServerAuth.Decision.Blocked
+                null -> auth.authorize(method, requestUri, headers.authorization, remoteIp)
+            }
+            if (decision != RtspServerAuth.Decision.Allowed) {
+                XLog.d(getLog("OnvifHttpServer", "SOAP response: action=$action status=401"))
+                val challenge = (decision as? RtspServerAuth.Decision.Challenge)?.wwwAuthenticate ?: auth.createChallenge(stale = false)
+                return sendHttpResponse(writeChannel, 401, "Unauthorized", "", extraHeaders = mapOf("WWW-Authenticate" to challenge))
+            }
+        }
+
         val metadata = videoMetadata.get()
-        var action = "Unsupported"
         var faultReason: String? = null
-        val soapResponse = when {
-            GET_CAPABILITIES_REGEX.containsMatchIn(requestBody) -> {
-                action = "GetCapabilities"
-                OnvifMessages.getCapabilities(endpoint, protocolPolicy)
-            }
+        val soapResponse = when (action) {
+            "GetCapabilities" -> OnvifMessages.getCapabilities(endpoint, protocolPolicy)
+            "GetServices" -> OnvifMessages.getServices(endpoint)
+            "GetDeviceInformation" -> OnvifMessages.getDeviceInformation(deviceInfo)
+            "GetSystemDateAndTime" -> OnvifMessages.getSystemDateAndTime()
+            "GetScopes" -> OnvifMessages.getScopes(deviceInfo)
+            "GetDiscoveryMode" -> OnvifMessages.getDiscoveryMode()
+            "GetProfiles" -> OnvifMessages.getProfiles(metadata)
+            "GetStreamUri" -> validateStreamUriRequest(requestBody)
+                ?.also { faultReason = it }
+                ?.let { OnvifMessages.fault(it) }
+                ?: OnvifMessages.getStreamUri(endpoint)
 
-            GET_SERVICES_REGEX.containsMatchIn(requestBody) -> {
-                action = "GetServices"
-                OnvifMessages.getServices(endpoint)
-            }
-
-            GET_DEVICE_INFORMATION_REGEX.containsMatchIn(requestBody) -> {
-                action = "GetDeviceInformation"
-                OnvifMessages.getDeviceInformation(deviceInfo)
-            }
-
-            GET_SYSTEM_DATE_AND_TIME_REGEX.containsMatchIn(requestBody) -> {
-                action = "GetSystemDateAndTime"
-                OnvifMessages.getSystemDateAndTime()
-            }
-
-            GET_SCOPES_REGEX.containsMatchIn(requestBody) -> {
-                action = "GetScopes"
-                OnvifMessages.getScopes(deviceInfo)
-            }
-
-            GET_DISCOVERY_MODE_REGEX.containsMatchIn(requestBody) -> {
-                action = "GetDiscoveryMode"
-                OnvifMessages.getDiscoveryMode()
-            }
-
-            GET_PROFILES_REGEX.containsMatchIn(requestBody) -> {
-                action = "GetProfiles"
-                OnvifMessages.getProfiles(metadata)
-            }
-
-            GET_STREAM_URI_REGEX.containsMatchIn(requestBody) -> {
-                action = "GetStreamUri"
-                validateStreamUriRequest(requestBody)
-                    ?.also { faultReason = it }
-                    ?.let { OnvifMessages.fault(it) }
-                    ?: OnvifMessages.getStreamUri(endpoint)
-            }
-
-            GET_VIDEO_SOURCES_REGEX.containsMatchIn(requestBody) -> {
-                action = "GetVideoSources"
-                OnvifMessages.getVideoSources(metadata)
-            }
-
+            "GetVideoSources" -> OnvifMessages.getVideoSources(metadata)
             else -> {
                 faultReason = "Action not supported"
                 OnvifMessages.fault()
@@ -282,11 +292,14 @@ internal class OnvifHttpServer(
         return if (supported) null else "Stream transport not supported"
     }
 
-    private suspend fun ByteReadChannel.readContentLength(initialHeaderBytes: Int): Int {
+    private class RequestHeaders(val contentLength: Int, val authorization: String?)
+
+    private suspend fun ByteReadChannel.readRequestHeaders(initialHeaderBytes: Int): RequestHeaders {
         var headerBytes = initialHeaderBytes
         var contentLength = 0
+        var authorization: String? = null
         while (true) {
-            val line = readLine() ?: break
+            val line = readLineBounded(minOf(MAX_HTTP_LINE_BYTES, MAX_HTTP_HEADER_BYTES - headerBytes)) ?: break
             headerBytes += line.length + 2
             if (headerBytes > MAX_HTTP_HEADER_BYTES) {
                 throw IllegalArgumentException("HTTP header too large (> $MAX_HTTP_HEADER_BYTES bytes)")
@@ -294,15 +307,20 @@ internal class OnvifHttpServer(
             if (line.isEmpty()) break
             if (line.startsWith("content-length:", ignoreCase = true)) {
                 contentLength = line.substringAfter(":").trim().toIntOrNull() ?: 0
+            } else if (line.startsWith("authorization:", ignoreCase = true)) {
+                authorization = line.substringAfter(":").trim()
             }
         }
-        return contentLength
+        return RequestHeaders(contentLength, authorization)
     }
 
-    private suspend fun sendHttpResponse(writeChannel: ByteWriteChannel, statusCode: Int, statusText: String, body: String) {
+    private suspend fun sendHttpResponse(
+        writeChannel: ByteWriteChannel, statusCode: Int, statusText: String, body: String, extraHeaders: Map<String, String> = emptyMap()
+    ) {
         val bodyBytes = body.toByteArray(Charsets.UTF_8)
         val headers = buildString {
             append("HTTP/1.1 $statusCode $statusText\r\n")
+            extraHeaders.forEach { (name, value) -> append(name).append(": ").append(value).append("\r\n") }
             append("Content-Type: application/soap+xml; charset=utf-8\r\n")
             append("Content-Length: ${bodyBytes.size}\r\n")
             append("Connection: close\r\n")

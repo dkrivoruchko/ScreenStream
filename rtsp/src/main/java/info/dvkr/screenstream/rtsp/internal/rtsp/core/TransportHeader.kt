@@ -26,6 +26,8 @@ internal data class TransportHeader(
     }
 
     companion object {
+        private val VALID_CLIENT_PORTS: IntRange = 1024..65535
+
         internal data class ParsedSpec(val raw: String, val header: TransportHeader, val profile: String, val isTcp: Boolean)
 
         fun parseList(text: String): List<ParsedSpec> = text
@@ -65,8 +67,9 @@ internal data class TransportHeader(
                     token.startsWith("client_port=", true) -> {
                         val v = token.substringAfter('=')
                         val a = v.split('-').mapNotNull { it.trim().toIntOrNull() }
-                        if (a.size == 2) client = a[0] to a[1]
-                        else if (a.size == 1) client = a[0] to (a[0] + 1)
+                        val ports = if (a.size == 2) a[0] to a[1] else if (a.size == 1) a[0] to (a[0] + 1) else null
+                        // Reject privileged / invalid ports: the server would otherwise send RTP to arbitrary services
+                        client = ports?.takeIf { it.first in VALID_CLIENT_PORTS && it.second in VALID_CLIENT_PORTS }
                     }
 
                     token.startsWith("server_port=", true) -> {
