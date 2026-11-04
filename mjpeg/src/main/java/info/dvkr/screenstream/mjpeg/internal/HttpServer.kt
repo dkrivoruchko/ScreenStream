@@ -23,18 +23,18 @@ import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.install
 import io.ktor.server.application.serverConfig
-import io.ktor.server.cio.CIO
+import io.ktor.server.netty.Netty
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.connector
+import io.ktor.server.engine.sslConnector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.cachingheaders.CachingHeaders
 import io.ktor.server.plugins.compression.Compression
 import io.ktor.server.plugins.compression.deflate
 import io.ktor.server.plugins.compression.gzip
-import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
-import io.ktor.server.plugins.forwardedheaders.ForwardedHeaders
 import io.ktor.server.plugins.origin
+import io.ktor.server.request.ApplicationRequest
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
@@ -47,7 +47,9 @@ import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.core.buildPacket
 import io.ktor.utils.io.core.writeFully
 import io.ktor.utils.io.writeFully
+import io.ktor.websocket.CloseReason
 import io.ktor.websocket.DefaultWebSocketSession
+import io.ktor.websocket.close
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
@@ -100,6 +102,7 @@ internal class HttpServer(
     context: Context,
     private val mjpegSettings: MjpegSettings,
     private val bitmapStateFlow: StateFlow<Bitmap>,
+    private val videoHub: VideoStreamHub,
     private val sendEvent: (MjpegEvent) -> Unit
 ) {
     private val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -114,14 +117,15 @@ internal class HttpServer(
         .replace("%WRONG_PIN_MESSAGE%", context.getString(R.string.mjpeg_html_wrong_pin))
         .replace("%ADDRESS_BLOCKED%", context.getString(R.string.mjpeg_html_address_blocked))
         .replace("%ERROR%", context.getString(R.string.mjpeg_html_error_unspecified)) //TODO not used
-        .replace("%DD_SERVICE%", if (debuggable) "mjpeg_client:dev" else "mjpeg_client:prod")
-        .replace("DD_HANDLER", if (debuggable) "[\"http\", \"console\"]" else "[\"http\"]")
         .replace("%APP_VERSION%", context.getVersionName())
 
     private val indexHtml: AtomicReference<String> = AtomicReference("")
     private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
     private val serverData: HttpServerData = HttpServerData(sendEvent)
     private val mjpegSharedFlow: AtomicReference<SharedFlow<ByteArray>> = AtomicReference(null)
+    private val tlsIdentity = TlsIdentity(context)
+    private val _tlsFingerprint = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    internal val tlsFingerprint: StateFlow<String?> = _tlsFingerprint
     private val ktorServer: AtomicReference<Pair<EmbeddedServer<*, *>, CompletableDeferred<Unit>>> = AtomicReference(null)
 
     private data class HtmlIndexSettings(
@@ -221,13 +225,19 @@ internal class HttpServer(
                     XLog.e(getLog("mjpegFlow", "Producer completed with error"), cause)
                 }
             }
-            .shareIn(coroutineScope, SharingStarted.Eagerly, 1)
+            // Only JPEG-encode while someone is actually watching the MJPEG stream (saves CPU/battery, esp. in video mode)
+            .shareIn(coroutineScope, SharingStarted.WhileSubscribed(stopTimeoutMillis = 2000, replayExpirationMillis = 0), 1)
 
         mjpegSharedFlow.set(mjpegFlow)
 
         val serverPort = mjpegSettings.data.value.serverPort
+        val httpsPort = httpsPortFor(serverPort)
+        val identity = runCatching { withContext(Dispatchers.IO) { tlsIdentity.get(serverAddresses.map { it.address }) } }
+            .onFailure { XLog.e(getLog("startServer", "TLS identity failed"), it) }
+            .getOrNull()
+        _tlsFingerprint.value = identity?.fingerprint
         val server = embeddedServer(
-            factory = CIO,
+            factory = Netty,
             rootConfig = serverConfig {
                 parentCoroutineContext = CoroutineExceptionHandler { _, throwable ->
                     if (throwable is BindException) return@CoroutineExceptionHandler
@@ -237,14 +247,22 @@ internal class HttpServer(
                 module { appModule() }
             },
             configure = {
-                connectionIdleTimeoutSeconds = 10
-                reuseAddress = true
                 shutdownGracePeriod = 0
                 shutdownTimeout = 500
+                enableHttp2 = false // Avoid ALPN on Android; HTTP/1.1 is all we need
                 serverAddresses.forEach { netInterface ->
                     connector {
                         host = netInterface.address.hostAddress!!
                         port = serverPort
+                    }
+                    if (identity != null) sslConnector(
+                        keyStore = identity.keyStore,
+                        keyAlias = TlsIdentity.ALIAS,
+                        keyStorePassword = { identity.password.toCharArray() },
+                        privateKeyPassword = { identity.password.toCharArray() }
+                    ) {
+                        host = netInterface.address.hostAddress!!
+                        port = httpsPort
                     }
                 }
             }
@@ -306,9 +324,22 @@ internal class HttpServer(
         stop(false)
     }
 
+    /**
+     * Browsers always send `Origin` on WebSocket upgrades and cross-origin requests. Non-browser clients (VLC, OBS, curl)
+     * usually send none, which is allowed. A present Origin must match the Host the client connected to.
+     */
+    private fun ApplicationRequest.isSameOrigin(): Boolean {
+        val origin = headers[HttpHeaders.Origin] ?: return true
+        val host = headers[HttpHeaders.Host] ?: return false
+        val originHost = runCatching { java.net.URI(origin).let { u -> if (u.port == -1) u.host else "${u.host}:${u.port}" } }.getOrNull()
+        return originHost != null && (originHost.equals(host, ignoreCase = true) || "[$originHost]".equals(host, ignoreCase = true))
+    }
+
     private suspend fun DefaultWebSocketSession.send(type: String, data: Any?) {
         if (isActive) send(JSONObject().put("type", type).apply { if (data != null) put("data", data) }.toString())
     }
+
+    private fun httpsPortFor(httpPort: Int): Int = if (httpPort >= 65535) httpPort - 1 else httpPort + 1
 
     private fun Application.appModule() {
         val crlf = "\r\n".toByteArray()
@@ -322,48 +353,60 @@ internal class HttpServer(
             deflate()
         }
         install(CachingHeaders) { options { _, _ -> CachingOptions(CacheControl.NoStore(CacheControl.Visibility.Private)) } }
-        install(DefaultHeaders)
-        install(ForwardedHeaders)
-        install(CORS) {
-            anyHost()
-            allowMethod(HttpMethod.Get)
-            allowMethod(HttpMethod.Head)
-            allowMethod(HttpMethod.Options)
-            allowHeader(HttpHeaders.ContentType)
-            allowHeader(HttpHeaders.Range)
-            allowNonSimpleContentTypes = true
-
-            exposeHeader(HttpHeaders.ContentLength)
-            exposeHeader(HttpHeaders.ContentRange)
-            exposeHeader(HttpHeaders.ContentType)
+        install(DefaultHeaders) {
+            header("X-Content-Type-Options", "nosniff")
+            header("X-Frame-Options", "SAMEORIGIN")
+            header("Referrer-Policy", "no-referrer")
         }
+        // No ForwardedHeaders: this server is never behind a proxy, and trusting `Forwarded` lets clients spoof their IP.
+        // No CORS: the viewer page is same-origin; cross-origin pages must not be able to read the stream.
         install(WebSockets)
         install(StatusPages) {
             exception<Throwable> { call, cause ->
                 if (cause is IOException || cause is IllegalArgumentException || cause is IllegalStateException) return@exception
                 XLog.e(this@appModule.getLog("exception"), RuntimeException("Throwable", cause))
                 sendEvent(MjpegStreamingService.InternalEvent.Error(MjpegError.HttpServerException()))
-                call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
+                call.respondText(text = "500 Internal Server Error", status = HttpStatusCode.InternalServerError)
             }
         }
 
         routing {
-            get("/") { call.respondText(indexHtml.get(), ContentType.Text.Html) }
+            get("/") {
+                // The viewer page always runs over HTTPS: encrypted PIN/stream, and a secure context for WebCodecs.
+                // Raw stream URLs stay available over HTTP for players like VLC/OBS.
+                if (call.request.local.scheme == "http" && _tlsFingerprint.value != null && call.request.queryParameters["http"] == null) {
+                    val hostHeader = call.request.headers[HttpHeaders.Host] ?: call.request.local.serverHost
+                    val host = if (hostHeader.startsWith("[")) hostHeader.substringBefore("]") + "]" else hostHeader.substringBefore(":")
+                    call.response.headers.append(HttpHeaders.Location, "https://$host:${httpsPortFor(call.request.local.localPort)}/")
+                    call.respond(HttpStatusCode.Found)
+                    return@get
+                }
+                call.respondText(indexHtml.get(), ContentType.Text.Html)
+            }
             get("favicon.ico") { call.respondBytes(favicon, ContentType.Image.XIcon) }
             get("logo.svg") { call.respondBytes(logoSvg, ContentType.Image.SVG) }
             get("start-stop") {
+                if (call.request.isSameOrigin().not()) {
+                    call.respond(HttpStatusCode.Forbidden)
+                    return@get
+                }
                 if (mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not())
                     sendEvent(MjpegStreamingService.InternalEvent.StartStopFromWebPage)
                 call.respond(HttpStatusCode.NoContent)
             }
             get(serverData.jpegFallbackAddress) {
-                if (serverData.isAddressBlocked(call.request.origin.remoteAddress)) call.respond(HttpStatusCode.Forbidden)
+                val clientId = call.request.getClientId()
+                if (serverData.isClientAllowed(clientId, call.request.origin.remoteAddress).not()) call.respond(HttpStatusCode.Forbidden)
                 else {
-                    val clientId = call.request.queryParameters["clientId"] ?: "-"
                     val remoteAddress = call.request.origin.remoteAddress
                     val remotePort = call.request.origin.remotePort
                     serverData.addConnected(clientId, remoteAddress, remotePort)
-                    val bytes = lastJPEG.get()
+                    val bytes = withContext(Dispatchers.IO) {
+                        // MJPEG encoding only runs while /stream clients are subscribed, so encode the current frame on demand
+                        ByteArrayOutputStream().also { out ->
+                            bitmapStateFlow.value.compress(Bitmap.CompressFormat.JPEG, mjpegSettings.data.value.jpegQuality, out)
+                        }.toByteArray()
+                    }
                     call.respondBytes(bytes, ContentType.Image.JPEG)
                     serverData.setNextBytes(clientId, remoteAddress, remotePort, bytes.size)
                     serverData.setDisconnected(clientId, remoteAddress, remotePort)
@@ -371,6 +414,10 @@ internal class HttpServer(
             }
 
             webSocket("/socket") {
+                if (call.request.isSameOrigin().not()) {
+                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Origin not allowed"))
+                    return@webSocket
+                }
                 val clientId = call.request.getClientId()
                 val remoteAddress = call.request.origin.remoteAddress
                 serverData.addClient(clientId, this)
@@ -381,7 +428,10 @@ internal class HttpServer(
                         val msg = runCatching { JSONObject(frame.readText()) }.getOrNull() ?: continue
 
                         val enableButtons = mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not()
+                        val videoCodec = mjpegSettings.data.value.videoCodec
+                        val isVideo = videoCodec != MjpegSettings.Values.VIDEO_CODEC_MJPEG && VideoCapture.isSupported(videoCodec)
                         val streamData = JSONObject().put("enableButtons", enableButtons).put("streamAddress", serverData.streamAddress)
+                            .put("videoAddress", if (isVideo) "video" else JSONObject.NULL)
 
                         when (val type = msg.optString("type").uppercase()) {
                             "HEARTBEAT" -> send("HEARTBEAT", msg.optString("data"))
@@ -393,10 +443,13 @@ internal class HttpServer(
                                 else -> send("UNAUTHORIZED", null)
                             }
 
-                            "PIN" -> when {
-                                serverData.isPinValid(clientId, remoteAddress, msg.optString("data")) -> send("STREAM_ADDRESS", streamData)
-                                serverData.isAddressBlocked(remoteAddress) -> send("UNAUTHORIZED", "ADDRESS_BLOCKED")
-                                else -> send("UNAUTHORIZED", "WRONG_PIN")
+                            "PIN" -> when (serverData.checkPin(clientId, remoteAddress, msg.optString("data"))) {
+                                HttpServerData.PinResult.VALID -> send("STREAM_ADDRESS", streamData)
+                                HttpServerData.PinResult.BLOCKED -> send("UNAUTHORIZED", "ADDRESS_BLOCKED")
+                                HttpServerData.PinResult.WRONG -> {
+                                    delay(1000.milliseconds) // Slow down online guessing
+                                    send("UNAUTHORIZED", "WRONG_PIN")
+                                }
                             }
 
                             else -> {
@@ -411,6 +464,73 @@ internal class HttpServer(
                 } finally {
                     XLog.i(this@appModule.getLog("socket", "finally: $clientId"))
                     serverData.removeSocket(clientId)
+                }
+            }
+
+            webSocket("/video") {
+                if (call.request.isSameOrigin().not()) {
+                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Origin not allowed"))
+                    return@webSocket
+                }
+                val clientId = call.request.getClientId()
+                val remoteAddress = call.request.origin.remoteAddress
+                val remotePort = call.request.origin.remotePort
+                if (serverData.isClientAllowed(clientId, remoteAddress).not()) {
+                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
+                    return@webSocket
+                }
+
+                serverData.addConnected(clientId, remoteAddress, remotePort)
+                XLog.i(this@appModule.getLog("video", "Client: $clientId:$remotePort"))
+                try {
+                    coroutineScope {
+                        val session = this@webSocket
+                        launch { // Client -> server: key frame requests (e.g. after a decoder error); ends when the socket closes
+                            for (frame in incoming) {
+                                if (frame is Frame.Text && frame.readText() == "KEYFRAME") videoHub.requestKeyFrame()
+                            }
+                            this@coroutineScope.cancel()
+                        }
+
+                        var sentConfig: VideoConfig? = null
+                        var lastSeq = -1L
+                        var waitForKey = true
+                        videoHub.requestKeyFrame()
+                        videoHub.packets.collect { packet ->
+                            if (serverData.isAddressBlocked(remoteAddress) || serverData.isDisconnected(clientId, remoteAddress, remotePort))
+                                throw CancellationException("Client stopped")
+
+                            // A gap means this client fell behind and the shared buffer dropped frames: resync on next key frame
+                            if (lastSeq >= 0 && packet.seq != lastSeq + 1 && !waitForKey) {
+                                waitForKey = true
+                                serverData.setSlowConnection(clientId, remoteAddress, remotePort)
+                                videoHub.requestKeyFrame()
+                            }
+                            lastSeq = packet.seq
+                            if (waitForKey && !packet.isKey) return@collect
+                            waitForKey = false
+
+                            val config = videoHub.config.value ?: return@collect
+                            if (config != sentConfig) {
+                                session.send(
+                                    JSONObject().put("type", "CONFIG").put("codec", config.codec)
+                                        .put("width", config.width).put("height", config.height).toString()
+                                )
+                                sentConfig = config
+                            }
+
+                            val buffer = java.nio.ByteBuffer.allocate(9 + packet.data.size)
+                                .put(if (packet.isKey) 1.toByte() else 0.toByte()).putLong(packet.ptsUs).put(packet.data)
+                            buffer.flip()
+                            session.outgoing.send(Frame.Binary(true, buffer))
+                            serverData.setNextBytes(clientId, remoteAddress, remotePort, buffer.limit())
+                        }
+                    }
+                } catch (_: CancellationException) {
+                } catch (cause: Exception) {
+                    XLog.d(this@appModule.getLog("video", "catch: ${cause.localizedMessage}"))
+                } finally {
+                    serverData.setDisconnected(clientId, remoteAddress, remotePort)
                 }
             }
 

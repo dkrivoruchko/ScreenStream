@@ -19,7 +19,29 @@ internal class RtspServerMessageHandler(
     private companion object {
         private const val DEFAULT_SESSION_TIMEOUT_SEC = 60
         private const val ALLOWED_METHODS = "OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE, TEARDOWN, GET_PARAMETER"
+        private val AUTHORIZATION_REGEX = Regex("""^Authorization\s*:\s*(.+?)\s*$""", setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE))
+        private val TRACK_PATH_REGEX = Regex("""/trackID=\d+""")
     }
+
+    internal fun getAuthorizationHeader(request: String): String? =
+        AUTHORIZATION_REGEX.find(request)?.groupValues?.getOrNull(1)?.ifBlank { null }
+
+    /** Accepts only the configured stream path or its `trackID=N` sub-paths (`*` is always allowed). */
+    internal fun isRequestUriAllowed(requestUri: String): Boolean {
+        if (requestUri == "*") return true
+        val requestPath = RtspServerAuth.normalizePath(requestUri)
+        val basePath = path.trimEnd('/')
+        if (requestPath == basePath) return true
+        if (!requestPath.startsWith(basePath)) return false
+        return TRACK_PATH_REGEX.matches(requestPath.substring(basePath.length))
+    }
+
+    internal fun createUnauthorizedResponse(cSeq: Int, wwwAuthenticate: String): RtspMessage =
+        ResponseBuilder.error(401, "Unauthorized")
+            .withCSeq(cSeq)
+            .header("WWW-Authenticate", wwwAuthenticate)
+            .withUserAgent(userAgent)
+            .build()
 
     internal data class PlayTrackInfo(val seq: Int, val rtpTime: Long, val ssrc: Long)
 

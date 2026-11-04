@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.firebaseCrashlytics) apply false
 }
 
-extra.set("minSdkVersion", 24)
+extra.set("minSdkVersion", 26) // Netty 4.2 (HTTPS server) needs API 26+
 extra.set("targetSdkVersion", 37)
 extra.set("compileSdkVersion", 37)
 extra.set("buildToolsVersion", "37.0.0")

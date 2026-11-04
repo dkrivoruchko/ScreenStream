@@ -184,4 +184,18 @@
     <string name="mjpeg_html_wrong_pin">Wrong PIN!</string>
     <string name="mjpeg_html_address_blocked">Client address blocked</string>
     <string name="mjpeg_html_error_unspecified">Something went wrong. &lt;br&gt; Please reload page and try again.</string>
+
+    <string name="mjpeg_pref_video_codec">Stream codec</string>
+    <string name="mjpeg_pref_video_codec_summary">MJPEG works everywhere. Hardware video uses far less bandwidth and CPU, decoded in the browser via WebCodecs</string>
+    <string name="mjpeg_pref_video_codec_description">Video codecs need a browser with WebCodecs (recent Chrome, Edge, Firefox, Safari). Crop, rotation, flip, grayscale and VR mode apply to MJPEG only. Changing this stops the stream.</string>
+    <string name="mjpeg_pref_video_codec_unsupported">(not supported on this device)</string>
+    <string-array name="mjpeg_pref_video_codec_options">
+        <item>MJPEG</item>
+        <item>H.264</item>
+        <item>H.265 (HEVC)</item>
+        <item>AV1</item>
+    </string-array>
+    <string name="mjpeg_pref_video_bitrate">Video bitrate</string>
+    <string name="mjpeg_pref_video_bitrate_summary">Target bitrate for hardware video codecs</string>
+    <string name="mjpeg_stream_cert_fingerprint">Self-signed certificate. Your browser will warn once; check this SHA-256 fingerprint before accepting:\n%1$s</string>
 </resources>

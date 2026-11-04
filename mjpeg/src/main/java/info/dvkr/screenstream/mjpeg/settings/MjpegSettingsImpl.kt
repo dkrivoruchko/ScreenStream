@@ -121,6 +121,12 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
                 if (newSettings.maxFPS != MjpegSettings.Default.MAX_FPS)
                     set(MjpegSettings.Key.MAX_FPS, newSettings.maxFPS)
 
+                if (newSettings.videoCodec != MjpegSettings.Default.VIDEO_CODEC)
+                    set(MjpegSettings.Key.VIDEO_CODEC, newSettings.videoCodec)
+
+                if (newSettings.videoBitrateKbps != MjpegSettings.Default.VIDEO_BITRATE_KBPS)
+                    set(MjpegSettings.Key.VIDEO_BITRATE_KBPS, newSettings.videoBitrateKbps)
+
 
                 if (newSettings.enablePin != MjpegSettings.Default.ENABLE_PIN)
                     set(MjpegSettings.Key.ENABLE_PIN, newSettings.enablePin)
@@ -186,6 +192,8 @@ internal class MjpegSettingsImpl(context: Context) : MjpegSettings {
         rotation = this[MjpegSettings.Key.ROTATION] ?: MjpegSettings.Default.ROTATION,
         flip = this[MjpegSettings.Key.FLIP] ?: MjpegSettings.Default.FLIP,
         maxFPS = this[MjpegSettings.Key.MAX_FPS] ?: MjpegSettings.Default.MAX_FPS,
+        videoCodec = this[MjpegSettings.Key.VIDEO_CODEC] ?: MjpegSettings.Default.VIDEO_CODEC,
+        videoBitrateKbps = this[MjpegSettings.Key.VIDEO_BITRATE_KBPS] ?: MjpegSettings.Default.VIDEO_BITRATE_KBPS,
 
         enablePin = this[MjpegSettings.Key.ENABLE_PIN] ?: MjpegSettings.Default.ENABLE_PIN,
         hidePinOnStart = this[MjpegSettings.Key.HIDE_PIN_ON_START] ?: MjpegSettings.Default.HIDE_PIN_ON_START,

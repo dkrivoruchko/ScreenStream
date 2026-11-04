@@ -81,8 +81,9 @@ internal class MjpegStreamingService(
     private val supervisorJob = SupervisorJob()
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(supervisorJob + coroutineDispatcher) }
     private val bitmapStateFlow = MutableStateFlow(createBitmap(1, 1))
+    private val videoHub = VideoStreamHub()
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
-        HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
+        HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), videoHub, ::sendEvent)
     }
     private val projectionCoordinator by lazy(mode = LazyThreadSafetyMode.NONE) {
         ProjectionCoordinator(
@@ -152,7 +153,7 @@ internal class MjpegStreamingService(
     private var waitingForPermission: Boolean = false
     private var mediaProjectionIntent: Intent? = null
     private var mediaProjection: MediaProjection? = null
-    private var bitmapCapture: BitmapCapture? = null
+    private var bitmapCapture: ScreenCapture? = null
     private var currentError: MjpegError? = null
     private var previousError: MjpegError? = null
     // All vars must be read/write on this (WebRTC-HT) thread
@@ -256,6 +257,12 @@ internal class MjpegStreamingService(
         }
         mjpegSettings.data.map { it.enableIPv6 }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.ENABLE_IPV6.name)))
+        }
+        mjpegSettings.data.map { it.videoCodec }.listenForChange(coroutineScope, 1) {
+            // Capture pipeline differs per codec: stop the stream and reload web clients so they pick up the new mode
+            // RestartServer drops queued RESTART_IGNORE events, so it must be sent before StopStream
+            sendEvent(InternalEvent.RestartServer(RestartReason.SettingsChanged(MjpegSettings.Key.VIDEO_CODEC.name)))
+            sendEvent(MjpegEvent.Intentable.StopStream("VideoCodecChanged"))
         }
         mjpegSettings.data.map { it.serverPort }.listenForChange(coroutineScope, 1) {
             sendEvent(InternalEvent.RestartServer(RestartReason.NetworkSettingsChanged(MjpegSettings.Key.SERVER_PORT.name)))
@@ -559,8 +566,12 @@ internal class MjpegStreamingService(
                     projectionCoordinator.startProjection(event.intent) { _, mediaProjection, _, isStartupStillValid ->
                         mediaProjection.registerCallback(projectionCallback, mainHandler)
 
-                        val bitmapCapture = BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow) { error ->
-                            sendEvent(InternalEvent.Error(error))
+                        val videoCodec = mjpegSettings.data.value.videoCodec
+                        val onCaptureError: (MjpegError) -> Unit = { error -> sendEvent(InternalEvent.Error(error)) }
+                        val bitmapCapture: ScreenCapture = if (VideoCapture.isSupported(videoCodec)) {
+                            VideoCapture(service, mjpegSettings, mediaProjection, videoHub, onCaptureError)
+                        } else {
+                            BitmapCapture(service, mjpegSettings, mediaProjection, bitmapStateFlow, onCaptureError)
                         }
                         val captureStarted = bitmapCapture.start(isStartupStillValid)
                         if (!captureStarted) {
@@ -877,9 +888,16 @@ internal class MjpegStreamingService(
     private inline fun publishState() {
         val state = MjpegState(
             isBusy = pendingServer || destroyPending || pendingStartAttemptId != null || currentError != null,
-            serverNetInterfaces = netInterfaces.map {
-                MjpegState.ServerNetInterface(it.label, it.buildUrl(mjpegSettings.data.value.serverPort))
-            }.sortedBy { it.fullAddress },
+            serverNetInterfaces = netInterfaces.sortedBy { it.address.hostAddress }.flatMap {
+                val port = mjpegSettings.data.value.serverPort
+                val fingerprint = httpServer.tlsFingerprint.value
+                listOfNotNull(
+                    fingerprint?.let { fp ->
+                        MjpegState.ServerNetInterface("${it.label} · HTTPS", it.buildUrl(if (port >= 65535) port - 1 else port + 1, https = true), fp)
+                    },
+                    MjpegState.ServerNetInterface(if (fingerprint != null) "${it.label} · HTTP (players)" else it.label, it.buildUrl(port))
+                )
+            },
             waitingCastPermission = waitingForPermission,
             startAttemptId = pendingStartAttemptId,
             isStreaming = isStreaming,
@@ -897,9 +915,7 @@ internal class MjpegStreamingService(
         }
     }
 
-    private fun randomPin(): String = Random.nextInt(10).toString() + Random.nextInt(10).toString() +
-            Random.nextInt(10).toString() + Random.nextInt(10).toString() +
-            Random.nextInt(10).toString() + Random.nextInt(10).toString()
+    private fun randomPin(): String = info.dvkr.screenstream.common.randomDigits(6)
 
     private fun getStartBitmap(): Bitmap {
         startBitmap?.let { return it }

@@ -33,6 +33,10 @@ import info.dvkr.screenstream.mjpeg.ui.main.settings.image.ResizeImageEditor
 import info.dvkr.screenstream.mjpeg.ui.main.settings.image.ResizeImageRow
 import info.dvkr.screenstream.mjpeg.ui.main.settings.image.RotationEditor
 import info.dvkr.screenstream.mjpeg.ui.main.settings.image.RotationRow
+import info.dvkr.screenstream.mjpeg.ui.main.settings.image.VideoBitrateEditor
+import info.dvkr.screenstream.mjpeg.ui.main.settings.image.VideoBitrateRow
+import info.dvkr.screenstream.mjpeg.ui.main.settings.image.VideoCodecEditor
+import info.dvkr.screenstream.mjpeg.ui.main.settings.image.VideoCodecRow
 import info.dvkr.screenstream.mjpeg.ui.main.settings.image.VrModeEditor
 import info.dvkr.screenstream.mjpeg.ui.main.settings.image.VrModeRow
 
@@ -63,6 +67,14 @@ internal fun ImageSettingsCard(
         },
         modifier = modifier
     ) {
+        VideoCodecRow(settings.videoCodec) { selectedSheet = ImageSettingSheet.VideoCodec }
+        HorizontalDivider()
+
+        VideoBitrateRow(settings.videoBitrateKbps, enabled = settings.videoCodec != MjpegSettings.Values.VIDEO_CODEC_MJPEG) {
+            selectedSheet = ImageSettingSheet.VideoBitrate
+        }
+        HorizontalDivider()
+
         VrModeRow(
             vrMode = settings.vrMode,
             onDetailShow = { selectedSheet = ImageSettingSheet.VrMode },
@@ -111,6 +123,14 @@ internal fun ImageSettingsCard(
                 onDismissRequest = { selectedSheet = null }
             ) {
                 when (sheet) {
+                    ImageSettingSheet.VideoCodec -> VideoCodecEditor(settings.videoCodec) { value ->
+                        if (settings.videoCodec != value) updateSettings { copy(videoCodec = value) }
+                    }
+
+                    ImageSettingSheet.VideoBitrate -> VideoBitrateEditor(settings.videoBitrateKbps) { value ->
+                        if (settings.videoBitrateKbps != value) updateSettings { copy(videoBitrateKbps = value) }
+                    }
+
                     ImageSettingSheet.VrMode -> VrModeEditor(settings.vrMode) { value ->
                         if (settings.vrMode != value) updateSettings { copy(vrMode = value) }
                     }
@@ -159,6 +179,8 @@ internal fun ImageSettingsCard(
 }
 
 private enum class ImageSettingSheet(@get:StringRes val titleRes: Int) {
+    VideoCodec(R.string.mjpeg_pref_video_codec),
+    VideoBitrate(R.string.mjpeg_pref_video_bitrate),
     VrMode(R.string.mjpeg_pref_vr_mode),
     Crop(R.string.mjpeg_pref_crop),
     Resize(R.string.mjpeg_pref_resize),

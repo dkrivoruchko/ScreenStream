@@ -1,6 +1,8 @@
 package info.dvkr.screenstream.webrtc.internal
 
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
@@ -16,6 +18,8 @@ import org.json.JSONException
 import org.json.JSONObject
 import org.webrtc.IceCandidate
 import org.webrtc.PeerConnection.IceServer
+import java.net.Inet6Address
+import java.net.InetAddress
 
 internal class SocketSignaling(
     private val environment: WebRtcEnvironment,
@@ -73,7 +77,60 @@ internal class SocketSignaling(
         fun onClientStartNotFound(key: ClientSessionKey, reason: String)
         fun onClientAnswer(clientId: ClientId, negotiationAttemptId: AttemptId, answer: Answer)
         fun onClientCandidate(clientId: ClientId, negotiationAttemptId: AttemptId, candidate: IceCandidate)
+        fun onPasswordBruteForce()
         fun onError(cause: Error)
+    }
+
+    private companion object {
+        private const val MAX_WRONG_PASSWORDS: Int = 10
+        private const val WRONG_PASSWORD_WINDOW_MS: Long = 10 * 60 * 1000L
+        private const val WRONG_PASSWORD_PENALTY_MS: Long = 1000L
+        private const val MAX_SDP_LENGTH: Int = 64 * 1024
+        private const val MAX_CANDIDATE_LENGTH: Int = 4 * 1024
+        private const val MAX_ICE_SERVERS: Int = 8
+        private const val MAX_ICE_SERVER_URLS: Int = 4
+        private val IPV4_LITERAL_REGEX = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
+
+        /**
+         * Accepts only `stun:`, `turn:`, `turns:` URLs. Drops URLs whose host is an IP literal in
+         * loopback / link-local / private / unspecified ranges (prevents using the host to probe its LAN).
+         */
+        private fun isAllowedIceServerUrl(url: String): Boolean {
+            val trimmed = url.trim()
+            val scheme = trimmed.substringBefore(':', "").lowercase()
+            if (scheme != "stun" && scheme != "turn" && scheme != "turns") return false
+            val rest = trimmed.substringAfter(':').removePrefix("//").substringBefore('?')
+            val host = if (rest.startsWith('[')) rest.substringAfter('[').substringBefore(']') else rest.substringBefore(':')
+            if (host.isBlank()) return false
+            if (host.equals("localhost", ignoreCase = true) || host.endsWith(".localhost", ignoreCase = true)) return false
+
+            val isIpLiteral = IPV4_LITERAL_REGEX.matches(host) || host.contains(':')
+            if (!isIpLiteral) return true // Hostname: no DNS lookup here
+            // IP literal: InetAddress.getByName does not perform a DNS lookup
+            val address = runCatching { InetAddress.getByName(host) }.getOrNull() ?: return false
+            if (address.isLoopbackAddress || address.isLinkLocalAddress || address.isSiteLocalAddress ||
+                address.isAnyLocalAddress || address.isMulticastAddress
+            ) return false
+            if (address is Inet6Address && (address.address[0].toInt() and 0xFE) == 0xFC) return false // fc00::/7
+            return true
+        }
+    }
+
+    private val wrongPasswordLock = Any()
+    private val wrongPasswordTimes: ArrayDeque<Long> = ArrayDeque()
+    private val penaltyHandler: Handler by lazy(LazyThreadSafetyMode.NONE) { Handler(Looper.getMainLooper()) }
+
+    /** @return `true` if the brute-force threshold was reached (counter is reset). */
+    private fun registerWrongPassword(): Boolean = synchronized(wrongPasswordLock) {
+        val now = SystemClock.elapsedRealtime()
+        while (wrongPasswordTimes.isNotEmpty() && now - wrongPasswordTimes.first() > WRONG_PASSWORD_WINDOW_MS) wrongPasswordTimes.removeFirst()
+        wrongPasswordTimes.addLast(now)
+        if (wrongPasswordTimes.size >= MAX_WRONG_PASSWORDS) {
+            wrongPasswordTimes.clear()
+            true
+        } else {
+            false
+        }
     }
 
     // Must be identical to server values
@@ -165,7 +222,7 @@ internal class SocketSignaling(
                 if (isStaleSocketCallback(currentSocket, logTag)) return
 
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
-                XLog.v(this@SocketSignaling.getLog(logTag, "Response: ${args.contentToString()}"))
+                XLog.v(this@SocketSignaling.getLog(logTag, "Response status: ${SocketAck.fromAck(args).status}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(
                         this@SocketSignaling.getLog(
@@ -245,8 +302,8 @@ internal class SocketSignaling(
             }
             on(Socket.EVENT_CONNECT_ERROR) { args -> // Auto or User reconnect
                 if (isStaleSocketCallback(currentSocket, "openSocket.${Socket.EVENT_CONNECT_ERROR}[${currentSocket.id()}]", false)) return@on
-                XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR, args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.MESSAGE) ?: ""
+                XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR, message.take(128))) // Raw args may echo auth data
                 if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED")) {
                     XLog.d(this@SocketSignaling.getLog("openSocket", "TOKEN_EXPIRED"))
                     eventListener.onTokenExpired()
@@ -258,8 +315,8 @@ internal class SocketSignaling(
             }
             on(Event.SOCKET_ERROR) { args -> // Server always disconnects socket on this event. User reconnect
                 if (isStaleSocketCallback(currentSocket, "openSocket.${Event.SOCKET_ERROR}[${currentSocket.id()}]", false)) return@on
-                XLog.e(this@SocketSignaling.getLog(Event.SOCKET_ERROR + "[${socketId()}]", args.contentToString()))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.STATUS) ?: ""
+                XLog.e(this@SocketSignaling.getLog(Event.SOCKET_ERROR + "[${socketId()}]", "status=${message.take(128)}"))
                 eventListener.onError(Error.SocketCheckError(message))
                 SocketPayload.fromPayload(args).sendOkAck()
             }
@@ -291,7 +348,7 @@ internal class SocketSignaling(
                 val logTag = "sendStreamCreate[${socketId()}]"
                 if (isStaleSocketCallback(currentSocket, logTag)) return
 
-                val msgV = "[${Event.STREAM_CREATE}] Response: ${args.contentToString()}"
+                val msgV = "[${Event.STREAM_CREATE}] Response status: ${SocketAck.fromAck(args).status}"
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
                 XLog.v(this@SocketSignaling.getLog(logTag, msgV))
                 val ack = SocketAck.fromAck(args)
@@ -351,7 +408,12 @@ internal class SocketSignaling(
                 eventListener.onClientJoin(payload.clientId, payload.joinAttemptId, payload.iceServers)
             } else {
                 XLog.w(getLog("onStreamCreated", "[${Event.STREAM_JOIN}] Wrong stream password"))
-                payload.sendErrorAck(Payload.ERROR_WRONG_STREAM_PASSWORD)
+                if (registerWrongPassword()) {
+                    XLog.w(getLog("onStreamCreated", "[${Event.STREAM_JOIN}] Too many wrong passwords. Rotating stream password."))
+                    eventListener.onPasswordBruteForce()
+                }
+                // Small per-attempt penalty: delay the error response
+                penaltyHandler.postDelayed({ payload.sendErrorAck(Payload.ERROR_WRONG_STREAM_PASSWORD) }, WRONG_PASSWORD_PENALTY_MS)
             }
         }
 
@@ -362,8 +424,10 @@ internal class SocketSignaling(
             }
             XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_ANSWER}]"))
             val payload = SocketPayload.fromPayload(args)
-            if (payload.clientId.isEmpty() || payload.negotiationAttemptId.isEmpty() || payload.answer.isEmpty()) {
-                val msg = "[${Event.CLIENT_ANSWER}] ClientId, NegotiationAttemptId or Answer is empty"
+            if (payload.clientId.isEmpty() || payload.negotiationAttemptId.isEmpty() || payload.answer.isEmpty() ||
+                payload.answer.description.length > MAX_SDP_LENGTH
+            ) {
+                val msg = "[${Event.CLIENT_ANSWER}] ClientId, NegotiationAttemptId or Answer is empty or too large"
                 XLog.e(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
             } else {
@@ -379,7 +443,9 @@ internal class SocketSignaling(
             }
             XLog.v(getLog("onStreamCreated[${socketId()}]", "[${Event.CLIENT_CANDIDATE}]"))
             val payload = SocketPayload.fromPayload(args)
-            if (payload.clientId.isEmpty() || payload.negotiationAttemptId.isEmpty() || (payload.candidate == null && payload.candidateEnd.not())) {
+            if (payload.clientId.isEmpty() || payload.negotiationAttemptId.isEmpty() || (payload.candidate == null && payload.candidateEnd.not()) ||
+                (payload.candidate?.sdp?.length ?: 0) > MAX_CANDIDATE_LENGTH
+            ) {
                 val msg = "[${Event.CLIENT_CANDIDATE}] ClientId, NegotiationAttemptId or Candidate is empty"
                 XLog.e(getLog("onStreamCreated", msg), IllegalArgumentException("onStreamCreated: $msg"))
                 payload.sendErrorAck(Payload.ERROR_EMPTY_OR_BAD_DATA)
@@ -423,7 +489,7 @@ internal class SocketSignaling(
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 if (isStaleSocketCallback(currentSocket, "sendStreamRemove[${socketId()}]")) return
 
-                val msg = "[${Event.STREAM_REMOVE}] Response: ${args.contentToString()}"
+                val msg = "[${Event.STREAM_REMOVE}] Response status: ${SocketAck.fromAck(args).status}"
                 XLog.v(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", msg))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> {
@@ -475,7 +541,7 @@ internal class SocketSignaling(
                 if (isStaleSocketCallback(currentSocket, logTag)) return
 
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
-                XLog.v(this@SocketSignaling.getLog(logTag, "Response: ${args.contentToString()}"))
+                XLog.v(this@SocketSignaling.getLog(logTag, "Response status: ${SocketAck.fromAck(args).status}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog(logTag, "OK, clientId=${clientKey?.clientId ?: "ALL"}, elapsed_ms=$elapsed"))
 
@@ -516,7 +582,7 @@ internal class SocketSignaling(
                 val logTag = "sendStreamStop[${socketId()}]"
                 if (isStaleSocketCallback(currentSocket, logTag)) return
 
-                XLog.v(this@SocketSignaling.getLog(logTag, "Response: ${args.contentToString()}"))
+                XLog.v(this@SocketSignaling.getLog(logTag, "Response status: ${SocketAck.fromAck(args).status}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog(logTag, "OK"))
                     else -> XLog.w(this@SocketSignaling.getLog(logTag, status), IllegalArgumentException("sendStreamStop => $status"))
@@ -583,7 +649,7 @@ internal class SocketSignaling(
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 if (isStaleSocketCallback(currentSocket, "sendRemoveClients[${socketId()}]")) return
 
-                XLog.v(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "Response: ${args.contentToString()}"))
+                XLog.v(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "Response status: ${SocketAck.fromAck(args).status}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "OK"))
                     else -> XLog.w(
@@ -643,9 +709,18 @@ internal class SocketSignaling(
 
         val iceServers: List<IceServer> by lazy(LazyThreadSafetyMode.NONE) {
             json?.optJSONArray(Payload.ICE_SERVERS)?.let { iceServersArray ->
-                (0 until iceServersArray.length()).mapNotNull { i ->
+                (0 until iceServersArray.length()).asSequence().mapNotNull { i ->
                     val iceServerJson = iceServersArray.optJSONObject(i) ?: return@mapNotNull null
-                    val urls = iceServerJson.optString("urls").ifBlank { null } ?: return@mapNotNull null
+                    val rawUrls = when (val value = iceServerJson.opt("urls")) {
+                        is JSONArray -> (0 until value.length()).mapNotNull { value.optString(it).ifBlank { null } }
+                        is String -> listOfNotNull(value.ifBlank { null })
+                        else -> emptyList()
+                    }
+                    val urls = rawUrls.filter { isAllowedIceServerUrl(it) }.take(MAX_ICE_SERVER_URLS)
+                    if (urls.size != rawUrls.size) {
+                        XLog.w(getLog("SocketPayload", "Dropped ${rawUrls.size - urls.size} disallowed ICE server URL(s)"))
+                    }
+                    if (urls.isEmpty()) return@mapNotNull null
                     val username = iceServerJson.optString("username").ifBlank { null }
                     val credential = iceServerJson.optString("credential").ifBlank { null }
 
@@ -655,7 +730,7 @@ internal class SocketSignaling(
                             setPassword(credential)
                         }
                     }.createIceServer()
-                }
+                }.take(MAX_ICE_SERVERS).toList()
             } ?: emptyList()
         }
 

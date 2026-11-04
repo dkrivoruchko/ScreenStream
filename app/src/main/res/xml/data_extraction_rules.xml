@@ -6,13 +6,7 @@
             path="./datastore/app_settings.preferences_pb" />
         <include
             domain="file"
-            path="./datastore/MJPEG_settings.preferences_pb" />
-        <include
-            domain="file"
             path="./datastore/WebRTC_settings.preferences_pb" />
-        <include
-            domain="file"
-            path="./datastore/RTSP_settings.preferences_pb" />
     </cloud-backup>
     <device-transfer>
         <include

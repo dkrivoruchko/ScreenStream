@@ -1,5 +1,4 @@
 const clientId = RandomString(16);
-window.DD_LOGS && DD_LOGS.setGlobalContextProperty("clientId", clientId);
 
 const buttonsDiv = document.getElementById("buttonsDiv")
 const buttonPiP = document.getElementById("PiP")
@@ -122,7 +121,7 @@ function connect() {
     errorDiv.style.visibility = "hidden";
     stream.src = "";
 
-    websocket = new WebsocketHeartbeat(`ws://${window.location.host}/socket?clientId=${clientId}`);
+    websocket = new WebsocketHeartbeat(`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/socket?clientId=${clientId}`);
 
     websocket.onopen = () => {
         isReconnecting = false;
@@ -161,7 +160,6 @@ function connect() {
         const message = JSON.parse(msg.data);
         if (message.type === "HEARTBEAT") return;
 
-        window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", { data: msg.data });
 
         if (message.type === "STREAM_ADDRESS") {
             pinDiv.style.visibility = "hidden";
@@ -212,7 +210,6 @@ function connect() {
             return;
         }
 
-        window.DD_LOGS && DD_LOGS.logger.error("websocket.onmessage. Unknown data:", { message: e.data });
     };
 }
 
@@ -226,7 +223,6 @@ function showStream(url) {
     clearTimeout(showStreamTimeoutId);
 
     new Promise((resolve, reject) => {
-        window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", streamAddress: url });
         stream.onload = () => { stream.onload = null; stream.onerror = null; resolve(); }
         stream.onerror = (e) => { stream.onerror = null; stream.onload = null; reject(e); }
         stream.src = url;
@@ -235,9 +231,7 @@ function showStream(url) {
         hasStreamImage = true;
         streamDiv.style.visibility = "visible";
         hideReconnectBar();
-        window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "ok" });
     }).catch((error) => {
-        window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "error" });
         MJPEGErrorCounter++;
         if (MJPEGErrorCounter > 5) {
             streamDiv.style.visibility = "visible";
@@ -279,7 +273,6 @@ function togglePiP() {
             videoElement.requestPictureInPicture()
                 .catch(error => {
                     clearTimeout(drawTimeoutId);
-                    window.DD_LOGS && DD_LOGS.logger.error("PiP.requestPictureInPicture:", { message: error });
                     while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
                     buttonPiP.style.display = "none";
                     videoElement.srcObject = null;

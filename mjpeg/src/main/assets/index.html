@@ -67,7 +67,7 @@
       filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, .4));
     }
 
-    #streamDiv img {
+    #streamDiv img, #streamDiv canvas {
       position: absolute;
       top: 0;
       bottom: 0;
@@ -206,19 +206,6 @@
       }
     }
   </style>
-  <script>
-    "use strict";
-
-    window.DD_LOGS && DD_LOGS.init({
-      clientToken: "pub26fc6543f9239240ed8ae545593f921f",
-      site: "datadoghq.com",
-      forwardConsoleLogs: ["info", "warn", "error"],
-      forwardReports: "all",
-      service: '%DD_SERVICE%'
-    });
-    window.DD_LOGS && DD_LOGS.logger.setHandler(DD_HANDLER);
-    window.DD_LOGS && DD_LOGS.setGlobalContextProperty('version', '%APP_VERSION%');
-  </script>
 </head>
 
 <body data-keep-image-on-reconnect="%KEEP_IMAGE_ON_RECONNECT%">
@@ -237,7 +224,7 @@
     </div>
   </div>
 
-  <div id="streamDiv"><img id="stream" FIT_WINDOW /></div>
+  <div id="streamDiv"><img id="stream" FIT_WINDOW /><canvas id="videoCanvas" FIT_WINDOW hidden></canvas></div>
 
   <div id="buttonsDiv">
     <input type="image" id="fullscreen" style="width:24px;height:24px;margin:4px;" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFF' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z' /%3E%3C/svg%3E" onclick="toggleFullscreen()" />
@@ -272,7 +259,6 @@
     "use strict";
 
     var clientId = RandomString(16);
-    window.DD_LOGS && DD_LOGS.setGlobalContextProperty("clientId", clientId);
 
     var buttonsDiv = document.getElementById("buttonsDiv");
     var buttonPiP = document.getElementById("PiP");
@@ -309,13 +295,145 @@
         }
     }
     function configureFitWindow(enable) {
-        if (enable) {
-            stream.style.width = "100%";
-            stream.style.objectFit = "contain";
-        } else {
-            stream.style.width = null;
-            stream.style.objectFit = null;
+        [stream, videoCanvas].forEach(function (el) {
+            el.style.width = enable ? "100%" : null;
+            el.style.objectFit = enable ? "contain" : null;
+        });
+    }
+
+    // ---- Hardware video (H.264 / HEVC / AV1) via WebCodecs ----
+    var videoCanvas = document.getElementById("videoCanvas");
+    var videoPlayer = null;
+
+    function stopVideo() {
+        if (videoPlayer) { videoPlayer.close(); videoPlayer = null; }
+    }
+
+    function showVideoError(text) {
+        streamDiv.style.visibility = "hidden";
+        errorDiv.querySelector("p").textContent = text;
+        errorDiv.style.visibility = "visible";
+    }
+
+    function startVideo(address) {
+        stopVideo();
+        errorDiv.style.visibility = "hidden";
+        if (!window.isSecureContext) {
+            var httpsPort = (parseInt(window.location.port || "80", 10) + 1);
+            var httpsUrl = "https://" + window.location.hostname + ":" + httpsPort + "/";
+            showVideoError("Hardware video needs HTTPS. Open " + httpsUrl + " instead.");
+            return;
         }
+        if (!("VideoDecoder" in window)) {
+            showVideoError("This browser doesn't support WebCodecs (needs recent Chrome, Edge, Firefox 130+ or Safari 17+). Switch the app to MJPEG.");
+            return;
+        }
+        stream.hidden = true;
+        stream.src = "";
+        videoCanvas.hidden = false;
+        var ctx = videoCanvas.getContext("2d", { alpha: false, desynchronized: true });
+
+        var closed = false;
+        var decoder = null;
+        var config = null;
+        var waitingKey = true;
+        var latestFrame = null;
+        var drawScheduled = false;
+        var ws = new WebSocket((window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/" + address + "?clientId=" + clientId);
+        ws.binaryType = "arraybuffer";
+
+        function requestKey() {
+            waitingKey = true;
+            if (ws.readyState === WebSocket.OPEN) ws.send("KEYFRAME");
+        }
+
+        function draw() {
+            drawScheduled = false;
+            var frame = latestFrame;
+            latestFrame = null;
+            if (!frame) return;
+            if (videoCanvas.width !== frame.displayWidth || videoCanvas.height !== frame.displayHeight) {
+                videoCanvas.width = frame.displayWidth;
+                videoCanvas.height = frame.displayHeight;
+            }
+            ctx.drawImage(frame, 0, 0);
+            frame.close();
+            if (!hasStreamImage || streamDiv.style.visibility !== "visible") {
+                hasStreamImage = true;
+                streamDiv.style.visibility = "visible";
+                hideReconnectBar();
+            }
+        }
+
+        function createDecoder() {
+            if (decoder && decoder.state !== "closed") decoder.close();
+            decoder = new VideoDecoder({
+                output: function (frame) {
+                    if (closed) { frame.close(); return; }
+                    if (latestFrame) latestFrame.close(); // render only the newest frame: lowest latency
+                    latestFrame = frame;
+                    if (!drawScheduled) { drawScheduled = true; requestAnimationFrame(draw); }
+                },
+                error: function (e) {
+                    console.warn("VideoDecoder error", e);
+                    if (closed) return;
+                    createDecoder();
+                    requestKey();
+                }
+            });
+            decoder.configure({
+                codec: config.codec,
+                codedWidth: config.width,
+                codedHeight: config.height,
+                optimizeForLatency: true
+            });
+            waitingKey = true;
+        }
+
+        ws.onmessage = function (e) {
+            if (typeof e.data === "string") {
+                var m = JSON.parse(e.data);
+                if (m.type !== "CONFIG") return;
+                config = m;
+                VideoDecoder.isConfigSupported({ codec: m.codec, codedWidth: m.width, codedHeight: m.height }).then(function (r) {
+                    if (!r.supported) showVideoError("This browser can't decode " + m.codec + ". Pick another codec in the app (H.264 is the most compatible).");
+                });
+                createDecoder();
+                return;
+            }
+            if (!decoder || decoder.state !== "configured") return;
+            var view = new DataView(e.data);
+            var isKey = view.getUint8(0) === 1;
+            if (waitingKey && !isKey) return;
+            if (!isKey && decoder.decodeQueueSize > 8) { requestKey(); return; } // decoder can't keep up: skip to next key frame
+            waitingKey = false;
+            try {
+                decoder.decode(new EncodedVideoChunk({
+                    type: isKey ? "key" : "delta",
+                    timestamp: Number(view.getBigInt64(1)),
+                    data: new Uint8Array(e.data, 9)
+                }));
+            } catch (err) {
+                console.warn("decode failed", err);
+                requestKey();
+            }
+        };
+
+        ws.onclose = function () {
+            if (closed) return;
+            setTimeout(function () { if (!closed && videoPlayer === player) startVideo(address); }, 1000);
+        };
+
+        var player = {
+            close: function () {
+                closed = true;
+                ws.onclose = null;
+                try { ws.close(); } catch (e) {}
+                if (decoder && decoder.state !== "closed") decoder.close();
+                if (latestFrame) { latestFrame.close(); latestFrame = null; }
+            }
+        };
+        videoPlayer = player;
     }
 
     function showReconnectBar() {
@@ -397,7 +515,7 @@
         errorDiv.style.visibility = "hidden";
         stream.src = "";
 
-        websocket = new WebsocketHeartbeat("ws://" + window.location.host + "/socket?clientId=" + clientId);
+        websocket = new WebsocketHeartbeat((window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/socket?clientId=" + clientId);
 
         websocket.onopen = function () {
             isReconnecting = false;
@@ -436,14 +554,20 @@
             var message = JSON.parse(msg.data);
             if (message.type === "HEARTBEAT") return;
 
-            window.DD_LOGS && DD_LOGS.logger.debug("websocket.onmessage", { data: msg.data });
 
             if (message.type === "STREAM_ADDRESS") {
                 pinDiv.style.visibility = "hidden";
                 blockedDiv.style.visibility = "hidden";
                 pinWrongMsg.style.visibility = "inherit";
                 isReconnecting = false;
-                showStream(message.data.streamAddress + ("?clientId=" + clientId));
+                if (message.data.videoAddress) {
+                    startVideo(message.data.videoAddress);
+                } else {
+                    stopVideo();
+                    stream.hidden = false;
+                    videoCanvas.hidden = true;
+                    showStream(message.data.streamAddress + ("?clientId=" + clientId));
+                }
                 configureButtons(message.data.enableButtons);
                 hideReconnectBar();
                 return;
@@ -487,7 +611,6 @@
                 return;
             }
 
-            window.DD_LOGS && DD_LOGS.logger.error("websocket.onmessage. Unknown data:", { message: e.data });
         };
     }
 
@@ -501,7 +624,6 @@
         clearTimeout(showStreamTimeoutId);
 
         new Promise(function (resolve, reject) {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", streamAddress: url });
             stream.onload = function () {
                 stream.onload = null;stream.onerror = null;resolve();
             };
@@ -514,9 +636,7 @@
             hasStreamImage = true;
             streamDiv.style.visibility = "visible";
             hideReconnectBar();
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "ok" });
         })["catch"](function (error) {
-            window.DD_LOGS && DD_LOGS.logger.debug("showStream", { mode: "default", result: "error" });
             MJPEGErrorCounter++;
             if (MJPEGErrorCounter > 5) {
                 streamDiv.style.visibility = "visible";
@@ -580,7 +700,6 @@
                 videoElement.addEventListener("loadedmetadata", function () {
                     videoElement.requestPictureInPicture()["catch"](function (error) {
                         clearTimeout(drawTimeoutId);
-                        window.DD_LOGS && DD_LOGS.logger.error("PiP.requestPictureInPicture:", { message: error });
                         while (pipStreamDiv.firstChild) pipStreamDiv.removeChild(pipStreamDiv.lastChild);
                         buttonPiP.style.display = "none";
                         videoElement.srcObject = null;

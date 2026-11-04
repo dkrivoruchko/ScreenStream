@@ -64,6 +64,7 @@ internal sealed class RtspError(@field:StringRes open val id: Int, override val 
         internal class AccessDenied() : ClientError(R.string.rtsp_connection_access_denied)
         internal class NoCredentialsError : ClientError(R.string.rtsp_connection_no_credentials)
         internal class AuthError : ClientError(R.string.rtsp_connection_invalid_credentials)
+        internal class InsecureAuthError : ClientError(R.string.rtsp_connection_insecure_auth)
     }
 
     @Immutable

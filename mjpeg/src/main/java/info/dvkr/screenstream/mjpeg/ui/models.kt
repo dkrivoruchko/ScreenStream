@@ -19,7 +19,7 @@ internal data class MjpegState(
     val error: MjpegError? = null
 ) {
     @Immutable
-    internal data class ServerNetInterface(val label: String, val fullAddress: String)
+    internal data class ServerNetInterface(val label: String, val fullAddress: String, val certFingerprint: String? = null)
 
     @Immutable
     internal data class Pin(val enablePin: Boolean, val pin: String, val hidePinOnStream: Boolean)

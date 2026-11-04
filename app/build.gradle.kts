@@ -95,6 +95,11 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "custom.config.*"
             excludes += "DebugProbesKt.bin"
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/io.netty.versions.properties"
+            excludes += "META-INF/license/**"
+            excludes += "META-INF/native/**"
+            excludes += "META-INF/native-image/**"
         }
     }
 }

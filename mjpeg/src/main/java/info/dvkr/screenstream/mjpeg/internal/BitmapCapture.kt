@@ -39,7 +39,7 @@ internal class BitmapCapture(
     private val mediaProjection: MediaProjection,
     private val bitmapStateFlow: MutableStateFlow<Bitmap>,
     private val onError: (MjpegError) -> Unit
-) {
+) : ScreenCapture {
     private enum class State { INIT, STARTED, DESTROYED, ERROR }
 
     private class ImageOptions(
@@ -60,8 +60,22 @@ internal class BitmapCapture(
 
     private var state = State.INIT
 
+    // Logical screen size, and the (possibly downscaled) size the virtual display renders at.
+    // Rendering the virtual display directly at the resize factor lets the GPU do the scaling and
+    // cuts per-frame CPU copies / JPEG work by up to 1/scale² (4x at the default 50%).
+    private var screenWidth = 0
+    private var screenHeight = 0
     private var currentWidth = 0
     private var currentHeight = 0
+
+    private fun captureScale(options: ImageOptions): Float =
+        if (options.targetWidth > 0 && options.targetHeight > 0) 1f
+        else (options.resizeFactor / 100f).coerceIn(0.1f, 1f)
+
+    private fun captureSize(width: Int, height: Int): Pair<Int, Int> {
+        val scale = captureScale(imageOptions)
+        return max(2, (width * scale).toInt()) to max(2, (height * scale).toInt())
+    }
 
     private val imageThread: HandlerThread by lazy { HandlerThread("BitmapCapture", Process.THREAD_PRIORITY_BACKGROUND) }
     private val imageThreadHandler: Handler by lazy { Handler(imageThread.looper) }
@@ -106,6 +120,9 @@ internal class BitmapCapture(
             )
 
             transformMatrixDirty = true
+            if (screenWidth > 0 && captureSize(screenWidth, screenHeight) != (currentWidth to currentHeight)) {
+                imageThreadHandler.post { resize(screenWidth, screenHeight) }
+            }
         }
 
         imageThread.start()
@@ -116,13 +133,14 @@ internal class BitmapCapture(
     }
 
     @Synchronized
-    internal fun start(isStartupStillValid: () -> Boolean): Boolean {
+    override fun start(isStartupStillValid: () -> Boolean): Boolean {
         XLog.d(getLog("start"))
         requireState(State.INIT)
 
         val bounds = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
-        currentWidth = bounds.width()
-        currentHeight = bounds.height()
+        screenWidth = bounds.width()
+        screenHeight = bounds.height()
+        captureSize(screenWidth, screenHeight).let { (w, h) -> currentWidth = w; currentHeight = h }
 
         val newImageListener = ImageListener()
         imageListener = newImageListener
@@ -172,7 +190,7 @@ internal class BitmapCapture(
     }
 
     @Synchronized
-    internal fun destroy() {
+    override fun destroy() {
         XLog.d(getLog("destroy"))
         if (state == State.DESTROYED) {
             XLog.w(getLog("destroy", "Already destroyed"))
@@ -187,13 +205,13 @@ internal class BitmapCapture(
     }
 
     @Synchronized
-    internal fun resize() {
+    override fun resize() {
         val bounds = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
         resize(bounds.width(), bounds.height())
     }
 
     @Synchronized
-    internal fun resize(width: Int, height: Int) {
+    override fun resize(width: Int, height: Int) {
         XLog.d(getLog("resize", "Start (width: $width, height: $height)"))
 
         if (state != State.STARTED) {
@@ -201,13 +219,16 @@ internal class BitmapCapture(
             return
         }
 
-        if (currentWidth == width && currentHeight == height) {
+        screenWidth = width
+        screenHeight = height
+        val (captureWidth, captureHeight) = captureSize(width, height)
+        if (currentWidth == captureWidth && currentHeight == captureHeight) {
             XLog.i(getLog("resize", "Same width and height. Ignored"))
             return
         }
 
-        currentWidth = width
-        currentHeight = height
+        currentWidth = captureWidth
+        currentHeight = captureHeight
         transformMatrixDirty = true
         matrixSourceWidth = -1
         matrixSourceHeight = -1
@@ -217,7 +238,7 @@ internal class BitmapCapture(
 
         val newImageListener = ImageListener()
         imageListener = newImageListener
-        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2).apply {
+        imageReader = ImageReader.newInstance(captureWidth, captureHeight, PixelFormat.RGBA_8888, 2).apply {
             setOnImageAvailableListener(newImageListener, imageThreadHandler)
         }
 
@@ -228,7 +249,7 @@ internal class BitmapCapture(
 
         try {
             virtualDisplay?.surface = null
-            virtualDisplay?.resize(width, height, serviceContext.resources.configuration.densityDpi)
+            virtualDisplay?.resize(captureWidth, captureHeight, serviceContext.resources.configuration.densityDpi)
             virtualDisplay?.surface = imageReader!!.surface
         } catch (ex: SecurityException) {
             XLog.w(getLog("resize", ex.toString()), ex)
@@ -317,10 +338,13 @@ internal class BitmapCapture(
         val vrLeft = if (imageOptions.vrMode == MjpegSettings.Default.VR_MODE_RIGHT) fullWidth / 2 else 0
         val vrRight = if (imageOptions.vrMode == MjpegSettings.Default.VR_MODE_LEFT) fullWidth / 2 else fullWidth
 
-        var cropLeft = (vrLeft + imageOptions.cropLeft).coerceIn(vrLeft, vrRight)
-        var cropRight = (vrRight - imageOptions.cropRight).coerceIn(cropLeft, vrRight)
-        var cropTop = imageOptions.cropTop.coerceIn(0, fullHeight)
-        var cropBottom = (fullHeight - imageOptions.cropBottom).coerceIn(cropTop, fullHeight)
+        // Image may already be downscaled by the virtual display; crop settings are in screen pixels
+        val preScale = if (screenWidth > 0) fullWidth.toFloat() / screenWidth else 1f
+        fun scaled(v: Int) = (v * preScale).toInt()
+        var cropLeft = (vrLeft + scaled(imageOptions.cropLeft)).coerceIn(vrLeft, vrRight)
+        var cropRight = (vrRight - scaled(imageOptions.cropRight)).coerceIn(cropLeft, vrRight)
+        var cropTop = scaled(imageOptions.cropTop).coerceIn(0, fullHeight)
+        var cropBottom = (fullHeight - scaled(imageOptions.cropBottom)).coerceIn(cropTop, fullHeight)
 
         if (cropLeft >= cropRight || cropTop >= cropBottom) {
             cropLeft = vrLeft; cropTop = 0; cropRight = vrRight; cropBottom = fullHeight // Fallback
@@ -339,7 +363,7 @@ internal class BitmapCapture(
             }
 
             imageOptions.resizeFactor != 100 -> {
-                (imageOptions.resizeFactor / 100f).let { it to it }
+                (imageOptions.resizeFactor / 100f / preScale).let { if (abs(it - 1f) < 0.01f) 1f else it }.let { it to it }
             }
 
             else -> 1f to 1f
@@ -382,6 +406,11 @@ internal class BitmapCapture(
 
             transformMatrixDirty = false
         }
+
+        val isIdentity = scaleX == 1f && scaleY == 1f && cropLeft == 0 && cropTop == 0 && cropWidth == fullWidth &&
+                cropHeight == fullHeight && imageOptions.rotationDegrees == 0 && imageOptions.flipMode == MjpegSettings.Values.FLIP_NONE &&
+                imageOptions.grayscale.not()
+        if (isIdentity) return tmpBitmap.copy(Bitmap.Config.ARGB_8888, false)
 
         if (outputBitmap == null || outputBitmap!!.width != outputWidth || outputBitmap!!.height != outputHeight) {
             outputBitmap?.recycle()

@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun ServerMode(
     serverBindings: List<RtspBinding>,
+    serverCredentials: Pair<String, String>?,
     error: RtspError?,
     isStreaming: Boolean,
     sendEvent: (RtspEvent) -> Unit,
@@ -76,6 +77,7 @@ internal fun ServerMode(
             serverBindings.forEachIndexed { index, binding ->
                 AddressRow(
                     binding = binding,
+                    serverCredentials = serverCredentials,
                     isStreaming = isStreaming,
                     sendEvent = sendEvent,
                     modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 12.dp, end = 0.dp)
@@ -91,6 +93,7 @@ internal fun ServerMode(
 @Composable
 private fun AddressRow(
     binding: RtspBinding,
+    serverCredentials: Pair<String, String>?,
     isStreaming: Boolean,
     sendEvent: (RtspEvent) -> Unit,
     modifier: Modifier = Modifier
@@ -110,6 +113,14 @@ private fun AddressRow(
                 textDecoration = if (bindingFailed) TextDecoration.None else TextDecoration.Underline
             )
         )
+        if (serverCredentials != null) {
+            // Credentials are shown next to the URL, never embedded into it (copy/share/QR use the plain URL)
+            Text(
+                text = stringResource(id = R.string.rtsp_server_credentials_hint, serverCredentials.first, serverCredentials.second),
+                modifier = Modifier.padding(bottom = 4.dp),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,

@@ -9,16 +9,17 @@ import io.ktor.network.sockets.aSocket
 import io.ktor.network.sockets.isClosed
 import io.ktor.network.sockets.openReadChannel
 import io.ktor.network.sockets.openWriteChannel
+import io.ktor.network.sockets.toJavaAddress
 import io.ktor.network.tls.tls
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.readFully
-import io.ktor.utils.io.readLine
 import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import java.io.IOException
+import java.net.InetAddress
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -58,7 +59,7 @@ internal class TcpStreamSocket private constructor(
         tlsCoroutineContext,
         selectorManager,
         acceptedSocket,
-        (acceptedSocket.remoteAddress as InetSocketAddress).hostname,
+        peerIpLiteral(acceptedSocket),
         (acceptedSocket.remoteAddress as InetSocketAddress).port,
         false
     ) {
@@ -76,7 +77,8 @@ internal class TcpStreamSocket private constructor(
             tcpSocket = aSocket(selectorManager)
                 .tcp()
                 .connect(InetSocketAddress(remoteHost, remotePort)) { keepAlive = true; noDelay = true }
-                .run { if (sslEnabled) tls(tlsCoroutineContext) else this }
+                // serverName enables SNI and hostname verification in Ktor TLS
+                .run { if (sslEnabled) tls(tlsCoroutineContext) { serverName = remoteHost.removePrefix("[").removeSuffix("]") } else this }
                 .apply {
                     input = openReadChannel()
                     output = openWriteChannel()
@@ -129,6 +131,7 @@ internal class TcpStreamSocket private constructor(
         allowedInterleavedChannels: Set<Int>? = emptySet(),
         maxInterleavedLength: Int = 65535,
         maxHeaderLength: Int = 16 * 1024,
+        maxLineLength: Int = 8 * 1024,
         maxBodyLength: Int = 256 * 1024,
         onInterleavedChunk: (suspend (channel: Int, data: ByteArray, length: Int, isLast: Boolean) -> Unit)? = null
     ): RtspMessage? = readMutex.withLock {
@@ -168,13 +171,13 @@ internal class TcpStreamSocket private constructor(
             var contentLength = 0
 
             sb.append(first.toInt().toChar())
-            val firstLine = ch.readLine() ?: return@withLock null
-            headerBytes += 1 + firstLine.length
-            if (headerBytes > maxHeaderLength) throw IOException("RTSP header too large (> $maxHeaderLength bytes)")
+            headerBytes += 1
+            val firstLine = ch.readLineBounded(minOf(maxLineLength - 1, maxHeaderLength - headerBytes)) ?: return@withLock null
+            headerBytes += firstLine.length + 2
             sb.append(firstLine).append("\r\n")
 
             while (true) {
-                val line = ch.readLine() ?: return@withLock null
+                val line = ch.readLineBounded(minOf(maxLineLength, maxHeaderLength - headerBytes)) ?: return@withLock null
                 if (line.isEmpty()) break
                 headerBytes += line.length + 2
                 if (headerBytes > maxHeaderLength) throw IOException("RTSP header too large (> $maxHeaderLength bytes)")
@@ -192,5 +195,17 @@ internal class TcpStreamSocket private constructor(
 
         // Defensive: gives the lambda an explicit RtspMessage? result type for inference.
         null
+    }
+
+    private companion object {
+        /** Literal IP of the peer without triggering a reverse DNS lookup. */
+        private fun peerIpLiteral(socket: Socket): String {
+            val address = socket.remoteAddress
+            (address.toJavaAddress() as? java.net.InetSocketAddress)?.address?.hostAddress?.let { return it }
+            (address as? InetSocketAddress)?.resolveAddress()?.let { bytes ->
+                runCatching { InetAddress.getByAddress(bytes).hostAddress }.getOrNull()?.let { return it }
+            }
+            return (address as InetSocketAddress).hostname
+        }
     }
 }

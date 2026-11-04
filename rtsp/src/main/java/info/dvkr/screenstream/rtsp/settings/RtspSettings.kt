@@ -50,6 +50,9 @@ public interface RtspSettings {
         public val SERVER_PATH: Preferences.Key<String> = stringPreferencesKey("SERVER_PATH")
         public val ONVIF_DISCOVERY_ENABLED: Preferences.Key<Boolean> = booleanPreferencesKey("ONVIF_DISCOVERY_ENABLED")
         public val ONVIF_DEVICE_ID: Preferences.Key<String> = stringPreferencesKey("ONVIF_DEVICE_ID")
+        public val SERVER_AUTH_ENABLED: Preferences.Key<Boolean> = booleanPreferencesKey("SERVER_AUTH_ENABLED")
+        public val SERVER_AUTH_USERNAME: Preferences.Key<String> = stringPreferencesKey("SERVER_AUTH_USERNAME")
+        public val SERVER_AUTH_PASSWORD: Preferences.Key<String> = stringPreferencesKey("SERVER_AUTH_PASSWORD")
     }
 
     public object Default {
@@ -90,6 +93,9 @@ public interface RtspSettings {
         public const val SERVER_PATH: String = "screen"
         public const val ONVIF_DISCOVERY_ENABLED: Boolean = false
         public const val ONVIF_DEVICE_ID: String = ""
+        public const val SERVER_AUTH_ENABLED: Boolean = true
+        public const val SERVER_AUTH_USERNAME: String = "screenstream"
+        public const val SERVER_AUTH_PASSWORD: String = "" // Generated on first use
     }
 
     public object Values {
@@ -156,7 +162,15 @@ public interface RtspSettings {
         public val serverPath: String = Default.SERVER_PATH,
         public val onvifDiscoveryEnabled: Boolean = Default.ONVIF_DISCOVERY_ENABLED,
         public val onvifDeviceId: String = Default.ONVIF_DEVICE_ID,
-    )
+        public val serverAuthEnabled: Boolean = Default.SERVER_AUTH_ENABLED,
+        public val serverAuthUsername: String = Default.SERVER_AUTH_USERNAME,
+        public val serverAuthPassword: String = Default.SERVER_AUTH_PASSWORD,
+    ) {
+        override fun toString(): String =
+            "Data(mode=$mode, serverProtocol=$serverProtocol, clientProtocol=$clientProtocol, serverPort=$serverPort, " +
+                    "serverPath=$serverPath, serverAuthEnabled=$serverAuthEnabled, onvifDiscoveryEnabled=$onvifDiscoveryEnabled, " +
+                    "videoCodec=$videoCodec, videoFps=$videoFps, videoBitrateBits=$videoBitrateBits, audioCodec=$audioCodec)"
+    }
 
     public val data: StateFlow<Data>
     public suspend fun updateData(transform: Data.() -> Data)

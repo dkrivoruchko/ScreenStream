@@ -36,6 +36,7 @@ import kotlin.time.Duration.Companion.milliseconds
 internal class RtspServer(
     private val appVersion: String,
     private val generation: Long,
+    private val auth: RtspServerAuth,
     private val onEvent: (RtspStreamingService.InternalEvent) -> Unit,
     private val onRequestKeyFrame: () -> Unit
 ) {
@@ -50,6 +51,11 @@ internal class RtspServer(
     private val rtspServerConnections = mutableListOf<RtspServerConnection>()
     private val videoParams = AtomicReference<VideoParams?>()
     private val audioParams = AtomicReference<AudioParams?>()
+
+    private companion object {
+        private const val MAX_CONNECTIONS: Int = 32
+        private const val MAX_CONNECTIONS_PER_IP: Int = 8
+    }
 
     private data class BoundSocket(val socket: ServerSocket, val netInterface: RtspNetInterface, val advertisedHost: String)
     private data class BindFailure(val key: String, val host: String, val bindError: RtspBindError, val technicalDetails: String?)
@@ -200,17 +206,36 @@ internal class RtspServer(
                     continue
                 }
 
-                val serverConnection = RtspServerConnection(
-                    parentJob = scopeJob,
-                    tcpStreamSocket = TcpStreamSocket(scope.coroutineContext, selectorManager, clientSocket),
-                    serverMessageHandler = RtspServerMessageHandler(appVersion, boundSocket.advertisedHost, port, path),
-                    videoParams,
-                    audioParams,
-                    serverProtocolPolicy = protocol,
-                    onRequestKeyFrame = onRequestKeyFrame,
-                    onClosed = { synchronized(rtspServerConnections) { rtspServerConnections.remove(it) } }
-                )
-                synchronized(rtspServerConnections) { rtspServerConnections.add(serverConnection) }
+                val tcpStreamSocket = runCatching { TcpStreamSocket(scope.coroutineContext, selectorManager, clientSocket) }.getOrNull()
+                if (tcpStreamSocket == null) {
+                    runCatching { clientSocket.close() }
+                    continue
+                }
+                val remoteIp = tcpStreamSocket.remoteHost
+
+                val serverConnection = synchronized(rtspServerConnections) {
+                    val canAccept = rtspServerConnections.size < MAX_CONNECTIONS &&
+                            rtspServerConnections.count { it.remoteHost == remoteIp } < MAX_CONNECTIONS_PER_IP &&
+                            auth.isBlocked(remoteIp).not()
+                    if (!canAccept) return@synchronized null
+
+                    RtspServerConnection(
+                        parentJob = scopeJob,
+                        tcpStreamSocket = tcpStreamSocket,
+                        serverMessageHandler = RtspServerMessageHandler(appVersion, boundSocket.advertisedHost, port, path),
+                        videoParams,
+                        audioParams,
+                        serverProtocolPolicy = protocol,
+                        auth = auth,
+                        onRequestKeyFrame = onRequestKeyFrame,
+                        onClosed = { synchronized(rtspServerConnections) { rtspServerConnections.remove(it) } }
+                    ).also { rtspServerConnections.add(it) }
+                }
+                if (serverConnection == null) {
+                    // Connection limit reached or remote IP is temporarily blocked after failed auth attempts
+                    runCatching { clientSocket.close() }
+                    continue
+                }
                 serverConnection.start()
             }
         }

@@ -9,6 +9,7 @@ import info.dvkr.screenstream.rtsp.internal.rtsp.core.SdpBuilder
 import info.dvkr.screenstream.rtsp.internal.rtsp.core.TransportHeader
 import info.dvkr.screenstream.rtsp.internal.rtsp.sockets.TcpStreamSocket
 import info.dvkr.screenstream.rtsp.settings.RtspSettings
+import info.dvkr.screenstream.rtsp.ui.RtspError
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
@@ -17,7 +18,13 @@ import java.security.MessageDigest
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class RtspClientMessageHandler(
-    appVersion: String, host: String, port: Int, path: String, private val username: String?, private val password: String?
+    appVersion: String,
+    host: String,
+    port: Int,
+    path: String,
+    private val username: String?,
+    private val password: String?,
+    private val tlsEnabled: Boolean
 ) : RtspBaseMessageHandler(appVersion, host, port, path) {
 
     internal data class Command(val method: Method, val cSeq: Int, val status: Int, val text: String)
@@ -92,6 +99,8 @@ internal class RtspClientMessageHandler(
 
         authorization = when (val challenge = parseDigestChallenge(authResponse)) {
             null -> {
+                // Never send Basic credentials over a cleartext connection
+                if (!tlsEnabled) throw RtspError.ClientError.InsecureAuthError()
                 val base64 = "$user:$pass".toByteArray(Charsets.ISO_8859_1).encodeBase64()
                 "Basic $base64"
             }
