@@ -23,9 +23,10 @@ import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.install
 import io.ktor.server.application.serverConfig
-import io.ktor.server.cio.CIO
+import io.ktor.server.netty.Netty
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.connector
+import io.ktor.server.engine.sslConnector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.cachingheaders.CachingHeaders
 import io.ktor.server.plugins.compression.Compression
@@ -101,6 +102,7 @@ internal class HttpServer(
     context: Context,
     private val mjpegSettings: MjpegSettings,
     private val bitmapStateFlow: StateFlow<Bitmap>,
+    private val videoHub: VideoStreamHub,
     private val sendEvent: (MjpegEvent) -> Unit
 ) {
     private val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -121,6 +123,9 @@ internal class HttpServer(
     private val lastJPEG: AtomicReference<ByteArray> = AtomicReference(ByteArray(0))
     private val serverData: HttpServerData = HttpServerData(sendEvent)
     private val mjpegSharedFlow: AtomicReference<SharedFlow<ByteArray>> = AtomicReference(null)
+    private val tlsIdentity = TlsIdentity(context)
+    private val _tlsFingerprint = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    internal val tlsFingerprint: StateFlow<String?> = _tlsFingerprint
     private val ktorServer: AtomicReference<Pair<EmbeddedServer<*, *>, CompletableDeferred<Unit>>> = AtomicReference(null)
 
     private data class HtmlIndexSettings(
@@ -220,14 +225,19 @@ internal class HttpServer(
                     XLog.e(getLog("mjpegFlow", "Producer completed with error"), cause)
                 }
             }
-            // Only JPEG-encode while someone is actually watching the MJPEG stream (saves CPU/battery)
+            // Only JPEG-encode while someone is actually watching the MJPEG stream (saves CPU/battery, esp. in video mode)
             .shareIn(coroutineScope, SharingStarted.WhileSubscribed(stopTimeoutMillis = 2000, replayExpirationMillis = 0), 1)
 
         mjpegSharedFlow.set(mjpegFlow)
 
         val serverPort = mjpegSettings.data.value.serverPort
+        val httpsPort = httpsPortFor(serverPort)
+        val identity = runCatching { withContext(Dispatchers.IO) { tlsIdentity.get(serverAddresses.map { it.address }) } }
+            .onFailure { XLog.e(getLog("startServer", "TLS identity failed"), it) }
+            .getOrNull()
+        _tlsFingerprint.value = identity?.fingerprint
         val server = embeddedServer(
-            factory = CIO,
+            factory = Netty,
             rootConfig = serverConfig {
                 parentCoroutineContext = CoroutineExceptionHandler { _, throwable ->
                     if (throwable is BindException) return@CoroutineExceptionHandler
@@ -237,14 +247,22 @@ internal class HttpServer(
                 module { appModule() }
             },
             configure = {
-                connectionIdleTimeoutSeconds = 10
-                reuseAddress = true
                 shutdownGracePeriod = 0
                 shutdownTimeout = 500
+                enableHttp2 = false // Avoid ALPN on Android; HTTP/1.1 is all we need
                 serverAddresses.forEach { netInterface ->
                     connector {
                         host = netInterface.address.hostAddress!!
                         port = serverPort
+                    }
+                    if (identity != null) sslConnector(
+                        keyStore = identity.keyStore,
+                        keyAlias = TlsIdentity.ALIAS,
+                        keyStorePassword = { identity.password.toCharArray() },
+                        privateKeyPassword = { identity.password.toCharArray() }
+                    ) {
+                        host = netInterface.address.hostAddress!!
+                        port = httpsPort
                     }
                 }
             }
@@ -321,6 +339,8 @@ internal class HttpServer(
         if (isActive) send(JSONObject().put("type", type).apply { if (data != null) put("data", data) }.toString())
     }
 
+    private fun httpsPortFor(httpPort: Int): Int = if (httpPort >= 65535) httpPort - 1 else httpPort + 1
+
     private fun Application.appModule() {
         val crlf = "\r\n".toByteArray()
         val jpegBaseHeader = "Content-Type: image/jpeg\r\nContent-Length: ".toByteArray()
@@ -351,7 +371,18 @@ internal class HttpServer(
         }
 
         routing {
-            get("/") { call.respondText(indexHtml.get(), ContentType.Text.Html) }
+            get("/") {
+                // The viewer page always runs over HTTPS: encrypted PIN/stream, and a secure context for WebCodecs.
+                // Raw stream URLs stay available over HTTP for players like VLC/OBS.
+                if (call.request.local.scheme == "http" && _tlsFingerprint.value != null && call.request.queryParameters["http"] == null) {
+                    val hostHeader = call.request.headers[HttpHeaders.Host] ?: call.request.local.serverHost
+                    val host = if (hostHeader.startsWith("[")) hostHeader.substringBefore("]") + "]" else hostHeader.substringBefore(":")
+                    call.response.headers.append(HttpHeaders.Location, "https://$host:${httpsPortFor(call.request.local.localPort)}/")
+                    call.respond(HttpStatusCode.Found)
+                    return@get
+                }
+                call.respondText(indexHtml.get(), ContentType.Text.Html)
+            }
             get("favicon.ico") { call.respondBytes(favicon, ContentType.Image.XIcon) }
             get("logo.svg") { call.respondBytes(logoSvg, ContentType.Image.SVG) }
             get("start-stop") {
@@ -397,7 +428,10 @@ internal class HttpServer(
                         val msg = runCatching { JSONObject(frame.readText()) }.getOrNull() ?: continue
 
                         val enableButtons = mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not()
+                        val videoCodec = mjpegSettings.data.value.videoCodec
+                        val isVideo = videoCodec != MjpegSettings.Values.VIDEO_CODEC_MJPEG && VideoCapture.isSupported(videoCodec)
                         val streamData = JSONObject().put("enableButtons", enableButtons).put("streamAddress", serverData.streamAddress)
+                            .put("videoAddress", if (isVideo) "video" else JSONObject.NULL)
 
                         when (val type = msg.optString("type").uppercase()) {
                             "HEARTBEAT" -> send("HEARTBEAT", msg.optString("data"))
@@ -430,6 +464,73 @@ internal class HttpServer(
                 } finally {
                     XLog.i(this@appModule.getLog("socket", "finally: $clientId"))
                     serverData.removeSocket(clientId)
+                }
+            }
+
+            webSocket("/video") {
+                if (call.request.isSameOrigin().not()) {
+                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Origin not allowed"))
+                    return@webSocket
+                }
+                val clientId = call.request.getClientId()
+                val remoteAddress = call.request.origin.remoteAddress
+                val remotePort = call.request.origin.remotePort
+                if (serverData.isClientAllowed(clientId, remoteAddress).not()) {
+                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
+                    return@webSocket
+                }
+
+                serverData.addConnected(clientId, remoteAddress, remotePort)
+                XLog.i(this@appModule.getLog("video", "Client: $clientId:$remotePort"))
+                try {
+                    coroutineScope {
+                        val session = this@webSocket
+                        launch { // Client -> server: key frame requests (e.g. after a decoder error); ends when the socket closes
+                            for (frame in incoming) {
+                                if (frame is Frame.Text && frame.readText() == "KEYFRAME") videoHub.requestKeyFrame()
+                            }
+                            this@coroutineScope.cancel()
+                        }
+
+                        var sentConfig: VideoConfig? = null
+                        var lastSeq = -1L
+                        var waitForKey = true
+                        videoHub.requestKeyFrame()
+                        videoHub.packets.collect { packet ->
+                            if (serverData.isAddressBlocked(remoteAddress) || serverData.isDisconnected(clientId, remoteAddress, remotePort))
+                                throw CancellationException("Client stopped")
+
+                            // A gap means this client fell behind and the shared buffer dropped frames: resync on next key frame
+                            if (lastSeq >= 0 && packet.seq != lastSeq + 1 && !waitForKey) {
+                                waitForKey = true
+                                serverData.setSlowConnection(clientId, remoteAddress, remotePort)
+                                videoHub.requestKeyFrame()
+                            }
+                            lastSeq = packet.seq
+                            if (waitForKey && !packet.isKey) return@collect
+                            waitForKey = false
+
+                            val config = videoHub.config.value ?: return@collect
+                            if (config != sentConfig) {
+                                session.send(
+                                    JSONObject().put("type", "CONFIG").put("codec", config.codec)
+                                        .put("width", config.width).put("height", config.height).toString()
+                                )
+                                sentConfig = config
+                            }
+
+                            val buffer = java.nio.ByteBuffer.allocate(9 + packet.data.size)
+                                .put(if (packet.isKey) 1.toByte() else 0.toByte()).putLong(packet.ptsUs).put(packet.data)
+                            buffer.flip()
+                            session.outgoing.send(Frame.Binary(true, buffer))
+                            serverData.setNextBytes(clientId, remoteAddress, remotePort, buffer.limit())
+                        }
+                    }
+                } catch (_: CancellationException) {
+                } catch (cause: Exception) {
+                    XLog.d(this@appModule.getLog("video", "catch: ${cause.localizedMessage}"))
+                } finally {
+                    serverData.setDisconnected(clientId, remoteAddress, remotePort)
                 }
             }
 

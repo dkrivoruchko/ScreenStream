@@ -121,7 +121,7 @@ function connect() {
     errorDiv.style.visibility = "hidden";
     stream.src = "";
 
-    websocket = new WebsocketHeartbeat(`ws://${window.location.host}/socket?clientId=${clientId}`);
+    websocket = new WebsocketHeartbeat(`${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/socket?clientId=${clientId}`);
 
     websocket.onopen = () => {
         isReconnecting = false;

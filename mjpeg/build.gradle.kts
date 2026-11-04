@@ -30,7 +30,16 @@ android {
 dependencies {
     implementation(projects.common)
 
-    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.netty) {
+        // Desktop/server native transports and QUIC: not usable on Android, and they bloat/conflict in the APK
+        exclude(group = "io.netty", module = "netty-codec-native-quic")
+        exclude(group = "io.netty", module = "netty-transport-native-epoll")
+        exclude(group = "io.netty", module = "netty-transport-native-kqueue")
+    }
+    // Ktor probes KQueue/Epoll.isAvailable(); keep the pure-Java class jars (no native code), which report unavailable
+    implementation("io.netty:netty-transport-classes-kqueue:4.2.17.Final")
+    implementation("io.netty:netty-transport-classes-epoll:4.2.17.Final")
+    implementation(libs.ktor.network.tls.certificates)
     implementation(libs.ktor.server.compression)
     implementation(libs.ktor.server.caching.headers)
     implementation(libs.ktor.server.default.headers)

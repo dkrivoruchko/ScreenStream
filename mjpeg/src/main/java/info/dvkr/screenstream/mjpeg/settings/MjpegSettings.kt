@@ -37,6 +37,8 @@ public interface MjpegSettings {
         public val ROTATION: Preferences.Key<Int> = intPreferencesKey("ROTATION")
         public val FLIP: Preferences.Key<Int> = intPreferencesKey("FLIP")
         public val MAX_FPS: Preferences.Key<Int> = intPreferencesKey("MAX_FPS")
+        public val VIDEO_CODEC: Preferences.Key<Int> = intPreferencesKey("VIDEO_CODEC")
+        public val VIDEO_BITRATE_KBPS: Preferences.Key<Int> = intPreferencesKey("VIDEO_BITRATE_KBPS")
 
         public val ENABLE_PIN: Preferences.Key<Boolean> = booleanPreferencesKey("ENABLE_PIN")
         public val HIDE_PIN_ON_START: Preferences.Key<Boolean> = booleanPreferencesKey("HIDE_PIN_ON_START")
@@ -81,6 +83,8 @@ public interface MjpegSettings {
         public const val ROTATION: Int = Values.ROTATION_0
         public const val FLIP: Int = Values.FLIP_NONE
         public const val MAX_FPS: Int = 30
+        public const val VIDEO_CODEC: Int = Values.VIDEO_CODEC_MJPEG
+        public const val VIDEO_BITRATE_KBPS: Int = 8000
 
         public const val ENABLE_PIN: Boolean = false
         public const val HIDE_PIN_ON_START: Boolean = true
@@ -106,6 +110,11 @@ public interface MjpegSettings {
         public const val FLIP_NONE: Int = 0
         public const val FLIP_HORIZONTAL: Int = 1
         public const val FLIP_VERTICAL: Int = 2
+
+        public const val VIDEO_CODEC_MJPEG: Int = 0
+        public const val VIDEO_CODEC_H264: Int = 1
+        public const val VIDEO_CODEC_H265: Int = 2
+        public const val VIDEO_CODEC_AV1: Int = 3
 
 
         @IntDef(flag = true, value = [INTERFACE_WIFI, INTERFACE_MOBILE, INTERFACE_ETHERNET, INTERFACE_VPN])
@@ -155,6 +164,8 @@ public interface MjpegSettings {
         public val rotation: Int = Default.ROTATION,
         public val flip: Int = Default.FLIP,
         public val maxFPS: Int = Default.MAX_FPS,
+        public val videoCodec: Int = Default.VIDEO_CODEC,
+        public val videoBitrateKbps: Int = Default.VIDEO_BITRATE_KBPS,
 
         public val enablePin: Boolean = Default.ENABLE_PIN,
         public val hidePinOnStart: Boolean = Default.HIDE_PIN_ON_START,

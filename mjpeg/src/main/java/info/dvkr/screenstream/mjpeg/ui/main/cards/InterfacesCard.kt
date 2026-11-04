@@ -71,6 +71,7 @@ internal fun InterfacesCard(
                 AddressCard(
                     fullAddress = netInterface.fullAddress,
                     interfaceLabel = netInterface.label,
+                    certFingerprint = netInterface.certFingerprint,
                     modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 12.dp, end = 0.dp)
                 )
 
@@ -86,6 +87,7 @@ internal fun InterfacesCard(
 private fun AddressCard(
     fullAddress: String,
     interfaceLabel: String,
+    certFingerprint: String? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -122,6 +124,13 @@ private fun AddressCard(
             CopyAddressButton(fullAddress)
             ShareAddressButton(fullAddress)
             ShowQRCodeButton(fullAddress)
+        }
+        if (certFingerprint != null) {
+            Text(
+                text = stringResource(id = R.string.mjpeg_stream_cert_fingerprint, certFingerprint),
+                modifier = Modifier.padding(end = 12.dp, bottom = 4.dp),
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+            )
         }
     }
 }

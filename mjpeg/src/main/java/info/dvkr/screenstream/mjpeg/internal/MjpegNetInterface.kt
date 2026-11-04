@@ -5,9 +5,12 @@ import java.net.InetAddress
 
 internal data class MjpegNetInterface(val label: String, val address: InetAddress) {
 
-    internal fun buildUrl(port: Int): String = if (address is Inet6Address) {
-        "http://[${address.hostAddress!!.substringBefore('%')}]:$port"
-    } else {
-        "http://${address.hostAddress}:$port"
+    internal fun buildUrl(port: Int, https: Boolean = false): String {
+        val scheme = if (https) "https" else "http"
+        return if (address is Inet6Address) {
+            "$scheme://[${address.hostAddress!!.substringBefore('%')}]:$port"
+        } else {
+            "$scheme://${address.hostAddress}:$port"
+        }
     }
 }

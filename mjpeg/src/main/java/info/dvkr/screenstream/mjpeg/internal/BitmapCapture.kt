@@ -39,7 +39,7 @@ internal class BitmapCapture(
     private val mediaProjection: MediaProjection,
     private val bitmapStateFlow: MutableStateFlow<Bitmap>,
     private val onError: (MjpegError) -> Unit
-) {
+) : ScreenCapture {
     private enum class State { INIT, STARTED, DESTROYED, ERROR }
 
     private class ImageOptions(
@@ -133,7 +133,7 @@ internal class BitmapCapture(
     }
 
     @Synchronized
-    internal fun start(isStartupStillValid: () -> Boolean): Boolean {
+    override fun start(isStartupStillValid: () -> Boolean): Boolean {
         XLog.d(getLog("start"))
         requireState(State.INIT)
 
@@ -190,7 +190,7 @@ internal class BitmapCapture(
     }
 
     @Synchronized
-    internal fun destroy() {
+    override fun destroy() {
         XLog.d(getLog("destroy"))
         if (state == State.DESTROYED) {
             XLog.w(getLog("destroy", "Already destroyed"))
@@ -205,13 +205,13 @@ internal class BitmapCapture(
     }
 
     @Synchronized
-    internal fun resize() {
+    override fun resize() {
         val bounds = WindowMetricsCalculator.getOrCreate().computeMaximumWindowMetrics(serviceContext).bounds
         resize(bounds.width(), bounds.height())
     }
 
     @Synchronized
-    internal fun resize(width: Int, height: Int) {
+    override fun resize(width: Int, height: Int) {
         XLog.d(getLog("resize", "Start (width: $width, height: $height)"))
 
         if (state != State.STARTED) {
