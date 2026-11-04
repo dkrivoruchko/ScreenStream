@@ -24,8 +24,13 @@ public fun Any.getLog(tag: String? = "", msg: String? = "Invoked"): String =
 
 public fun randomString(size: Int, allowCapitalLetters: Boolean = false): String {
     val symbols = ('0'..'9') + ('a'..'z') + if (allowCapitalLetters) ('A'..'Z') else emptyList()
-    return String(CharArray(size) { symbols.random() })
+    return String(CharArray(size) { symbols[secureRandom.nextInt(symbols.size)] })
 }
+
+private val secureRandom: java.security.SecureRandom = java.security.SecureRandom()
+
+/** Cryptographically secure random digits, e.g. for PINs. */
+public fun randomDigits(size: Int): String = String(CharArray(size) { '0' + secureRandom.nextInt(10) })
 
 public fun String.generateQRBitmap(sizePx: Int): Bitmap {
     val qrCode = QrCode.encodeText(this, QrCode.Ecc.MEDIUM)
