@@ -56,11 +56,11 @@ Several neighbors need their own verification, even when an MJPEG test supplies 
 | --- | --- |
 | Core's manager, Service base class, consent coordination, permission host and notifications | Core's [testing guide](../../../core/internal/testing/01-testing.md), against its [public contracts](../../../core/README.md) |
 | Capture Engine sessions, frames and statistics | The [Capture Engine](../../../screen-capture-engine/README.md) |
-| Viewer page build, desktop preview with its Node fixture checks, and manual browser smoke | The [web client tools guide](../../tools/web-client/README.md) |
+| Viewer page build, desktop preview with its Node fixture checks, Node owner tests of the viewer's scripts, and manual browser smoke | The [web client tools guide](../../tools/web-client/README.md) |
 | Compose screens, clipboard, QR codes, and the app's permission and consent UI | Android UI checks in the app |
 | Ktor server internals | Ktor. MJPEG tests only its own use of the CIO engine. |
 
-The existing Node fixture checks exercise the page builder and the preview harness, not the viewer's JavaScript in a browser. Automated viewer JavaScript tests would be new work and are a separate discussion.
+The Node fixture checks exercise the page builder and the preview harness. The Node owner tests execute the authored application, connection and media scripts with mock timers and doubles for browser objects and neighboring owners. Neither runs the packaged page in a browser, so native browser behavior still needs the [browser checks](../../tools/web-client/README.md#browser-checks).
 
 A fixture that stands in for a neighbor shows how MJPEG responds to that input. It doesn't show how the neighbor behaves. The [integration scenarios](scenarios/09-integration.md) cover the points where the real pieces meet.
 

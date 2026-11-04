@@ -2,7 +2,7 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing](../01-testing.md)
 
-This page lists the test histories for MJPEG's saved settings. They cover which values are valid, how saved data decodes across versions, how the old settings file is imported, how concurrent saves combine, and how saved values differ from the values the running stream uses. Use it when you change a settings model, its serialization, the legacy import, or the edit and application rules.
+This page lists the test histories for MJPEG's saved settings. They cover which values are valid, how saved data decodes across versions, how concurrent saves combine, and how saved values differ from the values the running stream uses. Use it when you change a settings model, its serialization, or the edit and application rules.
 
 The scenarios build on these owners:
 
@@ -23,7 +23,6 @@ The scenarios build on these owners:
 
   It stores each snapshot as JSON under the key `DATA` in the Preferences DataStore file `mjpeg.preferences_pb`. A shared JSON preferences store does this work and also recovers from read and decode failures ([mjpeg-set-07](#mjpeg-set-07)).
 - [`MjpegSettingsModels.kt`](../../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) defines the five groups (image, network, access, web page and behavior), their validation and serializers, and `SecretValue`.
-- [`MjpegSettingsMigration`](../../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsMigrations.kt) imports the legacy preferences file once.
 - The settings screens submit field transforms. The controller turns observed snapshots into its effective settings.
 
 The scenarios use these terms:
@@ -39,7 +38,7 @@ The scenarios use these terms:
 [Testing](../01-testing.md) defines the layers, the current verification status and the evidence rules. For settings they work as follows:
 
 - **L0** covers pure model values and decoding of independently written JSON.
-- **L1** covers DataStore files, Preferences protobuf bytes, the legacy import and values derived from Android `Build`.
+- **L1** covers DataStore files, Preferences protobuf bytes and values derived from Android `Build`.
 - **Independent fixtures.** Parse saved JSON independently. Don't build expected payloads with the production serializer.
 - **Separate observations.** Keep saving, observing and applying apart: a completed save proves none of the later steps.
 
@@ -128,13 +127,13 @@ Keep the defaults derived from Android, such as the device title, apart from pur
 - Until a write stores a title, no title is saved. Each new process computes the default again from current device metadata. An identity update on a missing payload writes nothing, so it doesn't store the title either.
 - Removed fields in old web settings change no other values.
 
-## Storage recovery and legacy import
+## Storage recovery
 
 <a id="mjpeg-set-07"></a>
 
-### Read/decode recovery and destination priority
+### Read/decode recovery
 
-**Setup.** Prepare each of these destination states:
+**Setup.** Prepare each of these store states:
 
 - no payload
 - malformed JSON
@@ -142,8 +141,6 @@ Keep the defaults derived from Android, such as the device title, apart from pur
 - a `DATA` value of the wrong type
 - a corrupt Preferences protobuf
 - an unreadable file path, such as a directory
-
-Separately, add a destination key named `DATA` that is malformed, invalid or of the wrong type, next to a legacy source file.
 
 **Expected.**
 
@@ -154,7 +151,6 @@ Separately, add a destination key named `DATA` that is malformed, invalid or of 
   - The repair attempt is spent until a value decodes successfully again.
 - **Corrupt protobuf.** The file is replaced with empty preferences, and observation emits the defaults.
 - **Unreadable path.** The repair write fails as well. Observation emits the defaults while the file stays unreadable. Observation stops reading until a normally completed update or a new collection starts it again.
-- **Destination priority.** A destination key named `DATA` wins over the legacy import, whatever its type or content. Normal recovery handles it later.
 
 **Steps.** Run each separately:
 
@@ -162,57 +158,6 @@ Separately, add a destination key named `DATA` that is malformed, invalid or of 
 2. Make a repair fail, then let a normal update complete. Check that the update restarts the observation that was emitting defaults.
 
 **Evidence boundary.** Keep these observations apart: defaults emitted, repair attempted, repair made durable, and a write failure propagated.
-
-<a id="mjpeg-set-12"></a>
-
-### One destructive legacy import attempt
-
-**Setup.** Seed real legacy Preferences bytes in `MJPEG_settings.preferences_pb`. Inspect both the converted settings and the destination JSON independently.
-
-**Steps and expected for values.**
-
-- **Scalars.** Valid scalars convert. A missing or wrongly typed scalar falls back to its own default, independently of the others.
-- **Crop.** The crop keys (`IMAGE_CROP` and the four `IMAGE_CROP_*` insets) form one compound. A wrong type or a negative inset rejects the whole compound.
-- **Target size.** The target keys (`RESOLUTION_WIDTH`, `RESOLUTION_HEIGHT` and `RESOLUTION_STRETCH`) form one compound. Both dimensions must be positive, and a wrongly typed stretch rejects it. The dimensions swap for 90° and 270° rotation.
-- **PIN.** PINs with leading zeros keep them. Unsupported legacy fields are dropped.
-- **Frame rate.** `MAX_FPS` converts as follows:
-  - 0 becomes Auto
-  - 1–120 becomes MaxFps
-  - negative values of magnitude 1–3600 become a sampling interval of that many seconds
-  - anything else, including `Int.MIN_VALUE`, falls back to the default, with conversion that can't overflow
-
-**Steps and expected for the address filter.** The filter is one compound. Rejecting any part restores the whole default filter.
-
-- **Interface mask** (`INTERFACE_FILTER`):
-  - 0 selects all five interface types
-  - the known bits select Wi-Fi, Mobile, Ethernet and VPN
-  - a value outside 0–15 rejects the filter
-- **Address mask** (`ADDRESS_FILTER`):
-  - 0 selects Private, NonPrivate and Loopback
-  - the known bits select those same categories, never LinkLocal
-  - a value outside 0–7 rejects the filter
-- **Family flags** (`ENABLE_IPV4`, `ENABLE_IPV6`) adjust the IPv4-only default. A wrong type, or an empty set of families, rejects the filter.
-- **Legacy booleans.** When a modern mask key is present, the older booleans for it are ignored, even if the mask is invalid. Otherwise:
-  - `USE_WIFI_ONLY` chooses between Wi-Fi only and all types
-  - `LOCAL_HOST_ONLY` selects Loopback only
-  - otherwise `ENABLE_LOCAL_HOST` decides whether Loopback joins Private and NonPrivate
-  - a wrongly typed boolean rejects the filter
-
-**Expected payload.**
-
-- An existing destination `DATA` key wins as a whole ([mjpeg-set-07](#mjpeg-set-07)).
-- An import where everything equals the defaults leaves no payload.
-- Otherwise the payload leaves out default values and the made-up device title, but keeps the required `web` object, which is `{}` when nothing in it differs.
-
-**Steps and expected for cleanup.** Run these cases: a no-op import, a corrupt source, a source read failure, and a failure to delete the source. Separately, force the destination's temporary write or commit to fail.
-
-- The exact source file is deleted in the `finally` of `migrate`, before DataStore commits, even when conversion or the commit fails.
-- A corrupt source skips the import with a diagnostic that contains no secrets.
-- A deletion failure propagates. If another failure is already propagating, the deletion failure is attached to it as suppressed. The cleanup hook writes no marker.
-- A failed commit after a successful deletion loses that source's values.
-- A failed deletion, or a source file that reappears, allows another attempt.
-
-**Evidence boundary.** Record these outcomes as they are. They don't guarantee a retry or crash-safe atomicity.
 
 ## Transactions and application
 
@@ -251,7 +196,7 @@ Separately, add a destination key named `DATA` that is malformed, invalid or of 
 **Setup and steps.**
 
 1. Turn on protection while no PIN is saved. Run several unrelated updates. Turn protection off and on again while a PIN exists.
-2. Separately, seed a saved snapshot, or a migrated one, that has protection on and no PIN. Then start the controller's settings observation.
+2. Separately, seed a saved snapshot that has protection on and no PIN. Then start the controller's settings observation.
 
 **Expected.**
 

@@ -1,71 +1,39 @@
 # MJPEG web client
 
-This workspace builds the packaged browser viewer and provides a desktop preview for development. Android serves the generated HTML; the preview composes the same viewer with a virtual device and a separate HTTP/WebSocket server. Read [web-client internals](../../internal/02-delivery/03-web-client.md) for production ownership and recovery contracts, and the [HTTP guide](../../docs/server.md) for the protocol it consumes.
+This workspace builds the browser viewer that Android serves and runs a desktop preview for working on it. [Web-client internals](../../internal/02-delivery/03-web-client.md) explain the page's state ownership and recovery rules. The [HTTP server guide](../../docs/server.md) owns the protocol the page consumes.
 
-## Development workflow
+## Sources and generated asset
 
-Use the Node.js release named in [.nvmrc](.nvmrc) and the npm release that [package.json](package.json) declares in `engines` and `packageManager`. Those files own the toolchain versions, and `npm ci` installs exactly what the [lockfile](package-lock.json) records. From the repository root:
+Edit the HTML template, CSS, JavaScript and locale catalogs in [`src/`](src). [build.cjs](build.cjs) combines them with the packaged logo into one self-contained Android asset, [`mjpeg/src/main/assets/mjpeg/index.html`](../../src/main/assets/mjpeg/index.html). Don't edit that file by hand; commit it together with the sources that produced it.
+
+The builder checks every locale catalog against English and requires each template marker exactly once. It wraps the scripts, in the order it lists, in one strict-mode function, escapes the inline script, and checks that the final script parses as ES2015.
+
+## Commands
+
+Use the Node.js release in [.nvmrc](.nvmrc). [package.json](package.json) declares the supported Node.js and npm ranges and the preferred npm release. From the repository root:
 
 ```sh
 cd mjpeg/tools/web-client
-npm ci
-npm start
+npm ci          # install the locked dependencies
+npm run build   # regenerate the Android asset
+npm run check   # fail if the asset is stale; writes nothing
+npm test        # preview and build fixtures, viewer owner tests
 ```
 
-Open `http://127.0.0.1:8765/` for the preview panel. **Open viewer** opens the packaged page at `/viewer`. Ctrl+C stops the server. To choose another port and disable source watching, use `npm start -- --port 8877 --no-watch`.
+`npm test` runs two Node suites. The preview fixtures exercise the preview harness and the builder. The [owner tests](test) load the authored application, connection and media scripts from `src/` and drive them with mock timers and small doubles for browser objects and neighboring owners. They execute those owners' logic, but they don't run the packaged page or its `page.js` wiring in a browser, so image decoding, native timer scheduling, cookies, fullscreen, picture in picture, layout and focus still need the [browser checks](#browser-checks). The Kotlin suite has its own [run instructions](../../internal/03-testing/01-testing.md#running-local-tests).
 
-After editing the authored inputs, run the preview checks, regenerate the Android asset and compare it with a fresh build:
+## Preview
 
-```sh
-npm test
-npm run build
-npm run check
-```
+`npm start` serves the preview panel at `http://127.0.0.1:8765/`, and **Open viewer** opens the packaged page at `/viewer`. To choose another port and stop watching sources, use `npm start -- --port 8877 --no-watch`.
 
-`npm test` targets the preview/build fixtures, while the Kotlin suite has its own [run instructions](../../internal/03-testing/01-testing.md#running-local-tests) and [evidence requirements](../../internal/03-testing/01-testing.md#evidence-rules).
+While watching, source changes rebuild the page in memory, not the Android asset. Reload the viewer to apply a rebuild; a failed rebuild keeps the last good page. Restart the server after editing `build.cjs`.
 
-## Sources and generated output
+All tabs share one virtual device, with its settings and credentials. Loading the panel page resets that device to its defaults for every tab and disconnects open viewers. The preview doesn't reproduce Android capture, Ktor or CIO, or real network permissions.
 
-Edit production HTML, CSS, JavaScript and locale inputs in [`src/`](src). [build.cjs](build.cjs) combines them with the packaged logo into [`mjpeg/src/main/assets/mjpeg/index.html`](../../src/main/assets/mjpeg/index.html). Commit authored inputs and regenerated HTML together. The Android package consumes the checked-in asset directly.
+## Browser checks
 
-The builder requires exactly one `/* INLINE_STYLE */`, `/* INLINE_SCRIPT */` and `/* INLINE_LOGO */` template marker. It supplies the ordered script module list, inlines CSS/logo and escapes embedded script content. Appearance reaches the viewer through authorized state, so the build contains no per-device settings or credentials.
+After changing viewer behavior, check it by hand in a current browser, using the standalone `/viewer`; the panel's frame reloads when access changes. Cover MJPEG and JPEG; PIN entry, a block, and revocation when the panel switches access scenario; and reconnection after restarting the server on the same port. For an access link, select PIN required and open `/viewer?token=…` with `delivery.credentials.token` from `/__preview/api/state`. The page should land on `/viewer` without the token, admitted by its cookie. Also try the sizing modes, keyboard use, and fullscreen or Picture in picture where the browser offers them.
 
-Babel targets Chrome 49, Firefox 45, Safari 9.1 and iOS 9.3; Acorn verifies ES5 syntax. These are syntax checks. Browser APIs, policy, layout and rendering require separate qualification. `npm run check` compares the generated asset with the current build and writes no output.
+## Browser compatibility
 
-## Preview ownership and reloads
-
-[preview/server.cjs](preview/server.cjs) owns desktop HTTP/WebSocket transport. [device.cjs](preview/device.cjs) derives canonical visual presets from [scenarios.cjs](preview/scenarios.cjs), and [panel.js](preview/panel.js) controls that shared virtual device. Eight predefined JPEG frames per orientation animate a spinner at 4 fps; `logo.jpg` stays static. Preview runtime reads those fixtures directly.
-
-[viewer-build.cjs](preview/viewer-build.cjs) builds HTML in memory and watches authored inputs plus the packaged logo. Input changes are debounced for 100 ms; native-watch failure switches to one-second polling. A failed rebuild retains the last good viewer and records the error in Diagnostics. A successful rebuild needs an explicit viewer reload. Restart the server after changing `build.cjs`, including its script module list.
-
-The server defaults to loopback. All tabs share one virtual device, settings and credentials; cookies are host-scoped rather than port-scoped. Source watching and full panel reload have different effects: watching prepares new HTML, while panel reload restores the canonical default device.
-
-## Preview controls
-
-1. Eight states: Normal, PIN required, PIN blocked, Starting, Screen-sharing permission, Paused, Stopped and Failed. Capture changes apply live, preserving connections and viewer choices. PIN/Blocked deliberately start a fresh protected preview context; leaving them restores open access. The viewer reloads at these access boundaries. The test PIN is shown; blocks last 20 seconds.
-2. **Inactive stream image** selects App logo (default) or Last frame whenever no current frame is available; a current frame always wins. **Current frame available** controls Normal, PIN required and PIN blocked; when off, those canonical fixtures have no earlier frame. Other scenarios use **Last frame available**: when on, Last frame selects one frozen sample in the chosen stream orientation; when off, it falls back to Logo. Each scenario is independent of earlier choices; the preview does not simulate Android capture history. Diagnostics reports the selected `imageKind`: `none`, `logo`, `live` or `retained`. During permission, the web viewer uses the same retained selection as direct media. A selected logo uses the centered DOM logo without a media request. Notices use the current message surface, which connection or media recovery can replace.
-3. **Stream image: Portrait / Landscape** chooses the animated sample orientation. **Browser frame** independently changes the browser frame size. Changing stream orientation also updates the Last frame sample.
-4. Appearance saves automatically: title and valid HEX wait 450 ms after typing; other controls apply immediately. Incomplete HEX stays local. Clean controls follow shared server settings; unsaved edits stay local. RGB surrounds a visible image and its bars; access and no-image screens use the system theme.
-5. Full panel reload restores all defaults, including Logo, available image, portrait and viewport. **Reload viewer** preserves preview choices. Source watching rebuilds HTML in memory; reload the viewer when ready to apply it. Collapsed read-only **Diagnostics** shows the current build and connection facts.
-6. **Simulate image load error** returns 503 for authorized media requests and closes active MJPEG responses while state still reports the selected image. Selecting any scenario or reloading the full panel clears this fault. Capture failed uses the same inactive image policy; the fault checkbox remains independent. Closing an already displayed MJPEG response does not guarantee a browser error event or removal of its image.
-
-The existing [preview fixture suite](preview/fixture.test.cjs) uses isolated ephemeral servers to exercise routes, credentials, canonical transitions, multipart framing, reset and cleanup. Its build-lifecycle fixture exercises watched inputs, fallback polling and last-good output. These fixtures exercise the harness and builder; browser smoke below exercises viewer JavaScript and rendering. Browser-frame dimensions select a viewport size, not an emulated operating system.
-
-## Browser smoke
-
-Run these four checks in Chrome and Safari after changing viewer behavior; no browser test framework is needed.
-
-1. In Normal, check MJPEG and JPEG, both stream orientations, each sizing mode and live appearance changes.
-2. Select JPEG and wait for **Viewing** with a visible image, then enable **Simulate image load error**.
-   Check the media retry/error state while the previous successfully loaded JPEG remains visible.
-   Disable the fault and use **Retry connection**
-   (or reload and reselect JPEG); expect viewing to recover.
-3. Use **Open viewer** and choose JPEG plus a nondefault sizing mode. In the panel, switch Normal → PIN required;
-   enter the shown PIN in the standalone viewer and check both choices survive. The panel's iframe reloads
-   at access boundaries, so use the standalone viewer for this check.
-4. Keep that standalone viewer open. Stop the server until **Reconnecting**, then restart on the same port.
-   Check that the compact message follows the visible HUD, viewing recovers automatically and local choices survive.
-   The preview repeats authorized state snapshots every two seconds, matching the production liveness contract.
-   A full panel reload resets defaults.
-
-The preview's `/viewer` consumes the [HTTP server and viewing protocol](../../docs/server.md) through the harness implementation. Record browser/version and observed results for smoke checks. Actual Android capture, Ktor/CIO, LAN permission enforcement and incoming reachability require their own Kotlin/device evidence.
+The viewer targets the 2019–2020 browser generation: Chrome 81, Firefox 68, and Safari 12.1 or iOS 12.2. This target comes from source review and compatibility data, not from runs in those browsers, and older browsers aren't a goal. The ES2015 parse proves syntax only. New code should stay within the target or detect the feature first.

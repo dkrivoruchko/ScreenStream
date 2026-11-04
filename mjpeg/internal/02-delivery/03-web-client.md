@@ -130,28 +130,46 @@ When the handler exits for any reason, it cancels the raw request job and the de
 
 ## Browser owners and recovery
 
-The page is built from small owners, each holding its own resources and timers. State and images travel separately. The page coordinates them so that a usable image stays visible while a replacement connection or image is prepared.
+The page has one state owner, the application, and several resource owners. The application holds every fact that more than one owner depends on and makes the cross-component decisions. Resource owners hold browser objects and timers, check their own identities before acting, and report facts back. State and images travel separately, so a usable image stays visible while a replacement connection or image is prepared.
 
 | Owner | Resources and decisions |
 | --- | --- |
+| [Application](../../tools/web-client/src/application.js) | Page lifecycle and revalidation, the latest server message, transport state, the PIN panel with its block deadline and countdown timer, media phase and frame size, the media method, the transient notice, and the selectors that derive media requests and the view |
 | [Connection](../../tools/web-client/src/connection.js) | WebSocket, snapshot validation, connection and liveness timers, reconnection, admission probes and the single PIN request |
-| [Media](../../tools/web-client/src/media.js) | One displayed image, at most one replacement candidate, the attempt number and retry timers |
-| [Access panel](../../tools/web-client/src/access.js) | PIN draft, field feedback and the block countdown |
-| [Presentation](../../tools/web-client/src/presentation.js) | Shared appearance, local sizing, controls, menu and fullscreen |
+| [Media](../../tools/web-client/src/media.js) | The displayed image and its lifetime, at most one replacement candidate, the attempt number and retry timers |
+| [Access panel](../../tools/web-client/src/access.js) | PIN draft, field feedback, focus and panel layout |
+| [Presentation](../../tools/web-client/src/presentation.js) | Shared appearance, local sizing, the status, method, menu and info DOM, fullscreen, and a private picture-in-picture owner |
 | [Viewport](../../tools/web-client/src/viewport.js) | The usable safe rectangle and viewport events |
 | [Picture in picture](../../tools/web-client/src/picture-in-picture.js) | Canvas, video, tracks, attempt timers and serialized native operations |
-| [Page](../../tools/web-client/src/page.js) | Applying snapshots, choosing the message to show, and page lifecycle |
+| [Page](../../tools/web-client/src/page.js) | Constructing and wiring the owners, forwarding page lifecycle events, and starting them |
 
 ```mermaid
 flowchart TB
-    WS["/ws snapshots"] --> Connection
-    Connection --> Page
-    Page --> Access["Access panel"]
-    Page --> Media
-    Page --> Presentation
-    Media -->|"/mjpeg or /jpeg"| Image["Displayed image"]
-    Presentation --> PiP["Picture in picture"]
+    Page -->|"composes and wires"| App["Application"]
+    Page -->|"composes"| Connection
+    Page -->|"composes"| Media
+    Page -->|"composes"| Access["Access panel"]
+    Page -->|"composes"| Presentation
+    Page -->|"composes"| Viewport
+    App -->|"knows only"| Contracts["Connection, media and view contracts; clock"]
+    Connection -.->|"implements"| Contracts
+    Media -.->|"implements"| Contracts
+    Access -.->|"implements"| Contracts
+    Presentation -.->|"implements"| Contracts
+    Access -->|"uses"| Viewport
+    Presentation -->|"uses"| Viewport
+    Presentation -->|"owns privately"| PiP["Picture in picture"]
 ```
+
+The diagram shows what each source knows, not the direction of calls or callbacks. The contracts are conceptual interfaces, not a separate file. Only the application changes shared state, and it sees only the injected contracts and the value facts they report. Connection and media accept commands and report through injected callbacks, without knowing the application, the UI or each other. The access panel and presentation work on the DOM and the viewport and report user intents the same way. Only presentation owns picture in picture.
+
+### Application state and transactions
+
+- **Separate facts.** Transport state says whether the state socket is connecting, reconnecting, connected or unsupported. The latest server message says whether the server admitted or denied the page. Each connection start sets `pin.checking`, and the next server answer or block expiry clears it. While it's set, the connection status follows transport rather than a stale denial. The block deadline is local, derived from `retryAfterMs`.
+- **Revalidation.** The page starts out revalidating, and a denial or a pause sets revalidation again. Only an authorized snapshot accepted while the page isn't paused clears it. Neither a PIN `204` nor an expired countdown, which reopens PIN entry, makes media eligible.
+- **Selectors.** Pure functions of the state, plus the current time for the countdown and notice expiry, return the media request (eligibility, image kind and method) and the view model: the primary message, connection and image labels, capture notice, frame size, method availability and the PIN panel. They don't touch the DOM or timers.
+- **Transactions.** Every owner callback, user intent, lifecycle event and application timer is dispatched as an action. Actions raised while another runs, including synchronous reports from media or connection, are queued into the same transaction. Once the queue drains, a primary message clears the transient notice, and the view model is rendered to the access panel and presentation. Rendering doesn't change application facts, although presentation keeps its own local UI state and timers. User input returns later as a new action.
+- **Start.** The page starts the UI owners and viewport, then the application renders its initial state before it opens the first connection.
 
 ### Connection and explicit PIN submission
 
@@ -161,11 +179,11 @@ The connection opens `/ws` on the page's own host. Every message passes a strict
 - **Reconnection.** Delays run 0, 1, 2 and 4 seconds, then 5 seconds repeatedly. Socket handlers and timers check that they still belong to the current socket before acting. Disposal clears handlers and timers and closes the socket. Losing state leaves the displayed image in place.
 - **Forced media restart.** The first authorized snapshot after the connection state was not `connected` restarts media, even if the snapshot is identical to the previous one. This is how a reconnection or **Retry connection** retries a failed image.
 
-**Denied admission** uses short-lived sockets. After a denial, the connection schedules another probe after five seconds, or at the reported block expiry if that is sooner, with a minimum delay of 100 ms. A hidden page that is denied doesn't open probes. Its next check happens when it becomes visible. The access panel's countdown is only feedback, and the next server answer decides access.
+**Denied admission** uses short-lived sockets. After a denial, the connection schedules another probe after five seconds, or at the reported block expiry if that is sooner, with a minimum delay of 100 ms. A hidden page that is denied doesn't open probes. Its next check happens when it becomes visible. The block countdown is only feedback, and the next server answer decides access.
 
-**PIN submission** first checks for six ASCII digits locally. It then disposes the probe socket, so an older admission reply can't overtake the explicit login. It allows one XHR at a time, with a ten-second timeout:
+**PIN submission** is forwarded only while the PIN panel is open, not blocked and not already sending. The connection first checks for six ASCII digits locally. It then disposes the probe socket, so an older admission reply can't overtake the explicit login. It allows one XHR at a time, with a ten-second timeout:
 
-- `204` reconnects state, and the access panel closes.
+- `204` closes the access panel and reconnects state.
 - `403` reports a wrong PIN.
 - `429` shows a block for the integer `Retry-After` seconds, or one second if the header is missing or invalid.
 - Any other status, an error or the timeout reports a network failure, and the panel offers a retry.
@@ -174,11 +192,17 @@ When the request finishes and access is still denied, probing resumes. Pausing t
 
 ### Media replacement and polling
 
-Media is eligible only when the latest snapshot is authorized and the selected kind is `live` or `retained`. A `retained` frame stays eligible while Android's permission prompt is pending. Denial, a `logo` or `none` selection, and page pause release the displayed image and the candidate, and that also stops picture in picture. With **App logo** as the inactive image, Stop therefore closes the page's MJPEG request, and the next eligible snapshot opens a new one. The page doesn't use the server's ability to keep a response open across Stop. For `logo` the page shows its built-in logo without a request.
+Media is eligible only when the page isn't paused or revalidating and the latest snapshot is authorized with kind `live` or `retained`. Media owns the displayed image and removes it; presentation only borrows it for layout and picture in picture.
+
+- **Kept.** Ordinary reconnection, including **Retry connection** and a reconnect on visibility return, doesn't set revalidation or revoke the displayed image. Media's own failure rules still apply.
+- **Kept.** A `retained` selection, for example after Stop with **Last frame**, stays eligible, including while Android's permission prompt is pending, so its frame isn't revoked.
+- **Revoked.** Denial, a `logo` or `none` selection, and page pause revoke the borrowed frame, which stops picture in picture, and release the displayed image and the candidate. A new frame reported while media is ineligible is ignored.
+
+With **App logo** as the inactive image, Stop therefore closes the page's MJPEG request, and the next eligible snapshot opens a new one. The page doesn't use the server's ability to keep a response open across Stop. For `logo` the page shows its built-in logo without a request.
 
 Each media attempt has an attempt number and a hidden candidate `<img>` whose URL is `/mjpeg` or `/jpeg` with a throwaway `requestSequence` query. Load, decode, error and timeout callbacks must match both the attempt number and the candidate before they act:
 
-- **Promotion.** A candidate is promoted only with positive intrinsic dimensions. A JPEG candidate must also be complete and, where `decode()` exists, decoded. Promotion swaps the candidate into place and removes the old image.
+- **Promotion.** A candidate is promoted only with positive intrinsic dimensions. A JPEG candidate must also be complete and decoded. Promotion swaps the candidate into place and removes the old image.
 - **First-image deadline.** Ten seconds bound the wait for the first usable image of an attempt. They don't bound the freshness of an MJPEG stream that is already showing.
 - **Failure.** A failed replacement keeps the previous usable image. An error or loss of dimensions on the displayed image clears it. If a replacement is already loading or scheduled, that replacement keeps its own deadline.
 - **Retries.** After a failure, replacements are scheduled after 0, 1, 2, 4 and 8 seconds. After that the page offers **Retry connection** and the other method. A successful promotion resets this budget.
@@ -192,13 +216,14 @@ Image-element events show that usable image data exists. They don't reveal HTTP 
 
 `pagehide` and `freeze` pause the page. Pausing:
 
+- marks the page paused and revalidating, so late connection reports are ignored and media stays ineligible;
 - closes the socket and stops connection timers;
 - aborts any pending PIN request;
-- releases media and picture in picture;
+- revokes the frame and releases media and picture in picture;
 - clears transient notices;
-- stops the access panel's countdown timer.
+- stops the block countdown timer.
 
-`pageshow` and `resume` restart a paused page with a fresh connection. The access panel keeps its PIN draft, field error and block deadline across a pause.
+`pageshow` and `resume` restart a paused page with a fresh connection, and media returns only after that connection's first authorized snapshot. The access panel keeps its PIN draft and field error, and the application keeps the block deadline, across a pause.
 
 When the page becomes hidden, it only records the time and leaves its work running. When it becomes visible again:
 
@@ -226,30 +251,30 @@ A primary message clears any transient notice, such as a fullscreen or picture-i
 
 Bars reserve their measured space, and overlays cover the image. Only overlays set to auto-hide disappear, after four seconds without interaction. They stay visible while a pointer is pressed or over a control, while the menu is open, or while keyboard focus is in the controls or menu.
 
-The viewport owner intersects the layout size, the visual viewport when the page isn't zoomed, and the CSS safe-area insets, keeping a small margin at the top and bottom. Floating keyboards and older browsers can report geometry that doesn't reveal occlusion. A page inside an iframe can't see what covers the outer browser. Layout, keyboard focus, screen-reader behavior and reduced motion need qualification in real browsers.
+The viewport owner intersects the layout size, the visual viewport when the page isn't zoomed (or the window size where `visualViewport` is missing), and the CSS safe-area insets, keeping a small margin at the top and bottom. Floating keyboards and older browsers can report geometry that doesn't reveal occlusion. A page inside an iframe can't see what covers the outer browser. The build and preview fixtures don't check layout, keyboard focus, screen-reader behavior or reduced motion.
 
 ## Fullscreen and picture in picture
 
 ### Fullscreen
 
-Fullscreen uses the standard API or a detected prefixed variant on the page shell, and the control is hidden when neither request nor exit exists. Each press creates an attempt identity. A promise rejection, or a legacy `fullscreenerror` event for APIs without promises, reports failure only for the current attempt. A newer press replaces the attempt, and page pause clears it, so stale failures don't show. `fullscreenchange` updates the control from the browser's actual state. A failure leaves normal viewing available. The [Fullscreen standard](https://fullscreen.spec.whatwg.org/) defines the native behavior. Feature detection only chooses which API to try.
+Fullscreen uses the standard API or WebKit's prefixed one on the page shell, and the control is hidden unless both a request and an exit method exist. Each press creates an attempt identity. A promise rejection or thrown exception reports failure only for the current attempt. For WebKit methods that return nothing, a standard or WebKit `fullscreenerror` event does the same. A newer press replaces the attempt, and page pause clears it, so stale failures don't show. Standard and WebKit `fullscreenchange` events update the control from the browser's actual state. A failure leaves normal viewing available. The [Fullscreen standard](https://fullscreen.spec.whatwg.org/) defines the native behavior. Feature detection only chooses which API to try.
 
 ### Picture in picture
 
-The control appears only when canvas `captureStream`, video `requestPictureInPicture`, `srcObject` and `document.pictureInPictureEnabled` are all present. A press creates an attempt that:
+Presentation creates the picture-in-picture owner privately and passes it only the borrowed frame. The control appears only when canvas `captureStream`, video `requestPictureInPicture`, `srcObject` and `document.pictureInPictureEnabled` are all present, and it's enabled only while a frame is shown and no native call is pending. A press creates an attempt that:
 
 - paints the displayed image onto its own canvas every 100 ms;
 - gives `captureStream(10)` to a hidden video element;
 - after metadata loads, calls `play()` and then requests picture in picture.
 
-A ten-second preparation deadline covers metadata, `play()` and the native request. If the browser answers `NotAllowedError`, the prepared attempt stays ready for 30 seconds, so another press can enter without preparing again. Any other failure releases the attempt and shows a notice. Every callback checks that its attempt is still current and, where relevant, that its stream or window matches.
+A ten-second preparation deadline covers metadata, `play()` and the native request. If the browser answers `NotAllowedError`, the prepared attempt stays ready for 30 seconds. Another press then calls `requestPictureInPicture()` synchronously in its click handler, without preparing again. Any other failure releases the attempt and shows a notice. Every callback checks that its attempt is still current and, where relevant, that its stream or window matches.
 
-Releasing an attempt clears its timers, detaches its stream from the video, stops the tracks, and drops the canvas, context, stream and window references. Pending browser promises keep the attempt object alive, so its media references are released right away. Native enter and exit calls are serialized, because browser promises can't be cancelled. An unresolved native call can therefore delay the next attempt even after the app's resources have been released. A late successful entry from a released attempt is exited before anything else proceeds. Clearing the image or pausing the page releases the current attempt. A `leavepictureinpicture` event releases only the active attempt whose window matches.
+Releasing an attempt clears its timers, detaches its stream from the video, stops the tracks, and drops the canvas, context, stream and window references. Pending browser promises keep the attempt object alive, so its media references are released right away. Native enter and exit calls are serialized, because browser promises can't be cancelled. An unresolved native call can therefore delay the next attempt even after the app's resources have been released. A late successful entry from a released attempt is exited before anything else proceeds. Revoking the frame, access denial and page pause release the current attempt and exit an active window. A `leavepictureinpicture` event releases only the active attempt whose window matches.
 
-The presence of the API doesn't prove secure-context, permissions-policy, device or user-activation support. Qualify those against the [Picture-in-Picture specification](https://www.w3.org/TR/picture-in-picture/) and real browsers.
+The presence of the API doesn't prove secure-context, permissions-policy, device or user-activation support. The [Picture-in-Picture specification](https://www.w3.org/TR/picture-in-picture/) defines those conditions.
 
 ## Source, build workflow and verification limits
 
-The owner links above point to the authored JavaScript. Shared strings, locales, CSS and the HTML template sit next to them in `src`. The [web-client build guide](../../tools/web-client/README.md) explains how to regenerate the Android HTML asset, which browsers the syntax targets, and how to run the desktop preview.
+The owner links above point to the authored JavaScript. Shared strings, locales, CSS and the HTML template sit next to them in `src`. [build.cjs](../../tools/web-client/build.cjs) places the locale catalogs and the scripts, in its listed order, inside one strict-mode function, so all files share one scope without modules or transpiling. `strings.js` comes first, and `page.js` comes last to wire and start the page. The final escaped script must parse as ES2015. The [web-client tools guide](../../tools/web-client/README.md) covers the commands, the generated asset, the desktop preview and the browser compatibility target.
 
-The preview builds the same viewer and serves it with a virtual device and its own HTTP and WebSocket server. Its fixtures check the preview harness and the build. They don't reproduce Android capture history, Ktor or CIO behavior, or the viewer running in a real browser. Syntax targets and feature detection need separate runtime qualification on the relevant Android, desktop, iPhone, iPad and TV browsers. The route adapter's required behavior is catalogued in the [web protocol scenarios](../03-testing/scenarios/08-web-protocol.md). [Testing](../03-testing/01-testing.md) separates requirements, test sources, fresh execution and platform evidence. Record the results of browser and preview checks with the change that needed them.
+The preview builds the same viewer and serves it with a virtual device and its own HTTP and WebSocket server. The repository's preview fixture suite checks the harness and the build. The [owner tests](../../tools/web-client/test) run the authored application, connection and media scripts in a Node `vm` context, with mock timers and small doubles for browser objects and neighboring owners. They execute those owners' logic, but not the packaged page or its `page.js` wiring in a browser, image decoding or MJPEG rendering, native timer scheduling, cookies, fullscreen, picture in picture, layout, focus or assistive technology. Neither suite reproduces Android capture history, Ktor or CIO behavior. The compatibility target comes from source review and compatibility data, not from runs in the targeted browsers. The route adapter's required behavior is catalogued in the [web protocol scenarios](../03-testing/scenarios/08-web-protocol.md). [Testing](../03-testing/01-testing.md) separates requirements, test sources, fresh execution and platform evidence.

@@ -1,10 +1,5 @@
-function canLoadScreenImage(snapshot) {
-    return !!snapshot && (snapshot.access === 'open' || snapshot.access === 'authorized') &&
-        (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
-}
-
 // At most one displayed image and one replacement candidate.
-function createMedia(stage, callbacks) {
+function createMedia(stage, imageAlt, callbacks) {
     const delays = [0, 1000, 2000, 4000, 8000];
     let displayed = null, candidate = null, generation = 0;
     let firstTimer = null, nextTimer = null, sizeTimer = null;
@@ -73,7 +68,7 @@ function createMedia(stage, callbacks) {
         displayed = image; candidate = null;
         image.style.visibility = 'visible';
         image.removeAttribute('aria-hidden');
-        image.alt = words.streamImageAlt;
+        image.alt = imageAlt;
         image.onload = () => { if (image === displayed) dimensions(); };
         image.onerror = () => displayedUnavailable(image);
         retries = 0;
@@ -107,7 +102,7 @@ function createMedia(stage, callbacks) {
             if (id !== generation || image !== candidate || !image.naturalWidth || !image.naturalHeight ||
                 (method === 'jpeg' && !image.complete)) return;
             // Load admits the initial image; it does not track subsequent multipart frames.
-            if (method === 'jpeg' && typeof image.decode === 'function') {
+            if (method === 'jpeg') {
                 if (decoding) return;
                 decoding = true;
                 image.decode().then(() => promote(id, image), () => failed(id, image));
@@ -119,16 +114,19 @@ function createMedia(stage, callbacks) {
         firstTimer = setTimeout(() => failed(id, image), 10000);
         image.src = '/' + method + '?requestSequence=' + id;
     }
-    function configure(snapshot, firstSnapshot) {
+    function apply(value, refresh) {
         const previousMediaEligible = mediaEligible;
         const previousImageKind = imageKind;
-        imageKind = snapshot.imageKind;
-        mediaEligible = canLoadScreenImage(snapshot);
+        const methodChanged = method !== value.method;
+        imageKind = value.imageKind;
+        method = value.method;
+        mediaEligible = value.eligible;
         if (!mediaEligible) {
             if (previousMediaEligible) { cancelCandidate(); clearDisplayed(); retries = 0; callbacks.state('idle'); }
             return;
         }
-        if (firstSnapshot || !previousMediaEligible) { retries = 0; start(); }
+        if (refresh || !previousMediaEligible) { retries = 0; start(); }
+        else if (methodChanged) retry();
         else if (method === 'jpeg' && previousImageKind === 'retained' && imageKind === 'live' &&
             retainedWait && !candidate) start();
         // Other state updates leave healthy, retrying and exhausted attempts alone.
@@ -139,16 +137,9 @@ function createMedia(stage, callbacks) {
         callbacks.state('retrying');
         start();
     }
-    function selectMethod(value) {
-        if ((value !== 'mjpeg' && value !== 'jpeg') || value === method) return;
-        method = value;
-        callbacks.method(method);
-        retry();
-    }
     function pause() { cancelCandidate(); clearDisplayed(); }
     function resume() {
         if (mediaEligible && !candidate && (!displayed || !displayed.naturalWidth)) retry();
     }
-    return { configure, selectMethod, pause, resume,
-        method: () => method };
+    return { apply, pause, resume };
 }

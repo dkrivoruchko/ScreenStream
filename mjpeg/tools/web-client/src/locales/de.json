@@ -9,7 +9,7 @@
     "mediaStarting": "Warten auf ein Bild…",
     "mediaRetrying": "Bild wird wiederhergestellt…",
     "mediaFailed": "Bild nicht verfügbar",
-    "viewing": "Wiedergabe läuft",
+    "viewing": "Angezeigt",
     "pinTitle": "PIN eingeben",
     "pinRequired": "Auf dem übertragenden Gerät angezeigte sechsstellige PIN eingeben:",
     "pinBlockedTitle": "PIN-Eingabe vorübergehend gesperrt",
@@ -36,7 +36,7 @@
     "pip": "Bild im Bild",
     "pipReady": "Zum Öffnen erneut Bild im Bild auswählen.",
     "pipError": "Bild im Bild konnte nicht geöffnet werden.",
-    "fullscreenError": "Vollbildmodus konnte nicht geändert werden",
+    "fullscreenError": "Vollbildmodus konnte nicht geändert werden.",
     "more": "Mehr",
     "privacy": "Datenschutzrichtlinie",
     "terms": "Nutzungsbedingungen",
@@ -54,9 +54,9 @@
     "unsupported": "Dieser Browser kann keine Verbindung zum Stream herstellen. Anderen Browser verwenden.",
     "viewerLabel": "ScreenStream-Viewer",
     "viewportLabel": "Streambild. Mit den Pfeiltasten scrollen.",
-    "controlsLabel": "Wiedergabesteuerung",
+    "controlsLabel": "Ansichtssteuerung",
     "sizeModesLabel": "Bildgröße",
-    "menuLabel": "Weitere Wiedergabeoptionen",
+    "menuLabel": "Weitere Ansichtsoptionen",
     "streamImageAlt": "Streambild"
   }
 }

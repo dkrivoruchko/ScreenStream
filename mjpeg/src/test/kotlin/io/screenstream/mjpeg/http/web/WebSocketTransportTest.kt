@@ -20,6 +20,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -179,7 +182,7 @@ internal class WebSocketTransportTest {
         }
     }
 
-    // Cases: MJPEG-WEB-12, MJPEG-WEB-13
+    // Cases: MJPEG-WEB-11, MJPEG-WEB-12, MJPEG-WEB-13
     @Test
     fun peerThatReadsButNeverAnswersPingIsDisconnectedAndSettled() = runBlocking {
         val fixture = Fixture()
@@ -187,8 +190,31 @@ internal class WebSocketTransportTest {
             fixture.start()
             RawSocket(fixture.port).use { peer ->
                 var pingSeen = false
-                peer.deadlineAfter(38_000)
+                val overallDeadline = peer.deadlineAfter(38_000)
                 withContext(Dispatchers.IO) {
+                    fun readTextFrame(): ByteArray {
+                        while (true) {
+                            val (opcode, payload) = peer.readFrame()
+                            when (opcode) {
+                                1 -> return payload
+                                9 -> pingSeen = true
+                                else -> throw AssertionError("Expected state snapshot, received opcode $opcode")
+                            }
+                        }
+                    }
+
+                    val initialPayload = readTextFrame()
+                    val repeatDeadline = minOf(
+                        overallDeadline,
+                        java.lang.management.ManagementFactory.getRuntimeMXBean().uptime + 5_000,
+                    )
+                    peer.deadlineAt(repeatDeadline)
+                    val initial = Json.parseToJsonElement(initialPayload.decodeToString()).jsonObject
+                    assertEquals(setOf("access", "notice", "hasImage", "imageKind", "display"), initial.keys)
+                    assertEquals("open", initial.getValue("access").jsonPrimitive.content)
+                    val repeated = Json.parseToJsonElement(readTextFrame().decodeToString()).jsonObject
+                    assertEquals(initial, repeated)
+                    peer.deadlineAt(overallDeadline)
                     try {
                         while (true) {
                             val frame = peer.readFrame()
@@ -290,8 +316,14 @@ internal class WebSocketTransportTest {
         private val output = socket.getOutputStream()
         private var deadlineMillis: Long? = null
 
-        fun deadlineAfter(millis: Long) {
-            deadlineMillis = java.lang.management.ManagementFactory.getRuntimeMXBean().uptime + millis
+        fun deadlineAfter(millis: Long): Long {
+            val deadline = java.lang.management.ManagementFactory.getRuntimeMXBean().uptime + millis
+            deadlineAt(deadline)
+            return deadline
+        }
+
+        fun deadlineAt(deadline: Long) {
+            deadlineMillis = deadline
         }
 
         private fun beforeRead() {

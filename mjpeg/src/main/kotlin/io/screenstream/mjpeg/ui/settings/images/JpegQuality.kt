@@ -16,7 +16,7 @@ import androidx.compose.material3.SliderState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -95,7 +95,9 @@ internal fun JpegQualitySettingItem(
                     val focused by interactions.collectIsFocusedAsState()
                     val sliderFocusRequester = remember { FocusRequester() }
                     val qualityLabel = stringResource(JpegQualitySearch.info.titleRes)
-                    LaunchedEffect(Unit) { sliderFocusRequester.requestFocus() }
+                    SideEffect(showEditor) {
+                        if (showEditor) sliderFocusRequester.requestFocus()
+                    }
 
                     Column(
                         Modifier

@@ -37,11 +37,16 @@
 
     <!-- Statistics -->
     <string name="mjpeg_stats_title">Statistiche</string>
-    <string name="mjpeg_stats_connected_clients_count">Connessioni degli spettatori: %1$s</string>
+    <string name="mjpeg_stats_connections_title">Connessioni degli spettatori</string>
+    <string name="mjpeg_stats_show_full_list">Mostra tutto</string>
+    <string name="mjpeg_stats_more_connections_count">%1$s in più</string>
+    <string name="mjpeg_stats_view_all_connections">Mostra tutte le connessioni</string>
+    <string name="mjpeg_stats_connected_clients_count">Connessioni attive: %1$s</string>
+    <string name="mjpeg_stats_active_connections_count">Attive: %1$s</string>
     <string name="mjpeg_stats_outgoing_traffic">Traffico in uscita</string>
     <string name="mjpeg_stats_engine_title">Statistiche del motore</string>
     <string name="mjpeg_stats_frame_rate">Frequenza fotogrammi</string>
-    <string name="mjpeg_stats_recently_disconnected">Disconnessi di recente</string>
+    <string name="mjpeg_stats_recently_disconnected">Disconnesse di recente: %1$s</string>
     <string name="mjpeg_stats_no_clients">Nessuna connessione degli spettatori</string>
     <string name="mjpeg_stats_slow_reader">In ritardo</string>
     <string name="mjpeg_stats_unavailable">—</string>

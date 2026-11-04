@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.screenstream.mjpeg.MjpegCaptureSession
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
+import io.screenstream.mjpeg.ui.main.ClientConnectionsEditor
 import io.screenstream.mjpeg.ui.main.StreamAddressesContent
 import io.screenstream.mjpeg.ui.main.StreamStatisticsContent
 import io.screenstream.mjpeg.ui.settings.SearchSettingsField
@@ -77,6 +78,7 @@ internal fun MjpegContent(
     val matchingSettings = rememberMatchingSettings(searchQuery.text.toString())
     var addressesExpanded by retain { mutableStateOf(true) }
     var statisticsExpanded by retain { mutableStateOf(false) }
+    var showClientConnections by retain { mutableStateOf(false) }
     var expandedGroups by retain { mutableStateOf(emptySet<SettingSearchGroup>()) }
 
     fun isGroupVisible(group: SettingSearchGroup): Boolean =
@@ -115,7 +117,9 @@ internal fun MjpegContent(
                 )
             },
         ) { innerPadding ->
-            BoxWithConstraints(Modifier.fillMaxSize()) {
+            BoxWithConstraints(Modifier
+                .fillMaxSize()
+                .padding(innerPadding)) {
                 LazyVerticalStaggeredGrid(
                     columns = StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1),
                     modifier = Modifier.fillMaxSize(),
@@ -123,7 +127,7 @@ internal fun MjpegContent(
                         start = 12.dp,
                         top = 0.dp,
                         end = 12.dp,
-                        bottom = innerPadding.calculateBottomPadding() + 8.dp,
+                        bottom = 8.dp,
                     ),
                     verticalItemSpacing = 4.dp,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -144,6 +148,9 @@ internal fun MjpegContent(
                             statistics = uiState.statistics,
                             expanded = statisticsExpanded,
                             onExpandedChange = { statisticsExpanded = it },
+                            onShowFullList = {
+                                if (uiController.state.value.statistics.clients.isNotEmpty()) showClientConnections = true
+                            },
                         )
                     }
                     item(key = "settings-search", contentType = "settings-search") {
@@ -225,6 +232,14 @@ internal fun MjpegContent(
                         }
                     }
                 }
+            }
+        }
+        if (showClientConnections) {
+            val statistics = uiState.statistics
+            if (statistics.clients.isEmpty()) {
+                SideEffect(Unit) { showClientConnections = false }
+            } else {
+                ClientConnectionsEditor(statistics = statistics, onDismiss = { showClientConnections = false })
             }
         }
     }

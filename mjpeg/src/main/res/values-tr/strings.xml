@@ -37,11 +37,16 @@
 
     <!-- Statistics -->
     <string name="mjpeg_stats_title">İstatistikler</string>
-    <string name="mjpeg_stats_connected_clients_count">İzleyici bağlantıları: %1$s</string>
+    <string name="mjpeg_stats_connections_title">İzleyici bağlantıları</string>
+    <string name="mjpeg_stats_show_full_list">Tümünü göster</string>
+    <string name="mjpeg_stats_more_connections_count">%1$s tane daha</string>
+    <string name="mjpeg_stats_view_all_connections">Tüm bağlantıları göster</string>
+    <string name="mjpeg_stats_connected_clients_count">Etkin bağlantılar: %1$s</string>
+    <string name="mjpeg_stats_active_connections_count">Etkin: %1$s</string>
     <string name="mjpeg_stats_outgoing_traffic">Giden trafik</string>
     <string name="mjpeg_stats_engine_title">Motor istatistikleri</string>
     <string name="mjpeg_stats_frame_rate">Kare hızı</string>
-    <string name="mjpeg_stats_recently_disconnected">Yakın zamanda bağlantısı kesilenler</string>
+    <string name="mjpeg_stats_recently_disconnected">Yakın zamanda kesilen bağlantılar: %1$s</string>
     <string name="mjpeg_stats_no_clients">İzleyici bağlantısı yok</string>
     <string name="mjpeg_stats_slow_reader">Geride kalıyor</string>
     <string name="mjpeg_stats_unavailable">—</string>

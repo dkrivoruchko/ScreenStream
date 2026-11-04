@@ -50,7 +50,7 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -113,7 +113,7 @@ internal class SettingOpenerFocus {
 @Composable
 internal fun rememberSettingOpenerFocus(editorVisible: Boolean): SettingOpenerFocus {
     val openerFocus = remember { SettingOpenerFocus() }
-    LaunchedEffect(editorVisible) {
+    SideEffect(editorVisible) {
         if (!editorVisible) openerFocus.restoreIfPending()
     }
     return openerFocus
@@ -207,6 +207,7 @@ internal fun SettingEditor(
     title: String,
     onDismiss: () -> Unit,
     description: String = "",
+    scrollableContent: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val windowWidthDp = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
@@ -218,7 +219,14 @@ internal fun SettingEditor(
             sheetMaxWidth = 480.dp,
             sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)),
         ) {
-            SettingEditorContent(title, description, onDismiss, Modifier.weight(1f, fill = false), content)
+            SettingEditorContent(
+                title = title,
+                description = description,
+                onDismiss = onDismiss,
+                modifier = Modifier.weight(1f, fill = false),
+                scrollableContent = scrollableContent,
+                content = content,
+            )
         }
     } else {
         Dialog(
@@ -233,7 +241,7 @@ internal fun SettingEditor(
                     .fillMaxWidth(),
                 shape = MaterialTheme.shapes.extraLarge,
             ) {
-                SettingEditorContent(title, description, onDismiss, content = content)
+                SettingEditorContent(title, description, onDismiss, scrollableContent = scrollableContent, content = content)
             }
         }
     }
@@ -244,6 +252,7 @@ private fun SettingEditorContent(
     title: String,
     description: String,
     onDismiss: () -> Unit,
+    scrollableContent: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -264,11 +273,12 @@ private fun SettingEditorContent(
                 Icon(painterResource(R.drawable.mjpeg_icon_close), stringResource(R.string.mjpeg_action_close))
             }
         }
+        val scrollModifier = if (scrollableContent) Modifier.verticalScroll(rememberScrollState()) else Modifier
         Column(
             Modifier
                 .weight(1f, fill = false)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .then(scrollModifier)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {

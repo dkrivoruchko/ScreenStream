@@ -37,11 +37,16 @@
 
     <!-- Statistics -->
     <string name="mjpeg_stats_title">Статистика</string>
-    <string name="mjpeg_stats_connected_clients_count">Підключення глядачів: %1$s</string>
+    <string name="mjpeg_stats_connections_title">Підключення глядачів</string>
+    <string name="mjpeg_stats_show_full_list">Показати всі</string>
+    <string name="mjpeg_stats_more_connections_count">Ще %1$s</string>
+    <string name="mjpeg_stats_view_all_connections">Показати всі підключення</string>
+    <string name="mjpeg_stats_connected_clients_count">Активні підключення: %1$s</string>
+    <string name="mjpeg_stats_active_connections_count">Активні: %1$s</string>
     <string name="mjpeg_stats_outgoing_traffic">Вихідний трафік</string>
     <string name="mjpeg_stats_engine_title">Статистика рушія</string>
     <string name="mjpeg_stats_frame_rate">Частота кадрів</string>
-    <string name="mjpeg_stats_recently_disconnected">Нещодавно відключилися</string>
+    <string name="mjpeg_stats_recently_disconnected">Нещодавно відключені: %1$s</string>
     <string name="mjpeg_stats_no_clients">Немає підключень глядачів</string>
     <string name="mjpeg_stats_slow_reader">Відстає</string>
     <string name="mjpeg_stats_unavailable">—</string>

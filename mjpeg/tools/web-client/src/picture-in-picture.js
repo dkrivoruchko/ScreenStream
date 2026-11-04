@@ -1,5 +1,6 @@
 function createPictureInPicture(pip, video, callbacks) {
     let image = null, currentAttempt = null, pendingOperation = null;
+    let started = false;
     const pipSupported = !!(window.HTMLCanvasElement && HTMLCanvasElement.prototype.captureStream &&
         video.requestPictureInPicture && 'srcObject' in video && document.pictureInPictureEnabled);
     pip.hidden = !pipSupported;
@@ -116,13 +117,18 @@ function createPictureInPicture(pip, video, callbacks) {
             video.srcObject = attempt.stream;
         } catch (_) { fail(attempt); }
     }
-    video.addEventListener('leavepictureinpicture', event => {
-        const attempt = currentAttempt;
-        if (attempt && attempt.phase === 'active' && event.pictureInPictureWindow === attempt.window &&
-            document.pictureInPictureElement !== video) stopAttempt(attempt);
-    });
-    pip.addEventListener('click', toggle);
+    function start() {
+        if (started) return;
+        started = true;
+        video.addEventListener('leavepictureinpicture', event => {
+            const attempt = currentAttempt;
+            if (attempt && attempt.phase === 'active' && event.pictureInPictureWindow === attempt.window &&
+                document.pictureInPictureElement !== video) stopAttempt(attempt);
+        });
+        pip.addEventListener('click', toggle);
+    }
     return {
+        start,
         setImage: value => { image = value; updateButton(); if (!image) stop(); },
         stop
     };

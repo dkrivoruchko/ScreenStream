@@ -11,10 +11,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
@@ -44,6 +48,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -71,6 +78,7 @@ internal fun StreamStatisticsContent(
     statistics: UiController.Statistics,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
+    onShowFullList: () -> Unit,
 ) {
     var showEngineStatistics by retain { mutableStateOf(false) }
     val integerFormat = statisticsNumberFormat(0)
@@ -166,52 +174,117 @@ internal fun StreamStatisticsContent(
                 stringResource(R.string.mjpeg_stats_connected_clients_count, integerFormat.format(connected.size)),
                 style = MaterialTheme.typography.titleSmall,
             )
-            if (connected.isEmpty()) {
-                Text(
-                    stringResource(R.string.mjpeg_stats_no_clients),
-                    Modifier.padding(vertical = 8.dp),
-                    color = colors.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            for ((index, client) in connected.withIndex()) key(client.id) {
+            val previewConnected = connected.take(3)
+            val previewDisconnected = disconnected.take(3 - previewConnected.size)
+            for ((index, client) in previewConnected.withIndex()) key(client.id) {
                 if (index > 0) HorizontalDivider(thickness = 0.5.dp, color = colors.outlineVariant)
                 StatisticsClient(client, statistics.clientBytesPerSecond[client.id], decimalFormat)
             }
-            if (disconnected.isNotEmpty()) {
+            if (previewDisconnected.isNotEmpty()) {
                 Text(
-                    stringResource(R.string.mjpeg_stats_recently_disconnected),
+                    stringResource(R.string.mjpeg_stats_recently_disconnected, integerFormat.format(disconnected.size)),
                     Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.labelMedium,
                 )
-                for ((index, client) in disconnected.withIndex()) key(client.id) {
+                for ((index, client) in previewDisconnected.withIndex()) key(client.id) {
                     if (index > 0) HorizontalDivider(thickness = 0.5.dp, color = colors.outlineVariant)
                     StatisticsClient(client, null, decimalFormat)
                 }
             }
-            if (statistics.clients.isNotEmpty()) {
-                HorizontalDivider(thickness = 0.5.dp, color = colors.outlineVariant)
+            val hiddenClientCount = statistics.clients.size - previewConnected.size - previewDisconnected.size
+            if (hiddenClientCount > 0) {
+                val viewAllConnectionsLabel = stringResource(R.string.mjpeg_stats_view_all_connections)
+                TextButton(
+                    onClick = onShowFullList,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .semantics { onClick(label = viewAllConnectionsLabel, action = null) },
+                ) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        itemVerticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            stringResource(R.string.mjpeg_stats_more_connections_count, integerFormat.format(hiddenClientCount)),
+                            Modifier.padding(end = 8.dp),
+                            color = colors.onSurfaceVariant,
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(stringResource(R.string.mjpeg_stats_show_full_list), Modifier.weight(1f, fill = false))
+                            Icon(painterResource(R.drawable.mjpeg_icon_chevron), contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
             }
         }
         Spacer(Modifier.height(8.dp))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp), horizontalArrangement = Arrangement.Center
-        ) {
+        if (statistics.engineStats != null) {
             TextButton(
                 onClick = { showEngineStatistics = true },
-                enabled = statistics.engineStats != null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .heightIn(min = 48.dp),
             ) {
                 Icon(painterResource(R.drawable.mjpeg_icon_info), contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.mjpeg_stats_engine_title))
+                Text(stringResource(R.string.mjpeg_stats_engine_title), Modifier.weight(1f))
+                Spacer(Modifier.width(8.dp))
+                Icon(painterResource(R.drawable.mjpeg_icon_chevron), contentDescription = null, modifier = Modifier.size(18.dp))
             }
+            Spacer(Modifier.height(8.dp))
         }
-        Spacer(Modifier.height(8.dp))
     }
     if (showEngineStatistics && statistics.engineStats != null) {
         EngineStatisticsEditor(statistics.engineStats, integerFormat, decimalFormat) { showEngineStatistics = false }
+    }
+}
+
+@Composable
+internal fun ClientConnectionsEditor(statistics: UiController.Statistics, onDismiss: () -> Unit) {
+    val integerFormat = statisticsNumberFormat(0)
+    val decimalFormat = statisticsNumberFormat(1)
+    val colors = MaterialTheme.colorScheme
+    val (connected, disconnected) = statistics.clients.partition { it.state == HttpDelivery.ClientInfo.State.Active }
+    val listState = rememberLazyListState()
+    SettingEditor(
+        title = stringResource(R.string.mjpeg_stats_connections_title),
+        onDismiss = onDismiss,
+        scrollableContent = false,
+    ) {
+        LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState) {
+            item(key = "active-count", contentType = "section-header") {
+                Text(
+                    stringResource(R.string.mjpeg_stats_active_connections_count, integerFormat.format(connected.size)),
+                    Modifier.semantics { heading() },
+                    style = MaterialTheme.typography.titleSmall,
+                )
+            }
+            itemsIndexed(connected, key = { _, client -> client.id }, contentType = { _, _ -> "client" }) { index, client ->
+                if (index > 0) HorizontalDivider(thickness = 0.5.dp, color = colors.outlineVariant)
+                StatisticsClient(client, statistics.clientBytesPerSecond[client.id], decimalFormat)
+            }
+            if (disconnected.isNotEmpty()) {
+                item(key = "recently-disconnected", contentType = "section-header") {
+                    Text(
+                        stringResource(R.string.mjpeg_stats_recently_disconnected, integerFormat.format(disconnected.size)),
+                        Modifier
+                            .padding(top = 12.dp)
+                            .semantics { heading() },
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+                itemsIndexed(disconnected, key = { _, client -> client.id }, contentType = { _, _ -> "client" }) { index, client ->
+                    if (index > 0) HorizontalDivider(thickness = 0.5.dp, color = colors.outlineVariant)
+                    StatisticsClient(client, null, decimalFormat)
+                }
+            }
+            item(key = "clients-end", contentType = "divider") {
+                HorizontalDivider(thickness = 0.5.dp, color = colors.outlineVariant)
+            }
+        }
     }
 }
 
@@ -384,33 +457,25 @@ private fun StatisticsClient(client: HttpDelivery.ClientInfo, bytesPerSecond: Do
     val connected = client.state == HttpDelivery.ClientInfo.State.Active
     val colors = MaterialTheme.colorScheme
     val sentValue = numberFormat.format(client.completedJpegBytes / 1_000_000.0)
-    FlowRow(
+    Column(
         Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(
-            Modifier
-                .weight(1F)
-                .width(IntrinsicSize.Max)
-        ) {
-            Text(
-                if (':' in client.ip) "[${client.ip}]:${client.remotePort}" else "${client.ip}:${client.remotePort}",
-                color = if (connected) colors.onSurface else colors.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (connected && client.isSlow) {
-                val warning = if (colors.surface.luminance() < 0.5F) Color(0xFFFFCF76) else Color(0xFF815500)
-                Row(
-                    Modifier.padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(painterResource(R.drawable.mjpeg_icon_warning), contentDescription = null, tint = warning, modifier = Modifier.size(15.dp))
-                    Text(stringResource(R.string.mjpeg_stats_slow_reader), color = warning, style = MaterialTheme.typography.labelSmall)
-                }
+        Text(
+            if (':' in client.ip) "[${client.ip}]:${client.remotePort}" else "${client.ip}:${client.remotePort}",
+            color = if (connected) colors.onSurface else colors.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        if (connected && client.isSlow) {
+            val warning = if (colors.surface.luminance() < 0.5F) Color(0xFFFFCF76) else Color(0xFF815500)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(painterResource(R.drawable.mjpeg_icon_warning), contentDescription = null, tint = warning, modifier = Modifier.size(15.dp))
+                Text(stringResource(R.string.mjpeg_stats_slow_reader), color = warning, style = MaterialTheme.typography.labelSmall)
             }
         }
         val sent = stringResource(R.string.mjpeg_stats_sent_value, sentValue)
@@ -444,7 +509,6 @@ private fun ClientMetric(text: String, vararg values: String) {
     }
     Text(
         styledText,
-        Modifier.width(IntrinsicSize.Max),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Normal

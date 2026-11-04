@@ -26,12 +26,7 @@ function chooseLocale(preferences) {
 }
 const preferences = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
 const locale = catalogs[chooseLocale(preferences)] || catalogs.en;
-const words = {};
-for (const key in catalogs.en.messages) {
-    if (Object.prototype.hasOwnProperty.call(catalogs.en.messages, key)) {
-        words[key] = typeof locale.messages[key] === 'string' ? locale.messages[key] : catalogs.en.messages[key];
-    }
-}
+const words = locale.messages;
 document.documentElement.lang = locale.lang;
 document.documentElement.dir = locale.dir;
 function text(node, value) { node.textContent = value; }

@@ -59,7 +59,7 @@ flowchart TB
 
 - **L0** checks the filter, categories and selection on hand-built inventories.
 - **L1** runs the source and monitor with a fake `NativeInterfaceAccess` and controlled `ConnectivityManager` and `TetheringManager` inputs. It also runs the controller's plan with a controlled grant.
-  - The monitor schedules scans with `System.nanoTime()` on IO and Default dispatchers. Hold and release scans with entry and completion barriers; virtual time doesn't control them.
+  - Native scans and close work run on real IO threads, so hold and release each scan with entry and completion barriers. Scan deadlines read `System.nanoTime()` on the monitor's injectable observation dispatcher; cadence tests coordinate that dispatcher's scheduler with Robolectric's clock, as [evidence rule 3](../01-testing.md#evidence-rules) explains.
   - The address-loss clock is `SystemClock.elapsedRealtime()`.
 - **L2** is needed for real native discovery, permission enforcement and incoming reachability.
 - **Supplied inputs:** callbacks supplied by a test show how MJPEG reconciles them. They don't show that Android would deliver them. An offered address never proves that a viewer can reach it.

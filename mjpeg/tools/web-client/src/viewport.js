@@ -1,6 +1,7 @@
 function createViewportLayout() {
     const shell = byId('shell'), safeArea = byId('safe-area');
     const listeners = [];
+    let started = false;
     function bounds() {
         const visual = window.visualViewport;
         const unzoomed = !visual || Math.abs(visual.scale - 1) < .01;
@@ -41,13 +42,18 @@ function createViewportLayout() {
         if (field.top < top || field.bottom - field.top > panel.clientHeight) panel.scrollTop += field.top - top;
         else if (field.bottom > bottom) panel.scrollTop += field.bottom - bottom;
     }
-    ['resize', 'orientationchange', 'scroll', 'pageshow'].forEach(name => window.addEventListener(name, refresh));
-    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(name => {
-        document.addEventListener(name, refresh);
-    });
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', refresh);
-        window.visualViewport.addEventListener('scroll', refresh);
+    function start() {
+        if (started) return;
+        started = true;
+        ['resize', 'orientationchange', 'scroll', 'pageshow'].forEach(name => window.addEventListener(name, refresh));
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach(name => {
+            document.addEventListener(name, refresh);
+        });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', refresh);
+            window.visualViewport.addEventListener('scroll', refresh);
+        }
+        refresh();
     }
-    return { bounds, keepFocusVisible, watch: listener => { listeners.push(listener); listener(bounds()); } };
+    return { start, bounds, keepFocusVisible, watch: listener => { listeners.push(listener); if (started) listener(bounds()); } };
 }

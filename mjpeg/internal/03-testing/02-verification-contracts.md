@@ -27,7 +27,7 @@ Each scenario page starts with its test boundary: the real component under test,
 
 | Page | IDs | What it protects | Owning guides |
 | --- | --- | --- | --- |
-| [Settings](scenarios/01-settings.md) | SET-01 to 12 | Saved compatibility, transactions, legacy import and edit policy | [Settings](../01-module/04-settings.md) |
+| [Settings](scenarios/01-settings.md) | SET-01 to 11 | Saved compatibility, transactions and edit policy | [Settings](../01-module/04-settings.md) |
 | [Controller](scenarios/02-controller.md) | CTL-01 to 17 | Module lifetime, Start and Stop admission, applying settings, address loss, automation and statistics | [Coordination](../01-module/03-coordination.md), [Capture lifecycle](../01-module/02-module-lifecycle.md) |
 | [Capture](scenarios/03-capture.md) | CAP-01 to 14 | One attempt's startup, parameters, borrowed output and cleanup | [Capture lifecycle](../01-module/02-module-lifecycle.md), [Module integration](../01-module/01-module-integration.md) |
 | [Network](scenarios/04-network.md) | NET-01 to 13, LAN-01 to 05 | Address selection, evidence freshness, discovery cleanup and local-network gating | [Network addresses](../01-module/05-network-addresses.md), [Coordination](../01-module/03-coordination.md) |
@@ -61,7 +61,7 @@ The table lists representative entry points for each area, not every test class;
 
 | Area | Representative test sources |
 | --- | --- |
-| Settings | [models](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModelsTest.kt), [persistence](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsPersistenceTest.kt), [migration](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsMigrationTest.kt), [device title](../../src/test/kotlin/io/screenstream/mjpeg/settings/WebPageSettingsDeviceTitleTest.kt), [edit policy](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegEditPolicyTest.kt) |
+| Settings | [models](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModelsTest.kt), [persistence](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsPersistenceTest.kt), [device title](../../src/test/kotlin/io/screenstream/mjpeg/settings/WebPageSettingsDeviceTitleTest.kt), [edit policy](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegEditPolicyTest.kt) |
 | Controller | [controller](../../src/test/kotlin/io/screenstream/mjpeg/MjpegStreamingModuleControllerTest.kt), [capture contracts](../../src/test/kotlin/io/screenstream/mjpeg/MjpegControllerCaptureContractsTest.kt), [statistics](../../src/test/kotlin/io/screenstream/mjpeg/MjpegControllerStatisticsTest.kt), [screen-off observer](../../src/test/kotlin/io/screenstream/mjpeg/AndroidScreenOffObserverTest.kt) |
 | Capture | [session](../../src/test/kotlin/io/screenstream/mjpeg/MjpegCaptureSessionTest.kt), [contracts](../../src/test/kotlin/io/screenstream/mjpeg/MjpegCaptureSessionContractsTest.kt), [states](../../src/test/kotlin/io/screenstream/mjpeg/MjpegCaptureSessionStatesTest.kt), [frames](../../src/test/kotlin/io/screenstream/mjpeg/MjpegCaptureSessionFramesTest.kt), [ownership](../../src/test/kotlin/io/screenstream/mjpeg/MjpegCaptureSessionOwnershipTest.kt), [Service](../../src/test/kotlin/io/screenstream/mjpeg/MjpegStreamingModuleServiceTest.kt) |
 | Network | [policy](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/NetworkAddressPolicyTest.kt), [evidence](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/NetworkAddressEvidenceTest.kt), [source](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressSourceTest.kt), [platform baseline](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressPlatformBaselineTest.kt), [monitor](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressMonitorTest.kt), [refresh cadence](../../src/test/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressCadenceTest.kt) |
@@ -73,7 +73,7 @@ The table lists representative entry points for each area, not every test class;
 
 ## Outside this catalogue
 
-- **Viewer page.** The page build, the desktop preview harness with its Node fixture checks, and manual browser smoke belong to the [web client tools guide](../../tools/web-client/README.md). Automated viewer JavaScript tests are a separate discussion.
+- **Viewer page.** The page build, the desktop preview harness with its Node fixture checks, Node owner tests of the viewer's scripts, and manual browser smoke belong to the [web client tools guide](../../tools/web-client/README.md).
 - **Shared components.** Core's manager and consent coordination have their own [Core scenarios](../../../core/internal/testing/02-scenarios.md). Core's Service base class, permission host and notifications, and the Capture Engine, keep their own verification against their public contracts.
 - **Analytics and Compose UI.** MJPEG's analytics observations and its Compose screens are outside this catalogue.
 - **Device runs.** Records of device qualification belong with the release or change that produced them.
