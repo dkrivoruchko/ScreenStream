@@ -5,17 +5,14 @@ import com.elvishew.xlog.XLog
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.ScreenCaptureStopReason
-import io.screenstream.mjpeg.settings.ImageSettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -36,7 +33,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [34])
+@Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
 // This SDK-invariant adapter boundary does not prove platform capture, graphics or JPEG validity.
 internal class MjpegCaptureSessionFramesTest {
     @Before
@@ -58,7 +55,7 @@ internal class MjpegCaptureSessionFramesTest {
             owned += destination
         }
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
 
@@ -95,7 +92,7 @@ internal class MjpegCaptureSessionFramesTest {
             }
         }
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
 
@@ -122,7 +119,7 @@ internal class MjpegCaptureSessionFramesTest {
         val cause = IllegalStateException("Output rejected the offer")
         val session = MjpegCaptureSessionInputs().frameSession(backgroundScope, engine) { _, _ -> throw cause }
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
 
@@ -157,7 +154,7 @@ internal class MjpegCaptureSessionFramesTest {
             throw cause
         }
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
             val source = byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)
@@ -196,7 +193,7 @@ internal class MjpegCaptureSessionFramesTest {
         var outputEntered = false
         val session = MjpegCaptureSessionInputs().frameSession(backgroundScope, engine) { _, _ -> outputEntered = true }
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
 
@@ -231,7 +228,7 @@ internal class MjpegCaptureSessionFramesTest {
             owned = destination
         }
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
 
@@ -265,7 +262,7 @@ internal class MjpegCaptureSessionFramesTest {
                 owned = destination
             }
             try {
-                session.runCapture(ImageSettings())
+                session.start()
                 runCurrent()
                 assertStreaming(session)
 
@@ -305,7 +302,7 @@ internal class MjpegCaptureSessionFramesTest {
             count = byteCount
         }
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertTrue(startEntered.isCompleted)
             assertActive(session)
@@ -372,7 +369,7 @@ internal class MjpegCaptureSessionFramesTest {
 
     private suspend fun settle(session: MjpegCaptureSession) {
         withContext(NonCancellable) {
-            session.stop(MjpegCaptureSession.StopReason.Shutdown)
+            session.requestStop(MjpegCaptureSession.StopReason.Shutdown)
             awaitCleanup(session)
         }
     }
@@ -392,7 +389,7 @@ internal class MjpegCaptureSessionFramesTest {
             get() = observed.value
 
         override val states: Flow<MjpegEngineState> = observed
-        override val stats: Flow<ScreenCaptureStats> = flow { awaitCancellation() }
+        override val stats: kotlinx.coroutines.flow.StateFlow<ScreenCaptureStats> = MutableStateFlow(emptyEngineStatistics())
 
         override suspend fun start(parameters: ScreenCaptureParameters) {
             observed.value = MjpegEngineState(MjpegEngineState.Phase.Active)

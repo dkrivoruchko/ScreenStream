@@ -55,3 +55,5 @@ A typical flow:
 4. A successful Stop ends capture. Exit or replacement closes the module instance and starts its cleanup.
 
 The component guides describe architecture and lifecycle. KDoc defines the callable contracts.
+
+Core maintainers can start from [Core internals](internal/README.md), which maps each contract to its owner and describes how Core is verified.

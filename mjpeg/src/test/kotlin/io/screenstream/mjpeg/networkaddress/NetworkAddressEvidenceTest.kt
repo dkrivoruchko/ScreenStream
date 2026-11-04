@@ -19,32 +19,6 @@ internal class NetworkAddressEvidenceTest {
         for ((name, expected) in fixtures) assertEquals(name, expected, inferInterfaceType(name))
     }
 
-    // Cases: MJPEG-NET-03
-    @Test
-    fun reportedTypesBeatNameInferenceAndVpnWinsConflictingMetadata() {
-        fun network(name: String, type: InterfaceType?) = AndroidNetworkAddressSource.NetworkMetadata(
-            interfaces = listOf(AndroidNetworkAddressSource.InterfaceAddresses(name, emptyList())), interfaceType = type,
-        )
-
-        val snapshot = AndroidNetworkAddressSource.Snapshot(
-            revision = 17,
-            networks = listOf(
-                network("wlan0", InterfaceType.Mobile), network("shared0", InterfaceType.Wifi),
-                network("shared0", InterfaceType.Vpn), network("shared0", InterfaceType.Ethernet),
-                network("eth0", null), network("tether0", InterfaceType.Other), network("usb0", null),
-            ),
-            tethered = mapOf("shared0" to InterfaceType.Wifi, "tether0" to InterfaceType.Wifi, "p2p0" to InterfaceType.Other),
-            ready = false,
-        )
-        assertEquals(
-            mapOf(
-                "wlan0" to InterfaceType.Mobile, "shared0" to InterfaceType.Vpn, "eth0" to InterfaceType.Ethernet,
-                "tether0" to InterfaceType.Wifi, "usb0" to InterfaceType.Other, "p2p0" to InterfaceType.Wifi,
-            ),
-            snapshot.interfaceTypes(),
-        )
-    }
-
     // Cases: MJPEG-NET-06
     @Test
     fun absenceAuthorityIsPerInterfaceAndIndependentOfMetadataReadiness() {

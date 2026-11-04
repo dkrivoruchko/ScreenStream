@@ -16,6 +16,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -73,6 +75,9 @@ internal class MjpegSettingsPersistenceTest {
                 seedSettings(context, payload)
                 val settings = MjpegSettings(context)
                 assertEquals(MjpegSettings.Data(web = WebPageSettings(title = "Acme Tablet")), settings.data.first())
+                val repaired = context.preferencesDataStoreFile("mjpeg").inputStream().use { PreferencesFileSerializer.readFrom(it) }
+                assertFalse(repaired.asMap().keys.any { it.name == "DATA" })
+                assertFalse(context.preferencesDataStoreFile("MJPEG_settings").exists())
             }
         }
     }
@@ -175,7 +180,7 @@ internal class MjpegSettingsPersistenceTest {
 
     // Cases: MJPEG-SET-03, MJPEG-SET-04
     @Test
-    fun savedSchemaAcceptsUnknownFieldsOptionalDefaultsAndOldPageAlias() = runBlocking {
+    fun savedSchemaAcceptsUnknownFieldsOptionalDefaultsAndIgnoresRemovedPageFields() = runBlocking {
         withTimeout(5.seconds) {
             val context = newSettingsContext()
             seedSettings(
@@ -184,7 +189,6 @@ internal class MjpegSettingsPersistenceTest {
             )
             val actual = MjpegSettings(context).data.first()
             assertEquals("", actual.web.title)
-            assertFalse(actual.web.retainImageOnMediaFailure)
             assertEquals("000007", actual.access.pin?.value)
             assertEquals(AccessSettings.PinPolicy.Permanent, actual.access.pinPolicy)
             assertFalse(actual.access.pinEnabled)
@@ -295,39 +299,6 @@ internal class MjpegSettingsPersistenceTest {
 
     // Cases: MJPEG-SET-08
     @Test
-    fun enteredSaveContinuesAfterOriginalCallerCancellation() = runBlocking {
-        withTimeout(10.seconds) {
-            Executors.newSingleThreadExecutor().asCoroutineDispatcher().use { dispatcher ->
-                val context = newSettingsContext()
-                val settings = MjpegSettings(context, dispatcher)
-                val entered = CountDownLatch(1)
-                val release = CountDownLatch(1)
-                val caller = launch(Dispatchers.Default) {
-                    settings.updateData {
-                        entered.countDown()
-                        check(release.await(5, TimeUnit.SECONDS)) { "Cancelled caller's settings transform was not released" }
-                        copy(web = web.copy(title = "Committed after cancellation"))
-                    }
-                }
-                try {
-                    assertTrue("Settings transform did not enter before caller cancellation", entered.await(5, TimeUnit.SECONDS))
-                    caller.cancel()
-                    release.countDown()
-                    caller.join()
-                    assertEquals("Committed after cancellation", settings.data.first().web.title)
-                    assertEquals("Committed after cancellation", Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)).web.title)
-                } finally {
-                    release.countDown()
-                    withContext(NonCancellable) {
-                        withTimeout(5.seconds) { caller.join() }
-                    }
-                }
-            }
-        }
-    }
-
-    // Cases: MJPEG-SET-08
-    @Test
     fun throwingTransformPropagatesAndPreservesSavedSnapshot() {
         val context = newSettingsContext()
         val settings = MjpegSettings(context)
@@ -344,6 +315,159 @@ internal class MjpegSettingsPersistenceTest {
             withTimeout(5.seconds) {
                 assertEquals("Before failure", settings.data.first().web.title)
                 assertEquals("Before failure", Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)).web.title)
+            }
+        }
+    }
+
+    // Cases: MJPEG-SET-04, MJPEG-SET-07
+    @Test
+    fun missingPayloadAndIdentitySaveKeepDeviceTitleUnsavedUntilAnActualChange() = runBlocking {
+        withTimeout(5.seconds) {
+            val context = newSettingsContext()
+            val file = context.preferencesDataStoreFile("mjpeg")
+            val settings = MjpegSettings(context)
+            assertEquals("Acme Tablet", settings.data.first().web.title)
+            assertFalse(file.exists())
+            settings.updateData { this }
+            assertFalse(file.exists())
+            ShadowBuild.setManufacturer("Later")
+            ShadowBuild.setModel("Device")
+            assertEquals("Later Device", MjpegSettings(newSettingsContext()).data.first().web.title)
+            settings.updateData { copy(network = network.copy(httpPort = 9000)) }
+            assertEquals(
+                Json.parseToJsonElement("""{"network":{"httpPort":9000},"web":{"title":"Acme Tablet"}}"""),
+                Json.parseToJsonElement(savedSettingsJson(context)),
+            )
+        }
+    }
+
+    // Cases: MJPEG-SET-03, MJPEG-SET-04, MJPEG-SET-07
+    @Test
+    fun identitySavePreservesExistingRawPayloadIncludingUnknownFields() = runBlocking {
+        withTimeout(5.seconds) {
+            val context = newSettingsContext()
+            val payload = """{ "future" : 7, "web" : { "title" : "Saved", "retainImageOnReconnect" : false } }"""
+            seedSettings(context, payload)
+            val file = context.preferencesDataStoreFile("mjpeg")
+            val before = file.readBytes()
+            val settings = MjpegSettings(context)
+            assertEquals(WebPageSettings(title = "Saved"), settings.data.first().web)
+            settings.updateData { this }
+            assertEquals(payload, savedSettingsJson(context))
+            assertArrayEquals(before, file.readBytes())
+        }
+    }
+
+    // Cases: MJPEG-SET-07
+    @Test
+    fun wronglyTypedPayloadIsRemovedAsAWholeAndIdentitySaveReplacesItWithEncodedDefaults() = runBlocking {
+        withTimeout(5.seconds) {
+            for (observeFirst in listOf(false, true)) {
+                val context = newSettingsContext()
+                val file = context.preferencesDataStoreFile("mjpeg")
+                check(file.parentFile!!.mkdirs())
+                file.outputStream().use {
+                    PreferencesFileSerializer.writeTo(preferencesOf(booleanPreferencesKey("DATA") to true), it)
+                }
+                val settings = MjpegSettings(context)
+                val defaults = MjpegSettings.Data(web = WebPageSettings(title = "Acme Tablet"))
+                if (observeFirst) {
+                    assertEquals(defaults, settings.data.first())
+                    val raw = file.inputStream().use { PreferencesFileSerializer.readFrom(it) }
+                    assertFalse(raw.asMap().keys.any { it.name == "DATA" })
+                } else {
+                    settings.updateData {
+                        assertEquals(defaults, this)
+                        this
+                    }
+                    assertEquals(Json.parseToJsonElement("""{"web":{"title":"Acme Tablet"}}"""), Json.parseToJsonElement(savedSettingsJson(context)))
+                }
+            }
+        }
+    }
+
+    // Cases: MJPEG-SET-07
+    @Test
+    fun successfulSaveRestartsExistingObservationAfterUnreadablePathRepairFailed() = runBlocking {
+        withTimeout(10.seconds) {
+            val context = newSettingsContext()
+            val file = context.preferencesDataStoreFile("mjpeg")
+            check(file.mkdirs())
+            val settings = MjpegSettings(context)
+            val values = Channel<MjpegSettings.Data>(Channel.UNLIMITED)
+            val observer = launch(Dispatchers.Default) { settings.data.collect { values.send(it) } }
+            try {
+                assertEquals("Acme Tablet", values.receive().web.title)
+                assertTrue(file.isDirectory)
+                check(file.delete())
+                settings.updateData { copy(web = web.copy(title = "Recovered")) }
+                assertEquals("Recovered", Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)).web.title)
+                assertEquals("Recovered", values.receive().web.title)
+            } finally {
+                observer.cancelAndJoin()
+                values.close()
+            }
+        }
+    }
+
+    // Cases: MJPEG-SET-05, MJPEG-SET-08
+    @Test
+    fun cancellingRunningAndQueuedCallersKeepsBothAdmittedTransformsOrderedAndDurable() = runBlocking {
+        withTimeout(10.seconds) {
+            Executors.newSingleThreadExecutor().asCoroutineDispatcher().use { dispatcher ->
+                val context = newSettingsContext()
+                val settings = MjpegSettings(context, dispatcher)
+                val entered = CountDownLatch(1)
+                val release = CountDownLatch(1)
+                val order = mutableListOf<String>()
+                val first = launch(Dispatchers.Default) {
+                    settings.updateData {
+                        order += "first"
+                        entered.countDown()
+                        check(release.await(5, TimeUnit.SECONDS))
+                        copy(network = network.copy(httpPort = 9000))
+                    }
+                }
+                var queued: Job? = null
+                var lastQueued: Job? = null
+                try {
+                    assertTrue(entered.await(5, TimeUnit.SECONDS))
+                    queued = launch(start = CoroutineStart.UNDISPATCHED) {
+                        settings.updateData {
+                            order += "queued"
+                            assertEquals(9000, network.httpPort)
+                            copy(web = web.copy(title = "Queued save"))
+                        }
+                    }
+                    lastQueued = launch(start = CoroutineStart.UNDISPATCHED) {
+                        settings.updateData {
+                            order += "lastQueued"
+                            assertEquals(9000, network.httpPort)
+                            assertEquals("Queued save", web.title)
+                            copy(image = image.copy(jpegQuality = 42))
+                        }
+                    }
+                    first.cancel()
+                    queued.cancel()
+                    lastQueued.cancel()
+                    release.countDown()
+                    first.join()
+                    queued.join()
+                    lastQueued.join()
+                    assertEquals(listOf("first", "queued", "lastQueued"), order)
+                    val saved = Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context))
+                    assertEquals(9000, saved.network.httpPort)
+                    assertEquals("Queued save", saved.web.title)
+                    assertEquals(42, saved.image.jpegQuality)
+                    assertEquals(saved, settings.data.first())
+                } finally {
+                    release.countDown()
+                    withContext(NonCancellable) {
+                        first.join()
+                        queued?.join()
+                        lastQueued?.join()
+                    }
+                }
             }
         }
     }

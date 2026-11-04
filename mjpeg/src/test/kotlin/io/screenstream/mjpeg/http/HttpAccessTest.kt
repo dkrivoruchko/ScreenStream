@@ -56,14 +56,14 @@ internal class HttpAccessTest {
         access.updateSettings(protectedSettings())
         val token = checkNotNull(access.token)
         val cookie = authorizedCookie(access, "123456")
-        val generation = access.generation
+        val generation = access.credentialGeneration
 
         assertEquals(cookie, authorizedCookie(access, "123456"))
         wrongAttempts(access, count = 4)
         repeat(2) { assertEquals(cookie, access.exchangeToken(token.value)) }
         assertNull(access.exchangeToken(null))
         assertNull(access.exchangeToken("wrong"))
-        assertEquals(generation, access.generation)
+        assertEquals(generation, access.credentialGeneration)
         assertEquals(HttpAccess.PinResult.Blocked(60_000), access.verifyPin("wrong", "peer", 0))
         assertTrue(access.allowsViewing(null, cookie.value))
     }
@@ -76,7 +76,7 @@ internal class HttpAccessTest {
         access.updateSettings(settings)
         val token = checkNotNull(access.token)
         val cookie = authorizedCookie(access, "123456")
-        val generation = access.generation
+        val generation = access.credentialGeneration
         val edited = settings.copy(
             pin = SecretValue(String(charArrayOf('1', '2', '3', '4', '5', '6'))),
             pinPolicy = AccessSettings.PinPolicy.Permanent,
@@ -87,7 +87,7 @@ internal class HttpAccessTest {
 
         assertFalse(access.requiresCredentialRotation(edited))
         assertFalse(access.updateSettings(edited))
-        assertEquals(generation, access.generation)
+        assertEquals(generation, access.credentialGeneration)
         assertEquals(token, access.token)
         assertEquals(cookie, access.exchangeToken(token.value))
         assertTrue(access.allowsViewing(token.value, cookie.value))
@@ -101,12 +101,12 @@ internal class HttpAccessTest {
         assertTrue(access.updateSettings(settings))
         val oldToken = checkNotNull(access.token)
         val oldCookie = authorizedCookie(access, "123456")
-        val generation = access.generation
+        val generation = access.credentialGeneration
         val changedPin = settings.copy(pin = SecretValue("654321"))
 
         assertTrue(access.requiresCredentialRotation(changedPin))
         assertTrue(access.updateSettings(changedPin))
-        assertEquals(generation + 1, access.generation)
+        assertEquals(generation + 1, access.credentialGeneration)
         assertFalse(access.allowsViewing(oldToken.value, oldCookie.value))
         assertNull(access.exchangeToken(oldToken.value))
         val rotatedToken = checkNotNull(access.token)
@@ -114,12 +114,12 @@ internal class HttpAccessTest {
         assertTrue(access.allowsViewing(rotatedToken.value, rotatedCookie.value))
 
         assertTrue(access.updateSettings(changedPin.copy(pinEnabled = false)))
-        assertEquals(generation + 2, access.generation)
+        assertEquals(generation + 2, access.credentialGeneration)
         assertNull(access.token)
         assertNull(access.exchangeToken(rotatedToken.value))
         assertTrue(access.allowsViewing(null, null))
         assertTrue(access.updateSettings(changedPin))
-        assertEquals(generation + 3, access.generation)
+        assertEquals(generation + 3, access.credentialGeneration)
         assertFalse(access.allowsViewing(rotatedToken.value, rotatedCookie.value))
         assertTrue(access.allowsViewing(checkNotNull(access.token).value, null))
     }
@@ -134,7 +134,7 @@ internal class HttpAccessTest {
         assertEquals(HttpAccess.PinResult.Wrong, access.verifyPin(null, "other-peer", 1_000))
         assertEquals(HttpAccess.PinResult.Blocked(120_000), access.verifyPin(null, "peer", 1_000))
         authorizedCookie(access, "123456", peer = "other-peer", nowMillis = 1_000)
-        assertEquals(120_000L, access.remainingBlockMillis("peer", 1_000))
+        assertEquals(120_000L, access.pinRetryAfterMillis("peer", 1_000))
     }
 
     // Cases: MJPEG-ACC-05
@@ -149,7 +149,7 @@ internal class HttpAccessTest {
 
         assertEquals(HttpAccess.PinResult.Blocked(50_000), access.verifyPin("123456", "peer", 11_000))
         assertEquals(HttpAccess.PinResult.Blocked(40_000), access.verifyPin("wrong", "peer", 21_000))
-        assertEquals(1L, access.remainingBlockMillis("peer", 60_999))
+        assertEquals(1L, access.pinRetryAfterMillis("peer", 60_999))
         assertTrue(access.allowsViewing(token.value, null))
         assertTrue(access.allowsViewing(null, cookie.value))
     }
@@ -178,7 +178,7 @@ internal class HttpAccessTest {
             assertEquals(HttpAccess.PinResult.Blocked(1), access.verifyPin("123456", "peer", 60_999))
 
             wrongAttempts(access, count = 4, nowMillis = verificationTime)
-            assertEquals(0L, access.remainingBlockMillis("peer", verificationTime))
+            assertEquals(0L, access.pinRetryAfterMillis("peer", verificationTime))
             assertEquals(HttpAccess.PinResult.Blocked(60_000), access.verifyPin("wrong", "peer", verificationTime))
         }
     }
@@ -215,7 +215,7 @@ internal class HttpAccessTest {
                 }
 
                 access.updateSettings(if (openAccess) settings.copy(pinEnabled = false) else settings.copy(limitWrongPins = false))
-                assertEquals(0L, access.remainingBlockMillis("peer", 0))
+                assertEquals(0L, access.pinRetryAfterMillis("peer", 0))
                 repeat(6) {
                     val expected = if (openAccess) HttpAccess.PinResult.Authorized(null) else HttpAccess.PinResult.Wrong
                     assertEquals(expected, access.verifyPin("wrong", "peer", 0))
@@ -237,11 +237,75 @@ internal class HttpAccessTest {
 
         assertEquals(HttpAccess.PinResult.Blocked(1_000), access.verifyPin("wrong", "peer", now))
         assertEquals(HttpAccess.PinResult.Blocked(1), access.verifyPin("123456", "peer", Long.MAX_VALUE - 1))
-        assertEquals(0L, access.remainingBlockMillis("peer", Long.MAX_VALUE))
+        assertEquals(0L, access.pinRetryAfterMillis("peer", Long.MAX_VALUE))
         authorizedCookie(access, "123456", nowMillis = Long.MAX_VALUE)
     }
 
-    private fun protectedSettings(): AccessSettings = AccessSettings(pinEnabled = true, pin = SecretValue("123456"))
+    // Cases: MJPEG-ACC-10
+    @Test
+    fun countingRecordsExpireAtIdleDeadlineAndWrongEntriesRefreshIt() {
+        val access = HttpAccess()
+        access.updateSettings(protectedSettings())
+        wrongAttempts(access, 3, 0)
+        assertEquals(HttpAccess.PinResult.Wrong, access.verifyPin("wrong", "peer", 899_999))
+        assertEquals(0L, access.pinRetryAfterMillis("peer", 1_799_998))
+        assertEquals(HttpAccess.PinResult.Blocked(60_000), access.verifyPin("wrong", "peer", 1_799_998))
+        val fresh = HttpAccess()
+        fresh.updateSettings(protectedSettings())
+        wrongAttempts(fresh, 4, 0)
+        assertEquals(HttpAccess.PinResult.Wrong, fresh.verifyPin("wrong", "peer", 900_000))
+        wrongAttempts(fresh, 3, 900_000)
+        assertEquals(HttpAccess.PinResult.Blocked(60_000), fresh.verifyPin("wrong", "peer", 900_000))
+    }
+
+    // Cases: MJPEG-ACC-10, MJPEG-ACC-05
+    @Test
+    fun fullTableKeepsLiveRecordsAndDelaysUnknownCorrectPinUntilCapacityFrees() {
+        val access = HttpAccess()
+        access.updateSettings(protectedSettings())
+        val token = checkNotNull(access.token).value
+        repeat(1_024) { peer ->
+            assertEquals(HttpAccess.PinResult.Wrong, access.verifyPin("wrong", "peer$peer", peer.toLong()))
+        }
+        repeat(3) { assertEquals(HttpAccess.PinResult.Wrong, access.verifyPin("wrong", "peer1", 1_024)) }
+        assertEquals(HttpAccess.PinResult.Blocked(60_000), access.verifyPin("wrong", "peer1", 1_024))
+        assertEquals(HttpAccess.PinResult.Blocked(60_000), access.verifyPin("123456", "new", 1_024))
+        assertEquals(HttpAccess.PinResult.Blocked(59_999), access.verifyPin("wrong", "new", 1_025))
+        assertEquals(59_999L, access.pinRetryAfterMillis("new", 1_025))
+        assertEquals(59_999L, access.pinRetryAfterMillis("peer1", 1_025))
+        assertTrue(access.allowsViewing(token, null))
+        authorizedCookie(access, "123456", "peer0", 1_025)
+        authorizedCookie(access, "123456", "new", 1_025)
+        assertEquals(HttpAccess.PinResult.Wrong, access.verifyPin("wrong", "new", 1_025))
+        assertEquals(59_999L, access.pinRetryAfterMillis("peer1", 1_025))
+    }
+
+    // Cases: MJPEG-ACC-08, MJPEG-ACC-10
+    @Test
+    fun expiredRecordsFreeUnknownPeerAndIdleDeadlineAlsoSaturates() {
+        val access = HttpAccess()
+        access.updateSettings(protectedSettings())
+        repeat(1_024) { access.verifyPin("wrong", "peer$it", 0) }
+        assertEquals(HttpAccess.PinResult.Blocked(1), access.verifyPin("123456", "new", 899_999))
+        authorizedCookie(access, "123456", "new", 900_000)
+        val late = Long.MAX_VALUE - 1_000
+        wrongAttempts(access, 4, late)
+        assertEquals(HttpAccess.PinResult.Wrong, access.verifyPin("wrong", "peer", Long.MAX_VALUE))
+    }
+
+    // Cases: MJPEG-ACC-01, MJPEG-ACC-03
+    @Test
+    fun credentialsHaveDocumentedEncodingAndOpenPinEditsDoNotRotate() {
+        val access = HttpAccess()
+        assertFalse(access.updateSettings(protectedSettings().copy(pinEnabled = false)))
+        assertEquals(0L, access.credentialGeneration)
+        assertTrue(access.updateSettings(protectedSettings()))
+        val token = checkNotNull(access.token).value
+        assertTrue(token.matches(Regex("[A-Za-z0-9_-]{32}")))
+        assertTrue(authorizedCookie(access, "123456").value.matches(Regex("[0-9a-f]{64}")))
+    }
+
+    private fun protectedSettings(): AccessSettings = AccessSettings(pinEnabled = true, pin = SecretValue("123456"), blockMinutes = 1)
 
     private fun authorizedCookie(access: HttpAccess, pin: String, peer: String = "peer", nowMillis: Long = 0): SecretValue {
         val result = access.verifyPin(pin, peer, nowMillis)

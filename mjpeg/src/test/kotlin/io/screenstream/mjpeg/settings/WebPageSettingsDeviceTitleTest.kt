@@ -40,6 +40,9 @@ internal class WebPageSettingsDeviceTitleTest {
         ShadowBuild.setModel("Device")
         assertEquals("Acme Tablet", Json.decodeFromString<WebPageSettings>(encoded).title)
         assertEquals("", Json.decodeFromString<WebPageSettings>("""{"title":""}""").title)
-        assertEquals(false, Json.decodeFromString<WebPageSettings>("""{"title":"Saved","retainImageOnReconnect":false}""").retainImageOnMediaFailure)
+        assertEquals(
+            WebPageSettings(title = "Saved"),
+            Json { ignoreUnknownKeys = true }.decodeFromString<WebPageSettings>("""{"title":"Saved","retainImageOnReconnect":false}""")
+        )
     }
 }

@@ -4,7 +4,7 @@
 
 HTTP delivery is the web server of one MJPEG module instance. It opens a listener on each selected device address and decides which requests may view the stream. It also keeps the request history behind the client list and statistics, and it releases everything when the instance closes. The public [HTTP server guide](../../docs/server.md) defines what clients send and receive. [Architecture](../../docs/architecture.md#addresses-listeners-and-readiness) shows where delivery sits in the module. This guide continues from those pages for maintainers. It explains which object owns each kind of work, how long each one lives, the order in which they act, and what a change must keep intact.
 
-Two neighbouring guides cover the rest of the HTTP side. [JPEG delivery](02-jpeg-delivery.md) owns the shared image store and the code that writes images into responses. [Web client](03-web-client.md) owns the Ktor route adapter and the packaged browser page. Capture resources belong to the [capture attempt](../01-module/02-module-lifecycle.md), not to HTTP delivery.
+Two neighboring guides cover the rest of the HTTP side. [JPEG delivery](02-jpeg-delivery.md) owns the shared image store and the code that writes images into responses. [Web client](03-web-client.md) owns the Ktor route adapter and the packaged browser page. Capture resources belong to the [capture attempt](../01-module/02-module-lifecycle.md), not to HTTP delivery.
 
 ## Contents
 
@@ -31,7 +31,7 @@ Two neighbouring guides cover the rest of the HTTP side. [JPEG delivery](02-jpeg
 | `WebRoutes` | One delivery | The route adapter installed into each listener, with lazily loaded page assets ([Web client](03-web-client.md)) |
 | `PlannedServer` | One server incarnation | Server UUID, address metadata, port, socket key, attempt budget, retry deadline and current listener |
 | `SocketOwner` | While its IP and port are planned, plus cleanup | Serializes bind attempts and cleanup for one scoped IP address and port |
-| `HttpListener` | One bind attempt | One Ktor CIO engine with one connector |
+| `HttpListener` | One bind attempt | The lifecycle that delivery drives for that attempt: start listening, await termination, request stop, and stop with cleanup. The production implementation, `CioHttpListener`, runs one Ktor CIO engine with one connector. |
 | `JpegResponse` | One admitted media call | Leases, writes and progress for that response |
 
 `HttpAccess` and `HttpRequests` have no locks, coroutines or timers of their own. Every call into them happens under the delivery's control monitor.
@@ -44,7 +44,7 @@ flowchart TB
     Delivery --> Requests["HttpRequests"]
     Delivery --> Store["JpegStore"]
     Delivery --> Owner["SocketOwner<br/>per IP and port"]
-    Owner --> Listener["HttpListener<br/>per bind attempt"]
+    Owner --> Listener["CioHttpListener<br/>per bind attempt"]
     Listener --> Routes["WebRoutes"]
     Routes -->|"admission"| Delivery
 ```
@@ -113,14 +113,14 @@ A socket owner serves one socket key for as long as the plan contains it. Its lo
 3. Otherwise spend one attempt, publish Pending and run one [bind attempt](#bind-attempts) through to the end of its cleanup.
 4. If the same incarnation is still planned and has budget left, set its retry deadline 250 ms ahead. Return to step 1.
 
-The wake-up is a conflated signal that keeps only the latest notification. Suppose the plan changes A → B → C while A's listener is still being cleaned up. After cleanup the owner rereads the plan and goes straight to C, and no worker is left waiting for B. Different socket keys bind and fail independently. The same key can't create its next engine until the previous engine's cleanup has finished, so two engines inside the app never compete for one IP address and port.
+The wake-up is a conflated signal that keeps only the latest notification. Suppose the plan changes A → B → C while A's listener is still being cleaned up. After cleanup the owner rereads the plan and goes straight to C, and no worker is left waiting for B. Different socket keys bind and fail independently. The same key can't create its next listener until the previous listener's cleanup has finished, so two engines inside the app never compete for one IP address and port.
 
 ```mermaid
 sequenceDiagram
     participant C as Controller
     participant D as Delivery
     participant O as Socket owner
-    participant L as Listener
+    participant L as CIO listener
     C->>D: New plan
     D->>O: Wake (latest only)
     O->>L: Create, install, start
@@ -135,7 +135,7 @@ sequenceDiagram
 
 ### Bind attempts
 
-A bind attempt constructs an `HttpListener` with the delivery's routes. It installs that listener as the incarnation's current listener before starting it, so requests that reach the new socket pass the adapter's listener check straight away. It then starts the CIO engine, which binds the socket. If the incarnation is still planned with that listener, the state becomes Listening. A late success for a removed or replaced incarnation isn't published. The attempt then waits for the engine to terminate. A termination that delivery didn't cause counts as `IoFailure`.
+A bind attempt creates a new `HttpListener` for the address's host string and the shared port, with the runtime job as its parent and an application setup that installs the delivery's routes. Delivery takes a listener factory as a constructor parameter, and its default constructs a `CioHttpListener`. The attempt installs that listener as the incarnation's current listener before starting it, so requests that reach the new socket pass the adapter's listener check straight away. It then starts the listener. For `CioHttpListener` that starts the CIO engine, which binds the socket. If the incarnation is still planned with that listener, the state becomes Listening. A late success for a removed or replaced incarnation isn't published. The attempt then waits for the listener to terminate. A termination that delivery didn't cause counts as `IoFailure`.
 
 Every attempt ends the same way:
 
@@ -288,7 +288,7 @@ Every listener's engine job is a child of the runtime job, so runtime cancellati
 
 ### Listener cleanup
 
-Socket owners clean up their listener in a non-cancellable context. Cleanup requests engine cancellation and joins the engine job. Then, in `finally`, it calls Ktor's public stop with zero grace period and zero timeout to dispose the application and its plugins. The socket owner keeps its socket key until both steps have finished. If either fails, delivery records a cleanup failure and requests terminal stop.
+Socket owners clean up their listener in a non-cancellable context through its `stopAndAwaitCleanup()`. `CioHttpListener` requests engine cancellation and joins the engine job. Then, in `finally`, it calls Ktor's public stop with zero grace period and zero timeout to dispose the application and its plugins. The socket owner keeps its socket key until both steps have finished. If either fails, delivery records a cleanup failure and requests terminal stop.
 
 ### Shared cleanup
 
@@ -312,6 +312,6 @@ A completed join proves that managed coroutines have finished and that Ktor's st
 
 ## Implementation and verification
 
-- [HttpDelivery](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpDelivery.kt) defines the contract the Controller and capture session use. [KtorHttpDelivery](../../src/main/kotlin/io/screenstream/mjpeg/http/KtorHttpDelivery.kt) owns the runtime, plan, admission and cleanup, and [HttpListener](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpListener.kt) owns one engine.
+- [HttpDelivery](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpDelivery.kt) defines the contract the Controller and capture session use. [KtorHttpDelivery](../../src/main/kotlin/io/screenstream/mjpeg/http/KtorHttpDelivery.kt) owns the runtime, plan, admission and cleanup, and [HttpListener](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpListener.kt) defines the lifecycle of one bind attempt. `CioHttpListener`, in the same file, implements it with one CIO engine.
 - [HttpAccess](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpAccess.kt) implements credentials and PIN limiting. [HttpRequests](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpRequests.kt) implements request registration, cutoff, client rows and totals.
-- The [HTTP runtime](../03-testing/scenarios/05-http-runtime.md), [access](../03-testing/scenarios/06-access.md) and [web protocol](../03-testing/scenarios/08-web-protocol.md) scenarios describe the histories this guide requires. [Testing](../03-testing/01-testing.md) explains which environments can provide evidence for them and the current state of the Kotlin test sources. Scenario documents and test sources aren't proof of behaviour, so record fresh execution results with each change.
+- The [HTTP runtime](../03-testing/scenarios/05-http-runtime.md), [access](../03-testing/scenarios/06-access.md) and [web protocol](../03-testing/scenarios/08-web-protocol.md) scenarios describe the histories this guide requires. [Testing](../03-testing/01-testing.md) explains which environments can provide evidence for them and the current state of the Kotlin test sources.

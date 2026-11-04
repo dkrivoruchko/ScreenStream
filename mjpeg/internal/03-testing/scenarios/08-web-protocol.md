@@ -13,7 +13,7 @@ Neighboring pages own related histories:
 - [HTTP runtime scenarios](05-http-runtime.md) cover listener lifetime.
 - The [web tools guide](../../../tools/web-client/README.md) covers the page's own behavior in a browser.
 
-These are requirements, not a record of passing tests. [Testing MJPEG](../01-testing.md) explains the current verification status and the evidence rules.
+These are requirements, not a record of passing tests. [Testing MJPEG](../01-testing.md) explains how test sources, fresh runs and platform qualification count as evidence.
 
 ## The pieces under test
 
@@ -130,7 +130,7 @@ The redirect removes the token from the page URL, and the page script never read
 - bodies of exactly 256 and 257 bytes
 - a 257th byte that arrives while the client keeps the connection open
 
-**Expected.** The parser accepts only a form-encoded body (parameters allowed), at most 256 bytes long, with exactly one `pin` field. Verification then requires six ASCII digits. Any other input yields no PIN, which verification treats as a wrong entry: `403`, and an attempt spent while limiting is on. The parser stops as soon as the 257th byte arrives, without waiting for the rest of the body. Invalid forms are parsed results and never authorize. Failures while reading the body are a separate case, covered by mjpeg-web-06.
+**Expected.** The parser accepts only a form-encoded body (parameters allowed), at most 256 bytes long, with exactly one `pin` field. Verification then requires six ASCII digits. Any other input yields no PIN, which verification treats as a wrong entry: `403`, and an attempt spent while limiting is on. The parser stops as soon as the 257th byte arrives, without waiting for the rest of the body. Invalid forms are parsed results and never authorize. Failures while reading the body are a separate case, covered by [MJPEG-WEB-06](#mjpeg-web-06).
 
 <a id="mjpeg-web-06"></a>
 
@@ -153,7 +153,7 @@ The redirect removes the token from the page URL, and the page script never read
 - An open stream returns `204` without a cookie.
 - A retired listener returns `403` without verifying the PIN or spending an attempt.
 
-The capacity wait for unknown peers belongs to [access scenario mjpeg-acc-10](06-access.md#mjpeg-acc-10).
+The capacity wait for unknown peers belongs to [MJPEG-ACC-10](06-access.md#mjpeg-acc-10).
 
 ## Media routes
 
@@ -263,9 +263,9 @@ The capacity wait for unknown peers belongs to [access scenario mjpeg-acc-10](06
 
 ### Read-only data and transport termination
 
-**History.** After admission, have the client send a text message and, separately, a binary message. Separately again, exchange ping and pong, send a close frame and disconnect abruptly, all while the state stays unchanged.
+**History.** After admission, have the client send a text message and, separately, a binary message. Separately, send data while admission is held, then release admission. Separately again, exchange ping and pong, send a close frame and disconnect abruptly, all while the state stays unchanged.
 
-**Expected.** Text or binary data closes the connection with `1008`. Ping and pong are handled by the transport and close nothing. A close frame or disconnect ends the waiting state writer promptly, without waiting for the next keepalive. On exit, the handler cancels the request and the detached default-session jobs and joins the latter. Observe that settlement directly through call completion and socket closure, not through cancellation or silence.
+**Expected.** Text or binary data closes the connection with `1008`, including data that was queued before admission completed. Ping and pong are handled by the transport and close nothing. A close frame or disconnect ends the waiting state writer promptly, without waiting for the next keepalive. On exit, the handler cancels the request and the detached default-session jobs and joins the latter. Observe that settlement directly through call completion and socket closure, not through cancellation or silence.
 
 <a id="mjpeg-web-13"></a>
 
@@ -279,9 +279,9 @@ The capacity wait for unknown peers belongs to [access scenario mjpeg-acc-10](06
 
 - hold a send and its flush past their five-second budget
 - hold a voluntary close and the join of the default session past their five-second budget
-- overflow the incoming queue, which holds four frames and closes on overflow
+- hold admission, send more data frames than the four-frame incoming queue holds, then release admission
 - send an incoming frame larger than 4,096 bytes
 - stop reading as a peer until the eight-frame outgoing queue fills and the send budget expires
 - let the 15-second ping timeout elapse
 
-**Expected.** Each case ends the connection at its documented cutoff, and the handler's detached session settles. These capacities bound only their own queues and frames. Total transport memory and physical cleanup time need separate evidence.
+**Expected.** Each case ends the connection at its documented cutoff, and the handler's detached session settles. For the queued burst, the cutoff is the read-only guard: the client receives a `1008` close, then the call completes and the socket closes. The incoming queue's `CLOSE` policy is configured per channel, and Ktor leaves buffered frames readable ([Web client](../../02-delivery/03-web-client.md#limits-and-settlement)). Don't require the burst to close the physical connection before admission or before the read-only guard runs. These capacities bound only their own queues and frames. Total transport memory and physical cleanup time need separate evidence.

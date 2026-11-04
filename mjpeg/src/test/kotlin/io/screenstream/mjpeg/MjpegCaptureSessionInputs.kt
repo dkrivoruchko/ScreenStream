@@ -4,7 +4,10 @@ import android.content.Context
 import android.media.projection.MediaProjection
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.mjpeg.http.HttpDelivery
+import io.screenstream.mjpeg.settings.ImageSettings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.shadow.api.Shadow
 import java.util.concurrent.CopyOnWriteArrayList
@@ -16,7 +19,7 @@ internal class MjpegCaptureSessionInputs(
     val grant: ScreenCaptureAccess.Grant = object : ScreenCaptureAccess.Grant {},
     private val consent: suspend (StreamingModule.CaptureAttemptId) -> ScreenCaptureAccess.Grant? = { grant },
     private val projectionCreation: (ScreenCaptureAccess.Grant) -> MediaProjection = { projection },
-    private val promotion: suspend () -> Unit = {},
+    private val promotion: () -> Unit = {},
     private val foregroundRelease: () -> Unit = {},
     private val guardRelease: (StreamingModule.CaptureAttemptId) -> Unit = {},
     private val consentReuse: (ScreenCaptureAccess.Grant) -> Unit = {},
@@ -28,12 +31,21 @@ internal class MjpegCaptureSessionInputs(
     val foregroundEvents: MutableList<String> = CopyOnWriteArrayList()
 
     val access: ScreenCaptureAccess = object : ScreenCaptureAccess {
-        override suspend fun requestConsent(attempt: StreamingModule.CaptureAttemptId): ScreenCaptureAccess.Grant? {
+        override suspend fun requestConsent(
+            attempt: StreamingModule.CaptureAttemptId,
+            attemptJob: Job,
+            prepareForeground: () -> Boolean,
+        ): ScreenCaptureAccess.ConsentResult {
             requested += attempt
-            return consent(attempt)
+            val granted = consent(attempt)
+                ?: return ScreenCaptureAccess.ConsentResult.NotGranted(ScreenCaptureAccess.NoGrantReason.Declined)
+            return if (prepareForeground()) {
+                ScreenCaptureAccess.ConsentResult.Granted(granted)
+            } else ScreenCaptureAccess.ConsentResult.NotGranted(ScreenCaptureAccess.NoGrantReason.ForegroundRejected)
         }
 
-        override fun createProjection(grant: ScreenCaptureAccess.Grant): MediaProjection {
+        override fun createProjection(grant: ScreenCaptureAccess.Grant, retryAfterRecentForegroundStart: Boolean): MediaProjection {
+            check(!retryAfterRecentForegroundStart)
             projections += grant
             return projectionCreation(grant)
         }
@@ -54,20 +66,25 @@ internal class MjpegCaptureSessionInputs(
         engineFactory: MjpegEngineFactory,
         onJpeg: (Int, (ByteArray) -> Unit) -> Unit = { _, _ -> error("No JPEG is expected in this history") },
         id: StreamingModule.CaptureAttemptId = StreamingModule.CaptureAttemptId(StreamingModule.InstanceId(StreamingModule.Id("MJPEG"))),
+        initialImageSettings: ImageSettings = ImageSettings(),
+        http: HttpDelivery = TestHttpDelivery(onJpeg = onJpeg),
     ): MjpegCaptureSession = MjpegCaptureSession(
         id = id,
+        initialImageSettings = initialImageSettings,
+        initialCaptureGeneration = Any(),
+        http = http,
         context = context,
         controllerScope = scope,
         captureAccess = access,
         enterForeground = {
             foregroundEvents += "enterForeground"
             promotion()
+            true
         },
         leaveForeground = {
             foregroundEvents += "leaveForeground"
             foregroundRelease()
         },
-        onJpeg = onJpeg,
         engineFactory = engineFactory,
     )
 }

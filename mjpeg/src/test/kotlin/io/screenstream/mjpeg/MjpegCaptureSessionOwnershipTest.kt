@@ -9,7 +9,6 @@ import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.ScreenCaptureStopReason
-import io.screenstream.mjpeg.settings.ImageSettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -18,11 +17,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -45,7 +42,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [33])
+@Config(manifest = Config.NONE, sdk = [33], shadows = [InertMjpegProjectionShadow::class])
 // SDK-invariant MJPEG policy for SDK 24–37. This does not prove platform consent reuse,
 // Binder, graphics, or actual callback-thread retirement. The coordinator stores consent only on SDK 24–33.
 internal class MjpegCaptureSessionOwnershipTest {
@@ -61,11 +58,11 @@ internal class MjpegCaptureSessionOwnershipTest {
         val inputs = MjpegCaptureSessionInputs()
         val session = inputs.ownershipSession(backgroundScope, engine)
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
 
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             runCurrent()
             assertTrue(engine.mediaStopEntered.isCompleted)
             assertTrue(engine.registrationCloseEntered.isCompleted)
@@ -94,21 +91,21 @@ internal class MjpegCaptureSessionOwnershipTest {
 
     // Cases: MJPEG-CAP-10, MJPEG-CAP-11
     @Test
-    fun mediaStopReleasesForegroundButExactRegistrationStillHoldsCleanupAndConsent() = runTest(StandardTestDispatcher()) {
+    fun mediaStopStillWaitsForExactRegistrationBeforeForegroundAndConsent() = runTest(StandardTestDispatcher()) {
         val engine = EngineInput(holdRegistration = true)
         val inputs = MjpegCaptureSessionInputs()
         val session = inputs.ownershipSession(backgroundScope, engine)
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             runCurrent()
 
             assertTrue(engine.mediaStopped.isCompleted)
             assertTrue(engine.registrationCloseEntered.isCompleted)
             assertFalse(engine.registrationRetired.isCompleted)
-            assertEquals(listOf("enterForeground", "leaveForeground"), inputs.foregroundEvents)
+            assertEquals(listOf("enterForeground"), inputs.foregroundEvents)
             assertNull(session.state.value.cleanupSucceeded)
             assertNull(session.state.value.cleanupFailure)
             assertEquals(MjpegCaptureSession.State.Status.Stopping, session.state.value.status)
@@ -136,10 +133,10 @@ internal class MjpegCaptureSessionOwnershipTest {
         val inputs = MjpegCaptureSessionInputs()
         val session = inputs.ownershipSession(CoroutineScope(coroutineContext + owner), engine)
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             runCurrent()
             assertTrue(engine.mediaStopped.isCompleted)
             assertTrue(engine.registrationCloseEntered.isCompleted)
@@ -149,7 +146,7 @@ internal class MjpegCaptureSessionOwnershipTest {
             val second = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
             abandoned.cancelAndJoin()
             owner.cancel()
-            session.stop(MjpegCaptureSession.StopReason.System)
+            session.requestStop(MjpegCaptureSession.StopReason.System)
             runCurrent()
 
             assertFalse(first.isCompleted)
@@ -183,7 +180,7 @@ internal class MjpegCaptureSessionOwnershipTest {
         })
         val session = inputs.ownershipSession(backgroundScope, engine)
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
             engine.publish(MjpegEngineState(MjpegEngineState.Phase.Failed, problem = ScreenCaptureProblem.InternalFailure))
@@ -203,7 +200,7 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertTrue(cleanupGuardReleased)
             assertTrue(inputs.saved.isEmpty())
 
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             engine.releaseRegistration()
             runCurrent()
             assertFalse(awaitCleanup(session))
@@ -220,7 +217,7 @@ internal class MjpegCaptureSessionOwnershipTest {
 
     // Cases: MJPEG-CAP-09, MJPEG-CAP-11
     @Test
-    fun foregroundReleaseFailureStillRetiresExactRegistrationAndPreventsConsentReuse() = runTest(StandardTestDispatcher()) {
+    fun foregroundReleaseFailureFollowsGuardConsumerAndEligibleConsentReuse() = runTest(StandardTestDispatcher()) {
         val cause = IllegalStateException("Foreground release failed")
         val engine = EngineInput()
         var foregroundReleaseAttempted = false
@@ -234,10 +231,10 @@ internal class MjpegCaptureSessionOwnershipTest {
         )
         val session = inputs.ownershipSession(backgroundScope, engine)
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             runCurrent()
 
             assertFalse(awaitCleanup(session))
@@ -245,8 +242,8 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertTrue(engine.mediaStopped.isCompleted)
             assertTrue(engine.registrationRetired.isCompleted)
             assertEquals(listOf("enterForeground", "leaveForeground"), inputs.foregroundEvents)
-            assertTrue(guardReleasedAfterForegroundFailure)
-            assertTrue(inputs.saved.isEmpty())
+            assertFalse(guardReleasedAfterForegroundFailure)
+            assertEquals(listOf(inputs.grant), inputs.saved)
         } finally {
             settle(session, engine)
         }
@@ -261,19 +258,19 @@ internal class MjpegCaptureSessionOwnershipTest {
         val inputs = MjpegCaptureSessionInputs(guardRelease = { if (cleanupEntered) throw cause })
         val session = inputs.ownershipSession(backgroundScope, engine)
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
             assertEquals(listOf(session.id), inputs.finished)
             cleanupEntered = true
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             runCurrent()
 
             assertFalse(awaitCleanup(session))
             assertCleanupFailure(session, "Cleanup.projectionCreation", cause)
             assertTrue(engine.mediaStopped.isCompleted)
             assertTrue(engine.registrationRetired.isCompleted)
-            assertEquals(listOf("enterForeground", "leaveForeground"), inputs.foregroundEvents)
+            assertEquals(listOf("enterForeground"), inputs.foregroundEvents)
             assertTrue(inputs.saved.isEmpty())
         } finally {
             settle(session, engine)
@@ -293,20 +290,20 @@ internal class MjpegCaptureSessionOwnershipTest {
             consentReuse = {
                 assertTrue(engine.mediaStopped.isCompleted)
                 assertTrue(engine.registrationRetired.isCompleted)
-                assertTrue(foregroundReleased)
+                assertFalse(foregroundReleased)
                 assertTrue(cleanupGuardReleased)
                 throw cause
             },
         )
         val session = inputs.ownershipSession(backgroundScope, engine)
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             runCurrent()
             assertTrue(engine.mediaStopped.isCompleted)
-            assertEquals(listOf("enterForeground", "leaveForeground"), inputs.foregroundEvents)
+            assertEquals(listOf("enterForeground"), inputs.foregroundEvents)
             assertNull(session.state.value.cleanupSucceeded)
             assertNull(session.state.value.cleanupFailure)
             assertTrue(inputs.saved.isEmpty())
@@ -329,17 +326,18 @@ internal class MjpegCaptureSessionOwnershipTest {
             Triple(MjpegCaptureSession.StopReason.User, MjpegCaptureSession.StopReason.System, true),
             Triple(MjpegCaptureSession.StopReason.Shutdown, MjpegCaptureSession.StopReason.User, true),
             Triple(MjpegCaptureSession.StopReason.System, MjpegCaptureSession.StopReason.User, false),
+            Triple(MjpegCaptureSession.StopReason.Error, MjpegCaptureSession.StopReason.User, false),
         )
         for ((first, later, offersConsent) in requestedHistories) {
             val engine = EngineInput()
             val inputs = MjpegCaptureSessionInputs()
             val session = inputs.ownershipSession(backgroundScope, engine)
             try {
-                session.runCapture(ImageSettings())
+                session.start()
                 runCurrent()
                 assertStreaming(session)
-                session.stop(first)
-                session.stop(later)
+                session.requestStop(first)
+                session.requestStop(later)
                 runCurrent()
 
                 assertTrue("First Stop: $first", awaitCleanup(session))
@@ -360,11 +358,11 @@ internal class MjpegCaptureSessionOwnershipTest {
         val inputs = MjpegCaptureSessionInputs()
         val session = inputs.ownershipSession(backgroundScope, engine)
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertStreaming(session)
             engine.publish(revoked)
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             runCurrent()
 
             assertTrue(awaitCleanup(session))
@@ -383,13 +381,13 @@ internal class MjpegCaptureSessionOwnershipTest {
         val inputs = MjpegCaptureSessionInputs()
         val session = inputs.ownershipSession(backgroundScope, engine)
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertTrue(engine.startEntered.isCompleted)
             assertEquals(MjpegCaptureSession.State.Status.Active, session.state.value.status)
             assertFalse(session.state.value.isStreaming)
             assertNull(session.state.value.captureFailure)
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             runCurrent()
 
             assertTrue(awaitCleanup(session))
@@ -474,7 +472,7 @@ internal class MjpegCaptureSessionOwnershipTest {
         engine.releaseRegistration()
         withContext(NonCancellable) {
             withTimeout(5.seconds) {
-                session.stop(MjpegCaptureSession.StopReason.Shutdown)
+                session.requestStop(MjpegCaptureSession.StopReason.Shutdown)
                 session.awaitCleanup()
                 owner?.cancelAndJoin()
             }
@@ -512,7 +510,7 @@ internal class MjpegCaptureSessionOwnershipTest {
         override val currentState: MjpegEngineState
             get() = observed.value
         override val states: Flow<MjpegEngineState> = observed
-        override val stats: Flow<ScreenCaptureStats> = flow { awaitCancellation() }
+        override val stats: kotlinx.coroutines.flow.StateFlow<ScreenCaptureStats> = MutableStateFlow(emptyEngineStatistics())
 
         override suspend fun start(parameters: ScreenCaptureParameters) {
             observed.value = MjpegEngineState(MjpegEngineState.Phase.Active)

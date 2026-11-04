@@ -30,7 +30,7 @@ internal class HttpRequestHistoryTest {
             val second = fixture.registerMedia(format = MediaFormat.Mjpeg)
             val initial = fixture.sample(0).clients.single()
             assertEquals(MediaFormat.Mjpeg, initial.format)
-            fixture.requests.registerWeb(fixture.oldListener.listener, fixture.webJob)
+            fixture.requests.registerWebSocket(fixture.oldListener.listener, fixture.webJob)
             fixture.requests.retireMedia(first.writer, 100, setOf(fixture.oldListener.listener))
             assertEquals(ClientInfo.State.Active, fixture.sample(20_000).clients.single().state)
             fixture.requests.retireMedia(second.writer, 20_000, setOf(fixture.oldListener.listener))
@@ -120,12 +120,12 @@ internal class HttpRequestHistoryTest {
         try {
             val old = fixture.registerMedia()
             val current = fixture.registerMedia(listener = fixture.currentListener.listener, port = 6001)
-            fixture.requests.registerWeb(fixture.oldListener.listener, fixture.webJob)
+            fixture.requests.registerWebSocket(fixture.oldListener.listener, fixture.webJob)
             val otherWeb = Job()
             fixture.jobs += otherWeb
-            fixture.requests.registerWeb(fixture.currentListener.listener, otherWeb)
+            fixture.requests.registerWebSocket(fixture.currentListener.listener, otherWeb)
             assertEquals(setOf(old.job, fixture.webJob), fixture.requests.cutoff(fixture.oldListener.listener, fixture.serverId, 100).toSet())
-            assertEquals(setOf(fixture.webJob, otherWeb), fixture.requests.clearEndpointsAndGetWebJobs().toSet())
+            assertEquals(setOf(fixture.webJob, otherWeb), fixture.requests.clearEndpointsAndGetWebSocketJobs().toSet())
             fixture.requests.closeMediaReaders()
             assertNull(current.reader.acquireFrame())
             fixture.requests.retireMedia(old.writer, 200, setOf(fixture.currentListener.listener))
@@ -134,8 +134,8 @@ internal class HttpRequestHistoryTest {
             fixture.requests.retireMedia(current.writer, 300, setOf(fixture.currentListener.listener))
             fixture.requests.retireMedia(current.writer, 400, setOf(fixture.currentListener.listener))
             assertTrue(fixture.sample(400).clients.isEmpty())
-            fixture.requests.removeWeb(fixture.webJob)
-            fixture.requests.removeWeb(otherWeb)
+            fixture.requests.removeWebSocket(fixture.webJob)
+            fixture.requests.removeWebSocket(otherWeb)
             assertTrue(fixture.requests.closeAll().isEmpty())
         } finally {
             fixture.close()
@@ -162,14 +162,14 @@ internal class HttpRequestHistoryTest {
         ): Media {
             val store = JpegStore().apply {
                 installLogo(byteArrayOf(1, 2, 3))
-                updateStoppedImagePolicy(PostStopImage.Placeholder)
+                updateFallbackPolicy(PostStopImage.Placeholder)
             }
             stores += store
             val reader = checkNotNull(store.openReader())
             val writer = JpegResponse(reader, format)
             writers += writer
             val job = Job().also(jobs::add)
-            requests.registerMedia(writer, listener, serverId, ip, port, format, job, nowMillis)
+            requests.registerMedia(writer, listener, serverId, ip, port, job, nowMillis)
             return Media(writer, reader, job)
         }
 

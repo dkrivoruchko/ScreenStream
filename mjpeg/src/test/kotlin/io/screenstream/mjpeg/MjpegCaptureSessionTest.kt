@@ -3,9 +3,9 @@ package io.screenstream.mjpeg
 import android.content.Context
 import android.content.ContextWrapper
 import android.media.projection.MediaProjection
-import io.screenstream.mjpeg.settings.ImageSettings
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.mjpeg.settings.ImageSettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -43,7 +43,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [34])
+@Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
 internal class MjpegCaptureSessionTest {
     // Cases: MJPEG-CAP-04
     @Test
@@ -56,14 +56,13 @@ internal class MjpegCaptureSessionTest {
         val events = mutableListOf<String>()
         val session = session(access, events, backgroundScope, context = missingDisplayContext())
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertTrue(session.awaitCleanup())
         val failure = session.state.value.captureFailure!!
         assertEquals("Engine.creation", failure.stage)
-        assertTrue(failure.cause is IllegalArgumentException)
-        assertEquals("DisplayManager must be available", failure.cause.message)
+        assertEquals(MjpegCaptureSession.StopReason.Error, session.state.value.stopReason)
         assertEquals(1, platform.stopCalls.get())
         assertEquals(listOf(grant), access.projections)
         assertEquals(listOf("enterForeground", "leaveForeground"), events)
@@ -77,7 +76,7 @@ internal class MjpegCaptureSessionTest {
     // Cases: MJPEG-CAP-04, MJPEG-CAP-09, MJPEG-CAP-11
     @Test
     @Config(shadows = [ProjectionStopShadow::class])
-    fun rawProjectionStopFailureRetainsFactoryFailureAndStillReleasesForegroundAndGuard() = runTest {
+    fun rawProjectionStopFailureRetainsFactoryFailureAndGuardWithoutForegroundRelease() = runTest {
         val projection = Shadow.newInstanceOf(MediaProjection::class.java)
         val platform = Shadow.extract<ProjectionStopShadow>(projection)
         val stopFailure = IllegalStateException("Raw projection stop failed")
@@ -87,16 +86,15 @@ internal class MjpegCaptureSessionTest {
         val events = mutableListOf<String>()
         val session = session(access, events, backgroundScope, context = missingDisplayContext())
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertFalse(session.awaitCleanup())
         assertEquals("Engine.creation", session.state.value.captureFailure?.stage)
-        assertEquals("DisplayManager must be available", session.state.value.captureFailure?.cause?.message)
         assertEquals("Cleanup.media", session.state.value.cleanupFailure?.stage)
         assertSame(stopFailure, session.state.value.cleanupFailure?.cause)
         assertEquals(1, platform.stopCalls.get())
-        assertEquals(listOf("enterForeground", "leaveForeground"), events)
+        assertEquals(listOf("enterForeground"), events)
         assertEquals(listOf(session.id), access.finished)
         assertTrue(access.saved.isEmpty())
         assertEquals(MjpegCaptureSession.State.Status.Failed, session.state.value.status)
@@ -123,7 +121,7 @@ internal class MjpegCaptureSessionTest {
         platform.onStop = { events += "projection.stop" }
         val session = session(access, events, backgroundScope)
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertTrue(session.awaitCleanup())
@@ -157,7 +155,7 @@ internal class MjpegCaptureSessionTest {
         val events = mutableListOf<String>()
         val session = session(access, events, backgroundScope)
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertFalse(session.awaitCleanup())
@@ -203,7 +201,7 @@ internal class MjpegCaptureSessionTest {
         assertFalse(waiter.isCompleted)
         assertTrue(access.requested.isEmpty())
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertTrue(waiter.await())
@@ -216,7 +214,7 @@ internal class MjpegCaptureSessionTest {
         assertNull(session.state.value.captureFailure)
         assertNull(session.state.value.cleanupFailure)
         assertTrue(access.saved.isEmpty())
-        assertThrows(IllegalStateException::class.java) { session.runCapture(ImageSettings()) }
+        assertThrows(IllegalStateException::class.java) { session.start() }
     }
 
     // Cases: MJPEG-CAP-02
@@ -226,8 +224,8 @@ internal class MjpegCaptureSessionTest {
         val events = mutableListOf<String>()
         val session = session(access, events, backgroundScope)
 
-        session.runCapture(ImageSettings())
-        session.stop(MjpegCaptureSession.StopReason.User)
+        session.start()
+        session.requestStop(MjpegCaptureSession.StopReason.User)
         runCurrent()
 
         assertTrue(session.awaitCleanup())
@@ -246,7 +244,7 @@ internal class MjpegCaptureSessionTest {
         val events = mutableListOf<String>()
         val session = session(access, events, backgroundScope)
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertEquals(listOf(session.id), access.requested)
@@ -258,8 +256,8 @@ internal class MjpegCaptureSessionTest {
         assertNull(session.state.value.cleanupSucceeded)
         assertEquals(MjpegCaptureSession.State.Status.WaitingForPermission, session.state.value.status)
 
-        session.stop(MjpegCaptureSession.StopReason.User)
-        session.stop(MjpegCaptureSession.StopReason.Shutdown)
+        session.requestStop(MjpegCaptureSession.StopReason.User)
+        session.requestStop(MjpegCaptureSession.StopReason.Shutdown)
         session.updateImageSettings(ImageSettings(jpegQuality = 10))
         runCurrent()
 
@@ -279,7 +277,7 @@ internal class MjpegCaptureSessionTest {
         val events = mutableListOf<String>()
         val session = session(access, events, backgroundScope)
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertTrue(session.awaitCleanup())
@@ -314,14 +312,14 @@ internal class MjpegCaptureSessionTest {
             },
         )
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertFalse(session.awaitCleanup())
         assertFailure(session, "Startup.foreground", acquisitionFailure)
-        assertEquals("Cleanup.foreground", session.state.value.cleanupFailure?.stage)
-        assertSame(foregroundCleanupFailure, session.state.value.cleanupFailure?.cause)
-        assertEquals(listOf("enterForeground", "leaveForeground"), events)
+        assertEquals("Cleanup.projectionCreation", session.state.value.cleanupFailure?.stage)
+        assertSame(guardCleanupFailure, session.state.value.cleanupFailure?.cause)
+        assertEquals(listOf("enterForeground"), events)
         assertEquals(listOf(session.id), access.finished)
         assertTrue(access.projections.isEmpty())
         assertTrue(access.saved.isEmpty())
@@ -342,7 +340,7 @@ internal class MjpegCaptureSessionTest {
         )
         val session = session(access, events, backgroundScope)
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertTrue(session.awaitCleanup())
@@ -361,7 +359,7 @@ internal class MjpegCaptureSessionTest {
         val events = mutableListOf<String>()
         val session = session(access, events, backgroundScope)
 
-        session.runCapture(ImageSettings())
+        session.start()
         runCurrent()
 
         assertFalse(session.awaitCleanup())
@@ -370,7 +368,7 @@ internal class MjpegCaptureSessionTest {
         assertSame(cause, session.state.value.cleanupFailure?.cause)
         assertEquals(MjpegCaptureSession.State.Status.Failed, session.state.value.status)
         assertFalse(session.state.value.isStreaming)
-        assertEquals(listOf("leaveForeground"), events)
+        assertTrue(events.isEmpty())
         assertEquals(listOf(session.id), access.finished)
     }
 
@@ -403,7 +401,7 @@ internal class MjpegCaptureSessionTest {
             context = if (engineOwnsProjection) RuntimeEnvironment.getApplication() else missingDisplayContext(),
         )
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             withTimeout(5.seconds) { stopEntered.await() }
             if (engineOwnsProjection) {
                 // The adapter has settled or suspended its current task; only its Engine worker is held.
@@ -424,7 +422,7 @@ internal class MjpegCaptureSessionTest {
             val abandoned = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
             assertFalse(abandoned.isCompleted)
             abandoned.cancelAndJoin()
-            session.stop(MjpegCaptureSession.StopReason.User)
+            session.requestStop(MjpegCaptureSession.StopReason.User)
             val remaining = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
             assertFalse(remaining.isCompleted)
             assertNull(session.state.value.cleanupSucceeded)
@@ -445,7 +443,7 @@ internal class MjpegCaptureSessionTest {
         } finally {
             releaseStop.countDown()
             try {
-                session.stop(MjpegCaptureSession.StopReason.Shutdown)
+                session.requestStop(MjpegCaptureSession.StopReason.Shutdown)
                 withContext(NonCancellable) {
                     withTimeout(5.seconds) {
                         session.awaitCleanup()
@@ -476,17 +474,19 @@ internal class MjpegCaptureSessionTest {
         access: CaptureAccess,
         events: MutableList<String>,
         scope: CoroutineScope,
-        enter: suspend () -> Unit = { events += "enterForeground" },
+        enter: () -> Unit = { events += "enterForeground" },
         leave: () -> Unit = { events += "leaveForeground" },
         context: Context = RuntimeEnvironment.getApplication(),
     ): MjpegCaptureSession = MjpegCaptureSession(
         id = StreamingModule.CaptureAttemptId(StreamingModule.InstanceId(StreamingModule.Id("MJPEG"))),
+        initialImageSettings = ImageSettings(),
+        initialCaptureGeneration = Any(),
+        http = TestHttpDelivery(),
         context = context,
         controllerScope = scope,
         captureAccess = access,
-        enterForeground = enter,
+        enterForeground = { enter(); true },
         leaveForeground = leave,
-        onJpeg = { _, _ -> error("No JPEG is expected before capture starts") },
     )
 
     private fun missingDisplayContext(): Context = object : ContextWrapper(RuntimeEnvironment.getApplication()) {
@@ -513,12 +513,19 @@ internal class MjpegCaptureSessionTest {
         val finished = CopyOnWriteArrayList<StreamingModule.CaptureAttemptId>()
         val saved = CopyOnWriteArrayList<ScreenCaptureAccess.Grant>()
 
-        override suspend fun requestConsent(attempt: StreamingModule.CaptureAttemptId): ScreenCaptureAccess.Grant? {
+        override suspend fun requestConsent(
+            attempt: StreamingModule.CaptureAttemptId,
+            attemptJob: kotlinx.coroutines.Job,
+            prepareForeground: () -> Boolean,
+        ): ScreenCaptureAccess.ConsentResult {
             requested += attempt
-            return request()
+            val grant = request() ?: return ScreenCaptureAccess.ConsentResult.NotGranted(ScreenCaptureAccess.NoGrantReason.Declined)
+            return if (prepareForeground()) ScreenCaptureAccess.ConsentResult.Granted(grant)
+            else ScreenCaptureAccess.ConsentResult.NotGranted(ScreenCaptureAccess.NoGrantReason.ForegroundRejected)
         }
 
-        override fun createProjection(grant: ScreenCaptureAccess.Grant): MediaProjection {
+        override fun createProjection(grant: ScreenCaptureAccess.Grant, retryAfterRecentForegroundStart: Boolean): MediaProjection {
+            check(!retryAfterRecentForegroundStart)
             projections += grant
             return projection(grant)
         }

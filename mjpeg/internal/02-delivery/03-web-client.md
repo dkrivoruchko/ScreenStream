@@ -105,7 +105,7 @@ Equal values don't produce a new emission, so ordinary new frames of the same im
 
 1. **Origin.** If the request lacks a matching `Origin`, the adapter closes the connection with code `1008` and reason `Origin rejected`.
 2. **Admission.** Delivery decides admission. On denial, the adapter sends one JSON message, `pin_required` or `blocked` with `retryAfterMs`, then closes with `1000` and reason `Access required`.
-3. **Read-only guard.** An admitted connection starts a reader that waits for one incoming frame. Any application data closes the connection with `1008` and reason `Read-only connection`. When the incoming side ends or fails, the reader cancels the connection scope, which also stops a writer that is waiting for the next state.
+3. **Read-only guard.** An admitted connection starts a reader that waits for one incoming frame. Any application data closes the connection with `1008` and reason `Read-only connection`. That includes data that was already queued when admission completed. Ktor handles ping, pong and close frames itself, so they never reach the guard. When the incoming side ends or fails, the reader cancels the connection scope, which also stops a writer that is waiting for the next state.
 4. **State loop.** The writer reads the current state. If the state is null or carries another credential generation, the connection ends by cancellation. Otherwise the writer encodes the state, asks delivery once more whether the listener is current and the generation matches, and sends. It then waits for a different state, or for two seconds, whichever comes first. The two-second repeat is the liveness signal that the page relies on.
 
 Revocation, listener removal and shutdown end the connection by cancellation rather than through the voluntary close handshake. A reconnecting client learns the new requirement from its first message.
@@ -116,13 +116,15 @@ Revocation, listener removal and shutdown end the connection by cancellation rat
 | --- | --- |
 | Ping period and timeout | 15 seconds each |
 | Largest incoming frame | 4096 bytes |
-| Incoming queue | 4 frames. Overflow closes the connection. |
-| Outgoing queue | 8 frames. Overflow suspends the sender. |
+| Incoming queue | 4 frames, with Ktor's `CLOSE` overflow policy |
+| Outgoing queue | 8 frames, with Ktor's `SUSPEND` overflow policy: overflow suspends the sender |
 | Encoded snapshot | 256 KiB of UTF-8. A snapshot at exactly the limit is sent. A larger one closes with `1011` and reason `Page settings exceed snapshot limit`. |
 | Send plus flush | 5 seconds |
 | Voluntary close plus joining the session | 5 seconds |
 
-These limits apply to particular queues and frames, not to all transport memory. The handler captures Ktor's detached default-session job before entering the close timeout, because the timeout introduces its own coroutine context.
+These limits apply to particular queues and frames, not to all transport memory. The incoming setting bounds the queue of data frames that the handler reads. Under `CLOSE`, Ktor closes that queue once it reaches capacity, and frames already buffered stay readable ([`ChannelOverflow`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-shared/ktor-websockets/common/src/io/ktor/websocket/WebSocketChannelsConfig.kt), [default session](https://github.com/ktorio/ktor/blob/3.6.1/ktor-shared/ktor-websockets/common/src/io/ktor/websocket/DefaultWebSocketSession.kt)). Overflow therefore doesn't guarantee that the physical connection closes before admission finishes or before the read-only guard reads a buffered frame. The app's contract is the one in the [connection flow](#connection-flow): after admission, application data closes with `1008`. Physical closure, call settlement and the close budget are separate facts, covered below.
+
+The handler captures Ktor's detached default-session job before entering the close timeout, because the timeout introduces its own coroutine context.
 
 When the handler exits for any reason, it cancels the raw request job and the default-session job, then joins the default-session job in a non-cancellable context. It must not join its own request job, because that would deadlock. Joining the default-session job lets [HTTP terminal cleanup](01-http-delivery.md#terminal-cleanup) rely on call completion. Ktor's [WebSocket documentation](https://ktor.io/docs/server-websockets.html) covers the ping, timeout and frame-size options. Whether the socket is actually released still needs transport and platform evidence.
 
@@ -224,13 +226,13 @@ A primary message clears any transient notice, such as a fullscreen or picture-i
 
 Bars reserve their measured space, and overlays cover the image. Only overlays set to auto-hide disappear, after four seconds without interaction. They stay visible while a pointer is pressed or over a control, while the menu is open, or while keyboard focus is in the controls or menu.
 
-The viewport owner intersects the layout size, the visual viewport when the page isn't zoomed, and the CSS safe-area insets, keeping a small margin at the top and bottom. Floating keyboards and older browsers can report geometry that doesn't reveal occlusion. A page inside an iframe can't see what covers the outer browser. Layout, keyboard focus, screen-reader behaviour and reduced motion need qualification in real browsers.
+The viewport owner intersects the layout size, the visual viewport when the page isn't zoomed, and the CSS safe-area insets, keeping a small margin at the top and bottom. Floating keyboards and older browsers can report geometry that doesn't reveal occlusion. A page inside an iframe can't see what covers the outer browser. Layout, keyboard focus, screen-reader behavior and reduced motion need qualification in real browsers.
 
 ## Fullscreen and picture in picture
 
 ### Fullscreen
 
-Fullscreen uses the standard API or a detected prefixed variant on the page shell, and the control is hidden when neither request nor exit exists. Each press creates an attempt identity. A promise rejection, or a legacy `fullscreenerror` event for APIs without promises, reports failure only for the current attempt. A newer press replaces the attempt, and page pause clears it, so stale failures don't show. `fullscreenchange` updates the control from the browser's actual state. A failure leaves normal viewing available. The [Fullscreen standard](https://fullscreen.spec.whatwg.org/) defines the native behaviour. Feature detection only chooses which API to try.
+Fullscreen uses the standard API or a detected prefixed variant on the page shell, and the control is hidden when neither request nor exit exists. Each press creates an attempt identity. A promise rejection, or a legacy `fullscreenerror` event for APIs without promises, reports failure only for the current attempt. A newer press replaces the attempt, and page pause clears it, so stale failures don't show. `fullscreenchange` updates the control from the browser's actual state. A failure leaves normal viewing available. The [Fullscreen standard](https://fullscreen.spec.whatwg.org/) defines the native behavior. Feature detection only chooses which API to try.
 
 ### Picture in picture
 
@@ -250,4 +252,4 @@ The presence of the API doesn't prove secure-context, permissions-policy, device
 
 The owner links above point to the authored JavaScript. Shared strings, locales, CSS and the HTML template sit next to them in `src`. The [web-client build guide](../../tools/web-client/README.md) explains how to regenerate the Android HTML asset, which browsers the syntax targets, and how to run the desktop preview.
 
-The preview builds the same viewer and serves it with a virtual device and its own HTTP and WebSocket server. Its fixtures check the preview harness and the build. They don't reproduce Android capture history, Ktor or CIO behaviour, or the viewer running in a real browser. Syntax targets and feature detection need separate runtime qualification on the relevant Android, desktop, iPhone, iPad and TV browsers. The route adapter's required behaviour is catalogued in the [web protocol scenarios](../03-testing/scenarios/08-web-protocol.md). [Testing](../03-testing/01-testing.md) separates requirements, test sources, fresh execution and platform evidence. Record the results of browser and preview checks with the change that needed them.
+The preview builds the same viewer and serves it with a virtual device and its own HTTP and WebSocket server. Its fixtures check the preview harness and the build. They don't reproduce Android capture history, Ktor or CIO behavior, or the viewer running in a real browser. Syntax targets and feature detection need separate runtime qualification on the relevant Android, desktop, iPhone, iPad and TV browsers. The route adapter's required behavior is catalogued in the [web protocol scenarios](../03-testing/scenarios/08-web-protocol.md). [Testing](../03-testing/01-testing.md) separates requirements, test sources, fresh execution and platform evidence. Record the results of browser and preview checks with the change that needed them.

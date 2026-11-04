@@ -7,12 +7,14 @@ import com.elvishew.xlog.LogLevel
 import com.elvishew.xlog.XLog
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -51,26 +53,26 @@ internal class AndroidNetworkAddressMonitorTest {
 
     // Cases: MJPEG-NET-10, MJPEG-NET-11
     @Test
-    fun discoveryStartsWithoutSubscribersAndEmptyFilterChangesReuseObserverUntilClose() = runBlocking {
+    fun discoveryStartsWithoutSubscribersAndSelectionsReuseObserverUntilClose() = runBlocking {
         val context = RuntimeEnvironment.getApplication()
         val platform = shadowOf(context.getSystemService(ConnectivityManager::class.java))
         platform.clearAllNetworks()
-        val monitor = AndroidNetworkAddressMonitor(context)
+        val monitor = AndroidNetworkAddressMonitor(context, NativeInterfaceFixture())
         val noFamilies = NetworkAddressFilter(emptySet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
         val noCategories = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), emptySet())
         try {
             assertEquals(NetworkAddressMonitor.State.NotStarted, monitor.state.value)
-            monitor.updateFilter(noFamilies)
+            monitor.start()
             // Host-native IPs cannot match this empty filter.
             awaitObserved(monitor, noFamilies)
             val observer = platform.networkCallbacks.single()
-            monitor.updateFilter(noCategories)
+            monitor.start()
             awaitObserved(monitor, noCategories)
             assertSame(observer, platform.networkCallbacks.single())
             withTimeout(5.seconds) { monitor.close() }
             assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
             assertTrue(platform.networkCallbacks.isEmpty())
-            monitor.updateFilter(noFamilies)
+            monitor.start()
             withTimeout(5.seconds) { monitor.close() }
             assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
             assertTrue(platform.networkCallbacks.isEmpty())
@@ -81,13 +83,15 @@ internal class AndroidNetworkAddressMonitorTest {
 
     // Cases: MJPEG-NET-11
     @Test
-    fun inertMonitorClosesWithoutScanAndLaterFiltersCannotReopenIt() = runBlocking {
+    fun inertMonitorClosesWithoutScanAndLaterStartsCannotReopenIt() = runBlocking {
         val nativeScanEntries = AtomicInteger()
         val native = NativeInterfaceFixture(enumeration = {
             nativeScanEntries.incrementAndGet()
             Collections.emptyEnumeration()
         })
         val monitor = AndroidNetworkAddressMonitor(RuntimeEnvironment.getApplication(), native)
+        val emissions = java.util.concurrent.CopyOnWriteArrayList<NetworkAddressMonitor.State>()
+        val collector = launch(Dispatchers.Unconfined) { monitor.state.collect { emissions += it } }
         try {
             withTimeout(5.seconds) {
                 assertEquals(NetworkAddressMonitor.State.NotStarted, monitor.state.value)
@@ -97,13 +101,19 @@ internal class AndroidNetworkAddressMonitorTest {
                 second.await()
                 assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
                 assertEquals(0, nativeScanEntries.get())
-                monitor.updateFilter(NetworkAddressFilter(setOf(AddressFamily.Ipv4), setOf(InterfaceType.Wifi), setOf(AddressCategory.Private)))
+                assertFalse(emissions.contains(NetworkAddressMonitor.State.Loading))
+                monitor.start()
                 monitor.close()
                 assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
                 assertEquals(0, nativeScanEntries.get())
             }
         } finally {
-            withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
+            withContext(NonCancellable) {
+                withTimeout(5.seconds) {
+                    monitor.close()
+                    collector.cancelAndJoin()
+                }
+            }
         }
     }
 
@@ -128,6 +138,8 @@ internal class AndroidNetworkAddressMonitorTest {
                             scope12, ip("ff02::1"), shared, ip("169.254.1.7"), unscoped,
                             ip("127.0.0.1"), ip("0.0.0.0"), scope11, ip("8.8.8.8"),
                             ip("224.0.0.1"), ip("::"), ip("fe80::7"),
+                            Inet6Address.getByAddress(null, ip("fe80::7").address, 11),
+                            Inet6Address.getByAddress(null, ip("ff02::1").address, 12),
                         ),
                     ),
                 ),
@@ -136,15 +148,14 @@ internal class AndroidNetworkAddressMonitorTest {
         val monitor = AndroidNetworkAddressMonitor(context, native)
         val all = filter()
         try {
-            monitor.updateFilter(all)
+            monitor.start()
             // No collector starts discovery: this retained nonempty state is the first receipt.
             withTimeout(5.seconds) {
                 while (monitor.state.value !is NetworkAddressMonitor.State.Observed) yield()
             }
-            val initial = monitor.state.value as NetworkAddressMonitor.State.Observed
-            assertEquals(all, initial.filter)
-            assertEquals(6, initial.addresses.size)
-            val ids = initial.addresses.map { it.id }
+            val initial = (monitor.state.value as NetworkAddressMonitor.State.Observed).inventory.select(all)
+            assertEquals(6, initial.size)
+            val ids = initial.map { it.id }
             assertEquals(6, ids.toSet().size)
             assertEquals(
                 listOf(
@@ -155,25 +166,23 @@ internal class AndroidNetworkAddressMonitorTest {
                     NetworkAddress(ids[4], scope11, "eth0", InterfaceType.Ethernet),
                     NetworkAddress(ids[5], scope12, "eth0", InterfaceType.Ethernet),
                 ),
-                initial.addresses,
+                initial,
             )
 
             val wifiPrivate = filter(
                 families = setOf(AddressFamily.Ipv4), types = setOf(InterfaceType.Wifi), categories = setOf(AddressCategory.Private),
             )
-            monitor.updateFilter(wifiPrivate)
             assertEquals(
                 listOf(NetworkAddress(ids[3], shared, "wlan0", InterfaceType.Wifi)),
-                awaitObserved(monitor, wifiPrivate) { it.addresses.isNotEmpty() }.addresses,
+                awaitObserved(monitor, wifiPrivate) { it.isNotEmpty() },
             )
             val ipv6Private = filter(families = setOf(AddressFamily.Ipv6), categories = setOf(AddressCategory.Private))
-            monitor.updateFilter(ipv6Private)
             assertEquals(
                 listOf(
                     NetworkAddress(ids[4], scope11, "eth0", InterfaceType.Ethernet),
                     NetworkAddress(ids[5], scope12, "eth0", InterfaceType.Ethernet),
                 ),
-                awaitObserved(monitor, ipv6Private) { it.addresses.isNotEmpty() }.addresses,
+                awaitObserved(monitor, ipv6Private) { it.isNotEmpty() },
             )
         } finally {
             withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
@@ -188,16 +197,17 @@ internal class AndroidNetworkAddressMonitorTest {
         platform.clearAllNetworks()
         val expectedByCategory = mapOf(
             AddressCategory.Private to listOf(
-                "10.0.0.1", "10.255.255.254", "172.16.0.1", "172.31.255.254",
-                "192.168.0.1", "192.168.255.254", "fc00::1", "fdff::1",
+                "10.0.0.0", "10.255.255.255", "172.16.0.0", "172.31.255.255",
+                "192.168.0.0", "192.168.255.255", "fc00::", "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
             ),
             AddressCategory.NonPrivate to listOf(
-                "9.255.255.254", "11.0.0.1", "172.15.255.254", "172.32.0.1",
-                "192.167.255.254", "192.169.0.1", "100.64.0.1", "fbff::1", "fe00::1",
+                "9.255.255.255", "11.0.0.0", "172.15.255.255", "172.32.0.0",
+                "192.167.255.255", "192.169.0.0", "100.64.0.1", "fbff::1", "fe00::1",
+                "169.253.255.255", "169.255.0.0",
                 "fec0::1", "2001:db8::1",
             ),
-            AddressCategory.Loopback to listOf("127.0.0.1", "::1"),
-            AddressCategory.LinkLocal to listOf("169.254.1.7"),
+            AddressCategory.Loopback to listOf("127.0.0.0", "127.255.255.255", "::1"),
+            AddressCategory.LinkLocal to listOf("169.254.0.0", "169.254.255.255"),
         )
         val suppliedAddresses = expectedByCategory.values.flatten().map(::ip)
         val native = NativeInterfaceFixture(enumeration = {
@@ -207,9 +217,9 @@ internal class AndroidNetworkAddressMonitorTest {
         try {
             for ((category, expectedAddresses) in expectedByCategory) {
                 val categoryFilter = filter(categories = setOf(category))
-                monitor.updateFilter(categoryFilter)
+                monitor.start()
                 val observed = awaitObserved(monitor, categoryFilter) { true }
-                assertEquals(category.name, expectedAddresses.map(::ip).toSet(), observed.addresses.map { it.ip }.toSet())
+                assertEquals(category.name, expectedAddresses.map(::ip).toSet(), observed.map { it.ip }.toSet())
             }
         } finally {
             withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
@@ -230,10 +240,10 @@ internal class AndroidNetworkAddressMonitorTest {
         val monitor = AndroidNetworkAddressMonitor(context, native)
         val wifi = filter(types = setOf(InterfaceType.Wifi))
         try {
-            monitor.updateFilter(wifi)
-            val initial = awaitObserved(monitor, wifi) { it.addresses.isNotEmpty() }
-            val id = initial.addresses.single().id
-            assertEquals(listOf(NetworkAddress(id, shared, "wlan0", InterfaceType.Wifi)), initial.addresses)
+            monitor.start()
+            val initial = awaitObserved(monitor, wifi) { it.isNotEmpty() }
+            val id = initial.single().id
+            assertEquals(listOf(NetworkAddress(id, shared, "wlan0", InterfaceType.Wifi)), initial)
             val callback = platform.networkCallbacks.single()
 
             native.enumeration = {
@@ -247,21 +257,20 @@ internal class AndroidNetworkAddressMonitorTest {
             }
             callback.onAvailable(ShadowNetwork.newInstance(201))
             // The new Wifi address proves this failed-read result reached the real observation owner.
-            val retained = awaitObserved(monitor, wifi) { observation -> observation.addresses.any { it.ip == witness } }
-            val witnessId = retained.addresses.single { it.ip == witness }.id
+            val retained = awaitObserved(monitor, wifi) { observation -> observation.any { it.ip == witness } }
+            val witnessId = retained.single { it.ip == witness }.id
             assertNotEquals(id, witnessId)
             assertEquals(
                 listOf(
                     NetworkAddress(id, shared, "wlan0", InterfaceType.Wifi),
                     NetworkAddress(witnessId, witness, "wlan1", InterfaceType.Wifi),
                 ),
-                retained.addresses,
+                retained,
             )
             val ethernet = filter(types = setOf(InterfaceType.Ethernet))
-            monitor.updateFilter(ethernet)
             assertEquals(
                 listOf(NetworkAddress(id, shared, "eth0", InterfaceType.Ethernet)),
-                awaitObserved(monitor, ethernet) { it.addresses.isNotEmpty() }.addresses,
+                awaitObserved(monitor, ethernet) { it.isNotEmpty() },
             )
         } finally {
             withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
@@ -285,16 +294,16 @@ internal class AndroidNetworkAddressMonitorTest {
         val monitor = AndroidNetworkAddressMonitor(context, native)
         val all = filter()
         try {
-            monitor.updateFilter(all)
-            val initial = awaitObserved(monitor, all) { it.addresses.size == 2 }
-            val originalId = initial.addresses.single { it.ip == address }.id
-            val initialWitnessId = initial.addresses.single { it.ip == initialWitness }.id
+            monitor.start()
+            val initial = awaitObserved(monitor, all) { it.size == 2 }
+            val originalId = initial.single { it.ip == address }.id
+            val initialWitnessId = initial.single { it.ip == initialWitness }.id
             assertEquals(
                 listOf(
                     NetworkAddress(initialWitnessId, initialWitness, "eth0", InterfaceType.Ethernet),
                     NetworkAddress(originalId, address, "wlan0", InterfaceType.Wifi),
                 ),
-                initial.addresses,
+                initial,
             )
             val callback = platform.networkCallbacks.single()
             val network = ShadowNetwork.newInstance(202)
@@ -304,20 +313,18 @@ internal class AndroidNetworkAddressMonitorTest {
             callback.onLinkPropertiesChanged(network, LinkProperties().apply { interfaceName = "wlan0" })
             callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_VPN))
             val vpn = awaitObserved(monitor, all) { observation ->
-                observation.addresses.any { it.ip == address && it.interfaceType == InterfaceType.Vpn }
+                observation.any { it.ip == address && it.interfaceType == InterfaceType.Vpn }
             }
-            assertEquals(NetworkAddress(originalId, address, "wlan0", InterfaceType.Vpn), vpn.addresses.single { it.ip == address })
+            assertEquals(NetworkAddress(originalId, address, "wlan0", InterfaceType.Vpn), vpn.single { it.ip == address })
 
             val ethernet = filter(types = setOf(InterfaceType.Ethernet))
-            monitor.updateFilter(ethernet)
             assertEquals(
                 listOf(NetworkAddress(initialWitnessId, initialWitness, "eth0", InterfaceType.Ethernet)),
-                awaitObserved(monitor, ethernet) { it.addresses.isNotEmpty() }.addresses,
+                awaitObserved(monitor, ethernet) { it.isNotEmpty() },
             )
-            monitor.updateFilter(all)
             assertEquals(
                 NetworkAddress(originalId, address, "wlan0", InterfaceType.Vpn),
-                awaitObserved(monitor, all) { it.addresses.size == 2 }.addresses.single { it.ip == address },
+                awaitObserved(monitor, all) { it.size == 2 }.single { it.ip == address },
             )
 
             native.enumeration = {
@@ -329,39 +336,40 @@ internal class AndroidNetworkAddressMonitorTest {
                 )
             }
             callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_VPN))
-            val uncertain = awaitObserved(monitor, all) { it.addresses.size == 2 && it.addresses.any { item -> item.ip == uncertainWitness } }
-            val uncertainWitnessId = uncertain.addresses.single { it.ip == uncertainWitness }.id
+            val uncertain = awaitObserved(monitor, all) { it.size == 2 && it.any { item -> item.ip == uncertainWitness } }
+            val uncertainWitnessId = uncertain.single { it.ip == uncertainWitness }.id
             assertEquals(
                 listOf(
                     NetworkAddress(uncertainWitnessId, uncertainWitness, "eth0", InterfaceType.Ethernet),
                     NetworkAddress(originalId, address, "wlan0", InterfaceType.Vpn),
                 ),
-                uncertain.addresses,
+                uncertain,
             )
 
             native.enumeration = {
                 Collections.enumeration(listOf(nativeInterface("wlan0"), nativeInterface("eth0", listOf(absenceWitness))))
             }
             callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_VPN))
-            val absent = awaitObserved(monitor, all) { it.addresses.size == 1 && it.addresses.single().ip == absenceWitness }
+            val absent = awaitObserved(monitor, all) { it.size == 1 && it.single().ip == absenceWitness }
             assertEquals(
-                listOf(NetworkAddress(absent.addresses.single().id, absenceWitness, "eth0", InterfaceType.Ethernet)),
-                absent.addresses,
+                listOf(NetworkAddress(absent.single().id, absenceWitness, "eth0", InterfaceType.Ethernet)),
+                absent,
             )
 
             native.enumeration = {
                 Collections.enumeration(listOf(nativeInterface("wlan0", listOf(address)), nativeInterface("eth0", listOf(returnWitness))))
             }
             callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_VPN))
-            val returned = awaitObserved(monitor, all) { it.addresses.size == 2 && it.addresses.any { item -> item.ip == returnWitness } }
-            val returnedId = returned.addresses.single { it.ip == address }.id
-            assertFalse(returnedId in setOf(originalId, initialWitnessId, uncertainWitnessId, absent.addresses.single().id))
+            val returned = awaitObserved(monitor, all) { it.size == 2 && it.any { item -> item.ip == returnWitness } }
+            val returnedId = returned.single { it.ip == address }.id
+            assertFalse(returnedId in setOf(originalId, initialWitnessId, uncertainWitnessId, absent.single().id))
+            assertTrue(returnedId > maxOf(originalId, initialWitnessId, uncertainWitnessId, absent.single().id))
             assertEquals(
                 listOf(
-                    NetworkAddress(returned.addresses.single { it.ip == returnWitness }.id, returnWitness, "eth0", InterfaceType.Ethernet),
+                    NetworkAddress(returned.single { it.ip == returnWitness }.id, returnWitness, "eth0", InterfaceType.Ethernet),
                     NetworkAddress(returnedId, address, "wlan0", InterfaceType.Vpn),
                 ),
-                returned.addresses,
+                returned,
             )
         } finally {
             withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
@@ -370,21 +378,22 @@ internal class AndroidNetworkAddressMonitorTest {
 
     // Cases: MJPEG-NET-08
     @Test
-    fun staleEmptyScanKeepsKnownIdentityUnderLatestMetadataAndFilterUntilCurrentAbsence() = runBlocking {
+    fun staleScanAddsNewCandidatesAndRetainsKnownIdentityUntilCurrentAbsence() = runBlocking {
         val context = RuntimeEnvironment.getApplication()
         val platform = shadowOf(context.getSystemService(ConnectivityManager::class.java))
         platform.clearAllNetworks()
         val address = ip("192.168.10.7")
+        val staleNewAddress = ip("192.168.10.8")
         val native = NativeInterfaceFixture(enumeration = { Collections.enumeration(listOf(nativeInterface("wlan0", listOf(address)))) })
         val monitor = AndroidNetworkAddressMonitor(context, native)
-        val oldScan = NativeScanGate(listOf(nativeInterface("wlan0")))
+        val oldScan = NativeScanGate(listOf(nativeInterface("wlan0"), nativeInterface("wlan1", listOf(staleNewAddress))))
         val currentScan = NativeScanGate(listOf(nativeInterface("wlan0")))
         val all = filter()
         try {
-            monitor.updateFilter(all)
-            val initial = awaitObserved(monitor, all) { it.addresses.isNotEmpty() }
-            val id = initial.addresses.single().id
-            assertEquals(listOf(NetworkAddress(id, address, "wlan0", InterfaceType.Wifi)), initial.addresses)
+            monitor.start()
+            val initial = awaitObserved(monitor, all) { it.isNotEmpty() }
+            val id = initial.single().id
+            assertEquals(listOf(NetworkAddress(id, address, "wlan0", InterfaceType.Wifi)), initial)
             val callback = platform.networkCallbacks.single()
             val network = ShadowNetwork.newInstance(203)
             callback.onAvailable(network)
@@ -397,21 +406,25 @@ internal class AndroidNetworkAddressMonitorTest {
             native.enumeration = currentScan::enumerate
             callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_VPN))
             val vpnOnly = filter(types = setOf(InterfaceType.Vpn))
-            monitor.updateFilter(vpnOnly)
             assertEquals(
                 listOf(NetworkAddress(id, address, "wlan0", InterfaceType.Vpn)),
-                awaitObserved(monitor, vpnOnly) { it.addresses.isNotEmpty() }.addresses,
+                awaitObserved(monitor, vpnOnly) { it.isNotEmpty() },
             )
+            assertFalse(currentScan.hasEntered)
 
             oldScan.release()
             // Entering another native scan proves the old result was processed and requested fresh evidence.
             currentScan.awaitEntry()
             assertEquals(
-                NetworkAddressMonitor.State.Observed(vpnOnly, listOf(NetworkAddress(id, address, "wlan0", InterfaceType.Vpn))),
-                monitor.state.value,
+                listOf(NetworkAddress(id, address, "wlan0", InterfaceType.Vpn)),
+                (monitor.state.value as NetworkAddressMonitor.State.Observed).inventory.select(vpnOnly),
             )
+            val staleInventory = (monitor.state.value as NetworkAddressMonitor.State.Observed).inventory.select(all)
+            assertEquals(setOf(address, staleNewAddress), staleInventory.map { it.ip }.toSet())
+            assertEquals(id, staleInventory.single { it.ip == address }.id)
+            assertEquals(InterfaceType.Wifi, staleInventory.single { it.ip == staleNewAddress }.interfaceType)
             currentScan.release()
-            assertEquals(emptyList<NetworkAddress>(), awaitObserved(monitor, vpnOnly).addresses)
+            assertEquals(emptyList<NetworkAddress>(), awaitObserved(monitor, vpnOnly))
         } finally {
             oldScan.release()
             currentScan.release()
@@ -431,9 +444,9 @@ internal class AndroidNetworkAddressMonitorTest {
         val waiters = mutableListOf<Job>()
         val all = filter()
         try {
-            monitor.updateFilter(all)
+            monitor.start()
             gate.awaitEntry()
-            assertEquals(NetworkAddressMonitor.State.Loading(all), monitor.state.value)
+            assertEquals(NetworkAddressMonitor.State.Loading, monitor.state.value)
             val callback = platform.networkCallbacks.single()
             val cancelled = async(start = CoroutineStart.UNDISPATCHED) { monitor.close() }.also { waiters += it }
             val surviving = async(start = CoroutineStart.UNDISPATCHED) { monitor.close() }.also { waiters += it }
@@ -444,16 +457,15 @@ internal class AndroidNetworkAddressMonitorTest {
             assertFalse(surviving.isCompleted)
             cancelled.cancelAndJoin()
             assertFalse(surviving.isCompleted)
-            assertEquals(NetworkAddressMonitor.State.Loading(all), monitor.state.value)
-            val laterFilter = filter(types = setOf(InterfaceType.Vpn))
-            monitor.updateFilter(laterFilter)
+            assertEquals(NetworkAddressMonitor.State.Loading, monitor.state.value)
+            monitor.start()
             callback.onCapabilitiesChanged(ShadowNetwork.newInstance(204), capabilities(NetworkCapabilities.TRANSPORT_VPN))
 
             gate.release()
             withTimeout(5.seconds) { surviving.await() }
             assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
             assertTrue(platform.networkCallbacks.isEmpty())
-            monitor.updateFilter(laterFilter)
+            monitor.start()
             callback.onAvailable(ShadowNetwork.newInstance(205))
             withTimeout(5.seconds) { monitor.close() }
             assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
@@ -469,14 +481,91 @@ internal class AndroidNetworkAddressMonitorTest {
         }
     }
 
+    // Cases: MJPEG-NET-05, MJPEG-NET-06, MJPEG-NET-07
+    @Test
+    fun incompleteEnumerationCanRetireEveryCandidateAfterSuccessfulNamedReads() = runBlocking {
+        val context = RuntimeEnvironment.getApplication()
+        val platform = shadowOf(context.getSystemService(ConnectivityManager::class.java))
+        platform.clearAllNetworks()
+        val address = ip("192.168.10.7")
+        val native = NativeInterfaceFixture(enumeration = {
+            Collections.enumeration(listOf(nativeInterface("wlan0", listOf(address))))
+        })
+        val monitor = AndroidNetworkAddressMonitor(context, native)
+        val all = filter()
+        try {
+            monitor.start()
+            val initial = awaitObserved(monitor, all) { it.isNotEmpty() }.single()
+            val callback = platform.networkCallbacks.single()
+            val network = ShadowNetwork.newInstance(206)
+            native.enumeration = { throw SocketException("Incomplete enumeration") }
+            native.lookup = { name -> nativeInterface(name) }
+            callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_WIFI))
+            callback.onLinkPropertiesChanged(network, LinkProperties().apply { interfaceName = "wlan0" })
+            assertTrue(awaitObserved(monitor, all).isEmpty())
+            native.lookup = { name -> nativeInterface(name, listOf(address)) }
+            callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_WIFI))
+            val returned = awaitObserved(monitor, all) { it.isNotEmpty() }.single()
+            assertEquals(initial.ipKey, returned.ipKey)
+            assertTrue(returned.id > initial.id)
+        } finally {
+            withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
+        }
+    }
+
+    // Cases: MJPEG-NET-01, MJPEG-NET-08
+    @Test
+    fun equalInventoriesDoNotEmitWhileAStaleScanStillRequestsCurrentEvidence() = runBlocking {
+        val context = RuntimeEnvironment.getApplication()
+        val platform = shadowOf(context.getSystemService(ConnectivityManager::class.java))
+        platform.clearAllNetworks()
+        val interfaces = listOf(nativeInterface("wlan0", listOf(ip("192.168.10.7"))))
+        val native = NativeInterfaceFixture(enumeration = { Collections.enumeration(interfaces) })
+        val monitor = AndroidNetworkAddressMonitor(context, native)
+        val stale = NativeScanGate(interfaces)
+        val current = NativeScanGate(interfaces)
+        val publications = AtomicInteger()
+        val collector = launch(Dispatchers.Unconfined) {
+            monitor.state.collect { if (it is NetworkAddressMonitor.State.Observed) publications.incrementAndGet() }
+        }
+        try {
+            monitor.start()
+            awaitObserved(monitor, filter()) { it.isNotEmpty() }
+            withTimeout(5.seconds) {
+                while (publications.get() == 0) yield()
+            }
+            val before = publications.get()
+            val callback = platform.networkCallbacks.single()
+            val network = ShadowNetwork.newInstance(207)
+            native.enumeration = stale::enumerate
+            callback.onAvailable(network)
+            stale.awaitEntry()
+            native.enumeration = current::enumerate
+            callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_WIFI))
+            stale.release()
+            current.awaitEntry()
+            assertEquals(before, publications.get())
+        } finally {
+            stale.release()
+            current.release()
+            withContext(NonCancellable) {
+                withTimeout(5.seconds) {
+                    monitor.close()
+                    collector.cancelAndJoin()
+                }
+            }
+        }
+    }
+
     private suspend fun awaitObserved(
         monitor: AndroidNetworkAddressMonitor,
         filter: NetworkAddressFilter,
-        matches: (NetworkAddressMonitor.State.Observed) -> Boolean = { it.addresses.isEmpty() },
-    ): NetworkAddressMonitor.State.Observed = withTimeout(5.seconds) {
-        monitor.state.first {
-            it is NetworkAddressMonitor.State.Observed && it.filter == filter && matches(it)
+        matches: (List<NetworkAddress>) -> Boolean = { it.isEmpty() },
+    ): List<NetworkAddress> = withTimeout(5.seconds) {
+        val observed = monitor.state.first {
+            it is NetworkAddressMonitor.State.Observed && matches(it.inventory.select(filter))
         } as NetworkAddressMonitor.State.Observed
+        observed.inventory.select(filter)
     }
 
     private fun filter(
@@ -495,6 +584,7 @@ internal class AndroidNetworkAddressMonitorTest {
     private class NativeScanGate(private val interfaces: List<NativeInterfaceAccess.Handle>) {
         private val entered = CompletableDeferred<Unit>()
         private val released = CountDownLatch(1)
+        val hasEntered: Boolean get() = entered.isCompleted
 
         fun enumerate(): Enumeration<NativeInterfaceAccess.Handle> {
             entered.complete(Unit)

@@ -5,6 +5,7 @@ import android.content.Context
 import android.media.projection.MediaProjection
 import android.os.PowerManager
 import android.os.SystemClock
+import androidx.annotation.VisibleForTesting
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.JpegBackendPolicy
 import io.screenstream.capture.OutputSize
@@ -494,11 +495,8 @@ internal class MjpegCaptureSession(
         var previousReceivedAtMillis = 0L
         engineSession.stats.onEach { stats ->
             val receivedAtMillis = SystemClock.elapsedRealtime()
-            val previousCount = previousProducedFrameCount
             val elapsedMillis = receivedAtMillis - previousReceivedAtMillis
-            val fps = if (previousCount != null && stats.producedFrameCount >= previousCount && elapsedMillis > 0L) {
-                (stats.producedFrameCount - previousCount).toDouble() / elapsedMillis.milliseconds.toDouble(DurationUnit.SECONDS)
-            } else null
+            val fps = calculateMjpegCurrentFps(previousProducedFrameCount, stats.producedFrameCount, elapsedMillis)
             previousProducedFrameCount = stats.producedFrameCount
             previousReceivedAtMillis = receivedAtMillis
             publishEngineStatistics(stats, fps)
@@ -594,3 +592,9 @@ internal class MjpegCaptureSession(
         jpegQuality = jpegQuality,
     )
 }
+
+@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+internal fun calculateMjpegCurrentFps(previousProducedFrameCount: Long?, producedFrameCount: Long, elapsedMillis: Long): Double? =
+    if (previousProducedFrameCount != null && producedFrameCount >= previousProducedFrameCount && elapsedMillis > 0L) {
+        (producedFrameCount - previousProducedFrameCount).toDouble() / elapsedMillis.milliseconds.toDouble(DurationUnit.SECONDS)
+    } else null

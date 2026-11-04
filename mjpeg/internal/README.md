@@ -119,10 +119,9 @@ The guides are grouped in the order a newcomer usually needs them. Each entry sa
 
 ### 3. Testing: required behavior and evidence
 
-- [Testing](03-testing/01-testing.md) covers verification layers, supported Android versions, how to run checks and the rules for honest evidence. It also records the current status: the Kotlin test sources are drafts that need alignment with current production APIs before they can provide evidence.
-- [Verification scenarios](03-testing/02-verification-contracts.md) is the index of required histories. It maps each area to its scenario page and existing source entry points.
-
-Scenario IDs and their anchors identify required behavior across implementations. Keep every ID, and keep its distinct failure, race and boundary-value histories, when you reorganize prose or tests.
+- [Testing](03-testing/01-testing.md) covers verification scope, environments and Android version boundaries, how to run checks, harness fidelity traps and evidence rules.
+- [Verification scenarios](03-testing/02-verification-contracts.md) is the index of required histories. It maps each area to its scenario page and representative test sources.
+- Core verifies its own manager and consent behavior; [Core internals](../../core/internal/README.md) owns that guide and catalogue.
 
 ## Keep a change reviewable
 

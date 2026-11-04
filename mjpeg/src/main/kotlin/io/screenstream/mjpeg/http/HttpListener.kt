@@ -12,16 +12,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 
+internal interface HttpListener {
+    val host: String
+    val port: Int
+
+    suspend fun startListening()
+    suspend fun awaitTermination()
+    fun requestStop()
+    suspend fun stopAndAwaitCleanup()
+}
+
 /**
  * One CIO engine per physical bind attempt, isolating failures between addresses. The socket owner
  * retains it through cleanup before creating another engine for the same scoped IP and port.
  */
-internal class HttpListener(
+internal class CioHttpListener(
     parentJob: Job,
-    val host: String,
-    val port: Int,
+    override val host: String,
+    override val port: Int,
     configureApplication: Application.(HttpListener) -> Unit,
-) {
+) : HttpListener {
     private val engineJob = SupervisorJob(parentJob)
 
     private val ktorServer = embeddedServer(
@@ -30,31 +40,31 @@ internal class HttpListener(
             parentCoroutineContext = engineJob + Dispatchers.IO + CoroutineExceptionHandler { _, _ -> }
             module {
                 install(HttpRequestLifecycle) { cancelCallOnClose = true }
-                configureApplication(this@HttpListener)
+                configureApplication(this@CioHttpListener)
             }
         },
         configure = {
             connector {
-                this.host = this@HttpListener.host
-                this.port = this@HttpListener.port
+                this.host = this@CioHttpListener.host
+                this.port = this@CioHttpListener.port
             }
             reuseAddress = false
         },
     )
 
-    suspend fun startListening() {
+    override suspend fun startListening() {
         ktorServer.startSuspend(false)
     }
 
-    suspend fun awaitTermination() {
+    override suspend fun awaitTermination() {
         ktorServer.engine.startSuspend(true)
     }
 
-    fun requestStop() {
+    override fun requestStop() {
         engineJob.cancel()
     }
 
-    suspend fun stopAndAwaitCleanup() {
+    override suspend fun stopAndAwaitCleanup() {
         requestStop()
         try {
             engineJob.join()

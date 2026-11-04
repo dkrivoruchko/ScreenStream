@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import io.screenstream.core.logE
@@ -53,7 +54,10 @@ import kotlin.uuid.Uuid
 /** Owns admission and physical lifetimes under one monitor; JPEG writers never acquire it per frame. */
 @Suppress("unused")
 @Factory(binds = [HttpDelivery::class])
-internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.RequestHandler {
+internal class KtorHttpDelivery(
+    context: Context,
+    private val listenerFactory: (Job, String, Int, Application.(HttpListener) -> Unit) -> HttpListener = ::CioHttpListener,
+) : HttpDelivery, WebRoutes.RequestHandler {
     private val controlMonitor = Any()
     private val runtimeJob = SupervisorJob()
     private val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.IO + CoroutineExceptionHandler { _, cause ->
@@ -453,11 +457,7 @@ internal class KtorHttpDelivery(context: Context) : HttpDelivery, WebRoutes.Requ
         var listener: HttpListener? = null
         var failure: ServerFailure? = null
         try {
-            listener = HttpListener(
-                parentJob = runtimeJob,
-                host = checkNotNull(address.ip.hostAddress),
-                port = entry.port,
-            ) { physicalListener ->
+            listener = listenerFactory(runtimeJob, checkNotNull(address.ip.hostAddress), entry.port) { physicalListener ->
                 webRoutes.installRoutes(this, physicalListener)
             }
             val installed = synchronized(controlMonitor) {

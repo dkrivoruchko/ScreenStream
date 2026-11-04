@@ -2,6 +2,7 @@ package io.screenstream.mjpeg
 
 import android.os.SystemClock
 import android.widget.Toast
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
@@ -34,6 +35,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
@@ -64,6 +66,7 @@ internal class MjpegStreamingModuleController(
     private val captureAccess: ScreenCaptureAccess,
     private val http: HttpDelivery,
     private val analyticsFactory: StreamingSessionAnalyticsFactory,
+    private val engineFactory: MjpegEngineFactory = DefaultMjpegEngineFactory,
 ) : StreamingModule.Controller {
     override val instanceId: StreamingModule.InstanceId = managerHandle.instanceId
 
@@ -75,6 +78,10 @@ internal class MjpegStreamingModuleController(
         onUiCommand = { enqueue(Event.UiCommand(it)) },
         settings = settings,
     )
+
+    @get:VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    internal val state: StateFlow<UiController.State>
+        get() = uiController.state
 
     private val eventQueue = Channel<Event>(Channel.UNLIMITED)
     private val shutdownRequested = CompletableDeferred<Unit>()
@@ -323,6 +330,7 @@ internal class MjpegStreamingModuleController(
                 enterForeground = { service.enterCaptureForeground(id, requiresMicrophoneType = false) },
                 leaveForeground = { service.leaveCaptureForeground(id) },
                 onStatisticsChanged = { enqueue(Event.StatisticsChanged) },
+                engineFactory = engineFactory,
                 analytics = MjpegSessionAnalytics(analyticsFactory, id),
             )
             val attempt = CaptureAttempt(session = session, failureBeforeStart = lastFailure)
@@ -700,7 +708,7 @@ internal class MjpegStreamingModuleController(
         val state = capture.processedState
         return when {
             state.cleanupSucceeded == false -> Action.Start(enabled = false)
-            state.isStreaming || state.status == MjpegCaptureSession.State.Status.Suspended -> Action.Stop(capture.session.id)
+            state.isStreaming -> Action.Stop(capture.session.id)
             else -> Action.Busy
         }
     }

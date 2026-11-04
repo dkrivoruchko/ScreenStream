@@ -1,9 +1,10 @@
 package io.screenstream.mjpeg.http.media
 
-import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
-import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModule.CaptureAttemptId
+import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
+import io.screenstream.mjpeg.http.media.JpegStore.ImageKind
+import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -12,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -23,506 +25,349 @@ import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.seconds
 
 internal class JpegStoreTest {
-    private val instance = StreamingModule.InstanceId(StreamingModule.Id("MJPEG"))
+    private fun attempt(): CaptureAttemptId = CaptureAttemptId(StreamingModule.InstanceId(StreamingModule.Id("MJPEG")))
 
     // Cases: MJPEG-IMG-01
     @Test
-    fun installedLogoBecomesAvailableOnlyWhenStoppedPolicySelectsIt() = withStore { store ->
-        val logo = byteArrayOf(10, 11, 12)
-        store.installLogo(logo)
-        assertFalse(store.snapshot().hasImage)
-        assertNull(store.openReader())
-        assertThrows(IllegalStateException::class.java) { store.installLogo(byteArrayOf(99)) }
-
-        store.updateStoppedImagePolicy(PostStopImage.LastAvailableFrame)
-        assertNull(store.openReader())
-        store.updateStoppedImagePolicy(PostStopImage.Placeholder)
-        assertSelected(store, logo)
-        withFrame(store) { reader, frame -> assertFalse(reader.isCurrentCapture(frame)) }
-        store.updateStoppedImagePolicy(PostStopImage.LastAvailableFrame)
-        assertSelected(store, logo)
-        store.updateStoppedImagePolicy(PostStopImage.None)
-        assertNull(store.openReader())
-        store.updateStoppedImagePolicy(PostStopImage.LastAvailableFrame)
-        assertNull(store.openReader())
-    }
-
-    // Cases: MJPEG-IMG-02, MJPEG-IMG-03
-    @Test
-    fun publishingJpegReportsOnlyAvailabilityChanges() = withStore { store ->
-        val id = attempt()
-        val first = byteArrayOf(1, 2)
-        val replacement = byteArrayOf(3, 4, 5)
-        val logo = byteArrayOf(10)
-        store.installLogo(logo)
-        activate(store, id)
-        assertFalse(store.snapshot().hasImage)
-
-        assertTrue("First live image must announce availability", store.offerJpeg(id, first.size) { first.copyInto(it) })
-        assertSelected(store, first)
-        assertFalse(
-            "Replacing an available image must not announce new availability",
-            store.offerJpeg(id, replacement.size) { replacement.copyInto(it) },
-        )
-        assertSelected(store, replacement)
-        assertEquals(Status.Active, store.snapshot().capture)
-
-        assertTrue(store.updateCaptureStatus(id, Status.Stopped))
-        assertSelected(store, logo)
-        assertEquals(Status.Stopped, store.snapshot().capture)
-        assertTrue(store.updateCaptureStatus(id, Status.Active))
-        assertFalse("Replacing the selected logo must preserve availability", store.offerJpeg(id, first.size) { first.copyInto(it) })
-        assertSelected(store, first)
-        withFrame(store) { reader, frame -> assertTrue(reader.isCurrentCapture(frame)) }
-
-        assertTrue(store.updateCaptureStatus(id, Status.Suspended))
-        assertFalse(store.snapshot().hasImage)
-        assertNull(store.openReader())
-        assertTrue(store.updateCaptureStatus(id, Status.Active))
-        assertTrue(
-            "First image after suspension must announce restored availability",
-            store.offerJpeg(id, replacement.size) { replacement.copyInto(it) },
-        )
-        assertSelected(store, replacement)
-        assertEquals(Status.Active, store.snapshot().capture)
-    }
-
-    // Cases: MJPEG-IMG-02
-    @Test
-    fun replacementAttemptRetainsSelectionAndRejectsOldStatusAndProducer() = withStore { store ->
-        val oldAttempt = attempt()
-        val currentAttempt = attempt()
-        val image = byteArrayOf(1, 2, 3)
-        store.installLogo(byteArrayOf(10))
-        activate(store, oldAttempt)
-        offer(store, oldAttempt, image)
-
-        assertTrue(store.registerCapture(currentAttempt))
-        assertEquals(Status.Starting, store.snapshot().capture)
-        assertSelected(store, image)
-        assertFalse(store.updateCaptureStatus(oldAttempt, Status.Failed))
-        assertFalse(store.offerJpeg(oldAttempt, image.size) { throw AssertionError("Stale copier entered") })
-        assertThrows(IllegalStateException::class.java) { store.installLogo(byteArrayOf(20)) }
-        for (status in listOf(Status.WaitingForPermission, Status.Starting, Status.Reconfiguring, Status.Active)) {
-            assertTrue(store.updateCaptureStatus(currentAttempt, status))
-            assertEquals(status, store.snapshot().capture)
-            assertSelected(store, image)
-            withFrame(store) { reader, frame -> assertFalse(reader.isCurrentCapture(frame)) }
-        }
-        val replacement = byteArrayOf(4, 5)
-        offer(store, currentAttempt, replacement)
-        assertSelected(store, replacement)
-        withFrame(store) { reader, frame -> assertTrue(reader.isCurrentCapture(frame)) }
-    }
-
-    // Cases: MJPEG-IMG-03
-    @Test
-    fun livePolicyEditsPreserveImageAndStoppingAppliesLatestPolicy() {
-        for (policy in listOf(PostStopImage.None, PostStopImage.Placeholder, PostStopImage.LastAvailableFrame)) {
-            withStore { store ->
-                val id = attempt()
-                val logo = byteArrayOf(10, 11)
-                val live = byteArrayOf(1, 2, 3)
-                store.installLogo(logo)
-                activate(store, id)
-                offer(store, id, live)
-
-                store.updateStoppedImagePolicy(policy)
-                assertSelected(store, live)
-                assertTrue(store.updateCaptureStatus(id, Status.Stopping))
-                when (policy) {
-                    PostStopImage.None -> assertNull(store.openReader())
-                    PostStopImage.Placeholder -> assertSelected(store, logo)
-                    PostStopImage.LastAvailableFrame -> assertSelected(store, live)
-                }
-                store.updateStoppedImagePolicy(PostStopImage.Placeholder)
+    fun logoIsTheInitialFallbackForBothPoliciesAndInstallationIsOneTimeBeforeCapture() {
+        withStore { store ->
+            val logo = byteArrayOf(10, 11, 12)
+            store.installLogo(logo)
+            for (policy in PostStopImage.entries) {
+                store.updateFallbackPolicy(policy)
+                assertEquals(ImageKind.Logo, store.snapshot().imageKind)
                 assertSelected(store, logo)
-                assertTrue(store.updateCaptureStatus(id, Status.Stopped))
-                store.updateStoppedImagePolicy(PostStopImage.None)
-                store.updateStoppedImagePolicy(PostStopImage.LastAvailableFrame)
-                assertFalse(store.snapshot().hasImage)
-                assertNull(store.openReader())
             }
+            assertThrows(IllegalStateException::class.java) { store.installLogo(byteArrayOf(99)) }
+            assertSelected(store, logo)
+            store.dispose()
+            assertThrows(IllegalStateException::class.java) { store.installLogo(logo) }
+            assertEquals(ImageKind.None, store.snapshot().imageKind)
+        }
+        withStore { store ->
+            store.registerCapture(attempt(), Any())
+            assertThrows(IllegalStateException::class.java) { store.installLogo(byteArrayOf(1)) }
         }
     }
 
     // Cases: MJPEG-IMG-02, MJPEG-IMG-03
     @Test
-    fun suspensionAndFailureClearImageAndStoppedPolicyCannotRestoreIt() {
-        for (status in listOf(Status.Suspended, Status.Failed)) {
-            withStore { store ->
-                val id = attempt()
-                store.installLogo(byteArrayOf(10))
-                activate(store, id)
-                offer(store, id, byteArrayOf(1, 2))
-
-                assertTrue(store.updateCaptureStatus(id, status))
-                for (policy in listOf(PostStopImage.Placeholder, PostStopImage.LastAvailableFrame, PostStopImage.None)) {
-                    store.updateStoppedImagePolicy(policy)
-                    assertEquals(status, store.snapshot().capture)
-                    assertFalse(store.snapshot().hasImage)
-                    assertNull(store.openReader())
-                }
-                assertFalse(store.offerJpeg(id, 2) { throw AssertionError("Revoked copier entered") })
-                assertTrue(store.updateCaptureStatus(id, Status.Active))
-                offer(store, id, byteArrayOf(7, 8))
-                assertSelected(store, byteArrayOf(7, 8))
+    fun phaseGenerationPairsSelectLiveOrRetainedHistoryWithoutErasingIt() {
+        for (status in Status.entries) withStore { store ->
+            val id = attempt()
+            val generation = Any()
+            val logo = byteArrayOf(10)
+            val live = byteArrayOf(1, 2, 3)
+            store.installLogo(logo)
+            assertTrue(store.registerCapture(id, generation))
+            assertEquals(Status.Starting, store.snapshot().captureStatus)
+            assertSame(generation, store.snapshot().captureGeneration)
+            assertTrue(store.offerJpeg(generation, live.size) { live.copyInto(it) })
+            assertFalse(store.offerJpeg(generation, live.size) { live.copyInto(it) })
+            val current = when (status) {
+                Status.Suspended, Status.Failed, Status.Stopping, Status.Stopped -> null
+                else -> generation
+            }
+            store.updateCaptureStatus(id, status, current)
+            assertEquals(status, store.snapshot().captureStatus)
+            assertSame(current, store.snapshot().captureGeneration)
+            for (policy in PostStopImage.entries) {
+                store.updateFallbackPolicy(policy)
+                val realSelected = current != null || policy == PostStopImage.LastAvailableFrame
+                assertSelected(store, if (realSelected) live else logo)
+                assertEquals(
+                    if (current != null) ImageKind.Live else if (realSelected) ImageKind.Retained else ImageKind.Logo,
+                    store.snapshot().imageKind,
+                )
             }
         }
     }
 
-    // Cases: MJPEG-IMG-04
+    // Cases: MJPEG-IMG-02, MJPEG-IMG-03, MJPEG-IMG-04
     @Test
-    fun invalidAdmittedSizesCannotCopyOrReplaceExistingImage() = withStore { store ->
-        val id = attempt()
-        val image = byteArrayOf(1, 2, 3)
-        activate(store, id)
-        offer(store, id, image)
-        withFrame(store) { _, held ->
-            for (size in listOf(0, -1)) {
-                assertThrows(IllegalArgumentException::class.java) {
-                    store.offerJpeg(id, size) { throw AssertionError("Invalid-size copier entered") }
-                }
-                assertSelected(store, image)
-                assertPayload(image, held)
-            }
-        }
-    }
-
-    // Cases: MJPEG-IMG-04
-    @Test
-    fun unavailableAndDisposedStoresRejectAdmissionBeforeInvokingCopier() = withStore { store ->
-        val id = attempt()
-        assertFalse(store.offerJpeg(id, 0) { throw AssertionError("Unregistered copier entered") })
-        activate(store, id)
-        offer(store, id, byteArrayOf(1))
-        assertTrue(store.updateCaptureStatus(id, Status.Suspended))
-        assertFalse(store.offerJpeg(id, 0) { throw AssertionError("Suspended copier entered") })
-
+    fun replacementAttemptKeepsRetainedImageAndRejectsOldStatusAndProducer() = withStore { store ->
+        val old = attempt()
+        val next = attempt()
+        val oldGeneration = Any()
+        val nextGeneration = Any()
+        store.installLogo(byteArrayOf(10))
+        store.updateFallbackPolicy(PostStopImage.LastAvailableFrame)
+        store.registerCapture(old, oldGeneration)
+        publish(store, oldGeneration, byteArrayOf(1, 2))
+        store.registerCapture(next, nextGeneration)
+        val before = store.snapshot()
+        store.updateCaptureStatus(old, Status.Failed, null)
+        assertEquals(before, store.snapshot())
+        assertEquals(ImageKind.Retained, before.imageKind)
+        assertFalse(store.offerJpeg(oldGeneration, 2) { throw AssertionError("Stale copier entered") })
+        assertSelected(store, byteArrayOf(1, 2))
+        publish(store, nextGeneration, byteArrayOf(3, 4, 5))
+        assertEquals(ImageKind.Live, store.snapshot().imageKind)
         store.dispose()
-        store.dispose()
-        assertFalse(store.registerCapture(attempt()))
-        assertFalse(store.updateCaptureStatus(id, Status.Active))
-        assertFalse(store.offerJpeg(id, 1) { throw AssertionError("Disposed copier entered") })
-        store.updateStoppedImagePolicy(PostStopImage.Placeholder)
-        assertFalse(store.snapshot().hasImage)
+        assertFalse(store.registerCapture(attempt(), Any()))
+        store.updateCaptureStatus(next, Status.Active, nextGeneration)
+        store.updateFallbackPolicy(PostStopImage.LastAvailableFrame)
+        assertEquals(ImageKind.None, store.snapshot().imageKind)
+        assertNull(store.snapshot().captureGeneration)
         assertNull(store.openReader())
+        assertFalse(store.offerJpeg(nextGeneration, 1) { throw AssertionError("Disposed copier entered") })
     }
 
-    // Cases: MJPEG-IMG-05
+    // Cases: MJPEG-IMG-04, MJPEG-IMG-05
     @Test
-    fun failingCopyRethrowsWithoutPublishingPartialBytes() = withStore { store ->
-        val id = attempt()
-        val image = byteArrayOf(1, 2, 3)
-        activate(store, id)
-        offer(store, id, image)
+    fun invalidAndFailedCopiesPreserveImageAndVersionAndReturnReusableStorage() = withStore { store ->
+        val generation = Any()
+        store.registerCapture(attempt(), generation)
+        assertFalse(store.offerJpeg(Any(), 0) { throw AssertionError("Stale copier entered") })
+        publish(store, generation, byteArrayOf(1, 2, 3, 4))
+        var reserved: ByteArray? = null
         val failure = IllegalStateException("Fixture copy failure")
-        var copies = 0
         withFrame(store) { _, held ->
             val version = held.publicationVersion
-            val thrown = assertThrows(IllegalStateException::class.java) {
-                store.offerJpeg(id, 3) { destination ->
-                    copies++
-                    destination[0] = 99
-                    throw failure
+            for (size in listOf(0, -1)) {
+                assertThrows(IllegalArgumentException::class.java) {
+                    store.offerJpeg(generation, size) { throw AssertionError("Invalid copier entered") }
                 }
             }
-            assertSame(failure, thrown)
+            var copies = 0
+            assertSame(failure, assertThrows(IllegalStateException::class.java) {
+                store.offerJpeg(generation, 4) {
+                    copies++
+                    reserved = it
+                    it[0] = 99
+                    throw failure
+                }
+            })
             assertEquals(1, copies)
-            assertPayload(image, held)
-            withFrame(store) { _, selected ->
-                assertPayload(image, selected)
-                assertEquals(version, selected.publicationVersion)
+            assertPayload(byteArrayOf(1, 2, 3, 4), held)
+            withFrame(store) { _, selected -> assertEquals(version, selected.publicationVersion) }
+            store.offerJpeg(generation, 3) {
+                assertSame(reserved, it)
+                byteArrayOf(4, 5, 6).copyInto(it)
             }
+            withFrame(store) { _, selected -> assertEquals(version + 1, selected.publicationVersion) }
         }
-        offer(store, id, byteArrayOf(4, 5))
-        assertSelected(store, byteArrayOf(4, 5))
+        assertSelected(store, byteArrayOf(4, 5, 6))
     }
 
     // Cases: MJPEG-IMG-05
     @Test
-    fun heldCopyIsOutsideMonitorAndCannotPublishAfterSourceRevocation() {
-        for (cutoff in listOf("replacement", "suspend-resume", "stop", "dispose")) {
+    fun heldCopyRunsOutsideMonitorAndCannotPublishAfterGenerationReplacementOrDisposal() {
+        for (cutoff in listOf("new-attempt", "suspend-resume", "stop", "dispose")) {
             withStore { store ->
                 val id = attempt()
-                val successor = attempt()
-                val image = byteArrayOf(1, 2, 3)
-                activate(store, id)
-                store.updateStoppedImagePolicy(PostStopImage.LastAvailableFrame)
-                offer(store, id, image)
-                val reader = checkNotNull(store.openReader())
-                val held = checkNotNull(reader.acquireFrame())
-                val entered = CountDownLatch(1)
-                val returnCopy = CountDownLatch(1)
-                val workers = Executors.newFixedThreadPool(2)
-                var copies = 0
-                try {
-                    val publication = workers.submit<Boolean> {
-                        store.offerJpeg(id, 3) { destination ->
-                            copies++
-                            entered.countDown()
-                            assertTrue("Copier return was not released", returnCopy.await(5, TimeUnit.SECONDS))
-                            byteArrayOf(99, 98, 97).copyInto(destination)
-                        }
-                    }
-                    assertTrue("Copier did not enter", entered.await(5, TimeUnit.SECONDS))
-                    val cutoffCompleted = workers.submit {
-                        assertSelected(store, image)
-                        when (cutoff) {
-                            "replacement" -> assertTrue(store.registerCapture(successor))
-                            "suspend-resume" -> {
-                                assertTrue(store.updateCaptureStatus(id, Status.Suspended))
-                                assertTrue(store.updateCaptureStatus(id, Status.Active))
-                            }
-
-                            "stop" -> assertTrue(store.updateCaptureStatus(id, Status.Stopping))
-                            "dispose" -> store.dispose()
-                        }
-                        assertPayload(image, held)
-                    }
-                    cutoffCompleted.get(5, TimeUnit.SECONDS)
-                    returnCopy.countDown()
-                    assertFalse(publication.get(5, TimeUnit.SECONDS))
-                    assertEquals(1, copies)
-                    assertPayload(image, held)
-                    assertFalse(reader.isCurrentCapture(held))
-                    if (cutoff == "replacement" || cutoff == "stop") {
-                        withFrame(store) { _, selected ->
-                            assertPayload(image, selected)
-                            assertEquals(held.publicationVersion, selected.publicationVersion)
-                        }
-                    } else {
-                        assertNull(store.openReader())
-                    }
-                    if (cutoff == "replacement" || cutoff == "suspend-resume") {
-                        val nextId = if (cutoff == "replacement") successor else id
-                        offer(store, nextId, byteArrayOf(4, 5))
-                        assertSelected(store, byteArrayOf(4, 5))
-                        withFrame(store) { _, selected -> assertEquals(held.publicationVersion + 1, selected.publicationVersion) }
-                    }
-                } finally {
-                    returnCopy.countDown()
-                    workers.shutdownNow()
+                val generation = Any()
+                val successor = Any()
+                store.registerCapture(id, generation)
+                store.updateFallbackPolicy(PostStopImage.LastAvailableFrame)
+                publish(store, generation, byteArrayOf(1, 2, 3))
+                withFrame(store) { _, held ->
+                    val entered = CountDownLatch(1)
+                    val release = CountDownLatch(1)
+                    val executor = Executors.newFixedThreadPool(2)
                     try {
-                        assertTrue("Copy workers did not terminate", workers.awaitTermination(5, TimeUnit.SECONDS))
+                        val publication = executor.submit<Boolean> {
+                            store.offerJpeg(generation, 3) {
+                                entered.countDown()
+                                check(release.await(5, TimeUnit.SECONDS))
+                                byteArrayOf(99, 98, 97).copyInto(it)
+                            }
+                        }
+                        assertTrue(entered.await(5, TimeUnit.SECONDS))
+                        executor.submit {
+                            assertSelected(store, byteArrayOf(1, 2, 3))
+                            when (cutoff) {
+                                "new-attempt" -> store.registerCapture(attempt(), successor)
+                                "suspend-resume" -> {
+                                    store.updateCaptureStatus(id, Status.Suspended, null)
+                                    store.updateCaptureStatus(id, Status.Active, successor)
+                                }
+
+                                "stop" -> store.updateCaptureStatus(id, Status.Stopping, null)
+                                else -> store.dispose()
+                            }
+                        }.get(5, TimeUnit.SECONDS)
+                        release.countDown()
+                        assertFalse(publication.get(5, TimeUnit.SECONDS))
+                        assertPayload(byteArrayOf(1, 2, 3), held)
+                        if (cutoff == "dispose") assertNull(store.openReader()) else {
+                            assertSelected(store, byteArrayOf(1, 2, 3))
+                            withFrame(store) { _, selected -> assertEquals(held.publicationVersion, selected.publicationVersion) }
+                        }
+                        if (cutoff == "new-attempt" || cutoff == "suspend-resume") {
+                            publish(store, successor, byteArrayOf(4, 5))
+                            withFrame(store) { _, selected -> assertEquals(held.publicationVersion + 1, selected.publicationVersion) }
+                        }
                     } finally {
-                        reader.releaseFrame(held)
-                        reader.close()
+                        release.countDown()
+                        executor.shutdownNow()
+                        assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS))
                     }
                 }
             }
         }
     }
 
-    // Cases: MJPEG-IMG-06
+    // Cases: MJPEG-IMG-06, MJPEG-IMG-07
     @Test
-    fun acquiredImageSurvivesReplacementAndReaderClose() = withStore { store ->
-        val id = attempt()
-        val first = byteArrayOf(1, 2, 3)
-        val latest = byteArrayOf(4, 5, 6, 7, 8)
-        activate(store, id)
-        offer(store, id, first)
-        val reader = checkNotNull(store.openReader())
+    fun admissionPinAndConcurrentLeasesSurviveReplacementCloseAndDisposal() = withStore { store ->
+        val generation = Any()
+        store.registerCapture(attempt(), generation)
+        val original = byteArrayOf(1, 2, 3, 4, 5, 6)
+        publish(store, generation, original)
+        val first = checkNotNull(store.openReader())
+        val second = checkNotNull(store.openReader())
+        publish(store, generation, byteArrayOf(7, 8, 9))
+        val leaseA = checkNotNull(first.acquireFrame())
+        val leaseB = checkNotNull(second.acquireFrame())
         try {
-            offer(store, id, latest)
-            assertEquals(first.size, reader.initialByteCount)
-            val pinned = checkNotNull(reader.acquireFrame())
+            assertEquals(original.size, first.initialByteCount)
+            assertPayload(original, leaseA)
+            assertPayload(original, leaseB)
+            first.close()
+            publish(store, generation, byteArrayOf(10, 11, 12))
+            val latest = checkNotNull(second.acquireFrame())
             try {
-                assertPayload(first, pinned)
-                reader.close()
-                offer(store, id, byteArrayOf(9, 10, 11))
-                assertSelected(store, byteArrayOf(9, 10, 11))
-                assertEquals(first.size, reader.initialByteCount)
-                assertPayload(first, pinned)
-                store.dispose()
-                assertEquals(first.size, reader.initialByteCount)
-                assertPayload(first, pinned)
-                assertNull(reader.acquireFrame())
-                assertTrue(reader.isClosed)
+                assertPayload(byteArrayOf(10, 11, 12), latest)
             } finally {
-                reader.releaseFrame(pinned)
+                second.releaseFrame(latest)
             }
+            store.dispose()
+            assertPayload(original, leaseA)
+            assertPayload(original, leaseB)
+            assertNull(first.acquireFrame())
+            assertNull(second.acquireFrame())
         } finally {
-            reader.close()
+            first.releaseFrame(leaseA)
+            second.releaseFrame(leaseB)
+            first.close()
+            second.close()
         }
     }
 
-    // Cases: MJPEG-IMG-06
+    // Cases: MJPEG-IMG-06, MJPEG-IMG-07
     @Test
-    fun closeBeforeInitialHandoffRevokesAdmission() = withStore { store ->
-        val id = attempt()
-        activate(store, id)
-        offer(store, id, byteArrayOf(1, 2, 3))
+    fun unclaimedInitialPinClosesAndReusedCapacityNeverChangesValidPrefix() = withStore { store ->
+        val generation = Any()
+        store.registerCapture(attempt(), generation)
+        publish(store, generation, ByteArray(6) { 1 })
         val reader = checkNotNull(store.openReader())
-        try {
-            offer(store, id, byteArrayOf(4, 5))
-            reader.close()
-            reader.close()
-            assertEquals(3, reader.initialByteCount)
-            assertNull(reader.acquireFrame())
-            assertTrue(reader.isClosed)
-            assertSelected(store, byteArrayOf(4, 5))
-        } finally {
-            reader.close()
-        }
+        publish(store, generation, ByteArray(6) { 2 })
+        reader.close()
+        reader.close()
+        assertEquals(6, reader.initialByteCount)
+        assertNull(reader.acquireFrame())
+        publish(store, generation, byteArrayOf(3, 4, 5))
+        assertSelected(store, byteArrayOf(3, 4, 5))
+        publish(store, generation, byteArrayOf(6))
+        assertSelected(store, byteArrayOf(6))
     }
 
-    // Cases: MJPEG-IMG-07
+    // Cases: MJPEG-IMG-04, MJPEG-IMG-05, MJPEG-IMG-07
     @Test
-    fun smallerPublicationExposesItsValidPrefixAfterLargerImageHistory() = withStore { store ->
-        val id = attempt()
-        activate(store, id)
-        offer(store, id, byteArrayOf(1, 2, 3, 4, 5, 6))
-        offer(store, id, byteArrayOf(10, 11, 12, 13, 14, 15))
-
-        store.offerJpeg(id, 3) { destination ->
-            byteArrayOf(20, 21, 22).copyInto(destination)
-        }
-
-        assertSelected(store, byteArrayOf(20, 21, 22))
-    }
-
-    // Cases: MJPEG-IMG-07
-    @Test
-    fun multipleReadersKeepOldPayloadAndLaterAcquireLatestValidPrefix() = withStore { store ->
-        val id = attempt()
-        val first = byteArrayOf(1, 2, 3, 4, 5, 6)
-        activate(store, id)
-        offer(store, id, first)
-        val firstReader = checkNotNull(store.openReader())
-        val secondReader = checkNotNull(store.openReader())
-        val firstLease = checkNotNull(firstReader.acquireFrame())
-        val secondLease = checkNotNull(secondReader.acquireFrame())
-        var firstReleased = false
-        try {
-            offer(store, id, byteArrayOf(10, 11, 12, 13, 14, 15))
-            assertPayload(first, firstLease)
-            firstReader.releaseFrame(firstLease)
-            firstReleased = true
-            firstReader.close()
-            offer(store, id, byteArrayOf(20, 21, 22))
-            assertPayload(first, secondLease)
-            val latest = checkNotNull(secondReader.acquireFrame())
-            try {
-                assertPayload(byteArrayOf(20, 21, 22), latest)
-                assertTrue(secondReader.isCurrentCapture(latest))
-            } finally {
-                secondReader.releaseFrame(latest)
+    fun spareReuseHonorsBothSizeBoundsAndInvalidOffersReturnReservedStorage() {
+        for (size in listOf(3, 4, 8, 9)) withStore { store ->
+            val generation = Any()
+            store.registerCapture(attempt(), generation)
+            var original: ByteArray? = null
+            store.offerJpeg(generation, 8) { original = it; it.fill(1) }
+            publish(store, generation, byteArrayOf(2))
+            store.offerJpeg(generation, size) {
+                if (size == 4 || size == 8) assertSame(original, it) else {
+                    assertNotSame(original, it)
+                    assertEquals(size, it.size)
+                }
+                it.fill(3, toIndex = size)
             }
-        } finally {
-            if (!firstReleased) firstReader.releaseFrame(firstLease)
-            secondReader.releaseFrame(secondLease)
-            firstReader.close()
-            secondReader.close()
+            assertSelected(store, ByteArray(size) { 3 })
         }
-    }
-
-    // Cases: MJPEG-IMG-07
-    @Test
-    fun stoppedRetainedImageAndLogoDoNotCountAsLiveCaptureRecovery() = withStore { store ->
-        val id = attempt()
-        val image = byteArrayOf(1, 2)
-        val logo = byteArrayOf(10, 11, 12)
-        store.installLogo(logo)
-        activate(store, id)
-        offer(store, id, image)
-        store.updateStoppedImagePolicy(PostStopImage.LastAvailableFrame)
-        withFrame(store) { reader, held ->
-            assertTrue(reader.isCurrentCapture(held))
-            assertTrue(store.updateCaptureStatus(id, Status.Stopped))
-            assertPayload(image, held)
-            assertFalse(reader.isCurrentCapture(held))
-            assertSelected(store, image)
-        }
-        store.updateStoppedImagePolicy(PostStopImage.Placeholder)
-        withFrame(store) { reader, frame ->
-            assertPayload(logo, frame)
-            assertFalse(reader.isCurrentCapture(frame))
+        for (invalid in listOf(0, -1)) withStore { store ->
+            val generation = Any()
+            store.registerCapture(attempt(), generation)
+            var original: ByteArray? = null
+            store.offerJpeg(generation, 8) { original = it; it.fill(1) }
+            publish(store, generation, byteArrayOf(2))
+            assertThrows(IllegalArgumentException::class.java) {
+                store.offerJpeg(generation, invalid) { throw AssertionError("Invalid copier entered") }
+            }
+            store.offerJpeg(generation, 4) {
+                assertSame(original, it)
+                byteArrayOf(3, 4, 5, 6).copyInto(it)
+            }
+            assertSelected(store, byteArrayOf(3, 4, 5, 6))
         }
     }
 
     // Cases: MJPEG-IMG-08
     @Test
-    fun publicationOrCutoffBeforeWaitCannotStrandReader() = runTest(timeout = 5.seconds) {
+    fun publicationOrCutoffAtEachReaderWaitBoundaryCannotLoseWakeup() = runTest(timeout = 5.seconds) {
         for (change in listOf("publish", "close", "dispose")) {
-            withStore { store ->
+            for (point in listOf("before-revision", "before-acquire", "before-wait", "waiting")) {
+                val store = JpegStore()
                 val id = attempt()
-                activate(store, id)
-                offer(store, id, byteArrayOf(1))
+                val generation = Any()
+                store.registerCapture(id, generation)
+                publish(store, generation, byteArrayOf(1))
                 val reader = checkNotNull(store.openReader())
+                val initial = checkNotNull(reader.acquireFrame())
+                reader.releaseFrame(initial)
+                store.updateCaptureStatus(id, Status.Suspended, null)
+                val waiting = CompletableDeferred<Unit>()
+                fun changeSelection() {
+                    when (change) {
+                        "publish" -> {
+                            val successor = Any()
+                            store.updateCaptureStatus(id, Status.Active, successor)
+                            publish(store, successor, byteArrayOf(7, 8))
+                        }
+
+                        "close" -> reader.close()
+                        else -> store.dispose()
+                    }
+                }
                 try {
-                    val initial = checkNotNull(reader.acquireFrame())
-                    reader.releaseFrame(initial)
-                    assertTrue(store.updateCaptureStatus(id, Status.Suspended))
-                    val observedEmpty = CompletableDeferred<Unit>()
-                    val beginWait = CompletableDeferred<Unit>()
-                    val next = async(start = CoroutineStart.UNDISPATCHED) {
-                        nextPayload(reader) {
-                            observedEmpty.complete(Unit)
-                            beginWait.await()
+                    if (point == "before-revision") changeSelection()
+                    val result = async(start = CoroutineStart.UNDISPATCHED) {
+                        val revision = reader.changeRevision.value
+                        if (point == "before-acquire") changeSelection()
+                        var frame = reader.acquireFrame()
+                        if (frame == null && !reader.isClosed) {
+                            if (point == "before-wait") changeSelection()
+                            waiting.complete(Unit)
+                            reader.changeRevision.first { it != revision }
+                            frame = reader.acquireFrame()
+                        }
+                        frame?.let { acquired ->
+                            try {
+                                acquired.bytes.copyOf(acquired.byteCount)
+                            } finally {
+                                reader.releaseFrame(acquired)
+                            }
                         }
                     }
-                    observedEmpty.await()
-                    changeSelection(store, reader, id, change)
-                    beginWait.complete(Unit)
-                    if (change == "publish") {
-                        assertArrayEquals(byteArrayOf(7, 8), next.await())
-                    } else {
-                        assertNull(next.await())
-                        assertTrue(reader.isClosed)
+                    if (point == "waiting") {
+                        waiting.await()
+                        changeSelection()
                     }
+                    if (change == "publish") assertArrayEquals(byteArrayOf(7, 8), result.await()) else assertNull(result.await())
                 } finally {
                     reader.close()
+                    store.dispose()
                 }
             }
         }
     }
 
-    // Cases: MJPEG-IMG-08
-    @Test
-    fun waitingReaderResumesWithNewPayloadOrEndsAfterCutoff() = runTest(timeout = 5.seconds) {
-        for (change in listOf("publish", "close", "dispose")) {
-            withStore { store ->
-                val id = attempt()
-                activate(store, id)
-                offer(store, id, byteArrayOf(1))
-                val reader = checkNotNull(store.openReader())
-                try {
-                    val initial = checkNotNull(reader.acquireFrame())
-                    reader.releaseFrame(initial)
-                    assertTrue(store.updateCaptureStatus(id, Status.Suspended))
-                    val observedEmpty = CompletableDeferred<Unit>()
-                    val next = async(start = CoroutineStart.UNDISPATCHED) {
-                        nextPayload(reader) { observedEmpty.complete(Unit) }
-                    }
-                    observedEmpty.await()
-                    changeSelection(store, reader, id, change)
-                    if (change == "publish") {
-                        assertArrayEquals(byteArrayOf(7, 8), next.await())
-                    } else {
-                        assertNull(next.await())
-                        assertTrue(reader.isClosed)
-                    }
-                } finally {
-                    reader.close()
-                }
-            }
+    private fun publish(store: JpegStore, generation: Any, bytes: ByteArray) {
+        var copies = 0
+        store.offerJpeg(generation, bytes.size) {
+            copies++
+            bytes.copyInto(it)
         }
-    }
-
-    private fun attempt(): CaptureAttemptId = CaptureAttemptId(instance)
-
-    private fun activate(store: JpegStore, id: CaptureAttemptId) {
-        assertTrue(store.registerCapture(id))
-        assertTrue(store.updateCaptureStatus(id, Status.Active))
-    }
-
-    private fun offer(store: JpegStore, id: CaptureAttemptId, bytes: ByteArray) {
-        store.offerJpeg(id, bytes.size) { bytes.copyInto(it) }
+        assertEquals(1, copies)
     }
 
     private fun assertSelected(store: JpegStore, expected: ByteArray) {
-        assertTrue(store.snapshot().hasImage)
         withFrame(store) { _, frame -> assertPayload(expected, frame) }
     }
 
@@ -551,35 +396,6 @@ internal class JpegStoreTest {
             }
         } finally {
             reader.close()
-        }
-    }
-
-    private fun changeSelection(store: JpegStore, reader: JpegStore.Reader, id: CaptureAttemptId, change: String) {
-        when (change) {
-            "publish" -> {
-                assertTrue(store.updateCaptureStatus(id, Status.Active))
-                offer(store, id, byteArrayOf(7, 8))
-            }
-
-            "close" -> reader.close()
-            "dispose" -> store.dispose()
-        }
-    }
-
-    private suspend fun nextPayload(reader: JpegStore.Reader, onEmpty: suspend () -> Unit): ByteArray? {
-        while (true) {
-            val revision = reader.changeRevision.value
-            val frame = reader.acquireFrame()
-            if (frame != null) {
-                try {
-                    return frame.bytes.copyOf(frame.byteCount)
-                } finally {
-                    reader.releaseFrame(frame)
-                }
-            }
-            if (reader.isClosed) return null
-            onEmpty()
-            reader.changeRevision.first { it != revision }
         }
     }
 }

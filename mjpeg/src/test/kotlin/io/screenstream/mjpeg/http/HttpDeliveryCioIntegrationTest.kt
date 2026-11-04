@@ -8,20 +8,23 @@ import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.cio.webSocketRawSession
 import io.ktor.client.request.header
 import io.ktor.client.request.url
+import io.ktor.server.routing.RoutingRoot
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readReason
+import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.http.HttpDelivery.ServerFailure
 import io.screenstream.mjpeg.http.HttpDelivery.ServerState
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
-import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -32,6 +35,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
@@ -40,16 +44,20 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowSystemClock
 import java.io.ByteArrayOutputStream
 import java.io.EOFException
 import java.io.IOException
 import java.io.InputStream
+import java.lang.management.ManagementFactory
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -65,49 +73,122 @@ import kotlin.uuid.Uuid
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
 internal class HttpDeliveryCioIntegrationTest {
-    // Cases: MJPEG-WEB-08, MJPEG-IMG-09, MJPEG-OBS-03
+    // Cases: MJPEG-WEB-08, MJPEG-IMG-09, MJPEG-OBS-01, MJPEG-OBS-03, MJPEG-OBS-04
     @Test
-    fun protectedViewingChecksCredentialsBeforeImageAvailabilityAndRetiresRealPayloads() = runBlocking {
-        val delivery = KtorHttpDelivery(httpTestContext())
+    @LooperMode(LooperMode.Mode.PAUSED)
+    fun protectedViewingChecksCredentialsAndRetiresRealPayloads() = runBlocking {
+        val calls = Channel<ObservedMediaCall>(Channel.UNLIMITED)
+        val delivery = KtorHttpDelivery(httpTestContext()) { parentJob, host, listenerPort, configureApplication ->
+            CioHttpListener(parentJob, host, listenerPort) { listener ->
+                monitor.subscribe(RoutingRoot.RoutingCallStarted) { call ->
+                    call.request.queryParameters["retirement"]?.let { marker ->
+                        calls.trySend(ObservedMediaCall(marker, call.request.local.remoteAddress, call.request.local.remotePort, call.coroutineContext.job))
+                    }
+                }
+                configureApplication(this, listener)
+            }
+        }
         val port = unusedLoopbackPort()
         val logo = byteArrayOf(11, 12, 13, 14)
         try {
             delivery.configureServers(listOf(httpTestAddress()), port)
             assertEquals(ServerState.Pending, delivery.info.value.servers.single().state)
-            assertTrue(delivery.start(httpTestProtection(), PostStopImage.None, httpTestPage(), logo))
-            delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
+            assertTrue(delivery.start(httpTestProtection(), PostStopImage.Placeholder, httpTestPage(), logo))
+            val listening = delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }.servers.single()
             val token = checkNotNull(delivery.appliedToken).value
             for (path in listOf("/jpeg", "/mjpeg")) {
                 RawHttp(port, path).use { assertEquals(path, 403, it.status) }
-                RawHttp(port, "$path?token=$token").use {
-                    assertEquals(path, 503, it.status)
-                    assertEquals(path, "1", it.headers["retry-after"])
-                }
             }
             delivery.updateConfiguration(httpTestProtection(), PostStopImage.Placeholder, httpTestPage())
-            RawHttp(port, "/jpeg?token=$token").use {
-                assertEquals(200, it.status)
-                assertEquals("image/jpeg", it.headers["content-type"])
-                assertEquals(logo.size.toString(), it.headers["content-length"])
-                assertArrayEquals(logo, it.readBody())
-            }
+            val logoResponse = requestHttpJpeg(port, "/jpeg?token=$token&retirement=logo")
+            assertEquals(200, logoResponse.status)
+            assertEquals("image/jpeg", logoResponse.headers["content-type"])
+            assertEquals(logo.size.toString(), logoResponse.headers["content-length"])
+            assertArrayEquals(logo, logoResponse.bytes)
+            val logoCall = withTimeout(5.seconds) { calls.receive() }
+            assertEquals("logo", logoCall.marker)
             val attempt = attempt()
-            delivery.registerCapture(attempt)
-            delivery.updateCaptureStatus(attempt, Status.Active)
+            delivery.registerCapture(attempt, attempt)
+            delivery.updateCaptureStatus(attempt, Status.Active, attempt)
             val capture = byteArrayOf(21, 22, 23)
             delivery.offerJpeg(attempt, capture.size) { capture.copyInto(it) }
-            RawHttp(port, "/jpeg?token=$token").use { assertArrayEquals(capture, it.readBody()) }
+            val captureResponse = requestHttpJpeg(port, "/jpeg?token=$token&retirement=capture")
+            assertEquals(200, captureResponse.status)
+            assertArrayEquals(capture, captureResponse.bytes)
+            val captureCall = withTimeout(5.seconds) { calls.receive() }
+            assertEquals("capture", captureCall.marker)
+            withTimeout(5.seconds) {
+                logoCall.job.join()
+                captureCall.job.join()
+            }
+
+            fun assertOpenSample(sample: HttpDelivery.Info) {
+                assertEquals(listOf(listening), sample.servers)
+                assertNull(sample.fatalCause)
+                assertEquals(2L, sample.completedJpegs)
+                assertEquals(7L, sample.completedJpegBytes)
+            }
+
+            fun markedRow(sample: HttpDelivery.Info): HttpDelivery.ClientInfo? = sample.clients.singleOrNull {
+                it.serverId == listening.id && it.ip == captureCall.ip && it.remotePort == captureCall.port
+            }
+
+            ShadowSystemClock.advanceBy(1_999, TimeUnit.MILLISECONDS)
+            val graceAt = SystemClock.elapsedRealtime()
+            val grace = delivery.awaitHttpInfo { it.sampledAtElapsedRealtimeMillis >= graceAt }
+            assertOpenSample(grace)
+            val marked = checkNotNull(markedRow(grace))
+            assertEquals(HttpDelivery.ClientInfo.State.Active, marked.state)
+            assertTrue(grace.hasConsumer)
+            for (completedCall in listOf(logoCall, captureCall)) {
+                assertTrue(grace.clients.any {
+                    it.serverId == listening.id && it.ip == completedCall.ip && it.remotePort == completedCall.port &&
+                            it.state == HttpDelivery.ClientInfo.State.Active
+                })
+            }
+            val observedRows = grace.clients.map { it.id }.toSet()
+            var disconnected = grace
+            withTimeout(10.seconds) {
+                while (markedRow(disconnected)?.state != HttpDelivery.ClientInfo.State.Disconnected || disconnected.hasConsumer) {
+                    ShadowSystemClock.advanceBy(2_000, TimeUnit.MILLISECONDS)
+                    val sampledAfter = SystemClock.elapsedRealtime()
+                    disconnected = delivery.awaitHttpInfo { it.sampledAtElapsedRealtimeMillis >= sampledAfter }
+                    assertOpenSample(disconnected)
+                    assertNotNull(markedRow(disconnected))
+                }
+            }
+            assertEquals(marked.id, checkNotNull(markedRow(disconnected)).id)
+            assertFalse(disconnected.hasConsumer)
+            assertTrue(disconnected.clients.none { it.state == HttpDelivery.ClientInfo.State.Active })
+
+            val expiryAt = maxOf(SystemClock.elapsedRealtime(), disconnected.sampledAtElapsedRealtimeMillis + 5_000L)
+            ShadowSystemClock.advanceBy(expiryAt - SystemClock.elapsedRealtime(), TimeUnit.MILLISECONDS)
+            val expired = delivery.awaitHttpInfo { it.sampledAtElapsedRealtimeMillis >= expiryAt }
+            assertOpenSample(expired)
+            assertNull(markedRow(expired))
+            assertTrue(expired.clients.none { it.id in observedRows })
+            assertFalse(expired.hasConsumer)
+            assertTrue(expired.clients.isEmpty())
+            val healthy = requestHttpJpeg(port, "/jpeg?token=$token")
+            assertEquals(200, healthy.status)
+            assertArrayEquals(capture, healthy.bytes)
             delivery.finishHttpTest()
             val completed = delivery.info.value
-            assertEquals(2L, completed.completedJpegs)
-            assertEquals((logo.size + capture.size).toLong(), completed.completedJpegBytes)
+            assertEquals(3L, completed.completedJpegs)
+            assertEquals(10L, completed.completedJpegBytes)
             assertTrue(completed.servers.isEmpty())
             assertTrue(completed.clients.isEmpty())
             assertPortCanBind(port)
         } finally {
-            delivery.finishHttpTest()
+            try {
+                delivery.finishHttpTest()
+            } finally {
+                calls.cancel()
+            }
         }
     }
+
+    private data class ObservedMediaCall(val marker: String, val ip: String, val port: Int, val job: Job)
 
     // Cases: MJPEG-IMG-10, MJPEG-SRV-03, MJPEG-SRV-10
     @Test
@@ -129,8 +210,8 @@ internal class HttpDeliveryCioIntegrationTest {
             delivery.configureServers(listOf(httpTestAddress(name = "updated metadata")), port)
             assertEquals(listening.id, delivery.info.value.servers.single().id)
             val attempt = attempt()
-            assertTrue(delivery.registerCapture(attempt))
-            delivery.updateCaptureStatus(attempt, Status.Active)
+            assertTrue(delivery.registerCapture(attempt, attempt))
+            delivery.updateCaptureStatus(attempt, Status.Active, attempt)
             val latest = byteArrayOf(41, 0, 43, 44, 45)
             delivery.offerJpeg(attempt, latest.size) { latest.copyInto(it) }
             // The first part is a completed publication checkpoint, not a timing delay.
@@ -306,7 +387,7 @@ internal class HttpDeliveryCioIntegrationTest {
                 val observer = httpClient.observeWebSocket("ws://127.0.0.1:$port/ws", "Origin" to origin, "Cookie" to cookie)
                 sockets += observer
                 val snapshot = observer.nextJson()
-                assertEquals(setOf("access", "notice", "hasImage", "display"), snapshot.keys)
+                assertEquals(setOf("access", "notice", "hasImage", "imageKind", "display"), snapshot.keys)
                 assertEquals("authorized", snapshot.getValue("access").jsonPrimitive.content)
                 assertEquals("Viewing contract", snapshot.getValue("display").jsonObject.getValue("title").jsonPrimitive.content)
                 if (binary) observer.send(Frame.Binary(true, byteArrayOf(1, 2)))
@@ -345,23 +426,27 @@ internal class HttpDeliveryCioIntegrationTest {
                 assertArrayEquals(byteArrayOf(1), it.readBody())
             }
             // Independently constructed same-PIN settings preserve this exact authorized session.
-            delivery.updateConfiguration(httpTestProtection().copy(blockMinutes = 3), PostStopImage.None, httpTestPage("Edited"))
-            val edited = current.nextJson()
+            delivery.updateConfiguration(httpTestProtection().copy(blockMinutes = 3), PostStopImage.Placeholder, httpTestPage("Edited"))
+            val edited = current.awaitJson { it.getValue("display").jsonObject.getValue("title").jsonPrimitive.content == "Edited" }
             assertEquals("Edited", edited.getValue("display").jsonObject.getValue("title").jsonPrimitive.content)
-            assertFalse(edited.getValue("hasImage").jsonPrimitive.boolean)
+            assertTrue(edited.getValue("hasImage").jsonPrimitive.boolean)
             assertEquals(token, checkNotNull(delivery.appliedToken).value)
             assertFalse(current.ended.isDone)
             val ping = byteArrayOf(7, 0, 9)
             current.send(Frame.Ping(ping))
             assertArrayEquals(ping, current.pong.get(15, TimeUnit.SECONDS))
             val attempt = attempt()
-            delivery.registerCapture(attempt)
-            delivery.updateCaptureStatus(attempt, Status.Suspended)
+            delivery.registerCapture(attempt, attempt)
+            delivery.updateCaptureStatus(attempt, Status.Suspended, null)
             val suspended = current.awaitJson { it.getValue("notice").jsonPrimitive.content == "paused" }
-            assertFalse(suspended.getValue("hasImage").jsonPrimitive.boolean)
-            delivery.updateCaptureStatus(attempt, Status.Active)
-            delivery.offerJpeg(attempt, 2) { it[0] = 11; it[1] = 12 }
-            current.awaitJson { it.getValue("hasImage").jsonPrimitive.boolean }
+            assertTrue(suspended.getValue("hasImage").jsonPrimitive.boolean)
+            val recoveredGeneration = Any()
+            delivery.updateCaptureStatus(attempt, Status.Active, recoveredGeneration)
+            delivery.offerJpeg(recoveredGeneration, 2) { it[0] = 11; it[1] = 12 }
+            current.awaitJson {
+                it.getValue("notice") == JsonNull && it.getValue("imageKind").jsonPrimitive.content == "live" &&
+                        it.getValue("hasImage").jsonPrimitive.boolean
+            }
             delivery.updateConfiguration(httpTestProtection("654321"), PostStopImage.Placeholder, httpTestPage("New generation"))
             current.awaitTermination()
             RawHttp(port, "/jpeg?token=$token").use { assertEquals(403, it.status) }
@@ -402,6 +487,7 @@ internal class HttpDeliveryCioIntegrationTest {
             socket = observer
             val template = observer.nextJson()
             assertEquals("open", template.getValue("access").jsonPrimitive.content)
+            val permittedSnapshots = mutableSetOf(template)
             fun snapshotWithTitle(title: String): String {
                 val display = JsonObject(template.getValue("display").jsonObject + ("title" to JsonPrimitive(title)))
                 return JsonObject(template + ("display" to display)).toString()
@@ -413,15 +499,22 @@ internal class HttpDeliveryCioIntegrationTest {
                 val title = seed + "x".repeat(size - seedSize)
                 assertEquals(size, snapshotWithTitle(title).toByteArray(Charsets.UTF_8).size)
                 delivery.updateConfiguration(AccessSettings(), PostStopImage.Placeholder, httpTestPage(title))
-                val message = observer.nextText()
+                val message = observer.awaitText {
+                    it.getValue("display").jsonObject.getValue("title").jsonPrimitive.content == title
+                }
                 assertEquals(size, message.toByteArray(Charsets.UTF_8).size)
-                assertEquals(title, Json.parseToJsonElement(message).jsonObject.getValue("display").jsonObject.getValue("title").jsonPrimitive.content)
+                val snapshot = Json.parseToJsonElement(message).jsonObject
+                assertEquals(title, snapshot.getValue("display").jsonObject.getValue("title").jsonPrimitive.content)
+                permittedSnapshots += snapshot
             }
             val oversized = seed + "x".repeat(256 * 1024 + 1 - seedSize)
             assertEquals(256 * 1024 + 1, snapshotWithTitle(oversized).toByteArray(Charsets.UTF_8).size)
             delivery.updateConfiguration(AccessSettings(), PostStopImage.Placeholder, httpTestPage(oversized))
             assertEquals(1011, observer.ended.get(15, TimeUnit.SECONDS))
-            assertFalse(observer.hasQueuedMessage())
+            for (message in observer.drainMessages()) {
+                assertTrue(message.toByteArray(Charsets.UTF_8).size <= 256 * 1024)
+                assertTrue(Json.parseToJsonElement(message).jsonObject in permittedSnapshots)
+            }
             delivery.finishHttpTest()
             assertPortCanBind(port)
         } finally {
@@ -465,6 +558,66 @@ internal class HttpDeliveryCioIntegrationTest {
             } finally {
                 delivery.finishHttpTest()
             }
+        }
+    }
+
+    // Cases: MJPEG-WEB-01, MJPEG-WEB-02, MJPEG-WEB-14, MJPEG-WEB-17
+    @Test
+    fun actualCioAuthorityMethodsAndRangeKeepTheDirectWireContract() = runBlocking {
+        val delivery = KtorHttpDelivery(httpTestContext())
+        val port = unusedLoopbackPort()
+        val image = byteArrayOf(1, 0, 2, 3, 4)
+        try {
+            delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPage(), image)
+            delivery.configureServers(listOf(httpTestAddress()), port)
+            delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
+            for (host in listOf<String?>(null, "127.0.0.1:$port/path", "user@127.0.0.1:$port", "127.0.0.1:wrong")) {
+                RawHttp(port, "/unknown?token=", hostHeader = host).use {
+                    assertEquals("Host=$host", 400, it.status)
+                }
+            }
+            RawHttp(port, "/", listOf("Host: 127.0.0.1:$port")).use { assertEquals(400, it.status) }
+            RawHttp(port, "/jpeg", listOf("Forwarded: host=127.0.0.1:$port", "X-Forwarded-Host: 127.0.0.1:$port"), hostHeader = "foreign.example:$port").use {
+                assertEquals(403, it.status)
+            }
+            for ((path, allow) in mapOf("/" to "GET", "/pin" to "POST", "/jpeg" to "GET, OPTIONS", "/mjpeg" to "GET, OPTIONS", "/ws" to "GET")) {
+                RawHttp(port, path, method = "HEAD").use {
+                    assertEquals(path, 405, it.status)
+                    assertEquals(allow, it.headers["allow"])
+                }
+            }
+            RawHttp(port, "/jpeg?ignored=start", listOf("Range: bytes=1-2", "Accept-Encoding: gzip", "X-Forwarded-For: 198.51.100.7")).use {
+                assertEquals(200, it.status)
+                assertEquals(null, it.headers["content-range"])
+                assertEquals(null, it.headers["content-encoding"])
+                assertArrayEquals(image, it.readBody())
+            }
+            RawHttp(port, "/mjpeg", listOf("Range: bytes=1-2", "Accept-Encoding: gzip")).use {
+                assertEquals(200, it.status)
+                assertEquals(null, it.headers["content-range"])
+                assertEquals(null, it.headers["content-encoding"])
+                assertArrayEquals(image, MultipartReader(it.body).nextPart())
+            }
+            delivery.finishHttpTest()
+            assertPortCanBind(port)
+        } finally {
+            delivery.finishHttpTest()
+        }
+    }
+
+    // Cases: MJPEG-SRV-10
+    @Test
+    fun constructedButNeverStartedCioListenerRetiresAndLeavesItsSocketAvailable() = runBlocking {
+        val port = unusedLoopbackPort()
+        val parent = kotlinx.coroutines.Job()
+        val listener = CioHttpListener(parent, "127.0.0.1", port) { }
+        try {
+            withTimeout(15.seconds) { listener.stopAndAwaitCleanup() }
+            assertPortCanBind(port)
+        } finally {
+            listener.requestStop()
+            parent.cancel()
+            withTimeout(15.seconds) { parent.join() }
         }
     }
 
@@ -585,19 +738,35 @@ internal class HttpDeliveryCioIntegrationTest {
 
         fun nextJson(): JsonObject = Json.parseToJsonElement(nextText()).jsonObject
 
-        fun hasQueuedMessage(): Boolean = messages.isNotEmpty()
-
-        fun awaitJson(predicate: (JsonObject) -> Boolean): JsonObject {
-            repeat(8) {
-                val snapshot = nextJson()
-                if (predicate(snapshot)) return snapshot
-            }
-            throw AssertionError("Expected WebSocket facts were not observed")
+        fun drainMessages(): List<String> {
+            val queued = mutableListOf<String>()
+            messages.drainTo(queued)
+            return queued
         }
+
+        fun awaitText(predicate: (JsonObject) -> Boolean): String {
+            val deadlineMillis = ManagementFactory.getRuntimeMXBean().uptime + 15_000L
+            while (true) {
+                val remainingMillis = deadlineMillis - ManagementFactory.getRuntimeMXBean().uptime
+                if (remainingMillis <= 0L) throw AssertionError("Expected WebSocket facts were not observed")
+                val message = messages.poll(remainingMillis, TimeUnit.MILLISECONDS)
+                    ?: throw AssertionError("Expected WebSocket facts were not observed")
+                if (predicate(Json.parseToJsonElement(message).jsonObject)) return message
+            }
+        }
+
+        fun awaitJson(predicate: (JsonObject) -> Boolean): JsonObject = Json.parseToJsonElement(awaitText(predicate)).jsonObject
     }
 
     /** Independent HTTP/1.1 reader; no Ktor serialization or response parser is reused. */
-    private class RawHttp(port: Int, path: String, extraHeaders: List<String> = emptyList(), requestBody: String? = null) : AutoCloseable {
+    private class RawHttp(
+        port: Int,
+        path: String,
+        extraHeaders: List<String> = emptyList(),
+        requestBody: String? = null,
+        method: String? = null,
+        hostHeader: String? = "127.0.0.1:$port"
+    ) : AutoCloseable {
         private val socket = Socket()
         val status: Int
         val headers: Map<String, String>
@@ -609,10 +778,12 @@ internal class HttpDeliveryCioIntegrationTest {
                 socket.connect(java.net.InetSocketAddress("127.0.0.1", port), 15_000)
                 val input = socket.getInputStream().buffered()
                 socket.getOutputStream().apply {
-                    val method = if (requestBody == null) "GET" else "POST"
+                    val requestMethod = method ?: if (requestBody == null) "GET" else "POST"
                     val bodyBytes = requestBody?.toByteArray(Charsets.UTF_8)
                     val request = buildString {
-                        append("$method $path HTTP/1.1\r\nHost: 127.0.0.1:$port\r\nConnection: close\r\n")
+                        append("$requestMethod $path HTTP/1.1\r\n")
+                        hostHeader?.let { append("Host: $it\r\n") }
+                        append("Connection: close\r\n")
                         extraHeaders.forEach { append(it).append("\r\n") }
                         bodyBytes?.let { append("Content-Length: ${it.size}\r\n") }
                         append("\r\n")

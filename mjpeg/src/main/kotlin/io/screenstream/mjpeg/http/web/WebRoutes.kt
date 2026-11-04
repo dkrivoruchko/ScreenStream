@@ -1,6 +1,7 @@
 package io.screenstream.mjpeg.http.web
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -282,7 +283,8 @@ internal class WebRoutes(context: Context, private val requestHandler: RequestHa
         }
     }
 
-    private suspend fun DefaultWebSocketSession.sendStateSnapshot(jsonState: String) {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun DefaultWebSocketSession.sendStateSnapshot(jsonState: String) {
         val frame = Frame.Text(jsonState)
         if (frame.data.size > 256 * 1024) {
             closeAndAwaitTermination(CloseReason.Codes.INTERNAL_ERROR, "Page settings exceed snapshot limit")

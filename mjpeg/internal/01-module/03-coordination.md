@@ -103,9 +103,12 @@ The screen's main button follows the same facts:
 | Situation | Button |
 | --- | --- |
 | Idle | Start, enabled only when Start would be admitted |
-| Capture confirmed, or suspended | Stop |
-| Before settings are accepted, and during consent, startup and stopping | Busy |
-| Cleanup failed | Start, disabled |
+| Capture confirmed and no Stop accepted, including while Reconfiguring or Suspended | Stop |
+| Before settings are accepted, and during consent, unconfirmed startup and stopping | Busy |
+
+Confirmed startup, not the engine phase, decides between Busy and Stop. The engine can report Active and then Suspended while its `start()` is still pending ([Engine startup](../../../screen-capture-engine/docs/usage.md#startup-details)). That attempt is still unconfirmed, so the button stays Busy until startup is confirmed. A Suspended attempt shows Stop only after confirmation.
+
+Failed cleanup has no button of its own. The turn that processes it reports terminal failure and requests shutdown, and the loop then exits without publishing. The screen keeps its last published button, as for any [shutdown](#serialized-work-and-independent-shutdown).
 
 The button and command return are advisory. [Architecture](../../docs/architecture.md#the-controller) describes how the Controller handles requests.
 
@@ -224,7 +227,7 @@ The episode is marked as warned before the controller switches to the main threa
 
 [Reading the statistics](../../docs/usage.md#reading-the-statistics) explains the figures to users. The controller derives them as follows:
 
-- **Frame rate.** Each engine statistics value carries cumulative counters, including the produced-frame count. When the session receives a value, it computes the current FPS as the produced-frame delta divided by the elapsed-realtime time since it received the previous value. The engine has no statistics timer. While capture is `Active`, processing activity can publish a changed snapshot once enough sample time has passed since the previous regular snapshot. A snapshot may be assigned or collected later, so values can arrive late or close together, and nothing regular arrives while capture is idle or suspended ([engine statistics](../../../screen-capture-engine/docs/usage.md#statistics)). The current FPS is therefore an approximation over receipt intervals, and the last value persists until the next one arrives. The controller shows FPS only while the session is Active. Cleanup republishes the final totals without an FPS.
+- **Frame rate.** Each engine statistics value carries cumulative counters, including the produced-frame count. When the session receives a value, it computes the current FPS as the produced-frame delta divided by the elapsed-realtime time since it received the previous value in the same attempt, so an attempt's first value has no FPS. A decreasing count or a non-positive interval also gives none. Engine statistics values can arrive late, close together or not at all ([engine statistics](../../../screen-capture-engine/docs/usage.md#statistics)). The current FPS is therefore an approximation over receipt intervals, and the last value persists, with no expiry, until the next one arrives. The controller shows FPS only while the session is Active. Cleanup republishes the final totals without an FPS.
 - **Outgoing and per-client rates.** These are computed from completed JPEG payload bytes, repeats included, between two HTTP samples with different timestamps. There is no rate for a first sample, for a client missing from the previous sample, or when the interval is not positive or the count went down. Stop and Start keep HTTP's totals and the previous sample.
 - **History.** History belongs to the controller:
   - Each one-second bucket holds at most one point, which is replaced when its FPS or outgoing rate changes.

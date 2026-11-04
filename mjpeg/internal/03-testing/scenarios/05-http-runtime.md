@@ -22,7 +22,7 @@ These are requirements, not a record of passing tests. [Testing MJPEG](../01-tes
 | `KtorHttpDelivery` | One open mode | Control monitor, address plan, admission, configuration, statistics sampling and the shared terminal cleanup |
 | Planned server | One server incarnation | UUID, address metadata, port, bind attempts and retry deadline, and the exact current listener |
 | Socket owner | One scoped IP and port, while used or retiring | Runs bind attempts and listener cleanup for its socket one at a time, then rereads the latest plan |
-| `HttpListener` | One bind attempt | One CIO engine bound to one IP address and port |
+| `HttpListener` | One bind attempt | The lifecycle delivery drives for one host and port: start listening, await termination, request stop, and stop with cleanup. The production `CioHttpListener` runs one CIO engine ([HTTP delivery](../../02-delivery/01-http-delivery.md#components-and-lifetimes)) |
 | `HttpRequests` | One HTTP delivery | Admitted media and WebSocket requests, client rows and retired totals |
 
 Several terms recur below.
@@ -30,7 +30,7 @@ Several terms recur below.
 - The **plan** is the list of addresses and the shared port that the controller asks delivery to serve.
 - An **incarnation** is one planned server, identified by a UUID that the app also uses for **Retry**. Metadata edits and bind retries keep the UUID. Removing and re-adding an address, or changing the port, creates a new incarnation.
 - A **scoped socket** is an IP address (with its IPv6 scope) plus a port. At most one engine exists for a scoped socket at a time.
-- **Retirement** is the physical end of a listener: its engine job has been joined and Ktor has been stopped. Cancellation only requests that end.
+- **Retirement** is the physical end of a listener: its cleanup has finished, which for `CioHttpListener` means its engine job has been joined and Ktor has been stopped. Cancellation only requests that end.
 - A **client row** represents one immediate peer endpoint: server UUID, remote IP and remote port. It is not a person or a browser tab.
 - A **sample** is the once-a-second statistics publication. Server state and failures publish between samples.
 

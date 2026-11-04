@@ -69,21 +69,22 @@ Each step adds evidence that the earlier ones can't provide. Reading a declarati
 
 ## MJPEG-CFG-03: Manifest, dependency and host boundaries
 
-**History.** Inspect the current build declarations: the [module build](../../../build.gradle.kts), the [root build](../../../../build.gradle.kts), the [settings build](../../../../settings.gradle.kts) and the [version catalog](../../../../gradle/libs.versions.toml). Then separately inspect the packaged app: its merged manifest, its resolved dependencies and the hosts it supplies. Record what you find as inspection evidence. An inspection runs nothing.
+**History.** Inspect the current build declarations: the [module build](../../../build.gradle.kts), the [root build](../../../../build.gradle.kts), the [app build](../../../../app/build.gradle.kts), the [settings build](../../../../settings.gradle.kts) and the [version catalog](../../../../gradle/libs.versions.toml). Those files own the current SDK, toolchain and dependency values, and this page doesn't repeat them. Then separately inspect the packaged app: its merged manifest, its resolved dependencies and the hosts it supplies. Record what you find as inspection evidence. An inspection runs nothing.
 
 **Expected.**
 
 - **SDK and toolchain declarations.**
-  - The root build sets minimum SDK 24, compile SDK 37, target SDK 37 and build tools 37.0.0.
-  - The MJPEG library takes its minimum SDK, compile SDK and build tools from those values, and declares no target SDK of its own. Android enforces the packaged app's target.
-  - Production code compiles with JDK toolchain 17, and unit tests run on a JDK 21 launcher.
+  - The root build defines the shared minimum SDK, compile SDK, target SDK and build-tools values.
+  - The MJPEG library takes its minimum SDK, compile SDK and build tools from those values, and declares no target SDK of its own.
+  - Android enforces the packaged app's target SDK, which the app build sets. Read it from the merged manifest of the build being qualified, not from the library.
+  - The module build sets one JVM toolchain for production code and a separate Java launcher for unit tests. The test launcher says nothing about the shipped bytecode or the device runtime.
   - Record the values in force for the build being qualified.
 - **Transport dependencies.**
-  - The module build declares the Ktor server CIO, compression, default-headers and WebSocket artifacts, plus the Ktor test host for tests.
-  - Their versions come from the shared version catalog, which currently pins Ktor 3.6.1.
+  - The module build declares the Ktor server CIO, compression, default-headers and WebSocket artifacts for production, and the Ktor test host for tests only. Their versions are references into the shared version catalog.
+  - A catalog entry is a declaration, not a resolved version: dependency resolution can select another version. The test host must not reach the packaged app's runtime classpath.
   - Dependencies resolve from Google and Maven Central, and the settings build rejects repositories declared by individual projects.
   - The inspected scripts and catalog contain no dependency substitution, no included Ktor build and no patched transport sources.
-  - Confirm the Ktor artifacts and versions that the packaged app actually resolves. Record any substitution or patch you find, or record that there is none.
+  - Confirm the Ktor artifacts and versions that the packaged app's runtime classpath actually resolves, for example with Gradle's dependency report. Record any substitution or patch you find, or record that there is none.
 - **Other project dependencies.** For the build inspection, also record that the module depends on the repository's common, Core and Capture Engine projects.
 - **Merged manifest.** The packaged manifest still declares the Service as not exported, with the same foreground types and permissions. Nothing in the app removes them.
 - **App-supplied hosts.** The app provides the Activity-root hosts that MJPEG relies on:

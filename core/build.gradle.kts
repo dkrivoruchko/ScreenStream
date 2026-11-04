@@ -22,6 +22,16 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
+            it.javaLauncher.set(javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(21)
+            })
+        }
+    }
 }
 
 dependencies {
@@ -31,4 +41,8 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)
     implementation(libs.xlog)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
 }

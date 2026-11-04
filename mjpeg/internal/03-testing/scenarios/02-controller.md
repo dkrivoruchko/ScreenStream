@@ -25,7 +25,7 @@ Use L1, with the real controller and these controlled boundaries:
 - **Service.** The concrete `MjpegStreamingModuleService` under Robolectric. This also runs Core's Service base class.
 - **Settings.** A real `MjpegSettings` on a temporary store.
 - **Discovery and HTTP.** Fake or real `NetworkAddressMonitor` and `HttpDelivery` implementations.
-- **Consent and projection.** A `ScreenCaptureAccess` that controls consent and projection outcomes. The controller builds capture sessions with the production engine factory, so engine phases are exercised in the [capture scenarios](03-capture.md).
+- **Consent, projection and engines.** A `ScreenCaptureAccess` that controls consent and projection outcomes, and an `MjpegEngineFactory` that the controller forwards to each capture session ([Testing](../01-testing.md#choosing-an-environment)). Histories about one attempt's engine phases belong to the [capture scenarios](03-capture.md).
 - **Clocks.** Controlled `SystemClock` uptime and elapsed realtime.
 
 A fresh run establishes these controller histories. Android capture, real sockets, Toast and wake-lock effects, and the app's permission UI need their own evidence.
@@ -95,6 +95,8 @@ Separately, inject controlled capture failures at startup, in the Engine or duri
 - **Foreground-host failure.** A platform failure while the real Service enters capture foreground is terminal. Core's Service closes foreground admission, reports `reportFailed()` and requests module shutdown. The attempt still cleans up. Start never becomes available again in that lifetime ([CTL-12](#mjpeg-ctl-12), [CTL-13](#mjpeg-ctl-13)).
 - **Slow Stop.** Suppose an accepted Stop has waited three seconds without completed cleanup, and no retained failure is present. `Status.error` then carries the localized stop-delay message until cleanup completes. A retained capture or screen-off failure takes precedence, so the error stays generic. The attempt's cleanup receipt, not the message, is the evidence of cleanup progress.
 - **Structured fields.** Assert structured status fields and manager state. Localized text, card styling and the app's Restart presentation need their own UI checks ([Pauses and failures](../../../docs/architecture.md#pauses-and-failures)).
+
+**Evidence boundary.** `MjpegSettings` exposes no replaceable settings flow, so an unexpected exception from the observed settings stream during active capture has no local seam. CTL-11 still requires the same terminal failure report and cleanup for it.
 
 <a id="mjpeg-ctl-13"></a>
 

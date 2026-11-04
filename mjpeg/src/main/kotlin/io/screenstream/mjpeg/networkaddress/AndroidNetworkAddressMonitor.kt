@@ -19,6 +19,7 @@ import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.ScanResu
 import io.screenstream.mjpeg.networkaddress.AndroidNetworkAddressSource.Snapshot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -50,6 +51,7 @@ import kotlin.time.Duration.Companion.nanoseconds
 internal class AndroidNetworkAddressMonitor(
     context: Context,
     nativeInterfaces: NativeInterfaceAccess = SystemNativeInterfaceAccess,
+    observationDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : NetworkAddressMonitor {
     // Admission, observer handles and platform metadata share one gate; scan and cleanup work run outside it.
     private val admissionGate = Any()
@@ -59,7 +61,7 @@ internal class AndroidNetworkAddressMonitor(
     private val platformChanges = Channel<Unit>(Channel.CONFLATED)
     private val closeRequested = CompletableDeferred<Unit>()
     private val closeCompletion = CompletableDeferred<Unit>()
-    private val ownedScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val ownedScope = CoroutineScope(SupervisorJob() + observationDispatcher)
     private val addressSource = AndroidNetworkAddressSource(nativeInterfaces)
     private val platform = PlatformObservation(context)
     override val state: StateFlow<NetworkAddressMonitor.State>

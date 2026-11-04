@@ -24,20 +24,35 @@ internal class CallbackLinkAddressShadow {
 /** Captures only the two observer operations used by the source; events use its registered executor. */
 @Implements(TetheringManager::class, minSdk = 36)
 internal class SourceTetheringShadow {
+    @Volatile
     var registeredCallback: TetheringManager.TetheringEventCallback? = null
         private set
+
+    @Volatile
     var registeredExecutor: Executor? = null
         private set
 
+    @Volatile
+    var beforeRegistration: (() -> Unit)? = null
+
+    @Volatile
+    var afterRegistration: (() -> Unit)? = null
+
+    @Volatile
+    var beforeUnregistration: (() -> Unit)? = null
+
     @Implementation
     protected fun registerTetheringEventCallback(executor: Executor, callback: TetheringManager.TetheringEventCallback) {
+        beforeRegistration?.invoke()
         check(registeredCallback == null) { "Observer already registered" }
         registeredExecutor = executor
         registeredCallback = callback
+        afterRegistration?.invoke()
     }
 
     @Implementation
     protected fun unregisterTetheringEventCallback(callback: TetheringManager.TetheringEventCallback) {
+        beforeUnregistration?.invoke()
         check(registeredCallback === callback) { "Observer was not registered" }
         registeredCallback = null
         registeredExecutor = null
@@ -47,11 +62,21 @@ internal class SourceTetheringShadow {
 /** Faults and interleavings at Android calls; all normal network behavior remains the stock shadow's. */
 @Implements(ConnectivityManager::class)
 internal class SourceConnectivityShadow : ShadowConnectivityManager() {
+    @Volatile
     var registeredRequest: NetworkRequest? = null
         private set
+
+    @Volatile
     var beforeRegistration: (() -> Unit)? = null
+
+    @Volatile
     var afterRegistration: ((ConnectivityManager.NetworkCallback) -> Unit)? = null
+
+    @Volatile
     var afterLinkPropertiesRead: ((Network, LinkProperties?) -> Unit)? = null
+
+    @Volatile
+    var beforeUnregistration: ((ConnectivityManager.NetworkCallback) -> Unit)? = null
 
     @Implementation
     override fun registerNetworkCallback(request: NetworkRequest, callback: ConnectivityManager.NetworkCallback) {
@@ -66,5 +91,11 @@ internal class SourceConnectivityShadow : ShadowConnectivityManager() {
         val captured = super.getLinkProperties(network)
         afterLinkPropertiesRead?.invoke(network, captured)
         return captured
+    }
+
+    @Implementation
+    override fun unregisterNetworkCallback(callback: ConnectivityManager.NetworkCallback) {
+        beforeUnregistration?.invoke(callback)
+        super.unregisterNetworkCallback(callback)
     }
 }

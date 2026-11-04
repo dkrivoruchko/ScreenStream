@@ -14,18 +14,16 @@ import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.ScreenCaptureStopReason
 import io.screenstream.capture.SourceRegion
+import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.MjpegCaptureSession.State.SuspensionProblem
 import io.screenstream.mjpeg.MjpegEngineState.Phase
 import io.screenstream.mjpeg.settings.ImageSettings
-import io.screenstream.core.capture.ScreenCaptureAccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -48,7 +46,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [34])
+@Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
 internal class MjpegCaptureSessionStatesTest {
     @Before
     fun initializeLogger() {
@@ -110,9 +108,9 @@ internal class MjpegCaptureSessionStatesTest {
         for ((settings, expected) in variants) {
             val inputs = MjpegCaptureSessionInputs()
             val engine = ControlledEngine()
-            val session = inputs.session(backgroundScope, engine.factory(inputs))
+            val session = inputs.session(backgroundScope, engine.factory(inputs), initialImageSettings = settings)
             try {
-                session.runCapture(settings)
+                session.start()
                 runCurrent()
 
                 assertCapture(session, Status.Starting, streaming = false)
@@ -133,17 +131,6 @@ internal class MjpegCaptureSessionStatesTest {
         val grant = object : ScreenCaptureAccess.Grant {}
         val consent = CompletableDeferred<ScreenCaptureAccess.Grant?>()
         val promotionEntered = CompletableDeferred<Unit>()
-        val promotion = CompletableDeferred<Unit>()
-        val inputs = MjpegCaptureSessionInputs(
-            grant = grant,
-            consent = { consent.await() },
-            promotion = {
-                promotionEntered.complete(Unit)
-                promotion.await()
-            },
-        )
-        val engine = ControlledEngine()
-        val session = inputs.session(backgroundScope, engine.factory(inputs))
         val latest = ImageSettings(
             sourceRegion = SourceRegion.RightHalf,
             cropEnabled = true,
@@ -168,22 +155,34 @@ internal class MjpegCaptureSessionStatesTest {
             frameRate = FrameRate.MaxFps(29),
             jpegQuality = 73,
         )
+        val engine = ControlledEngine()
+        lateinit var session: MjpegCaptureSession
+        val inputs = MjpegCaptureSessionInputs(
+            grant = grant,
+            consent = { consent.await() },
+            promotion = {
+                assertFalse(engine.startEntered.isCompleted)
+                session.updateImageSettings(latest.copy(jpegQuality = 57))
+                session.updateImageSettings(latest)
+                promotionEntered.complete(Unit)
+            },
+        )
+        session = inputs.session(
+            backgroundScope,
+            engine.factory(inputs),
+            initialImageSettings = ImageSettings(jpegBackendPolicy = JpegBackendPolicy.FrameworkOnly),
+        )
         try {
-            session.runCapture(ImageSettings(jpegBackendPolicy = JpegBackendPolicy.FrameworkOnly))
+            session.start()
             runCurrent()
             assertCapture(session, Status.WaitingForPermission, streaming = false)
 
             session.updateImageSettings(ImageSettings(jpegQuality = 21))
             session.updateImageSettings(ImageSettings(jpegQuality = 39))
+            assertFalse(engine.startEntered.isCompleted)
             consent.complete(grant)
             runCurrent()
             assertTrue(promotionEntered.isCompleted)
-            assertFalse(engine.startEntered.isCompleted)
-
-            session.updateImageSettings(latest.copy(jpegQuality = 57))
-            session.updateImageSettings(latest)
-            promotion.complete(Unit)
-            runCurrent()
 
             assertCapture(session, Status.Starting, streaming = false)
             assertEquals(expected, engine.initialParameters)
@@ -199,7 +198,6 @@ internal class MjpegCaptureSessionStatesTest {
             assertEquals(JpegBackendPolicy.FrameworkOnly, engine.config?.jpegBackendPolicy)
         } finally {
             consent.complete(grant)
-            promotion.complete(Unit)
             finishCapture(session, engine)
         }
     }
@@ -211,7 +209,7 @@ internal class MjpegCaptureSessionStatesTest {
         val engine = ControlledEngine()
         val session = inputs.session(backgroundScope, engine.factory(inputs))
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertTrue(engine.startEntered.isCompleted)
             assertCapture(session, Status.Starting, streaming = false)
@@ -255,7 +253,7 @@ internal class MjpegCaptureSessionStatesTest {
             ScreenCaptureProblem.ResourceExhausted to SuspensionProblem.ResourceExhausted,
         )
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             engine.publish(MjpegEngineState(Phase.Active))
             engine.completeStart()
@@ -287,7 +285,7 @@ internal class MjpegCaptureSessionStatesTest {
         val engine = ControlledEngine()
         val session = inputs.session(backgroundScope, engine.factory(inputs))
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertCapture(session, Status.Starting, streaming = false)
             assertEquals(ScreenCaptureParameters.DEFAULT, engine.acceptedParameters)
@@ -393,7 +391,7 @@ internal class MjpegCaptureSessionStatesTest {
         val engine = ControlledEngine(holdStop = true)
         val session = inputs.session(backgroundScope, engine.factory(inputs))
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             engine.publish(MjpegEngineState(Phase.Active))
             engine.completeStart()
@@ -431,14 +429,14 @@ internal class MjpegCaptureSessionStatesTest {
             val engine = ControlledEngine(holdStop = true)
             val session = inputs.session(backgroundScope, engine.factory(inputs))
             try {
-                session.runCapture(ImageSettings())
+                session.start()
                 runCurrent()
                 engine.publish(MjpegEngineState(Phase.Active))
                 if (settleStart) engine.completeStart()
                 runCurrent()
                 assertCapture(session, Status.Active, streaming = settleStart)
 
-                session.stop(MjpegCaptureSession.StopReason.User)
+                session.requestStop(MjpegCaptureSession.StopReason.User)
                 session.updateImageSettings(ImageSettings(jpegQuality = 19))
                 runCurrent()
                 assertTrue(engine.stopEntered.isCompleted)
@@ -476,7 +474,7 @@ internal class MjpegCaptureSessionStatesTest {
         })
         val session = inputs.session(backgroundScope, engine.factory(inputs))
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
 
             assertTrue(withTimeout(5.seconds) { session.awaitCleanup() })
@@ -505,7 +503,7 @@ internal class MjpegCaptureSessionStatesTest {
         val engine = ControlledEngine(holdStop = true, startFailure = startFailure)
         val session = inputs.session(backgroundScope, engine.factory(inputs))
         try {
-            session.runCapture(ImageSettings())
+            session.start()
             runCurrent()
             assertTrue(engine.startEntered.isCompleted)
             assertTrue(engine.stopEntered.isCompleted)
@@ -539,7 +537,7 @@ internal class MjpegCaptureSessionStatesTest {
                 val engine = ControlledEngine(holdStop = true)
                 val session = inputs.session(backgroundScope, engine.factory(inputs))
                 try {
-                    session.runCapture(ImageSettings())
+                    session.start()
                     runCurrent()
                     engine.publish(MjpegEngineState(Phase.Active))
                     if (settleStart) engine.completeStart()
@@ -574,7 +572,7 @@ internal class MjpegCaptureSessionStatesTest {
             val engine = ControlledEngine(holdStop = true)
             val session = inputs.session(backgroundScope, engine.factory(inputs))
             try {
-                session.runCapture(ImageSettings())
+                session.start()
                 runCurrent()
                 engine.publish(MjpegEngineState(Phase.Active))
                 if (settleStart) engine.completeStart()
@@ -619,7 +617,7 @@ internal class MjpegCaptureSessionStatesTest {
 
     private suspend fun TestScope.finishCapture(session: MjpegCaptureSession, engine: ControlledEngine) {
         // Release all test gates before waiting for NonCancellable adapter cleanup or leaving the scope.
-        session.stop(MjpegCaptureSession.StopReason.Shutdown)
+        session.requestStop(MjpegCaptureSession.StopReason.Shutdown)
         engine.releaseAll()
         runCurrent()
         withTimeout(5.seconds) { session.awaitCleanup() }
@@ -650,8 +648,8 @@ internal class MjpegCaptureSessionStatesTest {
             get() = decision.value
         override val states: Flow<MjpegEngineState> = decision
 
-        // No statistics assertion needs a privately constructed Engine snapshot. Keep this Flow open and inert.
-        override val stats: Flow<ScreenCaptureStats> = flow { awaitCancellation() }
+        // A real Engine's initial zero snapshot; these state histories make no statistics assertions.
+        override val stats: kotlinx.coroutines.flow.StateFlow<ScreenCaptureStats> = MutableStateFlow(emptyEngineStatistics())
 
         fun factory(inputs: MjpegCaptureSessionInputs): MjpegEngineFactory = MjpegEngineFactory { context, projection, config ->
             assertSame(inputs.context, context)

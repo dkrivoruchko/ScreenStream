@@ -232,7 +232,7 @@ Cleanup starts unregistering the consumer and stopping media together. It then:
 4. offers consent for reuse if eligible
 5. releases the capture foreground, if media stopped and no cleanup step failed
 
-Cleanup runs without cancellation once it has started.
+Cleanup runs without cancellation once it has started. In these scenarios, **foreground release** means `leaveCaptureForeground`: it ends this attempt's foreground ownership and restores waiting foreground for a surviving admitted instance. It never removes foreground ([CAP-13](#mjpeg-cap-13)).
 
 <a id="mjpeg-cap-09"></a>
 
@@ -263,7 +263,7 @@ Cleanup runs without cancellation once it has started.
 
 ### MJPEG-CAP-11: Rollback and remaining obligations
 
-**History.** Fail the raw projection stop, foreground removal or finishing projection creation, both before and after Engine handoff. Hold another cleanup step at the same time.
+**History.** Fail the raw projection stop, foreground release or finishing projection creation, both before and after Engine handoff. Hold another cleanup step at the same time.
 
 **Expected.**
 
@@ -301,7 +301,9 @@ Cleanup runs without cancellation once it has started.
 
 - promotion that succeeds, is rejected or throws
 - Service destruction during the attempt
-- failure while removing capture foreground
+- leaving capture foreground after media cleanup, once with the instance still admitted and once after shutdown has closed foreground admission
+- a platform failure while restoring waiting foreground
+- terminal Service stop after module shutdown
 
 Run on SDK levels before 29, from 29 to 33, and 34 or later.
 
@@ -310,7 +312,9 @@ Run on SDK levels before 29, from 29 to 33, and 34 or later.
 - **Promotion request.** MJPEG requests capture foreground for its exact attempt, without the microphone type, inside Core's consent callback.
 - **No false success.** A rejected or failed promotion never counts as success, and startup ends as Core reports it ([CAP-03](#mjpeg-cap-03)).
 - **Notification Stop.** Confirmed startup updates the notification so that Stop targets that exact attempt. Before confirmation, the notification offers Exit.
-- **Release.** Release targets the same attempt and follows media cleanup. A removal failure records `Cleanup.foreground`, and cleanup is unsuccessful.
+- **Leaving capture foreground.** `leaveCaptureForeground` targets the same attempt and follows media cleanup when [CAP-11](#mjpeg-cap-11) allows it. It doesn't remove foreground: for a surviving admitted instance, Core restores waiting foreground with Exit. When shutdown has closed foreground admission and the Service still exists, restoration is skipped without a failure. Core clears the attempt's foreground ownership in both cases.
+- **Restoration failure.** When the platform promotion call throws, Core closes foreground admission, reports failure to the manager and requests module shutdown, then rethrows. The session then records `Cleanup.foreground`, and cleanup is unsuccessful.
+- **Terminal Service stop.** Removing foreground isn't a capture cleanup step. After the attempt's cleanup settles, module cleanup calls `stopAndAwaitDestruction()`, and Android removes foreground and the notification when the Service stops ([Core's foreground lifecycle](../../../../core/docs/notifications.md#foreground-presentation)). A failed stop request or an Android timeout fails module cleanup and doesn't change the attempt's recorded stages.
 - **Service destruction.** Destroying the Service reports module failure and starts shutdown ([CTL-11](02-controller.md#mjpeg-ctl-11)).
 
 **Evidence boundary.** Core's Service base class implements the promotion calls for each SDK level. A Robolectric run through the MJPEG subclass shows how MJPEG uses them. For the rest, rely on Core's [foreground presentation contract](../../../../core/docs/notifications.md#foreground-presentation). Actual system admission, foreground-service restrictions and visible notifications need L2.
