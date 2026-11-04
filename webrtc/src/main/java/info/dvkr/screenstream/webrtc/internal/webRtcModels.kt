@@ -53,7 +53,7 @@ internal open class WebRtcEvent(val priority: Int) {
 
 @JvmInline
 internal value class PlayIntegrityToken(val value: String) {
-    override fun toString(): String = value.take(96)
+    override fun toString(): String = "PlayIntegrityToken(length=${value.length})" // Never log the token
 }
 
 @JvmInline
@@ -95,8 +95,11 @@ internal value class StreamPassword private constructor(val value: String) {
 
     internal fun isEmpty(): Boolean = value.isBlank()
 
-    internal fun isValid(clientId: ClientId, streamId: StreamId, passwordHash: String): Boolean =
-        (clientId.value + streamId.value + value).encodeToByteArray().toSHA384Bytes().toBase64UrlSafe() == passwordHash
+    internal fun isValid(clientId: ClientId, streamId: StreamId, passwordHash: String): Boolean {
+        val expected = (clientId.value + streamId.value + value).encodeToByteArray().toSHA384Bytes().toBase64UrlSafe()
+        // Constant-time comparison
+        return MessageDigest.isEqual(expected.encodeToByteArray(), passwordHash.encodeToByteArray())
+    }
 
     override fun toString(): String = value
 

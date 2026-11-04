@@ -69,6 +69,8 @@ import kotlin.math.pow
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 
+private const val MAX_CLIENTS: Int = 16 // Max concurrently joined viewers
+
 internal class WebRtcStreamingService(
     private val service: WebRtcModuleService,
     private val mutableWebRtcStateFlow: MutableStateFlow<WebRtcState>,
@@ -196,7 +198,9 @@ internal class WebRtcStreamingService(
     internal sealed class InternalEvent(priority: Int) : WebRtcEvent(priority) {
         data object InitState : InternalEvent(Priority.RECOVER_IGNORE)
         data class GetNonce(val attempt: Int, val forceTokenUpdate: Boolean) : InternalEvent(Priority.RECOVER_IGNORE)
-        data class GetToken(val nonce: String, val attempt: Int, val forceUpdate: Boolean) : InternalEvent(Priority.RECOVER_IGNORE)
+        data class GetToken(val nonce: String, val attempt: Int, val forceUpdate: Boolean) : InternalEvent(Priority.RECOVER_IGNORE) {
+            override fun toString(): String = "GetToken(attempt=$attempt, forceUpdate=$forceUpdate)" // Never log the nonce
+        }
         data class OpenSocket(val token: PlayIntegrityToken) : InternalEvent(Priority.RECOVER_IGNORE)
         data class RecoverSignaling(val forceTokenUpdate: Boolean, val reason: String) : InternalEvent(Priority.RECOVER_IGNORE)
         data object StreamCreate : InternalEvent(Priority.RECOVER_IGNORE)
@@ -231,6 +235,7 @@ internal class WebRtcStreamingService(
         }
 
         data object ScreenOff : InternalEvent(Priority.STOP_IGNORE)
+        data object PasswordBruteForce : InternalEvent(Priority.STOP_IGNORE)
         data class EnableMic(val enableMic: Boolean) : InternalEvent(Priority.STOP_IGNORE)
         data class EnableDeviceAudio(val enableDeviceAudio: Boolean) : InternalEvent(Priority.STOP_IGNORE)
         data class ConfigurationChange(val newConfig: Configuration) : InternalEvent(Priority.STOP_IGNORE)
@@ -345,6 +350,11 @@ internal class WebRtcStreamingService(
         override fun onClientCandidate(clientId: ClientId, negotiationAttemptId: AttemptId, candidate: IceCandidate) {
             XLog.v(this@WebRtcStreamingService.getLog("SocketSignaling.onClientCandidate", "$clientId negotiationAttemptId=$negotiationAttemptId"))
             sendEvent(InternalEvent.SocketClientCandidate(clientId, negotiationAttemptId, candidate))
+        }
+
+        override fun onPasswordBruteForce() {
+            XLog.w(this@WebRtcStreamingService.getLog("SocketSignaling.onPasswordBruteForce"))
+            sendEvent(InternalEvent.PasswordBruteForce)
         }
 
         override fun onError(cause: SocketSignaling.Error) {
@@ -855,6 +865,12 @@ internal class WebRtcStreamingService(
                 val existingClient = clients[event.clientId]
                 if (existingClient?.key?.joinAttemptId == event.joinAttemptId) {
                     XLog.i(getLog("ClientJoin", "Duplicate join for ${event.clientId}, joinAttemptId=${event.joinAttemptId}. Ignoring."))
+                    return
+                }
+
+                if (existingClient == null && clients.size >= MAX_CLIENTS) {
+                    XLog.w(getLog("ClientJoin", "Too many clients (${clients.size}). Rejecting ${event.clientId}."))
+                    signaling?.sendRemoveClients(listOf(event.clientId), "TooManyClients")
                     return
                 }
 
@@ -1523,6 +1539,19 @@ internal class WebRtcStreamingService(
                 ) { currentClient ->
                     currentClient.client.setClientCandidate(projection!!.localMediaSteam!!.id, event.candidate)
                 }
+            }
+
+            is InternalEvent.PasswordBruteForce -> {
+                if (destroyPending) {
+                    XLog.i(getLog("PasswordBruteForce", "DestroyPending. Ignoring"))
+                    return
+                }
+                if (currentStreamPassword.isEmpty()) return
+
+                // Too many wrong passwords: rotate the password for new joins. Already joined clients stay connected.
+                XLog.w(getLog("PasswordBruteForce", "Too many wrong stream passwords. Rotating stream password."))
+                currentStreamPassword = StreamPassword.generateNew()
+                mainHandler.post { Toast.makeText(service, R.string.webrtc_stream_password_rotated, Toast.LENGTH_LONG).show() }
             }
 
             is InternalEvent.ScreenOff -> {

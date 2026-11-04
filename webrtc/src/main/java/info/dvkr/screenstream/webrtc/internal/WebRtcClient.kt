@@ -454,8 +454,12 @@ internal class WebRtcClient(
 
         val queued = synchronized(queuedClientDataLock) {
             if (!remoteAnswerApplied) {
-                XLog.i(getLog("setClientCandidate", "Client $id remote answer not applied. Queueing candidate."))
-                queuedCandidates.add(candidate)
+                if (queuedCandidates.size >= MAX_QUEUED_CLIENT_CANDIDATES) {
+                    XLog.w(getLog("setClientCandidate", "Client $id candidate queue full ($MAX_QUEUED_CLIENT_CANDIDATES). Dropping candidate."))
+                } else {
+                    XLog.i(getLog("setClientCandidate", "Client $id remote answer not applied. Queueing candidate."))
+                    queuedCandidates.add(candidate)
+                }
                 true
             } else {
                 false
@@ -645,6 +649,8 @@ internal class WebRtcClient(
     override fun hashCode(): Int = clientId.hashCode()
 
     private companion object {
+        private const val MAX_QUEUED_CLIENT_CANDIDATES: Int = 100
+
         @JvmStatic
         private val defaultIceServers
             get() = sequenceOf(
