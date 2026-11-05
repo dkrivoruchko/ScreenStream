@@ -2,7 +2,7 @@
 
 These procedures verify the image path described by public [Architecture](../../docs/architecture.md#android-capture-and-jpeg-pipeline) and [Usage](../../docs/usage.md#change-capture-parameters). The internal [image pipeline](../02-capture/image-pipeline.md) owns the production geometry and color rules. This page owns reproducible test inputs, independent expected pixels, numeric bounds, and the limits of that evidence.
 
-Use [Testing](testing.md#instrumentation) for execution and result inspection, and [Verification contracts](verification-contracts.md) for the obligations, including `IMG-01`, `ENC-01`, `ENC-02`, and `ENC-04`. Procedures and test source are not records of a passing device run.
+Use [Testing](testing.md#instrumentation) for execution and result inspection, and [Verification contracts](verification-contracts.md) for the obligations, including `IMG-01`, `IMG-02`, `ENC-01`, `ENC-02`, and `ENC-04`. Procedures and test source are not records of a passing device run.
 
 ## Raw RGBA fixture
 
@@ -22,7 +22,7 @@ The source row and total byte ranges are exactly 20 and 60 bytes. [RawPixelOracl
 
 The 29 raw-render cases consist of 27 Full cases, one producer-already-target Downscaled case, and one provisional-Full case.
 
-The base Full cases preserve LeftHalf columns 0–1, RightHalf columns 2–4, and crop `(1,0,1,1)` to `3 x 2`. They cover all four rotations with each mirror mode, including non-square 90-degree cases; `ScaleFactor(2.0)` to `10 x 6`; Stretch to `8 x 8`; AspectFit within `8 x 8` to `8 x 5`; and grayscale with fractional Stretch sampling.
+The 19 base Full cases preserve LeftHalf columns 0–1, RightHalf columns 2–4, and crop `(1,0,1,1)` to `3 x 2`. They cover all four rotations with each mirror mode, including non-square 90-degree cases; `ScaleFactor(2.0)` to `10 x 6`; Stretch to `8 x 8`; AspectFit within `8 x 8` to `8 x 5`; and grayscale with fractional Stretch sampling.
 
 Four Full regressions cover retained-neighbour boundaries: LeftHalf at scale 2, crop `(1,0,1,1)` at scale 2, that crop rotated 90 degrees and horizontally mirrored, and single retained pixel crop `(2,1,2,1)` at scale 2. Independent literal edge and interior anchors check both the CPU expectation and actual output. They distinguish excluded-neighbour bleed from vertex-endpoint compression; the single-pixel case exercises equal minimum and maximum bounds.
 
@@ -37,9 +37,7 @@ The Downscaled case models authoritative logical dimensions `10 x 6`, a producer
 
 ### Independent CPU oracle
 
-The oracle implements selection, crop, inverse rotation/mirroring, output-size resolution, bilinear weights, retained-neighbour clamping, quantization, and grayscale independently of production helpers. It checks its resolved dimensions against literal case expectations. For each output pixel center it maps back to normalized Target coordinates `(a,b)` using the selected source rectangle and orientation.
-
-For the Full, producer-equals-logical identity-grid fixture, convert those coordinates to texel-center coordinates:
+The oracle implements selection, crop, inverse rotation/mirroring, output-size resolution, bilinear weights, retained-neighbour clamping, quantization, and grayscale independently of production helpers. It checks its resolved dimensions against literal case expectations. For each output pixel center it maps back to normalized Target coordinates `(a,b)` using the applied source rectangle `[L,R) x [T,B)` and orientation, then converts them to texel centers of the `Tw x Th` Target:
 
 ```text
 qx = a * Tw - 0.5       qy = b * Th - 0.5
@@ -48,7 +46,7 @@ x1 = x0 + 1            y1 = y0 + 1
 wx = qx - x0           wy = qy - y0
 ```
 
-Independently clamp each neighbour index to the retained ranges `[L,R - 1]` and `[T,B - 1]`. Preserve the original weights `(1-wx)(1-wy)`, `wx(1-wy)`, `(1-wx)wy`, and `wxwy`; clamping indices does not recompute those weights. For the Downscaled fixture, the retained ranges are the whole Target, `[0,Tw - 1]` and `[0,Th - 1]`.
+Independently clamp each neighbour index to the retained ranges. For Full, where the Target equals the logical source, these are `[L,R - 1]` and `[T,B - 1]`; for the Downscaled fixture, they are the whole Target, `[0,Tw - 1]` and `[0,Th - 1]`. Preserve the original weights `(1-wx)(1-wy)`, `wx(1-wy)`, `(1-wx)wy`, and `wxwy`; clamping indices does not recompute those weights.
 
 Quantize each interpolated channel with `floor(clamp(value, 0, 255) + 0.5)`. For grayscale, calculate integer `Y = (77R + 150G + 29B + 128) >> 8` from those quantized channels and write that value to R, G, and B. Expected alpha is exactly 255.
 
@@ -66,7 +64,7 @@ The real Android procedure verifies resolved dimensions and mapping, top-down or
 
 Alpha must be exactly 255 for every pixel at either precision. Grayscale must also have exact `R == G == B`.
 
-Each device execution must report the named case and the naturally selected fragment precision passed from `EglOwner` to `GLRenderer`. The test's `GLRendererRawPixel` log tag records `case`, `naturalFragmentPrecision`, and the status of each branch. Renderer setup is `selected/attempted`; only a completed real read is `exercised`; the other branch remains `unexercised`. A completed-read log is not itself proof that the subsequent pixel assertions passed, so retain the test result with the precision record.
+Each device execution must report the named case and the naturally selected fragment precision passed from `EglOwner` to `GLRenderer`. `CanvasRendererFixture` logs `case`, `naturalFragmentPrecision`, and the status of each `highp`/`mediump` branch under tag `GLRendererRawPixel`. Renderer setup is `selected/attempted`; only a completed real read is `exercised`; the other branch remains `unexercised`. A completed-read log is not itself proof that the subsequent pixel assertions passed, so retain the test result with the precision record.
 
 If the device reports no high-precision fragment capability and naturally selects medium precision, record that path and mark the high-precision case `Not applicable` for that device. Forcing the mediump shader on high-precision hardware does not prove behavior at the GLSL ES mediump minimum. AndroidTest assembly supplies neither a selected-branch nor an exercised-branch result.
 
@@ -93,13 +91,13 @@ Local row and tile bounds prevent one region's error from being diluted into a w
 
 ### Runtime procedures and API eligibility
 
-[EncodingOwnerFrameworkJpegTest](../../src/androidTest/kotlin/io/screenstream/capture/internal/encoding/EncodingOwnerFrameworkJpegTest.kt) drives `FrameworkOnly` through the real owner, validates decoded MIME/pixels, checks exact carrier reuse, and retires it. [NativeJpegRuntimeTest](../../src/androidTest/kotlin/io/screenstream/capture/internal/encoding/NativeJpegRuntimeTest.kt) contains three distinct procedures:
+[EncodingOwnerFrameworkJpegTest](../../src/androidTest/kotlin/io/screenstream/capture/internal/encoding/EncodingOwnerFrameworkJpegTest.kt) drives `FrameworkOnly` through the real owner, checks the two-sample encode duration, validates decoded MIME/pixels, checks exact carrier reuse, and retires it. [NativeJpegRuntimeTest](../../src/androidTest/kotlin/io/screenstream/capture/internal/encoding/NativeJpegRuntimeTest.kt) contains three distinct procedures:
 
 - Below API 30, load the DSO, establish that the weak compressor is unavailable, and verify Auto's Framework output.
 - On API 30+, drive Auto through the real Native owner path, validate the JPEG, and check exact carrier reuse/free.
 - On API 30+, call the registered-JNI facade and verify transfer and transaction settlement directly. This contributes direct JNI evidence, not EncodingOwner backend-selection evidence.
 
-Use their fully qualified class names with the [instrumentation command](testing.md#instrumentation). Record the actual API-gated execution and skip outcomes separately. Success of an eligible procedure does not imply the other API branch ran or that every packaged ABI was loaded.
+The API 30+ Auto procedure is gated by `@SdkSuppress`; the other two use JUnit assumptions. Use their fully qualified class names with the [instrumentation command](testing.md#instrumentation). Record the actual API-gated execution and skip outcomes separately. Success of an eligible procedure does not imply the other API branch ran or that every packaged ABI was loaded.
 
 JVM/Robolectric checks can assert exact visible Bitmap pixels after padded-row transfer; real Framework JPEG fidelity requires instrumentation. The raw-renderer procedure above verifies the producer-already-target path separately. AndroidTest assembly supplies no JPEG MIME or pixel result.
 
@@ -117,9 +115,9 @@ Source inspection verifies that the unified renderer parameter refresh resets al
 
 The plain test View draws the literal SDR palette with distributed markers containing a per-run seed and scene epoch. Each stage records measured display/View bounds, insets and layout generation. A bounded native-screenshot condition first qualifies that the requested source scene is actually visible, including after rotation animation. This waits for source presentation and never substitutes native pixels for the JPEG oracle or retries a product verdict as setup.
 
-[ProjectionImageOracle](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionImageOracle.kt) independently applies the public sizing/selection/crop formulas to those source facts. Guarded local JPEG patch checks use channel MAE 24, row MAE 36, neutral spread 8 and retained neutral-level separation 32; native source qualification uses MAE 2 and row MAE 6. Whole-image geometry, distributed retained base colors and current scene markers must all agree. JPEG bytes and immutable frame metadata are copied before the borrowed callback returns; assertions and decoding happen afterward. A frame timestamp remains output-commit time, not source-capture time.
+[ProjectionImageOracle](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionImageOracle.kt) independently applies the public sizing/selection/crop formulas to those source facts. Each patch is sampled inside a 4-pixel guard; a mapped JPEG patch with a guarded interior smaller than `8 x 8` is excluded from coverage, while such a native patch fails qualification. Guarded local JPEG patch checks use channel MAE 24, row MAE 36, neutral spread 8 and retained neutral-level separation 32; native source qualification applies MAE 2 and row MAE 6 to every patch. Whole-image geometry, distributed retained base colors and current scene markers must all agree: each JPEG verdict needs at least four guarded base and four guarded marker patches covering at least two rows and two columns. JPEG bytes and immutable frame metadata are copied before the borrowed callback returns; assertions and decoding happen afterward. A frame timestamp remains output-commit time, not source-capture time.
 
-After native input and applied state qualify, the JPEG wait retains its existing 15-second bound to observe a fresh-sequence, matching-metadata JPEG that passes the complete current-scene oracle. Temporary visual mapping differences may precede that frame; the check requires convergence rather than perfect visual output from every transition frame. There is no fixed bad-frame counter, warmup drop rule or extra delay. Persistent incorrect geometry still fails the checkpoint. JPEG-format, structural metadata, borrowed ownership and resource-settlement obligations remain unchanged.
+After native input and applied state qualify, the JPEG wait retains its existing 15-second bound to observe a fresh-sequence, matching-metadata JPEG that passes the complete current-scene oracle. If the measured scene changes during that wait, the same native qualification is repeated within the remaining bound, without restarting it or relaxing any pixel bound, before the expectation is rebuilt; a changed scene not requalified when the bound expires, or requalified with unrequested display geometry, is a structural source failure rather than an Engine image failure. Temporary visual mapping differences may precede that frame; the check requires convergence rather than perfect visual output from every transition frame. There is no fixed bad-frame counter, warmup drop rule or extra delay. Persistent incorrect geometry still fails the checkpoint. JPEG-format, structural metadata, borrowed ownership and resource-settlement obligations remain unchanged.
 
 [ProjectionCaptureFixture](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionCaptureFixture.kt) records each attempted stage, structural qualification and image pass/failure separately. Source layout, View identity/generation and Engine image verdicts stay there; platform rotation commands/policy restoration and opted-in size mutation have separate concrete owners. [ProjectionEvidence](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionEvidence.kt) stores and exports snapshots without deciding the verdict. Healthy sessions may continue after an image failure to establish later independent verdicts; structural failure ends dependent work, and later stages remain unreached. First-matched, latest and matched JPEGs retain their own metadata. Native PNGs, source facts, verdicts, receipts and history outcome are stored in `cache/engine-projection-evidence/<run-id>/` and published through UiAutomator's instrumentation result reporter before package removal. Inspect actual run results and exported artifacts; containment does not prove graphics-resource settlement.
 

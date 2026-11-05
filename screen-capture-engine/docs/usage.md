@@ -342,7 +342,7 @@ Every returned `CaptureOutputInfo` is internally valid: capture dimensions and d
 
 Frame pacing is best effort. Design for delayed or skipped images.
 
-**`frameRate` defaults to `FrameRate.Auto`.** `Auto` follows available source images and processing capacity. `MaxFps(fps)` accepts `1..120` and caps fresh output. `SamplingInterval(interval)` accepts `1,000..3,600,000 ms`, allows the first available fresh image immediately, then samples later fresh images no more often than the interval.
+**`frameRate` defaults to `FrameRate.Auto`.** `Auto` follows available source images and processing capacity. `MaxFps(fps)` accepts `1..120` and caps both fresh-image admission and fresh output commits. `SamplingInterval(interval)` accepts `1,000..3,600,000 ms`, allows the first available fresh image immediately, then samples later fresh images no more often than the interval.
 
 `SamplingInterval(2.seconds)` can admit the first fresh image immediately and later fresh images at most once every two seconds. By comparison, `MaxFps(10)` limits fresh output commits to at most ten per second. Neither policy promises that rate.
 
@@ -391,7 +391,7 @@ val session = ScreenCaptureEngine.createSession(
 )
 ```
 
-With `Auto`, expected native setup unavailability or unsupported platform capability selects the framework encoder. Unexpected native failures still follow the normal failure rules. If native compression later reports a rejection the SDK can safely contain, that output is dropped and native encoding is disabled for the rest of the session. The same frame is not retried; later output uses the framework encoder.
+With `Auto`, the framework encoder is selected when the native library cannot be loaded in the process or the platform lacks native JPEG compression, as on API 24–29. A load counts as unavailable only when `System.loadLibrary` throws exactly `UnsatisfiedLinkError` or a `SecurityException`; that result applies for the rest of the process. Other unexpected native failures, including any after the library has loaded, do not select the framework encoder and follow the normal failure rules. If native compression later reports a rejection the SDK can safely contain, that output is dropped and native encoding is disabled for the rest of the session. The same frame is not retried; later output uses the framework encoder.
 
 Both backends preserve the same public frame, geometry, ownership, delivery, observation, and problem contracts. They do not promise identical JPEG bytes.
 

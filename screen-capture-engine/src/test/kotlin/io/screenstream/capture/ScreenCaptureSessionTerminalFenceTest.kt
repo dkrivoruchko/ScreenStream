@@ -383,7 +383,8 @@ internal class ScreenCaptureSessionTerminalFenceTest {
     }
 
     /*
-     * Characterization only: wrappers share test authority by construction, not by an asserted Android guarantee.
+     * Characterization only: both projection wrappers share one modeled authority by test construction, not by an
+     * asserted Android guarantee.
      * The successor's Active snapshot does not prove continued capture after the modeled old stop.
      */
     @Test

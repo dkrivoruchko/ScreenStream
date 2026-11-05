@@ -62,7 +62,7 @@ internal class EncodingOwnerFrameworkLifecycleTest {
                     val input = requireInput(owner, returned)
                     unsettledInput = input
                     every { bitmap.recycle() } answers {
-                        // Managed retirement drops its backing root: idle here proves that did not precede Bitmap retirement.
+                        // Carrier retirement drops its backing root, so a still-idle carrier proves Bitmap retirement came first.
                         assertTrue(input.carrier.isIdle)
                         callOriginal()
                     }

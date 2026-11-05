@@ -1,4 +1,5 @@
-# RegisterNatives and GetMethodID resolve these binary names and private members after shrinking.
+# JNI binds by name after shrinking: JNI_OnLoad finds NativeJpegProcess and registers its private natives, and
+# nativeCompress looks up NativeSegmentSink.copyNativeSegment. Keep these class names, members, and descriptor types.
 -keepnames class io.screenstream.capture.internal.encoding.NativeJpegProcess
 -keepclassmembers,allowoptimization,includedescriptorclasses class io.screenstream.capture.internal.encoding.NativeJpegProcess {
     private java.nio.ByteBuffer nativeAllocateCarrier(long);

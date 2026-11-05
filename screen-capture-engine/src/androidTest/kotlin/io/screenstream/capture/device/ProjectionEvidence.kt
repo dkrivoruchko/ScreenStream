@@ -29,7 +29,10 @@ internal class ProjectionEvidence(context: Context, private val device: UiDevice
         write(name, "png") { check(device.takeScreenshot(it)) }
     }
 
-    /** Raw, non-atomic snapshots after an image failure; command denial or missing fields remain inconclusive. */
+    /**
+     * Saves capped raw SurfaceFlinger snapshots after an image failure as inconclusive evidence: they are not atomic
+     * with each other or the JPEG and carry no oracle verdict. Command and write failures are returned, not thrown.
+     */
     fun captureGeometryDiagnostics(
         automation: UiAutomation,
         history: String,

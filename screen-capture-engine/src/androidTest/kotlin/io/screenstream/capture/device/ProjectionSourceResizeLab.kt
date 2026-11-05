@@ -49,7 +49,7 @@ internal class ProjectionSourceResizeLab(private val context: Context, private v
     )
 
     fun resize(size: LabSize) {
-        sizeTouched = true // Retain the obligation even if command entry or return is ambiguous.
+        sizeTouched = true // Mark first: treat a failed or ambiguous command as possibly applied.
         check(shell("wm size $size -d 0").isBlank()) { "Display size setter returned unexpected output" }
     }
 

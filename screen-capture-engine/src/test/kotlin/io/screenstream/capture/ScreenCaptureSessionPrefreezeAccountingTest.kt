@@ -40,9 +40,9 @@ import kotlin.time.Duration.Companion.nanoseconds
 /*
  * Public pre-freeze accounting evidence through the real Coordinator, Capture, Encoding, and typed Links.
  *
- * Scoped private-call interception arranges stop after a real Link selects its actual fact and releases the Session
- * gate. It calls the original consumer with that same argument. Exact physical returns, public State/Stats,
- * forbidden output, and resource settlement decide each scenario.
+ * Scoped interception of a private Coordinator consumer issues stop after a real Link has selected its actual fact and
+ * the Session gate is released, then calls the original consumer with the same argument. Exact physical returns,
+ * public State/Stats, forbidden output, and resource settlement decide each scenario.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

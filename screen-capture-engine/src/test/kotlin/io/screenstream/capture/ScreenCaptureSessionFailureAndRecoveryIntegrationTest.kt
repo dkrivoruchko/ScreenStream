@@ -1,5 +1,6 @@
 package io.screenstream.capture
 
+import android.opengl.GLES20
 import android.os.Build
 import android.view.Surface
 import io.mockk.Runs
@@ -23,6 +24,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -37,6 +40,135 @@ import java.util.concurrent.CopyOnWriteArrayList
 @Config(manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class ScreenCaptureSessionFailureAndRecoveryIntegrationTest {
+    // Verification: SES-03
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S_V2])
+    fun glCapacityDenialSuspendsWithoutOldOutputAndEqualRetryCanBeCorrected() = runTest {
+        val platform = CapturePlatformFixture()
+        capacityHarness(platform).use { harness ->
+            val initial = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+            startActiveSession(harness, initial)
+            val initialOutput = (harness.session.state.value as ScreenCaptureState.Active).outputInfo
+            val delivered = CopyOnWriteArrayList<FrameSnapshot>()
+            harness.session.registerFrameConsumer { delivered += copyFrame(it) }
+            val denied = initial.copy(outputSize = OutputSize.TargetSize(4_097, 1, OutputSize.ContentMode.Stretch))
+
+            harness.session.updateParameters(denied)
+            harness.driveUntil { harness.session.state.value is ScreenCaptureState.Suspended }
+            val suspended = harness.session.state.value
+            assertSuspended(suspended, ScreenCaptureProblem.ResourceExhausted, denied, initialOutput)
+            platform.deliverSourceFrame(31)
+            drainAcceptedSessionWork(harness)
+            assertSame(suspended, harness.session.state.value)
+            assertTrue(delivered.isEmpty())
+            assertEquals(0L, harness.session.stats.value.producedFrameCount)
+
+            harness.session.updateParameters(denied.copy())
+            drainAcceptedSessionWork(harness)
+            val retried = harness.session.state.value
+            assertNotSame(suspended, retried)
+            assertSuspended(retried, ScreenCaptureProblem.ResourceExhausted, denied, initialOutput)
+            drainAcceptedSessionWork(harness)
+            assertSame(retried, harness.session.state.value)
+            platform.verifyNoReplacementTargetWasCreated()
+            platform.verifyNoProjectionTopologyChanges()
+            verify(exactly = 1) { platform.glesPlatform.texImage2D(any(), any()) }
+
+            val corrected = initial.copy(outputSize = OutputSize.TargetSize(4, 4, OutputSize.ContentMode.Stretch))
+            harness.session.updateParameters(corrected)
+            harness.driveUntil {
+                (harness.session.state.value as? ScreenCaptureState.Active)?.outputInfo?.parameters == corrected
+            }
+            platform.deliverSourceFrame(41)
+            harness.driveUntil { delivered.isNotEmpty() }
+            assertTrue(delivered.all { it.outputInfo.parameters == corrected })
+        }
+    }
+
+    // Verification: SES-03
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun glCapacityApplyDenialBeforeFirstActiveFailsStartup() = runTest {
+        val platform = CapturePlatformFixture()
+        capacityHarness(platform, Build.VERSION_CODES.UPSIDE_DOWN_CAKE).use { harness ->
+            val denied = ScreenCaptureParameters(outputSize = OutputSize.TargetSize(4_097, 1, OutputSize.ContentMode.Stretch))
+            val states = CopyOnWriteArrayList<ScreenCaptureState>()
+            val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                harness.session.state.collect(states::add)
+            }
+            val start = backgroundScope.async(start = CoroutineStart.UNDISPATCHED) {
+                runCatching { harness.session.start(denied) }.exceptionOrNull()
+            }
+            try {
+                harness.driveUntil(platform::initialVirtualDisplayReturned)
+                platform.deliverCapturedContentResize(8, 6)
+                harness.driveUntil { harness.session.state.value is ScreenCaptureState.Failed }
+                assertSame(ScreenCaptureProblem.ResourceExhausted, (start.await() as ScreenCaptureException).problem)
+                val failed = harness.session.state.value as ScreenCaptureState.Failed
+                assertSame(ScreenCaptureProblem.ResourceExhausted, failed.problem)
+                assertEquals(denied, failed.requestedParameters)
+                assertNull(failed.lastOutputInfo)
+                assertFalse(states.any { it is ScreenCaptureState.Active || it is ScreenCaptureState.Suspended })
+            } finally {
+                collector.cancelAndJoin()
+            }
+        }
+    }
+
+    // Verification: SES-03
+    // Verification: CAP-03
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S_V2])
+    fun candidateAndRendererGlesOutOfMemoryAreTerminalResourceExhaustion() = runTest {
+        for (replaceTarget in listOf(true, false)) {
+            val platform = CapturePlatformFixture()
+            capacityHarness(platform).use { harness ->
+                val initial = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(1.0))
+                startActiveSession(harness, initial)
+                val initialOutput = (harness.session.state.value as ScreenCaptureState.Active).outputInfo
+                every { platform.glesPlatform.getError() } returns GLES20.GL_OUT_OF_MEMORY
+                val next = initial.copy(
+                    outputSize = if (replaceTarget) {
+                        OutputSize.ScaleFactor(0.5)
+                    } else {
+                        OutputSize.TargetSize(4, 4, OutputSize.ContentMode.Stretch)
+                    },
+                )
+
+                harness.session.updateParameters(next)
+                harness.driveUntil { harness.session.state.value is ScreenCaptureState.Failed }
+
+                val failed = harness.session.state.value as ScreenCaptureState.Failed
+                assertSame(ScreenCaptureProblem.ResourceExhausted, failed.problem)
+                assertEquals(next, failed.requestedParameters)
+                assertEquals(initialOutput, failed.lastOutputInfo)
+                assertEquals(0L, harness.session.stats.value.producedFrameCount)
+                drainAcceptedSessionWork(harness)
+                verify(exactly = 1) { platform.eglPlatform.destroyContext(any(), any()) }
+                verify(exactly = 0) { platform.glesPlatform.readPixels(any(), any(), any()) }
+                assertSame(failed, harness.session.state.value)
+            }
+        }
+    }
+
+    private fun capacityHarness(
+        platform: CapturePlatformFixture,
+        platformSdkInt: Int = Build.VERSION_CODES.S_V2,
+    ): SessionHarness {
+        every { platform.projectionPlatform.setSurface(any(), isNull()) } just Runs
+        return SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(8, 6, 320),
+            platformSdkInt = platformSdkInt,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+        )
+    }
+
     @Test
     @Config(sdk = [Build.VERSION_CODES.N])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)

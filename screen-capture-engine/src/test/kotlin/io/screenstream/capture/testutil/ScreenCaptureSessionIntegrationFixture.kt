@@ -167,7 +167,11 @@ internal object ScreenCaptureSessionIntegrationFixture {
         }
     }
 
-    /** Emits deterministic synthetic encoded bytes and does not exercise a JPEG codec. */
+    /**
+     * Native facade fake that never exercises a JPEG codec. The first [successfulCompressionCountBeforeRejection]
+     * compressions transfer deterministic synthetic bytes as complete; later ones, optionally held until released,
+     * report a safe compressor rejection.
+     */
     internal class SafeRejectingNativeJpegFacade(
         private val successfulCompressionCountBeforeRejection: Int = 0,
         blockCompression: Boolean = false,

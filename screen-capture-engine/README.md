@@ -84,7 +84,7 @@ For that registration, at most one callback can be running or waiting to run. La
 ## Practical limits
 
 - Capture timing is best effort; frames may be delayed or skipped.
-- JPEG output assumes standard dynamic range (SDR) and sRGB colors. Faithful color reproduction and conversion from high dynamic range (HDR) are not guaranteed. Captured frames explicitly identified as Display P3 are rejected; see the [color limits](docs/usage.md#color-assumptions-and-limits).
+- JPEG output assumes standard dynamic range (SDR) and sRGB colors. Faithful color reproduction and conversion from high dynamic range (HDR) are not guaranteed. On API 33 and later, captured frames explicitly identified as Display P3 are rejected; see the [color limits](docs/usage.md#color-assumptions-and-limits).
 - Android may omit protected content, including windows marked `FLAG_SECURE`.
 - A callback already scheduled before a settings change can still deliver its older image. Use that frame's own metadata.
 - A terminal state does not prove that a running callback has returned or that all Android and graphics resources have finished releasing.

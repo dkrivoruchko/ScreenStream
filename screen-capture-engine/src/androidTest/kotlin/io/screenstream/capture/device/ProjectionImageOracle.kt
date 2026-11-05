@@ -76,7 +76,7 @@ internal object ProjectionImageOracle {
     private const val GUARD = 4
     private const val MIN_INTERIOR = 8
 
-    /** Native input qualification is independent of JPEG output and precedes each image verdict. */
+    /** Qualifies a screenshot of the native display input, independent of JPEG output, before each image verdict. */
     fun qualifyNative(bitmap: Bitmap, scene: ProjectionScene): ProjectionImageVerdict {
         val errors = ArrayList<String>()
         if (bitmap.width != scene.display.width || bitmap.height != scene.display.height) {

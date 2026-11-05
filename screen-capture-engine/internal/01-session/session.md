@@ -30,11 +30,11 @@ Coordinator joins those owners with [Production](production.md) and [Session Del
 
 Successful return establishes continuous session ownership without starting capture. `start()` selects initial parameters and transfers no projection. Stop before start or before first Control entry must still arrange retirement of that owned projection.
 
-The start path checks the caller's coroutine cancellation before clock sampling and again under admission locks. Before acceptance, observed cancellation requests stop only if this session is still eligible for a fresh start. A losing or otherwise unaccepted start invocation must not stop another invocation's accepted run. A valid second start fails its one-start admission check.
+The start path checks the caller's coroutine cancellation under the admission locks twice: before clock sampling and again at acceptance. Before acceptance, observed cancellation requests stop only if this session is still eligible for a fresh start. A losing or otherwise unaccepted start invocation must not stop another invocation's accepted run. A valid second start fails its one-start admission check.
 
 The caller path samples elapsed realtime and computes the ten-second deadline with checked addition. Under `publicationGate → sessionGate`, Lifecycle accepts start, Topology installs revision 1 and the initial parameters, and Coordinator reserves `Starting`. Flow assignment occurs unlocked. If its settlement still permits ordinary work, Coordinator arms the startup check and dispatches Bootstrap, then awaits the start outcome. Clock/checked-deadline failure before acceptance is an operation failure; it is not evidence that capture began or that projection ownership returned to the caller.
 
-Parameter updates require an installed Control executor, Lifecycle's `Running` phase, and no terminal contender. First-Active reservation enters that phase before its public assignment, so an update can be admitted while the latest Flow value is still `Starting`. The state snapshot does not perform admission. Accepted updates store pending intent and pause production synchronously; they do not wait for reconciliation or publication.
+Parameter updates require an installed Control executor, Lifecycle's `Running` phase, and no terminal contender. First-Active reservation enters that phase before its public assignment, so an update can be admitted while the latest Flow value is still `Starting`. The state snapshot does not perform admission. An unequal update or eligible [equal resubmission](#recovery) stores pending intent and pauses production synchronously; an ordinary equal update is inert. Neither waits for reconciliation or publication.
 
 ## Bootstrap and first Control entry
 
@@ -89,8 +89,8 @@ Before first Active, a current problem that prevents readiness fails startup. On
 | Problem and evidence | Recoverable boundary |
 | --- | --- |
 | `InvalidRequest` | Current desired parameters and geometry cannot resolve valid output. |
-| `CaptureUnavailable` | Required current Metrics or explicit source-unavailability evidence is unavailable. |
-| `ResourceExhausted` | Checked RGBA addressability rejection before allocation/mutation, or deterministic Target-candidate denial with complete rollback preserving the healthy prior Target. |
+| `CaptureUnavailable` | Required current Metrics are unavailable, or explicit source-unavailability evidence is current. |
+| `ResourceExhausted` | Checked RGBA addressability or queried GL texture/viewport limit rejection on a healthy graph before allocation/mutation, or deterministic Target-candidate denial with complete rollback preserving the healthy prior Target. |
 
 Having no waiting source image is normal capture behavior; it does not establish unavailability or a timeout. Unsafe/ambiguous rollback, invalidated Capture ownership, unsupported color space, ownership inconsistency, and other required unsafe allocation/capacity failures are terminal. A problem name alone does not establish recoverability; the responsible owner's settlement evidence is required.
 
@@ -184,4 +184,4 @@ A later session has independent projection, revision, registration, and frame id
 
 - [SessionLifecycle](../../src/main/kotlin/io/screenstream/capture/internal/session/lifecycle/SessionLifecycle.kt), [SessionTopology](../../src/main/kotlin/io/screenstream/capture/internal/session/topology/SessionTopology.kt), and [SessionCoordinator](../../src/main/kotlin/io/screenstream/capture/internal/session/SessionCoordinator.kt): admission, readiness, convergence, and terminal decisions.
 - [SessionBootstrap](../../src/main/kotlin/io/screenstream/capture/internal/session/SessionBootstrap.kt) and [BootstrapOwnership](../../src/main/kotlin/io/screenstream/capture/internal/session/BootstrapOwnership.kt): retained construction and transfer obligations.
-- [Verification contracts](../04-testing/verification-contracts.md): `API-03`, `API-04`, `SES-01`–`SES-04`, `SES-07`, `SES-08`, `MET-03`, `BSP-01`–`BSP-05`, `DEL-02`, and `TERM-01` describe the relevant verification obligations.
+- [Verification contracts](../04-testing/verification-contracts.md): `API-03`, `API-04`, `UPD-01`, `SES-01`–`SES-04`, `SES-07`, `SES-08`, `MET-03`, `BSP-01`–`BSP-05`, `P3-02`, `P3-03`, `DEL-02`, and `TERM-01` describe the relevant verification obligations.

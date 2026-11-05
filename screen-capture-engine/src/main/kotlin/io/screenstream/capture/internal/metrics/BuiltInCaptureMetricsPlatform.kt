@@ -33,8 +33,6 @@ internal interface BuiltInCaptureMetricsPlatform {
 
     fun createDisplayContext(applicationContext: Context, display: Display): Context
 
-    fun createApi30WindowContext(displayContext: Context): Context
-
     fun createApi31WindowContext(applicationContext: Context, display: Display): Context
 
     fun registerWindowContextCallback(windowContext: Context, callback: ComponentCallbacks)
@@ -74,10 +72,6 @@ internal object AndroidBuiltInCaptureMetricsPlatform : BuiltInCaptureMetricsPlat
 
     override fun createDisplayContext(applicationContext: Context, display: Display): Context =
         applicationContext.createDisplayContext(display)
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    override fun createApi30WindowContext(displayContext: Context): Context =
-        displayContext.createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION, null)
 
     @RequiresApi(Build.VERSION_CODES.S)
     override fun createApi31WindowContext(applicationContext: Context, display: Display): Context =

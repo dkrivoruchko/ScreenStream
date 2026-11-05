@@ -814,7 +814,8 @@ extern "C" int AndroidBitmap_compress(
 ) {
     if (activeCompressorState == nullptr) return ANDROID_BITMAP_RESULT_BAD_PARAMETER;
     FakeJniState &state = *activeCompressorState;
-    // Count entry before fake validation so JNI-side descriptor checks remain observable.
+    // Count every entry, even with a mismatched descriptor, so tests can prove JNI validation stopped malformed calls
+    // before the compressor.
     ++state.compressorEntryCalls;
     state.compressorDescriptorMatched =
             info != nullptr &&

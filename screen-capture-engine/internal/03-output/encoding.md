@@ -35,7 +35,8 @@ The carrier is one direct writable range whose capacity is exactly the checked R
 
 ```text
 idle -> loaned to Capture -> ready for Encoding -> entered codec -> idle
-                       \-> discarded ------------------------> idle
+        loaned to Capture -> discarded -> idle
+        ready for Encoding -> discarded -> idle
 ```
 
 `EncodingInput` is both the loan and the only capability allowed to settle it. It retains the exact carrier, direct view, byte count, owner, and production return port. Stale, duplicate, or substituted inputs cannot affect a later loan. Capture receives the writable view through the session's [read bridge](../01-session/production.md#read-bridge-and-production-progression), but cannot call carrier settlement itself.
@@ -50,7 +51,7 @@ A newly selected Framework runtime uses a managed direct carrier. A native-mallo
 
 `Auto` uses only these inputs: the requested backend policy; sticky process-wide DSO availability; platform compressor capability; the current compatible output plan, RGBA layout, and runtime; and the per-session monotone Native health cell (`NativeHealthCell`). Device identity or allowlists, benchmarks, image scoring, diagnostics, memory prediction, and test results are excluded. This component owns the exhaustive selection policy; summaries elsewhere cannot add inputs.
 
-`Auto` distinguishes library-load unavailability from later failure. The exact base `UnsatisfiedLinkError` or any caught `SecurityException` from the narrow `System.loadLibrary` boundary is sticky clean unavailability and selects Framework. An ordinary `Exception` from that boundary poisons availability and fails selection. Other `Error` types, including `UnsatisfiedLinkError` subclasses, propagate without publication; capability and JNI failures occur after the load boundary and are never reclassified as clean unavailability. A normally returned unsupported compressor selects Framework. An available and supported compressor selects Native with a native-malloc carrier, and native backend health is lifetime-monotone: once disabled, it never becomes enabled again for that session.
+`Auto` distinguishes library-load unavailability from later failure. The exact base `UnsatisfiedLinkError` or any caught `SecurityException` from the narrow `System.loadLibrary` boundary is sticky clean unavailability and selects Framework; this includes a [`JNI_OnLoad` rejection](native-abi.md#exports-shrinking-and-packaging) that the runtime reports as that base error. Classification uses exception types only, never messages. An ordinary `Exception` from that boundary poisons availability and fails selection. Other `Error` types, including `UnsatisfiedLinkError` subclasses, propagate without publication; capability and JNI failures occur after the load boundary and are never reclassified as clean unavailability. A normally returned unsupported compressor selects Framework. An available and supported compressor selects Native with a native-malloc carrier, and native backend health is lifetime-monotone: once disabled, it never becomes enabled again for that session.
 
 A coherent `SafeCompressorRejection` is the only runtime fallback signal. Encoding requires the exact transaction to be aborted and codec/carrier resources to be settled as reusable before disabling native backend health and returning `ReadinessChanged`. The rejected frame is not retried. Session reconciliation prepares the Framework owner, and only a later admitted frame uses it. Generic JNI, wire, ownership, transaction, or cleanup failures never enable fallback.
 

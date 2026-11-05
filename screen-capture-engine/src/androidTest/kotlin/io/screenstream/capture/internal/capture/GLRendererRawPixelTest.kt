@@ -233,8 +233,9 @@ internal class GLRendererRawPixelTest {
                     sourceDimensionsAreAuthoritative = false,
                     oracleCase = RawPixelOracle.Case(
                         name = "provisional-forced-full-leaf",
-                        // The provisional leaf keeps a Full 10x6 Target and produces a separate neutral 1x1 output.
-                        // Session admission is outside this case; later authority resolves requested parameters.
+                        // Models API 34 before dimensions are authoritative: the provisional plan keeps a Full 10x6
+                        // Target and a separate neutral 1x1 output. It does not test Session admission or make
+                        // requested parameters effective.
                         parameters = neutralProvisionalParameters,
                         logicalWidthPx = 10,
                         logicalHeightPx = 6,

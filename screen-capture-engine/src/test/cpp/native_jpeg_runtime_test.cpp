@@ -105,6 +105,8 @@ namespace {
         return allocation;
     }
 
+    // Must stay noexcept to match SegmentFreeFunction, so ownership violations are recorded for the ledger checks and
+    // main() instead of thrown.
     void trackedFree(void *allocation) noexcept {
         if (activeLedger == nullptr) {
             freeWithoutActiveLedger = true;

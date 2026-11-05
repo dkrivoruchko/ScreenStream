@@ -79,16 +79,9 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
             val routeEvents = fixture.platform.routeEvents()
             val expectedRouteCounts = when (Build.VERSION.SDK_INT) {
-                in Build.VERSION_CODES.N until Build.VERSION_CODES.R -> mapOf(
+                in Build.VERSION_CODES.N until Build.VERSION_CODES.S -> mapOf(
                     ROUTE_REAL_SIZE to 2,
                     ROUTE_DISPLAY_CONTEXT to 2,
-                )
-
-                Build.VERSION_CODES.R -> mapOf(
-                    ROUTE_DISPLAY_CONTEXT to 3,
-                    ROUTE_API_30_WINDOW_CONTEXT to 1,
-                    ROUTE_WINDOW_MANAGER to 1,
-                    ROUTE_MAXIMUM_BOUNDS to 2,
                 )
 
                 else -> mapOf(
@@ -100,16 +93,9 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
                 )
             }
             assertEquals(expectedRouteCounts, routeEvents.groupingBy { it }.eachCount())
-            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
-                assertTrue(
-                    routeEvents.indexOf(ROUTE_DISPLAY_CONTEXT) < routeEvents.indexOf(ROUTE_API_30_WINDOW_CONTEXT),
-                )
-                assertTrue(routeEvents.indexOf(ROUTE_API_30_WINDOW_CONTEXT) < routeEvents.indexOf(ROUTE_WINDOW_MANAGER))
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 assertTrue(routeEvents.indexOf(ROUTE_API_31_WINDOW_CONTEXT) < routeEvents.indexOf(ROUTE_WINDOW_MANAGER))
                 assertTrue(routeEvents.indexOf(ROUTE_CONTEXT_CALLBACK_REGISTER) < routeEvents.indexOf(ROUTE_MAXIMUM_BOUNDS))
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 val windowManagerIndex = routeEvents.indexOf(ROUTE_WINDOW_MANAGER)
                 assertTrue(
                     routeEvents.withIndex().filter { it.value == ROUTE_MAXIMUM_BOUNDS }
@@ -119,16 +105,13 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             assertTrue(fixture.platform.routeDisplays().all { it === fixture.display })
 
             val displayContexts = fixture.platform.displayContexts()
-            val expectedDisplayContextCount = if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) 3 else 2
-            assertEquals(expectedDisplayContextCount, displayContexts.size)
+            assertEquals(2, displayContexts.size)
             displayContexts.indices.forEach { left ->
                 ((left + 1) until displayContexts.size).forEach { right ->
                     assertNotSame(displayContexts[left], displayContexts[right])
                 }
             }
-            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
-                assertSame(displayContexts.first(), fixture.platform.api30WindowContextInputs().single())
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 assertEquals(listOf(fixture.application), fixture.platform.api31ApplicationContexts())
             }
 
@@ -318,19 +301,29 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
     // Verification: MET-02
     @Test
-    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S])
+    @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.R, Build.VERSION_CODES.S])
     fun sameDisplayChangedDuringReadSuppressesObsoleteTupleAndPublishesExactSuccessor() {
         ControlledNonInlineDispatcher().use { dispatcher ->
             val fixture = Fixture(dispatcher)
             val observer = RecordingObserver()
-            fixture.platform.maximumBoundsOverride = { Rect(0, 0, 640, 480) }
+
+            fun setReadBounds(read: () -> Rect) {
+                fixture.platform.maximumBoundsOverride = read
+                fixture.platform.realSizeOverride = {
+                    val bounds = read()
+                    Point(bounds.width(), bounds.height())
+                }
+            }
+
+            setReadBounds { Rect(0, 0, 640, 480) }
             val handle = fixture.source.subscribe(observer)
             enterOne(dispatcher)
             val initial = checkNotNull(observer.changes().single())
+            assertEquals(CaptureMetrics(640, 480, initial.densityDpi), initial)
 
             val readEntered = CountDownLatch(1)
             val allowReadReturn = CountDownLatch(1)
-            fixture.platform.maximumBoundsOverride = {
+            setReadBounds {
                 readEntered.countDown()
                 check(allowReadReturn.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                     "entered same-display Metrics read was not released"
@@ -340,7 +333,7 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             fixture.platform.triggerChanged(fixture.displayId)
             val heldTask = dispatcher.enterNext() ?: error("changed Metrics task was not retained")
             assertTrue(readEntered.await(TIMEOUT_SECONDS, TimeUnit.SECONDS))
-            fixture.platform.maximumBoundsOverride = { Rect(0, 0, 900, 700) }
+            setReadBounds { Rect(0, 0, 900, 700) }
             fixture.platform.triggerChanged(fixture.displayId)
             allowReadReturn.countDown()
             heldTask.awaitSuccessfulCompletion()
@@ -353,7 +346,8 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
                 observer.changes(),
             )
             assertFalse(observer.changes().contains(CaptureMetrics(700, 500, initial.densityDpi)))
-            assertEquals(1, fixture.platform.contextCallbackRegisterCount.get())
+            val expectedCallbackCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 1 else 0
+            assertEquals(expectedCallbackCount, fixture.platform.contextCallbackRegisterCount.get())
             assertTrue(observer.failures().isEmpty())
             handle.close()
         }
@@ -938,7 +932,6 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
         private val recordedRouteEvents = ArrayList<String>()
         private val recordedRouteDisplays = ArrayList<Display>()
         private val recordedDisplayContexts = ArrayList<Context>()
-        private val recordedApi30WindowContextInputs = ArrayList<Context>()
         private val recordedApi31ApplicationContexts = ArrayList<Context>()
         private val recordedApi31WindowContexts = ArrayList<Context>()
         private val recordedUnregisteredContextCallbacks = ArrayList<ComponentCallbacks>()
@@ -985,6 +978,9 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
         @Volatile
         var maximumBoundsOverride: (() -> Rect)? = null
+
+        @Volatile
+        var realSizeOverride: (() -> Point)? = null
 
         @Volatile
         var registrationAssertion: ((Handler) -> Unit)? = null
@@ -1062,14 +1058,6 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
             }
         }
 
-        override fun createApi30WindowContext(displayContext: Context): Context {
-            recordRoute(ROUTE_API_30_WINDOW_CONTEXT)
-            synchronized(routeGate) {
-                recordedApi30WindowContextInputs += displayContext
-            }
-            return delegate.createApi30WindowContext(displayContext)
-        }
-
         override fun createApi31WindowContext(applicationContext: Context, display: Display): Context {
             recordRoute(ROUTE_API_31_WINDOW_CONTEXT, display)
             synchronized(routeGate) {
@@ -1116,7 +1104,12 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
         override fun getRealSize(display: Display, point: Point) {
             recordRoute(ROUTE_REAL_SIZE, display)
-            delegate.getRealSize(display, point)
+            val overridden = realSizeOverride?.invoke()
+            if (overridden != null) {
+                point.set(overridden.x, overridden.y)
+            } else {
+                delegate.getRealSize(display, point)
+            }
         }
 
         fun triggerChanged(displayId: Int) {
@@ -1141,9 +1134,6 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
 
         fun displayContexts(): List<Context> = synchronized(routeGate) { recordedDisplayContexts.toList() }
 
-        fun api30WindowContextInputs(): List<Context> =
-            synchronized(routeGate) { recordedApi30WindowContextInputs.toList() }
-
         fun api31ApplicationContexts(): List<Context> =
             synchronized(routeGate) { recordedApi31ApplicationContexts.toList() }
 
@@ -1165,7 +1155,6 @@ internal class BuiltInCaptureMetricsPlatformDisplayTest {
         const val REPLACEMENT_DISPLAY_QUALIFIERS = "w320dp-h240dp-hdpi"
         const val ROUTE_REAL_SIZE = "getRealSize"
         const val ROUTE_DISPLAY_CONTEXT = "createDisplayContext"
-        const val ROUTE_API_30_WINDOW_CONTEXT = "createApi30WindowContext"
         const val ROUTE_API_31_WINDOW_CONTEXT = "createApi31WindowContext"
         const val ROUTE_CONTEXT_CALLBACK_REGISTER = "registerWindowContextCallback"
         const val ROUTE_WINDOW_MANAGER = "windowManager"

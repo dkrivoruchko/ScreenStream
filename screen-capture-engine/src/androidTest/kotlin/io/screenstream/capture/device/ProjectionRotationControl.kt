@@ -30,7 +30,7 @@ internal class ProjectionRotationControl(
     }
 
     fun rotateTo(rotation: Int) {
-        // Retain the obligation even if command entry or return is ambiguous.
+        // Mark first: treat a rejected or thrown call as possibly applied, so restoration stays due.
         touched = true
         check(automation.setRotation(rotation)) { "Android rejected actual display rotation" }
     }

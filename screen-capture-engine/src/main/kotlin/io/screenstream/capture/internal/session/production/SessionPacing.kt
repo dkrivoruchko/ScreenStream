@@ -13,8 +13,9 @@ internal sealed interface PacingDecision {
 internal class CadenceHistory(internal val lastGrantNanos: Long, internal val phase: Int, internal val requiredGapNanos: Long)
 
 /**
- * Pure elapsed-time pacing. Fresh capture and output have independent grant histories. MaxFps distributes fractional
- * nanoseconds by carrying once per phase and never catches up missed grants. SamplingInterval gates only fresh capture.
+ * Pure elapsed-time pacing. Fresh capture and output have independent grant histories. MaxFps spreads the remainder
+ * of one second divided by fps across successive gaps with a phase carry, so every fps consecutive gaps total exactly
+ * one second; it never catches up missed grants. SamplingInterval gates only fresh capture.
  */
 internal object PacingCalculator {
     private val unpacedEligibleDecision = PacingDecision.Eligible(null, 0L)

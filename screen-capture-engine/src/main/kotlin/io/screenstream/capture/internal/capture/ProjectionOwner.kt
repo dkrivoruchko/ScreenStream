@@ -10,8 +10,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * Owns one projection's callback registration, virtual display, attached surface, and retirement attempts.
  *
- * Display dimensions configure the selected Target extent; recorded source dimensions arrive independently through
- * callbacks. A normally returned resize records configuration, not producer allocation or compositor convergence.
+ * The virtual display is configured to the selected Target's extent; captured-content dimensions arrive independently
+ * through callbacks. A normally returned resize records configuration, not producer allocation or compositor
+ * convergence.
  *
  * Projection and display operations run on the Capture lane. Notifications arrive through [projectionCallbackHandler]
  * and report facts with this owner's [token] to [callbackSink], unless callbacks have been fenced. The callback looper

@@ -21,9 +21,10 @@ public class ScreenCaptureConfig(
 /** Controls which JPEG implementations a session may use. */
 public enum class JpegBackendPolicy {
     /**
-     * Uses the optional native backend when it is available and supported. Expected setup unavailability or lack of
-     * platform support selects the framework backend. Unexpected native failures retain their ordinary failure
-     * semantics.
+     * Uses the optional native backend when it is available and supported. The framework backend is selected when
+     * `System.loadLibrary` throws exactly `UnsatisfiedLinkError` or a `SecurityException` for the native library, or
+     * when the platform lacks native JPEG compression. Other unexpected native failures, including failures after the
+     * library has loaded, do not select the framework backend and retain their ordinary failure semantics.
      *
      * A safely classified native compression rejection disables native encoding for later frames in that session;
      * it does not retry the same frame with the framework backend.

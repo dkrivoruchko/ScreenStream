@@ -27,8 +27,9 @@ internal interface NativeJpegFacade {
 }
 
 /**
- * Process-lifetime receiver and facade for the Native JPEG JNI and wire ABI. Later JNI failures retain normal
- * propagation. The facade retains no session state and the library is never unloaded.
+ * Process-lifetime receiver and facade for the Native JPEG JNI and wire ABI. Only library loading is classified by
+ * [NativeJpegAvailabilityCell]; later JNI call failures retain normal propagation. The facade retains no session
+ * state and the library is never unloaded.
  */
 internal class NativeJpegProcess private constructor() {
     internal enum class Availability { Available, CleanUnavailable, Poisoned, }
@@ -149,8 +150,9 @@ internal class NativeJpegProcess private constructor() {
 
 /**
  * Publishes one load classification. Only exact base [UnsatisfiedLinkError] and any caught [SecurityException] mean
- * clean unavailability; another [Exception] poisons the cell. Another [Error] escapes before publication, so a later
- * resolution may retry.
+ * clean unavailability, including a rejected `JNI_OnLoad` that the runtime reports as that base error; another
+ * [Exception] poisons the cell. Another [Error] escapes before publication, so a later resolution may retry. Exception
+ * messages are never inspected.
  */
 internal class NativeJpegAvailabilityCell(
     private val initialLoad: () -> Unit,

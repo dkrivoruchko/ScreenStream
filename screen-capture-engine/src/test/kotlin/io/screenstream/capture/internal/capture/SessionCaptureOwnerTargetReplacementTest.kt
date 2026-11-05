@@ -665,6 +665,120 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         )
     }
 
+    // Verification: TGT-01
+    @Test
+    fun glCapacityDenialPreservesTheInstalledTargetAndReadablePlan() {
+        val fixture = OwnerFixture()
+        val opened = fixture.open()
+        val denied = planWithOutput(fixture.initialPlan, 4_097, 1)
+
+        assertTrue(fixture.owner.apply(denied))
+        fixture.enterAcceptedWork()
+
+        assertTrue(fixture.factPort.applyResults.single() is CaptureApplyResult.ResourceDenied)
+        assertEquals(0, fixture.projectionPlatform.resizeCount)
+        assertEquals(0, fixture.projectionPlatform.replacementSurfaceCount)
+        fixture.deliverSourceFrame(fixture.initialSurfaceTexture)
+        var read: CaptureReadResult? = null
+        assertTrue(
+            fixture.owner.read(
+                fixture.initialPlan,
+                opened.sourceIdentity,
+                ByteBuffer.allocateDirect(fixture.initialPlan.rgbaCarrierByteCount),
+            ) { read = it },
+        )
+        fixture.enterAcceptedWork()
+        assertTrue(read is CaptureReadResult.Filled)
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+        assertEquals(1, fixture.egl.destroyContextCount)
+    }
+
+    // Verification: CAP-03
+    // Verification: TGT-02
+    @Test
+    fun candidateGlesOutOfMemoryPreservesResourceClassificationWithOrWithoutAGeneratedName() {
+        for (generatesName in listOf(true, false)) {
+            val fixture = OwnerFixture()
+            val opened = fixture.open()
+            if (!generatesName) {
+                every { fixture.gles.platform.genTextures(any()) } answers { firstArg<IntArray>()[0] = 0 }
+            }
+            every { fixture.gles.platform.getError() } returns GLES20.GL_OUT_OF_MEMORY
+
+            assertTrue(fixture.owner.apply(fixture.replacementPlan))
+            fixture.enterAcceptedWork()
+
+            val failed = fixture.factPort.applyResults.single() as CaptureApplyResult.Failed
+            assertSame(ScreenCaptureProblem.ResourceExhausted, failed.problem)
+            assertSame(CaptureFailureScope.OwnerInvalidated, failed.scope)
+            fixture.deliverSourceFrame(fixture.initialSurfaceTexture)
+            var read: CaptureReadResult? = null
+            assertTrue(
+                fixture.owner.read(
+                    fixture.initialPlan,
+                    opened.sourceIdentity,
+                    ByteBuffer.allocateDirect(fixture.initialPlan.rgbaCarrierByteCount),
+                ) { read = it },
+            )
+            fixture.enterAcceptedWork()
+            val rejected = read as CaptureReadResult.Failed
+            assertSame(CaptureFailureScope.OwnerInvalidated, rejected.scope)
+            assertFalse(rejected.sourceConsumed)
+            assertEquals(0, fixture.gles.readPixelsCount)
+
+            fixture.owner.retire()
+            fixture.enterAcceptedWork()
+            assertTrue(fixture.gles.deletedTextures.isEmpty())
+            assertEquals(1, fixture.egl.destroyContextCount)
+            assertEquals(1, fixture.egl.destroySurfaceCount)
+            assertEquals(1, fixture.egl.releaseThreadCount)
+            assertTrue(fixture.factPort.captureFailures.isEmpty())
+        }
+    }
+
+    // Verification: CAP-03
+    // Verification: TGT-02
+    @Test
+    fun androidCapacityDenialFollowedByRollbackGlesOutOfMemoryRemainsInternalFailure() {
+        val fixture = OwnerFixture()
+        fixture.open()
+        val denial = Surface.OutOfResourcesException("candidate Surface denied")
+        fixture.targetPlatform.candidateSurfaceCreationFailure = denial
+        var groupReturns = 0
+        every { fixture.gles.platform.getError() } answers {
+            if (groupReturns++ == 0) GLES20.GL_NO_ERROR else GLES20.GL_OUT_OF_MEMORY
+        }
+
+        assertTrue(fixture.owner.apply(fixture.replacementPlan))
+        fixture.enterAcceptedWork()
+
+        val failed = fixture.factPort.applyResults.single() as CaptureApplyResult.Failed
+        assertSame(ScreenCaptureProblem.InternalFailure, failed.problem)
+        assertSame(denial, failed.cause)
+        assertSame(CaptureFailureScope.OwnerInvalidated, failed.scope)
+        assertEquals(listOf(fixture.candidateSurfaceTexture), fixture.targetPlatform.releasedSurfaceTextures)
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+        assertEquals(listOf(CANDIDATE_OES_TEXTURE), fixture.gles.deletedTextures)
+        assertEquals(1, fixture.egl.destroyContextCount)
+        assertEquals(1, fixture.egl.releaseThreadCount)
+    }
+
+    private fun planWithOutput(plan: CapturePlan, widthPx: Int, heightPx: Int): CapturePlan = CapturePlan(
+        appliedSourceRect = plan.appliedSourceRect,
+        rotation = plan.rotation,
+        mirror = plan.mirror,
+        colorMode = plan.colorMode,
+        sourceWidthPx = plan.sourceWidthPx,
+        sourceHeightPx = plan.sourceHeightPx,
+        densityDpi = plan.densityDpi,
+        targetMode = plan.targetMode,
+        targetWidthPx = plan.targetWidthPx,
+        targetHeightPx = plan.targetHeightPx,
+        rgbaLayout = Rgba8888Layout.create(widthPx, heightPx),
+    )
+
     private enum class TargetOpenSeam {
         CreateSurfaceTexture,
         SetDefaultBufferSize,

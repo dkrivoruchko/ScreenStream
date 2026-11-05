@@ -30,8 +30,8 @@ internal enum class ScheduledTaskState {
     Failed,
 }
 
-/*
- * Records the requested delay but neither advances a clock nor fires tasks automatically. Tests call enter on an
+/**
+ * Records the requested delay but neither advances a clock nor runs tasks automatically. Tests call [enter] on an
  * accepted task when their arranged boundary should occur.
  */
 internal class ManualDelayedEntryScheduler(

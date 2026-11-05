@@ -190,7 +190,7 @@ The spatial transform maps each output location back to the selected source regi
 
 The engine treats captured color as standard dynamic range (SDR) with a nominal sRGB interpretation. That provides a defined processing model for color and grayscale; it does not promise arbitrary color-space conversion or identical JPEG bytes across backends. Output is opaque. The exact dataspace, grayscale, and fidelity rules are in [color assumptions and limits](usage.md#color-assumptions-and-limits).
 
-Compatible full-source, same-aspect downscales on API 32+ may request a smaller `SurfaceTexture` buffer. Capture configures the virtual display to the selected target’s width and height, including a retained larger target on compatible reuse; authoritative source dimensions remain separate for crop coordinates and output metadata. Android may scale content into that surface, reducing pixels entering the graphics path. Requested extents are not measurements of producer-buffer allocation or performance, and the renderer cannot undo upstream resampling.
+For compatible full-source downscales on API 32+, Capture may request a smaller `SurfaceTexture` buffer with the source's aspect ratio. Capture configures the virtual display to the selected target’s width and height, including a retained larger target on compatible reuse; authoritative source dimensions remain separate for crop coordinates and output metadata. Android may scale content into that surface, reducing pixels entering the graphics path. Requested extents are not measurements of producer-buffer allocation or performance, and the renderer cannot undo upstream resampling.
 
 ### Graphics validity and cleanup
 

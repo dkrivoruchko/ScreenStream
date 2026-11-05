@@ -14,9 +14,10 @@ import java.nio.ByteBuffer
  * Owns one session's projection, Capture lane, virtual display, targets, EGL/GLES resources, source availability, and
  * direct readback. It reports physical facts through [factPort]; Session decides whether they still apply.
  *
- * The Capture handler serializes platform work and retirement. Projection notifications use [projectionCallbackHandler]
- * to report facts naming their projection and request retirement, without graphics cleanup. Production uses the
- * application's main looper, which outlives the session and accepts already-dispatched notifications after unregister.
+ * The Capture handler serializes platform work and retirement. Projection notifications arrive on
+ * [projectionCallbackHandler] and report facts naming their projection; a stop notification also requests retirement
+ * but performs no graphics cleanup itself. Session bootstrap supplies the application's main looper, which outlives the
+ * session and accepts already-dispatched notifications after unregister.
  *
  * Unreturned operations and ambiguous failures, including surface replacement, retain every possibly owned resource
  * until physical evidence permits release. Retirement fences new work and callbacks and attempts cleanup once.
@@ -315,6 +316,9 @@ internal class SessionCaptureOwner(
         try {
             egl.validateTargetAndOutput(command.plan)
         } catch (failure: CaptureBoundaryFailure) {
+            if ((failure.problem == ScreenCaptureProblem.ResourceExhausted) && egl.isHealthy) {
+                return CaptureApplyResult.ResourceDenied(failure.physicalCause)
+            }
             return CaptureApplyResult.Failed(
                 problem = failure.problem,
                 cause = failure.physicalCause,
@@ -328,6 +332,7 @@ internal class SessionCaptureOwner(
             )
         }
         try {
+            check(egl.isHealthy)
             val newPlan = command.plan
             val requiresSourceResize = (oldPlan.sourceWidthPx != newPlan.sourceWidthPx) ||
                     (oldPlan.sourceHeightPx != newPlan.sourceHeightPx)
@@ -362,6 +367,7 @@ internal class SessionCaptureOwner(
             try {
                 replacement.open(newPlan)
             } catch (failure: CaptureBoundaryFailure) {
+                val primaryInvalidatedEgl = !egl.isHealthy
                 val rollback = replacement.rollbackUnattached()
                 if (rollback.residue == null) {
                     targetCandidate = null
@@ -370,11 +376,21 @@ internal class SessionCaptureOwner(
                 }
                 val cause = failure.physicalCause
                 val rollbackClean = (rollback.cleanupFailure == null) && (rollback.residue == null) && egl.isHealthy
+                // Health is sampled before rollback: ResourceExhausted that made EGL unusable is the candidate's own GLES OOM.
+                // It stays ResourceExhausted (owner still invalidated) only if rollback adds no cleanup failure and leaves at
+                // most GL names in this EGL namespace; a rollback GLES OOM or Android residue is InternalFailure.
+                val primaryGlesOutOfMemory = (failure.problem == ScreenCaptureProblem.ResourceExhausted) && primaryInvalidatedEgl
+                val rollbackHasNoIndependentFailure = (rollback.cleanupFailure == null) &&
+                        ((rollback.residue == null) || (rollback.glNameResidue?.belongsTo(egl) == true))
                 return if ((failure.problem == ScreenCaptureProblem.ResourceExhausted) && rollbackClean) {
                     CaptureApplyResult.ResourceDenied(cause)
                 } else {
                     CaptureApplyResult.Failed(
-                        problem = ScreenCaptureProblem.InternalFailure,
+                        problem = if (primaryGlesOutOfMemory && rollbackHasNoIndependentFailure) {
+                            ScreenCaptureProblem.ResourceExhausted
+                        } else {
+                            ScreenCaptureProblem.InternalFailure
+                        },
                         cause = cause,
                         scope = if (rollbackClean) CaptureFailureScope.OperationLocal else CaptureFailureScope.OwnerInvalidated,
                     )

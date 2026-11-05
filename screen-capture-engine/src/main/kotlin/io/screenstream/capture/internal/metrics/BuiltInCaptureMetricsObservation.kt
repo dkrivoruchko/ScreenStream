@@ -573,29 +573,24 @@ internal class BuiltInCaptureMetricsObservation private constructor(
     }
 
     private fun createEpoch(display: Display): DisplayEpoch {
-        if (sdkInt < Build.VERSION_CODES.R) {
+        if (sdkInt < Build.VERSION_CODES.S) {
             return DisplayEpoch(display, null, null)
         }
-        val windowContext = if (sdkInt == Build.VERSION_CODES.R) {
-            val displayContext = source.platform.createDisplayContext(source.applicationContext, display)
-            source.platform.createApi30WindowContext(displayContext)
-        } else {
-            source.platform.createApi31WindowContext(source.applicationContext, display)
-        }
+        val windowContext = source.platform.createApi31WindowContext(source.applicationContext, display)
         return DisplayEpoch(
             display = display,
             windowContext = windowContext,
             windowManager = source.platform.windowManager(windowContext),
-        ).also { epoch ->
-            if (sdkInt < Build.VERSION_CODES.S) check(epoch.callback == null)
-        }
+        )
     }
 
     private fun readMetrics(readEpoch: DisplayEpoch): CaptureMetrics? {
         if (!source.platform.isValid(readEpoch.display)) return null
         val widthPx: Int
         val heightPx: Int
-        if (sdkInt < Build.VERSION_CODES.R) {
+        // API 24-30 read the selected Display directly. On API 30, AOSP getMaximumWindowMetrics() also derives its
+        // bounds from Display.getRealSize, so a WindowContext adds no information here.
+        if (sdkInt < Build.VERSION_CODES.S) {
             source.platform.getRealSize(readEpoch.display, legacyDimensions)
             widthPx = legacyDimensions.x
             heightPx = legacyDimensions.y

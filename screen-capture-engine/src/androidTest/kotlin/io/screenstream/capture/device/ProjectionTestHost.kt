@@ -273,17 +273,7 @@ internal class ProjectionSceneView(context: Context, private val run: Projection
         val location = IntArray(2)
         getLocationOnScreen(location)
         val viewRect = PixelRect(location[0], location[1], location[0] + width, location[1] + height)
-        val rootInsets = rootWindowInsets
-        val edge = if (Build.VERSION.SDK_INT >= 30 && rootInsets != null) {
-            val inset = rootInsets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-            intArrayOf(inset.left, inset.top, inset.right, inset.bottom)
-        } else {
-            @Suppress("DEPRECATION")
-            intArrayOf(
-                rootInsets?.systemWindowInsetLeft ?: 0, rootInsets?.systemWindowInsetTop ?: 0,
-                rootInsets?.systemWindowInsetRight ?: 0, rootInsets?.systemWindowInsetBottom ?: 0
-            )
-        }
+        val edge = currentInsets()
         val marginX = width / 20
         val marginY = height / 20
         val panel = PixelRect(edge[0] + marginX, edge[1] + marginY, width - edge[2] - marginX, height - edge[3] - marginY)
@@ -322,6 +312,27 @@ internal class ProjectionSceneView(context: Context, private val run: Projection
             System.identityHashCode(context), readProjectionDisplay(context), viewRect, edge.contentToString(), patches
         )
         run.signal()
+    }
+
+    internal fun matchesCurrentLayout(scene: ProjectionScene): Boolean {
+        val location = IntArray(2)
+        getLocationOnScreen(location)
+        val currentView = PixelRect(location[0], location[1], location[0] + width, location[1] + height)
+        return scene.view == currentView && scene.insets == currentInsets().contentToString()
+    }
+
+    private fun currentInsets(): IntArray {
+        val rootInsets = rootWindowInsets
+        return if (Build.VERSION.SDK_INT >= 30 && rootInsets != null) {
+            val inset = rootInsets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+            intArrayOf(inset.left, inset.top, inset.right, inset.bottom)
+        } else {
+            @Suppress("DEPRECATION")
+            intArrayOf(
+                rootInsets?.systemWindowInsetLeft ?: 0, rootInsets?.systemWindowInsetTop ?: 0,
+                rootInsets?.systemWindowInsetRight ?: 0, rootInsets?.systemWindowInsetBottom ?: 0
+            )
+        }
     }
 
     private fun draw(canvas: Canvas, rect: PixelRect, color: Int) {

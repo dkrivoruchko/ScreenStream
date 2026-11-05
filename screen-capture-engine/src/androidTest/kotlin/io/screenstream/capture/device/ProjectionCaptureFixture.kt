@@ -34,6 +34,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicReference
@@ -142,15 +143,14 @@ internal class ProjectionCaptureFixture private constructor(
     private suspend fun checkImage(name: String, parameters: ScreenCaptureParameters, update: Boolean): Unit = stage(name) {
         healthy()
         if (update) checkNotNull(session).updateParameters(parameters)
-        val scene = drawScene()
+        var scene = qualifyNative(name, drawScene())
         if (captureInitialDisplay == null) captureInitialDisplay = scene.display
         val requiredDisplay = expectedDisplay
         check(requiredDisplay == null || scene.display == requiredDisplay) { "Unrequested source geometry change: expected=$requiredDisplay actual=${scene.display}" }
         expectedDisplay = scene.display
-        val expected = ProjectionExpectation(scene, parameters)
+        var expected = ProjectionExpectation(scene, parameters)
         lastExpected = expected
         evidence.text("$name-input", "expected=$expected\nscene=$scene\n")
-        qualifyNative(name, scene)
         stageResults[name] = "input-qualified"
         await("$name applied state") {
             (session?.state?.value as? ScreenCaptureState.Active)?.let { expected.matches(it.outputInfo) } == true
@@ -170,16 +170,26 @@ internal class ProjectionCaptureFixture private constructor(
                     val candidate = frames.receive()
                     latest = candidate
                     if (candidate.runId != run.id || candidate.sequence <= lowerSequence || candidate.timestamp < 0) continue
+                    if (currentScene() != scene) {
+                        val requalified = qualifyNative("$name-requalified-${candidate.sequence}", scene)
+                        check(requalified.display == scene.display) { "Unrequested source geometry change during image qualification" }
+                        scene = requalified
+                        expected = ProjectionExpectation(scene, parameters)
+                        lastExpected = expected
+                        evidence.text("$name-input-${candidate.sequence}", "expected=$expected\nscene=$scene\n")
+                    }
                     if (!expected.matches(candidate.outputInfo)) continue
                     matched = candidate
                     if (firstMatched == null) firstMatched = candidate
                     val result = ProjectionImageOracle.inspect(candidate, expected)
                     verdict = result
+                    if (currentScene() != scene) continue
                     if (result.passed) return@withTimeoutOrNull true
                 }
                 @Suppress("UNREACHABLE_CODE")
                 false
             } == true
+            check(passed || currentScene() == scene) { "$name source scene changed before image qualification completed" }
             if (!passed && matched != null) {
                 imageFailures += AssertionError("$name image/scene failure: ${verdict?.errors}; evidence=${evidence.directory.absolutePath}")
             }
@@ -222,7 +232,7 @@ internal class ProjectionCaptureFixture private constructor(
         if (!passed && !geometryDiagnosticsCaptured &&
             InstrumentationRegistry.getArguments().getString("engine.captureGeometryDiagnostics") == "true"
         ) {
-            // This checkpoint already failed its image oracle after independent source qualification.
+            // When opted in, capture diagnostics once, after a source-qualified checkpoint failed its image oracle.
             geometryDiagnosticsCaptured = true
             try {
                 diagnosticFailures += evidence.captureGeometryDiagnostics(instrumentation.uiAutomation, history, name, finalMatch)
@@ -403,7 +413,7 @@ internal class ProjectionCaptureFixture private constructor(
     }
 
     private fun observedCondition(description: String, predicate: () -> Boolean) {
-        // The documented condition wait also observes asynchronous Settings changes without requiring a View redraw.
+        // UiDevice.wait re-evaluates the predicate, so it sees asynchronous Settings changes without a View redraw.
         check(device.wait(Condition<UiDevice, Boolean> { predicate() }, CHECKPOINT_MS)) {
             "Timed out: $description; ${rotationFacts()}"
         }
@@ -454,32 +464,57 @@ internal class ProjectionCaptureFixture private constructor(
         return checkNotNull(run.drawn).also { check(it.runId == run.id && it.epoch == epoch) }
     }
 
-    private suspend fun qualifyNative(name: String, scene: ProjectionScene) {
+    private fun currentScene(): ProjectionScene? = main {
+        val activity = run.activity ?: return@main null
+        val scene = run.drawn ?: return@main null
+        if (scene.runId != run.id || scene.epoch != epoch ||
+            scene.activityIdentity != System.identityHashCode(activity) ||
+            scene.display != readProjectionDisplay(activity) || !activity.sceneView.matchesCurrentLayout(scene)
+        ) {
+            activity.sceneView.invalidate()
+            return@main null
+        }
+        scene
+    }
+
+    private suspend fun qualifyNative(name: String, scene: ProjectionScene): ProjectionScene {
+        var qualifiedScene = scene
         var latest: Bitmap? = null
         var verdict: ProjectionImageVerdict? = null
         var observations = 0
         var primary: Throwable? = null
         try {
-            // onDraw records geometry before presentation. Await observed native input, never JPEG correctness.
+            // onDraw records geometry before the frame is presented, so poll screenshots until the displayed input
+            // qualifies. This judges native input only, never JPEG correctness.
             val qualified = withTimeoutOrNull(CHECKPOINT_MS.milliseconds) {
                 while (true) {
                     healthy()
+                    val measured = currentScene()
+                    if (measured == null) {
+                        run.changes.receive()
+                        continue
+                    }
+                    qualifiedScene = measured
                     val captured = checkNotNull(instrumentation.uiAutomation.takeScreenshot()) { "Native input screenshot unavailable" }
                     latest?.recycle()
                     latest = captured
                     observations++
-                    val nativeVerdict = ProjectionImageOracle.qualifyNative(captured, scene)
+                    val nativeVerdict = ProjectionImageOracle.qualifyNative(captured, qualifiedScene)
                     verdict = nativeVerdict
-                    if (nativeVerdict.passed) return@withTimeoutOrNull true
+                    if (nativeVerdict.passed && currentScene() == qualifiedScene) return@withTimeoutOrNull true
                     val nextFrame = CompletableDeferred<Unit>()
-                    main { checkNotNull(run.activity).sceneView.postOnAnimation { nextFrame.complete(Unit) } }
-                    nextFrame.await()
+                    main { run.activity?.sceneView?.postOnAnimation { nextFrame.complete(Unit) } }
+                    select<Unit> {
+                        nextFrame.onAwait { }
+                        run.changes.onReceive { }
+                    }
                 }
                 @Suppress("UNREACHABLE_CODE")
                 false
             } == true
-            evidence.text("$name-native-oracle", "qualified=$qualified observations=$observations\n$verdict\n")
+            evidence.text("$name-native-oracle", "qualified=$qualified observations=$observations\nscene=$qualifiedScene\n$verdict\n")
             check(qualified) { "Native scene is unqualified: ${verdict?.errors}" }
+            return qualifiedScene
         } catch (failure: Throwable) {
             primary = failure
             throw failure
@@ -663,7 +698,8 @@ internal class ProjectionCaptureFixture private constructor(
             }
         }
         observerScope.cancel()
-        // Retain a failed run if a callback/service remains unresolved; containment is not physical cleanup proof.
+        // Drop the run from the registry only after consumer unregistration completed and the Service and Activity are
+        // gone. Otherwise retain it: containment is not physical cleanup proof.
         if (registryInstalled && consumerReturned && run.service == null && run.activity == null) ProjectionTestRuns.remove(run)
         return failures
     }

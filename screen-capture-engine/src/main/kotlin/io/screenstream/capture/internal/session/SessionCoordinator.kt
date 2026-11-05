@@ -2387,9 +2387,9 @@ internal class SessionCoordinator(
     }
 
     private fun publishOrdinary(publication: OrdinaryPublication): OrdinaryPublicationSettlement {
-        // This off-gate Flow assignment settles the same reserved operation afterward. An immediate collector cannot
-        // consume it; the reservation defers competing wakes and terminal claim. Active then revalidates topology and
-        // metrics before settlement. No frame is implied by assignment.
+        // The Flow assignment runs off-gate; the same reservation is settled afterward. Until then, a reentrant
+        // immediate collector cannot claim or settle it, and competing wakes and terminal claim are deferred. Active
+        // revalidates topology and metrics before settlement. Assignment implies no frame.
         when (publication) {
             is OrdinaryPublication.State -> observations.publishState(publication.value)
             is OrdinaryPublication.Active -> observations.publishState(publication.value)

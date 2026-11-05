@@ -19,8 +19,9 @@ import kotlin.math.floor
 /**
  * Resolves authoritative geometry into capture and output plans. Before geometry is authoritative, the provisional
  * plan opens a Full source target with neutral 1x1 output solely to await authoritative resize; it does not validate
- * desired transforms and is never Active. Eligible downscaling uses the source aspect's reduced GCD ratio and the
- * smallest integral multiple that covers the rotation-adjusted output.
+ * desired transforms and is never Active. A downscaled target is eligible on API 32+ only for a Full, uncropped
+ * source with a scale factor below one. It uses the source aspect's GCD-reduced ratio at the smallest integral
+ * multiple covering the rotation-adjusted output; a multiple that reaches the full source keeps the Full target.
  */
 internal sealed interface SessionPlanResolution {
     class Resolved(

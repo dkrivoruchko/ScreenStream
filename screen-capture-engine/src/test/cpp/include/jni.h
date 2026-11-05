@@ -1,9 +1,10 @@
 #ifndef SCREEN_CAPTURE_ENGINE_TEST_JNI_H_
 #define SCREEN_CAPTURE_ENGINE_TEST_JNI_H_
 
-// Test-only JNI 1.6 subset. Types, function-table signatures, and C++ member
+// Test-only JNI 1.6 subset. Types, function-pointer signatures, and C++ member
 // wrappers match the NDK 29 jni.h surface used by screen_capture_engine_jni.cpp.
-// The reduced function tables support only exercised calls and do not prove the VM ABI.
+// The function tables keep only exercised entries, so their layout differs from
+// the real JNIEnv/JavaVM tables and does not prove the VM ABI.
 
 #include <stdarg.h>
 #include <stdint.h>
