@@ -232,7 +232,7 @@ internal class HttpDeliverySocketOwnerTest {
             assertTrue(fixture.delivery.info.value.servers.isEmpty())
             val other = if (first.listener.host == "127.0.0.1") second else first
             other.listener.cleanupEntered.await()
-            val waiter = async { runCatching { fixture.delivery.stop() } }
+            val waiter = async(start = CoroutineStart.UNDISPATCHED) { runCatching { fixture.delivery.stop() } }
             assertFalse(waiter.isCompleted)
             assertEquals(2, fixture.records.size)
             held.complete(Unit)

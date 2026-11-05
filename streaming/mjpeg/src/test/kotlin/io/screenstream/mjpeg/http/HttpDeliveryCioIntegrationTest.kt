@@ -236,6 +236,7 @@ internal class HttpDeliveryCioIntegrationTest {
 
     // Cases: MJPEG-SRV-04, MJPEG-SRV-05
     @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
     fun occupiedBindExhaustsBudgetAndOnlyCurrentRetryRestoresListening() = runBlocking {
         val occupied = loopbackSocket(0)
         val port = occupied.localPort
@@ -266,7 +267,16 @@ internal class HttpDeliveryCioIntegrationTest {
             assertEquals(failure, delivery.info.value.servers.single())
             occupied.close()
             delivery.retryServer(failure.id)
-            val recovered = delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }.servers.single()
+            // Failed is published before physical cleanup. A retry admitted during cleanup
+            // can acquire its 250 ms deadline afterwards, so keep driving Android time
+            // until actual Listening; real IO delays alone cannot advance this clock.
+            val recovered = withTimeout(15.seconds) {
+                while (delivery.info.value.servers.single().state != ServerState.Listening) {
+                    ShadowSystemClock.advanceBy(25, TimeUnit.MILLISECONDS)
+                    delay(25.milliseconds) // Yield to real CIO work; the state remains the oracle.
+                }
+                delivery.info.value.servers.single()
+            }
             assertEquals(failure.id, recovered.id)
             RawHttp(port, "/").use { assertEquals(200, it.status) }
             delivery.finishHttpTest()
@@ -609,7 +619,7 @@ internal class HttpDeliveryCioIntegrationTest {
     @Test
     fun constructedButNeverStartedCioListenerRetiresAndLeavesItsSocketAvailable() = runBlocking {
         val port = unusedLoopbackPort()
-        val parent = kotlinx.coroutines.Job()
+        val parent = Job()
         val listener = CioHttpListener(parent, "127.0.0.1", port) { }
         try {
             withTimeout(15.seconds) { listener.stopAndAwaitCleanup() }

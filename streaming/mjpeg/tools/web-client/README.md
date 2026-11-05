@@ -20,7 +20,7 @@ npm run check   # fail if the asset is stale; writes nothing
 npm test        # preview and build fixtures, viewer owner tests
 ```
 
-`npm test` runs two Node suites. The preview fixtures exercise the preview harness and the builder. The [owner tests](test) load the authored application, connection and media scripts from `src/` and drive them with mock timers and small doubles for browser objects and neighboring owners. They execute those owners' logic, but they don't run the packaged page or its `page.js` wiring in a browser, so image decoding, native timer scheduling, cookies, fullscreen, picture in picture, layout and focus still need the [browser checks](#browser-checks). The Kotlin suite has its own [run instructions](../../internal/03-testing/01-testing.md#running-local-tests).
+`npm test` runs two Node suites. The preview fixtures exercise the preview harness and the builder. The [owner tests](test) load the authored application, connection and media scripts from `src/` into a Node `vm` context and drive them with mock timers and small doubles for browser objects and neighboring owners. They execute those owners' logic, but they don't run the packaged page or its `page.js` wiring in a browser, so image decoding and MJPEG rendering, native timer scheduling, cookies, fullscreen, picture in picture, layout and focus still need the [browser checks](#browser-checks). The Kotlin suite has its own [run instructions](../../internal/03-testing/01-testing.md#running-local-tests).
 
 ## Preview
 

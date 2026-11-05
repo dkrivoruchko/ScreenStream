@@ -12,7 +12,7 @@ The catalogue's **Executable** method requires a direct test oracle; **Inspectio
 
 ## Commands and prerequisites
 
-Run commands from the repository root. The module [build configuration](../../build.gradle.kts) uses JVM toolchain 17 and explicitly launches unit tests on JDK 21; Gradle must be able to locate or provision that test runtime. The unit-test launch opens `java.base/jdk.internal.access` for Robolectric's API 37 FileDescriptor setup. Host-native checks require Android SDK CMake 4.1.2, its Ninja executable, and a host Clang compiler. Their [CMake workflow](../../src/test/cpp/CMakePresets.json) configures, builds, and runs the two C++ test executables with AddressSanitizer and UndefinedBehaviorSanitizer.
+Run commands from the repository root. The module [build configuration](../../build.gradle.kts) uses JVM toolchain 17 and explicitly launches unit tests on JDK 21; Gradle must be able to locate or provision that test runtime. The unit-test launch opens `java.base/jdk.internal.access` for Robolectric's API 37 FileDescriptor setup. Host-native checks use the configured Android SDK CMake and Ninja executables plus a host Clang compiler. Their [CMake workflow](../../src/test/cpp/CMakePresets.json) configures, builds, and runs the two C++ test executables with AddressSanitizer and UndefinedBehaviorSanitizer.
 
 ### Local and host-native checks
 
@@ -50,7 +50,56 @@ For runtime evidence, use a connected physical device when available. Ask before
 
 The module configures `androidx.test.runner.AndroidJUnitRunner`. Instrumentation uses runner arguments, while local tests use `--tests`. Android's [command-line test guide](https://developer.android.com/studio/test/command-line) explains variant tasks and reports; the [AndroidX testing guide](https://androidx.github.io/androidx/testing.html) documents Gradle runner filtering. To inspect tasks for the current checkout, use `./gradlew :screen-capture-engine:tasks --all`.
 
-The [image procedures](image-test-oracles.md) identify the raw-renderer and Framework/Native JPEG classes, precision reporting, API eligibility, and checks still requiring separate physical validation. An API-gated skip is not an exercised branch.
+### Android suite boundaries and selection
+
+The suite has eight classes and 17 methods. Keep these four evidence layers separate; executing a lower layer does not qualify real projection.
+
+| Evidence layer | Class (under `io.screenstream.capture`) | Methods / contract |
+| --- | --- | --- |
+| Real Canvas/OES/GLES/readback | `internal.capture.GLRendererRawPixelTest` | 2 methods, 29 raw cases; `IMG-01` |
+| Framework JPEG owner | `internal.encoding.EncodingOwnerFrameworkJpegTest` | 1 method; `ENC-01` |
+| Native Auto owner and direct registered JNI | `internal.encoding.NativeJpegRuntimeTest` | 3 methods; `ENC-02`, `ENC-04` |
+| Real default Display Metrics | `internal.metrics.BuiltInCaptureMetricsRealDisplayTest` | 2 methods; `MET-02` |
+| Public projection: output parameters | `device.ScreenCaptureProjectionSizingTest`, `device.ScreenCaptureProjectionReconfigurationTest` | 4 + 2 methods; `IMG-02`, recovery also `SES-03` |
+| Public projection: actual phone rotation | `device.ScreenCaptureProjectionDisplayChangeTest` | 2 methods; `IMG-02` |
+| Public projection: opted-in emulator source size | `device.ScreenCaptureProjectionSourceResizeLabTest` | 1 method; `IMG-02` |
+
+The [raw and JPEG procedures](image-test-oracles.md) define precision reporting, API eligibility and independent image criteria. An API-gated skip is not an exercised branch. On API 37, the pre-API-30 Native method is not applicable; packaged ABIs and an unselected graphics-precision branch still require separate runtime evidence.
+
+The real-consent histories below use the public factory. Each runner selector has package prefix `io.screenstream.capture.device.`. History and stage IDs remain stable when source methods move or are renamed, so archived evidence must be bound to its original APK, class/method and run UUID.
+
+| Runner selector after the package prefix | Stable history ID |
+| --- | --- |
+| `ScreenCaptureProjectionSizingTest#defaultsPreserveWholeDisplayAndFreshContent` | `untouched-defaults` |
+| `ScreenCaptureProjectionSizingTest#explicitHalfSizeStretchPreservesWholeDisplayAndFreshContent` | `equal-output-full-input-control` |
+| `ScreenCaptureProjectionSizingTest#liveScaleRoundTripPreservesMapping` | `live-full-downscale-full` |
+| `ScreenCaptureProjectionSizingTest#liveScaleSequencePreservesWholeDisplayAndFreshContent` | `shrink-regrowth-growth` |
+| `ScreenCaptureProjectionReconfigurationTest#regionAndCropRoundTripsPreserveMapping` | `fixed-output-restriction-crop` |
+| `ScreenCaptureProjectionReconfigurationTest#invalidCropSuspendsAndRecoveryProducesFreshContent` | `invalid-crop-recovery` |
+| `ScreenCaptureProjectionDisplayChangeTest#rotationAtFullScalePreservesMapping` | `actual-rotation-full` |
+| `ScreenCaptureProjectionDisplayChangeTest#rotationAtDefaultScalePreservesMapping` | `actual-rotation-default` |
+| `ScreenCaptureProjectionSourceResizeLabTest#sourceAspectShrinkRoundTripPreservesMapping` | `source-aspect-shrink-lab` |
+
+For example, select one ordinary projection history:
+
+```shell
+./gradlew :screen-capture-engine:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=io.screenstream.capture.device.ScreenCaptureProjectionSizingTest#defaultsPreserveWholeDisplayAndFreshContent
+```
+
+Select the source-size lab separately and opt in explicitly:
+
+```shell
+./gradlew :screen-capture-engine:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=io.screenstream.capture.device.ScreenCaptureProjectionSourceResizeLabTest#sourceAspectShrinkRoundTripPreservesMapping \
+  -Pandroid.testInstrumentationRunnerArguments.engine.sourceResizeLab=true
+```
+
+All real-consent procedures require an already awake, unlocked device, qualified whole-display SystemUI selectors and a test APK targeting 37, checked in its packaged manifest and at runtime. Rotation additionally requires a natural-portrait phone window below 600 dp and an observed actual display change; an ignored request fails qualification. The isolated size lab requires the API 37 emulator at logical `1080×2400`, density 420 and rotation 0. Without its argument, JUnit reports not applicable before constructing the host; an invalid explicit argument or opted-in unqualified environment fails before changing any size override. It saves physical/effective override state, executes `480×960 → exact original` through test `UiAutomation`, restores a preexisting override by value, and resets only when none existed. It is not generic physical-device or app-window-sharing qualification.
+
+[ProjectionCaptureFixture](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionCaptureFixture.kt) owns session/checkpoint progression, copied callback frames, current-scene and source-layout qualification, verdicts and failure accounting. [ProjectionEvidence](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionEvidence.kt) stores/exports snapshots. [ProjectionRotationControl](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionRotationControl.kt) owns platform rotation state and commands; [ProjectionSourceResizeLab](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionSourceResizeLab.kt) exclusively owns opted-in size mutation/restoration. The [test host](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionTestHost.kt) owns the real Activity, foreground service and measured source View; [ProjectionImageOracle](../../src/androidTest/kotlin/io/screenstream/capture/device/ProjectionImageOracle.kt) independently judges source/JPEG content. Test source, selection, successful platform commands and assembly do not establish an image pass. See the [projection procedure](image-test-oracles.md#real-projection-procedures) for stage qualification, failure and evidence rules.
+
+Optional runner argument `engine.captureGeometryDiagnostics=true` records SurfaceFlinger `--frontend` then `--comp-displays` once after the first source-qualified, recorded image failure; all-pass histories capture nothing. Each stdout dump is capped at 1 MiB and paired with command `System.nanoTime` brackets and exact run/history/stage/last-matched JPEG metadata. Snapshots are non-atomic; exit status and separate stderr are unavailable. Denied, missing, truncated or failed output is inconclusive. Diagnostic errors remain secondary evidence without changing image verdicts or cleanup. Acceptance runs leave this flag absent or false.
 
 ### Inspect results and artifacts
 
@@ -70,6 +119,8 @@ Open the matching HTML report in a browser, or inspect the matching XML/CTest lo
 Reuse the existing [test harnesses](../../src/test/kotlin/io/screenstream/capture/testutil/) where they faithfully expose the boundary being changed. `ControlledNonInlineDispatcher` separates dispatch acceptance from explicit outer-task entry. Its task-handle completion records the outer Runnable's outcome, including failure; it does not by itself prove nested callback/codec entry or an engine slot's release. `ManualDelayedEntryScheduler` records delayed work and exposes explicit entry without advancing the clock or automatically running tasks. `MutableElapsedRealtimeClock` supplies a separate set/advance control.
 
 These controls arrange a chosen history. The verdict must remain the product outcome described by the rules below: exact typed results, immutable bytes and metadata, ownership, or settlement evidence. The infrastructure's own behavior is checked separately by `TST-01`.
+
+`ProjectionOwnerLifecycleTest` checks configured width/height/density and deduplication while preserving callback source dimensions. `SessionCaptureOwnerTargetReplacementTest` checks the selected consumer at display-change notification, retained capacity, replacement ownership and failure/retirement proofs; [Target contracts](verification-contracts.md#target-replacement-and-reuse) define the exact obligations. `ScreenCaptureSessionTopologyTest` checks source/output separation and resize authority. Injected or Robolectric API branches, including API 32/33, are host evidence, not device composition, producer allocation or performance evidence. The strict `IMG-02` histories remain the independent real-projection image gate.
 
 ## Traceability markers
 

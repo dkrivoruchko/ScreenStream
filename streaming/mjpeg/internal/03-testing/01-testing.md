@@ -2,180 +2,170 @@
 
 [Internals](../README.md) · [Scenario index](02-verification-contracts.md)
 
-This guide explains how to verify MJPEG mode after a change. It covers which environment can establish which kind of behavior, how to run the module's local tests, and what counts as evidence. It is written for maintainers. Other documents define the behavior itself. [Usage](../../docs/usage.md), [Architecture](../../docs/architecture.md) and [HTTP server](../../docs/server.md) state what users and clients observe. The guides in the [internals index](../README.md) explain how the module implements that behavior. The [scenario index](02-verification-contracts.md) lists the histories that verification must cover.
+Use the [scenario index](02-verification-contracts.md) to find the histories affected by a change. Behavior belongs to the linked public and internal owners; tests check those contracts.
 
-## From required behavior to evidence
-
-A scenario describes required behavior. It becomes verified behavior only through a chain of separate steps, and each step can fall behind the others:
-
-```mermaid
-flowchart LR
-    S["Scenario<br/>required history"] --> T["Test source<br/>aligned with production"]
-    T --> R["Fresh run<br/>inspected results"]
-    R --> Q["Platform qualification<br/>device, build, grants"]
-```
-
-- A **scenario** in the catalogue states what must hold. It doesn't claim that anything has been tested.
-- **Test source** that names a scenario ID shows intent. It counts only when its fixtures and assertions match current production and the owning contract.
-- A **fresh run** with inspected results is execution evidence for the environment it ran in, and only for that environment.
-- **Platform qualification** on a recorded Android build and device is needed wherever behavior depends on the real platform. Examples are foreground admission, projection, local-network enforcement, connections from another device, wakefulness and visible notifications.
-
-Keep run reports with the change or release that produced them. A report lists commands, environments, results and the scenario IDs it covered. This guide and the scenario pages describe what to verify; they are not a coverage dashboard.
+<a id="from-required-behavior-to-evidence"></a>
 
 ## Current state of the test sources
 
-The Kotlin sources under `streaming/mjpeg/src/test/kotlin` target current production behavior. Alignment with production is a property of the source, not a result: only a fresh run with inspected results, recorded with its change, is execution evidence. Not every scenario has an automated history, and platform-only parts stay deferred. Successful app assembly and web-client checks are separate evidence: they neither compile nor run this suite.
+The local suite is in `src/test/kotlin`. A scenario or `// Cases:` marker identifies intended behavior, not a passed check. Record commands, environments, inspected results and scenario IDs with the change or release; supplied inputs establish only MJPEG's response, and platform-only behavior stays deferred until qualified.
 
-When you read or change these tests:
-
-- Don't report a scenario as covered just because a test method mentions its ID.
-- Treat assertions as claims to check against current source and the owning guide, not as the specification.
-- When production and a test disagree, the contract in the owning guide decides, unless the change deliberately alters that contract.
-- Prefer existing boundaries, Kotlin `internal` access from the module's own tests and observable outputs. Don't use reflection on private members or widen production APIs for a test. A production change made for testability is a design change of its own: explain it separately and get explicit approval before making it.
-
-Test methods mark the scenarios they target with a comment such as `// Cases: MJPEG-CAP-13`. Keep that convention so that the catalogue and the tests can be cross-checked. The module has no `src/androidTest` suite and no instrumentation runner. Device evidence therefore comes from recorded manual qualification, such as the [packaged-app lifetime](scenarios/09-integration.md#mjpeg-cfg-04).
+Keep markers such as `// Cases: MJPEG-CAP-13`. Use existing constructor seams, module-internal access and observable outputs. Do not reflect on private members or widen production APIs for tests. Testability changes are separate design changes requiring explicit approval.
 
 ## What the local suite covers
 
-The local suite is meant to exercise MJPEG's own logic and its adapter boundaries:
+The suite exercises settings and edit policy, controller admission and reconciliation, the capture adapter, discovery, HTTP/access, JPEG storage and wire output, the web protocol and focused Compose behavior. Analytics observations are excluded. App assembly and web-client checks do not compile or run the Kotlin suite.
 
-- settings persistence and edit policy
-- controller admission and reconciliation
-- the capture adapter
-- address discovery
-- HTTP delivery
-- viewing access
-- JPEG storage and wire output
-- the web protocol
+Local [UI tests](../../src/test/kotlin/io/screenstream/mjpeg/ui) cover capture commands, address actions (exact open/share/copy payloads, plain-URL fallback, retry and permission callbacks), PIN-row masking, reveal reset and sensitive copying, and the settings editors: port validation and setup locks, PIN drafts and regeneration, Size mode drafts, Frame-rate mode drafts and decimal-comma intervals, Background HEX/slider/palette synchronization, Placement merges into newer saved layouts and search. [Frame-rate tests](../../src/test/kotlin/io/screenstream/mjpeg/ui/FrameRateSettingsUiTest.kt) also check that an invalid selected Interval preserves the saved rate while an invalid dormant draft permits an Auto save. The port, Size, Frame-rate, Background and Placement tests run against real settings groups and an isolated production store; the PIN editor uses supplied state and recorded transforms. The [save-failure test](../../src/test/kotlin/io/screenstream/mjpeg/ui/SettingsSaveFailureUiTest.kt) drives a real write fault through `MjpegContent` and checks the rendered snackbar and unchanged stored data. Callbacks, intents, clipboard and permission objects are supplied, so these tests do not establish actual grants, browser/share-sheet handling, system clipboard presentation or QR rendering. [MjpegUiControllerTest](../../src/test/kotlin/io/screenstream/mjpeg/ui/MjpegUiControllerTest.kt) checks ready-link mapping from supplied inputs, not the controller's token source.
 
-Local verification aims to establish all of MJPEG's documented behavior and interface contracts, with two exclusions: analytics observations and Compose UI. Histories that only the real platform can establish stay **deferred** until platform qualification records them; report them as deferred, not covered. Instrumented tests, device or emulator runs and browser runs aren't part of local verification.
+The Compose tests use the v2 rule and native Robolectric graphics. The [shared fixture](../../src/test/kotlin/io/screenstream/mjpeg/ui/MjpegComposeFixtures.kt) joins admitted saves through the store owner with an asynchronous identity transaction and a bounded `waitUntil`: a blocking join can stop Compose from finishing the save, and Compose idleness alone does not establish disk completion ([synchronization guidance](https://developer.android.com/develop/ui/compose/testing/synchronization)).
 
-Several neighbors need their own verification, even when an MJPEG test supplies their inputs:
-
-| Neighbor | Where its verification belongs |
+| Boundary | Verification owner |
 | --- | --- |
-| Core's manager, Service base class, consent coordination, permission host and notifications | Core's [testing guide](../../../core/internal/testing/01-testing.md), against its [public contracts](../../../core/README.md) |
-| Capture Engine sessions, frames and statistics | The [Capture Engine](../../../../screen-capture-engine/README.md) |
-| Viewer page build, desktop preview with its Node fixture checks, Node owner tests of the viewer's scripts, and manual browser smoke | The [web client tools guide](../../tools/web-client/README.md) |
-| Compose screens, clipboard, QR codes, and the app's permission and consent UI | Android UI checks in the app |
-| Ktor server internals | Ktor. MJPEG tests only its own use of the CIO engine. |
+| Core manager, Service base class, consent, permissions and notifications | [Core testing](../../../core/internal/testing/01-testing.md) and [contracts](../../../core/README.md) |
+| Capture Engine sessions, frames and statistics | [Capture Engine](../../../../screen-capture-engine/README.md) |
+| MJPEG composables, clipboard and QR behavior | MJPEG; the local UI tests above cover selected behavior, not platform clipboard or QR integration |
+| Actual app wiring of Activity-root permission and consent hosts | App integration, against Core's contracts |
+| Viewer build, Node fixtures/owner tests and browser smoke | [Web client tools](../../tools/web-client/README.md); Node doubles do not establish native browser behavior |
+| Ktor internals | Ktor; MJPEG verifies its own use of CIO |
 
-The Node fixture checks exercise the page builder and the preview harness. The Node owner tests execute the authored application, connection and media scripts with mock timers and doubles for browser objects and neighboring owners. Neither runs the packaged page in a browser, so native browser behavior still needs the [browser checks](../../tools/web-client/README.md#browser-checks).
-
-A fixture that stands in for a neighbor shows how MJPEG responds to that input. It doesn't show how the neighbor behaves. The [integration scenarios](scenarios/09-integration.md) cover the points where the real pieces meet.
-
-## Choosing an environment
-
-Use the lowest environment that faithfully exercises the boundary under test. Test size and environment are separate choices: a small test can still need Robolectric, and a long history can run on the plain host JVM.
-
-| Level | Environment | What it can establish |
-| --- | --- | --- |
-| L0 | Host JVM, no Android execution | Value policies, access decisions at explicit times, JPEG storage and readers, and saved-settings and wire fixtures parsed independently |
-| L1 | Robolectric, plus Ktor's test engine or a CIO server on loopback | Simulated Android adapters, preferences and assets, in-process routes, and real host-socket histories |
-| L2 | Recorded Android build on a device | Foreground and projection admission, native discovery, local-network enforcement and incoming traffic on that platform |
-
-L0 and L1 sources live in `src/test/kotlin`. L2 sources would live in `src/androidTest/kotlin`.
-
-- **Ktor's test engine** handles calls in process without binding sockets ([Ktor testing](https://ktor.io/docs/server-testing.html)). Listener, bind and transport histories therefore need a configured CIO server. Report test-engine results as in-process route evidence, separately from results over real CIO sockets.
-- **Robolectric** reproduces much of Android but not all of it ([Robolectric best practices](https://robolectric.org/best-practices/)).
-- **Host success** never establishes device or OEM behavior, browser rendering, or reachability from another device. Android's [testing strategy guide](https://developer.android.com/training/testing/fundamentals/strategies) describes the same trade-off between fidelity and cost.
-
-Some production seams determine what each level can reach:
-
-- **Capture through the controller.** The controller creates each capture session itself and forwards its `MjpegEngineFactory`, which defaults to the production factory. Controller tests can therefore control engine sessions as well as consent through the injected `ScreenCaptureAccess`. Histories about one attempt's engine phases still belong at the session level, where `MjpegCaptureSession` accepts the same factory.
-- **Published screen state.** The controller exposes the state it publishes to its screen as a read-only internal `state`, so controller tests can assert it without rendering Compose. Its getter carries `@VisibleForTesting(otherwise = NONE)`.
-- **Frame-rate calculation.** `calculateMjpegCurrentFps` is the production function, declared in the [capture session source](../../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureSession.kt) and annotated `@VisibleForTesting(otherwise = PRIVATE)`. Its tests check literal numeric values. Session and controller histories can supply only the Engine's own initial statistics, a lawful zero snapshot, because other Engine statistics values can't be constructed outside the Engine. Those histories show how zero is handled. They don't show a non-null or non-zero rate computed from real Engine emissions.
-- **The Service.** The controller takes the concrete `MjpegStreamingModuleService`, so its tests also run Core's Service base class. Treat what the Service itself does as Core behavior (see [MJPEG-CAP-13](scenarios/03-capture.md#mjpeg-cap-13)).
-- **Interface owners.** `HttpDelivery` and `NetworkAddressMonitor` are interfaces. Controller tests can use either fakes or the real implementations.
-- **Listener lifecycle.** `KtorHttpDelivery` creates each bind attempt's `HttpListener` through a constructor factory that defaults to `CioHttpListener`. Delivery tests can supply an ordinary controlled listener that holds or fails start, termination and cleanup without binding a socket. Such a listener shows how delivery's ownership responds to those outcomes. Bind, transport and socket-release histories still need the default listener on real CIO sockets.
-- **Discovery's observation dispatcher.** `AndroidNetworkAddressMonitor` accepts an `observationDispatcher`, `Dispatchers.Default` by default, for its owned observation scope only. Its native scans and close work still switch to `Dispatchers.IO`, and it has no injectable clock. Rule 3 under [Evidence rules](#evidence-rules) explains how cadence tests use it.
-
-## Android versions
-
-The [root build](../../../../build.gradle.kts) defines the minimum, compile and target SDK levels; read the current values there. The [module build](../../build.gradle.kts) takes its minimum SDK, compile SDK and build tools from the root build and declares no target of its own. Android enforces the packaged app's target SDK, which the [app build](../../../../app/build.gradle.kts) sets.
-
-Compile and target SDK are build baselines, not an upper limit on the Android versions MJPEG runs on.
-
-Behavior that doesn't depend on the platform, such as saved data, wire output and ownership histories, can use one representative SDK. Platform transitions need explicit qualification on the versions where behavior changes. Record which versions actually ran, rather than implying that every release was covered.
-
-| Boundary | What changes across versions |
-| --- | --- |
-| [Discovery callbacks](scenarios/04-network.md#mjpeg-net-09) | Getter fallback before API 26, callback metadata from API 26, request capabilities from API 30, public tethering events from API 36 |
-| [Local-network permission](scenarios/04-network.md#mjpeg-lan-01) | Enforcement for apps targeting API 37 on Android 17, an implicit grant for lower targets, and the separate Android 16 opt-in restriction |
-| [Capture foreground](scenarios/03-capture.md#mjpeg-cap-13) | Foreground service types take effect from API 29, and Android applies stricter type rules from API 34. Core's Service base class performs the promotion on each level. |
-| [Consent and first Start](scenarios/03-capture.md#mjpeg-cap-12) | Core can reuse consent on older versions; modern versions always ask. Newer versions may let the user share a single app. From API 34, the Engine takes capture dimensions from projection callbacks. |
-| [Real app lifetime](scenarios/09-integration.md#mjpeg-cfg-04) | Real permissions, projection, Service and incoming connections on a recorded build |
-
-Local-network enforcement needs particular care. On Android 17, apps that target API 37 need `ACCESS_LOCAL_NETWORK`, and the restriction also covers accepting incoming TCP connections, which is exactly what MJPEG's listeners do. Android 16 applies the restriction only when it is enabled for the app, for example through the `RESTRICT_LOCAL_NETWORK` compatibility flag. Android's [local network permission guide](https://developer.android.com/privacy-and-security/local-network-permission) describes both versions.
-
-To qualify enforcement, record the target SDK and the grant state, and connect from a client on another device. A bind on the phone, or a request from a browser on the phone itself, shows nothing about enforcement. Where projection behavior depends on the Android build or QPR, record those details too.
+[Integration scenarios](scenarios/09-integration.md) separate module declarations and supplied graphs from packaged-app qualification. They do not make app integration part of the local module suite.
 
 ## Running local tests
 
-The [module build](../../build.gradle.kts) owns the test dependencies, the inclusion of Android resources, the JVM toolchain for production code, and the separate Java launcher and JVM arguments for unit tests. Read the current values there. The unit-test launcher affects only the host test run, not the bytecode MJPEG ships or the runtime on a device.
-
-Run this from the repository root:
+From the repository root:
 
 ```shell
 ./gradlew :streaming:mjpeg:testDebugUnitTest
 ```
 
-To select one class, add `--tests 'fully.qualified.TestClass'`. Then inspect `streaming/mjpeg/build/reports/tests/testDebugUnitTest/` and `streaming/mjpeg/build/test-results/testDebugUnitTest/`. A successful build without fresh test results isn't execution evidence. That includes a task that was up to date or skipped. CIO histories that bind IPv4 and IPv6 addresses independently need both loopback families configured on the host.
+Select a class with `--tests 'fully.qualified.TestClass'`. Inspect `streaming/mjpeg/build/reports/tests/testDebugUnitTest/` and `streaming/mjpeg/build/test-results/testDebugUnitTest/`. `UP-TO-DATE`, `FROM-CACHE` and `SKIPPED` mean no new execution in that invocation; add `--rerun-tasks` only when a fresh run is deliberately required.
 
-In Android Studio, run a test class or method from its gutter icon, or run the `mjpeg` module's `testDebugUnitTest` task from the Gradle tool window. A saved run configuration keeps the module and class names it was created with. If one names a module or class that no longer exists, delete it and create a new one from the current test source.
+The [module build](../../build.gradle.kts) owns dependencies, Android resources, the production toolchain and the separate unit-test Java launcher and JVM arguments; the launcher affects host tests only. Local tests need nothing beyond that configuration: no custom runner, init script, separate Gradle home or cache, or extra flags. CIO tests that bind IPv4 and IPv6 independently require both host loopback families.
 
-Gradle and Android Studio both run the suite with the module build as it is. The suite needs no custom test runner, init script, separate Gradle home or cache, and no JVM flags beyond those the module build declares.
+## Running device tests
+
+The [module build](../../build.gradle.kts) configures `AndroidJUnitRunner` for the library's own test APK. With a connected physical device, select the class to run:
+
+```shell
+./gradlew :streaming:mjpeg:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.screenstream.mjpeg.device.MjpegCapturePipelineTest
+```
+
+To select one method, use the runner's `Class#method` filter and quote the whole Gradle argument:
+
+```shell
+./gradlew :streaming:mjpeg:connectedDebugAndroidTest \
+  '-Pandroid.testInstrumentationRunnerArguments.class=io.screenstream.mjpeg.device.MjpegLifecycleDeviceTest#systemProjectionChipStopRestoresIdleHttpAndRestartRequiresFreshConsent'
+```
+
+Quote selector values containing spaces the same way, for example `'-Pandroid.testInstrumentationRunnerArguments.mjpeg.systemStopChipDescription=<observed SystemUI description>'` ([AndroidJUnitRunner arguments](https://developer.android.com/studio/test/command-line#am-instrument-options)). Inspect `streaming/mjpeg/build/reports/androidTests/` and `streaming/mjpeg/build/outputs/androidTest-results/`. Do not assume every device supports every history, and do not launch an emulator without approval. Record the actual device/build, target SDK, grants and results with the change, not in this guide.
+
+| Instrumentation source | Assertions / qualification needs |
+| --- | --- |
+| [Capture pipeline](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegCapturePipelineTest.kt) | Changing decoded JPEG/multipart output, two increasing live Produced counts with nonzero Encoded counts in the native panel, available current FPS in the expanded chart, retained totals and unavailable current FPS after Stop, restart, fresh capture attempts and Exit releasing Service/viewer/listener resources over device loopback. Statistics checks keep producing fresh source changes; they assert no exact counts, rates or sampling cadence. |
+| [Lifecycle](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegLifecycleDeviceTest.kt) | Real declined consent, late Android approval received after Exit without resurrection, and SystemUI projection-chip stop followed by fresh consent. The chip-stop history uses 100% scale and is skipped below API 35. API 35 alone does not establish eligibility: it requires a qualified [Android 15 QPR1+ runtime](https://developer.android.com/media/grow/media-projection#status_bar_chip_auto_stop) and SystemUI selectors; missing controls on an eligible runtime fail qualification. Late approval requires the old dialog/result to remain deliverable. |
+| [Reconfiguration](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegReconfigurationDeviceTest.kt) | A legal saved crop rejected by real Engine geometry selects a placeholder; valid target settings recover changing decoded output on the same attempt/viewer. Rotation checks Activity recreation, the same capture attempt and multipart connection, and fresh output after restoration. It uses 100% scale, independently read platform display dimensions and literal asymmetric colour checks. Ignored rotation is not coverage. |
+| [LAN permission](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegLanPermissionTest.kt) | API/target 37 grant gating of a selected native IPv4 endpoint, external placeholder JPEG/multipart receipts, and continuing device loopback. Requires the external peer runner below; without its run arguments this history is skipped. It does not start live capture or independently test kernel blocking. |
+| [Wire-reader fixtures](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegMultipartReaderTest.kt) | Literal in-memory parts check the [independent bounded reader](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegMultipartReader.kt): framing, duplicate/malformed headers, lengths, truncation and short reads. These parser checks do not start capture or establish transport behaviour. |
+
+The [device support](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegDeviceTestSupport.kt) drives module controls through Compose, real system consent through UIAutomator and output through multipart/decoded-image assertions. Whole-display consent uses resource-based selectors for current and legacy SystemUI and verifies the selected mode; unrecognized modern controls fail qualification. When the default chip selector is unavailable, the lifecycle test accepts a qualified `mjpeg.systemStopChipResource` or `mjpeg.systemStopChipDescription` runner argument. The [test host](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegCaptureTestHost.kt) records consent launch/result identities without retaining consent Intent contents. Cleanup after a failed assertion is containment, not a successful shutdown verdict.
+
+The pipeline uses unchanged `ImageSettings()` defaults. These histories qualify MJPEG's settings, lifecycle and HTTP integration; the [Engine's device histories](../../../../screen-capture-engine/internal/04-testing/testing.md) own its image mapping, renderer and backend coverage.
+
+### Device evidence
+
+Each run writes evidence under the test APK's `cache/mjpeg-device-evidence/<UUID>/`: matching JPEG samples and, on a JPEG-wait failure, the latest received bytes, decoded dimensions/sample colours, state/result receipts and native window XML/PNG; rotation also records Activity recreation and expected/actual platform geometry. Network-frame assertions decide the media result; screenshots only diagnose, and diagnostic failures are attached to the original failure. Logcat tag `MjpegDeviceTest` records canonical paths. Files exist only for observations the test reached.
+
+Completed artifacts are also registered with UIAutomator's [ResultsReporter](https://developer.android.com/reference/androidx/test/uiautomator/ResultsReporter) as `additionalTestOutputFile_*` instrumentation entries; verify that the host actually retained them. Private cache does not survive uninstall, so for a direct run archive the originals first into a new host directory, separately from Gradle's XML results:
+
+```shell
+mjpeg_evidence_dir="$(mktemp -d /private/tmp/mjpeg-evidence.XXXXXX)"
+adb -s emulator-5554 exec-out run-as io.screenstream.mjpeg.test tar -cf - cache/mjpeg-device-evidence > "$mjpeg_evidence_dir/evidence.tar"
+```
+
+### LAN peer runner
+
+[lan_peer.py](../../tools/android-tests/lan_peer.py) runs on the host computer as the external HTTP client against the production Android CIO listener. It uses Python's standard library and `adb`, is not packaged in the APK and adds no Kotlin test dependency. It starts the selected instrumentation test and exchanges nonce/phase/endpoint-bound receipts with [MjpegLanPeerProtocol](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegLanPeerProtocol.kt).
+
+Build and install the library's own test APK, then deny `ACCESS_LOCAL_NETWORK` before instrumentation. For an already running, approved API 37+ emulator:
+
+```shell
+./gradlew :streaming:mjpeg:assembleDebugAndroidTest
+adb -s emulator-5554 install -r -t streaming/mjpeg/build/outputs/apk/androidTest/debug/mjpeg-debug-androidTest.apk
+adb -s emulator-5554 shell pm revoke io.screenstream.mjpeg.test android.permission.ACCESS_LOCAL_NETWORK
+python3 streaming/mjpeg/tools/android-tests/lan_peer.py --serial emulator-5554 --component io.screenstream.mjpeg.test/androidx.test.runner.AndroidJUnitRunner --topology emulator-console --interface eth0 --console-port 5554 --output /private/tmp/mjpeg-lan-evidence
+```
+
+Use the selected device's serial and the installed test APK's instrumentation component; `install -t` [allows test packages](https://developer.android.com/tools/adb). The helper restores denial after instrumentation ends, because revoking during the run can kill its process. It neither builds/installs APKs nor launches an emulator. `adb` must be on PATH or supplied with `--adb`; an authenticated emulator console uses `~/.emulator_console_auth_token`.
+
+- `emulator-console` uses console TCP redirection to the guest Ethernet endpoint `10.0.2.15` on `eth0`; serial and console port must match. It establishes an emulated external path, not physical LAN/Wi-Fi or independent kernel enforcement ([emulator networking](https://developer.android.com/studio/run/emulator-networking-interconnect)).
+- `direct` targets the selected native address from the peer machine, without a console port; direct routing alone does not prove a physical LAN.
+
+The helper writes `instrumentation.log`, per-phase `*-request.json` and `*-peer.json`, and `cleanup.json` under a unique run directory inside `--output`. `summary.json` is written only after both peer phases, instrumentation and cleanup succeed; a failed run may leave only partial evidence. These artifacts are separate from Gradle's XML results.
+
+## Choosing an environment
+
+L0/L1/L2 are environments, not test sizes. Use the lowest level that exercises the required boundary.
+
+| Level | Environment | Evidence |
+| --- | --- | --- |
+| L0 | Host JVM, no Android execution | Value/access policies, JPEG storage/readers, independent saved-data and wire fixtures |
+| L1 | Robolectric, with Compose, Ktor test engine or CIO loopback where needed | Simulated Android adapters and UI behavior, preferences/assets, in-process routes or real host sockets |
+| L2 | Recorded Android build on a device | Real foreground/projection admission, native discovery, local-network enforcement and incoming traffic |
+
+L0/L1 sources are in `src/test/kotlin`; instrumentation is in `src/androidTest/kotlin`. The capture and LAN histories above use a [library test host](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegCaptureTestHost.kt) with production Core/MJPEG modules, system consent, Service, Engine and CIO, plus supplied notification, analytics and permission-request collaborators. They do not qualify the real app graph, app-owned permission request UI, physical LAN/kernel enforcement or the full [CFG-04 lifetime](scenarios/09-integration.md#mjpeg-cfg-04).
+
+[Ktor's test engine](https://ktor.io/docs/server-testing.html) binds no sockets: listener, bind and transport histories need real CIO. [Robolectric](https://robolectric.org/best-practices/) simulates Android; host success does not establish device/OEM behavior, browser rendering or reachability from another device.
+
+Available production seams:
+
+1. The controller forwards its `MjpegEngineFactory` to each capture session and accepts `ScreenCaptureAccess`. Test one attempt's phases at `MjpegCaptureSession`, which accepts the same factory. The controller's internal `state` (`@VisibleForTesting(otherwise = NONE)`) exposes published screen state without Compose.
+2. The concrete `MjpegStreamingModuleService` also runs Core's base Service; distinguish Core behavior ([CAP-13](scenarios/03-capture.md#mjpeg-cap-13)). `HttpDelivery` and `NetworkAddressMonitor` can be fake or real.
+3. `KtorHttpDelivery` accepts an `HttpListener` factory, defaulting to `CioHttpListener`. Controlled listeners can hold or fail start, termination and cleanup; bind, transport and socket-release evidence still needs CIO.
+4. [`calculateMjpegCurrentFps`](../../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureSession.kt) (`@VisibleForTesting(otherwise = PRIVATE)`) has literal numeric tests. Session/controller fixtures can construct only the Engine's lawful initial zero statistics, so they do not establish rates from nonzero Engine emissions.
+5. Discovery accepts an `observationDispatcher` for its owned observation scope only (default `Dispatchers.Default`). Native scans and close still use `Dispatchers.IO`; there is no injectable clock. See [evidence rule 3](#evidence-rules).
+
+## Android versions
+
+The [root build](../../../../build.gradle.kts) owns SDK/build-tool baselines. The library takes minimum/compile SDK and build tools from it; the [app build](../../../../app/build.gradle.kts) sets the app target SDK, while the module build sets the library test APK target through `testOptions.targetSdk`. Compile/target SDK do not cap supported runtime versions. Use one representative SDK for platform-independent behavior and qualify relevant transitions explicitly:
+
+| Boundary | Transition |
+| --- | --- |
+| [Discovery](scenarios/04-network.md#mjpeg-net-09) | Getter fallback before API 26; callback metadata from 26; request capabilities from 30; public tethering events from 36 |
+| [Local network](scenarios/04-network.md#mjpeg-lan-01) | Android 17 enforces `ACCESS_LOCAL_NETWORK` for target 37+; lower targets have implicit access. Android 16's separate opt-in restriction is deprecated. |
+| [Capture foreground](scenarios/03-capture.md#mjpeg-cap-13) | Foreground types from API 29; stricter rules from 34 |
+| [Consent/first Start](scenarios/03-capture.md#mjpeg-cap-12) | Core's legacy consent reuse versus fresh consent from API 34; single-app sharing and projection-callback dimensions on modern Android |
+| [Packaged lifetime](scenarios/09-integration.md#mjpeg-cfg-04) | Real permissions, projection, Service and incoming connections |
+
+[Local-network enforcement](https://developer.android.com/privacy-and-security/local-network-permission) includes incoming TCP. Qualify it with a client on another device, recording target SDK and grant state; a local bind or same-phone browser does not establish it. Record device/build/QPR where projection behavior depends on them.
 
 ## Doubles, shadows and fault adapters
 
-Use the narrowest supported control for the boundary under test:
-
-- **MJPEG's own collaborators.** Use the constructor seams under [Choosing an environment](#choosing-an-environment) and ordinary fakes of internal interfaces, such as a controlled `HttpListener`. Don't replace an MJPEG class's constructor or methods with a Robolectric shadow.
-- **Android framework.** Prefer Robolectric's supported shadow APIs. For screen state, [`ShadowPowerManager.turnScreenOn(boolean)`](https://robolectric.org/javadoc/latest/org/robolectric/shadows/ShadowPowerManager.html) changes interactivity. In the [linked shadow source](https://github.com/robolectric/robolectric/blob/robolectric-4.17/shadows/framework/src/main/java/org/robolectric/shadows/ShadowPowerManager.java), it also sends the screen-on or screen-off broadcast when the state actually changes. That is an observation of the implementation, not documented API ([Harness fidelity traps](#harness-fidelity-traps)). Under the `PAUSED` looper, receivers get that broadcast only when the test runs the main looper, so a history can check behavior both before and after delivery. A custom shadow of a framework class still fits where Robolectric offers no supported control for the platform behavior or failure that a history needs.
-- **Writer output and write faults.** To observe or fail a writer's output in process, intercept Ktor's public `ApplicationSendPipeline.After` phase and write the response's own `WriteChannelContent` to a controlled channel. Scope the interceptor to the exact response under test, and don't replace transport classes. The result is evidence about the writer, not about CIO transport ([Harness fidelity traps](#harness-fidelity-traps)).
+1. Fake MJPEG interfaces through the seams above; do not shadow MJPEG constructors or methods.
+2. Prefer supported framework shadows. [`ShadowPowerManager.turnScreenOn(boolean)`](https://robolectric.org/javadoc/latest/org/robolectric/shadows/ShadowPowerManager.html) changes interactivity, and the [4.17 implementation](https://github.com/robolectric/robolectric/blob/robolectric-4.17/shadows/framework/src/main/java/org/robolectric/shadows/ShadowPowerManager.java) also broadcasts screen on/off when the state changes; under `PAUSED`, run the main looper to deliver it. Use a custom framework shadow only where supported APIs cannot supply the required behavior or failure.
+3. For writer output/faults, intercept public `ApplicationSendPipeline.After` and write the response's own `WriteChannelContent` to a controlled channel, scoped to that response, without replacing transport classes. This establishes writer behavior, not CIO transport.
+4. The [storage-failure tests](../../src/test/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsPersistenceTest.kt) seed a valid preferences file and block its `.tmp` path with a nonempty directory before constructing the single store owner. The UI save-failure test reuses that real write fault rather than an injected error callback.
 
 ## Harness fidelity traps
 
-Ktor's test engine is a model of the server, not CIO. Check these points before you treat a test-engine result as evidence for the history it names.
+These are library implementation observations, including the screen-broadcast behavior above and [WebSocket queues](../02-delivery/03-web-client.md#limits-and-settlement). Recheck the pinned sources when the [catalog](../../../../gradle/libs.versions.toml) changes the library.
 
-These traps, the Robolectric screen-broadcast observation under [Doubles, shadows and fault adapters](#doubles-shadows-and-fault-adapters) and the WebSocket queue observations in [Web client](../02-delivery/03-web-client.md#limits-and-settlement) describe library implementation, not documented API. Their source links are pinned to the inspected release, so recheck them when the [version catalog](../../../../gradle/libs.versions.toml) changes that library.
-
-- **Repeated request headers.** In the linked source, the test client merges repeated values of a request header into one comma-joined field before the call reaches the server. `Cookie` values are joined with `; `, and only date headers stay separate ([test client engine](https://github.com/ktorio/ktor/blob/3.6.1/ktor-server/ktor-server-test-host/common/src/io/ktor/server/testing/client/TestHttpClientEngine.kt), [`mergeHeaders`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-client/ktor-client-core/common/src/io/ktor/client/engine/Utils.kt)). Before you claim repeated-field coverage, assert the values the server actually saw with `getAll`. When a history needs genuinely separate field lines, send them from a raw socket to a CIO listener, as the [duplicate-header test](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebRoutesDuplicateHeaderCioTest.kt) does.
-- **Response and upgrade lifetimes.** The test engine runs response producers and WebSocket upgrades under Jobs whose lifetimes differ from CIO's. Observations at the public send boundary, such as a controlled writer, or of the routing call's Job from `RoutingCallStarted`, are model evidence for MJPEG's own ownership. Physical settlement, meaning call completion and socket closure, needs real CIO.
-- **One scheduler domain.** In the linked source, `testApplication` runs its block inside `runTest` on a real dispatcher, so the context it provides already carries a hidden `TestCoroutineScheduler` ([`runTestWithRealTime`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-test-dispatcher/common/src/TestCommon.kt)). When a test drives a writer coroutine with a manual clock, give that coroutine a `StandardTestDispatcher` and the `TestCoroutineScheduler` it uses, in one context. Don't create such a dispatcher inside `testApplication`, where it would sit beside Ktor's hidden scheduler. Prefer `runTestApplication` called from a context without a test scheduler, which makes that ownership explicit, as `driveControlledWriter` in the [response protocol test](../../src/test/kotlin/io/screenstream/mjpeg/http/media/JpegResponseProtocolTest.kt) does. Keep the jobs structured and cancel and join them in bounded cleanup. Don't replace a missing checkpoint with a sleep or a longer timeout.
+1. **Repeated headers.** The test client merges repeated header values before server delivery: comma-joined normally, `; ` for `Cookie`, separate only for date headers ([test engine](https://github.com/ktorio/ktor/blob/3.6.1/ktor-server/ktor-server-test-host/common/src/io/ktor/server/testing/client/TestHttpClientEngine.kt), [`mergeHeaders`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-client/ktor-client-core/common/src/io/ktor/client/engine/Utils.kt)). Assert server-side `getAll` values. For genuinely separate fields, use raw sockets with CIO as in [WebRoutesDuplicateHeaderCioTest](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebRoutesDuplicateHeaderCioTest.kt).
+2. **Response/upgrade lifetimes.** Test-engine producer and WebSocket-upgrade Jobs differ from CIO's. Controlled writers at the send boundary and routing-call Jobs observed through `RoutingCallStarted` establish MJPEG's modeled ownership. Call completion and socket closure need real CIO.
+3. **One scheduler domain.** `testApplication` runs its block through `runTest` on a real dispatcher, carrying a hidden `TestCoroutineScheduler` ([`runTestWithRealTime`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-test-dispatcher/common/src/TestCommon.kt)). Give a manually clocked writer its `StandardTestDispatcher` and matching scheduler in one context; do not create a competing dispatcher inside `testApplication`. Use `runTestApplication` from a context without a test scheduler, as `driveControlledWriter` in [JpegResponseProtocolTest](../../src/test/kotlin/io/screenstream/mjpeg/http/media/JpegResponseProtocolTest.kt) does. Keep jobs structured and cancel/join them in bounded cleanup; a sleep or longer timeout cannot replace a checkpoint.
 
 ## Evidence rules
 
-1. **Use independent expectations.**
-   - Compare results against values you computed yourself, and use recognizable byte fixtures.
-   - Parse saved JSON and multipart output without the production serializer or writer.
-   - Check that secrets are redacted and that authorization actually works.
-   - A freshly generated credential can equal an old one by coincidence, so never assert that random values differ.
-2. **Wait for stable checkpoints.**
-   - A `StateFlow` keeps only its latest value, so a collector can miss transitions.
-   - A race history needs explicit entry and completion barriers, plus a statement of which outcomes are allowed. Delays and incidental call counts are not barriers.
-   - A model that places a change at each wait point, such as a reader model, is evidence for that model only. It shows the same interposition in the real writer only where a writer history interposes at that exact point.
-3. **Control the clocks that production reads.**
-   - The controller reads `SystemClock.uptimeMillis()` for its heartbeat. It reads `SystemClock.elapsedRealtime()` for address-loss deadlines, the stop-delay warning, the slow-viewer cooldown and statistics history. The capture session reads the same clock for frame-rate receipts, and HTTP delivery for PIN blocks, bind retries and request history.
-   - Coroutine test time advances none of these clocks.
-   - Apart from discovery's observation scope, production uses fixed dispatchers (`Default`, `IO` and `Main.immediate`) that a test dispatcher doesn't replace, and socket work runs on real threads.
-   - Discovery's refresh deadlines read `System.nanoTime()`. Network cadence tests explicitly instrument the `networkaddress` package under Robolectric's `PAUSED` looper mode, so those reads follow Robolectric's clock, and they pass a `StandardTestDispatcher` on the same `TestCoroutineScheduler` they advance. Advance Robolectric's clock and the scheduler together.
-   - Native reads still run on real IO threads, so each supplied read needs its own entry and completion receipts. Check a read's unique inventory witness only after `runCurrent()` returns: the monitor publishes the inventory before it arms the next deadline, so publication alone doesn't show the deadline is set.
-   - Bound host-side waits with the host JVM's uptime, which is independent of Robolectric. Inside the instrumented package, `System.nanoTime()` may follow the shadowed clock.
-   - Don't call `advanceUntilIdle()` while recurring timers are scheduled. Advance to explicit times and run current work instead.
-4. **Keep lifecycle facts apart.**
-   - Saving a setting, the controller observing it, and its owner applying it are three separate facts.
-   - Stop acceptance, publication cutoff, cancellation, exact consumer completion and physical cleanup are also separate.
-   - A retained image or a statistics row is neither an active capture nor an active request.
-5. **Account with real output.**
-   - Nonzero byte counters need real written payloads.
-   - Partial payloads, multipart framing and flush failures each need their own injected failures.
-   - Counters show what was written, not what a peer received or displayed.
-   - A shutdown request doesn't prove that transport has settled.
-6. **Label supplied inputs.**
-   - An engine or native input that a fixture supplies shows how MJPEG responds to that input. It doesn't show Android projection revocation, native discovery, real dependency-graph resolution or upstream behavior.
-   - Some inputs are ones a conforming neighbor never produces, such as a short frame copy, an engine `StateFlow` whose collection fails, or an undocumented engine problem. Label such checks as defensive.
-   - Derive a failing `StateFlow` from a real one with `onSubscription`. Don't implement the interface yourself: kotlinx.coroutines doesn't support inheriting [`StateFlow`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-state-flow/) outside the library.
-7. **Treat statistics as approximate.** Verify their documented baselines and lifetimes. Don't turn them into exact render timing or a new memory or performance guarantee.
-
-[Coroutine test scheduling](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/) explains which work virtual time controls.
+1. **Independent expectations.** Use literal values and recognizable bytes; parse saved JSON/multipart output independently of production serializers/writers. Check redaction and actual authorization. Random credentials can coincide: never require newly generated values to differ.
+2. **Checkpoints.** `StateFlow` can conflate transitions. Races need entry/completion barriers and allowed outcomes, not delays or incidental counts. Reader-model interpositions establish real-writer behavior only where a writer test interposes at the same point.
+3. **Clocks and scheduling.**
+   - Controller heartbeat reads `SystemClock.uptimeMillis()`. Address-loss deadlines, stop-delay warnings, slow-viewer cooldown and statistics history read `elapsedRealtime()`, as do capture FPS receipts and HTTP PIN blocks, bind retries and request history. Coroutine virtual time advances neither clock.
+   - Except discovery's observation scope, fixed `Default`, `IO` and `Main.immediate` dispatchers are not replaced by a test dispatcher; sockets use real threads.
+   - In the [CIO bind-recovery test](../../src/test/kotlin/io/screenstream/mjpeg/http/HttpDeliveryCioIntegrationTest.kt), real IO delays do not advance paused Robolectric elapsed time. Failed is published before physical listener cleanup; keep driving `ShadowSystemClock` while yielding to real IO until public Listening and an actual HTTP request establish recovery.
+   - Discovery deadlines use `System.nanoTime()`. Cadence tests instrument `networkaddress` under Robolectric `PAUSED` so those reads follow its clock, and pass a `StandardTestDispatcher` using the same scheduler they advance. Advance the Robolectric clock and scheduler together.
+   - Native IO reads need individual entry/completion receipts. Check each read's unique inventory witness after `runCurrent()` returns: publication precedes arming the next deadline. Bound host waits with host JVM uptime, independent of Robolectric; instrumented `System.nanoTime()` may be shadowed.
+   - With recurring timers, advance to explicit times and run current work; do not use `advanceUntilIdle()`. See [coroutine test scheduling](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/).
+4. **Ownership.** Saving, observation and application are separate facts, as are Stop acceptance, publication cutoff, cancellation, exact consumer completion and physical cleanup. Retained images/statistics do not prove active capture/requests; a shutdown request does not prove transport settlement.
+5. **Payload accounting.** Nonzero counters need written payloads. Inject partial-payload, multipart-framing and flush failures separately. Counters measure writes, not peer receipt/display.
+6. **Supplied inputs.** Engine/native fixtures do not establish projection revocation, native discovery, real app-graph resolution or upstream behavior. Label nonconforming inputs defensive: short frame copies, throwing Engine state flows or undocumented problems. Derive a failing flow from a real `StateFlow` with `onSubscription`; do not implement the unsupported [interface](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-state-flow/) yourself.
+7. **Statistics.** Check documented baselines/lifetimes, preserving their approximate nature; do not add exact render-time, memory or performance guarantees.

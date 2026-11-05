@@ -18,10 +18,10 @@ import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(AndroidJUnit4::class)
-internal class NativeJpegProductionRuntimeTest {
+internal class NativeJpegRuntimeTest {
     // Verification: ENC-02
     @Test
-    fun belowApi30LoadsDsoReportsWeakCompressorUnavailableAndAutoUsesFramework() {
+    fun belowApi30AutoUsesFrameworkWithoutWeakCompressor() {
         assumeTrue(Build.VERSION.SDK_INT < Build.VERSION_CODES.R)
         assertSame(NativeJpegProcess.Availability.Available, NativeJpegProcess.resolveAvailability())
         assertFalse(NativeJpegProcess.hasWeakCompressor())
@@ -64,7 +64,7 @@ internal class NativeJpegProductionRuntimeTest {
     // Verification: ENC-04
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
-    fun api30PlusAutoOwnerEncodesRealFixtureThroughNativeAndRetiresExactCarrier() {
+    fun autoNativeEncodesAndRetiresExactCarrier() {
         val dispatcher = QueuedNonInlineDispatcher()
         val nativeBoundary = TrackingNativeJpegFacade()
         val owner = EncodingOwner(
@@ -119,7 +119,7 @@ internal class NativeJpegProductionRuntimeTest {
     // Direct registered-JNI and transaction-boundary evidence, not EncodingOwner backend-selection evidence.
     // Verification: ENC-04
     @Test
-    fun api30PlusDirectJniFacadeTransfersAndSettlesProductionTransaction() {
+    fun directJniTransfersAndSettlesTransaction() {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
         assertSame(NativeJpegProcess.Availability.Available, NativeJpegProcess.resolveAvailability())
         assertTrue(NativeJpegProcess.hasWeakCompressor())

@@ -204,19 +204,28 @@ internal class MjpegServiceHost(
     }
 
     suspend fun close(): Boolean = withContext(NonCancellable) {
-        try {
+        val result = runCatching {
             controller.requestModuleShutdown()
             http.finishStop.complete(Unit)
             monitor.finishClose.complete(Unit)
             awaitStopRequested()
             destroy()
             withTimeout(10.seconds) { controller.awaitCleanup() }
-        } finally {
-            observationScope.cancel()
-            manager.exit()
-            stopKoin()
-            Dispatchers.resetMain()
         }
+        var failure = result.exceptionOrNull()
+        fun retainFailure(action: () -> Unit) {
+            runCatching(action).onFailure { cause ->
+                val primary = failure
+                if (primary == null) failure = cause
+                else if (cause !== primary && primary.suppressed.none { it === cause }) primary.addSuppressed(cause)
+            }
+        }
+        retainFailure { observationScope.cancel() }
+        retainFailure { manager.exit() }
+        retainFailure { stopKoin() }
+        retainFailure { Dispatchers.resetMain() }
+        failure?.let { throw it }
+        result.getOrThrow()
     }
 }
 

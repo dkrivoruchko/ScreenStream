@@ -267,7 +267,9 @@ internal class SessionCaptureOwner(
             val glRenderer = GLRenderer(egl, target, fragmentPrecision, readbackClock, platformSdkInt)
             renderer = glRenderer
             glRenderer.open(command.plan)
-            when (val creation = projection.createVirtualDisplay(command.plan, target.producerSurface)) {
+            when (
+                val creation = projection.createVirtualDisplay(target.targetWidthPx, target.targetHeightPx, command.plan.densityDpi, target.producerSurface)
+            ) {
                 ProjectionOwner.VirtualDisplayCreationResult.Created -> Unit
                 ProjectionOwner.VirtualDisplayCreationResult.ReturnedNull -> throw CaptureBoundaryFailure(
                     problem = ScreenCaptureProblem.CaptureUnavailable,
@@ -337,7 +339,7 @@ internal class SessionCaptureOwner(
             }
             if (!requiresTargetReplacement) {
                 glRenderer.applyAfterPreflight(newPlan)
-                when (val resize = projection.resizeIfChanged(command.plan)) {
+                when (val resize = projection.resizeIfChanged(oldTarget.targetWidthPx, oldTarget.targetHeightPx, newPlan.densityDpi)) {
                     is ProjectionOwner.ProjectionOperationResult.Failure -> throw CaptureBoundaryFailure(resize.problem, resize.cause)
                     ProjectionOwner.ProjectionOperationResult.Success -> Unit
                 }
@@ -395,10 +397,6 @@ internal class SessionCaptureOwner(
             glRenderer.applyAfterPreflight(newPlan)
             val listenerRemoval = oldTarget.fenceAndRemoveListener()
             listenerRemoval.failure?.let { throw CaptureBoundaryFailure(ScreenCaptureProblem.InternalFailure, it) }
-            when (val resize = projection.resizeIfChanged(newPlan)) {
-                is ProjectionOwner.ProjectionOperationResult.Failure -> throw CaptureBoundaryFailure(resize.problem, resize.cause)
-                ProjectionOwner.ProjectionOperationResult.Success -> Unit
-            }
             replacement.installListener()
             candidateAttachmentAttempted = true
             val replacementReceipt = projection.replaceSurface(oldTarget.producerSurface, replacement.producerSurface)
@@ -414,6 +412,12 @@ internal class SessionCaptureOwner(
             retiringTarget = oldTarget
             glRenderer.replaceTarget(replacement)
 
+            // Changed-size notifications must observe the selected consumer. Promote its physical roots first:
+            // resize can fail or never return after attachment, and teardown must name the attached Target.
+            when (val resize = projection.resizeIfChanged(replacement.targetWidthPx, replacement.targetHeightPx, newPlan.densityDpi)) {
+                is ProjectionOwner.ProjectionOperationResult.Failure -> throw CaptureBoundaryFailure(resize.problem, resize.cause)
+                ProjectionOwner.ProjectionOperationResult.Success -> Unit
+            }
             val oldTargetRetirement = oldTarget.releaseAfterReplacement(listenerRemoval.proof, surfaceReplacementProof)
             if (oldTargetRetirement.residue == null) retiringTarget = null
             (oldTargetRetirement.cleanupFailure ?: oldTargetRetirement.residue)?.let { retirementFailure ->

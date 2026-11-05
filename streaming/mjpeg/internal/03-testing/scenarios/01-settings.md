@@ -35,7 +35,7 @@ The scenarios use these terms:
 
 ## Test layers and evidence
 
-[Testing](../01-testing.md) defines the layers, the current verification status and the evidence rules. For settings they work as follows:
+[Testing](../01-testing.md) defines the layers, the test-source coverage and the evidence rules. For settings they work as follows:
 
 - **L0** covers pure model values and decoding of independently written JSON.
 - **L1** covers DataStore files, Preferences protobuf bytes and values derived from Android `Build`.
@@ -231,7 +231,9 @@ Keep the defaults derived from Android, such as the device title, apart from pur
 
 <a id="mjpeg-set-10"></a>
 
-### Behavior persistence versus presentation
+<a id="behavior-persistence-versus-presentation"></a>
+
+### Presentation and behavior preferences survive storage
 
 **Setup.** Save nondefault values for these preferences:
 
@@ -240,17 +242,11 @@ Keep the defaults derived from Android, such as the device title, apart from pur
 - **Stop when screen turns off**
 - **Warn about skipped frames**
 
-**Steps.** Reload the saved settings, then check the native PIN row separately.
+**Steps.** Reload the saved file in a fresh, isolated store.
 
-**Expected.**
+**Expected.** All four values survive storage. This establishes persistence only.
 
-- The values survive storage. That alone doesn't prove their runtime effects.
-- The PIN row shows the applied PIN, not the saved one, and only while protection is applied.
-- Copying the PIN marks the clip as sensitive.
-- The row's reveal resets when the applied PIN changes. It also resets when the hide-during-capture condition changes in either direction. That condition holds while the preference is on and an attempt is pending cleanup.
-- Revealing the PIN in the Access settings editor is independent of the row.
-
-**Related.** [mjpeg-ctl-14](02-controller.md#mjpeg-ctl-14) covers the effects of stopping when the screen turns off. Keep-awake and warning effects belong to [mjpeg-ctl-17](02-controller.md#mjpeg-ctl-17).
+**Related.** Runtime effects belong to [mjpeg-ctl-14](02-controller.md#mjpeg-ctl-14) (screen-off Stop) and [mjpeg-ctl-17](02-controller.md#mjpeg-ctl-17) (keep-awake and warnings). PIN presentation belongs to [Usage: Decide who can watch](../../../docs/usage.md#decide-who-can-watch), [Settings: PIN generation and edits](../../01-module/04-settings.md#pin-generation-and-edits) and the [`StreamPinContent` implementation](../../../src/main/kotlin/io/screenstream/mjpeg/ui/main/StreamPin.kt), including reveal reset and sensitive copying; UI execution is outside this local catalogue.
 
 <a id="mjpeg-set-11"></a>
 

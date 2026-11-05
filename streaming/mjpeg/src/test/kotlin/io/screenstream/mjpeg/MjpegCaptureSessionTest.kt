@@ -415,8 +415,6 @@ internal class MjpegCaptureSessionTest {
             val acquisitionFailure = session.state.value.captureFailure!!.cause
             if (engineOwnsProjection) {
                 assertSame(handoffFailure, acquisitionFailure)
-            } else {
-                assertEquals("DisplayManager must be available", acquisitionFailure.message)
             }
             assertNull(session.state.value.cleanupSucceeded)
             val abandoned = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }

@@ -10,6 +10,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * Owns one projection's callback registration, virtual display, attached surface, and retirement attempts.
  *
+ * Display dimensions configure the selected Target extent; recorded source dimensions arrive independently through
+ * callbacks. A normally returned resize records configuration, not producer allocation or compositor convergence.
+ *
  * Projection and display operations run on the Capture lane. Notifications arrive through [projectionCallbackHandler]
  * and report facts with this owner's [token] to [callbackSink], unless callbacks have been fenced. The callback looper
  * must outlive the session to accept platform notifications already dispatched when the callback is unregistered.
@@ -104,9 +107,11 @@ internal class ProjectionOwner(
     private var callbackRegistration = CallbackRegistration.Prepared
     private var displayCreation = DisplayCreation.NotAttempted
     private var virtualDisplay: VirtualDisplay? = null
-    private var actualWidthPx = 0
-    private var actualHeightPx = 0
-    private var actualDensityDpi = 0
+
+    // Last normally returned display configuration, not measured producer-buffer dimensions.
+    private var configuredWidthPx = 0
+    private var configuredHeightPx = 0
+    private var configuredDensityDpi = 0
     private var attachedSurface: Surface? = null
     private var displayDetach: DisplayDetach = DisplayDetach.Eligible
     private var projectionStop = ProjectionStop.Eligible
@@ -148,15 +153,15 @@ internal class ProjectionOwner(
         }
     }
 
-    internal fun createVirtualDisplay(plan: CapturePlan, surface: Surface): VirtualDisplayCreationResult {
+    internal fun createVirtualDisplay(widthPx: Int, heightPx: Int, densityDpi: Int, surface: Surface): VirtualDisplayCreationResult {
         check(displayCreation == DisplayCreation.NotAttempted)
         return try {
             displayCreation = DisplayCreation.Attempted
             val returned = platform.createVirtualDisplay(
                 projection = projection,
-                widthPx = plan.sourceWidthPx,
-                heightPx = plan.sourceHeightPx,
-                densityDpi = plan.densityDpi,
+                widthPx = widthPx,
+                heightPx = heightPx,
+                densityDpi = densityDpi,
                 surface = surface,
             )
             if (returned == null) {
@@ -166,9 +171,9 @@ internal class ProjectionOwner(
                 virtualDisplay = returned
                 displayCreation = DisplayCreation.Owned
                 attachedSurface = surface
-                actualWidthPx = plan.sourceWidthPx
-                actualHeightPx = plan.sourceHeightPx
-                actualDensityDpi = plan.densityDpi
+                configuredWidthPx = widthPx
+                configuredHeightPx = heightPx
+                configuredDensityDpi = densityDpi
                 VirtualDisplayCreationResult.Created
             }
         } catch (failure: SecurityException) {
@@ -179,20 +184,20 @@ internal class ProjectionOwner(
         }
     }
 
-    internal fun resizeIfChanged(plan: CapturePlan): ProjectionOperationResult {
+    internal fun resizeIfChanged(widthPx: Int, heightPx: Int, densityDpi: Int): ProjectionOperationResult {
         val display = virtualDisplay
             ?: return ProjectionOperationResult.Failure(
                 problem = ScreenCaptureProblem.CaptureUnavailable,
                 cause = CapturePhysicalException("VirtualDisplay is unavailable"),
             )
-        if ((actualWidthPx == plan.sourceWidthPx) && (actualHeightPx == plan.sourceHeightPx) && (actualDensityDpi == plan.densityDpi)) {
+        if ((configuredWidthPx == widthPx) && (configuredHeightPx == heightPx) && (configuredDensityDpi == densityDpi)) {
             return ProjectionOperationResult.Success
         }
         return try {
-            platform.resize(display, plan.sourceWidthPx, plan.sourceHeightPx, plan.densityDpi)
-            actualWidthPx = plan.sourceWidthPx
-            actualHeightPx = plan.sourceHeightPx
-            actualDensityDpi = plan.densityDpi
+            platform.resize(display, widthPx, heightPx, densityDpi)
+            configuredWidthPx = widthPx
+            configuredHeightPx = heightPx
+            configuredDensityDpi = densityDpi
             ProjectionOperationResult.Success
         } catch (failure: Exception) {
             ProjectionOperationResult.Failure(problem = ScreenCaptureProblem.InternalFailure, cause = failure)

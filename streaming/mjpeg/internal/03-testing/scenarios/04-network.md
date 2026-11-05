@@ -55,7 +55,7 @@ flowchart TB
 
 ## Test layers and evidence
 
-[Testing](../01-testing.md) defines the layers, the current verification status and the evidence rules. For discovery they work as follows:
+[Testing](../01-testing.md) defines the layers, the test-source coverage and the evidence rules. For discovery they work as follows:
 
 - **L0** checks the filter, categories and selection on hand-built inventories.
 - **L1** runs the source and monitor with a fake `NativeInterfaceAccess` and controlled `ConnectivityManager` and `TetheringManager` inputs. It also runs the controller's plan with a controlled grant.

@@ -78,6 +78,65 @@ internal class ScreenCaptureSessionTopologyTest {
     }
 
     // Verification: SES-03
+    // Verification: TGT-03
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S_V2, Build.VERSION_CODES.TIRAMISU,
+        Build.VERSION_CODES.UPSIDE_DOWN_CAKE, Build.VERSION_CODES.CINNAMON_BUN])
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun downscaledDisplayExtentDoesNotReplaceAuthoritativeSourceGeometry() = runTest {
+        val platform = CapturePlatformFixture()
+        val parameters = ScreenCaptureParameters()
+        val hasResizeAuthority = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+        SessionHarness(
+            bootstrapMode = SessionHarness.BootstrapMode.ImmediateMetrics,
+            metrics = CaptureMetrics(widthPx = 12, heightPx = 8, densityDpi = 320),
+            platformSdkInt = Build.VERSION.SDK_INT,
+            projection = platform.projection,
+            projectionPlatform = platform.projectionPlatform,
+            eglPlatform = platform.eglPlatform,
+            glesPlatform = platform.glesPlatform,
+            targetPlatform = platform.targetPlatform,
+        ).use { harness ->
+            val start = async(UnconfinedTestDispatcher(testScheduler)) { harness.session.start(parameters) }
+            if (hasResizeAuthority) {
+                harness.driveUntil(platform::initialVirtualDisplayReturned)
+                platform.deliverCapturedContentResize(widthPx = 12, heightPx = 8)
+            }
+            harness.driveUntil { harness.session.state.value is ScreenCaptureState.Active }
+            start.await()
+            val active = harness.session.state.value as ScreenCaptureState.Active
+            assertEquals(CaptureGeometry.create(12, 8, 320), active.outputInfo.captureGeometry)
+            assertEquals(ImageSize.create(6, 4), active.outputInfo.finalImageSize)
+            platform.verifyInitialProjectionBoundaries(
+                widthPx = if (hasResizeAuthority) 12 else 6,
+                heightPx = if (hasResizeAuthority) 8 else 4,
+                densityDpi = 320,
+            )
+            if (hasResizeAuthority) {
+                // Android reports recorded content dimensions, even when the consuming display is smaller.
+                platform.deliverCapturedContentResize(widthPx = 12, heightPx = 8)
+                drainAcceptedSessionWork(harness)
+                assertEquals(active, harness.session.state.value)
+            }
+
+            val smaller = parameters.copy(outputSize = OutputSize.ScaleFactor(0.25))
+            harness.session.updateParameters(smaller)
+            harness.driveUntil {
+                val state = harness.session.state.value
+                state is ScreenCaptureState.Active && state.outputInfo.parameters == smaller
+            }
+            val shrunk = harness.session.state.value as ScreenCaptureState.Active
+            assertEquals(active.outputInfo.captureGeometry, shrunk.outputInfo.captureGeometry)
+            assertEquals(ImageSize.create(3, 2), shrunk.outputInfo.finalImageSize)
+            verify(exactly = if (hasResizeAuthority) 1 else 0) {
+                platform.projectionPlatform.resize(any(), 6, 4, 320)
+                platform.projectionPlatform.setSurface(any(), any())
+            }
+            verify(exactly = 0) { platform.projectionPlatform.resize(any(), 3, 2, any()) }
+        }
+    }
+
+    // Verification: SES-03
     @Test
     @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE, Build.VERSION_CODES.CINNAMON_BUN])
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)

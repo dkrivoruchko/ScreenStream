@@ -1,0 +1,153 @@
+package io.screenstream.mjpeg.ui
+
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
+import io.screenstream.mjpeg.R
+import io.screenstream.mjpeg.settings.AccessSettings
+import io.screenstream.mjpeg.settings.SecretValue
+import io.screenstream.mjpeg.ui.settings.access.PinSettingItem
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "en")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+internal class PinSettingsUiTest {
+    @get:Rule
+    val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test
+    fun invalidDraftDoesNotCommitAndManualLeadingZerosSurviveSavedPinUpdates() {
+        val fixture = PinFixture()
+        render(fixture)
+        openEditor()
+        field().performTextReplacement("123")
+        compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin_error)).assertIsDisplayed()
+        closeEditor()
+        compose.runOnIdle { assertTrue(fixture.transforms.isEmpty()) }
+
+        openEditor()
+        revealEditor()
+        field().performTextReplacement("000042")
+        compose.runOnIdle { fixture.access.value = fixture.access.value.copy(pin = SecretValue("222222")) }
+        field().assertTextContains("000042")
+        closeEditor()
+        compose.runOnIdle {
+            assertEquals(1, fixture.transforms.size)
+            assertEquals("000042", fixture.access.value.pin?.value)
+        }
+    }
+
+    @Test
+    fun emittedManualTransformCannotOverwriteALaterAutomaticPolicy() {
+        val fixture = PinFixture(applyImmediately = false)
+        render(fixture)
+        openEditor()
+        field().performTextReplacement("000007")
+        closeEditor()
+        compose.runOnIdle {
+            assertEquals(1, fixture.transforms.size)
+            val latest = fixture.access.value.copy(pinPolicy = AccessSettings.PinPolicy.NewOnModuleStart, pin = SecretValue("765432"))
+            assertEquals(latest, fixture.transforms.single().invoke(latest))
+        }
+    }
+
+    @Test
+    fun automaticPolicyIsReadOnlyButRegenerationRemainsAvailable() {
+        val fixture = PinFixture(initialPolicy = AccessSettings.PinPolicy.NewOnModuleStart)
+        render(fixture)
+        openEditor()
+        field().assert(!hasSetTextAction())
+        generate().assertIsEnabled().performClick()
+        revealEditor()
+        compose.runOnIdle {
+            assertEquals(1, fixture.transforms.size)
+            assertTrue(AccessSettings.isValidPin(checkNotNull(fixture.access.value.pin).value))
+        }
+        field().assertTextContains(checkNotNull(fixture.access.value.pin).value)
+        closeEditor()
+        compose.runOnIdle { assertEquals(1, fixture.transforms.size) }
+    }
+
+    @Test
+    fun regenerationResumesFollowingSavedPinAndSetupLockRejectsTheNextDraft() {
+        val fixture = PinFixture()
+        render(fixture)
+        openEditor()
+        revealEditor()
+        field().performTextReplacement("000123")
+        generate().performClick()
+        compose.runOnIdle { assertEquals(1, fixture.transforms.size) }
+        field().assertTextContains(checkNotNull(fixture.access.value.pin).value)
+        compose.runOnIdle { fixture.access.value = fixture.access.value.copy(pin = SecretValue("987654")) }
+        field().assertTextContains("987654")
+
+        field().performTextReplacement("000999")
+        compose.runOnIdle { fixture.setupEditable.value = false }
+        field().assert(!hasSetTextAction())
+        generate().assertIsNotEnabled()
+        closeEditor()
+        compose.runOnIdle {
+            assertEquals(1, fixture.transforms.size)
+            assertEquals("987654", fixture.access.value.pin?.value)
+        }
+    }
+
+    private fun render(fixture: PinFixture) {
+        compose.setContent {
+            val access = fixture.access.value
+            MjpegTestTheme {
+                PinSettingItem(access.pin, access.pinPolicy, fixture.setupEditable.value, fixture::onChange)
+            }
+        }
+    }
+
+    private fun openEditor() = compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin)).performClick()
+    private fun closeEditor() = compose.onNodeWithContentDescription(text(R.string.mjpeg_action_close)).performClick()
+    private fun field() = compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin_label))
+    private fun generate() = compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin_regenerate))
+    private fun text(resource: Int): String = compose.activity.getString(resource)
+
+    private fun revealEditor() {
+        compose.onNode(
+            hasContentDescription(text(R.string.mjpeg_pin_show_description)) and
+                    hasAnyAncestor(SemanticsMatcher.keyIsDefined(SemanticsProperties.EditableText)),
+            useUnmergedTree = true,
+        ).performClick()
+    }
+
+    private class PinFixture(
+        initialPolicy: AccessSettings.PinPolicy = AccessSettings.PinPolicy.Permanent,
+        private val applyImmediately: Boolean = true,
+    ) {
+        val access = mutableStateOf(AccessSettings(pinPolicy = initialPolicy, pin = SecretValue("123456")))
+        val setupEditable = mutableStateOf(true)
+        val transforms = mutableListOf<AccessSettings.() -> AccessSettings>()
+
+        fun onChange(transform: AccessSettings.() -> AccessSettings) {
+            transforms += transform
+            if (applyImmediately) access.value = transform(access.value)
+        }
+    }
+}

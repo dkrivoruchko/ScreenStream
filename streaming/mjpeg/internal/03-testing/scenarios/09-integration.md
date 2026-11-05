@@ -75,7 +75,7 @@ Each step adds evidence that the earlier ones can't provide. Reading a declarati
 
 - **SDK and toolchain declarations.**
   - The root build defines the shared minimum SDK, compile SDK, target SDK and build-tools values.
-  - The MJPEG library takes its minimum SDK, compile SDK and build tools from those values, and declares no target SDK of its own.
+  - The MJPEG library takes its minimum SDK, compile SDK and build tools from those values. It does not set the shipped app's target SDK; its `testOptions.targetSdk` separately sets the library's own test APK target from the root value.
   - Android enforces the packaged app's target SDK, which the app build sets. Read it from the merged manifest of the build being qualified, not from the library.
   - The module build sets one JVM toolchain for production code and a separate Java launcher for unit tests. The test launcher says nothing about the shipped bytecode or the device runtime.
   - Record the values in force for the build being qualified.

@@ -14,8 +14,10 @@ internal class CaptureBoundaryFailure(internal val problem: ScreenCaptureProblem
 internal enum class CaptureTargetMode { Full, Downscaled, }
 
 /**
- * One physical capture configuration. Source dimensions define projection and crop space, target dimensions define
- * the producer surface, and [rgbaLayout] defines the final readback range. Equal configuration values permit reuse;
+ * One physical capture configuration. Source dimensions define logical crop space, target dimensions define the
+ * minimum producer surface, and [rgbaLayout] defines the final readback range. The virtual display is configured
+ * to the selected Target's extent, which may exceed this minimum on compatible reuse. Neither extent measures
+ * actual producer-buffer dimensions. Equal configuration values permit reuse;
  * they do not make two plan instances the same request identity.
  */
 internal class CapturePlan(

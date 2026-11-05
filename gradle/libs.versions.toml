@@ -4,12 +4,16 @@ kotlin = "2.4.21"
 android-tools-desugar = "2.1.5"
 
 koin-android = "4.2.2"
-koin-plugin = "1.2.1"
+koin-plugin = "1.2.2"
 
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.12.0"
 junit = "4.13.2"
 robolectric = "4.17"
+androidx-test-runner = "1.7.0"
+androidx-test-junit = "1.3.0"
+androidx-test-uiautomator = "2.4.1"
+androidx-test-espresso = "3.7.0"
 
 androidx-core-ktx = "1.19.1"
 androidx-annotation = "1.11.0"
@@ -74,6 +78,8 @@ androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "
 
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "compose-material3" }
 androidx-compose-material3-window = { module = "androidx.compose.material3:material3-window-size-class" }
 androidx-compose-material3-adaptive-navigation-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite"  }
@@ -95,6 +101,10 @@ ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.re
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
+androidx-test-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-test-junit" }
+androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidx-test-uiautomator" }
+androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-test-espresso" }
 
 #RTSP
 ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }

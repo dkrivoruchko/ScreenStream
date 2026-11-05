@@ -14,12 +14,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verifySequence
-import io.screenstream.capture.ColorMode
-import io.screenstream.capture.ImageRect
-import io.screenstream.capture.Mirror
-import io.screenstream.capture.Rotation
 import io.screenstream.capture.ScreenCaptureProblem
-import io.screenstream.capture.internal.Rgba8888Layout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -51,8 +46,6 @@ internal class ProjectionOwnerLifecycleTest {
         val callback = slot<MediaProjection.Callback>()
         val callbackSink = RecordingCallbackSink()
         val callbackBoundary = RecordingCallbackBoundary()
-        val initialPlan = plan(widthPx = 1080, heightPx = 1920, densityDpi = 420)
-        val resizedPlan = plan(widthPx = 720, heightPx = 1280, densityDpi = 320)
         every { projection.registerCallback(capture(callback), refEq(controlHandler)) } just Runs
         every {
             projection.createVirtualDisplay(
@@ -80,10 +73,10 @@ internal class ProjectionOwnerLifecycleTest {
         )
 
         assertSame(ProjectionOwner.ProjectionOperationResult.Success, owner.registerCallback())
-        assertSame(ProjectionOwner.VirtualDisplayCreationResult.Created, owner.createVirtualDisplay(initialPlan, surface))
-        assertSame(ProjectionOwner.ProjectionOperationResult.Success, owner.resizeIfChanged(resizedPlan))
+        assertSame(ProjectionOwner.VirtualDisplayCreationResult.Created, owner.createVirtualDisplay(widthPx = 1080, heightPx = 1920, densityDpi = 420, surface = surface))
+        assertSame(ProjectionOwner.ProjectionOperationResult.Success, owner.resizeIfChanged(widthPx = 720, heightPx = 1280, densityDpi = 320))
         assertThrows(IllegalStateException::class.java) {
-            owner.createVirtualDisplay(initialPlan, surface)
+            owner.createVirtualDisplay(widthPx = 1080, heightPx = 1920, densityDpi = 420, surface = surface)
         }
 
         owner.fenceCallbacks()
@@ -118,6 +111,48 @@ internal class ProjectionOwnerLifecycleTest {
             projection.unregisterCallback(refEq(callback.captured))
         }
         confirmVerified(projection, display)
+    }
+
+    // Verification: CAP-01
+    @Test
+    fun configuredExtentAndDensityDeduplicateWhileCallbacksKeepSourceDimensions() {
+        val platform = RecordingProjectionPlatform().apply { creationResult = mockk() }
+        val callbacks = RecordingCallbackSink()
+        val surface = mockk<Surface>()
+        val owner = owner(mockk(), platform, callbackSink = callbacks)
+        assertSame(ProjectionOwner.ProjectionOperationResult.Success, owner.registerCallback())
+        assertSame(ProjectionOwner.VirtualDisplayCreationResult.Created,
+            owner.createVirtualDisplay(widthPx = 540, heightPx = 1200, densityDpi = 420, surface = surface))
+
+        assertSame(ProjectionOwner.ProjectionOperationResult.Success,
+            owner.resizeIfChanged(widthPx = 540, heightPx = 1200, densityDpi = 420))
+        assertTrue(platform.resizeConfigurations.isEmpty())
+        assertSame(ProjectionOwner.ProjectionOperationResult.Success,
+            owner.resizeIfChanged(widthPx = 540, heightPx = 1200, densityDpi = 480))
+        assertSame(ProjectionOwner.ProjectionOperationResult.Success,
+            owner.resizeIfChanged(widthPx = 810, heightPx = 1800, densityDpi = 480))
+        assertSame(ProjectionOwner.ProjectionOperationResult.Success,
+            owner.resizeIfChanged(widthPx = 810, heightPx = 1800, densityDpi = 480))
+        assertSame(ProjectionOwner.ProjectionOperationResult.Success,
+            owner.resizeIfChanged(widthPx = 810, heightPx = 1200, densityDpi = 480))
+        assertSame(ProjectionOwner.ProjectionOperationResult.Success,
+            owner.resizeIfChanged(widthPx = 540, heightPx = 1200, densityDpi = 480))
+        platform.registeredCallbacks.single().onCapturedContentResize(1080, 2400)
+
+        assertEquals(listOf(Triple(540, 1200, 420)), platform.creationConfigurations)
+        assertEquals(
+            listOf(Triple(540, 1200, 480), Triple(810, 1800, 480), Triple(810, 1200, 480), Triple(540, 1200, 480)),
+            platform.resizeConfigurations,
+        )
+        assertEquals(listOf(Triple(owner.token, 1080, 2400)), callbacks.resizes)
+        assertEquals(1, platform.createCount)
+        val retired = owner.retireDisplay(surface)
+        assertTrue(retired.detachProof?.matches(surface) == true)
+        assertNotNull(retired.releaseProof)
+        assertNull(retired.residue)
+        owner.fenceCallbacks()
+        assertNull(owner.retireCallbackAndProjection().residue)
+        assertEquals(1, platform.releaseCount)
     }
 
     // Verification: CAP-01
@@ -212,10 +247,10 @@ internal class ProjectionOwnerLifecycleTest {
 
         assertSame(ProjectionOwner.ProjectionOperationResult.Success, owner.registerCallback())
         val escaped = assertThrows(OutOfMemoryError::class.java) {
-            owner.createVirtualDisplay(plan(), surface)
+            owner.createVirtualDisplay(widthPx = 1080, heightPx = 1920, densityDpi = 420, surface = surface)
         }
         assertThrows(IllegalStateException::class.java) {
-            owner.createVirtualDisplay(plan(), surface)
+            owner.createVirtualDisplay(widthPx = 1080, heightPx = 1920, densityDpi = 420, surface = surface)
         }
         val retirement = owner.retireDisplay(surface)
 
@@ -286,7 +321,7 @@ internal class ProjectionOwnerLifecycleTest {
         val owner = owner(projection = projection, platform = platform)
 
         assertSame(ProjectionOwner.ProjectionOperationResult.Success, owner.registerCallback())
-        assertResult(owner.createVirtualDisplay(plan(), surface))
+        assertResult(owner.createVirtualDisplay(widthPx = 1080, heightPx = 1920, densityDpi = 420, surface = surface))
         val displayRetirement = owner.retireDisplay(surface)
         owner.fenceCallbacks()
         val projectionRetirement = owner.retireCallbackAndProjection()
@@ -317,24 +352,6 @@ internal class ProjectionOwnerLifecycleTest {
         callbackBoundary = callbackBoundary,
         platform = platform,
         stopCompletion = ProjectionStopCompletion(),
-    )
-
-    private fun plan(
-        widthPx: Int = 1080,
-        heightPx: Int = 1920,
-        densityDpi: Int = 420,
-    ): CapturePlan = CapturePlan(
-        appliedSourceRect = ImageRect.create(leftPx = 0, topPx = 0, rightPx = widthPx, bottomPx = heightPx),
-        rotation = Rotation.Degrees0,
-        mirror = Mirror.None,
-        colorMode = ColorMode.Color,
-        sourceWidthPx = widthPx,
-        sourceHeightPx = heightPx,
-        densityDpi = densityDpi,
-        targetMode = CaptureTargetMode.Full,
-        targetWidthPx = widthPx,
-        targetHeightPx = heightPx,
-        rgbaLayout = Rgba8888Layout.create(widthPx = widthPx, heightPx = heightPx),
     )
 
     private class RecordingCallbackSink : ProjectionOwner.CallbackSink {
@@ -369,6 +386,8 @@ internal class ProjectionOwnerLifecycleTest {
         val calls = mutableListOf<String>()
         val registeredCallbacks = mutableListOf<MediaProjection.Callback>()
         var creationResult: VirtualDisplay? = null
+        val creationConfigurations = mutableListOf<Triple<Int, Int, Int>>()
+        val resizeConfigurations = mutableListOf<Triple<Int, Int, Int>>()
         var creationFailure: Throwable? = null
         var unregisterFailure: Exception? = null
         var createCount = 0
@@ -392,12 +411,14 @@ internal class ProjectionOwnerLifecycleTest {
         ): VirtualDisplay? {
             calls += "create"
             createCount += 1
+            creationConfigurations += Triple(widthPx, heightPx, densityDpi)
             creationFailure?.let { throw it }
             return creationResult
         }
 
         override fun resize(display: VirtualDisplay, widthPx: Int, heightPx: Int, densityDpi: Int) {
             resizeCount += 1
+            resizeConfigurations += Triple(widthPx, heightPx, densityDpi)
         }
 
         override fun setSurface(display: VirtualDisplay, surface: Surface?) {

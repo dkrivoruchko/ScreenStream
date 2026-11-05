@@ -55,7 +55,7 @@ After `createSession()` succeeds, the SDK owns the projection. Your app controls
 
 Your app decides how to use, buffer, protect, and retain the JPEG copies. Audio capture, video encoding, storage, and transport are outside the SDK's scope.
 
-Supports Android API 24 and later. The current SDK build uses Kotlin 2.4 and `compileSdk` 37.
+Supports Android API 24 and later. Current build settings are in the [module build configuration](build.gradle.kts).
 
 ## Capture capabilities
 

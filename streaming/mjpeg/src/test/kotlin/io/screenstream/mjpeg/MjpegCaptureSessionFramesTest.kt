@@ -217,9 +217,11 @@ internal class MjpegCaptureSessionFramesTest {
 
     // Cases: MJPEG-CAP-08, MJPEG-CAP-09
     @Test
-    fun undersizedOutputDestinationRemainsUnchangedAndBecomesTheRetainedOutputFailure() = runTest(StandardTestDispatcher()) {
+    fun copyFailureBecomesTheRetainedOutputFailure() = runTest(StandardTestDispatcher()) {
         val engine = EngineInput()
-        val destination = ByteArray(5) { 0x55 }
+        val cause = IllegalStateException("Borrowed JPEG copy failed")
+        val destination = ByteArray(8) { 0x55 }
+        var copyEntered = false
         var offeredCount: Int? = null
         var owned: ByteArray? = null
         val session = MjpegCaptureSessionInputs().frameSession(backgroundScope, engine) { count, copyTo ->
@@ -232,12 +234,13 @@ internal class MjpegCaptureSessionFramesTest {
             runCurrent()
             assertStreaming(session)
 
-            engine.deliver(BorrowedInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)))
+            engine.deliver(BorrowedInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)) {
+                copyEntered = true
+                throw cause
+            })
             assertEquals(6, offeredCount)
+            assertTrue(copyEntered)
             assertNull(owned)
-            assertArrayEquals(byteArrayOf(0x55, 0x55, 0x55, 0x55, 0x55), destination)
-            val cause = checkNotNull(session.state.value.captureFailure).cause
-            assertTrue(cause is IndexOutOfBoundsException)
             assertFrameFailure(session, cause)
             runCurrent()
 
@@ -422,10 +425,6 @@ internal class MjpegCaptureSessionFramesTest {
         private val payload: ByteArray,
         private val count: () -> Int = { payload.size },
         private val copy: (ByteArray) -> Int = { destination ->
-            // The public Engine validates the complete destination range before writing any bytes.
-            if (destination.size < payload.size) {
-                throw IndexOutOfBoundsException("Complete JPEG does not fit in destination")
-            }
             payload.copyInto(destination)
             payload.size
         },

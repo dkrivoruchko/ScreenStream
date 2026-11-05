@@ -19,7 +19,7 @@ In this guide:
 
 ## Prepare the Android host
 
-The SDK supports Android API 24 and later. The current SDK build uses Kotlin 2.4 and `compileSdk` 37.
+The SDK supports Android API 24 and later. See the [module build configuration](../build.gradle.kts) for current build settings.
 
 Your app owns Android's [media-projection consent flow](https://developer.android.com/media/grow/media-projection), obtains a `MediaProjection` under the platform’s rules, and keeps the required [mediaProjection foreground service](https://developer.android.com/develop/background-work/services/fgs/service-types#media-projection) active while capture can run. The SDK does not declare permissions or application components, request consent, or start the service.
 
@@ -308,7 +308,7 @@ if (readyOrTerminal is ScreenCaptureState.Running) {
 
 All parameter values are immutable and use structural equality. `ScreenCaptureParameters.DEFAULT` equals a no-argument `ScreenCaptureParameters()`. Constructors immediately reject locally invalid values with `IllegalArgumentException`. Rules that need the current capture dimensions are checked later: an invalid crop or unrepresentable output size produces `InvalidRequest`, while a valid image whose RGBA storage exceeds supported addressability produces `ResourceExhausted`.
 
-After recovery or reconfiguration, the first delivered JPEG may use source content already available to the capture path. Its pixels are not guaranteed to have been captured after recovery. An equal update is normally a no-op; [Retry suspended capture](#retry-suspended-capture) explains its one recovery use.
+After recovery or reconfiguration, the first delivered JPEG may use source content already available to the capture path; its pixels need not have been captured after recovery. Images can briefly appear scaled or positioned incorrectly while Android applies new geometry, without a fixed transient-frame count or convergence deadline. An equal update is normally a no-op; [Retry suspended capture](#retry-suspended-capture) explains its one recovery use.
 
 ### Image and geometry
 

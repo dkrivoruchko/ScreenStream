@@ -40,6 +40,8 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import java.nio.ByteBuffer
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
@@ -227,7 +229,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         assertSame(replacementFailure, result.cause)
         assertSame(CaptureFailureScope.OwnerInvalidated, result.scope)
         assertSame(fixture.candidateSurface, fixture.projectionPlatform.platformAttachedSurface)
-        assertEquals(1, fixture.projectionPlatform.resizeCount)
+        assertEquals(0, fixture.projectionPlatform.resizeCount)
         assertEquals(1, fixture.projectionPlatform.replacementSurfaceCount)
 
         fixture.deliverSourceFrame(fixture.initialSurfaceTexture)
@@ -303,6 +305,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         )
         val fixture = OwnerFixture(initialPlan = initialPlan)
         val opened = fixture.open()
+        assertEquals(Triple(4, 4, 320), fixture.projectionPlatform.configuredDisplay)
         val shrinkPlan = capturePlan(
             sourceWidthPx = 8,
             sourceHeightPx = 8,
@@ -320,6 +323,23 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         assertSame(opened.sourceIdentity, shrink.sourceIdentity)
         assertSame(fixture.initialSurface, fixture.projectionPlatform.platformAttachedSurface)
         assertEquals(listOf(INITIAL_OES_TEXTURE), fixture.targetPlatform.createdOesTextureNames)
+        assertEquals(Triple(4, 4, 320), fixture.projectionPlatform.configuredDisplay)
+        assertEquals(0, fixture.projectionPlatform.resizeCount)
+
+        val regrowthPlan = capturePlan(
+            sourceWidthPx = 8,
+            sourceHeightPx = 8,
+            targetMode = CaptureTargetMode.Downscaled,
+            targetWidthPx = 3,
+            targetHeightPx = 3,
+        )
+        assertTrue(fixture.owner.apply(regrowthPlan))
+        fixture.enterAcceptedWork()
+        val regrowth = fixture.factPort.applyResults.last() as CaptureApplyResult.Applied
+        assertSame(opened.sourceIdentity, regrowth.sourceIdentity)
+        assertSame(fixture.initialSurface, fixture.projectionPlatform.platformAttachedSurface)
+        assertEquals(Triple(4, 4, 320), fixture.projectionPlatform.configuredDisplay)
+        assertEquals(0, fixture.projectionPlatform.resizeCount)
 
         val growthPlan = capturePlan(
             sourceWidthPx = 8,
@@ -334,6 +354,8 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         val growth = fixture.factPort.applyResults.last() as? CaptureApplyResult.Applied
             ?: error("Downscaled growth replacement did not succeed")
         assertSame(growthPlan, growth.plan)
+        assertEquals(Triple(6, 6, 320), fixture.projectionPlatform.configuredDisplay)
+        assertEquals(1, fixture.projectionPlatform.resizeCount)
         assertNotSame(opened.sourceIdentity, growth.sourceIdentity)
         assertSame(fixture.candidateSurface, fixture.projectionPlatform.platformAttachedSurface)
         assertEquals(
@@ -393,6 +415,175 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         assertEquals(1, fixture.projectionPlatform.releaseCount)
         assertEquals(1, fixture.projectionPlatform.unregisterCount)
         assertEquals(1, fixture.projectionPlatform.stopCount)
+    }
+
+    // Verification: TGT-03
+    @Test
+    fun replacementResizeNotificationObservesSelectedConsumerSurface() {
+        val plans = listOf(
+            capturePlan(8, 6) to capturePlan(6, 8),
+            capturePlan(8, 8, CaptureTargetMode.Downscaled, 4, 4) to
+                    capturePlan(8, 8, CaptureTargetMode.Downscaled, 6, 6),
+        )
+        for ((initial, replacement) in plans) {
+            val fixture = OwnerFixture(initialPlan = initial, replacementPlan = replacement)
+            fixture.open()
+            try {
+                assertTrue(fixture.owner.apply(replacement))
+                fixture.enterAcceptedWork()
+                assertTrue(fixture.factPort.applyResults.single() is CaptureApplyResult.Applied)
+                // Android can evaluate mirror fit when resize emits its changed-display notification.
+                // That physical boundary must already expose the selected consumer, not the previous Surface.
+                assertSame(fixture.candidateSurface, fixture.projectionPlatform.surfacesAtResize.single())
+                assertEquals(Triple(replacement.targetWidthPx, replacement.targetHeightPx, replacement.densityDpi),
+                    fixture.projectionPlatform.configuredDisplay)
+            } finally {
+                fixture.owner.retire()
+                fixture.enterAcceptedWork()
+            }
+        }
+    }
+
+    // Verification: TGT-03
+    @Test
+    fun sourceAspectShrinkReplacesTargetDespiteRetainedCapacity() {
+        val initial = capturePlan(8, 8, CaptureTargetMode.Downscaled, 4, 4)
+        val shrunk = capturePlan(2, 4, CaptureTargetMode.Downscaled, 1, 2)
+        val fixture = OwnerFixture(initialPlan = initial)
+        val opened = fixture.open()
+
+        assertTrue(fixture.owner.apply(shrunk))
+        fixture.enterAcceptedWork()
+
+        val applied = fixture.factPort.applyResults.single() as CaptureApplyResult.Applied
+        assertSame(shrunk, applied.plan)
+        assertNotSame(opened.sourceIdentity, applied.sourceIdentity)
+        assertEquals(Triple(1, 2, 320), fixture.projectionPlatform.configuredDisplay)
+        assertSame(fixture.candidateSurface, fixture.projectionPlatform.platformAttachedSurface)
+        assertEquals(listOf(fixture.initialSurface), fixture.targetPlatform.releasedSurfaces)
+        fixture.deliverSourceFrame(fixture.initialSurfaceTexture)
+        assertTrue(fixture.factPort.sourceIdentities.isEmpty())
+        fixture.deliverSourceFrame(fixture.candidateSurfaceTexture)
+        assertSame(applied.sourceIdentity, fixture.factPort.sourceIdentities.single())
+
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+        assertEquals(listOf(fixture.initialSurface, fixture.candidateSurface), fixture.targetPlatform.releasedSurfaces)
+        assertEquals(1, fixture.projectionPlatform.releaseCount)
+    }
+
+    // Verification: TGT-03
+    @Test
+    fun densityOnlyApplyKeepsRetainedTargetExtentAndIdentity() {
+        val initial = capturePlan(8, 8, CaptureTargetMode.Downscaled, 4, 4)
+        val fixture = OwnerFixture(initialPlan = initial)
+        val opened = fixture.open()
+        val changed = capturePlan(8, 8, CaptureTargetMode.Downscaled, 2, 2, densityDpi = 480)
+
+        assertTrue(fixture.owner.apply(changed))
+        fixture.enterAcceptedWork()
+
+        val applied = fixture.factPort.applyResults.single() as CaptureApplyResult.Applied
+        assertSame(changed, applied.plan)
+        assertSame(opened.sourceIdentity, applied.sourceIdentity)
+        assertSame(fixture.initialSurface, fixture.projectionPlatform.platformAttachedSurface)
+        assertEquals(Triple(4, 4, 480), fixture.projectionPlatform.configuredDisplay)
+        assertEquals(1, fixture.projectionPlatform.resizeCount)
+        assertEquals(0, fixture.projectionPlatform.replacementSurfaceCount)
+        assertEquals(listOf(INITIAL_OES_TEXTURE), fixture.targetPlatform.createdOesTextureNames)
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+    }
+
+    // Verification: TGT-02
+    @Test
+    fun attachedCandidateResizeFailureRetainsCurrentAndRetiringRoots() {
+        val fixture = OwnerFixture(
+            initialPlan = capturePlan(8, 8, CaptureTargetMode.Downscaled, 4, 4),
+            replacementPlan = capturePlan(8, 8, CaptureTargetMode.Downscaled, 6, 6),
+        )
+        val opened = fixture.open()
+        val failure = IllegalStateException("display resize failed after possible mutation")
+        fixture.projectionPlatform.resizeFailure = failure
+
+        assertTrue(fixture.owner.apply(fixture.replacementPlan))
+        fixture.enterAcceptedWork()
+
+        val result = fixture.factPort.applyResults.single() as CaptureApplyResult.Failed
+        assertSame(ScreenCaptureProblem.InternalFailure, result.problem)
+        assertSame(failure, result.cause)
+        assertSame(CaptureFailureScope.OwnerInvalidated, result.scope)
+        assertEquals(Triple(6, 6, 320), fixture.projectionPlatform.configuredDisplay)
+        assertEquals(1, fixture.projectionPlatform.replacementSurfaceCount)
+        assertSame(fixture.candidateSurface, fixture.projectionPlatform.platformAttachedSurface)
+        assertTrue(fixture.targetPlatform.releasedSurfaces.isEmpty())
+        var read: CaptureReadResult? = null
+        assertTrue(fixture.owner.read(fixture.initialPlan, opened.sourceIdentity,
+            ByteBuffer.allocateDirect(fixture.initialPlan.rgbaCarrierByteCount)) { read = it })
+        fixture.enterAcceptedWork()
+        val rejected = read as CaptureReadResult.Failed
+        assertFalse(rejected.sourceConsumed)
+        assertEquals(0, fixture.gles.readPixelsCount)
+
+        fixture.owner.retire()
+        fixture.enterAcceptedWork()
+        assertEquals(listOf(fixture.candidateSurface, fixture.initialSurface), fixture.targetPlatform.releasedSurfaces)
+        assertEquals(listOf(fixture.candidateSurface), fixture.projectionPlatform.detachedSurfaces)
+        assertTrue(fixture.factPort.captureFailures.isEmpty())
+        assertEquals(1, fixture.projectionPlatform.releaseCount)
+        assertEquals(1, fixture.projectionPlatform.resizeCount)
+    }
+
+    // Verification: TGT-02
+    @Test
+    fun enteredResizeRetainsAttachedAndRetiringTargetsUntilRealReturn() {
+        val fixture = OwnerFixture(
+            initialPlan = capturePlan(8, 8, CaptureTargetMode.Downscaled, 4, 4),
+            replacementPlan = capturePlan(8, 8, CaptureTargetMode.Downscaled, 6, 6),
+            useRealCaptureThread = true,
+        )
+        val opened = fixture.open()
+        val entered = CountDownLatch(1)
+        val allowReturn = CountDownLatch(1)
+        val failure = IllegalStateException("resize returned failure after blocked entry")
+        fixture.projectionPlatform.resizeFailure = failure
+        fixture.projectionPlatform.onResizeEntered = {
+            entered.countDown()
+            check(allowReturn.await(5, TimeUnit.SECONDS)) { "Test did not release the entered resize" }
+        }
+        try {
+            assertTrue(fixture.owner.apply(fixture.replacementPlan))
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            assertSame(fixture.candidateSurface, fixture.projectionPlatform.platformAttachedSurface)
+            assertSame(fixture.candidateSurface, fixture.projectionPlatform.surfacesAtResize.single())
+            assertTrue(fixture.factPort.applyResults.isEmpty())
+            assertTrue(fixture.targetPlatform.releasedSurfaces.isEmpty())
+            assertTrue(fixture.targetPlatform.releasedSurfaceTextures.isEmpty())
+            assertEquals(0, fixture.projectionPlatform.releaseCount)
+            assertThrows(IllegalStateException::class.java) {
+                fixture.owner.read(fixture.initialPlan, opened.sourceIdentity,
+                    ByteBuffer.allocateDirect(fixture.initialPlan.rgbaCarrierByteCount)) { error("Unreturned resize admitted a read") }
+            }
+            // Stop admission does not settle an entered resize or release either physical Target.
+            fixture.owner.retire()
+            assertTrue(fixture.factPort.applyResults.isEmpty())
+            assertTrue(fixture.targetPlatform.releasedSurfaces.isEmpty())
+            assertEquals(0, fixture.projectionPlatform.releaseCount)
+        } finally {
+            allowReturn.countDown()
+            fixture.owner.retire()
+            fixture.awaitCaptureThreadExit()
+        }
+
+        val result = fixture.factPort.applyResults.single() as CaptureApplyResult.Failed
+        assertSame(failure, result.cause)
+        assertSame(CaptureFailureScope.OwnerInvalidated, result.scope)
+        assertEquals(listOf(fixture.candidateSurface), fixture.projectionPlatform.detachedSurfaces)
+        assertEquals(listOf(fixture.candidateSurface, fixture.initialSurface), fixture.targetPlatform.releasedSurfaces)
+        assertEquals(listOf(fixture.candidateSurfaceTexture, fixture.initialSurfaceTexture), fixture.targetPlatform.releasedSurfaceTextures)
+        assertEquals(1, fixture.projectionPlatform.releaseCount)
+        assertEquals(1, fixture.projectionPlatform.resizeCount)
+        assertTrue(fixture.factPort.captureFailures.isEmpty())
     }
 
     // Verification: TGT-02
@@ -571,6 +762,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
     private class OwnerFixture(
         val initialPlan: CapturePlan = capturePlan(sourceWidthPx = 4, sourceHeightPx = 4),
         val replacementPlan: CapturePlan = capturePlan(sourceWidthPx = 6, sourceHeightPx = 4),
+        private val useRealCaptureThread: Boolean = false,
     ) {
         val projection: MediaProjection = mockk()
         val virtualDisplay: VirtualDisplay = mockk()
@@ -593,17 +785,23 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         )
         val egl = RecordingEglPlatform()
         val gles = RecordingGlesPlatform()
-        private val captureHandler = Handler(Looper.getMainLooper())
-        private val captureThread: HandlerThread = mockk()
+        private val captureThread: HandlerThread = if (useRealCaptureThread) {
+            HandlerThread("CaptureReplacementTest").apply { start() }
+        } else {
+            mockk()
+        }
+        private val captureHandler = Handler(if (useRealCaptureThread) captureThread.looper else Looper.getMainLooper())
         var captureThreadQuitCount = 0
             private set
 
         val owner: SessionCaptureOwner
 
         init {
-            every { captureThread.quitSafely() } answers {
-                captureThreadQuitCount += 1
-                true
+            if (!useRealCaptureThread) {
+                every { captureThread.quitSafely() } answers {
+                    captureThreadQuitCount += 1
+                    true
+                }
             }
             val poster = object : HandlerTaskPoster {
                 override fun post(handler: Handler, task: Runnable): Boolean = handler.post(task)
@@ -640,7 +838,19 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         }
 
         fun enterAcceptedWork() {
-            shadowOf(Looper.getMainLooper()).idle()
+            if (useRealCaptureThread) {
+                val settled = CountDownLatch(1)
+                check(captureHandler.post { settled.countDown() })
+                check(settled.await(5, TimeUnit.SECONDS)) { "Capture commands did not return" }
+            } else {
+                shadowOf(Looper.getMainLooper()).idle()
+            }
+        }
+
+        fun awaitCaptureThreadExit() {
+            check(useRealCaptureThread)
+            captureThread.join(5_000)
+            check(!captureThread.isAlive) { "Test Capture thread did not finish after resize return" }
         }
 
         fun deliverSourceFrame(surfaceTexture: SurfaceTexture) {
@@ -690,6 +900,12 @@ internal class SessionCaptureOwnerTargetReplacementTest {
         private val initialSurface: Surface,
         private val candidateSurface: Surface,
     ) : ProjectionPlatform {
+        val surfacesAtResize = mutableListOf<Surface>()
+        val detachedSurfaces = mutableListOf<Surface>()
+        var onResizeEntered: (() -> Unit)? = null
+        var resizeFailure: Exception? = null
+        var configuredDisplay: Triple<Int, Int, Int>? = null
+            private set
         var replacementFailure: Exception? = null
         var releaseFailure: Exception? = null
         var platformAttachedSurface: Surface? = null
@@ -721,12 +937,18 @@ internal class SessionCaptureOwnerTargetReplacementTest {
             check(projection === this.projection)
             check(surface === initialSurface)
             platformAttachedSurface = surface
+            configuredDisplay = Triple(widthPx, heightPx, densityDpi)
             return display
         }
 
         override fun resize(display: VirtualDisplay, widthPx: Int, heightPx: Int, densityDpi: Int) {
             check(display === this.display)
             resizeCount += 1
+            surfacesAtResize += checkNotNull(platformAttachedSurface)
+            // The platform may mutate before throwing; failure is not a rollback receipt.
+            configuredDisplay = Triple(widthPx, heightPx, densityDpi)
+            onResizeEntered?.invoke()
+            resizeFailure?.let { throw it }
         }
 
         override fun setSurface(display: VirtualDisplay, surface: Surface?) {
@@ -740,6 +962,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
 
                 surface == null -> {
                     detachSurfaceCount += 1
+                    detachedSurfaces += checkNotNull(platformAttachedSurface)
                     platformAttachedSurface = null
                 }
 
@@ -1014,6 +1237,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
             targetWidthPx: Int = sourceWidthPx,
             targetHeightPx: Int = sourceHeightPx,
             rotation: Rotation = Rotation.Degrees0,
+            densityDpi: Int = 320,
         ): CapturePlan = CapturePlan(
             appliedSourceRect = ImageRect.create(0, 0, sourceWidthPx, sourceHeightPx),
             rotation = rotation,
@@ -1021,7 +1245,7 @@ internal class SessionCaptureOwnerTargetReplacementTest {
             colorMode = ColorMode.Color,
             sourceWidthPx = sourceWidthPx,
             sourceHeightPx = sourceHeightPx,
-            densityDpi = 320,
+            densityDpi = densityDpi,
             targetMode = targetMode,
             targetWidthPx = targetWidthPx,
             targetHeightPx = targetHeightPx,

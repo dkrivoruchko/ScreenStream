@@ -215,10 +215,10 @@ Then race Stop against each of them.
 - **Pairing.** The copied JPEG stays paired with the generation that admitted it.
 - **Stale offers.** No offer is made without a generation. A stale offer never invokes the copier and can't revive output.
 - **Callback lifetime.** All access to the borrowed frame happens on the callback's thread, within that callback ([Engine frame rules](../../../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames)).
+- **Copy failure.** Inject an exception after the copier is entered with sufficient destination capacity. No owned output is published. The session retains the exact cause at `Output.frame`, requests an Error Stop and still cleans up successfully; cleanup does not replace the capture failure. The Engine owns destination-size validation.
 
 **Defensive inputs.** A conforming Engine and HTTP store never produce these, so label them as defensive:
 
-- **Short destination.** Give a truthful six-byte frame a five-byte destination. The copy is rejected before the destination changes ([`copyTo`](../../../../../screen-capture-engine/docs/usage.md#reuse-app-storage)), and no output is committed. The session records `Output.frame`, requests an Error Stop and still cleans up.
 - **Wrong copy count.** Make a copier that advertises six bytes return five or seven. The session records `IllegalStateException("Incomplete JPEG copy")` at `Output.frame`.
 - **Unreadable metadata.** When reading the byte count or metadata fails, the session records that original cause rather than inventing a frame.
 

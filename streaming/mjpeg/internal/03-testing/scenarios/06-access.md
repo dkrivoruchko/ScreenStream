@@ -43,7 +43,7 @@ Turning protection off, or turning off **Limit PIN attempts**, discards every re
 
 ## Test layers and evidence
 
-[Testing](../01-testing.md) defines the layers, the current verification status and the evidence rules. For access they work as follows:
+[Testing](../01-testing.md) defines the layers, the test-source coverage and the evidence rules. For access they work as follows:
 
 - **L0** exercises `HttpAccess` directly with explicit times. Use it for counting, blocks, expiry, capacity and rotation decisions.
 - **L1** runs delivery and routes in the Ktor test engine or over CIO loopback. Use it to observe statuses, `Retry-After`, WebSocket denial messages, reader closure and accounting. Delivery reads `SystemClock.elapsedRealtime()`, so the test must control that clock. Coroutine virtual time does not move it.

@@ -13,7 +13,7 @@ Neighboring pages own related histories:
 - [Media scenarios](07-media.md) cover image bytes and payload counting inside one response.
 - [Web protocol scenarios](08-web-protocol.md) cover routes and status codes.
 
-These are requirements, not a record of passing tests. [Testing MJPEG](../01-testing.md) explains the current verification status and the evidence rules.
+These are requirements, not a record of passing tests. [Testing MJPEG](../01-testing.md) explains the test-source coverage and the evidence rules.
 
 ## The pieces under test
 

@@ -148,7 +148,7 @@ An unequal parameter update advances the desired revision and makes older produc
 
 Resize arrival and adoption are separate steps. A resize notification is first recorded; the Control turn can process a completed image before adopting the pending dimensions as a new revision. An old-plan result can still commit in that interval only if its desired revision matches both the pending request and the applied plan, and all other output checks pass. This does not keep old output eligible after a parameter update has already changed the desired revision.
 
-A compatible capture target can be reused. If replacement fails before attachment and the old resources are still known to be intact, Capture can roll back and preserve them. Ambiguous surface attachment, failed rollback, or loss of that ownership evidence invalidates the owner. Uncertain resources remain retained for cleanup; a failed replacement does not generally promise restoration of the previous target.
+A compatible capture target can be reused. If candidate preparation fails before the old graph changes and clean rollback is proved, Capture can preserve the old resources. Once a replacement Surface is proved attached, Capture immediately makes that target current and retains the old target for retirement before requesting the new display extent. The plan becomes applied only after display resize and old-target retirement succeed. Ambiguous attachment, failed rollback, or loss of ownership evidence invalidates the owner. Uncertain resources remain retained for cleanup; a failed replacement does not generally promise restoration of the previous target. Brief visual transients can occur while Android applies new geometry, without a fixed warmup frame count or compositor fence.
 
 ### How changes reach delivered frames
 
@@ -190,7 +190,7 @@ The spatial transform maps each output location back to the selected source regi
 
 The engine treats captured color as standard dynamic range (SDR) with a nominal sRGB interpretation. That provides a defined processing model for color and grayscale; it does not promise arbitrary color-space conversion or identical JPEG bytes across backends. Output is opaque. The exact dataspace, grayscale, and fidelity rules are in [color assumptions and limits](usage.md#color-assumptions-and-limits).
 
-Compatible full-source, same-aspect downscales on API 32+ may request a smaller `SurfaceTexture` buffer while leaving the virtual display source-sized. Android may scale content into that surface, reducing pixels entering the graphics path. This optimization is conditional: platform buffer behavior can differ, and the renderer cannot undo upstream resampling.
+Compatible full-source, same-aspect downscales on API 32+ may request a smaller `SurfaceTexture` buffer. Capture configures the virtual display to the selected target’s width and height, including a retained larger target on compatible reuse; authoritative source dimensions remain separate for crop coordinates and output metadata. Android may scale content into that surface, reducing pixels entering the graphics path. Requested extents are not measurements of producer-buffer allocation or performance, and the renderer cannot undo upstream resampling.
 
 ### Graphics validity and cleanup
 
