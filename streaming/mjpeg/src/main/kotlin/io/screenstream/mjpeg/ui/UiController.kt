@@ -101,8 +101,6 @@ internal interface UiController {
     }
 
     enum class ServerFailureReason {
-        AddressInUse,
-
         AddressUnavailable,
 
         /** Missing LAN grant or a platform-denied bind. */

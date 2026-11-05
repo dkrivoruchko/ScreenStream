@@ -26,10 +26,11 @@ import org.junit.runner.RunWith
 import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
+import java.net.ServerSocket
 import java.net.Socket
 import java.util.Collections
 
-/** Module grant gating and an external peer path; no independent kernel-blocking or live-capture claim. */
+/** Denied/granted UI and external reachability; no independent kernel-blocking or live-capture claim. */
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 37)
 internal class MjpegLanPermissionTest {
@@ -91,6 +92,17 @@ internal class MjpegLanPermissionTest {
                     assertArrayEquals(logo, support.requestJpeg(host.port))
                     assertArrayEquals(logo, loopback.nextFrame())
                     support.assertExitAndReleased(host, loopback)
+                    assertTrue(
+                        "Native teardown must be checked while LAN permission remains granted",
+                        RuntimePermission.LocalNetwork.isGranted(context),
+                    )
+                    support.await(host, "native listener closure after Exit") { !canConnectNative(hostAddress, host.port) }
+                    ServerSocket().use { socket ->
+                        socket.reuseAddress = true
+                        socket.bind(InetSocketAddress(address, host.port))
+                        assertEquals(address, socket.inetAddress)
+                        assertEquals(host.port, socket.localPort)
+                    }
                 }
             }
         }

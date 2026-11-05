@@ -19,7 +19,7 @@ import kotlin.uuid.Uuid
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
-internal class MjpegUiControllerTest {
+internal class MjpegAddressServerMappingTest {
     private val serverId = Uuid.parse("00000000-0000-0000-0000-000000000017")
 
     // Cases: MJPEG-CFG-04 (ready-link mapping only, with supplied server/token inputs)
@@ -96,9 +96,9 @@ internal class MjpegUiControllerTest {
             Triple(null, true, UiController.ServerStatus.Pending),
             Triple(HttpDelivery.ServerState.Pending, true, UiController.ServerStatus.Pending),
             Triple(
-                HttpDelivery.ServerState.Failed(HttpDelivery.ServerFailure.AddressInUse, attempts = 1),
+                HttpDelivery.ServerState.Failed(HttpDelivery.ServerFailure.AddressUnavailable, attempts = 1),
                 true,
-                UiController.ServerStatus.Failed(UiController.ServerFailureReason.AddressInUse),
+                UiController.ServerStatus.Failed(UiController.ServerFailureReason.AddressUnavailable),
             ),
             Triple(
                 HttpDelivery.ServerState.Failed(HttpDelivery.ServerFailure.PermissionDenied, attempts = 1),

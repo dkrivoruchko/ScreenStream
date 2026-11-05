@@ -23,7 +23,9 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,7 +44,7 @@ import kotlin.time.Duration.Companion.seconds
 internal class WebSocketTransportTest {
     // Cases: MJPEG-WEB-10, MJPEG-WEB-11, MJPEG-WEB-12
     @Test
-    fun heldSendKeepsOneImmutableSnapshotThenReadsLatestStateAndFencesNewGeneration() = runBlocking {
+    fun heldCurrentCheckPreservesCapturedSnapshotThenSendsLatestAndFencesGeneration() = runBlocking {
         val fixture = Fixture()
         val checked = java.util.concurrent.CountDownLatch(1)
         val release = java.util.concurrent.CountDownLatch(1)
@@ -79,26 +81,63 @@ internal class WebSocketTransportTest {
     }
 
     // Cases: MJPEG-WEB-12, MJPEG-WEB-13
-    @Test
-    fun oversizedIncomingFrameAndAbruptDisconnectSettleTheActualCall() = runBlocking {
-        for (oversized in listOf(false, true)) {
-            val fixture = Fixture()
-            try {
-                fixture.start()
-                RawSocket(fixture.port).use { peer ->
-                    assertEquals(1, peer.readFrame().first)
-                    if (oversized) {
-                        peer.send(2, ByteArray(4_097) { 1 })
-                        withTimeout(12.seconds) { fixture.completed.await() }
-                        peer.drainToEnd()
-                    } else {
-                        peer.close()
-                        withTimeout(5.seconds) { fixture.completed.await() }
-                    }
-                }
-            } finally {
-                fixture.close()
+    @Test(timeout = 20_000)
+    fun oversizedDeclaredFrameSettlesBeforeAnyApplicationMessageOrPingTimeout() = runBlocking {
+        val fixture = Fixture()
+        try {
+            fixture.start()
+            RawSocket(fixture.port).use { peer ->
+                assertEquals(1, peer.readFrame().first)
+                val deadline = peer.deadlineAfter(12_000)
+                // Ktor checks the declared length before collecting the body. No complete
+                // application message exists for the independent read-only policy to reject.
+                peer.sendUnfinishedBinaryFrame(4_097)
+                withTimeout(12.seconds) { fixture.completed.await() }
+                peer.drainToEnd(deadline)
             }
+        } finally {
+            fixture.close()
+        }
+    }
+
+    // Cases: MJPEG-WEB-12, MJPEG-WEB-13
+    @Test(timeout = 15_000)
+    fun fragmentAtFrameLimitKeepsSessionResponsiveWithoutDeliveringAnApplicationMessage() = runBlocking {
+        val fixture = Fixture()
+        try {
+            fixture.start()
+            RawSocket(fixture.port).use { peer ->
+                assertEquals(1, peer.readFrame().first)
+                peer.deadlineAfter(5_000)
+                peer.send(2, ByteArray(4_096) { 1 }, fin = false)
+                val ping = byteArrayOf(7, 0, 9)
+                peer.send(9, ping)
+                var frame = peer.readFrame()
+                while (frame.first == 1) frame = peer.readFrame()
+                assertEquals(10, frame.first)
+                assertArrayEquals(ping, frame.second)
+                assertFalse(fixture.completed.isCompleted)
+                peer.close()
+                withTimeout(5.seconds) { fixture.completed.await() }
+            }
+        } finally {
+            fixture.close()
+        }
+    }
+
+    // Cases: MJPEG-WEB-12
+    @Test
+    fun abruptDisconnectSettlesTheActualCallBeforeListenerStop() = runBlocking {
+        val fixture = Fixture()
+        try {
+            fixture.start()
+            RawSocket(fixture.port).use { peer ->
+                assertEquals(1, peer.readFrame().first)
+                peer.close()
+                withTimeout(5.seconds) { fixture.completed.await() }
+            }
+        } finally {
+            fixture.close()
         }
     }
 
@@ -156,12 +195,19 @@ internal class WebSocketTransportTest {
 
     // Cases: MJPEG-WEB-11, MJPEG-WEB-13
     @Test
-    fun stalledPeerWithLargeChangingSnapshotsSettlesWithoutListenerStop() = runBlocking {
+    fun peerThatStopsReadingAfterInitialSnapshotEventuallySettlesWithoutListenerStop() = runBlocking {
         val fixture = Fixture()
         try {
-            fixture.handler.webState.value = fixture.handler.state("雪".repeat(80_000))
             fixture.start()
             RawSocket(fixture.port, receiveBuffer = 1_024).use { peer ->
+                val initial = peer.readFrame()
+                assertEquals(1, initial.first)
+                val snapshot = Json.parseToJsonElement(initial.second.decodeToString()).jsonObject
+                assertEquals("open", snapshot.getValue("access").jsonPrimitive.content)
+                assertEquals("Transport contract", snapshot.getValue("display").jsonObject.getValue("title").jsonPrimitive.content)
+                // Successful initial output is established. Stop reading while large facts change;
+                // exact timeout attribution belongs to WebSnapshotOutputTest's controlled session.
+                fixture.handler.webState.value = fixture.handler.state("雪".repeat(80_000))
                 withTimeout(14.seconds) {
                     var revision = 0
                     while (!fixture.completed.isCompleted) {
@@ -238,20 +284,11 @@ internal class WebSocketTransportTest {
         val port: Int = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { it.localPort }
         val parent = Job()
         val completed = CompletableDeferred<Unit>()
-        val failures = java.util.concurrent.ConcurrentLinkedQueue<Throwable>()
         val handler = Handler(denied)
         val listener = CioHttpListener(parent, "127.0.0.1", port) { current ->
             intercept(ApplicationCallPipeline.Monitoring) {
-                checkNotNull(call.coroutineContext[Job]).invokeOnCompletion { cause ->
-                    if (cause != null) failures += cause
-                    completed.complete(Unit)
-                }
-                try {
-                    proceed()
-                } catch (cause: Throwable) {
-                    failures += cause
-                    throw cause
-                }
+                checkNotNull(call.coroutineContext[Job]).invokeOnCompletion { completed.complete(Unit) }
+                proceed()
             }
             WebRoutes(httpTestContext(), handler).installRoutes(this, current)
         }
@@ -374,17 +411,26 @@ internal class WebSocketTransportTest {
             return (first and 15) to bytes
         }
 
-        fun send(opcode: Int, payload: ByteArray) {
-            output.write(128 or opcode)
-            if (payload.size < 126) output.write(128 or payload.size) else {
-                output.write(128 or 126)
-                output.write(payload.size ushr 8)
-                output.write(payload.size and 255)
-            }
-            val mask = byteArrayOf(1, 2, 3, 4)
-            output.write(mask)
+        fun send(opcode: Int, payload: ByteArray, fin: Boolean = true) {
+            val mask = writeFrameHeader(opcode, payload.size, fin)
             output.write(ByteArray(payload.size) { index -> (payload[index].toInt() xor mask[index % 4].toInt()).toByte() })
             output.flush()
+        }
+
+        fun sendUnfinishedBinaryFrame(declaredLength: Int) {
+            writeFrameHeader(2, declaredLength, fin = false)
+            output.flush()
+        }
+
+        private fun writeFrameHeader(opcode: Int, length: Int, fin: Boolean): ByteArray {
+            require(length in 0..65_535)
+            output.write((if (fin) 128 else 0) or opcode)
+            if (length < 126) output.write(128 or length) else {
+                output.write(128 or 126)
+                output.write(length ushr 8)
+                output.write(length and 255)
+            }
+            return byteArrayOf(1, 2, 3, 4).also(output::write)
         }
 
         fun textUntilEnd(): List<String> {
@@ -402,8 +448,8 @@ internal class WebSocketTransportTest {
             return texts
         }
 
-        fun drainToEnd() {
-            deadlineAfter(5_000)
+        fun drainToEnd(deadline: Long? = null) {
+            if (deadline == null) deadlineAfter(5_000) else deadlineAt(deadline)
             try {
                 while (true) {
                     beforeRead(); if (input.read() < 0) break

@@ -114,6 +114,7 @@
     <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">開啟 %1$s</string>
     <string name="mjpeg_address_copy_url">複製連結</string>
+    <string name="mjpeg_address_copied">已複製連結</string>
     <string name="mjpeg_address_copy_description">複製 %1$s 的連結</string>
     <string name="mjpeg_address_copy_options_description">選擇要複製的 %1$s 連結</string>
     <string name="mjpeg_address_copy_page">複製頁面連結</string>
@@ -135,7 +136,6 @@
     <string name="mjpeg_local_network_permission_required">需要區域網路權限</string>
 
     <string name="mjpeg_server_pending">準備中…</string>
-    <string name="mjpeg_server_address_in_use">位址已被使用</string>
     <string name="mjpeg_server_address_unavailable">位址無法使用</string>
     <string name="mjpeg_server_permission_denied">權限遭拒</string>
     <string name="mjpeg_server_io_failure">伺服器無法使用</string>

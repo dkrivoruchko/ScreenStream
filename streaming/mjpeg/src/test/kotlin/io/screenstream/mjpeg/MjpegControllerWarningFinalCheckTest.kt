@@ -1,6 +1,5 @@
 package io.screenstream.mjpeg
 
-import android.os.Looper
 import android.os.SystemClock
 import com.elvishew.xlog.XLog
 import io.screenstream.capture.ScreenCaptureProblem
@@ -11,10 +10,8 @@ import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Runnable
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -52,12 +49,12 @@ internal class MjpegControllerWarningFinalCheckTest {
 
     // Cases: MJPEG-CTL-17
     @Test
-    fun aSuppressedMainThreadWarningStillConsumesItsEpisodeAndStartsTheCooldown() = runBlocking {
+    fun suppressedWarningStartsCooldownAcrossRecovery() = runBlocking {
         val engine = ControlledMjpegEngine()
         val context = IsolatedSettingsContext(RuntimeEnvironment.getApplication(), temporaryFolder.newFolder())
         val host = MjpegServiceHost(MjpegSettings(context), engineFactory = { _, _, _ -> engine })
         host.access.consent.complete(object : ScreenCaptureAccess.Grant {})
-        val main = preparedMain()
+        val main = mjpegTestMainDispatcher("mjpeg-warning-test-main")
         val held = HeldMain(main)
         Dispatchers.setMain(main)
         try {
@@ -66,7 +63,7 @@ internal class MjpegControllerWarningFinalCheckTest {
             withTimeout(5.seconds) { host.http.plan.first { it?.addresses == listOf(address) } }
             checkpoint(host)
             host.controller.requestStreamStart()
-            withTimeout(5.seconds) { host.managerHandle.status.first { it?.isStreaming == true } }
+            withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
             withTimeout(5.seconds) { host.http.captureStatus.first { it?.second == MjpegCaptureSession.State.Status.Active } }
             withTimeout(5.seconds) { host.controller.state.first { it.statistics.engineStats != null } }
             checkpoint(host)
@@ -125,16 +122,6 @@ internal class MjpegControllerWarningFinalCheckTest {
         )
         return id
     }
-
-    private fun preparedMain(): ExecutorCoroutineDispatcher = java.util.concurrent.Executors.newSingleThreadExecutor { command ->
-        Thread {
-            Looper.prepare(); try {
-            command.run()
-        } finally {
-            Looper.myLooper()?.quit()
-        }
-        }.apply { name = "mjpeg-warning-test-main"; isDaemon = true }
-    }.asCoroutineDispatcher()
 
     private val address = NetworkAddress(1, InetAddress.getByName("192.168.1.2"), "fixture1", InterfaceType.Wifi)
 

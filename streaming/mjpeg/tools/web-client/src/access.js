@@ -4,7 +4,9 @@ function createAccessPanel(viewportLayout, callbacks) {
     const fieldError = byId('pin-error');
     const blockCopy = byId('pin-block-copy'), countdown = byId('pin-countdown');
     const logo = byId('pin-logo'), retryButton = byId('pin-retry'), countdownValue = byId('pin-countdown-value');
-    let current = null, started = false;
+    let current = null, started = false, restoreEntryFocus = false;
+
+    function cancelFocusRestore() { restoreEntryFocus = false; }
 
     function showFieldError(value) {
         text(fieldError, value);
@@ -41,6 +43,7 @@ function createAccessPanel(viewportLayout, callbacks) {
         text(countdownValue, formatRemaining(seconds));
     }
     function hide() {
+        cancelFocusRestore();
         showFieldError('');
         panel.hidden = true;
         input.value = '';
@@ -66,14 +69,22 @@ function createAccessPanel(viewportLayout, callbacks) {
         }
         const repeated = previous && previous.visible && previous.mode === value.mode;
         if (!repeated) {
+            const blockEnded = previous && previous.visible && previous.mode === 'blocked' && value.mode === 'pin_required';
+            const focused = document.activeElement;
+            const restoreFocus = blockEnded && restoreEntryFocus && (!focused || focused === document.body) &&
+                !document.hidden && document.hasFocus();
+            restoreEntryFocus = !!(value.mode === 'blocked' && previous && previous.visible && entry.contains(focused) &&
+                !document.hidden && document.hasFocus());
             showFieldError('');
             layout();
             const wasHidden = panel.hidden;
             panel.hidden = false;
             input.disabled = submitButton.disabled = false;
             if (value.mode !== 'blocked') {
-                showMessage('');
-                if (wasHidden) input.focus();
+                showMessage(blockEnded ? words.pinTitle : '');
+                // Reuse the already exposed status region for a single readiness announcement.
+                if (blockEnded) message.classList.add('sr-only');
+                if (wasHidden || restoreFocus) input.focus();
             }
         }
         if (value.mode === 'blocked') showBlocked(value.seconds, repeated);
@@ -100,6 +111,12 @@ function createAccessPanel(viewportLayout, callbacks) {
     function start() {
         if (started) return;
         started = true;
+        document.addEventListener('focusin', event => {
+            if (event.target !== document.body && !entry.contains(event.target)) cancelFocusRestore();
+        });
+        ['mousedown', 'touchstart'].forEach(name => document.addEventListener(name, cancelFocusRestore));
+        document.addEventListener('visibilitychange', () => { if (document.hidden) cancelFocusRestore(); });
+        window.addEventListener('blur', cancelFocusRestore);
         input.addEventListener('input', () => {
             const value = input.value, start = input.selectionStart, end = input.selectionEnd;
             const digits = value.replace(/[^0-9]/g, '').slice(0, 6);
@@ -129,5 +146,5 @@ function createAccessPanel(viewportLayout, callbacks) {
         retryButton.addEventListener('click', callbacks.retry);
         viewportLayout.watch(layout);
     }
-    return { start, render, resume: layout };
+    return { start, render, resume: () => { cancelFocusRestore(); layout(); } };
 }

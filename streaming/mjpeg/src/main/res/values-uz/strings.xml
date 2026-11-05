@@ -114,6 +114,7 @@
     <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">%1$s manzilini ochish</string>
     <string name="mjpeg_address_copy_url">Havolani nusxalash</string>
+    <string name="mjpeg_address_copied">Havola nusxalandi</string>
     <string name="mjpeg_address_copy_description">%1$s havolasini nusxalash</string>
     <string name="mjpeg_address_copy_options_description">%1$s uchun nusxalanadigan havolani tanlang</string>
     <string name="mjpeg_address_copy_page">Sahifa havolasini nusxalash</string>
@@ -135,7 +136,6 @@
     <string name="mjpeg_local_network_permission_required">Mahalliy tarmoq uchun ruxsat kerak</string>
 
     <string name="mjpeg_server_pending">Tayyorlanmoqda…</string>
-    <string name="mjpeg_server_address_in_use">Manzil band</string>
     <string name="mjpeg_server_address_unavailable">Manzil mavjud emas</string>
     <string name="mjpeg_server_permission_denied">Ruxsat berilmadi</string>
     <string name="mjpeg_server_io_failure">Server mavjud emas</string>

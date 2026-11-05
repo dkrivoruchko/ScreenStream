@@ -44,7 +44,7 @@ internal class MjpegControllerLogoFailureTest {
         val context = IsolatedSettingsContext(RuntimeEnvironment.getApplication(), temporaryFolder.newFolder())
         val host = MjpegServiceHost(MjpegSettings(context))
         try {
-            withTimeout(5.seconds) { host.managerHandle.failed.await(); host.http.stopSettled.await(); host.monitor.closeSettled.await() }
+            withTimeout(5.seconds) { host.managerObservation.failed.await(); host.http.stopSettled.await(); host.monitor.closeSettled.await() }
             assertTrue(host.monitor.started.value)
             assertNull(host.http.configuration.value)
             assertEquals(0, host.http.startCalls.value)
@@ -52,7 +52,7 @@ internal class MjpegControllerLogoFailureTest {
             host.controller.requestStreamStart()
             assertTrue(host.http.captures.value.isEmpty())
             assertTrue(host.access.requested.value.isEmpty())
-            assertFalse(host.managerHandle.isCurrent())
+            assertFalse(host.managerObservation.isCurrent())
         } finally {
             assertTrue(host.close())
         }

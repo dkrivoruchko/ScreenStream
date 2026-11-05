@@ -114,6 +114,7 @@
     <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">Ireki %1$s</string>
     <string name="mjpeg_address_copy_url">Kopiatu esteka</string>
+    <string name="mjpeg_address_copied">Esteka kopiatu da</string>
     <string name="mjpeg_address_copy_description">Kopiatu %1$s helbidearen esteka</string>
     <string name="mjpeg_address_copy_options_description">Aukeratu %1$s helbiderako kopiatzeko esteka</string>
     <string name="mjpeg_address_copy_page">Kopiatu orriaren esteka</string>
@@ -135,7 +136,6 @@
     <string name="mjpeg_local_network_permission_required">Sare lokalerako baimena behar da</string>
 
     <string name="mjpeg_server_pending">Prestatzen…</string>
-    <string name="mjpeg_server_address_in_use">Helbidea erabilita dago</string>
     <string name="mjpeg_server_address_unavailable">Helbidea ez dago erabilgarri</string>
     <string name="mjpeg_server_permission_denied">Baimena ukatu da</string>
     <string name="mjpeg_server_io_failure">Zerbitzaria ez dago erabilgarri</string>
@@ -179,7 +179,7 @@
 
     <string name="mjpeg_pref_image_size">Irudiaren tamaina</string>
     <string name="mjpeg_pref_image_size_summary">Ezarri eskala edo neurriak</string>
-    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_scale_value">%%\u00A0%1$s</string>
     <string name="mjpeg_pref_image_size_stretch">Luzatu irudia</string>
     <string name="mjpeg_pref_image_size_stretch_value">Luzatu</string>
     <string name="mjpeg_pref_image_size_fit_description">Zabaleraren eta altueraren barruan sartzen da; proportzioak mantentzen ditu</string>
@@ -191,7 +191,7 @@
     <string name="mjpeg_pref_image_size_scale">Eskala</string>
     <string name="mjpeg_pref_image_size_target">Tamaina</string>
     <string name="mjpeg_pref_image_size_default">Lehenetsia: %1$s %2$s</string>
-    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Eskala (gehienez %200)</string>
+    <string name="mjpeg_pref_image_size_scale_label" formatted="false">Eskala (gehienez %\u00A0200)</string>
     <string name="mjpeg_pref_image_size_width_label">Zabalera (1–8192 px)</string>
     <string name="mjpeg_pref_image_size_height_label">Altuera (1–8192 px)</string>
     <string name="mjpeg_pref_image_size_scale_error">Idatzi 0 baino handiagoa eta 200era artekoa den zenbaki bat</string>

@@ -20,6 +20,8 @@ import io.screenstream.mjpeg.IsolatedSettingsContext
 import io.screenstream.mjpeg.networkaddress.AddressCategory
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
+import io.screenstream.mjpeg.networkaddress.NetworkAddress
+import io.screenstream.mjpeg.networkaddress.NetworkAddressInventory
 import io.screenstream.mjpeg.savedSettingsJson
 import io.screenstream.mjpeg.seedSettings
 import kotlinx.coroutines.flow.first
@@ -42,6 +44,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowBuild
 import java.io.File
 import java.io.IOException
+import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import kotlin.time.Duration.Companion.seconds
@@ -497,7 +500,12 @@ internal class MjpegSettingsMigrationTest {
                             )
                         )
                         val filter = MjpegSettings(context).data.first().network.filter
-                        assertEquals(if (wifiOnly) setOf(InterfaceType.Wifi) else InterfaceType.entries.toSet(), filter.interfaceTypes)
+                        val expectedInterfaces = when {
+                            !wifiOnly -> InterfaceType.entries.toSet()
+                            localhostOnly -> setOf(InterfaceType.Wifi, InterfaceType.Other)
+                            else -> setOf(InterfaceType.Wifi)
+                        }
+                        assertEquals(expectedInterfaces, filter.interfaceTypes)
                         val expectedCategories = when {
                             localhostOnly -> setOf(AddressCategory.Loopback)
                             enableLocalhost -> setOf(AddressCategory.Private, AddressCategory.NonPrivate, AddressCategory.Loopback)
@@ -520,6 +528,47 @@ internal class MjpegSettingsMigrationTest {
             val filter = MjpegSettings(ignored).data.first().network.filter
             assertEquals(setOf(InterfaceType.Vpn), filter.interfaceTypes)
             assertEquals(setOf(AddressCategory.NonPrivate), filter.categories)
+        }
+    }
+
+    @Test
+    fun localhostOnlyMigrationSelectsLoopbackWithoutBroadeningMixedFilters() = runBlocking {
+        withTimeout(20.seconds) {
+            val loopback = NetworkAddress(1, InetAddress.getByName("127.0.0.1"), "lo", InterfaceType.Other)
+            val otherPrivate = NetworkAddress(2, InetAddress.getByName("192.168.42.1"), "unknown0", InterfaceType.Other)
+            val otherNonPrivate = NetworkAddress(3, InetAddress.getByName("192.0.2.1"), "unknown0", InterfaceType.Other)
+            val inventory = NetworkAddressInventory(listOf(loopback, otherPrivate, otherNonPrivate).associate { it.ipKey to listOf(it) })
+            val interfaceCases = listOf(
+                emptyPreferences() to NetworkSettings.DEFAULT_FILTER.interfaceTypes,
+                preferencesOf(intPreferencesKey("INTERFACE_FILTER") to 0) to InterfaceType.entries.toSet(),
+                preferencesOf(intPreferencesKey("INTERFACE_FILTER") to 5) to setOf(InterfaceType.Wifi, InterfaceType.Ethernet),
+                preferencesOf(booleanPreferencesKey("USE_WIFI_ONLY") to true) to setOf(InterfaceType.Wifi),
+            )
+            for (addressPreferences in listOf(
+                preferencesOf(intPreferencesKey("ADDRESS_FILTER") to 2),
+                preferencesOf(booleanPreferencesKey("LOCAL_HOST_ONLY") to true),
+            )) {
+                for ((interfacePreferences, expectedInterfaces) in interfaceCases) {
+                    val context = context()
+                    seedLegacy(context, merged(interfacePreferences, addressPreferences))
+                    val filter = MjpegSettings(context).data.first().network.filter
+                    assertEquals(expectedInterfaces + InterfaceType.Other, filter.interfaceTypes)
+                    assertEquals(setOf(AddressCategory.Loopback), filter.categories)
+                    assertEquals(listOf(loopback), inventory.select(filter))
+                }
+            }
+            for (mask in listOf(0, 3, 6, 7)) {
+                val context = context()
+                seedLegacy(
+                    context, preferencesOf(
+                        intPreferencesKey("INTERFACE_FILTER") to 5,
+                        intPreferencesKey("ADDRESS_FILTER") to mask,
+                    )
+                )
+                val filter = MjpegSettings(context).data.first().network.filter
+                assertEquals(setOf(InterfaceType.Wifi, InterfaceType.Ethernet), filter.interfaceTypes)
+                assertTrue("Mixed address mask $mask must not add Other interfaces", inventory.select(filter).isEmpty())
+            }
         }
     }
 

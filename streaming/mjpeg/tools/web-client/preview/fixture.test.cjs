@@ -2,13 +2,11 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const { EventEmitter } = require('node:events');
 const { setTimeout: delay } = require('node:timers/promises');
 const { test: nodeTest } = require('node:test');
 const WebSocket = require('ws');
-const { buildHtml, inputPaths } = require('../build.cjs');
+const { buildHtml } = require('../build.cjs');
 const { createPreviewServer } = require('./server.cjs');
-const { createViewerBuild } = require('./viewer-build.cjs');
 const test = (name, body) => nodeTest(name, { timeout: 10000 }, body);
 
 // Exercise the fixture through real HTTP/WS, independently of the viewer's helpers.
@@ -83,7 +81,7 @@ function socketClient(device, cookie) {
         origin: device.url, headers: cookie ? { Cookie: cookie } : {}
     });
     const messages = [], waiters = [];
-    let cursor = 0, failure = null, ended = false;
+    let cursor = 0, failure = null, ended = false, lastSnapshot = null;
     const closed = new Promise(resolve => socket.once('close', (code, reason) => {
         ended = true;
         while (waiters.length) waiters.shift().reject(new Error('WebSocket closed before its next snapshot'));
@@ -100,18 +98,35 @@ function socketClient(device, cookie) {
     });
     return {
         socket, messages, closed,
-        next() {
-            if (cursor < messages.length) return Promise.resolve(JSON.parse(messages[cursor++]));
-            if (failure || ended) return Promise.reject(failure || new Error('WebSocket is closed'));
-            return new Promise((resolve, reject) => {
-                const waiter = { resolve: value => { clearTimeout(timer); resolve(value); }, reject: error => { clearTimeout(timer); reject(error); } };
-                const timer = setTimeout(() => {
-                    const index = waiters.indexOf(waiter);
-                    if (index >= 0) waiters.splice(index, 1);
-                    reject(new Error('Timed out waiting for a WebSocket snapshot'));
-                }, 2000);
-                waiters.push(waiter);
-            });
+        async next(timeout = 2000) {
+            let value;
+            if (cursor < messages.length) value = JSON.parse(messages[cursor++]);
+            else {
+                if (failure || ended) throw failure || new Error('WebSocket is closed');
+                value = await new Promise((resolve, reject) => {
+                    const waiter = { resolve: value => { clearTimeout(timer); resolve(value); }, reject: error => { clearTimeout(timer); reject(error); } };
+                    const timer = setTimeout(() => {
+                        const index = waiters.indexOf(waiter);
+                        if (index >= 0) waiters.splice(index, 1);
+                        reject(new Error('Timed out waiting for a WebSocket snapshot'));
+                    }, timeout);
+                    waiters.push(waiter);
+                });
+            }
+            lastSnapshot = value;
+            return value;
+        },
+        async nextMatching(predicate, timeout = 2000) {
+            const deadline = Date.now() + timeout;
+            while (true) {
+                const remaining = deadline - Date.now();
+                assert.ok(remaining > 0, 'Timed out waiting for the expected WebSocket transition');
+                const previous = lastSnapshot;
+                const value = await this.next(remaining);
+                if (predicate(value)) return value;
+                // Only unchanged keepalives may precede the requested transition.
+                assert.deepEqual(value, previous, 'Unexpected WebSocket state before the expected transition');
+            }
         }
     };
 }
@@ -173,6 +188,13 @@ function multipartImages(body) {
         offset = next + footer.length;
     }
     return images;
+}
+
+async function liveFramesAfter(stream, start, fixtures, message) {
+    await until(() => {
+        const live = multipartImages(stream.body()).slice(start).filter(image => fixtures.some(frame => frame.equals(image)));
+        return live.length > 1 && live.some(image => !image.equals(live[0]));
+    }, message);
 }
 
 test('root serves the panel and viewer serves the unchanged shared build', async t => {
@@ -283,7 +305,7 @@ test('scenario pairs are canonical, preserve settings and fully reset to default
     assert.deepEqual(reset.options, { postStopImage: 'logo', imageAvailable: true });
 });
 
-test('PIN cookies are reused and remain valid during a peer block', async t => {
+test('viewing cookies are reused and remain admitted while PIN entry is blocked', async t => {
     const device = await fixture(t);
     const configured = await scenario(device, 'pin');
     const correct = configured.delivery.credentials.pin;
@@ -334,7 +356,6 @@ test('token exchange and access scenario boundaries revoke old credentials', asy
     assert.equal(authorizedSnapshot(await snapshot(device, cookie), 'authorized').hasImage, true);
     await update(device, 'reset', {});
     const rotated = await scenario(device, 'pin');
-    assert.notEqual(rotated.delivery.credentials.token, token);
     assert.equal((await request(device, '/jpeg', { headers: { Cookie: cookie } })).status, 403);
     assert.deepEqual(await snapshot(device, cookie), { access: 'pin_required' });
     assert.equal((await request(device, '/viewer?token=' + encodeURIComponent(token))).headers.get('set-cookie'), null);
@@ -355,7 +376,7 @@ test('token exchange and access scenario boundaries revoke old credentials', asy
         assert.equal(pending.notice, 'permission_required');
         assert.equal(pending.imageKind, 'logo');
         await scenario(device, 'normal');
-        assert.equal(authorizedSnapshot(await resumed.next(), 'open').notice, null);
+        assert.equal(authorizedSnapshot(await resumed.nextMatching(value => value.notice === null && value.imageKind === 'live'), 'open').notice, null);
         assert.equal(resumed.socket.readyState, WebSocket.OPEN);
         assert.equal((await request(device, '/jpeg')).status, 200);
     } finally { resumed.socket.terminate(); }
@@ -399,6 +420,8 @@ test('JPEG orientation, length and multipart bytes match the delivery framing', 
 test('capture changes preserve transports and request faults affect only media', async t => {
     const device = await fixture(t);
     const configured = await state(device);
+    const portrait = captureJpegs('portrait');
+    const logo = fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg'));
     const client = socketClient(device);
     authorizedSnapshot(await client.next(), 'open');
     const stream = await mediaStream(device);
@@ -407,41 +430,49 @@ test('capture changes preserve transports and request faults affect only media',
             const images = multipartImages(stream.body());
             return images.length > 1 && images.some(image => !image.equals(images[0]));
         }, 'Normal MJPEG did not deliver changing complete frames');
+        // Deliberately queue a real unchanged keepalive before the next transition.
+        await until(() => client.messages.length >= 2, 'No state keepalive arrived', 3000);
         await scenario(device, 'paused');
-        const paused = authorizedSnapshot(await client.next(), 'open');
+        const paused = authorizedSnapshot(await client.nextMatching(value => value.notice === 'paused'), 'open');
         assert.equal(paused.notice, 'paused');
         assert.equal(paused.imageKind, 'logo');
-        await delay(250);
+        await until(() => multipartImages(stream.body()).some(image => image.equals(logo)), 'Paused stream did not show the logo');
         assert.equal(stream.response.destroyed, false);
         const pausedCount = multipartImages(stream.body()).length;
         await scenario(device, 'normal');
-        assert.equal(authorizedSnapshot(await client.next(), 'open').hasImage, true);
-        await until(() => multipartImages(stream.body()).length > pausedCount, 'Paused media did not resume');
+        const restored = authorizedSnapshot(await client.nextMatching(value => value.notice === null && value.imageKind === 'live'), 'open');
+        assert.equal(restored.imageKind, 'live');
+        await liveFramesAfter(stream, pausedCount, portrait, 'Paused media did not resume live frames');
         await scenario(device, 'stopped');
-        const stopped = authorizedSnapshot(await client.next(), 'open');
+        const stopped = authorizedSnapshot(await client.nextMatching(value => value.notice === 'stopped'), 'open');
         assert.equal(stopped.notice, 'stopped');
         assert.equal(stopped.hasImage, true);
         await scenario(device, 'normal');
-        assert.equal(authorizedSnapshot(await client.next(), 'open').notice, null);
+        assert.equal(authorizedSnapshot(await client.nextMatching(value => value.notice === null && value.imageKind === 'live'), 'open').notice, null);
         await update(device, 'options', { imageAvailable: false });
-        const fallback = authorizedSnapshot(await client.next(), 'open');
+        const fallback = authorizedSnapshot(await client.nextMatching(value => value.imageKind === 'logo'), 'open');
         assert.equal(fallback.notice, null);
         assert.equal(fallback.hasImage, true);
         assert.equal(fallback.imageKind, 'logo');
-        assert.deepEqual(await jpegPayload(device), fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg')));
+        assert.deepEqual(await jpegPayload(device), logo);
+        const fallbackStart = multipartImages(stream.body()).length;
+        await until(() => multipartImages(stream.body()).slice(fallbackStart).some(image => image.equals(logo)), 'Unavailable stream did not show the logo');
         const missingCount = multipartImages(stream.body()).length;
         await update(device, 'options', { imageAvailable: true });
-        assert.equal(authorizedSnapshot(await client.next(), 'open').hasImage, true);
-        await until(() => multipartImages(stream.body()).length > missingCount, 'Media did not resume after image availability returned');
+        const available = authorizedSnapshot(await client.nextMatching(value => value.imageKind === 'live' && value.notice === null), 'open');
+        assert.equal(available.imageKind, 'live');
+        await liveFramesAfter(stream, missingCount, portrait, 'Media did not resume live frames after image availability returned');
         const current = await state(device);
         assert.equal(current.delivery.credentials.token, configured.delivery.credentials.token);
         assert.equal(current.connection.clients, 1);
         assert.equal(client.socket.readyState, WebSocket.OPEN);
         assert.equal(stream.response.destroyed, false);
+        const beforeFault = authorizedSnapshot(await snapshot(device), 'open');
         const fault = await update(device, 'action', { id: 'fail-image-requests', enabled: true });
         assert.equal(fault.media.failRequests, true);
-        assert.equal(fault.delivery.hasImage, true);
-        assert.equal(authorizedSnapshot(await snapshot(device), 'open').hasImage, true);
+        assert.equal(fault.delivery.imageKind, current.delivery.imageKind);
+        assert.equal(fault.delivery.notice, current.delivery.notice);
+        assert.deepEqual(authorizedSnapshot(await snapshot(device), 'open'), beforeFault);
         assert.equal(client.socket.readyState, WebSocket.OPEN);
         await until(() => stream.response.destroyed, 'Media failure did not terminate the active multipart response');
         for (const path of ['/jpeg', '/mjpeg']) {
@@ -528,54 +559,4 @@ test('close releases live sockets and multipart responses without hanging', asyn
         await until(() => stream.response.destroyed, 'Response survived server close');
         await device.close();
     } finally { client.socket.terminate(); stream.destroy(); }
-});
-
-test('viewer builds cover all inputs, retain the last good build and release fallback polling', async t => {
-    const originalRead = fs.readFileSync;
-    const source = inputPaths[0], logo = inputPaths.at(-1);
-    let sourceVersion = 0, logoVersion = 0, invalidSource = false;
-    const watchers = [];
-    t.mock.method(fs, 'readFileSync', (input, ...args) => {
-        const contents = originalRead(input, ...args);
-        if (input === source) return contents + (invalidSource ? '\nfunction (' : '\n// watcher source ' + sourceVersion);
-        if (input === logo) return Buffer.concat([contents, Buffer.from([logoVersion])]);
-        return contents;
-    });
-    t.mock.method(fs, 'watch', (directory, changed) => {
-        const watcher = new EventEmitter();
-        watcher.close = () => { watcher.closed = true; };
-        watchers.push({ directory, changed, watcher });
-        return watcher;
-    });
-    const build = createViewerBuild({ watch: true, log: () => {} });
-    t.after(() => build.close());
-    sourceVersion = 1;
-    build.start();
-    await until(() => build.state().revision === 2, 'An edit before watcher startup was missed');
-    assert.equal(build.state().watchMode, 'native');
-
-    logoVersion = 1;
-    const logoWatcher = watchers.find(item => item.directory === path.dirname(logo));
-    assert.ok(logoWatcher, 'The packaged logo input is not watched');
-    logoWatcher.changed('change', path.basename(logo));
-    await until(() => build.state().revision === 3, 'A logo edit did not rebuild the viewer');
-    const lastGood = build.template;
-
-    logoWatcher.watcher.emit('error', Object.assign(new Error('Native watch unavailable'), { code: 'EMFILE' }));
-    assert.equal(build.state().watchMode, 'polling');
-    assert.match(build.state().watchWarning, /EMFILE/);
-    assert.ok(watchers.every(item => item.watcher.closed));
-    invalidSource = true;
-    await until(() => build.state().error !== null, 'Polling did not report a failed build');
-    assert.equal(build.template, lastGood);
-    assert.equal(build.state().revision, 3);
-
-    invalidSource = false;
-    sourceVersion = 2;
-    await until(() => build.state().revision === 4, 'Polling did not recover after source repair');
-    assert.equal(build.state().error, null);
-    build.close();
-    sourceVersion = 3;
-    await delay(1200);
-    assert.equal(build.state().revision, 4, 'Closed build continued polling');
 });

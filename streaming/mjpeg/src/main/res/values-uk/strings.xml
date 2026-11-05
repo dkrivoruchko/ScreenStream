@@ -114,6 +114,7 @@
     <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">Відкрити %1$s</string>
     <string name="mjpeg_address_copy_url">Копіювати посилання</string>
+    <string name="mjpeg_address_copied">Посилання скопійовано</string>
     <string name="mjpeg_address_copy_description">Копіювати посилання на %1$s</string>
     <string name="mjpeg_address_copy_options_description">Вибрати посилання %1$s для копіювання</string>
     <string name="mjpeg_address_copy_page">Копіювати посилання на сторінку</string>
@@ -135,7 +136,6 @@
     <string name="mjpeg_local_network_permission_required">Потрібен дозвіл на доступ до локальної мережі</string>
 
     <string name="mjpeg_server_pending">Підготовка…</string>
-    <string name="mjpeg_server_address_in_use">Адреса зайнята</string>
     <string name="mjpeg_server_address_unavailable">Адреса недоступна</string>
     <string name="mjpeg_server_permission_denied">Доступ заборонено</string>
     <string name="mjpeg_server_io_failure">Сервер недоступний</string>

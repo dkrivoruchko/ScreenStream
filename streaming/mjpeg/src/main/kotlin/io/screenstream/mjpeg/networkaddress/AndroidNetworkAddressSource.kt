@@ -117,6 +117,7 @@ internal fun inferInterfaceType(interfaceName: String): InterfaceType = when {
     interfaceName.startsWith("tun") || interfaceName.startsWith("tap") || interfaceName.startsWith("ppp") -> InterfaceType.Vpn
 
     interfaceName.startsWith("wlan") || interfaceName.startsWith("wifi") ||
+            interfaceName.startsWith("softap") || interfaceName.startsWith("ap_br_") ||
             interfaceName.startsWith("p2p") || interfaceName.matches(Regex("ap\\d+")) -> InterfaceType.Wifi
 
     interfaceName.startsWith("eth") -> InterfaceType.Ethernet

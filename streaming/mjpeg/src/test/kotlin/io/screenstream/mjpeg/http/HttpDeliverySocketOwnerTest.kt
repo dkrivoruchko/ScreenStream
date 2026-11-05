@@ -48,9 +48,10 @@ internal class HttpDeliverySocketOwnerTest {
     // Cases: MJPEG-SRV-01, MJPEG-SRV-04
     @Test(timeout = 30_000)
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun listenerFailuresMapIndependentlyAndAnotherAddressKeepsServing() = runBlocking {
+    fun listenerFailuresMapIndependentlyAndAnotherAddressKeepsListening() = runBlocking {
         val failures = listOf(
-            BindException("occupied") to ServerFailure.AddressInUse,
+            BindException("occupied") to ServerFailure.AddressUnavailable,
+            BindException("address not available") to ServerFailure.AddressUnavailable,
             SecurityException("denied") to ServerFailure.PermissionDenied,
             SocketException("unavailable") to ServerFailure.AddressUnavailable,
             IOException("io") to ServerFailure.IoFailure,

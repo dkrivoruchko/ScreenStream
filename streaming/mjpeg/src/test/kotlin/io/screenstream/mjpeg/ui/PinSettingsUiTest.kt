@@ -2,6 +2,7 @@ package io.screenstream.mjpeg.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -16,7 +17,9 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.text.TextRange
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
@@ -84,10 +87,38 @@ internal class PinSettingsUiTest {
         compose.runOnIdle {
             assertEquals(1, fixture.transforms.size)
             assertTrue(AccessSettings.isValidPin(checkNotNull(fixture.access.value.pin).value))
+            val latest = AccessSettings(
+                pinEnabled = true,
+                pinPolicy = AccessSettings.PinPolicy.NewOnModuleStart,
+                pin = null,
+                hidePinOnCaptureStart = false,
+                limitWrongPins = false,
+                blockMinutes = 7,
+            )
+            val generated = fixture.transforms.single().invoke(latest)
+            val generatedPin = checkNotNull(generated.pin)
+            assertTrue(AccessSettings.isValidPin(generatedPin.value))
+            assertEquals(latest.copy(pin = generatedPin), generated)
         }
         field().assertTextContains(checkNotNull(fixture.access.value.pin).value)
         closeEditor()
         compose.runOnIdle { assertEquals(1, fixture.transforms.size) }
+    }
+
+    @Test
+    fun selectionOnlyChangesKeepFollowingTheSavedPin() {
+        val fixture = PinFixture()
+        render(fixture)
+        openEditor()
+        revealEditor()
+        field().performSemanticsAction(SemanticsActions.SetSelection) { select ->
+            assertTrue(select(1, 3, false))
+        }
+        field().assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(1, 3)))
+        compose.runOnIdle { fixture.access.value = fixture.access.value.copy(pin = SecretValue("987654")) }
+        field().assertTextContains("987654")
+        closeEditor()
+        compose.runOnIdle { assertTrue(fixture.transforms.isEmpty()) }
     }
 
     @Test

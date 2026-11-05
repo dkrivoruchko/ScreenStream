@@ -3,6 +3,7 @@ package io.screenstream.mjpeg.ui.main
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
+import android.os.Build
 import android.os.PersistableBundle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -289,6 +290,9 @@ private fun StreamAddressActions(
                 putBoolean("android.content.extra.IS_SENSITIVE", true)
             }
             clipboard.setClipEntry(ClipEntry(clip))
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                onShowMessage(resources.getString(R.string.mjpeg_address_copied))
+            }
         }
     }
 
@@ -410,7 +414,6 @@ private fun StreamAddressFailure(
         Text(
             text = stringResource(
                 when (reason) {
-                    UiController.ServerFailureReason.AddressInUse -> R.string.mjpeg_server_address_in_use
                     UiController.ServerFailureReason.AddressUnavailable -> R.string.mjpeg_server_address_unavailable
                     UiController.ServerFailureReason.PermissionDenied -> R.string.mjpeg_server_permission_denied
                     UiController.ServerFailureReason.IoFailure -> R.string.mjpeg_server_io_failure

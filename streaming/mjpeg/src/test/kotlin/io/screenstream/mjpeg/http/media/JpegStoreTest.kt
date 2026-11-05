@@ -300,7 +300,7 @@ internal class JpegStoreTest {
 
     // Cases: MJPEG-IMG-08
     @Test
-    fun publicationOrCutoffAtEachReaderWaitBoundaryCannotLoseWakeup() = runTest(timeout = 5.seconds) {
+    fun readerRevisionExposesPublicationAndCutoffAroundAcquisitionAndWaiting() = runTest(timeout = 5.seconds) {
         for (change in listOf("publish", "close", "dispose")) {
             for (point in listOf("before-revision", "before-acquire", "before-wait", "waiting")) {
                 val store = JpegStore()

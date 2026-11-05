@@ -1,13 +1,17 @@
 package io.screenstream.mjpeg.networkaddress
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.net.ConnectivityManager
 import android.net.LinkAddress
 import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkRequest
 import android.net.TetheringManager
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
+import org.robolectric.shadow.api.Shadow
 import org.robolectric.shadows.ShadowConnectivityManager
 import java.net.InetAddress
 import java.util.concurrent.Executor
@@ -97,5 +101,18 @@ internal class SourceConnectivityShadow : ShadowConnectivityManager() {
     override fun unregisterNetworkCallback(callback: ConnectivityManager.NetworkCallback) {
         beforeUnregistration?.invoke(callback)
         super.unregisterNetworkCallback(callback)
+    }
+}
+
+internal fun tetheringContext(): Context {
+    val application: Context = RuntimeEnvironment.getApplication()
+    val manager = Shadow.newInstanceOf(TetheringManager::class.java)
+    return object : ContextWrapper(application) {
+        override fun getApplicationContext(): Context = this
+        override fun getSystemServiceName(serviceClass: Class<*>): String? =
+            if (serviceClass == TetheringManager::class.java) TETHERING_SERVICE else super.getSystemServiceName(serviceClass)
+
+        override fun getSystemService(name: String): Any? =
+            if (name == TETHERING_SERVICE) manager else super.getSystemService(name)
     }
 }

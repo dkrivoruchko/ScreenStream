@@ -114,6 +114,7 @@
     <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">%1$s openen</string>
     <string name="mjpeg_address_copy_url">Link kopiëren</string>
+    <string name="mjpeg_address_copied">Link gekopieerd</string>
     <string name="mjpeg_address_copy_description">Link voor %1$s kopiëren</string>
     <string name="mjpeg_address_copy_options_description">Kies een link om te kopiëren voor %1$s</string>
     <string name="mjpeg_address_copy_page">Paginalink kopiëren</string>
@@ -135,7 +136,6 @@
     <string name="mjpeg_local_network_permission_required">Toestemming voor lokaal netwerk vereist</string>
 
     <string name="mjpeg_server_pending">Voorbereiden…</string>
-    <string name="mjpeg_server_address_in_use">Adres in gebruik</string>
     <string name="mjpeg_server_address_unavailable">Adres niet beschikbaar</string>
     <string name="mjpeg_server_permission_denied">Toestemming geweigerd</string>
     <string name="mjpeg_server_io_failure">Server niet beschikbaar</string>

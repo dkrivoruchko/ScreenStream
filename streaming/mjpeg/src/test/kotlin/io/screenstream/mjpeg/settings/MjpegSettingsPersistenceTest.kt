@@ -141,17 +141,17 @@ internal class MjpegSettingsPersistenceTest {
 
     // Cases: MJPEG-SET-08
     @Test
-    fun storageWriteFailurePropagatesWithoutChangingSavedSettings() {
+    fun storageWriteFailurePreservesTheSnapshotAndSameOwnerRetriesAfterRepair() {
         val context = newSettingsContext()
         val baseline = MjpegSettings.Data(network = NetworkSettings(httpPort = 9000), web = WebPageSettings(title = "Before failure"))
         runBlocking { seedSettings(context, """{"network":{"httpPort":9000},"web":{"title":"Before failure"}}""") }
         val file = context.preferencesDataStoreFile("mjpeg")
         val savedBytes = file.readBytes()
-        // DataStore 1.2.1 FileStorage writes through <path>.tmp. Arrange the fault
+        // DataStore 1.3.0 FileStorage writes through <path>.tmp. Arrange the fault
         // before constructing its owner; a nonempty directory cannot be opened or deleted as a file.
         val blockedScratch = File(file.absolutePath + ".tmp")
         check(blockedScratch.mkdir())
-        File(blockedScratch, "blocker").writeText("Fixture storage fault")
+        val blocker = File(blockedScratch, "blocker").apply { writeText("Fixture storage fault") }
         val settings = MjpegSettings(context)
         runBlocking { withTimeout(5.seconds) { assertEquals(baseline, settings.data.first()) } }
         var transforms = 0
@@ -174,6 +174,20 @@ internal class MjpegSettingsPersistenceTest {
             withTimeout(5.seconds) {
                 assertEquals(baseline, Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)))
                 assertEquals(baseline, settings.data.first())
+                val values = Channel<MjpegSettings.Data>(Channel.UNLIMITED)
+                val observer = launch(Dispatchers.Default) { settings.data.collect { values.send(it) } }
+                try {
+                    assertEquals(baseline, values.receive())
+                    check(blocker.delete())
+                    check(blockedScratch.delete())
+                    val recovered = baseline.copy(web = baseline.web.copy(title = "Saved after repair"))
+                    settings.updateData { copy(web = web.copy(title = recovered.web.title)) }
+                    assertEquals(recovered, values.receive())
+                    assertEquals(recovered, Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)))
+                } finally {
+                    observer.cancelAndJoin()
+                    values.close()
+                }
             }
         }
     }

@@ -1,7 +1,6 @@
 package io.screenstream.mjpeg.networkaddress
 
 import android.content.Context
-import android.content.ContextWrapper
 import android.net.ConnectivityManager
 import android.net.LinkAddress
 import android.net.LinkProperties
@@ -46,7 +45,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [CallbackLinkAddressShadow::class, SourceConnectivityShadow::class])
-internal class AndroidNetworkAddressPlatformBaselineTest {
+internal class AndroidNetworkAddressPlatformObservationTest {
     @Before
     fun initializeLogging() {
         XLog.init(LogLevel.NONE)
@@ -249,6 +248,37 @@ internal class AndroidNetworkAddressPlatformBaselineTest {
 
     // Cases: MJPEG-NET-09
     @Test
+    @Config(sdk = [26, 37], shadows = [SourceTetheringShadow::class])
+    fun registeredModernObserverUsesCallbackAddressesWithoutReadingStaleGettersWhenNativeStateIsUnknown() = runBlocking {
+        val context: Context = if (Build.VERSION.SDK_INT >= 36) tetheringContext() else RuntimeEnvironment.getApplication()
+        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        platform.clearAllNetworks()
+        val network = ShadowNetwork.newInstance(45)
+        addFallback(platform, network, "getter0", ip("10.0.0.8"))
+        val getterReads = AtomicInteger()
+        platform.afterLinkPropertiesRead = { _, _ -> getterReads.incrementAndGet() }
+        val native = NativeInterfaceFixture(enumeration = { throw java.net.SocketException("Unknown native state") })
+        val monitor = AndroidNetworkAddressMonitor(context, native)
+        try {
+            monitor.start()
+            assertTrue(observed(monitor) { true }.isEmpty())
+            assertEquals(0, getterReads.get())
+            val callback = platform.networkCallbacks.single()
+            callback.onAvailable(network)
+            callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_WIFI))
+            callback.onLinkPropertiesChanged(network, properties("callback0", ip("10.0.0.9")))
+            val selected = observed(monitor) { it.any { address -> address.interfaceName == "callback0" } }
+            assertEquals(1, selected.size)
+            assertEquals(ip("10.0.0.9"), selected.single().ip)
+            assertEquals(InterfaceType.Wifi, selected.single().interfaceType)
+            assertEquals(0, getterReads.get())
+        } finally {
+            withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
+        }
+    }
+
+    // Cases: MJPEG-NET-09
+    @Test
     @Config(sdk = [24, 25])
     fun pre26GetterFieldsYieldToCallbacksAndRacingReadCannotAddStaleAddresses() = runBlocking {
         val context: Context = RuntimeEnvironment.getApplication()
@@ -343,7 +373,7 @@ internal class AndroidNetworkAddressPlatformBaselineTest {
     // Cases: MJPEG-NET-12
     @Test
     @Config(sdk = [36], shadows = [SourceTetheringShadow::class])
-    fun cleanupWaitsForFirstRealObserverThenAttemptsNextAndAggregatesFailures() = runBlocking {
+    fun cleanupWaitsForFirstRegisteredObserverThenAttemptsNextAndAggregatesFailures() = runBlocking {
         val context = tetheringContext()
         val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
         platform.clearAllNetworks()
@@ -522,19 +552,6 @@ internal class AndroidNetworkAddressPlatformBaselineTest {
     }
 
     private class DiscoveryFailure : Error("Supplied fatal discovery failure")
-
-    private fun tetheringContext(): Context {
-        val application: Context = RuntimeEnvironment.getApplication()
-        val manager = Shadow.newInstanceOf(TetheringManager::class.java)
-        return object : ContextWrapper(application) {
-            override fun getApplicationContext(): Context = this
-            override fun getSystemServiceName(serviceClass: Class<*>): String? =
-                if (serviceClass == TetheringManager::class.java) TETHERING_SERVICE else super.getSystemServiceName(serviceClass)
-
-            override fun getSystemService(name: String): Any? =
-                if (name == TETHERING_SERVICE) manager else super.getSystemService(name)
-        }
-    }
 
     private fun addFallback(platform: SourceConnectivityShadow, network: Network, name: String, address: InetAddress) {
         @Suppress("DEPRECATION")

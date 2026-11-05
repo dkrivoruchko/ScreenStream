@@ -64,6 +64,7 @@ private object SettingSearchIndex {
 
     fun normalize(text: String): String = text
         .lowercase()
+        .replace("\u0307", "")
         .replace('ё', 'е')
         .replace(separators, " ")
         .trim()

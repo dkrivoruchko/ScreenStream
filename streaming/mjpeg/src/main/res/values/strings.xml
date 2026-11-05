@@ -114,6 +114,7 @@
     <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">Open %1$s</string>
     <string name="mjpeg_address_copy_url">Copy link</string>
+    <string name="mjpeg_address_copied">Link copied</string>
     <string name="mjpeg_address_copy_description">Copy link for %1$s</string>
     <string name="mjpeg_address_copy_options_description">Choose a link to copy for %1$s</string>
     <string name="mjpeg_address_copy_page">Copy page link</string>
@@ -135,7 +136,6 @@
     <string name="mjpeg_local_network_permission_required">Local network permission required</string>
 
     <string name="mjpeg_server_pending">Preparing…</string>
-    <string name="mjpeg_server_address_in_use">Address in use</string>
     <string name="mjpeg_server_address_unavailable">Address unavailable</string>
     <string name="mjpeg_server_permission_denied">Permission denied</string>
     <string name="mjpeg_server_io_failure">Server unavailable</string>

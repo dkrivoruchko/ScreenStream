@@ -231,7 +231,9 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
                     if (addressMask and 4 != 0) add(AddressCategory.NonPrivate)
                 }
             }
-            return NetworkAddressFilter(families, interfaces, categories)
+            // Legacy localhost-only selection ignored the interface mask; lo is now classified as Other.
+            val migratedInterfaces = if (categories == setOf(AddressCategory.Loopback)) interfaces + InterfaceType.Other else interfaces
+            return NetworkAddressFilter(families, migratedInterfaces, categories)
         }
     }
 

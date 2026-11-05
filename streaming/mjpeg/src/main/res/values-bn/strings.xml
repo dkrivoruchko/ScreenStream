@@ -114,6 +114,7 @@
     <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">%1$s খুলুন</string>
     <string name="mjpeg_address_copy_url">লিঙ্ক কপি করুন</string>
+    <string name="mjpeg_address_copied">লিঙ্ক কপি করা হয়েছে</string>
     <string name="mjpeg_address_copy_description">%1$s-এর লিঙ্ক কপি করুন</string>
     <string name="mjpeg_address_copy_options_description">%1$s-এর জন্য কপি করার লিঙ্ক বেছে নিন</string>
     <string name="mjpeg_address_copy_page">পৃষ্ঠার লিঙ্ক কপি করুন</string>
@@ -135,7 +136,6 @@
     <string name="mjpeg_local_network_permission_required">লোকাল নেটওয়ার্কের অনুমতি প্রয়োজন</string>
 
     <string name="mjpeg_server_pending">প্রস্তুত করা হচ্ছে…</string>
-    <string name="mjpeg_server_address_in_use">ঠিকানা ব্যবহৃত হচ্ছে</string>
     <string name="mjpeg_server_address_unavailable">ঠিকানা উপলভ্য নয়</string>
     <string name="mjpeg_server_permission_denied">অনুমতি দেওয়া হয়নি</string>
     <string name="mjpeg_server_io_failure">সার্ভার উপলভ্য নয়</string>

@@ -117,9 +117,11 @@ internal fun MjpegContent(
                 )
             },
         ) { innerPadding ->
-            BoxWithConstraints(Modifier
-                .fillMaxSize()
-                .padding(innerPadding)) {
+            BoxWithConstraints(
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
                 LazyVerticalStaggeredGrid(
                     columns = StaggeredGridCells.Fixed(if (maxWidth >= 800.dp) 2 else 1),
                     modifier = Modifier.fillMaxSize(),

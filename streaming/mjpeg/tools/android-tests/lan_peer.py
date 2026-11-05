@@ -29,6 +29,7 @@ from email.message import Message
 PERMISSION = "android.permission.ACCESS_LOCAL_NETWORK"
 TEST_CLASS = "io.screenstream.mjpeg.device.MjpegLanPermissionTest"
 MAX_JPEG = 8 * 1024 * 1024
+PROBE_PHASE_TIMEOUT = 30
 
 
 def require(condition, message):
@@ -156,6 +157,30 @@ def probe_denied(host, port, request):
         connection.close()
 
 
+def perform_probe(host, port, request):
+    if request["phase"] == "denied":
+        return {"result": "unreachable", "failure": probe_denied(host, port, request)}
+    jpeg_bytes, jpeg_sha = fetch_jpeg(host, port, request)
+    part_bytes, part_sha = fetch_multipart(host, port, request)
+    return {"jpegBytes": jpeg_bytes, "jpegSha256": jpeg_sha,
+            "multipartBytes": part_bytes, "multipartSha256": part_sha}
+
+
+def run_probe(host, port, request, deadline):
+    # A child bounds buffered HTTP reads even if individual socket reads keep making progress.
+    remaining = min(PROBE_PHASE_TIMEOUT, deadline - time.monotonic())
+    require(remaining > 0, "Instrumentation/peer coordination timed out before the probe")
+    command = [sys.executable, str(pathlib.Path(__file__).resolve()), "--probe"]
+    payload = json.dumps({"host": host, "port": port, "request": request})
+    try:
+        completed = subprocess.run(command, input=payload, text=True, capture_output=True, timeout=remaining)
+    except subprocess.TimeoutExpired as failure:
+        raise TimeoutError("External peer phase exceeded its absolute deadline") from failure
+    require(completed.returncode == 0, "External peer probe failed: " + completed.stderr.strip())
+    require(time.monotonic() < deadline, "Instrumentation/peer coordination timed out during the probe")
+    return json.loads(completed.stdout)
+
+
 def run(args):
     require(re.fullmatch(r"[A-Za-z0-9_.]+/androidx\.test\.runner\.AndroidJUnitRunner", args.component), "Invalid instrumentation component")
     package = args.component.split("/", 1)[0]
@@ -199,7 +224,7 @@ def run(args):
             while True:
                 require(time.monotonic() < deadline, "Instrumentation/peer coordination timed out")
                 try:
-                    line = lines.get(timeout=1)
+                    line = lines.get(timeout=min(1, max(0, deadline - time.monotonic())))
                 except queue.Empty:
                     continue
                 if line is None:
@@ -257,13 +282,7 @@ def run(args):
                               physicalLan=False, probePerformed=False, passed=False)
                 try:
                     result["probePerformed"] = True
-                    if phase == "denied":
-                        result.update(result="unreachable", failure=probe_denied(host, host_port, request))
-                    else:
-                        jpeg_bytes, jpeg_sha = fetch_jpeg(host, host_port, request)
-                        part_bytes, part_sha = fetch_multipart(host, host_port, request)
-                        result.update(jpegBytes=jpeg_bytes, jpegSha256=jpeg_sha,
-                                      multipartBytes=part_bytes, multipartSha256=part_sha)
+                    result.update(run_probe(host, host_port, request, deadline))
                     result["passed"] = True
                 except Exception as failure:
                     result["error"] = f"{type(failure).__name__}: {failure}"
@@ -272,13 +291,15 @@ def run(args):
                 (output / f"{phase}-peer.json").write_text(json.dumps(result, indent=2) + "\n")
                 temporary = receipt_path + ".tmp"
                 remote = f"cat > {shlex.quote(temporary)} && mv {shlex.quote(temporary)} {shlex.quote(receipt_path)}"
-                subprocess.run(adb + ["shell", "run-as", package, "sh", "-c", shlex.quote(remote)], input=encoded, text=True, check=True, timeout=10)
+                remaining = deadline - time.monotonic()
+                require(remaining > 0, "Instrumentation/peer coordination timed out before the receipt")
+                subprocess.run(adb + ["shell", "run-as", package, "sh", "-c", shlex.quote(remote)], input=encoded, text=True, check=True, timeout=min(10, remaining))
                 require(result["passed"], result.get("error", "Peer assertion failed"))
                 completed.append(phase)
         process.wait(timeout=10)
         require(process.returncode == 0 and runner_finished and class_passed and completed == ["denied", "granted"], "LAN instrumentation did not complete both peer phases successfully")
         summary = {"runId": run_id, "topology": args.topology, "physicalLan": False,
-                   "result": "module deny/grant gating and external JPEG/multipart reachability; no independent kernel-blocking claim"}
+                   "result": "denied/granted permission UI and external JPEG/multipart reachability; no independent kernel-blocking claim"}
         successful = True
     finally:
         original_failure = sys.exc_info()[1]
@@ -322,6 +343,10 @@ def run(args):
 
 
 def main():
+    if sys.argv[1:] == ["--probe"]:
+        payload = json.load(sys.stdin)
+        print(json.dumps(perform_probe(payload["host"], payload["port"], payload["request"])))
+        return
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", required=True)
     parser.add_argument("--component", required=True)

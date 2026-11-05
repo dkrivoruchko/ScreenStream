@@ -225,6 +225,14 @@ internal class MjpegSettingsModelsTest {
     @Test
     fun explicitPinGenerationWorksForBothPoliciesAndPreservesOtherAccessChoices() {
         for (policy in AccessSettings.PinPolicy.entries) {
+            val withoutPin = AccessSettings(
+                pinEnabled = true, pinPolicy = policy, pin = null,
+                hidePinOnCaptureStart = false, limitWrongPins = false, blockMinutes = 7,
+            )
+            val fromNull = withoutPin.withGeneratedPin()
+            val createdPin = checkNotNull(fromNull.pin)
+            assertTrue(AccessSettings.isValidPin(createdPin.value))
+            assertEquals(withoutPin.copy(pin = createdPin), fromNull)
             val original = AccessSettings(
                 pinEnabled = true,
                 pinPolicy = policy,

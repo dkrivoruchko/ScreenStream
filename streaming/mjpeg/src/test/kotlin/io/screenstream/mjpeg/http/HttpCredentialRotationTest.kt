@@ -17,6 +17,7 @@ import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.http.web.WebRoutes
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -61,6 +62,7 @@ internal class HttpCredentialRotationTest {
             val releaseAcquired = CountDownLatch(1)
             val initialEntered = CompletableDeferred<Unit>()
             val releaseInitial = CompletableDeferred<Unit>()
+            val initialFailure = CompletableDeferred<CancellationException>()
             val acquired = Output(releaseAcquired)
             val waiting = Output()
             val initial = Output()
@@ -102,7 +104,12 @@ internal class HttpCredentialRotationTest {
                                 releaseInitial.await()
                             }
                             val dispatcher = if (key == "waiting") waitingDispatcher else acquiredDispatcher
-                            withContext(dispatcher) { content.writeTo(output.channel) }
+                            try {
+                                withContext(dispatcher) { content.writeTo(output.channel) }
+                            } catch (cause: CancellationException) {
+                                if (key != "initial") throw cause
+                                initialFailure.complete(cause)
+                            }
                             proceedWith(object : OutgoingContent.NoContent() {
                                 override val status = HttpStatusCode.NoContent
                             })
@@ -147,6 +154,7 @@ internal class HttpCredentialRotationTest {
                         for (key in listOf("acquired", "initial", "waiting")) completed.getValue(key).await()
                     }
                     assertArrayEquals(byteArrayOf(), initial.bytes())
+                    assertEquals("JPEG response revoked", withTimeout(5.seconds) { initialFailure.await() }.message)
                     assertArrayEquals(multipart(image), acquired.bytes())
                     assertArrayEquals(multipart(image), waiting.bytes())
                     val settled = delivery.awaitHttpInfo { it.completedJpegs == 2L }

@@ -62,7 +62,7 @@ test('MJPEG promotes usable dimensions and keeps the displayed frame through rep
     assert.equal(h.stage.children.length, 1);
 });
 
-test('JPEG is single-flight and only promotes a complete decoded image', async t => {
+test('live JPEG waits 30 ms after successful decoding and remains single-flight', async t => {
     const h = media(t);
     h.apply({ method: 'jpeg' });
     const first = h.image();
@@ -74,9 +74,18 @@ test('JPEG is single-flight and only promotes a complete decoded image', async t
     assert.equal(first.decodes, 1);
     assert.equal(h.images.length, 1);
     assert.equal(h.frames.length, 0);
+    t.mock.timers.tick(1000);
+    assert.equal(h.images.length, 1);
+    assert.equal(h.frames.length, 0);
     first.decoding.resolve();
     await first.decoding.promise;
     assert.equal(h.frame().image, first);
+    h.owner.resume();
+    assert.equal(h.images.length, 1);
+    assert.equal(h.stage.children.length, 1);
+    t.mock.timers.tick(29);
+    assert.equal(h.images.length, 1);
+    t.mock.timers.tick(1);
     assert.equal(h.images.length, 2);
     assert.equal(h.stage.children.length, 2);
     const second = h.image();
@@ -86,9 +95,66 @@ test('JPEG is single-flight and only promotes a complete decoded image', async t
     second.decoding.resolve();
     await second.decoding.promise;
     assert.equal(h.frame().image, second);
-    assert.equal(h.images.length, 3);
+    assert.equal(h.images.length, 2);
     assert.equal(first.src, '');
+    assert.equal(h.stage.children.length, 1);
+    t.mock.timers.tick(29);
+    assert.equal(h.images.length, 2);
+    t.mock.timers.tick(1);
+    assert.equal(h.images.length, 3);
     assert.equal(h.stage.children.length, 2);
+});
+
+for (const action of ['pause', 'ineligibility', 'method switch', 'refresh']) test(`${action} cancels the pending live-JPEG interval`, async t => {
+    const h = media(t);
+    h.apply({ method: 'jpeg' });
+    const displayed = h.image();
+    displayed.load();
+    displayed.decoding.resolve();
+    await displayed.decoding.promise;
+    t.mock.timers.tick(15);
+    if (action === 'pause') {
+        h.owner.pause();
+        assert.equal(h.frame().image, null);
+        h.owner.resume();
+    } else if (action === 'ineligibility') {
+        h.apply({ method: 'jpeg', eligible: false });
+        assert.equal(h.frame().image, null);
+        h.apply({ method: 'jpeg' });
+    } else if (action === 'method switch') h.apply({ method: 'mjpeg' });
+    else h.apply({ method: 'jpeg' }, true);
+    assert.equal(h.images.length, 2);
+    const replacement = h.image();
+    assert.match(replacement.src, action === 'method switch' ? /^\/mjpeg\?/ : /^\/jpeg\?/);
+    t.mock.timers.tick(15);
+    assert.equal(h.images.length, 2);
+    t.mock.timers.tick(30);
+    assert.equal(h.images.length, 2);
+    assert.equal(h.image(), replacement);
+    assert.notEqual(replacement.src, '');
+});
+
+test('a refreshed JPEG rejects an old decode without scheduling a polling interval', async t => {
+    const h = media(t);
+    h.apply({ method: 'jpeg' });
+    const stale = h.image();
+    stale.load();
+    h.apply({ method: 'jpeg' }, true);
+    const replacement = h.image();
+    stale.decoding.resolve();
+    await stale.decoding.promise;
+    t.mock.timers.tick(30);
+    assert.equal(h.images.length, 2);
+    assert.equal(h.frames.length, 0);
+    assert.equal(h.image(), replacement);
+    replacement.load();
+    replacement.decoding.resolve();
+    await replacement.decoding.promise;
+    assert.equal(h.frame().image, replacement);
+    t.mock.timers.tick(29);
+    assert.equal(h.images.length, 2);
+    t.mock.timers.tick(1);
+    assert.equal(h.images.length, 3);
 });
 
 test('retired load, error and decode callbacks cannot replace a newer image', async t => {
@@ -104,7 +170,7 @@ test('retired load, error and decode callbacks cannot replace a newer image', as
     await stale.decoding.promise;
     lateLoad();
     lateError();
-    t.mock.timers.tick(0);
+    t.mock.timers.tick(30);
     assert.equal(h.state(), 'viewing');
     assert.equal(h.frame().image, current);
     assert.equal(h.frames.length, frames);
@@ -157,7 +223,7 @@ test('initial-image deadline bounds attempts but an established MJPEG image has 
     assert.equal(h.state(), 'viewing');
 });
 
-test('retry budget exhausts without snapshot resets and explicit refresh or eligibility can recover', t => {
+test('retry budget exhausts without snapshot resets and explicit refresh can recover', t => {
     const h = media(t);
     h.apply();
     for (const delay of [0, 1000, 2000, 4000, 8000]) {
@@ -251,6 +317,7 @@ test('decode rejection retries while preserving a displayed JPEG', async t => {
     displayed.load();
     displayed.decoding.resolve();
     await displayed.decoding.promise;
+    t.mock.timers.tick(30);
     const rejected = h.image();
     rejected.load();
     rejected.decoding.reject(new Error('decode rejected'));
@@ -270,6 +337,7 @@ test('pause and ineligibility release images and reject late decode completion',
         displayed.load();
         displayed.decoding.resolve();
         await displayed.decoding.promise;
+        t.mock.timers.tick(30);
         const pending = h.image(), lateError = pending.onerror;
         pending.load();
         stop();

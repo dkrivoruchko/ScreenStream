@@ -1,0 +1,95 @@
+package io.screenstream.mjpeg
+
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.mjpeg.http.HttpDelivery
+import io.screenstream.mjpeg.networkaddress.AddressCategory
+import io.screenstream.mjpeg.networkaddress.AddressFamily
+import io.screenstream.mjpeg.networkaddress.InterfaceType
+import io.screenstream.mjpeg.networkaddress.NetworkAddress
+import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
+import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor
+import io.screenstream.mjpeg.settings.MjpegSettings
+import io.screenstream.mjpeg.settings.WebPageSettings
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.rules.TemporaryFolder
+import org.robolectric.RuntimeEnvironment
+import java.net.InetAddress
+import kotlin.time.Duration.Companion.seconds
+import kotlin.uuid.Uuid
+
+/** Settings files, address inputs and observable event receipts shared by controller histories. */
+internal class MjpegControllerTestInputs(private val temporaryFolder: TemporaryFolder) {
+    suspend fun settings(data: MjpegSettings.Data = MjpegSettings.Data(web = WebPageSettings(title = "Fixture device"))): MjpegSettings {
+        val context = IsolatedSettingsContext(RuntimeEnvironment.getApplication(), temporaryFolder.newFolder())
+        seedSettings(context, Json.encodeToString(data))
+        return MjpegSettings(context)
+    }
+
+    suspend fun settingsWithBroadFilter(): MjpegSettings {
+        val data = MjpegSettings.Data(web = WebPageSettings(title = "Fixture device"))
+        return settings(
+            data.copy(
+                network = data.network.copy(
+                    filter = NetworkAddressFilter(
+                        families = setOf(AddressFamily.Ipv4),
+                        interfaceTypes = InterfaceType.entries.toSet(),
+                        categories = AddressCategory.entries.toSet(),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    suspend fun startModuleWithListeningServer(host: MjpegServiceHost) {
+        host.controller.startModule()
+        host.http.configuration.awaitControllerValue { it != null }
+        val filter = host.settings.data.first().network.filter
+        val address = address()
+        host.monitor.state.value = observedAddresses(listOf(address))
+        host.http.planApplications.awaitControllerValue { it.lastOrNull()?.addresses == listOf(address) }
+        publishServerState(host, address)
+    }
+
+    suspend fun publishDiscovery(host: MjpegServiceHost, state: NetworkAddressMonitor.State) {
+        if (host.monitor.state.value == state) return
+        val applicationsBefore = host.http.planApplications.value.size
+        host.monitor.state.value = state
+        // Every distinct discovery state applies a plan: Loading keeps the last selection, and Observed is reselected with the current filter.
+        // startModuleWithListeningServer() already observed the distinct ready plan; no earlier discovery can trail it.
+        host.http.planApplications.awaitControllerValue { it.size > applicationsBefore }
+    }
+
+    fun publishServerState(
+        host: MjpegServiceHost,
+        address: NetworkAddress,
+        port: Int = 8080,
+        state: HttpDelivery.ServerState = HttpDelivery.ServerState.Listening
+    ) {
+        host.http.info.value = HttpDelivery.Info(servers = listOf(HttpDelivery.ServerInfo(Uuid.random(), address, port, state)))
+    }
+
+    suspend fun applySettingsCheckpoint(settings: MjpegSettings, host: MjpegServiceHost, title: String) {
+        // The public Start/Stop command was enqueued before this distinct settings observation.
+        settings.updateData { copy(web = web.copy(title = title)) }
+        host.http.configuration.awaitControllerValue { it?.web?.title == title }
+    }
+
+    fun assertHeldConsent(host: MjpegServiceHost, attempt: StreamingModule.CaptureAttemptId) {
+        assertEquals(attempt to MjpegCaptureSession.State.Status.WaitingForPermission, host.http.captureStatus.value)
+        assertTrue(host.access.finishCalls.value.isEmpty())
+        assertEquals(attempt, host.managerObservation.status.value!!.captureAttempt)
+    }
+
+    fun address(id: Long = 1, ip: String = "192.168.1.${id + 1}", type: InterfaceType = InterfaceType.Wifi): NetworkAddress =
+        NetworkAddress(id, InetAddress.getByName(ip), "fixture$id", type)
+
+    fun otherFilter(): NetworkAddressFilter =
+        NetworkAddressFilter(setOf(AddressFamily.Ipv4), setOf(InterfaceType.Vpn), setOf(AddressCategory.NonPrivate))
+}
+
+internal suspend fun <T> StateFlow<T>.awaitControllerValue(predicate: (T) -> Boolean): T = withTimeout(5.seconds) { first(predicate) }

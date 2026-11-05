@@ -82,6 +82,7 @@ internal class MjpegCaptureSessionWakeLockTest {
                 assertEquals(!acquireFailure, lock.isHeld)
                 if (!acquireFailure) Shadow.extract<FallibleWakeLockShadow>(lock).failRelease = true
                 session.requestStop(MjpegCaptureSession.StopReason.User); runCurrent()
+                if (!acquireFailure) assertTrue(Shadow.extract<FallibleWakeLockShadow>(lock).failedReleaseEntered)
                 assertTrue(session.awaitCleanup())
                 assertNull(session.state.value.captureFailure)
                 assertNull(session.state.value.cleanupFailure)
@@ -102,6 +103,8 @@ internal class FallibleWakeLockShadow : ShadowPowerManager.ShadowWakeLock() {
     }
 
     var failRelease = false
+    var failedReleaseEntered = false
+        private set
 
     @Implementation
     protected override fun acquire() {
@@ -111,7 +114,10 @@ internal class FallibleWakeLockShadow : ShadowPowerManager.ShadowWakeLock() {
 
     @Implementation
     protected override fun release(flags: Int) {
-        if (failRelease) throw IllegalStateException("Optional wake-lock release failed")
+        if (failRelease) {
+            failedReleaseEntered = true
+            throw IllegalStateException("Optional wake-lock release failed")
+        }
         super.release(flags)
     }
 }

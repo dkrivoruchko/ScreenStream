@@ -114,6 +114,7 @@
     <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">%1$s adresini aç</string>
     <string name="mjpeg_address_copy_url">Bağlantıyı kopyala</string>
+    <string name="mjpeg_address_copied">Bağlantı kopyalandı</string>
     <string name="mjpeg_address_copy_description">%1$s için bağlantıyı kopyala</string>
     <string name="mjpeg_address_copy_options_description">%1$s için kopyalanacak bağlantıyı seç</string>
     <string name="mjpeg_address_copy_page">Sayfa bağlantısını kopyala</string>
@@ -135,7 +136,6 @@
     <string name="mjpeg_local_network_permission_required">Yerel ağ izni gerekli</string>
 
     <string name="mjpeg_server_pending">Hazırlanıyor…</string>
-    <string name="mjpeg_server_address_in_use">Adres kullanımda</string>
     <string name="mjpeg_server_address_unavailable">Adres kullanılamıyor</string>
     <string name="mjpeg_server_permission_denied">İzin reddedildi</string>
     <string name="mjpeg_server_io_failure">Sunucu kullanılamıyor</string>
@@ -179,7 +179,7 @@
 
     <string name="mjpeg_pref_image_size">Görüntü boyutu</string>
     <string name="mjpeg_pref_image_size_summary">Ölçeği veya boyutları ayarlayın</string>
-    <string name="mjpeg_pref_image_size_scale_value">%1$s%%</string>
+    <string name="mjpeg_pref_image_size_scale_value">%%%1$s</string>
     <string name="mjpeg_pref_image_size_stretch">Görüntüyü uzat</string>
     <string name="mjpeg_pref_image_size_stretch_value">Uzat</string>
     <string name="mjpeg_pref_image_size_fit_description">Genişlik ve yüksekliğe sığar; oranları korur</string>

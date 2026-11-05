@@ -52,7 +52,7 @@ internal class FrameRateSettingsUiTest {
     fun initializeLoggerAndLocale() {
         XLog.init(Int.MAX_VALUE)
         originalLocale = Locale.getDefault()
-        Locale.setDefault(Locale.GERMANY)
+        Locale.setDefault(Locale.US)
     }
 
     @After
@@ -71,6 +71,8 @@ internal class FrameRateSettingsUiTest {
         field(R.string.mjpeg_pref_image_rate_fps_label).performTextReplacement("17")
         selectMode(R.string.mjpeg_pref_image_rate_interval)
         field(R.string.mjpeg_pref_image_rate_interval_label).performTextReplacement("1,25")
+        field(R.string.mjpeg_pref_image_rate_interval_label).performTextReplacement("3600,0000000000000001")
+        field(R.string.mjpeg_pref_image_rate_interval_label).assertTextContains("1,25")
         selectMode(R.string.mjpeg_pref_image_rate_fps)
         field(R.string.mjpeg_pref_image_rate_fps_label).assertTextContains("17")
         selectMode(R.string.mjpeg_pref_image_rate_interval)

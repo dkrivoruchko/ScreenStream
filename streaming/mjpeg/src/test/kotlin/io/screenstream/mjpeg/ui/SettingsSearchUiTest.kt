@@ -23,13 +23,16 @@ import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.connection.HttpPortSearch
+import io.screenstream.mjpeg.ui.settings.connection.NetworkFilterSearch
 import io.screenstream.mjpeg.ui.settings.images.FrameRateSearch
 import io.screenstream.mjpeg.ui.settings.rememberMatchingSettings
+import io.screenstream.mjpeg.ui.settings.webpage.StreamNameSearch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -78,6 +81,35 @@ internal class SettingsSearchUiTest {
             query.value = " \t\u2013\u2014 "
         }
         compose.runOnIdle { assertNull(matching) }
+    }
+
+    @Test
+    @Config(qualifiers = "tr")
+    fun turkishViewerTermsMatchAcrossCaseWithoutChangingIpAcronymMatching() {
+        val query = mutableStateOf("izleyici")
+        var matching: Set<SettingSearchInfo>? = null
+        var viewerMatches: Set<SettingSearchInfo>? = null
+        compose.setContent {
+            MjpegTestTheme {
+                val result = rememberMatchingSettings(query.value)
+                SideEffect { matching = result }
+            }
+        }
+
+        compose.runOnIdle {
+            viewerMatches = matching
+            assertTrue(checkNotNull(matching).containsAll(setOf(NetworkFilterSearch.info, HttpPortSearch.info, StreamNameSearch.info)))
+            query.value = "İZLEYİCİ"
+        }
+        compose.runOnIdle {
+            assertEquals(viewerMatches, matching)
+            query.value = "ip sürümü"
+        }
+        compose.runOnIdle {
+            assertEquals(setOf(NetworkFilterSearch.info), matching)
+            query.value = "IP SÜRÜMÜ"
+        }
+        compose.runOnIdle { assertEquals(setOf(NetworkFilterSearch.info), matching) }
     }
 
     @Test

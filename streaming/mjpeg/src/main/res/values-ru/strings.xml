@@ -114,6 +114,7 @@
     <!-- %1$s is the public displayed URL, without a token. -->
     <string name="mjpeg_address_open_description">Открыть %1$s</string>
     <string name="mjpeg_address_copy_url">Копировать ссылку</string>
+    <string name="mjpeg_address_copied">Ссылка скопирована</string>
     <string name="mjpeg_address_copy_description">Копировать ссылку на %1$s</string>
     <string name="mjpeg_address_copy_options_description">Выбрать ссылку %1$s для копирования</string>
     <string name="mjpeg_address_copy_page">Копировать ссылку на страницу</string>
@@ -135,7 +136,6 @@
     <string name="mjpeg_local_network_permission_required">Нужно разрешение на доступ к локальной сети</string>
 
     <string name="mjpeg_server_pending">Подготовка…</string>
-    <string name="mjpeg_server_address_in_use">Адрес занят</string>
     <string name="mjpeg_server_address_unavailable">Адрес недоступен</string>
     <string name="mjpeg_server_permission_denied">Доступ запрещён</string>
     <string name="mjpeg_server_io_failure">Сервер недоступен</string>

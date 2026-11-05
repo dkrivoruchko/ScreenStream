@@ -3,7 +3,6 @@ package io.screenstream.mjpeg
 import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.MjpegSettings
-import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.settings.WebPageSettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
@@ -17,6 +16,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -32,6 +32,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -52,9 +53,10 @@ internal class MjpegOpeningPinShutdownTest {
         val context = IsolatedSettingsContext(RuntimeEnvironment.getApplication(), temporaryFolder.newFolder())
         val data = MjpegSettings.Data(
             web = WebPageSettings(title = "Opening save lifetime"),
-            access = AccessSettings(pinEnabled = true, pinPolicy = AccessSettings.PinPolicy.NewOnModuleStart, pin = SecretValue("123456")),
+            access = AccessSettings(pinEnabled = true, pinPolicy = AccessSettings.PinPolicy.NewOnModuleStart, pin = null),
         )
         seedSettings(context, Json.encodeToString(data))
+        assertNull(Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)).access.pin)
         val scheduler = TestCoroutineScheduler()
         val queued = StandardTestDispatcher(scheduler)
         val admitted = CompletableDeferred<Job>()
@@ -75,6 +77,8 @@ internal class MjpegOpeningPinShutdownTest {
             cleanup = receipt
             withTimeout(5.seconds) { host.http.stopSettled.await(); host.monitor.closeSettled.await(); host.awaitStopRequested() }
             host.destroy()
+            // Cleanup runs on Default; give it real execution time while the admitted save stays queued.
+            assertNull(withTimeoutOrNull(100.milliseconds) { receipt.await() })
             assertFalse(receipt.isCompleted)
             host.controller.requestStreamStart()
             host.controller.startModule()

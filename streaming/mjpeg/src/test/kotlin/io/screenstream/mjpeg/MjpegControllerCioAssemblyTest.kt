@@ -86,7 +86,7 @@ internal class MjpegControllerCioAssemblyTest {
             assertFalse(engine.startEntered.isCompleted)
 
             activeHost.access.consent.complete(object : ScreenCaptureAccess.Grant {})
-            withTimeout(5.seconds) { activeHost.managerHandle.status.first { it?.isStreaming == true && it.captureAttempt == attempt } }
+            withTimeout(5.seconds) { activeHost.managerObservation.status.first { it?.isStreaming == true && it.captureAttempt == attempt } }
             withTimeout(5.seconds) { activeHost.controller.state.first { it.action == UiController.Action.Stop(attempt) } }
             val active = withTimeout(5.seconds) { observedDelivery.active.await() }
             assertEquals(attempt, active.attempt)
@@ -111,7 +111,7 @@ internal class MjpegControllerCioAssemblyTest {
             val stopped = realDelivery.info.value
             assertEquals(listOf(listening), stopped.servers)
             assertNull(stopped.fatalCause)
-            assertFalse(activeHost.managerHandle.failed.isCompleted)
+            assertFalse(activeHost.managerObservation.failed.isCompleted)
             val placeholder = requestHttpJpeg(port)
             assertEquals(200, placeholder.status)
             assertEquals("image/jpeg", placeholder.headers["content-type"])

@@ -78,16 +78,7 @@ internal class HttpDeliveryCioIntegrationTest {
     @LooperMode(LooperMode.Mode.PAUSED)
     fun protectedViewingChecksCredentialsAndRetiresRealPayloads() = runBlocking {
         val calls = Channel<ObservedMediaCall>(Channel.UNLIMITED)
-        val delivery = KtorHttpDelivery(httpTestContext()) { parentJob, host, listenerPort, configureApplication ->
-            CioHttpListener(parentJob, host, listenerPort) { listener ->
-                monitor.subscribe(RoutingRoot.RoutingCallStarted) { call ->
-                    call.request.queryParameters["retirement"]?.let { marker ->
-                        calls.trySend(ObservedMediaCall(marker, call.request.local.remoteAddress, call.request.local.remotePort, call.coroutineContext.job))
-                    }
-                }
-                configureApplication(this, listener)
-            }
-        }
+        val delivery = mediaObservingDelivery(calls)
         val port = unusedLoopbackPort()
         val logo = byteArrayOf(11, 12, 13, 14)
         try {
@@ -187,6 +178,77 @@ internal class HttpDeliveryCioIntegrationTest {
             }
         }
     }
+
+    // Cases: MJPEG-IMG-10, MJPEG-OBS-03, MJPEG-OBS-04
+    @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
+    fun peerResetRetiresItsMultipartCallWhileListenerKeepsServing() = runBlocking {
+        val calls = Channel<ObservedMediaCall>(Channel.UNLIMITED)
+        val delivery = mediaObservingDelivery(calls)
+        val port = unusedLoopbackPort()
+        val logo = byteArrayOf(71, 72, 73)
+        var connection: RawHttp? = null
+        try {
+            delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPage(), logo)
+            delivery.configureServers(listOf(httpTestAddress()), port)
+            val listening = delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }.servers.single()
+            val peer = RawHttp(port, "/mjpeg?retirement=peer-reset", closeConnection = false)
+            connection = peer
+            assertEquals(200, peer.status)
+            assertArrayEquals(logo, MultipartReader(peer.body).nextPart())
+            val call = withTimeout(5.seconds) { calls.receive() }
+            assertEquals("peer-reset", call.marker)
+            assertTrue(call.job.isActive)
+            peer.abort()
+            // Server stop cannot manufacture this checkpoint: the exact peer call must settle
+            // while its configured listener and a subsequent media request remain usable.
+            withTimeout(5.seconds) { call.job.join() }
+            assertEquals(listOf(listening), delivery.info.value.servers)
+            assertNull(delivery.info.value.fatalCause)
+
+            fun row(sample: HttpDelivery.Info): HttpDelivery.ClientInfo = sample.clients.single {
+                it.serverId == listening.id && it.ip == call.ip && it.remotePort == call.port
+            }
+
+            ShadowSystemClock.advanceBy(1_999, TimeUnit.MILLISECONDS)
+            val graceAt = SystemClock.elapsedRealtime()
+            val grace = delivery.awaitHttpInfo { it.sampledAtElapsedRealtimeMillis >= graceAt }
+            assertEquals(HttpDelivery.ClientInfo.State.Active, row(grace).state)
+            assertEquals(logo.size.toLong(), row(grace).completedJpegBytes)
+            assertEquals(1L, grace.completedJpegs)
+            assertEquals(logo.size.toLong(), grace.completedJpegBytes)
+            assertTrue(grace.hasConsumer)
+            ShadowSystemClock.advanceBy(1, TimeUnit.MILLISECONDS)
+            val disconnectedAt = SystemClock.elapsedRealtime()
+            val disconnected = delivery.awaitHttpInfo { it.sampledAtElapsedRealtimeMillis >= disconnectedAt }
+            assertEquals(row(grace).id, row(disconnected).id)
+            assertEquals(HttpDelivery.ClientInfo.State.Disconnected, row(disconnected).state)
+            assertFalse(disconnected.hasConsumer)
+            assertEquals(listOf(listening), disconnected.servers)
+            val healthy = requestHttpJpeg(port)
+            assertEquals(200, healthy.status)
+            assertArrayEquals(logo, healthy.bytes)
+        } finally {
+            connection?.close()
+            try {
+                delivery.finishHttpTest()
+            } finally {
+                calls.cancel()
+            }
+        }
+    }
+
+    private fun mediaObservingDelivery(calls: Channel<ObservedMediaCall>): KtorHttpDelivery =
+        KtorHttpDelivery(httpTestContext()) { parentJob, host, listenerPort, configureApplication ->
+            CioHttpListener(parentJob, host, listenerPort) { listener ->
+                monitor.subscribe(RoutingRoot.RoutingCallStarted) { call ->
+                    call.request.queryParameters["retirement"]?.let { marker ->
+                        calls.trySend(ObservedMediaCall(marker, call.request.local.remoteAddress, call.request.local.remotePort, call.coroutineContext.job))
+                    }
+                }
+                configureApplication(this, listener)
+            }
+        }
 
     private data class ObservedMediaCall(val marker: String, val ip: String, val port: Int, val job: Job)
 
@@ -775,25 +837,38 @@ internal class HttpDeliveryCioIntegrationTest {
         extraHeaders: List<String> = emptyList(),
         requestBody: String? = null,
         method: String? = null,
-        hostHeader: String? = "127.0.0.1:$port"
+        hostHeader: String? = "127.0.0.1:$port",
+        closeConnection: Boolean = true,
     ) : AutoCloseable {
         private val socket = Socket()
+        private var readDeadlineMillis: Long? = null
         val status: Int
-        val headers: Map<String, String>
+        val headers: HttpResponseHeaders
         val body: InputStream
 
         init {
             try {
                 socket.soTimeout = 15_000
                 socket.connect(java.net.InetSocketAddress("127.0.0.1", port), 15_000)
-                val input = socket.getInputStream().buffered()
+                val wireInput = socket.getInputStream().buffered()
+                val input = object : InputStream() {
+                    override fun read(): Int {
+                        boundReadToDeadline()
+                        return wireInput.read()
+                    }
+
+                    override fun read(bytes: ByteArray, offset: Int, length: Int): Int {
+                        boundReadToDeadline()
+                        return wireInput.read(bytes, offset, length)
+                    }
+                }
                 socket.getOutputStream().apply {
                     val requestMethod = method ?: if (requestBody == null) "GET" else "POST"
                     val bodyBytes = requestBody?.toByteArray(Charsets.UTF_8)
                     val request = buildString {
                         append("$requestMethod $path HTTP/1.1\r\n")
                         hostHeader?.let { append("Host: $it\r\n") }
-                        append("Connection: close\r\n")
+                        if (closeConnection) append("Connection: close\r\n")
                         extraHeaders.forEach { append(it).append("\r\n") }
                         bodyBytes?.let { append("Content-Length: ${it.size}\r\n") }
                         append("\r\n")
@@ -813,7 +888,14 @@ internal class HttpDeliveryCioIntegrationTest {
 
         fun readBody(): ByteArray = headers["content-length"]?.toInt()?.let { readExact(body, it) } ?: body.readBytes()
 
+        private fun boundReadToDeadline() {
+            val remaining = readDeadlineMillis?.minus(ManagementFactory.getRuntimeMXBean().uptime)
+            if (remaining != null && remaining <= 0L) throw java.net.SocketTimeoutException("Overall HTTP drain deadline expired")
+            socket.soTimeout = minOf(15_000L, remaining ?: 15_000L).toInt().coerceAtLeast(1)
+        }
+
         fun awaitExternalEnd() {
+            readDeadlineMillis = ManagementFactory.getRuntimeMXBean().uptime + 15_000L
             try {
                 while (body.read() >= 0) {
                     // Drain any completed transport tail until EOF.
@@ -821,7 +903,14 @@ internal class HttpDeliveryCioIntegrationTest {
             } catch (cause: IOException) {
                 if (cause is java.net.SocketTimeoutException) throw cause
                 // Connection reset/truncated chunking independently witnesses transport termination.
+            } finally {
+                readDeadlineMillis = null
             }
+        }
+
+        fun abort() {
+            socket.setSoLinger(true, 0)
+            socket.close()
         }
 
         override fun close() {
@@ -898,14 +987,6 @@ internal class HttpDeliveryCioIntegrationTest {
             }
         }
 
-        fun readHeaderLines(input: InputStream): Map<String, String> = buildMap {
-            while (true) {
-                val line = readCrlfLine(input)
-                if (line.isEmpty()) return@buildMap
-                val separator = line.indexOf(':')
-                check(separator > 0) { "Invalid header line" }
-                put(line.substring(0, separator).lowercase(), line.substring(separator + 1).trim())
-            }
-        }
+        fun readHeaderLines(input: InputStream): HttpResponseHeaders = readHttpResponseHeaders { readCrlfLine(input) }
     }
 }

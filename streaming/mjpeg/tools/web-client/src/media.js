@@ -76,9 +76,9 @@ function createMedia(stage, imageAlt, callbacks) {
         callbacks.image(displayed, width, height);
         observeSize();
         callbacks.state('viewing');
-        // Live JPEGs remain single-flight; retained frames do not need maximum-speed polling.
+        // Keep JPEGs single-flight; wait after each decoded frame before loading its replacement.
         if (method === 'jpeg') {
-            if (imageKind === 'live') start();
+            if (imageKind === 'live') nextTimer = setTimeout(start, 30);
             else {
                 retainedWait = true;
                 nextTimer = setTimeout(start, 500);

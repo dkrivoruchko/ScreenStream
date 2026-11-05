@@ -424,7 +424,7 @@ internal class AndroidNetworkAddressMonitorTest {
             assertEquals(id, staleInventory.single { it.ip == address }.id)
             assertEquals(InterfaceType.Wifi, staleInventory.single { it.ip == staleNewAddress }.interfaceType)
             currentScan.release()
-            assertEquals(emptyList<NetworkAddress>(), awaitObserved(monitor, vpnOnly))
+            assertEquals(emptyList<NetworkAddress>(), awaitObserved(monitor, all))
         } finally {
             oldScan.release()
             currentScan.release()

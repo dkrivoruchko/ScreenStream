@@ -9,6 +9,7 @@ import io.ktor.utils.io.writeBuffer
 import io.ktor.utils.io.writeFully
 import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
 import io.screenstream.mjpeg.http.media.JpegStore.Frame
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
@@ -42,7 +43,7 @@ internal class JpegResponse(
 
     /**
      * Use once per call; JPEG headers describe the frame pinned at admission. Closure before its
-     * writer handoff can leave a truncated response with that pinned content length.
+     * writer handoff cancels the incomplete response instead of completing its pinned length normally.
      */
     suspend fun respond(call: ApplicationCall) {
         try {
@@ -65,7 +66,7 @@ internal class JpegResponse(
     private suspend fun writeResponseBody(channel: ByteWriteChannel) {
         if (format == MediaFormat.Jpeg) {
             currentCoroutineContext().ensureActive()
-            val frame = reader.acquireFrame() ?: return
+            val frame = reader.acquireFrame() ?: throw CancellationException("JPEG response revoked")
             try {
                 writeJpegPayload(channel, frame)
             } finally {

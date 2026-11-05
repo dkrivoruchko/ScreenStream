@@ -75,7 +75,7 @@ internal interface HttpDelivery {
     suspend fun stop()
 
     enum class ServerFailure {
-        AddressInUse, AddressUnavailable, PermissionDenied, IoFailure, Unknown
+        AddressUnavailable, PermissionDenied, IoFailure, Unknown
     }
 
     /** Availability of one planned incarnation; Failed does not assert physical FD teardown. */

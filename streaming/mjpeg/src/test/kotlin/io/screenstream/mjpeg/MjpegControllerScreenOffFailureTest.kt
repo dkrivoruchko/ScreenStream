@@ -55,12 +55,12 @@ internal class MjpegControllerScreenOffFailureTest {
             ready(host)
             FallibleScreenOffContextShadow.registrationFailure = SecurityException("Screen-off registration denied")
             host.controller.requestStreamStart()
-            withTimeout(5.seconds) { host.managerHandle.status.first { it?.error != null } }
-            assertNull(host.managerHandle.status.value!!.error!!.message)
+            withTimeout(5.seconds) { host.managerObservation.status.first { it?.error != null } }
+            assertNull(host.managerObservation.status.value!!.error!!.message)
             assertTrue(host.http.captures.value.isEmpty())
             assertTrue(host.access.requested.value.isEmpty())
-            assertTrue(host.managerHandle.isCurrent())
-            assertFalse(host.managerHandle.failed.isCompleted)
+            assertTrue(host.managerObservation.isCurrent())
+            assertFalse(host.managerObservation.failed.isCompleted)
             FallibleScreenOffContextShadow.registrationFailure = null
             host.controller.requestStreamStart()
             withTimeout(5.seconds) { host.access.requested.first { it.size == 1 } }
@@ -77,14 +77,14 @@ internal class MjpegControllerScreenOffFailureTest {
             ready(host)
             host.controller.requestStreamStart()
             val attempt = withTimeout(5.seconds) { host.access.requested.first { it.size == 1 }.single() }
-            withTimeout(5.seconds) { host.managerHandle.status.first { it?.captureAttempt == attempt } }
+            withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == attempt } }
             FallibleScreenOffContextShadow.registrationFailure = SecurityException("Live screen-off registration denied")
             host.settings.updateData { copy(behavior = behavior.copy(stopOnScreenOff = true)) }
-            withTimeout(5.seconds) { host.managerHandle.status.first { it != null && it.captureAttempt == null && it.error != null } }
+            withTimeout(5.seconds) { host.managerObservation.status.first { it != null && it.captureAttempt == null && it.error != null } }
             assertEquals(listOf(attempt), host.access.finishCalls.value)
-            assertNull(host.managerHandle.status.value!!.error!!.message)
+            assertNull(host.managerObservation.status.value!!.error!!.message)
             assertFalse(host.http.closed)
-            assertFalse(host.managerHandle.failed.isCompleted)
+            assertFalse(host.managerObservation.failed.isCompleted)
         } finally {
             FallibleScreenOffContextShadow.registrationFailure = null; assertTrue(host.close())
         }
@@ -98,18 +98,18 @@ internal class MjpegControllerScreenOffFailureTest {
             ready(host)
             host.controller.requestStreamStart()
             val attempt = withTimeout(5.seconds) { host.access.requested.first { it.size == 1 }.single() }
-            withTimeout(5.seconds) { host.managerHandle.status.first { it?.captureAttempt == attempt } }
+            withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == attempt } }
             FallibleScreenOffContextShadow.removalFailure = IllegalStateException("Receiver removal failed")
             host.controller.requestStreamStop(attempt, false)
-            withTimeout(5.seconds) { host.managerHandle.status.first { it != null && it.captureAttempt == null && it.error != null } }
-            assertNull(host.managerHandle.status.value!!.error!!.message)
+            withTimeout(5.seconds) { host.managerObservation.status.first { it != null && it.captureAttempt == null && it.error != null } }
+            assertNull(host.managerObservation.status.value!!.error!!.message)
             assertFalse(host.http.closed)
             FallibleScreenOffContextShadow.removalFailure = null
             host.controller.requestStreamStart()
             checkpoint(host)
             assertEquals(listOf(attempt), host.http.captures.value)
             assertEquals(listOf(attempt), host.access.requested.value)
-            assertFalse(host.managerHandle.failed.isCompleted)
+            assertFalse(host.managerObservation.failed.isCompleted)
         } finally {
             FallibleScreenOffContextShadow.removalFailure = null
             assertFalse(host.close())

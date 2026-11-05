@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.media.projection.MediaProjection
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.datastore.preferences.core.PreferencesFileSerializer
 import androidx.datastore.preferences.core.preferencesOf
@@ -41,10 +42,12 @@ import io.screenstream.mjpeg.settings.WebPageSettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -106,8 +109,11 @@ internal class MjpegServiceHost(
     val service: MjpegStreamingModuleService get() = serviceController.get()
     lateinit var controller: MjpegStreamingModuleController
         private set
-    lateinit var managerHandle: TestManagerHandle
+
+    /** Observes the real manager; the controller receives its original handle. */
+    lateinit var managerObservation: TestManagerHandle
         private set
+
     val manager: StreamingModuleManager
     private val observationScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     private var destroyed = false
@@ -145,7 +151,7 @@ internal class MjpegServiceHost(
                     factory { parameters ->
                         val originalHandle = parameters.get<StreamingModule.Controller.ManagerHandle>()
                         val originalService = parameters.get<MjpegStreamingModuleService>()
-                        managerHandle = TestManagerHandle(originalHandle)
+                        managerObservation = TestManagerHandle(originalHandle)
                         MjpegStreamingModuleController(
                             managerHandle = originalHandle, service = originalService, settings = lazyOf(settings),
                             addressMonitor = monitor, captureAccess = access, http = delivery,
@@ -165,9 +171,9 @@ internal class MjpegServiceHost(
             serviceController.startCommand(0, 1)
             manager.state.onEach { state ->
                 when (state) {
-                    is StreamingModuleManager.State.Running -> managerHandle.status.value = state.status
-                    is StreamingModuleManager.State.Unresponsive -> managerHandle.status.value = state.lastStatus
-                    is StreamingModuleManager.State.Failed -> managerHandle.failed.complete(Unit)
+                    is StreamingModuleManager.State.Running -> managerObservation.status.value = state.status
+                    is StreamingModuleManager.State.Unresponsive -> managerObservation.status.value = state.lastStatus
+                    is StreamingModuleManager.State.Failed -> managerObservation.failed.complete(Unit)
                     else -> Unit
                 }
             }.launchIn(observationScope)
@@ -547,3 +553,16 @@ internal class InertMjpegProjectionShadow {
     @org.robolectric.annotation.Implementation
     protected fun stop() = Unit
 }
+
+/** Main dispatcher for Toast histories whose executor thread must own an Android Looper. */
+internal fun mjpegTestMainDispatcher(threadName: String): ExecutorCoroutineDispatcher =
+    java.util.concurrent.Executors.newSingleThreadExecutor { command ->
+        Thread {
+            Looper.prepare()
+            try {
+                command.run()
+            } finally {
+                Looper.myLooper()?.quit()
+            }
+        }.apply { name = threadName; isDaemon = true }
+    }.asCoroutineDispatcher()

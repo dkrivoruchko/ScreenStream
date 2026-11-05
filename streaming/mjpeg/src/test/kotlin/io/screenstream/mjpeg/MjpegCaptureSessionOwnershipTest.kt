@@ -363,10 +363,12 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertStreaming(session)
             engine.publish(revoked)
             session.requestStop(MjpegCaptureSession.StopReason.User)
+            assertEquals(MjpegCaptureSession.StopReason.User, session.state.value.stopReason)
             runCurrent()
 
             assertTrue(awaitCleanup(session))
             assertCleanlyStopped(session)
+            assertEquals(MjpegCaptureSession.StopReason.User, session.state.value.stopReason)
             assertTrue(engine.registrationRetired.isCompleted)
             assertTrue(inputs.saved.isEmpty())
         } finally {

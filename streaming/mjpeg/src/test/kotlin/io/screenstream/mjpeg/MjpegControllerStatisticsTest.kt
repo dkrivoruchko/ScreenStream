@@ -76,7 +76,7 @@ internal class MjpegControllerStatisticsTest {
 
     // Cases: MJPEG-CTL-04, MJPEG-CTL-15, MJPEG-CTL-16
     @Test
-    fun httpBaselinesAndHistorySurviveCaptureStopAndStartAndResetInAnotherModule() = runBlocking {
+    fun httpBaselinesAndHistorySurviveHeldConsentStopAndRestartAndResetInAnotherModule() = runBlocking {
         val host = host()
         try {
             ready(host)
@@ -86,12 +86,12 @@ internal class MjpegControllerStatisticsTest {
             advanceElapsed(1000)
             host.controller.requestStreamStart()
             val first = withTimeout(5.seconds) { host.access.requested.first { it.size == 1 }.single() }
-            withTimeout(5.seconds) { host.managerHandle.status.first { it?.captureAttempt == first } }
+            withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == first } }
             val beforeStop = host.controller.state.value.statistics
             val earlierPoints = beforeStop.history.filter { it.atElapsedRealtimeMillis / 1000L < SystemClock.elapsedRealtime() / 1000L }
             assertTrue(earlierPoints.isNotEmpty())
             host.controller.requestStreamStop(first, false)
-            withTimeout(5.seconds) { host.managerHandle.status.first { it?.captureAttempt == null } }
+            withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == null } }
             host.controller.requestStreamStart()
             val second = withTimeout(5.seconds) { host.access.requested.first { it.size == 2 }.last() }
             assertNotEquals(first, second)
@@ -100,8 +100,8 @@ internal class MjpegControllerStatisticsTest {
             assertEquals(mapOf(1L to 200.0), after.clientBytesPerSecond)
             assertTrue(after.history.isNotEmpty())
             assertTrue(after.history.containsAll(earlierPoints))
-            assertFalse(host.managerHandle.status.value!!.isStreaming)
-            assertTrue(host.managerHandle.status.value!!.hasConsumer)
+            assertFalse(host.managerObservation.status.value!!.isStreaming)
+            assertTrue(host.managerObservation.status.value!!.hasConsumer)
         } finally {
             assertTrue(host.close())
         }

@@ -2,6 +2,7 @@ package io.screenstream.mjpeg.ui
 
 import android.content.ContextWrapper
 import android.content.Intent
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
@@ -72,10 +73,35 @@ internal class StreamAddressesUiTest {
     }
 
     @Test
+    @Config(sdk = [32, 33])
+    fun successfulLinkCopiesShowManualFeedbackOnlyBeforeAndroid13() {
+        val clipboard = RecordingClipboard()
+        val messages = mutableListOf<String>()
+        compose.setContent {
+            MjpegTestTheme {
+                CompositionLocalProvider(LocalClipboard provides clipboard) {
+                    StreamAddressesContent(listOf(address()), null, false, true, {}, {}, messages::add)
+                }
+            }
+        }
+
+        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_description, PLAIN_URL)).performClick()
+        assertClipboard(clipboard, PLAIN_URL)
+        compose.runOnIdle {
+            assertEquals(if (Build.VERSION.SDK_INT < 33) listOf(text(R.string.mjpeg_address_copied)) else emptyList<String>(), messages)
+        }
+        copyMenuLink(R.string.mjpeg_address_copy_jpeg)
+        assertClipboard(clipboard, "http://192.168.1.10:9000/jpeg")
+        compose.runOnIdle {
+            assertEquals(if (Build.VERSION.SDK_INT < 33) List(2) { text(R.string.mjpeg_address_copied) } else emptyList<String>(), messages)
+        }
+    }
+
+    @Test
     fun retryUsesSuppliedServerIdentityAndOnlyGrantDenialUsesThePermissionCapability() {
         val firstId = Uuid.random()
         val replacementId = Uuid.random()
-        val row = mutableStateOf(address(serverId = firstId, status = UiController.ServerStatus.Failed(UiController.ServerFailureReason.AddressInUse)))
+        val row = mutableStateOf(address(serverId = firstId, status = UiController.ServerStatus.Failed(UiController.ServerFailureReason.AddressUnavailable)))
         val retries = mutableListOf<Uuid>()
         val permissions = RecordingRuntimePermissions()
         compose.setContent {

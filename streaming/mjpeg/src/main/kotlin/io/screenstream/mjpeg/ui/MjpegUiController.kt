@@ -89,7 +89,6 @@ internal fun NetworkAddress.mapAddressServer(
             HttpDelivery.ServerState.Listening -> UiController.ServerStatus.Listening
             is HttpDelivery.ServerState.Failed -> UiController.ServerStatus.Failed(
                 when (state.reason) {
-                    HttpDelivery.ServerFailure.AddressInUse -> UiController.ServerFailureReason.AddressInUse
                     HttpDelivery.ServerFailure.AddressUnavailable -> UiController.ServerFailureReason.AddressUnavailable
                     HttpDelivery.ServerFailure.PermissionDenied -> UiController.ServerFailureReason.PermissionDenied
                     HttpDelivery.ServerFailure.IoFailure -> UiController.ServerFailureReason.IoFailure

@@ -1,7 +1,6 @@
 package io.screenstream.mjpeg.networkaddress
 
 import android.content.Context
-import android.content.ContextWrapper
 import android.net.ConnectivityManager
 import android.net.TetheringManager
 import android.os.SystemClock
@@ -261,19 +260,6 @@ internal class AndroidNetworkAddressCadenceTest {
     }
 
     private fun hostUptimeMillis(): Long = ManagementFactory.getRuntimeMXBean().uptime
-
-    private fun tetheringContext(): Context {
-        val application: Context = RuntimeEnvironment.getApplication()
-        val manager = Shadow.newInstanceOf(TetheringManager::class.java)
-        return object : ContextWrapper(application) {
-            override fun getApplicationContext(): Context = this
-            override fun getSystemServiceName(serviceClass: Class<*>): String? =
-                if (serviceClass == TetheringManager::class.java) TETHERING_SERVICE else super.getSystemServiceName(serviceClass)
-
-            override fun getSystemService(name: String): Any? =
-                if (name == TETHERING_SERVICE) manager else super.getSystemService(name)
-        }
-    }
 
     private val all = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
 }

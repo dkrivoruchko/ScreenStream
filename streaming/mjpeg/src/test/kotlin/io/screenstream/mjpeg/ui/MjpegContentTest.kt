@@ -1,10 +1,12 @@
 package io.screenstream.mjpeg.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -56,7 +58,11 @@ internal class MjpegContentTest {
         compose.runOnIdle { assertEquals(listOf(UiController.Command.Start), controller.commands) }
 
         compose.runOnIdle { controller.state.value = controller.state.value.copy(action = UiController.Action.Busy) }
-        compose.onNode(hasClickAction() and !isEnabled()).assertIsNotEnabled()
+        val busyIndicator = SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo)
+        compose.onNode(busyIndicator).assertExists()
+        compose.onNode(hasClickAction() and (busyIndicator or hasAnyDescendant(busyIndicator))).assertIsNotEnabled()
+        compose.onNodeWithText(start).assertDoesNotExist()
+        compose.onNodeWithText(stop).assertDoesNotExist()
         compose.runOnIdle { assertEquals(listOf(UiController.Command.Start), controller.commands) }
 
         val attempt = StreamingModule.CaptureAttemptId(controller.instanceId)

@@ -12,9 +12,12 @@ internal class NetworkAddressEvidenceTest {
         val fixtures = mapOf(
             "tun0" to InterfaceType.Vpn, "tap1" to InterfaceType.Vpn, "ppp0" to InterfaceType.Vpn,
             "wlan0" to InterfaceType.Wifi, "wifi1" to InterfaceType.Wifi, "p2p0" to InterfaceType.Wifi,
+            "softap0" to InterfaceType.Wifi, "softap.0" to InterfaceType.Wifi,
+            "ap_br_wlan0" to InterfaceType.Wifi, "ap_br_softap0" to InterfaceType.Wifi,
             "ap12" to InterfaceType.Wifi, "eth0" to InterfaceType.Ethernet,
             "rmnet_data0" to InterfaceType.Mobile, "ccmni0" to InterfaceType.Mobile, "pdp0" to InterfaceType.Mobile,
             "ap" to InterfaceType.Other, "ap2_extra" to InterfaceType.Other, "usb0" to InterfaceType.Other,
+            "v4-rmnet_data0" to InterfaceType.Other, "v4-wlan0" to InterfaceType.Other, "unknown0" to InterfaceType.Other,
         )
         for ((name, expected) in fixtures) assertEquals(name, expected, inferInterfaceType(name))
     }

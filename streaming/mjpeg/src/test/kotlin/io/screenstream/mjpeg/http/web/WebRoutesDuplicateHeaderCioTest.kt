@@ -7,8 +7,10 @@ import io.screenstream.mjpeg.http.CioHttpListener
 import io.screenstream.mjpeg.http.HttpAccess
 import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
 import io.screenstream.mjpeg.http.HttpListener
+import io.screenstream.mjpeg.http.HttpResponseHeaders
 import io.screenstream.mjpeg.http.httpTestContext
 import io.screenstream.mjpeg.http.httpTestProtection
+import io.screenstream.mjpeg.http.readHttpResponseHeaders
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
 import kotlinx.coroutines.Job
@@ -108,12 +110,7 @@ internal class WebRoutesDuplicateHeaderCioTest {
         }
         socket.getOutputStream().apply { write(request.toByteArray(Charsets.US_ASCII)); flush() }
         val status = line(input).split(' ')[1].toInt()
-        val fields = mutableMapOf<String, String>()
-        while (true) {
-            val field = line(input)
-            if (field.isEmpty()) break
-            fields[field.substringBefore(':').lowercase()] = field.substringAfter(':').trim()
-        }
+        val fields = readHttpResponseHeaders { line(input) }
         input.readBytes()
         Response(status, fields)
     }
@@ -132,7 +129,7 @@ internal class WebRoutesDuplicateHeaderCioTest {
         }
     }
 
-    private data class Response(val status: Int, val headers: Map<String, String>)
+    private data class Response(val status: Int, val headers: HttpResponseHeaders)
 
     private class Handler : WebRoutes.RequestHandler {
         private val gate = Any()

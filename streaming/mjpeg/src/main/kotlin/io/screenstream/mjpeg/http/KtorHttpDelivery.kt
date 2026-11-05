@@ -8,6 +8,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import io.screenstream.core.logE
+import io.screenstream.core.logW
 import io.screenstream.core.module.StreamingModule.CaptureAttemptId
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.http.HttpDelivery.Info
@@ -26,6 +27,7 @@ import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import io.screenstream.mjpeg.settings.WebPageSettings
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -45,7 +47,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.annotation.Factory
 import java.io.IOException
-import java.net.BindException
 import java.net.SocketException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -481,8 +482,10 @@ internal class KtorHttpDelivery(
         } catch (cause: Exception) {
             // A canceled physical engine can fail its await while this persistent owner is active.
             currentCoroutineContext().ensureActive()
+            if (cause !is CancellationException) {
+                logW("Http.listener", "HTTP listener failed at ${address.ip.hostAddress}:${entry.port}", cause)
+            }
             failure = when (cause) {
-                is BindException -> ServerFailure.AddressInUse
                 is SecurityException -> ServerFailure.PermissionDenied
                 is SocketException -> ServerFailure.AddressUnavailable
                 is IOException -> ServerFailure.IoFailure

@@ -65,7 +65,7 @@ internal fun assertHttpFailure(expected: Throwable, actual: Throwable?) {
     )
 }
 
-internal data class HttpJpegResponse(val status: Int, val headers: Map<String, String>, val bytes: ByteArray)
+internal data class HttpJpegResponse(val status: Int, val headers: HttpResponseHeaders, val bytes: ByteArray)
 
 internal fun requestHttpJpeg(port: Int, path: String = "/jpeg"): HttpJpegResponse = Socket().use { socket ->
     socket.soTimeout = 5_000
@@ -76,15 +76,7 @@ internal fun requestHttpJpeg(port: Int, path: String = "/jpeg"): HttpJpegRespons
     }
     val input = socket.getInputStream().buffered()
     val status = readJpegHeaderLine(input).split(' ')[1].toInt()
-    val headers = buildMap {
-        while (true) {
-            val line = readJpegHeaderLine(input)
-            if (line.isEmpty()) break
-            val separator = line.indexOf(':')
-            check(separator > 0)
-            put(line.substring(0, separator).lowercase(), line.substring(separator + 1).trim())
-        }
-    }
+    val headers = readHttpResponseHeaders { readJpegHeaderLine(input) }
     val length = checkNotNull(headers["content-length"]).toInt()
     require(length >= 0)
     val bytes = input.readNBytes(length)
