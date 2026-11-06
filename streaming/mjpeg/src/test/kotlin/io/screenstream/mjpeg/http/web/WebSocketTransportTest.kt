@@ -57,7 +57,7 @@ internal class WebSocketTransportTest {
         }
         try {
             fixture.start()
-            RawSocket(fixture.port).use { peer ->
+            RawWebSocketPeer(fixture.port).use { peer ->
                 assertTrue(checked.await(5, java.util.concurrent.TimeUnit.SECONDS))
                 fixture.handler.webState.value = fixture.handler.state("Skipped")
                 fixture.handler.webState.value = fixture.handler.state("Latest").copy(notice = "paused", imageKind = ImageKind.Retained)
@@ -71,7 +71,7 @@ internal class WebSocketTransportTest {
                 assertEquals("paused", latest.getString("notice"))
                 assertEquals("retained", latest.getString("imageKind"))
                 fixture.handler.webState.value = fixture.handler.state("Successor secret").copy(credentialGeneration = 1)
-                withTimeout(5.seconds) { fixture.completed.await() }
+                withTimeout(5.seconds) { fixture.callCompleted.await() }
                 assertTrue(peer.textUntilEnd().none { it.contains("Successor secret") })
             }
         } finally {
@@ -86,13 +86,13 @@ internal class WebSocketTransportTest {
         val fixture = Fixture()
         try {
             fixture.start()
-            RawSocket(fixture.port).use { peer ->
+            RawWebSocketPeer(fixture.port).use { peer ->
                 assertEquals(1, peer.readFrame().first)
-                val deadline = peer.deadlineAfter(12_000)
+                val deadline = peer.setReadDeadlineAfter(12_000)
                 // Ktor checks the declared length before collecting the body. No complete
                 // application message exists for the independent read-only policy to reject.
                 peer.sendUnfinishedBinaryFrame(4_097)
-                withTimeout(12.seconds) { fixture.completed.await() }
+                withTimeout(12.seconds) { fixture.callCompleted.await() }
                 peer.drainToEnd(deadline)
             }
         } finally {
@@ -106,9 +106,9 @@ internal class WebSocketTransportTest {
         val fixture = Fixture()
         try {
             fixture.start()
-            RawSocket(fixture.port).use { peer ->
+            RawWebSocketPeer(fixture.port).use { peer ->
                 assertEquals(1, peer.readFrame().first)
-                peer.deadlineAfter(5_000)
+                peer.setReadDeadlineAfter(5_000)
                 peer.send(2, ByteArray(4_096) { 1 }, fin = false)
                 val ping = byteArrayOf(7, 0, 9)
                 peer.send(9, ping)
@@ -116,9 +116,9 @@ internal class WebSocketTransportTest {
                 while (frame.first == 1) frame = peer.readFrame()
                 assertEquals(10, frame.first)
                 assertArrayEquals(ping, frame.second)
-                assertFalse(fixture.completed.isCompleted)
+                assertFalse(fixture.callCompleted.isCompleted)
                 peer.close()
-                withTimeout(5.seconds) { fixture.completed.await() }
+                withTimeout(5.seconds) { fixture.callCompleted.await() }
             }
         } finally {
             fixture.close()
@@ -131,10 +131,10 @@ internal class WebSocketTransportTest {
         val fixture = Fixture()
         try {
             fixture.start()
-            RawSocket(fixture.port).use { peer ->
+            RawWebSocketPeer(fixture.port).use { peer ->
                 assertEquals(1, peer.readFrame().first)
                 peer.close()
-                withTimeout(5.seconds) { fixture.completed.await() }
+                withTimeout(5.seconds) { fixture.callCompleted.await() }
             }
         } finally {
             fixture.close()
@@ -153,17 +153,17 @@ internal class WebSocketTransportTest {
         }
         try {
             fixture.start()
-            RawSocket(fixture.port).use { peer ->
+            RawWebSocketPeer(fixture.port).use { peer ->
                 assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS))
                 repeat(5) { peer.send(2, byteArrayOf(it.toByte())) }
                 release.countDown()
-                peer.deadlineAfter(5_000)
+                peer.setReadDeadlineAfter(5_000)
                 var frame = peer.readFrame()
                 while (frame.first != 8) frame = peer.readFrame()
                 val closeCode = ((frame.second[0].toInt() and 255) shl 8) or (frame.second[1].toInt() and 255)
                 assertEquals(1008, closeCode)
                 peer.send(8, frame.second)
-                withTimeout(5.seconds) { fixture.completed.await() }
+                withTimeout(5.seconds) { fixture.callCompleted.await() }
                 peer.drainToEnd()
             }
         } finally {
@@ -178,14 +178,14 @@ internal class WebSocketTransportTest {
         val fixture = Fixture(denied = true)
         try {
             fixture.start()
-            RawSocket(fixture.port).use { peer ->
+            RawWebSocketPeer(fixture.port).use { peer ->
                 val denial = peer.readFrame()
                 assertEquals(1, denial.first)
                 assertEquals("{\"access\":\"pin_required\"}", denial.second.decodeToString())
                 val close = peer.readFrame()
                 assertEquals(8, close.first)
                 assertEquals(1000, ((close.second[0].toInt() and 255) shl 8) or (close.second[1].toInt() and 255))
-                withTimeout(12.seconds) { fixture.completed.await() }
+                withTimeout(12.seconds) { fixture.callCompleted.await() }
                 peer.drainToEnd()
             }
         } finally {
@@ -199,7 +199,7 @@ internal class WebSocketTransportTest {
         val fixture = Fixture()
         try {
             fixture.start()
-            RawSocket(fixture.port, receiveBuffer = 1_024).use { peer ->
+            RawWebSocketPeer(fixture.port, receiveBuffer = 1_024).use { peer ->
                 val initial = peer.readFrame()
                 assertEquals(1, initial.first)
                 val snapshot = Json.parseToJsonElement(initial.second.decodeToString()).jsonObject
@@ -210,16 +210,16 @@ internal class WebSocketTransportTest {
                 fixture.handler.webState.value = fixture.handler.state("雪".repeat(80_000))
                 withTimeout(14.seconds) {
                     var revision = 0
-                    while (!fixture.completed.isCompleted) {
+                    while (!fixture.callCompleted.isCompleted) {
                         val finished = select {
-                            fixture.completed.onAwait { true }
-                            fixture.handler.sendCycles.onReceive { false }
+                            fixture.callCompleted.onAwait { true }
+                            fixture.handler.currentCheckEvents.onReceive { false }
                         }
                         if (finished) break
                         revision++
                         fixture.handler.webState.value = fixture.handler.state("雪".repeat(80_000) + revision)
                     }
-                    fixture.completed.await()
+                    fixture.callCompleted.await()
                 }
                 peer.drainToEnd()
             }
@@ -234,9 +234,9 @@ internal class WebSocketTransportTest {
         val fixture = Fixture()
         try {
             fixture.start()
-            RawSocket(fixture.port).use { peer ->
+            RawWebSocketPeer(fixture.port).use { peer ->
                 var pingSeen = false
-                val overallDeadline = peer.deadlineAfter(38_000)
+                val overallDeadlineUptimeMillis = peer.setReadDeadlineAfter(38_000)
                 withContext(Dispatchers.IO) {
                     fun readTextFrame(): ByteArray {
                         while (true) {
@@ -250,17 +250,17 @@ internal class WebSocketTransportTest {
                     }
 
                     val initialPayload = readTextFrame()
-                    val repeatDeadline = minOf(
-                        overallDeadline,
+                    val repeatDeadlineUptimeMillis = minOf(
+                        overallDeadlineUptimeMillis,
                         java.lang.management.ManagementFactory.getRuntimeMXBean().uptime + 5_000,
                     )
-                    peer.deadlineAt(repeatDeadline)
+                    peer.setReadDeadlineAt(repeatDeadlineUptimeMillis)
                     val initial = Json.parseToJsonElement(initialPayload.decodeToString()).jsonObject
                     assertEquals(setOf("access", "notice", "hasImage", "imageKind", "display"), initial.keys)
                     assertEquals("open", initial.getValue("access").jsonPrimitive.content)
                     val repeated = Json.parseToJsonElement(readTextFrame().decodeToString()).jsonObject
                     assertEquals(initial, repeated)
-                    peer.deadlineAt(overallDeadline)
+                    peer.setReadDeadlineAt(overallDeadlineUptimeMillis)
                     try {
                         while (true) {
                             val frame = peer.readFrame()
@@ -273,7 +273,7 @@ internal class WebSocketTransportTest {
                     }
                 }
                 assertTrue(pingSeen)
-                withTimeout(5.seconds) { fixture.completed.await() }
+                withTimeout(5.seconds) { fixture.callCompleted.await() }
             }
         } finally {
             fixture.close()
@@ -283,11 +283,11 @@ internal class WebSocketTransportTest {
     private class Fixture(denied: Boolean = false) {
         val port: Int = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { it.localPort }
         val parent = Job()
-        val completed = CompletableDeferred<Unit>()
+        val callCompleted = CompletableDeferred<Unit>()
         val handler = Handler(denied)
         val listener = CioHttpListener(parent, "127.0.0.1", port) { current ->
             intercept(ApplicationCallPipeline.Monitoring) {
-                checkNotNull(call.coroutineContext[Job]).invokeOnCompletion { completed.complete(Unit) }
+                checkNotNull(call.coroutineContext[Job]).invokeOnCompletion { callCompleted.complete(Unit) }
                 proceed()
             }
             WebRoutes(httpTestContext(), handler).installRoutes(this, current)
@@ -313,7 +313,7 @@ internal class WebSocketTransportTest {
     }
 
     private class Handler(private val denied: Boolean) : WebRoutes.RequestHandler {
-        val sendCycles = Channel<Unit>(Channel.UNLIMITED)
+        val currentCheckEvents = Channel<Unit>(Channel.UNLIMITED)
 
         @Volatile
         var beforeCurrentCheck: () -> Unit = {}
@@ -333,12 +333,13 @@ internal class WebSocketTransportTest {
 
         override fun isWebSocketCurrent(listener: HttpListener, credentialGeneration: Long): Boolean {
             beforeCurrentCheck()
-            sendCycles.trySend(Unit)
+            currentCheckEvents.trySend(Unit)
             return true
         }
     }
 
-    private class RawSocket(port: Int, receiveBuffer: Int = 8_192) : AutoCloseable {
+    private class RawWebSocketPeer(port: Int, receiveBuffer: Int = 8_192) : AutoCloseable {
+        private val runtimeMxBean = java.lang.management.ManagementFactory.getRuntimeMXBean()
         private val socket = Socket().also { connection ->
             try {
                 connection.receiveBufferSize = receiveBuffer
@@ -351,20 +352,20 @@ internal class WebSocketTransportTest {
         }
         private val input = socket.getInputStream().buffered()
         private val output = socket.getOutputStream()
-        private var deadlineMillis: Long? = null
+        private var readDeadlineUptimeMillis: Long? = null
 
-        fun deadlineAfter(millis: Long): Long {
-            val deadline = java.lang.management.ManagementFactory.getRuntimeMXBean().uptime + millis
-            deadlineAt(deadline)
+        fun setReadDeadlineAfter(millis: Long): Long {
+            val deadline = runtimeMxBean.uptime + millis
+            setReadDeadlineAt(deadline)
             return deadline
         }
 
-        fun deadlineAt(deadline: Long) {
-            deadlineMillis = deadline
+        fun setReadDeadlineAt(deadline: Long) {
+            readDeadlineUptimeMillis = deadline
         }
 
         private fun beforeRead() {
-            val remaining = deadlineMillis?.minus(java.lang.management.ManagementFactory.getRuntimeMXBean().uptime)
+            val remaining = readDeadlineUptimeMillis?.minus(runtimeMxBean.uptime)
             if (remaining != null && remaining <= 0) throw java.net.SocketTimeoutException("Overall peer read deadline expired")
             socket.soTimeout = minOf(40_000L, remaining ?: 40_000L).toInt().coerceAtLeast(1)
         }
@@ -435,7 +436,7 @@ internal class WebSocketTransportTest {
 
         fun textUntilEnd(): List<String> {
             val texts = mutableListOf<String>()
-            deadlineAfter(5_000)
+            setReadDeadlineAfter(5_000)
             try {
                 while (true) {
                     val frame = readFrame()
@@ -449,10 +450,13 @@ internal class WebSocketTransportTest {
         }
 
         fun drainToEnd(deadline: Long? = null) {
-            if (deadline == null) deadlineAfter(5_000) else deadlineAt(deadline)
+            if (deadline == null) setReadDeadlineAfter(5_000) else setReadDeadlineAt(deadline)
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
             try {
                 while (true) {
-                    beforeRead(); if (input.read() < 0) break
+                    beforeRead()
+                    val readableBytes = input.available().coerceIn(1, buffer.size)
+                    if (input.read(buffer, 0, readableBytes) < 0) break
                 }
             } catch (cause: java.io.IOException) {
                 if (cause is java.net.SocketTimeoutException) throw cause

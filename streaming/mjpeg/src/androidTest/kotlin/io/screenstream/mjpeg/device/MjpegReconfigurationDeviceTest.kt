@@ -36,13 +36,13 @@ internal class MjpegReconfigurationDeviceTest {
     val compose = createEmptyComposeRule()
 
     @Test
-    fun impossibleLiveCropSuspendsToPlaceholderAndValidTargetRecoversSameAttempt() = with(MjpegDeviceTestSupport(compose)) {
+    fun invalidCropShowsPlaceholderAndValidSettingsResumeSameAttempt() = with(MjpegDeviceTestSupport(compose)) {
         openHost().use { fixture ->
             val host = fixture.host
             val attempt = startCapture(host)
             awaitJpegTarget(host.port, green = false)
-            val submissions = host.submittedConsents.toList()
-            val reuses = host.reusedConsents.toList()
+            val submissions = host.systemConsentAttempts.toList()
+            val reuses = host.reusedConsentAttempts.toList()
             val logo = context.assets.open("mjpeg/screenstream-logo.jpg").use { it.readBytes() }
             MultipartViewer(host.port).use { stream ->
                 stream.awaitTarget(green = false)
@@ -53,19 +53,19 @@ internal class MjpegReconfigurationDeviceTest {
                         copy(image = image.copy(cropEnabled = true, cropInsets = CropInsetsPx(Int.MAX_VALUE, 0, 0, 0)))
                     }
                 }
-                await(host, "real invalid-geometry suspension selects the JPEG placeholder") {
+                awaitHostCondition(host, "real invalid-geometry suspension selects the JPEG placeholder") {
                     requestJpeg(host.port).contentEquals(logo)
                 }
                 stream.awaitFrame("placeholder after the live invalid crop") { it.contentEquals(logo) }
                 val suspension = context.getString(R.string.mjpeg_error_suspension_invalid_request)
                 compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(suspension))
                 compose.onNodeWithText(suspension).assertIsDisplayed()
-                assertEquals(attempt, running(host)?.status?.captureAttempt)
-                assertTrue("Confirmed capture remains streaming while its Engine is suspended", running(host)?.status?.isStreaming == true)
+                assertEquals(attempt, runningModule(host)?.status?.captureAttempt)
+                assertTrue("Confirmed capture remains streaming while its Engine is suspended", runningModule(host)?.status?.isStreaming == true)
                 assertTrue(serviceIsRunning())
                 assertTrue(canConnect(host.port))
 
-                compose.runOnUiThread { host.greenTarget.value = true }
+                compose.runOnUiThread { host.showGreenTarget.value = true }
                 runBlocking {
                     host.settings.updateData {
                         copy(
@@ -87,17 +87,17 @@ internal class MjpegReconfigurationDeviceTest {
                     dimensions(it) == (320 to 192) && matchesTarget(it, green = true)
                 }
                 saveJpegEvidence("crop-recovered-320x192", recoveredJpeg)
-                assertEquals(attempt, running(host)?.status?.captureAttempt)
-                assertTrue(running(host)?.status?.isStreaming == true)
-                assertEquals(submissions, host.submittedConsents.toList())
-                assertEquals(reuses, host.reusedConsents.toList())
-                assertExitAndReleased(host, stream)
+                assertEquals(attempt, runningModule(host)?.status?.captureAttempt)
+                assertTrue(runningModule(host)?.status?.isStreaming == true)
+                assertEquals(submissions, host.systemConsentAttempts.toList())
+                assertEquals(reuses, host.reusedConsentAttempts.toList())
+                exitAndAssertResourcesReleased(host, stream)
             }
         }
     }
 
     @Test
-    fun actualDisplayRotationChangesDecodedGeometryAndRestorationKeepsSameCaptureAndViewer() = with(MjpegDeviceTestSupport(compose)) {
+    fun displayRotationUpdatesJpegGeometryWithoutReplacingCaptureOrViewer() = with(MjpegDeviceTestSupport(compose)) {
         val resolver = context.contentResolver
         val originalAutoRotate = Settings.System.getInt(resolver, Settings.System.ACCELEROMETER_ROTATION, 0)
         val originalUserRotation = Settings.System.getInt(resolver, Settings.System.USER_ROTATION, 0)
@@ -109,65 +109,68 @@ internal class MjpegReconfigurationDeviceTest {
                 // At 100%, expected JPEG dimensions are independently read platform pixels, with
                 // no rounding/topology calculation borrowed from the Engine's output observations.
                 val attempt = startCapture(host)
-                val initial = displayGeometry(this)
+                val initialDisplay = displayGeometry(this)
                 val initialJpeg = awaitJpeg(
                     host.port, "rotation-initial", "initial decoded full-display geometry",
-                    details = { "expectedPlatform=$initial; actualPlatform=${displayGeometry(this)}" },
+                    details = { "expectedPlatform=$initialDisplay; actualPlatform=${displayGeometry(this)}" },
                 ) { jpeg ->
-                    dimensions(jpeg) == (initial.width to initial.height) && matchesTarget(jpeg, green = false)
+                    dimensions(jpeg) == (initialDisplay.width to initialDisplay.height) && matchesTarget(jpeg, green = false)
                 }
                 saveJpegEvidence("rotation-initial", initialJpeg)
                 lateinit var initialActivity: WeakReference<MjpegCaptureTestActivity>
                 fixture.scenario.onActivity { initialActivity = WeakReference(it) }
-                val submissions = host.submittedConsents.toList()
-                val reuses = host.reusedConsents.toList()
+                val submissions = host.systemConsentAttempts.toList()
+                val reuses = host.reusedConsentAttempts.toList()
                 MultipartViewer(host.port).use { stream ->
                     stream.awaitFrame("initial full-display multipart target") {
-                        dimensions(it) == (initial.width to initial.height) && matchesTarget(it, green = false)
+                        dimensions(it) == (initialDisplay.width to initialDisplay.height) && matchesTarget(it, green = false)
                     }
-                    val nextRotation = (initial.rotation + 1) % 4
+                    val nextRotation = (initialDisplay.rotation + 1) % 4
                     assertTrue("Android rejected the real display rotation", instrumentation.uiAutomation.setRotation(nextRotation))
-                    await(host, "actual platform display geometry change (ignored rotation is not coverage)") {
+                    awaitHostCondition(host, "actual platform display geometry change (ignored rotation is not coverage)") {
                         val actual = displayGeometry(this)
-                        actual.rotation == nextRotation && actual.width == initial.height && actual.height == initial.width &&
-                                actual.width != initial.width
+                        actual.rotation == nextRotation && actual.width == initialDisplay.height && actual.height == initialDisplay.width &&
+                                actual.width != initialDisplay.width
                     }
-                    val rotated = displayGeometry(this)
-                    assertNotEquals(initial.width to initial.height, rotated.width to rotated.height)
+                    val rotatedDisplay = displayGeometry(this)
+                    assertNotEquals(initialDisplay.width to initialDisplay.height, rotatedDisplay.width to rotatedDisplay.height)
                     val rotatedJpeg = awaitJpeg(
                         host.port, "rotation-changed", "rotated decoded JPEG geometry and asymmetric target",
-                        details = { "expectedPlatform=$rotated; actualPlatform=${displayGeometry(this)}" },
+                        details = { "expectedPlatform=$rotatedDisplay; actualPlatform=${displayGeometry(this)}" },
                     ) { jpeg ->
-                        dimensions(jpeg) == (rotated.width to rotated.height) && matchesTarget(jpeg, green = false)
+                        dimensions(jpeg) == (rotatedDisplay.width to rotatedDisplay.height) && matchesTarget(jpeg, green = false)
                     }
                     stream.awaitFrame("rotated geometry on the original multipart connection") {
-                        dimensions(it) == (rotated.width to rotated.height) && matchesTarget(it, green = false)
+                        dimensions(it) == (rotatedDisplay.width to rotatedDisplay.height) && matchesTarget(it, green = false)
                     }
                     saveJpegEvidence("rotation-changed", rotatedJpeg)
                     fixture.scenario.onActivity {
                         assertNotSame("Actual display rotation must recreate the test Activity", initialActivity.get(), it)
                     }
                     saveTextEvidence("rotation-activity-recreation", "ActivityScenario observed a new Activity instance after actual display rotation.\n")
-                    assertEquals(attempt, running(host)?.status?.captureAttempt)
-                    assertTrue("Android rejected restoration to the initial display rotation", instrumentation.uiAutomation.setRotation(initial.rotation))
-                    await(host, "platform geometry restored") {
-                        displayGeometry(this).let { it.width == initial.width && it.height == initial.height && it.rotation == initial.rotation }
+                    assertEquals(attempt, runningModule(host)?.status?.captureAttempt)
+                    assertTrue(
+                        "Android rejected restoration to the initial display rotation",
+                        instrumentation.uiAutomation.setRotation(initialDisplay.rotation)
+                    )
+                    awaitHostCondition(host, "platform geometry restored") {
+                        displayGeometry(this).let { it.width == initialDisplay.width && it.height == initialDisplay.height && it.rotation == initialDisplay.rotation }
                     }
-                    compose.runOnUiThread { host.greenTarget.value = true }
+                    compose.runOnUiThread { host.showGreenTarget.value = true }
                     val restoredJpeg = awaitJpeg(
                         host.port, "rotation-restored-green", "fresh decoded progress after restoring orientation",
-                        details = { "expectedPlatform=$initial; actualPlatform=${displayGeometry(this)}" },
+                        details = { "expectedPlatform=$initialDisplay; actualPlatform=${displayGeometry(this)}" },
                     ) { jpeg ->
-                        dimensions(jpeg) == (initial.width to initial.height) && matchesTarget(jpeg, green = true)
+                        dimensions(jpeg) == (initialDisplay.width to initialDisplay.height) && matchesTarget(jpeg, green = true)
                     }
                     stream.awaitFrame("fresh restored target on the same multipart connection") {
-                        dimensions(it) == (initial.width to initial.height) && matchesTarget(it, green = true)
+                        dimensions(it) == (initialDisplay.width to initialDisplay.height) && matchesTarget(it, green = true)
                     }
                     saveJpegEvidence("rotation-restored-green", restoredJpeg)
-                    assertEquals(attempt, running(host)?.status?.captureAttempt)
-                    assertEquals(submissions, host.submittedConsents.toList())
-                    assertEquals(reuses, host.reusedConsents.toList())
-                    assertExitAndReleased(host, stream)
+                    assertEquals(attempt, runningModule(host)?.status?.captureAttempt)
+                    assertEquals(submissions, host.systemConsentAttempts.toList())
+                    assertEquals(reuses, host.reusedConsentAttempts.toList())
+                    exitAndAssertResourcesReleased(host, stream)
                 }
             }
         } catch (failure: Throwable) {

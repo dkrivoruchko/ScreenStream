@@ -7,8 +7,7 @@ MJPEG mode lets other people watch your Android screen in an ordinary web browse
 ## What you can do
 
 - **Watch in a web browser**
-  - Viewers open a link, scan a QR code or type the address the app shows.
-  - Viewers just open the link to start watching. The viewer page reconnects by itself after short interruptions.
+  - Viewers open a link, scan a QR code or type the address the app shows. The viewer page reconnects by itself after short interruptions.
   - Viewers can fit the picture to the window, show it at original size or fill the width. Full screen and picture in picture work where the browser supports them.
   - If a picture loads poorly, viewers can switch from the continuous MJPEG stream to separate JPEG pictures.
   - Other software that can show MJPEG or JPEG web addresses can use direct stream and image links.

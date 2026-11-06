@@ -11,7 +11,7 @@ let mutating = false;
 let mutationVersion = 0;
 let pollPending = false;
 let pollTimer;
-let savedAppearance = null;
+let savedAppearanceJson = null;
 let appearanceTimer;
 let pendingAppearance = null;
 let viewerStarted = false;
@@ -132,14 +132,14 @@ function fillAppearance(value) {
         byId(kind + '-presentation').value = layout.presentation;
         byId(kind + '-autohide').checked = layout.autoHide;
     }
-    savedAppearance = JSON.stringify(readAppearance());
+    savedAppearanceJson = JSON.stringify(readAppearance());
     updateAutoHide();
 }
 
 function validBackground() { return /^#[0-9a-fA-F]{6}$/.test(byId('background-hex').value.trim()); }
 
 function scheduleAppearance(delay) {
-    if (savedAppearance === null) return;
+    if (savedAppearanceJson === null) return;
     clearTimeout(appearanceTimer);
     appearanceTimer = null;
     pendingAppearance = null;
@@ -159,10 +159,10 @@ async function saveAppearance() {
     if (!pendingAppearance || mutating || !state) return;
     const appearance = pendingAppearance;
     pendingAppearance = null;
-    const snapshot = JSON.stringify(appearance);
-    if (snapshot === savedAppearance) return;
+    const appearanceJson = JSON.stringify(appearance);
+    if (appearanceJson === savedAppearanceJson) return;
     if (await change('appearance', appearance)) {
-        savedAppearance = snapshot;
+        savedAppearanceJson = appearanceJson;
         byId('appearance-message').hidden = true;
     }
 }
@@ -170,7 +170,7 @@ async function saveAppearance() {
 // Rendering never reloads the viewer: state and media update through its real protocol.
 function renderState(value) {
     // Accept shared changes only while the form still matches its last saved draft.
-    const cleanAppearance = savedAppearance === null || (!appearanceTimer && !pendingAppearance && JSON.stringify(readAppearance()) === savedAppearance);
+    const cleanAppearance = savedAppearanceJson === null || (!appearanceTimer && !pendingAppearance && JSON.stringify(readAppearance()) === savedAppearanceJson);
     state = value;
     if (cleanAppearance) fillAppearance(value.appearance);
     setOnline(true);

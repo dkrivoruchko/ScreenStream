@@ -144,8 +144,8 @@ internal class HttpRequestHistoryTest {
 
     private class RequestHistoryFixture {
         val requests = HttpRequests()
-        val oldListener = UnstartedHttpListener()
-        val currentListener = UnstartedHttpListener()
+        val oldListener = UnstartedHttpListenerFixture()
+        val currentListener = UnstartedHttpListenerFixture()
         val serverId: Uuid = Uuid.random()
         val webJob: Job = Job()
         val jobs = mutableListOf(webJob)
@@ -159,7 +159,7 @@ internal class HttpRequestHistoryTest {
             ip: String = "192.0.2.1",
             format: MediaFormat = MediaFormat.Jpeg,
             nowMillis: Long = 0,
-        ): Media {
+        ): RegisteredMediaRequest {
             val store = JpegStore().apply {
                 installLogo(byteArrayOf(1, 2, 3))
                 updateFallbackPolicy(PostStopImage.Placeholder)
@@ -170,7 +170,7 @@ internal class HttpRequestHistoryTest {
             writers += writer
             val job = Job().also(jobs::add)
             requests.registerMedia(writer, listener, serverId, ip, port, job, nowMillis)
-            return Media(writer, reader, job)
+            return RegisteredMediaRequest(writer, reader, job)
         }
 
         fun sample(nowMillis: Long, listeners: Set<HttpListener> = setOf(oldListener.listener)): HttpRequests.Sample =
@@ -189,5 +189,5 @@ internal class HttpRequestHistoryTest {
         }
     }
 
-    private data class Media(val writer: JpegResponse, val reader: JpegStore.Reader, val job: Job)
+    private data class RegisteredMediaRequest(val writer: JpegResponse, val reader: JpegStore.Reader, val job: Job)
 }

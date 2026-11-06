@@ -22,7 +22,7 @@ import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.networkaddress.NetworkAddressInventory
-import io.screenstream.mjpeg.savedSettingsJson
+import io.screenstream.mjpeg.readSavedSettingsJson
 import io.screenstream.mjpeg.seedSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -56,7 +56,7 @@ internal class MjpegSettingsMigrationTest {
     val temporaryFolder: TemporaryFolder = TemporaryFolder()
 
     @Before
-    fun initialize() {
+    fun initializeLoggerAndDevice() {
         XLog.init(Int.MAX_VALUE)
         ShadowBuild.setManufacturer("Acme")
         ShadowBuild.setModel("Tablet")
@@ -64,10 +64,10 @@ internal class MjpegSettingsMigrationTest {
 
     // Cases: MJPEG-SET-12
     @Test
-    fun actualLegacyValuesBecomeValidNondefaultSettingsWithoutSavingSyntheticTitle() = runBlocking {
+    fun legacyPreferencesImportNondefaultSettingsWithoutSavingDeviceTitle() = runBlocking {
         withTimeout(10.seconds) {
-            val context = context()
-            seedLegacy(
+            val context = newSettingsContext()
+            seedLegacyPreferences(
                 context, preferencesOf(
                     intPreferencesKey("JPEG_QUALITY") to 42,
                     intPreferencesKey("MAX_FPS") to -5,
@@ -107,11 +107,11 @@ internal class MjpegSettingsMigrationTest {
             assertEquals("#123456", actual.web.background)
             assertEquals("Acme Tablet", actual.web.title)
             assertEquals(StreamBehaviorSettings(true, true, 60, StreamBehaviorSettings.PostStopImage.LastAvailableFrame, false), actual.behavior)
-            val saved = Json.parseToJsonElement(savedSettingsJson(context)).jsonObject
+            val saved = Json.parseToJsonElement(readSavedSettingsJson(context)).jsonObject
             assertFalse(saved.getValue("web").jsonObject.containsKey("title"))
             assertFalse(saved.getValue("image").jsonObject.containsKey("scalePercent"))
             assertFalse(saved.getValue("access").jsonObject.containsKey("blockMinutes"))
-            assertConsumed(context)
+            assertLegacySourceConsumed(context)
         }
     }
 
@@ -144,11 +144,11 @@ internal class MjpegSettingsMigrationTest {
                 ),
             )
             for (source in fixtures) {
-                val context = context()
-                if (source != null) seedLegacy(context, source)
+                val context = newSettingsContext()
+                if (source != null) seedLegacyPreferences(context, source)
                 assertEquals(defaults(), MjpegSettings(context).data.first())
                 assertFalse(savedPreferences(context).asMap().keys.any { it.name == "DATA" })
-                assertConsumed(context)
+                assertLegacySourceConsumed(context)
             }
         }
     }
@@ -163,8 +163,8 @@ internal class MjpegSettingsMigrationTest {
                 preferencesOf(intPreferencesKey("IMAGE_CROP") to 1),
             )
             for (invalid in invalidCrops) {
-                val context = context()
-                seedLegacy(
+                val context = newSettingsContext()
+                seedLegacyPreferences(
                     context, merged(
                         preferencesOf(
                             booleanPreferencesKey("IMAGE_CROP") to true,
@@ -184,8 +184,8 @@ internal class MjpegSettingsMigrationTest {
                 preferencesOf(intPreferencesKey("RESOLUTION_STRETCH") to 1),
             )
             for (invalid in invalidTargets) {
-                val context = context()
-                seedLegacy(
+                val context = newSettingsContext()
+                seedLegacyPreferences(
                     context, merged(
                         preferencesOf(
                             intPreferencesKey("RESOLUTION_WIDTH") to 640,
@@ -209,8 +209,8 @@ internal class MjpegSettingsMigrationTest {
     fun targetsSwapOrientedBoundsUseNewContentDefaultAndRetainDormantScaleAndCrop() = runBlocking {
         withTimeout(10.seconds) {
             for ((rotation, expectedWidth, expectedHeight) in listOf(Triple(0, 640, 360), Triple(90, 360, 640), Triple(180, 640, 360), Triple(270, 360, 640))) {
-                val context = context()
-                seedLegacy(
+                val context = newSettingsContext()
+                seedLegacyPreferences(
                     context, preferencesOf(
                         intPreferencesKey("RESOLUTION_WIDTH") to 640,
                         intPreferencesKey("RESOLUTION_HEIGHT") to 360,
@@ -226,8 +226,8 @@ internal class MjpegSettingsMigrationTest {
                 assertFalse(image.cropEnabled)
                 assertEquals(CropInsetsPx(0, 0, 7, 0), image.cropInsets)
             }
-            val stretched = context()
-            seedLegacy(
+            val stretched = newSettingsContext()
+            seedLegacyPreferences(
                 stretched, preferencesOf(
                     intPreferencesKey("RESOLUTION_WIDTH") to 640,
                     intPreferencesKey("RESOLUTION_HEIGHT") to 360,
@@ -235,8 +235,8 @@ internal class MjpegSettingsMigrationTest {
                 )
             )
             assertEquals(OutputSize.ContentMode.Stretch, MjpegSettings(stretched).data.first().image.targetSize?.contentMode)
-            val partial = context()
-            seedLegacy(partial, preferencesOf(intPreferencesKey("RESOLUTION_WIDTH") to 640))
+            val partial = newSettingsContext()
+            seedLegacyPreferences(partial, preferencesOf(intPreferencesKey("RESOLUTION_WIDTH") to 640))
             assertEquals(null, MjpegSettings(partial).data.first().image.targetSize)
             assertFalse(savedPreferences(partial).asMap().keys.any { it.name == "DATA" })
         }
@@ -253,8 +253,8 @@ internal class MjpegSettingsMigrationTest {
                 preferencesOf(stringPreferencesKey("ADDRESS_FILTER") to "4"),
             )
             for (invalid in invalidMembers) {
-                val context = context()
-                seedLegacy(
+                val context = newSettingsContext()
+                seedLegacyPreferences(
                     context, merged(
                         preferencesOf(
                             intPreferencesKey("INTERFACE_FILTER") to 2,
@@ -267,7 +267,7 @@ internal class MjpegSettingsMigrationTest {
                 val actual = MjpegSettings(context).data.first().network
                 assertEquals(NetworkSettings().filter, actual.filter)
                 assertEquals(9000, actual.httpPort)
-                assertFalse(Json.parseToJsonElement(savedSettingsJson(context)).jsonObject.getValue("network").jsonObject.containsKey("filter"))
+                assertFalse(Json.parseToJsonElement(readSavedSettingsJson(context)).jsonObject.getValue("network").jsonObject.containsKey("filter"))
             }
         }
     }
@@ -276,8 +276,8 @@ internal class MjpegSettingsMigrationTest {
     @Test
     fun zeroMasksAndActualFamilyFlagsMapWithoutAddingLinkLocal() = runBlocking {
         withTimeout(10.seconds) {
-            val context = context()
-            seedLegacy(
+            val context = newSettingsContext()
+            seedLegacyPreferences(
                 context, preferencesOf(
                     intPreferencesKey("INTERFACE_FILTER") to 0,
                     intPreferencesKey("ADDRESS_FILTER") to 0,
@@ -294,19 +294,19 @@ internal class MjpegSettingsMigrationTest {
 
     // Cases: MJPEG-SET-12
     @Test
-    fun historicalFiltersConvertOnlyWhenModernKeysAreRawAbsent() = runBlocking {
+    fun historicalFiltersConvertOnlyWhenModernKeysAreAbsent() = runBlocking {
         withTimeout(10.seconds) {
             val historical = preferencesOf(
                 booleanPreferencesKey("USE_WIFI_ONLY") to true,
                 booleanPreferencesKey("LOCAL_HOST_ONLY") to false,
             )
-            val legacyOnly = context()
-            seedLegacy(legacyOnly, historical)
+            val legacyOnly = newSettingsContext()
+            seedLegacyPreferences(legacyOnly, historical)
             val filter = MjpegSettings(legacyOnly).data.first().network.filter
             assertEquals(setOf(InterfaceType.Wifi), filter.interfaceTypes)
             assertEquals(setOf(AddressCategory.Private, AddressCategory.NonPrivate), filter.categories)
-            val modern = context()
-            seedLegacy(
+            val modern = newSettingsContext()
+            seedLegacyPreferences(
                 modern, merged(
                     historical, preferencesOf(
                         intPreferencesKey("INTERFACE_FILTER") to 4,
@@ -317,11 +317,11 @@ internal class MjpegSettingsMigrationTest {
             val modernFilter = MjpegSettings(modern).data.first().network.filter
             assertEquals(setOf(InterfaceType.Ethernet), modernFilter.interfaceTypes)
             assertEquals(setOf(AddressCategory.Private), modernFilter.categories)
-            val invalidModern = context()
-            seedLegacy(invalidModern, merged(historical, preferencesOf(stringPreferencesKey("INTERFACE_FILTER") to "4")))
+            val invalidModern = newSettingsContext()
+            seedLegacyPreferences(invalidModern, merged(historical, preferencesOf(stringPreferencesKey("INTERFACE_FILTER") to "4")))
             assertEquals(NetworkSettings().filter, MjpegSettings(invalidModern).data.first().network.filter)
-            val invalidHistorical = context()
-            seedLegacy(invalidHistorical, merged(historical, preferencesOf(stringPreferencesKey("ENABLE_LOCAL_HOST") to "true")))
+            val invalidHistorical = newSettingsContext()
+            seedLegacyPreferences(invalidHistorical, merged(historical, preferencesOf(stringPreferencesKey("ENABLE_LOCAL_HOST") to "true")))
             assertEquals(NetworkSettings().filter, MjpegSettings(invalidHistorical).data.first().network.filter)
         }
     }
@@ -336,8 +336,8 @@ internal class MjpegSettingsMigrationTest {
                 121 to FrameRate.Auto, -3601 to FrameRate.Auto, Int.MIN_VALUE to FrameRate.Auto,
             )
             for ((legacy, expected) in fixtures) {
-                val context = context()
-                seedLegacy(context, preferencesOf(intPreferencesKey("MAX_FPS") to legacy))
+                val context = newSettingsContext()
+                seedLegacyPreferences(context, preferencesOf(intPreferencesKey("MAX_FPS") to legacy))
                 assertEquals(expected, MjpegSettings(context).data.first().image.frameRate)
             }
         }
@@ -348,21 +348,21 @@ internal class MjpegSettingsMigrationTest {
     fun existingPayloadWinsEvenWhenInvalidAndConsumesLegacySource() = runBlocking {
         withTimeout(10.seconds) {
             for (payload in listOf("""{"web":{"title":"Existing"},"network":{"httpPort":9500}}""", "not json")) {
-                val context = context()
-                seedLegacy(context, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
+                val context = newSettingsContext()
+                seedLegacyPreferences(context, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
                 seedSettings(context, payload)
                 val expected = if (payload == "not json") defaults() else defaults().copy(
                     network = NetworkSettings(httpPort = 9500),
                     web = WebPageSettings(title = "Existing")
                 )
                 assertEquals(expected, MjpegSettings(context).data.first())
-                assertConsumed(context)
+                assertLegacySourceConsumed(context)
             }
-            val wrongType = context()
-            seedLegacy(wrongType, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
+            val wrongType = newSettingsContext()
+            seedLegacyPreferences(wrongType, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
             writePreferences(wrongType.preferencesDataStoreFile("mjpeg"), preferencesOf(booleanPreferencesKey("DATA") to true))
             assertEquals(defaults(), MjpegSettings(wrongType).data.first())
-            assertConsumed(wrongType)
+            assertLegacySourceConsumed(wrongType)
         }
     }
 
@@ -370,18 +370,18 @@ internal class MjpegSettingsMigrationTest {
     @Test
     fun consumedSourcePreventsRepeatUnlessLegacyFileIsRecreated() = runBlocking {
         withTimeout(10.seconds) {
-            val context = context()
-            seedLegacy(context, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
+            val context = newSettingsContext()
+            seedLegacyPreferences(context, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
             assertEquals(9000, MjpegSettings(context).data.first().network.httpPort)
-            assertConsumed(context)
-            val fresh = copyDestination(context)
+            assertLegacySourceConsumed(context)
+            val fresh = copySavedPreferencesToNewContext(context)
             assertEquals(9000, MjpegSettings(fresh).data.first().network.httpPort)
             // A recreated/restored source is another attempt, with no marker suppressing it.
-            val replaced = context()
-            seedLegacy(replaced, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
+            val replaced = newSettingsContext()
+            seedLegacyPreferences(replaced, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
             writePreferences(replaced.preferencesDataStoreFile("mjpeg"), emptyPreferences())
             assertEquals(9000, MjpegSettings(replaced).data.first().network.httpPort)
-            assertConsumed(replaced)
+            assertLegacySourceConsumed(replaced)
         }
     }
 
@@ -389,12 +389,12 @@ internal class MjpegSettingsMigrationTest {
     @Test
     fun corruptSourceIsDeletedWithoutImport() = runBlocking {
         withTimeout(10.seconds) {
-            val context = context()
+            val context = newSettingsContext()
             val source = context.preferencesDataStoreFile("MJPEG_settings")
             check(source.parentFile!!.mkdirs())
             source.writeBytes(byteArrayOf(0))
             assertEquals(defaults(), MjpegSettings(context).data.first())
-            assertConsumed(context)
+            assertLegacySourceConsumed(context)
             assertFalse(savedPreferences(context).asMap().keys.any { it.name == "DATA" })
         }
     }
@@ -403,17 +403,17 @@ internal class MjpegSettingsMigrationTest {
     @Test
     fun sourceReadAndDestinationWriteFailuresConsumeSourceAndCannotRetryImport() = runBlocking {
         withTimeout(10.seconds) {
-            val unreadable = context()
+            val unreadable = newSettingsContext()
             val source = unreadable.preferencesDataStoreFile("MJPEG_settings")
             check(source.mkdirs())
             val settings = MjpegSettings(unreadable)
             assertThrows(IOException::class.java) { runBlocking { settings.updateData { this } } }
             assertFalse(unreadable.preferencesDataStoreFile("mjpeg").exists())
-            assertConsumed(unreadable)
+            assertLegacySourceConsumed(unreadable)
             assertEquals(defaults(), settings.data.first())
 
-            val blocked = context()
-            seedLegacy(blocked, preferencesOf(intPreferencesKey("SERVER_PORT") to 9100))
+            val blocked = newSettingsContext()
+            seedLegacyPreferences(blocked, preferencesOf(intPreferencesKey("SERVER_PORT") to 9100))
             val destination = blocked.preferencesDataStoreFile("mjpeg")
             val scratch = File(destination.absolutePath + ".tmp")
             check(scratch.mkdir())
@@ -421,7 +421,7 @@ internal class MjpegSettingsMigrationTest {
             val retrying = MjpegSettings(blocked)
             assertThrows(IOException::class.java) { runBlocking { retrying.updateData { this } } }
             assertFalse(destination.exists())
-            assertConsumed(blocked)
+            assertLegacySourceConsumed(blocked)
             check(obstacle.delete())
             check(scratch.delete())
             assertEquals(defaults(), retrying.data.first())
@@ -432,7 +432,7 @@ internal class MjpegSettingsMigrationTest {
     // Cases: MJPEG-SET-12
     @Test
     fun exactDeletionFailureIsVisibleAndPreservesPrimaryReadFailure() {
-        val context = context()
+        val context = newSettingsContext()
         val source = context.preferencesDataStoreFile("MJPEG_settings")
         check(source.mkdirs())
         val child = File(source, "must-not-delete-recursively").apply { writeText("Fixture storage fault") }
@@ -455,16 +455,16 @@ internal class MjpegSettingsMigrationTest {
         withTimeout(20.seconds) {
             val interfaceBits = listOf(1 to InterfaceType.Wifi, 2 to InterfaceType.Mobile, 4 to InterfaceType.Ethernet, 8 to InterfaceType.Vpn)
             for (mask in 0..15) {
-                val context = context()
-                seedLegacy(context, preferencesOf(intPreferencesKey("INTERFACE_FILTER") to mask))
+                val context = newSettingsContext()
+                seedLegacyPreferences(context, preferencesOf(intPreferencesKey("INTERFACE_FILTER") to mask))
                 val expected =
                     if (mask == 0) InterfaceType.entries.toSet() else interfaceBits.filter { (bit, _) -> mask and bit != 0 }.map { it.second }.toSet()
                 assertEquals("Interface mask $mask", expected, MjpegSettings(context).data.first().network.filter.interfaceTypes)
             }
             val categoryBits = listOf(1 to AddressCategory.Private, 2 to AddressCategory.Loopback, 4 to AddressCategory.NonPrivate)
             for (mask in 0..7) {
-                val context = context()
-                seedLegacy(context, preferencesOf(intPreferencesKey("ADDRESS_FILTER") to mask))
+                val context = newSettingsContext()
+                seedLegacyPreferences(context, preferencesOf(intPreferencesKey("ADDRESS_FILTER") to mask))
                 val expected =
                     if (mask == 0) categoryBits.map { it.second }.toSet() else categoryBits.filter { (bit, _) -> mask and bit != 0 }.map { it.second }.toSet()
                 assertEquals("Address mask $mask", expected, MjpegSettings(context).data.first().network.filter.categories)
@@ -475,8 +475,11 @@ internal class MjpegSettingsMigrationTest {
                 preferencesOf(intPreferencesKey("ADDRESS_FILTER") to 8),
                 preferencesOf(stringPreferencesKey("ENABLE_IPV4") to "false"),
             )) {
-                val context = context()
-                seedLegacy(context, merged(preferencesOf(intPreferencesKey("SERVER_PORT") to 9000, booleanPreferencesKey("ENABLE_IPV6") to true), invalid))
+                val context = newSettingsContext()
+                seedLegacyPreferences(
+                    context,
+                    merged(preferencesOf(intPreferencesKey("SERVER_PORT") to 9000, booleanPreferencesKey("ENABLE_IPV6") to true), invalid)
+                )
                 val network = MjpegSettings(context).data.first().network
                 assertEquals(NetworkSettings.DEFAULT_FILTER, network.filter)
                 assertEquals(9000, network.httpPort)
@@ -491,8 +494,8 @@ internal class MjpegSettingsMigrationTest {
             for (wifiOnly in listOf(false, true)) {
                 for (localhostOnly in listOf(false, true)) {
                     for (enableLocalhost in listOf(false, true)) {
-                        val context = context()
-                        seedLegacy(
+                        val context = newSettingsContext()
+                        seedLegacyPreferences(
                             context, preferencesOf(
                                 booleanPreferencesKey("USE_WIFI_ONLY") to wifiOnly,
                                 booleanPreferencesKey("LOCAL_HOST_ONLY") to localhostOnly,
@@ -515,8 +518,8 @@ internal class MjpegSettingsMigrationTest {
                     }
                 }
             }
-            val ignored = context()
-            seedLegacy(
+            val ignored = newSettingsContext()
+            seedLegacyPreferences(
                 ignored, preferencesOf(
                     intPreferencesKey("INTERFACE_FILTER") to 8,
                     intPreferencesKey("ADDRESS_FILTER") to 4,
@@ -549,8 +552,8 @@ internal class MjpegSettingsMigrationTest {
                 preferencesOf(booleanPreferencesKey("LOCAL_HOST_ONLY") to true),
             )) {
                 for ((interfacePreferences, expectedInterfaces) in interfaceCases) {
-                    val context = context()
-                    seedLegacy(context, merged(interfacePreferences, addressPreferences))
+                    val context = newSettingsContext()
+                    seedLegacyPreferences(context, merged(interfacePreferences, addressPreferences))
                     val filter = MjpegSettings(context).data.first().network.filter
                     assertEquals(expectedInterfaces + InterfaceType.Other, filter.interfaceTypes)
                     assertEquals(setOf(AddressCategory.Loopback), filter.categories)
@@ -558,8 +561,8 @@ internal class MjpegSettingsMigrationTest {
                 }
             }
             for (mask in listOf(0, 3, 6, 7)) {
-                val context = context()
-                seedLegacy(
+                val context = newSettingsContext()
+                seedLegacyPreferences(
                     context, preferencesOf(
                         intPreferencesKey("INTERFACE_FILTER") to 5,
                         intPreferencesKey("ADDRESS_FILTER") to mask,
@@ -592,12 +595,12 @@ internal class MjpegSettingsMigrationTest {
                 preferencesOf(intPreferencesKey("MAX_FPS") to -1) to ImageSettings(frameRate = FrameRate.SamplingInterval(1.seconds)),
             )
             for ((source, expected) in cases) {
-                val context = context()
-                seedLegacy(context, merged(preferencesOf(stringPreferencesKey("SERVER_PORT") to "wrong"), source))
+                val context = newSettingsContext()
+                seedLegacyPreferences(context, merged(preferencesOf(stringPreferencesKey("SERVER_PORT") to "wrong"), source))
                 val actual = MjpegSettings(context).data.first()
                 assertEquals(expected, actual.image)
                 assertEquals(8080, actual.network.httpPort)
-                assertConsumed(context)
+                assertLegacySourceConsumed(context)
             }
         }
     }
@@ -626,10 +629,10 @@ internal class MjpegSettingsMigrationTest {
                 stringPreferencesKey("HTML_SHOW_PRESS_START") to "wrong",
             )
             for (port in listOf(1024, 65535)) {
-                val context = context()
-                seedLegacy(context, merged(wrong, preferencesOf(intPreferencesKey("SERVER_PORT") to port)))
+                val context = newSettingsContext()
+                seedLegacyPreferences(context, merged(wrong, preferencesOf(intPreferencesKey("SERVER_PORT") to port)))
                 assertEquals(defaults().copy(network = NetworkSettings(httpPort = port)), MjpegSettings(context).data.first())
-                assertConsumed(context)
+                assertLegacySourceConsumed(context)
             }
         }
     }
@@ -637,8 +640,8 @@ internal class MjpegSettingsMigrationTest {
     // Cases: MJPEG-SET-12
     @Test
     fun sourceDeletionFailureAfterSuccessfulConversionPropagatesAndPermitsAnotherAttempt() = runBlocking {
-        val context = context()
-        seedLegacy(context, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
+        val context = newSettingsContext()
+        seedLegacyPreferences(context, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
         val source = context.preferencesDataStoreFile("MJPEG_settings")
         val parent = checkNotNull(source.parentFile).toPath()
         val permissions = Files.getPosixFilePermissions(parent)
@@ -658,13 +661,13 @@ internal class MjpegSettingsMigrationTest {
         val imported = migration.migrate(emptyPreferences())
         val payload = checkNotNull(imported[stringPreferencesKey("DATA")])
         assertEquals(9000, Json.parseToJsonElement(payload).jsonObject.getValue("network").jsonObject.getValue("httpPort").toString().toInt())
-        assertConsumed(context)
+        assertLegacySourceConsumed(context)
     }
 
-    private fun context(): IsolatedSettingsContext = IsolatedSettingsContext(RuntimeEnvironment.getApplication(), temporaryFolder.newFolder())
+    private fun newSettingsContext(): IsolatedSettingsContext = IsolatedSettingsContext(RuntimeEnvironment.getApplication(), temporaryFolder.newFolder())
     private fun defaults(): MjpegSettings.Data = MjpegSettings.Data(web = WebPageSettings(title = "Acme Tablet"))
 
-    private suspend fun seedLegacy(context: IsolatedSettingsContext, source: Preferences) {
+    private suspend fun seedLegacyPreferences(context: IsolatedSettingsContext, source: Preferences) {
         writePreferences(context.preferencesDataStoreFile("MJPEG_settings"), source)
     }
 
@@ -678,13 +681,13 @@ internal class MjpegSettingsMigrationTest {
         return if (file.exists()) file.inputStream().use { PreferencesFileSerializer.readFrom(it) } else emptyPreferences()
     }
 
-    private suspend fun assertConsumed(context: IsolatedSettingsContext) {
+    private suspend fun assertLegacySourceConsumed(context: IsolatedSettingsContext) {
         assertFalse(context.preferencesDataStoreFile("MJPEG_settings").exists())
         assertTrue("Migration adds no completion metadata", savedPreferences(context).asMap().keys.all { it.name == "DATA" })
     }
 
-    private fun copyDestination(original: IsolatedSettingsContext): IsolatedSettingsContext {
-        val fresh = context()
+    private fun copySavedPreferencesToNewContext(original: IsolatedSettingsContext): IsolatedSettingsContext {
+        val fresh = newSettingsContext()
         val destination = fresh.preferencesDataStoreFile("mjpeg")
         check(destination.parentFile!!.mkdirs())
         original.preferencesDataStoreFile("mjpeg").copyTo(destination)

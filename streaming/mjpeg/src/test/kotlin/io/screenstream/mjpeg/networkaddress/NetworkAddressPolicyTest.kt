@@ -13,11 +13,11 @@ internal class NetworkAddressPolicyTest {
     @Test
     fun filterKeepsOwnedCriteriaAfterCallerMutationAndRejectsMutationThroughItsView() {
         val families = mutableSetOf(AddressFamily.Ipv4)
-        val types = mutableSetOf(InterfaceType.Wifi)
+        val interfaceTypes = mutableSetOf(InterfaceType.Wifi)
         val categories = mutableSetOf(AddressCategory.Private)
-        val filter = NetworkAddressFilter(families, types, categories)
+        val filter = NetworkAddressFilter(families, interfaceTypes, categories)
         families.clear()
-        types += InterfaceType.Vpn
+        interfaceTypes += InterfaceType.Vpn
         categories.clear()
         assertEquals(setOf(AddressFamily.Ipv4), filter.families)
         assertEquals(setOf(InterfaceType.Wifi), filter.interfaceTypes)
@@ -29,7 +29,7 @@ internal class NetworkAddressPolicyTest {
 
     // Cases: MJPEG-LAN-02
     @Test
-    fun localNetworkPermissionDependsOnInterfaceAndLoopbackRatherThanPrivateAddressLabel() {
+    fun localNetworkPermissionUsesInterfaceTypeAndLoopbackExemption() {
         for (type in listOf(InterfaceType.Wifi, InterfaceType.Ethernet, InterfaceType.Other)) {
             assertTrue(address("192.168.1.2", type).requiresLocalNetworkPermission)
             assertTrue(address("8.8.8.8", type).requiresLocalNetworkPermission)
@@ -46,26 +46,26 @@ internal class NetworkAddressPolicyTest {
     @Test
     fun inventoryOwnsAlternativesAndSelectionFiltersBeforeChoosingOnePerScopedIp() {
         val sharedIp = InetAddress.getByName("192.168.1.2")
-        val fresh = NetworkAddress(7, sharedIp, "a-mobile", InterfaceType.Mobile)
-        val retained = NetworkAddress(7, sharedIp, "z-wifi", InterfaceType.Wifi)
-        val other = address("10.0.0.9", InterfaceType.Wifi)
-        val alternatives = mutableListOf(fresh, retained)
-        val source = linkedMapOf(sharedIp.let(::IpAddressKey) to alternatives, other.ipKey to mutableListOf(other))
-        val inventory = NetworkAddressInventory(source)
+        val mobileAlternative = NetworkAddress(7, sharedIp, "a-mobile", InterfaceType.Mobile)
+        val wifiAlternative = NetworkAddress(7, sharedIp, "z-wifi", InterfaceType.Wifi)
+        val otherWifiAddress = address("10.0.0.9", InterfaceType.Wifi)
+        val alternatives = mutableListOf(mobileAlternative, wifiAlternative)
+        val inputAlternatives = linkedMapOf(sharedIp.let(::IpAddressKey) to alternatives, otherWifiAddress.ipKey to mutableListOf(otherWifiAddress))
+        val inventory = NetworkAddressInventory(inputAlternatives)
         alternatives.clear()
-        source.clear()
-        val all = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
-        assertEquals(listOf(fresh, other), inventory.select(all))
-        val wifi = NetworkAddressFilter(setOf(AddressFamily.Ipv4), setOf(InterfaceType.Wifi), setOf(AddressCategory.Private))
-        val selected = inventory.select(wifi)
-        assertEquals(listOf(other, retained), selected)
+        inputAlternatives.clear()
+        val allAddressesFilter = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
+        assertEquals(listOf(mobileAlternative, otherWifiAddress), inventory.select(allAddressesFilter))
+        val wifiFilter = NetworkAddressFilter(setOf(AddressFamily.Ipv4), setOf(InterfaceType.Wifi), setOf(AddressCategory.Private))
+        val selected = inventory.select(wifiFilter)
+        assertEquals(listOf(otherWifiAddress, wifiAlternative), selected)
         assertThrows(UnsupportedOperationException::class.java) { (selected as MutableList).clear() }
-        for (empty in listOf(
-            NetworkAddressFilter(emptySet(), all.interfaceTypes, all.categories),
-            NetworkAddressFilter(all.families, emptySet(), all.categories),
-            NetworkAddressFilter(all.families, all.interfaceTypes, emptySet()),
-        )) assertTrue(inventory.select(empty).isEmpty())
-        assertEquals(listOf(other, retained), inventory.select(wifi))
+        for (emptyGroupFilter in listOf(
+            NetworkAddressFilter(emptySet(), allAddressesFilter.interfaceTypes, allAddressesFilter.categories),
+            NetworkAddressFilter(allAddressesFilter.families, emptySet(), allAddressesFilter.categories),
+            NetworkAddressFilter(allAddressesFilter.families, allAddressesFilter.interfaceTypes, emptySet()),
+        )) assertTrue(inventory.select(emptyGroupFilter).isEmpty())
+        assertEquals(listOf(otherWifiAddress, wifiAlternative), inventory.select(wifiFilter))
     }
 
     // Cases: MJPEG-NET-01, MJPEG-NET-02, MJPEG-NET-04, MJPEG-NET-05
@@ -77,8 +77,8 @@ internal class NetworkAddressPolicyTest {
         val ipv4 = NetworkAddress(3, InetAddress.getByName("192.168.1.2"), "eth0", InterfaceType.Ethernet)
         val mobile = NetworkAddress(4, InetAddress.getByName("8.8.8.8"), "mobile0", InterfaceType.Mobile)
         val inventory = NetworkAddressInventory(listOf(mobile, scope2, scope1, ipv4).associate { it.ipKey to listOf(it) })
-        val all = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
-        assertEquals(listOf(ipv4, scope1, scope2, mobile), inventory.select(all))
+        val allAddressesFilter = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
+        assertEquals(listOf(ipv4, scope1, scope2, mobile), inventory.select(allAddressesFilter))
         assertEquals(
             listOf(scope1, scope2), inventory.select(
                 NetworkAddressFilter(

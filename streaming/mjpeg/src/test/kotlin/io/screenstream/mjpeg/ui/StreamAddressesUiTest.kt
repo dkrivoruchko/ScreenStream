@@ -42,7 +42,7 @@ internal class StreamAddressesUiTest {
 
     @Test
     fun actionsUseAppliedUrlWhileDisplayingPlainEndpointAndFallBackWhenItIsAbsent() {
-        val row = mutableStateOf(address(accessUrl = SecretValue("$PLAIN_URL?token=$ENCODED_TOKEN")))
+        val row = mutableStateOf(address(accessUrl = SecretValue("$ENDPOINT_URL?token=$ENCODED_TOKEN")))
         val clipboard = RecordingClipboard()
         val intents = mutableListOf<Intent>()
         val context = object : ContextWrapper(compose.activity) {
@@ -58,16 +58,16 @@ internal class StreamAddressesUiTest {
             }
         }
 
-        compose.onNodeWithText(PLAIN_URL).assertIsDisplayed()
-        compose.onNodeWithText("$PLAIN_URL?token=$ENCODED_TOKEN").assertDoesNotExist()
-        assertOpenShareAndCopy("$PLAIN_URL?token=$ENCODED_TOKEN", intents, clipboard)
+        compose.onNodeWithText(ENDPOINT_URL).assertIsDisplayed()
+        compose.onNodeWithText("$ENDPOINT_URL?token=$ENCODED_TOKEN").assertDoesNotExist()
+        assertOpenShareAndCopy("$ENDPOINT_URL?token=$ENCODED_TOKEN", intents, clipboard)
         copyMenuLink(R.string.mjpeg_address_copy_jpeg)
         assertClipboard(clipboard, "http://192.168.1.10:9000/jpeg?token=$ENCODED_TOKEN")
         copyMenuLink(R.string.mjpeg_address_copy_mjpeg)
         assertClipboard(clipboard, "http://192.168.1.10:9000/mjpeg?token=$ENCODED_TOKEN")
 
         compose.runOnIdle { row.value = row.value.copy(accessUrl = null) }
-        assertOpenShareAndCopy(PLAIN_URL, intents, clipboard)
+        assertOpenShareAndCopy(ENDPOINT_URL, intents, clipboard)
         copyMenuLink(R.string.mjpeg_address_copy_jpeg)
         assertClipboard(clipboard, "http://192.168.1.10:9000/jpeg")
     }
@@ -85,8 +85,8 @@ internal class StreamAddressesUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_description, PLAIN_URL)).performClick()
-        assertClipboard(clipboard, PLAIN_URL)
+        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_description, ENDPOINT_URL)).performClick()
+        assertClipboard(clipboard, ENDPOINT_URL)
         compose.runOnIdle {
             assertEquals(if (Build.VERSION.SDK_INT < 33) listOf(text(R.string.mjpeg_address_copied)) else emptyList<String>(), messages)
         }
@@ -99,9 +99,10 @@ internal class StreamAddressesUiTest {
 
     @Test
     fun retryUsesSuppliedServerIdentityAndOnlyGrantDenialUsesThePermissionCapability() {
-        val firstId = Uuid.random()
-        val replacementId = Uuid.random()
-        val row = mutableStateOf(address(serverId = firstId, status = UiController.ServerStatus.Failed(UiController.ServerFailureReason.AddressUnavailable)))
+        val initialServerId = Uuid.random()
+        val replacementServerId = Uuid.random()
+        val row =
+            mutableStateOf(address(serverId = initialServerId, status = UiController.ServerStatus.Failed(UiController.ServerFailureReason.AddressUnavailable)))
         val retries = mutableListOf<Uuid>()
         val permissions = RecordingRuntimePermissions()
         compose.setContent {
@@ -112,23 +113,23 @@ internal class StreamAddressesUiTest {
             }
         }
 
-        retry().performClick()
+        retryButton().performClick()
         compose.runOnIdle {
-            assertEquals(listOf(firstId), retries)
+            assertEquals(listOf(initialServerId), retries)
             row.value = row.value.copy(
-                serverId = replacementId,
+                serverId = replacementServerId,
                 status = UiController.ServerStatus.Failed(UiController.ServerFailureReason.PermissionDenied),
             )
         }
-        retry().performClick()
+        retryButton().performClick()
         compose.onNodeWithText(text(R.string.mjpeg_server_permission_denied)).assertIsDisplayed()
         compose.runOnIdle {
-            assertEquals(listOf(firstId, replacementId), retries)
+            assertEquals(listOf(initialServerId, replacementServerId), retries)
             assertTrue(permissions.requests.isEmpty())
             row.value = row.value.copy(serverId = null)
         }
 
-        retry().assertDoesNotExist()
+        retryButton().assertDoesNotExist()
         compose.onNodeWithText(text(R.string.mjpeg_local_network_permission_request)).assertIsEnabled().performClick()
         compose.runOnIdle {
             assertEquals(listOf(RuntimePermission.LocalNetwork), permissions.requests)
@@ -136,7 +137,7 @@ internal class StreamAddressesUiTest {
         }
         compose.onNodeWithText(text(R.string.mjpeg_local_network_permission_request)).assertIsNotEnabled()
         compose.runOnIdle {
-            assertEquals(listOf(firstId, replacementId), retries)
+            assertEquals(listOf(initialServerId, replacementServerId), retries)
             assertEquals(1, permissions.requests.size)
             permissions.localNetworkState.value = PermissionState.SettingsSuggested
         }
@@ -145,36 +146,36 @@ internal class StreamAddressesUiTest {
     }
 
     private fun assertOpenShareAndCopy(expectedUrl: String, intents: MutableList<Intent>, clipboard: RecordingClipboard) {
-        compose.onNodeWithText(PLAIN_URL).performClick()
+        compose.onNodeWithText(ENDPOINT_URL).performClick()
         compose.runOnIdle {
-            val open = intents.removeFirst()
-            assertEquals(Intent.ACTION_VIEW, open.action)
-            assertEquals(expectedUrl, open.dataString)
-            assertTrue(open.flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0)
+            val openIntent = intents.removeFirst()
+            assertEquals(Intent.ACTION_VIEW, openIntent.action)
+            assertEquals(expectedUrl, openIntent.dataString)
+            assertTrue(openIntent.flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0)
             assertTrue(intents.isEmpty())
         }
-        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_share_description, PLAIN_URL)).performClick()
+        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_share_description, ENDPOINT_URL)).performClick()
         compose.runOnIdle {
-            val chooser = intents.removeFirst()
-            assertEquals(Intent.ACTION_CHOOSER, chooser.action)
-            val share = checkNotNull(chooser.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java))
-            assertEquals(Intent.ACTION_SEND, share.action)
-            assertEquals("text/plain", share.type)
-            assertEquals(expectedUrl, share.getStringExtra(Intent.EXTRA_TEXT))
+            val chooserIntent = intents.removeFirst()
+            assertEquals(Intent.ACTION_CHOOSER, chooserIntent.action)
+            val shareIntent = checkNotNull(chooserIntent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java))
+            assertEquals(Intent.ACTION_SEND, shareIntent.action)
+            assertEquals("text/plain", shareIntent.type)
+            assertEquals(expectedUrl, shareIntent.getStringExtra(Intent.EXTRA_TEXT))
             assertTrue(intents.isEmpty())
         }
-        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_description, PLAIN_URL)).performClick()
+        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_description, ENDPOINT_URL)).performClick()
         assertClipboard(clipboard, expectedUrl)
     }
 
     private fun copyMenuLink(labelRes: Int) {
-        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_options_description, PLAIN_URL)).performClick()
+        compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_options_description, ENDPOINT_URL)).performClick()
         compose.onNodeWithText(text(labelRes)).performClick()
     }
 
     private fun assertClipboard(clipboard: RecordingClipboard, expectedUrl: String) {
         compose.runOnIdle {
-            val clip = checkNotNull(clipboard.entry).clipData
+            val clip = checkNotNull(clipboard.clipEntry).clipData
             assertEquals(1, clip.itemCount)
             assertEquals(expectedUrl, clip.getItemAt(0).text.toString())
             assertEquals(text(R.string.mjpeg_address_copy_url), clip.description.label.toString())
@@ -182,7 +183,7 @@ internal class StreamAddressesUiTest {
         }
     }
 
-    private fun retry() = compose.onNodeWithContentDescription(text(R.string.mjpeg_server_retry_description, PLAIN_URL))
+    private fun retryButton() = compose.onNodeWithContentDescription(text(R.string.mjpeg_server_retry_description, ENDPOINT_URL))
     private fun text(resource: Int, vararg arguments: Any): String = compose.activity.getString(resource, *arguments)
 
     private fun address(
@@ -205,7 +206,7 @@ internal class StreamAddressesUiTest {
     )
 
     private companion object {
-        const val PLAIN_URL = "http://192.168.1.10:9000/"
+        const val ENDPOINT_URL = "http://192.168.1.10:9000/"
         const val ENCODED_TOKEN = "a%20b%2Bc%2F%26%3F%3D%23%25"
     }
 }

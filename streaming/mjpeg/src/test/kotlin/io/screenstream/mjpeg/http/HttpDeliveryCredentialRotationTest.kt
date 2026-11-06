@@ -47,35 +47,45 @@ import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
-internal class HttpCredentialRotationTest {
+internal class HttpDeliveryCredentialRotationTest {
     // Cases: MJPEG-ACC-09, MJPEG-OBS-03, MJPEG-OBS-06, MJPEG-IMG-15, MJPEG-WEB-11
     @Test(timeout = 45_000)
     fun protectedAndOpenRotationsCutOffOldMediaWritersAndWebSocketAdmission() {
         for (openAfterRotation in listOf(false, true)) testApplication {
-            engine { connector { host = "127.0.0.1"; port = 8080 } }
+            engine {
+                connector {
+                    host = "127.0.0.1"
+                    port = 8080
+                }
+            }
             val physical = CompletableDeferred<HttpListener>()
             val delivery = KtorHttpDelivery(httpTestContext()) { parentJob, host, port, _ ->
                 ControlledHttpListener(parentJob, host, port).also { physical.complete(it) }
             }
             val acquiredDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
             val waitingDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-            val releaseAcquired = CountDownLatch(1)
-            val initialEntered = CompletableDeferred<Unit>()
-            val releaseInitial = CompletableDeferred<Unit>()
-            val initialFailure = CompletableDeferred<CancellationException>()
-            val acquired = Output(releaseAcquired)
-            val waiting = Output()
-            val initial = Output()
-            val fresh = Output()
+            val releaseAcquiredPayload = CountDownLatch(1)
+            val initialHandoffEntered = CompletableDeferred<Unit>()
+            val releaseInitialHandoff = CompletableDeferred<Unit>()
+            val initialWriteFailure = CompletableDeferred<CancellationException>()
+            val acquiredOutput = RecordingMediaOutput(releaseAcquiredPayload)
+            val waitingOutput = RecordingMediaOutput()
+            val initialOutput = RecordingMediaOutput()
+            val freshOutput = RecordingMediaOutput()
             val socketJob = Job()
-            val outputs = mapOf("acquired" to acquired, "waiting" to waiting, "initial" to initial, "fresh" to fresh)
+            val outputs = mapOf(
+                "acquired" to acquiredOutput,
+                "waiting" to waitingOutput,
+                "initial" to initialOutput,
+                "fresh" to freshOutput,
+            )
             val completed = ConcurrentHashMap<String, CompletableDeferred<Unit>>()
             outputs.keys.forEach { completed[it] = CompletableDeferred() }
             completed["socket"] = CompletableDeferred()
             val image = ByteArray(16_384) { (it % 251).toByte() }
-            var initialLength: Long? = null
+            var initialContentLength: Long? = null
             try {
-                delivery.start(httpTestProtection(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(1))
+                delivery.start(httpTestProtectedAccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(1))
                 delivery.configureServers(listOf(httpTestAddress()), 8080)
                 val listener = withTimeout(5.seconds) { physical.await() }
                 delivery.awaitHttpInfo { it.servers.single().state == HttpDelivery.ServerState.Listening }
@@ -99,16 +109,16 @@ internal class HttpCredentialRotationTest {
                         val output = key?.let(outputs::get)
                         if (content is OutgoingContent.WriteChannelContent && output != null) {
                             if (key == "initial") {
-                                initialLength = content.contentLength
-                                initialEntered.complete(Unit)
-                                releaseInitial.await()
+                                initialContentLength = content.contentLength
+                                initialHandoffEntered.complete(Unit)
+                                releaseInitialHandoff.await()
                             }
                             val dispatcher = if (key == "waiting") waitingDispatcher else acquiredDispatcher
                             try {
                                 withContext(dispatcher) { content.writeTo(output.channel) }
                             } catch (cause: CancellationException) {
                                 if (key != "initial") throw cause
-                                initialFailure.complete(cause)
+                                initialWriteFailure.complete(cause)
                             }
                             proceedWith(object : OutgoingContent.NoContent() {
                                 override val status = HttpStatusCode.NoContent
@@ -126,45 +136,45 @@ internal class HttpCredentialRotationTest {
                     val acquiredCall = async(Dispatchers.IO) {
                         client.get("http://127.0.0.1:8080/mjpeg?case=acquired&token=$token") { header(HttpHeaders.Host, "127.0.0.1:8080") }
                     }
-                    withTimeout(5.seconds) { acquired.held.await() }
+                    withTimeout(5.seconds) { acquiredOutput.held.await() }
                     val initialCall = async(Dispatchers.IO) {
                         client.get("http://127.0.0.1:8080/jpeg?case=initial&token=$token") { header(HttpHeaders.Host, "127.0.0.1:8080") }
                     }
-                    withTimeout(5.seconds) { initialEntered.await() }
+                    withTimeout(5.seconds) { initialHandoffEntered.await() }
                     val waitingCall = async(Dispatchers.IO) {
                         client.get("http://127.0.0.1:8080/mjpeg?case=waiting&token=$token") { header(HttpHeaders.Host, "127.0.0.1:8080") }
                     }
-                    withTimeout(5.seconds) { waiting.firstFlushed.await() }
+                    withTimeout(5.seconds) { waitingOutput.firstFlushed.await() }
                     withContext(waitingDispatcher) { assertFalse(waitingCall.isCompleted) }
-                    assertEquals(image.size.toLong(), initialLength)
-                    assertEquals(128, acquired.bytes().size)
-                    val settings = if (openAfterRotation) AccessSettings() else httpTestProtection("654321")
-                    delivery.updateConfiguration(settings, PostStopImage.Placeholder, httpTestPage("Successor state"))
+                    assertEquals(image.size.toLong(), initialContentLength)
+                    assertEquals(128, acquiredOutput.bytes().size)
+                    val settings = if (openAfterRotation) AccessSettings() else httpTestProtectedAccessSettings("654321")
+                    delivery.updateConfiguration(settings, PostStopImage.Placeholder, httpTestPageSettings("Successor state"))
                     assertTrue(delivery.info.value.clients.isEmpty())
                     withTimeout(5.seconds) { completed.getValue("socket").await() }
                     assertTrue(socketJob.isCancelled)
                     assertFalse(delivery.isWebSocketCurrent(listener, admittedGeneration))
                     assertFalse(acquiredCall.isCompleted)
-                    releaseInitial.complete(Unit)
-                    releaseAcquired.countDown()
+                    releaseInitialHandoff.complete(Unit)
+                    releaseAcquiredPayload.countDown()
                     withTimeout(5.seconds) {
                         acquiredCall.await()
                         initialCall.await()
                         waitingCall.await()
                         for (key in listOf("acquired", "initial", "waiting")) completed.getValue(key).await()
                     }
-                    assertArrayEquals(byteArrayOf(), initial.bytes())
-                    assertEquals("JPEG response revoked", withTimeout(5.seconds) { initialFailure.await() }.message)
-                    assertArrayEquals(multipart(image), acquired.bytes())
-                    assertArrayEquals(multipart(image), waiting.bytes())
+                    assertArrayEquals(byteArrayOf(), initialOutput.bytes())
+                    assertEquals("JPEG response revoked", withTimeout(5.seconds) { initialWriteFailure.await() }.message)
+                    assertArrayEquals(multipartBytes(image), acquiredOutput.bytes())
+                    assertArrayEquals(multipartBytes(image), waitingOutput.bytes())
                     val settled = delivery.awaitHttpInfo { it.completedJpegs == 2L }
                     assertEquals(image.size * 2L, settled.completedJpegBytes)
                     assertTrue(settled.clients.isEmpty())
                     val query = if (openAfterRotation) "" else "&token=${checkNotNull(delivery.appliedToken).value}"
                     client.get("http://127.0.0.1:8080/jpeg?case=fresh$query") { header(HttpHeaders.Host, "127.0.0.1:8080") }
                     withTimeout(5.seconds) { completed.getValue("fresh").await() }
-                    assertArrayEquals(image, fresh.bytes())
-                    delivery.finishHttpTest()
+                    assertArrayEquals(image, freshOutput.bytes())
+                    delivery.stopHttpTestDelivery()
                     withTimeout(5.seconds) {
                         for (key in listOf("acquired", "initial", "waiting", "fresh")) completed.getValue(key).await()
                     }
@@ -172,11 +182,11 @@ internal class HttpCredentialRotationTest {
                     assertEquals(image.size * 3L, delivery.info.value.completedJpegBytes)
                 }
             } finally {
-                releaseInitial.complete(Unit)
-                releaseAcquired.countDown()
+                releaseInitialHandoff.complete(Unit)
+                releaseAcquiredPayload.countDown()
                 withContext(NonCancellable) {
                     socketJob.cancel()
-                    delivery.finishHttpTest()
+                    delivery.stopHttpTestDelivery()
                     acquiredDispatcher.close()
                     waitingDispatcher.close()
                 }
@@ -184,7 +194,7 @@ internal class HttpCredentialRotationTest {
         }
     }
 
-    private class Output(private val releasePayload: CountDownLatch? = null) {
+    private class RecordingMediaOutput(private val releasePayload: CountDownLatch? = null) {
         val held = CompletableDeferred<Unit>()
         val firstFlushed = CompletableDeferred<Unit>()
         private val recorded = ByteArrayOutputStream()
@@ -215,7 +225,7 @@ internal class HttpCredentialRotationTest {
         fun bytes(): ByteArray = recorded.toByteArray()
     }
 
-    private fun multipart(image: ByteArray): ByteArray =
+    private fun multipartBytes(image: ByteArray): ByteArray =
         "--screenstream-jpeg\r\nContent-Type: image/jpeg\r\nContent-Length: ${image.size}\r\n\r\n".toByteArray() +
                 image + "\r\n--screenstream-jpeg\r\n".toByteArray()
 }

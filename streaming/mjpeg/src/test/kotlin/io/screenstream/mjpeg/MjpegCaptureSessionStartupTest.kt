@@ -44,17 +44,17 @@ import kotlin.time.Duration.Companion.seconds
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
-internal class MjpegCaptureSessionTest {
+internal class MjpegCaptureSessionStartupTest {
     // Cases: MJPEG-CAP-04
     @Test
     @Config(shadows = [ProjectionStopShadow::class])
     fun realEngineFactoryFailureStopsUnownedProjectionAndSettlesRollback() = runTest {
         val projection = Shadow.newInstanceOf(MediaProjection::class.java)
-        val platform = Shadow.extract<ProjectionStopShadow>(projection)
+        val projectionShadow = Shadow.extract<ProjectionStopShadow>(projection)
         val grant = object : ScreenCaptureAccess.Grant {}
-        val access = CaptureAccess(request = { grant }, projection = { projection })
+        val access = StartupCaptureAccess(request = { grant }, projection = { projection })
         val events = mutableListOf<String>()
-        val session = session(access, events, backgroundScope, context = missingDisplayContext())
+        val session = createSession(access, events, backgroundScope, context = missingDisplayContext())
 
         session.start()
         runCurrent()
@@ -63,11 +63,11 @@ internal class MjpegCaptureSessionTest {
         val failure = session.state.value.captureFailure!!
         assertEquals("Engine.creation", failure.stage)
         assertEquals(MjpegCaptureSession.StopReason.Error, session.state.value.stopReason)
-        assertEquals(1, platform.stopCalls.get())
-        assertEquals(listOf(grant), access.projections)
+        assertEquals(1, projectionShadow.stopCalls.get())
+        assertEquals(listOf(grant), access.projectionGrants)
         assertEquals(listOf("enterForeground", "leaveForeground"), events)
-        assertEquals(listOf(session.id), access.finished)
-        assertTrue(access.saved.isEmpty())
+        assertEquals(listOf(session.id), access.projectionCreationFinishes)
+        assertTrue(access.savedConsents.isEmpty())
         assertNull(session.state.value.cleanupFailure)
         assertEquals(MjpegCaptureSession.State.Status.Failed, session.state.value.status)
         assertFalse(session.state.value.isStreaming)
@@ -78,13 +78,13 @@ internal class MjpegCaptureSessionTest {
     @Config(shadows = [ProjectionStopShadow::class])
     fun rawProjectionStopFailureRetainsFactoryFailureAndGuardWithoutForegroundRelease() = runTest {
         val projection = Shadow.newInstanceOf(MediaProjection::class.java)
-        val platform = Shadow.extract<ProjectionStopShadow>(projection)
+        val projectionShadow = Shadow.extract<ProjectionStopShadow>(projection)
         val stopFailure = IllegalStateException("Raw projection stop failed")
-        platform.onStop = { throw stopFailure }
+        projectionShadow.onStop = { throw stopFailure }
         val grant = object : ScreenCaptureAccess.Grant {}
-        val access = CaptureAccess(request = { grant }, projection = { projection })
+        val access = StartupCaptureAccess(request = { grant }, projection = { projection })
         val events = mutableListOf<String>()
-        val session = session(access, events, backgroundScope, context = missingDisplayContext())
+        val session = createSession(access, events, backgroundScope, context = missingDisplayContext())
 
         session.start()
         runCurrent()
@@ -93,10 +93,10 @@ internal class MjpegCaptureSessionTest {
         assertEquals("Engine.creation", session.state.value.captureFailure?.stage)
         assertEquals("Cleanup.media", session.state.value.cleanupFailure?.stage)
         assertSame(stopFailure, session.state.value.cleanupFailure?.cause)
-        assertEquals(1, platform.stopCalls.get())
+        assertEquals(1, projectionShadow.stopCalls.get())
         assertEquals(listOf("enterForeground"), events)
-        assertEquals(listOf(session.id), access.finished)
-        assertTrue(access.saved.isEmpty())
+        assertEquals(listOf(session.id), access.projectionCreationFinishes)
+        assertTrue(access.savedConsents.isEmpty())
         assertEquals(MjpegCaptureSession.State.Status.Failed, session.state.value.status)
         assertFalse(session.state.value.isStreaming)
     }
@@ -106,20 +106,20 @@ internal class MjpegCaptureSessionTest {
     @Config(shadows = [ProjectionStopShadow::class])
     fun realUnstartedEngineHandoffFailureRetiresTransferredProjection() = runTest {
         val projection = Shadow.newInstanceOf(MediaProjection::class.java)
-        val platform = Shadow.extract<ProjectionStopShadow>(projection)
+        val projectionShadow = Shadow.extract<ProjectionStopShadow>(projection)
         val handoffFailure = IllegalStateException("Projection guard handoff failed")
         val grant = object : ScreenCaptureAccess.Grant {}
-        var finishCalls = 0
-        val access = CaptureAccess(
+        var projectionFinishCount = 0
+        val access = StartupCaptureAccess(
             request = { grant },
             projection = { projection },
             finish = {
-                if (++finishCalls == 1) throw handoffFailure
+                if (++projectionFinishCount == 1) throw handoffFailure
             },
         )
         val events = CopyOnWriteArrayList<String>()
-        platform.onStop = { events += "projection.stop" }
-        val session = session(access, events, backgroundScope)
+        projectionShadow.onStop = { events += "projection.stop" }
+        val session = createSession(access, events, backgroundScope)
 
         session.start()
         runCurrent()
@@ -127,11 +127,11 @@ internal class MjpegCaptureSessionTest {
         assertTrue(session.awaitCleanup())
         assertFailure(session, "Startup.projectionHandoff", handoffFailure)
         assertNull(session.state.value.cleanupFailure)
-        assertEquals(1, platform.stopCalls.get())
+        assertEquals(1, projectionShadow.stopCalls.get())
         assertEquals(listOf("enterForeground", "projection.stop", "leaveForeground"), events)
-        assertEquals(listOf(session.id, session.id), access.finished)
-        assertEquals(listOf(grant), access.projections)
-        assertTrue(access.saved.isEmpty())
+        assertEquals(listOf(session.id, session.id), access.projectionCreationFinishes)
+        assertEquals(listOf(grant), access.projectionGrants)
+        assertTrue(access.savedConsents.isEmpty())
     }
 
     // Cases: MJPEG-CAP-04, MJPEG-CAP-09, MJPEG-CAP-11
@@ -139,21 +139,21 @@ internal class MjpegCaptureSessionTest {
     @Config(shadows = [ProjectionStopShadow::class])
     fun ownedProjectionStopFailureRetainsHandoffFailureAndForegroundObligation() = runTest {
         val projection = Shadow.newInstanceOf(MediaProjection::class.java)
-        val platform = Shadow.extract<ProjectionStopShadow>(projection)
+        val projectionShadow = Shadow.extract<ProjectionStopShadow>(projection)
         val stopFailure = IllegalStateException("Owned projection stop failed")
-        platform.onStop = { throw stopFailure }
+        projectionShadow.onStop = { throw stopFailure }
         val handoffFailure = IllegalStateException("Projection guard handoff failed")
         val grant = object : ScreenCaptureAccess.Grant {}
-        var finishCalls = 0
-        val access = CaptureAccess(
+        var projectionFinishCount = 0
+        val access = StartupCaptureAccess(
             request = { grant },
             projection = { projection },
             finish = {
-                if (++finishCalls == 1) throw handoffFailure
+                if (++projectionFinishCount == 1) throw handoffFailure
             },
         )
         val events = mutableListOf<String>()
-        val session = session(access, events, backgroundScope)
+        val session = createSession(access, events, backgroundScope)
 
         session.start()
         runCurrent()
@@ -164,10 +164,10 @@ internal class MjpegCaptureSessionTest {
         assertTrue(
             generateSequence(session.state.value.cleanupFailure!!.cause) { it.cause }.any { it === stopFailure },
         )
-        assertEquals(1, platform.stopCalls.get())
+        assertEquals(1, projectionShadow.stopCalls.get())
         assertEquals(listOf("enterForeground"), events)
-        assertEquals(listOf(session.id, session.id), access.finished)
-        assertTrue(access.saved.isEmpty())
+        assertEquals(listOf(session.id, session.id), access.projectionCreationFinishes)
+        assertTrue(access.savedConsents.isEmpty())
     }
 
     // Cases: MJPEG-CAP-04, MJPEG-CAP-11
@@ -186,10 +186,10 @@ internal class MjpegCaptureSessionTest {
 
     // Cases: MJPEG-CAP-01
     @Test
-    fun inertSingleUseAttemptWithDeclinedConsentSettlesWithoutProjection() = runTest {
-        val access = CaptureAccess()
+    fun declinedConsentStopsSingleUseAttemptWithoutProjection() = runTest {
+        val access = StartupCaptureAccess()
         val events = mutableListOf<String>()
-        val session = session(access, events, backgroundScope)
+        val session = createSession(access, events, backgroundScope)
 
         assertEquals(MjpegCaptureSession.State.Status.WaitingForPermission, session.state.value.status)
         assertFalse(session.state.value.isStreaming)
@@ -199,39 +199,39 @@ internal class MjpegCaptureSessionTest {
         runCurrent()
 
         assertFalse(waiter.isCompleted)
-        assertTrue(access.requested.isEmpty())
+        assertTrue(access.consentRequests.isEmpty())
 
         session.start()
         runCurrent()
 
         assertTrue(waiter.await())
-        assertEquals(listOf(session.id), access.requested)
-        assertTrue(access.projections.isEmpty())
+        assertEquals(listOf(session.id), access.consentRequests)
+        assertTrue(access.projectionGrants.isEmpty())
         assertEquals(listOf("leaveForeground"), events)
-        assertEquals(listOf(session.id), access.finished)
+        assertEquals(listOf(session.id), access.projectionCreationFinishes)
         assertEquals(MjpegCaptureSession.State.Status.Stopped, session.state.value.status)
         assertFalse(session.state.value.isStreaming)
         assertNull(session.state.value.captureFailure)
         assertNull(session.state.value.cleanupFailure)
-        assertTrue(access.saved.isEmpty())
+        assertTrue(access.savedConsents.isEmpty())
         assertThrows(IllegalStateException::class.java) { session.start() }
     }
 
     // Cases: MJPEG-CAP-02
     @Test
     fun stopBeforeCoroutineEntryAcquiresNothingAndPublishesSuccessfulCleanup() = runTest {
-        val access = CaptureAccess()
+        val access = StartupCaptureAccess()
         val events = mutableListOf<String>()
-        val session = session(access, events, backgroundScope)
+        val session = createSession(access, events, backgroundScope)
 
         session.start()
         session.requestStop(MjpegCaptureSession.StopReason.User)
         runCurrent()
 
         assertTrue(session.awaitCleanup())
-        assertTrue(access.requested.isEmpty())
-        assertTrue(access.projections.isEmpty())
-        assertTrue(access.finished.isEmpty())
+        assertTrue(access.consentRequests.isEmpty())
+        assertTrue(access.projectionGrants.isEmpty())
+        assertTrue(access.projectionCreationFinishes.isEmpty())
         assertTrue(events.isEmpty())
         assertEquals(MjpegCaptureSession.State.Status.Stopped, session.state.value.status)
     }
@@ -240,14 +240,14 @@ internal class MjpegCaptureSessionTest {
     @Test
     fun cancelingCleanupWaiterDoesNotStopConsentAndStopRollsBackEnteredAttempt() = runTest {
         val consent = CompletableDeferred<ScreenCaptureAccess.Grant?>()
-        val access = CaptureAccess(request = { consent.await() })
+        val access = StartupCaptureAccess(request = { consent.await() })
         val events = mutableListOf<String>()
-        val session = session(access, events, backgroundScope)
+        val session = createSession(access, events, backgroundScope)
 
         session.start()
         runCurrent()
 
-        assertEquals(listOf(session.id), access.requested)
+        assertEquals(listOf(session.id), access.consentRequests)
 
         val abandonedWaiter = backgroundScope.async { session.awaitCleanup() }
         runCurrent()
@@ -262,10 +262,10 @@ internal class MjpegCaptureSessionTest {
         runCurrent()
 
         assertTrue(session.awaitCleanup())
-        assertTrue(access.projections.isEmpty())
+        assertTrue(access.projectionGrants.isEmpty())
         assertEquals(listOf("leaveForeground"), events)
-        assertEquals(listOf(session.id), access.finished)
-        assertTrue(access.saved.isEmpty())
+        assertEquals(listOf(session.id), access.projectionCreationFinishes)
+        assertTrue(access.savedConsents.isEmpty())
         assertEquals(MjpegCaptureSession.State.Status.Stopped, session.state.value.status)
     }
 
@@ -273,9 +273,9 @@ internal class MjpegCaptureSessionTest {
     @Test
     fun consentFailureRetainsItsCauseWhileRollbackStillCompletes() = runTest {
         val cause = IllegalStateException("Consent boundary failed")
-        val access = CaptureAccess(request = { throw cause })
+        val access = StartupCaptureAccess(request = { throw cause })
         val events = mutableListOf<String>()
-        val session = session(access, events, backgroundScope)
+        val session = createSession(access, events, backgroundScope)
 
         session.start()
         runCurrent()
@@ -283,9 +283,9 @@ internal class MjpegCaptureSessionTest {
         assertTrue(session.awaitCleanup())
         assertFailure(session, "Startup.consent", cause)
         assertEquals(listOf("leaveForeground"), events)
-        assertEquals(listOf(session.id), access.finished)
-        assertTrue(access.projections.isEmpty())
-        assertTrue(access.saved.isEmpty())
+        assertEquals(listOf(session.id), access.projectionCreationFinishes)
+        assertTrue(access.projectionGrants.isEmpty())
+        assertTrue(access.savedConsents.isEmpty())
     }
 
     // Cases: MJPEG-CAP-03, MJPEG-CAP-09, MJPEG-CAP-11
@@ -296,11 +296,11 @@ internal class MjpegCaptureSessionTest {
         val guardCleanupFailure = IllegalStateException("Guard rollback failed")
         val events = mutableListOf<String>()
         val grant = object : ScreenCaptureAccess.Grant {}
-        val access = CaptureAccess(
+        val access = StartupCaptureAccess(
             request = { grant },
             finish = { throw guardCleanupFailure },
         )
-        val session = session(
+        val session = createSession(
             access, events, backgroundScope,
             enter = {
                 events += "enterForeground"
@@ -320,9 +320,9 @@ internal class MjpegCaptureSessionTest {
         assertEquals("Cleanup.projectionCreation", session.state.value.cleanupFailure?.stage)
         assertSame(guardCleanupFailure, session.state.value.cleanupFailure?.cause)
         assertEquals(listOf("enterForeground"), events)
-        assertEquals(listOf(session.id), access.finished)
-        assertTrue(access.projections.isEmpty())
-        assertTrue(access.saved.isEmpty())
+        assertEquals(listOf(session.id), access.projectionCreationFinishes)
+        assertTrue(access.projectionGrants.isEmpty())
+        assertTrue(access.savedConsents.isEmpty())
     }
 
     // Cases: MJPEG-CAP-03, MJPEG-CAP-04
@@ -331,14 +331,14 @@ internal class MjpegCaptureSessionTest {
         val cause = IllegalStateException("Projection creation failed")
         val events = mutableListOf<String>()
         val grant = object : ScreenCaptureAccess.Grant {}
-        val access = CaptureAccess(
+        val access = StartupCaptureAccess(
             request = { grant },
             projection = {
                 events += "createProjection"
                 throw cause
             },
         )
-        val session = session(access, events, backgroundScope)
+        val session = createSession(access, events, backgroundScope)
 
         session.start()
         runCurrent()
@@ -346,18 +346,18 @@ internal class MjpegCaptureSessionTest {
         assertTrue(session.awaitCleanup())
         assertFailure(session, "Startup.projection", cause)
         assertEquals(listOf("enterForeground", "createProjection", "leaveForeground"), events)
-        assertEquals(listOf(grant), access.projections)
-        assertEquals(listOf(session.id), access.finished)
-        assertTrue(access.saved.isEmpty())
+        assertEquals(listOf(grant), access.projectionGrants)
+        assertEquals(listOf(session.id), access.projectionCreationFinishes)
+        assertTrue(access.savedConsents.isEmpty())
     }
 
     // Cases: MJPEG-CAP-11
     @Test
     fun projectionGuardCleanupFailureRemainsObservableAfterNullConsent() = runTest {
         val cause = IllegalStateException("Guard release failed")
-        val access = CaptureAccess(finish = { throw cause })
+        val access = StartupCaptureAccess(finish = { throw cause })
         val events = mutableListOf<String>()
-        val session = session(access, events, backgroundScope)
+        val session = createSession(access, events, backgroundScope)
 
         session.start()
         runCurrent()
@@ -369,35 +369,35 @@ internal class MjpegCaptureSessionTest {
         assertEquals(MjpegCaptureSession.State.Status.Failed, session.state.value.status)
         assertFalse(session.state.value.isStreaming)
         assertTrue(events.isEmpty())
-        assertEquals(listOf(session.id), access.finished)
+        assertEquals(listOf(session.id), access.projectionCreationFinishes)
     }
 
     private suspend fun CoroutineScope.assertRollbackWaitsForProjectionStop(engineOwnsProjection: Boolean) {
         val projection = Shadow.newInstanceOf(MediaProjection::class.java)
-        val platform = Shadow.extract<ProjectionStopShadow>(projection)
+        val projectionShadow = Shadow.extract<ProjectionStopShadow>(projection)
         val stopEntered = CompletableDeferred<Unit>()
         val releaseStop = CountDownLatch(1)
-        platform.onStop = {
+        projectionShadow.onStop = {
             stopEntered.complete(Unit)
             check(releaseStop.await(20, TimeUnit.SECONDS)) { "Projection stop was not released" }
         }
         val handoffFailure = IllegalStateException("Projection guard handoff failed")
         val grant = object : ScreenCaptureAccess.Grant {}
-        var finishCalls = 0
-        val access = CaptureAccess(
+        var projectionFinishCount = 0
+        val access = StartupCaptureAccess(
             request = { grant },
             projection = { projection },
             finish = {
-                if (engineOwnsProjection && ++finishCalls == 1) throw handoffFailure
+                if (engineOwnsProjection && ++projectionFinishCount == 1) throw handoffFailure
             },
         )
         val events = CopyOnWriteArrayList<String>()
         // Raw stop is synchronous on this adapter lane; Engine-owned stop uses its real worker.
         val executor = Executors.newSingleThreadExecutor()
         val dispatcher = executor.asCoroutineDispatcher()
-        val owner = SupervisorJob()
-        val session = session(
-            access, events, CoroutineScope(owner + dispatcher),
+        val ownerJob = SupervisorJob()
+        val session = createSession(
+            access, events, CoroutineScope(ownerJob + dispatcher),
             context = if (engineOwnsProjection) RuntimeEnvironment.getApplication() else missingDisplayContext(),
         )
         try {
@@ -409,7 +409,7 @@ internal class MjpegCaptureSessionTest {
             }
             val expectedGuardEntries = if (engineOwnsProjection) listOf(session.id) else emptyList()
             val expectedFailureStage = if (engineOwnsProjection) "Startup.projectionHandoff" else "Engine.creation"
-            assertEquals(expectedGuardEntries, access.finished)
+            assertEquals(expectedGuardEntries, access.projectionCreationFinishes)
             assertEquals(listOf("enterForeground"), events)
             assertEquals(expectedFailureStage, session.state.value.captureFailure?.stage)
             val acquisitionFailure = session.state.value.captureFailure!!.cause
@@ -417,27 +417,27 @@ internal class MjpegCaptureSessionTest {
                 assertSame(handoffFailure, acquisitionFailure)
             }
             assertNull(session.state.value.cleanupSucceeded)
-            val abandoned = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
-            assertFalse(abandoned.isCompleted)
-            abandoned.cancelAndJoin()
+            val cancelledWaiter = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
+            assertFalse(cancelledWaiter.isCompleted)
+            cancelledWaiter.cancelAndJoin()
             session.requestStop(MjpegCaptureSession.StopReason.User)
-            val remaining = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
-            assertFalse(remaining.isCompleted)
+            val remainingWaiter = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
+            assertFalse(remainingWaiter.isCompleted)
             assertNull(session.state.value.cleanupSucceeded)
-            assertEquals(expectedGuardEntries, access.finished)
+            assertEquals(expectedGuardEntries, access.projectionCreationFinishes)
             assertEquals(listOf("enterForeground"), events)
 
             releaseStop.countDown()
-            assertTrue(withTimeout(5.seconds) { remaining.await() })
-            assertEquals(1, platform.stopCalls.get())
+            assertTrue(withTimeout(5.seconds) { remainingWaiter.await() })
+            assertEquals(1, projectionShadow.stopCalls.get())
             assertEquals(listOf("enterForeground", "leaveForeground"), events)
             assertEquals(
                 if (engineOwnsProjection) listOf(session.id, session.id) else listOf(session.id),
-                access.finished,
+                access.projectionCreationFinishes,
             )
             assertNull(session.state.value.cleanupFailure)
             assertFailure(session, expectedFailureStage, acquisitionFailure)
-            assertTrue(access.saved.isEmpty())
+            assertTrue(access.savedConsents.isEmpty())
         } finally {
             releaseStop.countDown()
             try {
@@ -445,11 +445,11 @@ internal class MjpegCaptureSessionTest {
                 withContext(NonCancellable) {
                     withTimeout(5.seconds) {
                         session.awaitCleanup()
-                        owner.cancelAndJoin()
+                        ownerJob.cancelAndJoin()
                     }
                 }
             } finally {
-                owner.cancel()
+                ownerJob.cancel()
                 dispatcher.close()
                 assertTrue("Capture adapter executor did not terminate", executor.awaitTermination(5, TimeUnit.SECONDS))
             }
@@ -468,8 +468,8 @@ internal class MjpegCaptureSessionTest {
         }
     }
 
-    private fun session(
-        access: CaptureAccess,
+    private fun createSession(
+        access: StartupCaptureAccess,
         events: MutableList<String>,
         scope: CoroutineScope,
         enter: () -> Unit = { events += "enterForeground" },
@@ -479,7 +479,7 @@ internal class MjpegCaptureSessionTest {
         id = StreamingModule.CaptureAttemptId(StreamingModule.InstanceId(StreamingModule.Id("MJPEG"))),
         initialImageSettings = ImageSettings(),
         initialCaptureGeneration = Any(),
-        http = TestHttpDelivery(),
+        http = ControlledHttpDelivery(),
         context = context,
         controllerScope = scope,
         captureAccess = access,
@@ -501,22 +501,22 @@ internal class MjpegCaptureSessionTest {
         assertSame(cause, session.state.value.captureFailure?.cause)
     }
 
-    private class CaptureAccess(
+    private class StartupCaptureAccess(
         private val request: suspend () -> ScreenCaptureAccess.Grant? = { null },
         private val projection: (ScreenCaptureAccess.Grant) -> MediaProjection = { error("Projection must not be admitted") },
         private val finish: () -> Unit = {},
     ) : ScreenCaptureAccess {
-        val requested = CopyOnWriteArrayList<StreamingModule.CaptureAttemptId>()
-        val projections = CopyOnWriteArrayList<ScreenCaptureAccess.Grant>()
-        val finished = CopyOnWriteArrayList<StreamingModule.CaptureAttemptId>()
-        val saved = CopyOnWriteArrayList<ScreenCaptureAccess.Grant>()
+        val consentRequests = CopyOnWriteArrayList<StreamingModule.CaptureAttemptId>()
+        val projectionGrants = CopyOnWriteArrayList<ScreenCaptureAccess.Grant>()
+        val projectionCreationFinishes = CopyOnWriteArrayList<StreamingModule.CaptureAttemptId>()
+        val savedConsents = CopyOnWriteArrayList<ScreenCaptureAccess.Grant>()
 
         override suspend fun requestConsent(
             attempt: StreamingModule.CaptureAttemptId,
             attemptJob: kotlinx.coroutines.Job,
             prepareForeground: () -> Boolean,
         ): ScreenCaptureAccess.ConsentResult {
-            requested += attempt
+            consentRequests += attempt
             val grant = request() ?: return ScreenCaptureAccess.ConsentResult.NotGranted(ScreenCaptureAccess.NoGrantReason.Declined)
             return if (prepareForeground()) ScreenCaptureAccess.ConsentResult.Granted(grant)
             else ScreenCaptureAccess.ConsentResult.NotGranted(ScreenCaptureAccess.NoGrantReason.ForegroundRejected)
@@ -524,17 +524,17 @@ internal class MjpegCaptureSessionTest {
 
         override fun createProjection(grant: ScreenCaptureAccess.Grant, retryAfterRecentForegroundStart: Boolean): MediaProjection {
             check(!retryAfterRecentForegroundStart)
-            projections += grant
+            projectionGrants += grant
             return projection(grant)
         }
 
         override fun finishProjectionCreation(attempt: StreamingModule.CaptureAttemptId) {
-            finished += attempt
+            projectionCreationFinishes += attempt
             finish()
         }
 
         override fun saveConsentForReuse(grant: ScreenCaptureAccess.Grant) {
-            saved += grant
+            savedConsents += grant
         }
     }
 }

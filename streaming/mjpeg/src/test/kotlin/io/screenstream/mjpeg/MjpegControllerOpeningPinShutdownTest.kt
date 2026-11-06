@@ -38,7 +38,7 @@ import kotlin.time.Duration.Companion.seconds
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
-internal class MjpegOpeningPinShutdownTest {
+internal class MjpegControllerOpeningPinShutdownTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
@@ -56,52 +56,52 @@ internal class MjpegOpeningPinShutdownTest {
             access = AccessSettings(pinEnabled = true, pinPolicy = AccessSettings.PinPolicy.NewOnModuleStart, pin = null),
         )
         seedSettings(context, Json.encodeToString(data))
-        assertNull(Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)).access.pin)
+        assertNull(Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)).access.pin)
         val scheduler = TestCoroutineScheduler()
-        val queued = StandardTestDispatcher(scheduler)
-        val admitted = CompletableDeferred<Job>()
-        val dispatcher = object : CoroutineDispatcher() {
+        val saveDispatcher = StandardTestDispatcher(scheduler)
+        val admittedSaveJob = CompletableDeferred<Job>()
+        val observedSaveDispatcher = object : CoroutineDispatcher() {
             override fun dispatch(context: CoroutineContext, block: Runnable) {
-                queued.dispatch(context, block)
-                admitted.complete(checkNotNull(context[Job]))
+                saveDispatcher.dispatch(context, block)
+                admittedSaveJob.complete(checkNotNull(context[Job]))
             }
         }
-        val host = MjpegServiceHost(MjpegSettings(context, dispatcher))
-        var cleanup: Deferred<Boolean>? = null
+        val host = MjpegServiceTestHost(MjpegSettings(context, observedSaveDispatcher))
+        var cleanupResult: Deferred<Boolean>? = null
         try {
-            withTimeout(5.seconds) { admitted.await() }
+            withTimeout(5.seconds) { admittedSaveJob.await() }
             assertNull(host.http.configuration.value)
             assertFalse(host.monitor.started.value)
             host.controller.requestModuleShutdown()
-            val receipt = async(start = CoroutineStart.UNDISPATCHED) { host.controller.awaitCleanup() }
-            cleanup = receipt
+            val cleanupWaiter = async(start = CoroutineStart.UNDISPATCHED) { host.controller.awaitCleanup() }
+            cleanupResult = cleanupWaiter
             withTimeout(5.seconds) { host.http.stopSettled.await(); host.monitor.closeSettled.await(); host.awaitStopRequested() }
             host.destroy()
             // Cleanup runs on Default; give it real execution time while the admitted save stays queued.
-            assertNull(withTimeoutOrNull(100.milliseconds) { receipt.await() })
-            assertFalse(receipt.isCompleted)
+            assertNull(withTimeoutOrNull(100.milliseconds) { cleanupWaiter.await() })
+            assertFalse(cleanupWaiter.isCompleted)
             host.controller.requestStreamStart()
             host.controller.startModule()
             withTimeout(10.seconds) {
-                while (!receipt.isCompleted) {
+                while (!cleanupWaiter.isCompleted) {
                     scheduler.runCurrent()
                     yield()
                 }
             }
-            assertTrue(receipt.await())
-            val saved = Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context))
+            assertTrue(cleanupWaiter.await())
+            val saved = Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context))
             val pin = checkNotNull(saved.access.pin).value
             assertEquals(6, pin.length)
             assertTrue(pin.all { it in '0'..'9' })
             assertNull(host.http.configuration.value)
             assertFalse(host.monitor.started.value)
-            assertTrue(host.http.captures.value.isEmpty())
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
         } finally {
             host.controller.requestModuleShutdown()
-            val pending = cleanup ?: async(start = CoroutineStart.UNDISPATCHED) { host.controller.awaitCleanup() }
+            val pendingCleanup = cleanupResult ?: async(start = CoroutineStart.UNDISPATCHED) { host.controller.awaitCleanup() }
             try {
                 withTimeout(10.seconds) {
-                    while (!pending.isCompleted || (admitted.isCompleted && !admitted.getCompleted().isCompleted)) {
+                    while (!pendingCleanup.isCompleted || (admittedSaveJob.isCompleted && !admittedSaveJob.getCompleted().isCompleted)) {
                         scheduler.runCurrent()
                         if (host.http.stopSettled.isCompleted && host.monitor.closeSettled.isCompleted) {
                             host.awaitStopRequested()

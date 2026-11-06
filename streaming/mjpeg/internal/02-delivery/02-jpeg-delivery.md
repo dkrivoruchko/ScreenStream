@@ -38,7 +38,7 @@ These terms are used throughout:
 
 ### Locks and threads
 
-The store has one monitor. Across the module, locks nest in this order: capture-session state gate, then HTTP control monitor, then store monitor. The store never calls HTTP or the session while holding its monitor. Two boundaries keep long or reentrant work away from that monitor:
+The store has one monitor, innermost in the [module lock order](01-http-delivery.md#locks-and-where-work-runs). The store never calls HTTP or the session while holding its monitor. Two boundaries keep long or reentrant work away from that monitor:
 
 - **Byte copy.** The producer's copy body runs while none of the three locks is held. The reservation before it and the commit after it each take the store monitor briefly.
 - **Writer wake-ups.** The store increments its change revision after leaving its own monitor, because a resumed writer may enter HTTP code. The caller can still hold an outer lock at that point: registration, status, configuration and disposal updates arrive under the HTTP control monitor, and status commits also hold the session's state gate.
@@ -166,7 +166,7 @@ The change revision is store-wide, so every waiting writer wakes for every relev
 
 Counts advance as soon as a payload has been written to the response channel, before the footer and flush. A partial payload adds nothing. A later failure of the footer or flush doesn't undo a payload already counted. Repeated images count as separate payload writes. [Client history and statistics](01-http-delivery.md#client-history-and-statistics) owns the transfer of these counts into totals and their interpretation.
 
-`respond` closes the reader in `finally`. This includes the case where the engine fails before invoking the body writer, which would otherwise leave the initial lease unclaimed. Each acquired image is released separately, in the body writer's own `finally`. Reader closure and job cancellation do different jobs: closure guards the next acquisition, and cancellation interrupts an active transport wait.
+`respond` closes the reader in `finally`. This includes the case where the engine fails before invoking the body writer, which would otherwise leave the initial lease unclaimed. Each acquired image is released separately, in the body writer's own `finally`.
 
 ## Slow-reader observations
 
@@ -184,10 +184,10 @@ A frame retained from an earlier generation can still reset the baseline, becaus
 
 The response keeps its baseline version and count in private fields. Its published `Progress` is an immutable snapshot in a volatile field, written only by the response's writer. It holds the observed generation, the slow flag and the completed-payload counters, never a leased array.
 
-[HTTP sampling](01-http-delivery.md#consumer-presence-and-slow-readers) shows a row as slow only when the observed generation is the current non-null one and the response belongs to a current listener. Store state and response progress are read at slightly different moments, so a sample isn't one atomic measurement of a frame. Slow status never closes the connection. The Controller's [slow-viewer warning](../01-module/03-coordination.md) consumes it separately, and the statistics don't depend on that preference.
+[HTTP sampling](01-http-delivery.md#consumer-presence-and-slow-readers) decides when a row shows as slow and how the Controller's warning consumes it.
 
 ## Implementation and verification
 
 - [JpegStore](../../src/main/kotlin/io/screenstream/mjpeg/http/media/JpegStore.kt) owns copies, generation fences, selection, readers and leases. [JpegResponse](../../src/main/kotlin/io/screenstream/mjpeg/http/media/JpegResponse.kt) owns framing, writing, repeats, progress and slow observations.
 - [MjpegCaptureSession](../../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureSession.kt) connects borrowed JPEGs from the [Engine adapter](../../src/main/kotlin/io/screenstream/mjpeg/MjpegCaptureEngineAdapter.kt) to HTTP delivery. [HTTP delivery](01-http-delivery.md) owns physical call completion and cancellation.
-- The [media scenarios](../03-testing/scenarios/07-media.md) describe the histories this guide requires. [Testing](../03-testing/01-testing.md) explains the evidence rules and the current state of the Kotlin test sources.
+- The [media scenarios](../03-testing/scenarios/07-media.md) describe the histories this guide requires; [Testing](../03-testing/01-testing.md) covers environments and evidence.

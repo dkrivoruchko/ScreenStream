@@ -1,9 +1,9 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { runtime, snapshot } = require('./runtime.cjs');
+const { createViewerTestContext, createWebSnapshot } = require('./viewer-test-support.cjs');
 
-function application(t) {
-    const { createApplication } = runtime(t, 'application');
+function createApplicationHarness(t) {
+    const { createApplication } = createViewerTestContext(t, 'application');
     const calls = [], models = [], pins = [];
     let healthy = true;
     const record = name => (...args) => calls.push({ name, args });
@@ -29,7 +29,7 @@ function application(t) {
 }
 
 test('admission requires a fresh authorized snapshot after PIN success or block expiry', t => {
-    const h = application(t);
+    const h = createApplicationHarness(t);
     h.app.start();
     assert.equal(h.model().connection, 'connecting');
     assert.equal(h.count('apply'), 0);
@@ -45,7 +45,7 @@ test('admission requires a fresh authorized snapshot after PIN success or block 
     h.app.frame({}, 640, 360);
     assert.equal(h.count('frame'), 0);
     assert.equal(h.last('apply').args[0].eligible, false);
-    h.app.snapshot(snapshot({ access: 'authorized' }));
+    h.app.snapshot(createWebSnapshot({ access: 'authorized' }));
     assert.equal(h.last('apply').args[0].eligible, true);
     assert.equal(h.pin().visible, false);
 
@@ -68,7 +68,7 @@ test('admission requires a fresh authorized snapshot after PIN success or block 
 });
 
 test('reconnect keeps the frame and refreshes identical authorized media exactly once', t => {
-    const h = application(t), value = snapshot(), image = {};
+    const h = createApplicationHarness(t), value = createWebSnapshot(), image = {};
     h.app.start();
     h.app.snapshot(value);
     h.app.frame(image, 640, 360);
@@ -93,17 +93,17 @@ test('reconnect keeps the frame and refreshes identical authorized media exactly
 });
 
 test('retained capture notices permit media while logo, none and denial revoke it', t => {
-    const h = application(t);
+    const h = createApplicationHarness(t);
     h.app.start();
     for (const notice of ['stopped', 'permission_required', 'paused', 'failed']) {
-        h.app.snapshot(snapshot({ imageKind: 'retained', notice }));
+        h.app.snapshot(createWebSnapshot({ imageKind: 'retained', notice }));
         assert.equal(h.last('apply').args[0].eligible, true);
         assert.equal(h.last('apply').args[0].imageKind, 'retained');
         assert.equal(h.model().notice, notice);
     }
     for (const imageKind of ['logo', 'none']) {
         const before = h.count('revoke');
-        h.app.snapshot(snapshot({ imageKind, hasImage: imageKind !== 'none' }));
+        h.app.snapshot(createWebSnapshot({ imageKind, hasImage: imageKind !== 'none' }));
         assert.equal(h.last('apply').args[0].eligible, false);
         assert.equal(h.count('revoke'), before + 1);
     }
@@ -114,15 +114,15 @@ test('retained capture notices permit media while logo, none and denial revoke i
 });
 
 test('pause releases owners, ignores stale reports and revalidates before restoring media', t => {
-    const h = application(t);
+    const h = createApplicationHarness(t);
     h.app.start();
-    h.app.snapshot(snapshot());
+    h.app.snapshot(createWebSnapshot());
     h.app.selectMethod('jpeg');
     h.app.pause();
     h.app.pause();
     for (const name of ['revoke', 'connectionPause', 'mediaPause', 'presentationPause']) assert.equal(h.count(name), 1);
     const applied = h.count('apply'), frames = h.count('frame');
-    h.app.snapshot(snapshot());
+    h.app.snapshot(createWebSnapshot());
     h.app.connectionState('connected');
     h.app.pinResult('success');
     h.app.frame({}, 640, 360);
@@ -137,14 +137,14 @@ test('pause releases owners, ignores stale reports and revalidates before restor
     assert.equal(h.count('presentationResume'), 1);
     h.app.frame({}, 640, 360);
     assert.equal(h.count('frame'), frames);
-    h.app.snapshot(snapshot());
+    h.app.snapshot(createWebSnapshot());
     assert.equal(h.last('apply').args[0].eligible, true);
     assert.equal(h.last('apply').args[0].method, 'jpeg');
     assert.equal(h.last('apply').args[1], true);
 });
 
 test('PIN feedback survives repeated denial and a paused block keeps its deadline', t => {
-    const h = application(t);
+    const h = createApplicationHarness(t);
     h.app.start();
     h.app.snapshot({ access: 'pin_required' });
     h.app.pinResult('pinWrong');
@@ -170,9 +170,9 @@ test('PIN feedback survives repeated denial and a paused block keeps its deadlin
 });
 
 test('visibility return resumes missing media or reconnects without revoking the frame', t => {
-    const h = application(t);
+    const h = createApplicationHarness(t);
     h.app.start();
-    h.app.snapshot(snapshot());
+    h.app.snapshot(createWebSnapshot());
     h.app.frame({}, 640, 360);
     h.app.visibility(true);
     t.mock.timers.tick(30000);
@@ -196,11 +196,11 @@ test('visibility return resumes missing media or reconnects without revoking the
 });
 
 test('primary messages clear transient notices so recovery cannot resurrect them', t => {
-    const h = application(t);
+    const h = createApplicationHarness(t);
     h.app.start();
     h.app.connectionState('unsupported');
     assert.equal(h.model().status.key, 'unsupported');
-    h.app.snapshot(snapshot());
+    h.app.snapshot(createWebSnapshot());
     assert.equal(h.model().status.key, 'mediaStarting');
     h.app.frame({}, 640, 360);
     h.app.mediaState('viewing');
@@ -211,13 +211,13 @@ test('primary messages clear transient notices so recovery cannot resurrect them
     t.mock.timers.tick(1);
     assert.equal(h.model().status.key, '');
     h.app.notice('pipError');
-    h.app.snapshot(snapshot({ notice: 'stopped', imageKind: 'retained' }));
+    h.app.snapshot(createWebSnapshot({ notice: 'stopped', imageKind: 'retained' }));
     assert.equal(h.model().status.key, 'stopped');
     h.app.mediaState('retrying');
     assert.equal(h.model().status.key, 'mediaRetrying');
     h.app.mediaState('viewing');
     assert.equal(h.model().status.key, 'stopped');
-    h.app.snapshot(snapshot());
+    h.app.snapshot(createWebSnapshot());
     assert.equal(h.model().status.key, '');
     h.app.mediaState('failed');
     assert.equal(h.model().status.key, 'mediaFailed');
@@ -229,13 +229,13 @@ test('primary messages clear transient notices so recovery cannot resurrect them
     h.app.snapshot({ access: 'pin_required' });
     assert.equal(h.model().status.access, true);
     assert.equal(h.model().status.key, '');
-    h.app.snapshot(snapshot());
+    h.app.snapshot(createWebSnapshot());
     h.app.mediaState('viewing');
     assert.equal(h.model().status.key, '');
 });
 
 test('synchronous owner reports settle before the application renders the transaction', t => {
-    const h = application(t), image = {};
+    const h = createApplicationHarness(t), image = {};
     h.ports.connection.retry = () => h.app.connectionState('connecting');
     h.ports.media.apply = value => {
         if (value.eligible) {
@@ -248,7 +248,7 @@ test('synchronous owner reports settle before the application renders the transa
     };
     h.app.start();
     const renders = h.models.length;
-    h.app.snapshot(snapshot());
+    h.app.snapshot(createWebSnapshot());
     assert.equal(h.models.length, renders + 1);
     assert.equal(h.model().image, 'viewing');
     assert.equal(h.model().width, 640);

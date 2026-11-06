@@ -45,21 +45,24 @@ internal class MjpegStreamingModuleServiceTest {
             val attempt = StreamingModule.CaptureAttemptId(host.managerObservation.instanceId)
             assertTrue(host.notifications.actions.last() is StreamingModuleNotifications.ForegroundAction.Exit)
             assertTrue(host.service.enterCaptureForeground(attempt, requiresMicrophoneType = false))
-            val platform = shadowOf(host.service)
-            assertEquals(400, platform.lastForegroundNotificationId)
-            assertTrue(platform.isLastForegroundNotificationAttached)
+            val serviceShadow = shadowOf(host.service)
+            assertEquals(400, serviceShadow.lastForegroundNotificationId)
+            assertTrue(serviceShadow.isLastForegroundNotificationAttached)
             assertTrue(host.notifications.actions.last() is StreamingModuleNotifications.ForegroundAction.Exit)
             if (Build.VERSION.SDK_INT >= 29) assertEquals(ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION, host.service.foregroundServiceType)
 
             host.service.updateCaptureNotification(attempt, true)
-            val action = host.notifications.actions.last() as StreamingModuleNotifications.ForegroundAction.StopStream
-            val stop = shadowOf(action.pendingIntent).savedIntent
-            assertEquals("io.screenstream.action.STOP_CAPTURE", stop.action)
-            assertEquals("capture-stop", stop.data!!.authority)
-            assertEquals(listOf(attempt.instanceId.moduleId.value, attempt.instanceId.uuid.toString(), attempt.uuid.toString()), stop.data!!.pathSegments)
+            val stopCaptureAction = host.notifications.actions.last() as StreamingModuleNotifications.ForegroundAction.StopStream
+            val stopCaptureIntent = shadowOf(stopCaptureAction.pendingIntent).savedIntent
+            assertEquals("io.screenstream.action.STOP_CAPTURE", stopCaptureIntent.action)
+            assertEquals("capture-stop", stopCaptureIntent.data!!.authority)
+            assertEquals(
+                listOf(attempt.instanceId.moduleId.value, attempt.instanceId.uuid.toString(), attempt.uuid.toString()),
+                stopCaptureIntent.data!!.pathSegments
+            )
             host.service.leaveCaptureForeground(attempt)
             assertTrue(host.notifications.actions.last() is StreamingModuleNotifications.ForegroundAction.Exit)
-            assertFalse(platform.isForegroundStopped)
+            assertFalse(serviceShadow.isForegroundStopped)
             if (Build.VERSION.SDK_INT >= 34) assertEquals(ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE, host.service.foregroundServiceType)
         } finally {
             assertTrue(host.close())
@@ -72,17 +75,17 @@ internal class MjpegStreamingModuleServiceTest {
         val host = createHost()
         try {
             val first = StreamingModule.CaptureAttemptId(host.managerObservation.instanceId)
-            val other = StreamingModule.CaptureAttemptId(host.managerObservation.instanceId)
+            val otherAttempt = StreamingModule.CaptureAttemptId(host.managerObservation.instanceId)
             assertTrue(host.service.enterCaptureForeground(first, false))
-            assertThrows(IllegalStateException::class.java) { host.service.enterCaptureForeground(other, false) }
-            host.service.leaveCaptureForeground(other)
-            host.service.updateCaptureNotification(other, true)
+            assertThrows(IllegalStateException::class.java) { host.service.enterCaptureForeground(otherAttempt, false) }
+            host.service.leaveCaptureForeground(otherAttempt)
+            host.service.updateCaptureNotification(otherAttempt, true)
             assertTrue(host.notifications.actions.last() is StreamingModuleNotifications.ForegroundAction.Exit)
             host.service.updateCaptureNotification(first, true)
             assertTrue(host.notifications.actions.last() is StreamingModuleNotifications.ForegroundAction.StopStream)
             host.service.leaveCaptureForeground(first)
-            assertTrue(host.service.enterCaptureForeground(other, false))
-            host.service.leaveCaptureForeground(other)
+            assertTrue(host.service.enterCaptureForeground(otherAttempt, false))
+            host.service.leaveCaptureForeground(otherAttempt)
             host.service.closeForegroundAdmission()
             assertFalse(host.service.enterCaptureForeground(first, false))
         } finally {
@@ -150,7 +153,7 @@ internal class MjpegStreamingModuleServiceTest {
 
     // Cases: MJPEG-CAP-13, MJPEG-CFG-01
     @Test
-    fun descriptorListsMetadataWithoutAcquiringResourcesAndRollbackBeforePromotionIsSafe() = runBlocking {
+    fun descriptorExposesMetadataAndRollbackBeforePromotionIsSafe() = runBlocking {
         val descriptor = MjpegStreamingModule()
         assertEquals(StreamingModule.Id("MJPEG"), descriptor.id)
         assertEquals(40, descriptor.priority)
@@ -168,8 +171,8 @@ internal class MjpegStreamingModuleServiceTest {
         }
     }
 
-    private fun createHost(): MjpegServiceHost {
+    private fun createHost(): MjpegServiceTestHost {
         val context = IsolatedSettingsContext(RuntimeEnvironment.getApplication(), temporaryFolder.newFolder())
-        return MjpegServiceHost(MjpegSettings(context))
+        return MjpegServiceTestHost(MjpegSettings(context))
     }
 }

@@ -32,19 +32,19 @@ internal class HttpDeliveryAccessBoundaryTest {
             val cookie = checkNotNull(fixture.delivery.exchangeToken(first, token)).value
             repeat(1_024) { peer -> assertEquals(HttpAccess.PinResult.Wrong, fixture.delivery.verifyPin(first, "wrong", "peer$peer")) }
             assertEquals(HttpAccess.PinResult.Blocked(900_000), fixture.delivery.verifyPin(second, "123456", "unknown"))
-            val denied = fixture.delivery.admitWebSocket(second, null, "unknown", fixture.job())
+            val denied = fixture.delivery.admitWebSocket(second, null, "unknown", fixture.newRequestJob())
             assertEquals(WebSocketAdmission.Denied(900_000), denied)
             repeat(3) { assertEquals(HttpAccess.PinResult.Wrong, fixture.delivery.verifyPin(second, "wrong", "peer1")) }
             assertEquals(HttpAccess.PinResult.Blocked(60_000), fixture.delivery.verifyPin(first, "wrong", "peer1"))
             assertEquals(HttpAccess.PinResult.Blocked(60_000), fixture.delivery.verifyPin(second, "123456", "peer1"))
-            assertEquals(WebSocketAdmission.Denied(60_000), fixture.delivery.admitWebSocket(second, null, "unknown", fixture.job()))
-            val authorized = fixture.delivery.admitWebSocket(second, cookie, "peer1", fixture.job())
+            assertEquals(WebSocketAdmission.Denied(60_000), fixture.delivery.admitWebSocket(second, null, "unknown", fixture.newRequestJob()))
+            val authorized = fixture.delivery.admitWebSocket(second, cookie, "peer1", fixture.newRequestJob())
             assertTrue(authorized is WebSocketAdmission.Accepted)
             assertTrue(fixture.delivery.info.value.clients.isEmpty())
             val known = fixture.delivery.verifyPin(second, "123456", "peer0")
             assertTrue(known is HttpAccess.PinResult.Authorized)
             assertTrue(fixture.delivery.verifyPin(first, "123456", "unknown") is HttpAccess.PinResult.Authorized)
-            fixture.delivery.updateConfiguration(httpTestProtection("654321"), PostStopImage.Placeholder, httpTestPage())
+            fixture.delivery.updateConfiguration(httpTestProtectedAccessSettings("654321"), PostStopImage.Placeholder, httpTestPageSettings())
             assertFalse(fixture.delivery.isWebSocketCurrent(second, (authorized as WebSocketAdmission.Accepted).credentialGeneration))
             assertEquals(HttpAccess.PinResult.Blocked(60_000), fixture.delivery.verifyPin(second, "654321", "peer1"))
         } finally {
@@ -62,13 +62,13 @@ internal class HttpDeliveryAccessBoundaryTest {
             fixture.delivery.configureServers(emptyList(), 8080)
             repeat(5) { assertNull(fixture.delivery.verifyPin(old, "wrong", "peer")) }
             assertNull(fixture.delivery.exchangeToken(old, checkNotNull(fixture.delivery.appliedToken).value))
-            assertEquals(WebSocketAdmission.Denied(null), fixture.delivery.admitWebSocket(old, null, "peer", fixture.job()))
+            assertEquals(WebSocketAdmission.Denied(null), fixture.delivery.admitWebSocket(old, null, "peer", fixture.newRequestJob()))
             fixture.delivery.configureServers(listOf(httpTestAddress(2)), 8080)
             val current = withTimeout(5.seconds) { fixture.created.receive() }
             fixture.delivery.awaitHttpInfo { it.servers.single().state == HttpDelivery.ServerState.Listening }
             repeat(4) { assertEquals(HttpAccess.PinResult.Wrong, fixture.delivery.verifyPin(current, "wrong", "peer")) }
             val cookie = checkNotNull(fixture.delivery.exchangeToken(current, checkNotNull(fixture.delivery.appliedToken).value)).value
-            val ended = fixture.job()
+            val ended = fixture.newRequestJob()
             ended.cancelAndJoin()
             assertEquals(WebSocketAdmission.Denied(null), fixture.delivery.admitWebSocket(current, cookie, "peer", ended))
             assertEquals(HttpAccess.PinResult.Blocked(60_000), fixture.delivery.verifyPin(current, "wrong", "peer"))
@@ -86,7 +86,7 @@ internal class HttpDeliveryAccessBoundaryTest {
         private val jobs = mutableListOf<Job>()
 
         suspend fun start(twoListeners: Boolean = false) {
-            delivery.start(httpTestProtection(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(1))
+            delivery.start(httpTestProtectedAccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(1))
             val addresses = if (twoListeners) listOf(httpTestAddress(), httpTestAddress(2, "127.0.0.2")) else listOf(httpTestAddress())
             delivery.configureServers(addresses, 8080)
             repeat(addresses.size) {
@@ -96,11 +96,11 @@ internal class HttpDeliveryAccessBoundaryTest {
             delivery.awaitHttpInfo { it.servers.all { server -> server.state == HttpDelivery.ServerState.Listening } }
         }
 
-        fun job(): Job = Job().also(jobs::add)
+        fun newRequestJob(): Job = Job().also(jobs::add)
 
         suspend fun close() {
             try {
-                delivery.finishHttpTest()
+                delivery.stopHttpTestDelivery()
             } finally {
                 jobs.forEach { it.cancelAndJoin() }
             }

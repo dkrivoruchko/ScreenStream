@@ -2,7 +2,7 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing](../01-testing.md)
 
-This page lists the test histories that protect MJPEG's viewing access. They cover which requests a protected stream admits, when the viewing credentials change, and how wrong PIN entries are limited. Use it when you change credential handling, rotation or PIN limiting and need to know which outcomes the change must preserve.
+Test histories for MJPEG's viewing access: which requests a protected stream admits, when the viewing credentials change, and how wrong PIN entries are limited.
 
 The scenarios build on these owners:
 
@@ -43,11 +43,9 @@ Turning protection off, or turning off **Limit PIN attempts**, discards every re
 
 ## Test layers and evidence
 
-[Testing](../01-testing.md) defines the layers, the test-source coverage and the evidence rules. For access they work as follows:
-
-- **L0** exercises `HttpAccess` directly with explicit times. Use it for counting, blocks, expiry, capacity and rotation decisions.
-- **L1** runs delivery and routes in the Ktor test engine or over CIO loopback. Use it to observe statuses, `Retry-After`, WebSocket denial messages, reader closure and accounting. Delivery reads `SystemClock.elapsedRealtime()`, so the test must control that clock. Coroutine virtual time does not move it.
-- **Assertions** check whether a request is accepted or refused. Don't compare random credential values, their hash codes or their inequality: a new value can match an old one by chance.
+- **L0** exercises `HttpAccess` directly with explicit times: counting, blocks, expiry, capacity and rotation decisions.
+- **L1** runs delivery and routes in the Ktor test engine or over CIO loopback: statuses, `Retry-After`, WebSocket denial messages, reader closure and accounting. Delivery reads `SystemClock.elapsedRealtime()`, so the test must control that clock.
+- **Assertions** check whether a request is accepted or refused, never random credential values or their inequality.
 
 ## Credentials and rotation
 
@@ -115,8 +113,6 @@ In a separate history, change the saved PIN while protection is off.
 - After a rotation to a new protected pair (a different PIN, or protection turned on again), the old token and cookie are refused, and the new pair is accepted.
 - After protection is turned off, access is open: every media request is admitted without any credential. Old token and cookie values are simply no longer needed. Test this open admission separately from refusal under a protected successor.
 - Changing the PIN while access is open causes no rotation. When protection is turned on later, credentials are created together with the PIN applied at that moment.
-
-**Evidence boundary.** Prove a rotation by old and new authorization, not by comparing random values.
 
 <a id="mjpeg-acc-09"></a>
 

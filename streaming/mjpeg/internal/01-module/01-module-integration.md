@@ -2,15 +2,11 @@
 
 [Internals](../README.md) · [Architecture](../../docs/architecture.md) · [Capture lifecycle](02-module-lifecycle.md) · [Coordination](03-coordination.md)
 
-This guide explains how MJPEG plugs into Core. It covers four things: the module descriptor, the Android Service and controller created for each opening of the mode, the Android declarations they rely on, and what the controller reports to the manager and cleans up when the mode closes. It continues [Hosting and coordination](../../docs/architecture.md#hosting-and-coordination) in the public architecture guide. Core's [Streaming Module Contract and Manager](../../../core/docs/module-contract-and-manager.md) owns the shared rules for selection, foreground hosting, command routing, health and closing. This page records MJPEG's side of those rules; Core's guarantees stay with Core.
-
-[Capture lifecycle](02-module-lifecycle.md) follows one capture attempt from consent to cleanup. [Coordination](03-coordination.md) explains the decisions the controller makes while the mode is open.
+This guide records MJPEG's side of Core's [Streaming Module Contract and Manager](../../../core/docs/module-contract-and-manager.md): the module descriptor, the Service and controller created for each opening of the mode, the Android declarations they rely on, and what the controller reports to the manager and cleans up when the mode closes. It continues [Hosting and coordination](../../docs/architecture.md#hosting-and-coordination) in the public architecture guide; Core's guarantees stay with Core.
 
 ## The pieces and their lifetimes
 
-Core calls one opening of a mode a **module instance**. MJPEG's work for one instance belongs to its **controller**. Core's manager starts the controller, sends it commands and eventually asks it to shut down.
-
-The [internals index](../README.md#components-and-responsibilities) lists each component, its lifetime and its source. For integration, the creation path matters. Android starts the Service when the manager opens the mode. The Service's factory resolves the controller through Koin. The controller creates one capture session for each accepted Start. The host app supplies Core's consent and permission hosts at the Activity root. The [DI scopes](#the-original-service-and-controller) give each instance its own HTTP delivery and discovery and share one settings store per process.
+Core calls one opening of a mode a **module instance**, and MJPEG's work for one instance belongs to its **controller**. The [internals index](../README.md#components-and-responsibilities) lists each component, its lifetime and its source. Android starts the Service when the manager opens the mode. The Service's factory resolves the controller through Koin, and the controller creates one capture session for each accepted Start. The host app supplies Core's consent and permission hosts at the Activity root.
 
 ```mermaid
 flowchart TB
@@ -36,13 +32,13 @@ The descriptor registers:
 - the Service class;
 - foreground notification slot 400.
 
-It is a process singleton and creates no controller, listener or capture resource, so listing the mode does nothing. Selecting the mode creates a module instance under Core's [selection and restart](../../../core/docs/module-contract-and-manager.md#selection-and-restart) rules. Opening the mode does not start capture. Start is a separate command that the controller admits later.
+It is a process singleton and creates no controller, listener or capture resource. Selecting the mode creates a module instance under Core's [selection and restart](../../../core/docs/module-contract-and-manager.md#selection-and-restart) rules; capture waits for a separate Start.
 
 ## The original Service and controller
 
 `MjpegStreamingModuleService` extends Core's `StreamingModuleService`. Core's base class owns the Android lifecycle, the foreground phases and the foreground bookkeeping for each capture attempt. MJPEG adds only the controller factory: `createController(managerHandle)` resolves the controller from Koin with that exact `StreamingModule.Controller.ManagerHandle` and the Service instance itself.
 
-The controller keeps both for its whole lifetime and takes its instance ID from the handle. Every later effect of the instance targets these **original owners**: status and failure reports, foreground changes, capture-notification updates and the final Service stop. This still holds after the manager has admitted a replacement instance, so a delayed report or cleanup step from an old instance cannot reach the new one. Code that needs the Service or handle must use the retained references. It must never look up the "current" Service or handle at the time of the effect.
+The controller keeps both for its whole lifetime and takes its instance ID from the handle. Every later effect of the instance targets these **original owners**: status and failure reports, foreground changes, capture-notification updates and the final Service stop. A delayed report or cleanup step from an old instance therefore cannot reach a replacement. Use the retained references; never look up the "current" Service or handle at the time of the effect.
 
 Construction is inert. The controller creates its coroutine scope, screen-off observer and screen state, and reads the initial local-network grant. It does no other work until the manager calls `startModule()`. That call checks `managerHandle.isCurrent()`. If the handle is no longer current, the controller goes straight to shutdown. Otherwise the event loop starts and subscribes to settings, discovery and HTTP state. The loop also ends, and requests shutdown, whenever the handle stops being current.
 
@@ -52,7 +48,7 @@ The [MJPEG Koin module](../../src/main/kotlin/io/screenstream/mjpeg/MjpegKoinMod
 - **HTTP delivery and address discovery.** Also factories, so each controller receives its own and never shares listeners or discovery with a previous instance.
 - **Settings store.** A singleton.
 
-The host app supplies Core's providers and Activity hosts, as the [Core overview](../../../core/README.md) describes. When changing DI, keep the exact injected parameters and these per-instance scopes. Resolving a supplied test graph and resolving the real application graph are separate evidence.
+The host app supplies Core's providers and Activity hosts, as the [Core overview](../../../core/README.md) describes. When changing DI, keep the exact injected parameters and these per-instance scopes.
 
 ## Android declarations
 
@@ -73,7 +69,7 @@ MJPEG declares no broadcast receiver. Notification actions travel through Core's
 | Keep the screen awake when the user asks | The capture session holds an optional screen wake lock. Its failures are logged and never affect capture or cleanup results. |
 | Stop on screen off when the user asks | The controller registers a receiver for `ACTION_SCREEN_OFF` only while an attempt needs it. |
 
-Core's consent and permission hosts live at the Activity root, outside MJPEG's screen. An admitted consent or permission request therefore keeps its host after navigation removes the screen that started it. ScreenStream's explanation UI, rationale history and task removal are current host-app policies. Core's [Screen Capture Access](../../../core/docs/screen-capture.md) and [Runtime Permissions](../../../core/docs/runtime-permissions.md) define the reusable boundary.
+Core's consent and permission hosts live at the Activity root, outside MJPEG's screen, so an admitted request keeps its host after navigation removes the screen that started it. Explanation UI and rationale history are host-app policies. Core's [Screen Capture Access](../../../core/docs/screen-capture.md) and [Runtime Permissions](../../../core/docs/runtime-permissions.md) define the reusable boundary.
 
 ## Capture handoff and readiness
 
@@ -90,7 +86,7 @@ Core's `Running` state describes control progress only. Before admitting Start, 
 - current discovery and permission evidence;
 - a matching listening server.
 
-[Start readiness](03-coordination.md#discovery-plan-and-start-readiness) defines the check. Service startup, the return of a Start command, Start admission, engine startup and the first JPEG each complete separately.
+[Start readiness](03-coordination.md#discovery-plan-and-start-readiness) defines the check.
 
 ## Reports to the manager
 
@@ -112,9 +108,9 @@ The controller reports through its original handle:
 
   A handle that stops being current ends the instance without a failure report.
 
-Core's manager owns freshness, the canonical manager state and bounded transition waits. It chooses the generic warning or failure from these reports. The host notification provider and the app screen present it ([error presentation](../../../core/docs/notifications.md#error-presentation)). MJPEG presents no detailed module errors of its own and offers no in-place recovery. Users recover with **Restart mode** or a new Start.
+Core's manager owns freshness, the canonical manager state and bounded transition waits, and chooses the generic warning or failure from these reports; the host notification provider and the app screen present it ([error presentation](../../../core/docs/notifications.md#error-presentation)). MJPEG presents no detailed module errors and offers no in-place recovery: users recover with **Restart mode** or a new Start.
 
-`onServiceDestroyed()` reports failure and then requests shutdown. It does not distinguish expected from unexpected destruction. Core's Service base decides when the callback arrives, and the manager decides what a report from an instance that is already closing means.
+`onServiceDestroyed()` reports failure and then requests shutdown, without distinguishing expected from unexpected destruction. The manager decides what a report from an instance that is already closing means.
 
 ## Cleanup obligations
 

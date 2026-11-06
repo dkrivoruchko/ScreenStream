@@ -9,7 +9,7 @@ import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
 import io.screenstream.mjpeg.http.HttpListener
 import io.screenstream.mjpeg.http.HttpResponseHeaders
 import io.screenstream.mjpeg.http.httpTestContext
-import io.screenstream.mjpeg.http.httpTestProtection
+import io.screenstream.mjpeg.http.httpTestProtectedAccessSettings
 import io.screenstream.mjpeg.http.readHttpResponseHeaders
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
@@ -37,7 +37,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
-internal class WebRoutesDuplicateHeaderCioTest {
+internal class WebRoutesDuplicateRequestHeadersCioTest {
     // Cases: MJPEG-WEB-15
     @Test(timeout = 30_000)
     fun realDuplicateHeaderFieldsIgnoreCookieWhileCurrentTokenAndOpenAccessStillWork() = runBlocking {
@@ -108,7 +108,10 @@ internal class WebRoutesDuplicateHeaderCioTest {
             headers.forEach { append(it).append("\r\n") }
             append("\r\n")
         }
-        socket.getOutputStream().apply { write(request.toByteArray(Charsets.US_ASCII)); flush() }
+        socket.getOutputStream().apply {
+            write(request.toByteArray(Charsets.US_ASCII))
+            flush()
+        }
         val status = line(input).split(' ')[1].toInt()
         val fields = readHttpResponseHeaders { line(input) }
         input.readBytes()
@@ -133,7 +136,7 @@ internal class WebRoutesDuplicateHeaderCioTest {
 
     private class Handler : WebRoutes.RequestHandler {
         private val gate = Any()
-        private val access = HttpAccess().apply { updateSettings(httpTestProtection()) }
+        private val access = HttpAccess().apply { updateSettings(httpTestProtectedAccessSettings()) }
         lateinit var listener: HttpListener
         override val webState = MutableStateFlow<WebState?>(null)
         fun token(): String = synchronized(gate) { checkNotNull(access.token).value }

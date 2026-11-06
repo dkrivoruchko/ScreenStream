@@ -4,7 +4,7 @@
 
 MJPEG settings are the user's lasting choices for image processing, connection, access, the web page and automation. [Choosing settings](../../docs/usage.md#choosing-settings) says what each setting means, its default and the range a user can enter. [Architecture](../../docs/architecture.md#settings) says which owner applies each group and why some groups wait until capture cleanup.
 
-This guide continues from there for people maintaining the module. It follows a value from an editor to the running stream. It covers the saved model and its validation, how saves are ordered, and how the Controller turns saved values into the values it uses. It also covers how the PIN is prepared and how the store handles unreadable data.
+This guide follows a value from an editor to the running stream: the saved model and its validation, save ordering, how the Controller turns saved values into the values it uses, PIN preparation, and how the store handles unreadable data.
 
 ## Components and lifetimes
 
@@ -143,7 +143,7 @@ Two independent checks enforce the policy:
 
 The two checks can disagree. A setup edit admitted by the screen just before Start can be saved after the Controller has admitted the attempt. The attempt keeps its effective setup, and the saved value waits. When cleanup succeeds, the Controller applies the latest observed snapshot again, now under All. The waiting value then takes effect without another save.
 
-A completed save never means the value is in use. [Effective settings and saves](03-coordination.md#effective-settings-and-saves) covers how each accepted group reaches capture, the address plan and HTTP, and why an HTTP rejection fails the instance.
+A completed save never means the value is in use; [Effective settings and saves](03-coordination.md#effective-settings-and-saves) covers how each accepted group reaches its owner.
 
 ## Editors and save transactions
 
@@ -196,6 +196,4 @@ Seeing defaults does not always mean storage holds defaults. After a failed repa
 
 ## Implementation and verification
 
-The [models](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) own defaults, validation and encoding. [`MjpegSettings`](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettings.kt) owns the transaction and the edit-policy mapping. The shared [JSON store](../../../../common/src/main/java/info/dvkr/screenstream/common/settings/JsonPreferencesStore.kt) owns repair behavior.
-
-Changes to recovery need payloads written in a damaged format, kept separate from the current model's own encoding. The Engine's [parameter contract](../../../../screen-capture-engine/docs/usage.md#change-capture-parameters) governs image values during capture. [Settings scenarios](../03-testing/scenarios/01-settings.md) describe the required histories, and [Testing](../03-testing/01-testing.md) defines the evidence a settings change needs.
+The [models](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettingsModels.kt) own defaults, validation and encoding. [`MjpegSettings`](../../src/main/kotlin/io/screenstream/mjpeg/settings/MjpegSettings.kt) owns the transaction and the edit-policy mapping. The shared [JSON store](../../../../common/src/main/java/info/dvkr/screenstream/common/settings/JsonPreferencesStore.kt) owns repair behavior. [Settings scenarios](../03-testing/scenarios/01-settings.md) describe the required histories, and [Testing](../03-testing/01-testing.md) defines the evidence a settings change needs.

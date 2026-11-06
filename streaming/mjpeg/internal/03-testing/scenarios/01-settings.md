@@ -2,7 +2,7 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing](../01-testing.md)
 
-This page lists the test histories for MJPEG's saved settings. They cover which values are valid, how saved data decodes across versions, how concurrent saves combine, and how saved values differ from the values the running stream uses. Use it when you change a settings model, its serialization, or the edit and application rules.
+Test histories for MJPEG's saved settings: valid values, decoding, concurrent saves, and saved versus effective values. Use them when you change a settings model, its serialization, or the edit and application rules.
 
 The scenarios build on these owners:
 
@@ -35,12 +35,7 @@ The scenarios use these terms:
 
 ## Test layers and evidence
 
-[Testing](../01-testing.md) defines the layers, the test-source coverage and the evidence rules. For settings they work as follows:
-
-- **L0** covers pure model values and decoding of independently written JSON.
-- **L1** covers DataStore files, Preferences protobuf bytes and values derived from Android `Build`.
-- **Independent fixtures.** Parse saved JSON independently. Don't build expected payloads with the production serializer.
-- **Separate observations.** Keep saving, observing and applying apart: a completed save proves none of the later steps.
+[Testing](../01-testing.md) defines the layers and evidence rules. **L0** covers pure model values and decoding of independently written JSON. **L1** covers DataStore files, Preferences protobuf bytes and values derived from Android `Build`.
 
 ## Values and saved schema
 
@@ -205,7 +200,7 @@ Keep the defaults derived from Android, such as the device title, apart from pur
 - Turning protection back on with a saved PIN keeps that PIN.
 - When the controller starts observing, its activation transaction runs before the first snapshot is applied, so HTTP never receives protection without a PIN.
 
-**Evidence boundary.** Check the PIN's validity and that it authorizes. Don't expect each random PIN to differ from the last. [mjpeg-ctl-06](02-controller.md#mjpeg-ctl-06) covers the once-per-activation policy for **New PIN on open**.
+**Related.** [mjpeg-ctl-06](02-controller.md#mjpeg-ctl-06) covers the once-per-activation policy for **New PIN on open**.
 
 <a id="mjpeg-set-09"></a>
 
@@ -246,7 +241,7 @@ Keep the defaults derived from Android, such as the device title, apart from pur
 
 **Expected.** All four values survive storage. This establishes persistence only.
 
-**Related.** Runtime effects belong to [mjpeg-ctl-14](02-controller.md#mjpeg-ctl-14) (screen-off Stop) and [mjpeg-ctl-17](02-controller.md#mjpeg-ctl-17) (keep-awake and warnings). PIN presentation belongs to [Usage: Decide who can watch](../../../docs/usage.md#decide-who-can-watch), [Settings: PIN generation and edits](../../01-module/04-settings.md#pin-generation-and-edits) and the [`StreamPinContent` implementation](../../../src/main/kotlin/io/screenstream/mjpeg/ui/main/StreamPin.kt), including reveal reset and sensitive copying; UI execution is outside this local catalogue.
+**Related.** Runtime effects belong to [mjpeg-ctl-14](02-controller.md#mjpeg-ctl-14) (screen-off Stop) and [mjpeg-ctl-17](02-controller.md#mjpeg-ctl-17) (keep-awake and warnings). PIN presentation belongs to [Settings: PIN generation and edits](../../01-module/04-settings.md#pin-generation-and-edits) and [`StreamPinContent`](../../../src/main/kotlin/io/screenstream/mjpeg/ui/main/StreamPin.kt).
 
 <a id="mjpeg-set-11"></a>
 
@@ -260,5 +255,4 @@ Keep the defaults derived from Android, such as the device title, apart from pur
 
 - Text representations redact the secrets, including those of the enclosing settings objects.
 - Intentional persistence keeps the values as supplied.
-- Equality follows the secret value.
-- Actual authorization establishes credential behavior ([mjpeg-acc-01](06-access.md#mjpeg-acc-01)). Hash codes and random inequality don't.
+- Equality follows the secret value. Credential behavior is established by authorization ([mjpeg-acc-01](06-access.md#mjpeg-acc-01)).

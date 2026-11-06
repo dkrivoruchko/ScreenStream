@@ -1,17 +1,17 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { runtime, snapshot } = require('./runtime.cjs');
+const { createViewerTestContext, createWebSnapshot } = require('./viewer-test-support.cjs');
 
-function connection(t, protocol = 'http:', integrated = false) {
+function createConnectionHarness(t, protocol = 'http:', integrated = false) {
     const sockets = [], requests = [], states = [], snapshots = [], pins = [], models = [], media = [], frames = [];
     const document = { hidden: false };
-    class Socket {
+    class FakeWebSocket {
         constructor(url) { this.url = url; this.readyState = 0; this.closes = 0; sockets.push(this); }
         close() { this.closes += 1; this.readyState = 3; }
         message(value) { this.data(JSON.stringify(value)); }
         data(value) { this.readyState = 1; this.onmessage({ data: value }); }
     }
-    class Request {
+    class FakeXmlHttpRequest {
         constructor() { this.headers = {}; requests.push(this); }
         open(method, url, async) { Object.assign(this, { method, url, async }); }
         setRequestHeader(key, value) { this.headers[key] = value; }
@@ -20,8 +20,8 @@ function connection(t, protocol = 'http:', integrated = false) {
         getResponseHeader(name) { return name.toLowerCase() === 'retry-after' ? this.retryAfter ?? null : null; }
         load(status, retryAfter) { Object.assign(this, { status, retryAfter }); this.onload(); }
     }
-    const context = runtime(t, integrated ? ['connection', 'application'] : 'connection', {
-        window: { WebSocket: Socket }, WebSocket: Socket, XMLHttpRequest: Request,
+    const context = createViewerTestContext(t, integrated ? ['connection', 'application'] : 'connection', {
+        window: { WebSocket: FakeWebSocket }, WebSocket: FakeWebSocket, XMLHttpRequest: FakeXmlHttpRequest,
         location: { protocol, host: '[::1]:8765' }, document
     });
     let app;
@@ -46,7 +46,7 @@ function connection(t, protocol = 'http:', integrated = false) {
 }
 
 test('state sockets use the page authority and choose ws or wss without credentials', t => {
-    const h = connection(t);
+    const h = createConnectionHarness(t);
     h.client.retry();
     assert.equal(h.socket().url, 'ws://[::1]:8765/ws');
     h.context.location.protocol = 'https:';
@@ -60,13 +60,13 @@ test('state sockets use the page authority and choose ws or wss without credenti
 });
 
 test('wire snapshots accept known values and extras without taking presentation validation ownership', t => {
-    const h = connection(t);
+    const h = createConnectionHarness(t);
     const accepted = [
-        snapshot(), snapshot({ access: 'authorized', extra: 'future' }),
-        snapshot({ imageKind: 'none', hasImage: false }), snapshot({ imageKind: 'logo' }),
-        ...['permission_required', 'stopped', 'paused', 'failed'].map(notice => snapshot({ imageKind: 'retained', notice }))
+        createWebSnapshot(), createWebSnapshot({ access: 'authorized', extra: 'future' }),
+        createWebSnapshot({ imageKind: 'none', hasImage: false }), createWebSnapshot({ imageKind: 'logo' }),
+        ...['permission_required', 'stopped', 'paused', 'failed'].map(notice => createWebSnapshot({ imageKind: 'retained', notice }))
     ];
-    const appearance = snapshot();
+    const appearance = createWebSnapshot();
     appearance.display.background = 'not a color';
     appearance.display.titleLayout = { position: 'bottom', presentation: 'bar', autoHide: false, extra: true };
     accepted.push(appearance);
@@ -88,7 +88,7 @@ test('wire snapshots accept known values and extras without taking presentation 
 });
 
 test('invalid wire families reconnect without delivering a partial snapshot', t => {
-    const h = connection(t);
+    const h = createConnectionHarness(t);
     const invalid = ['{', 'null', '[]', '42'];
     const changes = [
         value => { delete value.access; }, value => { value.access = 'future'; },
@@ -101,7 +101,7 @@ test('invalid wire families reconnect without delivering a partial snapshot', t 
         value => { value.display.titleLayout.presentation = 'future'; },
         value => { value.display.controlsLayout.autoHide = 'true'; }
     ];
-    for (const change of changes) { const value = snapshot(); change(value); invalid.push(JSON.stringify(value)); }
+    for (const change of changes) { const value = createWebSnapshot(); change(value); invalid.push(JSON.stringify(value)); }
     for (const data of invalid) {
         h.client.retry();
         const socket = h.socket();
@@ -113,7 +113,7 @@ test('invalid wire families reconnect without delivering a partial snapshot', t 
 });
 
 test('initial deadline and capped reconnect backoff reset after an accepted snapshot', t => {
-    const h = connection(t);
+    const h = createConnectionHarness(t);
     h.client.retry();
     t.mock.timers.tick(9999);
     assert.equal(h.sockets.length, 1);
@@ -128,7 +128,7 @@ test('initial deadline and capped reconnect backoff reset after an accepted snap
         t.mock.timers.tick(1);
         assert.equal(h.sockets.length, count + 1);
     }
-    h.socket().message(snapshot());
+    h.socket().message(createWebSnapshot());
     const count = h.sockets.length;
     h.socket().onclose();
     t.mock.timers.tick(0);
@@ -136,19 +136,19 @@ test('initial deadline and capped reconnect backoff reset after an accepted snap
 });
 
 test('accepted snapshots renew liveness; hidden expiry waits for visibility revalidation', t => {
-    const h = connection(t);
+    const h = createConnectionHarness(t);
     h.client.retry();
-    h.socket().message(snapshot());
+    h.socket().message(createWebSnapshot());
     t.mock.timers.tick(4999);
     assert.equal(h.client.healthy(), true);
-    h.socket().message(snapshot());
+    h.socket().message(createWebSnapshot());
     t.mock.timers.tick(4999);
     assert.equal(h.sockets.length, 1);
     t.mock.timers.tick(1);
     t.mock.timers.tick(0);
     assert.equal(h.sockets.length, 2);
     assert.equal(h.client.healthy(), false);
-    h.socket().message(snapshot());
+    h.socket().message(createWebSnapshot());
     h.document.hidden = true;
     t.mock.timers.tick(5000);
     assert.equal(h.sockets.length, 2);
@@ -159,7 +159,7 @@ test('accepted snapshots renew liveness; hidden expiry waits for visibility reva
 });
 
 test('denied probes use bounded deadlines and stop opening while hidden or paused', t => {
-    const h = connection(t);
+    const h = createConnectionHarness(t);
     for (const [value, delay] of [
         [{ access: 'pin_required' }, 5000], [{ access: 'blocked', retryAfterMs: 1200 }, 1200],
         [{ access: 'blocked', retryAfterMs: 0 }, 100], [{ access: 'blocked', retryAfterMs: 9000 }, 5000],
@@ -189,7 +189,7 @@ test('denied probes use bounded deadlines and stop opening while hidden or pause
 });
 
 test('PIN requests preserve leading zeros, serialize submissions and map wire outcomes', t => {
-    const h = connection(t);
+    const h = createConnectionHarness(t);
     h.client.retry();
     h.socket().message({ access: 'pin_required' });
     for (const invalid of ['', '12345', '1234567', '１２３４５６', '12345a']) h.client.submitPin(invalid);
@@ -230,7 +230,7 @@ test('PIN requests preserve leading zeros, serialize submissions and map wire ou
 });
 
 test('PIN takeover and pause reject late socket and aborted-request callbacks', t => {
-    const h = connection(t);
+    const h = createConnectionHarness(t);
     h.client.retry();
     const socket = h.socket(), oldMessage = socket.onmessage, oldError = socket.onerror;
     h.client.submitPin('012345');
@@ -260,7 +260,7 @@ test('PIN takeover and pause reject late socket and aborted-request callbacks', 
 });
 
 test('connection and application require fresh admission after login and preserve frames through reconnect', t => {
-    const h = connection(t, 'http:', true), image = {};
+    const h = createConnectionHarness(t, 'http:', true), image = {};
     h.app.start();
     h.socket().message({ access: 'pin_required' });
     h.app.submitPin('012345');
@@ -274,16 +274,16 @@ test('connection and application require fresh admission after login and preserv
     assert.equal(h.media.at(-1).value.eligible, false);
     h.app.frame(image, 640, 360);
     assert.equal(h.frames.at(-1), null);
-    h.socket().message(snapshot({ access: 'authorized' }));
+    h.socket().message(createWebSnapshot({ access: 'authorized' }));
     assert.equal(h.media.at(-1).value.eligible, true);
     h.app.frame(image, 640, 360);
     h.app.mediaState('viewing');
     h.socket().onclose();
     assert.equal(h.frames.at(-1), image);
     t.mock.timers.tick(0);
-    h.socket().message(snapshot({ access: 'authorized' }));
+    h.socket().message(createWebSnapshot({ access: 'authorized' }));
     assert.equal(h.media.at(-1).refresh, true);
-    h.socket().message(snapshot({ access: 'authorized' }));
+    h.socket().message(createWebSnapshot({ access: 'authorized' }));
     assert.equal(h.media.at(-1).refresh, false);
     h.socket().message({ access: 'pin_required' });
     assert.equal(h.frames.at(-1), null);

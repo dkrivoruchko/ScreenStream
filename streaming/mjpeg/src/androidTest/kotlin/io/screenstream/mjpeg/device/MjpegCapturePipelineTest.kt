@@ -26,7 +26,7 @@ internal class MjpegCapturePipelineTest {
 
     // Cases: MJPEG-CTL-16
     @Test
-    fun changingCapturedFramesSurviveStopRestartAndExitReleasesTheServiceAndSocket() = with(MjpegDeviceTestSupport(compose)) {
+    fun changingFramesResumeAfterRestartAndExitReleasesServiceAndSocket() = with(MjpegDeviceTestSupport(compose)) {
         openHost().use { fixture ->
             val host = fixture.host
             val port = host.port
@@ -40,7 +40,7 @@ internal class MjpegCapturePipelineTest {
                 assertTrue("/jpeg must decode the visible red/blue/white target", matchesTarget(redJpeg, green = false))
                 stream.awaitTarget(green = false)
 
-                compose.runOnUiThread { host.greenTarget.value = true }
+                compose.runOnUiThread { host.showGreenTarget.value = true }
                 val greenJpeg = awaitJpegTarget(port, green = true)
                 assertFalse("Changing the Activity must change decoded /jpeg output", redJpeg.contentEquals(greenJpeg))
                 saveJpegEvidence("red-target", redJpeg)
@@ -54,32 +54,32 @@ internal class MjpegCapturePipelineTest {
                 saveTextEvidence("live-statistics", "first=$firstTotals; later=$laterTotals\n")
 
                 compose.onNodeWithText(context.getString(R.string.mjpeg_stream_stop_capture)).performClick()
-                await(host, "capture stop") { running(host)?.status?.let { !it.isStreaming && it.captureAttempt == null } == true }
-                await(host, "post-stop placeholder") { requestJpeg(port).contentEquals(logo) }
+                awaitHostCondition(host, "capture stop") { runningModule(host)?.status?.let { !it.isStreaming && it.captureAttempt == null } == true }
+                awaitHostCondition(host, "post-stop placeholder") { requestJpeg(port).contentEquals(logo) }
                 stream.awaitFrame("post-stop placeholder") { it.contentEquals(logo) }
                 assertTrue("Stop must preserve the production Service", serviceIsRunning(context))
                 assertTrue("Stop must preserve the listener", canConnect(port))
 
-                await(host, "stopped frame-rate chart is unavailable") { statistics.currentFps() == null }
-                val stoppedTotals = statistics.readTotals()
+                awaitHostCondition(host, "stopped frame-rate chart is unavailable") { statistics.readCurrentFps() == null }
+                val stoppedTotals = statistics.readFrameTotals()
                 assertTrue("Stop must retain the last live Produced lower bound", stoppedTotals.produced >= laterTotals.produced)
                 assertTrue("Stop must retain the last live Encoded lower bound", stoppedTotals.encoded >= laterTotals.encoded)
                 saveTextEvidence("stopped-statistics", "$stoppedTotals; currentFps=unavailable\n")
 
-                compose.runOnUiThread { host.greenTarget.value = false }
+                compose.runOnUiThread { host.showGreenTarget.value = false }
                 val secondAttempt = startCapture(host)
                 assertNotEquals("Restart must own a new attempt", firstAttempt, secondAttempt)
                 awaitJpegTarget(port, green = false)
                 stream.awaitTarget(green = false)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    assertEquals("API34+ needs a fresh system consent per capture", 2, host.submittedConsents.size)
-                    assertTrue(host.reusedConsents.isEmpty())
+                    assertEquals("API34+ needs a fresh system consent per capture", 2, host.systemConsentAttempts.size)
+                    assertTrue(host.reusedConsentAttempts.isEmpty())
                 } else {
-                    assertEquals(2, host.submittedConsents.size + host.reusedConsents.size)
-                    assertEquals("The first capture must obtain real system consent", firstAttempt, host.submittedConsents.first())
+                    assertEquals(2, host.systemConsentAttempts.size + host.reusedConsentAttempts.size)
+                    assertEquals("The first capture must obtain real system consent", firstAttempt, host.systemConsentAttempts.first())
                 }
 
-                assertExitAndReleased(host, stream, expectedInstanceId = secondAttempt.instanceId)
+                exitAndAssertResourcesReleased(host, stream, expectedInstanceId = secondAttempt.instanceId)
             }
         }
     }
@@ -89,24 +89,24 @@ internal class MjpegCapturePipelineTest {
         attempt: StreamingModule.CaptureAttemptId,
         statistics: MjpegStatisticsUi,
         minimumProduced: Long,
-    ): MjpegStatisticsUi.Totals {
-        var totals: MjpegStatisticsUi.Totals? = null
-        var green = !host.greenTarget.value
-        compose.runOnUiThread { host.greenTarget.value = green }
+    ): MjpegStatisticsUi.FrameTotals {
+        var totals: MjpegStatisticsUi.FrameTotals? = null
+        var green = !host.showGreenTarget.value
+        compose.runOnUiThread { host.showGreenTarget.value = green }
         // Engine snapshots are activity-driven, not timer-driven. Keep changing the actual source
         // until a fresh decoded target and the later visible statistics establish this checkpoint.
-        await(host, "live Produced >= $minimumProduced, Encoded >= 2 and an available frame-rate chart") {
-            assertEquals(attempt, running(host)?.status?.captureAttempt)
-            assertTrue("Statistics checkpoints require the same live capture", running(host)?.status?.isStreaming == true)
-            if (!matchesTarget(requestJpeg(host.port), green)) return@await false
-            val currentFps = statistics.currentFps()
-            val observed = statistics.readTotals()
+        awaitHostCondition(host, "live Produced >= $minimumProduced, Encoded >= 2 and an available frame-rate chart") {
+            assertEquals(attempt, runningModule(host)?.status?.captureAttempt)
+            assertTrue("Statistics checkpoints require the same live capture", runningModule(host)?.status?.isStreaming == true)
+            if (!matchesTarget(requestJpeg(host.port), green)) return@awaitHostCondition false
+            val currentFps = statistics.readCurrentFps()
+            val observed = statistics.readFrameTotals()
             if (observed.produced >= minimumProduced && observed.encoded >= 2 && currentFps != null) {
                 totals = observed
                 true
             } else {
                 green = !green
-                compose.runOnUiThread { host.greenTarget.value = green }
+                compose.runOnUiThread { host.showGreenTarget.value = green }
                 false
             }
         }

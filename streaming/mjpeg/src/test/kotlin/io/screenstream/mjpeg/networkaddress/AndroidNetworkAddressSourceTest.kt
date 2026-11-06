@@ -36,7 +36,7 @@ internal class AndroidNetworkAddressSourceTest {
             },
             lookup = { throw SocketException("Retry unavailable") },
         )
-        val snapshot = snapshot(names.associateWith { listOf(callbackIp) })
+        val snapshot = platformSnapshot(names.associateWith { listOf(callbackIp) })
         val source = AndroidNetworkAddressSource(native)
         val result = source.scan(snapshot)
         assertEquals(snapshot, result.platformSnapshot)
@@ -90,7 +90,7 @@ internal class AndroidNetworkAddressSourceTest {
             },
         )
         val names = listOf("first0", "retry0", "failed0", "missing0")
-        val result = AndroidNetworkAddressSource(native).scan(snapshot(names.associateWith { listOf(callbackIp) }))
+        val result = AndroidNetworkAddressSource(native).scan(platformSnapshot(names.associateWith { listOf(callbackIp) }))
         assertEquals(setOf("retry0", "failed0", "missing0"), lookups.toSet())
         assertEquals(
             mapOf("first0" to listOf(firstIp), "retry0" to listOf(retryIp), "failed0" to listOf(callbackIp), "missing0" to listOf(callbackIp)),
@@ -123,7 +123,7 @@ internal class AndroidNetworkAddressSourceTest {
             })))
         })
         val source = AndroidNetworkAddressSource(native)
-        val snapshot = snapshot(mapOf("partial0" to listOf(callbackIp)))
+        val snapshot = platformSnapshot(mapOf("partial0" to listOf(callbackIp)))
         val uncertain = source.scan(snapshot)
         assertEquals(listOf(callbackIp), uncertain.interfaces.single().addresses)
         assertEquals(setOf("partial0"), uncertain.failedInterfaces)
@@ -142,19 +142,19 @@ internal class AndroidNetworkAddressSourceTest {
     // Cases: MJPEG-NET-06, MJPEG-NET-07
     @Test
     fun nullEnumerationIsCompleteAndNameFailurePermitsKnownInterfaceRetry() {
-        val snapshot = snapshot(mapOf("known0" to listOf(ip("10.0.0.8"))))
-        val empty = AndroidNetworkAddressSource(NativeInterfaceFixture(enumeration = { null })).scan(snapshot)
-        assertTrue(empty.complete)
-        assertTrue(empty.interfaces.isEmpty())
-        assertTrue(empty.canConfirmAbsence("known0"))
-        val unnamed = object : NativeInterfaceAccess.Handle {
+        val snapshot = platformSnapshot(mapOf("known0" to listOf(ip("10.0.0.8"))))
+        val emptyScan = AndroidNetworkAddressSource(NativeInterfaceFixture(enumeration = { null })).scan(snapshot)
+        assertTrue(emptyScan.complete)
+        assertTrue(emptyScan.interfaces.isEmpty())
+        assertTrue(emptyScan.canConfirmAbsence("known0"))
+        val unnamedInterface = object : NativeInterfaceAccess.Handle {
             override val name: String get() = throw SocketException("Name unavailable")
             override val isUp: Boolean get() = error("Name failed")
             override val inetAddresses: Enumeration<InetAddress> get() = error("Name failed")
         }
         val recovered = AndroidNetworkAddressSource(
             NativeInterfaceFixture(
-                enumeration = { Collections.enumeration(listOf(unnamed)) },
+                enumeration = { Collections.enumeration(listOf(unnamedInterface)) },
                 lookup = { nativeInterface(it) },
             )
         ).scan(snapshot)
@@ -166,10 +166,10 @@ internal class AndroidNetworkAddressSourceTest {
         assertFalse(recovered.canConfirmAbsence("unknown0"))
     }
 
-    private fun snapshot(addresses: Map<String, List<InetAddress>>) = AndroidNetworkAddressSource.Snapshot(
+    private fun platformSnapshot(addressesByInterface: Map<String, List<InetAddress>>) = AndroidNetworkAddressSource.Snapshot(
         revision = 17,
-        callbackInterfaces = addresses.map { (name, ips) -> AndroidNetworkAddressSource.InterfaceAddresses(name, ips) },
-        interfaceTypes = addresses.keys.associateWith { InterfaceType.Wifi },
+        callbackInterfaces = addressesByInterface.map { (name, ips) -> AndroidNetworkAddressSource.InterfaceAddresses(name, ips) },
+        interfaceTypes = addressesByInterface.keys.associateWith { InterfaceType.Wifi },
         ready = true,
     )
 

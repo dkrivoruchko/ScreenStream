@@ -2,18 +2,7 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing](../01-testing.md)
 
-`MjpegCaptureSession` runs one capture attempt:
-
-- it obtains consent and a projection through Core
-- it hands the projection to a Capture Engine session
-- it copies borrowed JPEGs into HTTP delivery
-- it cleans up everything it acquired
-
-These scenarios exercise that attempt from admission to its cleanup receipt. [Capture lifecycle](../../01-module/02-module-lifecycle.md) owns the rules. The external boundaries are:
-
-- the public [startup flow](../../../docs/architecture.md#starting-capture) and [Stop behavior](../../../docs/architecture.md#stop)
-- the [Capture Engine usage guide](../../../../../screen-capture-engine/docs/usage.md)
-- Core's [Screen Capture Access](../../../../core/docs/screen-capture.md)
+`MjpegCaptureSession` runs one capture attempt: it obtains consent and a projection through Core, hands the projection to a Capture Engine session, copies borrowed JPEGs into HTTP delivery and cleans up everything it acquired. These scenarios exercise that attempt from admission to its cleanup receipt. [Capture lifecycle](../../01-module/02-module-lifecycle.md) owns the rules, extending the public [startup flow](../../../docs/architecture.md#starting-capture) and [Stop behavior](../../../docs/architecture.md#stop); the [Capture Engine usage guide](../../../../../screen-capture-engine/docs/usage.md) and Core's [Screen Capture Access](../../../../core/docs/screen-capture.md) own the external contracts.
 
 ## Test boundary
 
@@ -25,9 +14,9 @@ Use L1 with a real session. A test controls these inputs:
 - **Foreground.** The two foreground callbacks.
 - **Scope.** The scope that hosts the attempt.
 
-Controlled inputs show how MJPEG responds to them. Real projection, revocation and foreground admission need [platform qualification](09-integration.md#mjpeg-cfg-04).
+Real projection, revocation and foreground admission need [platform qualification](09-integration.md#mjpeg-cfg-04).
 
-The session keeps its first capture failure and its first cleanup failure as diagnostic stages. Tests can assert these stages at the session boundary. The manager only sees a generic error.
+The session keeps its first capture failure and its first cleanup failure as diagnostic stages, which tests assert at the session boundary. The manager only sees a generic error.
 
 | Stage | Recorded when |
 | --- | --- |
@@ -317,7 +306,7 @@ Run on SDK levels before 29, from 29 to 33, and 34 or later.
 - **Terminal Service stop.** Removing foreground isn't a capture cleanup step. After the attempt's cleanup settles, module cleanup calls `stopAndAwaitDestruction()`, and Android removes foreground and the notification when the Service stops ([Core's foreground lifecycle](../../../../core/docs/notifications.md#foreground-presentation)). A failed stop request or an Android timeout fails module cleanup and doesn't change the attempt's recorded stages.
 - **Service destruction.** Destroying the Service reports module failure and starts shutdown ([CTL-11](02-controller.md#mjpeg-ctl-11)).
 
-**Evidence boundary.** Core's Service base class implements the promotion calls for each SDK level. A Robolectric run through the MJPEG subclass shows how MJPEG uses them. For the rest, rely on Core's [foreground presentation contract](../../../../core/docs/notifications.md#foreground-presentation). Actual system admission, foreground-service restrictions and visible notifications need L2.
+**Evidence boundary.** Core's Service base class implements the promotion calls for each SDK level; a Robolectric run through the MJPEG subclass shows only how MJPEG uses them. Actual system admission, foreground-service restrictions and visible notifications need L2.
 
 <a id="mjpeg-cap-14"></a>
 
@@ -331,4 +320,4 @@ Run on SDK levels before 29, from 29 to 33, and 34 or later.
 - **Statistics observation failure.** It is only logged. No values are invented, and capture success is unchanged.
 - **Undocumented Suspended problem.** The Engine allows only three Suspended problems ([lifecycle states](../../../../../screen-capture-engine/docs/usage.md#lifecycle-states)). Any other value makes the session's suspension problem throw when the controller reads it, which fails the module rather than one attempt.
 
-**Evidence boundary.** Engine `StateFlow`s don't normally throw. A fabricated throwing flow, an undocumented problem or a logger fault is defensive evidence only, not evidence about the real integration.
+**Evidence boundary.** These are defensive inputs ([evidence rule 6](../01-testing.md#evidence-rules)).

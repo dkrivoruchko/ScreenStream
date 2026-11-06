@@ -28,6 +28,7 @@ android {
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
+            it.maxHeapSize = "2g"
             it.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
             it.javaLauncher.set(
                 javaToolchains.launcherFor {

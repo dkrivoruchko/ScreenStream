@@ -57,7 +57,7 @@ internal class ConnectionSettingsUiTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
-    private val failures = mutableListOf<String>()
+    private val saveErrors = mutableListOf<String>()
 
     @Before
     fun initializeLogger() {
@@ -67,27 +67,27 @@ internal class ConnectionSettingsUiTest {
     @Test
     fun portDismissalSavesValidValuesAndDiscardsInvalidDrafts() {
         val settings = newSettings()
-        val initial = compose.settledMjpegSettings(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         render(settings, mutableStateOf(MjpegSettings.EditPolicy.All))
 
         openPort()
         portField().performTextReplacement("80")
         compose.onNodeWithText(text(R.string.mjpeg_pref_connection_http_port_error)).assertIsDisplayed()
         closeEditor()
-        assertEquals(initial, compose.settledMjpegSettings(settings))
+        assertEquals(initial, compose.awaitSavedMjpegSettings(settings))
 
         openPort()
         portField().performTextReplacement("9090")
         closeEditor()
-        assertEquals(initial.copy(network = initial.network.copy(httpPort = 9090)), compose.settledMjpegSettings(settings))
+        assertEquals(initial.copy(network = initial.network.copy(httpPort = 9090)), compose.awaitSavedMjpegSettings(settings))
         compose.onNodeWithText("9090").assertIsDisplayed()
-        compose.runOnIdle { assertTrue(failures.isEmpty()) }
+        compose.runOnIdle { assertTrue(saveErrors.isEmpty()) }
     }
 
     @Test
     fun lockingSetupBeforeDismissalDiscardsThePortDraft() {
         val settings = newSettings()
-        val initial = compose.settledMjpegSettings(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         val policy = mutableStateOf(MjpegSettings.EditPolicy.All)
         render(settings, policy)
         openPort()
@@ -95,58 +95,24 @@ internal class ConnectionSettingsUiTest {
         compose.runOnIdle { policy.value = MjpegSettings.EditPolicy.LiveOnly }
         portField().assertIsNotEnabled()
         closeEditor()
-        assertEquals(initial, compose.settledMjpegSettings(settings))
-        compose.runOnIdle { assertTrue(failures.isEmpty()) }
+        assertEquals(initial, compose.awaitSavedMjpegSettings(settings))
+        compose.runOnIdle { assertTrue(saveErrors.isEmpty()) }
     }
 
     @Test
     fun queuedPortSaveRechecksThePolicyWhenItsTransactionExecutes() {
-        Executors.newSingleThreadExecutor().asCoroutineDispatcher().use { dispatcher ->
-            val settings = newSettings(dispatcher)
-            val initial = compose.settledMjpegSettings(settings)
-            val policy = mutableStateOf(MjpegSettings.EditPolicy.All)
-            render(settings, policy)
-            openPort()
-            portField().performTextReplacement("9191")
+        assertQueuedPortSave(editPolicyAtExecution = MjpegSettings.EditPolicy.LiveOnly, expectedPort = null)
+    }
 
-            val scope = CoroutineScope(Dispatchers.Default)
-            val entered = CountDownLatch(1)
-            val release = CountDownLatch(1)
-            val blocker = scope.async {
-                settings.updateData {
-                    entered.countDown()
-                    check(release.await(5, TimeUnit.SECONDS)) { "Held settings transaction was not released" }
-                    copy(web = web.copy(title = "Unrelated queued edit"))
-                }
-            }
-            try {
-                assertTrue("Settings transaction did not enter", entered.await(5, TimeUnit.SECONDS))
-                // Dismiss under All: the editor must emit the save before the policy changes.
-                closeEditor()
-                portField().assertDoesNotExist()
-                compose.runOnIdle { policy.value = MjpegSettings.EditPolicy.LiveOnly }
-                compose.waitForIdle()
-                release.countDown()
-                runBlocking { withTimeout(5.seconds) { blocker.await() } }
-
-                val expected = initial.copy(web = initial.web.copy(title = "Unrelated queued edit"))
-                assertEquals(expected, compose.settledMjpegSettings(settings))
-                compose.runOnIdle { assertTrue(failures.isEmpty()) }
-            } finally {
-                release.countDown()
-                try {
-                    runBlocking { withTimeout(5.seconds) { blocker.join() } }
-                } finally {
-                    scope.cancel()
-                }
-            }
-        }
+    @Test
+    fun queuedPortSavePreservesUnrelatedEditsWhenSetupRemainsEditable() {
+        assertQueuedPortSave(editPolicyAtExecution = MjpegSettings.EditPolicy.All, expectedPort = 9191)
     }
 
     @Test
     fun liveOnlyFilterEditSavesWithoutChangingThePort() {
         val settings = newSettings()
-        val initial = compose.settledMjpegSettings(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         render(settings, mutableStateOf(MjpegSettings.EditPolicy.LiveOnly), NetworkFilterSearch.info)
         compose.onNodeWithText(text(R.string.mjpeg_pref_connection_filter)).performClick()
         compose.onNodeWithText(text(R.string.mjpeg_network_ipv6)).performScrollTo().performClick().assertIsSelected()
@@ -161,8 +127,54 @@ internal class ConnectionSettingsUiTest {
                 ),
             ),
         )
-        assertEquals(expected, compose.settledMjpegSettings(settings))
-        compose.runOnIdle { assertTrue(failures.isEmpty()) }
+        assertEquals(expected, compose.awaitSavedMjpegSettings(settings))
+        compose.runOnIdle { assertTrue(saveErrors.isEmpty()) }
+    }
+
+    private fun assertQueuedPortSave(editPolicyAtExecution: MjpegSettings.EditPolicy, expectedPort: Int?) {
+        Executors.newSingleThreadExecutor().asCoroutineDispatcher().use { dispatcher ->
+            val settings = newSettings(dispatcher)
+            val initial = compose.awaitSavedMjpegSettings(settings)
+            val policy = mutableStateOf(MjpegSettings.EditPolicy.All)
+            render(settings, policy)
+            openPort()
+            portField().performTextReplacement("9191")
+
+            val scope = CoroutineScope(Dispatchers.Default)
+            val saveEntered = CountDownLatch(1)
+            val releaseSave = CountDownLatch(1)
+            val heldSave = scope.async {
+                settings.updateData {
+                    saveEntered.countDown()
+                    check(releaseSave.await(5, TimeUnit.SECONDS)) { "Held settings transaction was not released" }
+                    copy(web = web.copy(title = "Unrelated queued edit"))
+                }
+            }
+            try {
+                assertTrue("Settings transaction did not enter", saveEntered.await(5, TimeUnit.SECONDS))
+                // Dismiss under All: the editor must emit the save before its execution policy is set.
+                closeEditor()
+                portField().assertDoesNotExist()
+                compose.runOnIdle { policy.value = editPolicyAtExecution }
+                compose.waitForIdle()
+                releaseSave.countDown()
+                runBlocking { withTimeout(5.seconds) { heldSave.await() } }
+
+                val expected = initial.copy(
+                    network = initial.network.copy(httpPort = expectedPort ?: initial.network.httpPort),
+                    web = initial.web.copy(title = "Unrelated queued edit"),
+                )
+                assertEquals(expected, compose.awaitSavedMjpegSettings(settings))
+                compose.runOnIdle { assertTrue(saveErrors.isEmpty()) }
+            } finally {
+                releaseSave.countDown()
+                try {
+                    runBlocking { withTimeout(5.seconds) { heldSave.join() } }
+                } finally {
+                    scope.cancel()
+                }
+            }
+        }
     }
 
     private fun render(
@@ -170,7 +182,7 @@ internal class ConnectionSettingsUiTest {
         policy: State<MjpegSettings.EditPolicy>,
         visibleSetting: SettingSearchInfo = HttpPortSearch.info,
     ) {
-        val initial = compose.settledMjpegSettings(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         compose.setContent {
             val data by settings.data.collectAsState(initial)
             MjpegTestTheme {
@@ -178,7 +190,7 @@ internal class ConnectionSettingsUiTest {
                     networkSettings = data.network,
                     mjpegSettings = settings,
                     editPolicy = policy.value,
-                    onSaveError = failures::add,
+                    onSaveError = saveErrors::add,
                     visibleSettings = setOf(visibleSetting),
                     expanded = true,
                     onExpandedChange = {},

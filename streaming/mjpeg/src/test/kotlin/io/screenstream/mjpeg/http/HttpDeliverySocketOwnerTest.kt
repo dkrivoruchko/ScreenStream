@@ -48,7 +48,7 @@ internal class HttpDeliverySocketOwnerTest {
     // Cases: MJPEG-SRV-01, MJPEG-SRV-04
     @Test(timeout = 30_000)
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun listenerFailuresMapIndependentlyAndAnotherAddressKeepsListening() = runBlocking {
+    fun directListenerExceptionsMapIndependentlyWhileAnotherAddressKeepsListening() = runBlocking {
         val failures = listOf(
             BindException("occupied") to ServerFailure.AddressUnavailable,
             BindException("address not available") to ServerFailure.AddressUnavailable,
@@ -62,7 +62,7 @@ internal class HttpDeliverySocketOwnerTest {
             fixture.onCreate = { if (it.host == "127.0.0.1") it.startFailure = cause }
             try {
                 fixture.delivery.configureServers(listOf(httpTestAddress(), httpTestAddress(2, "127.0.0.2")), 8080)
-                assertTrue(fixture.created.isEmpty)
+                assertTrue(fixture.createdAttempts.isEmpty)
                 fixture.start()
                 val failed = fixture.delivery.awaitHttpInfo {
                     it.servers.first().state is ServerState.Failed && it.servers.last().state == ServerState.Listening
@@ -83,29 +83,39 @@ internal class HttpDeliverySocketOwnerTest {
         try {
             fixture.delivery.configureServers(listOf(httpTestAddress()), 8080)
             fixture.start()
-            val first = fixture.next()
+            val initialAttempt = fixture.awaitNextAttempt()
             fixture.delivery.awaitHttpInfo { (it.servers.single().state as? ServerState.Failed)?.attempts == 1 }
-            first.cleanupFinished.await()
+            initialAttempt.cleanupFinished.await()
             val id = fixture.delivery.info.value.servers.single().id
-            assertNull(withTimeoutOrNull(100.milliseconds) { fixture.created.receive() })
+            assertNull(withTimeoutOrNull(100.milliseconds) { fixture.createdAttempts.receive() })
             fixture.delivery.retryServer(id)
-            val second = fixture.nextRetry(first)
-            assertTrue(second.createdAtElapsedRealtimeMillis - first.listener.cleanupFinishedAtElapsedRealtimeMillis >= 250)
-            val third = fixture.nextRetry(second)
-            val fourth = fixture.nextRetry(third)
-            assertTrue(third.createdAtElapsedRealtimeMillis - second.listener.cleanupFinishedAtElapsedRealtimeMillis >= 250)
-            assertTrue(fourth.createdAtElapsedRealtimeMillis - third.listener.cleanupFinishedAtElapsedRealtimeMillis >= 250)
-            val exhausted = fixture.delivery.awaitHttpInfo { (it.servers.single().state as? ServerState.Failed)?.attempts == 3 }
+            val firstAfterRetry = fixture.awaitRetryAttempt(initialAttempt)
+            assertTrue(firstAfterRetry.createdAtElapsedRealtimeMillis - initialAttempt.listener.cleanupFinishedAtElapsedRealtimeMillis >= 250)
+            val secondAfterRetry = fixture.awaitRetryAttempt(firstAfterRetry)
+            val thirdAfterRetry = fixture.awaitRetryAttempt(secondAfterRetry)
+            assertTrue(secondAfterRetry.createdAtElapsedRealtimeMillis - firstAfterRetry.listener.cleanupFinishedAtElapsedRealtimeMillis >= 250)
+            assertTrue(thirdAfterRetry.createdAtElapsedRealtimeMillis - secondAfterRetry.listener.cleanupFinishedAtElapsedRealtimeMillis >= 250)
+            val exhaustedInfo = fixture.delivery.awaitHttpInfo { (it.servers.single().state as? ServerState.Failed)?.attempts == 3 }
             fixture.delivery.retryServer(Uuid.random())
-            assertEquals(exhausted.servers, fixture.delivery.info.value.servers)
-            assertNull(withTimeoutOrNull(300.milliseconds) { fixture.created.receive() })
+            assertEquals(exhaustedInfo.servers, fixture.delivery.info.value.servers)
+            withTimeout(5.seconds) { thirdAfterRetry.cleanupFinished.await() }
+            // One initial failure preceded manual retry; its reset budget then spent three attempts.
+            assertEquals(4, fixture.listenerAttempts.size)
+            // Cleanup returns before the owner assigns a possible retry deadline. Keep advancing
+            // paused Android time while real IO work settles, including beyond that 250 ms deadline.
+            repeat(4) {
+                ShadowSystemClock.advanceBy(250, TimeUnit.MILLISECONDS)
+                assertNull(withTimeoutOrNull(300.milliseconds) { fixture.createdAttempts.receive() })
+                assertEquals(4, fixture.listenerAttempts.size)
+                assertEquals(exhaustedInfo.servers, fixture.delivery.info.value.servers)
+            }
             fixture.onCreate = {}
             fixture.delivery.retryServer(id)
-            val recovered = fixture.next()
+            val recoveredAttempt = fixture.awaitNextAttempt()
             fixture.delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
             fixture.delivery.retryServer(id)
-            assertNull(withTimeoutOrNull(100.milliseconds) { fixture.created.receive() })
-            recovered.listener.ended.complete(Unit)
+            assertNull(withTimeoutOrNull(100.milliseconds) { fixture.createdAttempts.receive() })
+            recoveredAttempt.listener.ended.complete(Unit)
             val ended = fixture.delivery.awaitHttpInfo { it.servers.single().state is ServerState.Failed }
             assertEquals(ServerState.Failed(ServerFailure.IoFailure, 1), ended.servers.single().state)
         } finally {
@@ -118,11 +128,11 @@ internal class HttpDeliverySocketOwnerTest {
     fun sameSocketReplacementWaitsForCleanupAndSkipsIntermediatePlans() = runBlocking {
         val fixture = Fixture()
         val cleanup = CompletableDeferred<Unit>()
-        fixture.onCreate = { if (fixture.records.isEmpty()) it.cleanupGate = cleanup }
+        fixture.onCreate = { if (fixture.listenerAttempts.isEmpty()) it.cleanupGate = cleanup }
         try {
             fixture.delivery.configureServers(listOf(httpTestAddress()), 8080)
             fixture.start()
-            val old = fixture.next()
+            val old = fixture.awaitNextAttempt()
             fixture.delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
             fixture.delivery.configureServers(emptyList(), 8080)
             old.listener.cleanupEntered.await()
@@ -132,9 +142,9 @@ internal class HttpDeliverySocketOwnerTest {
             fixture.delivery.configureServers(listOf(httpTestAddress(3)), 8080)
             val latest = fixture.delivery.info.value.servers.single().id
             fixture.delivery.retryServer(skipped)
-            assertNull(withTimeoutOrNull(100.milliseconds) { fixture.created.receive() })
+            assertNull(withTimeoutOrNull(100.milliseconds) { fixture.createdAttempts.receive() })
             cleanup.complete(Unit)
-            val successor = fixture.next()
+            val successor = fixture.awaitNextAttempt()
             assertTrue(old.listener.cleanupFinished.isCompleted)
             fixture.delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
             assertEquals(latest, fixture.delivery.info.value.servers.single().id)
@@ -151,7 +161,7 @@ internal class HttpDeliverySocketOwnerTest {
         val fixture = Fixture()
         val start = CompletableDeferred<Unit>()
         fixture.onCreate = {
-            if (fixture.records.isEmpty()) {
+            if (fixture.listenerAttempts.isEmpty()) {
                 it.startGate = start
                 it.startFailure = IOException("obsolete start")
             }
@@ -159,11 +169,11 @@ internal class HttpDeliverySocketOwnerTest {
         try {
             fixture.delivery.configureServers(listOf(httpTestAddress()), 8080)
             fixture.start()
-            val old = fixture.next()
+            val old = fixture.awaitNextAttempt()
             old.listener.startEntered.await()
             assertTrue(fixture.delivery.isListenerActive(old.listener))
             fixture.delivery.configureServers(listOf(httpTestAddress()), 8081)
-            val successor = fixture.next()
+            val successor = fixture.awaitNextAttempt()
             val current = fixture.delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }.servers.single()
             assertFalse(fixture.delivery.isListenerActive(old.listener))
             assertTrue(fixture.delivery.isListenerActive(successor.listener))
@@ -185,7 +195,7 @@ internal class HttpDeliverySocketOwnerTest {
         try {
             fixture.delivery.configureServers(listOf(httpTestAddress()), 8080)
             fixture.start()
-            val physical = fixture.next()
+            val physical = fixture.awaitNextAttempt()
             fixture.delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
             val before = fixture.delivery.info.value.sampledAtElapsedRealtimeMillis
             fixture.delivery.requestStop()
@@ -224,8 +234,8 @@ internal class HttpDeliverySocketOwnerTest {
         try {
             fixture.delivery.configureServers(listOf(httpTestAddress(), httpTestAddress(2, "127.0.0.2")), 8080)
             fixture.start()
-            val first = fixture.next()
-            val second = fixture.next()
+            val first = fixture.awaitNextAttempt()
+            val second = fixture.awaitNextAttempt()
             fixture.delivery.awaitHttpInfo { it.servers.all { server -> server.state == ServerState.Listening } }
             fixture.delivery.configureServers(listOf(httpTestAddress(3), httpTestAddress(2, "127.0.0.2")), 8080)
             fixture.delivery.awaitHttpInfo { it.fatalCause != null && it.servers.isEmpty() }
@@ -235,7 +245,7 @@ internal class HttpDeliverySocketOwnerTest {
             other.listener.cleanupEntered.await()
             val waiter = async(start = CoroutineStart.UNDISPATCHED) { runCatching { fixture.delivery.stop() } }
             assertFalse(waiter.isCompleted)
-            assertEquals(2, fixture.records.size)
+            assertEquals(2, fixture.listenerAttempts.size)
             held.complete(Unit)
             assertHttpFailure(failure, withTimeout(5.seconds) { waiter.await() }.exceptionOrNull())
             assertTrue(other.listener.cleanupFinished.isCompleted)
@@ -262,14 +272,14 @@ internal class HttpDeliverySocketOwnerTest {
             try {
                 fixture.delivery.configureServers(listOf(httpTestAddress(), httpTestAddress(2, "127.0.0.2")), 8080)
                 fixture.start()
-                val records = listOf(fixture.next(), fixture.next())
+                val listenerAttempts = listOf(fixture.awaitNextAttempt(), fixture.awaitNextAttempt())
                 fixture.delivery.awaitHttpInfo { it.servers.all { server -> server.state == ServerState.Listening } }
-                val failing = records.single { it.listener.host == "127.0.0.1" }.listener
+                val failing = listenerAttempts.single { it.listener.host == "127.0.0.1" }.listener
                 failing.terminationFailure = fatal
                 failing.ended.complete(Unit)
                 fixture.delivery.awaitHttpInfo { it.fatalCause != null }
                 assertSame(fatal, fixture.delivery.info.value.fatalCause)
-                records.single { it.listener.host == "127.0.0.2" }.listener.cleanupEntered.await()
+                listenerAttempts.single { it.listener.host == "127.0.0.2" }.listener.cleanupEntered.await()
                 releaseCleanup.complete(Unit)
                 val outcome = runCatching { withTimeout(5.seconds) { fixture.delivery.stop() } }
                 if (failCleanup) assertHttpFailure(cleanupFailure, outcome.exceptionOrNull()) else assertTrue(outcome.isSuccess)
@@ -287,7 +297,7 @@ internal class HttpDeliverySocketOwnerTest {
         val fixture = Fixture()
         val release = CompletableDeferred<Unit>()
         fixture.onCreate = {
-            if (fixture.records.isEmpty()) {
+            if (fixture.listenerAttempts.isEmpty()) {
                 it.startFailure = BindException("occupied")
                 it.cleanupGate = release
             }
@@ -295,15 +305,15 @@ internal class HttpDeliverySocketOwnerTest {
         try {
             fixture.delivery.configureServers(listOf(httpTestAddress()), 8080)
             fixture.start()
-            val first = fixture.next()
+            val first = fixture.awaitNextAttempt()
             first.listener.cleanupEntered.await()
             val id = fixture.delivery.info.value.servers.single().id
             fixture.delivery.retryServer(id)
             fixture.delivery.retryServer(id)
             assertEquals(ServerState.Pending, fixture.delivery.info.value.servers.single().state)
-            assertNull(withTimeoutOrNull(100.milliseconds) { fixture.created.receive() })
+            assertNull(withTimeoutOrNull(100.milliseconds) { fixture.createdAttempts.receive() })
             release.complete(Unit)
-            val second = fixture.nextRetry(first)
+            val second = fixture.awaitRetryAttempt(first)
             assertTrue(first.listener.cleanupFinished.isCompleted)
             assertTrue(second.createdAtElapsedRealtimeMillis - first.listener.cleanupFinishedAtElapsedRealtimeMillis >= 250)
             val ready = fixture.delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }
@@ -333,7 +343,7 @@ internal class HttpDeliverySocketOwnerTest {
                 val constructing = withTimeout(5.seconds) { entered.await() }
                 assertFalse(fixture.delivery.isListenerActive(constructing))
                 if (stop) fixture.delivery.requestStop() else fixture.delivery.configureServers(listOf(httpTestAddress()), 8081)
-                val successor = if (stop) null else fixture.next()
+                val successor = if (stop) null else fixture.awaitNextAttempt()
                 val ready = if (stop) null else fixture.delivery.awaitHttpInfo { it.servers.single().state == ServerState.Listening }.servers.single()
                 release.countDown()
                 withTimeout(5.seconds) { constructing.cleanupFinished.await() }
@@ -371,7 +381,7 @@ internal class HttpDeliverySocketOwnerTest {
                     assertEquals(before, fixture.delivery.info.value.servers)
                 }
                 val failure = runCatching {
-                    fixture.delivery.configureServers(listOf(httpTestAddress(name = "earlier metadata"), httpTestAddress(2, "127.0.0.3")), port)
+                    fixture.delivery.configureServers(listOf(httpTestAddress(interfaceName = "earlier metadata"), httpTestAddress(2, "127.0.0.3")), port)
                 }.exceptionOrNull()
                 assertTrue(failure is IllegalStateException)
                 assertEquals(before.map { it.id }, fixture.delivery.info.value.servers.map { it.id })
@@ -395,7 +405,7 @@ internal class HttpDeliverySocketOwnerTest {
         try {
             fixture.delivery.configureServers(listOf(httpTestAddress(), httpTestAddress(2, "127.0.0.2")), 8080)
             fixture.start()
-            val physical = listOf(fixture.next(), fixture.next())
+            val physical = listOf(fixture.awaitNextAttempt(), fixture.awaitNextAttempt())
             fixture.delivery.awaitHttpInfo { it.servers.all { server -> server.state == ServerState.Listening } }
             val first = physical.single { it.listener.host == "127.0.0.1" }
             io.ktor.server.testing.testApplication {
@@ -427,14 +437,14 @@ internal class HttpDeliverySocketOwnerTest {
             val sample = fixture.delivery.awaitHttpInfo { it.completedJpegs == 1L && it.clients.isNotEmpty() }
             assertEquals(1L, sample.completedJpegBytes)
             assertTrue(sample.hasConsumer)
-            fixture.delivery.configureServers(listOf(httpTestAddress(name = "control edit"), httpTestAddress(2, "127.0.0.2")), 8080)
+            fixture.delivery.configureServers(listOf(httpTestAddress(interfaceName = "control edit"), httpTestAddress(2, "127.0.0.2")), 8080)
             val control = fixture.delivery.info.value
             assertEquals("control edit", control.servers.first().address.interfaceName)
             assertEquals(sample.clients, control.clients)
             assertEquals(sample.completedJpegs, control.completedJpegs)
             assertEquals(sample.completedJpegBytes, control.completedJpegBytes)
             assertEquals(sample.sampledAtElapsedRealtimeMillis, control.sampledAtElapsedRealtimeMillis)
-            fixture.delivery.updateConfiguration(httpTestProtection(), PostStopImage.Placeholder, httpTestPage())
+            fixture.delivery.updateConfiguration(httpTestProtectedAccessSettings(), PostStopImage.Placeholder, httpTestPageSettings())
             val rotation = fixture.delivery.info.value
             assertTrue(rotation.clients.isEmpty())
             assertEquals(1L, rotation.completedJpegs)
@@ -459,13 +469,13 @@ internal class HttpDeliverySocketOwnerTest {
         }
     }
 
-    private data class Record(val listener: ControlledHttpListener, val createdAtElapsedRealtimeMillis: Long) {
+    private data class ListenerAttempt(val listener: ControlledHttpListener, val createdAtElapsedRealtimeMillis: Long) {
         val cleanupFinished get() = listener.cleanupFinished
     }
 
     private class Fixture {
-        val created = Channel<Record>(Channel.UNLIMITED)
-        val records: MutableList<Record> = java.util.Collections.synchronizedList(mutableListOf())
+        val createdAttempts = Channel<ListenerAttempt>(Channel.UNLIMITED)
+        val listenerAttempts: MutableList<ListenerAttempt> = java.util.Collections.synchronizedList(mutableListOf())
 
         @Volatile
         var onCreate: (ControlledHttpListener) -> Unit = {}
@@ -473,26 +483,26 @@ internal class HttpDeliverySocketOwnerTest {
             val createdAtElapsedRealtimeMillis = SystemClock.elapsedRealtime()
             ControlledHttpListener(parentJob, host, port).also { listener ->
                 onCreate(listener)
-                val record = Record(listener, createdAtElapsedRealtimeMillis)
-                records += record
-                created.trySend(record)
+                val record = ListenerAttempt(listener, createdAtElapsedRealtimeMillis)
+                listenerAttempts += record
+                createdAttempts.trySend(record)
             }
         }
 
-        suspend fun start(): Boolean = delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(1))
-        suspend fun next(): Record = withTimeout(5.seconds) { created.receive() }
-        suspend fun nextRetry(after: Record): Record = withTimeout(5.seconds) {
+        suspend fun start(): Boolean = delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(1))
+        suspend fun awaitNextAttempt(): ListenerAttempt = withTimeout(5.seconds) { createdAttempts.receive() }
+        suspend fun awaitRetryAttempt(after: ListenerAttempt): ListenerAttempt = withTimeout(5.seconds) {
             after.cleanupFinished.await()
-            var record = withTimeoutOrNull(50.milliseconds) { created.receive() }
+            var record = withTimeoutOrNull(50.milliseconds) { createdAttempts.receive() }
             while (record == null) {
                 ShadowSystemClock.advanceBy(25, TimeUnit.MILLISECONDS)
-                record = withTimeoutOrNull(50.milliseconds) { created.receive() }
+                record = withTimeoutOrNull(50.milliseconds) { createdAttempts.receive() }
             }
             record
         }
 
         suspend fun close(expectFailure: Throwable? = null) {
-            synchronized(records) { records.toList() }.forEach {
+            synchronized(listenerAttempts) { listenerAttempts.toList() }.forEach {
                 it.listener.startGate?.complete(Unit)
                 it.listener.cleanupGate?.complete(Unit)
             }

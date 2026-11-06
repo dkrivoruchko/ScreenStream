@@ -8,39 +8,39 @@ const { DEFAULT_APPEARANCE, DEFAULT_OPTIONS, SCENARIOS } = require('./scenarios.
 const PIN = '123456';
 const BLOCK_DURATION_MS = 20000;
 
-class DeviceError extends Error {}
+class PreviewDeviceError extends Error {}
 
 // One virtual device. Visual presets are projections; viewing credentials have their own lifetime.
-function createDevice() {
+function createPreviewDevice() {
     const fixtures = {};
-    const names = ['logo', ...['portrait', 'landscape'].flatMap(orientation =>
-        Array.from({ length: 8 }, (_, frame) => orientation + '-' + frame))];
-    for (const name of names) {
+    const fixtureNames = ['logo', ...['portrait', 'landscape'].flatMap(orientation =>
+        Array.from({ length: 8 }, (_, frameIndex) => orientation + '-' + frameIndex))];
+    for (const name of fixtureNames) {
         fixtures[name] = fs.readFileSync(path.join(__dirname, 'fixtures', name + '.jpg'));
     }
     let appearance, options, scenarioId, orientation;
-    let cookie, token, generation = 0;
+    let cookie, token, credentialGeneration = 0;
     let blockedUntil = 0, wrongAttempts = 0;
 
-    function protectedAccess() { return scenarioId === 'pin' || scenarioId === 'blocked'; }
-    function currentCapture() { return scenarioId === 'normal' || protectedAccess(); }
-    function notice() { return currentCapture() || scenarioId === 'starting' ? null : scenarioId; }
+    function isAccessProtected() { return scenarioId === 'pin' || scenarioId === 'blocked'; }
+    function hasActiveCapture() { return scenarioId === 'normal' || isAccessProtected(); }
+    function notice() { return hasActiveCapture() || scenarioId === 'starting' ? null : scenarioId; }
     function imageKind() {
-        if (currentCapture() && options.imageAvailable) return 'live';
-        if (options.postStopImage === 'last' && !currentCapture() && options.imageAvailable) return 'retained';
+        if (hasActiveCapture() && options.imageAvailable) return 'live';
+        if (options.postStopImage === 'last' && !hasActiveCapture() && options.imageAvailable) return 'retained';
         return 'logo';
     }
-    function image() {
+    function selectedJpeg() {
         const kind = imageKind();
         if (kind === 'none') return null;
         if (kind === 'logo') return fixtures.logo;
-        const frame = kind === 'retained' ? 0 : Math.floor(performance.now() / 250) % 8;
-        return fixtures[orientation + '-' + frame];
+        const frameIndex = kind === 'retained' ? 0 : Math.floor(performance.now() / 250) % 8;
+        return fixtures[orientation + '-' + frameIndex];
     }
-    function newAccessContext() {
+    function rotateCredentials() {
         cookie = crypto.randomBytes(32).toString('hex');
         token = crypto.randomBytes(24).toString('base64url');
-        generation += 1;
+        credentialGeneration += 1;
         wrongAttempts = 0;
         blockedUntil = 0;
     }
@@ -48,14 +48,14 @@ function createDevice() {
         appearance = structuredClone(DEFAULT_APPEARANCE);
         options = structuredClone(DEFAULT_OPTIONS);
         scenarioId = 'normal'; orientation = 'portrait';
-        newAccessContext();
+        rotateCredentials();
     }
     function selectScenario(id) {
-        if (!SCENARIOS.some(item => item.id === id)) throw new DeviceError('Unknown scenario');
-        const wasProtected = protectedAccess();
+        if (!SCENARIOS.some(item => item.id === id)) throw new PreviewDeviceError('Unknown scenario');
+        const wasProtected = isAccessProtected();
         scenarioId = id;
-        if (wasProtected || protectedAccess()) {
-            newAccessContext();
+        if (wasProtected || isAccessProtected()) {
+            rotateCredentials();
             if (id === 'blocked') blockedUntil = performance.now() + BLOCK_DURATION_MS;
             return true;
         }
@@ -65,18 +65,18 @@ function createDevice() {
         const next = structuredClone(appearance);
         for (const [key, value] of Object.entries(update)) {
             if (key === 'title') {
-                if (typeof value !== 'string' || value.length > 16384) throw new DeviceError('Title must be text up to 16384 characters');
+                if (typeof value !== 'string' || value.length > 16384) throw new PreviewDeviceError('Title must be text up to 16384 characters');
             } else if (key === 'background') {
-                if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) throw new DeviceError('Background must be a six-digit RGB color');
+                if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) throw new PreviewDeviceError('Background must be a six-digit RGB color');
             } else if (key === 'titleEnabled') {
-                if (typeof value !== 'boolean') throw new DeviceError(key + ' must be Boolean');
+                if (typeof value !== 'boolean') throw new PreviewDeviceError(key + ' must be Boolean');
             } else if (key === 'titleLayout' || key === 'controlsLayout') {
                 if (!value || typeof value !== 'object' || Array.isArray(value) ||
                     !['top', 'bottom'].includes(value.position) || !['overlay', 'bar'].includes(value.presentation) ||
                     typeof value.autoHide !== 'boolean' || Object.keys(value).some(field => !['position', 'presentation', 'autoHide'].includes(field))) {
-                    throw new DeviceError('Invalid ' + key);
+                    throw new PreviewDeviceError('Invalid ' + key);
                 }
-            } else throw new DeviceError('Unknown appearance field: ' + key);
+            } else throw new PreviewDeviceError('Unknown appearance field: ' + key);
             next[key] = structuredClone(value);
         }
         appearance = next;
@@ -85,26 +85,26 @@ function createDevice() {
         const next = { ...options };
         for (const [key, value] of Object.entries(update)) {
             if (key === 'postStopImage') {
-                if (!['logo', 'last'].includes(value)) throw new DeviceError('Invalid inactive image');
+                if (!['logo', 'last'].includes(value)) throw new PreviewDeviceError('Invalid inactive image');
             } else if (key === 'imageAvailable') {
-                if (typeof value !== 'boolean') throw new DeviceError('Image available must be Boolean');
-            } else throw new DeviceError('Unknown device option: ' + key);
+                if (typeof value !== 'boolean') throw new PreviewDeviceError('Image available must be Boolean');
+            } else throw new PreviewDeviceError('Unknown device option: ' + key);
             next[key] = value;
         }
         options = next;
     }
     function setOrientation(value) {
-        if (!['portrait', 'landscape'].includes(value)) throw new DeviceError('Invalid orientation');
+        if (!['portrait', 'landscape'].includes(value)) throw new PreviewDeviceError('Invalid orientation');
         orientation = value;
     }
-    function remainingBlock() { return Math.max(0, Math.ceil(blockedUntil - performance.now())); }
+    function remainingBlockMs() { return Math.max(0, Math.ceil(blockedUntil - performance.now())); }
     function allowsViewing(suppliedCookie, suppliedToken) {
-        return !protectedAccess() || suppliedCookie === cookie || suppliedToken === token;
+        return !isAccessProtected() || suppliedCookie === cookie || suppliedToken === token;
     }
-    function exchangeToken(supplied) { return protectedAccess() && supplied === token ? cookie : null; }
+    function exchangeToken(supplied) { return isAccessProtected() && supplied === token ? cookie : null; }
     function verifyPin(supplied) {
-        if (!protectedAccess()) return { status: 204 };
-        const remaining = remainingBlock();
+        if (!isAccessProtected()) return { status: 204 };
+        const remaining = remainingBlockMs();
         if (remaining > 0) return { status: 429, retryAfterMs: remaining };
         if (blockedUntil) { blockedUntil = 0; wrongAttempts = 0; }
         if (supplied === PIN) {
@@ -118,9 +118,9 @@ function createDevice() {
         }
         return { status: 403 };
     }
-    function snapshot() {
+    function viewerSnapshot() {
         const kind = imageKind();
-        return { access: protectedAccess() ? 'authorized' : 'open', notice: notice(),
+        return { access: isAccessProtected() ? 'authorized' : 'open', notice: notice(),
             imageKind: kind, hasImage: kind !== 'none', display: structuredClone(appearance) };
     }
     function state() {
@@ -129,15 +129,15 @@ function createDevice() {
         return {
             scenario: { id: scenarioId, label: preset.label },
             appearance: structuredClone(appearance), options: { ...options },
-            delivery: { access: protectedAccess() ? 'protected' : 'open', notice: notice(),
-                imageKind: kind, hasImage: kind !== 'none', orientation, credentials: { pin: PIN, token }, blockedRemainingMs: remainingBlock() }
+            delivery: { access: isAccessProtected() ? 'protected' : 'open', notice: notice(),
+                imageKind: kind, hasImage: kind !== 'none', orientation, credentials: { pin: PIN, token }, blockedRemainingMs: remainingBlockMs() }
         };
     }
 
     reset();
-    return { image, state, snapshot, reset, selectScenario, updateAppearance, updateOptions, setOrientation,
-        allowsViewing, exchangeToken, verifyPin, remainingBlock,
-        get generation() { return generation; } };
+    return { selectedJpeg, state, viewerSnapshot, reset, selectScenario, updateAppearance, updateOptions, setOrientation,
+        allowsViewing, exchangeToken, verifyPin, remainingBlockMs,
+        get credentialGeneration() { return credentialGeneration; } };
 }
 
-module.exports = { createDevice, DeviceError };
+module.exports = { createPreviewDevice, PreviewDeviceError };

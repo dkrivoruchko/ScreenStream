@@ -2,48 +2,13 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing MJPEG](../01-testing.md)
 
-This page describes the histories a test needs in order to show that MJPEG image delivery keeps its contract. The scenarios follow captured JPEG bytes from the moment the capture side offers them, through the one image the server selects for every viewer, to the bytes a `/jpeg` or `/mjpeg` response writes.
+Test histories that follow captured JPEG bytes from the capture side's offer, through the one image selected for every viewer, to the bytes a `/jpeg` or `/mjpeg` response writes. The public [HTTP server guide](../../../docs/server.md#images) defines what image clients receive, and [Usage](../../../docs/usage.md#automation) defines **Inactive stream image**. [JPEG delivery](../../02-delivery/02-jpeg-delivery.md) owns selection, leases, pooling and writing; [HTTP delivery](../../02-delivery/01-http-delivery.md) owns admission, cancellation and totals.
 
-Two documents own the expected behavior. The public [HTTP server guide](../../../docs/server.md#images) defines what image clients receive: single JPEG responses, multipart framing, repeats and availability. [Usage](../../../docs/usage.md#automation) defines the **Inactive stream image** setting. Internally, [JPEG delivery](../../02-delivery/02-jpeg-delivery.md) explains selection, leases, pooling and writing, and [HTTP delivery](../../02-delivery/01-http-delivery.md) owns request admission, cancellation and the transfer of final progress into totals.
+Borrowed engine frames belong to [CAP-08](03-capture.md#mjpeg-cap-08), rotation during output to [ACC-09](06-access.md#mjpeg-acc-09), and client rows and totals to the [HTTP runtime scenarios](05-http-runtime.md).
 
-Some related behavior has its own page. The capture-side copier callback and borrowed engine frames are covered by [capture scenarios](03-capture.md#mjpeg-cap-08). Credential rotation during output is covered by [access scenarios](06-access.md#mjpeg-acc-09), and client rows and totals by [HTTP runtime scenarios](05-http-runtime.md). Each scenario here states a starting history, the stimulus and the observable result. These are requirements, not a record of passing tests. [Testing MJPEG](../01-testing.md) explains the test-source coverage and the evidence rules.
+## Terms and evidence layers
 
-## The pieces under test
-
-| Piece | Lifetime | What these scenarios exercise |
-| --- | --- | --- |
-| `JpegStore` | One HTTP delivery, which lasts as long as the open mode | The logo, the latest real frame, one spare buffer, the applied capture status and generation, the fallback policy and the single selected image |
-| `JpegStore.Reader` | One admitted media response | The image pinned at admission, and every later acquisition for that response |
-| `JpegResponse` | One admitted media response | Writing the `/jpeg` or `/mjpeg` body, counting completed payloads and observing skipped publications |
-| HTTP delivery | One HTTP delivery | Admitting the response, cancelling its call job and retiring its final progress when the call completes |
-
-Several terms recur below.
-
-- A **capture generation** is an identity object that the capture session creates for a period in which frames may be published. It is never reused, not even across capture attempts. The session decides each status/generation pair, and the store only applies it. A frame belongs to the generation that admitted its copy.
-- A **publication** is one accepted image. Its **publication version** grows when the logo is installed and when a capture copy is accepted. Rejected copies and reselection don't change it.
-- A **lease** is a reader's claim on one image's bytes. Leased bytes are never reused or modified. Only the valid prefix `[0, byteCount)` of the backing array is payload.
-- The **initial lease** is the image pinned when a response is admitted, before its headers are written.
-- **Change revision** is a wake-only counter. Publications, status and policy updates and reader closures all advance it. It carries no payload and queues nothing.
-- **Cutoff** closes a reader: it gets no further images and releases its initial lease if the writer hasn't claimed it. **Cancellation** of the call job is separate and interrupts transport I/O.
-
-One response's leases move like this:
-
-```mermaid
-sequenceDiagram
-    participant H as HTTP admission
-    participant S as JPEG store
-    participant W as Response writer
-    H->>S: Open reader, pin image A
-    H->>W: Headers use A's length
-    W->>S: First acquire returns A
-    W->>W: Write A's valid bytes
-    W->>S: Release A in finally
-    W->>S: MJPEG: acquire latest
-```
-
-### Evidence layers
-
-[Testing MJPEG](../01-testing.md#choosing-an-environment) defines levels L0 to L2 and their limits.
+These scenarios use the [JPEG delivery components and terms](../../02-delivery/02-jpeg-delivery.md#components-and-terms): capture generation, publication version, change revision, lease and the [initial lease](../../02-delivery/02-jpeg-delivery.md#reader-pinning-and-leases). **Cutoff** closes a reader: it gets no further images and releases its initial lease if the writer hasn't claimed it. **Cancellation** of the call job is separate and interrupts transport I/O.
 
 `JpegStore` and its readers are plain Kotlin and suit L0. `JpegResponse` reads Android's elapsed-realtime clock for repeats, so response writing needs L1, where that clock is controlled. Coroutine virtual time doesn't move it. Race histories need separate barriers for output and for time, plus a stated allowed outcome. Use recognizable byte fixtures and parse output independently of the production writer. Android transport behavior needs L2.
 
@@ -187,7 +152,7 @@ The first part carries the image pinned at admission. Each later part carries th
 
 **History.** In three separate histories, fail output during the JPEG bytes, after the complete payload while the CR LF and delimiter that follow it are being written, and at flush.
 
-**Expected.** An incomplete payload adds nothing to the counts. A payload that was fully written counts once, even when the following framing or the flush fails. The writer releases its lease on every exit, including exceptions. A completed payload means the bytes were accepted by the response channel, not that the peer received them. The test qualifies the framing and cutoff behavior as implemented. It doesn't add a guarantee that parts are written atomically, and the public guide says clients can see a partial image.
+**Expected.** An incomplete payload adds nothing to the counts. A payload that was fully written counts once, even when the following framing or the flush fails. The writer releases its lease on every exit, including exceptions. A completed payload means the bytes were accepted by the response channel, not that the peer received them. Don't require atomic parts: clients can see a partial image.
 
 ## Slow-reader observations
 

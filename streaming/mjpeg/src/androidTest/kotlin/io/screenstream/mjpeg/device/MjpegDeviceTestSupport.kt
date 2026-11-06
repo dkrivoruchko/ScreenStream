@@ -47,7 +47,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
     val context: Context = instrumentation.targetContext
     val device: UiDevice = UiDevice.getInstance(instrumentation)
-    private var consentObservation = 0
+    private var consentObservationCount = 0
     private val evidenceRunId = UUID.randomUUID().toString()
     private val evidenceDirectory by lazy {
         File(context.cacheDir, "mjpeg-device-evidence/$evidenceRunId").apply { check(mkdirs()) }
@@ -57,7 +57,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
     fun openHost(
         networkFilter: NetworkAddressFilter = MjpegCaptureTestHost.loopbackFilter(),
         imageSettings: ImageSettings = ImageSettings(),
-    ): OpenHost {
+    ): CaptureHostFixture {
         assertEquals("The fixture must exercise modern target-SDK behavior", 37, context.applicationInfo.targetSdkVersion)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             instrumentation.uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.POST_NOTIFICATIONS)
@@ -69,10 +69,10 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
             host.start()
             scenario = ActivityScenario.launch(MjpegCaptureTestActivity::class.java)
             scenario.onActivity { host.manager.selectModule(StreamingModule.Id("MJPEG")) }
-            await(host, "module startup") { running(host) != null }
-            await(host, "inactive HTTP listener") { canConnect(port) }
+            awaitHostCondition(host, "module startup") { runningModule(host) != null }
+            awaitHostCondition(host, "inactive HTTP listener") { canConnect(port) }
             assertTrue("The production Service must be running", serviceIsRunning())
-            return OpenHost(host, scenario)
+            return CaptureHostFixture(host, scenario)
         } catch (failure: Throwable) {
             try {
                 closeHost(host, scenario)
@@ -83,7 +83,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         }
     }
 
-    inner class OpenHost(val host: MjpegCaptureTestHost, val scenario: ActivityScenario<MjpegCaptureTestActivity>) : Closeable {
+    inner class CaptureHostFixture(val host: MjpegCaptureTestHost, val scenario: ActivityScenario<MjpegCaptureTestActivity>) : Closeable {
         override fun close() {
             // Containment only. Tests establish their Exit/FD verdict before entering this method.
             closeHost(host, scenario)
@@ -102,7 +102,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         }
         if (MjpegCaptureTestHost.current === host) {
             attempt { compose.runOnUiThread { host.manager.exit() } }
-            attempt { await(host, "failure containment") { !serviceIsRunning() && !canConnect(host.port) } }
+            attempt { awaitHostCondition(host, "failure containment") { !serviceIsRunning() && !canConnect(host.port) } }
         }
         attempt { scenario?.close() }
         if (MjpegCaptureTestHost.current === host) attempt { host.closeGraph() }
@@ -112,37 +112,37 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
     data class ConsentAdmission(val attempt: StreamingModule.CaptureAttemptId, val usesSystemConsent: Boolean)
 
     fun submitCapture(host: MjpegCaptureTestHost): ConsentAdmission {
-        val submissionsBefore = host.submittedConsents.size
-        val reusesBefore = host.reusedConsents.size
+        val submissionsBefore = host.systemConsentAttempts.size
+        val reusesBefore = host.reusedConsentAttempts.size
         compose.onNodeWithText(context.getString(R.string.mjpeg_stream_start_capture)).assertIsEnabled().performClick()
         val continueText = context.getString(info.dvkr.screenstream.common.R.string.common_continue)
-        await(host, "capture education or consent admission") {
-            host.submittedConsents.size > submissionsBefore || host.reusedConsents.size > reusesBefore ||
+        awaitHostCondition(host, "capture education or consent admission") {
+            host.systemConsentAttempts.size > submissionsBefore || host.reusedConsentAttempts.size > reusesBefore ||
                     compose.onAllNodesWithText(continueText).fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()
         }
-        if (host.submittedConsents.size == submissionsBefore && host.reusedConsents.size == reusesBefore &&
+        if (host.systemConsentAttempts.size == submissionsBefore && host.reusedConsentAttempts.size == reusesBefore &&
             compose.onAllNodesWithText(continueText).fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()
         ) {
             compose.onNodeWithText(continueText).performClick()
         }
-        await(host, "consent source") {
-            host.submittedConsents.size > submissionsBefore || host.reusedConsents.size > reusesBefore
+        awaitHostCondition(host, "consent source") {
+            host.systemConsentAttempts.size > submissionsBefore || host.reusedConsentAttempts.size > reusesBefore
         }
-        val submitted = host.submittedConsents.size > submissionsBefore
-        val attempt = if (submitted) host.submittedConsents.last() else host.reusedConsents.last()
+        val submitted = host.systemConsentAttempts.size > submissionsBefore
+        val attempt = if (submitted) host.systemConsentAttempts.last() else host.reusedConsentAttempts.last()
         return ConsentAdmission(attempt, submitted)
     }
 
     fun startCapture(host: MjpegCaptureTestHost): StreamingModule.CaptureAttemptId {
         val admission = submitCapture(host)
         if (admission.usesSystemConsent) approveSystemConsent()
-        await(host, "real capture activation") {
-            running(host)?.status?.let { it.isStreaming && it.captureAttempt == admission.attempt } == true
+        awaitHostCondition(host, "real capture activation") {
+            runningModule(host)?.status?.let { it.isStreaming && it.captureAttempt == admission.attempt } == true
         }
         return admission.attempt
     }
 
-    fun consentDialogVisible(): Boolean = device.hasObject(By.res("android:id/button1").pkg("com.android.systemui"))
+    fun isConsentDialogVisible(): Boolean = device.hasObject(By.res("android:id/button1").pkg("com.android.systemui"))
 
     fun awaitConsentDialog() {
         checkNotNull(device.wait(Until.findObject(By.res("android:id/button1").pkg("com.android.systemui")), 10_000)) {
@@ -152,20 +152,20 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
 
     fun approveSystemConsent() {
         awaitConsentDialog()
-        val observation = "consent-${++consentObservation}"
-        saveUiEvidence("$observation-before-mode")
-        val positive = checkNotNull(device.findObject(By.res("android:id/button1").pkg("com.android.systemui")))
-        val legacySpinner = device.findObject(By.res("com.android.systemui:id/screen_share_mode_spinner"))
-        val spinner = legacySpinner ?: device.findObject(By.res("com.android.systemui:id/screen_share_mode_options"))
-        if (spinner != null) {
+        val consentEvidenceName = "consent-${++consentObservationCount}"
+        saveUiEvidence("$consentEvidenceName-before-mode")
+        val approveButton = checkNotNull(device.findObject(By.res("android:id/button1").pkg("com.android.systemui")))
+        val legacyModeSelector = device.findObject(By.res("com.android.systemui:id/screen_share_mode_spinner"))
+        val modeSelector = legacyModeSelector ?: device.findObject(By.res("com.android.systemui:id/screen_share_mode_options"))
+        if (modeSelector != null) {
             // SystemUI's legacy/current delegates use different view and string resource names.
             val systemResources = context.packageManager.getResourcesForApplication("com.android.systemui")
-            val entireScreenName = if (legacySpinner != null) {
+            val entireScreenName = if (legacyModeSelector != null) {
                 "screen_share_permission_dialog_option_entire_screen"
             } else {
                 "media_projection_entry_app_permission_dialog_option_text_entire_screen"
             }
-            val spinnerResource = if (legacySpinner != null) {
+            val modeSelectorResource = if (legacyModeSelector != null) {
                 "com.android.systemui:id/screen_share_mode_spinner"
             } else {
                 "com.android.systemui:id/screen_share_mode_options"
@@ -174,20 +174,20 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
                 entireScreenName, "string", "com.android.systemui",
             )
             check(entireScreenId != 0) { "SystemUI does not expose the whole-display consent option" }
-            spinner.click()
-            saveUiEvidence("$observation-expanded-mode")
+            modeSelector.click()
+            saveUiEvidence("$consentEvidenceName-expanded-mode")
             val entireScreenText = systemResources.getString(entireScreenId)
             checkNotNull(device.wait(Until.findObject(By.text(entireScreenText).pkg("com.android.systemui")), 5_000)).click()
-            check(device.wait(Until.hasObject(By.res(spinnerResource).hasDescendant(By.text(entireScreenText))), 5_000)) {
+            check(device.wait(Until.hasObject(By.res(modeSelectorResource).hasDescendant(By.text(entireScreenText))), 5_000)) {
                 "SystemUI did not confirm the selected whole-display mode"
             }
-            saveUiEvidence("$observation-selected-whole-display")
+            saveUiEvidence("$consentEvidenceName-selected-whole-display")
             checkNotNull(device.wait(Until.findObject(By.res("android:id/button1").pkg("com.android.systemui")), 5_000)).click()
         } else {
             check(Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                "Modern SystemUI has no qualified whole-display mode control; see $observation-before-mode.xml"
+                "Modern SystemUI has no qualified whole-display mode control; see $consentEvidenceName-before-mode.xml"
             }
-            positive.click()
+            approveButton.click()
         }
     }
 
@@ -198,15 +198,15 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         }.click()
     }
 
-    fun assertExitAndReleased(
+    fun exitAndAssertResourcesReleased(
         host: MjpegCaptureTestHost,
         stream: MultipartViewer? = null,
         expectedInstanceId: StreamingModule.InstanceId? = null,
     ) {
         compose.runOnUiThread { host.manager.exit(expectedInstanceId) }
-        await(host, "production Service destruction") { !serviceIsRunning() }
+        awaitHostCondition(host, "production Service destruction") { !serviceIsRunning() }
         stream?.assertClosedByServer()
-        await(host, "listener closure") { !canConnect(host.port) }
+        awaitHostCondition(host, "listener closure") { !canConnect(host.port) }
         assertPortReusable(host.port)
         assertTrue(host.manager.state.value is StreamingModuleManager.State.Exiting)
         assertTrue("Unexpected module errors: ${host.notificationErrors}", host.notificationErrors.isEmpty())
@@ -220,7 +220,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         }
     }
 
-    fun connection(port: Int, path: String): HttpURLConnection = Companion.connection(port, path)
+    fun openHttpConnection(port: Int, path: String): HttpURLConnection = Companion.openHttpConnection(port, path)
 
     fun saveJpegEvidence(name: String, bytes: ByteArray): File = writeEvidence(name, "jpg") { it.writeBytes(bytes) }
 
@@ -238,19 +238,19 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         val file = File(evidenceDirectory, "$name.$extension")
         write(file)
         Log.i("MjpegDeviceTest", "Evidence: ${file.absolutePath}")
-        val reported = resultsReporter.addNewFile("$evidenceRunId-$name-$extension.$extension", name)
-        check(reported.parentFile!!.mkdirs() || reported.parentFile!!.isDirectory)
-        file.copyTo(reported, overwrite = true)
+        val reportedEvidence = resultsReporter.addNewFile("$evidenceRunId-$name-$extension.$extension", name)
+        check(reportedEvidence.parentFile!!.mkdirs() || reportedEvidence.parentFile!!.isDirectory)
+        file.copyTo(reportedEvidence, overwrite = true)
         // Publish each completed artifact while this test is still running, including failure
         // evidence. Studio can pull it before its runner uninstalls the library test APK.
         resultsReporter.reportToInstrumentation()
         return file
     }
 
-    fun running(host: MjpegCaptureTestHost): StreamingModuleManager.State.Running? =
+    fun runningModule(host: MjpegCaptureTestHost): StreamingModuleManager.State.Running? =
         host.manager.state.value as? StreamingModuleManager.State.Running
 
-    fun await(host: MjpegCaptureTestHost, description: String, condition: () -> Boolean) {
+    fun awaitHostCondition(host: MjpegCaptureTestHost, description: String, condition: () -> Boolean) {
         try {
             compose.waitUntil(15_000, condition)
         } catch (failure: ComposeTimeoutException) {
@@ -270,7 +270,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         false
     }
 
-    fun requestJpeg(port: Int, path: String = "/jpeg"): ByteArray = connection(port, path).let { connection ->
+    fun requestJpeg(port: Int, path: String = "/jpeg"): ByteArray = openHttpConnection(port, path).let { connection ->
         try {
             assertEquals(200, connection.responseCode)
             assertEquals("image/jpeg", connection.contentType.substringBefore(';').trim())
@@ -325,8 +325,8 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
                     appendLine("redTarget=${latest?.let { matchesTarget(it, green = false) }}")
                     appendLine("greenTarget=${latest?.let { matchesTarget(it, green = true) }}")
                     appendLine("manager=${host?.manager?.state?.value}")
-                    appendLine("submittedConsents=${host?.submittedConsents?.size}; reusedConsents=${host?.reusedConsents?.size}")
-                    appendLine("resultReceipts=${host?.consentResults}")
+                    appendLine("submittedConsents=${host?.systemConsentAttempts?.size}; reusedConsents=${host?.reusedConsentAttempts?.size}")
+                    appendLine("resultReceipts=${host?.consentResultReceipts}")
                     appendLine("notificationErrors=${host?.notificationErrors}")
                     appendLine(details())
                 })
@@ -352,7 +352,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
     }
 
     class MultipartViewer(port: Int) : Closeable {
-        private val connection = connection(port, "/mjpeg")
+        private val connection = openHttpConnection(port, "/mjpeg")
         private val input: InputStream
         private val reader: MjpegMultipartReader
 
@@ -386,10 +386,10 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
 
         fun assertClosedByServer() {
             val deadline = android.os.SystemClock.elapsedRealtime() + 15_000
-            val remaining = ByteArray(8192)
+            val drainBuffer = ByteArray(8192)
             try {
                 while (android.os.SystemClock.elapsedRealtime() < deadline) {
-                    if (input.read(remaining) < 0) return
+                    if (input.read(drainBuffer) < 0) return
                 }
             } catch (failure: SocketTimeoutException) {
                 throw AssertionError("Exit left the multipart connection open", failure)
@@ -418,7 +418,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
     }
 
     companion object {
-        fun connection(port: Int, path: String): HttpURLConnection =
+        fun openHttpConnection(port: Int, path: String): HttpURLConnection =
             (URL("http://127.0.0.1:$port$path").openConnection() as HttpURLConnection).apply {
                 connectTimeout = 2_000
                 readTimeout = 5_000

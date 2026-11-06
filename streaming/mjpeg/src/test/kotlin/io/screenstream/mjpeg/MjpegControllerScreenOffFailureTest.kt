@@ -50,54 +50,56 @@ internal class MjpegControllerScreenOffFailureTest {
     // Cases: MJPEG-CTL-11, MJPEG-CTL-14
     @Test
     fun registrationFailureAtStartRejectsTheAttemptAndReportsARecoverableGenericError() = runBlocking<Unit> {
-        val host = host(stopOnScreenOff = true)
+        val host = createHost(stopOnScreenOff = true)
         try {
-            ready(host)
+            prepareReadyListener(host)
             FallibleScreenOffContextShadow.registrationFailure = SecurityException("Screen-off registration denied")
             host.controller.requestStreamStart()
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.error != null } }
             assertNull(host.managerObservation.status.value!!.error!!.message)
-            assertTrue(host.http.captures.value.isEmpty())
-            assertTrue(host.access.requested.value.isEmpty())
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
+            assertTrue(host.access.consentRequests.value.isEmpty())
             assertTrue(host.managerObservation.isCurrent())
             assertFalse(host.managerObservation.failed.isCompleted)
             FallibleScreenOffContextShadow.registrationFailure = null
             host.controller.requestStreamStart()
-            withTimeout(5.seconds) { host.access.requested.first { it.size == 1 } }
+            withTimeout(5.seconds) { host.access.consentRequests.first { it.size == 1 } }
         } finally {
-            FallibleScreenOffContextShadow.registrationFailure = null; assertTrue(host.close())
+            FallibleScreenOffContextShadow.registrationFailure = null
+            assertTrue(host.close())
         }
     }
 
     // Cases: MJPEG-CTL-11, MJPEG-CTL-14
     @Test
     fun registrationFailureWhileEnablingThePreferenceStopsTheCurrentAttempt() = runBlocking {
-        val host = host(stopOnScreenOff = false)
+        val host = createHost(stopOnScreenOff = false)
         try {
-            ready(host)
+            prepareReadyListener(host)
             host.controller.requestStreamStart()
-            val attempt = withTimeout(5.seconds) { host.access.requested.first { it.size == 1 }.single() }
+            val attempt = withTimeout(5.seconds) { host.access.consentRequests.first { it.size == 1 }.single() }
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == attempt } }
             FallibleScreenOffContextShadow.registrationFailure = SecurityException("Live screen-off registration denied")
             host.settings.updateData { copy(behavior = behavior.copy(stopOnScreenOff = true)) }
             withTimeout(5.seconds) { host.managerObservation.status.first { it != null && it.captureAttempt == null && it.error != null } }
-            assertEquals(listOf(attempt), host.access.finishCalls.value)
+            assertEquals(listOf(attempt), host.access.projectionCreationFinishes.value)
             assertNull(host.managerObservation.status.value!!.error!!.message)
             assertFalse(host.http.closed)
             assertFalse(host.managerObservation.failed.isCompleted)
         } finally {
-            FallibleScreenOffContextShadow.registrationFailure = null; assertTrue(host.close())
+            FallibleScreenOffContextShadow.registrationFailure = null
+            assertTrue(host.close())
         }
     }
 
     // Cases: MJPEG-CTL-13, MJPEG-CTL-14
     @Test
     fun removalFailureRetainsTheErrorRejectsLaterStartAndMakesModuleCleanupUnsuccessful() = runBlocking {
-        val host = host(stopOnScreenOff = true)
+        val host = createHost(stopOnScreenOff = true)
         try {
-            ready(host)
+            prepareReadyListener(host)
             host.controller.requestStreamStart()
-            val attempt = withTimeout(5.seconds) { host.access.requested.first { it.size == 1 }.single() }
+            val attempt = withTimeout(5.seconds) { host.access.consentRequests.first { it.size == 1 }.single() }
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == attempt } }
             FallibleScreenOffContextShadow.removalFailure = IllegalStateException("Receiver removal failed")
             host.controller.requestStreamStop(attempt, false)
@@ -106,9 +108,9 @@ internal class MjpegControllerScreenOffFailureTest {
             assertFalse(host.http.closed)
             FallibleScreenOffContextShadow.removalFailure = null
             host.controller.requestStreamStart()
-            checkpoint(host)
-            assertEquals(listOf(attempt), host.http.captures.value)
-            assertEquals(listOf(attempt), host.access.requested.value)
+            publishDeliveryCheckpoint(host)
+            assertEquals(listOf(attempt), host.http.registeredCaptureAttempts.value)
+            assertEquals(listOf(attempt), host.access.consentRequests.value)
             assertFalse(host.managerObservation.failed.isCompleted)
         } finally {
             FallibleScreenOffContextShadow.removalFailure = null
@@ -117,21 +119,21 @@ internal class MjpegControllerScreenOffFailureTest {
         }
     }
 
-    private suspend fun host(stopOnScreenOff: Boolean): MjpegServiceHost {
+    private suspend fun createHost(stopOnScreenOff: Boolean): MjpegServiceTestHost {
         val context = IsolatedSettingsContext(application, temporaryFolder.newFolder())
         val data = MjpegSettings.Data(web = WebPageSettings(title = "Screen-off contract"))
         seedSettings(context, Json.encodeToString(data.copy(behavior = data.behavior.copy(stopOnScreenOff = stopOnScreenOff))))
-        return MjpegServiceHost(MjpegSettings(context))
+        return MjpegServiceTestHost(MjpegSettings(context))
     }
 
-    private suspend fun ready(host: MjpegServiceHost) {
+    private suspend fun prepareReadyListener(host: MjpegServiceTestHost) {
         withTimeout(5.seconds) { host.http.configuration.first { it != null } }
-        host.monitor.state.value = observedAddresses(listOf(address))
+        host.monitor.state.value = observedAddressState(listOf(address))
         withTimeout(5.seconds) { host.http.plan.first { it?.addresses == listOf(address) } }
-        checkpoint(host)
+        publishDeliveryCheckpoint(host)
     }
 
-    private suspend fun checkpoint(host: MjpegServiceHost) {
+    private suspend fun publishDeliveryCheckpoint(host: MjpegServiceTestHost) {
         val id = Uuid.random()
         host.http.info.value = host.http.info.value.copy(servers = listOf(HttpDelivery.ServerInfo(id, address, 8080, HttpDelivery.ServerState.Listening)))
         withTimeout(5.seconds) { host.controller.state.first { it.addressServers.singleOrNull()?.serverId == id } }

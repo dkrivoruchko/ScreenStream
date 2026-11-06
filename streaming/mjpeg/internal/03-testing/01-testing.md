@@ -8,7 +8,7 @@ Use the [scenario index](02-verification-contracts.md) to find the histories aff
 
 ## Current state of the test sources
 
-The local suite is in `src/test/kotlin`. A scenario or `// Cases:` marker identifies intended behavior, not a passed check. Record commands, environments, inspected results and scenario IDs with the change or release; supplied inputs establish only MJPEG's response, and platform-only behavior stays deferred until qualified.
+The local suite is in `src/test/kotlin`. A scenario or `// Cases:` marker identifies intended behavior, not a passed check. Record commands, environments, results and scenario IDs with the change or release.
 
 Keep markers such as `// Cases: MJPEG-CAP-13`. Use existing constructor seams, module-internal access and observable outputs. Do not reflect on private members or widen production APIs for tests. Testability changes are separate design changes requiring explicit approval.
 
@@ -16,20 +16,20 @@ Keep markers such as `// Cases: MJPEG-CAP-13`. Use existing constructor seams, m
 
 The suite exercises settings and edit policy, controller admission and reconciliation, the capture adapter, discovery, HTTP/access, JPEG storage and wire output, the web protocol and focused Compose behavior. Analytics observations are excluded. App assembly and web-client checks do not compile or run the Kotlin suite.
 
-Local [UI tests](../../src/test/kotlin/io/screenstream/mjpeg/ui) cover capture commands, address actions (exact open/share/copy payloads, plain-URL fallback, retry and permission callbacks), PIN-row masking, reveal reset and sensitive copying, and the settings editors: port validation and setup locks, PIN drafts and regeneration, Size mode drafts, Frame-rate mode drafts and decimal-comma intervals, Background HEX/slider/palette synchronization, Placement merges into newer saved layouts and search. [Frame-rate tests](../../src/test/kotlin/io/screenstream/mjpeg/ui/FrameRateSettingsUiTest.kt) also check that an invalid selected Interval preserves the saved rate while an invalid dormant draft permits an Auto save. The port, Size, Frame-rate, Background and Placement tests run against real settings groups and an isolated production store; the PIN editor uses supplied state and recorded transforms. The [save-failure test](../../src/test/kotlin/io/screenstream/mjpeg/ui/SettingsSaveFailureUiTest.kt) drives a real write fault through `MjpegContent` and checks the rendered snackbar and unchanged stored data. Callbacks, intents, clipboard and permission objects are supplied, so these tests do not establish actual grants, browser/share-sheet handling, system clipboard presentation or QR rendering. [MjpegUiControllerTest](../../src/test/kotlin/io/screenstream/mjpeg/ui/MjpegUiControllerTest.kt) checks ready-link mapping from supplied inputs, not the controller's token source.
+Local [UI tests](../../src/test/kotlin/io/screenstream/mjpeg/ui) cover capture commands, address actions (exact open/share/copy payloads, plain-URL fallback, retry and permission callbacks), PIN-row masking, reveal reset and sensitive copying, and the settings editors: port validation, setup locks and queued port saves rechecked when they execute, PIN drafts and regeneration, Size mode drafts, Frame-rate mode drafts and decimal-comma intervals, Background HEX/slider/palette synchronization, Placement merges into newer saved layouts and search. [Frame-rate tests](../../src/test/kotlin/io/screenstream/mjpeg/ui/FrameRateSettingsUiTest.kt) also check that an invalid selected Interval preserves the saved rate while an invalid dormant draft permits an Auto save. The port, Size, Frame-rate, Background and Placement tests run against real settings groups and an isolated production store; the PIN editor uses supplied state and recorded transforms. The [save-failure test](../../src/test/kotlin/io/screenstream/mjpeg/ui/SettingsSaveFailureUiTest.kt) drives a real write fault through `MjpegContent` and checks the rendered snackbar and unchanged stored data. Callbacks, intents, clipboard and permission objects are supplied, so these tests do not establish actual grants, browser/share-sheet handling, system clipboard presentation or QR rendering. [Address-row mapping tests](../../src/test/kotlin/io/screenstream/mjpeg/ui/MjpegAddressServerMappingTest.kt) check ready-link mapping from supplied server, permission and token inputs, not the controller's token source.
 
-The Compose tests use the v2 rule and native Robolectric graphics. The [shared fixture](../../src/test/kotlin/io/screenstream/mjpeg/ui/MjpegComposeFixtures.kt) joins admitted saves through the store owner with an asynchronous identity transaction and a bounded `waitUntil`: a blocking join can stop Compose from finishing the save, and Compose idleness alone does not establish disk completion ([synchronization guidance](https://developer.android.com/develop/ui/compose/testing/synchronization)).
+The Compose tests use the v2 rule and native Robolectric graphics. The [shared fixture](../../src/test/kotlin/io/screenstream/mjpeg/ui/MjpegUiTestFixtures.kt) joins admitted saves through the store owner with an asynchronous identity transaction and a bounded `waitUntil`: a blocking join can stop Compose from finishing the save, and Compose idleness alone does not establish disk completion ([synchronization guidance](https://developer.android.com/develop/ui/compose/testing/synchronization)).
 
 | Boundary | Verification owner |
 | --- | --- |
 | Core manager, Service base class, consent, permissions and notifications | [Core testing](../../../core/internal/testing/01-testing.md) and [contracts](../../../core/README.md) |
 | Capture Engine sessions, frames and statistics | [Capture Engine](../../../../screen-capture-engine/README.md) |
-| MJPEG composables, clipboard and QR behavior | MJPEG; the local UI tests above cover selected behavior, not platform clipboard or QR integration |
+| MJPEG composables, clipboard and QR behavior | MJPEG (selected behavior in the local UI tests above) |
 | Actual app wiring of Activity-root permission and consent hosts | App integration, against Core's contracts |
-| Viewer build, Node fixtures/owner tests and browser smoke | [Web client tools](../../tools/web-client/README.md); Node doubles do not establish native browser behavior |
+| Viewer build, Node fixtures/owner tests and browser smoke | [Web client tools](../../tools/web-client/README.md) |
 | Ktor internals | Ktor; MJPEG verifies its own use of CIO |
 
-[Integration scenarios](scenarios/09-integration.md) separate module declarations and supplied graphs from packaged-app qualification. They do not make app integration part of the local module suite.
+[Integration scenarios](scenarios/09-integration.md) separate module declarations and supplied graphs from packaged-app qualification.
 
 ## Running local tests
 
@@ -41,7 +41,7 @@ From the repository root:
 
 Select a class with `--tests 'fully.qualified.TestClass'`. Inspect `streaming/mjpeg/build/reports/tests/testDebugUnitTest/` and `streaming/mjpeg/build/test-results/testDebugUnitTest/`. `UP-TO-DATE`, `FROM-CACHE` and `SKIPPED` mean no new execution in that invocation; add `--rerun-tasks` only when a fresh run is deliberately required.
 
-The [module build](../../build.gradle.kts) owns dependencies, Android resources, the production toolchain and the separate unit-test Java launcher and JVM arguments; the launcher affects host tests only. Local tests need nothing beyond that configuration: no custom runner, init script, separate Gradle home or cache, or extra flags. CIO tests that bind IPv4 and IPv6 independently require both host loopback families.
+The [module build](../../build.gradle.kts) owns dependencies, Android resources, the production toolchain and the separate unit-test Java launcher, heap limit and JVM arguments; these apply to host test workers only, not to the Gradle daemon. Local tests need no other runner, init script, Gradle home or flags. CIO tests that bind IPv4 and IPv6 independently require both host loopback families.
 
 ## Running device tests
 
@@ -58,7 +58,7 @@ To select one method, use the runner's `Class#method` filter and quote the whole
   '-Pandroid.testInstrumentationRunnerArguments.class=io.screenstream.mjpeg.device.MjpegLifecycleDeviceTest#systemProjectionChipStopRestoresIdleHttpAndRestartRequiresFreshConsent'
 ```
 
-Quote selector values containing spaces the same way, for example `'-Pandroid.testInstrumentationRunnerArguments.mjpeg.systemStopChipDescription=<observed SystemUI description>'` ([AndroidJUnitRunner arguments](https://developer.android.com/studio/test/command-line#am-instrument-options)). Inspect `streaming/mjpeg/build/reports/androidTests/` and `streaming/mjpeg/build/outputs/androidTest-results/`. Do not assume every device supports every history, and do not launch an emulator without approval. Record the actual device/build, target SDK, grants and results with the change, not in this guide.
+Quote selector values containing spaces the same way, for example `'-Pandroid.testInstrumentationRunnerArguments.mjpeg.systemStopChipDescription=<observed SystemUI description>'` ([AndroidJUnitRunner arguments](https://developer.android.com/studio/test/command-line#am-instrument-options)). Inspect `streaming/mjpeg/build/reports/androidTests/` and `streaming/mjpeg/build/outputs/androidTest-results/`. Don't launch an emulator without approval. Record the device/build, target SDK, grants and results with the change.
 
 | Instrumentation source | Assertions / qualification needs |
 | --- | --- |
@@ -85,7 +85,7 @@ adb -s emulator-5554 exec-out run-as io.screenstream.mjpeg.test tar -cf - cache/
 
 ### LAN peer runner
 
-[lan_peer.py](../../tools/android-tests/lan_peer.py) runs on the host computer as the external HTTP client against the production Android CIO listener. It uses Python's standard library and `adb`, is not packaged in the APK and adds no Kotlin test dependency. It starts the selected instrumentation test and exchanges nonce/phase/endpoint-bound receipts with [MjpegLanPeerProtocol](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegLanPeerProtocol.kt).
+[lan_peer.py](../../tools/android-tests/lan_peer.py) runs on the host computer as the external HTTP client against the production Android CIO listener. It uses only Python's standard library and `adb` and isn't packaged in the APK. It starts the selected instrumentation test and exchanges nonce/phase/endpoint-bound receipts with [MjpegLanPeerProtocol](../../src/androidTest/kotlin/io/screenstream/mjpeg/device/MjpegLanPeerProtocol.kt).
 
 Build and install the library's own test APK, then deny `ACCESS_LOCAL_NETWORK` before instrumentation. For an already running, approved API 37+ emulator:
 
@@ -93,7 +93,7 @@ Build and install the library's own test APK, then deny `ACCESS_LOCAL_NETWORK` b
 ./gradlew :streaming:mjpeg:assembleDebugAndroidTest
 adb -s emulator-5554 install -r -t streaming/mjpeg/build/outputs/apk/androidTest/debug/mjpeg-debug-androidTest.apk
 adb -s emulator-5554 shell pm revoke io.screenstream.mjpeg.test android.permission.ACCESS_LOCAL_NETWORK
-python3 streaming/mjpeg/tools/android-tests/lan_peer.py --serial emulator-5554 --component io.screenstream.mjpeg.test/androidx.test.runner.AndroidJUnitRunner --topology emulator-console --interface eth0 --console-port 5554 --output /private/tmp/mjpeg-lan-evidence
+python3 -B streaming/mjpeg/tools/android-tests/lan_peer.py --serial emulator-5554 --component io.screenstream.mjpeg.test/androidx.test.runner.AndroidJUnitRunner --topology emulator-console --interface eth0 --console-port 5554 --output /private/tmp/mjpeg-lan-evidence
 ```
 
 Use the selected device's serial and the installed test APK's instrumentation component; `install -t` [allows test packages](https://developer.android.com/tools/adb). The helper restores denial after instrumentation ends, because revoking during the run can kill its process. It neither builds/installs APKs nor launches an emulator. `adb` must be on PATH or supplied with `--adb`; an authenticated emulator console uses `~/.emulator_console_auth_token`.
@@ -101,7 +101,9 @@ Use the selected device's serial and the installed test APK's instrumentation co
 - `emulator-console` uses console TCP redirection to the guest Ethernet endpoint `10.0.2.15` on `eth0`; serial and console port must match. It establishes an emulated external path, not physical LAN/Wi-Fi or independent kernel enforcement ([emulator networking](https://developer.android.com/studio/run/emulator-networking-interconnect)).
 - `direct` targets the selected native address from the peer machine, without a console port; direct routing alone does not prove a physical LAN.
 
-The helper writes `instrumentation.log`, per-phase `*-request.json` and `*-peer.json`, and `cleanup.json` under a unique run directory inside `--output`. `summary.json` is written only after both peer phases, instrumentation and cleanup succeed; a failed run may leave only partial evidence. These artifacts are separate from Gradle's XML results.
+The helper writes `instrumentation.log`, per-phase `*-request.json` and `*-peer.json`, and `cleanup.json` under a unique run directory inside `--output`. `summary.json` is written only after both peer phases, instrumentation and cleanup succeed; a failed run may leave only partial evidence.
+
+[test_lan_peer.py](../../tools/android-tests/test_lan_peer.py) checks the helper's HTTP and console handling against local sockets and mocks, without `adb`, a device or an emulator: `python3 -B -m unittest discover -s streaming/mjpeg/tools/android-tests`.
 
 ## Choosing an environment
 
@@ -137,7 +139,7 @@ The [root build](../../../../build.gradle.kts) owns SDK/build-tool baselines. Th
 | [Consent/first Start](scenarios/03-capture.md#mjpeg-cap-12) | Core's legacy consent reuse versus fresh consent from API 34; single-app sharing and projection-callback dimensions on modern Android |
 | [Packaged lifetime](scenarios/09-integration.md#mjpeg-cfg-04) | Real permissions, projection, Service and incoming connections |
 
-[Local-network enforcement](https://developer.android.com/privacy-and-security/local-network-permission) includes incoming TCP. Qualify it with a client on another device, recording target SDK and grant state; a local bind or same-phone browser does not establish it. Record device/build/QPR where projection behavior depends on them.
+[Local-network enforcement](https://developer.android.com/privacy-and-security/local-network-permission) includes incoming TCP, so qualify it with a client on another device ([LAN-05](scenarios/04-network.md#mjpeg-lan-05)). Record device/build/QPR where projection behavior depends on them.
 
 ## Doubles, shadows and fault adapters
 
@@ -150,9 +152,9 @@ The [root build](../../../../build.gradle.kts) owns SDK/build-tool baselines. Th
 
 These are library implementation observations, including the screen-broadcast behavior above and [WebSocket queues](../02-delivery/03-web-client.md#limits-and-settlement). Recheck the pinned sources when the [catalog](../../../../gradle/libs.versions.toml) changes the library.
 
-1. **Repeated headers.** The test client merges repeated header values before server delivery: comma-joined normally, `; ` for `Cookie`, separate only for date headers ([test engine](https://github.com/ktorio/ktor/blob/3.6.1/ktor-server/ktor-server-test-host/common/src/io/ktor/server/testing/client/TestHttpClientEngine.kt), [`mergeHeaders`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-client/ktor-client-core/common/src/io/ktor/client/engine/Utils.kt)). Assert server-side `getAll` values. For genuinely separate fields, use raw sockets with CIO as in [WebRoutesDuplicateHeaderCioTest](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebRoutesDuplicateHeaderCioTest.kt).
+1. **Repeated headers.** The test client merges repeated header values before server delivery: comma-joined normally, `; ` for `Cookie`, separate only for date headers ([test engine](https://github.com/ktorio/ktor/blob/3.6.1/ktor-server/ktor-server-test-host/common/src/io/ktor/server/testing/client/TestHttpClientEngine.kt), [`mergeHeaders`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-client/ktor-client-core/common/src/io/ktor/client/engine/Utils.kt)). Assert server-side `getAll` values. For genuinely separate fields, use raw sockets with CIO as in [WebRoutesDuplicateRequestHeadersCioTest](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebRoutesDuplicateRequestHeadersCioTest.kt).
 2. **Response/upgrade lifetimes.** Test-engine producer and WebSocket-upgrade Jobs differ from CIO's. Controlled writers at the send boundary and routing-call Jobs observed through `RoutingCallStarted` establish MJPEG's modeled ownership. Call completion and socket closure need real CIO.
-3. **One scheduler domain.** `testApplication` runs its block through `runTest` on a real dispatcher, carrying a hidden `TestCoroutineScheduler` ([`runTestWithRealTime`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-test-dispatcher/common/src/TestCommon.kt)). Give a manually clocked writer its `StandardTestDispatcher` and matching scheduler in one context; do not create a competing dispatcher inside `testApplication`. Use `runTestApplication` from a context without a test scheduler, as `driveControlledWriter` in [JpegResponseProtocolTest](../../src/test/kotlin/io/screenstream/mjpeg/http/media/JpegResponseProtocolTest.kt) does. Keep jobs structured and cancel/join them in bounded cleanup; a sleep or longer timeout cannot replace a checkpoint.
+3. **One scheduler domain.** `testApplication` runs its block through `runTest` on a real dispatcher, carrying a hidden `TestCoroutineScheduler` ([`runTestWithRealTime`](https://github.com/ktorio/ktor/blob/3.6.1/ktor-test-dispatcher/common/src/TestCommon.kt)). Give a manually clocked writer its `StandardTestDispatcher` and matching scheduler in one context; do not create a competing dispatcher inside `testApplication`. Use `runTestApplication` from a context without a test scheduler, as `withWriterOnTestScheduler` in [JpegResponseWriterTest](../../src/test/kotlin/io/screenstream/mjpeg/http/media/JpegResponseWriterTest.kt) does. Keep jobs structured and cancel/join them in bounded cleanup; a sleep or longer timeout cannot replace a checkpoint.
 
 ## Evidence rules
 

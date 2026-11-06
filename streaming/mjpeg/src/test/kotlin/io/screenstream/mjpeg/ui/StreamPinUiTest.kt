@@ -34,10 +34,10 @@ internal class StreamPinUiTest {
         val pin = mutableStateOf(SecretValue("123456"))
         val hideOnCapture = mutableStateOf(false)
         val clipboard = RecordingClipboard()
-        val hidden = compose.activity.getString(R.string.mjpeg_stream_pin_hidden)
-        val reveal = compose.activity.getString(R.string.mjpeg_pin_show_description)
-        val hide = compose.activity.getString(R.string.mjpeg_pin_hide_description)
-        val copy = compose.activity.getString(R.string.mjpeg_stream_pin_copy)
+        val hiddenDescription = compose.activity.getString(R.string.mjpeg_stream_pin_hidden)
+        val revealDescription = compose.activity.getString(R.string.mjpeg_pin_show_description)
+        val hideDescription = compose.activity.getString(R.string.mjpeg_pin_hide_description)
+        val copyLabel = compose.activity.getString(R.string.mjpeg_stream_pin_copy)
         compose.setContent {
             MjpegTestTheme {
                 CompositionLocalProvider(LocalClipboard provides clipboard) {
@@ -46,28 +46,28 @@ internal class StreamPinUiTest {
             }
         }
 
-        compose.onNodeWithContentDescription(hidden).assertIsDisplayed()
+        compose.onNodeWithContentDescription(hiddenDescription).assertIsDisplayed()
         compose.onNodeWithContentDescription("1 2 3 4 5 6").assertDoesNotExist()
         compose.onNodeWithText("123456").assertDoesNotExist()
-        compose.onNodeWithContentDescription(reveal).performClick()
+        compose.onNodeWithContentDescription(revealDescription).performClick()
         compose.onNodeWithContentDescription("1 2 3 4 5 6").assertIsDisplayed()
-        compose.onNodeWithContentDescription(hide).assertIsDisplayed()
+        compose.onNodeWithContentDescription(hideDescription).assertIsDisplayed()
 
         compose.runOnIdle { hideOnCapture.value = true }
-        compose.onNodeWithContentDescription(hidden).assertIsDisplayed()
-        compose.onNodeWithContentDescription(reveal).performClick()
+        compose.onNodeWithContentDescription(hiddenDescription).assertIsDisplayed()
+        compose.onNodeWithContentDescription(revealDescription).performClick()
         compose.onNodeWithContentDescription("1 2 3 4 5 6").assertIsDisplayed()
         compose.runOnIdle { pin.value = SecretValue("654321") }
-        compose.onNodeWithContentDescription(hidden).assertIsDisplayed()
+        compose.onNodeWithContentDescription(hiddenDescription).assertIsDisplayed()
         compose.onNodeWithContentDescription("1 2 3 4 5 6").assertDoesNotExist()
         compose.onNodeWithContentDescription("6 5 4 3 2 1").assertDoesNotExist()
 
-        compose.onNodeWithText(copy).performClick()
+        compose.onNodeWithText(copyLabel).performClick()
         compose.runOnIdle {
-            val clip = checkNotNull(clipboard.entry).clipData
+            val clip = checkNotNull(clipboard.clipEntry).clipData
             assertEquals(1, clip.itemCount)
             assertEquals("654321", clip.getItemAt(0).text.toString())
-            assertEquals(copy, clip.description.label.toString())
+            assertEquals(copyLabel, clip.description.label.toString())
             assertTrue(clip.description.extras!!.getBoolean("android.content.extra.IS_SENSITIVE"))
         }
     }
@@ -77,7 +77,7 @@ internal class StreamPinUiTest {
     fun successfulPinCopyShowsManualFeedbackOnlyBeforeAndroid13() {
         val clipboard = RecordingClipboard()
         val messages = mutableListOf<String>()
-        val copy = compose.activity.getString(R.string.mjpeg_stream_pin_copy)
+        val copyLabel = compose.activity.getString(R.string.mjpeg_stream_pin_copy)
         compose.setContent {
             MjpegTestTheme {
                 CompositionLocalProvider(LocalClipboard provides clipboard) {
@@ -86,12 +86,12 @@ internal class StreamPinUiTest {
             }
         }
 
-        compose.onNodeWithText(copy).performClick()
+        compose.onNodeWithText(copyLabel).performClick()
         compose.runOnIdle {
-            val clip = checkNotNull(clipboard.entry).clipData
+            val clip = checkNotNull(clipboard.clipEntry).clipData
             assertEquals(1, clip.itemCount)
             assertEquals("000042", clip.getItemAt(0).text.toString())
-            assertEquals(copy, clip.description.label.toString())
+            assertEquals(copyLabel, clip.description.label.toString())
             assertTrue(checkNotNull(clip.description.extras).getBoolean("android.content.extra.IS_SENSITIVE"))
             val expected = if (Build.VERSION.SDK_INT < 33) {
                 listOf(compose.activity.getString(R.string.mjpeg_stream_pin_copied))

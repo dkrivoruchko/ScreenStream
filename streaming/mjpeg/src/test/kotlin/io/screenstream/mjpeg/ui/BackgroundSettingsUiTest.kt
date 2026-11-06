@@ -53,46 +53,46 @@ internal class BackgroundSettingsUiTest {
     @Test
     fun hexSliderAndPaletteStaySynchronizedAndSaveTheCanonicalColor() {
         val settings = newSettings()
-        val initial = settled(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         render(settings, initial)
         openEditor()
-        hex().performTextReplacement("1122aa")
+        hexField().performTextReplacement("1122aa")
         assertPreview("#1122AA")
         assertChannels(17, 34, 170)
 
-        channel(R.string.mjpeg_pref_web_background_red).performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { setProgress ->
+        channelSlider(R.string.mjpeg_pref_web_background_red).performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { setProgress ->
             assertTrue(setProgress(187f))
         }
-        hex().assertTextContains("BB22AA")
+        hexField().assertTextContains("BB22AA")
         assertPreview("#BB22AA")
         assertChannels(187, 34, 170)
 
         val palette = compose.onNodeWithContentDescription(text(R.string.mjpeg_pref_web_background_color_option, "#03A9F4"))
         palette.performScrollTo().performClick().assertIsSelected()
-        hex().assertTextContains("03A9F4")
+        hexField().assertTextContains("03A9F4")
         assertPreview("#03A9F4")
         assertChannels(3, 169, 244)
         closeEditor()
 
-        assertEquals(initial.copy(web = initial.web.copy(background = "#03A9F4")), settled(settings))
+        assertEquals(initial.copy(web = initial.web.copy(background = "#03A9F4")), compose.awaitSavedMjpegSettings(settings))
     }
 
     @Test
     fun invalidHexKeepsTheLastValidPreviewAndDoesNotCommitOnDismissal() {
         val settings = newSettings()
-        val initial = settled(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         render(settings, initial)
         openEditor()
-        hex().performTextReplacement("aabbcc")
+        hexField().performTextReplacement("aabbcc")
         assertPreview("#AABBCC")
         assertChannels(170, 187, 204)
-        hex().performTextReplacement("xyz")
+        hexField().performTextReplacement("xyz")
         compose.onNodeWithText(text(R.string.mjpeg_pref_web_background_hex_error)).assertIsDisplayed()
         assertPreview("#AABBCC")
         assertChannels(170, 187, 204)
         closeEditor()
 
-        assertEquals(initial, settled(settings))
+        assertEquals(initial, compose.awaitSavedMjpegSettings(settings))
     }
 
     private fun render(settings: MjpegSettings, initial: MjpegSettings.Data) {
@@ -121,7 +121,7 @@ internal class BackgroundSettingsUiTest {
             R.string.mjpeg_pref_web_background_green to green,
             R.string.mjpeg_pref_web_background_blue to blue,
         )) {
-            channel(resource).assert(SemanticsMatcher("Channel progress is $expected") { node ->
+            channelSlider(resource).assert(SemanticsMatcher("Channel progress is $expected") { node ->
                 node.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo)?.current == expected.toFloat()
             })
         }
@@ -130,11 +130,9 @@ internal class BackgroundSettingsUiTest {
     private fun newSettings(): MjpegSettings =
         MjpegSettings(IsolatedSettingsContext(compose.activity, temporaryFolder.newFolder()))
 
-    private fun settled(settings: MjpegSettings): MjpegSettings.Data = compose.settledMjpegSettings(settings)
-
     private fun openEditor() = compose.onNodeWithText(text(R.string.mjpeg_pref_web_background)).performClick()
     private fun closeEditor() = compose.onNodeWithContentDescription(text(R.string.mjpeg_action_close)).performClick()
-    private fun hex() = compose.onNodeWithText(text(R.string.mjpeg_pref_web_background_hex_label))
-    private fun channel(resource: Int) = compose.onNodeWithContentDescription(text(resource))
+    private fun hexField() = compose.onNodeWithText(text(R.string.mjpeg_pref_web_background_hex_label))
+    private fun channelSlider(resource: Int) = compose.onNodeWithContentDescription(text(resource))
     private fun text(resource: Int, vararg arguments: Any): String = compose.activity.getString(resource, *arguments)
 }

@@ -24,10 +24,10 @@ internal class MjpegCaptureSessionInputs(
     private val guardRelease: (StreamingModule.CaptureAttemptId) -> Unit = {},
     private val consentReuse: (ScreenCaptureAccess.Grant) -> Unit = {},
 ) {
-    val requested: MutableList<StreamingModule.CaptureAttemptId> = CopyOnWriteArrayList()
-    val projections: MutableList<ScreenCaptureAccess.Grant> = CopyOnWriteArrayList()
-    val finished: MutableList<StreamingModule.CaptureAttemptId> = CopyOnWriteArrayList()
-    val saved: MutableList<ScreenCaptureAccess.Grant> = CopyOnWriteArrayList()
+    val consentRequests: MutableList<StreamingModule.CaptureAttemptId> = CopyOnWriteArrayList()
+    val projectionGrants: MutableList<ScreenCaptureAccess.Grant> = CopyOnWriteArrayList()
+    val projectionCreationFinishes: MutableList<StreamingModule.CaptureAttemptId> = CopyOnWriteArrayList()
+    val savedConsents: MutableList<ScreenCaptureAccess.Grant> = CopyOnWriteArrayList()
     val foregroundEvents: MutableList<String> = CopyOnWriteArrayList()
 
     val access: ScreenCaptureAccess = object : ScreenCaptureAccess {
@@ -36,7 +36,7 @@ internal class MjpegCaptureSessionInputs(
             attemptJob: Job,
             prepareForeground: () -> Boolean,
         ): ScreenCaptureAccess.ConsentResult {
-            requested += attempt
+            consentRequests += attempt
             val granted = consent(attempt)
                 ?: return ScreenCaptureAccess.ConsentResult.NotGranted(ScreenCaptureAccess.NoGrantReason.Declined)
             return if (prepareForeground()) {
@@ -46,28 +46,28 @@ internal class MjpegCaptureSessionInputs(
 
         override fun createProjection(grant: ScreenCaptureAccess.Grant, retryAfterRecentForegroundStart: Boolean): MediaProjection {
             check(!retryAfterRecentForegroundStart)
-            projections += grant
+            projectionGrants += grant
             return projectionCreation(grant)
         }
 
         override fun finishProjectionCreation(attempt: StreamingModule.CaptureAttemptId) {
-            finished += attempt
+            projectionCreationFinishes += attempt
             guardRelease(attempt)
         }
 
         override fun saveConsentForReuse(grant: ScreenCaptureAccess.Grant) {
-            saved += grant
+            savedConsents += grant
             consentReuse(grant)
         }
     }
 
-    fun session(
+    fun createSession(
         scope: CoroutineScope,
         engineFactory: MjpegEngineFactory,
         onJpeg: (Int, (ByteArray) -> Unit) -> Unit = { _, _ -> error("No JPEG is expected in this history") },
         id: StreamingModule.CaptureAttemptId = StreamingModule.CaptureAttemptId(StreamingModule.InstanceId(StreamingModule.Id("MJPEG"))),
         initialImageSettings: ImageSettings = ImageSettings(),
-        http: HttpDelivery = TestHttpDelivery(onJpeg = onJpeg),
+        http: HttpDelivery = ControlledHttpDelivery(onJpeg = onJpeg),
     ): MjpegCaptureSession = MjpegCaptureSession(
         id = id,
         initialImageSettings = initialImageSettings,

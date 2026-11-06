@@ -56,12 +56,12 @@ internal class SettingsSaveFailureUiTest {
         runBlocking {
             withTimeout(5.seconds) { seedSettings(context, """{"web":{"title":"Before failure"}}""") }
         }
-        val file = context.preferencesDataStoreFile("mjpeg")
-        val savedBytes = file.readBytes()
+        val preferencesFile = context.preferencesDataStoreFile("mjpeg")
+        val savedBytes = preferencesFile.readBytes()
         // Existing persistence tests exercise this real DataStore temporary-file fault.
-        val blockedScratch = File(file.absolutePath + ".tmp")
-        check(blockedScratch.mkdir())
-        File(blockedScratch, "blocker").writeText("Fixture storage fault")
+        val blockedTemporaryFile = File(preferencesFile.absolutePath + ".tmp")
+        check(blockedTemporaryFile.mkdir())
+        File(blockedTemporaryFile, "blocker").writeText("Fixture storage fault")
         val settings = MjpegSettings(context)
         val initial = runBlocking { withTimeout(5.seconds) { settings.data.first() } }
         val controller = RecordingUiController()
@@ -79,14 +79,14 @@ internal class SettingsSaveFailureUiTest {
         compose.onNodeWithText(text(R.string.mjpeg_pref_web_stream_name_label)).performTextReplacement("Must not be saved")
         compose.onNodeWithContentDescription(text(R.string.mjpeg_action_close)).performClick()
 
-        val failure = text(R.string.mjpeg_pref_web_save_error)
+        val saveErrorText = text(R.string.mjpeg_pref_web_save_error)
         compose.waitUntil(5_000) {
-            compose.onAllNodesWithText(failure).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText(saveErrorText).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText(failure).assertIsDisplayed()
-        val actual = compose.settledMjpegSettings(settings)
-        assertEquals(initial, actual)
-        assertArrayEquals(savedBytes, file.readBytes())
+        compose.onNodeWithText(saveErrorText).assertIsDisplayed()
+        val savedSettings = compose.awaitSavedMjpegSettings(settings)
+        assertEquals(initial, savedSettings)
+        assertArrayEquals(savedBytes, preferencesFile.readBytes())
     }
 
     private fun text(resource: Int): String = compose.activity.getString(resource)

@@ -44,7 +44,7 @@ internal class WebSnapshotOutputTest {
     fun blockedSendAndBlockedFlushAreCanceledAtTheFiveSecondBudget() = runTest(timeout = 5.seconds) {
         val routes = routes()
         for (stage in listOf("send", "flush")) {
-            val session = Session(coroutineContext).apply {
+            val session = ControlledWebSocketSession(coroutineContext).apply {
                 if (stage == "send") sendGate = CompletableDeferred() else flushGate = CompletableDeferred()
             }
             val writing = async { runCatching { with(routes) { session.sendStateSnapshot("{\"access\":\"open\"}") } } }
@@ -73,7 +73,7 @@ internal class WebSnapshotOutputTest {
     fun sendAndFlushShareOneBudgetRatherThanReceivingFiveSecondsEach() = runTest(timeout = 5.seconds) {
         val routes = routes()
         val sendGate = CompletableDeferred<Unit>()
-        val session = Session(coroutineContext).apply {
+        val session = ControlledWebSocketSession(coroutineContext).apply {
             this.sendGate = sendGate
             flushGate = CompletableDeferred()
         }
@@ -84,7 +84,7 @@ internal class WebSnapshotOutputTest {
             sendGate.complete(Unit)
             runCurrent()
             assertTrue(session.flushEntered.isCompleted)
-            assertEquals(1, session.accepted.size)
+            assertEquals(1, session.acceptedFrames.size)
             advanceTimeBy(1_999)
             runCurrent()
             assertFalse(writing.isCompleted)
@@ -104,7 +104,7 @@ internal class WebSnapshotOutputTest {
     fun callerCancellationSettlesEitherBlockedOperationWithoutWaitingForItsBudget() = runTest(timeout = 5.seconds) {
         val routes = routes()
         for (stage in listOf("send", "flush")) {
-            val session = Session(coroutineContext).apply {
+            val session = ControlledWebSocketSession(coroutineContext).apply {
                 if (stage == "send") sendGate = CompletableDeferred() else flushGate = CompletableDeferred()
             }
             val writing = async { with(routes) { session.sendStateSnapshot("{}") } }
@@ -129,16 +129,16 @@ internal class WebSnapshotOutputTest {
     fun literalUtf8SnapshotsAtAndBelowTheByteCapAreSentAndFlushed() = runTest(timeout = 5.seconds) {
         val routes = routes()
         for (size in listOf(262_143, 262_144)) {
-            val session = Session(coroutineContext)
+            val session = ControlledWebSocketSession(coroutineContext)
             val json = snapshotWithByteCount(size)
             try {
                 with(routes) { session.sendStateSnapshot(json) }
-                val frame = session.accepted.single() as Frame.Text
+                val frame = session.acceptedFrames.single() as Frame.Text
                 assertEquals(size, frame.data.size)
                 assertArrayEquals(json.toByteArray(Charsets.UTF_8), frame.data)
                 assertEquals(json, frame.readText())
                 assertTrue(session.flushExited.isCompleted)
-                assertTrue(session.owner.isActive)
+                assertTrue(session.sessionJob.isActive)
             } finally {
                 session.dispose()
             }
@@ -149,16 +149,16 @@ internal class WebSnapshotOutputTest {
     @Test(timeout = 15_000)
     fun oversizedSnapshotSendsOnlyTheDocumentedCloseAndWaitsForSessionTermination() = runTest(timeout = 5.seconds) {
         val routes = routes()
-        val session = Session(coroutineContext).apply { completeOnClose = true }
+        val session = ControlledWebSocketSession(coroutineContext).apply { completeJobOnClose = true }
         try {
             val beforeClose = testScheduler.currentTime
             val outcome = runCatching { with(routes) { session.sendStateSnapshot(snapshotWithByteCount(262_145)) } }
             assertEquals(beforeClose, testScheduler.currentTime)
             assertTrue(outcome.exceptionOrNull() is CancellationException)
-            val close = session.accepted.single() as Frame.Close
+            val close = session.acceptedFrames.single() as Frame.Close
             assertEquals(CloseReason(CloseReason.Codes.INTERNAL_ERROR, "Page settings exceed snapshot limit"), close.readReason())
             assertTrue(session.flushExited.isCompleted)
-            assertTrue(session.owner.isCompleted)
+            assertTrue(session.sessionJob.isCompleted)
         } finally {
             session.dispose()
         }
@@ -168,11 +168,11 @@ internal class WebSnapshotOutputTest {
     @Test(timeout = 15_000)
     fun oversizedSnapshotCloseCannotWaitBeyondFiveSecondsForTheDefaultSessionJob() = runTest(timeout = 5.seconds) {
         val routes = routes()
-        val session = Session(coroutineContext)
+        val session = ControlledWebSocketSession(coroutineContext)
         val writing = async { runCatching { with(routes) { session.sendStateSnapshot(snapshotWithByteCount(262_145)) } } }
         try {
             runCurrent()
-            assertTrue(session.accepted.single() is Frame.Close)
+            assertTrue(session.acceptedFrames.single() is Frame.Close)
             assertTrue(session.flushExited.isCompleted)
             advanceTimeBy(4_999)
             runCurrent()
@@ -181,7 +181,7 @@ internal class WebSnapshotOutputTest {
             runCurrent()
             assertTrue(writing.isCompleted)
             assertTrue(writing.await().exceptionOrNull() is TimeoutCancellationException)
-            assertTrue(session.owner.isActive)
+            assertTrue(session.sessionJob.isActive)
         } finally {
             writing.cancelAndJoin()
             session.dispose()
@@ -208,9 +208,9 @@ internal class WebSnapshotOutputTest {
         override fun isWebSocketCurrent(listener: HttpListener, credentialGeneration: Long): Boolean = false
     })
 
-    private class Session(parentContext: CoroutineContext) : DefaultWebSocketSession {
-        val owner = Job(parentContext[Job])
-        override val coroutineContext = parentContext + owner
+    private class ControlledWebSocketSession(parentContext: CoroutineContext) : DefaultWebSocketSession {
+        val sessionJob = Job(parentContext[Job])
+        override val coroutineContext = parentContext + sessionJob
         override var masking = false
         override var maxFrameSize = Long.MAX_VALUE
         override var pingIntervalMillis = 0L
@@ -219,23 +219,23 @@ internal class WebSnapshotOutputTest {
         override val incoming = Channel<Frame>()
         override val outgoing = Channel<Frame>()
         override val closeReason = CompletableDeferred<CloseReason?>()
-        val accepted = mutableListOf<Frame>()
+        val acceptedFrames = mutableListOf<Frame>()
         val sendEntered = CompletableDeferred<Unit>()
         val sendExited = CompletableDeferred<Unit>()
         val flushEntered = CompletableDeferred<Unit>()
         val flushExited = CompletableDeferred<Unit>()
         var sendGate: CompletableDeferred<Unit>? = null
         var flushGate: CompletableDeferred<Unit>? = null
-        var completeOnClose = false
+        var completeJobOnClose = false
 
         override suspend fun send(frame: Frame) {
             sendEntered.complete(Unit)
             try {
                 sendGate?.await()
-                accepted += frame
-                if (frame is Frame.Close && completeOnClose) {
+                acceptedFrames += frame
+                if (frame is Frame.Close && completeJobOnClose) {
                     closeReason.complete(frame.readReason())
-                    owner.complete()
+                    sessionJob.complete()
                 }
             } finally {
                 sendExited.complete(Unit)
@@ -256,14 +256,14 @@ internal class WebSnapshotOutputTest {
 
         @Deprecated("Use cancel() instead.", level = DeprecationLevel.ERROR)
         override fun terminate() {
-            owner.cancel()
+            sessionJob.cancel()
         }
 
         suspend fun dispose() {
             incoming.cancel()
             outgoing.cancel()
             closeReason.cancel()
-            owner.cancelAndJoin()
+            sessionJob.cancelAndJoin()
         }
     }
 }

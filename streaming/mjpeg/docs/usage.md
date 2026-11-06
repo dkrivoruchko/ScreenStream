@@ -32,7 +32,7 @@ Each address shows the network it belongs to, such as Wi-Fi with a private IPv4 
 - **Special setups**, such as two devices on the same VPN, need the matching choice in the Network filter. An address in the list isn't proof that it can be reached, so try it from the viewer's device.
 - **"This device only"** addresses work only in a browser on your phone itself. They're handy for a quick preview, not for viewers.
 
-An address is ready once it no longer shows **Preparing…** or a problem. If it shows **Request permission** or **Open settings**, follow it to allow local network access. **Start stream** stays unavailable until at least one address is ready. If an address shows **Address in use**, another app is using the port. Tap **Retry**, or stop the stream and choose a different **HTTP port** in [Connection](#connection). Changing the port changes every address, so send new links afterwards.
+An address is ready once it no longer shows **Preparing…** or a problem. If it shows **Request permission** or **Open settings**, follow it to allow local network access. **Start stream** stays unavailable until at least one address is ready. If an address shows **Address unavailable**, the app couldn't open the stream on it, for example because another app is using the port or the address is no longer on the device. Tap **Retry**. If another app may be using the port, stop the stream and choose a different **HTTP port** in [Connection](#connection). Changing the port changes every address, so send new links afterwards.
 
 Before an important session, open the link once on the viewer's device. If the page loads and shows the app logo or asks for the PIN, the connection works.
 
@@ -75,8 +75,6 @@ You can send the link before you start. Viewers who open it early see the inacti
 3. **Choose what to share** if Android offers a choice. Sharing a single app keeps your notifications, the status bar and other apps out of the picture, and the [Image](#image) settings then apply to that app's window. Sharing the whole screen shows everything, including notifications that pop up.
 4. **Check the result** on a viewer's screen. **Statistics** under Stream addresses shows how many viewers are connected and how much data is going out (see [Reading the statistics](#reading-the-statistics)).
 
-While you share, most settings take effect straight away, so you can adjust the picture and watch the result on a viewer.
-
 ### Stop sharing
 
 Tap **Stop stream**, or use Stop in ScreenStream's notification. Android can also end sharing. Recent versions offer their own status-bar control and stop sharing when you lock the device. The [Automation](#automation) settings can stop it too, when the screen turns off or when your addresses disappear.
@@ -101,7 +99,7 @@ These choices apply only to the viewer's own browser. Your [Web page](#web-page)
 
 Software that can show an MJPEG or JPEG web address, such as a media player or your own web page, doesn't need the viewer page. Open the menu next to an address's copy button and choose **Copy stream link (MJPEG)** for a continuous stream or **Copy image link (JPEG)** for a single picture.
 
-A media player or similar app may have no way to enter the PIN, so with PIN protection on it needs a protected link from the app; share that as carefully as a page link. If the player is turned away, that address may only offer its plain link for now, which works in a browser with the PIN: wait a moment and copy again, or try another listed address. Copy fresh ones after the PIN changes or you reopen MJPEG mode. The [HTTP server guide](server.md#external-media-clients-and-cors) covers what such clients need.
+With PIN protection on, a player that can't enter the PIN needs a protected link from the app; share it as carefully as a page link. If the player is turned away, the address may only offer its plain link for now: wait a moment and copy again, or try another listed address. Copy fresh links after the PIN changes or you reopen MJPEG mode. The [HTTP server guide](server.md#external-media-clients-and-cors) covers what such clients need.
 
 ## Choosing settings
 
@@ -151,7 +149,7 @@ These settings decide which addresses the app offers to viewers. [Make sure view
 | Setting | What it does and choices | Default |
 | --- | --- | --- |
 | Network filter | Offers only addresses that match one selected choice in each group:<br>**IP version:** IPv4, IPv6<br>**Network type:** Wi-Fi, Ethernet, Mobile data, VPN, Other<br>**Address type:** Private, Non-private, Loopback, IPv4 link-local | IPv4<br>Wi-Fi, Ethernet<br>Private |
-| HTTP port | The number after the colon in every address, from 1024 to 65535. Change it if an address reports **Address in use**. | 8080 |
+| HTTP port | The number after the colon in every address, from 1024 to 65535. Try another port if an address shows **Address unavailable** and another app may be using this one. | 8080 |
 
 - **Address types:**
   - **Private** covers ordinary home and office networks.

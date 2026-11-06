@@ -33,37 +33,43 @@ internal class WebStateContractTest {
             titleLayout = WebPageSettings.BlockLayout(WebPageSettings.Edge.Bottom, WebPageSettings.Presentation.Bar, false),
             controlsLayout = WebPageSettings.BlockLayout(WebPageSettings.Edge.Top, WebPageSettings.Presentation.Overlay, true),
         )
-        for ((status, notice) in notices) for ((kind, name, hasImage) in kinds) for (open in listOf(false, true)) {
-            val wire = JSONObject(WebState(984, open, WebState.noticeFor(status), kind, display).encodeJson().toString())
-            assertEquals(setOf("access", "notice", "hasImage", "imageKind", "display"), wire.keys().asSequence().toSet())
-            assertEquals(if (open) "open" else "authorized", wire.get("access"))
-            assertEquals(notice ?: JSONObject.NULL, wire.get("notice"))
-            assertEquals(hasImage, wire.get("hasImage"))
-            assertEquals(name, wire.get("imageKind"))
-            assertTrue(wire.get("hasImage") is Boolean)
-            assertTrue(wire.get("access") is String)
-            assertTrue(wire.get("imageKind") is String)
-            val page = wire.getJSONObject("display")
-            assertEquals(setOf("background", "title", "titleEnabled", "titleLayout", "controlsLayout"), page.keys().asSequence().toSet())
-            assertEquals("Schema contract", page.get("title"))
-            assertEquals("#A1b2C3", page.get("background"))
-            assertEquals(false, page.get("titleEnabled"))
-            assertTrue(page.get("titleEnabled") is Boolean)
-            assertLayout(page.getJSONObject("titleLayout"), "bottom", "bar", false)
-            assertLayout(page.getJSONObject("controlsLayout"), "top", "overlay", true)
+        for ((status, notice) in notices) {
+            for ((kind, name, hasImage) in kinds) {
+                for (open in listOf(false, true)) {
+                    val wire = JSONObject(WebState(984, open, WebState.noticeFor(status), kind, display).encodeJson().toString())
+                    assertEquals(setOf("access", "notice", "hasImage", "imageKind", "display"), wire.keys().asSequence().toSet())
+                    assertEquals(if (open) "open" else "authorized", wire.get("access"))
+                    assertEquals(notice ?: JSONObject.NULL, wire.get("notice"))
+                    assertEquals(hasImage, wire.get("hasImage"))
+                    assertEquals(name, wire.get("imageKind"))
+                    assertTrue(wire.get("hasImage") is Boolean)
+                    assertTrue(wire.get("access") is String)
+                    assertTrue(wire.get("imageKind") is String)
+                    val page = wire.getJSONObject("display")
+                    assertEquals(setOf("background", "title", "titleEnabled", "titleLayout", "controlsLayout"), page.keys().asSequence().toSet())
+                    assertEquals("Schema contract", page.get("title"))
+                    assertEquals("#A1b2C3", page.get("background"))
+                    assertEquals(false, page.get("titleEnabled"))
+                    assertTrue(page.get("titleEnabled") is Boolean)
+                    assertLayout(page.getJSONObject("titleLayout"), "bottom", "bar", false)
+                    assertLayout(page.getJSONObject("controlsLayout"), "top", "overlay", true)
+                }
+            }
         }
     }
 
     // Cases: MJPEG-WEB-10
     @Test
     fun emptyAndEscapedTitlesKeepLiteralTextIndependentlyOfVisibility() {
-        for (title in listOf("", "Quoted \"title\"\n\t\\ snow 雪 emoji 😀")) for (enabled in listOf(false, true)) {
-            val display = WebPageSettings(title = title, titleEnabled = enabled)
-            val wire = JSONObject(WebState(984, true, null, ImageKind.Logo, display).encodeJson().toString())
-            val page = wire.getJSONObject("display")
-            assertEquals(title, page.get("title"))
-            assertEquals(enabled, page.get("titleEnabled"))
-            assertTrue(page.get("titleEnabled") is Boolean)
+        for (title in listOf("", "Quoted \"title\"\n\t\\ snow 雪 emoji 😀")) {
+            for (enabled in listOf(false, true)) {
+                val display = WebPageSettings(title = title, titleEnabled = enabled)
+                val wire = JSONObject(WebState(984, true, null, ImageKind.Logo, display).encodeJson().toString())
+                val page = wire.getJSONObject("display")
+                assertEquals(title, page.get("title"))
+                assertEquals(enabled, page.get("titleEnabled"))
+                assertTrue(page.get("titleEnabled") is Boolean)
+            }
         }
     }
 
@@ -72,23 +78,27 @@ internal class WebStateContractTest {
     fun asymmetricLayoutsKeepTheirOwnPositionPresentationAndAutoHide() {
         val positions = listOf(WebPageSettings.Edge.Top to "top", WebPageSettings.Edge.Bottom to "bottom")
         val presentations = listOf(WebPageSettings.Presentation.Overlay to "overlay", WebPageSettings.Presentation.Bar to "bar")
-        for ((position, positionName) in positions) for ((presentation, presentationName) in presentations) for (autoHide in listOf(false, true)) {
-            val titleLayout = WebPageSettings.BlockLayout(position, presentation, autoHide)
-            val controlsLayout = WebPageSettings.BlockLayout(
-                if (position == WebPageSettings.Edge.Top) WebPageSettings.Edge.Bottom else WebPageSettings.Edge.Top,
-                if (presentation == WebPageSettings.Presentation.Overlay) WebPageSettings.Presentation.Bar else WebPageSettings.Presentation.Overlay,
-                !autoHide,
-            )
-            val display = WebPageSettings(title = "Layout contract", titleLayout = titleLayout, controlsLayout = controlsLayout)
-            val wire = JSONObject(WebState(984, true, null, ImageKind.Logo, display).encodeJson().toString())
-            val page = wire.getJSONObject("display")
-            assertLayout(page.getJSONObject("titleLayout"), positionName, presentationName, autoHide)
-            assertLayout(
-                page.getJSONObject("controlsLayout"),
-                if (positionName == "top") "bottom" else "top",
-                if (presentationName == "overlay") "bar" else "overlay",
-                !autoHide,
-            )
+        for ((position, positionName) in positions) {
+            for ((presentation, presentationName) in presentations) {
+                for (autoHide in listOf(false, true)) {
+                    val titleLayout = WebPageSettings.BlockLayout(position, presentation, autoHide)
+                    val controlsLayout = WebPageSettings.BlockLayout(
+                        if (position == WebPageSettings.Edge.Top) WebPageSettings.Edge.Bottom else WebPageSettings.Edge.Top,
+                        if (presentation == WebPageSettings.Presentation.Overlay) WebPageSettings.Presentation.Bar else WebPageSettings.Presentation.Overlay,
+                        !autoHide,
+                    )
+                    val display = WebPageSettings(title = "Layout contract", titleLayout = titleLayout, controlsLayout = controlsLayout)
+                    val wire = JSONObject(WebState(984, true, null, ImageKind.Logo, display).encodeJson().toString())
+                    val page = wire.getJSONObject("display")
+                    assertLayout(page.getJSONObject("titleLayout"), positionName, presentationName, autoHide)
+                    assertLayout(
+                        page.getJSONObject("controlsLayout"),
+                        if (positionName == "top") "bottom" else "top",
+                        if (presentationName == "overlay") "bar" else "overlay",
+                        !autoHide,
+                    )
+                }
+            }
         }
     }
 

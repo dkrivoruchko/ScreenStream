@@ -4,9 +4,7 @@
 
 Address discovery tells the Controller which IP addresses the device has right now, and on what kind of interface each one appears. [Architecture](../../docs/architecture.md#addresses-listeners-and-readiness) explains how the Controller filters those addresses, checks local-network permission and asks HTTP delivery for listeners. [Connection](../../docs/usage.md#connection) explains what the Network filter choices mean to users.
 
-This guide continues from there for people maintaining the module. It explains how discovery gathers evidence when Android's reports are late or incomplete, and why it keeps addresses it cannot confirm are gone. It also covers how addresses are classified, filtered and identified, and how discovery shuts down.
-
-An address in the inventory is a fact about this device only. It can belong to a Wi-Fi, Ethernet, VPN, mobile or tethering interface, and it can be private or non-private. Nothing in discovery says whether another device can route to it.
+This guide explains how discovery gathers evidence when Android's reports are late or incomplete, why it keeps addresses it cannot confirm are gone, how addresses are classified, filtered and identified, and how discovery shuts down. An address in the inventory is a fact about this device only; nothing in discovery says whether another device can route to it.
 
 ## Components and lifetimes
 
@@ -141,7 +139,7 @@ Interface types come from evidence in this order:
 | Name starts with | Type |
 | --- | --- |
 | `tun`, `tap`, `ppp` | VPN |
-| `wlan`, `wifi`, `p2p`, or the name is `ap` plus digits | Wi-Fi |
+| `wlan`, `wifi`, `softap`, `ap_br_`, `p2p`, or the name is `ap` plus digits | Wi-Fi |
 | `eth` | Ethernet |
 | `rmnet`, `ccmni`, `pdp` | Mobile |
 | anything else | Other |
@@ -230,4 +228,4 @@ Discovery only observes interfaces and metadata that already exist. It does not 
 
 The [address model](../../src/main/kotlin/io/screenstream/mjpeg/networkaddress/NetworkAddress.kt) owns the immutable filter, scoped identity, classification and selection. The [monitor contract](../../src/main/kotlin/io/screenstream/mjpeg/networkaddress/NetworkAddressMonitor.kt) defines the start, state and close guarantees, and the components above implement evidence gathering and retirement.
 
-[Network scenarios](../03-testing/scenarios/04-network.md) describe the required evidence histories. [Testing](../03-testing/01-testing.md) separates checks that use supplied evidence from qualification that needs real Android callbacks and external viewers.
+[Network scenarios](../03-testing/scenarios/04-network.md) describe the required evidence histories, and [Testing](../03-testing/01-testing.md) the evidence levels.

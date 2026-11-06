@@ -24,32 +24,32 @@ internal class HttpDeliveryLifecycleTest {
     fun emptyPlanActivationOpensOneLifetimeAndTerminalStopCannotReopenIt() = runBlocking {
         val delivery = KtorHttpDelivery(httpTestContext())
         try {
-            assertTrue(delivery.start(httpTestProtection(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(1, 2, 3)))
+            assertTrue(delivery.start(httpTestProtectedAccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(1, 2, 3)))
             val token = checkNotNull(delivery.appliedToken)
-            assertFalse(delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(4)))
+            assertFalse(delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(4)))
             assertEquals(token, delivery.appliedToken)
             assertTrue((checkNotNull(delivery.webState.value).imageKind != io.screenstream.mjpeg.http.media.JpegStore.ImageKind.None))
             assertTrue(delivery.info.value.servers.isEmpty())
             delivery.requestStop()
             delivery.requestStop()
-            delivery.finishHttpTest()
-            assertFalse(delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(5)))
-            assertFalse(delivery.updateConfiguration(AccessSettings(), PostStopImage.Placeholder, httpTestPage()))
+            delivery.stopHttpTestDelivery()
+            assertFalse(delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(5)))
+            assertFalse(delivery.updateConfiguration(AccessSettings(), PostStopImage.Placeholder, httpTestPageSettings()))
             assertEquals(null, delivery.webState.value)
             assertTrue(delivery.info.value.clients.isEmpty())
 
             val fresh = KtorHttpDelivery(httpTestContext())
             try {
-                assertTrue(fresh.start(AccessSettings(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(6)))
+                assertTrue(fresh.start(AccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(6)))
                 assertEquals(io.screenstream.mjpeg.http.media.JpegStore.ImageKind.Logo, checkNotNull(fresh.webState.value).imageKind)
                 assertEquals(0L, fresh.info.value.completedJpegs)
                 assertEquals(0L, fresh.info.value.completedJpegBytes)
                 assertEquals(null, fresh.appliedToken)
             } finally {
-                fresh.finishHttpTest()
+                fresh.stopHttpTestDelivery()
             }
         } finally {
-            delivery.finishHttpTest()
+            delivery.stopHttpTestDelivery()
         }
     }
 
@@ -74,12 +74,12 @@ internal class HttpDeliveryLifecycleTest {
             delivery.configureServers(listOf(httpTestAddress()), 8080)
             expectPlanFailure<IllegalStateException> { delivery.configureServers(listOf(httpTestAddress(host = "127.0.0.2")), 8080) }
             assertEquals("127.0.0.1", delivery.info.value.servers.single().address.ip.hostAddress)
-            delivery.finishHttpTest()
+            delivery.stopHttpTestDelivery()
             delivery.configureServers(listOf(httpTestAddress()), -1)
             assertTrue(delivery.info.value.servers.isEmpty())
-            assertFalse(delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(1)))
+            assertFalse(delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(1)))
         } finally {
-            delivery.finishHttpTest()
+            delivery.stopHttpTestDelivery()
         }
     }
 
@@ -101,7 +101,11 @@ internal class HttpDeliveryLifecycleTest {
             val beforePort = delivery.info.value.servers.map { it.id }
             delivery.configureServers(listOf(httpTestAddress(1), httpTestAddress(2, "127.0.0.2")), 8081)
             assertTrue(delivery.info.value.servers.none { it.id in beforePort })
-            val ipv6 = ByteArray(16).apply { this[0] = 0x20; this[1] = 0x01; this[15] = 1 }
+            val ipv6 = ByteArray(16).apply {
+                this[0] = 0x20
+                this[1] = 0x01
+                this[15] = 1
+            }
             val scoped = listOf(3, 4).map { scope ->
                 NetworkAddress(scope.toLong(), Inet6Address.getByAddress(null, ipv6, scope), "scope$scope", InterfaceType.Other)
             }
@@ -109,7 +113,7 @@ internal class HttpDeliveryLifecycleTest {
             assertEquals(2, delivery.info.value.servers.size)
             assertTrue(delivery.info.value.servers.all { it.state == ServerState.Pending })
         } finally {
-            delivery.finishHttpTest()
+            delivery.stopHttpTestDelivery()
         }
     }
 

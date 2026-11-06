@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, sdk = [34], shadows = [CallbackLinkAddressShadow::class, SourceConnectivityShadow::class])
+@Config(manifest = Config.NONE, sdk = [34], shadows = [CallbackLinkAddressShadow::class, ObservationConnectivityShadow::class])
 internal class AndroidNetworkAddressPlatformObservationTest {
     @Before
     fun initializeLogging() {
@@ -54,41 +54,44 @@ internal class AndroidNetworkAddressPlatformObservationTest {
     // Cases: MJPEG-NET-09
     @Test
     @Config(sdk = [24, 25, 26, 29, 30, 35])
-    fun registeredRequestRequiresOnlyNotRestrictedAcrossPlatformTransitions() = runBlocking {
+    fun registeredRequestUsesSdkAppropriateCapabilitiesWithoutTransportRestrictions() = runBlocking {
         val context: Context = RuntimeEnvironment.getApplication()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
         val monitor = AndroidNetworkAddressMonitor(context, NativeInterfaceFixture())
         try {
             monitor.start()
-            observed(monitor) { true }
-            val request = checkNotNull(platform.registeredRequest)
-            if (Build.VERSION.SDK_INT < 28) {
-                val expected = NetworkRequest.Builder()
+            awaitSelectedAddresses(monitor) { true }
+            val request = checkNotNull(connectivityShadow.registeredRequest)
+            val expected = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                NetworkRequest.Builder()
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_TRUSTED)
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
                     .build()
-                assertEquals(expected, request)
             } else {
-                assertTrue(request.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED))
-                for (excluded in listOf(
-                    NetworkCapabilities.NET_CAPABILITY_TRUSTED, NetworkCapabilities.NET_CAPABILITY_NOT_VPN,
-                    NetworkCapabilities.NET_CAPABILITY_INTERNET, NetworkCapabilities.NET_CAPABILITY_VALIDATED,
-                )) assertFalse(request.hasCapability(excluded))
+                NetworkRequest.Builder()
+                    .clearCapabilities()
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+                    .build()
             }
-            assertEquals(1, platform.networkCallbacks.size)
+            assertEquals(
+                "The complete request must preserve SDK-specific capabilities and require no transport",
+                expected,
+                request,
+            )
+            assertEquals(1, connectivityShadow.networkCallbacks.size)
         } finally {
             withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
         }
-        assertTrue(platform.networkCallbacks.isEmpty())
+        assertTrue(connectivityShadow.networkCallbacks.isEmpty())
     }
 
     // Cases: MJPEG-NET-03, MJPEG-NET-09
     @Test
     fun frameworkTransportsOverrideNamesAndEarlierSpecificReportsYieldOnlyToVpn() = runBlocking {
         val context: Context = RuntimeEnvironment.getApplication()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
         val names = listOf("wlan0", "shared0", "eth0", "mixed0")
         val native = NativeInterfaceFixture(enumeration = {
             Collections.enumeration(names.mapIndexed { index, name -> nativeInterface(name, listOf(ip("10.0.0.${index + 1}"))) })
@@ -96,13 +99,13 @@ internal class AndroidNetworkAddressPlatformObservationTest {
         val monitor = AndroidNetworkAddressMonitor(context, native)
         try {
             monitor.start()
-            val initial = observed(monitor) { it.size == 4 }
+            val initial = awaitSelectedAddresses(monitor) { it.size == 4 }
             val ids = initial.associate { it.interfaceName to it.id }
-            val callback = platform.networkCallbacks.single()
+            val callback = connectivityShadow.networkCallbacks.single()
             fun report(id: Int, name: String, vararg transports: Int) {
                 val network = ShadowNetwork.newInstance(id)
                 callback.onCapabilitiesChanged(network, capabilities(*transports))
-                callback.onLinkPropertiesChanged(network, properties(name))
+                callback.onLinkPropertiesChanged(network, linkProperties(name))
             }
             report(1, "wlan0", NetworkCapabilities.TRANSPORT_CELLULAR)
             report(2, "shared0")
@@ -112,11 +115,8 @@ internal class AndroidNetworkAddressPlatformObservationTest {
             report(7, "mixed0", NetworkCapabilities.TRANSPORT_ETHERNET, NetworkCapabilities.TRANSPORT_CELLULAR)
             val types =
                 mapOf("wlan0" to InterfaceType.Mobile, "shared0" to InterfaceType.Wifi, "eth0" to InterfaceType.Ethernet, "mixed0" to InterfaceType.Ethernet)
-            assertEquals(types, observed(monitor) { it.associate { address -> address.interfaceName to address.interfaceType } == types }
+            assertEquals(types, awaitSelectedAddresses(monitor) { it.associate { address -> address.interfaceName to address.interfaceType } == types }
                 .associate { it.interfaceName to it.interfaceType })
-            report(6, "shared0", NetworkCapabilities.TRANSPORT_VPN, NetworkCapabilities.TRANSPORT_WIFI)
-            val vpn = observed(monitor) { it.single { address -> address.interfaceName == "shared0" }.interfaceType == InterfaceType.Vpn }
-            assertEquals(ids, vpn.associate { it.interfaceName to it.id })
             val scanEntered = CountDownLatch(1)
             val releaseScan = CountDownLatch(1)
             native.enumeration = {
@@ -125,10 +125,16 @@ internal class AndroidNetworkAddressPlatformObservationTest {
                 Collections.enumeration(names.mapIndexed { index, name -> nativeInterface(name, listOf(ip("10.0.0.${index + 1}"))) })
             }
             try {
+                report(6, "shared0", NetworkCapabilities.TRANSPORT_VPN, NetworkCapabilities.TRANSPORT_WIFI)
+                assertTrue(
+                    "Native scans must be held before network metadata is lost",
+                    scanEntered.await(5, TimeUnit.SECONDS),
+                )
+                val vpn = awaitSelectedAddresses(monitor) { it.single { address -> address.interfaceName == "shared0" }.interfaceType == InterfaceType.Vpn }
+                assertEquals(ids, vpn.associate { it.interfaceName to it.id })
                 callback.onLost(ShadowNetwork.newInstance(1))
                 callback.onCapabilitiesChanged(ShadowNetwork.newInstance(7), capabilities(NetworkCapabilities.TRANSPORT_VPN))
-                val retained = observed(monitor) { it.single { address -> address.interfaceName == "mixed0" }.interfaceType == InterfaceType.Vpn }
-                assertTrue(scanEntered.await(5, TimeUnit.SECONDS))
+                val retained = awaitSelectedAddresses(monitor) { it.single { address -> address.interfaceName == "mixed0" }.interfaceType == InterfaceType.Vpn }
                 assertEquals(InterfaceType.Mobile, retained.single { it.interfaceName == "wlan0" }.interfaceType)
                 assertEquals(ids, retained.associate { it.interfaceName to it.id })
             } finally {
@@ -143,29 +149,29 @@ internal class AndroidNetworkAddressPlatformObservationTest {
     @Test
     fun copiedCallbackAddressesRetainIpv6ScopeWhenPlatformInputsChange() = runBlocking {
         val context: Context = RuntimeEnvironment.getApplication()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
         val native = NativeInterfaceFixture(enumeration = { throw java.net.SocketException("Unknown native state") })
         val monitor = AndroidNetworkAddressMonitor(context, native)
         try {
             monitor.start()
-            observed(monitor) { true }
-            val callback = platform.networkCallbacks.single()
+            awaitSelectedAddresses(monitor) { true }
+            val callback = connectivityShadow.networkCallbacks.single()
             val network = ShadowNetwork.newInstance(20)
             val link = Shadow.newInstanceOf(LinkAddress::class.java)
             val input = Shadow.extract<CallbackLinkAddressShadow>(link)
             val originalIp = java.net.Inet6Address.getByAddress(null, ip("fd00::7").address, 23)
             input.callbackAddress = originalIp
-            val properties = properties("callback0").apply { setLinkAddresses(listOf(link)) }
+            val callbackProperties = linkProperties("callback0").apply { setLinkAddresses(listOf(link)) }
             callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_WIFI))
-            callback.onLinkPropertiesChanged(network, properties)
+            callback.onLinkPropertiesChanged(network, callbackProperties)
             input.callbackAddress = java.net.Inet6Address.getByAddress(null, originalIp.address, 99)
-            properties.clear()
-            val retained = observed(monitor) { it.isNotEmpty() }.single()
+            callbackProperties.clear()
+            val retained = awaitSelectedAddresses(monitor) { it.isNotEmpty() }.single()
             assertEquals(IpAddressKey(originalIp), retained.ipKey)
             assertEquals("callback0", retained.interfaceName)
-            callback.onLinkPropertiesChanged(network, properties("replacement0", ip("10.0.0.8")))
-            observed(monitor) { it.any { address -> address.interfaceName == "replacement0" } }
+            callback.onLinkPropertiesChanged(network, linkProperties("replacement0", ip("10.0.0.8")))
+            awaitSelectedAddresses(monitor) { it.any { address -> address.interfaceName == "replacement0" } }
             assertEquals(IpAddressKey(originalIp), retained.ipKey)
             assertEquals("callback0", retained.interfaceName)
         } finally {
@@ -175,19 +181,19 @@ internal class AndroidNetworkAddressPlatformObservationTest {
 
     // Cases: MJPEG-NET-09, MJPEG-NET-11
     @Test
-    fun registrationReturningAfterCloseRetiresExactObserverOnceWithoutPublishing() = runBlocking {
+    fun networkRegistrationCompletingAfterCloseIsUnregisteredOnceBeforeCloseSettles() = runBlocking {
         val context: Context = RuntimeEnvironment.getApplication()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
-        platform.setStrictUnregistration(true)
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
+        connectivityShadow.setStrictUnregistration(true)
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
         val unregistered = AtomicInteger()
-        platform.afterRegistration = {
+        connectivityShadow.afterRegistration = {
             entered.countDown()
             check(release.await(5, TimeUnit.SECONDS))
         }
-        platform.beforeUnregistration = { unregistered.incrementAndGet() }
+        connectivityShadow.beforeUnregistration = { unregistered.incrementAndGet() }
         val nativeEntries = AtomicInteger()
         val monitor = AndroidNetworkAddressMonitor(context, NativeInterfaceFixture(enumeration = {
             nativeEntries.incrementAndGet()
@@ -196,16 +202,16 @@ internal class AndroidNetworkAddressPlatformObservationTest {
         try {
             monitor.start()
             assertTrue(entered.await(5, TimeUnit.SECONDS))
-            val callback = platform.networkCallbacks.single()
+            val callback = connectivityShadow.networkCallbacks.single()
             val closing = async(start = CoroutineStart.UNDISPATCHED) { monitor.close() }
             assertFalse(closing.isCompleted)
             release.countDown()
             withTimeout(5.seconds) { closing.await() }
             assertEquals(1, unregistered.get())
             assertEquals(0, nativeEntries.get())
-            assertTrue(platform.networkCallbacks.isEmpty())
+            assertTrue(connectivityShadow.networkCallbacks.isEmpty())
             callback.onAvailable(ShadowNetwork.newInstance(91))
-            callback.onLinkPropertiesChanged(ShadowNetwork.newInstance(91), properties("late0", ip("10.0.0.9")))
+            callback.onLinkPropertiesChanged(ShadowNetwork.newInstance(91), linkProperties("late0", ip("10.0.0.9")))
             monitor.start()
             monitor.close()
             assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
@@ -220,27 +226,27 @@ internal class AndroidNetworkAddressPlatformObservationTest {
     @Test
     fun failedRegistrationRetriesAndSuccessfulRegistrationClearsPreviousGetterEvidence() = runBlocking {
         val context: Context = RuntimeEnvironment.getApplication()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
         val network = ShadowNetwork.newInstance(40)
-        addFallback(platform, network, "native0", ip("10.0.0.8"))
-        platform.setNetworkCapabilities(network, capabilities(NetworkCapabilities.TRANSPORT_VPN).also {
+        addGetterNetwork(connectivityShadow, network, "native0", ip("10.0.0.8"))
+        connectivityShadow.setNetworkCapabilities(network, capabilities(NetworkCapabilities.TRANSPORT_VPN).also {
             shadowOf(it).addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
         })
-        platform.beforeRegistration = { throw IllegalStateException("Registration refused") }
+        connectivityShadow.beforeRegistration = { throw IllegalStateException("Registration refused") }
         val native = NativeInterfaceFixture(enumeration = {
             Collections.enumeration(listOf(nativeInterface("native0", listOf(ip("10.0.0.8")))))
         })
         val monitor = AndroidNetworkAddressMonitor(context, native)
         try {
             monitor.start()
-            val fallback = observed(monitor) { it.singleOrNull()?.interfaceType == InterfaceType.Vpn }.single()
-            assertTrue(platform.networkCallbacks.isEmpty())
-            platform.removeNetwork(network)
-            platform.beforeRegistration = null
-            val registered = observed(monitor) { it.singleOrNull()?.interfaceType == InterfaceType.Other }.single()
+            val fallback = awaitSelectedAddresses(monitor) { it.singleOrNull()?.interfaceType == InterfaceType.Vpn }.single()
+            assertTrue(connectivityShadow.networkCallbacks.isEmpty())
+            connectivityShadow.removeNetwork(network)
+            connectivityShadow.beforeRegistration = null
+            val registered = awaitSelectedAddresses(monitor) { it.singleOrNull()?.interfaceType == InterfaceType.Other }.single()
             assertEquals(fallback.id, registered.id)
-            assertEquals(1, platform.networkCallbacks.size)
+            assertEquals(1, connectivityShadow.networkCallbacks.size)
         } finally {
             withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
         }
@@ -248,26 +254,26 @@ internal class AndroidNetworkAddressPlatformObservationTest {
 
     // Cases: MJPEG-NET-09
     @Test
-    @Config(sdk = [26, 37], shadows = [SourceTetheringShadow::class])
+    @Config(sdk = [26, 37], shadows = [ObservationTetheringShadow::class])
     fun registeredModernObserverUsesCallbackAddressesWithoutReadingStaleGettersWhenNativeStateIsUnknown() = runBlocking {
-        val context: Context = if (Build.VERSION.SDK_INT >= 36) tetheringContext() else RuntimeEnvironment.getApplication()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
+        val context: Context = if (Build.VERSION.SDK_INT >= 36) tetheringTestContext() else RuntimeEnvironment.getApplication()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
         val network = ShadowNetwork.newInstance(45)
-        addFallback(platform, network, "getter0", ip("10.0.0.8"))
+        addGetterNetwork(connectivityShadow, network, "getter0", ip("10.0.0.8"))
         val getterReads = AtomicInteger()
-        platform.afterLinkPropertiesRead = { _, _ -> getterReads.incrementAndGet() }
+        connectivityShadow.afterLinkPropertiesRead = { _, _ -> getterReads.incrementAndGet() }
         val native = NativeInterfaceFixture(enumeration = { throw java.net.SocketException("Unknown native state") })
         val monitor = AndroidNetworkAddressMonitor(context, native)
         try {
             monitor.start()
-            assertTrue(observed(monitor) { true }.isEmpty())
+            assertTrue(awaitSelectedAddresses(monitor) { true }.isEmpty())
             assertEquals(0, getterReads.get())
-            val callback = platform.networkCallbacks.single()
+            val callback = connectivityShadow.networkCallbacks.single()
             callback.onAvailable(network)
             callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_WIFI))
-            callback.onLinkPropertiesChanged(network, properties("callback0", ip("10.0.0.9")))
-            val selected = observed(monitor) { it.any { address -> address.interfaceName == "callback0" } }
+            callback.onLinkPropertiesChanged(network, linkProperties("callback0", ip("10.0.0.9")))
+            val selected = awaitSelectedAddresses(monitor) { it.any { address -> address.interfaceName == "callback0" } }
             assertEquals(1, selected.size)
             assertEquals(ip("10.0.0.9"), selected.single().ip)
             assertEquals(InterfaceType.Wifi, selected.single().interfaceType)
@@ -282,43 +288,36 @@ internal class AndroidNetworkAddressPlatformObservationTest {
     @Config(sdk = [24, 25])
     fun pre26GetterFieldsYieldToCallbacksAndRacingReadCannotAddStaleAddresses() = runBlocking {
         val context: Context = RuntimeEnvironment.getApplication()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
         val network = ShadowNetwork.newInstance(50)
-        addFallback(platform, network, "getter0", ip("10.0.0.8"))
+        addGetterNetwork(connectivityShadow, network, "getter0", ip("10.0.0.8"))
         val native = NativeInterfaceFixture(enumeration = { throw java.net.SocketException("Unknown native state") })
         val monitor = AndroidNetworkAddressMonitor(context, native)
         try {
             monitor.start()
-            observed(monitor) { it.singleOrNull()?.interfaceName == "getter0" }
-            val callback = platform.networkCallbacks.single()
+            awaitSelectedAddresses(monitor) { it.singleOrNull()?.interfaceName == "getter0" }
+            val callback = connectivityShadow.networkCallbacks.single()
             callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_VPN))
-            observed(monitor) { it.singleOrNull()?.interfaceType == InterfaceType.Vpn }
-            callback.onLinkPropertiesChanged(network, properties("callback0", ip("10.0.0.9")))
-            observed(monitor) { it.any { address -> address.interfaceName == "callback0" && address.interfaceType == InterfaceType.Vpn } }
-            platform.setLinkProperties(network, properties("stale-new0", ip("10.0.0.10")))
+            awaitSelectedAddresses(monitor) { it.singleOrNull()?.interfaceType == InterfaceType.Vpn }
+            callback.onLinkPropertiesChanged(network, linkProperties("callback0", ip("10.0.0.9")))
+            awaitSelectedAddresses(monitor) { it.any { address -> address.interfaceName == "callback0" && address.interfaceType == InterfaceType.Vpn } }
+            connectivityShadow.setLinkProperties(network, linkProperties("stale-new0", ip("10.0.0.10")))
             val staleReadCompleted = CountDownLatch(1)
-            platform.afterLinkPropertiesRead = { captured, _ ->
+            connectivityShadow.afterLinkPropertiesRead = { captured, _ ->
                 if (captured == network) {
-                    platform.afterLinkPropertiesRead = null
+                    connectivityShadow.afterLinkPropertiesRead = null
                     callback.onLost(network)
-                    platform.removeNetwork(network)
+                    connectivityShadow.removeNetwork(network)
                     native.enumeration = {
-                        object : java.util.Enumeration<NativeInterfaceAccess.Handle> {
-                            private var delivered = false
-                            override fun hasMoreElements(): Boolean = if (delivered) throw java.net.SocketException("Partial enumeration") else true
-                            override fun nextElement(): NativeInterfaceAccess.Handle {
-                                delivered = true
-                                return nativeInterface("witness0", listOf(ip("10.0.0.11")))
-                            }
-                        }
+                        partialNativeEnumeration("witness0", "10.0.0.11")
                     }
                     staleReadCompleted.countDown()
                 }
             }
             callback.onAvailable(ShadowNetwork.newInstance(51))
             assertTrue(staleReadCompleted.await(5, TimeUnit.SECONDS))
-            val settled = observed(monitor) { it.any { address -> address.interfaceName == "witness0" } }
+            val settled = awaitSelectedAddresses(monitor) { it.any { address -> address.interfaceName == "witness0" } }
             assertFalse(settled.any { it.interfaceName == "stale-new0" })
         } finally {
             withContext(NonCancellable) { withTimeout(5.seconds) { monitor.close() } }
@@ -330,36 +329,29 @@ internal class AndroidNetworkAddressPlatformObservationTest {
     @Config(sdk = [24, 25])
     fun incompleteGetterRefreshKeepsEarlierMetadataWhileMergingSuccessfulNetworkUpdates() = runBlocking {
         val context: Context = RuntimeEnvironment.getApplication()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
         val failingNetwork = ShadowNetwork.newInstance(60)
         val updatedNetwork = ShadowNetwork.newInstance(61)
-        addFallback(platform, failingNetwork, "opaque0", ip("10.0.0.1"))
-        platform.setNetworkCapabilities(failingNetwork, capabilities(NetworkCapabilities.TRANSPORT_VPN).also {
+        addGetterNetwork(connectivityShadow, failingNetwork, "opaque0", ip("10.0.0.1"))
+        connectivityShadow.setNetworkCapabilities(failingNetwork, capabilities(NetworkCapabilities.TRANSPORT_VPN).also {
             shadowOf(it).addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
         })
-        addFallback(platform, updatedNetwork, "other0", ip("10.0.0.2"))
+        addGetterNetwork(connectivityShadow, updatedNetwork, "other0", ip("10.0.0.2"))
         val native = NativeInterfaceFixture(enumeration = { throw java.net.SocketException("Unknown native state") })
         val monitor = AndroidNetworkAddressMonitor(context, native)
         try {
             monitor.start()
-            observed(monitor) { it.size == 2 }
-            platform.afterLinkPropertiesRead = { network, _ ->
+            awaitSelectedAddresses(monitor) { it.size == 2 }
+            connectivityShadow.afterLinkPropertiesRead = { network, _ ->
                 if (network == failingNetwork) throw IllegalStateException("One getter failed")
             }
-            platform.setLinkProperties(updatedNetwork, properties("refreshed0", ip("10.0.0.3")))
+            connectivityShadow.setLinkProperties(updatedNetwork, linkProperties("refreshed0", ip("10.0.0.3")))
             native.enumeration = {
-                object : java.util.Enumeration<NativeInterfaceAccess.Handle> {
-                    private var delivered = false
-                    override fun hasMoreElements(): Boolean = if (delivered) throw java.net.SocketException("Partial enumeration") else true
-                    override fun nextElement(): NativeInterfaceAccess.Handle {
-                        delivered = true
-                        return nativeInterface("opaque0", listOf(ip("10.0.0.4")))
-                    }
-                }
+                partialNativeEnumeration("opaque0", "10.0.0.4")
             }
-            platform.networkCallbacks.single().onAvailable(ShadowNetwork.newInstance(62))
-            val merged = observed(monitor) { selection ->
+            connectivityShadow.networkCallbacks.single().onAvailable(ShadowNetwork.newInstance(62))
+            val merged = awaitSelectedAddresses(monitor) { selection ->
                 selection.any { it.ip == ip("10.0.0.4") } && selection.any { it.ip == ip("10.0.0.3") }
             }
             assertEquals(InterfaceType.Vpn, merged.single { it.ip == ip("10.0.0.4") }.interfaceType)
@@ -372,12 +364,12 @@ internal class AndroidNetworkAddressPlatformObservationTest {
 
     // Cases: MJPEG-NET-12
     @Test
-    @Config(sdk = [36], shadows = [SourceTetheringShadow::class])
+    @Config(sdk = [36], shadows = [ObservationTetheringShadow::class])
     fun cleanupWaitsForFirstRegisteredObserverThenAttemptsNextAndAggregatesFailures() = runBlocking {
-        val context = tetheringContext()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
-        val tether = Shadow.extract<SourceTetheringShadow>(context.getSystemService(TetheringManager::class.java))
+        val context = tetheringTestContext()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
+        val tether = Shadow.extract<ObservationTetheringShadow>(context.getSystemService(TetheringManager::class.java))
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
         val secondEntered = CountDownLatch(1)
@@ -387,8 +379,8 @@ internal class AndroidNetworkAddressPlatformObservationTest {
         val monitor = AndroidNetworkAddressMonitor(context, NativeInterfaceFixture())
         try {
             monitor.start()
-            observed(monitor) { true }
-            platform.beforeUnregistration = {
+            awaitSelectedAddresses(monitor) { true }
+            connectivityShadow.beforeUnregistration = {
                 order += "network"
                 entered.countDown()
                 check(release.await(5, TimeUnit.SECONDS))
@@ -421,12 +413,12 @@ internal class AndroidNetworkAddressPlatformObservationTest {
 
     // Cases: MJPEG-NET-03, MJPEG-NET-09, MJPEG-NET-11
     @Test
-    @Config(sdk = [36, 37], shadows = [SourceTetheringShadow::class])
+    @Config(sdk = [36, 37], shadows = [ObservationTetheringShadow::class])
     fun tetheringRegistrationRetriesAndWifiAndDefensiveUnknownTypeEventsRespectSpecificNetworks() = runBlocking {
-        val context = tetheringContext()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
-        val tether = Shadow.extract<SourceTetheringShadow>(context.getSystemService(TetheringManager::class.java))
+        val context = tetheringTestContext()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
+        val tether = Shadow.extract<ObservationTetheringShadow>(context.getSystemService(TetheringManager::class.java))
         tether.beforeRegistration = { throw IllegalStateException("Tether registration refused") }
         val names = listOf("tether0", "artificial-unknown0", "shared0")
         val native = NativeInterfaceFixture(enumeration = {
@@ -435,14 +427,14 @@ internal class AndroidNetworkAddressPlatformObservationTest {
         val monitor = AndroidNetworkAddressMonitor(context, native)
         try {
             monitor.start()
-            val initial = observed(monitor) { it.size == 3 }
+            val initial = awaitSelectedAddresses(monitor) { it.size == 3 }
             assertNull(tether.registeredCallback)
             val network = ShadowNetwork.newInstance(70)
-            val callback = platform.networkCallbacks.single()
+            val callback = connectivityShadow.networkCallbacks.single()
             tether.beforeRegistration = null
             callback.onCapabilitiesChanged(network, capabilities(NetworkCapabilities.TRANSPORT_VPN))
-            callback.onLinkPropertiesChanged(network, properties("shared0"))
-            observed(monitor) { it.single { address -> address.interfaceName == "shared0" }.interfaceType == InterfaceType.Vpn }
+            callback.onLinkPropertiesChanged(network, linkProperties("shared0"))
+            awaitSelectedAddresses(monitor) { it.single { address -> address.interfaceName == "shared0" }.interfaceType == InterfaceType.Vpn }
             val tetherRegistered = CountDownLatch(1)
             tether.afterRegistration = { tetherRegistered.countDown() }
             if (tether.registeredCallback == null) {
@@ -459,11 +451,11 @@ internal class AndroidNetworkAddressPlatformObservationTest {
             executor.execute { tetherCallback.onTetheredInterfacesChanged(interfaces) }
             interfaces.clear()
             val expected = mapOf("tether0" to InterfaceType.Wifi, "artificial-unknown0" to InterfaceType.Other, "shared0" to InterfaceType.Vpn)
-            val typed = observed(monitor) { it.associate { address -> address.interfaceName to address.interfaceType } == expected }
+            val typed = awaitSelectedAddresses(monitor) { it.associate { address -> address.interfaceName to address.interfaceType } == expected }
             assertEquals(initial.associate { it.interfaceName to it.id }, typed.associate { it.interfaceName to it.id })
             monitor.close()
             assertNull(tether.registeredCallback)
-            assertTrue(platform.networkCallbacks.isEmpty())
+            assertTrue(connectivityShadow.networkCallbacks.isEmpty())
             executor.execute { tetherCallback.onTetheredInterfacesChanged(emptySet()) }
             monitor.start()
             assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
@@ -474,12 +466,12 @@ internal class AndroidNetworkAddressPlatformObservationTest {
 
     // Cases: MJPEG-NET-09, MJPEG-NET-11
     @Test
-    @Config(sdk = [36, 37], shadows = [SourceTetheringShadow::class])
+    @Config(sdk = [36, 37], shadows = [ObservationTetheringShadow::class])
     fun tetheringRegistrationCompletingAfterCloseIsRetiredBeforeCloseSettles() = runBlocking {
-        val context = tetheringContext()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
-        val tether = Shadow.extract<SourceTetheringShadow>(context.getSystemService(TetheringManager::class.java))
+        val context = tetheringTestContext()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
+        val tether = Shadow.extract<ObservationTetheringShadow>(context.getSystemService(TetheringManager::class.java))
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
         val retirements = AtomicInteger()
@@ -500,7 +492,7 @@ internal class AndroidNetworkAddressPlatformObservationTest {
             withTimeout(5.seconds) { closing.await() }
             assertEquals(1, retirements.get())
             assertNull(tether.registeredCallback)
-            assertTrue(platform.networkCallbacks.isEmpty())
+            assertTrue(connectivityShadow.networkCallbacks.isEmpty())
             assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
         } finally {
             release.countDown()
@@ -510,12 +502,12 @@ internal class AndroidNetworkAddressPlatformObservationTest {
 
     // Cases: MJPEG-NET-12
     @Test
-    @Config(sdk = [36], shadows = [SourceTetheringShadow::class])
+    @Config(sdk = [36], shadows = [ObservationTetheringShadow::class])
     fun defensiveDiscoveryFailurePublishesFailedBeforeBlockedCleanupAndRemainsPrimary() = runBlocking {
-        val context = tetheringContext()
-        val platform = Shadow.extract<SourceConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
-        platform.clearAllNetworks()
-        val tether = Shadow.extract<SourceTetheringShadow>(context.getSystemService(TetheringManager::class.java))
+        val context = tetheringTestContext()
+        val connectivityShadow = Shadow.extract<ObservationConnectivityShadow>(context.getSystemService(ConnectivityManager::class.java))
+        connectivityShadow.clearAllNetworks()
+        val tether = Shadow.extract<ObservationTetheringShadow>(context.getSystemService(TetheringManager::class.java))
         val native = NativeInterfaceFixture()
         val monitor = AndroidNetworkAddressMonitor(context, native)
         val cleanupEntered = CountDownLatch(1)
@@ -525,15 +517,15 @@ internal class AndroidNetworkAddressPlatformObservationTest {
         val later = IllegalArgumentException("Tether cleanup failed")
         try {
             monitor.start()
-            observed(monitor) { true }
-            platform.beforeUnregistration = {
+            awaitSelectedAddresses(monitor) { true }
+            connectivityShadow.beforeUnregistration = {
                 cleanupEntered.countDown()
                 check(releaseCleanup.await(5, TimeUnit.SECONDS))
                 throw cleanup
             }
             tether.beforeUnregistration = { throw later }
             native.enumeration = { throw primary }
-            platform.networkCallbacks.single().onAvailable(ShadowNetwork.newInstance(80))
+            connectivityShadow.networkCallbacks.single().onAvailable(ShadowNetwork.newInstance(80))
             withTimeout(5.seconds) { monitor.state.first { it == NetworkAddressMonitor.State.Failed } }
             assertTrue(cleanupEntered.await(5, TimeUnit.SECONDS))
             val closing = async(start = CoroutineStart.UNDISPATCHED) { runCatching { monitor.close() } }
@@ -553,23 +545,23 @@ internal class AndroidNetworkAddressPlatformObservationTest {
 
     private class DiscoveryFailure : Error("Supplied fatal discovery failure")
 
-    private fun addFallback(platform: SourceConnectivityShadow, network: Network, name: String, address: InetAddress) {
+    private fun addGetterNetwork(connectivityShadow: ObservationConnectivityShadow, network: Network, name: String, address: InetAddress) {
         @Suppress("DEPRECATION")
         val info = ShadowNetworkInfo.newInstance(NetworkInfo.DetailedState.CONNECTED, ConnectivityManager.TYPE_WIFI, 0, true, NetworkInfo.State.CONNECTED)
-        platform.addNetwork(network, info)
-        platform.setNetworkCapabilities(network, capabilities(NetworkCapabilities.TRANSPORT_WIFI).also {
+        connectivityShadow.addNetwork(network, info)
+        connectivityShadow.setNetworkCapabilities(network, capabilities(NetworkCapabilities.TRANSPORT_WIFI).also {
             shadowOf(it).addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
         })
-        platform.setLinkProperties(network, properties(name, address))
+        connectivityShadow.setLinkProperties(network, linkProperties(name, address))
     }
 
-    private suspend fun observed(monitor: AndroidNetworkAddressMonitor, matches: (List<NetworkAddress>) -> Boolean): List<NetworkAddress> =
+    private suspend fun awaitSelectedAddresses(monitor: AndroidNetworkAddressMonitor, matches: (List<NetworkAddress>) -> Boolean): List<NetworkAddress> =
         withTimeout(5.seconds) {
-            val state = monitor.state.first { it is NetworkAddressMonitor.State.Observed && matches(it.inventory.select(all)) }
-            (state as NetworkAddressMonitor.State.Observed).inventory.select(all)
+            val state = monitor.state.first { it is NetworkAddressMonitor.State.Observed && matches(it.inventory.select(allAddressesFilter)) }
+            (state as NetworkAddressMonitor.State.Observed).inventory.select(allAddressesFilter)
         }
 
-    private fun properties(name: String, address: InetAddress? = null): LinkProperties = LinkProperties().apply {
+    private fun linkProperties(name: String, address: InetAddress? = null): LinkProperties = LinkProperties().apply {
         interfaceName = name
         if (address != null) {
             val link = Shadow.newInstanceOf(LinkAddress::class.java)
@@ -582,7 +574,20 @@ internal class AndroidNetworkAddressPlatformObservationTest {
         for (transport in transports) shadowOf(it).addTransportType(transport)
     }
 
+    private fun partialNativeEnumeration(
+        interfaceName: String,
+        ipAddress: String,
+    ): java.util.Enumeration<NativeInterfaceAccess.Handle> =
+        object : java.util.Enumeration<NativeInterfaceAccess.Handle> {
+            private var delivered = false
+            override fun hasMoreElements(): Boolean = if (delivered) throw java.net.SocketException("Partial enumeration") else true
+            override fun nextElement(): NativeInterfaceAccess.Handle {
+                delivered = true
+                return nativeInterface(interfaceName, listOf(ip(ipAddress)))
+            }
+        }
+
     private fun ip(value: String): InetAddress = InetAddress.getByName(value)
 
-    private val all = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
+    private val allAddressesFilter = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
 }

@@ -17,7 +17,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-internal class MjpegEditPolicyTest {
+internal class MjpegSettingsEditPolicyTest {
     // Cases: MJPEG-SET-09
     @Test
     fun liveOnlyAppliesLiveChangesWhileKeepingRunningSetup() {
@@ -122,5 +122,4 @@ internal class MjpegEditPolicyTest {
         assertTrue(MjpegSettings.EditPolicy.All.canEditStreamSetup)
         assertFalse(MjpegSettings.EditPolicy.LiveOnly.canEditStreamSetup)
     }
-
 }

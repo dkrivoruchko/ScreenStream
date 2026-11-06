@@ -2,7 +2,7 @@
 
 [Overview](../README.md) · [Usage](../docs/usage.md) · [Architecture](../docs/architecture.md) · [HTTP server](../docs/server.md)
 
-These guides are for developers who maintain and evolve MJPEG mode. They pick up where the public documentation stops. The overview and the three public guides describe what users, viewers and HTTP clients can rely on. The internal guides explain how the implementation keeps those promises: which component owns each resource, the order in which work happens, which races matter and what a failure leaves behind.
+These guides are for developers who maintain MJPEG mode. The overview and the three public guides describe what users, viewers and HTTP clients can rely on. The internal guides explain how the implementation keeps those promises: which component owns each resource, the order in which work happens, which races matter and what a failure leaves behind.
 
 Read the public [Architecture](../docs/architecture.md) guide first. It introduces the vocabulary used here:
 
@@ -12,8 +12,6 @@ Read the public [Architecture](../docs/architecture.md) guide first. It introduc
 - **ready link**: the link the app shares for an address once that address can be shared
 - **token**: the access key that protected links carry
 - **viewing cookie**: what a browser receives after a valid link or PIN
-
-This page maps the module's components and who owns each contract, then sets out a reading path through the internal guides.
 
 ## Components and responsibilities
 
@@ -71,7 +69,7 @@ Keep four boundaries apart for every operation: a request, its acceptance, its l
 
 Capture Stop and instance closure are different operations. Stop ends one exact attempt and keeps listeners, credentials, viewers and statistics history; its successful cleanup makes the controller idle and applies deferred setup. Closure retires the whole instance, including capture, HTTP delivery, discovery and the Service, and a replacement starts with fresh credentials. Exit, **Restart mode**, another mode, a terminal component failure, failed capture cleanup and Service destruction all close the instance.
 
-Closure has one terminal entry point. It closes admission before cancelling work, so cleanup can't miss an owner admitted at the same moment. Core's manager waits for the cleanup result only for a [bounded time](../../core/docs/module-contract-and-manager.md#closing-a-module-instance), so a replacement can open while the old instance is still releasing resources. Don't describe old cleanup as finished just because the manager has moved on. [Controller shutdown](01-module/02-module-lifecycle.md#controller-shutdown-and-complete-module-cleanup) owns the order, and [Cleanup obligations](01-module/01-module-integration.md#cleanup-obligations) lists what the result covers.
+Closure has one terminal entry point. It closes admission before cancelling work, so cleanup can't miss an owner admitted at the same moment. Core's manager waits for the cleanup result only for a [bounded time](../../core/docs/module-contract-and-manager.md#closing-a-module-instance), so a replacement can open while the old instance is still releasing resources. [Controller shutdown](01-module/02-module-lifecycle.md#controller-shutdown-and-complete-module-cleanup) owns the order, and [Cleanup obligations](01-module/01-module-integration.md#cleanup-obligations) lists what the result covers.
 
 ## Rules that span several guides
 
@@ -101,26 +99,26 @@ Public pages own observable behavior, including technical contracts such as the 
 
 ## Reading path
 
-The guides are grouped in the order a newcomer usually needs them. Each entry says what the guide covers, so you can also jump straight to the guide for the part you're changing.
+The guides are grouped in the order a newcomer usually needs them; jump straight to the one for the part you're changing.
 
 ### 1. Module: one instance, its captures, settings and addresses
 
-- [Module integration](01-module/01-module-integration.md) covers how Core installs one instance. It describes the descriptor, Service and Controller factory, the manifest declarations and foreground types, permission use, and the reports MJPEG sends the manager. Read it when you change registration, DI or the Android declarations.
-- [Capture lifecycle](01-module/02-module-lifecycle.md) follows one attempt from admission through consent, projection handoff and Engine start, then through publication generations, Stop and cleanup, and finally complete module cleanup. Read it when you change capture startup, state precedence or resource release.
-- [Coordination](01-module/03-coordination.md) covers the Controller's event loop. It explains command admission and Start readiness, effective settings, the address plan and local-network permission, and the address-loss deadline. It also covers screen-off and keep-awake, slow-viewer warnings, statistics, and the state published to the screen and the manager.
-- [Settings](01-module/04-settings.md) covers the saved model and defaults, validation, PIN generation and edits, the edit policy and effective settings, and storage recovery.
-- [Network addresses](01-module/05-network-addresses.md) covers discovery sources and evidence freshness, classification and filtering, address identity, refresh and close, and platform and permission limits.
+- [Module integration](01-module/01-module-integration.md): the descriptor, Service and Controller factory, DI scopes, manifest declarations and foreground types, permission use, and reports to the manager.
+- [Capture lifecycle](01-module/02-module-lifecycle.md): one attempt from admission through consent, projection handoff and Engine start, publication generations, Stop and cleanup, then complete module cleanup.
+- [Coordination](01-module/03-coordination.md): the Controller's event loop, command admission and Start readiness, effective settings, the address plan and local-network permission, the address-loss deadline, screen-off and keep-awake, slow-viewer warnings, statistics, and the state published to the screen and the manager.
+- [Settings](01-module/04-settings.md): the saved model and defaults, validation, PIN generation and edits, the edit policy and effective settings, and storage recovery.
+- [Network addresses](01-module/05-network-addresses.md): discovery sources and evidence freshness, classification and filtering, address identity, refresh and close, and platform and permission limits.
 
 ### 2. Delivery: how images and state reach viewers
 
-- [HTTP delivery](02-delivery/01-http-delivery.md) covers the listener plan and scoped sockets, credential generations and PIN blocks, request admission and cutoff, client history and statistics, terminal cleanup and transport limits.
-- [JPEG delivery](02-delivery/02-jpeg-delivery.md) covers frame copying and publication authority, image selection, reader leases and pooling, JPEG and multipart writing, and slow-reader observations.
-- [Web client](02-delivery/03-web-client.md) covers the route adapter, authority and origin checks, the PIN body parser, WebSocket transport, and the browser page's owners and recovery. The [web client tools](../tools/web-client/README.md) guide owns the sources, the generated asset and the desktop preview.
+- [HTTP delivery](02-delivery/01-http-delivery.md): the listener plan and scoped sockets, credential generations and PIN blocks, request admission and cutoff, client history and statistics, terminal cleanup and transport limits.
+- [JPEG delivery](02-delivery/02-jpeg-delivery.md): frame copying and publication authority, image selection, reader leases and pooling, JPEG and multipart writing, and slow-reader observations.
+- [Web client](02-delivery/03-web-client.md): the route adapter, authority and origin checks, the PIN body parser, WebSocket transport, and the browser page's owners and recovery. The [web client tools](../tools/web-client/README.md) guide owns the sources, the generated asset and the desktop preview.
 
 ### 3. Testing: required behavior and evidence
 
-- [Testing](03-testing/01-testing.md) covers verification scope, environments and Android version boundaries, how to run checks, harness fidelity traps and evidence rules.
-- [Verification scenarios](03-testing/02-verification-contracts.md) is the index of required histories. It maps each area to its scenario page and representative test sources.
+- [Testing](03-testing/01-testing.md): verification scope, environments and Android version boundaries, how to run checks, harness fidelity traps and evidence rules.
+- [Verification scenarios](03-testing/02-verification-contracts.md): the index of required histories, mapping each area to its scenario page and representative test sources.
 - Core verifies its own manager and consent behavior; [Core internals](../../core/internal/README.md) owns that guide and catalogue.
 
 ## Keep a change reviewable

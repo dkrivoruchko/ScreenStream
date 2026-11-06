@@ -4,13 +4,7 @@
 
 These scenarios check that MJPEG is installed into the app correctly. Each step widens the scope: MJPEG's own declarations, then a dependency graph that a test supplies, then the packaged app's inputs, and finally a real lifetime on a device.
 
-Three guides own the contracts being checked:
-
-- [Architecture](../../../docs/architecture.md#hosting-and-coordination) describes the parts being connected.
-- [Module integration](../../01-module/01-module-integration.md) describes MJPEG's obligations at those seams.
-- [Core](../../../../core/README.md) defines the shared host contracts.
-
-Core's manager, its Service base class, the consent and permission hosts, and the Capture Engine have their own verification. These scenarios check only that MJPEG meets them correctly.
+[Architecture](../../../docs/architecture.md#hosting-and-coordination) describes the parts being connected, [Module integration](../../01-module/01-module-integration.md) MJPEG's obligations at those seams, and [Core](../../../../core/README.md) the shared host contracts. These scenarios check only that MJPEG meets them.
 
 ```mermaid
 flowchart LR
@@ -19,7 +13,7 @@ flowchart LR
     P --> L["Device lifetime<br/>CFG-04"]
 ```
 
-Each step adds evidence that the earlier ones can't provide. Reading a declaration says nothing about the merged APK, and a test graph says nothing about how the real app resolves its dependencies.
+Each step adds evidence the earlier ones can't provide.
 
 <a id="mjpeg-cfg-01"></a>
 
@@ -69,7 +63,7 @@ Each step adds evidence that the earlier ones can't provide. Reading a declarati
 
 ## MJPEG-CFG-03: Manifest, dependency and host boundaries
 
-**History.** Inspect the current build declarations: the [module build](../../../build.gradle.kts), the [root build](../../../../../build.gradle.kts), the [app build](../../../../../app/build.gradle.kts), the [settings build](../../../../../settings.gradle.kts) and the [version catalog](../../../../../gradle/libs.versions.toml). Those files own the current SDK, toolchain and dependency values, and this page doesn't repeat them. Then separately inspect the packaged app: its merged manifest, its resolved dependencies and the hosts it supplies. Record what you find as inspection evidence. An inspection runs nothing.
+**History.** Inspect the current build declarations: the [module build](../../../build.gradle.kts), the [root build](../../../../../build.gradle.kts), the [app build](../../../../../app/build.gradle.kts), the [settings build](../../../../../settings.gradle.kts) and the [version catalog](../../../../../gradle/libs.versions.toml). Those files own the current SDK, toolchain and dependency values. Then separately inspect the packaged app: its merged manifest, its resolved dependencies and the hosts it supplies. Record what you find as inspection evidence.
 
 **Expected.**
 
@@ -78,14 +72,11 @@ Each step adds evidence that the earlier ones can't provide. Reading a declarati
   - The MJPEG library takes its minimum SDK, compile SDK and build tools from those values. It does not set the shipped app's target SDK; its `testOptions.targetSdk` separately sets the library's own test APK target from the root value.
   - Android enforces the packaged app's target SDK, which the app build sets. Read it from the merged manifest of the build being qualified, not from the library.
   - The module build sets one JVM toolchain for production code and a separate Java launcher for unit tests. The test launcher says nothing about the shipped bytecode or the device runtime.
-  - Record the values in force for the build being qualified.
 - **Transport dependencies.**
-  - The module build declares the Ktor server CIO, compression, default-headers and WebSocket artifacts for production, and the Ktor test host for tests only. Their versions are references into the shared version catalog.
-  - A catalog entry is a declaration, not a resolved version: dependency resolution can select another version. The test host must not reach the packaged app's runtime classpath.
-  - Dependencies resolve from Google and Maven Central, and the settings build rejects repositories declared by individual projects.
-  - The inspected scripts and catalog contain no dependency substitution, no included Ktor build and no patched transport sources.
-  - Confirm the Ktor artifacts and versions that the packaged app's runtime classpath actually resolves, for example with Gradle's dependency report. Record any substitution or patch you find, or record that there is none.
-- **Other project dependencies.** For the build inspection, also record that the module depends on the repository's common, Core and Capture Engine projects.
+  - The module build declares the Ktor server CIO, compression, default-headers and WebSocket artifacts for production, and the Ktor test host for tests only, with versions from the shared catalog. The test host must not reach the packaged app's runtime classpath.
+  - Dependencies resolve from Google and Maven Central, and the settings build rejects repositories declared by individual projects. The scripts and catalog contain no dependency substitution, included Ktor build or patched transport sources.
+  - A catalog entry isn't a resolved version. Confirm the Ktor artifacts and versions on the packaged app's runtime classpath, for example with Gradle's dependency report, and record any substitution or patch.
+- **Other project dependencies.** The module depends on the repository's common, Core and Capture Engine projects.
 - **Merged manifest.** The packaged manifest still declares the Service as not exported, with the same foreground types and permissions. Nothing in the app removes them.
 - **App-supplied hosts.** The app provides the Activity-root hosts that MJPEG relies on:
   - `LocalRuntimePermissions`, for the address row's permission action ([Runtime Permissions](../../../../core/docs/runtime-permissions.md))
@@ -93,7 +84,7 @@ Each step adds evidence that the earlier ones can't provide. Reading a declarati
   - the notification provider, for foreground content ([Streaming Module Notifications](../../../../core/docs/notifications.md))
 - **Fresh grant.** MJPEG still checks the current local-network grant itself before it plans listeners or accepts Start. A permission UI hint from the host is not a grant.
 
-**Evidence boundary.** Declarations and a resolved dependency list show what was built, not how it behaves. This inspection doesn't test the app's capture explanation, rationale history or permission launchers. Core and the app own those.
+**Evidence boundary.** Declarations and a resolved dependency list show what was built, not how it behaves. The app's capture explanation, rationale history and permission launchers belong to Core and the app.
 
 <a id="mjpeg-cfg-04"></a>
 

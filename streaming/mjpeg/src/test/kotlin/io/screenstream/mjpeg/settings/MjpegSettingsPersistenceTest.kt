@@ -8,7 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.IsolatedSettingsContext
-import io.screenstream.mjpeg.savedSettingsJson
+import io.screenstream.mjpeg.readSavedSettingsJson
 import io.screenstream.mjpeg.seedSettings
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -97,7 +97,7 @@ internal class MjpegSettingsPersistenceTest {
                     this
                 }
 
-                assertEquals(expected, Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)))
+                assertEquals(expected, Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)))
                 assertEquals(expected, settings.data.first())
             }
         }
@@ -134,7 +134,7 @@ internal class MjpegSettingsPersistenceTest {
             assertTrue("Corruption recovery must durably replace the malformed preferences", repaired.asMap().isEmpty())
             settings.updateData { copy(web = web.copy(title = "After recovery")) }
             val saved = expected.copy(web = expected.web.copy(title = "After recovery"))
-            assertEquals(saved, Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)))
+            assertEquals(saved, Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)))
             assertEquals(saved, settings.data.first())
         }
     }
@@ -172,7 +172,7 @@ internal class MjpegSettingsPersistenceTest {
         assertArrayEquals(savedBytes, file.readBytes())
         runBlocking {
             withTimeout(5.seconds) {
-                assertEquals(baseline, Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)))
+                assertEquals(baseline, Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)))
                 assertEquals(baseline, settings.data.first())
                 val values = Channel<MjpegSettings.Data>(Channel.UNLIMITED)
                 val observer = launch(Dispatchers.Default) { settings.data.collect { values.send(it) } }
@@ -183,7 +183,7 @@ internal class MjpegSettingsPersistenceTest {
                     val recovered = baseline.copy(web = baseline.web.copy(title = "Saved after repair"))
                     settings.updateData { copy(web = web.copy(title = recovered.web.title)) }
                     assertEquals(recovered, values.receive())
-                    assertEquals(recovered, Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)))
+                    assertEquals(recovered, Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)))
                 } finally {
                     observer.cancelAndJoin()
                     values.close()
@@ -223,7 +223,7 @@ internal class MjpegSettingsPersistenceTest {
                     behavior = behavior.copy(keepScreenAwake = true, stopOnScreenOff = true, notifySlowViewers = false),
                 )
             }
-            val savedJson = savedSettingsJson(original)
+            val savedJson = readSavedSettingsJson(original)
             assertEquals("Acme Tablet", Json.parseToJsonElement(savedJson).jsonObject.getValue("web").jsonObject.getValue("title").jsonPrimitive.content)
             val fresh = newSettingsContext()
             val destination = fresh.preferencesDataStoreFile("mjpeg")
@@ -252,7 +252,7 @@ internal class MjpegSettingsPersistenceTest {
             val pin = checkNotNull(settings.data.first().access.pin)
             assertTrue(AccessSettings.isValidPin(pin.value))
             assertEquals("<redacted>", pin.toString())
-            val saved = Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context))
+            val saved = Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context))
             assertEquals(pin, saved.access.pin)
             assertTrue(saved.access.pinEnabled)
             settings.updateData { copy(web = web.copy(title = "Edited")) }
@@ -297,7 +297,7 @@ internal class MjpegSettingsPersistenceTest {
                     val expected =
                         originalSnapshot.copy(network = originalSnapshot.network.copy(httpPort = 9000), web = originalSnapshot.web.copy(title = "Latest edit"))
                     assertEquals(expected, settings.data.first())
-                    assertEquals(expected, Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)))
+                    assertEquals(expected, Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)))
                 } finally {
                     release.countDown()
                     withContext(NonCancellable) {
@@ -328,7 +328,7 @@ internal class MjpegSettingsPersistenceTest {
         runBlocking {
             withTimeout(5.seconds) {
                 assertEquals("Before failure", settings.data.first().web.title)
-                assertEquals("Before failure", Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)).web.title)
+                assertEquals("Before failure", Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)).web.title)
             }
         }
     }
@@ -350,7 +350,7 @@ internal class MjpegSettingsPersistenceTest {
             settings.updateData { copy(network = network.copy(httpPort = 9000)) }
             assertEquals(
                 Json.parseToJsonElement("""{"network":{"httpPort":9000},"web":{"title":"Acme Tablet"}}"""),
-                Json.parseToJsonElement(savedSettingsJson(context)),
+                Json.parseToJsonElement(readSavedSettingsJson(context)),
             )
         }
     }
@@ -367,14 +367,14 @@ internal class MjpegSettingsPersistenceTest {
             val settings = MjpegSettings(context)
             assertEquals(WebPageSettings(title = "Saved"), settings.data.first().web)
             settings.updateData { this }
-            assertEquals(payload, savedSettingsJson(context))
+            assertEquals(payload, readSavedSettingsJson(context))
             assertArrayEquals(before, file.readBytes())
         }
     }
 
     // Cases: MJPEG-SET-07
     @Test
-    fun wronglyTypedPayloadIsRemovedAsAWholeAndIdentitySaveReplacesItWithEncodedDefaults() = runBlocking {
+    fun wronglyTypedPayloadIsRemovedOnReadOrReplacedOnIdentitySave() = runBlocking {
         withTimeout(5.seconds) {
             for (observeFirst in listOf(false, true)) {
                 val context = newSettingsContext()
@@ -394,7 +394,7 @@ internal class MjpegSettingsPersistenceTest {
                         assertEquals(defaults, this)
                         this
                     }
-                    assertEquals(Json.parseToJsonElement("""{"web":{"title":"Acme Tablet"}}"""), Json.parseToJsonElement(savedSettingsJson(context)))
+                    assertEquals(Json.parseToJsonElement("""{"web":{"title":"Acme Tablet"}}"""), Json.parseToJsonElement(readSavedSettingsJson(context)))
                 }
             }
         }
@@ -415,7 +415,7 @@ internal class MjpegSettingsPersistenceTest {
                 assertTrue(file.isDirectory)
                 check(file.delete())
                 settings.updateData { copy(web = web.copy(title = "Recovered")) }
-                assertEquals("Recovered", Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context)).web.title)
+                assertEquals("Recovered", Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)).web.title)
                 assertEquals("Recovered", values.receive().web.title)
             } finally {
                 observer.cancelAndJoin()
@@ -426,7 +426,7 @@ internal class MjpegSettingsPersistenceTest {
 
     // Cases: MJPEG-SET-05, MJPEG-SET-08
     @Test
-    fun cancellingRunningAndQueuedCallersKeepsBothAdmittedTransformsOrderedAndDurable() = runBlocking {
+    fun cancellingRunningAndQueuedCallersKeepsAllAdmittedWritesOrderedAndDurable() = runBlocking {
         withTimeout(10.seconds) {
             Executors.newSingleThreadExecutor().asCoroutineDispatcher().use { dispatcher ->
                 val context = newSettingsContext()
@@ -469,7 +469,7 @@ internal class MjpegSettingsPersistenceTest {
                     queued.join()
                     lastQueued.join()
                     assertEquals(listOf("first", "queued", "lastQueued"), order)
-                    val saved = Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(context))
+                    val saved = Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context))
                     assertEquals(9000, saved.network.httpPort)
                     assertEquals("Queued save", saved.web.title)
                     assertEquals(42, saved.image.jpegQuality)

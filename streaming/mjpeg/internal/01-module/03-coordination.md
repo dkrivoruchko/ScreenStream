@@ -10,7 +10,7 @@ This guide explains how the MJPEG controller, [MjpegStreamingModuleController](.
 - when automation stops capture;
 - what the mode's screen and the manager see.
 
-The guide continues the public [architecture guide](../../docs/architecture.md), in particular [Hosting and coordination](../../docs/architecture.md#hosting-and-coordination), [Settings](../../docs/architecture.md#settings), [Addresses, listeners and readiness](../../docs/architecture.md#addresses-listeners-and-readiness) and [Status and statistics](../../docs/architecture.md#status-and-statistics). [Usage](../../docs/usage.md) owns what users see and the setting defaults. The rules here are internal obligations that keep those public behaviors true.
+It continues the public [architecture guide](../../docs/architecture.md); [Usage](../../docs/usage.md) owns what users see and the setting defaults.
 
 ## What the controller owns
 
@@ -54,7 +54,7 @@ Each pass through the loop is a **turn**. A turn runs these steps:
 4. Handle the event, if one arrived.
 5. Read HTTP's fresh state, update the slow-viewer warning, publish the screen state and report status if it changed.
 
-Every turn rereads HTTP, so statistics refresh on the heartbeat turn as well as on event turns: normally about once a second, without events of their own. That cadence is best effort, not a guaranteed minimum. Scheduling delays, a blocked turn or device sleep can stretch the gap between turns.
+Every turn rereads HTTP, so statistics refresh about once a second even without events. That cadence is best effort: scheduling delays, a blocked turn or device sleep can stretch it.
 
 JPEG data never enters this queue; it goes straight from the capture session to HTTP. The session also commits its publication decisions to HTTP directly, so queue delay never extends publication authority.
 
@@ -106,11 +106,9 @@ The screen's main button follows the same facts:
 | Capture confirmed and no Stop accepted, including while Reconfiguring or Suspended | Stop |
 | Before settings are accepted, and during consent, unconfirmed startup and stopping | Busy |
 
-Confirmed startup, not the engine phase, decides between Busy and Stop. The engine can report Active and then Suspended while its `start()` is still pending ([Engine startup](../../../../screen-capture-engine/docs/usage.md#startup-details)). That attempt is still unconfirmed, so the button stays Busy until startup is confirmed. A Suspended attempt shows Stop only after confirmation.
+Confirmed startup, not the engine phase, decides between Busy and Stop: the engine can report Active and then Suspended while its `start()` is still pending ([Engine startup](../../../../screen-capture-engine/docs/usage.md#startup-details)), and the button stays Busy until confirmation.
 
-Failed cleanup has no button of its own. The turn that processes it reports terminal failure and requests shutdown, and the loop then exits without publishing. The screen keeps its last published button, as for any [shutdown](#serialized-work-and-independent-shutdown).
-
-The button and command return are advisory. [Architecture](../../docs/architecture.md#the-controller) describes how the Controller handles requests.
+Failed cleanup has no button of its own. The turn that processes it requests shutdown, and the loop exits without publishing, so the screen keeps its last published button, as for any [shutdown](#serialized-work-and-independent-shutdown).
 
 ## Effective settings and saves
 
@@ -133,9 +131,7 @@ Settings screens write directly to the settings store, and the controller observ
 - **Automation** changes update the session's wake-lock request and the screen-off registration. The network-loss delay and the slow-viewer option take effect at their next evaluation.
 - **PIN visibility** changes only the screen.
 
-HTTP rejecting a configuration is a module failure.
-
-Saving and applying are independent. A save that has begun finishes even after capture starts or the screen leaves, because the store's update runs non-cancellably once called. Restricted values wait for cleanup. Engine convergence follows the engine. Credentials change only when HTTP applies them.
+HTTP rejecting a configuration is a module failure. Saving and applying stay independent: a started save finishes non-cancellably ([Settings](04-settings.md#editors-and-save-transactions)), restricted values wait for cleanup, and credentials change only when HTTP applies them.
 
 ## Discovery plan and Start readiness
 
@@ -174,7 +170,7 @@ Core's [Runtime Permissions](../../../core/docs/runtime-permissions.md) defines 
 - **Need it:** non-loopback addresses on Wi-Fi, Ethernet and Other interfaces.
 - **Don't need it:** Mobile, VPN and loopback addresses.
 
-These categories define MJPEG's admission only. They say nothing about routing, or whether a viewer can reach the address. A selected address can be a VPN, routed or non-private address, and listing it promises no reachability.
+These categories define MJPEG's admission only, not routing or reachability.
 
 The controller rereads the grant through the original Service on each heartbeat. A change updates the server plan and Start readiness. Losing the grant keeps the saved filter and the discovered rows, and removes only the listeners for addresses that need the grant. It does not by itself stop an active capture: the address-loss deadline counts the selection before grant filtering, so a selected address still keeps the capture running. Regaining the grant can open those listeners again. It never starts a capture, so an idle controller still needs Start. The fresh grant is what authorizes listeners. The permission host's UI state and `tryRequest()` only describe what the screen offers.
 
@@ -219,15 +215,15 @@ A warning is possible only while **Warn about skipped frames** is applied and th
 
 - **Entering eligibility** sets a watermark to the current elapsed-realtime time. Only HTTP samples taken strictly later count, so rows left over from an earlier period cannot trigger a warning.
 - **A sample with no slow client** ends the episode.
-- **A sample with a slow client** can attempt one Toast if the episode has not warned yet and the sample is at least 30 seconds after the previous warning attempt. An episode that starts during that cooldown can warn once the cooldown passes. Several slow clients share one episode, and continuous slowness warns only once.
+- **A sample with a slow client** can attempt one Toast if the episode has not warned yet and the sample is at least 30 seconds after the previous warning attempt. An episode that starts during that cooldown can warn once it passes. Several slow clients share one episode, and continuous slowness warns only once.
 
-The episode is marked as warned before the controller switches to the main thread. There, a final check of shutdown and of the session's current state can suppress the Toast. The cooldown starts when that main-thread step returns, whether the Toast was shown, suppressed or failed. Turning the option off, leaving Active, and shutdown all clear eligibility and the episode. The cooldown lasts for the whole module instance. Android controls Toast visibility and duration. The warning does not depend on notification permission.
+The episode is marked as warned before the controller switches to the main thread, where a final check of shutdown and the session's current state can suppress the Toast. The cooldown starts when that step returns, whether the Toast was shown, suppressed or failed, and lasts for the whole module instance. Turning the option off, leaving Active, and shutdown clear eligibility and the episode. The Toast does not depend on notification permission.
 
 ## Statistics and native state projection
 
 [Reading the statistics](../../docs/usage.md#reading-the-statistics) explains the figures to users. The controller derives them as follows:
 
-- **Frame rate.** Each engine statistics value carries cumulative counters, including the produced-frame count. When the session receives a value, it computes the current FPS as the produced-frame delta divided by the elapsed-realtime time since it received the previous value in the same attempt, so an attempt's first value has no FPS. A decreasing count or a non-positive interval also gives none. Engine statistics values can arrive late, close together or not at all ([engine statistics](../../../../screen-capture-engine/docs/usage.md#statistics)). The current FPS is therefore an approximation over receipt intervals, and the last value persists, with no expiry, until the next one arrives. The controller shows FPS only while the session is Active. Cleanup republishes the final totals without an FPS.
+- **Frame rate.** When the session receives an engine statistics value, it computes the current FPS as the produced-frame delta divided by the elapsed-realtime time since the previous value in the same attempt. An attempt's first value, a decreasing count or a non-positive interval gives none. Values can arrive late, close together or not at all ([engine statistics](../../../../screen-capture-engine/docs/usage.md#statistics)), so the FPS approximates over receipt intervals and the last value persists until the next one arrives. The controller shows FPS only while the session is Active. Cleanup republishes the final totals without an FPS.
 - **Outgoing and per-client rates.** These are computed from completed JPEG payload bytes, repeats included, between two HTTP samples with different timestamps. There is no rate for a first sample, for a client missing from the previous sample, or when the interval is not positive or the count went down. Stop and Start keep HTTP's totals and the previous sample.
 - **History.** History belongs to the controller:
   - Each one-second bucket holds at most one point, which is replaced when its FPS or outgoing rate changes.
@@ -251,8 +247,6 @@ The controller reports operation errors through `Status.error`:
 - **Retained failure.** A retained capture, cleanup or screen-off failure gives a generic error. The technical causes and stages are in the logs.
 - **Slow Stop.** When no failure is retained, a pending Stop produces an error with the localized stop-delayed message after three seconds. A retained failure takes precedence, including one left from an earlier attempt, and the error then stays generic with no message. The check reads the session's current state, so a cleanup that has just succeeded suppresses the message.
 - **Clearing.** The first confirmed startup of a later attempt clears the error, but only if it is still the error that existed when that attempt was admitted. A newer failure from the same turn survives.
-
-Failed cleanup takes the terminal path described above. Manager state is one canonical snapshot of phase, identity and status, and the app owns the recovery UI.
 
 ## Verification
 

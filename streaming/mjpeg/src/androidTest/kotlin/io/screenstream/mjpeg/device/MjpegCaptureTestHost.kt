@@ -52,6 +52,8 @@ import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
 import io.screenstream.core.permission.RuntimePermissions
 import io.screenstream.mjpeg.MjpegKoinModule
+import io.screenstream.mjpeg.http.HttpDelivery
+import io.screenstream.mjpeg.http.KtorHttpDelivery
 import io.screenstream.mjpeg.networkaddress.AddressCategory
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
@@ -81,8 +83,8 @@ class MjpegCaptureTestActivity : ComponentActivity() {
     override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
         // This isolated Activity launches only the production consent host's external Activity.
         // Retain identity/code only; never retain or log Android's consent Intent contents.
-        fixture.consentLaunches += MjpegCaptureTestHost.ConsentLaunch(
-            checkNotNull(fixture.submittedConsents.lastOrNull()), requestCode,
+        fixture.consentLaunchReceipts += MjpegCaptureTestHost.ConsentLaunchReceipt(
+            checkNotNull(fixture.systemConsentAttempts.lastOrNull()), requestCode,
         )
         super.startActivityForResult(intent, requestCode, options)
     }
@@ -91,9 +93,9 @@ class MjpegCaptureTestActivity : ComponentActivity() {
     @Deprecated("Test-only receipt preserves the production ActivityResultRegistry dispatch")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        val launch = fixture.consentLaunches.lastOrNull { it.requestCode == requestCode }
+        val launch = fixture.consentLaunchReceipts.lastOrNull { it.requestCode == requestCode }
         checkNotNull(launch) { "Unrecognized Activity result in isolated consent fixture" }
-        fixture.consentResults += MjpegCaptureTestHost.ConsentResultReceipt(
+        fixture.consentResultReceipts += MjpegCaptureTestHost.ConsentResultReceipt(
             launch.attempt, requestCode, resultCode, SystemClock.elapsedRealtime(),
         )
     }
@@ -132,7 +134,7 @@ class MjpegCaptureTestActivity : ComponentActivity() {
                                 .fillMaxWidth()
                                 .weight(2f)
                         ) {
-                            drawRect(if (fixture.greenTarget.value) Color.Green else Color.Red)
+                            drawRect(if (fixture.showGreenTarget.value) Color.Green else Color.Red)
                             drawRect(Color.Blue, size = Size(size.width / 4, size.height))
                             drawRect(Color.White, topLeft = Offset(size.width * 0.75f, 0f), size = Size(size.width / 4, size.height))
                         }
@@ -160,7 +162,7 @@ internal class MjpegCaptureTestHost(
         )
     }
 
-    data class ConsentLaunch(val attempt: StreamingModule.CaptureAttemptId, val requestCode: Int)
+    data class ConsentLaunchReceipt(val attempt: StreamingModule.CaptureAttemptId, val requestCode: Int)
     data class ConsentResultReceipt(
         val attempt: StreamingModule.CaptureAttemptId,
         val requestCode: Int,
@@ -168,17 +170,18 @@ internal class MjpegCaptureTestHost(
         val receivedAtElapsedMillis: Long,
     )
 
-    val greenTarget = mutableStateOf(false)
-    val submittedConsents = CopyOnWriteArrayList<StreamingModule.CaptureAttemptId>()
-    val reusedConsents = CopyOnWriteArrayList<StreamingModule.CaptureAttemptId>()
+    val showGreenTarget = mutableStateOf(false)
+    val systemConsentAttempts = CopyOnWriteArrayList<StreamingModule.CaptureAttemptId>()
+    val reusedConsentAttempts = CopyOnWriteArrayList<StreamingModule.CaptureAttemptId>()
     val notificationErrors = CopyOnWriteArrayList<StreamingModuleNotifications.ErrorContent>()
     val foregroundActions = CopyOnWriteArrayList<StreamingModuleNotifications.ForegroundAction>()
-    val consentLaunches = CopyOnWriteArrayList<ConsentLaunch>()
-    val consentResults = CopyOnWriteArrayList<ConsentResultReceipt>()
-    private val directory = File(applicationContext.cacheDir, "mjpeg-pipeline-${System.nanoTime()}").apply { check(mkdirs()) }
+    val consentLaunchReceipts = CopyOnWriteArrayList<ConsentLaunchReceipt>()
+    val consentResultReceipts = CopyOnWriteArrayList<ConsentResultReceipt>()
+    val httpDeliveries = CopyOnWriteArrayList<HttpDelivery>()
+    private val settingsDirectory = File(applicationContext.cacheDir, "mjpeg-pipeline-${System.nanoTime()}").apply { check(mkdirs()) }
     private val settingsContext = object : ContextWrapper(applicationContext) {
         override fun getApplicationContext(): Context = this
-        override fun getFilesDir(): File = directory
+        override fun getFilesDir(): File = settingsDirectory
     }
     lateinit var manager: StreamingModuleManager
         private set
@@ -236,16 +239,17 @@ internal class MjpegCaptureTestHost(
             modules(StreamingKoinModule::class)
             modules(MjpegKoinModule::class)
             modules(module {
-                single<StreamingModuleNotifications> { TestNotifications(applicationContext, notificationErrors, foregroundActions) }
-                single<StreamingSessionAnalyticsFactory> { NoopAnalyticsFactory }
+                factory<HttpDelivery> { KtorHttpDelivery(get()).also { httpDeliveries.add(it) } }
+                single<StreamingModuleNotifications> { RecordingDeviceNotifications(applicationContext, notificationErrors, foregroundActions) }
+                single<StreamingSessionAnalyticsFactory> { DiscardingSessionAnalyticsFactory }
                 single<ConsentRequestObserver> {
                     object : ConsentRequestObserver {
                         override fun savedConsentTaken(attempt: StreamingModule.CaptureAttemptId) {
-                            reusedConsents += attempt
+                            reusedConsentAttempts += attempt
                         }
 
                         override fun systemConsentSubmitted(attempt: StreamingModule.CaptureAttemptId, educationAccepted: Boolean) {
-                            submittedConsents += attempt
+                            systemConsentAttempts += attempt
                         }
                     }
                 }
@@ -261,7 +265,7 @@ internal class MjpegCaptureTestHost(
         // DataStore owns its private scope for this process; never reopen or mutate its file.
     }
 
-    private class TestNotifications(
+    private class RecordingDeviceNotifications(
         private val context: Context,
         private val errors: MutableList<StreamingModuleNotifications.ErrorContent>,
         private val actions: MutableList<StreamingModuleNotifications.ForegroundAction>,
@@ -294,7 +298,7 @@ internal class MjpegCaptureTestHost(
         override fun channelSettingsIntent(channel: StreamingModuleNotifications.Channel): Intent? = null
     }
 
-    private object NoopAnalyticsFactory : StreamingSessionAnalyticsFactory {
+    private object DiscardingSessionAnalyticsFactory : StreamingSessionAnalyticsFactory {
         private val sink = object : StreamingAnalytics {
             override fun logEvent(event: StreamingAnalyticsEvent) = Unit
         }

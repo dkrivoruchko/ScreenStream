@@ -3,10 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "engines": {
-    "node": ">=24.21.0 <25",
-    "npm": ">=12.2.0 <13"
+    "node": ">=24.15.0",
+    "npm": ">=12"
   },
-  "packageManager": "npm@12.2.0",
   "scripts": {
     "start": "node preview/server.cjs",
     "build": "node build.cjs",

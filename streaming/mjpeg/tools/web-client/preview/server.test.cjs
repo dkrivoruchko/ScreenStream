@@ -9,54 +9,54 @@ const { buildHtml } = require('../build.cjs');
 const { createPreviewServer } = require('./server.cjs');
 const test = (name, body) => nodeTest(name, { timeout: 10000 }, body);
 
-// Exercise the fixture through real HTTP/WS, independently of the viewer's helpers.
-async function fixture(t) {
-    const instance = createPreviewServer({ port: 0, watch: false });
-    const address = await instance.listen();
-    t.after(() => instance.close());
-    return { ...instance, ...address };
+// Exercise the preview server through real HTTP/WS, independently of the viewer's helpers.
+async function startPreviewServer(t) {
+    const server = createPreviewServer({ port: 0, watch: false });
+    const address = await server.listen();
+    t.after(() => server.close());
+    return { ...server, ...address };
 }
 
-async function request(device, path, options = {}) {
-    return fetch(device.url + path, {
+async function requestPreview(preview, path, options = {}) {
+    return fetch(preview.url + path, {
         redirect: 'manual',
         signal: AbortSignal.timeout(3000),
         ...options,
-        headers: { Origin: device.url, ...options.headers }
+        headers: { Origin: preview.url, ...options.headers }
     });
 }
 
-async function state(device) {
-    const response = await request(device, '/__preview/api/state');
+async function readPreviewState(preview) {
+    const response = await requestPreview(preview, '/__preview/api/state');
     assert.equal(response.status, 200);
     return response.json();
 }
 
-async function update(device, path, body) {
-    const response = await request(device, '/__preview/api/' + path, {
+async function updatePreview(preview, path, body) {
+    const response = await requestPreview(preview, '/__preview/api/' + path, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
     assert.equal(response.status, 200, await response.clone().text());
     return response.json();
 }
 
-function scenario(device, id) { return update(device, 'scenario', { id }); }
+function selectScenario(preview, id) { return updatePreview(preview, 'scenario', { id }); }
 
-function pin(device, value, cookie) {
-    return request(device, '/pin', {
+function submitPin(preview, value, cookie) {
+    return requestPreview(preview, '/pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...(cookie ? { Cookie: cookie } : {}) },
         body: 'pin=' + encodeURIComponent(value)
     });
 }
 
-function accessCookie(response) {
+function readAccessCookie(response) {
     const value = response.headers.get('set-cookie');
     assert.match(value || '', /^screenstream_access=[^;]+; Path=\/; HttpOnly; SameSite=Lax$/);
     return value.split(';')[0];
 }
 
-function authorizedSnapshot(value, access) {
+function assertAuthorizedSnapshot(value, access) {
     assert.equal(value.access, access);
     assert.deepEqual(Object.keys(value).sort(), ['access', 'display', 'hasImage', 'imageKind', 'notice']);
     assert.equal(typeof value.hasImage, 'boolean');
@@ -76,9 +76,9 @@ function authorizedSnapshot(value, access) {
     return value;
 }
 
-function socketClient(device, cookie) {
-    const socket = new WebSocket(device.url.replace('http:', 'ws:') + '/ws', {
-        origin: device.url, headers: cookie ? { Cookie: cookie } : {}
+function connectStateClient(preview, cookie) {
+    const socket = new WebSocket(preview.url.replace('http:', 'ws:') + '/ws', {
+        origin: preview.url, headers: cookie ? { Cookie: cookie } : {}
     });
     const messages = [], waiters = [];
     let cursor = 0, failure = null, ended = false, lastSnapshot = null;
@@ -131,15 +131,15 @@ function socketClient(device, cookie) {
     };
 }
 
-async function snapshot(device, cookie) {
-    const client = socketClient(device, cookie);
+async function readStateSnapshot(preview, cookie) {
+    const client = connectStateClient(preview, cookie);
     try { return await client.next(); }
     finally { client.socket.terminate(); }
 }
 
-function mediaStream(device, path = '/mjpeg', cookie) {
+function openMediaStream(preview, path = '/mjpeg', cookie) {
     return new Promise((resolve, reject) => {
-        const request = http.get(device.url + path, { headers: cookie ? { Cookie: cookie } : {} });
+        const request = http.get(preview.url + path, { headers: cookie ? { Cookie: cookie } : {} });
         request.once('error', reject);
         request.once('response', response => {
             const chunks = [];
@@ -150,7 +150,7 @@ function mediaStream(device, path = '/mjpeg', cookie) {
     });
 }
 
-async function until(predicate, message, timeout = 2000) {
+async function waitForCondition(predicate, message, timeout = 2000) {
     const deadline = Date.now() + timeout;
     while (!predicate()) {
         if (Date.now() >= deadline) assert.fail(message);
@@ -158,17 +158,17 @@ async function until(predicate, message, timeout = 2000) {
     }
 }
 
-async function jpegPayload(device, cookie) {
-    const response = await request(device, '/jpeg', { headers: cookie ? { Cookie: cookie } : {} });
+async function readJpegPayload(preview, cookie) {
+    const response = await requestPreview(preview, '/jpeg', { headers: cookie ? { Cookie: cookie } : {} });
     assert.equal(response.status, 200);
     return Buffer.from(await response.arrayBuffer());
 }
 
-function captureJpegs(orientation) {
+function readCaptureJpegs(orientation) {
     return Array.from({ length: 8 }, (_, frame) => fs.readFileSync(path.join(__dirname, 'fixtures', orientation + '-' + frame + '.jpg')));
 }
 
-function multipartImages(body) {
+function parseMultipartImages(body) {
     const boundary = Buffer.from('--screenstream-jpeg\r\n');
     const footer = Buffer.from('\r\n--screenstream-jpeg\r\n');
     const images = [];
@@ -190,45 +190,45 @@ function multipartImages(body) {
     return images;
 }
 
-async function liveFramesAfter(stream, start, fixtures, message) {
-    await until(() => {
-        const live = multipartImages(stream.body()).slice(start).filter(image => fixtures.some(frame => frame.equals(image)));
+async function waitForLiveFramesAfter(stream, start, fixtures, message) {
+    await waitForCondition(() => {
+        const live = parseMultipartImages(stream.body()).slice(start).filter(image => fixtures.some(frame => frame.equals(image)));
         return live.length > 1 && live.some(image => !image.equals(live[0]));
     }, message);
 }
 
 test('root serves the panel and viewer serves the unchanged shared build', async t => {
-    const device = await fixture(t);
-    const panel = await request(device, '/');
+    const preview = await startPreviewServer(t);
+    const panel = await requestPreview(preview, '/');
     assert.equal(panel.status, 200);
     const panelHtml = await panel.text();
     assert.match(panelHtml, /id="viewer"/);
     assert.match(panelHtml, /href="\/viewer"/);
     assert.match(panelHtml, /src="\/__preview\/panel\.js"/);
     assert.match(panelHtml, /href="\/__preview\/panel\.css"/);
-    const initial = await state(device);
-    const invalid = await request(device, '/__preview/api/appearance', {
+    const initial = await readPreviewState(preview);
+    const invalid = await requestPreview(preview, '/__preview/api/appearance', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ background: '#123456; </style><script>invalid</script>' })
     });
     assert.equal(invalid.status, 400);
-    assert.equal((await state(device)).appearance.background, initial.appearance.background);
+    assert.equal((await readPreviewState(preview)).appearance.background, initial.appearance.background);
     const appearance = { ...initial.appearance, background: '#a1B2c3', title: 'Private fixture title <not HTML>' };
-    await update(device, 'appearance', appearance);
-    await scenario(device, 'pin');
-    const response = await request(device, '/viewer');
+    await updatePreview(preview, 'appearance', appearance);
+    await selectScenario(preview, 'pin');
+    const response = await requestPreview(preview, '/viewer');
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'no-store');
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
     const html = await response.text();
-    const current = await state(device);
+    const current = await readPreviewState(preview);
     assert.ok(html === buildHtml(), 'Viewer differs from the shared build; finish source edits before running checks');
     assert.ok(!html.includes(appearance.background));
     assert.ok(!html.includes(appearance.title));
-    const denied = socketClient(device);
+    const denied = connectStateClient(preview);
     assert.deepEqual(await denied.next(), { access: 'pin_required' });
     assert.equal((await denied.closed).code, 1000);
-    const catalog = await (await request(device, '/__preview/api/catalog')).json();
+    const catalog = await (await requestPreview(preview, '/__preview/api/catalog')).json();
     assert.deepEqual(catalog.scenarios.map(value => value.id), ['normal', 'pin', 'blocked', 'starting', 'permission_required', 'paused', 'stopped', 'failed']);
     assert.equal(Object.hasOwn(catalog, 'actions'), false);
     assert.equal(current.build.error, null);
@@ -236,19 +236,19 @@ test('root serves the panel and viewer serves the unchanged shared build', async
 });
 
 test('scenario pairs are canonical, preserve settings and fully reset to defaults', async t => {
-    const device = await fixture(t);
-    const defaults = (await state(device)).appearance;
+    const preview = await startPreviewServer(t);
+    const defaults = (await readPreviewState(preview)).appearance;
     const appearance = { ...defaults, background: '#234567', title: 'Preset order check' };
-    await update(device, 'appearance', appearance);
-    assert.deepEqual((await state(device)).options, { postStopImage: 'logo', imageAvailable: true });
+    await updatePreview(preview, 'appearance', appearance);
+    assert.deepEqual((await readPreviewState(preview)).options, { postStopImage: 'logo', imageAvailable: true });
     const options = { postStopImage: 'last', imageAvailable: true };
-    await update(device, 'options', options);
-    await update(device, 'action', { id: 'orientation', orientation: 'landscape' });
+    await updatePreview(preview, 'options', options);
+    await updatePreview(preview, 'action', { id: 'orientation', orientation: 'landscape' });
     const ids = ['normal', 'pin', 'blocked', 'starting', 'permission_required', 'paused', 'stopped', 'failed'];
-    const landscape = captureJpegs('landscape');
+    const landscape = readCaptureJpegs('landscape');
     for (const previous of ids) for (const id of ids) {
-        await scenario(device, previous);
-        const current = await scenario(device, id);
+        await selectScenario(preview, previous);
+        const current = await selectScenario(preview, id);
         const protectedAccess = id === 'pin' || id === 'blocked';
         const live = ['normal', 'pin', 'blocked'].includes(id);
         const imageKind = live ? 'live' : 'retained';
@@ -262,41 +262,41 @@ test('scenario pairs are canonical, preserve settings and fully reset to default
         assert.equal(current.delivery.orientation, 'landscape');
         assert.deepEqual(current.appearance, appearance);
         assert.deepEqual(current.options, options);
-        const wire = await snapshot(device);
+        const wire = await readStateSnapshot(preview);
         if (protectedAccess) assert.equal(wire.access, id === 'pin' ? 'pin_required' : 'blocked');
         else {
-            authorizedSnapshot(wire, 'open');
+            assertAuthorizedSnapshot(wire, 'open');
             assert.equal(wire.imageKind, imageKind);
             assert.equal(wire.notice, notice);
             assert.deepEqual(wire.display, appearance);
         }
-        const jpeg = await request(device, '/jpeg' + (protectedAccess ? '?token=' + encodeURIComponent(current.delivery.credentials.token) : ''));
+        const jpeg = await requestPreview(preview, '/jpeg' + (protectedAccess ? '?token=' + encodeURIComponent(current.delivery.credentials.token) : ''));
         assert.equal(jpeg.status, 200);
         const bytes = Buffer.from(await jpeg.arrayBuffer());
         if (live) assert.ok(landscape.some(frame => frame.equals(bytes)));
         else assert.deepEqual(bytes, landscape[0]);
     }
-    const normal = await scenario(device, 'normal');
+    const normal = await selectScenario(preview, 'normal');
     assert.equal(normal.delivery.notice, null);
     assert.equal(normal.delivery.hasImage, true);
-    assert.equal((await request(device, '/jpeg')).status, 200);
-    await update(device, 'options', { imageAvailable: false });
+    assert.equal((await requestPreview(preview, '/jpeg')).status, 200);
+    await updatePreview(preview, 'options', { imageAvailable: false });
     for (const id of ['normal', 'pin', 'blocked']) {
-        const unavailable = await scenario(device, id);
+        const unavailable = await selectScenario(preview, id);
         assert.equal(unavailable.delivery.notice, null);
         assert.equal(unavailable.delivery.imageKind, 'logo');
         const token = unavailable.delivery.credentials.token;
-        assert.deepEqual(Buffer.from(await (await request(device, '/jpeg?token=' + encodeURIComponent(token))).arrayBuffer()),
+        assert.deepEqual(Buffer.from(await (await requestPreview(preview, '/jpeg?token=' + encodeURIComponent(token))).arrayBuffer()),
             fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg')));
     }
-    await update(device, 'options', { postStopImage: 'last', imageAvailable: false });
-    await scenario(device, 'blocked');
-    const denied = await snapshot(device);
+    await updatePreview(preview, 'options', { postStopImage: 'last', imageAvailable: false });
+    await selectScenario(preview, 'blocked');
+    const denied = await readStateSnapshot(preview);
     assert.deepEqual(Object.keys(denied).sort(), ['access', 'retryAfterMs']);
     assert.equal(denied.access, 'blocked');
     assert.ok(denied.retryAfterMs > 0);
-    await update(device, 'action', { id: 'orientation', orientation: 'landscape' });
-    const reset = await update(device, 'reset', {});
+    await updatePreview(preview, 'action', { id: 'orientation', orientation: 'landscape' });
+    const reset = await updatePreview(preview, 'reset', {});
     assert.equal(reset.scenario.id, 'normal');
     assert.equal(reset.delivery.access, 'open');
     assert.equal(reset.delivery.orientation, 'portrait');
@@ -306,218 +306,218 @@ test('scenario pairs are canonical, preserve settings and fully reset to default
 });
 
 test('viewing cookies are reused and remain admitted while PIN entry is blocked', async t => {
-    const device = await fixture(t);
-    const configured = await scenario(device, 'pin');
+    const preview = await startPreviewServer(t);
+    const configured = await selectScenario(preview, 'pin');
     const correct = configured.delivery.credentials.pin;
-    const first = await pin(device, correct);
+    const first = await submitPin(preview, correct);
     assert.equal(first.status, 204);
-    const cookie = accessCookie(first);
-    const second = await pin(device, correct);
+    const cookie = readAccessCookie(first);
+    const second = await submitPin(preview, correct);
     assert.equal(second.status, 204);
-    assert.equal(accessCookie(second), cookie);
+    assert.equal(readAccessCookie(second), cookie);
     const wrong = correct === '000000' ? '111111' : '000000';
     for (let attempt = 1; attempt <= 5; attempt += 1) {
-        const response = await pin(device, wrong);
+        const response = await submitPin(preview, wrong);
         assert.equal(response.status, attempt < 5 ? 403 : 429);
         if (attempt === 5) {
             const remaining = Number(response.headers.get('retry-after'));
             assert.ok(remaining > 0 && remaining <= 20);
         }
     }
-    assert.equal((await pin(device, correct)).status, 429);
-    assert.equal((await snapshot(device)).access, 'blocked');
-    authorizedSnapshot(await snapshot(device, cookie), 'authorized');
-    assert.equal((await request(device, '/jpeg', { headers: { Cookie: cookie } })).status, 200);
+    assert.equal((await submitPin(preview, correct)).status, 429);
+    assert.equal((await readStateSnapshot(preview)).access, 'blocked');
+    assertAuthorizedSnapshot(await readStateSnapshot(preview, cookie), 'authorized');
+    assert.equal((await requestPreview(preview, '/jpeg', { headers: { Cookie: cookie } })).status, 200);
 });
 
 test('token exchange and access scenario boundaries revoke old credentials', async t => {
-    const device = await fixture(t);
-    const configured = await scenario(device, 'pin');
+    const preview = await startPreviewServer(t);
+    const configured = await selectScenario(preview, 'pin');
     const token = configured.delivery.credentials.token;
     for (const supplied of ['', 'invalid']) {
-        const denied = await request(device, '/viewer?token=' + supplied);
+        const denied = await requestPreview(preview, '/viewer?token=' + supplied);
         assert.equal(denied.status, 303);
         assert.equal(denied.headers.get('location'), '/viewer');
         assert.equal(denied.headers.get('set-cookie'), null);
         assert.equal(denied.headers.get('referrer-policy'), 'no-referrer');
     }
-    const exchanged = await request(device, '/viewer?token=' + encodeURIComponent(token));
+    const exchanged = await requestPreview(preview, '/viewer?token=' + encodeURIComponent(token));
     assert.equal(exchanged.status, 303);
     assert.equal(exchanged.headers.get('location'), '/viewer');
-    const cookie = accessCookie(exchanged);
-    assert.equal(accessCookie(await pin(device, configured.delivery.credentials.pin)), cookie);
-    assert.equal((await request(device, '/jpeg?token=' + encodeURIComponent(token))).status, 200);
-    authorizedSnapshot(await snapshot(device, cookie), 'authorized');
-    await update(device, 'action', { id: 'fail-image-requests', enabled: true });
+    const cookie = readAccessCookie(exchanged);
+    assert.equal(readAccessCookie(await submitPin(preview, configured.delivery.credentials.pin)), cookie);
+    assert.equal((await requestPreview(preview, '/jpeg?token=' + encodeURIComponent(token))).status, 200);
+    assertAuthorizedSnapshot(await readStateSnapshot(preview, cookie), 'authorized');
+    await updatePreview(preview, 'action', { id: 'fail-image-requests', enabled: true });
     for (const path of ['/jpeg', '/mjpeg']) {
-        assert.equal((await request(device, path)).status, 403, 'Authorization must precede media fault injection');
-        assert.equal((await request(device, path, { headers: { Cookie: cookie } })).status, 503);
+        assert.equal((await requestPreview(preview, path)).status, 403, 'Authorization must precede media fault injection');
+        assert.equal((await requestPreview(preview, path, { headers: { Cookie: cookie } })).status, 503);
     }
-    assert.equal(authorizedSnapshot(await snapshot(device, cookie), 'authorized').hasImage, true);
-    await update(device, 'reset', {});
-    const rotated = await scenario(device, 'pin');
-    assert.equal((await request(device, '/jpeg', { headers: { Cookie: cookie } })).status, 403);
-    assert.deepEqual(await snapshot(device, cookie), { access: 'pin_required' });
-    assert.equal((await request(device, '/viewer?token=' + encodeURIComponent(token))).headers.get('set-cookie'), null);
-    const currentCookie = accessCookie(await pin(device, rotated.delivery.credentials.pin));
-    const admitted = socketClient(device, currentCookie);
-    authorizedSnapshot(await admitted.next(), 'authorized');
-    await scenario(device, 'blocked');
+    assert.equal(assertAuthorizedSnapshot(await readStateSnapshot(preview, cookie), 'authorized').hasImage, true);
+    await updatePreview(preview, 'reset', {});
+    const rotated = await selectScenario(preview, 'pin');
+    assert.equal((await requestPreview(preview, '/jpeg', { headers: { Cookie: cookie } })).status, 403);
+    assert.deepEqual(await readStateSnapshot(preview, cookie), { access: 'pin_required' });
+    assert.equal((await requestPreview(preview, '/viewer?token=' + encodeURIComponent(token))).headers.get('set-cookie'), null);
+    const currentCookie = readAccessCookie(await submitPin(preview, rotated.delivery.credentials.pin));
+    const admitted = connectStateClient(preview, currentCookie);
+    assertAuthorizedSnapshot(await admitted.next(), 'authorized');
+    await selectScenario(preview, 'blocked');
     await admitted.closed;
-    const denied = socketClient(device, currentCookie);
+    const denied = connectStateClient(preview, currentCookie);
     assert.equal((await denied.next()).access, 'blocked');
     assert.equal((await denied.closed).code, 1000);
-    const capture = await scenario(device, 'permission_required');
+    const capture = await selectScenario(preview, 'permission_required');
     assert.equal(capture.delivery.access, 'open');
     assert.equal(capture.delivery.blockedRemainingMs, 0);
-    const resumed = socketClient(device);
+    const resumed = connectStateClient(preview);
     try {
-        const pending = authorizedSnapshot(await resumed.next(), 'open');
+        const pending = assertAuthorizedSnapshot(await resumed.next(), 'open');
         assert.equal(pending.notice, 'permission_required');
         assert.equal(pending.imageKind, 'logo');
-        await scenario(device, 'normal');
-        assert.equal(authorizedSnapshot(await resumed.nextMatching(value => value.notice === null && value.imageKind === 'live'), 'open').notice, null);
+        await selectScenario(preview, 'normal');
+        assert.equal(assertAuthorizedSnapshot(await resumed.nextMatching(value => value.notice === null && value.imageKind === 'live'), 'open').notice, null);
         assert.equal(resumed.socket.readyState, WebSocket.OPEN);
-        assert.equal((await request(device, '/jpeg')).status, 200);
+        assert.equal((await requestPreview(preview, '/jpeg')).status, 200);
     } finally { resumed.socket.terminate(); }
 });
 
 test('JPEG orientation, length and multipart bytes match the delivery framing', async t => {
-    const device = await fixture(t);
-    const jpeg = await request(device, '/jpeg');
+    const preview = await startPreviewServer(t);
+    const jpeg = await requestPreview(preview, '/jpeg');
     const bytes = Buffer.from(await jpeg.arrayBuffer());
     assert.equal(jpeg.headers.get('content-type'), 'image/jpeg');
     assert.equal(Number(jpeg.headers.get('content-length')), bytes.length);
     assert.equal(bytes.readUInt16BE(0), 0xffd8);
     assert.equal(bytes.readUInt16BE(bytes.length - 2), 0xffd9);
-    const oriented = await update(device, 'action', { id: 'orientation', orientation: 'landscape' });
+    const oriented = await updatePreview(preview, 'action', { id: 'orientation', orientation: 'landscape' });
     assert.equal(oriented.delivery.orientation, 'landscape');
-    const landscape = Buffer.from(await (await request(device, '/jpeg')).arrayBuffer());
-    assert.ok(captureJpegs('landscape').some(frame => frame.equals(landscape)));
-    await scenario(device, 'stopped');
-    const stream = await mediaStream(device);
+    const landscape = Buffer.from(await (await requestPreview(preview, '/jpeg')).arrayBuffer());
+    assert.ok(readCaptureJpegs('landscape').some(frame => frame.equals(landscape)));
+    await selectScenario(preview, 'stopped');
+    const stream = await openMediaStream(preview);
     try {
         assert.equal(stream.response.statusCode, 200);
         assert.equal(stream.response.headers['content-type'], 'multipart/x-mixed-replace; boundary=screenstream-jpeg');
         assert.equal(stream.response.headers['content-length'], undefined);
         const prefix = /^--screenstream-jpeg\r\nContent-Type: image\/jpeg\r\nContent-Length: ([0-9]+)\r\n\r\n/;
         let header;
-        await until(() => { header = prefix.exec(stream.body().toString('latin1')); return !!header; }, 'No complete first multipart header');
+        await waitForCondition(() => { header = prefix.exec(stream.body().toString('latin1')); return !!header; }, 'No complete first multipart header');
         const length = Number(header[1]), start = header[0].length;
         const footer = Buffer.from('\r\n--screenstream-jpeg\r\n');
         // A static frame repeats after one second; its boundary must flush with the first payload.
-        await until(() => stream.body().length >= start + length + footer.length, 'First part boundary waited for another frame', 500);
+        await waitForCondition(() => stream.body().length >= start + length + footer.length, 'First part boundary waited for another frame', 500);
         const body = stream.body();
         assert.equal(body.readUInt16BE(start), 0xffd8);
         assert.equal(body.readUInt16BE(start + length - 2), 0xffd9);
         assert.deepEqual(body.subarray(start + length, start + length + footer.length), footer);
     } finally { stream.destroy(); }
-    await scenario(device, 'paused');
-    await update(device, 'options', { postStopImage: 'logo' });
-    assert.deepEqual(await jpegPayload(device), fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg')));
+    await selectScenario(preview, 'paused');
+    await updatePreview(preview, 'options', { postStopImage: 'logo' });
+    assert.deepEqual(await readJpegPayload(preview), fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg')));
 });
 
 test('capture changes preserve transports and request faults affect only media', async t => {
-    const device = await fixture(t);
-    const configured = await state(device);
-    const portrait = captureJpegs('portrait');
+    const preview = await startPreviewServer(t);
+    const configured = await readPreviewState(preview);
+    const portrait = readCaptureJpegs('portrait');
     const logo = fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg'));
-    const client = socketClient(device);
-    authorizedSnapshot(await client.next(), 'open');
-    const stream = await mediaStream(device);
+    const client = connectStateClient(preview);
+    assertAuthorizedSnapshot(await client.next(), 'open');
+    const stream = await openMediaStream(preview);
     try {
-        await until(() => {
-            const images = multipartImages(stream.body());
+        await waitForCondition(() => {
+            const images = parseMultipartImages(stream.body());
             return images.length > 1 && images.some(image => !image.equals(images[0]));
         }, 'Normal MJPEG did not deliver changing complete frames');
         // Deliberately queue a real unchanged keepalive before the next transition.
-        await until(() => client.messages.length >= 2, 'No state keepalive arrived', 3000);
-        await scenario(device, 'paused');
-        const paused = authorizedSnapshot(await client.nextMatching(value => value.notice === 'paused'), 'open');
+        await waitForCondition(() => client.messages.length >= 2, 'No state keepalive arrived', 3000);
+        await selectScenario(preview, 'paused');
+        const paused = assertAuthorizedSnapshot(await client.nextMatching(value => value.notice === 'paused'), 'open');
         assert.equal(paused.notice, 'paused');
         assert.equal(paused.imageKind, 'logo');
-        await until(() => multipartImages(stream.body()).some(image => image.equals(logo)), 'Paused stream did not show the logo');
+        await waitForCondition(() => parseMultipartImages(stream.body()).some(image => image.equals(logo)), 'Paused stream did not show the logo');
         assert.equal(stream.response.destroyed, false);
-        const pausedCount = multipartImages(stream.body()).length;
-        await scenario(device, 'normal');
-        const restored = authorizedSnapshot(await client.nextMatching(value => value.notice === null && value.imageKind === 'live'), 'open');
+        const pausedCount = parseMultipartImages(stream.body()).length;
+        await selectScenario(preview, 'normal');
+        const restored = assertAuthorizedSnapshot(await client.nextMatching(value => value.notice === null && value.imageKind === 'live'), 'open');
         assert.equal(restored.imageKind, 'live');
-        await liveFramesAfter(stream, pausedCount, portrait, 'Paused media did not resume live frames');
-        await scenario(device, 'stopped');
-        const stopped = authorizedSnapshot(await client.nextMatching(value => value.notice === 'stopped'), 'open');
+        await waitForLiveFramesAfter(stream, pausedCount, portrait, 'Paused media did not resume live frames');
+        await selectScenario(preview, 'stopped');
+        const stopped = assertAuthorizedSnapshot(await client.nextMatching(value => value.notice === 'stopped'), 'open');
         assert.equal(stopped.notice, 'stopped');
         assert.equal(stopped.hasImage, true);
-        await scenario(device, 'normal');
-        assert.equal(authorizedSnapshot(await client.nextMatching(value => value.notice === null && value.imageKind === 'live'), 'open').notice, null);
-        await update(device, 'options', { imageAvailable: false });
-        const fallback = authorizedSnapshot(await client.nextMatching(value => value.imageKind === 'logo'), 'open');
+        await selectScenario(preview, 'normal');
+        assert.equal(assertAuthorizedSnapshot(await client.nextMatching(value => value.notice === null && value.imageKind === 'live'), 'open').notice, null);
+        await updatePreview(preview, 'options', { imageAvailable: false });
+        const fallback = assertAuthorizedSnapshot(await client.nextMatching(value => value.imageKind === 'logo'), 'open');
         assert.equal(fallback.notice, null);
         assert.equal(fallback.hasImage, true);
         assert.equal(fallback.imageKind, 'logo');
-        assert.deepEqual(await jpegPayload(device), logo);
-        const fallbackStart = multipartImages(stream.body()).length;
-        await until(() => multipartImages(stream.body()).slice(fallbackStart).some(image => image.equals(logo)), 'Unavailable stream did not show the logo');
-        const missingCount = multipartImages(stream.body()).length;
-        await update(device, 'options', { imageAvailable: true });
-        const available = authorizedSnapshot(await client.nextMatching(value => value.imageKind === 'live' && value.notice === null), 'open');
+        assert.deepEqual(await readJpegPayload(preview), logo);
+        const fallbackStart = parseMultipartImages(stream.body()).length;
+        await waitForCondition(() => parseMultipartImages(stream.body()).slice(fallbackStart).some(image => image.equals(logo)), 'Unavailable stream did not show the logo');
+        const missingCount = parseMultipartImages(stream.body()).length;
+        await updatePreview(preview, 'options', { imageAvailable: true });
+        const available = assertAuthorizedSnapshot(await client.nextMatching(value => value.imageKind === 'live' && value.notice === null), 'open');
         assert.equal(available.imageKind, 'live');
-        await liveFramesAfter(stream, missingCount, portrait, 'Media did not resume live frames after image availability returned');
-        const current = await state(device);
+        await waitForLiveFramesAfter(stream, missingCount, portrait, 'Media did not resume live frames after image availability returned');
+        const current = await readPreviewState(preview);
         assert.equal(current.delivery.credentials.token, configured.delivery.credentials.token);
         assert.equal(current.connection.clients, 1);
         assert.equal(client.socket.readyState, WebSocket.OPEN);
         assert.equal(stream.response.destroyed, false);
-        const beforeFault = authorizedSnapshot(await snapshot(device), 'open');
-        const fault = await update(device, 'action', { id: 'fail-image-requests', enabled: true });
+        const beforeFault = assertAuthorizedSnapshot(await readStateSnapshot(preview), 'open');
+        const fault = await updatePreview(preview, 'action', { id: 'fail-image-requests', enabled: true });
         assert.equal(fault.media.failRequests, true);
         assert.equal(fault.delivery.imageKind, current.delivery.imageKind);
         assert.equal(fault.delivery.notice, current.delivery.notice);
-        assert.deepEqual(authorizedSnapshot(await snapshot(device), 'open'), beforeFault);
+        assert.deepEqual(assertAuthorizedSnapshot(await readStateSnapshot(preview), 'open'), beforeFault);
         assert.equal(client.socket.readyState, WebSocket.OPEN);
-        await until(() => stream.response.destroyed, 'Media failure did not terminate the active multipart response');
+        await waitForCondition(() => stream.response.destroyed, 'Media failure did not terminate the active multipart response');
         for (const path of ['/jpeg', '/mjpeg']) {
-            const failed = await request(device, path);
+            const failed = await requestPreview(preview, path);
             assert.equal(failed.status, 503);
             assert.equal(failed.headers.get('retry-after'), '1');
         }
-        const selected = await scenario(device, 'normal');
+        const selected = await selectScenario(preview, 'normal');
         assert.equal(selected.media.failRequests, false);
         assert.deepEqual(selected.appearance, current.appearance);
         assert.deepEqual(selected.options, current.options);
         assert.equal(selected.delivery.orientation, current.delivery.orientation);
-        assert.equal((await request(device, '/jpeg')).status, 200);
-        await update(device, 'action', { id: 'fail-image-requests', enabled: true });
-        assert.equal((await update(device, 'reset', {})).media.failRequests, false);
-        assert.equal((await request(device, '/jpeg')).status, 200);
+        assert.equal((await requestPreview(preview, '/jpeg')).status, 200);
+        await updatePreview(preview, 'action', { id: 'fail-image-requests', enabled: true });
+        assert.equal((await updatePreview(preview, 'reset', {})).media.failRequests, false);
+        assert.equal((await requestPreview(preview, '/jpeg')).status, 200);
     } finally { client.socket.terminate(); stream.destroy(); }
 });
 
 test('inactive image policies share JPEG, MJPEG and state selection across canonical scenarios', async t => {
-    const device = await fixture(t);
+    const preview = await startPreviewServer(t);
     const logo = fs.readFileSync(path.join(__dirname, 'fixtures', 'logo.jpg'));
-    const portrait = captureJpegs('portrait');
+    const portrait = readCaptureJpegs('portrait');
     for (const id of ['normal', 'pin', 'blocked', 'starting', 'permission_required', 'paused', 'stopped', 'failed']) {
-        const selected = await scenario(device, id);
+        const selected = await selectScenario(preview, id);
         const protectedAccess = selected.delivery.access === 'protected';
-        const cookie = protectedAccess ? accessCookie(await request(device,
+        const cookie = protectedAccess ? readAccessCookie(await requestPreview(preview,
             '/viewer?token=' + encodeURIComponent(selected.delivery.credentials.token))) : undefined;
         for (const postStopImage of ['logo', 'last']) for (const imageAvailable of [false, true]) {
             const live = ['normal', 'pin', 'blocked'].includes(id) && imageAvailable;
             const expected = live ? 'live' :
                 postStopImage === 'last' && imageAvailable ? 'retained' : 'logo';
-            const current = await update(device, 'options', { postStopImage, imageAvailable });
+            const current = await updatePreview(preview, 'options', { postStopImage, imageAvailable });
             assert.equal(current.delivery.imageKind, expected, id + ': ' + postStopImage + '/' + imageAvailable);
-            const wire = authorizedSnapshot(await snapshot(device, cookie), protectedAccess ? 'authorized' : 'open');
+            const wire = assertAuthorizedSnapshot(await readStateSnapshot(preview, cookie), protectedAccess ? 'authorized' : 'open');
             assert.equal(wire.imageKind, expected);
             if (protectedAccess) for (const path of ['/jpeg', '/mjpeg']) {
-                assert.equal((await request(device, path)).status, 403, 'Access precedes inactive image selection');
+                assert.equal((await requestPreview(preview, path)).status, 403, 'Access precedes inactive image selection');
             }
-            const jpeg = await jpegPayload(device, cookie);
-            const stream = await mediaStream(device, '/mjpeg', cookie);
+            const jpeg = await readJpegPayload(preview, cookie);
+            const stream = await openMediaStream(preview, '/mjpeg', cookie);
             try {
                 assert.equal(stream.response.statusCode, 200);
-                await until(() => multipartImages(stream.body()).length > 0, 'No selected multipart image');
-                const multipart = multipartImages(stream.body())[0];
+                await waitForCondition(() => parseMultipartImages(stream.body()).length > 0, 'No selected multipart image');
+                const multipart = parseMultipartImages(stream.body())[0];
                 if (expected === 'live') {
                     assert.ok(portrait.some(frame => frame.equals(jpeg)));
                     assert.ok(portrait.some(frame => frame.equals(multipart)));
@@ -528,12 +528,12 @@ test('inactive image policies share JPEG, MJPEG and state selection across canon
             } finally { stream.destroy(); }
         }
     }
-    await scenario(device, 'stopped');
-    await update(device, 'options', { postStopImage: 'last', imageAvailable: true });
-    await update(device, 'action', { id: 'orientation', orientation: 'landscape' });
-    assert.deepEqual(await jpegPayload(device), captureJpegs('landscape')[0]);
+    await selectScenario(preview, 'stopped');
+    await updatePreview(preview, 'options', { postStopImage: 'last', imageAvailable: true });
+    await updatePreview(preview, 'action', { id: 'orientation', orientation: 'landscape' });
+    assert.deepEqual(await readJpegPayload(preview), readCaptureJpegs('landscape')[0]);
     await delay(250);
-    assert.deepEqual(await jpegPayload(device), captureJpegs('landscape')[0]);
+    assert.deepEqual(await readJpegPayload(preview), readCaptureJpegs('landscape')[0]);
 });
 
 test('close releases live sockets and multipart responses without hanging', async t => {
@@ -546,17 +546,17 @@ test('close releases live sockets and multipart responses without hanging', asyn
     assert.equal(binding.server.listening, false, 'Close must wait for a pending bind');
     await assert.rejects(binding.listen(), /Preview server is closed/);
 
-    const device = await fixture(t);
-    const client = socketClient(device);
-    authorizedSnapshot(await client.next(), 'open');
-    const stream = await mediaStream(device);
+    const preview = await startPreviewServer(t);
+    const client = connectStateClient(preview);
+    assertAuthorizedSnapshot(await client.next(), 'open');
+    const stream = await openMediaStream(preview);
     try {
         let timer;
         const deadline = new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error('Preview close did not release its transports')), 1500); });
-        try { await Promise.race([device.close(), deadline]); }
+        try { await Promise.race([preview.close(), deadline]); }
         finally { clearTimeout(timer); }
         await client.closed;
-        await until(() => stream.response.destroyed, 'Response survived server close');
-        await device.close();
+        await waitForCondition(() => stream.response.destroyed, 'Response survived server close');
+        await preview.close();
     } finally { client.socket.terminate(); stream.destroy(); }
 });

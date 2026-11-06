@@ -58,10 +58,10 @@ internal class MjpegControllerLifecycleTest {
     // Cases: MJPEG-CTL-01
     @Test
     fun serviceInstallsOriginalControllerAndRepeatedCurrentStartHasOneLifetime() = runBlocking {
-        val settings = inputs.settings()
-        val host = MjpegServiceHost(settings)
+        val settings = inputs.createSettings()
+        val host = MjpegServiceTestHost(settings)
         try {
-            assertTrue(host.access.requested.value.isEmpty())
+            assertTrue(host.access.consentRequests.value.isEmpty())
             host.controller.requestStreamStart()
             host.controller.startModule()
             host.controller.startModule()
@@ -75,10 +75,10 @@ internal class MjpegControllerLifecycleTest {
             assertFalse(host.managerObservation.failed.isCompleted)
             assertFalse(host.http.closed)
             assertFalse(host.managerObservation.status.value!!.isStreaming)
-            assertTrue(host.http.captures.value.isEmpty())
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
             val packagedLogo = host.service.assets.open("mjpeg/screenstream-logo.jpg").use { it.readBytes() }
             assertTrue(packagedLogo.isNotEmpty())
-            assertArrayEquals(packagedLogo, host.http.initialLogo)
+            assertArrayEquals(packagedLogo, host.http.initialLogoBytes)
         } finally {
             assertTrue(host.close())
         }
@@ -91,18 +91,18 @@ internal class MjpegControllerLifecycleTest {
         kotlinx.coroutines.Dispatchers.setMain(kotlinx.coroutines.test.UnconfinedTestDispatcher())
         try {
             for (stale in listOf(false, true)) {
-                val handle = TestManagerHandle().also { it.current = !stale }
+                val handle = RecordingManagerHandle().also { it.current = !stale }
                 val serviceController = org.robolectric.Robolectric.buildService(MjpegStreamingModuleService::class.java).create()
-                val http = TestHttpDelivery()
-                val monitor = TestAddressMonitor()
+                val http = ControlledHttpDelivery()
+                val monitor = ControlledAddressMonitor()
                 val controller = MjpegStreamingModuleController(
                     handle,
                     serviceController.get(),
-                    lazyOf(inputs.settings()),
+                    lazyOf(inputs.createSettings()),
                     monitor,
-                    TestCaptureAccess(),
+                    ControlledCaptureAccess(),
                     http,
-                    TestSessionAnalyticsFactory
+                    DiscardingSessionAnalyticsFactory
                 )
                 try {
                     assertFalse(monitor.started.value)
@@ -114,7 +114,7 @@ internal class MjpegControllerLifecycleTest {
                     withTimeout(5.seconds) { http.stopEntered.await(); monitor.closeEntered.await() }
                     assertTrue(http.closed)
                     assertFalse(monitor.started.value)
-                    assertTrue(http.captures.value.isEmpty())
+                    assertTrue(http.registeredCaptureAttempts.value.isEmpty())
                 } finally {
                     controller.requestModuleShutdown()
                     withTimeout(5.seconds) {
@@ -135,11 +135,19 @@ internal class MjpegControllerLifecycleTest {
     fun idleLoopReportsProcessedUptimeHeartbeatsAndStaleHandleRetiresWithoutFailure() = runBlocking {
         kotlinx.coroutines.Dispatchers.setMain(kotlinx.coroutines.test.UnconfinedTestDispatcher())
         val service = org.robolectric.Robolectric.buildService(MjpegStreamingModuleService::class.java).create()
-        val handle = TestManagerHandle()
-        val http = TestHttpDelivery()
-        val monitor = TestAddressMonitor()
+        val handle = RecordingManagerHandle()
+        val http = ControlledHttpDelivery()
+        val monitor = ControlledAddressMonitor()
         val controller =
-            MjpegStreamingModuleController(handle, service.get(), lazyOf(inputs.settings()), monitor, TestCaptureAccess(), http, TestSessionAnalyticsFactory)
+            MjpegStreamingModuleController(
+                handle,
+                service.get(),
+                lazyOf(inputs.createSettings()),
+                monitor,
+                ControlledCaptureAccess(),
+                http,
+                DiscardingSessionAnalyticsFactory
+            )
         var destroyed = false
         try {
             assertTrue(handle.reports.isEmpty())
@@ -164,7 +172,7 @@ internal class MjpegControllerLifecycleTest {
             withTimeout(5.seconds) { http.stopEntered.await(); monitor.closeEntered.await() }
             assertFalse(handle.failed.isCompleted)
             controller.requestStreamStart()
-            assertTrue(http.captures.value.isEmpty())
+            assertTrue(http.registeredCaptureAttempts.value.isEmpty())
             withTimeout(5.seconds) { while (!shadowOf(service.get()).isStoppedBySelf) kotlinx.coroutines.yield() }
             service.destroy()
             destroyed = true
@@ -189,11 +197,11 @@ internal class MjpegControllerLifecycleTest {
         withTimeout(10.seconds) {
             val startEntered = CompletableDeferred<Unit>()
             val releaseStart = CountDownLatch(1)
-            val http = TestHttpDelivery(onStart = {
+            val http = ControlledHttpDelivery(onStart = {
                 startEntered.complete(Unit)
                 check(releaseStart.await(20, TimeUnit.SECONDS)) { "HTTP start release was not permitted" }
             })
-            val host = MjpegServiceHost(inputs.settings(), http = http)
+            val host = MjpegServiceTestHost(inputs.createSettings(), http = http)
             try {
                 host.controller.startModule()
                 startEntered.await()
@@ -213,8 +221,8 @@ internal class MjpegControllerLifecycleTest {
                 assertTrue(receipt.await())
                 assertEquals(1, http.startCalls.value)
                 assertNull(http.configuration.value)
-                assertTrue(http.captures.value.isEmpty())
-                assertTrue(host.access.requested.value.isEmpty())
+                assertTrue(http.registeredCaptureAttempts.value.isEmpty())
+                assertTrue(host.access.consentRequests.value.isEmpty())
                 assertEquals(NetworkAddressMonitor.State.Closed, host.monitor.state.value)
             } finally {
                 releaseStart.countDown()
@@ -226,19 +234,19 @@ internal class MjpegControllerLifecycleTest {
     // Cases: MJPEG-CTL-02
     @Test
     fun startNeedsMatchingReadyAddressAndListeningServerAtCurrentPort() = runBlocking {
-        for (gate in listOf("loading", "empty", "wrong-filter", "pending", "failed", "wrong-port", "wrong-address")) {
-            val settings = inputs.settings()
-            val host = MjpegServiceHost(settings)
+        for (gate in listOf("loading", "empty", "listener-address-absent", "pending", "failed", "wrong-port", "wrong-address")) {
+            val settings = inputs.createSettings()
+            val host = MjpegServiceTestHost(settings)
             try {
-                inputs.startModuleWithListeningServer(host)
+                inputs.startModuleWithReadyListener(host)
                 val filter = host.settings.data.first().network.filter
                 val selected = inputs.address()
                 when (gate) {
                     "loading" -> inputs.publishDiscovery(host, NetworkAddressMonitor.State.Loading)
-                    "empty" -> inputs.publishDiscovery(host, observedAddresses(emptyList()))
-                    "wrong-filter" -> inputs.publishDiscovery(
+                    "empty" -> inputs.publishDiscovery(host, observedAddressState(emptyList()))
+                    "listener-address-absent" -> inputs.publishDiscovery(
                         host,
-                        observedAddresses(listOf(inputs.address(id = 99, ip = "203.0.113.9", type = InterfaceType.Vpn))),
+                        observedAddressState(listOf(inputs.address(id = 99, ip = "203.0.113.9", type = InterfaceType.Vpn))),
                     )
 
                     "pending" -> inputs.publishServerState(host, selected, state = HttpDelivery.ServerState.Pending)
@@ -253,14 +261,14 @@ internal class MjpegControllerLifecycleTest {
                 }
                 host.controller.requestStreamStart()
                 inputs.applySettingsCheckpoint(settings, host, "Rejected $gate")
-                assertTrue(gate, host.http.captures.value.isEmpty())
-                assertTrue(gate, host.access.requested.value.isEmpty())
-                inputs.publishDiscovery(host, observedAddresses(listOf(selected)))
+                assertTrue(gate, host.http.registeredCaptureAttempts.value.isEmpty())
+                assertTrue(gate, host.access.consentRequests.value.isEmpty())
+                inputs.publishDiscovery(host, observedAddressState(listOf(selected)))
                 inputs.publishServerState(host, selected)
                 inputs.applySettingsCheckpoint(settings, host, "Ready $gate")
                 host.controller.requestStreamStart()
-                host.access.requested.awaitControllerValue { it.size == 1 }
-                assertEquals(host.http.captures.value.single(), host.access.requested.value.single())
+                host.access.consentRequests.awaitControllerValue { it.size == 1 }
+                assertEquals(host.http.registeredCaptureAttempts.value.single(), host.access.consentRequests.value.single())
                 assertFalse(host.managerObservation.status.awaitControllerValue { it?.captureAttempt != null }!!.isStreaming)
             } finally {
                 assertTrue(host.close())
@@ -271,17 +279,17 @@ internal class MjpegControllerLifecycleTest {
     // Cases: MJPEG-CTL-02, MJPEG-CTL-03, MJPEG-CTL-04
     @Test
     fun duplicateStartAndStaleStopCannotReplaceHeldConsentButExactStopAllowsNextAttempt() = runBlocking<Unit> {
-        val settings = inputs.settings()
-        val host = MjpegServiceHost(settings)
+        val settings = inputs.createSettings()
+        val host = MjpegServiceTestHost(settings)
         try {
-            inputs.startModuleWithListeningServer(host)
+            inputs.startModuleWithReadyListener(host)
             host.controller.requestStreamStart()
-            val first = host.access.requested.awaitControllerValue { it.size == 1 }.single()
+            val first = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
             host.controller.requestStreamStart()
             host.controller.requestStreamStop(StreamingModule.CaptureAttemptId(host.managerObservation.instanceId), false)
             inputs.applySettingsCheckpoint(settings, host, "Stale Stop processed")
-            assertEquals(listOf(first), host.http.captures.value)
-            assertTrue(host.access.finishCalls.value.isEmpty())
+            assertEquals(listOf(first), host.http.registeredCaptureAttempts.value)
+            assertTrue(host.access.projectionCreationFinishes.value.isEmpty())
             assertEquals(first, host.managerObservation.status.awaitControllerValue { it?.captureAttempt == first }!!.captureAttempt)
             val delivery = host.http.info.value
             host.http.info.value = delivery.copy(
@@ -301,12 +309,12 @@ internal class MjpegControllerLifecycleTest {
             host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
             assertFalse(host.http.closed)
             host.controller.requestStreamStart()
-            val second = host.access.requested.awaitControllerValue { it.size == 2 }.last()
+            val second = host.access.consentRequests.awaitControllerValue { it.size == 2 }.last()
             assertNotEquals(first, second)
             host.controller.requestStreamStop(first, false)
             inputs.applySettingsCheckpoint(settings, host, "Old Stop after replacement")
             assertEquals(second, host.managerObservation.status.awaitControllerValue { it?.captureAttempt == second }!!.captureAttempt)
-            assertEquals(listOf(first), host.access.finishCalls.value)
+            assertEquals(listOf(first), host.access.projectionCreationFinishes.value)
             host.controller.requestStreamStop(second, false)
             host.http.captureStatus.awaitControllerValue { it?.first == second && it.second == MjpegCaptureSession.State.Status.Stopped }
         } finally {
@@ -317,13 +325,13 @@ internal class MjpegControllerLifecycleTest {
     // Cases: MJPEG-CTL-05
     @Test
     fun failedAttemptCleanupShutsDownTheModuleAndBlocksReplacement() = runBlocking {
-        val settings = inputs.settings()
-        val access = TestCaptureAccess().also { it.cleanupFailure = IllegalStateException("Guard cleanup failed") }
-        val host = MjpegServiceHost(settings, access = access)
+        val settings = inputs.createSettings()
+        val access = ControlledCaptureAccess().also { it.finishProjectionFailure = IllegalStateException("Guard cleanup failed") }
+        val host = MjpegServiceTestHost(settings, access = access)
         try {
-            inputs.startModuleWithListeningServer(host)
+            inputs.startModuleWithReadyListener(host)
             host.controller.requestStreamStart()
-            val attempt = access.requested.awaitControllerValue { it.size == 1 }.single()
+            val attempt = access.consentRequests.awaitControllerValue { it.size == 1 }.single()
             host.controller.requestStreamStop(attempt, false)
             host.http.captureStatus.awaitControllerValue { it?.second == MjpegCaptureSession.State.Status.Failed }
             withTimeout(5.seconds) { host.managerObservation.failed.await(); host.http.stopEntered.await() }
@@ -331,7 +339,7 @@ internal class MjpegControllerLifecycleTest {
             host.controller.requestStreamStart()
             assertEquals(9000, settings.data.first().network.httpPort)
             assertTrue(host.http.closed)
-            assertEquals(listOf(attempt), host.http.captures.value)
+            assertEquals(listOf(attempt), host.http.registeredCaptureAttempts.value)
             assertEquals(attempt, host.managerObservation.status.value!!.captureAttempt)
             assertEquals(8080, host.http.plan.value!!.port)
             assertFalse(host.managerObservation.status.value!!.isStreaming)
@@ -345,21 +353,21 @@ internal class MjpegControllerLifecycleTest {
     fun independentlyHeldCleanupWaitsForCaptureHttpMonitorAndOriginalServiceDespiteCanceledWaiter() = runBlocking {
         for (lastOwner in listOf("capture", "HTTP", "monitor", "Service")) {
             withTimeout(10.seconds) {
-                val http = TestHttpDelivery(holdStop = true)
-                val monitor = TestAddressMonitor(holdClose = true)
+                val http = ControlledHttpDelivery(holdStop = true)
+                val monitor = ControlledAddressMonitor(holdClose = true)
                 val captureCleanupEntered = CompletableDeferred<Unit>()
                 val releaseCapture = CountDownLatch(1)
                 if (lastOwner != "capture") releaseCapture.countDown()
-                val access = TestCaptureAccess(onFinish = {
+                val access = ControlledCaptureAccess(onFinish = {
                     captureCleanupEntered.complete(Unit)
                     check(releaseCapture.await(20, TimeUnit.SECONDS)) { "Capture guard release was not permitted" }
                 })
-                val host = MjpegServiceHost(inputs.settings(), http = http, monitor = monitor, access = access)
+                val host = MjpegServiceTestHost(inputs.createSettings(), http = http, monitor = monitor, access = access)
                 try {
                     val attempt = if (lastOwner == "capture") {
-                        inputs.startModuleWithListeningServer(host)
+                        inputs.startModuleWithReadyListener(host)
                         host.controller.requestStreamStart()
-                        access.requested.awaitControllerValue { it.size == 1 }.single()
+                        access.consentRequests.awaitControllerValue { it.size == 1 }.single()
                     } else null
                     host.controller.requestModuleShutdown()
                     val abandoned = async(start = CoroutineStart.UNDISPATCHED) { host.controller.awaitCleanup() }
@@ -369,15 +377,15 @@ internal class MjpegControllerLifecycleTest {
                     if (attempt != null) {
                         captureCleanupEntered.await()
                         // Entry is recorded before the held guard returns; the final receipt proves settlement.
-                        assertEquals(listOf(attempt), access.finishCalls.value)
+                        assertEquals(listOf(attempt), access.projectionCreationFinishes.value)
                     }
                     abandoned.cancelAndJoin()
                     if (lastOwner != "HTTP") {
-                        http.finishStop.complete(Unit)
+                        http.allowStopToReturn.complete(Unit)
                         http.stopSettled.await()
                     }
                     if (lastOwner != "monitor") {
-                        monitor.finishClose.complete(Unit)
+                        monitor.allowCloseToReturn.complete(Unit)
                         monitor.closeSettled.await()
                         assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
                     }
@@ -396,10 +404,11 @@ internal class MjpegControllerLifecycleTest {
                             host.destroy()
                         }
 
-                        "HTTP" -> http.finishStop.complete(Unit)
-                        "monitor" -> monitor.finishClose.complete(Unit)
+                        "HTTP" -> http.allowStopToReturn.complete(Unit)
+                        "monitor" -> monitor.allowCloseToReturn.complete(Unit)
                         "Service" -> {
-                            host.awaitStopRequested(); host.destroy()
+                            host.awaitStopRequested()
+                            host.destroy()
                         }
                     }
                     assertTrue(lastOwner, receipt.await())
@@ -416,13 +425,13 @@ internal class MjpegControllerLifecycleTest {
     @Test
     fun cleanupFailureStillSettlesOtherOwnersAndReturnsFalse() = runBlocking {
         for (failedOwner in listOf("HTTP", "monitor")) {
-            val http = TestHttpDelivery().also {
+            val http = ControlledHttpDelivery().also {
                 if (failedOwner == "HTTP") it.stopFailure = IllegalStateException("HTTP cleanup failed")
             }
-            val monitor = TestAddressMonitor().also {
+            val monitor = ControlledAddressMonitor().also {
                 if (failedOwner == "monitor") it.closeFailure = IllegalStateException("Monitor cleanup failed")
             }
-            val host = MjpegServiceHost(inputs.settings(), http = http, monitor = monitor)
+            val host = MjpegServiceTestHost(inputs.createSettings(), http = http, monitor = monitor)
             try {
                 host.controller.requestModuleShutdown()
                 withTimeout(5.seconds) {
@@ -445,9 +454,9 @@ internal class MjpegControllerLifecycleTest {
     @Test
     fun terminalMonitorHttpAndConfigurationFailuresCloseModuleAdmission() = runBlocking {
         for (fault in listOf("monitor-failed", "monitor-closed", "http-fatal", "initial-rejected", "update-rejected", "service-destroyed")) {
-            val settings = inputs.settings()
-            val http = TestHttpDelivery().also { if (fault == "initial-rejected") it.acceptConfiguration = false }
-            val host = MjpegServiceHost(settings, http = http)
+            val settings = inputs.createSettings()
+            val http = ControlledHttpDelivery().also { if (fault == "initial-rejected") it.acceptConfiguration = false }
+            val host = MjpegServiceTestHost(settings, http = http)
             try {
                 host.controller.startModule()
                 if (fault != "initial-rejected") host.http.configuration.awaitControllerValue { it != null }
@@ -469,7 +478,7 @@ internal class MjpegControllerLifecycleTest {
                 }
                 assertTrue(host.http.closed)
                 host.controller.requestStreamStart()
-                assertTrue(host.http.captures.value.isEmpty())
+                assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
             } finally {
                 assertEquals(fault != "service-destroyed", host.close())
             }
@@ -479,16 +488,16 @@ internal class MjpegControllerLifecycleTest {
     // Cases: MJPEG-CTL-11
     @Test
     fun thrownListenerConfigurationFailureReportsTerminalFailureAndClosesAllOwners() = runBlocking {
-        val settings = inputs.settings()
-        val host = MjpegServiceHost(settings)
+        val settings = inputs.createSettings()
+        val host = MjpegServiceTestHost(settings)
         try {
-            inputs.startModuleWithListeningServer(host)
-            host.http.configureFailure = IllegalStateException("Listener configuration failed")
-            settings.updateData { copy(network = network.copy(filter = inputs.otherFilter())) }
+            inputs.startModuleWithReadyListener(host)
+            host.http.serverConfigurationFailure = IllegalStateException("Listener configuration failed")
+            settings.updateData { copy(network = network.copy(filter = inputs.vpnNonPrivateIpv4Filter())) }
             withTimeout(5.seconds) { host.managerObservation.failed.await(); host.http.stopEntered.await(); host.monitor.closeEntered.await() }
             assertTrue(host.http.closed)
             host.controller.requestStreamStart()
-            assertTrue(host.http.captures.value.isEmpty())
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
         } finally {
             assertTrue(host.close())
         }
@@ -497,31 +506,31 @@ internal class MjpegControllerLifecycleTest {
     // Cases: MJPEG-CTL-12, MJPEG-CTL-13
     @Test
     fun shutdownDuringEnteredHttpCaptureRegistrationRetiresEveryAdmittedOwnerBeforeItsReceipt() = runBlocking {
-        val settings = inputs.settings()
+        val settings = inputs.createSettings()
         settings.updateData { copy(behavior = behavior.copy(stopOnScreenOff = true)) }
         val enteredRegistration = CompletableDeferred<StreamingModule.CaptureAttemptId>()
         val releaseRegistration = CountDownLatch(1)
         val enteredCleanup = CompletableDeferred<Unit>()
         val releaseCleanup = CountDownLatch(1)
         val cleanupReturned = java.util.concurrent.atomic.AtomicBoolean(false)
-        val access = TestCaptureAccess(onFinish = {
+        val access = ControlledCaptureAccess(onFinish = {
             enteredCleanup.complete(Unit)
             check(releaseCleanup.await(20, TimeUnit.SECONDS))
             cleanupReturned.set(true)
         })
-        val http = TestHttpDelivery().also {
+        val http = ControlledHttpDelivery().also {
             it.onCaptureRegistered = { attempt ->
                 enteredRegistration.complete(attempt)
                 check(releaseRegistration.await(20, TimeUnit.SECONDS))
             }
         }
-        val host = MjpegServiceHost(settings, http = http, access = access)
+        val host = MjpegServiceTestHost(settings, http = http, access = access)
         var shutdown: kotlinx.coroutines.Deferred<Unit>? = null
         try {
-            inputs.startModuleWithListeningServer(host)
+            inputs.startModuleWithReadyListener(host)
             host.controller.requestStreamStart()
             val admitted = withTimeout(5.seconds) { enteredRegistration.await() }
-            assertEquals(listOf(admitted), http.captures.value)
+            assertEquals(listOf(admitted), http.registeredCaptureAttempts.value)
             val application: Application = RuntimeEnvironment.getApplication()
             val screenOff = Intent(Intent.ACTION_SCREEN_OFF)
             assertEquals(1, shadowOf(application).registeredReceivers.filter { it.intentFilter.hasAction(screenOff.action) }.size)
@@ -547,14 +556,14 @@ internal class MjpegControllerLifecycleTest {
             host.awaitStopRequested()
             host.destroy()
             assertTrue(withTimeout(5.seconds) { receipt.await() })
-            assertEquals(listOf(admitted), http.captures.value)
-            assertTrue(access.requested.value.all { it == admitted })
-            assertTrue(access.finishCalls.value.all { it == admitted })
-            assertTrue(access.requested.value.isEmpty() || access.finishCalls.value.contains(admitted))
+            assertEquals(listOf(admitted), http.registeredCaptureAttempts.value)
+            assertTrue(access.consentRequests.value.all { it == admitted })
+            assertTrue(access.projectionCreationFinishes.value.all { it == admitted })
+            assertTrue(access.consentRequests.value.isEmpty() || access.projectionCreationFinishes.value.contains(admitted))
             if (enteredCleanup.isCompleted) assertTrue(cleanupReturned.get())
             host.controller.requestStreamStart()
             host.controller.startModule()
-            assertEquals(listOf(admitted), http.captures.value)
+            assertEquals(listOf(admitted), http.registeredCaptureAttempts.value)
         } finally {
             releaseRegistration.countDown()
             releaseCleanup.countDown()

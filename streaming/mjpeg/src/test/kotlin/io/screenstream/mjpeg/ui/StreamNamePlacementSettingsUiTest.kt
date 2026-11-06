@@ -30,7 +30,7 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "en")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-internal class PlacementSettingsUiTest {
+internal class StreamNamePlacementSettingsUiTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
@@ -57,7 +57,7 @@ internal class PlacementSettingsUiTest {
                 }
             }
         }
-        val initial = settled(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         compose.setContent {
             val data by settings.data.collectAsState(initial)
             MjpegTestTheme {
@@ -86,16 +86,14 @@ internal class PlacementSettingsUiTest {
                 }
             }
         }
-        val latest = settled(settings)
+        val latest = compose.awaitSavedMjpegSettings(settings)
         compose.onNodeWithContentDescription(text(R.string.mjpeg_action_close)).performClick()
 
         assertEquals(
             latest.copy(web = latest.web.copy(titleLayout = latest.web.titleLayout.copy(position = WebPageSettings.Edge.Bottom))),
-            settled(settings),
+            compose.awaitSavedMjpegSettings(settings),
         )
     }
-
-    private fun settled(settings: MjpegSettings): MjpegSettings.Data = compose.settledMjpegSettings(settings)
 
     private fun text(resource: Int): String = compose.activity.getString(resource)
 }

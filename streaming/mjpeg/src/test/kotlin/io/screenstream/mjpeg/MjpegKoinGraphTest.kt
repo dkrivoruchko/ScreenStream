@@ -49,7 +49,7 @@ import kotlin.time.Duration.Companion.seconds
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
-internal class MjpegGeneratedGraphTest {
+internal class MjpegKoinGraphTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
@@ -67,38 +67,38 @@ internal class MjpegGeneratedGraphTest {
         val services = mutableListOf<ServiceController<MjpegStreamingModuleService>>()
         val deliveries = mutableListOf<HttpDelivery>()
         val monitors = mutableListOf<NetworkAddressMonitor>()
-        var registered = false
+        var isKoinStarted = false
         Dispatchers.setMain(UnconfinedTestDispatcher())
         try {
-            val app = startKoin {
-                registered = true
+            val koinApplication = startKoin {
+                isKoinStarted = true
                 modules(MjpegKoinModule::class)
                 modules(module {
                     single<Context> { context }
-                    single<ScreenCaptureAccess> { TestCaptureAccess() }
-                    single<StreamingSessionAnalyticsFactory> { TestSessionAnalyticsFactory }
+                    single<ScreenCaptureAccess> { ControlledCaptureAccess() }
+                    single<StreamingSessionAnalyticsFactory> { DiscardingSessionAnalyticsFactory }
                 })
             }
-            val descriptor = app.koin.get<StreamingModule>()
-            assertSame(descriptor, app.koin.get<StreamingModule>())
+            val descriptor = koinApplication.koin.get<StreamingModule>()
+            assertSame(descriptor, koinApplication.koin.get<StreamingModule>())
             assertEquals(MjpegStreamingModule.Id, descriptor.id)
             assertEquals(MjpegStreamingModuleService::class.java, descriptor.serviceClass)
-            assertSame(app.koin.get<MjpegSettings>(), app.koin.get<MjpegSettings>())
+            assertSame(koinApplication.koin.get<MjpegSettings>(), koinApplication.koin.get<MjpegSettings>())
             repeat(2) {
-                deliveries += app.koin.get<HttpDelivery>()
-                monitors += app.koin.get<NetworkAddressMonitor>()
+                deliveries += koinApplication.koin.get<HttpDelivery>()
+                monitors += koinApplication.koin.get<NetworkAddressMonitor>()
                 val service = Robolectric.buildService(MjpegStreamingModuleService::class.java).create()
                 services += service
-                val recordingHandle = TestManagerHandle()
-                val handle: StreamingModule.Controller.ManagerHandle = recordingHandle
+                val managerHandle = RecordingManagerHandle()
+                val controllerHandle: StreamingModule.Controller.ManagerHandle = managerHandle
                 val originalService: MjpegStreamingModuleService = checkNotNull(service.get())
-                val controller = app.koin.get<MjpegStreamingModuleController> { parametersOf(handle, originalService) }
+                val controller = koinApplication.koin.get<MjpegStreamingModuleController> { parametersOf(controllerHandle, originalService) }
                 controllers += controller
-                assertEquals(handle.instanceId, controller.instanceId)
+                assertEquals(controllerHandle.instanceId, controller.instanceId)
                 assertEquals(UiController.Action.Start(false), controller.state.value.action)
                 assertTrue(controller.state.value.statistics.history.isEmpty())
-                assertNull(recordingHandle.status.value)
-                assertFalse(recordingHandle.failed.isCompleted)
+                assertNull(managerHandle.status.value)
+                assertFalse(managerHandle.failed.isCompleted)
             }
             assertNotSame(controllers[0], controllers[1])
             assertNotEquals(controllers[0].instanceId, controllers[1].instanceId)
@@ -122,7 +122,7 @@ internal class MjpegGeneratedGraphTest {
                 }
             } finally {
                 try {
-                    if (registered) stopKoin()
+                    if (isKoinStarted) stopKoin()
                 } finally {
                     Dispatchers.resetMain()
                 }

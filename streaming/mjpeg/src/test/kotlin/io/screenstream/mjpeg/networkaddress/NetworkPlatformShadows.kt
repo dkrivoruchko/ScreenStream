@@ -25,9 +25,9 @@ internal class CallbackLinkAddressShadow {
     protected fun getAddress(): InetAddress = callbackAddress
 }
 
-/** Captures only the two observer operations used by the source; events use its registered executor. */
+/** Captures only the two observer operations used by monitor observation; events use its registered executor. */
 @Implements(TetheringManager::class, minSdk = 36)
-internal class SourceTetheringShadow {
+internal class ObservationTetheringShadow {
     @Volatile
     var registeredCallback: TetheringManager.TetheringEventCallback? = null
         private set
@@ -65,7 +65,7 @@ internal class SourceTetheringShadow {
 
 /** Faults and interleavings at Android calls; all normal network behavior remains the stock shadow's. */
 @Implements(ConnectivityManager::class)
-internal class SourceConnectivityShadow : ShadowConnectivityManager() {
+internal class ObservationConnectivityShadow : ShadowConnectivityManager() {
     @Volatile
     var registeredRequest: NetworkRequest? = null
         private set
@@ -104,7 +104,7 @@ internal class SourceConnectivityShadow : ShadowConnectivityManager() {
     }
 }
 
-internal fun tetheringContext(): Context {
+internal fun tetheringTestContext(): Context {
     val application: Context = RuntimeEnvironment.getApplication()
     val manager = Shadow.newInstanceOf(TetheringManager::class.java)
     return object : ContextWrapper(application) {

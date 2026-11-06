@@ -2,30 +2,9 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing MJPEG](../01-testing.md)
 
-This page describes the histories a test needs in order to show how one HTTP delivery runs. It covers the delivery's activation, the address plan it serves, the physical listeners it binds and retires, its terminal stop, and the client rows and totals it reports.
+Test histories for one HTTP delivery: activation, the address plan, physical listeners, terminal stop, and the client rows and totals it reports. [HTTP delivery](../../02-delivery/01-http-delivery.md) owns these rules and [its components](../../02-delivery/01-http-delivery.md#components-and-lifetimes); the [HTTP server guide](../../../docs/server.md#what-clients-receive) owns what clients see. Plans and rates belong to the [controller scenarios](02-controller.md), credentials to [access](06-access.md), image bytes to [media](07-media.md), and routes to [web protocol](08-web-protocol.md).
 
-Public behavior is owned elsewhere. The [HTTP server guide](../../../docs/server.md#what-clients-receive) says what clients see when an address stops being served or the mode closes. [Architecture](../../../docs/architecture.md#addresses-listeners-and-readiness) explains how addresses become listeners. [Usage](../../../docs/usage.md#reading-the-statistics) explains how users read the statistics. [HTTP delivery](../../02-delivery/01-http-delivery.md) owns the runtime rules this page tests.
-
-Neighboring pages own related histories:
-
-- [Controller scenarios](02-controller.md) cover which addresses become a plan, when delivery is activated, and rates and history.
-- [Access scenarios](06-access.md) cover credentials and PIN blocks.
-- [Media scenarios](07-media.md) cover image bytes and payload counting inside one response.
-- [Web protocol scenarios](08-web-protocol.md) cover routes and status codes.
-
-These are requirements, not a record of passing tests. [Testing MJPEG](../01-testing.md) explains the test-source coverage and the evidence rules.
-
-## The pieces under test
-
-| Piece | Lifetime | Responsibility |
-| --- | --- | --- |
-| `KtorHttpDelivery` | One open mode | Control monitor, address plan, admission, configuration, statistics sampling and the shared terminal cleanup |
-| Planned server | One server incarnation | UUID, address metadata, port, bind attempts and retry deadline, and the exact current listener |
-| Socket owner | One scoped IP and port, while used or retiring | Runs bind attempts and listener cleanup for its socket one at a time, then rereads the latest plan |
-| `HttpListener` | One bind attempt | The lifecycle delivery drives for one host and port: start listening, await termination, request stop, and stop with cleanup. The production `CioHttpListener` runs one CIO engine ([HTTP delivery](../../02-delivery/01-http-delivery.md#components-and-lifetimes)) |
-| `HttpRequests` | One HTTP delivery | Admitted media and WebSocket requests, client rows and retired totals |
-
-Several terms recur below.
+## Terms
 
 - The **plan** is the list of addresses and the shared port that the controller asks delivery to serve.
 - An **incarnation** is one planned server, identified by a UUID that the app also uses for **Retry**. Metadata edits and bind retries keep the UUID. Removing and re-adding an address, or changing the port, creates a new incarnation.
@@ -53,8 +32,6 @@ stateDiagram-v2
 Credential rotation and terminal stop remove rows immediately. A request already in flight still adds its final bytes to the global totals.
 
 ### Evidence layers
-
-[Testing MJPEG](../01-testing.md#choosing-an-environment) defines levels L0 to L2 and their limits.
 
 `HttpRequests` is plain Kotlin with explicit time and suits L0. `KtorHttpDelivery` reads Android's elapsed-realtime clock and runs its sampler and socket owners on a real IO dispatcher, so its histories need L1 with that clock controlled. Coroutine virtual time doesn't move it. Independent-bind histories need host IPv4 and IPv6 loopback addresses.
 
@@ -111,9 +88,8 @@ The changed-scoped-IP check runs while retained entries are being matched. When 
 
 - The failed bind marks only its own incarnation Failed. The other listener keeps serving.
 - The mappings are independent:
-  - `BindException` → AddressInUse
   - `SecurityException` → PermissionDenied
-  - another `SocketException` → AddressUnavailable
+  - `BindException` and every other `SocketException` → AddressUnavailable
   - another `IOException` → IoFailure
   - any other caught exception → Unknown
   - an unexpected end of listening → IoFailure

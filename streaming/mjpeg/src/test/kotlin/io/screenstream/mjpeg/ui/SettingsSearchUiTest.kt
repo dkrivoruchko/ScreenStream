@@ -61,55 +61,55 @@ internal class SettingsSearchUiTest {
     @Test
     fun matchingUsesExtraTermsAllTokensAndWhitespaceDashCaseNormalization() {
         val query = mutableStateOf("  pOrT\u20131024\t ")
-        var matching: Set<SettingSearchInfo>? = null
+        var matchingSettings: Set<SettingSearchInfo>? = null
         compose.setContent {
             MjpegTestTheme {
-                val result = rememberMatchingSettings(query.value)
-                SideEffect { matching = result }
+                val matchingResult = rememberMatchingSettings(query.value)
+                SideEffect { matchingSettings = matchingResult }
             }
         }
         compose.runOnIdle {
-            assertEquals(setOf(HttpPortSearch.info), matching)
+            assertEquals(setOf(HttpPortSearch.info), matchingSettings)
             query.value = "\tFRAMES\u2014SECOND  "
         }
         compose.runOnIdle {
-            assertEquals(setOf(FrameRateSearch.info), matching)
+            assertEquals(setOf(FrameRateSearch.info), matchingSettings)
             query.value = "frames unrelated-missing-term"
         }
         compose.runOnIdle {
-            assertEquals(emptySet<SettingSearchInfo>(), matching)
+            assertEquals(emptySet<SettingSearchInfo>(), matchingSettings)
             query.value = " \t\u2013\u2014 "
         }
-        compose.runOnIdle { assertNull(matching) }
+        compose.runOnIdle { assertNull(matchingSettings) }
     }
 
     @Test
     @Config(qualifiers = "tr")
     fun turkishViewerTermsMatchAcrossCaseWithoutChangingIpAcronymMatching() {
         val query = mutableStateOf("izleyici")
-        var matching: Set<SettingSearchInfo>? = null
+        var matchingSettings: Set<SettingSearchInfo>? = null
         var viewerMatches: Set<SettingSearchInfo>? = null
         compose.setContent {
             MjpegTestTheme {
-                val result = rememberMatchingSettings(query.value)
-                SideEffect { matching = result }
+                val matchingResult = rememberMatchingSettings(query.value)
+                SideEffect { matchingSettings = matchingResult }
             }
         }
 
         compose.runOnIdle {
-            viewerMatches = matching
-            assertTrue(checkNotNull(matching).containsAll(setOf(NetworkFilterSearch.info, HttpPortSearch.info, StreamNameSearch.info)))
+            viewerMatches = matchingSettings
+            assertTrue(checkNotNull(matchingSettings).containsAll(setOf(NetworkFilterSearch.info, HttpPortSearch.info, StreamNameSearch.info)))
             query.value = "İZLEYİCİ"
         }
         compose.runOnIdle {
-            assertEquals(viewerMatches, matching)
+            assertEquals(viewerMatches, matchingSettings)
             query.value = "ip sürümü"
         }
         compose.runOnIdle {
-            assertEquals(setOf(NetworkFilterSearch.info), matching)
+            assertEquals(setOf(NetworkFilterSearch.info), matchingSettings)
             query.value = "IP SÜRÜMÜ"
         }
-        compose.runOnIdle { assertEquals(setOf(NetworkFilterSearch.info), matching) }
+        compose.runOnIdle { assertEquals(setOf(NetworkFilterSearch.info), matchingSettings) }
     }
 
     @Test
@@ -132,20 +132,20 @@ internal class SettingsSearchUiTest {
         compose.onNodeWithText(connectionGroup).assert(stateDescription(collapsed))
 
         scrollToSearch()
-        search().performTextReplacement("  pOrT\u20131024  ")
+        searchField().performTextReplacement("  pOrT\u20131024  ")
         assertSettingsGroups(setOf("settings-connection"))
         scrollTo(text(R.string.mjpeg_pref_connection_http_port))
         compose.onNodeWithText(text(R.string.mjpeg_pref_connection_http_port)).assertIsDisplayed().performClick()
         compose.onNodeWithText(text(R.string.mjpeg_pref_connection_http_port_label)).assertIsEnabled()
         compose.onNodeWithContentDescription(text(R.string.mjpeg_action_close)).performClick()
-        start().assertIsEnabled().performClick()
+        startCaptureButton().assertIsEnabled().performClick()
 
         scrollToSearch()
-        search().performTextReplacement("unrelated-missing-term")
+        searchField().performTextReplacement("unrelated-missing-term")
         assertSettingsGroups(emptySet())
         scrollTo(text(R.string.mjpeg_pref_search_no_results))
         compose.onNodeWithText(text(R.string.mjpeg_pref_search_no_results)).assertIsDisplayed()
-        start().assertIsEnabled().performClick()
+        startCaptureButton().assertIsEnabled().performClick()
         compose.runOnIdle { assertEquals(listOf(UiController.Command.Start, UiController.Command.Start), controller.commands) }
 
         scrollToSearch()
@@ -179,8 +179,8 @@ internal class SettingsSearchUiTest {
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasContentDescription(text(R.string.mjpeg_pref_search_placeholder)))
     }
 
-    private fun search() = compose.onNodeWithContentDescription(text(R.string.mjpeg_pref_search_placeholder))
-    private fun start() = compose.onNodeWithText(text(R.string.mjpeg_stream_start_capture))
+    private fun searchField() = compose.onNodeWithContentDescription(text(R.string.mjpeg_pref_search_placeholder))
+    private fun startCaptureButton() = compose.onNodeWithText(text(R.string.mjpeg_stream_start_capture))
     private fun text(resource: Int): String = compose.activity.getString(resource)
     private fun stateDescription(value: String) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, value)
 

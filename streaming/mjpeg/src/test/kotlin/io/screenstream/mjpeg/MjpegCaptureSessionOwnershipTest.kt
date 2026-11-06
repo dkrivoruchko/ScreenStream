@@ -54,9 +54,9 @@ internal class MjpegCaptureSessionOwnershipTest {
     // Cases: MJPEG-CAP-10, MJPEG-CAP-11
     @Test
     fun exactRegistrationCompletionDoesNotReleaseForegroundBeforeMediaStop() = runTest(StandardTestDispatcher()) {
-        val engine = EngineInput(holdMedia = true, holdRegistration = true)
+        val engine = OwnershipEngineSession(holdMediaStop = true, holdConsumerUnregister = true)
         val inputs = MjpegCaptureSessionInputs()
-        val session = inputs.ownershipSession(backgroundScope, engine)
+        val session = inputs.createOwnershipSession(backgroundScope, engine)
         try {
             session.start()
             runCurrent()
@@ -76,25 +76,25 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertEquals(MjpegCaptureSession.State.Status.Stopping, session.state.value.status)
             assertFalse(session.state.value.isStreaming)
             assertEquals(listOf("enterForeground"), inputs.foregroundEvents)
-            assertTrue(inputs.saved.isEmpty())
+            assertTrue(inputs.savedConsents.isEmpty())
 
             engine.releaseMedia()
             runCurrent()
             assertTrue(awaitCleanup(session))
             assertCleanlyStopped(session)
             assertEquals(listOf("enterForeground", "leaveForeground"), inputs.foregroundEvents)
-            assertSame(inputs.grant, inputs.saved.single())
+            assertSame(inputs.grant, inputs.savedConsents.single())
         } finally {
-            settle(session, engine)
+            releaseGatesAndAwaitCleanup(session, engine)
         }
     }
 
     // Cases: MJPEG-CAP-10, MJPEG-CAP-11
     @Test
     fun mediaStopStillWaitsForExactRegistrationBeforeForegroundAndConsent() = runTest(StandardTestDispatcher()) {
-        val engine = EngineInput(holdRegistration = true)
+        val engine = OwnershipEngineSession(holdConsumerUnregister = true)
         val inputs = MjpegCaptureSessionInputs()
-        val session = inputs.ownershipSession(backgroundScope, engine)
+        val session = inputs.createOwnershipSession(backgroundScope, engine)
         try {
             session.start()
             runCurrent()
@@ -110,7 +110,7 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertNull(session.state.value.cleanupFailure)
             assertEquals(MjpegCaptureSession.State.Status.Stopping, session.state.value.status)
             assertFalse(session.state.value.isStreaming)
-            assertTrue(inputs.saved.isEmpty())
+            assertTrue(inputs.savedConsents.isEmpty())
             val waiter = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
             assertFalse(waiter.isCompleted)
 
@@ -119,19 +119,19 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertTrue(withTimeout(5.seconds) { waiter.await() })
             assertTrue(engine.registrationRetired.isCompleted)
             assertCleanlyStopped(session)
-            assertSame(inputs.grant, inputs.saved.single())
+            assertSame(inputs.grant, inputs.savedConsents.single())
         } finally {
-            settle(session, engine)
+            releaseGatesAndAwaitCleanup(session, engine)
         }
     }
 
     // Cases: MJPEG-CAP-10, MJPEG-CAP-11
     @Test
     fun enteredCleanupSurvivesOwnerAndWaiterCancellationAndAllRemainingWaitersAgree() = runTest(StandardTestDispatcher()) {
-        val owner = Job(coroutineContext[Job])
-        val engine = EngineInput(holdRegistration = true)
+        val ownerJob = Job(coroutineContext[Job])
+        val engine = OwnershipEngineSession(holdConsumerUnregister = true)
         val inputs = MjpegCaptureSessionInputs()
-        val session = inputs.ownershipSession(CoroutineScope(coroutineContext + owner), engine)
+        val session = inputs.createOwnershipSession(CoroutineScope(coroutineContext + ownerJob), engine)
         try {
             session.start()
             runCurrent()
@@ -141,30 +141,30 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertTrue(engine.mediaStopped.isCompleted)
             assertTrue(engine.registrationCloseEntered.isCompleted)
 
-            val abandoned = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
-            val first = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
-            val second = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
-            abandoned.cancelAndJoin()
-            owner.cancel()
+            val cancelledWaiter = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
+            val firstWaiter = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
+            val secondWaiter = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
+            cancelledWaiter.cancelAndJoin()
+            ownerJob.cancel()
             session.requestStop(MjpegCaptureSession.StopReason.System)
             runCurrent()
 
-            assertFalse(first.isCompleted)
-            assertFalse(second.isCompleted)
+            assertFalse(firstWaiter.isCompleted)
+            assertFalse(secondWaiter.isCompleted)
             assertFalse(engine.registrationRetired.isCompleted)
             assertNull(session.state.value.cleanupSucceeded)
-            assertTrue(inputs.saved.isEmpty())
+            assertTrue(inputs.savedConsents.isEmpty())
 
             engine.releaseRegistration()
             runCurrent()
-            assertTrue(withTimeout(5.seconds) { first.await() })
-            assertTrue(withTimeout(5.seconds) { second.await() })
+            assertTrue(withTimeout(5.seconds) { firstWaiter.await() })
+            assertTrue(withTimeout(5.seconds) { secondWaiter.await() })
             assertTrue(awaitCleanup(session))
             assertCleanlyStopped(session)
             // A later System Stop cannot replace the first accepted User Stop.
-            assertSame(inputs.grant, inputs.saved.single())
+            assertSame(inputs.grant, inputs.savedConsents.single())
         } finally {
-            settle(session, engine, owner)
+            releaseGatesAndAwaitCleanup(session, engine, ownerJob)
         }
     }
 
@@ -172,13 +172,13 @@ internal class MjpegCaptureSessionOwnershipTest {
     @Test
     @Config(shadows = [ProjectionStopFailureShadow::class])
     fun terminalCaptureFailureAndMediaFailureSurvivePendingExactRegistrationCompletion() = runTest(StandardTestDispatcher()) {
-        val mediaFailure = projectionStopFailure()
-        val engine = EngineInput(holdRegistration = true, mediaFailure = mediaFailure)
+        val mediaFailure = createProjectionStopFailure()
+        val engine = OwnershipEngineSession(holdConsumerUnregister = true, mediaFailure = mediaFailure)
         var cleanupGuardReleased = false
         val inputs = MjpegCaptureSessionInputs(guardRelease = {
             if (engine.mediaStopEntered.isCompleted) cleanupGuardReleased = true
         })
-        val session = inputs.ownershipSession(backgroundScope, engine)
+        val session = inputs.createOwnershipSession(backgroundScope, engine)
         try {
             session.start()
             runCurrent()
@@ -198,7 +198,7 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertFalse(session.state.value.isStreaming)
             assertEquals(listOf("enterForeground"), inputs.foregroundEvents)
             assertTrue(cleanupGuardReleased)
-            assertTrue(inputs.saved.isEmpty())
+            assertTrue(inputs.savedConsents.isEmpty())
 
             session.requestStop(MjpegCaptureSession.StopReason.User)
             engine.releaseRegistration()
@@ -209,9 +209,9 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertSame(cleanupFailure, session.state.value.cleanupFailure)
             assertEquals(MjpegCaptureSession.State.Status.Failed, session.state.value.status)
             assertEquals(listOf("enterForeground"), inputs.foregroundEvents)
-            assertTrue(inputs.saved.isEmpty())
+            assertTrue(inputs.savedConsents.isEmpty())
         } finally {
-            settle(session, engine)
+            releaseGatesAndAwaitCleanup(session, engine)
         }
     }
 
@@ -219,7 +219,7 @@ internal class MjpegCaptureSessionOwnershipTest {
     @Test
     fun foregroundReleaseFailureFollowsGuardConsumerAndEligibleConsentReuse() = runTest(StandardTestDispatcher()) {
         val cause = IllegalStateException("Foreground release failed")
-        val engine = EngineInput()
+        val engine = OwnershipEngineSession()
         var foregroundReleaseAttempted = false
         var guardReleasedAfterForegroundFailure = false
         val inputs = MjpegCaptureSessionInputs(
@@ -229,7 +229,7 @@ internal class MjpegCaptureSessionOwnershipTest {
             },
             guardRelease = { if (foregroundReleaseAttempted) guardReleasedAfterForegroundFailure = true },
         )
-        val session = inputs.ownershipSession(backgroundScope, engine)
+        val session = inputs.createOwnershipSession(backgroundScope, engine)
         try {
             session.start()
             runCurrent()
@@ -243,9 +243,9 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertTrue(engine.registrationRetired.isCompleted)
             assertEquals(listOf("enterForeground", "leaveForeground"), inputs.foregroundEvents)
             assertFalse(guardReleasedAfterForegroundFailure)
-            assertEquals(listOf(inputs.grant), inputs.saved)
+            assertEquals(listOf(inputs.grant), inputs.savedConsents)
         } finally {
-            settle(session, engine)
+            releaseGatesAndAwaitCleanup(session, engine)
         }
     }
 
@@ -253,15 +253,15 @@ internal class MjpegCaptureSessionOwnershipTest {
     @Test
     fun guardReleaseFailureAfterSuccessfulHandoffStillRetiresMediaAndRegistration() = runTest(StandardTestDispatcher()) {
         val cause = IllegalStateException("Creation guard release failed")
-        val engine = EngineInput()
+        val engine = OwnershipEngineSession()
         var cleanupEntered = false
         val inputs = MjpegCaptureSessionInputs(guardRelease = { if (cleanupEntered) throw cause })
-        val session = inputs.ownershipSession(backgroundScope, engine)
+        val session = inputs.createOwnershipSession(backgroundScope, engine)
         try {
             session.start()
             runCurrent()
             assertStreaming(session)
-            assertEquals(listOf(session.id), inputs.finished)
+            assertEquals(listOf(session.id), inputs.projectionCreationFinishes)
             cleanupEntered = true
             session.requestStop(MjpegCaptureSession.StopReason.User)
             runCurrent()
@@ -271,9 +271,9 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertTrue(engine.mediaStopped.isCompleted)
             assertTrue(engine.registrationRetired.isCompleted)
             assertEquals(listOf("enterForeground"), inputs.foregroundEvents)
-            assertTrue(inputs.saved.isEmpty())
+            assertTrue(inputs.savedConsents.isEmpty())
         } finally {
-            settle(session, engine)
+            releaseGatesAndAwaitCleanup(session, engine)
         }
     }
 
@@ -281,7 +281,7 @@ internal class MjpegCaptureSessionOwnershipTest {
     @Test
     fun consentSaveFailureIsReportedOnlyAfterExactRegistrationAndMediaSettle() = runTest(StandardTestDispatcher()) {
         val cause = IllegalStateException("Consent save failed")
-        val engine = EngineInput(holdRegistration = true)
+        val engine = OwnershipEngineSession(holdConsumerUnregister = true)
         var foregroundReleased = false
         var cleanupGuardReleased = false
         val inputs = MjpegCaptureSessionInputs(
@@ -295,7 +295,7 @@ internal class MjpegCaptureSessionOwnershipTest {
                 throw cause
             },
         )
-        val session = inputs.ownershipSession(backgroundScope, engine)
+        val session = inputs.createOwnershipSession(backgroundScope, engine)
         try {
             session.start()
             runCurrent()
@@ -306,15 +306,15 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertEquals(listOf("enterForeground"), inputs.foregroundEvents)
             assertNull(session.state.value.cleanupSucceeded)
             assertNull(session.state.value.cleanupFailure)
-            assertTrue(inputs.saved.isEmpty())
+            assertTrue(inputs.savedConsents.isEmpty())
 
             engine.releaseRegistration()
             runCurrent()
             assertFalse(awaitCleanup(session))
             assertCleanupFailure(session, "Cleanup.consentReuse", cause)
-            assertSame(inputs.grant, inputs.saved.single())
+            assertSame(inputs.grant, inputs.savedConsents.single())
         } finally {
-            settle(session, engine)
+            releaseGatesAndAwaitCleanup(session, engine)
         }
     }
 
@@ -329,9 +329,9 @@ internal class MjpegCaptureSessionOwnershipTest {
             Triple(MjpegCaptureSession.StopReason.Error, MjpegCaptureSession.StopReason.User, false),
         )
         for ((first, later, offersConsent) in requestedHistories) {
-            val engine = EngineInput()
+            val engine = OwnershipEngineSession()
             val inputs = MjpegCaptureSessionInputs()
-            val session = inputs.ownershipSession(backgroundScope, engine)
+            val session = inputs.createOwnershipSession(backgroundScope, engine)
             try {
                 session.start()
                 runCurrent()
@@ -344,19 +344,19 @@ internal class MjpegCaptureSessionOwnershipTest {
                 assertCleanlyStopped(session)
                 assertTrue(engine.registrationRetired.isCompleted)
                 if (offersConsent) {
-                    assertSame(inputs.grant, inputs.saved.single())
+                    assertSame(inputs.grant, inputs.savedConsents.single())
                 } else {
-                    assertTrue("First Stop: $first", inputs.saved.isEmpty())
+                    assertTrue("First Stop: $first", inputs.savedConsents.isEmpty())
                 }
             } finally {
-                settle(session, engine)
+                releaseGatesAndAwaitCleanup(session, engine)
             }
         }
 
         val revoked = MjpegEngineState(MjpegEngineState.Phase.Stopped, stopReason = ScreenCaptureStopReason.ProjectionStopped)
-        val engine = EngineInput(stoppedState = revoked)
+        val engine = OwnershipEngineSession(stoppedState = revoked)
         val inputs = MjpegCaptureSessionInputs()
-        val session = inputs.ownershipSession(backgroundScope, engine)
+        val session = inputs.createOwnershipSession(backgroundScope, engine)
         try {
             session.start()
             runCurrent()
@@ -370,18 +370,18 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertCleanlyStopped(session)
             assertEquals(MjpegCaptureSession.StopReason.User, session.state.value.stopReason)
             assertTrue(engine.registrationRetired.isCompleted)
-            assertTrue(inputs.saved.isEmpty())
+            assertTrue(inputs.savedConsents.isEmpty())
         } finally {
-            settle(session, engine)
+            releaseGatesAndAwaitCleanup(session, engine)
         }
     }
 
     // Cases: MJPEG-CAP-07, MJPEG-CAP-10, MJPEG-CAP-11, MJPEG-CAP-12
     @Test
     fun activePublicationWithoutSettledStartupCannotMakeConsentReusable() = runTest(StandardTestDispatcher()) {
-        val engine = EngineInput(holdStart = true)
+        val engine = OwnershipEngineSession(holdStart = true)
         val inputs = MjpegCaptureSessionInputs()
-        val session = inputs.ownershipSession(backgroundScope, engine)
+        val session = inputs.createOwnershipSession(backgroundScope, engine)
         try {
             session.start()
             runCurrent()
@@ -396,13 +396,13 @@ internal class MjpegCaptureSessionOwnershipTest {
             assertCleanlyStopped(session)
             assertTrue(engine.mediaStopped.isCompleted)
             assertTrue(engine.registrationRetired.isCompleted)
-            assertTrue(inputs.saved.isEmpty())
+            assertTrue(inputs.savedConsents.isEmpty())
         } finally {
-            settle(session, engine)
+            releaseGatesAndAwaitCleanup(session, engine)
         }
     }
 
-    private fun MjpegCaptureSessionInputs.ownershipSession(scope: CoroutineScope, engine: EngineInput): MjpegCaptureSession = session(
+    private fun MjpegCaptureSessionInputs.createOwnershipSession(scope: CoroutineScope, engine: OwnershipEngineSession): MjpegCaptureSession = createSession(
         scope = scope,
         engineFactory = { actualContext, actualProjection, _ ->
             assertSame(context, actualContext)
@@ -441,7 +441,7 @@ internal class MjpegCaptureSessionOwnershipTest {
 
     private suspend fun awaitCleanup(session: MjpegCaptureSession): Boolean = withTimeout(5.seconds) { session.awaitCleanup() }
 
-    private suspend fun projectionStopFailure(): ScreenCaptureException {
+    private suspend fun createProjectionStopFailure(): ScreenCaptureException {
         // Obtain the public Engine exception rather than inventing its inaccessible constructor or exception policy.
         val inputs = MjpegCaptureSessionInputs()
         val platformCause = IllegalStateException("Projection stop failed")
@@ -467,7 +467,7 @@ internal class MjpegCaptureSessionOwnershipTest {
         }
     }
 
-    private suspend fun settle(session: MjpegCaptureSession, engine: EngineInput, owner: Job? = null) {
+    private suspend fun releaseGatesAndAwaitCleanup(session: MjpegCaptureSession, engine: OwnershipEngineSession, ownerJob: Job? = null) {
         // Release test-owned waits before entering noncancellable cleanup; never strand a child on assertion failure.
         engine.releaseStart()
         engine.releaseMedia()
@@ -476,26 +476,26 @@ internal class MjpegCaptureSessionOwnershipTest {
             withTimeout(5.seconds) {
                 session.requestStop(MjpegCaptureSession.StopReason.Shutdown)
                 session.awaitCleanup()
-                owner?.cancelAndJoin()
+                ownerJob?.cancelAndJoin()
             }
         }
     }
 
     /** Only legal operation outcomes and observations needed by these ownership histories. */
-    private class EngineInput(
+    private class OwnershipEngineSession(
         holdStart: Boolean = false,
-        holdMedia: Boolean = false,
-        holdRegistration: Boolean = false,
+        holdMediaStop: Boolean = false,
+        holdConsumerUnregister: Boolean = false,
         private val mediaFailure: Throwable? = null,
         private val stoppedState: MjpegEngineState = MjpegEngineState(
             MjpegEngineState.Phase.Stopped,
             stopReason = ScreenCaptureStopReason.Requested,
         ),
     ) : MjpegEngineSession {
-        private val observed = MutableStateFlow(MjpegEngineState(MjpegEngineState.Phase.NotStarted))
-        private val startCompletion = CompletableDeferred<Unit>().apply { if (!holdStart) complete(Unit) }
-        private val mediaCompletion = CompletableDeferred<Unit>().apply { if (!holdMedia) complete(Unit) }
-        private val registrationCompletion = CompletableDeferred<Unit>().apply { if (!holdRegistration) complete(Unit) }
+        private val observedState = MutableStateFlow(MjpegEngineState(MjpegEngineState.Phase.NotStarted))
+        private val allowStartToReturn = CompletableDeferred<Unit>().apply { if (!holdStart) complete(Unit) }
+        private val allowMediaStopToReturn = CompletableDeferred<Unit>().apply { if (!holdMediaStop) complete(Unit) }
+        private val allowUnregisterToReturn = CompletableDeferred<Unit>().apply { if (!holdConsumerUnregister) complete(Unit) }
         val startEntered = CompletableDeferred<Unit>()
         val mediaStopEntered = CompletableDeferred<Unit>()
         val mediaStopped = CompletableDeferred<Unit>()
@@ -505,19 +505,19 @@ internal class MjpegCaptureSessionOwnershipTest {
         // A held completion represents the Engine's legal unresolved exact registration; it asserts no callback deadline.
         private val registration = MjpegFrameRegistration {
             registrationCloseEntered.complete(Unit)
-            registrationCompletion.await()
+            allowUnregisterToReturn.await()
             registrationRetired.complete(Unit)
         }
 
         override val currentState: MjpegEngineState
-            get() = observed.value
-        override val states: Flow<MjpegEngineState> = observed
-        override val stats: kotlinx.coroutines.flow.StateFlow<ScreenCaptureStats> = MutableStateFlow(emptyEngineStatistics())
+            get() = observedState.value
+        override val states: Flow<MjpegEngineState> = observedState
+        override val stats: kotlinx.coroutines.flow.StateFlow<ScreenCaptureStats> = MutableStateFlow(initialEngineStatistics())
 
         override suspend fun start(parameters: ScreenCaptureParameters) {
-            observed.value = MjpegEngineState(MjpegEngineState.Phase.Active)
+            observedState.value = MjpegEngineState(MjpegEngineState.Phase.Active)
             startEntered.complete(Unit)
-            startCompletion.await()
+            allowStartToReturn.await()
         }
 
         override fun updateParameters(parameters: ScreenCaptureParameters): Unit = error("No parameter update is expected in this history")
@@ -526,26 +526,26 @@ internal class MjpegCaptureSessionOwnershipTest {
 
         override suspend fun stop() {
             mediaStopEntered.complete(Unit)
-            mediaCompletion.await()
+            allowMediaStopToReturn.await()
             mediaFailure?.let { throw it }
-            observed.value = stoppedState
+            observedState.value = stoppedState
             mediaStopped.complete(Unit)
         }
 
         fun publish(state: MjpegEngineState) {
-            observed.value = state
+            observedState.value = state
         }
 
         fun releaseStart() {
-            startCompletion.complete(Unit)
+            allowStartToReturn.complete(Unit)
         }
 
         fun releaseMedia() {
-            mediaCompletion.complete(Unit)
+            allowMediaStopToReturn.complete(Unit)
         }
 
         fun releaseRegistration() {
-            registrationCompletion.complete(Unit)
+            allowUnregisterToReturn.complete(Unit)
         }
     }
 }

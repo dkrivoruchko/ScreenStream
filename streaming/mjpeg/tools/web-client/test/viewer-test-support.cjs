@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function runtime(t, files, globals = {}) {
+function createViewerTestContext(t, files, globals = {}) {
     t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 1700000000000 });
     const context = vm.createContext({ Date, setTimeout, clearTimeout, ...globals });
     for (const file of [].concat(files)) {
@@ -12,7 +12,7 @@ function runtime(t, files, globals = {}) {
     return context;
 }
 
-function snapshot(overrides = {}) {
+function createWebSnapshot(overrides = {}) {
     return {
         access: 'open', notice: null, hasImage: true, imageKind: 'live',
         display: {
@@ -24,10 +24,10 @@ function snapshot(overrides = {}) {
     };
 }
 
-function deferred() {
+function createDeferred() {
     let resolve, reject;
     const promise = new Promise((accept, fail) => { resolve = accept; reject = fail; });
     return { promise, resolve, reject };
 }
 
-module.exports = { runtime, snapshot, deferred };
+module.exports = { createViewerTestContext, createWebSnapshot, createDeferred };

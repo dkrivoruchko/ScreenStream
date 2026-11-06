@@ -8,7 +8,7 @@ import io.screenstream.mjpeg.http.CioHttpListener
 import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
 import io.screenstream.mjpeg.http.HttpRequests
 import io.screenstream.mjpeg.http.HttpResponseHeaders
-import io.screenstream.mjpeg.http.UnstartedHttpListener
+import io.screenstream.mjpeg.http.UnstartedHttpListenerFixture
 import io.screenstream.mjpeg.http.readHttpResponseHeaders
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +54,7 @@ internal class JpegResponseCioTest {
         val writer = JpegResponse(reader, MediaFormat.Jpeg)
         val latest = byteArrayOf(9, 10)
         store.offerJpeg(attempt, latest.size) { latest.copyInto(it) }
-        val owner = UnstartedHttpListener()
+        val owner = UnstartedHttpListenerFixture()
         val requests = HttpRequests()
         val firstJob = Job()
         val secondJob = Job()

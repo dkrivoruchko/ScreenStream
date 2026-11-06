@@ -6,7 +6,7 @@ const http = require('node:http');
 const net = require('node:net');
 const { WebSocketServer, WebSocket } = require('ws');
 const { SCENARIOS } = require('./scenarios.cjs');
-const { createDevice, DeviceError } = require('./device.cjs');
+const { createPreviewDevice, PreviewDeviceError } = require('./device.cjs');
 const { createViewerBuild } = require('./viewer-build.cjs');
 
 const COOKIE_NAME = 'screenstream_access';
@@ -17,7 +17,7 @@ const STATIC_FILES = new Map([
     ['/__preview/panel.css', ['panel.css', 'text/css; charset=utf-8']]
 ]);
 
-class RequestError extends Error {
+class PreviewRequestError extends Error {
     constructor(message, status = 400) { super(message); this.status = status; }
 }
 
@@ -26,7 +26,7 @@ function readBody(request, limit) {
         const chunks = [];
         let size = 0, settled = false;
         const timeout = setTimeout(() => {
-            finish(new RequestError('Request body timed out', 408));
+            finish(new PreviewRequestError('Request body timed out', 408));
             request.destroy();
         }, 5000);
         function finish(error, body) {
@@ -46,21 +46,21 @@ function readBody(request, limit) {
     });
 }
 
-function accessCookie(request) {
+function readAccessCookie(request) {
     const values = (request.headers.cookie || '').split(';').map(value => value.trim())
         .filter(value => value.startsWith(COOKIE_NAME + '='));
     return values.length === 1 ? values[0].slice(COOKIE_NAME.length + 1) : null;
 }
 
-async function readJson(request) {
+async function readJsonBody(request) {
     if ((request.headers['content-type'] || '').split(';')[0].trim().toLowerCase() !== 'application/json') {
-        throw new RequestError('Expected application/json', 415);
+        throw new PreviewRequestError('Expected application/json', 415);
     }
     const bytes = await readBody(request, 65536);
-    if (bytes === null) throw new RequestError('Request body exceeds 65536 bytes', 413);
+    if (bytes === null) throw new PreviewRequestError('Request body exceeds 65536 bytes', 413);
     let body;
-    try { body = JSON.parse(bytes.toString('utf8')); } catch (_) { throw new RequestError('Invalid JSON'); }
-    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new RequestError('Expected a JSON object');
+    try { body = JSON.parse(bytes.toString('utf8')); } catch (_) { throw new PreviewRequestError('Invalid JSON'); }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new PreviewRequestError('Expected a JSON object');
     return body;
 }
 
@@ -71,7 +71,7 @@ function createPreviewServer(options = {}) {
     if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Port must be between 0 and 65535');
     if (!net.isIP(host) && host !== 'localhost') throw new Error('Host must be a numeric address or localhost');
 
-    const device = createDevice();
+    const device = createPreviewDevice();
     let failImageRequests = false;
     let heartbeat = null, stateKeepalive = null, listenPromise = null, closePromise = null;
     const stateClients = new Map(), mediaRequests = new Set(), logs = [];
@@ -90,9 +90,9 @@ function createPreviewServer(options = {}) {
         };
     }
     function publish(keepalive = false) {
-        const encoded = JSON.stringify(device.snapshot());
+        const encoded = JSON.stringify(device.viewerSnapshot());
         for (const [socket, client] of stateClients) {
-            if (client.generation !== device.generation) { socket.terminate(); continue; }
+            if (client.generation !== device.credentialGeneration) { socket.terminate(); continue; }
             if (socket.readyState === WebSocket.OPEN && (keepalive || client.lastState !== encoded)) {
                 client.lastState = encoded;
                 socket.send(encoded);
@@ -108,7 +108,7 @@ function createPreviewServer(options = {}) {
         for (const request of mediaRequests) request.response.destroy();
     }
     function wakeMedia() { for (const request of mediaRequests) request.wake(); }
-    function commonHeaders(response, url) {
+    function setCommonHeaders(response, url) {
         response.setHeader('Cache-Control', 'no-store');
         response.setHeader('X-Content-Type-Options', 'nosniff');
         response.setHeader('Referrer-Policy', url.searchParams.has('token') ? 'no-referrer' : 'same-origin');
@@ -118,8 +118,8 @@ function createPreviewServer(options = {}) {
         response.writeHead(status, { 'Content-Type': contentType, 'Content-Length': bytes.length });
         response.end(bytes);
     }
-    function json(response, status, value) { respond(response, status, JSON.stringify(value), 'application/json; charset=utf-8'); }
-    function currentOrigin(request) {
+    function respondJson(response, status, value) { respond(response, status, JSON.stringify(value), 'application/json; charset=utf-8'); }
+    function trustedRequestOrigin(request) {
         const authority = request.headers.host;
         const count = request.rawHeaders.filter((_, index) => index % 2 === 0 && request.rawHeaders[index].toLowerCase() === 'host').length;
         if (count !== 1 || !authority) return null;
@@ -134,7 +134,7 @@ function createPreviewServer(options = {}) {
             return accepted ? parsed.origin : null;
         } catch (_) { return null; }
     }
-    function sameOrigin(request, expected, refererAllowed = false) {
+    function hasSameOrigin(request, expected, refererAllowed = false) {
         if (request.headers.origin !== undefined) return request.headers.origin === expected;
         if (!refererAllowed || !request.headers.referer) return false;
         try {
@@ -145,7 +145,7 @@ function createPreviewServer(options = {}) {
     function setCookie(response, value) { response.setHeader('Set-Cookie', `${COOKIE_NAME}=${value}; Path=/; HttpOnly; SameSite=Lax`); }
 
     async function submitPin(request, response, origin) {
-        if (!sameOrigin(request, origin, true)) return respond(response, 403);
+        if (!hasSameOrigin(request, origin, true)) return respond(response, 403);
         const body = await readBody(request, 256);
         let supplied = null;
         if ((request.headers['content-type'] || '').split(';')[0].trim().toLowerCase() === 'application/x-www-form-urlencoded' && body !== null) {
@@ -164,15 +164,15 @@ function createPreviewServer(options = {}) {
         respond(response, result.status);
     }
     function serveMedia(request, response, url) {
-        if (!device.allowsViewing(accessCookie(request), url.searchParams.get('token'))) return respond(response, 403);
-        const initialImage = failImageRequests ? null : device.image();
+        if (!device.allowsViewing(readAccessCookie(request), url.searchParams.get('token'))) return respond(response, 403);
+        const initialImage = failImageRequests ? null : device.selectedJpeg();
         if (initialImage === null) {
             response.setHeader('Retry-After', '1');
             return respond(response, 503);
         }
         if (url.pathname === '/jpeg') return respond(response, 200, initialImage, 'image/jpeg');
 
-        const generation = device.generation;
+        const generation = device.credentialGeneration;
         let timer = null, waitingDrain = false, closed = false;
         let lastImage = null, nextRepeatAt = 0;
         const stream = { response, wake: () => { if (!waitingDrain) schedule(0); } };
@@ -200,8 +200,8 @@ function createPreviewServer(options = {}) {
         function writePart() {
             timer = null;
             if (closed) return;
-            if (generation !== device.generation) { response.destroy(); return; }
-            const payload = device.image();
+            if (generation !== device.credentialGeneration) { response.destroy(); return; }
+            const payload = device.selectedJpeg();
             if (payload === null) return;
             const now = performance.now();
             if (payload === lastImage && now < nextRepeatAt) { schedule(Math.min(250, nextRepeatAt - now)); return; }
@@ -232,11 +232,11 @@ function createPreviewServer(options = {}) {
             if (body.id === 'orientation') {
                 device.setOrientation(body.orientation); wakeMedia(); log('Orientation: ' + body.orientation);
             } else if (body.id === 'fail-image-requests') {
-                if (typeof body.enabled !== 'boolean') throw new RequestError('Media failure must be Boolean');
+                if (typeof body.enabled !== 'boolean') throw new PreviewRequestError('Media failure must be Boolean');
                 failImageRequests = body.enabled;
                 if (failImageRequests) closeMedia();
                 log('Image request failure ' + (failImageRequests ? 'enabled' : 'disabled'));
-            } else throw new RequestError('Unknown action');
+            } else throw new PreviewRequestError('Unknown action');
         } else if (endpoint === 'reset') {
             device.reset(); failImageRequests = false; closeViewers(); log('Preview reset');
         } else return false;
@@ -245,11 +245,11 @@ function createPreviewServer(options = {}) {
 
     const server = http.createServer(async (request, response) => {
         try {
-            const origin = currentOrigin(request);
+            const origin = trustedRequestOrigin(request);
             let url;
             try { url = new URL(request.url, origin || 'http://127.0.0.1'); }
-            catch (_) { throw new RequestError('Invalid request URL'); }
-            commonHeaders(response, url);
+            catch (_) { throw new PreviewRequestError('Invalid request URL'); }
+            setCommonHeaders(response, url);
             if (!origin) return respond(response, 403);
             if (request.method === 'GET') {
                 if (url.pathname === '/viewer') {
@@ -259,16 +259,16 @@ function createPreviewServer(options = {}) {
                         response.setHeader('Location', '/viewer');
                         return respond(response, 303);
                     }
-                    const template = viewerBuild.template;
-                    if (template === null) return respond(response, 503, 'Viewer build failed. See /.');
-                    return respond(response, 200, template, 'text/html; charset=utf-8');
+                    const html = viewerBuild.html;
+                    if (html === null) return respond(response, 503, 'Viewer build failed. See /.');
+                    return respond(response, 200, html, 'text/html; charset=utf-8');
                 }
                 if (url.pathname === '/jpeg' || url.pathname === '/mjpeg') return serveMedia(request, response, url);
                 if (url.pathname === '/dev' || url.pathname === '/__preview' || url.pathname === '/__preview/') {
                     response.setHeader('Location', '/'); return respond(response, 303);
                 }
-                if (url.pathname === '/__preview/api/state') return json(response, 200, state());
-                if (url.pathname === '/__preview/api/catalog') return json(response, 200, { scenarios: SCENARIOS });
+                if (url.pathname === '/__preview/api/state') return respondJson(response, 200, state());
+                if (url.pathname === '/__preview/api/catalog') return respondJson(response, 200, { scenarios: SCENARIOS });
                 const file = STATIC_FILES.get(url.pathname);
                 if (file) return respond(response, 200, fs.readFileSync(path.join(__dirname, file[0])), file[1]);
                 return respond(response, 404, 'Not found');
@@ -276,16 +276,16 @@ function createPreviewServer(options = {}) {
             if (request.method === 'POST') {
                 if (url.pathname === '/pin') return await submitPin(request, response, origin);
                 if (!url.pathname.startsWith('/__preview/api/')) return respond(response, 404, 'Not found');
-                if (!sameOrigin(request, origin)) return json(response, 403, { error: 'Same-origin request required' });
-                if (!applyPreviewChange(url.pathname.slice('/__preview/api/'.length), await readJson(request))) {
-                    return json(response, 404, { error: 'Unknown preview endpoint' });
+                if (!hasSameOrigin(request, origin)) return respondJson(response, 403, { error: 'Same-origin request required' });
+                if (!applyPreviewChange(url.pathname.slice('/__preview/api/'.length), await readJsonBody(request))) {
+                    return respondJson(response, 404, { error: 'Unknown preview endpoint' });
                 }
-                return json(response, 200, state());
+                return respondJson(response, 200, state());
             }
             respond(response, 405, 'Method not allowed');
         } catch (error) {
             if (response.headersSent || request.aborted) response.destroy();
-            else json(response, error instanceof DeviceError ? 400 : error.status || 500, { error: error.message });
+            else respondJson(response, error instanceof PreviewDeviceError ? 400 : error.status || 500, { error: error.message });
         }
     });
     const sockets = new WebSocketServer({ noServer: true, maxPayload: 4096, perMessageDeflate: false });
@@ -295,7 +295,7 @@ function createPreviewServer(options = {}) {
             'Referrer-Policy: ' + (url.searchParams.has('token') ? 'no-referrer' : 'same-origin'));
     });
     server.on('upgrade', (request, socket, head) => {
-        const origin = currentOrigin(request);
+        const origin = trustedRequestOrigin(request);
         let url;
         function reject(status) {
             const referrer = url?.searchParams.has('token') ? 'no-referrer' : 'same-origin';
@@ -308,15 +308,15 @@ function createPreviewServer(options = {}) {
         sockets.handleUpgrade(request, socket, head, ws => {
             ws.on('error', () => {});
             ws.once('close', () => { stateClients.delete(ws); log('WebSocket closed'); });
-            if (!sameOrigin(request, origin)) { ws.close(1008, 'Origin rejected'); return; }
-            if (!device.allowsViewing(accessCookie(request))) {
-                const remaining = device.remainingBlock();
+            if (!hasSameOrigin(request, origin)) { ws.close(1008, 'Origin rejected'); return; }
+            if (!device.allowsViewing(readAccessCookie(request))) {
+                const remaining = device.remainingBlockMs();
                 const denied = remaining > 0 ? { access: 'blocked', retryAfterMs: remaining } : { access: 'pin_required' };
                 ws.send(JSON.stringify(denied), () => { if (ws.readyState === WebSocket.OPEN) ws.close(1000, 'Access required'); });
                 return;
             }
-            const encoded = JSON.stringify(device.snapshot());
-            const client = { generation: device.generation, lastState: encoded, alive: true };
+            const encoded = JSON.stringify(device.viewerSnapshot());
+            const client = { generation: device.credentialGeneration, lastState: encoded, alive: true };
             stateClients.set(ws, client);
             ws.on('pong', () => { client.alive = true; });
             ws.on('message', () => ws.close(1008, 'Read-only connection'));

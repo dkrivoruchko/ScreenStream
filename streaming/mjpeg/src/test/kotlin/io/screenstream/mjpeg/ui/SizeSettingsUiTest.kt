@@ -54,7 +54,7 @@ internal class SizeSettingsUiTest {
     @Test
     fun modeSwitchesKeepIndependentDraftsAndCommitOnlyTheSelectedModeIntoLatestSettings() {
         val settings = newSettings()
-        val initial = settled(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         render(settings, initial)
         openEditor()
 
@@ -79,13 +79,13 @@ internal class SizeSettingsUiTest {
         closeEditor()
 
         val expected = initial.copy(image = initial.image.copy(scalePercent = 62.5, jpegQuality = 43, rotation = Rotation.Degrees90))
-        assertEquals(expected, settled(settings))
+        assertEquals(expected, compose.awaitSavedMjpegSettings(settings))
     }
 
     @Test
     fun partialTargetDoesNotSaveAndACompleteTargetKeepsTheDormantScale() {
         val settings = newSettings()
-        val initial = settled(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         render(settings, initial)
         openEditor()
         selectMode(R.string.mjpeg_pref_image_size_target)
@@ -95,7 +95,7 @@ internal class SizeSettingsUiTest {
             SemanticsMatcher.expectValue(SemanticsProperties.Error, text(R.string.mjpeg_pref_image_size_dimension_error)),
         )
         closeEditor()
-        assertEquals(initial, settled(settings))
+        assertEquals(initial, compose.awaitSavedMjpegSettings(settings))
 
         openEditor()
         field(R.string.mjpeg_pref_image_size_scale_label).assertTextContains("75")
@@ -113,7 +113,7 @@ internal class SizeSettingsUiTest {
                 targetSize = OutputSize.TargetSize(640, 360, OutputSize.ContentMode.Stretch),
             ),
         )
-        assertEquals(expected, settled(settings))
+        assertEquals(expected, compose.awaitSavedMjpegSettings(settings))
     }
 
     private fun newSettings(): MjpegSettings {
@@ -150,8 +150,6 @@ internal class SizeSettingsUiTest {
             }
         }
     }
-
-    private fun settled(settings: MjpegSettings): MjpegSettings.Data = compose.settledMjpegSettings(settings)
 
     private fun openEditor() = compose.onNodeWithText(text(R.string.mjpeg_pref_image_size)).performClick()
     private fun closeEditor() = compose.onNodeWithContentDescription(text(R.string.mjpeg_action_close)).performClick()

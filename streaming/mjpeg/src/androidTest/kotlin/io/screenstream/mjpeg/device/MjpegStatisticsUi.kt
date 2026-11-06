@@ -23,7 +23,7 @@ import kotlin.math.abs
 
 /** Reads native statistics by their localized labels; no controller or Engine state is supplied. */
 internal class MjpegStatisticsUi(private val compose: ComposeTestRule, private val context: Context) {
-    data class Totals(val produced: Long, val encoded: Long)
+    data class FrameTotals(val produced: Long, val encoded: Long)
 
     private val locale = ConfigurationCompat.getLocales(context.resources.configuration)[0] ?: Locale.getDefault()
     private val integerFormat = NumberFormat.getIntegerInstance(locale)
@@ -37,8 +37,8 @@ internal class MjpegStatisticsUi(private val compose: ComposeTestRule, private v
     )
     private val chartPrefix = chartTemplate.substringBefore(numberMarker)
     private val chartSuffix = chartTemplate.substringAfter(numberMarker)
-    private val chart = SemanticsMatcher("localized frame-rate chart title") { node ->
-        node.text()?.startsWith(chartPrefix) == true
+    private val fpsChartMatcher = SemanticsMatcher("localized frame-rate chart title") { node ->
+        node.singleText()?.startsWith(chartPrefix) == true
     }
 
     fun expand() {
@@ -48,9 +48,9 @@ internal class MjpegStatisticsUi(private val compose: ComposeTestRule, private v
     }
 
     /** The expanded chart distinguishes unavailable from numeric zero; the collapsed header does not. */
-    fun currentFps(): Double? {
-        scrollGridTo(chart)
-        val title = checkNotNull(compose.onNode(chart).assertIsDisplayed().fetchSemanticsNode().text())
+    fun readCurrentFps(): Double? {
+        scrollGridTo(fpsChartMatcher)
+        val title = checkNotNull(compose.onNode(fpsChartMatcher).assertIsDisplayed().fetchSemanticsNode().singleText())
         val unavailable = context.getString(
             R.string.mjpeg_stats_chart_title, frameRateLabel, context.getString(R.string.mjpeg_stats_unavailable),
         )
@@ -63,29 +63,29 @@ internal class MjpegStatisticsUi(private val compose: ComposeTestRule, private v
         return value
     }
 
-    fun readTotals(): Totals {
+    fun readFrameTotals(): FrameTotals {
         val title = context.getString(R.string.mjpeg_stats_engine_title)
         scrollGridTo(hasText(title))
         compose.onNodeWithText(title).performClick()
         try {
-            return Totals(produced = rowCount(R.string.mjpeg_stats_produced), encoded = rowCount(R.string.mjpeg_stats_encoded))
+            return FrameTotals(produced = readCountBesideLabel(R.string.mjpeg_stats_produced), encoded = readCountBesideLabel(R.string.mjpeg_stats_encoded))
         } finally {
             compose.onNodeWithContentDescription(context.getString(R.string.mjpeg_action_close)).performClick()
         }
     }
 
-    private fun rowCount(labelResource: Int): Long {
+    private fun readCountBesideLabel(labelResource: Int): Long {
         val label = compose.onNodeWithText(context.getString(labelResource), useUnmergedTree = true)
             .performScrollTo().assertIsDisplayed().fetchSemanticsNode()
         // StatisticsRow exposes separate Text nodes. Its top-aligned label and value share a row;
         // match that visible pairing within the same semantics root, including RTL layouts.
         val values = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Text), useUnmergedTree = true)
             .fetchSemanticsNodes().filter { node ->
-                node.id != label.id && node.rootId() == label.rootId() &&
+                node.id != label.id && node.semanticsRootId() == label.semanticsRootId() &&
                         abs(node.boundsInRoot.top - label.boundsInRoot.top) < 1f &&
                         (node.boundsInRoot.left >= label.boundsInRoot.right || node.boundsInRoot.right <= label.boundsInRoot.left)
             }.mapNotNull { node ->
-                val text = node.text() ?: return@mapNotNull null
+                val text = node.singleText() ?: return@mapNotNull null
                 val position = ParsePosition(0)
                 integerFormat.parse(text, position)?.takeIf { position.index == text.length }?.toLong()
             }
@@ -99,7 +99,7 @@ internal class MjpegStatisticsUi(private val compose: ComposeTestRule, private v
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(matcher)
     }
 
-    private fun SemanticsNode.text(): String? = config.getOrNull(SemanticsProperties.Text)?.singleOrNull()?.text
+    private fun SemanticsNode.singleText(): String? = config.getOrNull(SemanticsProperties.Text)?.singleOrNull()?.text
 
-    private fun SemanticsNode.rootId(): Int = generateSequence(this) { it.parent }.last().id
+    private fun SemanticsNode.semanticsRootId(): Int = generateSequence(this) { it.parent }.last().id
 }

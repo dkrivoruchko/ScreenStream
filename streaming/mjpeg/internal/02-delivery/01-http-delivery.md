@@ -2,7 +2,7 @@
 
 [Internals](../README.md) · [JPEG delivery](02-jpeg-delivery.md) · [Web client](03-web-client.md)
 
-HTTP delivery is the web server of one MJPEG module instance. It opens a listener on each selected device address and decides which requests may view the stream. It also keeps the request history behind the client list and statistics, and it releases everything when the instance closes. The public [HTTP server guide](../../docs/server.md) defines what clients send and receive. [Architecture](../../docs/architecture.md#addresses-listeners-and-readiness) shows where delivery sits in the module. This guide continues from those pages for maintainers. It explains which object owns each kind of work, how long each one lives, the order in which they act, and what a change must keep intact.
+HTTP delivery is the web server of one MJPEG module instance. It opens a listener on each selected device address and decides which requests may view the stream. It also keeps the request history behind the client list and statistics, and it releases everything when the instance closes. The public [HTTP server guide](../../docs/server.md) defines what clients send and receive. [Architecture](../../docs/architecture.md#addresses-listeners-and-readiness) shows where delivery sits in the module. This guide explains, for maintainers, which object owns each kind of work, how long it lives and the order in which owners act.
 
 Two neighboring guides cover the rest of the HTTP side. [JPEG delivery](02-jpeg-delivery.md) owns the shared image store and the code that writes images into responses. [Web client](03-web-client.md) owns the Ktor route adapter and the packaged browser page. Capture resources belong to the [capture attempt](../01-module/02-module-lifecycle.md), not to HTTP delivery.
 
@@ -157,9 +157,8 @@ Each incarnation has a budget of three attempts. A successful bind spends an att
 
 | Outcome of a bind attempt | Reported failure |
 | --- | --- |
-| `BindException` | `AddressInUse` |
 | `SecurityException` | `PermissionDenied` |
-| Any other `SocketException` | `AddressUnavailable` |
+| Any `SocketException`, including `BindException` | `AddressUnavailable` |
 | Any other `IOException` | `IoFailure` |
 | Any other exception | `Unknown` |
 | The engine terminated by itself | `IoFailure` |
@@ -307,11 +306,11 @@ A completed join proves that managed coroutines have finished and that Ktor's st
 
 - **Engines.** Each bind attempt gets its own CIO engine with one connector on the address's host string and the shared port, with `reuseAddress` off. A failing engine for one address doesn't affect the others.
 - **Protocol and reach.** Listeners speak plain HTTP/1.1 on whatever addresses the Controller selected, which may include VPN, routed or non-private addresses. Listening proves only that a local socket exists. Whether another device can reach it depends on the network ([Make sure viewers can reach you](../../docs/usage.md#make-sure-viewers-can-reach-you)).
-- **Disconnects.** Each application installs Ktor's `HttpRequestLifecycle` plugin with `cancelCallOnClose`. Ktor then cancels a call's coroutine when the engine detects that the client has disconnected, which ends media writers that are waiting for a new image or a repeat. Ktor documents full support for this plugin on CIO and Netty ([request lifecycle](https://ktor.io/docs/server-http-request-lifecycle.html)). A peer that vanishes without closing its connection is noticed only when the transport reports an error.
+- **Disconnects.** Each application installs Ktor's `HttpRequestLifecycle` plugin with `cancelCallOnClose`. Ktor then cancels a call's coroutine when the engine detects that the client has disconnected, which ends media writers that are waiting for a new image or a repeat ([request lifecycle](https://ktor.io/docs/server-http-request-lifecycle.html)). A peer that vanishes without closing its connection is noticed only when the transport reports an error.
 - **No other limits.** Delivery has no media watchdog, write timeout or connection limit. A stalled but connected reader keeps its lease, transport buffers and socket. `isSlow` reports skipped images but doesn't cancel anything. [Pooling and memory limits](02-jpeg-delivery.md#pooling-and-memory-limits) explains why the image store isn't a bound on total memory.
 
 ## Implementation and verification
 
 - [HttpDelivery](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpDelivery.kt) defines the contract the Controller and capture session use. [KtorHttpDelivery](../../src/main/kotlin/io/screenstream/mjpeg/http/KtorHttpDelivery.kt) owns the runtime, plan, admission and cleanup, and [HttpListener](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpListener.kt) defines the lifecycle of one bind attempt. `CioHttpListener`, in the same file, implements it with one CIO engine.
 - [HttpAccess](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpAccess.kt) implements credentials and PIN limiting. [HttpRequests](../../src/main/kotlin/io/screenstream/mjpeg/http/HttpRequests.kt) implements request registration, cutoff, client rows and totals.
-- The [HTTP runtime](../03-testing/scenarios/05-http-runtime.md), [access](../03-testing/scenarios/06-access.md) and [web protocol](../03-testing/scenarios/08-web-protocol.md) scenarios describe the histories this guide requires. [Testing](../03-testing/01-testing.md) explains which environments can provide evidence for them and the current state of the Kotlin test sources.
+- The [HTTP runtime](../03-testing/scenarios/05-http-runtime.md), [access](../03-testing/scenarios/06-access.md) and [web protocol](../03-testing/scenarios/08-web-protocol.md) scenarios describe the histories this guide requires; [Testing](../03-testing/01-testing.md) covers environments and evidence.

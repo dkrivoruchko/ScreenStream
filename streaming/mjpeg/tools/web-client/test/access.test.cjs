@@ -1,8 +1,8 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { runtime } = require('./runtime.cjs');
+const { createViewerTestContext } = require('./viewer-test-support.cjs');
 
-function access(t) {
+function createAccessHarness(t) {
     const elements = new Map(), documentListeners = new Map(), windowListeners = new Map();
     let pageFocused = true;
     const submissions = [];
@@ -12,7 +12,7 @@ function access(t) {
         hasFocus: () => pageFocused,
         addEventListener: (name, callback) => documentListeners.set(name, callback)
     };
-    function element(id, parent = null) {
+    function createElement(id, parent = null) {
         const classes = new Set(), listeners = new Map();
         const node = {
             parent, style: {}, attributes: {}, focusCalls: 0, writes: [],
@@ -45,16 +45,16 @@ function access(t) {
         elements.set(id, node);
         return node;
     }
-    document.body = element('body');
+    document.body = createElement('body');
     document.activeElement = document.body;
-    const panel = element('pin-panel', document.body);
+    const panel = createElement('pin-panel', document.body);
     panel.hidden = true;
-    const entry = element('pin-entry', panel);
-    const input = element('pin', entry), unlock = element('unlock', entry);
-    for (const id of ['pin-title', 'pin-message', 'pin-error', 'pin-block-copy', 'pin-countdown', 'pin-logo', 'pin-retry', 'pin-countdown-value', 'pin-form']) element(id, panel);
-    const elsewhere = element('elsewhere', document.body), message = elements.get('pin-message');
+    const entry = createElement('pin-entry', panel);
+    const input = createElement('pin', entry), unlock = createElement('unlock', entry);
+    for (const id of ['pin-title', 'pin-message', 'pin-error', 'pin-block-copy', 'pin-countdown', 'pin-logo', 'pin-retry', 'pin-countdown-value', 'pin-form']) createElement(id, panel);
+    const elsewhere = createElement('elsewhere', document.body), message = elements.get('pin-message');
     const words = { pinTitle: 'Enter PIN', pinBlockedTitle: 'PIN entry temporarily blocked', pinBlockedAnnouncementSecond: 'Wait 1 second.', pinSending: 'Sending PIN', pinNetwork: 'Connection failed' };
-    const { createAccessPanel } = runtime(t, 'access', {
+    const { createAccessPanel } = createViewerTestContext(t, 'access', {
         document,
         window: { addEventListener: (name, callback) => windowListeners.set(name, callback) },
         byId: id => elements.get(id),
@@ -79,7 +79,7 @@ function access(t) {
 }
 
 for (const focusedControl of ['input', 'unlock']) test(`block expiry restores the hidden ${focusedControl} task once and announces readiness`, t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     h.render();
     h[focusedControl].focus();
     const before = h.input.focusCalls;
@@ -105,7 +105,7 @@ for (const focusedControl of ['input', 'unlock']) test(`block expiry restores th
 });
 
 test('focus moved elsewhere during a block is not reclaimed, even if it later falls back to body', t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     h.render();
     h.render('blocked', 2);
     h.elsewhere.focus();
@@ -117,7 +117,7 @@ test('focus moved elsewhere during a block is not reclaimed, even if it later fa
 });
 
 test('an unrelated focused control before the block does not arm PIN restoration', t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     h.render();
     h.elsewhere.focus();
     h.render('blocked', 1);
@@ -128,7 +128,7 @@ test('an unrelated focused control before the block does not arm PIN restoration
 });
 
 for (const state of ['hidden', 'unfocused']) test(`a delayed block response while ${state} cannot re-arm restoration after return`, t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     h.render();
     if (state === 'hidden') {
         h.document.hidden = true;
@@ -146,7 +146,7 @@ for (const state of ['hidden', 'unfocused']) test(`a delayed block response whil
 });
 
 test('hiding the flow clears restoration before a new blocked panel is shown', t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     h.render();
     h.render('blocked', 2);
     h.hide();
@@ -157,7 +157,7 @@ test('hiding the flow clears restoration before a new blocked panel is shown', t
 });
 
 for (const interaction of ['mousedown', 'touchstart', 'visibilitychange', 'blur', 'resume']) test(`${interaction} cancels deferred focus restoration`, t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     h.render();
     h.render('blocked', 2);
     if (interaction === 'blur') { h.blur(); h.focusPage(); }
@@ -173,7 +173,7 @@ for (const interaction of ['mousedown', 'touchstart', 'visibilitychange', 'blur'
 });
 
 for (const state of ['hidden', 'unfocused']) test(`a page that is ${state} is never focused when the block expires`, t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     h.render();
     h.render('blocked', 1);
     if (state === 'hidden') h.document.hidden = true;
@@ -187,7 +187,7 @@ for (const state of ['hidden', 'unfocused']) test(`a page that is ${state} is ne
 });
 
 test('a block can recover when the browser reports no active element', t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     h.render();
     h.render('blocked', 1);
     h.document.activeElement = null;
@@ -197,7 +197,7 @@ test('a block can recover when the browser reports no active element', t => {
 });
 
 test('PIN input and selected paste preserve six ASCII digits and the selection', t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     h.render();
     h.input.value = '0a12b3456';
     h.input.setSelectionRange(5, 8);
@@ -218,7 +218,7 @@ test('PIN input and selected paste preserve six ASCII digits and the selection',
 });
 
 test('PIN form submits only while visible and ready, and retry invokes its action', t => {
-    const h = access(t);
+    const h = createAccessHarness(t);
     const submit = () => {
         let prevented = false;
         h.form.emit('submit', { preventDefault() { prevented = true; } });

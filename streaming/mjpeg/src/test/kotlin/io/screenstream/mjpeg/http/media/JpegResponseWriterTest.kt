@@ -17,7 +17,7 @@ import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
 import io.screenstream.mjpeg.http.HttpListener
 import io.screenstream.mjpeg.http.HttpRequests
-import io.screenstream.mjpeg.http.UnstartedHttpListener
+import io.screenstream.mjpeg.http.UnstartedHttpListenerFixture
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -60,7 +60,7 @@ import kotlin.uuid.Uuid
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-internal class JpegResponseProtocolTest {
+internal class JpegResponseWriterTest {
     // Cases: MJPEG-IMG-09
     @Test
     fun readerCutoffBeforeWriterHandoffCancelsWithoutCompletingPayload() = runBlocking {
@@ -72,7 +72,7 @@ internal class JpegResponseProtocolTest {
         writer.close()
         try {
             val output = RecordingSink()
-            val failure = driveWriter(writer, output.asByteWriteChannel())
+            val failure = writeResponseAndCaptureFailure(writer, output.asByteWriteChannel())
             assertTrue(failure is CancellationException)
             assertEquals("JPEG response revoked", failure?.message)
             assertArrayEquals(byteArrayOf(), output.bytes())
@@ -91,7 +91,7 @@ internal class JpegResponseProtocolTest {
             installLogo(byteArrayOf(3, 4, 5))
             updateFallbackPolicy(PostStopImage.Placeholder)
         }
-        val owner = UnstartedHttpListener()
+        val owner = UnstartedHttpListenerFixture()
         val requests = HttpRequests()
         val server = Uuid.random()
         val jobs = listOf(Job(), Job())
@@ -100,7 +100,7 @@ internal class JpegResponseProtocolTest {
             writers.forEachIndexed { index, writer ->
                 requests.registerMedia(writer, owner.listener, server, "192.0.2.1", 8000, jobs[index], 0)
                 val output = RecordingSink()
-                assertNull(driveWriter(writer, output.asByteWriteChannel()))
+                assertNull(writeResponseAndCaptureFailure(writer, output.asByteWriteChannel()))
                 assertArrayEquals(byteArrayOf(3, 4, 5), output.bytes())
             }
             fun assertTotals() {
@@ -153,7 +153,7 @@ internal class JpegResponseProtocolTest {
                 override val autoFlush: Boolean = true
             }
             try {
-                assertSame(stage, fault, driveWriter(writer, channel))
+                assertSame(stage, fault, writeResponseAndCaptureFailure(writer, channel))
                 assertTrue(stage, sink.failed)
                 assertArrayEquals(stage, expected, sink.bytes())
                 assertEquals(stage, if (stage == "payload") 0L else 1L, writer.progress.completedJpegs)
@@ -228,7 +228,7 @@ internal class JpegResponseProtocolTest {
             }
         }
         try {
-            assertNull(driveWriter(writer, channel))
+            assertNull(writeResponseAndCaptureFailure(writer, channel))
             assertEquals(listOf(1, 4, 8, 9, 16), payloads)
             assertEquals(5L, writer.progress.completedJpegBytes)
         } finally {
@@ -251,8 +251,8 @@ internal class JpegResponseProtocolTest {
         }
         publish(1)
         val writer = JpegResponse(checkNotNull(store.openReader()), MediaFormat.Mjpeg)
-        val owner = UnstartedHttpListener()
-        val obsoleteOwner = UnstartedHttpListener()
+        val owner = UnstartedHttpListenerFixture()
+        val obsoleteOwner = UnstartedHttpListenerFixture()
         val job = Job()
         val requests = HttpRequests()
         requests.registerMedia(writer, owner.listener, Uuid.random(), "192.0.2.1", 8000, job, 0)
@@ -300,7 +300,7 @@ internal class JpegResponseProtocolTest {
             }
         }
         try {
-            assertNull(driveWriter(writer, channel))
+            assertNull(writeResponseAndCaptureFailure(writer, channel))
             assertEquals(listOf(1, 7, 8, 14), payloads)
             requests.retireMedia(writer, 0, setOf(owner.listener))
             // With even its former source supplied, a retired response cannot contribute slow state.
@@ -339,7 +339,7 @@ internal class JpegResponseProtocolTest {
                 }
             }
             try {
-                driveControlledWriter(writer, channel) { writing, scheduler ->
+                withWriterOnTestScheduler(writer, channel) { writing, scheduler ->
                     // The initial write has returned from flush; the unchanged publication now
                     // suspends on its repeat deadline, rather than receiving a change inside flush.
                     assertEquals(1, flushes)
@@ -381,7 +381,7 @@ internal class JpegResponseProtocolTest {
             initialStorage = it
             it.fill(42)
         }
-        val owner = UnstartedHttpListener()
+        val owner = UnstartedHttpListenerFixture()
         val job = Job()
         val writer = JpegResponse(checkNotNull(store.openReader()), MediaFormat.Jpeg)
         val requests = HttpRequests()
@@ -398,7 +398,7 @@ internal class JpegResponseProtocolTest {
         }
         val output = sink.asByteWriteChannel()
         try {
-            assertSame(failure, driveWriter(writer, output))
+            assertSame(failure, writeResponseAndCaptureFailure(writer, output))
             requests.retireMedia(writer, 10, setOf(owner.listener))
             assertEquals(1, requests.sample(11, generation, setOf(owner.listener)).clients.size)
             store.offerJpeg(generation, 16_384) {
@@ -440,7 +440,7 @@ internal class JpegResponseProtocolTest {
             }
         }
         try {
-            assertSame(failure, driveWriter(writer, channel))
+            assertSame(failure, writeResponseAndCaptureFailure(writer, channel))
             assertTrue(sink.failed)
             assertArrayEquals(expected, sink.bytes())
             assertTrue(writer.progress.isSlow)
@@ -485,7 +485,7 @@ internal class JpegResponseProtocolTest {
                 }
             }
             try {
-                driveControlledWriter(writer, output) { writing, scheduler ->
+                withWriterOnTestScheduler(writer, output) { writing, scheduler ->
                     assertEquals(if (change == "before-next-acquisition") 2 else 1, flushes)
                     if (change != "before-next-acquisition") {
                         assertFalse(writing.isCompleted)
@@ -554,7 +554,7 @@ internal class JpegResponseProtocolTest {
                 override val autoFlush = true
             }
             try {
-                assertNull(driveWriter(writer, output))
+                assertNull(writeResponseAndCaptureFailure(writer, output))
                 assertTrue(changed)
                 assertArrayEquals(expected, received.toByteArray())
                 assertEquals(2L, writer.progress.completedJpegs)
@@ -582,7 +582,7 @@ internal class JpegResponseProtocolTest {
             }
         }
         try {
-            driveControlledWriter(writer, output) { writing, scheduler ->
+            withWriterOnTestScheduler(writer, output) { writing, scheduler ->
                 assertEquals(1, flushes)
                 store.updateFallbackPolicy(PostStopImage.Placeholder)
                 scheduler.runCurrent()
@@ -662,7 +662,7 @@ internal class JpegResponseProtocolTest {
             }
         }
         try {
-            driveControlledWriter(writer, output) { writing, scheduler ->
+            withWriterOnTestScheduler(writer, output) { writing, scheduler ->
                 assertEquals(4, flushes)
                 assertTrue(writer.progress.isSlow)
                 ShadowSystemClock.advanceBy(1_000, TimeUnit.MILLISECONDS)
@@ -692,7 +692,7 @@ internal class JpegResponseProtocolTest {
         val reader = checkNotNull(store.openReader())
         val writer = JpegResponse(reader, MediaFormat.Jpeg)
         store.offerJpeg(generation, 1) { it[0] = 2 }
-        val owner = UnstartedHttpListener()
+        val owner = UnstartedHttpListenerFixture()
         val requests = HttpRequests()
         val gate = Any()
         val returned = CompletableDeferred<Throwable>()
@@ -757,7 +757,7 @@ internal class JpegResponseProtocolTest {
         }
     }
 
-    private fun driveControlledWriter(
+    private fun withWriterOnTestScheduler(
         writer: JpegResponse,
         output: ByteWriteChannel,
         assertions: suspend CoroutineScope.(Deferred<Unit>, TestCoroutineScheduler) -> Unit,
@@ -816,7 +816,7 @@ internal class JpegResponseProtocolTest {
     }.toByteArray()
 
     /** Replaces only the engine's output at the public send boundary; respond remains alive throughout. */
-    private fun driveWriter(writer: JpegResponse, output: ByteWriteChannel): Throwable? {
+    private fun writeResponseAndCaptureFailure(writer: JpegResponse, output: ByteWriteChannel): Throwable? {
         var failure: Throwable? = null
         testApplication {
             application {

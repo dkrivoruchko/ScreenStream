@@ -43,7 +43,7 @@ internal class AndroidScreenOffObserverTest {
     @Test
     fun bothInteractivityChecksRejectSleepingDisplayAndRetireTheInstalledReceiver() {
         for (screenOffBeforeRegistration in listOf(true, false)) {
-            val context = ReceiverContext()
+            val context = RecordingReceiverContext()
             context.turnScreenOn(!screenOffBeforeRegistration)
             var registrationAttempts = 0
             context.beforeRegister = {
@@ -60,7 +60,8 @@ internal class AndroidScreenOffObserverTest {
                 assertEquals(RegistrationResult.Registered, observer.register(Uuid.random()) {})
                 assertEquals(1, context.installed.size)
             } finally {
-                assertTrue(observer.close()); context.clear()
+                assertTrue(observer.close())
+                context.clear()
             }
         }
     }
@@ -68,7 +69,7 @@ internal class AndroidScreenOffObserverTest {
     // Cases: MJPEG-CTL-14
     @Test
     fun unregisterRequiresExactIdentityAndOnlyScreenOffBroadcastsNotify() {
-        val context = ReceiverContext()
+        val context = RecordingReceiverContext()
         val observer = AndroidScreenOffObserver(context)
         val id = Uuid.random()
         var notifications = 0
@@ -90,7 +91,8 @@ internal class AndroidScreenOffObserverTest {
             context.turnScreenOn(true)
             assertEquals(RegistrationResult.Registered, observer.register(Uuid.random()) {})
         } finally {
-            assertTrue(observer.close()); context.clear()
+            assertTrue(observer.close())
+            context.clear()
         }
     }
 
@@ -98,7 +100,7 @@ internal class AndroidScreenOffObserverTest {
     @Test
     fun failedRegistrationRollsBackWhetherAndroidInstalledTheReceiverOrNot() {
         for (installedBeforeFailure in listOf(false, true)) {
-            val context = ReceiverContext()
+            val context = RecordingReceiverContext()
             val failure = SecurityException("Registration denied")
             context.beforeRegisterFailure = if (installedBeforeFailure) null else failure
             context.onRegister = { if (installedBeforeFailure) throw failure }
@@ -110,7 +112,8 @@ internal class AndroidScreenOffObserverTest {
                 context.onRegister = {}
                 assertEquals(RegistrationResult.Registered, observer.register(Uuid.random()) {})
             } finally {
-                assertTrue(observer.close()); context.clear()
+                assertTrue(observer.close())
+                context.clear()
             }
         }
     }
@@ -118,7 +121,7 @@ internal class AndroidScreenOffObserverTest {
     // Cases: MJPEG-CTL-13, MJPEG-CTL-14
     @Test
     fun removalFailureRemainsAnUnsuccessfulReceiptAndPermanentlyRejectsRegistration() {
-        val context = ReceiverContext()
+        val context = RecordingReceiverContext()
         val observer = AndroidScreenOffObserver(context)
         val failure = IllegalStateException("Receiver dispatcher removal failed")
         val id = Uuid.random()
@@ -131,18 +134,19 @@ internal class AndroidScreenOffObserverTest {
             assertFalse(observer.close())
             assertFalse(observer.close())
         } finally {
-            context.removeFailure = null; context.clear()
+            context.removeFailure = null
+            context.clear()
         }
     }
 
     // Cases: MJPEG-CTL-12, MJPEG-CTL-14
     @Test
     fun closeWinsBeforeRegistrationAndWaitsForAnEnteredRegistrationBeforeRemovingIt() {
-        val closed = AndroidScreenOffObserver(ReceiverContext())
+        val closed = AndroidScreenOffObserver(RecordingReceiverContext())
         assertTrue(closed.close())
         assertEquals(RegistrationResult.Rejected, closed.register(Uuid.random()) { fail("Observer is closed") })
 
-        val context = ReceiverContext()
+        val context = RecordingReceiverContext()
         val observer = AndroidScreenOffObserver(context)
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
@@ -174,7 +178,7 @@ internal class AndroidScreenOffObserverTest {
         }
     }
 
-    private class ReceiverContext : ContextWrapper(RuntimeEnvironment.getApplication()) {
+    private class RecordingReceiverContext : ContextWrapper(RuntimeEnvironment.getApplication()) {
         val installed = java.util.concurrent.CopyOnWriteArrayList<BroadcastReceiver>()
         var beforeRegister: () -> Unit = {}
         var onRegister: () -> Unit = {}

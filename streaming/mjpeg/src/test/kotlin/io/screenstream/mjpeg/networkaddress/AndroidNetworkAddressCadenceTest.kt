@@ -53,15 +53,15 @@ internal class AndroidNetworkAddressCadenceTest {
     // Cases: MJPEG-NET-06
     @Test
     fun incompleteBackoffBecomesPeriodicAndCompleteObservationRestartsTheRetrySequence() = runTest(timeout = 20.seconds) {
-        val fixture = Fixture(testScheduler)
+        val fixture = ScanCadenceFixture(testScheduler)
         try {
-            fixture.startAndApplyFirst(complete = false)
+            fixture.startAndObserveFirstScan(enumerationComplete = false)
             for (delay in listOf(250L, 1_000L, 3_000L, 30_000L)) {
-                fixture.applyAfter(delay, complete = false)
+                fixture.observeAfter(delay, enumerationComplete = false)
             }
-            fixture.applyAfter(30_000L, complete = true)
-            fixture.applyAfter(30_000L, complete = false)
-            fixture.applyAfter(250L, complete = false)
+            fixture.observeAfter(30_000L, enumerationComplete = true)
+            fixture.observeAfter(30_000L, enumerationComplete = false)
+            fixture.observeAfter(250L, enumerationComplete = false)
             assertEquals(94_500L, testScheduler.currentTime)
         } finally {
             fixture.close()
@@ -71,15 +71,15 @@ internal class AndroidNetworkAddressCadenceTest {
     // Cases: MJPEG-NET-06, MJPEG-NET-09
     @Test
     fun platformChangeWhileIdleRestartsAnExhaustedIncompleteBackoff() = runTest(timeout = 20.seconds) {
-        val fixture = Fixture(testScheduler)
+        val fixture = ScanCadenceFixture(testScheduler)
         try {
-            fixture.startAndApplyFirst(complete = false)
-            for (delay in listOf(250L, 1_000L, 3_000L)) fixture.applyAfter(delay, complete = false)
-            val immediate = fixture.enqueue(complete = false)
+            fixture.startAndObserveFirstScan(enumerationComplete = false)
+            for (delay in listOf(250L, 1_000L, 3_000L)) fixture.observeAfter(delay, enumerationComplete = false)
+            val immediate = fixture.enqueue(enumerationComplete = false)
             fixture.callback.onAvailable(ShadowNetwork.newInstance(901))
-            fixture.enterAtCurrentTime(immediate)
-            fixture.apply(immediate)
-            fixture.applyAfter(250L, complete = false)
+            fixture.awaitEntryAtCurrentTime(immediate)
+            fixture.releaseAndAwaitObservation(immediate)
+            fixture.observeAfter(250L, enumerationComplete = false)
             assertEquals(4_500L, testScheduler.currentTime)
         } finally {
             fixture.close()
@@ -89,22 +89,22 @@ internal class AndroidNetworkAddressCadenceTest {
     // Cases: MJPEG-NET-06, MJPEG-NET-08, MJPEG-NET-09
     @Test
     fun platformChangeDuringHeldScanRescansImmediatelyWithoutResettingItsBackoff() = runTest(timeout = 20.seconds) {
-        val fixture = Fixture(testScheduler)
+        val fixture = ScanCadenceFixture(testScheduler)
         try {
-            fixture.startAndApplyFirst(complete = false)
-            val previous = fixture.applyAfter(250L, complete = false)
-            val stale = fixture.enqueue(complete = false)
-            fixture.enterAfter(1_000L, stale)
-            val current = fixture.enqueue(complete = false)
+            fixture.startAndObserveFirstScan(enumerationComplete = false)
+            val previous = fixture.observeAfter(250L, enumerationComplete = false)
+            val stale = fixture.enqueue(enumerationComplete = false)
+            fixture.awaitEntryAfter(1_000L, stale)
+            val current = fixture.enqueue(enumerationComplete = false)
             fixture.callback.onAvailable(ShadowNetwork.newInstance(902))
             testScheduler.runCurrent()
             assertFalse("A platform change cannot start another native read while one is held", current.entered.await(100, TimeUnit.MILLISECONDS))
-            fixture.apply(stale)
-            fixture.awaitEntry(current)
-            val staleSelection = fixture.selection()
+            fixture.releaseAndAwaitObservation(stale)
+            fixture.awaitScanEntry(current)
+            val staleSelection = fixture.selectedAddresses()
             assertEquals(setOf(previous.ip, stale.ip), staleSelection.map { it.ip }.toSet())
-            fixture.apply(current)
-            fixture.applyAfter(3_000L, complete = false)
+            fixture.releaseAndAwaitObservation(current)
+            fixture.observeAfter(3_000L, enumerationComplete = false)
             assertEquals(4_250L, testScheduler.currentTime)
         } finally {
             fixture.close()
@@ -113,111 +113,111 @@ internal class AndroidNetworkAddressCadenceTest {
 
     // Cases: MJPEG-NET-06, MJPEG-NET-09
     @Test
-    @Config(sdk = [36, 37], shadows = [SourceTetheringShadow::class])
+    @Config(sdk = [36, 37], shadows = [ObservationTetheringShadow::class])
     fun nativeCompleteScansRetryUntilTetheringMetadataIsReadyThenUsePeriodicRefresh() = runTest(timeout = 20.seconds) {
-        val context = tetheringContext()
-        val tether = Shadow.extract<SourceTetheringShadow>(context.getSystemService(TetheringManager::class.java))
-        val fixture = Fixture(testScheduler, context)
+        val context = tetheringTestContext()
+        val tether = Shadow.extract<ObservationTetheringShadow>(context.getSystemService(TetheringManager::class.java))
+        val fixture = ScanCadenceFixture(testScheduler, context)
         try {
-            fixture.startAndApplyFirst(complete = true)
-            fixture.applyAfter(250L, complete = true)
-            val ready = fixture.enqueue(complete = true)
+            fixture.startAndObserveFirstScan(enumerationComplete = true)
+            fixture.observeAfter(250L, enumerationComplete = true)
+            val ready = fixture.enqueue(enumerationComplete = true)
             val callback = checkNotNull(tether.registeredCallback)
             checkNotNull(tether.registeredExecutor).execute { callback.onTetheredInterfacesChanged(emptySet()) }
-            fixture.enterAtCurrentTime(ready)
-            fixture.apply(ready)
-            fixture.applyAfter(30_000L, complete = true)
+            fixture.awaitEntryAtCurrentTime(ready)
+            fixture.releaseAndAwaitObservation(ready)
+            fixture.observeAfter(30_000L, enumerationComplete = true)
             assertEquals(30_250L, testScheduler.currentTime)
         } finally {
             fixture.close()
         }
     }
 
-    private inner class Fixture(
+    private inner class ScanCadenceFixture(
         val scheduler: TestCoroutineScheduler,
         context: Context = RuntimeEnvironment.getApplication(),
     ) {
-        private val queued = ConcurrentLinkedQueue<ScanStep>()
+        private val pendingScans = ConcurrentLinkedQueue<ScanStep>()
         private val steps = mutableListOf<ScanStep>()
         private val sequence = AtomicInteger()
-        private val initialUptime = SystemClock.uptimeMillis()
+        private val initialUptimeMillis = SystemClock.uptimeMillis()
         private val connectivity = context.getSystemService(ConnectivityManager::class.java)
-        private val platform = shadowOf(connectivity).also { it.clearAllNetworks() }
-        val callback: ConnectivityManager.NetworkCallback get() = platform.networkCallbacks.single()
+        private val connectivityShadow = shadowOf(connectivity).also { it.clearAllNetworks() }
+        val callback: ConnectivityManager.NetworkCallback get() = connectivityShadow.networkCallbacks.single()
         val monitor = AndroidNetworkAddressMonitor(
             context,
             NativeInterfaceFixture(enumeration = {
-                val step = queued.poll() ?: throw AssertionError("Native scan entered without a supplied step")
+                val step = pendingScans.poll() ?: throw AssertionError("Native scan entered without a supplied step")
                 step.enumerate()
             }),
             observationDispatcher = StandardTestDispatcher(scheduler),
         )
 
-        fun enqueue(complete: Boolean): ScanStep = ScanStep(sequence.incrementAndGet(), complete).also {
+        fun enqueue(enumerationComplete: Boolean): ScanStep = ScanStep(sequence.incrementAndGet(), enumerationComplete).also {
             steps += it
-            queued += it
+            pendingScans += it
         }
 
-        fun startAndApplyFirst(complete: Boolean) {
-            val first = enqueue(complete)
+        fun startAndObserveFirstScan(enumerationComplete: Boolean) {
+            val first = enqueue(enumerationComplete)
             monitor.start()
-            enterAtCurrentTime(first)
-            apply(first)
+            awaitEntryAtCurrentTime(first)
+            releaseAndAwaitObservation(first)
         }
 
-        fun applyAfter(delayMillis: Long, complete: Boolean): ScanStep = enqueue(complete).also {
-            enterAfter(delayMillis, it)
-            apply(it)
+        fun observeAfter(delayMillis: Long, enumerationComplete: Boolean): ScanStep = enqueue(enumerationComplete).also {
+            awaitEntryAfter(delayMillis, it)
+            releaseAndAwaitObservation(it)
         }
 
-        fun enterAfter(delayMillis: Long, step: ScanStep) {
-            advance(delayMillis - 1)
+        fun awaitEntryAfter(delayMillis: Long, step: ScanStep) {
+            advanceClocksBy(delayMillis - 1)
             assertFalse("A native scan entered before its monotonic deadline", step.entered.await(100, TimeUnit.MILLISECONDS))
             assertEquals(1L, step.release.count)
-            advance(1)
-            awaitEntry(step)
+            advanceClocksBy(1)
+            awaitScanEntry(step)
         }
 
-        fun enterAtCurrentTime(step: ScanStep) {
+        fun awaitEntryAtCurrentTime(step: ScanStep) {
             scheduler.runCurrent()
-            awaitEntry(step)
+            awaitScanEntry(step)
         }
 
-        fun awaitEntry(step: ScanStep) {
+        fun awaitScanEntry(step: ScanStep) {
             assertTrue("Expected native scan did not enter", step.entered.await(5, TimeUnit.SECONDS))
-            assertEquals(initialUptime + scheduler.currentTime, step.enteredAtUptimeMillis)
+            assertEquals(initialUptimeMillis + scheduler.currentTime, step.enteredAtUptimeMillis)
         }
 
-        fun apply(step: ScanStep) {
+        fun releaseAndAwaitObservation(step: ScanStep) {
             step.release.countDown()
             assertTrue("Supplied native read did not complete", step.readFinished.await(5, TimeUnit.SECONDS))
-            drainUntil(scheduler) { selection().any { it.ip == step.ip } }
-            assertEquals(initialUptime + scheduler.currentTime, SystemClock.uptimeMillis())
+            runCurrentUntil(scheduler) { selectedAddresses().any { it.ip == step.ip } }
+            assertEquals(initialUptimeMillis + scheduler.currentTime, SystemClock.uptimeMillis())
         }
 
-        fun selection(): List<NetworkAddress> = (monitor.state.value as? NetworkAddressMonitor.State.Observed)
-            ?.inventory?.select(all).orEmpty()
+        fun selectedAddresses(): List<NetworkAddress> = (monitor.state.value as? NetworkAddressMonitor.State.Observed)
+            ?.inventory?.select(allAddressesFilter).orEmpty()
 
-        private fun advance(millis: Long) {
+        private fun advanceClocksBy(millis: Long) {
             ShadowSystemClock.advanceBy(Duration.ofMillis(millis))
             scheduler.advanceTimeBy(millis)
             scheduler.runCurrent()
-            assertEquals(initialUptime + scheduler.currentTime, SystemClock.uptimeMillis())
+            assertEquals(initialUptimeMillis + scheduler.currentTime, SystemClock.uptimeMillis())
         }
 
         suspend fun close(): Unit = withContext(NonCancellable) {
             steps.forEach { it.release.countDown() }
             coroutineScope {
                 val closing = async(start = CoroutineStart.UNDISPATCHED) { monitor.close() }
-                drainUntil(scheduler) { closing.isCompleted }
+                runCurrentUntil(scheduler) { closing.isCompleted }
                 closing.await()
             }
             assertEquals(NetworkAddressMonitor.State.Closed, monitor.state.value)
-            assertTrue(platform.networkCallbacks.isEmpty())
+            assertTrue(connectivityShadow.networkCallbacks.isEmpty())
         }
     }
 
-    private class ScanStep(number: Int, private val complete: Boolean) {
+    private class ScanStep(number: Int, private val enumerationComplete: Boolean) {
         val ip: InetAddress = InetAddress.getByAddress(byteArrayOf(10, 0, 0, number.toByte()))
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
@@ -236,7 +236,7 @@ internal class AndroidNetworkAddressCadenceTest {
                 override fun hasMoreElements(): Boolean {
                     if (!supplied) return true
                     readFinished.countDown()
-                    if (!complete) throw SocketException("Supplied incomplete enumeration")
+                    if (!enumerationComplete) throw SocketException("Supplied incomplete enumeration")
                     return false
                 }
 
@@ -249,7 +249,7 @@ internal class AndroidNetworkAddressCadenceTest {
         }
     }
 
-    private fun drainUntil(scheduler: TestCoroutineScheduler, condition: () -> Boolean) {
+    private fun runCurrentUntil(scheduler: TestCoroutineScheduler, condition: () -> Boolean) {
         val deadline = hostUptimeMillis() + TimeUnit.SECONDS.toMillis(5)
         while (true) {
             scheduler.runCurrent()
@@ -261,5 +261,5 @@ internal class AndroidNetworkAddressCadenceTest {
 
     private fun hostUptimeMillis(): Long = ManagementFactory.getRuntimeMXBean().uptime
 
-    private val all = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
+    private val allAddressesFilter = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
 }

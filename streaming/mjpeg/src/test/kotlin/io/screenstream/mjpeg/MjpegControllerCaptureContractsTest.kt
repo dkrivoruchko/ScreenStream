@@ -57,25 +57,27 @@ internal class MjpegControllerCaptureContractsTest {
 
     @Before
     fun initialize() {
-        XLog.init(Int.MAX_VALUE); ShadowToast.reset(); ShadowPowerManager.clearWakeLocks()
+        XLog.init(Int.MAX_VALUE)
+        ShadowToast.reset()
+        ShadowPowerManager.clearWakeLocks()
     }
 
     // Cases: MJPEG-CTL-03, MJPEG-CTL-04, MJPEG-CAP-13
     @Test
     fun confirmedCaptureConsumerPresenceSuspensionAndPendingCleanupAreIndependent() = runBlocking {
-        val engine = ControlledMjpegEngine(holdStart = true, holdStop = true)
-        val host = host(listOf(engine))
+        val engine = ControlledMjpegEngineSession(holdStart = true, holdStop = true)
+        val host = createHost(listOf(engine))
         try {
-            ready(host)
-            val attempt = start(host)
+            prepareReadyListener(host)
+            val attempt = startCaptureAndAwaitAttempt(host)
             withTimeout(5.seconds) { engine.startEntered.await() }
-            checkpoint(host)
+            publishDeliveryCheckpoint(host)
             assertEquals(UiController.Action.Busy, host.controller.state.value.action)
             assertFalse(host.managerObservation.status.value!!.isStreaming)
             assertEquals(attempt, host.managerObservation.status.value!!.captureAttempt)
-            engine.finishStart.complete(Unit)
+            engine.allowStartToReturn.complete(Unit)
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
-            checkpoint(host)
+            publishDeliveryCheckpoint(host)
             assertEquals(UiController.Action.Stop(attempt), host.controller.state.value.action)
             assertTrue(host.notifications.actions.last() is io.screenstream.core.module.StreamingModuleNotifications.ForegroundAction.StopStream)
             engine.publish(MjpegEngineState(MjpegEngineState.Phase.Suspended, ScreenCaptureProblem.InvalidRequest))
@@ -86,86 +88,90 @@ internal class MjpegControllerCaptureContractsTest {
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.hasConsumer == true } }
             host.controller.requestStreamStop(attempt, false)
             withTimeout(5.seconds) { engine.stopEntered.await() }
-            checkpoint(host)
+            publishDeliveryCheckpoint(host)
             withTimeout(5.seconds) { host.managerObservation.status.first { it != null && !it.isStreaming && it.captureAttempt == attempt } }
             assertFalse(host.managerObservation.status.value!!.isStreaming)
             assertTrue(host.managerObservation.status.value!!.hasConsumer)
             assertEquals(attempt, host.managerObservation.status.value!!.captureAttempt)
             assertEquals(UiController.Action.Busy, host.controller.state.value.action)
-            engine.finishStop.complete(Unit)
-            idle(host)
+            engine.allowStopToReturn.complete(Unit)
+            awaitCaptureIdle(host)
             assertFalse(host.http.closed)
             assertTrue(host.managerObservation.status.value!!.hasConsumer)
             assertTrue(host.controller.state.value.action is UiController.Action.Start)
             assertTrue(host.notifications.actions.last() is io.screenstream.core.module.StreamingModuleNotifications.ForegroundAction.Exit)
         } finally {
-            engine.release(); assertTrue(host.close())
+            engine.releaseAllGates()
+            assertTrue(host.close())
         }
     }
 
     // Cases: MJPEG-CTL-03, MJPEG-CTL-04
     @Test
     fun unconfirmedSuspensionKeepsTheCaptureActionBusy() = runBlocking {
-        val engine = ControlledMjpegEngine(holdStart = true)
-        val host = host(listOf(engine))
+        val engine = ControlledMjpegEngineSession(holdStart = true)
+        val host = createHost(listOf(engine))
         try {
-            ready(host); start(host)
+            prepareReadyListener(host)
+            startCaptureAndAwaitAttempt(host)
             withTimeout(5.seconds) { engine.startEntered.await() }
             engine.publish(MjpegEngineState(MjpegEngineState.Phase.Suspended, ScreenCaptureProblem.CaptureUnavailable))
             withTimeout(5.seconds) { host.controller.state.first { it.suspensionProblem != null } }
             assertFalse(host.managerObservation.status.value!!.isStreaming)
             assertEquals(UiController.Action.Busy, host.controller.state.value.action)
             engine.publish(MjpegEngineState(MjpegEngineState.Phase.Active))
-            engine.finishStart.complete(Unit)
+            engine.allowStartToReturn.complete(Unit)
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
             engine.publish(MjpegEngineState(MjpegEngineState.Phase.Suspended, ScreenCaptureProblem.CaptureUnavailable))
             withTimeout(5.seconds) { host.controller.state.first { it.suspensionProblem != null } }
             assertTrue(host.managerObservation.status.value!!.isStreaming)
-            assertEquals(UiController.Action.Stop(host.access.requested.value.single()), host.controller.state.value.action)
+            assertEquals(UiController.Action.Stop(host.access.consentRequests.value.single()), host.controller.state.value.action)
         } finally {
-            engine.release(); assertTrue(host.close())
+            engine.releaseAllGates()
+            assertTrue(host.close())
         }
     }
 
     // Cases: MJPEG-CTL-05, MJPEG-CAP-06
     @Test
     fun liveParametersApplyWhileBackendPortAndAccessWaitThroughStoppingForSuccessfulCleanup() = runBlocking {
-        val first = ControlledMjpegEngine(holdStop = true)
-        val second = ControlledMjpegEngine()
+        val firstEngine = ControlledMjpegEngineSession(holdStop = true)
+        val secondEngine = ControlledMjpegEngineSession()
         val context = IsolatedSettingsContext(application, temporaryFolder.newFolder())
         seedSettings(context, Json.encodeToString(defaults()))
         val configurations = java.util.concurrent.CopyOnWriteArrayList<io.screenstream.capture.ScreenCaptureConfig>()
-        val engines = java.util.concurrent.CopyOnWriteArrayList(listOf(first, second))
-        val host = MjpegServiceHost(MjpegSettings(context), engineFactory = { _, _, config -> configurations += config; engines.removeAt(0) })
-        host.access.consent.complete(object : ScreenCaptureAccess.Grant {})
+        val engines = java.util.concurrent.CopyOnWriteArrayList(listOf(firstEngine, secondEngine))
+        val host = MjpegServiceTestHost(MjpegSettings(context), engineFactory = { _, _, config -> configurations += config; engines.removeAt(0) })
+        host.access.consentGrant.complete(object : ScreenCaptureAccess.Grant {})
         try {
-            ready(host)
-            val attempt = start(host)
+            prepareReadyListener(host)
+            val attempt = startCaptureAndAwaitAttempt(host)
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
-            applySettings(host) {
+            applySettingsAndAwaitController(host) {
                 copy(
                     image = image.copy(jpegQuality = 45, jpegBackendPolicy = io.screenstream.capture.JpegBackendPolicy.FrameworkOnly),
                     network = network.copy(httpPort = 9000),
                     access = access.copy(pinEnabled = true, pin = io.screenstream.mjpeg.settings.SecretValue("123456")),
                 )
             }
-            withTimeout(5.seconds) { while (first.updates.none { it.jpegQuality == 45 }) yield() }
+            withTimeout(5.seconds) { while (firstEngine.parameterUpdates.none { it.jpegQuality == 45 }) yield() }
             assertEquals(io.screenstream.capture.JpegBackendPolicy.Auto, configurations.single().jpegBackendPolicy)
             assertEquals(8080, host.http.plan.value!!.port)
             assertFalse(host.http.configuration.value!!.access.pinEnabled)
             assertEquals(MjpegSettings.EditPolicy.LiveOnly, host.controller.state.value.editPolicy)
             host.controller.requestStreamStop(attempt, false)
-            withTimeout(5.seconds) { first.stopEntered.await() }
-            applySettings(host) {
+            withTimeout(5.seconds) { firstEngine.stopEntered.await() }
+            applySettingsAndAwaitController(host) {
                 copy(
                     image = image.copy(jpegQuality = 71),
                     network = network.copy(httpPort = 9100),
                     access = access.copy(pin = io.screenstream.mjpeg.settings.SecretValue("654321"))
                 )
             }
-            assertTrue(first.updates.none { it.jpegQuality == 71 })
+            assertTrue(firstEngine.parameterUpdates.none { it.jpegQuality == 71 })
             assertEquals(8080, host.http.plan.value!!.port)
-            first.finishStop.complete(Unit); idle(host)
+            firstEngine.allowStopToReturn.complete(Unit)
+            awaitCaptureIdle(host)
             withTimeout(5.seconds) { host.http.plan.first { it?.port == 9100 } }
             assertEquals("654321", host.http.configuration.value!!.access.pin!!.value)
             assertEquals(MjpegSettings.EditPolicy.All, host.controller.state.value.editPolicy)
@@ -173,12 +179,14 @@ internal class MjpegControllerCaptureContractsTest {
             host.http.info.value =
                 host.http.info.value.copy(servers = listOf(HttpDelivery.ServerInfo(serverId, address, 9100, HttpDelivery.ServerState.Listening)))
             withTimeout(5.seconds) { host.controller.state.first { it.action == UiController.Action.Start(true) } }
-            start(host)
-            withTimeout(5.seconds) { second.startEntered.await() }
-            assertEquals(71, second.initialParameters!!.jpegQuality)
+            startCaptureAndAwaitAttempt(host)
+            withTimeout(5.seconds) { secondEngine.startEntered.await() }
+            assertEquals(71, secondEngine.initialParameters!!.jpegQuality)
             assertEquals(io.screenstream.capture.JpegBackendPolicy.FrameworkOnly, configurations.last().jpegBackendPolicy)
         } finally {
-            first.release(); second.release(); assertTrue(host.close())
+            firstEngine.releaseAllGates()
+            secondEngine.releaseAllGates()
+            assertTrue(host.close())
         }
     }
 
@@ -186,47 +194,52 @@ internal class MjpegControllerCaptureContractsTest {
     @Test
     fun captureFailureCanRecoverOnlyAfterSuccessfulCleanupAndLaterConfirmationClearsItsError() = runBlocking {
         val cause = IllegalStateException("Controlled Engine startup failure")
-        val first = ControlledMjpegEngine().also { it.startFailure = cause }
-        val second = ControlledMjpegEngine(holdStart = true)
-        val host = host(listOf(first, second))
+        val firstEngine = ControlledMjpegEngineSession().also { it.startFailure = cause }
+        val secondEngine = ControlledMjpegEngineSession(holdStart = true)
+        val host = createHost(listOf(firstEngine, secondEngine))
         try {
-            ready(host); start(host, awaitPending = false)
-            withTimeout(5.seconds) { first.stopEntered.await() }
-            idle(host)
+            prepareReadyListener(host)
+            startCaptureAndAwaitAttempt(host, awaitPending = false)
+            withTimeout(5.seconds) { firstEngine.stopEntered.await() }
+            awaitCaptureIdle(host)
             assertNotNull(host.managerObservation.status.value!!.error)
             assertNull(host.managerObservation.status.value!!.error!!.message)
             assertTrue(host.managerObservation.isCurrent())
             assertFalse(host.managerObservation.failed.isCompleted)
-            start(host)
-            withTimeout(5.seconds) { second.startEntered.await() }
-            checkpoint(host)
+            startCaptureAndAwaitAttempt(host)
+            withTimeout(5.seconds) { secondEngine.startEntered.await() }
+            publishDeliveryCheckpoint(host)
             assertNotNull(host.managerObservation.status.value!!.error)
-            second.finishStart.complete(Unit)
+            secondEngine.allowStartToReturn.complete(Unit)
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true && it.error == null } }
             assertFalse(host.http.closed)
         } finally {
-            first.release(); second.release(); assertTrue(host.close())
+            firstEngine.releaseAllGates()
+            secondEngine.releaseAllGates()
+            assertTrue(host.close())
         }
     }
 
     // Cases: MJPEG-CTL-05, MJPEG-CTL-11, MJPEG-CTL-13
     @Test
     fun failedCaptureCleanupIsTerminalAndNeverAdmitsAReplacement() = runBlocking {
-        val engine = ControlledMjpegEngine().also { it.stopFailure = IllegalStateException("Media stop failed") }
-        val host = host(listOf(engine))
+        val engine = ControlledMjpegEngineSession().also { it.stopFailure = IllegalStateException("Media stop failed") }
+        val host = createHost(listOf(engine))
         try {
-            ready(host)
-            val attempt = start(host)
+            prepareReadyListener(host)
+            val attempt = startCaptureAndAwaitAttempt(host)
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
             host.controller.requestStreamStop(attempt, false)
             withTimeout(5.seconds) { host.managerObservation.failed.await(); host.http.stopSettled.await(); host.monitor.closeSettled.await() }
             host.controller.requestStreamStart()
-            assertEquals(listOf(attempt), host.http.captures.value)
+            assertEquals(listOf(attempt), host.http.registeredCaptureAttempts.value)
             assertTrue(host.http.closed)
-            host.awaitStopRequested(); host.destroy()
+            host.awaitStopRequested()
+            host.destroy()
             assertFalse(withTimeout(5.seconds) { host.controller.awaitCleanup() })
         } finally {
-            engine.release(); assertFalse(host.close())
+            engine.releaseAllGates()
+            assertFalse(host.close())
         }
     }
 
@@ -234,24 +247,26 @@ internal class MjpegControllerCaptureContractsTest {
     @Test
     fun delayedStopReportsItsMessageUntilCleanupAndRetainedCaptureFailureTakesPrecedence() = runBlocking {
         for (retainFailure in listOf(false, true)) {
-            val engine = ControlledMjpegEngine(holdStop = true)
-            val host = host(listOf(engine))
+            val engine = ControlledMjpegEngineSession(holdStop = true)
+            val host = createHost(listOf(engine))
             try {
-                ready(host)
-                val attempt = start(host)
+                prepareReadyListener(host)
+                val attempt = startCaptureAndAwaitAttempt(host)
                 withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
                 if (retainFailure) engine.publish(MjpegEngineState(MjpegEngineState.Phase.Failed, ScreenCaptureProblem.InternalFailure))
                 else host.controller.requestStreamStop(attempt, false)
                 withTimeout(5.seconds) { engine.stopEntered.await() }
                 ShadowSystemClock.advanceBy(Duration.ofSeconds(4))
-                checkpoint(host)
+                publishDeliveryCheckpoint(host)
                 val error = withTimeout(5.seconds) { host.managerObservation.status.first { it?.error != null } }!!.error
                 assertNotNull(error)
                 if (retainFailure) assertNull(error!!.message) else assertEquals(host.service.getString(R.string.mjpeg_stream_stop_delayed), error!!.message)
-                engine.release(); idle(host)
+                engine.releaseAllGates()
+                awaitCaptureIdle(host)
                 if (retainFailure) assertNotNull(host.managerObservation.status.value!!.error) else assertNull(host.managerObservation.status.value!!.error)
             } finally {
-                engine.release(); assertTrue(host.close())
+                engine.releaseAllGates()
+                assertTrue(host.close())
             }
         }
     }
@@ -260,38 +275,41 @@ internal class MjpegControllerCaptureContractsTest {
     @Test
     fun screenOffRegistrationRejectsAnAlreadySleepingDisplayAndDefensivelyFencesAnOldCallbackFromItsSuccessor() = runBlocking {
         val data = defaults().let { it.copy(behavior = it.behavior.copy(stopOnScreenOff = true)) }
-        val firstEngine = ControlledMjpegEngine()
-        val secondEngine = ControlledMjpegEngine()
-        val host = host(listOf(firstEngine, secondEngine), data, grantConsent = false)
-        val power = shadowOf(host.service.getSystemService(PowerManager::class.java))
+        val firstEngine = ControlledMjpegEngineSession()
+        val secondEngine = ControlledMjpegEngineSession()
+        val host = createHost(listOf(firstEngine, secondEngine), data, grantConsent = false)
+        val powerManagerShadow = shadowOf(host.service.getSystemService(PowerManager::class.java))
         try {
-            ready(host)
-            power.turnScreenOn(false)
-            host.controller.requestStreamStart(); checkpoint(host)
-            assertTrue(host.http.captures.value.isEmpty())
-            assertTrue(host.access.requested.value.isEmpty())
-            power.turnScreenOn(true)
-            val first = start(host)
-            val oldReceiver = receiver()
-            host.controller.requestStreamStop(first, false); idle(host)
+            prepareReadyListener(host)
+            powerManagerShadow.turnScreenOn(false)
+            host.controller.requestStreamStart()
+            publishDeliveryCheckpoint(host)
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
+            assertTrue(host.access.consentRequests.value.isEmpty())
+            powerManagerShadow.turnScreenOn(true)
+            val first = startCaptureAndAwaitAttempt(host)
+            val oldReceiver = currentScreenOffReceiver()
+            host.controller.requestStreamStop(first, false)
+            awaitCaptureIdle(host)
             assertTrue(screenOffReceivers().isEmpty())
-            val second = start(host)
-            val currentReceiver = receiver()
+            val second = startCaptureAndAwaitAttempt(host)
+            val currentReceiver = currentScreenOffReceiver()
             assertNotSame(oldReceiver, currentReceiver)
-            oldReceiver.onReceive(host.service, Intent(Intent.ACTION_SCREEN_OFF)); checkpoint(host)
+            oldReceiver.onReceive(host.service, Intent(Intent.ACTION_SCREEN_OFF))
+            publishDeliveryCheckpoint(host)
             assertEquals(second, host.managerObservation.status.value!!.captureAttempt)
-            power.turnScreenOn(false)
+            powerManagerShadow.turnScreenOn(false)
             shadowOf(Looper.getMainLooper()).idle()
-            idle(host)
+            awaitCaptureIdle(host)
             assertFalse(host.http.closed)
             assertTrue(screenOffReceivers().isEmpty())
         } finally {
-            firstEngine.release()
-            secondEngine.release()
+            firstEngine.releaseAllGates()
+            secondEngine.releaseAllGates()
             try {
                 assertTrue(host.close())
             } finally {
-                power.turnScreenOn(true)
+                powerManagerShadow.turnScreenOn(true)
                 shadowOf(Looper.getMainLooper()).idle()
             }
         }
@@ -300,20 +318,20 @@ internal class MjpegControllerCaptureContractsTest {
     // Cases: MJPEG-CTL-14
     @Test
     fun enablingScreenOffDuringConsentWithTheDisplayAlreadyOffStopsThatAttempt() = runBlocking {
-        val engine = ControlledMjpegEngine()
-        val host = host(listOf(engine), grantConsent = false)
+        val engine = ControlledMjpegEngineSession()
+        val host = createHost(listOf(engine), grantConsent = false)
         val power = shadowOf(host.service.getSystemService(PowerManager::class.java))
         try {
-            ready(host)
-            val attempt = start(host)
+            prepareReadyListener(host)
+            val attempt = startCaptureAndAwaitAttempt(host)
             power.turnScreenOn(false)
-            applySettings(host) { copy(behavior = behavior.copy(stopOnScreenOff = true)) }
-            idle(host)
-            assertEquals(listOf(attempt), host.access.finishCalls.value)
+            applySettingsAndAwaitController(host) { copy(behavior = behavior.copy(stopOnScreenOff = true)) }
+            awaitCaptureIdle(host)
+            assertEquals(listOf(attempt), host.access.projectionCreationFinishes.value)
             assertFalse(engine.startEntered.isCompleted)
             assertFalse(host.http.closed)
         } finally {
-            engine.release()
+            engine.releaseAllGates()
             try {
                 assertTrue(host.close())
             } finally {
@@ -327,33 +345,35 @@ internal class MjpegControllerCaptureContractsTest {
     @Test
     fun keepAwakeFollowsConfirmedCaptureAcrossSuspensionAndReleasesBeforeMediaCleanup() = runBlocking {
         val data = defaults().let { it.copy(behavior = it.behavior.copy(keepScreenAwake = true)) }
-        val engine = ControlledMjpegEngine(holdStart = true, holdStop = true)
-        val host = host(listOf(engine), data)
+        val engine = ControlledMjpegEngineSession(holdStart = true, holdStop = true)
+        val host = createHost(listOf(engine), data)
         try {
-            ready(host)
-            val attempt = start(host)
-            withTimeout(5.seconds) { engine.startEntered.await() }; checkpoint(host)
+            prepareReadyListener(host)
+            val attempt = startCaptureAndAwaitAttempt(host)
+            withTimeout(5.seconds) { engine.startEntered.await() }; publishDeliveryCheckpoint(host)
             assertNull(ShadowPowerManager.getLatestWakeLock())
-            engine.finishStart.complete(Unit)
-            withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }; checkpoint(host)
-            val lock = checkNotNull(ShadowPowerManager.getLatestWakeLock())
-            assertTrue(lock.isHeld)
-            assertFalse(shadowOf(lock).isReferenceCounted)
-            applySettings(host) { copy(behavior = behavior.copy(keepScreenAwake = false)) }
-            assertFalse(lock.isHeld)
-            applySettings(host) { copy(behavior = behavior.copy(keepScreenAwake = true)) }
-            assertTrue(lock.isHeld)
+            engine.allowStartToReturn.complete(Unit)
+            withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }; publishDeliveryCheckpoint(host)
+            val wakeLock = checkNotNull(ShadowPowerManager.getLatestWakeLock())
+            assertTrue(wakeLock.isHeld)
+            assertFalse(shadowOf(wakeLock).isReferenceCounted)
+            applySettingsAndAwaitController(host) { copy(behavior = behavior.copy(keepScreenAwake = false)) }
+            assertFalse(wakeLock.isHeld)
+            applySettingsAndAwaitController(host) { copy(behavior = behavior.copy(keepScreenAwake = true)) }
+            assertTrue(wakeLock.isHeld)
             engine.publish(MjpegEngineState(MjpegEngineState.Phase.Suspended, ScreenCaptureProblem.ResourceExhausted))
             withTimeout(5.seconds) { host.controller.state.first { it.suspensionProblem != null } }
-            assertTrue(lock.isHeld)
+            assertTrue(wakeLock.isHeld)
             host.controller.requestStreamStop(attempt, false)
             withTimeout(5.seconds) { engine.stopEntered.await() }
-            assertFalse(lock.isHeld)
-            checkpoint(host)
-            assertFalse(lock.isHeld)
-            engine.release(); idle(host)
+            assertFalse(wakeLock.isHeld)
+            publishDeliveryCheckpoint(host)
+            assertFalse(wakeLock.isHeld)
+            engine.releaseAllGates()
+            awaitCaptureIdle(host)
         } finally {
-            engine.release(); assertTrue(host.close())
+            engine.releaseAllGates()
+            assertTrue(host.close())
         }
     }
 
@@ -364,61 +384,62 @@ internal class MjpegControllerCaptureContractsTest {
         val warningFailures = java.util.concurrent.CopyOnWriteArrayList<Throwable>()
         io.screenstream.core.configureLogWriter { _, tag, _, cause -> if (tag == "SlowViewer.toast" && cause != null) warningFailures += cause }
         val data = defaults().let { it.copy(behavior = it.behavior.copy(notifySlowViewers = true)) }
-        val engine = ControlledMjpegEngine()
-        val host = host(listOf(engine), data)
-        val main = mjpegTestMainDispatcher("mjpeg-test-main")
-        Dispatchers.setMain(main)
+        val engine = ControlledMjpegEngineSession()
+        val host = createHost(listOf(engine), data)
+        val mainDispatcher = createMjpegLooperDispatcher("mjpeg-test-main")
+        Dispatchers.setMain(mainDispatcher)
         try {
-            ready(host); start(host)
+            prepareReadyListener(host)
+            startCaptureAndAwaitAttempt(host)
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
             withTimeout(5.seconds) { host.http.captureStatus.first { it?.second == MjpegCaptureSession.State.Status.Active } }
-            checkpoint(host)
+            publishDeliveryCheckpoint(host)
             val watermark = SystemClock.elapsedRealtime()
-            slowSample(host, watermark, slow = true)
+            publishSlowViewerSampleAndAwaitController(host, watermark, slow = true)
             assertEquals(0, ShadowToast.shownToastCount())
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
-            slowSample(host, SystemClock.elapsedRealtime(), slow = true)
+            publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = true)
             assertEquals(
                 "Toast failures=$warningFailures; sample=${host.http.info.value.sampledAtElapsedRealtimeMillis}; now=${SystemClock.elapsedRealtime()}",
                 1,
                 ShadowToast.shownToastCount()
             )
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
-            slowSample(host, SystemClock.elapsedRealtime(), slow = true)
+            publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = true)
             assertEquals(
                 "Toast failures=$warningFailures; sample=${host.http.info.value.sampledAtElapsedRealtimeMillis}; now=${SystemClock.elapsedRealtime()}",
                 1,
                 ShadowToast.shownToastCount()
             )
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
-            slowSample(host, SystemClock.elapsedRealtime(), slow = false)
+            publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = false)
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
-            slowSample(host, SystemClock.elapsedRealtime(), slow = true)
+            publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = true)
             assertEquals(
                 "Toast failures=$warningFailures; sample=${host.http.info.value.sampledAtElapsedRealtimeMillis}; now=${SystemClock.elapsedRealtime()}",
                 1,
                 ShadowToast.shownToastCount()
             )
             ShadowSystemClock.advanceBy(Duration.ofSeconds(30))
-            slowSample(host, SystemClock.elapsedRealtime(), slow = true)
+            publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = true)
             assertEquals(2, ShadowToast.shownToastCount())
-            applySettings(host) { copy(behavior = behavior.copy(notifySlowViewers = false)) }
+            applySettingsAndAwaitController(host) { copy(behavior = behavior.copy(notifySlowViewers = false)) }
             ShadowSystemClock.advanceBy(Duration.ofSeconds(31))
-            slowSample(host, SystemClock.elapsedRealtime(), slow = false)
-            applySettings(host) { copy(behavior = behavior.copy(notifySlowViewers = true)) }
+            publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = false)
+            applySettingsAndAwaitController(host) { copy(behavior = behavior.copy(notifySlowViewers = true)) }
             assertEquals(2, ShadowToast.shownToastCount())
-            slowSample(host, SystemClock.elapsedRealtime(), slow = true)
+            publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = true)
             assertEquals(2, ShadowToast.shownToastCount())
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
-            slowSample(host, SystemClock.elapsedRealtime(), slow = true)
+            publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = true)
             assertEquals(3, ShadowToast.shownToastCount())
             assertTrue(host.managerObservation.status.value!!.hasConsumer)
         } finally {
-            engine.release()
+            engine.releaseAllGates()
             try {
                 assertTrue(host.close())
             } finally {
-                main.close()
+                mainDispatcher.close()
                 io.screenstream.core.configureLogWriter { priority, _, message, cause ->
                     if (cause == null) XLog.log(priority, message) else XLog.log(
                         priority,
@@ -433,24 +454,26 @@ internal class MjpegControllerCaptureContractsTest {
     // Cases: MJPEG-CTL-02, MJPEG-CTL-14
     @Test
     fun rejectedHttpCaptureRegistrationRemovesScreenOffSubscriptionAndAnotherStartCanSucceed() = runBlocking {
-        val engine = ControlledMjpegEngine()
+        val engine = ControlledMjpegEngineSession()
         val data = defaults().let { it.copy(behavior = it.behavior.copy(stopOnScreenOff = true)) }
-        val host = host(listOf(engine), data, grantConsent = false)
+        val host = createHost(listOf(engine), data, grantConsent = false)
         try {
-            ready(host)
+            prepareReadyListener(host)
             host.http.acceptCapture = false
-            host.controller.requestStreamStart(); checkpoint(host)
-            assertTrue(host.http.captures.value.isEmpty())
-            assertTrue(host.access.requested.value.isEmpty())
+            host.controller.requestStreamStart()
+            publishDeliveryCheckpoint(host)
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
+            assertTrue(host.access.consentRequests.value.isEmpty())
             assertNull(host.managerObservation.status.value!!.captureAttempt)
             assertNull(host.managerObservation.status.value!!.error)
             assertTrue(screenOffReceivers().isEmpty())
             host.http.acceptCapture = true
-            val attempt = start(host)
-            assertEquals(listOf(attempt), host.http.captures.value)
+            val attempt = startCaptureAndAwaitAttempt(host)
+            assertEquals(listOf(attempt), host.http.registeredCaptureAttempts.value)
             assertEquals(1, screenOffReceivers().size)
         } finally {
-            engine.release(); assertTrue(host.close())
+            engine.releaseAllGates()
+            assertTrue(host.close())
         }
     }
 
@@ -460,17 +483,18 @@ internal class MjpegControllerCaptureContractsTest {
     fun confirmationCannotClearANewerReceiverRemovalFailureRecordedAfterAttemptAdmission() = runBlocking {
         FallibleScreenOffContextShadow.registrationFailure = null
         FallibleScreenOffContextShadow.removalFailure = null
-        val engine = ControlledMjpegEngine(holdStart = true)
+        val engine = ControlledMjpegEngineSession(holdStart = true)
         val data = defaults().let { it.copy(behavior = it.behavior.copy(stopOnScreenOff = true)) }
-        val host = host(listOf(engine), data)
+        val host = createHost(listOf(engine), data)
         try {
-            ready(host); start(host)
+            prepareReadyListener(host)
+            startCaptureAndAwaitAttempt(host)
             withTimeout(5.seconds) { engine.startEntered.await() }
             assertNull(host.managerObservation.status.value!!.error)
             FallibleScreenOffContextShadow.removalFailure = IllegalStateException("Newer receiver removal failure")
-            applySettings(host) { copy(behavior = behavior.copy(stopOnScreenOff = false)) }
+            applySettingsAndAwaitController(host) { copy(behavior = behavior.copy(stopOnScreenOff = false)) }
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.error != null } }
-            engine.finishStart.complete(Unit)
+            engine.allowStartToReturn.complete(Unit)
             val confirmed = withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }!!
             assertNotNull(confirmed.error)
             assertNull(confirmed.error!!.message)
@@ -478,7 +502,7 @@ internal class MjpegControllerCaptureContractsTest {
             assertFalse(host.http.closed)
         } finally {
             FallibleScreenOffContextShadow.removalFailure = null
-            engine.release()
+            engine.releaseAllGates()
             try {
                 assertFalse(host.close())
             } finally {
@@ -490,34 +514,36 @@ internal class MjpegControllerCaptureContractsTest {
     // Cases: MJPEG-CTL-14
     @Test
     fun disableAndReenableDefensivelyFenceAnOldScreenOffCallbackWithinTheSameAttempt() = runBlocking {
-        val engine = ControlledMjpegEngine()
+        val engine = ControlledMjpegEngineSession()
         val data = defaults().let { it.copy(behavior = it.behavior.copy(stopOnScreenOff = true)) }
-        val host = host(listOf(engine), data, grantConsent = false)
-        val power = shadowOf(host.service.getSystemService(PowerManager::class.java))
+        val host = createHost(listOf(engine), data, grantConsent = false)
+        val powerManagerShadow = shadowOf(host.service.getSystemService(PowerManager::class.java))
         try {
-            ready(host)
-            val attempt = start(host)
-            val old = receiver()
-            applySettings(host) { copy(behavior = behavior.copy(stopOnScreenOff = false)) }
+            prepareReadyListener(host)
+            val attempt = startCaptureAndAwaitAttempt(host)
+            val oldReceiver = currentScreenOffReceiver()
+            applySettingsAndAwaitController(host) { copy(behavior = behavior.copy(stopOnScreenOff = false)) }
             assertTrue(screenOffReceivers().isEmpty())
-            old.onReceive(host.service, Intent(Intent.ACTION_SCREEN_OFF)); checkpoint(host)
+            oldReceiver.onReceive(host.service, Intent(Intent.ACTION_SCREEN_OFF))
+            publishDeliveryCheckpoint(host)
             assertEquals(attempt, host.managerObservation.status.value!!.captureAttempt)
-            applySettings(host) { copy(behavior = behavior.copy(stopOnScreenOff = true)) }
-            val current = receiver()
-            assertNotSame(old, current)
-            old.onReceive(host.service, Intent(Intent.ACTION_SCREEN_OFF)); checkpoint(host)
+            applySettingsAndAwaitController(host) { copy(behavior = behavior.copy(stopOnScreenOff = true)) }
+            val currentReceiver = currentScreenOffReceiver()
+            assertNotSame(oldReceiver, currentReceiver)
+            oldReceiver.onReceive(host.service, Intent(Intent.ACTION_SCREEN_OFF))
+            publishDeliveryCheckpoint(host)
             assertEquals(attempt, host.managerObservation.status.value!!.captureAttempt)
-            power.turnScreenOn(false)
+            powerManagerShadow.turnScreenOn(false)
             shadowOf(Looper.getMainLooper()).idle()
-            idle(host)
+            awaitCaptureIdle(host)
             assertFalse(host.http.closed)
             assertTrue(screenOffReceivers().isEmpty())
         } finally {
-            engine.release()
+            engine.releaseAllGates()
             try {
                 assertTrue(host.close())
             } finally {
-                power.turnScreenOn(true)
+                powerManagerShadow.turnScreenOn(true)
                 shadowOf(Looper.getMainLooper()).idle()
             }
         }
@@ -525,12 +551,12 @@ internal class MjpegControllerCaptureContractsTest {
 
     // Cases: MJPEG-CTL-16
     @Test
-    fun aLawfulZeroEngineSnapshotIsForwardedDuringCaptureAndRetainedAfterStop() = runBlocking {
-        val engine = ControlledMjpegEngine()
-        val host = host(listOf(engine))
+    fun initialZeroEngineStatisticsAreForwardedDuringCaptureAndRetainedAfterStop() = runBlocking {
+        val engine = ControlledMjpegEngineSession()
+        val host = createHost(listOf(engine))
         try {
-            ready(host)
-            val attempt = start(host)
+            prepareReadyListener(host)
+            val attempt = startCaptureAndAwaitAttempt(host)
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
             val during = withTimeout(5.seconds) { host.controller.state.first { it.statistics.engineStats != null } }.statistics
             val statistics = checkNotNull(during.engineStats)
@@ -539,62 +565,68 @@ internal class MjpegControllerCaptureContractsTest {
             assertEquals(0L, statistics.encodedFrameCount)
             assertEquals(0.0, statistics.averageProducedFps, 0.0)
             assertNull(during.currentFps)
-            host.controller.requestStreamStop(attempt, false); idle(host)
+            host.controller.requestStreamStop(attempt, false)
+            awaitCaptureIdle(host)
             val stopped = host.controller.state.value.statistics
             assertEquals(during.engineStats, stopped.engineStats)
             assertNull(stopped.currentFps)
             assertFalse(host.http.closed)
         } finally {
-            engine.release(); assertTrue(host.close())
+            engine.releaseAllGates()
+            assertTrue(host.close())
         }
     }
 
-    private suspend fun applySettings(host: MjpegServiceHost, update: MjpegSettings.Data.() -> MjpegSettings.Data) {
+    private suspend fun applySettingsAndAwaitController(host: MjpegServiceTestHost, update: MjpegSettings.Data.() -> MjpegSettings.Data) {
         val title = Uuid.random().toString()
         host.settings.updateData { update().let { it.copy(web = it.web.copy(title = title)) } }
         withTimeout(5.seconds) { host.http.configuration.first { it?.web?.title == title } }
-        checkpoint(host)
+        publishDeliveryCheckpoint(host)
     }
 
-    private suspend fun host(engines: List<ControlledMjpegEngine>, data: MjpegSettings.Data = defaults(), grantConsent: Boolean = true): MjpegServiceHost {
+    private suspend fun createHost(
+        engines: List<ControlledMjpegEngineSession>,
+        data: MjpegSettings.Data = defaults(),
+        grantConsent: Boolean = true
+    ): MjpegServiceTestHost {
         val context = IsolatedSettingsContext(application, temporaryFolder.newFolder())
         seedSettings(context, Json.encodeToString(data))
         val remaining = java.util.concurrent.CopyOnWriteArrayList(engines)
-        return MjpegServiceHost(MjpegSettings(context), engineFactory = { _, _, _ -> remaining.removeAt(0) }).also {
-            if (grantConsent) it.access.consent.complete(object : ScreenCaptureAccess.Grant {})
+        return MjpegServiceTestHost(MjpegSettings(context), engineFactory = { _, _, _ -> remaining.removeAt(0) }).also {
+            if (grantConsent) it.access.consentGrant.complete(object : ScreenCaptureAccess.Grant {})
         }
     }
 
-    private suspend fun ready(host: MjpegServiceHost) {
+    private suspend fun prepareReadyListener(host: MjpegServiceTestHost) {
         withTimeout(5.seconds) { host.http.configuration.first { it != null } }
-        host.monitor.state.value = observedAddresses(listOf(address))
+        host.monitor.state.value = observedAddressState(listOf(address))
         withTimeout(5.seconds) { host.http.plan.first { it?.addresses == listOf(address) } }
-        checkpoint(host)
+        publishDeliveryCheckpoint(host)
     }
 
-    private suspend fun start(host: MjpegServiceHost, awaitPending: Boolean = true): StreamingModule.CaptureAttemptId {
-        val count = host.access.requested.value.size
+    private suspend fun startCaptureAndAwaitAttempt(host: MjpegServiceTestHost, awaitPending: Boolean = true): StreamingModule.CaptureAttemptId {
+        val count = host.access.consentRequests.value.size
         host.controller.requestStreamStart()
-        val attempt = withTimeout(5.seconds) { host.access.requested.first { it.size > count }.last() }
+        val attempt = withTimeout(5.seconds) { host.access.consentRequests.first { it.size > count }.last() }
         if (awaitPending) withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == attempt } }
         return attempt
     }
 
-    private suspend fun idle(host: MjpegServiceHost) {
+    private suspend fun awaitCaptureIdle(host: MjpegServiceTestHost) {
         withTimeout(5.seconds) { host.controller.state.first { it.action is UiController.Action.Start } }
         withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == null } }
     }
 
-    private suspend fun checkpoint(host: MjpegServiceHost) {
+    private suspend fun publishDeliveryCheckpoint(host: MjpegServiceTestHost) {
         val id = Uuid.random()
         host.http.info.value = host.http.info.value.copy(servers = listOf(HttpDelivery.ServerInfo(id, address, 8080, HttpDelivery.ServerState.Listening)))
         withTimeout(5.seconds) { host.controller.state.first { it.addressServers.singleOrNull()?.serverId == id } }
     }
 
-    private suspend fun slowSample(host: MjpegServiceHost, at: Long, slow: Boolean) {
+    private suspend fun publishSlowViewerSampleAndAwaitController(host: MjpegServiceTestHost, at: Long, slow: Boolean) {
         val info = host.http.info.value
         host.http.info.value = info.copy(sampledAtElapsedRealtimeMillis = at, clients = listOf(client(info.servers.single().id).copy(isSlow = slow)))
-        checkpoint(host)
+        publishDeliveryCheckpoint(host)
         assertEquals(MjpegCaptureSession.State.Status.Active, host.http.captureStatus.value?.second)
         assertTrue(host.managerObservation.status.value!!.isStreaming)
         assertEquals(at, host.http.info.value.sampledAtElapsedRealtimeMillis)
@@ -604,7 +636,7 @@ internal class MjpegControllerCaptureContractsTest {
         .filter { it.intentFilter.hasAction(Intent.ACTION_SCREEN_OFF) }
         .map { it.broadcastReceiver }
 
-    private fun receiver(): BroadcastReceiver = screenOffReceivers().single()
+    private fun currentScreenOffReceiver(): BroadcastReceiver = screenOffReceivers().single()
     private fun client(server: Uuid) = HttpDelivery.ClientInfo(1, "198.51.100.2", 4000, server, HttpDelivery.MediaFormat.Jpeg, false, 10)
     private fun defaults() = MjpegSettings.Data(web = WebPageSettings(title = "Capture contract"))
     private val application: Application get() = RuntimeEnvironment.getApplication()

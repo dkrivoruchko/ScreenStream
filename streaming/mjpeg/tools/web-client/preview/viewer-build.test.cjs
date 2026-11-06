@@ -8,7 +8,7 @@ const { inputPaths } = require('../build.cjs');
 const { createViewerBuild } = require('./viewer-build.cjs');
 const test = (name, body) => nodeTest(name, { timeout: 10000 }, body);
 
-async function until(predicate, message, timeout = 2000) {
+async function waitForCondition(predicate, message, timeout = 2000) {
     const deadline = Date.now() + timeout;
     while (!predicate()) {
         if (Date.now() >= deadline) assert.fail(message);
@@ -18,14 +18,14 @@ async function until(predicate, message, timeout = 2000) {
 
 test('viewer source and logo edits rebuild, retain the last good build and stop polling on close', async t => {
     const originalRead = fs.readFileSync;
-    const source = inputPaths[0], logo = inputPaths.at(-1);
+    const sourcePath = inputPaths[0], logoPath = inputPaths.at(-1);
     let sourceVersion = 0, logoVersion = 0, invalidSource = false, inputReads = 0;
     const watchers = [];
     t.mock.method(fs, 'readFileSync', (input, ...args) => {
         if (inputPaths.includes(input)) inputReads += 1;
         const contents = originalRead(input, ...args);
-        if (input === source) return contents + (invalidSource ? '\nfunction (' : '\n// watcher source ' + sourceVersion);
-        if (input === logo) return Buffer.concat([contents, Buffer.from([logoVersion])]);
+        if (input === sourcePath) return contents + (invalidSource ? '\nfunction (' : '\n// watcher source ' + sourceVersion);
+        if (input === logoPath) return Buffer.concat([contents, Buffer.from([logoVersion])]);
         return contents;
     });
     t.mock.method(fs, 'watch', (directory, changed) => {
@@ -34,37 +34,37 @@ test('viewer source and logo edits rebuild, retain the last good build and stop 
         watchers.push({ directory, changed, watcher });
         return watcher;
     });
-    const build = createViewerBuild({ watch: true, log: () => {} });
-    t.after(() => build.close());
+    const viewerBuild = createViewerBuild({ watch: true, log: () => {} });
+    t.after(() => viewerBuild.close());
     sourceVersion = 1;
-    build.start();
-    await until(() => build.state().revision === 2, 'An edit before watcher startup was missed');
-    assert.equal(build.state().watchMode, 'native');
+    viewerBuild.start();
+    await waitForCondition(() => viewerBuild.state().revision === 2, 'An edit before watcher startup was missed');
+    assert.equal(viewerBuild.state().watchMode, 'native');
 
     logoVersion = 1;
-    const logoWatcher = watchers.find(item => item.directory === path.dirname(logo));
+    const logoWatcher = watchers.find(item => item.directory === path.dirname(logoPath));
     assert.ok(logoWatcher, 'The packaged logo input is not watched');
-    logoWatcher.changed('change', path.basename(logo));
-    await until(() => build.state().revision === 3, 'A logo edit did not rebuild the viewer');
-    const lastGood = build.template;
+    logoWatcher.changed('change', path.basename(logoPath));
+    await waitForCondition(() => viewerBuild.state().revision === 3, 'A logo edit did not rebuild the viewer');
+    const lastGoodHtml = viewerBuild.html;
 
     logoWatcher.watcher.emit('error', Object.assign(new Error('Native watch unavailable'), { code: 'EMFILE' }));
-    assert.equal(build.state().watchMode, 'polling');
-    assert.match(build.state().watchWarning, /EMFILE/);
+    assert.equal(viewerBuild.state().watchMode, 'polling');
+    assert.match(viewerBuild.state().watchWarning, /EMFILE/);
     assert.ok(watchers.every(item => item.watcher.closed));
     invalidSource = true;
-    await until(() => build.state().error !== null, 'Polling did not report a failed build');
-    assert.equal(build.template, lastGood);
-    assert.equal(build.state().revision, 3);
+    await waitForCondition(() => viewerBuild.state().error !== null, 'Polling did not report a failed build');
+    assert.equal(viewerBuild.html, lastGoodHtml);
+    assert.equal(viewerBuild.state().revision, 3);
 
     invalidSource = false;
     sourceVersion = 2;
-    await until(() => build.state().revision === 4, 'Polling did not recover after source repair');
-    assert.equal(build.state().error, null);
-    build.close();
+    await waitForCondition(() => viewerBuild.state().revision === 4, 'Polling did not recover after source repair');
+    assert.equal(viewerBuild.state().error, null);
+    viewerBuild.close();
     const readsAtClose = inputReads;
     sourceVersion = 3;
     await delay(1200);
     assert.equal(inputReads, readsAtClose, 'Closed build continued reading source inputs');
-    assert.equal(build.state().revision, 4);
+    assert.equal(viewerBuild.state().revision, 4);
 });

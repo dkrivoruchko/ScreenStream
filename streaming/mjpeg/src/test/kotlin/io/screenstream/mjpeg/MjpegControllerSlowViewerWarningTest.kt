@@ -38,82 +38,83 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
-internal class MjpegControllerWarningFinalCheckTest {
+internal class MjpegControllerSlowViewerWarningTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
     @Before
     fun initialize() {
-        XLog.init(Int.MAX_VALUE); ShadowToast.reset()
+        XLog.init(Int.MAX_VALUE)
+        ShadowToast.reset()
     }
 
     // Cases: MJPEG-CTL-17
     @Test
     fun suppressedWarningStartsCooldownAcrossRecovery() = runBlocking {
-        val engine = ControlledMjpegEngine()
+        val engine = ControlledMjpegEngineSession()
         val context = IsolatedSettingsContext(RuntimeEnvironment.getApplication(), temporaryFolder.newFolder())
-        val host = MjpegServiceHost(MjpegSettings(context), engineFactory = { _, _, _ -> engine })
-        host.access.consent.complete(object : ScreenCaptureAccess.Grant {})
-        val main = mjpegTestMainDispatcher("mjpeg-warning-test-main")
-        val held = HeldMain(main)
-        Dispatchers.setMain(main)
+        val host = MjpegServiceTestHost(MjpegSettings(context), engineFactory = { _, _, _ -> engine })
+        host.access.consentGrant.complete(object : ScreenCaptureAccess.Grant {})
+        val mainDispatcher = createMjpegLooperDispatcher("mjpeg-warning-test-main")
+        val gatedMainDispatcher = GatedMainDispatcher(mainDispatcher)
+        Dispatchers.setMain(mainDispatcher)
         try {
             withTimeout(5.seconds) { host.http.configuration.first { it != null } }
-            host.monitor.state.value = observedAddresses(listOf(address))
+            host.monitor.state.value = observedAddressState(listOf(address))
             withTimeout(5.seconds) { host.http.plan.first { it?.addresses == listOf(address) } }
-            checkpoint(host)
+            publishDeliveryCheckpoint(host)
             host.controller.requestStreamStart()
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
             withTimeout(5.seconds) { host.http.captureStatus.first { it?.second == MjpegCaptureSession.State.Status.Active } }
             withTimeout(5.seconds) { host.controller.state.first { it.statistics.engineStats != null } }
-            checkpoint(host)
-            checkpoint(host)
+            publishDeliveryCheckpoint(host)
+            publishDeliveryCheckpoint(host)
 
-            Dispatchers.setMain(held)
+            Dispatchers.setMain(gatedMainDispatcher)
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
-            publishSlow(host)
-            val step = withTimeout(5.seconds) { held.next() }
+            publishSlowViewerSample(host)
+            val pendingDispatch = withTimeout(5.seconds) { gatedMainDispatcher.awaitNextDispatch() }
             try {
                 engine.publish(MjpegEngineState(MjpegEngineState.Phase.Suspended, ScreenCaptureProblem.CaptureUnavailable))
                 withTimeout(5.seconds) { host.http.captureStatus.first { it?.second == MjpegCaptureSession.State.Status.Suspended } }
             } finally {
-                step.run()
+                pendingDispatch.run()
             }
-            held.release()
-            Dispatchers.setMain(main)
+            gatedMainDispatcher.resumeDispatching()
+            Dispatchers.setMain(mainDispatcher)
             withTimeout(5.seconds) { host.controller.state.first { it.suspensionProblem != null } }
             assertEquals(0, ShadowToast.shownToastCount())
 
             engine.publish(MjpegEngineState(MjpegEngineState.Phase.Active))
             withTimeout(5.seconds) { host.http.captureStatus.first { it?.second == MjpegCaptureSession.State.Status.Active } }
-            checkpoint(host)
+            publishDeliveryCheckpoint(host)
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
-            val early = publishSlow(host)
+            val early = publishSlowViewerSample(host)
             withTimeout(5.seconds) { host.controller.state.first { it.addressServers.singleOrNull()?.serverId == early } }
             assertEquals(0, ShadowToast.shownToastCount())
             ShadowSystemClock.advanceBy(Duration.ofSeconds(30))
-            val later = publishSlow(host)
+            val later = publishSlowViewerSample(host)
             withTimeout(5.seconds) { host.controller.state.first { it.addressServers.singleOrNull()?.serverId == later } }
             assertEquals(1, ShadowToast.shownToastCount())
         } finally {
-            held.release()
-            Dispatchers.setMain(main)
-            engine.release()
+            gatedMainDispatcher.resumeDispatching()
+            Dispatchers.setMain(mainDispatcher)
+            engine.releaseAllGates()
             try {
                 assertTrue(host.close())
             } finally {
-                main.close()
+                mainDispatcher.close()
             }
         }
     }
 
-    private suspend fun checkpoint(host: MjpegServiceHost) {
+    private suspend fun publishDeliveryCheckpoint(host: MjpegServiceTestHost) {
         val id = Uuid.random()
         host.http.info.value = host.http.info.value.copy(servers = listOf(HttpDelivery.ServerInfo(id, address, 8080, HttpDelivery.ServerState.Listening)))
         withTimeout(5.seconds) { host.controller.state.first { it.addressServers.singleOrNull()?.serverId == id } }
     }
 
-    private fun publishSlow(host: MjpegServiceHost): Uuid {
+    private fun publishSlowViewerSample(host: MjpegServiceTestHost): Uuid {
         val id = Uuid.random()
         host.http.info.value = host.http.info.value.copy(
             servers = listOf(HttpDelivery.ServerInfo(id, address, 8080, HttpDelivery.ServerState.Listening)),
@@ -125,28 +126,29 @@ internal class MjpegControllerWarningFinalCheckTest {
 
     private val address = NetworkAddress(1, InetAddress.getByName("192.168.1.2"), "fixture1", InterfaceType.Wifi)
 
-    private class HeldMain(private val fallback: CoroutineDispatcher) : CoroutineDispatcher() {
-        private data class Step(val context: CoroutineContext, val body: Runnable)
+    private class GatedMainDispatcher(private val fallback: CoroutineDispatcher) : CoroutineDispatcher() {
+        private data class PendingDispatch(val context: CoroutineContext, val body: Runnable)
 
         private val gate = Any()
-        private val pending = Channel<Step>(8)
-        private var released = false
+        private val pending = Channel<PendingDispatch>(8)
+        private var isReleased = false
         override fun dispatch(context: CoroutineContext, block: Runnable) {
             val forward = synchronized(gate) {
-                if (released) true else {
-                    check(pending.trySend(Step(context, block)).isSuccess); false
+                if (isReleased) true else {
+                    check(pending.trySend(PendingDispatch(context, block)).isSuccess)
+                    false
                 }
             }
             if (forward) fallback.dispatch(context, block)
         }
 
-        suspend fun next(): Runnable = pending.receive().body
-        fun release() {
-            val steps = synchronized(gate) {
-                released = true
+        suspend fun awaitNextDispatch(): Runnable = pending.receive().body
+        fun resumeDispatching() {
+            val pendingDispatches = synchronized(gate) {
+                isReleased = true
                 buildList { while (true) add(pending.tryReceive().getOrNull() ?: break) }
             }
-            steps.forEach { fallback.dispatch(it.context, it.body) }
+            pendingDispatches.forEach { fallback.dispatch(it.context, it.body) }
         }
     }
 }

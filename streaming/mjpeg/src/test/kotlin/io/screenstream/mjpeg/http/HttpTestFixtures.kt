@@ -25,16 +25,16 @@ internal fun httpTestContext(): Context {
     return RuntimeEnvironment.getApplication()
 }
 
-internal fun httpTestPage(title: String = "Viewing contract"): WebPageSettings = WebPageSettings(title = title)
+internal fun httpTestPageSettings(title: String = "Viewing contract"): WebPageSettings = WebPageSettings(title = title)
 
-internal fun httpTestProtection(pin: String = "123456"): AccessSettings =
+internal fun httpTestProtectedAccessSettings(pin: String = "123456"): AccessSettings =
     AccessSettings(pinEnabled = true, pin = SecretValue(pin), blockMinutes = 1)
 
-internal fun httpTestAddress(id: Long = 1L, host: String = "127.0.0.1", name: String = "lo"): NetworkAddress =
-    NetworkAddress(id, InetAddress.getByName(host), name, InterfaceType.Other)
+internal fun httpTestAddress(id: Long = 1L, host: String = "127.0.0.1", interfaceName: String = "lo"): NetworkAddress =
+    NetworkAddress(id, InetAddress.getByName(host), interfaceName, InterfaceType.Other)
 
 /** Genuine listener identity without socket activation; each fixture still settles its engine owner. */
-internal class UnstartedHttpListener(host: String = "127.0.0.1", port: Int = 8080) {
+internal class UnstartedHttpListenerFixture(host: String = "127.0.0.1", port: Int = 8080) {
     private val parent = Job()
     val listener: HttpListener = CioHttpListener(parent, host, port) { }
 
@@ -53,7 +53,7 @@ internal class UnstartedHttpListener(host: String = "127.0.0.1", port: Int = 808
 internal suspend fun HttpDelivery.awaitHttpInfo(predicate: (HttpDelivery.Info) -> Boolean): HttpDelivery.Info =
     withTimeout(15.seconds) { info.first(predicate) }
 
-internal suspend fun HttpDelivery.finishHttpTest() {
+internal suspend fun HttpDelivery.stopHttpTestDelivery() {
     withContext(NonCancellable) { withTimeout(15.seconds) { stop() } }
 }
 

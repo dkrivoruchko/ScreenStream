@@ -4,7 +4,7 @@
 
 MJPEG mode turns the streaming device into a small web server. While the mode is open, the app serves a viewer page and images over direct HTTP on the device's network addresses. **Start stream** begins screen capture. The screen, or an app window approved in Android's consent dialog, becomes a sequence of JPEG images, and every connected viewer receives the newest one.
 
-This guide explains how MJPEG mode fits together: which component owns each kind of work, how long each one lives, and how the components cooperate when capture starts, stops or fails. It builds on the [overview](../README.md). [Usage](usage.md) explains how to share and describes each setting, and [HTTP server](server.md) defines the requests and responses that clients use.
+This guide explains which component owns each kind of work, how long each one lives, and how the components cooperate when capture starts, stops or fails. [Usage](usage.md) describes sharing and each setting, and [HTTP server](server.md) defines the requests and responses that clients use.
 
 ## Contents
 
@@ -131,7 +131,7 @@ Start is available when all of these hold:
 - no capture attempt is in progress;
 - at least one listener on the current port is listening on a selected, permitted address.
 
-The Controller checks these conditions again when it handles the request, so a tap can have no effect if conditions changed in between. A listening socket exists on the streaming device only. Whether a viewer can reach it depends on routing and the network between the devices; see [Make sure viewers can reach you](usage.md#make-sure-viewers-can-reach-you).
+The Controller checks these conditions again when it handles the request, so a tap can have no effect if conditions changed in between. A listening socket doesn't prove that a viewer can reach it; see [Make sure viewers can reach you](usage.md#make-sure-viewers-can-reach-you).
 
 ## Starting capture
 
@@ -182,7 +182,7 @@ Wrong-PIN limiting blocks further PIN checks from one peer IP address across all
 | Reopening the mode or Restart mode | New token and cookie. With protection on and **New PIN on open**, also a new PIN. |
 | Turning protection on or off, or changing the PIN while protection is on | Replaced. Connected viewers are disconnected and reconnect under the new rules. |
 
-Access changes apply only while no capture is in progress. The PIN shown on the mode's screen is separate from HTTP enforcement: hiding it changes only the screen. [Decide who can watch](usage.md#decide-who-can-watch) explains the user-facing choices, and [HTTP server](server.md) defines token exchange, the cookie and PIN submission.
+Access changes are setup settings ([Settings](#settings)). Hiding the PIN on the mode's screen doesn't affect HTTP enforcement. [Decide who can watch](usage.md#decide-who-can-watch) explains the user-facing choices, and [HTTP server](server.md) defines token exchange, the cookie and PIN submission.
 
 ## Stopping, closing and recovery
 
@@ -197,7 +197,7 @@ Each Stop targets one capture attempt, so a delayed Stop for an earlier attempt 
 
 When Stop is accepted, the attempt stops publishing at once, and viewers switch to the inactive stream image with the stopped notice. Cleanup then stops the Engine session, which closes frame delivery and ends screen access, and waits until the attempt's frame handler has returned. It also settles the attempt's consent records with Core. When every step succeeds, the Service returns to its waiting phase. The Engine's own [stop contract](../../../screen-capture-engine/docs/usage.md#stop-a-capture-run) governs when its internal graphics and buffer resources are physically released.
 
-Start becomes available again, and setup settings saved in the meantime take effect, only after this cleanup succeeds. Listeners, credentials and connected viewers are not affected. If cleanup is slow, the app reports "Still stopping the stream…" and offers **Restart mode**. If cleanup fails, the whole mode closes ([Pauses and failures](#pauses-and-failures)).
+Start becomes available again, and setup settings saved in the meantime take effect, only after this cleanup succeeds. If cleanup is slow, the app reports "Still stopping the stream…" and offers **Restart mode**. If cleanup fails, the whole mode closes ([Pauses and failures](#pauses-and-failures)).
 
 ### Pauses and failures
 
@@ -232,4 +232,4 @@ The mode's statistics combine measurements from two owners:
 | Slow reader | HTTP delivery | An MJPEG response that keeps skipping newly captured frames |
 | Engine statistics | Capture Engine statistics | Encoding times, image sizes and drop counts |
 
-The one-minute history belongs to the instance: it survives Stop and Start and resets when the mode reopens. With **Warn about skipped frames** enabled, the app occasionally shows "Frames skipped" while a viewer is a slow reader. All these figures are measured on the streaming device. They show what was produced and written, not what a viewer received or displayed. [Reading the statistics](usage.md#reading-the-statistics) explains how to use them.
+The one-minute history belongs to the instance: it survives Stop and Start and resets when the mode reopens. With **Warn about skipped frames** enabled, the app occasionally shows "Frames skipped" while a viewer is a slow reader. The figures show what the device produced and wrote, not what a viewer received or displayed. [Reading the statistics](usage.md#reading-the-statistics) explains how to use them.

@@ -2,15 +2,7 @@
 
 [Internals](../README.md) · [Module integration](01-module-integration.md) · [Coordination](03-coordination.md)
 
-This guide follows one capture attempt through MJPEG in this order:
-
-1. admission;
-2. consent and startup;
-3. JPEG publication;
-4. Stop and cleanup;
-5. the controller shutdown that retires the whole module instance.
-
-It continues [Starting capture](../../docs/architecture.md#starting-capture) and [Stopping, closing and recovery](../../docs/architecture.md#stopping-closing-and-recovery) in the public architecture guide. Core's [Screen Capture Access](../../../core/docs/screen-capture.md) owns the consent and projection rules. The [Capture Engine usage guide](../../../../screen-capture-engine/docs/usage.md) owns the engine's session, frame and stop contracts. This page records MJPEG's internal obligations on top of them, and it describes those external guarantees only as far as MJPEG depends on them.
+This guide follows one capture attempt through admission, consent and startup, JPEG publication, and Stop and cleanup, then the controller shutdown that retires the whole module instance. It continues [Starting capture](../../docs/architecture.md#starting-capture) and [Stopping, closing and recovery](../../docs/architecture.md#stopping-closing-and-recovery) in the public architecture guide. Core's [Screen Capture Access](../../../core/docs/screen-capture.md) owns the consent and projection rules, and the [Capture Engine usage guide](../../../../screen-capture-engine/docs/usage.md) owns the engine's session, frame and stop contracts. This page records MJPEG's obligations on top of them.
 
 ## Participants
 
@@ -88,7 +80,7 @@ Each step has a stage tag that appears in logs when the step fails:
 
 Stage tags are diagnostic labels, not API. The tag stays at `Engine.start` after startup, so an unexpected failure from a later parameter submission is also logged under it.
 
-**Startup confirmation** means the engine's `start()` returned normally: a usable `Active` configuration was assigned and startup success was settled ([startup details](../../../../screen-capture-engine/docs/usage.md#startup-details)). Confirmation does not wait for a JPEG; the first JPEG normally follows it. However, the code that resumes after `start()` can run late. By then the engine may already be delivering frames. For that reason the initial generation is installed at admission, and a JPEG that arrives before confirmation is committed is still published. On Android 14 (API 34) and later, the engine also waits for Android's first captured-content size before `Active`.
+**Startup confirmation** means the engine's `start()` returned normally: a usable `Active` configuration was assigned and startup success was settled ([startup details](../../../../screen-capture-engine/docs/usage.md#startup-details)). Confirmation does not wait for a JPEG. The engine may deliver frames before the code after `start()` resumes, so the initial generation is installed at admission and such JPEGs are still published. On Android 14 (API 34) and later, the engine also waits for Android's first captured-content size before `Active`.
 
 A Stop during startup makes the engine's `start()` end with cancellation. MJPEG treats that as a normal end, and records a capture failure only if the engine already reports `Failed` at that moment. A genuine Engine startup failure is a capture failure. If the attempt then cleans up successfully and the instance is still admitting ordinary work, the module stays open and Start becomes available again. A terminal failure of another owner, or a shutdown that has already begun, closes the instance even when capture cleanup succeeds. A platform failure while the original Service enters capture foreground is one such terminal failure. Core's Service closes foreground admission, reports module failure and requests the controller's shutdown. The attempt still cleans up, and the instance closes.
 
@@ -128,7 +120,7 @@ The first Stop cause is sticky:
 
 Engine terminal observations and failures accept their Stop cause in the same commit. Capture and cleanup failures are kept separately, so one never hides the other. Successful cleanup keeps any capture failure, so the session stays Failed while a controller that is still admitting ordinary work becomes eligible for another Start. Failed cleanup makes the whole module terminal: the controller reports failure and starts shutdown.
 
-The session publishes its snapshot through a [`StateFlow`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-state-flow/). A StateFlow keeps the latest value and lets slow collectors skip intermediate ones. Engine state changes therefore act only as wakeups. The session rereads the engine's current state under the state gate, the same gate that frame callbacks use. A delayed emission can therefore never undo a newer observation, such as a recovery already seen by a frame callback. The controller follows the same rule and reads the session's current snapshot whenever it processes a change.
+The session publishes its snapshot through a [`StateFlow`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-state-flow/), which can skip intermediate values. Engine state emissions therefore act only as wakeups: the session rereads the engine's current state under the state gate that frame callbacks also use, so a delayed emission can never undo a newer observation. The controller likewise reads the session's current snapshot whenever it processes a change.
 
 Locks nest in one order: **session state gate → HTTP control monitor → JPEG store monitor**.
 
@@ -188,7 +180,7 @@ The engine lends each JPEG only for the duration of its callback, on the callbac
 4. lets HTTP check the generation, run the copier into HTTP-owned storage, and check the generation again before publishing, so a copy that finishes after revocation is dropped;
 5. finally, if any Stop cause has now been accepted, cancels the attempt's capture coroutine.
 
-The copier must write exactly the advertised `byteCount`. A copy exception, a short copy, or any other exception in this sequence records the first capture failure at stage `Output.frame` with stop cause Error. Step 5 then ends the attempt. Never retain the copier or the frame, and never use either outside the callback thread. [Capture scenarios](../03-testing/scenarios/03-capture.md#mjpeg-cap-08) separate truthful borrowed-byte checks from deliberately broken boundary stimuli. [JPEG delivery](../02-delivery/02-jpeg-delivery.md) owns storage, rejection and reader leases.
+The copier must write exactly the advertised `byteCount`. A copy exception, a short copy, or any other exception in this sequence records the first capture failure at stage `Output.frame` with stop cause Error. Step 5 then ends the attempt. Never retain the copier or the frame, and never use either outside the callback thread. [JPEG delivery](../02-delivery/02-jpeg-delivery.md) owns storage, rejection and reader leases.
 
 Callbacks follow the engine's [parameter contract](../../../../screen-capture-engine/docs/usage.md#change-capture-parameters), including its allowance for a frame produced under older settings. Suspension keeps the same engine session and the same foreground.
 
@@ -215,7 +207,7 @@ The cleanup rules are:
 
 - **Independence.** Consumer unregistration starts alongside media stop, and every applicable step is attempted even when an earlier one fails. The first recorded failure becomes the cleanup failure. An unexpected failure of the cleanup block itself is recorded as `Cleanup.capture`.
 - **Steps that can fail.** Media stop, the Core settlement, consent saving and foreground demotion are real fallible boundaries. The engine's stop reports a required shutdown failure as `InternalFailure`. A raw projection stop is a direct platform call. Technical foreground failures throw. Their failures are recorded as `Cleanup.media`, `Cleanup.projectionCreation`, `Cleanup.consentReuse` and `Cleanup.foreground`.
-- **Consumer completion is a wait.** Exact unregistration is different. The engine's `unregister()` closes delivery to that consumer and suspends until any entered callback returns. It is legal after the session has stopped or failed, and it has no ordinary failure result on this path. Cleanup awaits it non-cancellably, so caller cancellation cannot cut it short. The `Cleanup.consumer` catch is a defensive adapter boundary that only an injected failure exercises. The real risk on this path is a callback that never returns, which keeps cleanup pending. [MJPEG-CAP-10](../03-testing/scenarios/03-capture.md#mjpeg-cap-10) keeps this distinction.
+- **Consumer completion is a wait.** The engine's `unregister()` closes delivery to that consumer and suspends until any entered callback returns. It is legal after the session has stopped or failed and has no ordinary failure result, so the `Cleanup.consumer` catch is only defensive. Cleanup awaits it non-cancellably; the real risk is a callback that never returns, which keeps cleanup pending ([MJPEG-CAP-10](../03-testing/scenarios/03-capture.md#mjpeg-cap-10)).
 - **Final facts.** After the engine's stop returns, cleanup republishes the final statistics (without an FPS value) and rereads the engine state. The terminal-state collector may have cancelled the other collectors before their last emission.
 - **Consent reuse.** Cleanup offers the grant to Core's [legacy reuse](../../../core/docs/screen-capture.md#legacy-reuse-and-cleanup) only when all of these hold:
   - startup was confirmed;
@@ -230,11 +222,11 @@ The cleanup rules are:
 
 A successful engine stop confirms three things: new work and frame delivery are closed, final state and statistics are assigned, and the projection-stop call has returned. Physical graphics and buffer release follows the engine's own limits. Exact consumer unregistration adds a separate guarantee: no frame callback is still running. See the engine's [stop](../../../../screen-capture-engine/docs/usage.md#stop-a-capture-run) and [consumer removal](../../../../screen-capture-engine/docs/usage.md#replace-or-remove-the-consumer) contracts.
 
-A capture failure that cleans up successfully returns the controller to idle while the instance is still admitting ordinary work, and the user must Start again. A shutdown that has already begun for another reason still closes the instance. [Coordination](03-coordination.md#capture-availability-and-command-admission) describes how the controller applies each cleanup outcome.
+[Coordination](03-coordination.md#capture-availability-and-command-admission) describes how the controller applies each cleanup outcome.
 
 ## Controller shutdown and complete module cleanup
 
-Capture Stop and module closure are different. Stop ends one attempt and leaves listeners, credentials and viewers in place. Closure retires the whole instance. `requestModuleShutdown()` is the only terminal entry point. It runs directly, outside the event queue, so it works before the event loop starts and while the loop is blocked. In order, it:
+Closure retires the whole instance, unlike a capture Stop ([internals index](../README.md#requests-completion-and-release)). `requestModuleShutdown()` is the only terminal entry point. It runs directly, outside the event queue, so it works before the event loop starts and while the loop is blocked. In order, it:
 
 1. closes the screen-off observer synchronously, on every call, including the call triggered by Service destruction;
 2. marks shutdown, which closes event and Start admission (repeated calls stop here);

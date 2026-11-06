@@ -43,20 +43,20 @@ internal class MjpegControllerNetworkTest {
     // Cases: MJPEG-CTL-08
     @Test
     fun loadingRetainsSelectionButObservedInventoryIsReselectedByTheCurrentFilter() = runBlocking {
-        val settings = inputs.settings()
-        val host = MjpegServiceHost(settings)
+        val settings = inputs.createSettings()
+        val host = MjpegServiceTestHost(settings)
         try {
-            inputs.startModuleWithListeningServer(host)
+            inputs.startModuleWithReadyListener(host)
             val first = host.http.plan.value!!
             inputs.publishDiscovery(host, NetworkAddressMonitor.State.Loading)
             assertEquals(first, host.http.plan.value)
             inputs.publishDiscovery(
                 host,
-                observedAddresses(listOf(inputs.address(id = 99, ip = "203.0.113.9", type = InterfaceType.Vpn))),
+                observedAddressState(listOf(inputs.address(id = 99, ip = "203.0.113.9", type = InterfaceType.Vpn))),
             )
             assertTrue(host.http.plan.value!!.addresses.isEmpty())
             val replacement = inputs.address(id = 2)
-            inputs.publishDiscovery(host, observedAddresses(listOf(replacement)))
+            inputs.publishDiscovery(host, observedAddressState(listOf(replacement)))
             assertEquals(listOf(replacement), host.http.plan.value!!.addresses)
         } finally {
             assertTrue(host.close())
@@ -84,26 +84,26 @@ internal class MjpegControllerNetworkTest {
     fun processedHeartbeatRechecksGrantAndRevocationAgainstRetainedSelection() = runBlocking {
         val application: Application = RuntimeEnvironment.getApplication()
         shadowOf(application).denyPermissions(Manifest.permission.ACCESS_LOCAL_NETWORK)
-        val settings = inputs.settingsWithBroadFilter()
-        val host = MjpegServiceHost(settings, targetSdk = 37)
+        val settings = inputs.createSettingsWithBroadIpv4Filter()
+        val host = MjpegServiceTestHost(settings, targetSdk = 37)
         try {
             host.controller.startModule()
             host.http.configuration.awaitControllerValue { it != null }
             val filter = host.settings.data.first().network.filter
             val lan = inputs.address()
-            val exempt = inputs.address(id = 2, type = InterfaceType.Vpn)
-            host.monitor.state.value = observedAddresses(listOf(lan, exempt))
-            host.http.planApplications.awaitControllerValue { it.lastOrNull()?.addresses == listOf(exempt) }
+            val vpnAddress = inputs.address(id = 2, type = InterfaceType.Vpn)
+            host.monitor.state.value = observedAddressState(listOf(lan, vpnAddress))
+            host.http.planApplications.awaitControllerValue { it.lastOrNull()?.addresses == listOf(vpnAddress) }
             inputs.publishDiscovery(host, NetworkAddressMonitor.State.Loading)
             shadowOf(application).grantPermissions(Manifest.permission.ACCESS_LOCAL_NETWORK)
             ShadowSystemClock.advanceBy(Duration.ofSeconds(2))
             inputs.publishServerState(host, lan)
-            host.http.plan.awaitControllerValue { it?.addresses == listOf(lan, exempt) }
+            host.http.plan.awaitControllerValue { it?.addresses == listOf(lan, vpnAddress) }
             shadowOf(application).denyPermissions(Manifest.permission.ACCESS_LOCAL_NETWORK)
             ShadowSystemClock.advanceBy(Duration.ofSeconds(2))
-            host.monitor.state.value = observedAddresses(listOf(lan, exempt))
-            host.http.plan.awaitControllerValue { it?.addresses == listOf(exempt) }
-            assertEquals(listOf(lan, exempt), (host.monitor.state.value as NetworkAddressMonitor.State.Observed).inventory.select(filter))
+            host.monitor.state.value = observedAddressState(listOf(lan, vpnAddress))
+            host.http.plan.awaitControllerValue { it?.addresses == listOf(vpnAddress) }
+            assertEquals(listOf(lan, vpnAddress), (host.monitor.state.value as NetworkAddressMonitor.State.Observed).inventory.select(filter))
         } finally {
             assertTrue(host.close())
         }
@@ -115,36 +115,36 @@ internal class MjpegControllerNetworkTest {
     fun deniedLanListenerRejectsStartAndNonemptyDeniedDiscoveryDoesNotStopExemptAttempt() = runBlocking {
         val application: Application = RuntimeEnvironment.getApplication()
         shadowOf(application).denyPermissions(Manifest.permission.ACCESS_LOCAL_NETWORK)
-        val settings = inputs.settingsWithBroadFilter()
+        val settings = inputs.createSettingsWithBroadIpv4Filter()
         settings.updateData { copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 10)) }
-        val host = MjpegServiceHost(settings, targetSdk = 37)
+        val host = MjpegServiceTestHost(settings, targetSdk = 37)
         try {
             host.controller.startModule()
             host.http.configuration.awaitControllerValue { it != null }
             val filter = host.settings.data.first().network.filter
             val lan = inputs.address()
-            val exempt = inputs.address(id = 2, type = InterfaceType.Vpn)
-            host.monitor.state.value = observedAddresses(listOf(lan, exempt))
-            host.http.planApplications.awaitControllerValue { it.lastOrNull()?.addresses == listOf(exempt) }
-            assertEquals(listOf(exempt), host.http.plan.value!!.addresses)
+            val vpnAddress = inputs.address(id = 2, type = InterfaceType.Vpn)
+            host.monitor.state.value = observedAddressState(listOf(lan, vpnAddress))
+            host.http.planApplications.awaitControllerValue { it.lastOrNull()?.addresses == listOf(vpnAddress) }
+            assertEquals(listOf(vpnAddress), host.http.plan.value!!.addresses)
             inputs.publishServerState(host, lan)
             host.controller.requestStreamStart()
             inputs.applySettingsCheckpoint(settings, host, "Denied LAN Start processed")
-            assertTrue(host.http.captures.value.isEmpty())
-            assertTrue(host.access.requested.value.isEmpty())
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
+            assertTrue(host.access.consentRequests.value.isEmpty())
 
-            inputs.publishServerState(host, exempt)
+            inputs.publishServerState(host, vpnAddress)
             host.controller.requestStreamStart()
-            val attempt = host.access.requested.awaitControllerValue { it.size == 1 }.single()
-            assertEquals(listOf(attempt), host.http.captures.value)
+            val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
+            assertEquals(listOf(attempt), host.http.registeredCaptureAttempts.value)
             host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.WaitingForPermission }
-            inputs.publishDiscovery(host, observedAddresses(listOf(lan)))
+            inputs.publishDiscovery(host, observedAddressState(listOf(lan)))
             assertTrue(host.http.plan.value!!.addresses.isEmpty())
             inputs.applySettingsCheckpoint(settings, host, "Denied nonempty discovery processed")
             ShadowSystemClock.advanceBy(Duration.ofSeconds(20))
             inputs.applySettingsCheckpoint(settings, host, "Denied discovery outlasted loss interval")
             inputs.applySettingsCheckpoint(settings, host, "Denied discovery deadline turn completed")
-            inputs.assertHeldConsent(host, attempt)
+            inputs.assertConsentPending(host, attempt)
             host.controller.requestStreamStop(attempt, false)
             host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
             assertFalse(host.http.closed)
@@ -159,41 +159,42 @@ internal class MjpegControllerNetworkTest {
     fun startRereadsFreshGrantDependentClassificationBeforeItsDiscoveryEventIsHandled() = runBlocking {
         val application: Application = RuntimeEnvironment.getApplication()
         shadowOf(application).denyPermissions(Manifest.permission.ACCESS_LOCAL_NETWORK)
-        val settings = inputs.settingsWithBroadFilter()
-        val host = MjpegServiceHost(settings, targetSdk = 37)
-        val entered = CompletableDeferred<Unit>()
-        val release = CountDownLatch(1)
-        val armed = java.util.concurrent.atomic.AtomicBoolean(true)
+        val settings = inputs.createSettingsWithBroadIpv4Filter()
+        val host = MjpegServiceTestHost(settings, targetSdk = 37)
+        val configurationUpdateEntered = CompletableDeferred<Unit>()
+        val allowConfigurationUpdateToReturn = CountDownLatch(1)
+        val blockNextConfigurationUpdate = java.util.concurrent.atomic.AtomicBoolean(true)
         try {
             host.http.configuration.awaitControllerValue { it != null }
             val vpn = inputs.address(type = InterfaceType.Vpn)
-            host.monitor.state.value = observedAddresses(listOf(vpn))
+            host.monitor.state.value = observedAddressState(listOf(vpn))
             host.http.plan.awaitControllerValue { it?.addresses == listOf(vpn) }
             inputs.publishServerState(host, vpn)
             inputs.applySettingsCheckpoint(settings, host, "Processed VPN is ready")
             host.http.onConfiguration = {
-                if (armed.compareAndSet(true, false)) {
-                    entered.complete(Unit)
-                    check(release.await(20, TimeUnit.SECONDS))
+                if (blockNextConfigurationUpdate.compareAndSet(true, false)) {
+                    configurationUpdateEntered.complete(Unit)
+                    check(allowConfigurationUpdateToReturn.await(20, TimeUnit.SECONDS))
                 }
             }
             settings.updateData { copy(web = web.copy(title = "Hold before Start")) }
-            withTimeout(5.seconds) { entered.await() }
+            withTimeout(5.seconds) { configurationUpdateEntered.await() }
             host.controller.requestStreamStart()
-            host.monitor.state.value = observedAddresses(listOf(inputs.address(type = InterfaceType.Wifi)))
-            release.countDown()
+            host.monitor.state.value = observedAddressState(listOf(inputs.address(type = InterfaceType.Wifi)))
+            allowConfigurationUpdateToReturn.countDown()
             inputs.applySettingsCheckpoint(settings, host, "Start and fresh classification processed")
-            assertTrue(host.http.captures.value.isEmpty())
-            assertTrue(host.access.requested.value.isEmpty())
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
+            assertTrue(host.access.consentRequests.value.isEmpty())
         } finally {
-            release.countDown(); assertTrue(host.close())
+            allowConfigurationUpdateToReturn.countDown()
+            assertTrue(host.close())
         }
     }
 
     private suspend fun assertPermissionPlan(targetSdk: Int, expectedLanAllowed: Boolean) {
         val application: Application = RuntimeEnvironment.getApplication()
         shadowOf(application).denyPermissions(Manifest.permission.ACCESS_LOCAL_NETWORK)
-        val host = MjpegServiceHost(inputs.settingsWithBroadFilter(), targetSdk = targetSdk)
+        val host = MjpegServiceTestHost(inputs.createSettingsWithBroadIpv4Filter(), targetSdk = targetSdk)
         try {
             host.controller.startModule()
             host.http.configuration.awaitControllerValue { it != null }
@@ -202,9 +203,9 @@ internal class MjpegControllerNetworkTest {
             val mobile = inputs.address(id = 2, type = InterfaceType.Mobile)
             val vpn = inputs.address(id = 3, type = InterfaceType.Vpn)
             val loopback = inputs.address(id = 4, ip = "127.0.0.1")
-            val expected = if (expectedLanAllowed) listOf(lan, mobile, vpn, loopback) else listOf(mobile, vpn, loopback)
-            host.monitor.state.value = observedAddresses(listOf(lan, mobile, vpn, loopback))
-            assertEquals(expected, host.http.plan.awaitControllerValue { it?.addresses == expected }!!.addresses)
+            val expectedAddresses = if (expectedLanAllowed) listOf(lan, mobile, vpn, loopback) else listOf(mobile, vpn, loopback)
+            host.monitor.state.value = observedAddressState(listOf(lan, mobile, vpn, loopback))
+            assertEquals(expectedAddresses, host.http.plan.awaitControllerValue { it?.addresses == expectedAddresses }!!.addresses)
         } finally {
             assertTrue(host.close())
         }

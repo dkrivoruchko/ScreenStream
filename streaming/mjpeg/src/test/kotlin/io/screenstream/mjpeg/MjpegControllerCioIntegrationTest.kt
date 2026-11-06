@@ -5,10 +5,10 @@ import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.http.KtorHttpDelivery
 import io.screenstream.mjpeg.http.awaitHttpInfo
-import io.screenstream.mjpeg.http.finishHttpTest
 import io.screenstream.mjpeg.http.httpTestAddress
 import io.screenstream.mjpeg.http.httpTestContext
 import io.screenstream.mjpeg.http.requestHttpJpeg
+import io.screenstream.mjpeg.http.stopHttpTestDelivery
 import io.screenstream.mjpeg.networkaddress.AddressCategory
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
@@ -46,7 +46,7 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
 @LooperMode(LooperMode.Mode.PAUSED)
-internal class MjpegControllerCioAssemblyTest {
+internal class MjpegControllerCioIntegrationTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
@@ -66,50 +66,50 @@ internal class MjpegControllerCioAssemblyTest {
         seedSettings(context, Json.encodeToString(data))
         val logo = context.assets.open("mjpeg/screenstream-logo.jpg").use { it.readBytes() }
         val realDelivery = KtorHttpDelivery(httpTestContext())
-        val observedDelivery = ObservedDelivery(realDelivery)
-        val engine = ControlledMjpegEngine()
-        var host: MjpegServiceHost? = null
+        val observedDelivery = RecordingHttpDelivery(realDelivery)
+        val engine = ControlledMjpegEngineSession()
+        var host: MjpegServiceTestHost? = null
         try {
-            val activeHost = MjpegServiceHost(MjpegSettings(context), engineFactory = { _, _, _ -> engine }, delivery = observedDelivery)
+            val activeHost = MjpegServiceTestHost(MjpegSettings(context), engineFactory = { _, _, _ -> engine }, delivery = observedDelivery)
             host = activeHost
-            activeHost.monitor.state.value = observedAddresses(listOf(httpTestAddress()))
-            val listening = realDelivery.awaitHttpInfo { it.servers.singleOrNull()?.state == HttpDelivery.ServerState.Listening }.servers.single()
+            activeHost.monitor.state.value = observedAddressState(listOf(httpTestAddress()))
+            val listeningServer = realDelivery.awaitHttpInfo { it.servers.singleOrNull()?.state == HttpDelivery.ServerState.Listening }.servers.single()
             withTimeout(5.seconds) { activeHost.controller.state.first { it.action == UiController.Action.Start(true) } }
 
             activeHost.controller.requestStreamStart()
-            val attempt = withTimeout(5.seconds) { activeHost.access.requested.first { it.size == 1 }.single() }
-            val registration = withTimeout(5.seconds) { observedDelivery.registration.await() }
-            val waiting = withTimeout(5.seconds) { observedDelivery.waiting.await() }
-            assertEquals(attempt, registration.attempt)
-            assertEquals(attempt, waiting.attempt)
-            assertSame(registration.generation, waiting.generation)
+            val attempt = withTimeout(5.seconds) { activeHost.access.consentRequests.first { it.size == 1 }.single() }
+            val captureRegistered = withTimeout(5.seconds) { observedDelivery.captureRegistered.await() }
+            val waitingStatusPublished = withTimeout(5.seconds) { observedDelivery.waitingStatusPublished.await() }
+            assertEquals(attempt, captureRegistered.attempt)
+            assertEquals(attempt, waitingStatusPublished.attempt)
+            assertSame(captureRegistered.generation, waitingStatusPublished.generation)
             assertFalse(engine.startEntered.isCompleted)
 
-            activeHost.access.consent.complete(object : ScreenCaptureAccess.Grant {})
+            activeHost.access.consentGrant.complete(object : ScreenCaptureAccess.Grant {})
             withTimeout(5.seconds) { activeHost.managerObservation.status.first { it?.isStreaming == true && it.captureAttempt == attempt } }
             withTimeout(5.seconds) { activeHost.controller.state.first { it.action == UiController.Action.Stop(attempt) } }
-            val active = withTimeout(5.seconds) { observedDelivery.active.await() }
-            assertEquals(attempt, active.attempt)
-            assertSame(registration.generation, active.generation)
+            val activeStatusPublished = withTimeout(5.seconds) { observedDelivery.activeStatusPublished.await() }
+            assertEquals(attempt, activeStatusPublished.attempt)
+            assertSame(captureRegistered.generation, activeStatusPublished.generation)
 
-            val expected = byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)
-            val borrowed = expected.copyOf()
-            engine.deliver(borrowed)
-            borrowed.fill(0)
-            val offered = withTimeout(5.seconds) { observedDelivery.offer.await() }
-            assertSame(registration.generation, offered.generation)
+            val expectedJpeg = byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)
+            val borrowedJpeg = expectedJpeg.copyOf()
+            engine.deliver(borrowedJpeg)
+            borrowedJpeg.fill(0)
+            val offered = withTimeout(5.seconds) { observedDelivery.jpegOffered.await() }
+            assertSame(captureRegistered.generation, offered.generation)
             assertEquals(6, offered.byteCount)
-            val image = requestHttpJpeg(port)
-            assertEquals(200, image.status)
-            assertEquals("image/jpeg", image.headers["content-type"])
-            assertEquals("6", image.headers["content-length"])
-            assertArrayEquals(expected, image.bytes)
+            val jpegResponse = requestHttpJpeg(port)
+            assertEquals(200, jpegResponse.status)
+            assertEquals("image/jpeg", jpegResponse.headers["content-type"])
+            assertEquals("6", jpegResponse.headers["content-length"])
+            assertArrayEquals(expectedJpeg, jpegResponse.bytes)
 
             activeHost.controller.requestStreamStop(attempt, fromNotification = false)
             withTimeout(5.seconds) { activeHost.controller.state.first { it.action == UiController.Action.Start(true) } }
             withTimeout(5.seconds) { realDelivery.webState.first { it?.notice == "stopped" } }
             val stopped = realDelivery.info.value
-            assertEquals(listOf(listening), stopped.servers)
+            assertEquals(listOf(listeningServer), stopped.servers)
             assertNull(stopped.fatalCause)
             assertFalse(activeHost.managerObservation.failed.isCompleted)
             val placeholder = requestHttpJpeg(port)
@@ -121,52 +121,52 @@ internal class MjpegControllerCioAssemblyTest {
             val cleanupSucceeded = activeHost.close()
             host = null
             assertTrue(cleanupSucceeded)
-            realDelivery.finishHttpTest()
+            realDelivery.stopHttpTestDelivery()
             ServerSocket().use { socket ->
                 socket.reuseAddress = true
                 socket.bind(InetSocketAddress(loopback, port))
                 assertEquals(port, socket.localPort)
             }
         } finally {
-            engine.release()
+            engine.releaseAllGates()
             withContext(NonCancellable) {
                 try {
                     host?.let { assertTrue(it.close()) }
                 } finally {
-                    realDelivery.finishHttpTest()
+                    realDelivery.stopHttpTestDelivery()
                 }
             }
         }
     }
 
-    private class ObservedDelivery(private val delegate: HttpDelivery) : HttpDelivery by delegate {
-        val registration = CompletableDeferred<CaptureHandoff>()
-        val waiting = CompletableDeferred<CaptureHandoff>()
-        val active = CompletableDeferred<CaptureHandoff>()
-        val offer = CompletableDeferred<JpegOffer>()
+    private class RecordingHttpDelivery(private val delegate: HttpDelivery) : HttpDelivery by delegate {
+        val captureRegistered = CompletableDeferred<CaptureGenerationReceipt>()
+        val waitingStatusPublished = CompletableDeferred<CaptureGenerationReceipt>()
+        val activeStatusPublished = CompletableDeferred<CaptureGenerationReceipt>()
+        val jpegOffered = CompletableDeferred<JpegOfferReceipt>()
 
         override fun registerCapture(id: StreamingModule.CaptureAttemptId, initialCaptureGeneration: Any): Boolean {
             val accepted = delegate.registerCapture(id, initialCaptureGeneration)
-            if (accepted) registration.complete(CaptureHandoff(id, initialCaptureGeneration))
+            if (accepted) captureRegistered.complete(CaptureGenerationReceipt(id, initialCaptureGeneration))
             return accepted
         }
 
         override fun updateCaptureStatus(id: StreamingModule.CaptureAttemptId, state: MjpegCaptureSession.State.Status, captureGeneration: Any?) {
             delegate.updateCaptureStatus(id, state, captureGeneration)
             when (state) {
-                MjpegCaptureSession.State.Status.WaitingForPermission -> waiting.complete(CaptureHandoff(id, captureGeneration))
-                MjpegCaptureSession.State.Status.Active -> active.complete(CaptureHandoff(id, captureGeneration))
+                MjpegCaptureSession.State.Status.WaitingForPermission -> waitingStatusPublished.complete(CaptureGenerationReceipt(id, captureGeneration))
+                MjpegCaptureSession.State.Status.Active -> activeStatusPublished.complete(CaptureGenerationReceipt(id, captureGeneration))
                 else -> Unit
             }
         }
 
         override fun offerJpeg(expectedCaptureGeneration: Any, byteCount: Int, copyTo: (ByteArray) -> Unit) {
             delegate.offerJpeg(expectedCaptureGeneration, byteCount, copyTo)
-            offer.complete(JpegOffer(expectedCaptureGeneration, byteCount))
+            jpegOffered.complete(JpegOfferReceipt(expectedCaptureGeneration, byteCount))
         }
     }
 
-    private data class CaptureHandoff(val attempt: StreamingModule.CaptureAttemptId, val generation: Any?)
+    private data class CaptureGenerationReceipt(val attempt: StreamingModule.CaptureAttemptId, val generation: Any?)
 
-    private data class JpegOffer(val generation: Any, val byteCount: Int)
+    private data class JpegOfferReceipt(val generation: Any, val byteCount: Int)
 }

@@ -61,9 +61,9 @@ internal class FrameRateSettingsUiTest {
     }
 
     @Test
-    fun localizedIntervalAndIndependentModeDraftsSurviveSwitchingSavingAndReopening() {
+    fun localizedIntervalDraftSurvivesModeSwitchesAndSavesTheSelectedRate() {
         val settings = newSettings()
-        val initial = settled(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         render(settings, initial)
         openEditor()
 
@@ -80,7 +80,7 @@ internal class FrameRateSettingsUiTest {
         closeEditor()
 
         val expected = initial.copy(image = initial.image.copy(frameRate = FrameRate.SamplingInterval(1250.milliseconds)))
-        assertEquals(expected, settled(settings))
+        assertEquals(expected, compose.awaitSavedMjpegSettings(settings))
         openEditor()
         field(R.string.mjpeg_pref_image_rate_interval_label).assertTextContains("1,25")
         closeEditor()
@@ -89,7 +89,7 @@ internal class FrameRateSettingsUiTest {
     @Test
     fun emptyActiveIntervalKeepsSavedRateButInvalidDormantDraftAllowsAuto() {
         val settings = newSettings(FrameRate.MaxFps(17))
-        val initial = settled(settings)
+        val initial = compose.awaitSavedMjpegSettings(settings)
         render(settings, initial)
         openEditor()
 
@@ -99,7 +99,7 @@ internal class FrameRateSettingsUiTest {
             SemanticsMatcher.expectValue(SemanticsProperties.Error, text(R.string.mjpeg_pref_image_rate_interval_error)),
         )
         closeEditor()
-        assertEquals(initial, settled(settings))
+        assertEquals(initial, compose.awaitSavedMjpegSettings(settings))
 
         openEditor()
         field(R.string.mjpeg_pref_image_rate_fps_label).assertTextContains("17")
@@ -110,7 +110,7 @@ internal class FrameRateSettingsUiTest {
         closeEditor()
 
         val expected = initial.copy(image = initial.image.copy(frameRate = FrameRate.Auto))
-        assertEquals(expected, settled(settings))
+        assertEquals(expected, compose.awaitSavedMjpegSettings(settings))
     }
 
     private fun newSettings(rate: FrameRate = FrameRate.Auto): MjpegSettings {
@@ -139,8 +139,6 @@ internal class FrameRateSettingsUiTest {
             }
         }
     }
-
-    private fun settled(settings: MjpegSettings): MjpegSettings.Data = compose.settledMjpegSettings(settings)
 
     private fun openEditor() = compose.onNodeWithText(text(R.string.mjpeg_pref_image_rate)).performClick()
     private fun closeEditor() = compose.onNodeWithContentDescription(text(R.string.mjpeg_action_close)).performClick()

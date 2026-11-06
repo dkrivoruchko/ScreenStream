@@ -2,28 +2,9 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing MJPEG](../01-testing.md)
 
-This page describes the histories a test needs in order to show that the HTTP surface keeps its public contract. It covers request authority, the viewer page and token exchange, PIN submission, media authorization and CORS, and the read-only WebSocket state connection.
+Test histories for the HTTP surface: request authority, the viewer page and token exchange, PIN submission, media authorization and CORS, and the read-only WebSocket state connection. The public [HTTP server guide](../../../docs/server.md#reference) owns the wire contract, and this page doesn't repeat its tables. [Web client](../../02-delivery/03-web-client.md) explains the route adapter (`WebRoutes`, `WebState`); [HTTP delivery](../../02-delivery/01-http-delivery.md) makes every admission decision. Attempt budgets and rotation belong to the [access scenarios](06-access.md), image bytes to [media](07-media.md), listener lifetime to [HTTP runtime](05-http-runtime.md), and in-browser page behavior to the [web tools guide](../../../tools/web-client/README.md).
 
-The public [HTTP server guide](../../../docs/server.md#reference) owns the wire contract: routes, statuses, headers, credentials and the snapshot schema. This page refers to that contract and doesn't repeat its tables. [Web client](../../02-delivery/03-web-client.md) explains the Android route adapter. [HTTP delivery](../../02-delivery/01-http-delivery.md) owns admission, credentials and cutoff.
-
-Neighboring pages own related histories:
-
-- [Access scenarios](06-access.md) cover attempt budgets, rotation and blocks.
-- [Media scenarios](07-media.md) cover image bytes.
-- [HTTP runtime scenarios](05-http-runtime.md) cover listener lifetime.
-- The [web tools guide](../../../tools/web-client/README.md) covers the page's own behavior in a browser.
-
-These are requirements, not a record of passing tests. [Testing MJPEG](../01-testing.md) explains how test sources, fresh runs and platform qualification count as evidence.
-
-## The pieces under test
-
-| Piece | Lifetime | Responsibility |
-| --- | --- | --- |
-| `WebRoutes` | One HTTP delivery, installed on each listener | Common headers and authority checks before routing, the routes themselves, the PIN body parser and the WebSocket adapter |
-| Delivery request handler | One HTTP delivery | Whether a listener is current, token exchange, PIN verification, media admission, WebSocket admission and whether a socket is still current |
-| `WebState` | One immutable value per change | The facts a snapshot encodes, plus an internal credential generation that never reaches the wire |
-
-Several terms recur below.
+## Terms
 
 - **Request authority** is the `Host` header.
 - A **current listener** is the exact listener that the current plan holds. It counts as current from the moment its incarnation installs it, including while it is still starting, until its address leaves the plan or delivery stops.
@@ -41,8 +22,6 @@ flowchart TD
 ```
 
 ### Evidence layers
-
-[Testing MJPEG](../01-testing.md#choosing-an-environment) defines levels L0 to L2 and their limits.
 
 `WebState` encoding is plain Kotlin. Check it at L0 with an independent JSON parser. Routes, request bodies and WebSocket behavior need L1. Use Ktor's test engine for routing and body channels, and configured CIO for upgrades, transport limits and timeouts.
 

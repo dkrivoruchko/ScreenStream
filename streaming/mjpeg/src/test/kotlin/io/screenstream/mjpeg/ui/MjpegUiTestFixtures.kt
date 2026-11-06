@@ -23,17 +23,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 /** Join admitted saves without blocking the Compose dispatcher needed to finish those saves. */
-internal fun AndroidComposeTestRule<*, *>.settledMjpegSettings(settings: MjpegSettings): MjpegSettings.Data {
-    val scope = CoroutineScope(Dispatchers.Default)
-    val receipt = scope.async {
+internal fun AndroidComposeTestRule<*, *>.awaitSavedMjpegSettings(settings: MjpegSettings): MjpegSettings.Data {
+    val saveScope = CoroutineScope(Dispatchers.Default)
+    val savedSnapshot = saveScope.async {
         settings.updateData { this }
         settings.data.first()
     }
     return try {
-        waitUntil(5_000) { receipt.isCompleted }
-        runBlocking { receipt.await() }
+        waitUntil(5_000) { savedSnapshot.isCompleted }
+        runBlocking { savedSnapshot.await() }
     } finally {
-        scope.cancel()
+        saveScope.cancel()
     }
 }
 
@@ -48,10 +48,10 @@ internal class RecordingUiController : UiController {
 }
 
 internal class RecordingClipboard : Clipboard {
-    var entry: ClipEntry? = null
-    override suspend fun getClipEntry(): ClipEntry? = entry
+    var clipEntry: ClipEntry? = null
+    override suspend fun getClipEntry(): ClipEntry? = clipEntry
     override suspend fun setClipEntry(clipEntry: ClipEntry?) {
-        entry = clipEntry
+        this.clipEntry = clipEntry
     }
 }
 

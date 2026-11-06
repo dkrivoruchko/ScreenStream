@@ -2,7 +2,7 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing](../01-testing.md)
 
-This page lists the test histories for three jobs: how MJPEG finds the device's addresses, how it chooses which ones to offer, and how it holds back listeners that need Android's local-network permission. Use it when you change discovery, address classification, selection with the **Network filter**, or the permission gate.
+Test histories for address discovery, selection with the **Network filter**, and holding back listeners that need Android's local-network permission.
 
 The scenarios build on these owners:
 
@@ -21,16 +21,8 @@ Some neighboring histories belong to other pages. The controller scenarios cover
 
 - [`NetworkAddress.kt`](../../../src/main/kotlin/io/screenstream/mjpeg/networkaddress/NetworkAddress.kt) defines the filter, the address categories, the scoped IP key and the inventory's selection.
 - [`AndroidNetworkAddressSource`](../../../src/main/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressSource.kt) runs one native interface scan. The scan goes through the injectable [`NativeInterfaceAccess`](../../../src/main/kotlin/io/screenstream/mjpeg/networkaddress/NativeInterfaceAccess.kt). It reports the addresses found, the interfaces read successfully, the interfaces that failed, and whether enumeration completed.
-- [`AndroidNetworkAddressMonitor`](../../../src/main/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressMonitor.kt) does the ongoing observation work:
-  - observes network callbacks, fallback getters and tethering events
-  - numbers each platform change
-  - runs scans one at a time
-  - keeps address IDs and publishes the inventory
-  - retires its observers on close
-- `MjpegStreamingModuleController` does three things with the inventory:
-  - selects addresses with the effective filter
-  - removes addresses that lack a required grant
-  - hands the rest to HTTP delivery as its listener plan
+- [`AndroidNetworkAddressMonitor`](../../../src/main/kotlin/io/screenstream/mjpeg/networkaddress/AndroidNetworkAddressMonitor.kt) observes network callbacks, fallback getters and tethering events, numbers each platform change, runs scans one at a time, keeps address IDs, publishes the inventory and retires its observers on close.
+- `MjpegStreamingModuleController` selects addresses with the effective filter, removes those that lack a required grant and hands the rest to HTTP delivery as its listener plan.
 
 The scenarios use these terms:
 
@@ -55,14 +47,14 @@ flowchart TB
 
 ## Test layers and evidence
 
-[Testing](../01-testing.md) defines the layers, the test-source coverage and the evidence rules. For discovery they work as follows:
+[Testing](../01-testing.md) defines the layers and evidence rules. For discovery:
 
 - **L0** checks the filter, categories and selection on hand-built inventories.
 - **L1** runs the source and monitor with a fake `NativeInterfaceAccess` and controlled `ConnectivityManager` and `TetheringManager` inputs. It also runs the controller's plan with a controlled grant.
   - Native scans and close work run on real IO threads, so hold and release each scan with entry and completion barriers. Scan deadlines read `System.nanoTime()` on the monitor's injectable observation dispatcher; cadence tests coordinate that dispatcher's scheduler with Robolectric's clock, as [evidence rule 3](../01-testing.md#evidence-rules) explains.
   - The address-loss clock is `SystemClock.elapsedRealtime()`.
 - **L2** is needed for real native discovery, permission enforcement and incoming reachability.
-- **Supplied inputs:** callbacks supplied by a test show how MJPEG reconciles them. They don't show that Android would deliver them. An offered address never proves that a viewer can reach it.
+- **Supplied inputs:** test callbacks show how MJPEG reconciles them, not that Android would deliver them. An offered address never proves that a viewer can reach it.
 
 ## Classification and selection
 
@@ -109,7 +101,7 @@ The monitor drops the excluded addresses when it accepts candidates, so check ex
 3. **Tethering events (API 36+).** They fill only interfaces that have no type or are Other. Wi-Fi tethering maps to Wifi, and every other tethering type maps to Other.
 4. **Name inference.** It applies to interfaces that are still Other and to interfaces without platform metadata:
    - `tun`, `tap` and `ppp` are Vpn
-   - `wlan`, `wifi`, `p2p`, and `ap` followed by digits are Wifi
+   - `wlan`, `wifi`, `softap`, `ap_br_`, `p2p`, and `ap` followed by digits are Wifi
    - `eth` is Ethernet
    - `rmnet`, `ccmni` and `pdp` are Mobile
    - all other names stay Other
@@ -225,19 +217,17 @@ The monitor drops the excluded addresses when it accepts candidates, so check ex
 **Expected.**
 
 - **All levels.** The network request adds `NOT_RESTRICTED` and requires neither `INTERNET` nor `VALIDATED`, so LAN, peer-to-peer and VPN networks participate.
+- **API 24–29.** The request removes the `TRUSTED` and `NOT_VPN` capabilities.
 - **API 24–25.** The network callback is registered, but the getter fallback still runs on every scan. For each network, callback data takes precedence over getter data. Metadata counts as ready only after a complete getter read.
-- **API 26–29.** The request removes the `TRUSTED` and `NOT_VPN` capabilities. Successful callback registration clears the getter evidence and stops getter reads.
-- **API 30–35.** The request clears all default capabilities.
+- **API 26 and later.** Successful callback registration clears the getter evidence and stops getter reads.
+- **API 30 and later.** The request clears all default capabilities.
 - **API 36 and 37.** A tethering event callback is also registered. Metadata isn't ready until the first tethering event arrives.
 - **Getter reads.** A getter read is discarded if any callback changed platform state during it. An incomplete getter read merges with the earlier getter evidence instead of replacing it.
 - **Registration failure.** A failed callback or tethering registration is logged. Native scans and getter fallback stay available, and the next scan retries the registration.
 
 **Late registration.** Hold a network or tethering registration until after close begins. Verify that the late registration is unregistered exactly once.
 
-**Evidence boundary.**
-
-- Qualify tethering fixtures by the public API they model. A Wi-Fi-only fixture establishes only the Wi-Fi mapping. The mapping of other tethering types to Other needs its own faithful input.
-- Injected stock callbacks show how MJPEG reconciles them. They don't show that a real `NetworkRequest` would match.
+**Evidence boundary.** A Wi-Fi-only tethering fixture establishes only the Wi-Fi mapping; mapping other tethering types to Other needs its own faithful input. Injected callbacks don't show that a real `NetworkRequest` would match.
 
 <a id="mjpeg-net-10"></a>
 
@@ -295,7 +285,7 @@ Then deliver late callbacks and call `start()` again. Cancel one close waiter wh
 - Close throws the discovery failure as the primary cause. The first cleanup failure is attached to it as suppressed, and later cleanup failures are attached to that first one.
 - When only cleanup fails, close throws the first cleanup failure with the later ones attached, and the state stays `Failed`.
 
-**Evidence boundary.** Preserve the existing first-cause and suppression behavior without demanding a new deduplication rule. The controller treats a failed or closed monitor during an open instance as a module failure ([mjpeg-ctl-11](02-controller.md#mjpeg-ctl-11)).
+**Related.** The controller treats a failed or closed monitor during an open instance as a module failure ([mjpeg-ctl-11](02-controller.md#mjpeg-ctl-11)).
 
 ## Local-network permission
 
@@ -313,7 +303,6 @@ The controller reads the grant through Core's `RuntimePermission.LocalNetwork` c
 
 - MJPEG holds back grant-dependent listeners exactly when Core reports the grant missing.
 - The combination that must report it missing is Android's enforcement rule: runtime API 37 or later with target SDK 37 or later. Every other combination must leave all selected rows plannable.
-- Record Core's answer for each combination. Core's public guide says only that availability depends on device and app configuration.
 
 **Evidence boundary.** Platform enforcement is a separate L2 qualification, and so is Android 16's opt-in local-network restriction. Android's guide ties that opt-in compatibility setting to `NEARBY_WIFI_DEVICES` rather than `ACCESS_LOCAL_NETWORK`. Record the declared permissions of the artifact under test rather than assuming them.
 
@@ -365,7 +354,6 @@ The controller reads the grant through Core's `RuntimePermission.LocalNetwork` c
 
 - Revocation removes the listeners but starts no address-loss episode, and capture continues past the timeout.
 - The empty selection does start an episode, and Stop follows at its deadline as in [mjpeg-ctl-09](02-controller.md#mjpeg-ctl-09).
-- Use the real loss clock, `SystemClock.elapsedRealtime()`, for the boundary.
 
 <a id="mjpeg-lan-05"></a>
 

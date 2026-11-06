@@ -45,16 +45,16 @@ internal class PinSettingsUiTest {
         val fixture = PinFixture()
         render(fixture)
         openEditor()
-        field().performTextReplacement("123")
+        pinField().performTextReplacement("123")
         compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin_error)).assertIsDisplayed()
         closeEditor()
         compose.runOnIdle { assertTrue(fixture.transforms.isEmpty()) }
 
         openEditor()
         revealEditor()
-        field().performTextReplacement("000042")
+        pinField().performTextReplacement("000042")
         compose.runOnIdle { fixture.access.value = fixture.access.value.copy(pin = SecretValue("222222")) }
-        field().assertTextContains("000042")
+        pinField().assertTextContains("000042")
         closeEditor()
         compose.runOnIdle {
             assertEquals(1, fixture.transforms.size)
@@ -67,7 +67,7 @@ internal class PinSettingsUiTest {
         val fixture = PinFixture(applyImmediately = false)
         render(fixture)
         openEditor()
-        field().performTextReplacement("000007")
+        pinField().performTextReplacement("000007")
         closeEditor()
         compose.runOnIdle {
             assertEquals(1, fixture.transforms.size)
@@ -81,8 +81,8 @@ internal class PinSettingsUiTest {
         val fixture = PinFixture(initialPolicy = AccessSettings.PinPolicy.NewOnModuleStart)
         render(fixture)
         openEditor()
-        field().assert(!hasSetTextAction())
-        generate().assertIsEnabled().performClick()
+        pinField().assert(!hasSetTextAction())
+        regenerateButton().assertIsEnabled().performClick()
         revealEditor()
         compose.runOnIdle {
             assertEquals(1, fixture.transforms.size)
@@ -100,7 +100,7 @@ internal class PinSettingsUiTest {
             assertTrue(AccessSettings.isValidPin(generatedPin.value))
             assertEquals(latest.copy(pin = generatedPin), generated)
         }
-        field().assertTextContains(checkNotNull(fixture.access.value.pin).value)
+        pinField().assertTextContains(checkNotNull(fixture.access.value.pin).value)
         closeEditor()
         compose.runOnIdle { assertEquals(1, fixture.transforms.size) }
     }
@@ -111,12 +111,12 @@ internal class PinSettingsUiTest {
         render(fixture)
         openEditor()
         revealEditor()
-        field().performSemanticsAction(SemanticsActions.SetSelection) { select ->
+        pinField().performSemanticsAction(SemanticsActions.SetSelection) { select ->
             assertTrue(select(1, 3, false))
         }
-        field().assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(1, 3)))
+        pinField().assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(1, 3)))
         compose.runOnIdle { fixture.access.value = fixture.access.value.copy(pin = SecretValue("987654")) }
-        field().assertTextContains("987654")
+        pinField().assertTextContains("987654")
         closeEditor()
         compose.runOnIdle { assertTrue(fixture.transforms.isEmpty()) }
     }
@@ -127,17 +127,17 @@ internal class PinSettingsUiTest {
         render(fixture)
         openEditor()
         revealEditor()
-        field().performTextReplacement("000123")
-        generate().performClick()
+        pinField().performTextReplacement("000123")
+        regenerateButton().performClick()
         compose.runOnIdle { assertEquals(1, fixture.transforms.size) }
-        field().assertTextContains(checkNotNull(fixture.access.value.pin).value)
+        pinField().assertTextContains(checkNotNull(fixture.access.value.pin).value)
         compose.runOnIdle { fixture.access.value = fixture.access.value.copy(pin = SecretValue("987654")) }
-        field().assertTextContains("987654")
+        pinField().assertTextContains("987654")
 
-        field().performTextReplacement("000999")
+        pinField().performTextReplacement("000999")
         compose.runOnIdle { fixture.setupEditable.value = false }
-        field().assert(!hasSetTextAction())
-        generate().assertIsNotEnabled()
+        pinField().assert(!hasSetTextAction())
+        regenerateButton().assertIsNotEnabled()
         closeEditor()
         compose.runOnIdle {
             assertEquals(1, fixture.transforms.size)
@@ -156,8 +156,8 @@ internal class PinSettingsUiTest {
 
     private fun openEditor() = compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin)).performClick()
     private fun closeEditor() = compose.onNodeWithContentDescription(text(R.string.mjpeg_action_close)).performClick()
-    private fun field() = compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin_label))
-    private fun generate() = compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin_regenerate))
+    private fun pinField() = compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin_label))
+    private fun regenerateButton() = compose.onNodeWithText(text(R.string.mjpeg_pref_access_pin_regenerate))
     private fun text(resource: Int): String = compose.activity.getString(resource)
 
     private fun revealEditor() {

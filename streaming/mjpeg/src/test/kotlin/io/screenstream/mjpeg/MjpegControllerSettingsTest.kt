@@ -46,17 +46,17 @@ internal class MjpegControllerSettingsTest {
     @Test
     fun busySavedSetupRemainsDeferredWhileLiveAppearanceAndFilterApply() = runBlocking {
         val originalPin = SecretValue("000007")
-        val settings = inputs.settings(
+        val settings = inputs.createSettings(
             MjpegSettings.Data(
                 access = AccessSettings(true, AccessSettings.PinPolicy.Permanent, originalPin),
                 web = WebPageSettings(title = "Fixture device"),
             ),
         )
-        val host = MjpegServiceHost(settings)
+        val host = MjpegServiceTestHost(settings)
         try {
-            inputs.startModuleWithListeningServer(host)
+            inputs.startModuleWithReadyListener(host)
             host.controller.requestStreamStart()
-            val attempt = host.access.requested.awaitControllerValue { it.size == 1 }.single()
+            val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
             val originalAccess = host.http.configuration.value!!.access
             val pendingUi = host.controller.state.awaitControllerValue { it.action == UiController.Action.Busy }
             assertEquals(originalPin, pendingUi.appliedPin)
@@ -64,7 +64,7 @@ internal class MjpegControllerSettingsTest {
             settings.updateData {
                 copy(
                     image = image.copy(jpegQuality = 45, jpegBackendPolicy = JpegBackendPolicy.FrameworkOnly),
-                    network = network.copy(filter = inputs.otherFilter(), httpPort = 9000),
+                    network = network.copy(filter = inputs.vpnNonPrivateIpv4Filter(), httpPort = 9000),
                     access = AccessSettings(true, AccessSettings.PinPolicy.Permanent, SecretValue("001234")),
                     web = web.copy(title = "Live appearance"),
                 )
@@ -92,21 +92,21 @@ internal class MjpegControllerSettingsTest {
 
     // Cases: MJPEG-CTL-06
     @Test
-    fun modulePinPreparationAppliesValidSavedPinAndPermanentPolicyRetainsItsPin() = runBlocking {
+    fun openingModuleAppliesValidPinAndPermanentPolicyPreservesSavedValue() = runBlocking {
         for (policy in AccessSettings.PinPolicy.entries) {
             val saved = MjpegSettings.Data(
                 access = AccessSettings(true, policy, SecretValue("000007")), web = WebPageSettings(title = "Protected"),
             )
-            val settings = inputs.settings(saved)
-            val host = MjpegServiceHost(settings)
+            val settings = inputs.createSettings(saved)
+            val host = MjpegServiceTestHost(settings)
             try {
-                inputs.startModuleWithListeningServer(host)
+                inputs.startModuleWithReadyListener(host)
                 val applied = host.http.configuration.value!!.access
                 assertTrue(AccessSettings.isValidPin(applied.pin!!.value))
                 assertEquals(settings.data.first().access, applied)
                 if (policy == AccessSettings.PinPolicy.Permanent) assertEquals("000007", applied.pin.value)
                 host.controller.requestStreamStart()
-                val attempt = host.access.requested.awaitControllerValue { it.size == 1 }.single()
+                val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
                 host.controller.requestStreamStop(attempt, false)
                 host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
                 host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
@@ -129,10 +129,10 @@ internal class MjpegControllerSettingsTest {
                 pinPolicy = AccessSettings.PinPolicy.NewOnModuleStart,
                 pin = savedPin,
             )
-            val settings = inputs.settings(MjpegSettings.Data(access = initialAccess, web = WebPageSettings(title = "Initially open")))
-            val host = MjpegServiceHost(settings)
+            val settings = inputs.createSettings(MjpegSettings.Data(access = initialAccess, web = WebPageSettings(title = "Initially open")))
+            val host = MjpegServiceTestHost(settings)
             try {
-                inputs.startModuleWithListeningServer(host)
+                inputs.startModuleWithReadyListener(host)
                 assertEquals(initialAccess, host.http.configuration.value!!.access)
                 settings.updateData { copy(access = access.copy(pinEnabled = true)) }
                 val applied = host.http.configuration.awaitControllerValue { it?.access?.pinEnabled == true }!!.access
@@ -140,7 +140,7 @@ internal class MjpegControllerSettingsTest {
                 assertEquals(settings.data.first().access, applied)
                 if (savedPin != null) assertEquals(savedPin, applied.pin)
                 host.controller.requestStreamStart()
-                val attempt = host.access.requested.awaitControllerValue { it.size == 1 }.single()
+                val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
                 assertEquals(applied, host.http.configuration.value!!.access)
                 host.controller.requestStreamStop(attempt, false)
                 host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
@@ -179,7 +179,7 @@ internal class MjpegControllerSettingsTest {
         val settings = MjpegSettings(context)
         assertFalse(deniedFileAccess.isCompleted)
         fileAccessDenied.set(true)
-        val host = MjpegServiceHost(settings)
+        val host = MjpegServiceTestHost(settings)
         try {
             withTimeout(5.seconds) {
                 deniedFileAccess.await()
@@ -189,8 +189,8 @@ internal class MjpegControllerSettingsTest {
             }
             assertNull(host.http.configuration.value)
             assertFalse(host.monitor.started.value)
-            assertTrue(host.http.captures.value.isEmpty())
-            assertEquals("123456", Json.decodeFromString<MjpegSettings.Data>(savedSettingsJson(base)).access.pin!!.value)
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
+            assertEquals("123456", Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(base)).access.pin!!.value)
         } finally {
             assertTrue(host.close())
         }

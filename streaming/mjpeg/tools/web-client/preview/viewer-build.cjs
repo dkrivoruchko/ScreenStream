@@ -14,20 +14,20 @@ for (const input of inputPaths) {
 
 // In-memory preview builds never write the packaged Android asset.
 function createViewerBuild({ watch, log }) {
-    let template = null, build = { revision: 0, bytes: 0, hash: null, error: null };
+    let html = null, buildState = { revision: 0, bytes: 0, hash: null, error: null };
     const watchers = [];
-    let polling = null, buildTimer = null, closed = false;
+    let pollingTimer = null, buildTimer = null, closed = false;
     let sourceFingerprint = null, watchMode = 'off', watchWarning = null;
 
     function compile() {
         try {
-            const next = buildHtml();
-            template = next;
-            build = { revision: build.revision + 1, bytes: Buffer.byteLength(next),
-                hash: crypto.createHash('sha256').update(next).digest('hex').slice(0, 12), error: null };
-            log('Viewer build ' + build.revision + ' ready; reload explicitly to apply it.');
+            const nextHtml = buildHtml();
+            html = nextHtml;
+            buildState = { revision: buildState.revision + 1, bytes: Buffer.byteLength(nextHtml),
+                hash: crypto.createHash('sha256').update(nextHtml).digest('hex').slice(0, 12), error: null };
+            log('Viewer build ' + buildState.revision + ' ready; reload explicitly to apply it.');
         } catch (error) {
-            build = { ...build, error: error.message };
+            buildState = { ...buildState, error: error.message };
             log('Viewer build failed: ' + error.message);
         }
     }
@@ -56,17 +56,17 @@ function createViewerBuild({ watch, log }) {
     }
     function closeWatchers() { for (const watcher of watchers.splice(0)) watcher.close(); }
     function usePolling(error) {
-        if (closed || polling) return;
+        if (closed || pollingTimer) return;
         closeWatchers();
         watchMode = 'polling';
         watchWarning = 'Native source watch unavailable (' + (error.code || error.message) + '); polling every second.';
         log(watchWarning);
-        polling = setInterval(() => {
+        pollingTimer = setInterval(() => {
             if (fingerprintSources() !== sourceFingerprint) scheduleBuild();
         }, 1000);
     }
     function start() {
-        if (closed || !watch || watchers.length || polling) return;
+        if (closed || !watch || watchers.length || pollingTimer) return;
         try {
             for (const [directory, names] of watchedDirectories) {
                 const watcher = fs.watch(directory, (_, name) => {
@@ -82,17 +82,17 @@ function createViewerBuild({ watch, log }) {
     }
     function state() {
         let generatedCurrent = false;
-        try { generatedCurrent = template !== null && fs.readFileSync(output, 'utf8') === template; } catch (_) { /* Not built yet. */ }
-        return { ...build, generatedCurrent, watchMode, watchWarning };
+        try { generatedCurrent = html !== null && fs.readFileSync(output, 'utf8') === html; } catch (_) { /* Not built yet. */ }
+        return { ...buildState, generatedCurrent, watchMode, watchWarning };
     }
     function close() {
         closed = true;
-        closeWatchers(); clearInterval(polling); clearTimeout(buildTimer);
+        closeWatchers(); clearInterval(pollingTimer); clearTimeout(buildTimer);
     }
 
     if (watch) sourceFingerprint = fingerprintSources();
     compile();
-    return { start, state, close, get template() { return template; } };
+    return { start, state, close, get html() { return html; } };
 }
 
 module.exports = { createViewerBuild };

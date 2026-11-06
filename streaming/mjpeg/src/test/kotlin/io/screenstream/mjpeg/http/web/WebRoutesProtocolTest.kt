@@ -25,11 +25,11 @@ import io.screenstream.mjpeg.http.HttpAccess
 import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
 import io.screenstream.mjpeg.http.HttpListener
 import io.screenstream.mjpeg.http.KtorHttpDelivery
-import io.screenstream.mjpeg.http.UnstartedHttpListener
-import io.screenstream.mjpeg.http.finishHttpTest
+import io.screenstream.mjpeg.http.UnstartedHttpListenerFixture
 import io.screenstream.mjpeg.http.httpTestContext
-import io.screenstream.mjpeg.http.httpTestPage
-import io.screenstream.mjpeg.http.httpTestProtection
+import io.screenstream.mjpeg.http.httpTestPageSettings
+import io.screenstream.mjpeg.http.httpTestProtectedAccessSettings
+import io.screenstream.mjpeg.http.stopHttpTestDelivery
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
@@ -63,7 +63,7 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-01, MJPEG-WEB-02, MJPEG-WEB-14
     @Test
     fun pipelineRequiresDirectListenerAuthorityAndAppliesHeadersBeforeRouting() = testApplication {
-        val owner = UnstartedHttpListener()
+        val owner = UnstartedHttpListenerFixture()
         val handler = AccessHandler(owner.listener)
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         try {
@@ -114,7 +114,7 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-02
     @Test
     fun localhostHostIsRejectedForANonLoopbackListener() = testApplication {
-        val owner = UnstartedHttpListener(host = "192.0.2.1")
+        val owner = UnstartedHttpListenerFixture(host = "192.0.2.1")
         application { WebRoutes(httpTestContext(), AccessHandler(owner.listener)).installRoutes(this, owner.listener) }
         try {
             assertEquals(HttpStatusCode.OK, client.get("http://localhost/") { header(HttpHeaders.Host, "192.0.2.1:8080") }.status)
@@ -127,7 +127,7 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-02, MJPEG-WEB-03
     @Test
     fun ipv6AndLocalhostAllowOmittedPortForPort80Listener() = testApplication {
-        val owner = UnstartedHttpListener(host = "::1", port = 80)
+        val owner = UnstartedHttpListenerFixture(host = "::1", port = 80)
         application { WebRoutes(httpTestContext(), AccessHandler(owner.listener)).installRoutes(this, owner.listener) }
         try {
             assertEquals(HttpStatusCode.OK, client.get("http://localhost/") { header(HttpHeaders.Host, "[::1]") }.status)
@@ -153,8 +153,8 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-04
     @Test
     fun publicPageAndTokenRedirectExchangeOnlyCurrentCredentials() = testApplication {
-        val owner = UnstartedHttpListener()
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture()
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         try {
             val client = createClient { followRedirects = false }
@@ -200,8 +200,8 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-03, MJPEG-WEB-14, MJPEG-ACC-04
     @Test
     fun rejectedOriginsCannotSpendPinBudgetAndForwardedPeerDoesNotSplitIt() = testApplication {
-        val owner = UnstartedHttpListener()
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture()
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         try {
             assertEquals(HttpStatusCode.Forbidden, client.post("http://localhost/pin") {
@@ -235,7 +235,7 @@ internal class WebRoutesProtocolTest {
                 assertEquals(HttpStatusCode.Forbidden, pinRequest("pin=000000", forwardedPeer = "198.51.100.$index").status)
             }
             assertEquals(HttpStatusCode.TooManyRequests, pinRequest("pin=000000", forwardedPeer = "203.0.113.1").status)
-            handler.now = 60_000L
+            handler.nowMillis = 60_000L
             val fallback = client.post("http://localhost/pin") {
                 header(HttpHeaders.Host, "127.0.0.1:8080")
                 header(HttpHeaders.Referrer, "http://127.0.0.1:8080/page?x=1")
@@ -251,8 +251,8 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-05, MJPEG-WEB-07
     @Test
     fun invalidPinFormsConsumeWrongAttemptBudgetAndRetryAfterRoundsUp() = testApplication {
-        val owner = UnstartedHttpListener()
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture()
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         try {
             val oversized = "pin=123456&padding=".let { prefix -> prefix + "x".repeat(257 - prefix.length) }
@@ -261,12 +261,12 @@ internal class WebRoutesProtocolTest {
             val blocked = pinRequest("pin=123456", type = "text/plain")
             assertEquals(HttpStatusCode.TooManyRequests, blocked.status)
             assertEquals("60", blocked.headers[HttpHeaders.RetryAfter])
-            handler.now = 1_001L
+            handler.nowMillis = 1_001L
             val stillBlocked = pinRequest("pin=123456")
             assertEquals(HttpStatusCode.TooManyRequests, stillBlocked.status)
             assertEquals("59", stillBlocked.headers[HttpHeaders.RetryAfter])
             assertNull(stillBlocked.headers[HttpHeaders.SetCookie])
-            handler.now = 60_000L
+            handler.nowMillis = 60_000L
             val exactBody = "pin=123456&padding=".let { prefix -> prefix + "x".repeat(256 - prefix.length) }
             val authorized = pinRequest(exactBody)
             assertEquals(HttpStatusCode.NoContent, authorized.status)
@@ -283,8 +283,8 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-05
     @Test
     fun malformedPercentEscapeIsRejectedAndConsumesProtectedVerificationBudget() = testApplication {
-        val owner = UnstartedHttpListener()
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture()
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         try {
             val malformed = pinRequest("pin=%GG")
@@ -300,8 +300,8 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-05
     @Test
     fun pinBodyLimitUsesUtf8BytesAndStopsAfterTheDetectionByteWithoutWaitingForEof() = testApplication {
-        val owner = UnstartedHttpListener()
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture()
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         val input = ByteChannel(autoFlush = true)
         try {
@@ -328,8 +328,8 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-05
     @Test
     fun unsupportedTypeDoesNotReadItsOpenBodyButStillReachesProtectedVerification() = testApplication {
-        val owner = UnstartedHttpListener()
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture()
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         val input = ByteChannel()
         try {
@@ -350,7 +350,7 @@ internal class WebRoutesProtocolTest {
         val scheduler = TestCoroutineScheduler()
         val requestDispatcher = StandardTestDispatcher(scheduler)
 
-        fun drainUntil(condition: () -> Boolean) {
+        fun runSchedulerUntil(condition: () -> Boolean) {
             val deadline = ManagementFactory.getRuntimeMXBean().uptime + 5_000L
             while (true) {
                 scheduler.runCurrent()
@@ -360,21 +360,21 @@ internal class WebRoutesProtocolTest {
             }
         }
 
-        suspend fun <T> awaitRequest(request: suspend () -> T): T = coroutineScope {
+        suspend fun <T> awaitRequestWithScheduler(request: suspend () -> T): T = coroutineScope {
             val response = async(Dispatchers.Default) { request() }
             try {
-                drainUntil { response.isCompleted }
+                runSchedulerUntil { response.isCompleted }
                 response.await()
             } finally {
                 response.cancel()
-                drainUntil { response.isCompleted }
+                runSchedulerUntil { response.isCompleted }
             }
         }
 
         runTestApplication {
             engine { dispatcher = requestDispatcher }
-            val owner = UnstartedHttpListener()
-            val handler = AccessHandler(owner.listener, httpTestProtection())
+            val owner = UnstartedHttpListenerFixture()
+            val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
             val readFailures = mutableListOf<Throwable>()
             application {
                 intercept(ApplicationCallPipeline.Monitoring) {
@@ -408,7 +408,7 @@ internal class WebRoutesProtocolTest {
             try {
                 // The public pipeline records the actual receive failure before the test engine
                 // handles/rethrows it; no incidental HTTP failure status is asserted.
-                awaitRequest {
+                awaitRequestWithScheduler {
                     try {
                         pinRequest(faultingInput)
                     } catch (_: Exception) {
@@ -423,7 +423,7 @@ internal class WebRoutesProtocolTest {
                         }
                     }
                     try {
-                        drainUntil { readEntered.isCompleted }
+                        runSchedulerUntil { readEntered.isCompleted }
                         val enteredAt = readEntered.await()
                         assertEquals(enteredAt, scheduler.currentTime)
                         scheduler.advanceTimeBy(4_999)
@@ -437,20 +437,20 @@ internal class WebRoutesProtocolTest {
                         assertEquals(enteredAt + 5_000, scheduler.currentTime)
                         assertEquals(2, readFailures.size)
                         assertTrue(generateSequence(readFailures[1]) { it.cause }.any { it is TimeoutCancellationException })
-                        drainUntil { response.isCompleted }
+                        runSchedulerUntil { response.isCompleted }
                         response.await()
                     } finally {
                         response.cancel()
                         stalled.cancel(null)
-                        drainUntil { response.isCompleted }
+                        runSchedulerUntil { response.isCompleted }
                     }
                 }
                 assertTrue(handler.verifiedPins.isEmpty())
                 assertEquals(2, readFailures.size)
                 assertTrue(generateSequence(readFailures[0]) { it.cause }.any { it === readFault })
                 assertTrue(generateSequence(readFailures[1]) { it.cause }.any { it is TimeoutCancellationException })
-                repeat(4) { assertEquals(HttpStatusCode.Forbidden, awaitRequest { pinRequest("pin=000000") }.status) }
-                assertEquals(HttpStatusCode.TooManyRequests, awaitRequest { pinRequest("pin=000000") }.status)
+                repeat(4) { assertEquals(HttpStatusCode.Forbidden, awaitRequestWithScheduler { pinRequest("pin=000000") }.status) }
+                assertEquals(HttpStatusCode.TooManyRequests, awaitRequestWithScheduler { pinRequest("pin=000000") }.status)
             } finally {
                 failed.cancel(null)
                 stalled.cancel(null)
@@ -462,11 +462,18 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-01, MJPEG-WEB-14, MJPEG-WEB-16, MJPEG-WEB-17
     @Test
     fun allPathsApplyAuthorityHeadersBeforeMethodsAndPreflightUsesFixedPolicy() = testApplication {
-        val owner = UnstartedHttpListener()
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture()
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         try {
-            val expected = mapOf("/" to "GET", "/favicon.ico" to "GET", "/pin" to "POST", "/jpeg" to "GET, OPTIONS", "/mjpeg" to "GET, OPTIONS", "/ws" to "GET")
+            val expected = mapOf(
+                "/" to "GET",
+                "/favicon.ico" to "GET",
+                "/pin" to "POST",
+                "/jpeg" to "GET, OPTIONS",
+                "/mjpeg" to "GET, OPTIONS",
+                "/ws" to "GET",
+            )
             for ((path, allow) in expected) {
                 for (method in listOf(HttpMethod.Head, HttpMethod.Put, HttpMethod.Delete)) {
                     val response = client.request("http://localhost$path") {
@@ -524,8 +531,8 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-04, MJPEG-WEB-17
     @Test
     fun onlySuccessfulPackagedHtmlIsCompressedAndFaviconRemainsPublic() = testApplication {
-        val owner = UnstartedHttpListener()
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture()
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         try {
             val client = createClient { followRedirects = false }
@@ -558,9 +565,9 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-08, MJPEG-WEB-15
     @Test
     fun deliveryChecksCredentialsBeforeLateListenerOrTerminalUnavailabilityAndRoutesKeepCors() = testApplication {
-        val owner = UnstartedHttpListener()
+        val owner = UnstartedHttpListenerFixture()
         val delivery = KtorHttpDelivery(httpTestContext())
-        delivery.start(httpTestProtection(), PostStopImage.Placeholder, httpTestPage(), byteArrayOf(1))
+        delivery.start(httpTestProtectedAccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(1))
         val passedAuthority = object : WebRoutes.RequestHandler by delivery {
             override fun isListenerActive(listener: HttpListener): Boolean = true
         }
@@ -579,7 +586,7 @@ internal class WebRoutesProtocolTest {
                 }
             }
         } finally {
-            delivery.finishHttpTest()
+            delivery.stopHttpTestDelivery()
             owner.close()
         }
     }
@@ -587,8 +594,8 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-08, MJPEG-WEB-15
     @Test
     fun crossOriginSignalsIgnoreOnlyCookieAndNeverBroadenTokenAuthority() = testApplication {
-        val owner = UnstartedHttpListener()
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture()
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         try {
             val token = checkNotNull(handler.access.token).value
@@ -640,8 +647,8 @@ internal class WebRoutesProtocolTest {
     // Cases: MJPEG-WEB-02, MJPEG-WEB-03, MJPEG-WEB-07
     @Test
     fun authoritySyntaxAndOriginPrecedenceAreCheckedBeforePinVerification() = testApplication {
-        val owner = UnstartedHttpListener(host = "2001:db8::1")
-        val handler = AccessHandler(owner.listener, httpTestProtection())
+        val owner = UnstartedHttpListenerFixture(host = "2001:db8::1")
+        val handler = AccessHandler(owner.listener, httpTestProtectedAccessSettings())
         application { WebRoutes(httpTestContext(), handler).installRoutes(this, owner.listener) }
         try {
             for (host in listOf("[2001:db8::1]:8080", "[2001:DB8:0:0:0:0:0:1]:8080")) {
@@ -712,7 +719,7 @@ internal class WebRoutesProtocolTest {
         var active: Boolean = true
 
         @Volatile
-        var now: Long = 0L
+        var nowMillis: Long = 0L
         override val webState: MutableStateFlow<WebState?> = MutableStateFlow(null)
         override fun isListenerActive(listener: HttpListener): Boolean = active && listener === this.listener
         override fun exchangeToken(listener: HttpListener, token: String?): SecretValue? =
@@ -721,17 +728,12 @@ internal class WebRoutesProtocolTest {
         val verifiedPins: MutableList<String?> = mutableListOf()
         override fun verifyPin(listener: HttpListener, pin: String?, peerIp: String): HttpAccess.PinResult? {
             verifiedPins += pin
-            return if (isListenerActive(listener)) access.verifyPin(pin, peerIp, now) else null
+            return if (isListenerActive(listener)) access.verifyPin(pin, peerIp, nowMillis) else null
         }
 
         override suspend fun respondMedia(call: ApplicationCall, listener: HttpListener, format: MediaFormat, token: String?, accessCookie: String?) {
-            call.respond(
-                if (isListenerActive(listener) && access.allowsViewing(
-                        token,
-                        accessCookie
-                    )
-                ) HttpStatusCode.NoContent else HttpStatusCode.Forbidden
-            )
+            val allowed = isListenerActive(listener) && access.allowsViewing(token, accessCookie)
+            call.respond(if (allowed) HttpStatusCode.NoContent else HttpStatusCode.Forbidden)
         }
 
         override fun admitWebSocket(listener: HttpListener, accessCookie: String?, peerIp: String, requestJob: Job): WebRoutes.WebSocketAdmission =

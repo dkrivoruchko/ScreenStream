@@ -1,12 +1,12 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { runtime, deferred } = require('./runtime.cjs');
+const { createViewerTestContext, createDeferred } = require('./viewer-test-support.cjs');
 
-function media(t) {
+function createMediaHarness(t) {
     const images = [], frames = [], states = [];
-    class ImageBoundary {
+    class FakeImage {
         constructor() {
-            Object.assign(this, { naturalWidth: 0, naturalHeight: 0, complete: false, style: {}, attributes: {}, decoding: deferred(), decodes: 0 });
+            Object.assign(this, { naturalWidth: 0, naturalHeight: 0, complete: false, style: {}, attributes: {}, decoding: createDeferred(), decodes: 0 });
             images.push(this);
         }
         setAttribute(key, value) { this.attributes[key] = value; }
@@ -22,7 +22,7 @@ function media(t) {
         appendChild(image) { this.children.push(image); image.parentNode = this; },
         removeChild(image) { this.children.splice(this.children.indexOf(image), 1); image.parentNode = null; }
     };
-    const { createMedia } = runtime(t, 'media', { Image: ImageBoundary });
+    const { createMedia } = createViewerTestContext(t, 'media', { Image: FakeImage });
     const owner = createMedia(stage, 'Screen image', {
         image: (image, width, height) => frames.push({ image, width, height }), state: value => states.push(value)
     });
@@ -32,16 +32,33 @@ function media(t) {
         apply: (value = {}, refresh = false) => owner.apply({ eligible: true, imageKind: 'live', method: 'mjpeg', ...value }, refresh) };
 }
 
+function assertCandidate(image) {
+    assert.equal(image.className, 'stream-candidate');
+    assert.equal(image.style.visibility, 'hidden');
+    assert.equal(image.alt, '');
+    assert.equal(image.attributes['aria-hidden'], 'true');
+}
+
+function assertDisplayed(image) {
+    assert.equal(image.className, 'stream-image');
+    assert.equal(image.style.visibility, 'visible');
+    assert.equal(image.alt, 'Screen image');
+    assert.equal(Object.hasOwn(image.attributes, 'aria-hidden'), false);
+}
+
 test('MJPEG promotes usable dimensions and keeps the displayed frame through replacement failure', t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply();
     const first = h.image();
     assert.match(first.src, /^\/mjpeg\?requestSequence=\d+$/);
+    assertCandidate(first);
     first.load(0, 360);
     first.load(640, 0);
     assert.equal(h.frames.length, 0);
+    assertCandidate(first);
     first.load(640, 360, false);
     assert.equal(h.frame().image, first);
+    assertDisplayed(first);
     assert.equal(h.state(), 'viewing');
     h.apply({}, true);
     const failed = h.image();
@@ -53,8 +70,10 @@ test('MJPEG promotes usable dimensions and keeps the displayed frame through rep
     assert.equal(h.state(), 'retrying');
     t.mock.timers.tick(0);
     const replacement = h.image();
+    assertCandidate(replacement);
     replacement.load(360, 640);
     assert.equal(h.frame().image, replacement);
+    assertDisplayed(replacement);
     assert.equal(h.frame().width, 360);
     assert.equal(h.frame().height, 640);
     assert.equal(first.src, '');
@@ -63,10 +82,11 @@ test('MJPEG promotes usable dimensions and keeps the displayed frame through rep
 });
 
 test('live JPEG waits 30 ms after successful decoding and remains single-flight', async t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply({ method: 'jpeg' });
     const first = h.image();
     assert.match(first.src, /^\/jpeg\?requestSequence=\d+$/);
+    assertCandidate(first);
     first.load(640, 360, false);
     assert.equal(first.decodes, 0);
     first.load();
@@ -77,9 +97,11 @@ test('live JPEG waits 30 ms after successful decoding and remains single-flight'
     t.mock.timers.tick(1000);
     assert.equal(h.images.length, 1);
     assert.equal(h.frames.length, 0);
+    assertCandidate(first);
     first.decoding.resolve();
     await first.decoding.promise;
     assert.equal(h.frame().image, first);
+    assertDisplayed(first);
     h.owner.resume();
     assert.equal(h.images.length, 1);
     assert.equal(h.stage.children.length, 1);
@@ -89,12 +111,15 @@ test('live JPEG waits 30 ms after successful decoding and remains single-flight'
     assert.equal(h.images.length, 2);
     assert.equal(h.stage.children.length, 2);
     const second = h.image();
+    assertCandidate(second);
     second.load();
     assert.equal(h.images.length, 2);
     assert.equal(h.frame().image, first);
+    assertCandidate(second);
     second.decoding.resolve();
     await second.decoding.promise;
     assert.equal(h.frame().image, second);
+    assertDisplayed(second);
     assert.equal(h.images.length, 2);
     assert.equal(first.src, '');
     assert.equal(h.stage.children.length, 1);
@@ -106,7 +131,7 @@ test('live JPEG waits 30 ms after successful decoding and remains single-flight'
 });
 
 for (const action of ['pause', 'ineligibility', 'method switch', 'refresh']) test(`${action} cancels the pending live-JPEG interval`, async t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply({ method: 'jpeg' });
     const displayed = h.image();
     displayed.load();
@@ -135,7 +160,7 @@ for (const action of ['pause', 'ineligibility', 'method switch', 'refresh']) tes
 });
 
 test('a refreshed JPEG rejects an old decode without scheduling a polling interval', async t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply({ method: 'jpeg' });
     const stale = h.image();
     stale.load();
@@ -158,7 +183,7 @@ test('a refreshed JPEG rejects an old decode without scheduling a polling interv
 });
 
 test('retired load, error and decode callbacks cannot replace a newer image', async t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply({ method: 'jpeg' });
     const stale = h.image(), lateLoad = stale.onload, lateError = stale.onerror;
     stale.load();
@@ -180,7 +205,7 @@ test('retired load, error and decode callbacks cannot replace a newer image', as
 });
 
 test('retained JPEG waits 500 ms and retained-to-live wakes the next request immediately', async t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply({ method: 'jpeg', imageKind: 'retained' });
     const first = h.image();
     first.load();
@@ -206,7 +231,7 @@ test('retained JPEG waits 500 ms and retained-to-live wakes the next request imm
 });
 
 test('initial-image deadline bounds attempts but an established MJPEG image has no freshness deadline', t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply();
     t.mock.timers.tick(9999);
     assert.equal(h.images.length, 1);
@@ -224,7 +249,7 @@ test('initial-image deadline bounds attempts but an established MJPEG image has 
 });
 
 test('retry budget exhausts without snapshot resets and explicit refresh can recover', t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply();
     for (const delay of [0, 1000, 2000, 4000, 8000]) {
         h.image().onerror();
@@ -262,7 +287,7 @@ test('retry budget exhausts without snapshot resets and explicit refresh can rec
 });
 
 test('displayed-image loss preserves a loading replacement and its original deadline', t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply();
     const displayed = h.image();
     displayed.load();
@@ -285,7 +310,7 @@ test('displayed-image loss preserves a loading replacement and its original dead
 });
 
 test('dimension changes are reported and lost dimensions do not replace a scheduled retry', t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply();
     const displayed = h.image();
     displayed.load();
@@ -311,7 +336,7 @@ test('dimension changes are reported and lost dimensions do not replace a schedu
 });
 
 test('decode rejection retries while preserving a displayed JPEG', async t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply({ method: 'jpeg' });
     const displayed = h.image();
     displayed.load();
@@ -330,7 +355,7 @@ test('decode rejection retries while preserving a displayed JPEG', async t => {
 });
 
 test('pause and ineligibility release images and reject late decode completion', async t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     for (const stop of [() => h.owner.pause(), () => h.apply({ eligible: false })]) {
         h.apply({ method: 'jpeg' }, true);
         const displayed = h.image();
@@ -363,7 +388,7 @@ test('pause and ineligibility release images and reject late decode completion',
 });
 
 test('resume restarts missing eligible media but leaves a healthy displayed image alone', t => {
-    const h = media(t);
+    const h = createMediaHarness(t);
     h.apply();
     const first = h.image();
     h.owner.resume();

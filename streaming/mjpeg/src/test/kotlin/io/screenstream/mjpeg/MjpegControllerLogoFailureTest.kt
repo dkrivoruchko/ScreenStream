@@ -42,7 +42,7 @@ internal class MjpegControllerLogoFailureTest {
     @Test
     fun aLogoAssetOpenFailureClosesTheModuleBeforeHttpActivationAndCleansStartedDiscovery() = runBlocking {
         val context = IsolatedSettingsContext(RuntimeEnvironment.getApplication(), temporaryFolder.newFolder())
-        val host = MjpegServiceHost(MjpegSettings(context))
+        val host = MjpegServiceTestHost(MjpegSettings(context))
         try {
             withTimeout(5.seconds) { host.managerObservation.failed.await(); host.http.stopSettled.await(); host.monitor.closeSettled.await() }
             assertTrue(host.monitor.started.value)
@@ -50,8 +50,8 @@ internal class MjpegControllerLogoFailureTest {
             assertEquals(0, host.http.startCalls.value)
             assertTrue(host.http.closed)
             host.controller.requestStreamStart()
-            assertTrue(host.http.captures.value.isEmpty())
-            assertTrue(host.access.requested.value.isEmpty())
+            assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())
+            assertTrue(host.access.consentRequests.value.isEmpty())
             assertFalse(host.managerObservation.isCurrent())
         } finally {
             assertTrue(host.close())

@@ -2,15 +2,7 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing](../01-testing.md)
 
-These scenarios exercise `MjpegStreamingModuleController`, the single coordinator of one MJPEG module instance. The controller:
-
-- accepts or ignores Start and Stop
-- applies saved settings
-- turns discovery results into a listener plan
-- watches the automation conditions
-- reports to Core's manager
-
-[Coordination](../../01-module/03-coordination.md) owns these rules, and [Capture lifecycle](../../01-module/02-module-lifecycle.md) owns module shutdown and cleanup. Both extend the public [Architecture](../../../docs/architecture.md) and [Usage](../../../docs/usage.md) guides and Core's [module contract](../../../../core/docs/module-contract-and-manager.md).
+These scenarios exercise `MjpegStreamingModuleController`, the single coordinator of one MJPEG module instance: Start and Stop, settings, listener plans, automation and manager reports. [Coordination](../../01-module/03-coordination.md) owns these rules, and [Capture lifecycle](../../01-module/02-module-lifecycle.md) owns module shutdown and cleanup. Core's [module contract](../../../../core/docs/module-contract-and-manager.md) defines the manager side.
 
 Two facts about the controller shape most of these histories:
 
@@ -28,7 +20,7 @@ Use L1, with the real controller and these controlled boundaries:
 - **Consent, projection and engines.** A `ScreenCaptureAccess` that controls consent and projection outcomes, and an `MjpegEngineFactory` that the controller forwards to each capture session ([Testing](../01-testing.md#choosing-an-environment)). Histories about one attempt's engine phases belong to the [capture scenarios](03-capture.md).
 - **Clocks.** Controlled `SystemClock` uptime and elapsed realtime.
 
-A fresh run establishes these controller histories. Android capture, real sockets, Toast and wake-lock effects, and the app's permission UI need their own evidence.
+Android capture, real sockets, Toast and wake-lock effects, and the app's permission UI need separate evidence.
 
 ## Module lifetime and shutdown
 
@@ -206,7 +198,6 @@ Then let cleanup succeed. In a separate run, let cleanup fail.
   - access changes reach HTTP, rotating credentials where the rules require it
   - the encoder applies at the next Start
 - **After failed cleanup.** The controller reports module failure and shuts down. Start is never enabled again in that lifetime, and setup stays locked.
-- **Saving isn't applying.** Saving a value proves neither that the controller observed it nor that its owner applied it.
 
 <a id="mjpeg-ctl-06"></a>
 
@@ -225,7 +216,6 @@ Then let cleanup succeed. In a separate run, let cleanup fail.
 - **Protection off at open.** Opening generates no PIN. Enabling protection without a PIN generates one in the same save ([SET-06](01-settings.md#mjpeg-set-06)). An existing PIN is reused.
 - **Never again in the lifetime.** No case generates another PIN at a later Start.
 - **Failure.** A failed PIN save while opening is a settings failure ([CTL-11](#mjpeg-ctl-11)).
-- **Assertions.** Assert that viewers can authorize with the expected PIN, not that random values differ.
 
 <a id="mjpeg-ctl-07"></a>
 
@@ -397,7 +387,6 @@ Separately, keep the selection nonempty while denying the grant or failing every
 - **Client rates.** A client's rate exists only for an ID present in both samples. A new client has no invented earlier baseline.
 - **Repeated timestamps.** A repeated timestamp keeps the previous rates.
 - **Stop and Start.** Totals and the sample baseline survive Stop and Start.
-- **What to compare.** Compare against the documented totals and rates, not browser receipt or exact instantaneous bandwidth.
 
 **Evidence boundary.** HTTP sampling itself belongs to [OBS-08](05-http-runtime.md#mjpeg-obs-08). How the screen displays the figures needs a separate UI check.
 

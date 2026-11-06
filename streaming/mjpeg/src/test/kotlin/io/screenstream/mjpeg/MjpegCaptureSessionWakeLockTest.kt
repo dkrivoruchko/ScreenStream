@@ -26,71 +26,85 @@ import org.robolectric.shadows.ShadowPowerManager
 internal class MjpegCaptureSessionWakeLockTest {
     @Before
     fun initialize() {
-        XLog.init(Int.MAX_VALUE); ShadowPowerManager.clearWakeLocks(); FallibleWakeLockShadow.failAcquire = false
+        XLog.init(Int.MAX_VALUE)
+        ShadowPowerManager.clearWakeLocks()
+        FallibleWakeLockShadow.failAcquire = false
     }
 
     // Cases: MJPEG-CTL-17
     @Test
     fun optionalWakeLockTracksConfirmationReconfigurationSuspensionAndImmediateStop() = runTest {
-        val engine = ControlledMjpegEngine(holdStart = true, holdStop = true)
-        val session = MjpegCaptureSessionInputs().session(backgroundScope, { _, _, _ -> engine })
+        val engine = ControlledMjpegEngineSession(holdStart = true, holdStop = true)
+        val session = MjpegCaptureSessionInputs().createSession(backgroundScope, { _, _, _ -> engine })
         try {
             session.updateScreenAwake(true)
             assertNull(ShadowPowerManager.getLatestWakeLock())
-            session.start(); runCurrent()
+            session.start()
+            runCurrent()
             session.updateScreenAwake(true)
             assertNull(ShadowPowerManager.getLatestWakeLock())
-            engine.finishStart.complete(Unit); runCurrent()
+            engine.allowStartToReturn.complete(Unit)
+            runCurrent()
             session.updateScreenAwake(true)
-            val lock = checkNotNull(ShadowPowerManager.getLatestWakeLock())
-            assertTrue(lock.isHeld)
+            val wakeLock = checkNotNull(ShadowPowerManager.getLatestWakeLock())
+            assertTrue(wakeLock.isHeld)
             for (phase in listOf(MjpegEngineState.Phase.Reconfiguring, MjpegEngineState.Phase.Suspended)) {
                 engine.publish(MjpegEngineState(phase, if (phase == MjpegEngineState.Phase.Suspended) ScreenCaptureProblem.InvalidRequest else null))
-                runCurrent(); session.updateScreenAwake(true)
-                assertTrue(lock.isHeld)
+                runCurrent()
+                session.updateScreenAwake(true)
+                assertTrue(wakeLock.isHeld)
             }
             session.updateScreenAwake(false)
-            assertFalse(lock.isHeld)
+            assertFalse(wakeLock.isHeld)
             session.updateScreenAwake(true)
-            assertTrue(lock.isHeld)
+            assertTrue(wakeLock.isHeld)
             session.requestStop(MjpegCaptureSession.StopReason.User)
-            assertFalse(lock.isHeld)
+            assertFalse(wakeLock.isHeld)
             session.updateScreenAwake(true)
-            assertFalse(lock.isHeld)
+            assertFalse(wakeLock.isHeld)
             runCurrent()
             assertTrue(engine.stopEntered.isCompleted)
             assertNull(session.state.value.cleanupSucceeded)
-            engine.release(); runCurrent()
+            engine.releaseAllGates()
+            runCurrent()
             assertTrue(session.awaitCleanup())
         } finally {
-            engine.release(); session.requestStop(MjpegCaptureSession.StopReason.Shutdown); runCurrent(); session.awaitCleanup()
+            engine.releaseAllGates()
+            session.requestStop(MjpegCaptureSession.StopReason.Shutdown)
+            runCurrent()
+            session.awaitCleanup()
         }
     }
 
     // Cases: MJPEG-CTL-17
     @Test
     fun optionalAcquireAndReleaseFailuresNeverBecomeCaptureOrCleanupFailures() = runTest {
-        for (acquireFailure in listOf(true, false)) {
-            val engine = ControlledMjpegEngine()
-            val session = MjpegCaptureSessionInputs().session(backgroundScope, { _, _, _ -> engine })
-            var lock: PowerManager.WakeLock? = null
+        for (shouldFailAcquire in listOf(true, false)) {
+            val engine = ControlledMjpegEngineSession()
+            val session = MjpegCaptureSessionInputs().createSession(backgroundScope, { _, _, _ -> engine })
+            var wakeLock: PowerManager.WakeLock? = null
             try {
-                session.start(); runCurrent()
-                FallibleWakeLockShadow.failAcquire = acquireFailure
+                session.start()
+                runCurrent()
+                FallibleWakeLockShadow.failAcquire = shouldFailAcquire
                 session.updateScreenAwake(true)
-                lock = checkNotNull(ShadowPowerManager.getLatestWakeLock())
-                assertEquals(!acquireFailure, lock.isHeld)
-                if (!acquireFailure) Shadow.extract<FallibleWakeLockShadow>(lock).failRelease = true
-                session.requestStop(MjpegCaptureSession.StopReason.User); runCurrent()
-                if (!acquireFailure) assertTrue(Shadow.extract<FallibleWakeLockShadow>(lock).failedReleaseEntered)
+                wakeLock = checkNotNull(ShadowPowerManager.getLatestWakeLock())
+                assertEquals(!shouldFailAcquire, wakeLock.isHeld)
+                if (!shouldFailAcquire) Shadow.extract<FallibleWakeLockShadow>(wakeLock).failRelease = true
+                session.requestStop(MjpegCaptureSession.StopReason.User)
+                runCurrent()
+                if (!shouldFailAcquire) assertTrue(Shadow.extract<FallibleWakeLockShadow>(wakeLock).releaseFailureTriggered)
                 assertTrue(session.awaitCleanup())
                 assertNull(session.state.value.captureFailure)
                 assertNull(session.state.value.cleanupFailure)
                 assertFalse(session.state.value.isStreaming)
             } finally {
                 FallibleWakeLockShadow.failAcquire = false
-                lock?.let { Shadow.extract<FallibleWakeLockShadow>(it).failRelease = false; if (it.isHeld) it.release() }
-                engine.release(); session.requestStop(MjpegCaptureSession.StopReason.Shutdown); runCurrent(); session.awaitCleanup()
+                wakeLock?.let { Shadow.extract<FallibleWakeLockShadow>(it).failRelease = false; if (it.isHeld) it.release() }
+                engine.releaseAllGates()
+                session.requestStop(MjpegCaptureSession.StopReason.Shutdown)
+                runCurrent()
+                session.awaitCleanup()
             }
         }
     }
@@ -103,7 +117,7 @@ internal class FallibleWakeLockShadow : ShadowPowerManager.ShadowWakeLock() {
     }
 
     var failRelease = false
-    var failedReleaseEntered = false
+    var releaseFailureTriggered = false
         private set
 
     @Implementation
@@ -115,7 +129,7 @@ internal class FallibleWakeLockShadow : ShadowPowerManager.ShadowWakeLock() {
     @Implementation
     protected override fun release(flags: Int) {
         if (failRelease) {
-            failedReleaseEntered = true
+            releaseFailureTriggered = true
             throw IllegalStateException("Optional wake-lock release failed")
         }
         super.release(flags)

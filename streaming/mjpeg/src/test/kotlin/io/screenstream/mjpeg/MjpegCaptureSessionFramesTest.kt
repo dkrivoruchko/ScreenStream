@@ -44,15 +44,15 @@ internal class MjpegCaptureSessionFramesTest {
     // Cases: MJPEG-CAP-08
     @Test
     fun copiedFramesRemainOwnedWhenBorrowedSourceStorageIsReused() = runTest(StandardTestDispatcher()) {
-        val engine = EngineInput()
+        val engine = FrameEngineSession()
         val inputs = MjpegCaptureSessionInputs()
-        val owned = mutableListOf<ByteArray>()
-        val counts = mutableListOf<Int>()
-        val session = inputs.frameSession(backgroundScope, engine) { count, copyTo ->
-            counts += count
+        val copiedFrames = mutableListOf<ByteArray>()
+        val offeredByteCounts = mutableListOf<Int>()
+        val session = inputs.createFrameSession(backgroundScope, engine) { count, copyTo ->
+            offeredByteCounts += count
             val destination = ByteArray(8) { 0x55 }
             copyTo(destination)
-            owned += destination
+            copiedFrames += destination
         }
         try {
             session.start()
@@ -60,35 +60,35 @@ internal class MjpegCaptureSessionFramesTest {
             assertStreaming(session)
 
             val source = byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)
-            engine.deliver(BorrowedInput(source))
+            engine.deliver(BorrowedJpegInput(source))
             source.fill(0)
             byteArrayOf(-1, -40, 0x33, 0x44, -1, -39).copyInto(source)
-            engine.deliver(BorrowedInput(source))
+            engine.deliver(BorrowedJpegInput(source))
             source.fill(0)
 
-            assertEquals(listOf(6, 6), counts)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), owned[0])
-            assertArrayEquals(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39, 0x55, 0x55), owned[1])
+            assertEquals(listOf(6, 6), offeredByteCounts)
+            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedFrames[0])
+            assertArrayEquals(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39, 0x55, 0x55), copiedFrames[1])
             assertStreaming(session)
         } finally {
-            settle(session)
+            stopAndAwaitCleanup(session)
         }
     }
 
     // Cases: MJPEG-CAP-08
     @Test
     fun ignoringAnOfferAllowsTheNextDistinctFrameToBeCopied() = runTest(StandardTestDispatcher()) {
-        val engine = EngineInput()
+        val engine = FrameEngineSession()
         val inputs = MjpegCaptureSessionInputs()
         var acceptOffer = false
-        var owned: ByteArray? = null
+        var copiedJpeg: ByteArray? = null
         var copiedCount: Int? = null
-        val session = inputs.frameSession(backgroundScope, engine) { count, copyTo ->
+        val session = inputs.createFrameSession(backgroundScope, engine) { count, copyTo ->
             if (acceptOffer) {
                 val destination = ByteArray(8) { 0x55 }
                 copyTo(destination)
                 copiedCount = count
-                owned = destination
+                copiedJpeg = destination
             }
         }
         try {
@@ -96,34 +96,34 @@ internal class MjpegCaptureSessionFramesTest {
             runCurrent()
             assertStreaming(session)
 
-            engine.deliver(BorrowedInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)) {
+            engine.deliver(BorrowedJpegInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)) {
                 error("An ignored offer must not request its bytes")
             })
-            assertNull(owned)
+            assertNull(copiedJpeg)
             assertStreaming(session)
 
             acceptOffer = true
-            engine.deliver(BorrowedInput(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39)))
+            engine.deliver(BorrowedJpegInput(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39)))
             assertEquals(6, copiedCount)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39, 0x55, 0x55), owned)
+            assertArrayEquals(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39, 0x55, 0x55), copiedJpeg)
             assertStreaming(session)
         } finally {
-            settle(session)
+            stopAndAwaitCleanup(session)
         }
     }
 
     // Cases: MJPEG-CAP-08, MJPEG-CAP-09
     @Test
     fun outputFailureBeforeCopyEndsCaptureAndSurvivesSuccessfulCleanup() = runTest(StandardTestDispatcher()) {
-        val engine = EngineInput()
+        val engine = FrameEngineSession()
         val cause = IllegalStateException("Output rejected the offer")
-        val session = MjpegCaptureSessionInputs().frameSession(backgroundScope, engine) { _, _ -> throw cause }
+        val session = MjpegCaptureSessionInputs().createFrameSession(backgroundScope, engine) { _, _ -> throw cause }
         try {
             session.start()
             runCurrent()
             assertStreaming(session)
 
-            engine.deliver(BorrowedInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)))
+            engine.deliver(BorrowedJpegInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)))
             assertFrameFailure(session, cause)
             runCurrent()
 
@@ -132,25 +132,25 @@ internal class MjpegCaptureSessionFramesTest {
             assertNull(session.state.value.cleanupFailure)
             assertEquals(true, session.state.value.cleanupSucceeded)
         } finally {
-            settle(session)
+            stopAndAwaitCleanup(session)
         }
     }
 
     // Cases: MJPEG-CAP-08, MJPEG-CAP-09, MJPEG-CAP-10
     @Test
     fun outputFailureAfterCopyRetainsOwnedBytesAndWaitsForExactRegistrationReceipt() = runTest(StandardTestDispatcher()) {
-        val registrationReleased = CompletableDeferred<Unit>()
+        val allowUnregisterToReturn = CompletableDeferred<Unit>()
         val unregisterEntered = CompletableDeferred<Unit>()
-        val engine = EngineInput(unregister = {
+        val engine = FrameEngineSession(onUnregister = {
             unregisterEntered.complete(Unit)
-            registrationReleased.await()
+            allowUnregisterToReturn.await()
         })
         val cause = IllegalStateException("Output failed after copying")
-        var owned: ByteArray? = null
-        val session = MjpegCaptureSessionInputs().frameSession(backgroundScope, engine) { _, copyTo ->
+        var copiedJpeg: ByteArray? = null
+        val session = MjpegCaptureSessionInputs().createFrameSession(backgroundScope, engine) { _, copyTo ->
             val destination = ByteArray(8) { 0x55 }
             copyTo(destination)
-            owned = destination
+            copiedJpeg = destination
             throw cause
         }
         try {
@@ -159,11 +159,11 @@ internal class MjpegCaptureSessionFramesTest {
             assertStreaming(session)
             val source = byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)
 
-            engine.deliver(BorrowedInput(source))
+            engine.deliver(BorrowedJpegInput(source))
             source.fill(0)
             runCurrent()
 
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), owned)
+            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
             assertFrameFailure(session, cause)
             assertTrue(engine.mediaStopped.isCompleted)
             assertTrue(unregisterEntered.isCompleted)
@@ -171,16 +171,16 @@ internal class MjpegCaptureSessionFramesTest {
             val cleanup = async(start = CoroutineStart.UNDISPATCHED) { session.awaitCleanup() }
             assertFalse(cleanup.isCompleted)
 
-            registrationReleased.complete(Unit)
+            allowUnregisterToReturn.complete(Unit)
             runCurrent()
             assertTrue(withTimeout(5.seconds) { cleanup.await() })
             assertFrameFailure(session, cause)
             assertNull(session.state.value.cleanupFailure)
             assertEquals(true, session.state.value.cleanupSucceeded)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), owned)
+            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
         } finally {
-            registrationReleased.complete(Unit)
-            settle(session)
+            allowUnregisterToReturn.complete(Unit)
+            stopAndAwaitCleanup(session)
         }
     }
 
@@ -188,17 +188,17 @@ internal class MjpegCaptureSessionFramesTest {
     @Test
     fun borrowedByteCountFailureBecomesTheRetainedOutputFailure() = runTest(StandardTestDispatcher()) {
         // Defensive boundary fault: a conforming Engine permits byte-count access in this callback.
-        val engine = EngineInput()
+        val engine = FrameEngineSession()
         val cause = IllegalStateException("Borrowed byte count unavailable")
         var outputEntered = false
-        val session = MjpegCaptureSessionInputs().frameSession(backgroundScope, engine) { _, _ -> outputEntered = true }
+        val session = MjpegCaptureSessionInputs().createFrameSession(backgroundScope, engine) { _, _ -> outputEntered = true }
         try {
             session.start()
             runCurrent()
             assertStreaming(session)
 
             engine.deliver(
-                BorrowedInput(
+                BorrowedJpegInput(
                     payload = byteArrayOf(-1, -40, 0x11, 0x22, -1, -39),
                     count = { throw cause },
                 )
@@ -211,36 +211,36 @@ internal class MjpegCaptureSessionFramesTest {
             assertFrameFailure(session, cause)
             assertNull(session.state.value.cleanupFailure)
         } finally {
-            settle(session)
+            stopAndAwaitCleanup(session)
         }
     }
 
     // Cases: MJPEG-CAP-08, MJPEG-CAP-09
     @Test
     fun copyFailureBecomesTheRetainedOutputFailure() = runTest(StandardTestDispatcher()) {
-        val engine = EngineInput()
+        val engine = FrameEngineSession()
         val cause = IllegalStateException("Borrowed JPEG copy failed")
         val destination = ByteArray(8) { 0x55 }
         var copyEntered = false
         var offeredCount: Int? = null
-        var owned: ByteArray? = null
-        val session = MjpegCaptureSessionInputs().frameSession(backgroundScope, engine) { count, copyTo ->
+        var copiedJpeg: ByteArray? = null
+        val session = MjpegCaptureSessionInputs().createFrameSession(backgroundScope, engine) { count, copyTo ->
             offeredCount = count
             copyTo(destination)
-            owned = destination
+            copiedJpeg = destination
         }
         try {
             session.start()
             runCurrent()
             assertStreaming(session)
 
-            engine.deliver(BorrowedInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)) {
+            engine.deliver(BorrowedJpegInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)) {
                 copyEntered = true
                 throw cause
             })
             assertEquals(6, offeredCount)
             assertTrue(copyEntered)
-            assertNull(owned)
+            assertNull(copiedJpeg)
             assertFrameFailure(session, cause)
             runCurrent()
 
@@ -248,7 +248,7 @@ internal class MjpegCaptureSessionFramesTest {
             assertFrameFailure(session, cause)
             assertNull(session.state.value.cleanupFailure)
         } finally {
-            settle(session)
+            stopAndAwaitCleanup(session)
         }
     }
 
@@ -257,20 +257,20 @@ internal class MjpegCaptureSessionFramesTest {
     fun shortAndExcessiveCopyResultsFailWithoutPublishingAnOwnedFrame() = runTest(StandardTestDispatcher()) {
         // Defensive boundary faults: a conforming Engine copy always returns the declared byte count.
         for (returnedCount in listOf(5, 7)) {
-            val engine = EngineInput()
-            var owned: ByteArray? = null
-            val session = MjpegCaptureSessionInputs().frameSession(backgroundScope, engine) { _, copyTo ->
+            val engine = FrameEngineSession()
+            var copiedJpeg: ByteArray? = null
+            val session = MjpegCaptureSessionInputs().createFrameSession(backgroundScope, engine) { _, copyTo ->
                 val destination = ByteArray(8) { 0x55 }
                 copyTo(destination)
-                owned = destination
+                copiedJpeg = destination
             }
             try {
                 session.start()
                 runCurrent()
                 assertStreaming(session)
 
-                engine.deliver(BorrowedInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)) { returnedCount })
-                assertNull(owned)
+                engine.deliver(BorrowedJpegInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)) { returnedCount })
+                assertNull(copiedJpeg)
                 val failure = checkNotNull(session.state.value.captureFailure)
                 assertEquals("Output.frame", failure.stage)
                 assertTrue(failure.cause is IllegalStateException)
@@ -282,7 +282,7 @@ internal class MjpegCaptureSessionFramesTest {
                 assertFrameFailure(session, failure.cause)
                 assertNull(session.state.value.cleanupFailure)
             } finally {
-                settle(session)
+                stopAndAwaitCleanup(session)
             }
         }
     }
@@ -290,18 +290,18 @@ internal class MjpegCaptureSessionFramesTest {
     // Cases: MJPEG-CAP-07, MJPEG-CAP-08
     @Test
     fun activeFrameCanBeCopiedBeforeStartReturnsWithoutConfirmingStreaming() = runTest(StandardTestDispatcher()) {
-        val startReleased = CompletableDeferred<Unit>()
+        val allowStartToReturn = CompletableDeferred<Unit>()
         val startEntered = CompletableDeferred<Unit>()
-        val engine = EngineInput(start = {
+        val engine = FrameEngineSession(onStart = {
             startEntered.complete(Unit)
-            startReleased.await()
+            allowStartToReturn.await()
         })
-        var owned: ByteArray? = null
+        var copiedJpeg: ByteArray? = null
         var count: Int? = null
-        val session = MjpegCaptureSessionInputs().frameSession(backgroundScope, engine) { byteCount, copyTo ->
+        val session = MjpegCaptureSessionInputs().createFrameSession(backgroundScope, engine) { byteCount, copyTo ->
             val destination = ByteArray(8) { 0x55 }
             copyTo(destination)
-            owned = destination
+            copiedJpeg = destination
             count = byteCount
         }
         try {
@@ -311,28 +311,28 @@ internal class MjpegCaptureSessionFramesTest {
             assertActive(session)
             assertFalse(session.state.value.isStreaming)
 
-            engine.deliver(BorrowedInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)))
+            engine.deliver(BorrowedJpegInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)))
             assertEquals(6, count)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), owned)
+            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
             assertFalse(session.state.value.isStreaming)
             assertNull(session.state.value.captureFailure)
             assertNull(session.state.value.cleanupSucceeded)
 
-            startReleased.complete(Unit)
+            allowStartToReturn.complete(Unit)
             runCurrent()
             assertStreaming(session)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), owned)
+            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
         } finally {
-            startReleased.complete(Unit)
-            settle(session)
+            allowStartToReturn.complete(Unit)
+            stopAndAwaitCleanup(session)
         }
     }
 
-    private fun MjpegCaptureSessionInputs.frameSession(
+    private fun MjpegCaptureSessionInputs.createFrameSession(
         scope: CoroutineScope,
-        engine: EngineInput,
+        engine: FrameEngineSession,
         onJpeg: (Int, (ByteArray) -> Unit) -> Unit,
-    ): MjpegCaptureSession = session(
+    ): MjpegCaptureSession = createSession(
         scope = scope,
         engineFactory = { actualContext, actualProjection, _ ->
             assertSame(context, actualContext)
@@ -370,7 +370,7 @@ internal class MjpegCaptureSessionFramesTest {
         assertSame(cause, state.captureFailure?.cause)
     }
 
-    private suspend fun settle(session: MjpegCaptureSession) {
+    private suspend fun stopAndAwaitCleanup(session: MjpegCaptureSession) {
         withContext(NonCancellable) {
             session.requestStop(MjpegCaptureSession.StopReason.Shutdown)
             awaitCleanup(session)
@@ -380,23 +380,23 @@ internal class MjpegCaptureSessionFramesTest {
     private suspend fun awaitCleanup(session: MjpegCaptureSession): Boolean = withTimeout(5.seconds) { session.awaitCleanup() }
 
     /** Supplies only the observations and operation outcomes needed by these frame histories. */
-    private class EngineInput(
-        private val start: suspend () -> Unit = {},
-        private val unregister: suspend () -> Unit = {},
+    private class FrameEngineSession(
+        private val onStart: suspend () -> Unit = {},
+        private val onUnregister: suspend () -> Unit = {},
     ) : MjpegEngineSession {
-        private val observed = MutableStateFlow(MjpegEngineState(MjpegEngineState.Phase.NotStarted))
+        private val observedState = MutableStateFlow(MjpegEngineState(MjpegEngineState.Phase.NotStarted))
         private var consumer: ((MjpegBorrowedJpeg) -> Unit)? = null
         val mediaStopped = CompletableDeferred<Unit>()
 
         override val currentState: MjpegEngineState
-            get() = observed.value
+            get() = observedState.value
 
-        override val states: Flow<MjpegEngineState> = observed
-        override val stats: kotlinx.coroutines.flow.StateFlow<ScreenCaptureStats> = MutableStateFlow(emptyEngineStatistics())
+        override val states: Flow<MjpegEngineState> = observedState
+        override val stats: kotlinx.coroutines.flow.StateFlow<ScreenCaptureStats> = MutableStateFlow(initialEngineStatistics())
 
         override suspend fun start(parameters: ScreenCaptureParameters) {
-            observed.value = MjpegEngineState(MjpegEngineState.Phase.Active)
-            start()
+            observedState.value = MjpegEngineState(MjpegEngineState.Phase.Active)
+            onStart()
         }
 
         override fun updateParameters(parameters: ScreenCaptureParameters) = Unit
@@ -405,23 +405,23 @@ internal class MjpegCaptureSessionFramesTest {
             this.consumer = consumer
             return MjpegFrameRegistration {
                 this.consumer = null
-                unregister()
+                onUnregister()
             }
         }
 
         override suspend fun stop() {
-            observed.value = MjpegEngineState(MjpegEngineState.Phase.Stopped, stopReason = ScreenCaptureStopReason.Requested)
+            observedState.value = MjpegEngineState(MjpegEngineState.Phase.Stopped, stopReason = ScreenCaptureStopReason.Requested)
             mediaStopped.complete(Unit)
         }
 
-        fun deliver(frame: BorrowedInput) {
+        fun deliver(frame: BorrowedJpegInput) {
             val callback = checkNotNull(consumer)
             frame.duringCallback { callback(frame) }
         }
     }
 
     /** Callback/thread borrowing is enforced, without pretending to encode or validate JPEG contents. */
-    private class BorrowedInput(
+    private class BorrowedJpegInput(
         private val payload: ByteArray,
         private val count: () -> Int = { payload.size },
         private val copy: (ByteArray) -> Int = { destination ->
@@ -433,12 +433,12 @@ internal class MjpegCaptureSessionFramesTest {
 
         override val byteCount: Int
             get() {
-                checkAccess()
+                checkCallbackAccess()
                 return count()
             }
 
         override fun copyTo(destination: ByteArray): Int {
-            checkAccess()
+            checkCallbackAccess()
             return copy(destination)
         }
 
@@ -452,7 +452,7 @@ internal class MjpegCaptureSessionFramesTest {
             }
         }
 
-        private fun checkAccess() {
+        private fun checkCallbackAccess() {
             check(callbackThread === Thread.currentThread()) { "Borrowed input accessed outside its callback/thread" }
         }
     }
