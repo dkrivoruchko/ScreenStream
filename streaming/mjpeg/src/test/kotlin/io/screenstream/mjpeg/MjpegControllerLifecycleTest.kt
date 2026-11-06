@@ -3,7 +3,6 @@ package io.screenstream.mjpeg
 import android.app.Application
 import android.content.Intent
 import android.os.SystemClock
-import com.elvishew.xlog.XLog
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.InterfaceType
@@ -25,7 +24,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -49,11 +47,6 @@ internal class MjpegControllerLifecycleTest {
     val temporaryFolder: TemporaryFolder = TemporaryFolder()
 
     private val inputs = MjpegControllerTestInputs(temporaryFolder)
-
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     // Cases: MJPEG-CTL-01
     @Test

@@ -18,7 +18,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.IsolatedSettingsContext
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
@@ -26,7 +25,6 @@ import io.screenstream.mjpeg.ui.settings.webpage.BackgroundSearch
 import io.screenstream.mjpeg.ui.settings.webpage.WebPageSettingsGroup
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -44,11 +42,6 @@ internal class BackgroundSettingsUiTest {
 
     @get:Rule
     val temporaryFolder = TemporaryFolder()
-
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     @Test
     fun hexSliderAndPaletteStaySynchronizedAndSaveTheCanonicalColor() {

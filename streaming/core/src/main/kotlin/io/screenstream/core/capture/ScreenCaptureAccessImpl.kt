@@ -7,9 +7,10 @@ import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.SystemClock
-import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.annotation.MainThread
+import io.screenstream.core.logE
+import io.screenstream.core.logW
 import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CancellationException
@@ -61,8 +62,8 @@ internal class ScreenCaptureAccessImpl(
     private val mutableRequest = MutableStateFlow<Request?>(null)
     internal val currentRequest: StateFlow<Request?> = mutableRequest.asStateFlow()
 
-    // Under gate: reference-unique resumed registrations, ordered by the latest eligibility report.
-    // Derive selection from all resumed hosts so another eligible host remains selectable.
+    // Under gate: resumed hosts by identity, most recently resumed last. The last one is selected;
+    // when it leaves, another resumed host becomes selectable.
     private val resumedHostTokens = mutableListOf<Any>()
     private val selectedHostToken: Any? get() = resumedHostTokens.lastOrNull()
     private var pendingConsent: PendingConsent? = null
@@ -123,8 +124,7 @@ internal class ScreenCaptureAccessImpl(
         }
         val cached = cachedGrant
         if (cached != null) {
-            // Offer the committed take before checking cancellation, preserving its analytics settlement
-            // for the decision already made in this uninterrupted Main turn.
+            // Report the committed take before cancellation checks so every consumed saved consent is observed.
             observe { requestObserver.savedConsentTaken(attempt) }
             waiter.resumeWith(runCatching { prepareGrant(cached, waiter, prepareForeground) })
         } else if (immediate != null) {
@@ -155,7 +155,7 @@ internal class ScreenCaptureAccessImpl(
                 accepted.job.ensureActive()
                 projectionManager.getMediaProjection(Activity.RESULT_OK, accepted.consentResultIntent)
             }
-            // After Android returns a resource, the worker must store it before checking cancellation.
+            // No cancellation check after creation: the caller takes ownership of the returned projection.
             checkNotNull(projection)
         } finally {
             synchronized(gate) { creation.inFlight = false }
@@ -219,7 +219,10 @@ internal class ScreenCaptureAccessImpl(
         declined?.let { completeWithoutGrant(it, ScreenCaptureAccess.NoGrantReason.EducationDeclined) }
     }
 
-    /** Commit submission before observation or Android launch; recreation preserves the single launch. */
+    /**
+     * Marks the request submitted before observing or launching, so a recreated host never launches it
+     * again. Returns the intent to launch, or null when the request must not be launched.
+     */
     @MainThread
     internal fun submit(key: String, token: Any, educationAccepted: Boolean): Intent? {
         val submission = synchronized(gate) {
@@ -244,6 +247,18 @@ internal class ScreenCaptureAccessImpl(
             failPending(pending, cause)
             return null
         }
+    }
+
+    /** Settle only this submitted request when its mounted submitting Activity is finishing. */
+    @MainThread
+    internal fun abandonSubmitted(key: String) {
+        val abandoned = synchronized(gate) {
+            val pending = pendingConsent ?: return
+            if (pending.request.key != key || !pending.request.submitted) return
+            removePending()
+        } ?: return
+        completeWithoutGrant(abandoned, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
+        logW("ScreenCaptureAccess", "Submitted consent abandoned because its Activity is finishing")
     }
 
     /** Successful results immediately prepare the original foreground Service, including while paused. */
@@ -323,7 +338,7 @@ internal class ScreenCaptureAccessImpl(
         try {
             callback()
         } catch (cause: Throwable) {
-            Log.e("ScreenCaptureAccess", "Consent observer failed", cause)
+            logE("ScreenCaptureAccess", "Consent observer failed", cause)
         }
     }
 

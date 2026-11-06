@@ -7,7 +7,10 @@ import android.content.Intent
 import androidx.annotation.AnyThread
 import androidx.annotation.StringRes
 
-/** App presentation and delivery of streaming notifications; their lifecycle stays with each owner. */
+/**
+ * App-supplied provider that builds and delivers streaming notifications. Each caller decides when its
+ * notification is shown, updated, or cleared.
+ */
 public interface StreamingModuleNotifications {
     public enum class Channel(public val id: String, public val defaultImportance: Int) {
         Streaming("io.screenstream.notification.CHANNEL_STREAMING", NotificationManager.IMPORTANCE_DEFAULT),
@@ -19,15 +22,18 @@ public interface StreamingModuleNotifications {
         public val id: Int
     }
 
-    /** Build even when notifications are blocked. Foreground construction failures propagate. */
+    /** Builds foreground content even when delivery is blocked; failures propagate to the Service. */
     @AnyThread
     public fun buildForeground(action: ForegroundAction): Notification
 
-    /** Replace this owner's error slot, or always attempt cancellation for null. Delivery is best effort. */
+    /** Posts [content] in the caller's [notificationId] slot, or always attempts cancellation for null. Best effort. */
     @AnyThread
     public fun updateError(notificationId: Int, content: ErrorContent?)
 
-    /** Current delivery settings; visibility and Service-start authority have separate conditions. */
+    /**
+     * Whether [channel] notifications can currently be delivered. Visibility of foreground notifications
+     * and foreground-service eligibility follow separate Android rules.
+     */
     @AnyThread
     public fun areNotificationsEnabled(channel: Channel): Boolean
 
@@ -36,10 +42,9 @@ public interface StreamingModuleNotifications {
     public fun channelSettingsIntent(channel: Channel): Intent?
 
     /**
-     * One foreground button and its matching presentation. The owner supplies an explicit immutable
-     * action from [io.screenstream.core.manager.StreamingModuleActionReceiver]: Exit targets
-     * the original instance and StopStream its exact capture attempt through a broadcast. Preserve those
-     * identities when handling old actions; module ID or notification slot alone is insufficient.
+     * The foreground button and its presentation: Exit while waiting or preparing capture, StopStream once
+     * capture is confirmed. [pendingIntent] comes from [io.screenstream.core.manager.StreamingModuleActionReceiver]
+     * and targets the exact instance or capture attempt; attach it unchanged.
      */
     public sealed interface ForegroundAction {
         public val pendingIntent: PendingIntent
@@ -49,11 +54,11 @@ public interface StreamingModuleNotifications {
         public data class StopStream(override val pendingIntent: PendingIntent) : ForegroundAction
     }
 
-    /** Current error presentation selected by its owner. */
+    /** Error presentation selected by its owner. */
     public sealed interface ErrorContent {
         /**
-         * Module detail and optional recovery prepared by the original module owner. A recovery
-         * action targets that instance and its module-owned current error episode for in-place recovery.
+         * Controller-selected detail. [recoveryAction], from `StreamingModuleActionReceiver.recoveryAction`,
+         * targets the instance's current error episode.
          */
         public data class Text(
             public val message: String,
@@ -67,6 +72,7 @@ public interface StreamingModuleNotifications {
     }
 
     public companion object {
+        /** Slot of the manager's generic problem notification; foreground slots must differ. */
         public const val NOTIFICATION_ID_MODULE_ERROR: Int = 1000
     }
 }

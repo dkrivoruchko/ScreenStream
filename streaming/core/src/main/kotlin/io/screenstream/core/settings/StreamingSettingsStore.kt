@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
 import info.dvkr.screenstream.common.settings.JsonPreferencesStore
+import io.screenstream.core.logE
 import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -19,9 +20,8 @@ import kotlinx.serialization.Serializable
 import org.koin.core.annotation.Singleton
 
 /**
- * Process-owned streaming choices in `streaming_settings.preferences_pb`.
- * [initialize] awaits the first stored value. This store reads and writes its own preferences file;
- * former app preferences remain in their original store.
+ * Process-wide streaming settings in `streaming_settings.preferences_pb`, created when Koin starts.
+ * Loading begins at construction; call [initialize] before reading [data].
  */
 @Singleton(createdAtStart = true)
 internal class StreamingSettingsStore(
@@ -39,6 +39,7 @@ internal class StreamingSettingsStore(
         serializer = Data.serializer(),
         defaultValue = Data(),
         produceFile = { context.preferencesDataStoreFile("streaming_settings") },
+        failureReporter = { stage, message, cause -> logE(stage, message, cause) },
     )
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
 
@@ -48,14 +49,14 @@ internal class StreamingSettingsStore(
         readyData = storage.data.stateIn(scope)
     }
 
-    /** Await the shared preparation; the settings owner continues after caller cancellation. */
+    /** Suspends until the first stored value is loaded; cancelling a caller does not cancel loading. */
     internal suspend fun initialize(): Unit = preparation.await()
 
-    /** Latest published value after [initialize] completes, potentially lagging a completed edit. */
+    /** Latest loaded value; throws before [initialize] completes and can briefly lag a completed edit. */
     internal val data: StateFlow<Data>
         get() = checkNotNull(readyData) { "StreamingSettingsStore.initialize() must complete before reading data" }
 
-    /** Atomically transforms the latest stored value; an admitted edit survives caller cancellation. */
+    /** Atomically transforms the stored value; the edit completes even if the caller is cancelled. Failures propagate. */
     internal suspend fun updateData(transform: Data.() -> Data): Unit = withContext(NonCancellable + dispatcher) {
         storage.updateData(transform)
     }

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
 import info.dvkr.screenstream.common.settings.JsonPreferencesStore
+import io.screenstream.core.logE
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -68,6 +69,7 @@ internal class MjpegSettings(
         defaultValue = Data(web = WebPageSettings()),
         produceFile = { context.preferencesDataStoreFile("mjpeg") },
         migrations = listOf(MjpegSettingsMigration(context)),
+        failureReporter = { stage, message, cause -> logE(stage, message, cause) },
     )
 
     internal val data: Flow<Data> = storage.data

@@ -2,7 +2,6 @@ package io.screenstream.mjpeg
 
 import android.content.Context
 import android.content.ContextWrapper
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.JpegBackendPolicy
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.MjpegSettings
@@ -18,7 +17,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -36,11 +34,6 @@ internal class MjpegControllerSettingsTest {
     val temporaryFolder: TemporaryFolder = TemporaryFolder()
 
     private val inputs = MjpegControllerTestInputs(temporaryFolder)
-
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     // Cases: MJPEG-CTL-05
     @Test

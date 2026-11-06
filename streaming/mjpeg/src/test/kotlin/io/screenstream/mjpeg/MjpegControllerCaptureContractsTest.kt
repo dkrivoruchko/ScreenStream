@@ -6,7 +6,6 @@ import android.content.Intent
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.module.StreamingModule
@@ -57,7 +56,6 @@ internal class MjpegControllerCaptureContractsTest {
 
     @Before
     fun initialize() {
-        XLog.init(Int.MAX_VALUE)
         ShadowToast.reset()
         ShadowPowerManager.clearWakeLocks()
     }
@@ -381,8 +379,6 @@ internal class MjpegControllerCaptureContractsTest {
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     fun slowViewerWarningsUseFreshSamplesEpisodesAndCooldownWithoutDependingOnConsumerCounters() = runBlocking {
-        val warningFailures = java.util.concurrent.CopyOnWriteArrayList<Throwable>()
-        io.screenstream.core.configureLogWriter { _, tag, _, cause -> if (tag == "SlowViewer.toast" && cause != null) warningFailures += cause }
         val data = defaults().let { it.copy(behavior = it.behavior.copy(notifySlowViewers = true)) }
         val engine = ControlledMjpegEngineSession()
         val host = createHost(listOf(engine), data)
@@ -400,14 +396,14 @@ internal class MjpegControllerCaptureContractsTest {
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
             publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = true)
             assertEquals(
-                "Toast failures=$warningFailures; sample=${host.http.info.value.sampledAtElapsedRealtimeMillis}; now=${SystemClock.elapsedRealtime()}",
+                "sample=${host.http.info.value.sampledAtElapsedRealtimeMillis}; now=${SystemClock.elapsedRealtime()}",
                 1,
                 ShadowToast.shownToastCount()
             )
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
             publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = true)
             assertEquals(
-                "Toast failures=$warningFailures; sample=${host.http.info.value.sampledAtElapsedRealtimeMillis}; now=${SystemClock.elapsedRealtime()}",
+                "sample=${host.http.info.value.sampledAtElapsedRealtimeMillis}; now=${SystemClock.elapsedRealtime()}",
                 1,
                 ShadowToast.shownToastCount()
             )
@@ -416,7 +412,7 @@ internal class MjpegControllerCaptureContractsTest {
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
             publishSlowViewerSampleAndAwaitController(host, SystemClock.elapsedRealtime(), slow = true)
             assertEquals(
-                "Toast failures=$warningFailures; sample=${host.http.info.value.sampledAtElapsedRealtimeMillis}; now=${SystemClock.elapsedRealtime()}",
+                "sample=${host.http.info.value.sampledAtElapsedRealtimeMillis}; now=${SystemClock.elapsedRealtime()}",
                 1,
                 ShadowToast.shownToastCount()
             )
@@ -440,13 +436,6 @@ internal class MjpegControllerCaptureContractsTest {
                 assertTrue(host.close())
             } finally {
                 mainDispatcher.close()
-                io.screenstream.core.configureLogWriter { priority, _, message, cause ->
-                    if (cause == null) XLog.log(priority, message) else XLog.log(
-                        priority,
-                        message,
-                        cause
-                    )
-                }
             }
         }
     }

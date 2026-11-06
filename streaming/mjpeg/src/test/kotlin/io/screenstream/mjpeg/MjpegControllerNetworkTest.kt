@@ -2,7 +2,6 @@ package io.screenstream.mjpeg
 
 import android.Manifest
 import android.app.Application
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor
 import kotlinx.coroutines.CompletableDeferred
@@ -12,7 +11,6 @@ import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -34,11 +32,6 @@ internal class MjpegControllerNetworkTest {
     val temporaryFolder: TemporaryFolder = TemporaryFolder()
 
     private val inputs = MjpegControllerTestInputs(temporaryFolder)
-
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     // Cases: MJPEG-CTL-08
     @Test

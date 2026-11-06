@@ -7,7 +7,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferencesFileSerializer
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.ColorMode
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.FrameRate
@@ -15,6 +14,7 @@ import io.screenstream.capture.Mirror
 import io.screenstream.capture.OutputSize
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.SourceRegion
+import io.screenstream.core.logW
 import io.screenstream.mjpeg.networkaddress.AddressCategory
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
@@ -42,7 +42,7 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
             val source = try {
                 sourceFile.inputStream().use { PreferencesFileSerializer.readFrom(it) }
             } catch (_: CorruptionException) {
-                XLog.w("Legacy MJPEG preferences are corrupt; import skipped")
+                logW(msg = "Legacy MJPEG preferences are corrupt; import skipped")
                 null
             }
             if (source == null) return currentData

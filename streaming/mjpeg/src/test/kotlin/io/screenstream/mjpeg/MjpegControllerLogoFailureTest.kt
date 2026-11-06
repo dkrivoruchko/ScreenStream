@@ -1,7 +1,6 @@
 package io.screenstream.mjpeg
 
 import android.content.res.AssetManager
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -9,7 +8,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -32,11 +30,6 @@ import kotlin.time.Duration.Companion.seconds
 internal class MjpegControllerLogoFailureTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
-
-    @Before
-    fun initialize() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     // Cases: MJPEG-CTL-11, MJPEG-CTL-13
     @Test

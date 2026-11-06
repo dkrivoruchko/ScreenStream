@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.IsolatedSettingsContext
 import io.screenstream.mjpeg.readSavedSettingsJson
 import io.screenstream.mjpeg.seedSettings
@@ -54,8 +53,7 @@ internal class MjpegSettingsPersistenceTest {
     val temporaryFolder: TemporaryFolder = TemporaryFolder()
 
     @Before
-    fun initializeLoggerAndDevice() {
-        XLog.init(Int.MAX_VALUE)
+    fun initializeDevice() {
         ShadowBuild.setManufacturer("Acme")
         ShadowBuild.setModel("Tablet")
     }

@@ -10,31 +10,31 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlin.uuid.Uuid
 
 /**
- * Selects and manages streaming modules for the application process.
+ * Process-wide owner of streaming-module selection, instance lifecycle, and command routing.
  *
- * At most one instance is admitted to new work. Replacement or Exit closes its admission; its
- * cleanup can continue while a replacement opens. During transitions [state] presents the transition
- * in place of the old instance. Running describes control progress; capture and network readiness
- * have separate lifetimes.
+ * At most one module instance is admitted to new work. Replacement and Exit close the current instance's
+ * admission and wait a bounded time for its cleanup; cleanup itself continues independently, possibly
+ * alongside a replacement. [State.Running] describes control progress; capture and network readiness
+ * belong to the module.
  *
- * Commands submit requests for evaluation; later behavior and state reflect any resulting effects.
- * A slow [StateFlow] collector can skip intermediate states and observe only the latest snapshot.
+ * Commands are requests: stale, unknown, or ill-timed requests are ignored, and returning does not
+ * confirm any effect. Observe [state] for results; a slow collector sees only the latest snapshot.
  */
 public interface StreamingModuleManager {
     /**
-     * Read-only catalog of registered streaming modules, ordered by descending [StreamingModule.priority].
-     *
-     * Membership and order stay fixed for this manager's lifetime. Selectors and other consumers use it
-     * for metadata and module lookup; use [state] to determine current lifecycle state. Registration
-     * requires a nonempty catalog with unique module IDs and the foreground-slot constraints declared
-     * by [StreamingModule.foregroundSlot].
+     * Registered modules, ordered by descending [StreamingModule.priority] and fixed for the manager's
+     * lifetime. Construction fails unless the list is nonempty, module IDs are unique, and every
+     * [StreamingModule.foregroundSlot] is valid.
      */
     public val modules: List<StreamingModule>
 
-    /** Process state, independently observable from any Activity. */
+    /** Current process state, observable independently of any Activity. */
     public val state: StateFlow<State>
 
-    /** Render only the exact admitted instance's installed content; otherwise render [fallback]. */
+    /**
+     * Renders the installed controller's content while [instanceId] is the current admitted instance;
+     * otherwise renders [fallback].
+     */
     @Composable
     public fun InstanceContent(
         instanceId: StreamingModule.InstanceId,
@@ -44,60 +44,64 @@ public interface StreamingModuleManager {
     )
 
     /**
-     * Select [moduleId], or the remembered selection when null. On the first request, settings are
-     * initialized before opening; an absent or unavailable saved ID falls back to the first catalog
-     * entry. A changed explicit choice is saved asynchronously; return precedes confirmation of persistence.
-     * Later null requests use the in-memory selection.
+     * Selects [moduleId], or the remembered module when null, and opens it unless it is already the
+     * current instance. Selecting the current module keeps its instance, even after failure; use
+     * [restartModule] to replace it. Unknown IDs and requests during a transition, including the first
+     * settings load, are ignored.
      *
-     * Selecting the current module retains its instance even after failure; use [restartModule] to retry.
-     * Unknown IDs and requests during initialization or a transition are ignored; retry after the transition.
+     * The first selection loads settings; a missing or unregistered saved ID resolves to the first entry
+     * of [modules]. A changed choice is saved asynchronously; later null requests use the in-memory choice.
+     *
+     * Opening starts the module's Service with ordinary `Context.startService`; the admitted Service then
+     * promotes itself to foreground. Android can reject either step, for example after the app leaves the
+     * foreground during preparation. Opening also fails if the same Service component still hosts the
+     * previous controller when the bounded shutdown wait ends. Any startup failure, including a missing
+     * first status, publishes generic [State.Failed] and is not retried; call [restartModule] from
+     * foreground UI to retry.
      */
     @MainThread
     public fun selectModule(moduleId: StreamingModule.Id? = null)
 
     /**
-     * Replace the exact current live or failed instance with a new launch identity. Startup, an active
-     * transition, and stale identities cause the request to be ignored. State reflects any resulting
-     * transition.
+     * Replaces [expectedInstanceId] with a new instance of the same module. Applies only when no
+     * transition is active and it is the current instance in [State.Running], [State.Unresponsive], or
+     * [State.Failed]; otherwise the request is ignored. The new opening follows [selectModule]'s startup
+     * rules; retry a failed restart with the new instance's identity.
      */
     @MainThread
     public fun restartModule(expectedInstanceId: StreamingModule.InstanceId)
 
     /**
-     * Close admission and begin process-owned shutdown, returning while cleanup proceeds. If supplied,
-     * [expectedInstanceId] must identify the admitted current instance, including during startup. A null
-     * identity applies Exit regardless of the current instance.
+     * Closes admission and starts process-owned shutdown, returning before cleanup completes. Unlike
+     * selection, Exit is accepted during a transition and cancels a pending opening. A non-null
+     * [expectedInstanceId] applies only while it is the current admitted instance, including during
+     * startup; null applies regardless of the current instance.
      *
-     * Repeated requests share the pending bounded shutdown wait; cleanup continues independently of it.
-     * [State.Exiting] remains visible afterward until a later selection opens a module. Cleanup and app
-     * task removal have their own completion lifetimes.
+     * Repeated requests join the pending bounded wait; cleanup continues past it. [State.Exiting] remains
+     * until a later selection. The app owns removal of its tasks.
      */
     @MainThread
     public fun exit(expectedInstanceId: StreamingModule.InstanceId? = null)
 
     /**
-     * Queue Start for the exact admitted [instanceId]. Routing requires an established status and an
-     * idle transition slot; [State.Unresponsive] remains eligible. The controller rechecks admission and
-     * readiness on dispatch. Subsequent behavior reflects any resulting capture.
-     * May be called from any thread.
+     * Asynchronously forwards Start to the controller when, at dispatch, [instanceId] is the current
+     * admitted instance in [State.Running] or [State.Unresponsive] and no transition is active. The
+     * controller decides readiness. May be called from any thread.
      */
     public fun requestStreamStart(instanceId: StreamingModule.InstanceId)
 
     /**
-     * Route Stop synchronously for the exact [attempt] of the admitted current instance, provided it
-     * has an established status and the transition slot is idle. The reported summary can lag, so the
-     * controller validates the attempt. [fromNotification] identifies the notification action; other
-     * callers retain false. Stop and resource release complete separately from this return.
+     * Synchronously forwards Stop for [attempt] under the same routing checks as [requestStreamStart].
+     * Reported status can lag behind the notification that offered Stop, so the controller, not the
+     * manager, validates [attempt]. [fromNotification] marks the notification action. Stop and resource
+     * release complete after return.
      */
     @MainThread
     public fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId, fromNotification: Boolean = false)
 
     /**
-     * Queue in-place recovery for the exact admitted [instanceId], provided it has an established
-     * status and the transition slot is idle. The controller rechecks admission on dispatch and validates
-     * [errorToken] against its current error episode. Subsequent behavior reflects any recovery.
-     * Recovery stays within the instance; the default controller returns immediately.
-     * May be called from any thread.
+     * Asynchronously forwards in-place recovery under the same routing checks as [requestStreamStart].
+     * The controller validates [errorToken] against its current error episode. May be called from any thread.
      */
     public fun requestRecovery(instanceId: StreamingModule.InstanceId, errorToken: Uuid)
 
@@ -106,25 +110,31 @@ public interface StreamingModuleManager {
         /** Idle state awaiting module selection. */
         public data object NoModule : State
 
-        /** Settings initialization, module replacement, or first real status is pending. */
+        /**
+         * An opening is in progress: settings loading, the previous instance's bounded shutdown wait, or
+         * the new instance's first status.
+         */
         public data object Switching : State
 
-        /** Exit is pending or completed; a later opening may request selection again. */
+        /** Exit has closed admission; remains after the bounded wait until a later selection. */
         public data object Exiting : State
 
-        /** Module control reports [status]; capture and network readiness are independent. */
+        /** [status] is the latest accepted report and its heartbeat is fresh. */
         public data class Running(
             public val instanceId: StreamingModule.InstanceId,
             public val status: StreamingModule.Status,
         ) : State
 
-        /** Heartbeat is stale; [lastStatus] remains the last accepted capture summary. */
+        /** The heartbeat is stale; [lastStatus] is the last accepted report. */
         public data class Unresponsive(
             public val instanceId: StreamingModule.InstanceId,
             public val lastStatus: StreamingModule.Status,
         ) : State
 
-        /** Terminal failure retained through cleanup; null [messageResource] uses generic error text. */
+        /**
+         * Terminal failure; admission is closed and cleanup proceeds. Remains until another module is
+         * selected, the instance is restarted, or Exit. Null [messageResource] means generic error text.
+         */
         public data class Failed(
             public val instanceId: StreamingModule.InstanceId,
             @get:StringRes public val messageResource: Int? = null,

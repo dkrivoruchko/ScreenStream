@@ -49,6 +49,8 @@ import java.io.IOException
  * @param produceFile returns the same `.preferences_pb` file for this store.
  * @param key name of the JSON string preference, defaulting to `DATA`.
  * @param migrations preferences migrations run before the first read or update.
+ * @param failureReporter optional synchronous diagnostic callback on the reporting operation's thread;
+ * calls may be concurrent and callback failures propagate. Null retains the default XLog error reporting.
  */
 public class JsonPreferencesStore<T : Any>(
     private val serializer: KSerializer<T>,
@@ -56,6 +58,7 @@ public class JsonPreferencesStore<T : Any>(
     produceFile: () -> File,
     key: String = "DATA",
     migrations: List<DataMigration<Preferences>> = emptyList(),
+    private val failureReporter: ((stage: String, message: String, cause: Throwable) -> Unit)? = null,
 ) {
     private val payloadKey: Preferences.Key<String> = stringPreferencesKey(key)
     private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
@@ -180,7 +183,13 @@ public class JsonPreferencesStore<T : Any>(
     private fun isRecoverable(cause: Throwable): Boolean = cause is IOException || cause is SerializationException
 
     private fun logFailure(stage: String, cause: Throwable, action: String): Unit {
-        XLog.e(getLog(stage, "type=${cause.javaClass.simpleName}. $action"), cause)
+        val message = "type=${cause.javaClass.simpleName}. $action"
+        val reporter = failureReporter
+        if (reporter == null) {
+            XLog.e(getLog(stage, message), cause)
+        } else {
+            reporter(stage, message, cause)
+        }
     }
 
     private companion object {

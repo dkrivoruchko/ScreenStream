@@ -7,7 +7,6 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.IsolatedSettingsContext
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
@@ -17,7 +16,6 @@ import io.screenstream.mjpeg.ui.settings.webpage.WebPageSettingsGroup
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -36,11 +34,6 @@ internal class StreamNamePlacementSettingsUiTest {
 
     @get:Rule
     val temporaryFolder = TemporaryFolder()
-
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     @Test
     fun dismissalMergesOnlyChangedDraftFieldsIntoTheLatestSavedLayouts() {

@@ -8,7 +8,6 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.ColorMode
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.FrameRate
@@ -56,8 +55,7 @@ internal class MjpegSettingsMigrationTest {
     val temporaryFolder: TemporaryFolder = TemporaryFolder()
 
     @Before
-    fun initializeLoggerAndDevice() {
-        XLog.init(Int.MAX_VALUE)
+    fun initializeDevice() {
         ShadowBuild.setManufacturer("Acme")
         ShadowBuild.setModel("Tablet")
     }

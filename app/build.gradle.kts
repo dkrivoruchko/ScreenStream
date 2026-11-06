@@ -69,7 +69,6 @@ android {
     productFlavors {
         create("FDroid") {
             dimension = "Default"
-            manifestPlaceholders += mapOf("adMobPubId" to "")
             configure<CrashlyticsExtension> {
                 mappingFileUploadEnabled = false
                 nativeSymbolUploadEnabled = false

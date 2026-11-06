@@ -32,7 +32,6 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.computeWindowSizeClass
-import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.analytics.EntryPoint
 import info.dvkr.screenstream.common.analytics.SessionKey
 import info.dvkr.screenstream.common.analytics.StartFailGroup
@@ -46,6 +45,7 @@ import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.capture.ConsentRequestObserver
 import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.compose.ScreenCaptureConsentHost
+import io.screenstream.core.configureLogWriter
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.core.permission.PermissionState
@@ -200,7 +200,7 @@ internal class MjpegCaptureTestHost(
 
     fun start() {
         check(current == null)
-        XLog.init(Int.MAX_VALUE)
+        configureLogWriter { _, _, _, _ -> }
         val seed = MjpegSettings.Data(
             image = imageSettings,
             network = NetworkSettings(

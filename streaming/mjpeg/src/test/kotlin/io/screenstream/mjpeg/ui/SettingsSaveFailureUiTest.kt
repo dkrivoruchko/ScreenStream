@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.IsolatedSettingsContext
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.seedSettings
@@ -24,7 +23,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -44,11 +42,6 @@ internal class SettingsSaveFailureUiTest {
 
     @get:Rule
     val temporaryFolder = TemporaryFolder()
-
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     @Test
     fun failedEditorSaveShowsTheScreenSnackbarAndPreservesSavedBytesAndData() {

@@ -132,8 +132,11 @@ internal class ScreenCaptureAccessTest {
     @Test
     fun submittedRequestSurvivesHostChangesAndForegroundPreparationWhilePaused() {
         access.onHostResumed(host)
-        var prepared = false
-        val pending = request(prepare = { prepared = true; true })
+        var preparationCount = 0
+        val pending = request(prepare = {
+            preparationCount++
+            true
+        })
         val key = key()
         assertNotNull(access.submit(key, host, false))
         assertNull(access.submit(key, host, false))
@@ -143,13 +146,160 @@ internal class ScreenCaptureAccessTest {
         access.onHostResumed(replacementHost)
         access.onHostInactive(replacementHost)
         access.deliver("stale", ActivityResult(Activity.RESULT_CANCELED, null))
-        assertFalse(prepared)
+        assertEquals(0, preparationCount)
         assertFalse(pending.result.isCompleted)
         access.deliver(key, success())
-        assertTrue(prepared)
+        assertEquals(1, preparationCount)
         scheduler.runCurrent()
         assertTrue(pending.result.getCompleted() is ScreenCaptureAccess.ConsentResult.Granted)
         assertNull(access.currentRequest.value)
+        assertSame(platform.projection, access.createProjection(grant(pending)))
+        access.deliver(key, success())
+        access.deliver(key, ActivityResult(Activity.RESULT_CANCELED, null))
+        assertEquals(1, preparationCount)
+        assertReason(request(), ScreenCaptureAccess.NoGrantReason.Busy)
+        access.finishProjectionCreation(pending.attempt)
+
+        access.onHostResumed(host)
+        var successorPreparationCount = 0
+        val successor = request(prepare = {
+            successorPreparationCount++
+            true
+        })
+        val successorRequest = checkNotNull(access.currentRequest.value)
+        access.deliver(key, success())
+        scheduler.runCurrent()
+        assertSame(successorRequest, access.currentRequest.value)
+        assertFalse(successor.result.isCompleted)
+        assertEquals(1, preparationCount)
+        assertEquals(0, successorPreparationCount)
+    }
+
+    @Test
+    fun submittedAbandonmentSettlesWithoutPreparingForegroundAndAllowsFreshConsent() {
+        access.onHostResumed(host)
+        var preparationCount = 0
+        val pending = request(prepare = {
+            preparationCount++
+            true
+        })
+        val submittedKey = key()
+        assertNotNull(access.submit(submittedKey, host, false))
+        access.onHostInactive(host)
+        val replacementHost = Any()
+        access.onHostResumed(replacementHost)
+
+        access.abandonSubmitted(submittedKey)
+        access.abandonSubmitted(submittedKey)
+        access.deliver(submittedKey, success())
+        scheduler.runCurrent()
+        assertReason(pending, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
+        assertTrue(pending.job.isActive)
+        assertEquals(0, preparationCount)
+        assertNull(access.currentRequest.value)
+
+        val next = request()
+        val nextKey = key()
+        assertNotNull(access.submit(nextKey, replacementHost, false))
+        access.deliver(nextKey, ActivityResult(Activity.RESULT_CANCELED, null))
+        scheduler.runCurrent()
+        assertReason(next, ScreenCaptureAccess.NoGrantReason.Declined)
+    }
+
+    @Test
+    fun unknownAndUnsubmittedAbandonmentLeaveConsentAvailable() {
+        access.onHostResumed(host)
+        val pending = request()
+        val pendingKey = key()
+        access.abandonSubmitted("unknown")
+        access.abandonSubmitted(pendingKey)
+        scheduler.runCurrent()
+        assertFalse(pending.result.isCompleted)
+        assertTrue(access.canSubmit(pendingKey, host))
+        assertNotNull(access.submit(pendingKey, host, false))
+        access.abandonSubmitted("unknown")
+        access.deliver(pendingKey, ActivityResult(Activity.RESULT_CANCELED, null))
+        scheduler.runCurrent()
+        assertReason(pending, ScreenCaptureAccess.NoGrantReason.Declined)
+    }
+
+    @Test
+    fun abandonedKeyCannotSettleNewerSubmittedConsent() {
+        access.onHostResumed(host)
+        val first = request()
+        val firstKey = key()
+        assertNotNull(access.submit(firstKey, host, false))
+        access.abandonSubmitted(firstKey)
+        scheduler.runCurrent()
+        assertReason(first, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
+
+        var preparationCount = 0
+        val next = request(prepare = {
+            preparationCount++
+            true
+        })
+        val nextKey = key()
+        assertNotNull(access.submit(nextKey, host, false))
+        access.abandonSubmitted(firstKey)
+        access.deliver(firstKey, success())
+        assertFalse(access.failLaunch(firstKey, IllegalStateException("late launcher failure")))
+        scheduler.runCurrent()
+        assertFalse(next.result.isCompleted)
+        assertEquals(0, preparationCount)
+        assertEquals(nextKey, key())
+
+        access.deliver(nextKey, success())
+        scheduler.runCurrent()
+        assertTrue(next.result.getCompleted() is ScreenCaptureAccess.ConsentResult.Granted)
+        assertEquals(1, preparationCount)
+    }
+
+    @Test
+    fun successfulResultBeforeAbandonmentPreservesGrantAndForegroundPreparation() {
+        access.onHostResumed(host)
+        var preparationCount = 0
+        val pending = request(prepare = {
+            preparationCount++
+            true
+        })
+        val submittedKey = key()
+        assertNotNull(access.submit(submittedKey, host, false))
+        access.deliver(submittedKey, success())
+        access.abandonSubmitted(submittedKey)
+        scheduler.runCurrent()
+        assertEquals(1, preparationCount)
+        assertTrue(pending.job.isActive)
+        assertNull(access.currentRequest.value)
+        assertSame(platform.projection, access.createProjection(grant(pending)))
+        access.finishProjectionCreation(pending.attempt)
+    }
+
+    @Test
+    fun attemptCancellationAroundAbandonmentCannotLeavePendingConsent() {
+        access.onHostResumed(host)
+        var preparationCount = 0
+        for (abandonFirst in listOf(false, true)) {
+            val pending = request(prepare = {
+                preparationCount++
+                true
+            })
+            val submittedKey = key()
+            assertNotNull(access.submit(submittedKey, host, false))
+            if (abandonFirst) access.abandonSubmitted(submittedKey)
+            pending.job.cancel()
+            if (!abandonFirst) access.abandonSubmitted(submittedKey)
+            access.deliver(submittedKey, success())
+            scheduler.runCurrent()
+            assertTrue(pending.result.isCancelled)
+            assertNull(access.currentRequest.value)
+        }
+        assertEquals(0, preparationCount)
+        val next = request()
+        val nextKey = key()
+        assertNotNull(access.submit(nextKey, host, false))
+        access.deliver(nextKey, ActivityResult(Activity.RESULT_CANCELED, null))
+        scheduler.runCurrent()
+        assertReason(next, ScreenCaptureAccess.NoGrantReason.Declined)
     }
 
     // Cases: CORE-CAP-04, CORE-CAP-06
@@ -178,24 +328,72 @@ internal class ScreenCaptureAccessTest {
     @Test
     fun declineRejectAndTechnicalResultFailuresRemainDistinct() {
         access.onHostResumed(host)
-        val declined = request()
+        var declinedPreparationCount = 0
+        val declined = request(prepare = {
+            declinedPreparationCount++
+            true
+        })
         val declinedKey = key()
         access.submit(declinedKey, host, false)
         access.deliver(declinedKey, ActivityResult(Activity.RESULT_CANCELED, null))
         scheduler.runCurrent()
         assertReason(declined, ScreenCaptureAccess.NoGrantReason.Declined)
-        val rejected = request(prepare = { false })
+        assertEquals(0, declinedPreparationCount)
+        var rejectedPreparationCount = 0
+        val rejected = request(prepare = {
+            rejectedPreparationCount++
+            false
+        })
+        val rejectedKey = key()
         completeConsent()
         assertReason(rejected, ScreenCaptureAccess.NoGrantReason.ForegroundRejected)
-        val missing = request()
-        access.submit(key(), host, false)
-        access.deliver(key(), ActivityResult(Activity.RESULT_OK, null))
+        assertEquals(1, rejectedPreparationCount)
+        var missingPreparationCount = 0
+        val missing = request(prepare = {
+            missingPreparationCount++
+            true
+        })
+        val missingKey = key()
+        access.submit(missingKey, host, false)
+        access.deliver(missingKey, ActivityResult(Activity.RESULT_OK, null))
         scheduler.runCurrent()
         assertFailure<IllegalStateException>(missing)
-        val premature = request()
-        access.deliver(key(), success())
+        assertEquals(0, missingPreparationCount)
+        var prematurePreparationCount = 0
+        val premature = request(prepare = {
+            prematurePreparationCount++
+            true
+        })
+        val prematureKey = key()
+        access.deliver(prematureKey, success())
         scheduler.runCurrent()
         assertFailure<IllegalStateException>(premature)
+        assertEquals(0, prematurePreparationCount)
+
+        var successorPreparationCount = 0
+        val successor = request(prepare = {
+            successorPreparationCount++
+            true
+        })
+        val successorRequest = checkNotNull(access.currentRequest.value)
+        val settledResults = listOf(
+            declinedKey to ActivityResult(Activity.RESULT_CANCELED, null),
+            rejectedKey to success(),
+            missingKey to ActivityResult(Activity.RESULT_OK, null),
+            prematureKey to success(),
+        )
+        for ((settledKey, settledResult) in settledResults) {
+            access.deliver(settledKey, settledResult)
+            access.deliver(settledKey, success())
+        }
+        scheduler.runCurrent()
+        assertSame(successorRequest, access.currentRequest.value)
+        assertFalse(successor.result.isCompleted)
+        assertEquals(0, declinedPreparationCount)
+        assertEquals(1, rejectedPreparationCount)
+        assertEquals(0, missingPreparationCount)
+        assertEquals(0, prematurePreparationCount)
+        assertEquals(0, successorPreparationCount)
     }
 
     // Cases: CORE-CAP-05
@@ -209,6 +407,7 @@ internal class ScreenCaptureAccessTest {
         access.submit(key, host, false)
         assertFalse(access.failLaunch("stale", cause))
         assertTrue(access.failLaunch(key, cause))
+        access.abandonSubmitted(key)
         scheduler.runCurrent()
         val failure = assertFailure<ConsentLaunchException>(pending)
         assertTrue(generateSequence<Throwable>(failure) { it.cause }.any { it === cause })
@@ -274,10 +473,11 @@ internal class ScreenCaptureAccessTest {
 
     // Cases: CORE-CAP-07
     @Test
-    fun finishDuringInFlightAcquisitionCannotReleaseGuard() {
+    fun cancelledAttemptRetainsSuccessfulInFlightProjectionAndGuardUntilMatchingFinish() {
         access.onHostResumed(host)
         val pending = request()
         completeConsent()
+        val grant = grant(pending)
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
         platform.acquire = {
@@ -287,12 +487,18 @@ internal class ScreenCaptureAccessTest {
         }
         val executor = Executors.newSingleThreadExecutor()
         try {
-            val result = executor.submit<MediaProjection> { access.createProjection(grant(pending)) }
+            val result = executor.submit<MediaProjection> { access.createProjection(grant) }
             assertTrue("Acquisition did not enter", entered.await(5, TimeUnit.SECONDS))
+            pending.job.cancel()
+            assertTrue(pending.job.isCancelled)
+            access.finishProjectionCreation(attempt())
+            assertReason(request(), ScreenCaptureAccess.NoGrantReason.Busy)
             access.finishProjectionCreation(pending.attempt)
             assertReason(request(), ScreenCaptureAccess.NoGrantReason.Busy)
             release.countDown()
             assertSame(platform.projection, result.get(5, TimeUnit.SECONDS))
+            assertEquals(1, platform.calls)
+            access.finishProjectionCreation(attempt())
             assertReason(request(), ScreenCaptureAccess.NoGrantReason.Busy)
             access.finishProjectionCreation(pending.attempt)
             assertFalse(request().result.isCompleted)

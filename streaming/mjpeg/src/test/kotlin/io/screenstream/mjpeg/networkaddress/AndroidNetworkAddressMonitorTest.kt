@@ -3,8 +3,6 @@ package io.screenstream.mjpeg.networkaddress
 import android.net.ConnectivityManager
 import android.net.LinkProperties
 import android.net.NetworkCapabilities
-import com.elvishew.xlog.LogLevel
-import com.elvishew.xlog.XLog
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +22,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -46,11 +43,6 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
 internal class AndroidNetworkAddressMonitorTest {
-    @Before
-    fun initializeLogging() {
-        XLog.init(LogLevel.NONE)
-    }
-
     // Cases: MJPEG-NET-10, MJPEG-NET-11
     @Test
     fun discoveryStartsWithoutSubscribersAndSelectionsReuseObserverUntilClose() = runBlocking {

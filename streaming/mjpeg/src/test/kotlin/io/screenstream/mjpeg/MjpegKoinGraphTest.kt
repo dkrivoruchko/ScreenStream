@@ -3,7 +3,6 @@ package io.screenstream.mjpeg
 import android.app.Application
 import android.content.Context
 import android.content.Intent
-import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.core.module.StreamingModule
@@ -28,7 +27,6 @@ import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -52,11 +50,6 @@ import kotlin.time.Duration.Companion.seconds
 internal class MjpegKoinGraphTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
-
-    @Before
-    fun initialize() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     // Cases: MJPEG-CFG-01, MJPEG-CFG-02, MJPEG-CTL-01
     @Test

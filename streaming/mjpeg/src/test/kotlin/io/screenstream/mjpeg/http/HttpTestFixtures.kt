@@ -21,7 +21,6 @@ import java.net.Socket
 import kotlin.time.Duration.Companion.seconds
 
 internal fun httpTestContext(): Context {
-    com.elvishew.xlog.XLog.init(com.elvishew.xlog.LogLevel.NONE)
     return RuntimeEnvironment.getApplication()
 }
 

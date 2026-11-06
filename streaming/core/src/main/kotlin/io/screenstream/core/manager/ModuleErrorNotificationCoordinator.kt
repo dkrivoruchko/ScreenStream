@@ -2,20 +2,17 @@ package io.screenstream.core.manager
 
 import androidx.annotation.MainThread
 import androidx.annotation.StringRes
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import io.screenstream.core.StreamingModuleManager
+import io.screenstream.core.logE
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Manager-owned notification policy for the current module-instance problem. Each continuous warning
- * episode gets one delivery attempt; a terminal failure replaces it. Android presentation and delivery
- * belong to [notifications].
- * An operation error and unresponsive health share a warning episode for the same instance.
- * Healthy, transition and Exit states clear it. Warning-detail changes and re-enabled delivery retain
- * the episode's single attempt. This is manager presentation policy; the provider handles delivery.
+ * Manager policy for the generic problem notification of the current instance; [notifications] builds and
+ * delivers it. An operation error or unresponsive health of one instance forms a single warning episode
+ * with one delivery attempt; detail changes and re-enabled delivery do not repost it. Terminal failure
+ * replaces the warning, and every other state cancels the notification.
  */
 internal class ModuleErrorNotificationCoordinator(private val notifications: StreamingModuleNotifications) {
     private var lastAttempt: Problem? = null
@@ -49,7 +46,7 @@ internal class ModuleErrorNotificationCoordinator(private val notifications: Str
                     } else {
                         "Failed to show error notification for problem=$target"
                     }
-                    XLog.e(this@ModuleErrorNotificationCoordinator.getLog("ErrorNotification", message), failure)
+                    logE("ErrorNotification", message, failure)
                 }
             }
         } finally {

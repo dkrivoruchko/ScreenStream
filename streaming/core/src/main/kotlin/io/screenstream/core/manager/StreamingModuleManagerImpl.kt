@@ -9,12 +9,11 @@ import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
-import com.elvishew.xlog.XLog
-import info.dvkr.screenstream.common.getLog
 import io.screenstream.core.StreamingModuleManager
+import io.screenstream.core.logE
+import io.screenstream.core.logW
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.core.settings.StreamingSettingsStore
@@ -42,19 +41,18 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
 /**
- * Process-lifetime owner of module selection, instances, transitions, and coordinator errors.
- * Commands and reports are checked against their original instance independently of UI collection.
+ * Default [StreamingModuleManager]. Commands and reports are checked against their original instance
+ * independently of UI collection.
  *
- * The first applied status must arrive within three seconds of Service-start dispatch. A heartbeat
- * older than three seconds marks control unresponsive; fresh progress can restore it. Heartbeat age
- * uses uptime, excluding deep sleep. Startup and shutdown waits use elapsed realtime, including
- * deep sleep; each shutdown transition waits at most three seconds. Scheduling can delay observation
- * of a deadline; cleanup continues independently when a shutdown wait ends.
+ * The first status must be applied within three seconds of launch. A heartbeat older than three seconds
+ * marks control unresponsive; a fresh one restores it. Heartbeat age uses uptime, excluding deep sleep.
+ * Startup and shutdown deadlines use elapsed realtime, including deep sleep; each shutdown transition
+ * waits at most three seconds for the previous cleanup. Scheduling can delay observing a deadline.
  *
- * @param modules Available modules, ordered by priority for selection.
- * @param streamingSettings Saved streaming selection and its updates.
- * @param notifications App presentation and delivery for streaming notifications.
- * @param dispatcher Dispatcher for process-owned work and queued module reports.
+ * @param modules Registered modules in any order.
+ * @param streamingSettings Saved module selection.
+ * @param notifications Provider for the generic problem notification.
+ * @param dispatcher Main-confined dispatcher for manager state, transitions, and reports.
  */
 @Singleton(binds = [StreamingModuleManager::class, StreamingModuleManagerImpl::class])
 internal class StreamingModuleManagerImpl internal constructor(
@@ -64,7 +62,6 @@ internal class StreamingModuleManagerImpl internal constructor(
     notifications: StreamingModuleNotifications,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Main,
 ) : StreamingModuleManager {
-    /** Registered modules copied for the selector, highest priority first. */
     override val modules: List<StreamingModule> = Collections.unmodifiableList(modules.sortedByDescending { it.priority }).also {
         require(it.isNotEmpty()) { "At least one streaming module is required" }
     }
@@ -95,23 +92,20 @@ internal class StreamingModuleManagerImpl internal constructor(
     private val deadlineWake = Channel<Unit>(Channel.CONFLATED)
     private var lastSettingsWrite: Job? = null
 
-    /** One complete process state, independent of Activity collection. */
     override val state: StateFlow<StreamingModuleManager.State>
         field = MutableStateFlow<StreamingModuleManager.State>(StreamingModuleManager.State.NoModule)
 
-    /** Select a known module, keeping one process-owned transition until startup settles. */
     @MainThread
     override fun selectModule(moduleId: StreamingModule.Id?) {
         if (transitionJob != null) return
         if (moduleId != null && moduleId !in moduleById) {
-            XLog.w(this@StreamingModuleManagerImpl.getLog("Select", "Unknown streaming module ID=$moduleId"))
+            logW("Select", "Unknown streaming module ID=$moduleId")
             return
         }
         if (selectedModuleId != null && currentInstance?.instanceId?.moduleId == (moduleId ?: selectedModuleId)) return
         beginPreparation(moduleId)
     }
 
-    /** Replace the exact current launch through the usual bounded shutdown and startup path. */
     @MainThread
     override fun restartModule(expectedInstanceId: StreamingModule.InstanceId) {
         if (transitionJob != null || selectedModuleId == null) return
@@ -120,7 +114,6 @@ internal class StreamingModuleManagerImpl internal constructor(
         beginPreparation(expectedInstanceId.moduleId)
     }
 
-    /** Give Exit priority over opening while retaining exact ownership for notification commands. */
     @MainThread
     override fun exit(expectedInstanceId: StreamingModule.InstanceId?) {
         if (expectedInstanceId != null) {
@@ -169,7 +162,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 if (!started) failInstance(instance)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                XLog.e(this@StreamingModuleManagerImpl.getLog("Initialize", "Failed to open streaming module"), error)
+                this@StreamingModuleManagerImpl.logE("Initialize", "Failed to open streaming module", error)
                 throw error
             } finally {
                 if (transitionJob === opening) {
@@ -242,11 +235,6 @@ internal class StreamingModuleManagerImpl internal constructor(
 
     private fun shutdownDeadline(): Long = SystemClock.elapsedRealtime() + SHUTDOWN_TIMEOUT.inWholeMilliseconds
 
-    /**
-     * Route an external Start to the current [instanceId] after its first status. The module decides
-     * capture readiness when handling the request; stale or conflicting requests leave state
-     * unchanged.
-     */
     override fun requestStreamStart(instanceId: StreamingModule.InstanceId) {
         scope.launch(dispatcher) {
             wakeTransitionWaiter()
@@ -255,16 +243,11 @@ internal class StreamingModuleManagerImpl internal constructor(
             try {
                 instance.controllerForCommands()?.requestStreamStart()
             } catch (error: Exception) {
-                XLog.e(this@StreamingModuleManagerImpl.getLog("ExternalStart", "Failed to dispatch Start for instanceId=$instanceId"), error)
+                this@StreamingModuleManagerImpl.logE("ExternalStart", "Failed to dispatch Start for instanceId=$instanceId", error)
             }
         }
     }
 
-    /**
-     * Route an external Stop to the current launch; its module validates the exact live [attempt].
-     * Check admission synchronously on Main before enqueueing the module command. A status report
-     * may lag the notification that first exposed the Stop action.
-     */
     @MainThread
     override fun requestStreamStop(attempt: StreamingModule.CaptureAttemptId, fromNotification: Boolean) {
         val instance = currentInstance ?: return
@@ -272,7 +255,7 @@ internal class StreamingModuleManagerImpl internal constructor(
         try {
             instance.controllerForCommands()?.requestStreamStop(attempt, fromNotification)
         } catch (error: Exception) {
-            XLog.e(this@StreamingModuleManagerImpl.getLog("ExternalStop", "Failed to dispatch Stop for attempt=$attempt"), error)
+            logE("ExternalStop", "Failed to dispatch Stop for attempt=$attempt", error)
         }
     }
 
@@ -284,12 +267,12 @@ internal class StreamingModuleManagerImpl internal constructor(
             try {
                 instance.controllerForCommands()?.requestRecovery(errorToken)
             } catch (error: Exception) {
-                XLog.e(this@StreamingModuleManagerImpl.getLog("Recovery", "Failed to dispatch recovery for instanceId=$instanceId"), error)
+                this@StreamingModuleManagerImpl.logE("Recovery", "Failed to dispatch recovery for instanceId=$instanceId", error)
             }
         }
     }
 
-    /** Reserve identity and deadline before Android can synchronously deliver the startup. */
+    /** Reserve identity and deadline before ordinary Service dispatch; admitted delivery promotes before its factory. */
     private fun launchInstance(moduleId: StreamingModule.Id): LaunchRecord {
         val instance = LaunchRecord(StreamingModule.InstanceId(moduleId), moduleById.getValue(moduleId).serviceClass)
         currentInstance = instance
@@ -301,9 +284,9 @@ internal class StreamingModuleManagerImpl internal constructor(
                 putExtra(EXTRA_MODULE, instance.instanceId.moduleId.value)
                 putExtra(EXTRA_UUID, instance.instanceId.uuid.toString())
             }
-            ContextCompat.startForegroundService(androidContext, startup)
+            androidContext.startService(startup)
         } catch (error: Throwable) {
-            XLog.e(this@StreamingModuleManagerImpl.getLog("Startup", "Android module startup failed"), error)
+            logE("Startup", "Android module startup failed", error)
             instance.reportFailure(null)
         } finally {
             instance.dispatchDone.complete(Unit)
@@ -386,9 +369,8 @@ internal class StreamingModuleManagerImpl internal constructor(
     }
 
     /**
-     * Validate startup before invoking the inert factory. The original Service stores the returned
-     * controller before the manager adopts it, checks identity and starts ordinary module work.
-     * Only admitted deliveries invoke the factory; an existing Service controller retains its ownership.
+     * Invokes the factory only for the first admitted delivery of the current instance to its exact
+     * Service component. A Service still hosting a controller keeps it, and the new instance fails.
      */
     @MainThread
     internal fun onServiceStart(
@@ -409,6 +391,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             return
         }
         if (existingController != null) {
+            logW("Startup", "Service=${instance.serviceClass.name} still hosts an existing controller; rejecting instanceId=$instanceId")
             instance.reportFailure(null)
             return
         }
@@ -423,7 +406,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 streamingSettings.updateData(transform)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                XLog.e(this@StreamingModuleManagerImpl.getLog("SettingsWrite", "Failed to save streaming settings"), error)
+                this@StreamingModuleManagerImpl.logE("SettingsWrite", "Failed to save streaming settings", error)
             }
         }
     }
@@ -497,7 +480,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 controllerState.value = created
                 if (isAdmitted()) created.startModule() else requestControllerShutdown(created)
             } catch (error: Throwable) {
-                XLog.e(this@StreamingModuleManagerImpl.getLog("Startup", "Module controller startup failed"), error)
+                this@StreamingModuleManagerImpl.logE("Startup", "Module controller startup failed", error)
                 reportFailure(null)
             } finally {
                 setup.complete(Unit)
@@ -524,7 +507,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 current.requestModuleShutdown()
             } catch (error: Throwable) {
                 synchronized(gate) { cleanupFailed = true }
-                XLog.e(this@StreamingModuleManagerImpl.getLog("Shutdown", "Module shutdown failed"), error)
+                this@StreamingModuleManagerImpl.logE("Shutdown", "Module shutdown failed", error)
             }
         }
 
@@ -533,7 +516,10 @@ internal class StreamingModuleManagerImpl internal constructor(
             beginShutdown()
         }
 
-        /** Close admission immediately; the process keeps waiting after the UI deadline or cancellation. */
+        /**
+         * Closes admission once and requests controller shutdown. The cleanup wait has no deadline and
+         * outlives transition waits.
+         */
         private fun beginShutdown() {
             val first = synchronized(gate) {
                 if (shutdownRequested) false else {
@@ -551,7 +537,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 val succeeded = ownedController == null || try {
                     ownedController.awaitCleanup()
                 } catch (error: Throwable) {
-                    XLog.e(this@StreamingModuleManagerImpl.getLog("Cleanup", "Module cleanup failed"), error)
+                    this@StreamingModuleManagerImpl.logE("Cleanup", "Module cleanup failed", error)
                     false
                 }
                 synchronized(gate) { pendingFinished = Report.Finished(succeeded && !cleanupFailed) }
@@ -559,7 +545,10 @@ internal class StreamingModuleManagerImpl internal constructor(
             }
         }
 
-        /** Bounded slots preserve accepted Running, first failure, then the final cleanup outcome. */
+        /**
+         * One slot per report kind, applied in order on [dispatcher]: the latest Running, the first failure,
+         * then the cleanup outcome.
+         */
         private fun scheduleReports() {
             val start = synchronized(gate) {
                 if (draining) false else {
@@ -587,7 +576,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                             is Report.Finished -> handleFinishedReport(this@LaunchRecord, report.cleanupCompleted)
                         }
                     } catch (error: Exception) {
-                        XLog.e(this@StreamingModuleManagerImpl.getLog("Report", "Failed to apply module report"), error)
+                        this@StreamingModuleManagerImpl.logE("Report", "Failed to apply module report", error)
                     } finally {
                         if (report is Report.Finished) {
                             synchronized(gate) { controller = null }
@@ -661,7 +650,9 @@ internal class StreamingModuleManagerImpl internal constructor(
                 isClosing || shutdownDeadlineElapsedMillis != null -> LaunchState.Stopped
                 else -> LaunchState.Failed()
             }
-            if (!cleanupCompleted) XLog.w(this@StreamingModuleManagerImpl.getLog("Finished", "Cleanup failed or unconfirmed for instance=$instanceId"))
+            if (!cleanupCompleted) {
+                this@StreamingModuleManagerImpl.logW("Finished", "Cleanup failed or unconfirmed for instance=$instanceId")
+            }
             return true
         }
 

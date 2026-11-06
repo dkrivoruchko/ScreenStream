@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
@@ -42,7 +41,6 @@ internal class MjpegControllerScreenOffFailureTest {
 
     @Before
     fun initialize() {
-        XLog.init(Int.MAX_VALUE)
         FallibleScreenOffContextShadow.registrationFailure = null
         FallibleScreenOffContextShadow.removalFailure = null
     }

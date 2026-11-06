@@ -1,7 +1,10 @@
 package io.screenstream.core.compose
 
-import android.util.Log
+import android.app.Activity
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultRegistryOwner
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -14,6 +17,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -22,6 +26,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.R
 import io.screenstream.core.capture.ScreenCaptureAccessImpl
+import io.screenstream.core.logE
+import io.screenstream.core.logW
 import io.screenstream.core.settings.StreamingSettingsStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
@@ -30,17 +36,34 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /**
- * Mount at the Activity root, outside module screens, to host capture education and the keyed Android
- * consent launcher. A resumed host reports fresh-consent eligibility; submitted requests retain their
- * result correlation across pause and recreation, preserving the original launch.
- * Education acceptance is saved independently of Android consent or capture success. A failed save
- * may show education again. Ordinary runtime permission requests belong to the app's separate host.
+ * Hosts capture education and the Android consent launcher for `ScreenCaptureAccess`. Mount once at the
+ * Activity root, outside module screens. While resumed, the host is eligible for fresh consent; a submitted
+ * request keeps its single launch and result association across pause and recreation.
+ *
+ * Education is shown until accepted once. Acceptance is saved independently of consent or capture
+ * success, and a failed save can show it again. When the host's Activity owns the result registry,
+ * disposing the submitting launcher while that Activity is finishing ends the request as HostUnavailable.
+ * Other terminal losses, such as before the launcher mounts, are not detected; with a different registry,
+ * a warning is logged and this hook is disabled. Runtime permission requests use the app's separate host.
  */
 @Composable
 public fun ScreenCaptureConsentHost() {
     val access: ScreenCaptureAccessImpl = koinInject()
     val request by access.currentRequest.collectAsStateWithLifecycle()
     val token = remember { Any() }
+    val activity = LocalActivity.current
+    val registry = LocalActivityResultRegistryOwner.current?.activityResultRegistry
+    val resultActivity = activity?.takeIf {
+        registry != null && (it as? ActivityResultRegistryOwner)?.activityResultRegistry === registry
+    }
+    LaunchedEffect(access, activity, registry) {
+        if (resultActivity == null) {
+            access.logW(
+                "ScreenCaptureConsentHost",
+                "Terminal consent settlement unavailable: Activity and result registry do not match",
+            )
+        }
+    }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(access, token, lifecycle) {
         if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) access.onHostResumed(token)
@@ -56,14 +79,26 @@ public fun ScreenCaptureConsentHost() {
     }
 
     request?.let { current ->
-        key(current.key) { ConsentRequestLauncher(access, token, current.key, current.submitted) }
+        key(current.key) { ConsentRequestLauncher(access, token, current.key, current.submitted, resultActivity) }
     }
 }
 
 @Composable
-private fun ConsentRequestLauncher(access: ScreenCaptureAccessImpl, token: Any, requestKey: String, submitted: Boolean) {
+private fun ConsentRequestLauncher(
+    access: ScreenCaptureAccessImpl,
+    token: Any,
+    requestKey: String,
+    submitted: Boolean,
+    resultActivity: Activity?,
+) {
     val contract = remember { ActivityResultContracts.StartActivityForResult() }
     val launcher = rememberLauncherForActivityResult(contract) { result -> access.deliver(requestKey, result) }
+    val launchedHere = rememberSaveable(requestKey) { mutableStateOf(false) }
+    DisposableEffect(access, resultActivity, requestKey) {
+        onDispose {
+            if (launchedHere.value && resultActivity?.isFinishing == true) access.abandonSubmitted(requestKey)
+        }
+    }
 
     val settings: StreamingSettingsStore = koinInject()
     val persistenceScope = rememberCoroutineScope()
@@ -92,7 +127,7 @@ private fun ConsentRequestLauncher(access: ScreenCaptureAccessImpl, token: Any, 
                                 settings.markEducationCompleted()
                             } catch (cause: Exception) {
                                 if (cause is CancellationException) throw cause
-                                Log.e("ScreenCaptureConsentHost", "Failed to save screen capture education", cause)
+                                settings.logE("ScreenCaptureConsentHost", "Failed to save screen capture education", cause)
                             }
                         }
                     }
@@ -112,6 +147,7 @@ private fun ConsentRequestLauncher(access: ScreenCaptureAccessImpl, token: Any, 
         if (!educationGateOpen) return@LaunchedEffect
         coroutineContext.ensureActive()
         val intent = access.submit(requestKey, token, educationAccepted) ?: return@LaunchedEffect
+        launchedHere.value = true
         try {
             launcher.launch(intent)
         } catch (cause: Throwable) {

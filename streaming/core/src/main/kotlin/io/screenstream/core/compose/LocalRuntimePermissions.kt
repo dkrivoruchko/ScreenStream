@@ -5,9 +5,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import io.screenstream.core.permission.RuntimePermissions
 
 /**
- * Provided by the app's Activity root; module UI receives the same [RuntimePermissions] capability.
- * Reading requires a provider. Service and process work use Context-based permission checks; the
- * Activity owns this request capability.
+ * The Activity root's [RuntimePermissions], provided by the app; reading without a provider throws.
+ * Services and process work use the Context-based `RuntimePermission.isGranted` instead.
  */
 public val LocalRuntimePermissions: ProvidableCompositionLocal<RuntimePermissions> = staticCompositionLocalOf {
     error("RuntimePermissions is not provided")

@@ -14,7 +14,10 @@ import androidx.annotation.MainThread
 import androidx.core.net.toUri
 import kotlinx.coroutines.flow.StateFlow
 
-/** Request explanations; entries sharing [androidPermission] share grants, state and Android UI. */
+/**
+ * Runtime permissions used by streaming modules. Each entry selects a request explanation; entries sharing
+ * [androidPermission] share one grant, [PermissionState], and request slot.
+ */
 @SuppressLint("InlinedApi")
 public enum class RuntimePermission(public val androidPermission: String) {
     /** POST_NOTIFICATIONS on API 33+; availability also requires app-wide enablement on every API. */
@@ -40,27 +43,26 @@ public enum class RuntimePermission(public val androidPermission: String) {
     }
 
     /**
-     * Read the applicable OS grant and, for notifications, app-wide enablement on every supported API.
-     * Individual notification channels have separate settings. Use this Context-based check for Service
-     * or process work; the Activity root owns the request capability. Manifest declarations and other
-     * operation prerequisites remain the caller's responsibility.
+     * Whether the runtime grant is held or not required and, for [Notifications], notifications are enabled
+     * app-wide. Channel settings, manifest declarations, and other prerequisites are not checked. Usable from
+     * Services and process work.
      */
     public fun isGranted(context: Context): Boolean =
         (!isRequired(context) || context.checkSelfPermission(androidPermission) == PackageManager.PERMISSION_GRANTED) &&
                 (this != Notifications || context.getSystemService(NotificationManager::class.java).areNotificationsEnabled())
 
     /**
-     * Whether a denied runtime permission currently has an Android rationale to show. A false result
-     * can describe a fresh request, permanent denial, an already granted permission, or an inapplicable
-     * runtime grant. The result describes rationale visibility at this moment.
+     * Whether Android currently recommends a rationale for this required, denied permission. False does not
+     * distinguish a first request from permanent denial.
      */
     public fun shouldShowRationale(activity: Activity): Boolean =
         isRequired(activity) && activity.checkSelfPermission(androidPermission) == PackageManager.PERMISSION_DENIED &&
                 activity.shouldShowRequestPermissionRationale(androidPermission)
 
     /**
-     * Suggest settings for notifications disabled at app level when the runtime grant is present or inapplicable,
-     * or use rationale history as a hint. Permanent denial requires its own evidence.
+     * Whether a request should open settings: [Notifications] are disabled app-wide although the runtime
+     * grant is held or not required, or this permission showed a rationale before (it is listed in
+     * [permissionsWithObservedRationale]) and no longer does, which suggests but does not prove permanent denial.
      */
     public fun suggestsSettings(activity: Activity, permissionsWithObservedRationale: Collection<String>): Boolean =
         (this == Notifications && !isGranted(activity) &&
@@ -68,9 +70,8 @@ public enum class RuntimePermission(public val androidPermission: String) {
                 (androidPermission in permissionsWithObservedRationale && !activity.shouldShowRequestPermissionRationale(androidPermission))
 
     /**
-     * Open app notification settings on API 26+ for [Notifications], otherwise app details.
-     * The caller handles [ActivityNotFoundException] and [SecurityException] and settles its owned
-     * request after launch failure or settings return. Observe permission availability after navigation.
+     * Opens app notification settings for [Notifications] on API 26+, otherwise app details. The caller
+     * handles launch exceptions, settles its request on failure or return, and then rechecks availability.
      */
     @Throws(ActivityNotFoundException::class, SecurityException::class)
     public fun openSettings(activity: Activity) {
@@ -85,15 +86,15 @@ public enum class RuntimePermission(public val androidPermission: String) {
     }
 }
 
-/** Last-known request/UI hint; use current authorization for work and treat settings as a suggestion. */
+/** Last-known request UI hint; check current availability before protected work. */
 public enum class PermissionState {
-    /** The last published check found availability; recheck before protected work. */
+    /** The last published check found availability. */
     Granted,
 
-    /** Offer an explanation/request action; Android decides whether to show another prompt. */
+    /** Offer an explanation and request; Android decides whether to show another prompt. */
     Requestable,
 
-    /** Settings or rationale history suggests navigation; permanent denial requires its own evidence. */
+    /** The next request opens settings; see [RuntimePermission.suggestsSettings]. */
     SettingsSuggested,
 
     /** This Android permission owns app request UI; the host may be showing its explanation, system dialog, or settings. */
@@ -101,40 +102,29 @@ public enum class PermissionState {
 }
 
 /**
- * Activity-root-owned permission request UI, independent of screen consent and business actions.
+ * Activity-root permission request capability, separate from screen-capture consent.
  *
- * The host owns explanations, Android launchers, rationale history, and request settlement across
- * Activity recreation. It confirms before opening Android UI or settings, rechecks availability,
- * and settles on result, settings return, dismissal, or launch failure. An admitted request stays with
- * the Activity root after its originating module screen leaves.
- *
- * The capability exposes request admission and current availability; the feature owns its business
- * action, rechecks authority, and decides whether the original action is still relevant.
+ * The implementing host owns explanations, Android launchers, rationale history, and request settlement
+ * across Activity recreation. It settles a request on result, settings return, dismissal, or launch
+ * failure; an admitted request outlives the module screen that made it. Callers get admission and
+ * availability only: after a request, recheck [isGranted] and decide whether the original action still applies.
  */
 public interface RuntimePermissions {
     /**
-     * Last-known request/UI hint, initialized on first observation and updated for this permission's
-     * requests. Use [isGranted] for current availability after independent OS changes. Entries sharing
-     * [RuntimePermission.androidPermission] share the same read-only flow and UI slot.
+     * Last-known UI hint, initialized on first observation and updated around this host's requests, not on
+     * independent OS changes. Entries sharing [RuntimePermission.androidPermission] share one flow.
      */
     @MainThread
     public fun state(permission: RuntimePermission): StateFlow<PermissionState>
 
-    /**
-     * Read the current grant and, for notifications, app-wide enablement; recheck before protected work.
-     * A pending request UI lifetime is settled by its host.
-     */
+    /** Current availability, as [RuntimePermission.isGranted]; can be true while request UI is still open. */
     public fun isGranted(permission: RuntimePermission): Boolean
 
     /**
-     * Attempt synchronous admission on Main. An inactive Activity returns false even if granted.
-     * When resumed, an existing grant returns true immediately, even if another request occupies the
-     * slot. Otherwise an occupied slot returns false, including for the same Android permission; a free
-     * slot returns true and admits the app-owned explanation.
-     *
-     * True indicates admission or existing availability; use [isGranted] before protected work. A new explanation
-     * requires a free slot and the caller may retry after rejection. An admitted explanation survives the
-     * originating screen's exit.
+     * Requests [permission] on Main. Returns false when the Activity is not resumed, or when the permission
+     * is missing and another request, even for the same Android permission, occupies the slot. Returns true
+     * when already granted, without UI, or when a new explanation is admitted. True is not authorization;
+     * check [isGranted] before protected work. Rejected requests are not queued.
      */
     @MainThread
     public fun tryRequest(permission: RuntimePermission): Boolean

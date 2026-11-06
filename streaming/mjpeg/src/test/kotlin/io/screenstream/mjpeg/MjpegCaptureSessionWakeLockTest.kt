@@ -1,7 +1,6 @@
 package io.screenstream.mjpeg
 
 import android.os.PowerManager
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.ScreenCaptureProblem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runCurrent
@@ -26,7 +25,6 @@ import org.robolectric.shadows.ShadowPowerManager
 internal class MjpegCaptureSessionWakeLockTest {
     @Before
     fun initialize() {
-        XLog.init(Int.MAX_VALUE)
         ShadowPowerManager.clearWakeLocks()
         FallibleWakeLockShadow.failAcquire = false
     }

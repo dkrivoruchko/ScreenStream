@@ -13,7 +13,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.FrameRate
 import io.screenstream.mjpeg.IsolatedSettingsContext
 import io.screenstream.mjpeg.R
@@ -49,8 +48,7 @@ internal class FrameRateSettingsUiTest {
     private lateinit var originalLocale: Locale
 
     @Before
-    fun initializeLoggerAndLocale() {
-        XLog.init(Int.MAX_VALUE)
+    fun initializeLocale() {
         originalLocale = Locale.getDefault()
         Locale.setDefault(Locale.US)
     }

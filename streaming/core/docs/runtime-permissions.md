@@ -2,48 +2,43 @@
 
 [Core](../README.md) · [Streaming Module Contract and Manager](module-contract-and-manager.md)
 
-Runtime Permissions coordinates permission checks and request UI for streaming modules. The app's Activity root hosts the request UI. The module decides which permissions its operation needs and what to do after a request.
-
-This component covers ordinary Android permissions. [Screen Capture Access](screen-capture.md) coordinates screen-sharing consent. Each approval establishes authority for its respective operation.
+Runtime Permissions covers the ordinary Android permissions that streaming modules use. Core defines the permissions and their checks; the app hosts request UI at the Activity root. Screen-sharing consent is separate and belongs to [Screen Capture Access](screen-capture.md).
 
 ## Participants and relationships
 
-- **Permission definitions.** `RuntimePermission` identifies an Android permission and the conditions under which it is available. Module UI, Android Services, and process work share these definitions.
-
-- **Activity permission host.** The app creates a `RuntimePermissions` implementation at the Activity root and supplies it through `LocalRuntimePermissions`. It owns explanation UI, Android launchers, request state, and rationale history. Its lifetime follows the Activity root, separately from module instances.
-
-- **Module UI.** The screen consumes that capability to offer requests and display permission UI state. The Activity-root host retains request ownership when the originating module screen leaves.
-
-- **Android Service and process work.** These callers use Context-based checks for current authorization. The request capability stays with the Activity host. The Controller owns readiness and protected work for its [module instance](module-contract-and-manager.md#identities-and-lifetimes).
+- **Permission definitions.** Each `RuntimePermission` entry names an Android permission and when its runtime grant is required. Its Context-based checks work from module UI, Services and process work.
+- **Activity permission host.** The app implements `RuntimePermissions` at the Activity root and provides it through `LocalRuntimePermissions`. It owns explanation UI, Android launchers, rationale history and permission UI state. Its lifetime follows the Activity root, not module instances.
+- **Module UI.** Reads permission UI state and asks the host for requests. The host keeps an admitted request after the requesting screen leaves.
+- **Module work.** The Controller decides which permissions an operation needs, checks them before protected work and decides what to do after a request.
 
 ## How they collaborate
 
-1. The module checks current permission before protected work.
-2. When permission is missing, a user action in module UI can request an explanation from the Activity host.
-3. If the host can accept the request, it presents the explanation. User confirmation can proceed to Android's permission dialog or settings.
-4. When the owned request finishes, the host checks permission again and updates its UI state.
-5. The module evaluates current authority and whether the original action is still relevant before acting.
+1. The module checks current availability before protected work.
+2. When a permission is missing, a user action in module UI calls `tryRequest`.
+3. If the host admits the request, it shows its explanation. Confirmation opens Android's permission dialog or settings.
+4. When the request ends, the host rechecks the permission and updates its UI state.
+5. The module checks availability again and decides whether the original action still applies.
 
-Admission to request UI, Android approval, and readiness to perform the action are separate outcomes. The capability owns permission UI state. The module owns its intended action and decides whether to proceed after approval.
+Admission to request UI, Android's approval and the module's readiness to act are separate outcomes. A `true` result from `tryRequest` isn't authorization.
 
 ## Permission meanings
 
-Permission definitions map directly to the applicable Android grant. Availability depends on the permission and the device/app configuration. The combined audio explanation and the microphone/device-audio explanations share one underlying Android permission, grant, and permission UI state.
+| Entry | Android permission | Runtime grant required |
+| --- | --- | --- |
+| `Notifications` | `POST_NOTIFICATIONS` | On API 33+. Availability also requires notifications to be enabled app-wide, on every API. |
+| `LocalNetwork` | `ACCESS_LOCAL_NETWORK` | When both the device and the app's target SDK are API 37+. |
+| `RecordAudio`, `Microphone`, `DeviceAudio` | `RECORD_AUDIO` | Always. |
 
-Notification permission checks include app-wide notification availability. Channel-aware delivery and settings navigation belong to [Streaming Module Notifications](notifications.md#delivery-and-permissions).
+The three audio entries differ only in their explanation; they share one grant, one `PermissionState` and one request. Checks cover the runtime grant, plus app-wide enablement for notifications. Channel settings, manifest declarations and other prerequisites aren't checked; channel-aware delivery belongs to [Streaming Module Notifications](notifications.md#delivery-and-permissions).
 
 ## Current authorization versus UI state
 
-Current authorization answers whether the relevant permission is available now. A permission check is a current observation; the module remains responsible for an operation that loses authority after the check and for the other prerequisites of its work.
+`isGranted` answers whether a permission is available now. Only this check authorizes protected work, and the module remains responsible if authority is lost after the check.
 
-`PermissionState` is the host's last-known UI hint. It can indicate availability, a possible request, a suggested settings route, or a request already in progress. Screens use those hints to explain availability and offer the next permission action. The host updates hints around its permission requests.
-
-Unrelated Android settings changes can leave a previous hint visible, and a fresh grant can exist while an earlier UI request is still pending. Settings suggestions express a route through permission UI inferred from notification availability and rationale history. Permission checks establish current authority for protected work.
+`PermissionState` is the host's last-known UI hint: `Granted`, `Requestable`, `SettingsSuggested` or `Requesting`. The host updates it around its own requests, not on independent Android settings changes, so a hint can be stale, and a permission can already be granted while an earlier request is still open. `SettingsSuggested` is inferred from app-wide notification settings or from a rationale that Android showed before and no longer recommends; it suggests, but doesn't prove, permanent denial.
 
 ## Request lifetime and outcomes
 
-Activity eligibility and a free permission UI slot govern UI admission. A rejected request requires a fresh request later. An admitted explanation belongs to the Activity root and can outlive the module screen that requested it. The request retains its UI slot through Android dialogs and settings visits across the host's supported lifecycle changes.
+`tryRequest` admits a request only while the Activity is resumed and the host's request slot is free; for a permission that is already available it returns true without UI. Rejected requests aren't queued. An admitted request belongs to the Activity root, can outlive the requesting screen and keeps its slot through Android's dialog or a settings visit, across Activity recreation.
 
-Confirmation can open Android UI or settings. Dismissing the explanation settles the request at that stage. Completion, cancellation, and launch failure end the app's request; the module checks current permission afterward. Returning from settings also triggers a permission check.
-
-The app owns explanation presentation, rationale history, and when permission UI is offered. The module uses current authority, request outcomes, and module admission to decide whether its intended action remains relevant and can proceed.
+The host settles the request on a dialog result, a return from settings, dismissal of the explanation or a launch failure, then rechecks availability. The app decides when to explain and offer requests and keeps rationale history; the module decides whether its action proceeds.

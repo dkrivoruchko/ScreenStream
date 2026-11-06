@@ -1,33 +1,30 @@
 # Core
 
-Core defines how a host app opens streaming modules, coordinates access to screen capture and runtime permissions, and presents streaming notifications.
+Core lets a host app open streaming modules, coordinate screen-capture consent and runtime permissions, and present streaming notifications. The guides below describe how the parts work together; KDoc on each declaration defines its exact contract.
 
-Core has four components:
+| Guide | Covers | Main types |
+| --- | --- | --- |
+| [Streaming Module Contract and Manager](docs/module-contract-and-manager.md) | Module definitions, instances, commands, shutdown and health | `StreamingModule`, `StreamingModuleService`, `StreamingModuleManager` |
+| [Screen Capture Access](docs/screen-capture.md) | Screen-sharing consent and `MediaProjection` acquisition | `ScreenCaptureAccess`, `ScreenCaptureConsentHost`, `ConsentRequestObserver` |
+| [Runtime Permissions](docs/runtime-permissions.md) | Permission checks and Activity-root request UI | `RuntimePermission`, `RuntimePermissions`, `LocalRuntimePermissions` |
+| [Streaming Module Notifications](docs/notifications.md) | Foreground notifications, error notifications and notification actions | `StreamingModuleNotifications`, `StreamingModuleActionReceiver` |
 
-- [Streaming Module Contract and Manager](docs/module-contract-and-manager.md) defines streaming modules and manages their lifecycle.
-- [Screen Capture Access](docs/screen-capture.md) coordinates screen-sharing consent and access to Android screen capture.
-- [Runtime Permissions](docs/runtime-permissions.md) defines permission checks and Activity-owned permission requests.
-- [Streaming Module Notifications](docs/notifications.md) defines foreground content and error delivery.
+## Key concepts
 
-## Streaming Module Contract and Manager
+- A **module instance** is one opening of a registered module. `StreamingModuleManager`, a process-wide singleton, admits at most one instance to new work at a time.
+- Each instance runs in the module's `StreamingModuleService` subclass. The Service hosts the foreground notification and creates the instance's `StreamingModule.Controller`, which owns the instance's work, UI, resources and cleanup.
+- A **capture attempt** is one accepted Start within an instance. Opening a module and starting capture are separate steps.
 
-`StreamingModule` is the abstract contract implemented by each streaming module. The host app registers module definitions with `StreamingModuleManager`, the application-process singleton that selects modules, routes commands, and coordinates shutdown.
+## Host app integration
 
-A **module instance** is one opening of a registered module. The manager admits one instance to new work at a time. The module supplies a `StreamingModule.Controller` to own that instance's streaming behavior, UI, resources, and cleanup.
+The host app:
 
-Opening a module and starting capture are separate operations. Opening prepares the module for use. An accepted Start request begins a **capture attempt** within that instance.
+- includes `StreamingKoinModule`, which provides the manager, `ScreenCaptureAccess` and the streaming settings store, and supplies the Android `Context`, every `StreamingModule` definition, one `StreamingModuleNotifications` provider and one `ConsentRequestObserver`
+- mounts `ScreenCaptureConsentHost()` once at the Activity root and provides its `RuntimePermissions` host there through `LocalRuntimePermissions`
+- renders the selected module with `StreamingModuleManager.InstanceContent` and removes its tasks when the manager publishes `Exiting`
+- can replace Core's log writer with `configureLogWriter` during application startup; the default writer forwards to XLog, which the app must initialize
 
-## Screen Capture Access
-
-`ScreenCaptureAccess` coordinates consent requests and access to Android screen capture across the application process. An Activity-root consent host presents the app's explanation and Android's screen-sharing dialog. The module owns the capture attempt and starts capture after consent and media preparation succeed.
-
-## Runtime Permissions
-
-`RuntimePermission` defines checks for ordinary Android permissions. The host app supplies `RuntimePermissions` at the Activity root to own explanations, Android permission dialogs, and permission UI state. The module evaluates current permission and decides its next action after a request.
-
-## Streaming Module Notifications
-
-`StreamingModuleNotifications` is the contract for foreground content, error delivery, and notification settings destinations. The host app supplies a notification provider that implements it. The instance's Android Service owns foreground presentation, the manager owns generic instance warnings and failures, and the Controller owns detailed operation errors and recovery.
+Core's manifest declares the non-exported `StreamingModuleActionReceiver`. Each module declares its own Service with its foreground types and permissions.
 
 ## How the components connect
 
@@ -47,13 +44,11 @@ flowchart TD
     Module -->|Foreground / errors| Notifications
 ```
 
-A typical flow:
+A typical session:
 
-1. The host app selects a registered module, and the manager opens an instance.
-2. A Start request reaches the Controller. The module checks its prerequisites and obtains screen-capture access when needed.
+1. The app selects a module, and the manager opens an instance.
+2. Start reaches the Controller. The module checks its permissions and obtains screen-capture access.
 3. The module prepares its media work and streams.
-4. A successful Stop ends capture. Exit or replacement closes the module instance and starts its cleanup.
+4. A normal Stop ends the capture attempt. Exit or replacement closes the instance and starts its cleanup.
 
-The component guides describe architecture and lifecycle. KDoc defines the callable contracts.
-
-Core maintainers can start from [Core internals](internal/README.md), which maps each contract to its owner and describes how Core is verified.
+Core maintainers can start from [Core internals](internal/README.md), which maps each contract to its source and describes how Core is verified.

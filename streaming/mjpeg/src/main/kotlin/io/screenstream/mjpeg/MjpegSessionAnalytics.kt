@@ -4,7 +4,6 @@ import android.app.ForegroundServiceTypeException
 import android.app.ServiceStartNotAllowedException
 import android.os.Build
 import android.os.SystemClock
-import android.util.Log
 import info.dvkr.screenstream.common.analytics.EntryPoint
 import info.dvkr.screenstream.common.analytics.SessionKey
 import info.dvkr.screenstream.common.analytics.StartFailGroup
@@ -13,6 +12,7 @@ import info.dvkr.screenstream.common.analytics.StreamingSessionAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ConsentLaunchException
 import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.logW
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.http.HttpDelivery
 import kotlinx.coroutines.CancellationException
@@ -140,7 +140,7 @@ internal class MjpegSessionAnalytics(
             .map { delivery -> delivery.clients.count { it.state == HttpDelivery.ClientInfo.State.Active } }
             .distinctUntilChanged()
             .onEach { count -> consumersChanged(count, SystemClock.elapsedRealtime()) }
-            .catch { cause -> observationFailed(cause) }
+            .catch { cause -> this@MjpegSessionAnalytics.logW("MjpegSessionAnalytics", "MJPEG analytics observation failed", cause) }
             .launchIn(scope)
     }
 
@@ -163,10 +163,6 @@ internal class MjpegSessionAnalytics(
         }
     }
 
-    private fun observationFailed(cause: Throwable) {
-        runCatching { Log.w("MjpegSessionAnalytics", "MJPEG analytics observation failed", cause) }
-    }
-
     private fun foregroundFailureGroup(cause: Throwable): StartFailGroup = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && cause is ForegroundServiceTypeException -> StartFailGroup.FATAL
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && cause is ServiceStartNotAllowedException -> StartFailGroup.BLOCKED
@@ -177,7 +173,7 @@ internal class MjpegSessionAnalytics(
         try {
             action()
         } catch (cause: Throwable) {
-            observationFailed(cause)
+            logW("MjpegSessionAnalytics", "MJPEG analytics observation failed", cause)
         }
     }
 }

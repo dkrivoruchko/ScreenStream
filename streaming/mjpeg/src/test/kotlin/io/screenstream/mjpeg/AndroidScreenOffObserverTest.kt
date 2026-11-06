@@ -7,7 +7,6 @@ import android.content.IntentFilter
 import android.os.Looper
 import android.os.PowerManager
 import androidx.core.content.ContextCompat
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.screenoff.AndroidScreenOffObserver
 import io.screenstream.mjpeg.screenoff.AndroidScreenOffObserver.RegistrationResult
 import org.junit.Assert.assertEquals
@@ -16,7 +15,6 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -34,11 +32,6 @@ import kotlin.uuid.Uuid
 @Config(manifest = Config.NONE, sdk = [34])
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class AndroidScreenOffObserverTest {
-    @Before
-    fun initialize() {
-        XLog.init(Int.MAX_VALUE)
-    }
-
     // Cases: MJPEG-CTL-14
     @Test
     fun bothInteractivityChecksRejectSleepingDisplayAndRetireTheInstalledReceiver() {

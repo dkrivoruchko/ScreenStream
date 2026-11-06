@@ -4,8 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.TetheringManager
 import android.os.SystemClock
-import com.elvishew.xlog.LogLevel
-import com.elvishew.xlog.XLog
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -18,7 +16,6 @@ import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -45,11 +42,6 @@ import kotlin.time.Duration.Companion.seconds
 @Config(manifest = Config.NONE, sdk = [34], instrumentedPackages = ["io.screenstream.mjpeg.networkaddress"])
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class AndroidNetworkAddressCadenceTest {
-    @Before
-    fun initializeLogging() {
-        XLog.init(LogLevel.NONE)
-    }
-
     // Cases: MJPEG-NET-06
     @Test
     fun incompleteBackoffBecomesPeriodicAndCompleteObservationRestartsTheRetrySequence() = runTest(timeout = 20.seconds) {

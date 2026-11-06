@@ -12,10 +12,11 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.util.Log
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.core.app.ServiceCompat
+import io.screenstream.core.logE
+import io.screenstream.core.logW
 import io.screenstream.core.manager.StreamingModuleActionReceiver
 import io.screenstream.core.manager.StreamingModuleManagerImpl
 import kotlinx.coroutines.CompletableDeferred
@@ -24,21 +25,24 @@ import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
 /**
- * Android Service hosting one module controller and its foreground notification.
+ * Base Android Service that hosts one module instance's controller and foreground notification.
  *
- * For an admitted start, the Service enters waiting foreground before invoking [createController].
- * The controller owns module work and cleanup, which may outlive this Service. The attempt owner
- * serializes foreground operations and validates capture admission; capture resources belong to the
- * module. Concrete Services declare their manifest permissions, foreground types, and specialUse subtype.
- * Binding returns null, and the Service returns START_NOT_STICKY.
+ * The manager starts it with ordinary `startService`. For an admitted start, the Service enters waiting
+ * foreground (`specialUse`, Exit action) and then calls [createController]; otherwise it stops unless a
+ * newer start is pending. Stale and duplicate starts are ignored; a new admitted instance whose
+ * start arrives while this Service still hosts a previous controller fails. The controller owns module
+ * work and cleanup, which can outlive this Service, and ends it through [stopAndAwaitDestruction]. A
+ * foreground failure or Android Service timeout reports instance failure and requests controller shutdown.
+ *
+ * Subclasses declare the manifest entry with its foreground types, `specialUse` subtype, and permissions.
+ * Binding is unsupported, and starts are not sticky.
  */
 public abstract class StreamingModuleService : Service() {
     /**
-     * Module-supplied factory for an inert [StreamingModule.Controller] bound to [managerHandle].
-     * [StreamingModuleService] enters waiting foreground before invoking this factory. Return the
-     * controller with module work and instance-resource acquisition still pending. The manager adopts
-     * the returned controller and validates its identity, then calls [StreamingModule.Controller.startModule]
-     * if the instance is still admitted; otherwise it requests shutdown.
+     * Creates the inert controller for [managerHandle]'s instance, on Main after waiting foreground is
+     * entered. Defer module work and resource acquisition to [StreamingModule.Controller.startModule]. The
+     * manager verifies the controller's identity and starts it only if the instance is still admitted;
+     * otherwise it requests shutdown. A thrown exception fails the instance.
      */
     protected abstract fun createController(managerHandle: StreamingModule.Controller.ManagerHandle): StreamingModule.Controller
 
@@ -50,7 +54,7 @@ public abstract class StreamingModuleService : Service() {
     private var foregroundAdmissionClosed: Boolean = false
     private var foregroundNotification: Notification? = null
 
-    // Main owns this attempt and its presentation until rollback or media cleanup settles.
+    // Main only: the attempt that owns capture foreground, and whether its notification shows Stop.
     private var foregroundAttempt: StreamingModule.CaptureAttemptId? = null
     private var showsCaptureStop: Boolean = false
     private var terminalStopRequested: Boolean = false
@@ -71,7 +75,7 @@ public abstract class StreamingModuleService : Service() {
                 val op = AppOpsManager.permissionToOp(Manifest.permission.POST_NOTIFICATIONS)
                 if (op != null) getSystemService(AppOpsManager::class.java).startWatchingMode(op, packageName, notificationPermissionListener)
             } catch (failure: RuntimeException) {
-                Log.w("StreamingModuleService", "Could not watch notification permission", failure)
+                logW("StreamingModuleService", "Could not watch notification permission", failure)
             }
         }
     }
@@ -86,7 +90,7 @@ public abstract class StreamingModuleService : Service() {
                 }
             }
         } finally {
-            // A newer pending start can retain this unowned host for its own admission.
+            // stopSelfResult keeps an unowned host alive when a newer start is pending.
             if (controller == null && stopSelfResult(startId)) {
                 closeForegroundAdmission()
             }
@@ -109,14 +113,15 @@ public abstract class StreamingModuleService : Service() {
         tryPromoteForeground(ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE, buildExitNotification())
 
     /**
-     * Prepare this original Service after consent and before projection acquisition, using
-     * mediaProjection and, when requested and supported, microphone foreground types. The attempt
-     * owner serializes foreground calls and rechecks its exact attempt, module admission and current
-     * permissions before calling on Main.
+     * Promotes this Service to `mediaProjection` foreground, adding `microphone` on API 30+ when
+     * [requiresMicrophoneType], after consent and before projection acquisition. Call on Main from the
+     * attempt's serialized foreground work after rechecking the attempt, admission, and permissions.
      *
-     * False indicates admission was rejected before startForeground; true confirms foreground API
-     * completion. Notification visibility has separate delivery conditions. An already-owned foreground
-     * attempt causes an exception. Platform promotion failures close admission and throw.
+     * Returns false without calling Android when the instance is not current or foreground admission is
+     * closed. True means `startForeground` returned; notification visibility follows delivery settings.
+     * Throws if another attempt owns capture foreground. A platform failure closes foreground admission,
+     * reports instance failure, and rethrows. Once [attempt] has called this, its rollback or cleanup must
+     * call [leaveCaptureForeground].
      */
     @MainThread
     @SuppressLint("InlinedApi")
@@ -134,10 +139,12 @@ public abstract class StreamingModuleService : Service() {
     }
 
     /**
-     * Update this exact attempt's presentation on Main. Set [active] after confirming capture to
-     * show Stop; clear it to restore Exit presentation. Updates apply to the matching attempt. The
-     * content update retains the existing foreground type mask; capture authorization remains with
-     * the attempt and media owner. Construction and delivery failures throw.
+     * Switches [attempt]'s foreground notification on Main: true shows Stop after capture is confirmed;
+     * false restores Exit. Returns early when [attempt] does not own capture foreground or the presentation
+     * is unchanged. Otherwise it builds the content first, then posts it under the same ID, keeping the
+     * foreground types, unless the instance is closed or no longer current. Construction failures propagate
+     * even when posting would be skipped; a posting failure also closes foreground admission and reports
+     * instance failure.
      */
     public suspend fun updateCaptureNotification(attempt: StreamingModule.CaptureAttemptId, active: Boolean): Unit =
         withContext(Dispatchers.Main.immediate) {
@@ -150,9 +157,10 @@ public abstract class StreamingModuleService : Service() {
         }
 
     /**
-     * After declared media cleanup or rollback settles, attempt to restore waiting foreground for
-     * this surviving instance on Main. Rollback before promotion is safe. Foreground ownership is
-     * cleared only for the matching attempt, and restoration requires an admitted instance.
+     * Releases [attempt]'s capture foreground on Main after its media cleanup or rollback settles, and
+     * restores waiting foreground while the instance is admitted. Ignored for an attempt that does not own
+     * capture foreground, so it is safe in rollback before promotion. Ownership is cleared even when
+     * restoration fails; a platform failure is handled as in [enterCaptureForeground].
      */
     public suspend fun leaveCaptureForeground(attempt: StreamingModule.CaptureAttemptId): Unit = withContext(Dispatchers.Main.immediate) {
         if (foregroundAttempt != attempt) return@withContext
@@ -164,7 +172,10 @@ public abstract class StreamingModuleService : Service() {
         }
     }
 
-    /** Close admission for further promotion and notification updates immediately. */
+    /**
+     * Permanently rejects later foreground promotions and notification updates. The current foreground
+     * state remains until the Service stops.
+     */
     @AnyThread
     public fun closeForegroundAdmission() {
         synchronized(gate) {
@@ -174,10 +185,9 @@ public abstract class StreamingModuleService : Service() {
     }
 
     /**
-     * Promote this exact Service with its fixed notification ID. The caller checks its capture
-     * attempt before entering. False indicates admission was rejected before the Android call; true
-     * means API completion. Notification visibility has separate delivery conditions. Platform failures
-     * close admission and throw.
+     * Calls `startForeground` with the instance's slot ID while admission is open and the instance is
+     * current; false means Android was not called. A platform failure closes admission, reports instance
+     * failure, and rethrows.
      */
     @MainThread
     private fun tryPromoteForeground(serviceTypes: Int, notification: Notification): Boolean {
@@ -219,6 +229,7 @@ public abstract class StreamingModuleService : Service() {
         }
     }
 
+    /** Re-posts the current foreground notification after a notification-permission change; failures are logged. */
     @MainThread
     private fun refreshForegroundNotification() {
         try {
@@ -231,18 +242,15 @@ public abstract class StreamingModuleService : Service() {
                 getSystemService(NotificationManager::class.java).notify(original.foregroundSlot.id, notification)
             }
         } catch (failure: RuntimeException) {
-            Log.w("StreamingModuleService", "Could not refresh foreground notification", failure)
+            logW("StreamingModuleService", "Could not refresh foreground notification", failure)
         }
     }
 
     /**
-     * Close foreground admission, stop this Service after capture cleanup, and await its destruction.
-     * The controller calls this once from its independently owned cleanup operation. A failed stop
-     * request still waits for destruction while the caller remains active. Return false if that request
-     * failed, destruction preceded it, or Android timed out the Service; otherwise return true.
-     *
-     * This wait has an open-ended lifetime. Service destruction completes on its own schedule, including
-     * after the manager transition's bounded wait.
+     * Closes foreground admission, calls `stopSelf` on Main, and suspends until `onDestroy` completes. The
+     * wait has no timeout; only caller cancellation ends it early. Call once from the controller's cleanup,
+     * after capture cleanup settles. Returns true only when this call requested the stop and Android then
+     * destroyed the Service without a timeout; a failed stop request still waits, then returns false.
      */
     @AnyThread
     public suspend fun stopAndAwaitDestruction(): Boolean {
@@ -256,7 +264,7 @@ public abstract class StreamingModuleService : Service() {
             }
             true
         } catch (cause: Throwable) {
-            Log.e("StreamingModuleService", "Android Service stop failed", cause)
+            logE("StreamingModuleService", "Android Service stop failed", cause)
             false
         }
         val expectedStop = destruction.await()
@@ -276,7 +284,7 @@ public abstract class StreamingModuleService : Service() {
                 getSystemService(AppOpsManager::class.java).stopWatchingMode(notificationPermissionListener)
             }
         } catch (failure: RuntimeException) {
-            Log.w("StreamingModuleService", "Could not stop watching notification permission", failure)
+            logW("StreamingModuleService", "Could not stop watching notification permission", failure)
         } finally {
             notificationHandler.removeCallbacks(refreshNotification)
             try {
@@ -307,7 +315,7 @@ public abstract class StreamingModuleService : Service() {
         try {
             stopSelf()
         } catch (cause: Throwable) {
-            Log.e("StreamingModuleService", "Android Service timeout stop failed", cause)
+            logE("StreamingModuleService", "Android Service timeout stop failed", cause)
         } finally {
             reportServiceFailure()
         }
@@ -318,12 +326,12 @@ public abstract class StreamingModuleService : Service() {
         try {
             original.first?.reportFailed()
         } catch (cause: Throwable) {
-            Log.e("StreamingModuleService", "Failed to report Service loss", cause)
+            logE("StreamingModuleService", "Failed to report Service loss", cause)
         } finally {
             try {
                 original.second?.requestModuleShutdown()
             } catch (cause: Throwable) {
-                Log.e("StreamingModuleService", "Failed to request module shutdown", cause)
+                logE("StreamingModuleService", "Failed to request module shutdown", cause)
             }
         }
     }

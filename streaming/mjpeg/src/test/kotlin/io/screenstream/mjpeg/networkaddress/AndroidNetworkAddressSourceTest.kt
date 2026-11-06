@@ -1,24 +1,21 @@
 package io.screenstream.mjpeg.networkaddress
 
-import com.elvishew.xlog.LogLevel
-import com.elvishew.xlog.XLog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.net.InetAddress
 import java.net.SocketException
 import java.util.Collections
 import java.util.Enumeration
 
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [34])
 internal class AndroidNetworkAddressSourceTest {
-    @Before
-    fun initializeLogging() {
-        XLog.init(LogLevel.NONE)
-    }
-
     // Cases: MJPEG-NET-06, MJPEG-NET-07
     @Test
     fun nativeEmptyDownAndOmittedInterfacesOverrideCallbacksButFailedReadsUseFallback() {

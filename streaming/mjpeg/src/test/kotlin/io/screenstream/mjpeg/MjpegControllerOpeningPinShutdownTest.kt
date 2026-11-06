@@ -1,6 +1,5 @@
 package io.screenstream.mjpeg
 
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.WebPageSettings
@@ -23,7 +22,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -41,11 +39,6 @@ import kotlin.time.Duration.Companion.seconds
 internal class MjpegControllerOpeningPinShutdownTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
-
-    @Before
-    fun initialize() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     // Cases: MJPEG-CTL-06, MJPEG-CTL-12, MJPEG-CTL-13
     @Test

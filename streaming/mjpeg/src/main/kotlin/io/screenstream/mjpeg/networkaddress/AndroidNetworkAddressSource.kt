@@ -23,7 +23,7 @@ internal class AndroidNetworkAddressSource(
                 failedInterfaces.remove(name)
             } catch (error: Exception) {
                 if (failedInterfaces.add(name)) {
-                    this@AndroidNetworkAddressSource.logW("readInterface", "Interface address read failed; interface=$name", error)
+                    logW("readInterface", "Interface address read failed; interface=$name", error)
                 }
             }
         }

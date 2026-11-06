@@ -6,34 +6,36 @@ import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.Job
 
 /**
- * Coordinates process-wide screen consent and projection acquisition for streaming modules.
+ * Process-wide coordinator for screen-capture consent and [MediaProjection] acquisition.
  *
- * A grant carries consent metadata; each acquisition still requires admission. Once creation is
- * admitted, its guard coordinates competing consent and creation until media handoff or completed raw
- * rollback. The media owner governs the projection's active lifetime and physical release. The caller
- * owns a returned projection until its chosen media owner accepts it. Requests, grants, and saved
- * consent are process-local; a new process starts with fresh access state.
+ * It admits one consent request or projection creation at a time. A successful request yields a one-use
+ * [Grant]; [createProjection] consumes it and holds a creation guard until [finishProjectionCreation]. The
+ * caller owns the returned projection until its media owner accepts it; the media owner then governs its
+ * lifetime and release. All state, including saved consent, is process-local.
+ *
+ * Attempt order: [requestConsent], [createProjection], media handoff or rollback,
+ * [finishProjectionCreation], then optionally [saveConsentForReuse] after a normal stop.
  */
 public interface ScreenCaptureAccess {
     /**
-     * Request consent for [attempt], using saved consent on SDK 24–33 when available or the selected
-     * resumed Activity host otherwise. The latest eligibility report selects the host, falling back to
-     * another resumed host when needed. Admission runs on Main. Pending consent or a held creation guard
-     * returns [NoGrantReason.Busy] immediately. Fresh consent requires an eligible host; otherwise the
-     * result is [NoGrantReason.HostUnavailable]. A host selection change ends a request awaiting submission;
-     * a submitted request keeps its keyed result association across host changes and Activity recreation.
+     * Requests consent for [attempt] and, on success, runs [prepareForeground] before returning a grant.
+     * Switches to Main. Call from a coroutine under [attemptJob], the attempt's lifetime Job. A returned grant
+     * stays usable after the requesting child completes, for as long as that Job is active.
      *
-     * Call under the installed capture's [attemptJob]. A grant retains that job through the lifetime of
-     * the attempt, including after its requesting child completes. After successful consent,
-     * [prepareForeground] runs synchronously on Main, including when the Activity is paused. It must
-     * recheck the exact attempt, module admission, and permissions, then return after foreground API
-     * completion. False rejects delivery. Install the attempt's rollback owner before requesting:
-     * cancellation after promotion can interrupt delivery of the resource-free grant.
+     * On SDK 24–33, consent saved by [saveConsentForReuse] is used without a host and consumed at once,
+     * even if later startup fails. Otherwise the selected resumed `ScreenCaptureConsentHost` shows education
+     * and Android's consent dialog. Once submitted, a request keeps its result association across host
+     * changes and Activity recreation. A request can stay pending if its host is lost without a result;
+     * cancelling the attempt ends it.
      *
-     * Normal non-grant outcomes are explicit; technical failures throw. A matching launcher failure is
-     * wrapped in [ConsentLaunchException]. Cancellation removes the wait; Android's dialog can remain
-     * visible and late results are ignored. Missing result data and results before submission are technical
-     * failures. Saved consent is consumed when admitted, even if subsequent startup fails.
+     * After successful consent, [prepareForeground] runs synchronously on Main, even while the Activity is
+     * paused. It must recheck the attempt, module admission, and permissions, and return true only after the
+     * foreground call completes. Cancellation can still win after it returns true, so the attempt's cleanup
+     * must undo foreground preparation even without a grant.
+     *
+     * Normal outcomes are [ConsentResult]s; cancellation and technical failures throw. A launcher failure
+     * is wrapped in [ConsentLaunchException]; a result without data or before submission throws
+     * [IllegalStateException]. Cancelling ends the wait but not Android's dialog, whose late result is ignored.
      */
     public suspend fun requestConsent(
         attempt: StreamingModule.CaptureAttemptId,
@@ -45,15 +47,18 @@ public interface ScreenCaptureAccess {
         /** Consent and foreground preparation succeeded; projection creation is still required. */
         public data class Granted(public val grant: Grant) : ConsentResult
 
-        /** A normal non-grant outcome; technical failure and cancellation use the exception path. */
+        /** Consent ended normally without a grant. */
         public data class NotGranted(public val reason: NoGrantReason) : ConsentResult
     }
 
     public enum class NoGrantReason {
-        /** A pending consent request or creation guard occupies admission; retry with a later request. */
+        /** Another consent request is pending or a creation guard is held; retry with a later request. */
         Busy,
 
-        /** Fresh consent ended because an eligible host was unavailable or selection changed before submission. */
+        /**
+         * No resumed host for fresh consent, host selection changed before submission, or the submitting
+         * launcher was disposed while its Activity was finishing.
+         */
         HostUnavailable,
 
         /** Capture education was dismissed or cancelled before Android submission. */
@@ -62,49 +67,41 @@ public interface ScreenCaptureAccess {
         /** Android returned a non-success consent result. */
         Declined,
 
-        /** The synchronous foreground callback rejected preparation. */
+        /** `prepareForeground` returned false. */
         ForegroundRejected,
     }
 
     /**
-     * Consume this coordinator's grant once and acquire a projection after foreground preparation.
-     * An inactive attempt job throws CancellationException. Invalid or consumed grants and overlapping
-     * acquisition throw; a platform failure also consumes the grant. Once creation is admitted, the guard
-     * remains held until [finishProjectionCreation], including when the platform call throws.
+     * Consumes [grant] and creates its projection, blocking the calling worker thread. An inactive attempt
+     * throws CancellationException; a foreign or consumed grant and overlapping consent or creation throw
+     * [IllegalStateException]. Once admitted, the grant is consumed and the guard stays held until
+     * [finishProjectionCreation], even when the platform call fails.
      *
-     * Store the returned projection before suspension or fallible work to retain ownership across
-     * cancellation. Until a media owner accepts it, the caller must stop it after startup failure or
-     * cancellation and settle that rollback before releasing the guard.
+     * Store the returned projection before any suspension or fallible work. Until a media owner accepts it,
+     * the caller must stop it after failure or cancellation, then call [finishProjectionCreation].
      *
-     * [retryAfterRecentForegroundStart] enables one pre-API-34 SecurityException retry after 100 ms if
-     * acquisition began within 1500 ms of foreground preparation. Both calls share the grant and guard;
-     * the default makes at most one platform acquisition call.
+     * [retryAfterRecentForegroundStart] allows one retry, after 100 ms, of a SecurityException below API 34
+     * when creation began within 1500 ms of foreground preparation.
      */
     @WorkerThread
     public fun createProjection(grant: Grant, retryAfterRecentForegroundStart: Boolean = false): MediaProjection
 
     /**
-     * Release this attempt's creation guard after ownership handoff or completed raw rollback. The
-     * operation is idempotent and applies only to the matching attempt after the platform call settles.
-     * An admitted creation that throws still holds the guard; finish that path after the call settles too.
-     * If called while creation is in flight, call again after that call and any rollback have finished.
+     * Releases [attempt]'s creation guard after media handoff or completed rollback. Idempotent; ignored for
+     * other attempts and while [createProjection] is still running, so call it after that call returns or throws.
      */
     public fun finishProjectionCreation(attempt: StreamingModule.CaptureAttemptId)
 
     /**
-     * Save consent on SDK 24–33 only after successful startup, a normal requested stop and successful
-     * media cleanup under the owner's declared contract. Observed failure, timeout, revocation, and an
-     * unconfirmed stop make the attempt ineligible. Physical release has the media owner's guarantees.
-     * The attempt Job may already be cancelled. Only the latest admitted attempt's consumed grant can
-     * save once, keeping older cleanup scoped to its own decision. The caller certifies the media outcome;
-     * the coordinator relies on that certification. API 34 and later always need fresh consent.
+     * Saves [grant]'s consent for the next request on SDK 24–33; API 34+ always needs fresh consent. Call
+     * only after successful startup, a requested stop, and confirmed media cleanup; failure, timeout,
+     * revocation, or an unconfirmed stop make the attempt ineligible. The coordinator trusts this
+     * certification. Only a consumed grant of the most recently admitted attempt is saved, at most once.
+     * The attempt Job may already be cancelled.
      */
     public fun saveConsentForReuse(grant: Grant)
 
-    /**
-     * Opaque one-use consent metadata bound to its coordinator and original attempt. Projection
-     * acquisition has its own admission and resource lifetime.
-     */
+    /** Opaque, one-use consent for one attempt, valid only with the coordinator that issued it. */
     public interface Grant
 }
 

@@ -14,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.OutputSize
 import io.screenstream.capture.Rotation
 import io.screenstream.mjpeg.IsolatedSettingsContext
@@ -26,7 +25,6 @@ import io.screenstream.mjpeg.ui.settings.images.SizeSearch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -45,11 +43,6 @@ internal class SizeSettingsUiTest {
 
     @get:Rule
     val temporaryFolder = TemporaryFolder()
-
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     @Test
     fun modeSwitchesKeepIndependentDraftsAndCommitOnlyTheSelectedModeIntoLatestSettings() {

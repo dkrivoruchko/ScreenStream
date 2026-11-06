@@ -11,7 +11,11 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import kotlin.uuid.Uuid
 
-/** Routes exact notification actions through a broadcast receiver. */
+/**
+ * Non-exported receiver that routes notification Exit, Stop, and recovery actions to
+ * [StreamingModuleManager]. Each action's data URI encodes its exact target and keeps PendingIntents for
+ * different targets distinct; malformed or non-canonical URIs are ignored.
+ */
 public class StreamingModuleActionReceiver : BroadcastReceiver(), KoinComponent {
 
     override fun onReceive(context: Context?, intent: Intent?) {
@@ -43,7 +47,10 @@ public class StreamingModuleActionReceiver : BroadcastReceiver(), KoinComponent 
         private const val EXIT_AUTHORITY: String = "module-exit"
         private const val RECOVERY_AUTHORITY: String = "module-recovery"
 
-        /** Immutable Exit for this original module instance, including during startup. */
+        /**
+         * Immutable Exit for [instance]; the manager applies it only while that instance is admitted,
+         * including during startup.
+         */
         public fun exitAction(context: Context, instance: StreamingModule.InstanceId): PendingIntent = PendingIntent.getBroadcast(
             context,
             0,
@@ -69,7 +76,7 @@ public class StreamingModuleActionReceiver : BroadcastReceiver(), KoinComponent 
             .appendPath(uuid.toString())
             .build()
 
-        /** Immutable broadcast action for this exact capture attempt. */
+        /** Immutable Stop for [attempt], routed with `fromNotification = true`; the controller validates it. */
         public fun stopAction(context: Context, attempt: StreamingModule.CaptureAttemptId): PendingIntent = PendingIntent.getBroadcast(
             context,
             0,
@@ -102,7 +109,10 @@ public class StreamingModuleActionReceiver : BroadcastReceiver(), KoinComponent 
             .appendPath(uuid.toString())
             .build()
 
-        /** In-place recovery for this original instance and its exact current error episode. */
+        /**
+         * Immutable in-place recovery for [instanceId]'s error episode identified by [errorToken]; the
+         * controller validates the token.
+         */
         public fun recoveryAction(context: Context, instanceId: StreamingModule.InstanceId, errorToken: Uuid): PendingIntent = PendingIntent.getBroadcast(
             context,
             0,

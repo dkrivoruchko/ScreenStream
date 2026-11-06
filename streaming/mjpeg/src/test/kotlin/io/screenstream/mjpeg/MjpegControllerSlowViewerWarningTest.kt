@@ -1,7 +1,6 @@
 package io.screenstream.mjpeg
 
 import android.os.SystemClock
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.core.capture.ScreenCaptureAccess
 import io.screenstream.mjpeg.http.HttpDelivery
@@ -44,7 +43,6 @@ internal class MjpegControllerSlowViewerWarningTest {
 
     @Before
     fun initialize() {
-        XLog.init(Int.MAX_VALUE)
         ShadowToast.reset()
     }
 

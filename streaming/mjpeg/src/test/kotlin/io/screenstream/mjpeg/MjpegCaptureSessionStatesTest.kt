@@ -1,6 +1,5 @@
 package io.screenstream.mjpeg
 
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.ColorMode
 import io.screenstream.capture.CropInsetsPx
 import io.screenstream.capture.FrameRate
@@ -33,7 +32,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -48,11 +46,6 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
 internal class MjpegCaptureSessionStatesTest {
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
-
     // Cases: MJPEG-CAP-05
     @Test
     fun initialParametersMapBothSelectionModesAndPreserveInactiveSavedChoices() = runTest {

@@ -1,8 +1,6 @@
 package io.screenstream.mjpeg
 
 import android.media.projection.MediaProjection
-import com.elvishew.xlog.LogLevel
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.ScreenCaptureConfig
 import io.screenstream.capture.ScreenCaptureException
 import io.screenstream.capture.ScreenCaptureParameters
@@ -30,7 +28,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -46,11 +43,6 @@ import kotlin.time.Duration.Companion.seconds
 // SDK-invariant MJPEG policy for SDK 24–37. This does not prove platform consent reuse,
 // Binder, graphics, or actual callback-thread retirement. The coordinator stores consent only on SDK 24–33.
 internal class MjpegCaptureSessionOwnershipTest {
-    @Before
-    fun initializeLogger() {
-        XLog.init(LogLevel.NONE)
-    }
-
     // Cases: MJPEG-CAP-10, MJPEG-CAP-11
     @Test
     fun exactRegistrationCompletionDoesNotReleaseForegroundBeforeMediaStop() = runTest(StandardTestDispatcher()) {

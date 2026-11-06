@@ -1,7 +1,5 @@
 package io.screenstream.mjpeg
 
-import com.elvishew.xlog.LogLevel
-import com.elvishew.xlog.XLog
 import io.screenstream.capture.ScreenCaptureParameters
 import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.ScreenCaptureStopReason
@@ -24,7 +22,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -36,11 +33,6 @@ import kotlin.time.Duration.Companion.seconds
 @Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class])
 // This SDK-invariant adapter boundary does not prove platform capture, graphics or JPEG validity.
 internal class MjpegCaptureSessionFramesTest {
-    @Before
-    fun initializeLogger() {
-        XLog.init(LogLevel.NONE)
-    }
-
     // Cases: MJPEG-CAP-08
     @Test
     fun copiedFramesRemainOwnedWhenBorrowedSourceStorageIsReused() = runTest(StandardTestDispatcher()) {

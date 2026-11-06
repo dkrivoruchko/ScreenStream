@@ -27,18 +27,12 @@ import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
 import io.screenstream.mjpeg.settings.ImageSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import java.io.BufferedInputStream
 import java.io.Closeable
-import java.io.EOFException
 import java.io.File
-import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.ProtocolException
 import java.net.ServerSocket
-import java.net.SocketException
-import java.net.SocketTimeoutException
 import java.net.URL
 import java.util.UUID
 
@@ -352,68 +346,20 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
     }
 
     class MultipartViewer(port: Int) : Closeable {
-        private val connection = openHttpConnection(port, "/mjpeg")
-        private val input: InputStream
-        private val reader: MjpegMultipartReader
+        private val connection = MjpegMultipartConnection(port)
 
-        init {
-            try {
-                assertEquals(200, connection.responseCode)
-                val type = checkNotNull(connection.contentType)
-                assertEquals("multipart/x-mixed-replace", type.substringBefore(';').trim())
-                check("boundary=" in type) { "Missing multipart boundary: $type" }
-                input = BufferedInputStream(connection.inputStream)
-                reader = MjpegMultipartReader(input, type.substringAfter("boundary=").trim().trim('"'))
-            } catch (failure: Throwable) {
-                connection.disconnect()
-                throw failure
-            }
-        }
-
-        fun nextFrame(): ByteArray = reader.nextFrame()
+        fun nextFrame(): ByteArray = connection.nextFrame()
 
         fun awaitTarget(green: Boolean) = awaitFrame(if (green) "green captured target" else "red captured target") {
             matchesTarget(it, green)
         }
 
-        fun awaitFrame(description: String, matches: (ByteArray) -> Boolean) {
-            val deadline = android.os.SystemClock.elapsedRealtime() + 15_000
-            do {
-                if (matches(nextFrame())) return
-            } while (android.os.SystemClock.elapsedRealtime() < deadline)
-            throw AssertionError("Multipart did not deliver $description")
-        }
+        fun awaitFrame(description: String, matches: (ByteArray) -> Boolean): Unit = connection.awaitFrame(description, matches = matches)
 
-        fun assertClosedByServer() {
-            val deadline = android.os.SystemClock.elapsedRealtime() + 15_000
-            val drainBuffer = ByteArray(8192)
-            try {
-                while (android.os.SystemClock.elapsedRealtime() < deadline) {
-                    if (input.read(drainBuffer) < 0) return
-                }
-            } catch (failure: SocketTimeoutException) {
-                throw AssertionError("Exit left the multipart connection open", failure)
-            } catch (_: EOFException) {
-                // Android's HTTP chunk decoder reports a socket EOF as an exception when Exit
-                // cancels the open-ended response before its terminating HTTP chunk.
-                return
-            } catch (failure: ProtocolException) {
-                // HttpURLConnection uses this exact error for socket EOF inside a chunk body.
-                // Other protocol errors, including malformed chunk headers, remain failures.
-                if (failure.message == "unexpected end of stream") return
-                throw failure
-            } catch (_: SocketException) {
-                return // A reset also establishes that the production server closed this response.
-            }
-            throw AssertionError("Exit kept delivering multipart data")
-        }
+        fun assertClosedByServer(): Unit = connection.assertClosedByServer()
 
         override fun close() {
-            try {
-                input.close()
-            } finally {
-                connection.disconnect()
-            }
+            connection.close()
         }
     }
 

@@ -2,19 +2,15 @@
 
 [Core](../README.md) · [Streaming Module Contract and Manager](module-contract-and-manager.md)
 
-`StreamingModuleNotifications` defines foreground notification content, error delivery, and notification settings destinations. The host app supplies a **notification provider** that implements this contract for the application process. Each notification's lifecycle stays with the Android Service, manager, or Controller that selected its content and actions.
+`StreamingModuleNotifications` is the app-supplied **notification provider**. It builds foreground content, delivers or clears error notifications, reports channel availability and supplies channel settings destinations. Each notification's owner decides when it is shown, updated or cleared.
 
 ## Participants and relationships
 
-- **Notification provider.** It returns foreground content to the requesting Android Service, delivers or clears owner-selected error presentations, and supplies channel settings destinations.
-
-- **Instance Android Service.** `StreamingModuleService` owns foreground presentation for its module instance. It asks the provider to build content, then manages foreground promotion and notification updates through the instance's Service lifetime.
-
-- **Manager.** `StreamingModuleManager` owns a generic problem presentation for the current instance. It follows control health and the instance's reported operation error through the application process.
-
-- **Controller.** The module's `StreamingModule.Controller` selects any detailed operation errors it presents and owns their lifetime and offered recovery through resolution or instance shutdown.
-
-- **Android.** Android manages notification visibility and user settings. Its delivery conditions apply to the presentation chosen by each owner.
+- **Notification provider.** One per process, supplied by the app. Error delivery is best effort.
+- **Instance Service.** `StreamingModuleService` owns the instance's foreground notification, in the module's foreground slot.
+- **Manager.** Owns the generic problem notification, in the `NOTIFICATION_ID_MODULE_ERROR` slot.
+- **Controller.** Owns any detailed operation-error notification it presents, including an optional recovery action.
+- **Android.** Controls visibility and the user's notification settings.
 
 ```mermaid
 flowchart LR
@@ -30,48 +26,40 @@ flowchart LR
     Provider -->|Error delivery| Android
 ```
 
-The [module guide](module-contract-and-manager.md#participants-and-relationships) describes how the Service and Controller are created and bound to one instance.
-
 ## Foreground presentation
 
-A registered module declares a foreground notification slot for its Android Service component. The manager validates the slot and supplies it through the instance's manager handle. The Service uses that same slot across waiting and capture phases.
+Each module definition declares a foreground slot for its Service component. The manager rejects a catalog in which a slot isn't positive or equals the module error slot, one Service component has two slots, or two components share one; it passes the validated slot to the instance through its handle. The Service uses that one slot in every phase:
 
-The foreground lifecycle follows the instance and its capture attempts:
+1. **Waiting.** An admitted Service enters `specialUse` foreground with Exit content before its Controller factory runs. A start that isn't admitted never promotes.
+2. **Capture preparation.** After consent and before projection acquisition, `enterCaptureForeground` promotes the same Service to `mediaProjection` foreground, adding `microphone` when required. The content still offers Exit.
+3. **Confirmed capture.** `updateCaptureNotification(attempt, true)` switches the content to Stop for that attempt. Content updates post under the same ID and keep the foreground types.
+4. **Stopping capture.** The module can restore Exit content while cleanup continues. After the attempt's cleanup or rollback settles, `leaveCaptureForeground` restores waiting foreground while the instance is still admitted.
+5. **Shutdown.** After capture cleanup, the Controller calls `stopAndAwaitDestruction`, which closes foreground updates and stops the Service. Android removes the foreground notification when the Service stops.
 
-1. **Waiting.** The admitted Service enters waiting foreground before the Controller factory runs. Its presentation offers Exit for that instance.
-2. **Capture preparation.** After consent, the same Service enters capture foreground before projection acquisition. Exit remains available while the module prepares capture.
-3. **Confirmed capture.** Once the module confirms capture, the Service presents Stop for that capture attempt. Updating the content retains the existing foreground type mask.
-4. **Stopping capture.** The Service can restore Exit content while capture cleanup continues. Waiting foreground restoration follows declared cleanup for a surviving admitted instance.
-5. **Module shutdown.** Shutdown closes foreground updates. After declared capture cleanup settles, the Controller stops its Service and awaits destruction. Android removes the foreground state and notification when the Service stops.
-
-The provider builds foreground content even while notification delivery is blocked; the Service performs foreground promotion and updates. The requesting owner handles presentation failures as part of its startup or capture work. [Screen Capture Access](screen-capture.md) describes consent, foreground preparation, and projection ownership.
+The provider builds foreground content even while delivery is blocked. On API 33+, when the notification permission changes, the Service re-posts its current foreground notification if the Streaming channel can deliver. A failed foreground call or an Android foreground-service timeout closes foreground updates, reports instance failure and requests Controller shutdown. [Screen Capture Access](screen-capture.md) describes the consent and projection steps around capture foreground.
 
 ## Error presentation
 
-The manager and Controller each own their error presentation and its notification slot. Generic manager problems and detailed module errors can appear together.
+The manager and the Controller each own one error notification, and both can be visible at once.
 
-The manager presents a generic warning when the current instance reports an operation error or becomes unresponsive. Terminal failure selects failure presentation. The manager clears its warning once control is responsive and the reported operation error is resolved. Transitions and Exit also clear its presentation.
+The manager derives its notification from `state`. An operation error in the current status, or `Unresponsive` health, starts one warning episode for that instance with a single delivery attempt. Message changes, moving between error and unresponsive, and re-enabled delivery don't post it again. `Failed` replaces the warning with failure content, using the failure's message resource or generic text. Every other state, including responsive control without an error, a transition and Exit, cancels it. A provider failure is logged and isn't retried within the episode.
 
-The Controller selects detailed operation errors for presentation and can offer in-place recovery for its current error episode. It clears its presentation as the error resolves or the instance shuts down. Recovery stays within the same instance; the [manager guide](module-contract-and-manager.md#capture-start-stop-and-recovery) describes its lifecycle role.
-
-The provider treats error delivery as best effort and attempts cancellation whenever the owner clears its presentation. Each owner determines subsequent updates according to its own state.
+The Controller chooses which operation errors to present in detail (`ErrorContent.Text`), can attach a recovery action for its current error episode, and clears its notification when the error resolves or the instance shuts down. Recovery stays within the same instance ([Capture Start, Stop, and recovery](module-contract-and-manager.md#capture-start-stop-and-recovery)).
 
 ## Notification actions
 
-Exit, Stop, and recovery buttons carry owner-supplied commands through `StreamingModuleActionReceiver` to the manager. Each button retains its original target:
+`StreamingModuleActionReceiver` creates immutable PendingIntents for notification buttons and routes them to the manager. Core's manifest declares the receiver as non-exported. Each action's data URI encodes its exact target, which keeps PendingIntents for different targets distinct; malformed URIs are ignored.
 
-| Button | Target and behavior |
-| --- | --- |
-| Exit | The module instance that supplied the foreground presentation. |
-| Stop | The capture attempt confirmed by that instance. |
-| Recovery | The instance and module-owned error episode that offered recovery. |
+| Button | Target | Effect |
+| --- | --- | --- |
+| Exit | The instance whose Service showed it | `exit(instanceId)`, which applies only while that instance is admitted |
+| Stop | One confirmed capture attempt | `requestStreamStop(attempt, fromNotification = true)`; the Controller matches the attempt |
+| Recovery | An instance and its error-episode token | `requestRecovery`; the Controller validates the token |
 
-The manager checks current identity, admission, and lifecycle state. For Stop and recovery, the Controller validates its capture attempt or error episode before handling the routed command. Actions remain bound to their original targets through replacement and later capture attempts.
+A button keeps its original target after replacement or a later capture attempt, so it can't act on a newer instance or attempt.
 
 ## Delivery and permissions
 
-The current host provider creates the Streaming channel for foreground presentation and the Error channel for manager and module problems. It builds localized presentation and makes notification content taps open the app. It attempts error posting when the Error channel is available.
+`areNotificationsEnabled(channel)` reports whether a channel can deliver now. Foreground-service eligibility and the visibility of foreground notifications follow separate Android rules. [Runtime Permissions](runtime-permissions.md) owns the notification permission check, which includes app-wide enablement, and the request UI. Module UI can open the provider's `channelSettingsIntent` when it isn't null.
 
-The provider checks the applicable notification grant, app-wide enablement, and the selected channel's availability. These checks read current delivery settings. Android controls visibility, the Service owns foreground admission, and the module and its resource owners report capture and cleanup outcomes.
-
-[Runtime Permissions](runtime-permissions.md) owns notification permission checks and Activity-root request UI. Its notification check includes app-wide availability; the notification provider adds channel-aware checks. The provider supplies a resolvable channel settings destination when one is available, and module UI owns navigation to it.
+The app's current provider creates the Streaming and Error channels, builds localized content whose tap opens the app, and posts error notifications only while the Error channel can deliver. Its availability check combines the notification permission on API 33+, app-wide enablement and, on API 26+, the channel's importance.

@@ -17,7 +17,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
-import com.elvishew.xlog.XLog
 import io.screenstream.mjpeg.IsolatedSettingsContext
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
@@ -33,7 +32,6 @@ import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -52,11 +50,6 @@ internal class SettingsSearchUiTest {
 
     @get:Rule
     val temporaryFolder = TemporaryFolder()
-
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     @Test
     fun matchingUsesExtraTermsAllTokensAndWhitespaceDashCaseNormalization() {

@@ -2,7 +2,6 @@ package io.screenstream.mjpeg
 
 import android.content.pm.ServiceInfo
 import android.os.Build
-import com.elvishew.xlog.XLog
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.mjpeg.settings.MjpegSettings
@@ -14,7 +13,6 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -30,11 +28,6 @@ import kotlin.time.Duration.Companion.seconds
 internal class MjpegStreamingModuleServiceTest {
     @get:Rule
     val temporaryFolder: TemporaryFolder = TemporaryFolder()
-
-    @Before
-    fun initializeLogger() {
-        XLog.init(Int.MAX_VALUE)
-    }
 
     // Cases: MJPEG-CAP-13, MJPEG-CFG-02
     @Test
