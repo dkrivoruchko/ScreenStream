@@ -1,0 +1,286 @@
+package io.screenstream.mjpeg
+
+import android.os.SystemClock
+import io.screenstream.mjpeg.http.HttpDelivery
+import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.LooperMode
+import org.robolectric.shadows.ShadowSystemClock
+import java.time.Duration
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
+
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [34])
+internal class MjpegControllerAddressLossTest {
+    @get:Rule
+    val temporaryFolder: TemporaryFolder = TemporaryFolder()
+
+    private val inputs = MjpegControllerTestInputs(temporaryFolder)
+
+    // Cases: MJPEG-CTL-09
+    @Test
+    fun failedBindDoesNotStartLossAndRecoveryResetsNextEmptySelectionDeadline() = runBlocking {
+        val settings = inputs.createSettings()
+        settings.updateData { copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 10)) }
+        val host = MjpegServiceTestHost(settings)
+        try {
+            inputs.startModuleWithReadyListener(host)
+            host.controller.requestStreamStart()
+            val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
+            host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.WaitingForPermission }
+            val selectedAddress = inputs.address()
+            inputs.publishServerState(host, selectedAddress, state = HttpDelivery.ServerState.Failed(HttpDelivery.ServerFailure.AddressUnavailable, 3))
+            inputs.applySettingsCheckpoint(settings, host, "Failed bind has nonempty discovery")
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(20))
+            inputs.applySettingsCheckpoint(settings, host, "Failed bind outlasted loss interval")
+            inputs.applySettingsCheckpoint(settings, host, "Failed bind deadline turn completed")
+            inputs.assertConsentPending(host, attempt)
+
+            inputs.publishDiscovery(host, observedAddressState(emptyList()))
+            inputs.applySettingsCheckpoint(settings, host, "First loss began")
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(8))
+            inputs.applySettingsCheckpoint(settings, host, "First loss remains pending")
+            inputs.applySettingsCheckpoint(settings, host, "First loss deadline turn completed")
+            inputs.assertConsentPending(host, attempt)
+            inputs.publishDiscovery(host, observedAddressState(listOf(selectedAddress)))
+            inputs.applySettingsCheckpoint(settings, host, "Recovery processed")
+            inputs.assertConsentPending(host, attempt)
+
+            inputs.publishDiscovery(host, observedAddressState(emptyList()))
+            inputs.applySettingsCheckpoint(settings, host, "Second loss began")
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(9))
+            inputs.applySettingsCheckpoint(settings, host, "Second loss has a fresh deadline")
+            inputs.applySettingsCheckpoint(settings, host, "Second loss deadline turn completed")
+            inputs.assertConsentPending(host, attempt)
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
+            inputs.applySettingsCheckpoint(settings, host, "Second loss deadline reached")
+            host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
+            assertEquals(listOf(attempt), host.access.projectionCreationFinishes.value)
+            host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
+            assertFalse(host.http.closed)
+        } finally {
+            assertTrue(host.close())
+        }
+    }
+
+    // Cases: MJPEG-CTL-09
+    @Test
+    fun lengthenedNetworkLossTimeoutRetainsOriginalOnset() = runBlocking {
+        val settings = inputs.createSettings()
+        settings.updateData { copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 10)) }
+        val host = MjpegServiceTestHost(settings)
+        try {
+            inputs.startModuleWithReadyListener(host)
+            host.controller.requestStreamStart()
+            val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
+            host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.WaitingForPermission }
+            inputs.publishDiscovery(host, observedAddressState(emptyList()))
+            inputs.applySettingsCheckpoint(settings, host, "Loss began before extension")
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(8))
+            settings.updateData {
+                copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 20), web = web.copy(title = "Lengthened loss deadline"))
+            }
+            host.http.configuration.awaitControllerValue { it?.web?.title == "Lengthened loss deadline" }
+            inputs.applySettingsCheckpoint(settings, host, "Lengthened deadline processed")
+
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(2))
+            inputs.applySettingsCheckpoint(settings, host, "Original ten-second deadline passed")
+            inputs.applySettingsCheckpoint(settings, host, "Original deadline turn completed")
+            inputs.assertConsentPending(host, attempt)
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(9))
+            inputs.applySettingsCheckpoint(settings, host, "Nineteen seconds since loss")
+            inputs.applySettingsCheckpoint(settings, host, "Extended deadline remains pending")
+            inputs.assertConsentPending(host, attempt)
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
+            inputs.applySettingsCheckpoint(settings, host, "Twenty seconds since original loss")
+            host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
+            assertEquals(listOf(attempt), host.access.projectionCreationFinishes.value)
+            host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
+            assertFalse(host.http.closed)
+        } finally {
+            assertTrue(host.close())
+        }
+    }
+
+    // Cases: MJPEG-CTL-09
+    @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
+    fun loadingDoesNotStartLossAndEditedDeadlineIncludesDeepSleep() = runBlocking {
+        val settings = inputs.createSettings()
+        settings.updateData { copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 20)) }
+        val host = MjpegServiceTestHost(settings)
+        try {
+            inputs.startModuleWithReadyListener(host)
+            host.controller.requestStreamStart()
+            val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
+            host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.WaitingForPermission }
+            inputs.publishDiscovery(host, NetworkAddressMonitor.State.Loading)
+            inputs.applySettingsCheckpoint(settings, host, "Loading has no loss fact")
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(30))
+            inputs.applySettingsCheckpoint(settings, host, "Loading remains pending")
+            inputs.applySettingsCheckpoint(settings, host, "Loading deadline turn completed")
+            inputs.assertConsentPending(host, attempt)
+            inputs.publishDiscovery(host, observedAddressState(emptyList()))
+            // The plan receipt proves discovery was handled. This later turn establishes its loss onset.
+            inputs.applySettingsCheckpoint(settings, host, "Empty selection began loss")
+            val uptimeBeforeSleep = SystemClock.uptimeMillis()
+            val elapsedBeforeSleep = SystemClock.elapsedRealtime()
+            ShadowSystemClock.simulateDeepSleep(Duration.ofSeconds(10))
+            assertEquals(uptimeBeforeSleep, SystemClock.uptimeMillis())
+            val expectedElapsedAfterSleepMillis = elapsedBeforeSleep + 10_000
+            assertEquals(expected = expectedElapsedAfterSleepMillis, actual = SystemClock.elapsedRealtime())
+            settings.updateData {
+                copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 10), web = web.copy(title = "Shortened loss deadline"))
+            }
+            host.http.configuration.awaitControllerValue { it?.web?.title == "Shortened loss deadline" }
+            inputs.applySettingsCheckpoint(settings, host, "Elapsed deadline turn completed")
+            host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
+            assertEquals(listOf(attempt), host.access.projectionCreationFinishes.value)
+            host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
+            assertFalse(host.http.closed)
+        } finally {
+            assertTrue(host.close())
+        }
+    }
+
+    // Cases: MJPEG-CTL-09, MJPEG-CTL-10
+    @Test
+    fun expiredAddressLossRereadsRecoveryOrMissingEvidenceBeforeQueuedDiscoveryIsProcessed() = runBlocking {
+        for (discoveryAtDeadline in listOf("recovered", "loading", "empty")) {
+            val settings = inputs.createSettings()
+            settings.updateData { copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 10)) }
+            val host = MjpegServiceTestHost(settings)
+            val configurationUpdateEntered = CompletableDeferred<Unit>()
+            val allowConfigurationUpdateToReturn = CountDownLatch(1)
+            val blockNextConfigurationUpdate = java.util.concurrent.atomic.AtomicBoolean(true)
+            try {
+                inputs.startModuleWithReadyListener(host)
+                host.controller.requestStreamStart()
+                val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
+                host.managerObservation.status.awaitControllerValue { it?.captureAttempt == attempt }
+                inputs.publishDiscovery(host, observedAddressState(emptyList()))
+                inputs.applySettingsCheckpoint(settings, host, "Loss onset established")
+                host.http.onConfiguration = {
+                    if (blockNextConfigurationUpdate.compareAndSet(true, false)) {
+                        configurationUpdateEntered.complete(Unit)
+                        check(allowConfigurationUpdateToReturn.await(20, TimeUnit.SECONDS))
+                    }
+                }
+                settings.updateData { copy(web = web.copy(title = "Held before expiry")) }
+                withTimeout(5.seconds) { configurationUpdateEntered.await() }
+                ShadowSystemClock.advanceBy(Duration.ofSeconds(10))
+                host.monitor.state.value = when (discoveryAtDeadline) {
+                    "recovered" -> observedAddressState(listOf(inputs.address()))
+                    "loading" -> NetworkAddressMonitor.State.Loading
+                    else -> observedAddressState(emptyList())
+                }
+                allowConfigurationUpdateToReturn.countDown()
+                inputs.applySettingsCheckpoint(settings, host, "Expired deadline evaluated")
+                inputs.applySettingsCheckpoint(settings, host, "Queued discovery evaluated")
+                if (discoveryAtDeadline == "empty") {
+                    host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
+                    assertEquals(listOf(attempt), host.access.projectionCreationFinishes.value)
+                } else {
+                    inputs.assertConsentPending(host, attempt)
+                }
+                assertFalse(host.http.closed)
+            } finally {
+                allowConfigurationUpdateToReturn.countDown()
+                assertTrue(host.close())
+            }
+        }
+    }
+
+    // Cases: MJPEG-CTL-09, MJPEG-CTL-10
+    @Test
+    fun changingTheFilterRestartsAnEmptySelectionEpisodeInsteadOfReusingItsOnset() = runBlocking {
+        val settings = inputs.createSettings()
+        settings.updateData { copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 10)) }
+        val host = MjpegServiceTestHost(settings)
+        try {
+            inputs.startModuleWithReadyListener(host)
+            host.controller.requestStreamStart()
+            val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
+            host.managerObservation.status.awaitControllerValue { it?.captureAttempt == attempt }
+            inputs.publishDiscovery(host, observedAddressState(emptyList()))
+            inputs.applySettingsCheckpoint(settings, host, "Initial filter loss onset")
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(8))
+            settings.updateData { copy(network = network.copy(filter = inputs.vpnNonPrivateIpv4Filter()), web = web.copy(title = "New empty filter")) }
+            host.http.configuration.awaitControllerValue { it?.web?.title == "New empty filter" }
+            inputs.applySettingsCheckpoint(settings, host, "Replacement filter onset established")
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(2))
+            inputs.applySettingsCheckpoint(settings, host, "Old filter deadline passed")
+            inputs.applySettingsCheckpoint(settings, host, "Old deadline turn completed")
+            inputs.assertConsentPending(host, attempt)
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(7))
+            inputs.applySettingsCheckpoint(settings, host, "New filter nine seconds elapsed")
+            inputs.applySettingsCheckpoint(settings, host, "New deadline remains pending")
+            inputs.assertConsentPending(host, attempt)
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
+            inputs.applySettingsCheckpoint(settings, host, "New filter deadline reached")
+            host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
+            assertEquals(listOf(attempt), host.access.projectionCreationFinishes.value)
+            assertEquals(listOf(attempt), host.http.registeredCaptureAttempts.value)
+            assertFalse(host.http.closed)
+        } finally {
+            assertTrue(host.close())
+        }
+    }
+
+
+    // Cases: MJPEG-CTL-09, MJPEG-CTL-10
+    @Test
+    fun replacementAttemptKeepsItsOwnAddressLossDeadlineAfterThePreviousAttemptStopped() = runBlocking {
+        val settings = inputs.createSettings()
+        settings.updateData { copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 10)) }
+        val host = MjpegServiceTestHost(settings)
+        try {
+            inputs.startModuleWithReadyListener(host)
+            host.controller.requestStreamStart()
+            val first = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
+            host.managerObservation.status.awaitControllerValue { it?.captureAttempt == first }
+            inputs.publishDiscovery(host, observedAddressState(emptyList()))
+            inputs.applySettingsCheckpoint(settings, host, "First attempt loss onset")
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(8))
+            host.controller.requestStreamStop(first, fromNotification = false)
+            host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
+            inputs.publishDiscovery(host, observedAddressState(listOf(inputs.address())))
+            inputs.publishServerState(host, inputs.address())
+            inputs.applySettingsCheckpoint(settings, host, "Second attempt ready")
+            host.controller.requestStreamStart()
+            val second = host.access.consentRequests.awaitControllerValue { it.size == 2 }.last()
+            host.managerObservation.status.awaitControllerValue { it?.captureAttempt == second }
+            assertNotEquals(first, second)
+            inputs.publishDiscovery(host, observedAddressState(emptyList()))
+            inputs.applySettingsCheckpoint(settings, host, "Second attempt loss onset")
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(2))
+            inputs.applySettingsCheckpoint(settings, host, "First attempt old deadline passed")
+            inputs.applySettingsCheckpoint(settings, host, "Old deadline turn completed")
+            assertEquals(second to MjpegCaptureSession.State.Status.WaitingForPermission, host.http.captureStatus.value)
+            assertEquals(second, host.managerObservation.status.value!!.captureAttempt)
+            assertEquals(listOf(first), host.access.projectionCreationFinishes.value)
+            ShadowSystemClock.advanceBy(Duration.ofSeconds(8))
+            inputs.applySettingsCheckpoint(settings, host, "Second attempt own deadline reached")
+            host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
+            assertEquals(listOf(first, second), host.access.projectionCreationFinishes.value)
+            assertEquals(listOf(first, second), host.http.registeredCaptureAttempts.value)
+            assertFalse(host.http.closed)
+        } finally {
+            assertTrue(host.close())
+        }
+    }
+}

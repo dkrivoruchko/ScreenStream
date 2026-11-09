@@ -20,8 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import info.dvkr.screenstream.common.R
 
@@ -37,20 +42,28 @@ public fun ExpandableCard(
 ) {
     ElevatedCard(modifier = modifier) {
         val contentVisible = expandable && expanded
+        val expansionStateDescription = stringResource(if (contentVisible) R.string.common_expanded else R.string.common_collapsed)
         val animatedAlpha = animateFloatAsState(
             targetValue = if (contentVisible) 1F else 0F,
             animationSpec = tween(easing = EaseInOutCubic),
             label = "ExpandableCardAlpha"
         )
         val animatedRotation = animateFloatAsState(
-            targetValue = if (contentVisible) 90F else 0F,
+            targetValue = when {
+                !contentVisible -> 0F
+                LocalLayoutDirection.current == LayoutDirection.Rtl -> -90F
+                else -> 90F
+            },
             animationSpec = tween(easing = EaseInOutCubic),
             label = "ExpandableCardRotation"
         )
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
-                    .conditional(expandable) { clickable(role = Role.Button) { onExpandedChange(expanded.not()) } }
+                    .conditional(expandable) {
+                        clickable(role = Role.Button) { onExpandedChange(expanded.not()) }
+                            .semantics { stateDescription = expansionStateDescription }
+                    }
                     .defaultMinSize(minHeight = 48.dp)
                     .fillMaxWidth()
             ) {
@@ -60,7 +73,6 @@ public fun ExpandableCard(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .graphicsLayer { alpha = animatedAlpha.value }
-                        .fillMaxWidth()
                 )
 
                 if (expandable) {

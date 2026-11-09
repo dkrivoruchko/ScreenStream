@@ -1,6 +1,7 @@
 package info.dvkr.screenstream.common.analytics
 
 public interface StreamingAnalytics {
+    /** Nonthrowing, nonblocking acceptance. Delivery is best-effort for this process lifetime. */
     public fun logEvent(event: StreamingAnalyticsEvent)
 }
 

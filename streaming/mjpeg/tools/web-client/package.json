@@ -1,0 +1,19 @@
+{
+  "name": "screenstream-mjpeg-web",
+  "private": true,
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=24.15.0",
+    "npm": ">=12"
+  },
+  "scripts": {
+    "start": "node preview/server.cjs",
+    "build": "node build.cjs",
+    "check": "node build.cjs --check",
+    "test": "node --test preview/*test.cjs test/*.test.cjs"
+  },
+  "devDependencies": {
+    "acorn": "8.15.0",
+    "ws": "8.22.0"
+  }
+}

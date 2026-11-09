@@ -5,4 +5,7 @@
 
     <string name="common_continue">जारी रखें</string>
     <string name="common_try_again">पुनः प्रयास करें</string>
+
+    <string name="common_expanded">बड़ा किया गया</string>
+    <string name="common_collapsed">छोटा किया गया</string>
 </resources>

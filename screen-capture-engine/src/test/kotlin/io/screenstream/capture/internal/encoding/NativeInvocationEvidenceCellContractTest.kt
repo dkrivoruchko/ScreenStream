@@ -1,0 +1,231 @@
+package io.screenstream.capture.internal.encoding
+
+import io.mockk.every
+import io.mockk.mockk
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+
+internal class NativeInvocationEvidenceCellContractTest {
+    // Verification: ENC-04
+    @Test
+    fun coherentCompleteTransferRequiresExactProducedAndCopiedCounts() {
+        val complete = NativeEncodedTransaction().apply {
+            copyNativeSegment(directBytes(1, 2, 3), 3)
+            closeNativeProducer()
+        }
+        assertEquals(
+            NativeJpegDisposition.Returned.CompleteTransfer,
+            classify(complete, resultBlock(producedByteCount = 3L, wireStatus = 0L)),
+        )
+
+        val contradictory = NativeEncodedTransaction().apply {
+            copyNativeSegment(directBytes(1, 2, 3), 3)
+            closeNativeProducer()
+        }
+        assertEquals(
+            NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            classify(contradictory, resultBlock(producedByteCount = 4L, wireStatus = 0L)),
+        )
+    }
+
+    // Verification: ENC-04
+    @Test
+    fun coherentSafeRejectionAllowsNativeBytesButNoManagedCopy() {
+        val transaction = closedEmptyTransaction()
+
+        assertEquals(
+            NativeJpegDisposition.Returned.SafeCompressorRejection,
+            classify(transaction, resultBlock(producedByteCount = 0L, wireStatus = 1L)),
+        )
+        assertEquals(
+            NativeJpegDisposition.Returned.SafeCompressorRejection,
+            classify(transaction, resultBlock(producedByteCount = 17L, wireStatus = 1L)),
+        )
+        assertEquals(
+            NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            classify(transaction, resultBlock(producedByteCount = Int.MAX_VALUE.toLong() + 1L, wireStatus = 1L)),
+        )
+    }
+
+    // Verification: ENC-04
+    @Test
+    fun safeRejectionRejectsManagedCopyOrThrownThrowable() {
+        val copied = NativeEncodedTransaction().apply {
+            copyNativeSegment(directBytes(4), 1)
+            closeNativeProducer()
+        }
+        assertEquals(
+            NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            classify(copied, resultBlock(producedByteCount = 1L, wireStatus = 1L)),
+        )
+        assertEquals(
+            NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            classify(
+                transaction = closedEmptyTransaction(),
+                block = resultBlock(producedByteCount = 0L, wireStatus = 1L),
+                thrown = IllegalStateException("compressor rejected with a Java throwable"),
+            ),
+        )
+    }
+
+    // Verification: ENC-04
+    @Test
+    fun coherentNativeOutOfMemoryRequiresNoCopiedPayload() {
+        assertEquals(
+            NativeJpegDisposition.Returned.RequiredResourceExhaustion,
+            classify(closedEmptyTransaction(), resultBlock(producedByteCount = 0L, wireStatus = 2L)),
+        )
+        assertEquals(
+            NativeJpegDisposition.Returned.RequiredResourceExhaustion,
+            classify(closedEmptyTransaction(), resultBlock(producedByteCount = 23L, wireStatus = 2L)),
+        )
+
+        val contradictory = NativeEncodedTransaction().apply {
+            copyNativeSegment(directBytes(9), 1)
+            closeNativeProducer()
+        }
+        assertEquals(
+            NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            classify(contradictory, resultBlock(producedByteCount = 1L, wireStatus = 2L)),
+        )
+    }
+
+    // Verification: ENC-04
+    @Test
+    fun javaThrowableRequiresOrdinaryExceptionOrExactTransactionOwnedOutOfMemory() {
+        val ordinaryFailure = IllegalStateException("Injected transaction storage failure")
+        val ownedOutOfMemory = OutOfMemoryError("Injected transaction-owned storage exhaustion")
+        val foreignOutOfMemory = OutOfMemoryError("Injected foreign storage exhaustion")
+        val cases = listOf(
+            JavaThrowableCase(
+                name = "ordinary Exception",
+                thrown = ordinaryFailure,
+                transactionOwnedOutOfMemory = null,
+                expected = NativeJpegDisposition.Returned.RequiredResourceExhaustion,
+            ),
+            JavaThrowableCase(
+                name = "exact transaction-owned OutOfMemoryError",
+                thrown = ownedOutOfMemory,
+                transactionOwnedOutOfMemory = ownedOutOfMemory,
+                expected = NativeJpegDisposition.Returned.RequiredResourceExhaustion,
+            ),
+            JavaThrowableCase(
+                name = "foreign OutOfMemoryError",
+                thrown = foreignOutOfMemory,
+                transactionOwnedOutOfMemory = ownedOutOfMemory,
+                expected = NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            ),
+        )
+
+        cases.forEach { case ->
+            assertEquals(
+                case.name,
+                case.expected,
+                classify(
+                    transaction = mockResourceExhaustedTransaction(case.transactionOwnedOutOfMemory),
+                    block = resultBlock(producedByteCount = 0L, wireStatus = 4L),
+                    thrown = case.thrown,
+                ),
+            )
+        }
+    }
+
+    private fun mockResourceExhaustedTransaction(
+        ownedOutOfMemory: OutOfMemoryError?,
+    ): NativeEncodedTransaction = mockk {
+        every { byteCount } returns 0
+        every { state } returns ManagedEncodedTransaction.State.Faulted
+        every { failureKind } returns ManagedEncodedTransaction.FailureKind.ResourceExhausted
+        every { hasFaultedResourceExhaustionCause(any()) } answers {
+            firstArg<OutOfMemoryError>() === ownedOutOfMemory
+        }
+    }
+
+    private class JavaThrowableCase(
+        val name: String,
+        val thrown: Throwable,
+        val transactionOwnedOutOfMemory: OutOfMemoryError?,
+        val expected: NativeJpegDisposition.Returned,
+    )
+
+    // Verification: ENC-04
+    @Test
+    fun internalUnknownPendingAndUntypedJavaThrowableRemainUnsafe() {
+        listOf(
+            resultBlock(producedByteCount = 0L, wireStatus = 3L),
+            resultBlock(producedByteCount = 0L, wireStatus = 99L),
+            NativeJpegProcess.newResultBlock(),
+        ).forEach { block ->
+            assertEquals(
+                NativeJpegDisposition.Returned.UnsafeInternalFailure,
+                classify(closedEmptyTransaction(), block),
+            )
+        }
+
+        assertEquals(
+            NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            classify(
+                transaction = closedEmptyTransaction(),
+                block = resultBlock(producedByteCount = 0L, wireStatus = 4L),
+                thrown = IllegalStateException("untyped Java failure"),
+            ),
+        )
+    }
+
+    // Verification: ENC-04
+    @Test
+    fun invalidBlockOrCarrierSettlementContradictionOutranksWireEvidence() {
+        val invalidCell = NativeInvocationEvidenceCell()
+        invalidCell.markCarrierEntered()
+        invalidCell.recordInvocationExit(
+            ByteBuffer.allocateDirect(8).order(ByteOrder.nativeOrder()),
+            thrownThrowable = null,
+        )
+        invalidCell.recordCarrierSettlement(settled = true)
+        assertEquals(
+            NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            invalidCell.classifyInvocationOutcome(closedEmptyTransaction()),
+        )
+
+        val settlementCell = NativeInvocationEvidenceCell()
+        settlementCell.markCarrierEntered()
+        settlementCell.recordInvocationExit(
+            resultBlock(producedByteCount = 0L, wireStatus = 2L),
+            thrownThrowable = null,
+        )
+        settlementCell.recordCarrierSettlement(settled = false)
+        assertEquals(
+            NativeJpegDisposition.Returned.UnsafeInternalFailure,
+            settlementCell.classifyInvocationOutcome(closedEmptyTransaction()),
+        )
+    }
+
+    private fun classify(
+        transaction: NativeEncodedTransaction,
+        block: ByteBuffer,
+        thrown: Throwable? = null,
+    ): NativeJpegDisposition.Returned {
+        val cell = NativeInvocationEvidenceCell()
+        cell.markCarrierEntered()
+        cell.recordInvocationExit(block, thrown)
+        cell.recordCarrierSettlement(settled = true)
+        return cell.classifyInvocationOutcome(transaction)
+    }
+
+    private fun closedEmptyTransaction(): NativeEncodedTransaction = NativeEncodedTransaction().apply {
+        closeNativeProducer()
+    }
+
+    private fun resultBlock(producedByteCount: Long, wireStatus: Long): ByteBuffer =
+        NativeJpegProcess.newResultBlock().apply {
+            putLong(0, producedByteCount)
+            putLong(8, wireStatus)
+        }
+
+    private fun directBytes(vararg values: Int): ByteBuffer = ByteBuffer.allocateDirect(values.size).apply {
+        values.forEach { put(it.toByte()) }
+        flip()
+    }
+}

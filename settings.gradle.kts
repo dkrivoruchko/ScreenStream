@@ -29,7 +29,9 @@ rootProject.name = "ScreenStream"
 
 include(":app")
 include(":common")
-include(":mjpeg")
-include(":rtsp")
-include(":webrtc")
-include(":webrtc-runtime")
+include(":streaming:core")
+include(":streaming:mjpeg")
+include(":streaming:rtsp")
+include(":streaming:webrtc")
+include(":streaming:webrtc-runtime")
+include(":screen-capture-engine")

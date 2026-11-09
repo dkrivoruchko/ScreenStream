@@ -20,7 +20,12 @@
 # hide the original source file name.
 -renamesourcefileattribute SourceFile
 
--keepnames class info.dvkr.screenstream.** { *; }
+-keepnames,allowoptimization class info.dvkr.screenstream.** { *; }
+
+-keepnames class info.dvkr.screenstream.ui.AppTab { *; }
+-keepnames class info.dvkr.screenstream.ui.AppTab$* { *; }
+-keepnames class info.dvkr.screenstream.ui.SettingsDestination { *; }
+-keepnames class info.dvkr.screenstream.ui.SettingsDestination$* { *; }
 
 # Please add these rules to your existing keep rules in order to suppress warnings.
 # This is generated automatically by the Android Gradle plugin.

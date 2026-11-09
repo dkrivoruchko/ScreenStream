@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">恢復</string>
+    <string name="rtsp_error_open_settings">開啟設定</string>
+    <string name="rtsp_error_start_screen_sharing">開始分享螢幕</string>
+    <string name="rtsp_error_start_with_audio">使用音訊開始</string>
+    <string name="rtsp_error_allow_microphone">允許麥克風</string>
+    <string name="rtsp_error_local_network_permission_required">需要區域網路存取權，讓裝置可以連線到您的串流。</string>
+
+    <string name="rtsp_method_title">RTSP：播放器和媒體伺服器</string>
+    <string name="rtsp_method_summary">在影片播放器中觀看，或將串流傳送到媒體伺服器。</string>
+    <string name="rtsp_method_conditions">相容的 RTSP 軟體 · 選用音訊</string>
+    <string name="rtsp_method_intro">RTSP 是影片播放器和媒體伺服器常用的串流標準。根據預設，此裝置會代管串流。您也可以將串流傳送到媒體伺服器。</string>
+    <string-array name="rtsp_method_benefits">
+        <item>在 VLC 等播放器中開啟應用程式顯示的 RTSP 位址即可觀看。</item>
+        <item>將串流傳送到媒體伺服器，包括要求使用者名稱和密碼的伺服器。</item>
+        <item>可加入麥克風音訊、裝置音訊，或兩者皆加入。</item>
+        <item>選擇視訊和音訊格式、大小和品質，以配合您的播放器或伺服器。</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>播放器必須能連線到此裝置，例如在同一個 Wi-Fi 上。由此裝置代管時不需要網際網路。</item>
+        <item>傳送到伺服器時，此裝置必須能連上該伺服器。如需加密連線，請使用 rtsps:// 位址，並將 RTSP 通訊協定設為 TCP。</item>
+        <item>您的播放器或伺服器必須支援您選擇的視訊和音訊格式。</item>
+    </string-array>
+
+    <string name="rtsp_mode_card_title">選擇 RTSP 模式：</string>
+    <string name="rtsp_mode_server">伺服器</string>
+    <string name="rtsp_mode_server_hint">將此裝置作為 RTSP 伺服器</string>
+    <string name="rtsp_mode_client">客戶端</string>
+    <string name="rtsp_mode_client_hint">連線到遠端 RTSP 伺服器</string>
+
+    <string name="rtsp_interfaces_title">RTSP 伺服器位址</string>
+    <string name="rtsp_interfaces_no_address">找不到位址。\n請檢查連線，或調整伺服器設定（介面篩選器、位址篩選器）。</string>
+    <string name="rtsp_interfaces_discovering">正在尋找位址…</string>
+    <string name="rtsp_interfaces_interface_label">介面：\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">複製位址</string>
+    <string name="rtsp_interfaces_description_share">分享位址</string>
+    <string name="rtsp_interfaces_description_qr">以QR碼顯示位址</string>
+    <string name="rtsp_interfaces_qr_content_description">QR碼</string>
+    <string name="rtsp_interfaces_copied">位址已複製</string>
+    <string name="rtsp_interfaces_share_title">分享RTSP位址</string>
+    <string name="rtsp_bindings_retry">重試</string>
+    <string name="rtsp_bind_error_port_in_use">錯誤：連接埠已占用</string>
+    <string name="rtsp_bind_error_address_not_available">錯誤：位址不可用</string>
+    <string name="rtsp_bind_error_permission_denied">錯誤：權限遭拒</string>
+    <string name="rtsp_bind_error_unknown">錯誤：監聽器失敗</string>
+
+    <string name="rtsp_server_parameters">伺服器設定</string>
+    <string name="rtsp_client_parameters">用戶端設定</string>
+
+    <string name="rtsp_stream_start">開始串流</string>
+    <string name="rtsp_stream_stop">停止串流</string>
+
+    <string name="rtsp_error_notification_permission_required">此應用程式需要啟用通知才能啟動串流服務。\n請在應用程式設定中啟用通知。</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android 已封鎖螢幕分享啟動。請保持 ScreenStream 開啟並重新開始。</string>
+    <string name="rtsp_error_projection_acquire_rejected">螢幕擷取權限已不再有效。請重新開始分享螢幕。</string>
+    <string name="rtsp_error_audio_permission_required">需要麥克風權限才能使用音訊開始串流。</string>
+    <string name="rtsp_error_audio_start_blocked">Android 已封鎖音訊分享啟動。請保持 ScreenStream 開啟並使用音訊重新開始。</string>
+    <string name="rtsp_error_ip_address_not_found">找不到位址。請檢查連線，或調整伺服器設定（介面篩選器、位址篩選器）。</string>
+    <string name="rtsp_error_unspecified">發生錯誤。</string>
+
+    <string name="rtsp_media_server">媒體伺服器</string>
+    <string name="rtsp_server_address">RTSP 伺服器位址</string>
+    <string name="rtsp_protocol">RTSP 通訊協定</string>
+
+    <string name="rtsp_connection_connected">伺服器已連接</string>
+    <string name="rtsp_connection_connecting">正在連接伺服器…</string>
+    <string name="rtsp_connection_disconnected">伺服器已斷開</string>
+    <string name="rtsp_connection_error">連接錯誤</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4區域網路</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">公用IPv4</string>
+    <string name="rtsp_label_public_ipv6">公用IPv6</string>
+    <string name="rtsp_label_loopback">迴路</string>
+
+    <string name="rtsp_video_parameters">視訊設定</string>
+    <string name="rtsp_video_encoder">視訊編碼器：</string>
+    <string name="rtsp_video_encoder_auto">自動</string>
+    <string name="rtsp_video_h264_profile">H.264 編碼設定檔：</string>
+    <string name="rtsp_video_h264_profile_auto">自動</string>
+    <string name="rtsp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtsp_video_h264_profile_main">Main</string>
+    <string name="rtsp_video_h264_profile_high">High</string>
+    <string name="rtsp_video_h264_profile_active">目前編碼設定檔：%1$s</string>
+    <string name="rtsp_video_resize_image">調整圖像大小：%1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">螢幕尺寸：%1$dx%2$d</string>
+    <string name="rtsp_video_video_size">視訊尺寸：%1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">幀率：%1$d 幀/秒</string>
+    <string name="rtsp_video_bitrate">視訊位元率：%1$s/秒</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtsp_audio_parameters">音訊設定</string>
+    <string name="rtsp_audio_mic">麥克風</string>
+    <string name="rtsp_audio_mic_mute">靜音麥克風</string>
+    <string name="rtsp_audio_device">內部音訊</string>
+    <string name="rtsp_audio_device_mute">靜音內部音訊</string>
+    <string name="rtsp_audio_encoder">音訊編碼器：</string>
+    <string name="rtsp_audio_encoder_auto">自動</string>
+    <string name="rtsp_audio_bitrate">音訊位元率：%1$s/秒</string>
+    <string name="rtsp_audio_capture_issue_detected">偵測到音訊擷取問題</string>
+
+    <string name="rtsp_connection_access_denied">存取被拒絕</string>
+    <string name="rtsp_connection_no_credentials">請指定使用者名稱和密碼</string>
+    <string name="rtsp_connection_invalid_credentials">使用者名稱或密碼無效</string>
+
+    <string name="rtsp_close">關閉</string>
+    <string name="rtsp_pref_protocol">RTSP 通訊協定</string>
+    <string name="rtsp_pref_protocol_summary">選擇RTP封包傳輸方式</string>
+    <string name="rtsp_pref_interface_filter">介面篩選器</string>
+    <string name="rtsp_pref_interface_filter_summary">選擇伺服器的網路介面</string>
+    <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtsp_pref_interface_filter_mobile">行動網路</string>
+    <string name="rtsp_pref_interface_filter_ethernet">乙太網路</string>
+    <string name="rtsp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtsp_pref_interface_filter_unknown">未知</string>
+    <string name="rtsp_pref_filter_no_restriction">無限制</string>
+    <string name="rtsp_pref_address_filter">位址篩選器</string>
+    <string name="rtsp_pref_address_filter_summary">選擇伺服器的IP位址類型</string>
+    <string name="rtsp_pref_address_filter_private">私有</string>
+    <string name="rtsp_pref_address_filter_localhost">本機主機</string>
+    <string name="rtsp_pref_address_filter_public">公用</string>
+    <string name="rtsp_pref_enable_ipv4">啟用IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">在IPv4位址上執行伺服器</string>
+    <string name="rtsp_pref_enable_ipv6">啟用IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">在IPv6位址上執行伺服器</string>
+    <string name="rtsp_pref_server_port">伺服器連接埠</string>
+    <string name="rtsp_pref_server_port_summary">設定連接埠</string>
+    <string name="rtsp_pref_server_port_text">設定連入使用的連接埠號。\n範圍：1025–65535\n預設：8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF 探索</string>
+    <string name="rtsp_pref_onvif_discovery_summary">讓 ONVIF 用戶端探索此串流。僅支援 H.264</string>
+</resources>

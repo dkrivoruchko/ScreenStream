@@ -1,0 +1,1646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="same-origin">
+<title>ScreenStream</title>
+<link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico">
+<style>* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; color: #191c20; background: #f8f9ff; font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color-scheme: light dark; }
+[hidden] { display: none !important; }
+button, input { font: inherit; }
+button { min-height: 48px; min-width: 48px; border: 1px solid #73777f; border-radius: 10px; background: #eceef4; color: #191c20; padding: 10px 14px; cursor: pointer; }
+button:hover { background: #e0e2e8; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus, input:focus, a:focus, #viewport:focus { outline: 3px solid #32628d; outline-offset: -3px; }
+#shell.pointer-input #viewport:focus { outline: none; }
+#shell { position: relative; width: 100%; height: 100%; overflow: hidden; background: #101418; }
+#shell.access-screen, #shell.empty-screen { background-color: #f8f9ff; }
+/* Measure safe edges without dynamic safe-area padding on bottom-anchored controls. */
+#safe-area { position: absolute; top: 0; right: 0; bottom: 0; left: 0; top: env(safe-area-inset-top, 0px); right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px); left: env(safe-area-inset-left, 0px); visibility: hidden; pointer-events: none; }
+#viewport { position: absolute; top: 0; bottom: 0; left: 0; right: 0; overflow: auto; -webkit-overflow-scrolling: touch; }
+#viewport.view-fit { overflow: hidden; }
+#viewport.view-width { overflow-x: hidden; overflow-y: auto; }
+#image-stage { position: relative; min-width: 100%; min-height: 100%; }
+/* The width stage grows with tall images; only spare vertical space is centered. */
+#viewport.view-width #image-stage { display: flex; align-items: center; }
+.stream-image { display: block; position: absolute; left: 50%; top: 50%; max-width: none; max-height: none; transform: translate(-50%, -50%); }
+#viewport.view-width .stream-image { position: relative; left: 0; top: 0; width: 100%; height: auto; flex: 0 0 100%; transform: none; }
+.stream-candidate { position: absolute; left: 0; top: 0; width: 0; height: 0; visibility: hidden; }
+.edge { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 3; }
+.edge.bar { background: inherit; }
+#top-bar { top: 0; }
+#bottom-bar { bottom: 0; }
+.block { position: absolute; z-index: 3; left: 50%; transform: translateX(-50%); pointer-events: auto; max-width: 100%; opacity: 1; transition: opacity 110ms ease 110ms, transform 110ms ease 110ms, visibility 0s; }
+.block.autohidden { opacity: 0; visibility: hidden; pointer-events: none; transform: translate(-50%, 8px); transition-delay: 0s, 0s, 110ms; }
+.caption:not(.separate-bar) { transition: opacity 110ms ease 110ms, transform 110ms ease 110ms, top 110ms ease, bottom 110ms ease, visibility 0s; }
+.caption:not(.separate-bar).autohidden { transition-delay: 0s, 0s, 0s, 0s, 110ms; }
+#shell.hud-hiding .caption:not(.separate-bar):not(.autohidden) { transition-delay: 110ms, 110ms, 110ms, 110ms, 0s; }
+.block.at-top.autohidden { transform: translate(-50%, -8px); }
+
+/* The player surfaces stay neutral over any image and browser theme. */
+.caption { max-width: 95%; min-height: 36px; padding: 7px 12px; color: #fff; font-size: 14px; font-weight: 500; line-height: 24px; }
+.caption span { display: block; padding: 3px 12px; border-radius: 9px; color: inherit; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .15); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; row-gap: 6px; width: max-content; padding: 6px; border: 0; border-radius: 30px; color: #fff; background: #24272b; box-shadow: 0 4px 16px rgba(0, 0, 0, .14); }
+.controls > * { margin: 0; }
+.controls > button, .size-modes button + button { margin-left: 6px; }
+.controls button { display: block; position: relative; flex: 0 0 48px; width: 48px; min-width: 48px; max-width: 48px; height: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 8px; color: inherit; background: transparent; box-shadow: none; text-align: center; }
+#view-fit { border-radius: 24px 8px 8px 24px; }
+#more { border-radius: 8px 24px 24px 8px; }
+.controls button svg { display: inline-block; width: 24px; height: 24px; vertical-align: middle; }
+.controls button:focus { outline: none; }
+.controls button[aria-pressed="true"], #more[aria-expanded="true"] { background: rgba(255, 255, 255, .18); }
+.controls button:hover { background: rgba(255, 255, 255, .12); }
+.controls button[aria-pressed="true"]:hover, #more[aria-expanded="true"]:hover { background: rgba(255, 255, 255, .22); }
+#shell:not(.pointer-input) .controls button:focus { background: rgba(255, 255, 255, .22); }
+.controls button:active { background: rgba(255, 255, 255, .22); }
+.size-modes { display: flex; flex-shrink: 0; }
+.native-size { font-size: 20px; font-weight: 700; line-height: 24px; }
+#fullscreen .fullscreen-exit, #fullscreen[aria-pressed="true"] .fullscreen-enter { display: none; }
+#fullscreen[aria-pressed="true"] .fullscreen-exit { display: inline-block; }
+.control-tooltip { position: absolute; z-index: 7; max-width: 220px; padding: 6px 10px; border-radius: 8px; color: #fff; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .2); font-size: 12px; line-height: 18px; pointer-events: none; white-space: normal; text-align: center; overflow-wrap: break-word; word-wrap: break-word; }
+
+/* Separate bars retain the configured background and matching foreground. */
+.caption.separate-bar { width: 100%; max-width: 100%; text-align: center; }
+.block.separate-bar { color: #fff; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+#shell.dark-bar-text .block.separate-bar { color: #000; }
+.caption.separate-bar span { background: transparent; border: 0; border-radius: 0; box-shadow: none; color: inherit; }
+.controls.separate-bar { width: 100%; max-width: 100%; }
+.controls.separate-bar #view-fit, .controls.separate-bar #more { border-radius: 8px; }
+#shell.dark-bar-text .controls.separate-bar button[aria-pressed="true"], #shell.dark-bar-text .controls.separate-bar button[aria-expanded="true"] { background: rgba(0, 0, 0, .12); }
+#shell.dark-bar-text .controls.separate-bar button:hover { background: rgba(0, 0, 0, .08); }
+#shell.dark-bar-text .controls.separate-bar button[aria-pressed="true"]:hover, #shell.dark-bar-text .controls.separate-bar button[aria-expanded="true"]:hover { background: rgba(0, 0, 0, .16); }
+#shell.dark-bar-text:not(.pointer-input) .controls.separate-bar button:focus, #shell.dark-bar-text .controls.separate-bar button:active { background: rgba(0, 0, 0, .22); }
+
+/* Empty-state bars follow the neutral canvas rather than the configured image background. */
+#shell.empty-screen .block.separate-bar { color: #191c20; }
+#shell.empty-screen .controls.separate-bar button[aria-pressed="true"], #shell.empty-screen .controls.separate-bar button[aria-expanded="true"] { background: rgba(128, 128, 128, .18); }
+#shell.empty-screen .controls.separate-bar button:hover { background: rgba(128, 128, 128, .12); }
+#shell.empty-screen .controls.separate-bar button[aria-pressed="true"]:hover, #shell.empty-screen .controls.separate-bar button[aria-expanded="true"]:hover { background: rgba(128, 128, 128, .22); }
+#shell.empty-screen:not(.pointer-input) .controls.separate-bar button:focus, #shell.empty-screen .controls.separate-bar button:active { background: rgba(128, 128, 128, .22); }
+
+.status-panel { width: 100%; text-align: center; }
+.status-overlay { position: absolute; z-index: 4; width: 360px; padding: 12px; overflow: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; color: #fff; background: #24272b; box-shadow: 0 2px 10px rgba(0, 0, 0, .2); transform: translateX(-50%); transition: bottom 110ms ease; }
+#shell.hud-hiding .status-overlay { transition-delay: 110ms; }
+.status-overlay.status-compact { width: 280px; width: max-content; padding: 7px 12px; }
+.status-overlay #state-message { color: inherit; font-size: 15px; line-height: 1.4; }
+.status-panel.status-failed #state-message { color: #ffb4ab; }
+#shell.menu-open #status-panel { visibility: hidden; pointer-events: none; }
+.recovery { width: 100%; }
+.recovery button { display: block; width: 100%; margin-top: 8px; }
+.panel { position: absolute; z-index: 6; left: 50%; width: 360px; max-width: 96%; max-height: 80%; margin-left: -180px; padding: 20px; overflow: auto; -webkit-overflow-scrolling: touch; border: 1px solid #73777f; border-radius: 15px; background: #e6e8ee; box-shadow: 0 16px 64px rgba(0, 0, 0, .3); }
+.panel button { display: block; width: 100%; margin-top: 8px; }
+#menu { width: 344px; margin-left: -172px; padding: 14px; border: 0; border-radius: 14px; color: #fff; background: #24272b; color-scheme: dark; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); }
+#menu:focus { outline: none; }
+.menu-heading { margin: 16px 8px 4px; color: #fff; font-size: 14px; font-weight: 500; line-height: 20px; }
+#method-label { margin-top: 0; margin-bottom: 8px; }
+.method-choices { margin-bottom: 14px; }
+#menu .method-choices button { display: block; position: relative; width: 100%; min-height: 48px; margin: 4px 0; padding: 10px 38px 10px 10px; border: 0; border-radius: 12px; color: inherit; background: transparent; text-align: left; white-space: normal; }
+.method-title, .method-description { display: block; }
+.method-title { font-size: 14px; font-weight: 500; line-height: 20px; }
+.method-description { margin-top: 2px; color: #ccc; font-size: 12px; line-height: 17px; }
+.method-check { position: absolute; right: 12px; top: 50%; width: 18px; height: 18px; margin-top: -9px; visibility: hidden; }
+#menu .method-choices button[aria-pressed="true"] .method-check { visibility: visible; }
+#menu .method-choices button:hover { background: rgba(255, 255, 255, .12); }
+#menu .method-choices button[aria-pressed="true"] { background: rgba(255, 255, 255, .18); }
+#menu .method-choices button[aria-pressed="true"]:hover { background: rgba(255, 255, 255, .22); }
+#menu button:focus { outline: none; }
+#shell:not(.pointer-input) #menu button:focus, #menu .method-choices button:active { background: rgba(255, 255, 255, .22); }
+.information-list { margin: 6px 8px 0; overflow: hidden; }
+.information-list dt { float: left; clear: left; width: 86px; margin: 0; padding: 6px 0; color: #bdbdbd; font-size: 12px; line-height: 20px; }
+.information-list dd { min-height: 32px; margin: 0 0 0 96px; padding: 6px 0; color: #fff; font-size: 13px; line-height: 20px; overflow-wrap: break-word; word-wrap: break-word; }
+.legal-links { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, .14); }
+.legal-links a { display: inline-block; min-height: 36px; margin: 0 9px; padding: 8px 0; color: #c8c8c8; font-size: 12px; line-height: 20px; text-decoration: underline; white-space: nowrap; }
+.legal-links a:hover { color: #fff; }
+.legal-links a:focus { outline: 2px solid #fff; outline-offset: 3px; border-radius: 2px; }
+
+/* Keep physical image coordinates LTR; mirror only the surrounding viewer UI. */
+[dir="rtl"] .controls > button, [dir="rtl"] .size-modes button + button { margin-left: 0; margin-right: 6px; }
+[dir="rtl"] #view-fit { border-radius: 8px 24px 24px 8px; }
+[dir="rtl"] #more { border-radius: 24px 8px 8px 24px; }
+[dir="rtl"] #menu .method-choices button { padding: 10px 10px 10px 38px; text-align: right; }
+[dir="rtl"] .method-check { left: 12px; right: auto; }
+[dir="rtl"] .information-list dt { float: right; clear: right; }
+[dir="rtl"] .information-list dd { margin: 0 96px 0 0; }
+[dir="rtl"] #info-size { text-align: right; }
+
+/* Keep a readable dark backing even when blur is unavailable or the image is white. */
+.controls:not(.separate-bar), .caption:not(.separate-bar) span, .status-overlay { background: rgba(24, 27, 31, .8); }
+@supports ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
+  .controls:not(.separate-bar), .caption:not(.separate-bar) span, .status-overlay { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .block, .block.autohidden, .caption:not(.separate-bar), .status-overlay { transition: none; }
+}
+
+/* Access and no-image states keep the system palette. */
+.open-state, #pin-panel { position: absolute; top: 50%; left: 50%; width: 392px; max-width: calc(100% - 32px); max-height: calc(100% - 32px); margin-left: 0; padding: 16px 12px; overflow: auto; text-align: center; transform: translate(-50%, -50%); }
+.open-state { display: flex; flex-direction: column; align-items: center; }
+.open-state > * { flex-shrink: 0; }
+.open-content { width: 100%; min-width: 0; }
+.open-actions { width: 100%; max-width: 320px; margin: 0 auto; }
+.open-state .recovery { margin-top: 16px; }
+.open-state .recovery button:first-child { margin-top: 0; }
+#state-message { margin: 0; color: #526070; font-size: 16px; line-height: 1.6; }
+.open-state .status-panel.status-failed #state-message { color: #ba1a1a; }
+#pin-panel { border: 0; border-radius: 0; color: inherit; background: transparent; box-shadow: none; }
+/* Leave 264px for compact PIN content and outer insets. */
+#pin-logo, #state-logo { display: block; width: 192px; min-width: 40px; max-width: 192px; height: auto; margin: 0 auto 24px; }
+#state-logo { margin-bottom: 16px; }
+#pin-title { margin: 0; font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -.02em; }
+#pin-form { width: 100%; max-width: 320px; margin: 0 auto; }
+#pin-panel p { margin: 16px 0 26px; color: #526070; font-size: 16px; line-height: 1.6; }
+#pin-block-copy { white-space: pre-line; }
+#pin-entry { margin-top: 26px; }
+#pin-entry label { display: block; margin-bottom: 12px; color: #526070; font-size: 16px; line-height: 1.5; }
+#pin { display: block; width: 100%; min-height: 56px; margin: 0; padding: 10px 16px; border: 1px solid #73777f; border-radius: 10px; color: #191c20; background: #fff; font: 26px Menlo, Consolas, monospace; letter-spacing: .18em; text-align: center; }
+#pin-panel #pin-error { margin: 8px 0 0; color: #ba1a1a; font-size: 14px; line-height: 1.5; }
+#unlock { min-height: 50px; margin-top: 16px; border-radius: 10px; background: #32628d; border-color: #32628d; color: #fff; font-size: 15px; font-weight: 600; }
+#unlock:focus { outline-color: #fff; }
+#pin-retry { width: 100%; max-width: 320px; min-height: 48px; margin: 12px auto 0; background: transparent; color: inherit; }
+#pin-countdown { margin-top: 28px; }
+#pin-countdown-value { display: block; margin-top: 0; font: 500 40px Menlo, Consolas, monospace; line-height: 48px; letter-spacing: -.03em; }
+#pip-video { position: absolute; width: 1px; height: 1px; left: 0; bottom: 0; opacity: .01; pointer-events: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+@media (max-width: 380px) {
+  .controls > button, .size-modes button + button { margin-left: 3px; }
+  [dir="rtl"] .controls > button, [dir="rtl"] .size-modes button + button { margin-right: 3px; }
+  .panel, #menu { left: 2%; margin-left: 0; width: 96%; }
+  button { padding: 8px 6px; }
+}
+@media (max-width: 600px) {
+  .caption { max-width: calc(100% - 16px); }
+  #pin-logo, #state-logo { max-width: 154px; }
+}
+@media (max-height: 600px) {
+  #pin-panel, .open-state { padding: 8px; }
+  #pin-logo { margin-bottom: 8px; }
+  #pin-title { font-size: 26px; }
+  #pin-entry label { margin-bottom: 8px; font-size: 14px; line-height: 1.4; }
+  #unlock { margin-top: 12px; }
+  #pin-panel p { margin: 12px 0 16px; font-size: 14px; line-height: 1.5; }
+  #pin-entry { margin-top: 8px; }
+}
+@media (max-height: 400px) {
+  .panel { max-height: 90%; }
+  .caption, .controls { padding-top: 2px; padding-bottom: 2px; }
+}
+@media (prefers-color-scheme: dark) {
+  html, body { color: #e0e2e8; background: #101418; }
+  #shell.access-screen, #shell.empty-screen { background-color: #101418; }
+  #shell.empty-screen .block.separate-bar { color: #e0e2e8; }
+  #state-message { color: #c2c7cf; }
+  .open-state .status-panel.status-failed #state-message { color: #ffb4ab; }
+  button { background: #1d2024; border-color: #8c9199; color: #e0e2e8; }
+  button:hover { background: #32353a; }
+  button:focus, input:focus, a:focus, #viewport:focus { outline-color: #9dcafc; }
+  .panel { background: #272a2f; border-color: #8c9199; }
+  #pin { background: #191c20; border-color: #8c9199; color: #e0e2e8; }
+  #pin-panel #pin-error { color: #ffb4ab; }
+  #pin-panel p, #pin-entry label { color: #c2c7cf; }
+  #unlock { background: #9dcafc; border-color: #9dcafc; color: #003355; }
+  #unlock:focus { outline-color: #003355; }
+}
+</style>
+</head>
+<body>
+<main id="shell" class="access-screen" aria-label="ScreenStream viewer" data-a11y="viewerLabel">
+  <div id="safe-area" aria-hidden="true"></div>
+  <div id="top-bar" class="edge bar"></div>
+  <div id="viewport" role="region" tabindex="0" dir="ltr" aria-label="Stream image. Use arrow keys to scroll." data-a11y="viewportLabel">
+    <div id="image-stage"></div>
+    <section id="placeholder" class="open-state" data-locale-dir>
+      <img id="state-logo" width="192" height="192" alt="" aria-hidden="true" hidden>
+      <div id="status-panel" class="status-panel" data-locale-dir>
+        <div class="open-content"><p id="state-message" role="status" aria-live="polite"></p></div>
+        <div class="open-actions">
+          <div id="recovery" class="recovery" hidden>
+            <button id="recovery-retry" type="button" data-word="retry"></button>
+            <button id="recovery-alternate" type="button" data-word="useJpeg"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div id="bottom-bar" class="edge bar"></div>
+  <div id="caption" class="block caption" dir="auto" hidden><span id="caption-text" dir="auto"></span></div>
+  <!-- Material Icons SVG paths: google/material-design-icons, Apache 2.0. Fit to width uses a custom path. -->
+  <div id="controls" class="block controls" role="group" aria-label="Viewing controls" data-a11y="controlsLabel" hidden>
+    <div class="size-modes" role="group" aria-label="Image size" data-a11y="sizeModesLabel">
+      <button id="view-fit" type="button" aria-pressed="true" data-label="fit">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M17 4h3c1.1 0 2 .9 2 2v2h-2V6h-3V4zM4 8V6h3V4H4c-1.1 0-2 .9-2 2v2h2zm16 8v2h-3v2h3c1.1 0 2-.9 2-2v-2h-2zM7 18H4v-2H2v2c0 1.1.9 2 2 2h3v-2zM18 8H6v8h12V8z"/></svg>
+      </button>
+      <button id="view-original" type="button" aria-pressed="false" data-label="original"><span class="native-size" dir="ltr" aria-hidden="true">1:1</span></button>
+      <button id="view-width" type="button" aria-pressed="false" data-label="width">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M3 5v14M21 5v14M5 12h14M8 9l-3 3 3 3M16 9l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <button id="fullscreen" type="button" aria-pressed="false" data-label="fullscreen" hidden>
+      <svg class="fullscreen-enter" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      <svg class="fullscreen-exit" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+    </button>
+    <button id="pip" type="button" data-label="pip" hidden>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>
+    </button>
+    <button id="more" type="button" aria-expanded="false" aria-controls="menu" data-label="more">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+    </button>
+  </div>
+  <div id="control-tooltip" class="control-tooltip" aria-hidden="true" hidden></div>
+  <section id="menu" class="panel" role="region" aria-label="More viewing options" data-a11y="menuLabel" tabindex="-1" hidden>
+    <h2 id="method-label" class="menu-heading" data-word="connection"></h2>
+    <div class="method-choices" role="group" aria-labelledby="method-label">
+      <button id="method-mjpeg" type="button" aria-pressed="true" aria-labelledby="method-mjpeg-label" aria-describedby="method-mjpeg-description">
+        <span id="method-mjpeg-label" class="method-title" data-word="mjpeg"></span>
+        <span id="method-mjpeg-description" class="method-description" data-word="mjpegDescription"></span>
+        <svg class="method-check" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="m9 16.17-4.17-4.17-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </button>
+      <button id="method-jpeg" type="button" aria-pressed="false" aria-labelledby="method-jpeg-label" aria-describedby="method-jpeg-description">
+        <span id="method-jpeg-label" class="method-title" data-word="jpeg"></span>
+        <span id="method-jpeg-description" class="method-description" data-word="jpegDescription"></span>
+        <svg class="method-check" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="m9 16.17-4.17-4.17-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </button>
+    </div>
+    <dl class="information-list">
+      <dt data-word="status"></dt><dd id="info-connection"></dd>
+      <dt data-word="image"></dt><dd id="info-image"></dd>
+      <dt id="info-notice-label" data-word="notice" hidden></dt><dd id="info-notice" hidden></dd>
+      <dt data-word="size"></dt><dd id="info-size" data-locale-dir></dd>
+    </dl>
+    <div class="legal-links">
+      <a href="https://screenstream.io/privacy.html" target="_blank" rel="noopener noreferrer" data-word="privacy"></a>
+      <a href="https://screenstream.io/terms.html" target="_blank" rel="noopener noreferrer" data-word="terms"></a>
+    </div>
+  </section>
+  <section id="pin-panel" class="panel" aria-labelledby="pin-title" hidden>
+    <img id="pin-logo" src="data:image/jpeg;base64,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" width="192" height="192" alt="" aria-hidden="true">
+    <div class="open-content">
+      <h1 id="pin-title" data-word="pinTitle"></h1>
+      <form id="pin-form" method="post" action="/pin" novalidate>
+        <p id="pin-message" role="status" aria-live="polite"></p>
+        <p id="pin-block-copy" data-word="pinBlocked" aria-hidden="true" hidden></p>
+        <div id="pin-countdown" aria-hidden="true" hidden>
+          <strong id="pin-countdown-value" dir="ltr"></strong>
+        </div>
+        <div id="pin-entry">
+          <label for="pin" data-word="pinRequired"></label>
+          <input id="pin" name="pin" dir="ltr" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" autocapitalize="off" required aria-describedby="pin-message pin-error" aria-invalid="false">
+          <p id="pin-error" role="status" aria-live="polite" hidden></p>
+          <button id="unlock" type="submit" data-word="unlock"></button>
+        </div>
+      </form>
+      <button id="pin-retry" type="button" data-word="retry" hidden></button>
+    </div>
+  </section>
+  <video id="pip-video" muted playsinline aria-hidden="true"></video>
+  <noscript><p class="panel">JavaScript is required to view this stream.</p></noscript>
+</main>
+<script>(function () {
+"use strict";
+const catalogs = {"en":{"lang":"en","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Connecting…","connected":"Connected","reconnecting":"Reconnecting…","mediaStarting":"Waiting for an image…","mediaRetrying":"Restoring image…","mediaFailed":"Image unavailable","viewing":"Displayed","pinTitle":"Enter PIN","pinRequired":"Enter the six-digit PIN shown on the streaming device:","pinBlockedTitle":"PIN entry temporarily blocked","pinBlocked":"Try again when the countdown ends.","pinBlockedAnnouncementSecond":"PIN entry is temporarily blocked. Try again in 1 second.","pinBlockedAnnouncementSeconds":"PIN entry is temporarily blocked. Try again in {seconds} seconds.","countdownSeconds":"{seconds} s","pinWrong":"Incorrect PIN. Try again.","pinInvalid":"Enter six digits (0–9).","pinSending":"Checking PIN…","pinNetwork":"Couldn’t check PIN. Retry the connection.","retry":"Retry connection","useJpeg":"Use JPEG","useMjpeg":"Use MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Recommended","jpegDescription":"Use if MJPEG won’t load","fit":"Fit to window","original":"Original size","width":"Fit to width","fullscreen":"Full screen","leaveFullscreen":"Exit full screen","pip":"Picture in picture","pipReady":"Select Picture in picture again to open it.","pipError":"Couldn’t open picture in picture.","fullscreenError":"Couldn’t change full screen mode.","more":"More","privacy":"Privacy policy","terms":"Terms and conditions","unlock":"Connect","connection":"Streaming method","status":"Status","image":"Image","size":"Dimensions","unknownSize":"No image","notice":"Notice","permission_required":"Waiting for screen sharing permission on the device.","stopped":"The device isn’t streaming right now.","paused":"Streaming is paused on the device.","failed":"Stream failed. Check the streaming device.","unsupported":"This browser can’t connect to the stream. Try another browser.","viewerLabel":"ScreenStream viewer","viewportLabel":"Stream image. Use arrow keys to scroll.","controlsLabel":"Viewing controls","sizeModesLabel":"Image size","menuLabel":"More viewing options","streamImageAlt":"Stream image"}},"af":{"lang":"af","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Koppel tans…","connected":"Gekoppel","reconnecting":"Herkoppel tans…","mediaStarting":"Wag vir ’n beeld…","mediaRetrying":"Herstel tans beeld…","mediaFailed":"Beeld nie beskikbaar nie","viewing":"Word vertoon","pinTitle":"Voer PIN in","pinRequired":"Voer die sessyfer-PIN in wat op die stroomtoestel verskyn:","pinBlockedTitle":"PIN-invoer tydelik geblokkeer","pinBlocked":"Probeer weer wanneer die aftelling eindig.","pinBlockedAnnouncementSecond":"PIN-invoer is tydelik geblokkeer. Probeer weer oor 1 sekonde.","pinBlockedAnnouncementSeconds":"PIN-invoer is tydelik geblokkeer. Probeer weer oor {seconds} sekondes.","countdownSeconds":"{seconds} s","pinWrong":"Verkeerde PIN. Probeer weer.","pinInvalid":"Voer ses syfers (0–9) in.","pinSending":"Gaan PIN na…","pinNetwork":"Kon nie PIN nagaan nie. Herprobeer die verbinding.","retry":"Herprobeer verbinding","useJpeg":"Gebruik JPEG","useMjpeg":"Gebruik MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Aanbeveel","jpegDescription":"Gebruik as MJPEG nie laai nie","fit":"Pas in venster","original":"Oorspronklike grootte","width":"Pas by breedte","fullscreen":"Volskerm","leaveFullscreen":"Verlaat volskerm","pip":"Prent-in-prent","pipReady":"Kies Prent-in-prent weer om dit oop te maak.","pipError":"Kon nie Prent-in-prent oopmaak nie.","fullscreenError":"Kon nie volskermmodus verander nie.","more":"Meer","privacy":"Privaatheidsbeleid","terms":"Bepalings en voorwaardes","unlock":"Koppel","connection":"Stroommetode","status":"Status","image":"Beeld","size":"Afmetings","unknownSize":"Geen beeld nie","notice":"Kennisgewing","permission_required":"Wag vir toestemming vir skermdeling op die toestel.","stopped":"Die toestel stroom nie nou nie.","paused":"Stroom is op die toestel onderbreek.","failed":"Stroom het misluk. Gaan die stroomtoestel na.","unsupported":"Hierdie blaaier kan nie aan die stroom koppel nie. Probeer ’n ander blaaier.","viewerLabel":"ScreenStream-kyker","viewportLabel":"Stroombeeld. Gebruik die pyltjiesleutels om te blaai.","controlsLabel":"Kykkontroles","sizeModesLabel":"Beeldgrootte","menuLabel":"Meer kykopsies","streamImageAlt":"Stroombeeld"}},"am":{"lang":"am","dir":"ltr","messages":{"app":"ScreenStream","connecting":"በመገናኘት ላይ…","connected":"ተገናኝቷል","reconnecting":"እንደገና በመገናኘት ላይ…","mediaStarting":"ምስል በመጠባበቅ ላይ…","mediaRetrying":"ምስል በመመለስ ላይ…","mediaFailed":"ምስል አይገኝም","viewing":"በመታየት ላይ","pinTitle":"PIN ያስገቡ","pinRequired":"በስርጭት መሣሪያው ላይ የሚታየውን ባለ ስድስት አሃዝ PIN ያስገቡ፦","pinBlockedTitle":"PIN ማስገባት ለጊዜው ታግዷል","pinBlocked":"ቆጠራው ሲያበቃ እንደገና ይሞክሩ።","pinBlockedAnnouncementSecond":"PIN ማስገባት ለጊዜው ታግዷል። ከ1 ሰከንድ በኋላ እንደገና ይሞክሩ።","pinBlockedAnnouncementSeconds":"PIN ማስገባት ለጊዜው ታግዷል። ከ{seconds} ሰከንድ በኋላ እንደገና ይሞክሩ።","countdownSeconds":"{seconds} ሰከንድ","pinWrong":"የተሳሳተ PIN ነው። እንደገና ይሞክሩ።","pinInvalid":"ስድስት አሃዞችን (0–9) ያስገቡ።","pinSending":"PIN በመፈተሽ ላይ…","pinNetwork":"PIN መፈተሽ አልተቻለም። እንደገና ለመገናኘት ይሞክሩ።","retry":"እንደገና ለመገናኘት ይሞክሩ","useJpeg":"JPEG ይጠቀሙ","useMjpeg":"MJPEG ይጠቀሙ","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"የሚመከር","jpegDescription":"MJPEG ካልተጫነ ይጠቀሙ","fit":"ከመስኮት ጋር አስማማ","original":"ዋናው መጠን","width":"ከስፋት ጋር አስማማ","fullscreen":"ሙሉ ማያ ገጽ","leaveFullscreen":"ከሙሉ ማያ ገጽ ውጣ","pip":"ምስል በምስል ውስጥ","pipReady":"ለመክፈት ምስል በምስል ውስጥን እንደገና ይምረጡ።","pipError":"ምስል በምስል ውስጥን መክፈት አልተቻለም።","fullscreenError":"የሙሉ ማያ ገጽ ሁነታን መቀየር አልተቻለም።","more":"ተጨማሪ","privacy":"የግላዊነት መመሪያ","terms":"ውሎች እና ሁኔታዎች","unlock":"ተገናኝ","connection":"የስርጭት ዘዴ","status":"ሁኔታ","image":"ምስል","size":"ልኬቶች","unknownSize":"ምስል የለም","notice":"ማሳሰቢያ","permission_required":"በመሣሪያው ላይ የማያ ገጽ ማጋራት ፈቃድ በመጠበቅ ላይ።","stopped":"መሣሪያው አሁን እያሰራጨ አይደለም።","paused":"ስርጭቱ በመሣሪያው ላይ ለጊዜው ቆሟል።","failed":"ስርጭቱ አልተሳካም። የስርጭት መሣሪያውን ያረጋግጡ።","unsupported":"ይህ አሳሽ ከስርጭቱ ጋር መገናኘት አይችልም። ሌላ አሳሽ ይሞክሩ።","viewerLabel":"የScreenStream መመልከቻ","viewportLabel":"የስርጭት ምስል። ለመሸብለል የቀስት ቁልፎችን ይጠቀሙ።","controlsLabel":"የእይታ መቆጣጠሪያዎች","sizeModesLabel":"የምስል መጠን","menuLabel":"ተጨማሪ የእይታ አማራጮች","streamImageAlt":"የስርጭት ምስል"}},"ar":{"lang":"ar","dir":"rtl","messages":{"app":"ScreenStream","connecting":"جارٍ الاتصال…","connected":"متصل","reconnecting":"جارٍ إعادة الاتصال…","mediaStarting":"في انتظار الصورة…","mediaRetrying":"جارٍ استعادة الصورة…","mediaFailed":"الصورة غير متاحة","viewing":"جارٍ العرض","pinTitle":"أدخل رمز PIN","pinRequired":"أدخل رمز PIN المكوّن من ستة أرقام والمعروض على جهاز البث:","pinBlockedTitle":"تم حظر إدخال رمز PIN مؤقتًا","pinBlocked":"حاول مجددًا عند انتهاء العد التنازلي.","pinBlockedAnnouncementSecond":"تم حظر إدخال رمز PIN مؤقتًا. حاول مجددًا بعد ثانية واحدة.","pinBlockedAnnouncementSeconds":"تم حظر إدخال رمز PIN مؤقتًا. الثواني المتبقية قبل إعادة المحاولة: {seconds}.","countdownSeconds":"{seconds} ث","pinWrong":"رمز PIN غير صحيح. حاول مرة أخرى.","pinInvalid":"أدخل ستة أرقام (0–9).","pinSending":"جارٍ التحقق من رمز PIN…","pinNetwork":"تعذّر التحقق من رمز PIN. أعد محاولة الاتصال.","retry":"إعادة محاولة الاتصال","useJpeg":"استخدام JPEG","useMjpeg":"استخدام MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"موصى به","jpegDescription":"استخدمه إذا تعذّر تحميل MJPEG","fit":"ملاءمة النافذة","original":"الحجم الأصلي","width":"ملاءمة العرض","fullscreen":"ملء الشاشة","leaveFullscreen":"الخروج من ملء الشاشة","pip":"صورة داخل صورة","pipReady":"اختر صورة داخل صورة مرة أخرى لفتحها.","pipError":"تعذّر فتح صورة داخل صورة.","fullscreenError":"تعذّر تغيير وضع ملء الشاشة.","more":"المزيد","privacy":"سياسة الخصوصية","terms":"البنود والشروط","unlock":"اتصال","connection":"طريقة البث","status":"الحالة","image":"الصورة","size":"الأبعاد","unknownSize":"لا توجد صورة","notice":"تنبيه","permission_required":"في انتظار إذن مشاركة الشاشة على الجهاز.","stopped":"الجهاز لا يبث حاليًا.","paused":"البث متوقف مؤقتًا على الجهاز.","failed":"فشل البث. تحقق من جهاز البث.","unsupported":"يتعذّر على هذا المتصفح الاتصال بالبث. جرّب متصفحًا آخر.","viewerLabel":"عارض ScreenStream","viewportLabel":"صورة البث. استخدم مفاتيح الأسهم للتمرير.","controlsLabel":"عناصر التحكم بالعرض","sizeModesLabel":"حجم الصورة","menuLabel":"المزيد من خيارات العرض","streamImageAlt":"صورة البث"}},"bn":{"lang":"bn","dir":"ltr","messages":{"app":"ScreenStream","connecting":"সংযোগ করা হচ্ছে…","connected":"সংযুক্ত","reconnecting":"আবার সংযোগ করা হচ্ছে…","mediaStarting":"ছবির জন্য অপেক্ষা করা হচ্ছে…","mediaRetrying":"ছবি ফিরিয়ে আনা হচ্ছে…","mediaFailed":"ছবি পাওয়া যাচ্ছে না","viewing":"দেখানো হচ্ছে","pinTitle":"PIN লিখুন","pinRequired":"স্ট্রিমিং ডিভাইসে দেখানো ছয় সংখ্যার PIN লিখুন:","pinBlockedTitle":"PIN লেখা সাময়িকভাবে বন্ধ আছে","pinBlocked":"কাউন্টডাউন শেষ হলে আবার চেষ্টা করুন।","pinBlockedAnnouncementSecond":"PIN লেখা সাময়িকভাবে বন্ধ আছে। 1 সেকেন্ড পরে আবার চেষ্টা করুন।","pinBlockedAnnouncementSeconds":"PIN লেখা সাময়িকভাবে বন্ধ আছে। {seconds} সেকেন্ড পরে আবার চেষ্টা করুন।","countdownSeconds":"{seconds} সেকেন্ড","pinWrong":"PIN ভুল। আবার চেষ্টা করুন।","pinInvalid":"ছয়টি সংখ্যা (0–9) লিখুন।","pinSending":"PIN যাচাই করা হচ্ছে…","pinNetwork":"PIN যাচাই করা যায়নি। আবার সংযোগের চেষ্টা করুন।","retry":"আবার সংযোগের চেষ্টা করুন","useJpeg":"JPEG ব্যবহার করুন","useMjpeg":"MJPEG ব্যবহার করুন","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"প্রস্তাবিত","jpegDescription":"MJPEG লোড না হলে ব্যবহার করুন","fit":"উইন্ডোতে ফিট করুন","original":"আসল আকার","width":"প্রস্থ অনুযায়ী ফিট করুন","fullscreen":"পুরো স্ক্রিন","leaveFullscreen":"পুরো স্ক্রিন থেকে বের হন","pip":"পিকচার ইন পিকচার","pipReady":"খুলতে আবার পিকচার ইন পিকচার বেছে নিন।","pipError":"পিকচার ইন পিকচার খোলা যায়নি।","fullscreenError":"পুরো স্ক্রিন মোড বদলানো যায়নি।","more":"আরও","privacy":"গোপনীয়তা নীতি","terms":"নিয়ম ও শর্তাবলি","unlock":"সংযোগ করুন","connection":"স্ট্রিমিং পদ্ধতি","status":"স্ট্যাটাস","image":"ছবি","size":"মাত্রা","unknownSize":"কোনো ছবি নেই","notice":"বিজ্ঞপ্তি","permission_required":"ডিভাইসে স্ক্রিন শেয়ারের অনুমতির জন্য অপেক্ষা করা হচ্ছে।","stopped":"ডিভাইসটি এখন স্ট্রিম করছে না।","paused":"ডিভাইসে স্ট্রিমিং পজ করা আছে।","failed":"স্ট্রিম ব্যর্থ হয়েছে। স্ট্রিমিং ডিভাইসটি পরীক্ষা করুন।","unsupported":"এই ব্রাউজার স্ট্রিমে সংযোগ করতে পারছে না। অন্য ব্রাউজার ব্যবহার করুন।","viewerLabel":"ScreenStream ভিউয়ার","viewportLabel":"স্ট্রিমের ছবি। স্ক্রল করতে তীর চিহ্নের কী ব্যবহার করুন।","controlsLabel":"দেখার নিয়ন্ত্রণ","sizeModesLabel":"ছবির আকার","menuLabel":"দেখার আরও বিকল্প","streamImageAlt":"স্ট্রিমের ছবি"}},"de":{"lang":"de","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Verbindung wird hergestellt…","connected":"Verbunden","reconnecting":"Verbindung wird wiederhergestellt…","mediaStarting":"Warten auf ein Bild…","mediaRetrying":"Bild wird wiederhergestellt…","mediaFailed":"Bild nicht verfügbar","viewing":"Angezeigt","pinTitle":"PIN eingeben","pinRequired":"Auf dem übertragenden Gerät angezeigte sechsstellige PIN eingeben:","pinBlockedTitle":"PIN-Eingabe vorübergehend gesperrt","pinBlocked":"Nach Ablauf des Countdowns erneut versuchen.","pinBlockedAnnouncementSecond":"PIN-Eingabe vorübergehend gesperrt. In 1 Sekunde erneut versuchen.","pinBlockedAnnouncementSeconds":"PIN-Eingabe vorübergehend gesperrt. In {seconds} Sekunden erneut versuchen.","countdownSeconds":"{seconds} s","pinWrong":"Falsche PIN. Erneut versuchen.","pinInvalid":"Sechs Ziffern (0–9) eingeben.","pinSending":"PIN wird geprüft…","pinNetwork":"PIN konnte nicht geprüft werden. Verbindung erneut versuchen.","retry":"Verbindung erneut versuchen","useJpeg":"JPEG verwenden","useMjpeg":"MJPEG verwenden","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Empfohlen","jpegDescription":"Verwenden, wenn MJPEG nicht lädt","fit":"An Fenster anpassen","original":"Originalgröße","width":"An Breite anpassen","fullscreen":"Vollbild","leaveFullscreen":"Vollbild beenden","pip":"Bild im Bild","pipReady":"Zum Öffnen erneut Bild im Bild auswählen.","pipError":"Bild im Bild konnte nicht geöffnet werden.","fullscreenError":"Vollbildmodus konnte nicht geändert werden.","more":"Mehr","privacy":"Datenschutzrichtlinie","terms":"Nutzungsbedingungen","unlock":"Verbinden","connection":"Streaming-Methode","status":"Status","image":"Bild","size":"Abmessungen","unknownSize":"Kein Bild","notice":"Hinweis","permission_required":"Warten auf die Berechtigung zur Bildschirmfreigabe auf dem Gerät.","stopped":"Das Gerät streamt gerade nicht.","paused":"Der Stream ist auf dem Gerät pausiert.","failed":"Stream fehlgeschlagen. Übertragendes Gerät prüfen.","unsupported":"Dieser Browser kann keine Verbindung zum Stream herstellen. Anderen Browser verwenden.","viewerLabel":"ScreenStream-Viewer","viewportLabel":"Streambild. Mit den Pfeiltasten scrollen.","controlsLabel":"Ansichtssteuerung","sizeModesLabel":"Bildgröße","menuLabel":"Weitere Ansichtsoptionen","streamImageAlt":"Streambild"}},"es":{"lang":"es","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Conectando…","connected":"Conectado","reconnecting":"Reconectando…","mediaStarting":"Esperando una imagen…","mediaRetrying":"Restableciendo imagen…","mediaFailed":"Imagen no disponible","viewing":"Mostrada","pinTitle":"Introducir PIN","pinRequired":"Introduce el PIN de seis dígitos que aparece en el dispositivo emisor:","pinBlockedTitle":"Introducción del PIN bloqueada temporalmente","pinBlocked":"Vuelve a intentarlo cuando termine la cuenta atrás.","pinBlockedAnnouncementSecond":"La introducción del PIN está bloqueada temporalmente. Vuelve a intentarlo en 1 segundo.","pinBlockedAnnouncementSeconds":"La introducción del PIN está bloqueada temporalmente. Vuelve a intentarlo en {seconds} segundos.","countdownSeconds":"{seconds} s","pinWrong":"PIN incorrecto. Vuelve a intentarlo.","pinInvalid":"Introduce seis dígitos (0–9).","pinSending":"Comprobando PIN…","pinNetwork":"No se pudo comprobar el PIN. Reintenta la conexión.","retry":"Reintentar conexión","useJpeg":"Usar JPEG","useMjpeg":"Usar MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Recomendado","jpegDescription":"Usar si MJPEG no carga","fit":"Ajustar a la ventana","original":"Tamaño original","width":"Ajustar al ancho","fullscreen":"Pantalla completa","leaveFullscreen":"Salir de pantalla completa","pip":"Imagen en imagen","pipReady":"Selecciona Imagen en imagen de nuevo para abrirla.","pipError":"No se pudo abrir Imagen en imagen.","fullscreenError":"No se pudo cambiar el modo de pantalla completa.","more":"Más","privacy":"Política de privacidad","terms":"Términos y condiciones","unlock":"Conectar","connection":"Método de transmisión","status":"Estado","image":"Imagen","size":"Dimensiones","unknownSize":"Sin imagen","notice":"Aviso","permission_required":"Esperando el permiso para compartir pantalla en el dispositivo.","stopped":"El dispositivo no está transmitiendo ahora.","paused":"La transmisión está en pausa en el dispositivo.","failed":"Error de transmisión. Comprueba el dispositivo emisor.","unsupported":"Este navegador no puede conectarse a la transmisión. Prueba con otro navegador.","viewerLabel":"Visor de ScreenStream","viewportLabel":"Imagen de la transmisión. Usa las teclas de flecha para desplazarte.","controlsLabel":"Controles de visualización","sizeModesLabel":"Tamaño de imagen","menuLabel":"Más opciones de visualización","streamImageAlt":"Imagen de la transmisión"}},"eu":{"lang":"eu","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Konektatzen…","connected":"Konektatuta","reconnecting":"Berriro konektatzen…","mediaStarting":"Irudi baten zain…","mediaRetrying":"Irudia berreskuratzen…","mediaFailed":"Irudia ez dago erabilgarri","viewing":"Bistaratuta","pinTitle":"Sartu PINa","pinRequired":"Sartu igortzen ari den gailuan ageri den sei digituko PINa:","pinBlockedTitle":"PINa sartzea aldi baterako blokeatuta","pinBlocked":"Saiatu berriro atzerako kontaketa amaitzean.","pinBlockedAnnouncementSecond":"PINa sartzea aldi baterako blokeatuta dago. Saiatu berriro segundo 1 barru.","pinBlockedAnnouncementSeconds":"PINa sartzea aldi baterako blokeatuta dago. Saiatu berriro {seconds} segundo barru.","countdownSeconds":"{seconds} s","pinWrong":"PIN okerra. Saiatu berriro.","pinInvalid":"Sartu sei digitu (0–9).","pinSending":"PINa egiaztatzen…","pinNetwork":"Ezin izan da PINa egiaztatu. Saiatu berriro konektatzen.","retry":"Saiatu berriro konektatzen","useJpeg":"Erabili JPEG","useMjpeg":"Erabili MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Gomendatua","jpegDescription":"Erabili MJPEG kargatzen ez bada","fit":"Egokitu leihora","original":"Jatorrizko tamaina","width":"Egokitu zabalerara","fullscreen":"Pantaila osoa","leaveFullscreen":"Irten pantaila osotik","pip":"Irudia irudian","pipReady":"Hautatu berriro Irudia irudian irekitzeko.","pipError":"Ezin izan da Irudia irudian ireki.","fullscreenError":"Ezin izan da pantaila osoko modua aldatu.","more":"Gehiago","privacy":"Pribatutasun-politika","terms":"Baldintzak","unlock":"Konektatu","connection":"Transmisio-metodoa","status":"Egoera","image":"Irudia","size":"Neurriak","unknownSize":"Irudirik ez","notice":"Oharra","permission_required":"Gailuan pantaila partekatzeko baimenaren zain.","stopped":"Gailua ez dago une honetan transmititzen.","paused":"Transmisioa pausatuta dago gailuan.","failed":"Transmisioak huts egin du. Egiaztatu igortzen ari den gailua.","unsupported":"Arakatzaile hau ezin da transmisiora konektatu. Saiatu beste arakatzaile batekin.","viewerLabel":"ScreenStream-en ikustailea","viewportLabel":"Transmisioaren irudia. Erabili gezi-teklak korritzeko.","controlsLabel":"Ikusteko kontrolak","sizeModesLabel":"Irudiaren tamaina","menuLabel":"Ikusteko aukera gehiago","streamImageAlt":"Transmisioaren irudia"}},"fr":{"lang":"fr","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Connexion…","connected":"Connecté","reconnecting":"Reconnexion…","mediaStarting":"En attente d’une image…","mediaRetrying":"Rétablissement de l’image…","mediaFailed":"Image indisponible","viewing":"Affichée","pinTitle":"Saisir le code PIN","pinRequired":"Saisissez le code PIN à six chiffres affiché sur l’appareil émetteur :","pinBlockedTitle":"Saisie du code PIN temporairement bloquée","pinBlocked":"Réessayez à la fin du compte à rebours.","pinBlockedAnnouncementSecond":"La saisie du code PIN est temporairement bloquée. Réessayez dans 1 seconde.","pinBlockedAnnouncementSeconds":"La saisie du code PIN est temporairement bloquée. Réessayez dans {seconds} secondes.","countdownSeconds":"{seconds} s","pinWrong":"Code PIN incorrect. Réessayez.","pinInvalid":"Saisissez six chiffres (0–9).","pinSending":"Vérification du code PIN…","pinNetwork":"Impossible de vérifier le code PIN. Réessayez de vous connecter.","retry":"Réessayer la connexion","useJpeg":"Utiliser JPEG","useMjpeg":"Utiliser MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Recommandé","jpegDescription":"À utiliser si MJPEG ne se charge pas","fit":"Ajuster à la fenêtre","original":"Taille d’origine","width":"Ajuster à la largeur","fullscreen":"Plein écran","leaveFullscreen":"Quitter le plein écran","pip":"Image dans l’image","pipReady":"Sélectionnez de nouveau Image dans l’image pour l’ouvrir.","pipError":"Impossible d’ouvrir Image dans l’image.","fullscreenError":"Impossible de changer le mode plein écran.","more":"Plus","privacy":"Politique de confidentialité","terms":"Conditions générales","unlock":"Se connecter","connection":"Méthode de diffusion","status":"État","image":"Image","size":"Dimensions","unknownSize":"Aucune image","notice":"Avis","permission_required":"En attente de l’autorisation de partage d’écran sur l’appareil.","stopped":"L’appareil ne diffuse pas pour le moment.","paused":"La diffusion est en pause sur l’appareil.","failed":"Échec de la diffusion. Vérifiez l’appareil émetteur.","unsupported":"Ce navigateur ne peut pas se connecter à la diffusion. Essayez un autre navigateur.","viewerLabel":"Visionneuse ScreenStream","viewportLabel":"Image de la diffusion. Utilisez les touches fléchées pour faire défiler.","controlsLabel":"Commandes d’affichage","sizeModesLabel":"Taille de l’image","menuLabel":"Autres options d’affichage","streamImageAlt":"Image de la diffusion"}},"hi":{"lang":"hi","dir":"ltr","messages":{"app":"ScreenStream","connecting":"कनेक्ट हो रहा है…","connected":"कनेक्ट हो गया","reconnecting":"फिर से कनेक्ट हो रहा है…","mediaStarting":"इमेज का इंतज़ार है…","mediaRetrying":"इमेज वापस लाई जा रही है…","mediaFailed":"इमेज उपलब्ध नहीं है","viewing":"दिखाई जा रही है","pinTitle":"PIN डालें","pinRequired":"स्ट्रीम करने वाले डिवाइस पर दिख रहा छह अंकों का PIN डालें:","pinBlockedTitle":"PIN डालना कुछ समय के लिए बंद है","pinBlocked":"काउंटडाउन खत्म होने पर फिर कोशिश करें।","pinBlockedAnnouncementSecond":"PIN डालना कुछ समय के लिए बंद है। 1 सेकंड बाद फिर कोशिश करें।","pinBlockedAnnouncementSeconds":"PIN डालना कुछ समय के लिए बंद है। {seconds} सेकंड बाद फिर कोशिश करें।","countdownSeconds":"{seconds} सेकंड","pinWrong":"PIN गलत है। फिर से कोशिश करें।","pinInvalid":"छह अंक (0–9) डालें।","pinSending":"PIN जांचा जा रहा है…","pinNetwork":"PIN नहीं जांचा जा सका। कनेक्शन के लिए फिर से कोशिश करें।","retry":"कनेक्शन के लिए फिर कोशिश करें","useJpeg":"JPEG इस्तेमाल करें","useMjpeg":"MJPEG इस्तेमाल करें","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"सुझाया गया","jpegDescription":"MJPEG लोड न हो तो इस्तेमाल करें","fit":"विंडो में फ़िट करें","original":"मूल आकार","width":"चौड़ाई के हिसाब से फ़िट करें","fullscreen":"फ़ुल स्क्रीन","leaveFullscreen":"फ़ुल स्क्रीन से बाहर निकलें","pip":"पिक्चर इन पिक्चर","pipReady":"खोलने के लिए पिक्चर इन पिक्चर फिर से चुनें।","pipError":"पिक्चर इन पिक्चर नहीं खुल सका।","fullscreenError":"फ़ुल स्क्रीन मोड नहीं बदला जा सका।","more":"ज़्यादा","privacy":"निजता नीति","terms":"नियम और शर्तें","unlock":"कनेक्ट करें","connection":"स्ट्रीमिंग का तरीका","status":"स्थिति","image":"इमेज","size":"आयाम","unknownSize":"कोई इमेज नहीं","notice":"सूचना","permission_required":"डिवाइस पर स्क्रीन शेयर करने की अनुमति का इंतज़ार है।","stopped":"डिवाइस अभी स्ट्रीम नहीं कर रहा है।","paused":"डिवाइस पर स्ट्रीमिंग रुकी हुई है।","failed":"स्ट्रीम विफल हुई। स्ट्रीम करने वाला डिवाइस जांचें।","unsupported":"यह ब्राउज़र स्ट्रीम से कनेक्ट नहीं हो सकता। दूसरा ब्राउज़र आज़माएं।","viewerLabel":"ScreenStream व्यूअर","viewportLabel":"स्ट्रीम की इमेज। स्क्रोल करने के लिए ऐरो कुंजियां इस्तेमाल करें।","controlsLabel":"देखने के कंट्रोल","sizeModesLabel":"इमेज का आकार","menuLabel":"देखने के और विकल्प","streamImageAlt":"स्ट्रीम की इमेज"}},"id":{"lang":"id","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Menghubungkan…","connected":"Terhubung","reconnecting":"Menghubungkan kembali…","mediaStarting":"Menunggu gambar…","mediaRetrying":"Memulihkan gambar…","mediaFailed":"Gambar tidak tersedia","viewing":"Ditampilkan","pinTitle":"Masukkan PIN","pinRequired":"Masukkan PIN enam digit yang ditampilkan di perangkat yang melakukan streaming:","pinBlockedTitle":"Entri PIN diblokir sementara","pinBlocked":"Coba lagi setelah hitung mundur selesai.","pinBlockedAnnouncementSecond":"Entri PIN diblokir sementara. Coba lagi dalam 1 detik.","pinBlockedAnnouncementSeconds":"Entri PIN diblokir sementara. Coba lagi dalam {seconds} detik.","countdownSeconds":"{seconds} dtk","pinWrong":"PIN salah. Coba lagi.","pinInvalid":"Masukkan enam digit (0–9).","pinSending":"Memeriksa PIN…","pinNetwork":"PIN tidak dapat diperiksa. Coba sambungkan lagi.","retry":"Coba sambungkan lagi","useJpeg":"Gunakan JPEG","useMjpeg":"Gunakan MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Direkomendasikan","jpegDescription":"Gunakan jika MJPEG tidak dapat dimuat","fit":"Sesuaikan dengan jendela","original":"Ukuran asli","width":"Sesuaikan dengan lebar","fullscreen":"Layar penuh","leaveFullscreen":"Keluar dari layar penuh","pip":"Gambar dalam gambar","pipReady":"Pilih Gambar dalam gambar lagi untuk membukanya.","pipError":"Gambar dalam gambar tidak dapat dibuka.","fullscreenError":"Mode layar penuh tidak dapat diubah.","more":"Lainnya","privacy":"Kebijakan privasi","terms":"Syarat dan ketentuan","unlock":"Hubungkan","connection":"Metode streaming","status":"Status","image":"Gambar","size":"Dimensi","unknownSize":"Tidak ada gambar","notice":"Pemberitahuan","permission_required":"Menunggu izin berbagi layar di perangkat.","stopped":"Perangkat sedang tidak melakukan streaming.","paused":"Streaming dijeda di perangkat.","failed":"Streaming gagal. Periksa perangkat yang melakukan streaming.","unsupported":"Browser ini tidak dapat terhubung ke streaming. Coba browser lain.","viewerLabel":"Penampil ScreenStream","viewportLabel":"Gambar streaming. Gunakan tombol panah untuk menggulir.","controlsLabel":"Kontrol tampilan","sizeModesLabel":"Ukuran gambar","menuLabel":"Opsi tampilan lainnya","streamImageAlt":"Gambar streaming"}},"it":{"lang":"it","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Connessione…","connected":"Connesso","reconnecting":"Riconnessione…","mediaStarting":"In attesa di un’immagine…","mediaRetrying":"Ripristino dell’immagine…","mediaFailed":"Immagine non disponibile","viewing":"Visualizzata","pinTitle":"Inserisci il PIN","pinRequired":"Inserisci il PIN a sei cifre mostrato sul dispositivo che trasmette:","pinBlockedTitle":"Inserimento del PIN temporaneamente bloccato","pinBlocked":"Riprova al termine del conto alla rovescia.","pinBlockedAnnouncementSecond":"Inserimento del PIN temporaneamente bloccato. Riprova tra 1 secondo.","pinBlockedAnnouncementSeconds":"Inserimento del PIN temporaneamente bloccato. Riprova tra {seconds} secondi.","countdownSeconds":"{seconds} s","pinWrong":"PIN errato. Riprova.","pinInvalid":"Inserisci sei cifre (0–9).","pinSending":"Verifica del PIN…","pinNetwork":"Impossibile verificare il PIN. Riprova la connessione.","retry":"Riprova la connessione","useJpeg":"Usa JPEG","useMjpeg":"Usa MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Consigliato","jpegDescription":"Usa se MJPEG non si carica","fit":"Adatta alla finestra","original":"Dimensioni originali","width":"Adatta alla larghezza","fullscreen":"Schermo intero","leaveFullscreen":"Esci da schermo intero","pip":"Picture in picture","pipReady":"Seleziona di nuovo Picture in picture per aprirlo.","pipError":"Impossibile aprire Picture in picture.","fullscreenError":"Impossibile cambiare la modalità a schermo intero.","more":"Altro","privacy":"Norme sulla privacy","terms":"Termini e condizioni","unlock":"Connetti","connection":"Metodo di streaming","status":"Stato","image":"Immagine","size":"Dimensioni","unknownSize":"Nessuna immagine","notice":"Avviso","permission_required":"In attesa dell’autorizzazione alla condivisione dello schermo sul dispositivo.","stopped":"Il dispositivo non sta trasmettendo in questo momento.","paused":"La trasmissione è in pausa sul dispositivo.","failed":"Trasmissione non riuscita. Controlla il dispositivo che trasmette.","unsupported":"Questo browser non può connettersi alla trasmissione. Prova un altro browser.","viewerLabel":"Visualizzatore ScreenStream","viewportLabel":"Immagine della trasmissione. Usa i tasti freccia per scorrere.","controlsLabel":"Controlli di visualizzazione","sizeModesLabel":"Dimensioni dell’immagine","menuLabel":"Altre opzioni di visualizzazione","streamImageAlt":"Immagine della trasmissione"}},"ja":{"lang":"ja","dir":"ltr","messages":{"app":"ScreenStream","connecting":"接続中…","connected":"接続済み","reconnecting":"再接続中…","mediaStarting":"画像を待機中…","mediaRetrying":"画像を復元中…","mediaFailed":"画像を表示できません","viewing":"表示中","pinTitle":"PIN を入力","pinRequired":"配信元のデバイスに表示されている 6 桁の PIN を入力してください:","pinBlockedTitle":"PIN の入力が一時的にブロックされています","pinBlocked":"カウントダウンが終わったら、もう一度お試しください。","pinBlockedAnnouncementSecond":"PIN の入力が一時的にブロックされています。1 秒後にもう一度お試しください。","pinBlockedAnnouncementSeconds":"PIN の入力が一時的にブロックされています。{seconds} 秒後にもう一度お試しください。","countdownSeconds":"{seconds} 秒","pinWrong":"PIN が正しくありません。もう一度お試しください。","pinInvalid":"6 桁の数字（0–9）を入力してください。","pinSending":"PIN を確認中…","pinNetwork":"PIN を確認できませんでした。接続を再試行してください。","retry":"接続を再試行","useJpeg":"JPEG を使用","useMjpeg":"MJPEG を使用","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"推奨","jpegDescription":"MJPEG が読み込まれない場合に使用","fit":"ウィンドウに合わせる","original":"元のサイズ","width":"幅に合わせる","fullscreen":"全画面表示","leaveFullscreen":"全画面表示を終了","pip":"ピクチャー イン ピクチャー","pipReady":"もう一度ピクチャー イン ピクチャーを選択すると開きます。","pipError":"ピクチャー イン ピクチャーを開けませんでした。","fullscreenError":"全画面モードを変更できませんでした。","more":"その他","privacy":"プライバシー ポリシー","terms":"利用規約","unlock":"接続","connection":"配信方法","status":"状態","image":"画像","size":"サイズ","unknownSize":"画像なし","notice":"お知らせ","permission_required":"デバイスで画面共有の許可を待っています。","stopped":"デバイスは現在配信していません。","paused":"デバイスで配信が一時停止中です。","failed":"配信に失敗しました。配信元のデバイスを確認してください。","unsupported":"このブラウザでは配信に接続できません。別のブラウザをお試しください。","viewerLabel":"ScreenStream ビューア","viewportLabel":"配信画像。矢印キーでスクロールできます。","controlsLabel":"表示コントロール","sizeModesLabel":"画像サイズ","menuLabel":"その他の表示オプション","streamImageAlt":"配信画像"}},"jv":{"lang":"jv","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Nyambungake…","connected":"Wis nyambung","reconnecting":"Nyambungake maneh…","mediaStarting":"Ngenteni gambar…","mediaRetrying":"Mulihake gambar…","mediaFailed":"Gambar ora kasedhiya","viewing":"Ditampilake","pinTitle":"Ketik PIN","pinRequired":"Ketik PIN enem digit sing katon ing piranti sing nggawe streaming:","pinBlockedTitle":"Pangetikan PIN diblokir sauntara","pinBlocked":"Coba maneh sawise wektu mundur rampung.","pinBlockedAnnouncementSecond":"Pangetikan PIN diblokir sauntara. Coba maneh sawise 1 detik.","pinBlockedAnnouncementSeconds":"Pangetikan PIN diblokir sauntara. Coba maneh sawise {seconds} detik.","countdownSeconds":"{seconds} dtk","pinWrong":"PIN salah. Coba maneh.","pinInvalid":"Ketik enem digit (0–9).","pinSending":"Mriksa PIN…","pinNetwork":"PIN ora bisa dipriksa. Coba sambungake maneh.","retry":"Coba sambungake maneh","useJpeg":"Gunakake JPEG","useMjpeg":"Gunakake MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Disaranake","jpegDescription":"Gunakake yen MJPEG ora bisa dimuat","fit":"Cocogake karo jendhela","original":"Ukuran asli","width":"Cocogake karo ambane","fullscreen":"Layar wutuh","leaveFullscreen":"Metu saka layar wutuh","pip":"Gambar ing gambar","pipReady":"Pilih Gambar ing gambar maneh kanggo mbukak.","pipError":"Gambar ing gambar ora bisa dibukak.","fullscreenError":"Mode layar wutuh ora bisa diganti.","more":"Liyane","privacy":"Kabijakan privasi","terms":"Syarat lan katemtuan","unlock":"Sambungake","connection":"Cara streaming","status":"Status","image":"Gambar","size":"Ukuran","unknownSize":"Ora ana gambar","notice":"Kabar","permission_required":"Ngenteni idin enggo bareng layar ing piranti.","stopped":"Piranti saiki ora lagi streaming.","paused":"Streaming dijeda ing piranti.","failed":"Streaming gagal. Priksa piranti sing nggawe streaming.","unsupported":"Browser iki ora bisa nyambung menyang streaming. Coba browser liyane.","viewerLabel":"Panampil ScreenStream","viewportLabel":"Gambar streaming. Gunakake tombol panah kanggo nggulung.","controlsLabel":"Kontrol tampilan","sizeModesLabel":"Ukuran gambar","menuLabel":"Pilihan tampilan liyane","streamImageAlt":"Gambar streaming"}},"ka":{"lang":"ka","dir":"ltr","messages":{"app":"ScreenStream","connecting":"დაკავშირება…","connected":"დაკავშირებულია","reconnecting":"ხელახლა დაკავშირება…","mediaStarting":"სურათის მოლოდინი…","mediaRetrying":"სურათის აღდგენა…","mediaFailed":"სურათი მიუწვდომელია","viewing":"მიმდინარეობს ჩვენება","pinTitle":"შეიყვანეთ PIN","pinRequired":"შეიყვანეთ სტრიმის გამშვებ მოწყობილობაზე ნაჩვენები ექვსნიშნა PIN:","pinBlockedTitle":"PIN-ის შეყვანა დროებით დაბლოკილია","pinBlocked":"სცადეთ ხელახლა, როცა უკუთვლა დასრულდება.","pinBlockedAnnouncementSecond":"PIN-ის შეყვანა დროებით დაბლოკილია. სცადეთ ხელახლა 1 წამში.","pinBlockedAnnouncementSeconds":"PIN-ის შეყვანა დროებით დაბლოკილია. სცადეთ ხელახლა {seconds} წამში.","countdownSeconds":"{seconds} წმ","pinWrong":"PIN არასწორია. ხელახლა სცადეთ.","pinInvalid":"შეიყვანეთ ექვსი ციფრი (0–9).","pinSending":"PIN-ის შემოწმება…","pinNetwork":"PIN-ის შემოწმება ვერ მოხერხდა. ხელახლა სცადეთ დაკავშირება.","retry":"ხელახლა დაკავშირება","useJpeg":"JPEG-ის გამოყენება","useMjpeg":"MJPEG-ის გამოყენება","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"რეკომენდებული","jpegDescription":"გამოიყენეთ, თუ MJPEG არ იტვირთება","fit":"ფანჯარაზე მორგება","original":"ორიგინალი ზომა","width":"სიგანეზე მორგება","fullscreen":"მთელ ეკრანზე","leaveFullscreen":"მთელი ეკრანიდან გამოსვლა","pip":"სურათი სურათში","pipReady":"გასახსნელად ხელახლა აირჩიეთ „სურათი სურათში“.","pipError":"„სურათი სურათში“ ვერ გაიხსნა.","fullscreenError":"მთელი ეკრანის რეჟიმი ვერ შეიცვალა.","more":"მეტი","privacy":"კონფიდენციალურობის პოლიტიკა","terms":"წესები და პირობები","unlock":"დაკავშირება","connection":"სტრიმინგის მეთოდი","status":"სტატუსი","image":"სურათი","size":"ზომები","unknownSize":"სურათი არ არის","notice":"შეტყობინება","permission_required":"მოწყობილობაზე ეკრანის გაზიარების ნებართვის მოლოდინი.","stopped":"მოწყობილობა ამჟამად სტრიმს არ გადასცემს.","paused":"სტრიმინგი მოწყობილობაზე შეჩერებულია.","failed":"სტრიმი ვერ განხორციელდა. შეამოწმეთ სტრიმის გამშვები მოწყობილობა.","unsupported":"ეს ბრაუზერი სტრიმს ვერ უკავშირდება. სცადეთ სხვა ბრაუზერი.","viewerLabel":"ScreenStream-ის მაყურებელი","viewportLabel":"სტრიმის სურათი. გადასახვევად გამოიყენეთ ისრიანი ღილაკები.","controlsLabel":"ჩვენების მართვის ელემენტები","sizeModesLabel":"სურათის ზომა","menuLabel":"ჩვენების მეტი ვარიანტი","streamImageAlt":"სტრიმის სურათი"}},"nl":{"lang":"nl","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Verbinden…","connected":"Verbonden","reconnecting":"Opnieuw verbinden…","mediaStarting":"Wachten op een beeld…","mediaRetrying":"Beeld herstellen…","mediaFailed":"Beeld niet beschikbaar","viewing":"Weergegeven","pinTitle":"Pincode invoeren","pinRequired":"Voer de zescijferige pincode in die op het streamende apparaat staat:","pinBlockedTitle":"Invoeren van pincode tijdelijk geblokkeerd","pinBlocked":"Probeer het opnieuw als het aftellen voorbij is.","pinBlockedAnnouncementSecond":"Invoeren van pincode is tijdelijk geblokkeerd. Probeer het over 1 seconde opnieuw.","pinBlockedAnnouncementSeconds":"Invoeren van pincode is tijdelijk geblokkeerd. Probeer het over {seconds} seconden opnieuw.","countdownSeconds":"{seconds} s","pinWrong":"Onjuiste pincode. Probeer het opnieuw.","pinInvalid":"Voer zes cijfers (0–9) in.","pinSending":"Pincode controleren…","pinNetwork":"Kan de pincode niet controleren. Probeer de verbinding opnieuw.","retry":"Verbinding opnieuw proberen","useJpeg":"JPEG gebruiken","useMjpeg":"MJPEG gebruiken","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Aanbevolen","jpegDescription":"Gebruik als MJPEG niet laadt","fit":"Aanpassen aan venster","original":"Oorspronkelijke grootte","width":"Aanpassen aan breedte","fullscreen":"Volledig scherm","leaveFullscreen":"Volledig scherm afsluiten","pip":"Beeld-in-beeld","pipReady":"Selecteer Beeld-in-beeld opnieuw om het te openen.","pipError":"Kan Beeld-in-beeld niet openen.","fullscreenError":"Kan modus voor volledig scherm niet wijzigen.","more":"Meer","privacy":"Privacybeleid","terms":"Algemene voorwaarden","unlock":"Verbinden","connection":"Streammethode","status":"Status","image":"Beeld","size":"Afmetingen","unknownSize":"Geen beeld","notice":"Melding","permission_required":"Wachten op toestemming voor schermdelen op het apparaat.","stopped":"Het apparaat streamt op dit moment niet.","paused":"Streamen is gepauzeerd op het apparaat.","failed":"Stream mislukt. Controleer het streamende apparaat.","unsupported":"Deze browser kan geen verbinding maken met de stream. Probeer een andere browser.","viewerLabel":"ScreenStream-viewer","viewportLabel":"Streambeeld. Gebruik de pijltoetsen om te scrollen.","controlsLabel":"Weergavebediening","sizeModesLabel":"Beeldgrootte","menuLabel":"Meer weergaveopties","streamImageAlt":"Streambeeld"}},"pl":{"lang":"pl","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Łączenie…","connected":"Połączono","reconnecting":"Ponowne łączenie…","mediaStarting":"Oczekiwanie na obraz…","mediaRetrying":"Przywracanie obrazu…","mediaFailed":"Obraz niedostępny","viewing":"Wyświetlany","pinTitle":"Wpisz PIN","pinRequired":"Wpisz sześciocyfrowy PIN wyświetlony na urządzeniu nadającym:","pinBlockedTitle":"Wpisywanie PIN-u tymczasowo zablokowane","pinBlocked":"Spróbuj ponownie po zakończeniu odliczania.","pinBlockedAnnouncementSecond":"Wpisywanie PIN-u jest tymczasowo zablokowane. Spróbuj ponownie za 1 sekundę.","pinBlockedAnnouncementSeconds":"Wpisywanie PIN-u jest tymczasowo zablokowane. Sekund do ponownej próby: {seconds}.","countdownSeconds":"{seconds} s","pinWrong":"Nieprawidłowy PIN. Spróbuj ponownie.","pinInvalid":"Wpisz sześć cyfr (0–9).","pinSending":"Sprawdzanie PIN-u…","pinNetwork":"Nie udało się sprawdzić PIN-u. Ponów połączenie.","retry":"Ponów połączenie","useJpeg":"Użyj JPEG","useMjpeg":"Użyj MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Zalecane","jpegDescription":"Użyj, jeśli MJPEG się nie ładuje","fit":"Dopasuj do okna","original":"Rozmiar oryginalny","width":"Dopasuj do szerokości","fullscreen":"Pełny ekran","leaveFullscreen":"Wyjdź z pełnego ekranu","pip":"Obraz w obrazie","pipReady":"Wybierz ponownie Obraz w obrazie, aby go otworzyć.","pipError":"Nie udało się otworzyć trybu Obraz w obrazie.","fullscreenError":"Nie udało się zmienić trybu pełnoekranowego.","more":"Więcej","privacy":"Polityka prywatności","terms":"Regulamin","unlock":"Połącz","connection":"Metoda transmisji","status":"Stan","image":"Obraz","size":"Wymiary","unknownSize":"Brak obrazu","notice":"Komunikat","permission_required":"Oczekiwanie na zgodę na udostępnianie ekranu na urządzeniu.","stopped":"Urządzenie nie prowadzi teraz transmisji.","paused":"Transmisja jest wstrzymana na urządzeniu.","failed":"Błąd transmisji. Sprawdź urządzenie nadające.","unsupported":"Ta przeglądarka nie może połączyć się z transmisją. Wypróbuj inną przeglądarkę.","viewerLabel":"Podgląd ScreenStream","viewportLabel":"Obraz transmisji. Przewijaj klawiszami strzałek.","controlsLabel":"Sterowanie wyświetlaniem","sizeModesLabel":"Rozmiar obrazu","menuLabel":"Więcej opcji wyświetlania","streamImageAlt":"Obraz transmisji"}},"pt":{"lang":"pt","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Conectando…","connected":"Conectado","reconnecting":"Reconectando…","mediaStarting":"Aguardando uma imagem…","mediaRetrying":"Restaurando imagem…","mediaFailed":"Imagem indisponível","viewing":"Exibida","pinTitle":"Digite o PIN","pinRequired":"Digite o PIN de seis dígitos mostrado no dispositivo transmissor:","pinBlockedTitle":"Entrada do PIN temporariamente bloqueada","pinBlocked":"Tente novamente quando a contagem regressiva terminar.","pinBlockedAnnouncementSecond":"A entrada do PIN está temporariamente bloqueada. Tente novamente em 1 segundo.","pinBlockedAnnouncementSeconds":"A entrada do PIN está temporariamente bloqueada. Tente novamente em {seconds} segundos.","countdownSeconds":"{seconds} s","pinWrong":"PIN incorreto. Tente novamente.","pinInvalid":"Digite seis dígitos (0–9).","pinSending":"Verificando PIN…","pinNetwork":"Não foi possível verificar o PIN. Tente conectar novamente.","retry":"Tentar conectar novamente","useJpeg":"Usar JPEG","useMjpeg":"Usar MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Recomendado","jpegDescription":"Use se o MJPEG não carregar","fit":"Ajustar à janela","original":"Tamanho original","width":"Ajustar à largura","fullscreen":"Tela cheia","leaveFullscreen":"Sair da tela cheia","pip":"Picture-in-picture","pipReady":"Selecione Picture-in-picture novamente para abrir.","pipError":"Não foi possível abrir o Picture-in-picture.","fullscreenError":"Não foi possível alterar o modo de tela cheia.","more":"Mais","privacy":"Política de privacidade","terms":"Termos e condições","unlock":"Conectar","connection":"Método de transmissão","status":"Status","image":"Imagem","size":"Dimensões","unknownSize":"Sem imagem","notice":"Aviso","permission_required":"Aguardando a permissão de compartilhamento de tela no dispositivo.","stopped":"O dispositivo não está transmitindo no momento.","paused":"A transmissão está pausada no dispositivo.","failed":"Falha na transmissão. Verifique o dispositivo transmissor.","unsupported":"Este navegador não pode se conectar à transmissão. Tente outro navegador.","viewerLabel":"Visualizador ScreenStream","viewportLabel":"Imagem da transmissão. Use as teclas de seta para rolar.","controlsLabel":"Controles de visualização","sizeModesLabel":"Tamanho da imagem","menuLabel":"Mais opções de visualização","streamImageAlt":"Imagem da transmissão"}},"ru":{"lang":"ru","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Подключение…","connected":"Подключено","reconnecting":"Переподключение…","mediaStarting":"Ожидание изображения…","mediaRetrying":"Восстановление изображения…","mediaFailed":"Изображение недоступно","viewing":"Отображается","pinTitle":"Введите PIN-код","pinRequired":"Введите шестизначный PIN-код, показанный на передающем устройстве:","pinBlockedTitle":"Ввод PIN-кода временно заблокирован","pinBlocked":"Повторите попытку после окончания обратного отсчёта.","pinBlockedAnnouncementSecond":"Ввод PIN-кода временно заблокирован. Повторите попытку через 1 секунду.","pinBlockedAnnouncementSeconds":"Ввод PIN-кода временно заблокирован. Секунд до повторной попытки: {seconds}.","countdownSeconds":"{seconds} с","pinWrong":"Неверный PIN-код. Повторите попытку.","pinInvalid":"Введите шесть цифр (0–9).","pinSending":"Проверка PIN-кода…","pinNetwork":"Не удалось проверить PIN-код. Повторите подключение.","retry":"Повторить подключение","useJpeg":"Использовать JPEG","useMjpeg":"Использовать MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Рекомендуется","jpegDescription":"Используйте, если MJPEG не загружается","fit":"По размеру окна","original":"Исходный размер","width":"По ширине","fullscreen":"На весь экран","leaveFullscreen":"Выйти из полноэкранного режима","pip":"Картинка в картинке","pipReady":"Нажмите «Картинка в картинке» ещё раз, чтобы открыть окно.","pipError":"Не удалось открыть режим «Картинка в картинке».","fullscreenError":"Не удалось изменить полноэкранный режим.","more":"Ещё","privacy":"Политика конфиденциальности","terms":"Условия использования","unlock":"Подключиться","connection":"Способ трансляции","status":"Статус","image":"Изображение","size":"Размеры","unknownSize":"Нет изображения","notice":"Сообщение","permission_required":"Ожидание разрешения на доступ к экрану на устройстве.","stopped":"Устройство сейчас не ведёт трансляцию.","paused":"Трансляция приостановлена на устройстве.","failed":"Сбой трансляции. Проверьте передающее устройство.","unsupported":"Этот браузер не может подключиться к трансляции. Попробуйте другой браузер.","viewerLabel":"Просмотр ScreenStream","viewportLabel":"Изображение трансляции. Для прокрутки используйте клавиши со стрелками.","controlsLabel":"Управление просмотром","sizeModesLabel":"Размер изображения","menuLabel":"Дополнительные параметры просмотра","streamImageAlt":"Изображение трансляции"}},"tr":{"lang":"tr","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Bağlanıyor…","connected":"Bağlandı","reconnecting":"Yeniden bağlanıyor…","mediaStarting":"Görüntü bekleniyor…","mediaRetrying":"Görüntü geri yükleniyor…","mediaFailed":"Görüntü kullanılamıyor","viewing":"Gösteriliyor","pinTitle":"PIN’i girin","pinRequired":"Yayın yapan cihazda gösterilen altı haneli PIN’i girin:","pinBlockedTitle":"PIN girişi geçici olarak engellendi","pinBlocked":"Geri sayım bitince tekrar deneyin.","pinBlockedAnnouncementSecond":"PIN girişi geçici olarak engellendi. 1 saniye sonra tekrar deneyin.","pinBlockedAnnouncementSeconds":"PIN girişi geçici olarak engellendi. {seconds} saniye sonra tekrar deneyin.","countdownSeconds":"{seconds} sn","pinWrong":"Yanlış PIN. Tekrar deneyin.","pinInvalid":"Altı rakam (0–9) girin.","pinSending":"PIN kontrol ediliyor…","pinNetwork":"PIN kontrol edilemedi. Bağlantıyı yeniden deneyin.","retry":"Bağlantıyı yeniden dene","useJpeg":"JPEG kullan","useMjpeg":"MJPEG kullan","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Önerilen","jpegDescription":"MJPEG yüklenmezse kullanın","fit":"Pencereye sığdır","original":"Özgün boyut","width":"Genişliğe sığdır","fullscreen":"Tam ekran","leaveFullscreen":"Tam ekrandan çık","pip":"Resim içinde resim","pipReady":"Açmak için Resim içinde resim’i tekrar seçin.","pipError":"Resim içinde resim açılamadı.","fullscreenError":"Tam ekran modu değiştirilemedi.","more":"Diğer","privacy":"Gizlilik politikası","terms":"Şartlar ve koşullar","unlock":"Bağlan","connection":"Yayın yöntemi","status":"Durum","image":"Görüntü","size":"Boyutlar","unknownSize":"Görüntü yok","notice":"Bildirim","permission_required":"Cihazda ekran paylaşımı izni bekleniyor.","stopped":"Cihaz şu anda yayın yapmıyor.","paused":"Yayın cihazda duraklatıldı.","failed":"Yayın başarısız oldu. Yayın yapan cihazı kontrol edin.","unsupported":"Bu tarayıcı yayına bağlanamıyor. Başka bir tarayıcı deneyin.","viewerLabel":"ScreenStream görüntüleyici","viewportLabel":"Yayın görüntüsü. Kaydırmak için ok tuşlarını kullanın.","controlsLabel":"Görüntüleme denetimleri","sizeModesLabel":"Görüntü boyutu","menuLabel":"Diğer görüntüleme seçenekleri","streamImageAlt":"Yayın görüntüsü"}},"uk":{"lang":"uk","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Підключення…","connected":"Підключено","reconnecting":"Повторне підключення…","mediaStarting":"Очікування зображення…","mediaRetrying":"Відновлення зображення…","mediaFailed":"Зображення недоступне","viewing":"Відображається","pinTitle":"Введіть PIN-код","pinRequired":"Введіть шестизначний PIN-код, показаний на пристрої, що транслює:","pinBlockedTitle":"Введення PIN-коду тимчасово заблоковано","pinBlocked":"Повторіть спробу, коли закінчиться зворотний відлік.","pinBlockedAnnouncementSecond":"Введення PIN-коду тимчасово заблоковано. Повторіть спробу через 1 секунду.","pinBlockedAnnouncementSeconds":"Введення PIN-коду тимчасово заблоковано. Секунд до повторної спроби: {seconds}.","countdownSeconds":"{seconds} с","pinWrong":"Неправильний PIN-код. Повторіть спробу.","pinInvalid":"Введіть шість цифр (0–9).","pinSending":"Перевірка PIN-коду…","pinNetwork":"Не вдалося перевірити PIN-код. Повторіть підключення.","retry":"Повторити підключення","useJpeg":"Використовувати JPEG","useMjpeg":"Використовувати MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Рекомендовано","jpegDescription":"Використовуйте, якщо MJPEG не завантажується","fit":"За розміром вікна","original":"Початковий розмір","width":"За шириною","fullscreen":"На весь екран","leaveFullscreen":"Вийти з повноекранного режиму","pip":"Картинка в картинці","pipReady":"Натисніть «Картинка в картинці» ще раз, щоб відкрити вікно.","pipError":"Не вдалося відкрити режим «Картинка в картинці».","fullscreenError":"Не вдалося змінити повноекранний режим.","more":"Ще","privacy":"Політика конфіденційності","terms":"Умови використання","unlock":"Підключитися","connection":"Спосіб трансляції","status":"Стан","image":"Зображення","size":"Розміри","unknownSize":"Немає зображення","notice":"Повідомлення","permission_required":"Очікування дозволу на доступ до екрана на пристрої.","stopped":"Пристрій зараз не транслює.","paused":"Трансляцію призупинено на пристрої.","failed":"Збій трансляції. Перевірте пристрій, що транслює.","unsupported":"Цей браузер не може підключитися до трансляції. Спробуйте інший браузер.","viewerLabel":"Перегляд ScreenStream","viewportLabel":"Зображення трансляції. Для прокручування використовуйте клавіші зі стрілками.","controlsLabel":"Керування переглядом","sizeModesLabel":"Розмір зображення","menuLabel":"Додаткові параметри перегляду","streamImageAlt":"Зображення трансляції"}},"ur":{"lang":"ur","dir":"rtl","messages":{"app":"ScreenStream","connecting":"منسلک ہو رہا ہے…","connected":"منسلک ہے","reconnecting":"دوبارہ منسلک ہو رہا ہے…","mediaStarting":"تصویر کا انتظار ہے…","mediaRetrying":"تصویر بحال ہو رہی ہے…","mediaFailed":"تصویر دستیاب نہیں","viewing":"دکھائی جا رہی ہے","pinTitle":"PIN درج کریں","pinRequired":"اسٹریمنگ کرنے والے آلے پر دکھایا گیا چھ ہندسوں کا PIN درج کریں:","pinBlockedTitle":"PIN کا اندراج عارضی طور پر مسدود ہے","pinBlocked":"الٹی گنتی ختم ہونے پر دوبارہ کوشش کریں۔","pinBlockedAnnouncementSecond":"PIN کا اندراج عارضی طور پر مسدود ہے۔ 1 سیکنڈ بعد دوبارہ کوشش کریں۔","pinBlockedAnnouncementSeconds":"PIN کا اندراج عارضی طور پر مسدود ہے۔ {seconds} سیکنڈ بعد دوبارہ کوشش کریں۔","countdownSeconds":"{seconds} سیکنڈ","pinWrong":"PIN غلط ہے۔ دوبارہ کوشش کریں۔","pinInvalid":"چھ ہندسے (0–9) درج کریں۔","pinSending":"PIN چیک کیا جا رہا ہے…","pinNetwork":"PIN چیک نہیں ہو سکا۔ کنکشن کی دوبارہ کوشش کریں۔","retry":"کنکشن کی دوبارہ کوشش کریں","useJpeg":"JPEG استعمال کریں","useMjpeg":"MJPEG استعمال کریں","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"تجویز کردہ","jpegDescription":"اگر MJPEG لوڈ نہ ہو تو استعمال کریں","fit":"ونڈو کے مطابق فٹ کریں","original":"اصل سائز","width":"چوڑائی کے مطابق فٹ کریں","fullscreen":"پوری اسکرین","leaveFullscreen":"پوری اسکرین سے باہر نکلیں","pip":"تصویر میں تصویر","pipReady":"کھولنے کے لیے تصویر میں تصویر دوبارہ منتخب کریں۔","pipError":"تصویر میں تصویر نہیں کھل سکی۔","fullscreenError":"پوری اسکرین موڈ تبدیل نہیں ہو سکا۔","more":"مزید","privacy":"رازداری کی پالیسی","terms":"شرائط و ضوابط","unlock":"منسلک کریں","connection":"اسٹریمنگ کا طریقہ","status":"حیثیت","image":"تصویر","size":"ابعاد","unknownSize":"کوئی تصویر نہیں","notice":"اطلاع","permission_required":"آلے پر اسکرین شیئرنگ کی اجازت کا انتظار ہے۔","stopped":"آلہ اس وقت اسٹریم نہیں کر رہا۔","paused":"آلے پر اسٹریمنگ موقوف ہے۔","failed":"اسٹریم ناکام ہو گئی۔ اسٹریمنگ کرنے والا آلہ چیک کریں۔","unsupported":"یہ براؤزر اسٹریم سے منسلک نہیں ہو سکتا۔ دوسرا براؤزر آزمائیں۔","viewerLabel":"ScreenStream ناظر","viewportLabel":"اسٹریم کی تصویر۔ اسکرول کرنے کے لیے تیر والی کنجیاں استعمال کریں۔","controlsLabel":"دیکھنے کے کنٹرولز","sizeModesLabel":"تصویر کا سائز","menuLabel":"دیکھنے کے مزید اختیارات","streamImageAlt":"اسٹریم کی تصویر"}},"uz":{"lang":"uz","dir":"ltr","messages":{"app":"ScreenStream","connecting":"Ulanmoqda…","connected":"Ulandi","reconnecting":"Qayta ulanmoqda…","mediaStarting":"Tasvir kutilmoqda…","mediaRetrying":"Tasvir tiklanmoqda…","mediaFailed":"Tasvir mavjud emas","viewing":"Koʻrsatilmoqda","pinTitle":"PINni kiriting","pinRequired":"Translatsiya qilayotgan qurilmada koʻrsatilgan olti xonali PINni kiriting:","pinBlockedTitle":"PIN kiritish vaqtincha bloklangan","pinBlocked":"Teskari sanoq tugagach, qayta urinib koʻring.","pinBlockedAnnouncementSecond":"PIN kiritish vaqtincha bloklangan. 1 soniyadan keyin qayta urinib koʻring.","pinBlockedAnnouncementSeconds":"PIN kiritish vaqtincha bloklangan. {seconds} soniyadan keyin qayta urinib koʻring.","countdownSeconds":"{seconds} soniya","pinWrong":"PIN notoʻgʻri. Qayta urinib koʻring.","pinInvalid":"Olti raqam kiriting (0–9).","pinSending":"PIN tekshirilmoqda…","pinNetwork":"PINni tekshirib boʻlmadi. Qayta ulanishga urinib koʻring.","retry":"Qayta ulanish","useJpeg":"JPEG ishlatish","useMjpeg":"MJPEG ishlatish","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"Tavsiya etiladi","jpegDescription":"MJPEG yuklanmasa ishlating","fit":"Oynaga sigʻdirish","original":"Asl oʻlcham","width":"Eniga sigʻdirish","fullscreen":"Toʻliq ekran","leaveFullscreen":"Toʻliq ekrandan chiqish","pip":"Tasvir ichida tasvir","pipReady":"Ochish uchun Tasvir ichida tasvirni yana tanlang.","pipError":"Tasvir ichida tasvir ochilmadi.","fullscreenError":"Toʻliq ekran rejimini oʻzgartirib boʻlmadi.","more":"Yana","privacy":"Maxfiylik siyosati","terms":"Shartlar va qoidalar","unlock":"Ulanish","connection":"Translatsiya usuli","status":"Holat","image":"Tasvir","size":"Oʻlchamlar","unknownSize":"Tasvir yoʻq","notice":"Bildirishnoma","permission_required":"Qurilmada ekranni ulashish ruxsati kutilmoqda.","stopped":"Qurilma hozir translatsiya qilmayapti.","paused":"Qurilmada translatsiya toʻxtatib turilgan.","failed":"Translatsiya amalga oshmadi. Translatsiya qilayotgan qurilmani tekshiring.","unsupported":"Bu brauzer translatsiyaga ulana olmaydi. Boshqa brauzerni sinab koʻring.","viewerLabel":"ScreenStream koʻruvchisi","viewportLabel":"Translatsiya tasviri. Surish uchun yoʻnalish tugmalaridan foydalaning.","controlsLabel":"Koʻrish boshqaruvlari","sizeModesLabel":"Tasvir oʻlchami","menuLabel":"Koʻrishning boshqa variantlari","streamImageAlt":"Translatsiya tasviri"}},"zh":{"lang":"zh-Hans","dir":"ltr","messages":{"app":"ScreenStream","connecting":"正在连接…","connected":"已连接","reconnecting":"正在重新连接…","mediaStarting":"正在等待图像…","mediaRetrying":"正在恢复图像…","mediaFailed":"图像不可用","viewing":"正在显示","pinTitle":"输入 PIN 码","pinRequired":"输入串流设备上显示的六位 PIN 码：","pinBlockedTitle":"PIN 码输入已暂时锁定","pinBlocked":"倒计时结束后再试。","pinBlockedAnnouncementSecond":"PIN 码输入已暂时锁定。请在 1 秒后重试。","pinBlockedAnnouncementSeconds":"PIN 码输入已暂时锁定。请在 {seconds} 秒后重试。","countdownSeconds":"{seconds} 秒","pinWrong":"PIN 码错误。请重试。","pinInvalid":"请输入六位数字（0–9）。","pinSending":"正在验证 PIN 码…","pinNetwork":"无法验证 PIN 码。请重试连接。","retry":"重试连接","useJpeg":"使用 JPEG","useMjpeg":"使用 MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"推荐","jpegDescription":"MJPEG 无法加载时使用","fit":"适应窗口","original":"原始大小","width":"适应宽度","fullscreen":"全屏","leaveFullscreen":"退出全屏","pip":"画中画","pipReady":"再次选择画中画以打开。","pipError":"无法打开画中画。","fullscreenError":"无法更改全屏模式。","more":"更多","privacy":"隐私政策","terms":"条款和条件","unlock":"连接","connection":"串流方式","status":"状态","image":"图像","size":"尺寸","unknownSize":"无图像","notice":"提示","permission_required":"正在等待设备上的屏幕共享权限。","stopped":"设备当前未在串流。","paused":"设备上的串流已暂停。","failed":"串流失败。请检查串流设备。","unsupported":"此浏览器无法连接串流。请尝试其他浏览器。","viewerLabel":"ScreenStream 查看器","viewportLabel":"串流图像。使用方向键滚动。","controlsLabel":"观看控制","sizeModesLabel":"图像大小","menuLabel":"更多观看选项","streamImageAlt":"串流图像"}},"zh-TW":{"lang":"zh-Hant","dir":"ltr","messages":{"app":"ScreenStream","connecting":"正在連線…","connected":"已連線","reconnecting":"正在重新連線…","mediaStarting":"正在等待影像…","mediaRetrying":"正在恢復影像…","mediaFailed":"影像無法使用","viewing":"顯示中","pinTitle":"輸入 PIN 碼","pinRequired":"輸入串流裝置上顯示的六位數 PIN 碼：","pinBlockedTitle":"PIN 碼輸入已暫時封鎖","pinBlocked":"倒數結束後再試一次。","pinBlockedAnnouncementSecond":"PIN 碼輸入已暫時封鎖。請在 1 秒後再試一次。","pinBlockedAnnouncementSeconds":"PIN 碼輸入已暫時封鎖。請在 {seconds} 秒後再試一次。","countdownSeconds":"{seconds} 秒","pinWrong":"PIN 碼錯誤。請再試一次。","pinInvalid":"請輸入六位數字（0–9）。","pinSending":"正在驗證 PIN 碼…","pinNetwork":"無法驗證 PIN 碼。請重試連線。","retry":"重試連線","useJpeg":"使用 JPEG","useMjpeg":"使用 MJPEG","mjpeg":"MJPEG","jpeg":"JPEG","mjpegDescription":"建議使用","jpegDescription":"MJPEG 無法載入時使用","fit":"符合視窗大小","original":"原始大小","width":"符合寬度","fullscreen":"全螢幕","leaveFullscreen":"結束全螢幕","pip":"子母畫面","pipReady":"再次選取子母畫面即可開啟。","pipError":"無法開啟子母畫面。","fullscreenError":"無法變更全螢幕模式。","more":"更多","privacy":"隱私權政策","terms":"條款與細則","unlock":"連線","connection":"串流方式","status":"狀態","image":"影像","size":"尺寸","unknownSize":"沒有影像","notice":"通知","permission_required":"正在等待裝置上的螢幕分享權限。","stopped":"裝置目前未在串流。","paused":"裝置上的串流已暫停。","failed":"串流失敗。請檢查串流裝置。","unsupported":"這個瀏覽器無法連線至串流。請嘗試其他瀏覽器。","viewerLabel":"ScreenStream 檢視器","viewportLabel":"串流影像。使用方向鍵捲動。","controlsLabel":"觀看控制","sizeModesLabel":"影像大小","menuLabel":"更多觀看選項","streamImageAlt":"串流影像"}}};
+const localeScripts = {
+    en: 'latn', af: 'latn', am: 'ethi', ar: 'arab', bn: 'beng', de: 'latn',
+    es: 'latn', eu: 'latn', fr: 'latn', hi: 'deva', id: 'latn', it: 'latn',
+    ja: 'jpan', jv: 'latn', ka: 'geor', nl: 'latn', pl: 'latn', pt: 'latn',
+    ru: 'cyrl', tr: 'latn', uk: 'cyrl', ur: 'arab', uz: 'latn'
+};
+function chooseLocale(preferences) {
+    for (let i = 0; i < preferences.length; i += 1) {
+        if (typeof preferences[i] !== 'string') continue;
+        const tag = preferences[i].toLowerCase().replace(/_/g, '-');
+        if (!/^[a-z]{2,3}(?:-[a-z0-9]{1,8})*$/.test(tag)) continue;
+        const parts = tag.split('-');
+        let language = parts[0];
+        if (language === 'in') language = 'id';
+        if (language === 'jw') language = 'jv';
+        const script = /^[a-z]{4}$/.test(parts[1] || '') ? parts[1] : '';
+        const region = parts[script ? 2 : 1] || '';
+        if (language === 'zh') {
+            if (script && script !== 'hans' && script !== 'hant') continue;
+            return script === 'hant' || !script && (region === 'tw' || region === 'hk' || region === 'mo') ? 'zh-TW' : 'zh';
+        }
+        if (Object.prototype.hasOwnProperty.call(localeScripts, language) &&
+            (!script || script === localeScripts[language])) return language;
+    }
+    return 'en';
+}
+const preferences = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+const locale = catalogs[chooseLocale(preferences)] || catalogs.en;
+const words = locale.messages;
+document.documentElement.lang = locale.lang;
+document.documentElement.dir = locale.dir;
+function text(node, value) { node.textContent = value; }
+function byId(id) { return document.getElementById(id); }
+function secondsText(key, seconds) {
+    return words[key].replace('{seconds}', () => String(seconds));
+}
+function labelControl(node, value) {
+    node.setAttribute('aria-label', value);
+    node.setAttribute('data-tooltip', value);
+}
+
+function decodeSnapshot(data) {
+    let value;
+    try { value = JSON.parse(data); } catch (_) { return null; }
+    if (!value || typeof value !== 'object') return null;
+    if (value.access === 'pin_required' || value.access === 'blocked') return value;
+    const display = value.display;
+    const validLayout = layout => layout && (layout.position === 'top' || layout.position === 'bottom') &&
+        (layout.presentation === 'overlay' || layout.presentation === 'bar') && typeof layout.autoHide === 'boolean';
+    if ((value.access !== 'open' && value.access !== 'authorized') ||
+        typeof value.hasImage !== 'boolean' ||
+        (value.imageKind !== 'none' && value.imageKind !== 'logo' && value.imageKind !== 'live' && value.imageKind !== 'retained') ||
+        value.hasImage !== (value.imageKind !== 'none') ||
+        (value.notice !== null && value.notice !== 'permission_required' && value.notice !== 'stopped' &&
+            value.notice !== 'paused' && value.notice !== 'failed') ||
+        !display || typeof display.title !== 'string' ||
+        typeof display.background !== 'string' || typeof display.titleEnabled !== 'boolean' ||
+        !validLayout(display.titleLayout) || !validLayout(display.controlsLayout)) return null;
+    return value;
+}
+
+function createConnection(callbacks) {
+    const delays = [0, 1000, 2000, 4000, 5000];
+    const livenessTimeout = 5000;
+    const admissionInterval = 5000;
+    let socket = null, timer = null, livenessTimer = null;
+    let lastSnapshotAt = 0;
+    let retries = 0, paused = false, pinRequest = null, accessDenied = false;
+
+    function disposeSocket() {
+        clearTimeout(timer);
+        clearTimeout(livenessTimer);
+        timer = livenessTimer = null;
+        lastSnapshotAt = 0;
+        const ws = socket;
+        socket = null;
+        if (ws) {
+            ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
+            ws.close();
+        }
+    }
+    function schedule(delay) {
+        const retryTimer = setTimeout(() => {
+            if (timer !== retryTimer || paused) return;
+            timer = null;
+            open();
+        }, delay);
+        timer = retryTimer;
+    }
+    function denied(value) {
+        accessDenied = true;
+        retries = 0;
+        disposeSocket();
+        callbacks.snapshot(value);
+        // Denied sockets remain short-lived; only a foreground page rechecks admission.
+        const remaining = value.access === 'blocked' && isFinite(value.retryAfterMs) ? value.retryAfterMs : admissionInterval;
+        schedule(Math.max(100, Math.min(admissionInterval, remaining)));
+    }
+    function failed(ws) {
+        if (ws !== socket || paused) return;
+        disposeSocket();
+        if (!accessDenied) callbacks.state('reconnecting');
+        const delay = delays[retries];
+        retries = Math.min(retries + 1, delays.length - 1);
+        schedule(delay);
+    }
+    function open() {
+        disposeSocket();
+        if (paused || pinRequest || accessDenied && document.hidden) return;
+        if (!window.WebSocket) { callbacks.state('unsupported'); return; }
+        const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+        let ws;
+        try { ws = new WebSocket(url); } catch (_) { failed(null); return; }
+        socket = ws;
+        const deadline = setTimeout(() => {
+            if (timer === deadline) failed(ws);
+        }, 10000);
+        timer = deadline;
+        ws.onmessage = event => {
+            if (ws !== socket) return;
+            const value = decodeSnapshot(event.data);
+            if (!value) { failed(ws); return; }
+            if (value.access === 'pin_required' || value.access === 'blocked') {
+                denied(value);
+                return;
+            }
+            accessDenied = false;
+            clearTimeout(timer);
+            timer = null;
+            retries = 0;
+            lastSnapshotAt = Date.now();
+            clearTimeout(livenessTimer);
+            livenessTimer = setTimeout(() => {
+                livenessTimer = null;
+                // Background throttling is revalidated by the page's visibility-return path.
+                if (ws === socket && !paused && !document.hidden) failed(ws);
+            }, livenessTimeout);
+            callbacks.snapshot(value);
+        };
+        ws.onclose = ws.onerror = () => failed(ws);
+    }
+    function retry() {
+        paused = false;
+        retries = 0;
+        callbacks.state('connecting');
+        open();
+    }
+    function submitPin(pin) {
+        if (pinRequest) return;
+        if (!/^[0-9]{6}$/.test(pin)) { callbacks.pin('pinInvalid'); return; }
+        // Do not let an older admission reply race the explicit login result.
+        disposeSocket();
+        const request = new XMLHttpRequest();
+        pinRequest = request;
+        callbacks.pin('pinSending');
+        request.open('POST', '/pin', true);
+        request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        request.timeout = 10000;
+        const finish = () => {
+            if (pinRequest !== request) return false;
+            pinRequest = null;
+            if (accessDenied) schedule(admissionInterval);
+            return true;
+        };
+        request.onload = () => {
+            if (!finish()) return;
+            if (request.status === 204) { callbacks.pin('success'); retry(); }
+            else if (request.status === 403) callbacks.pin('pinWrong');
+            else if (request.status === 429) {
+                const seconds = parseInt(request.getResponseHeader('Retry-After'), 10);
+                denied({ access: 'blocked', retryAfterMs: (isFinite(seconds) && seconds > 0 ? seconds : 1) * 1000 });
+            } else callbacks.pin('pinNetwork');
+        };
+        request.onerror = request.ontimeout = () => { if (finish()) callbacks.pin('pinNetwork'); };
+        request.send('pin=' + encodeURIComponent(pin));
+    }
+    function pause() {
+        paused = true;
+        disposeSocket();
+        if (pinRequest) { const request = pinRequest; pinRequest = null; request.abort(); }
+    }
+    return { retry, submitPin, pause,
+        healthy: () => !!socket && socket.readyState === 1 && lastSnapshotAt > 0 && Date.now() - lastSnapshotAt < livenessTimeout };
+}
+
+// At most one displayed image and one replacement candidate.
+function createMedia(stage, imageAlt, callbacks) {
+    const delays = [0, 1000, 2000, 4000, 8000];
+    let displayed = null, candidate = null, generation = 0;
+    let firstTimer = null, nextTimer = null, sizeTimer = null;
+    let mediaEligible = false, method = 'mjpeg', imageKind = 'none';
+    let retainedWait = false;
+    let retries = 0, width = 0, height = 0;
+    function discard(image) {
+        if (!image) return;
+        image.onload = image.onerror = null;
+        image.removeAttribute('src');
+        if (image.parentNode) image.parentNode.removeChild(image);
+    }
+    function cancelCandidate() {
+        generation += 1;
+        clearTimeout(firstTimer); clearTimeout(nextTimer);
+        firstTimer = nextTimer = null;
+        retainedWait = false;
+        discard(candidate); candidate = null;
+    }
+    function dimensions() {
+        // Intrinsic size loss means unavailable image data, not a known transport cause.
+        if (displayed && (!displayed.naturalWidth || !displayed.naturalHeight)) {
+            displayedUnavailable(displayed);
+            return;
+        }
+        if (displayed && (width !== displayed.naturalWidth || height !== displayed.naturalHeight)) {
+            width = displayed.naturalWidth; height = displayed.naturalHeight;
+            callbacks.image(displayed, width, height);
+        }
+    }
+    function clearDisplayed() {
+        clearTimeout(sizeTimer); sizeTimer = null;
+        discard(displayed); displayed = null;
+        width = height = 0;
+        callbacks.image(null, 0, 0);
+    }
+    function observeSize() {
+        clearTimeout(sizeTimer);
+        dimensions();
+        if (displayed) sizeTimer = setTimeout(observeSize, 500);
+    }
+    function retryLater() {
+        if (!mediaEligible) return;
+        if (retries >= delays.length) { callbacks.state('failed'); return; }
+        callbacks.state('retrying');
+        nextTimer = setTimeout(start, delays[retries++]);
+    }
+    function failed(id, image) {
+        if (id !== generation || image !== candidate) return;
+        cancelCandidate();
+        retryLater();
+    }
+    function displayedUnavailable(image) {
+        if (image !== displayed) return;
+        clearDisplayed();
+        // A replacement already loading or scheduled keeps its own attempt and deadline.
+        if (candidate || nextTimer !== null) { callbacks.state('retrying'); return; }
+        retryLater();
+    }
+    function promote(id, image) {
+        if (id !== generation || image !== candidate || !image.naturalWidth || !image.naturalHeight) return;
+        clearTimeout(firstTimer); firstTimer = null;
+        // Give the replacement its final layout before removing the old flow image.
+        image.className = 'stream-image';
+        discard(displayed);
+        displayed = image; candidate = null;
+        image.style.visibility = 'visible';
+        image.removeAttribute('aria-hidden');
+        image.alt = imageAlt;
+        image.onload = () => { if (image === displayed) dimensions(); };
+        image.onerror = () => displayedUnavailable(image);
+        retries = 0;
+        width = image.naturalWidth; height = image.naturalHeight;
+        callbacks.image(displayed, width, height);
+        observeSize();
+        callbacks.state('viewing');
+        // Keep JPEGs single-flight; wait after each decoded frame before loading its replacement.
+        if (method === 'jpeg') {
+            if (imageKind === 'live') nextTimer = setTimeout(start, 30);
+            else {
+                retainedWait = true;
+                nextTimer = setTimeout(start, 500);
+            }
+        }
+    }
+    function start() {
+        cancelCandidate();
+        if (!mediaEligible) return;
+        const id = generation;
+        const image = new Image();
+        candidate = image;
+        image.className = 'stream-candidate';
+        image.alt = '';
+        image.setAttribute('aria-hidden', 'true');
+        image.style.visibility = 'hidden';
+        stage.appendChild(image);
+        if (!displayed) callbacks.state('starting');
+        let decoding = false;
+        const ready = () => {
+            if (id !== generation || image !== candidate || !image.naturalWidth || !image.naturalHeight ||
+                (method === 'jpeg' && !image.complete)) return;
+            // Load admits the initial image; it does not track subsequent multipart frames.
+            if (method === 'jpeg') {
+                if (decoding) return;
+                decoding = true;
+                image.decode().then(() => promote(id, image), () => failed(id, image));
+            } else promote(id, image);
+        };
+        image.onload = ready;
+        image.onerror = () => failed(id, image);
+        // This bounds waiting for an initial usable image, not ongoing stream freshness.
+        firstTimer = setTimeout(() => failed(id, image), 10000);
+        image.src = '/' + method + '?requestSequence=' + id;
+    }
+    function apply(value, refresh) {
+        const previousMediaEligible = mediaEligible;
+        const previousImageKind = imageKind;
+        const methodChanged = method !== value.method;
+        imageKind = value.imageKind;
+        method = value.method;
+        mediaEligible = value.eligible;
+        if (!mediaEligible) {
+            if (previousMediaEligible) { cancelCandidate(); clearDisplayed(); retries = 0; callbacks.state('idle'); }
+            return;
+        }
+        if (refresh || !previousMediaEligible) { retries = 0; start(); }
+        else if (methodChanged) retry();
+        else if (method === 'jpeg' && previousImageKind === 'retained' && imageKind === 'live' &&
+            retainedWait && !candidate) start();
+        // Other state updates leave healthy, retrying and exhausted attempts alone.
+    }
+    function retry() {
+        if (!mediaEligible) return;
+        retries = 0;
+        callbacks.state('retrying');
+        start();
+    }
+    function pause() { cancelCandidate(); clearDisplayed(); }
+    function resume() {
+        if (mediaEligible && !candidate && (!displayed || !displayed.naturalWidth)) retry();
+    }
+    return { apply, pause, resume };
+}
+
+function createPictureInPicture(pip, video, callbacks) {
+    let image = null, currentAttempt = null, pendingOperation = null;
+    let started = false;
+    const pipSupported = !!(window.HTMLCanvasElement && HTMLCanvasElement.prototype.captureStream &&
+        video.requestPictureInPicture && 'srcObject' in video && document.pictureInPictureEnabled);
+    pip.hidden = !pipSupported;
+    pip.disabled = true;
+    function updateButton() { pip.disabled = !image || pendingOperation !== null; }
+    function isCurrent(attempt) { return currentAttempt === attempt; }
+    function release(attempt) {
+        if (attempt.phase === 'released') return;
+        if (isCurrent(attempt)) currentAttempt = null;
+        attempt.phase = 'released';
+        clearTimeout(attempt.paintTimer); clearTimeout(attempt.prepareTimer);
+        attempt.paintTimer = attempt.prepareTimer = null;
+        if (attempt.stream && video.srcObject === attempt.stream) {
+            video.onloadedmetadata = null;
+            video.pause(); video.srcObject = null;
+        }
+        if (attempt.stream) attempt.stream.getTracks().forEach(track => track.stop());
+        // Pending browser promises retain the attempt, so release every media reference now.
+        attempt.canvas = attempt.context = attempt.stream = attempt.window = null;
+    }
+    function finishOperation(operation) {
+        if (pendingOperation === operation) pendingOperation = null;
+        updateButton();
+    }
+    function exit() {
+        if (pendingOperation || document.pictureInPictureElement !== video) return;
+        const operation = {};
+        pendingOperation = operation;
+        updateButton();
+        try {
+            document.exitPictureInPicture().then(() => finishOperation(operation), () => finishOperation(operation));
+        } catch (_) { finishOperation(operation); }
+    }
+    function stopAttempt(attempt) {
+        const wasCurrent = isCurrent(attempt);
+        release(attempt);
+        if (wasCurrent) exit();
+        updateButton();
+    }
+    function stop() {
+        if (currentAttempt) stopAttempt(currentAttempt);
+        else exit();
+    }
+    function fail(attempt) {
+        if (!isCurrent(attempt)) return;
+        callbacks.notice('pipError');
+        stopAttempt(attempt);
+    }
+    function enter(attempt) {
+        if (!isCurrent(attempt) || !attempt.stream || pendingOperation) return;
+        attempt.phase = 'entering';
+        const operation = {};
+        pendingOperation = operation;
+        updateButton();
+        let result;
+        try { result = video.requestPictureInPicture(); }
+        catch (_) { finishOperation(operation); fail(attempt); return; }
+        result.then(pipWindow => {
+            finishOperation(operation);
+            if (!isCurrent(attempt)) {
+                // Native requests cannot be cancelled; retire a late entry before another attempt.
+                exit();
+                return;
+            }
+            if (document.pictureInPictureElement !== video) { stopAttempt(attempt); return; }
+            attempt.phase = 'active';
+            attempt.window = pipWindow;
+            clearTimeout(attempt.prepareTimer); attempt.prepareTimer = null;
+        }, error => {
+            finishOperation(operation);
+            if (!isCurrent(attempt)) return;
+            if (error.name === 'NotAllowedError') {
+                attempt.phase = 'ready';
+                callbacks.notice('pipReady');
+                clearTimeout(attempt.prepareTimer);
+                attempt.prepareTimer = setTimeout(() => stopAttempt(attempt), 30000);
+            } else fail(attempt);
+        });
+    }
+    function toggle() {
+        if (!pipSupported || !image || pendingOperation) return;
+        if (document.pictureInPictureElement === video) { stop(); return; }
+        if (currentAttempt) {
+            if (currentAttempt.phase === 'ready' && video.readyState >= 2) enter(currentAttempt);
+            return;
+        }
+        const attempt = { phase: 'preparing', canvas: null, context: null, stream: null,
+            paintTimer: null, prepareTimer: null, window: null };
+        currentAttempt = attempt;
+        try {
+            attempt.canvas = document.createElement('canvas');
+            attempt.context = attempt.canvas.getContext('2d');
+            const paint = () => {
+                if (!isCurrent(attempt) || !image) return;
+                try {
+                    if (attempt.canvas.width !== image.naturalWidth || attempt.canvas.height !== image.naturalHeight) {
+                        attempt.canvas.width = image.naturalWidth; attempt.canvas.height = image.naturalHeight;
+                    }
+                    attempt.context.drawImage(image, 0, 0);
+                } catch (_) { fail(attempt); return; }
+                attempt.paintTimer = setTimeout(paint, 100);
+            };
+            paint();
+            if (!isCurrent(attempt)) return;
+            attempt.stream = attempt.canvas.captureStream(10);
+            video.onloadedmetadata = () => {
+                if (!isCurrent(attempt) || video.srcObject !== attempt.stream) return;
+                video.onloadedmetadata = null;
+                // Keep the preparation deadline through play() and the native PiP request.
+                try { video.play().then(() => enter(attempt), () => fail(attempt)); }
+                catch (_) { fail(attempt); }
+            };
+            attempt.prepareTimer = setTimeout(() => fail(attempt), 10000);
+            video.srcObject = attempt.stream;
+        } catch (_) { fail(attempt); }
+    }
+    function start() {
+        if (started) return;
+        started = true;
+        video.addEventListener('leavepictureinpicture', event => {
+            const attempt = currentAttempt;
+            if (attempt && attempt.phase === 'active' && event.pictureInPictureWindow === attempt.window &&
+                document.pictureInPictureElement !== video) stopAttempt(attempt);
+        });
+        pip.addEventListener('click', toggle);
+    }
+    return {
+        start,
+        setImage: value => { image = value; updateButton(); if (!image) stop(); },
+        stop
+    };
+}
+
+function createViewportLayout() {
+    const shell = byId('shell'), safeArea = byId('safe-area');
+    const listeners = [];
+    let started = false;
+    function bounds() {
+        const visual = window.visualViewport;
+        const unzoomed = !visual || Math.abs(visual.scale - 1) < .01;
+        // Percentage heights can stay at the small viewport after browser bars retract.
+        // Keep the canvas at layout size; a keyboard constrains its usable rectangle below.
+        if (unzoomed) {
+            const height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+            if (height > 0) shell.style.height = height + 'px';
+        }
+        const origin = shell.getBoundingClientRect(), width = shell.clientWidth, height = shell.clientHeight;
+        let left = 0, top = 0, right = width, bottom = height;
+        if (unzoomed) {
+            const useVisual = visual && visual.width > 0 && visual.height > 0;
+            left = (useVisual ? visual.offsetLeft : 0) - origin.left;
+            top = (useVisual ? visual.offsetTop : 0) - origin.top;
+            right = left + (useVisual ? visual.width : window.innerWidth || width);
+            bottom = top + (useVisual ? visual.height : window.innerHeight || height);
+        }
+        // Zoom magnifies the existing layout; do not chase the shrunken visual viewport.
+        const safe = window.getComputedStyle(safeArea);
+        left = Math.min(width, Math.max(0, left, parseFloat(safe.left) || 0));
+        top = Math.min(height, Math.max(0, top + 4, parseFloat(safe.top) || 0));
+        right = Math.max(left, Math.min(width, right, width - (parseFloat(safe.right) || 0)));
+        bottom = Math.max(top, Math.min(height, bottom - 4, height - (parseFloat(safe.bottom) || 0)));
+        return { left, top, right, bottom, width: right - left, height: bottom - top };
+    }
+    function refresh() {
+        const value = bounds();
+        listeners.forEach(listener => listener(value));
+    }
+    function keepFocusVisible(panel) {
+        const focused = document.activeElement;
+        if (panel.hidden || !focused || focused === panel || focused.disabled || !panel.contains(focused) || panel.clientHeight <= 0) return;
+        const field = focused.getBoundingClientRect(), box = panel.getBoundingClientRect();
+        if (field.bottom <= field.top) return;
+        // Our own later relayout need not repeat the browser's initial focus scroll.
+        const top = box.top + panel.clientTop, bottom = top + panel.clientHeight;
+        if (field.top < top || field.bottom - field.top > panel.clientHeight) panel.scrollTop += field.top - top;
+        else if (field.bottom > bottom) panel.scrollTop += field.bottom - bottom;
+    }
+    function start() {
+        if (started) return;
+        started = true;
+        ['resize', 'orientationchange', 'scroll', 'pageshow'].forEach(name => window.addEventListener(name, refresh));
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach(name => {
+            document.addEventListener(name, refresh);
+        });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', refresh);
+            window.visualViewport.addEventListener('scroll', refresh);
+        }
+        refresh();
+    }
+    return { start, bounds, keepFocusVisible, watch: listener => { listeners.push(listener); if (started) listener(bounds()); } };
+}
+
+function createAccessPanel(viewportLayout, callbacks) {
+    const panel = byId('pin-panel'), input = byId('pin'), submitButton = byId('unlock');
+    const title = byId('pin-title'), message = byId('pin-message'), entry = byId('pin-entry');
+    const fieldError = byId('pin-error');
+    const blockCopy = byId('pin-block-copy'), countdown = byId('pin-countdown');
+    const logo = byId('pin-logo'), retryButton = byId('pin-retry'), countdownValue = byId('pin-countdown-value');
+    let current = null, started = false, restoreEntryFocus = false;
+
+    function cancelFocusRestore() { restoreEntryFocus = false; }
+
+    function showFieldError(value) {
+        text(fieldError, value);
+        fieldError.hidden = !value;
+        input.setAttribute('aria-invalid', value ? 'true' : 'false');
+    }
+    function showMessage(value) {
+        text(title, words.pinTitle);
+        entry.hidden = false;
+        blockCopy.hidden = true;
+        message.classList.remove('sr-only');
+        countdown.hidden = true;
+        text(message, value);
+        message.hidden = !value;
+    }
+    function formatRemaining(seconds) {
+        return seconds < 60 ? secondsText('countdownSeconds', seconds) : Math.floor(seconds / 60) + ':' + (seconds % 60 < 10 ? '0' : '') + seconds % 60;
+    }
+    function formatSpokenRemaining(seconds) {
+        return seconds === 1 ? words.pinBlockedAnnouncementSecond : secondsText('pinBlockedAnnouncementSeconds', seconds);
+    }
+    function showBlocked(seconds, repeated) {
+        if (!repeated) showFieldError('');
+        text(title, words.pinBlockedTitle);
+        entry.hidden = true;
+        blockCopy.hidden = false;
+        // Announce the block once; keep per-second updates out of the live region.
+        message.classList.add('sr-only');
+        message.hidden = false;
+        countdown.hidden = false;
+        if (!repeated) text(message, formatSpokenRemaining(seconds));
+        input.disabled = submitButton.disabled = seconds > 0;
+        countdownValue.dir = seconds < 60 ? locale.dir : 'ltr';
+        text(countdownValue, formatRemaining(seconds));
+    }
+    function hide() {
+        cancelFocusRestore();
+        showFieldError('');
+        panel.hidden = true;
+        input.value = '';
+    }
+    function result(value) {
+        submitButton.disabled = value === 'pinSending';
+        showFieldError('');
+        const invalid = value === 'pinWrong' || value === 'pinInvalid';
+        showMessage(invalid ? '' : words[value]);
+        if (invalid) {
+            showFieldError(words[value]);
+            if (value === 'pinWrong') input.select();
+            input.focus();
+        }
+    }
+    function render(value) {
+        const previous = current;
+        current = value;
+        if (!value.visible) {
+            if (!previous || previous.visible) hide();
+            retryButton.hidden = true;
+            return;
+        }
+        const repeated = previous && previous.visible && previous.mode === value.mode;
+        if (!repeated) {
+            const blockEnded = previous && previous.visible && previous.mode === 'blocked' && value.mode === 'pin_required';
+            const focused = document.activeElement;
+            const restoreFocus = blockEnded && restoreEntryFocus && (!focused || focused === document.body) &&
+                !document.hidden && document.hasFocus();
+            restoreEntryFocus = !!(value.mode === 'blocked' && previous && previous.visible && entry.contains(focused) &&
+                !document.hidden && document.hasFocus());
+            showFieldError('');
+            layout();
+            const wasHidden = panel.hidden;
+            panel.hidden = false;
+            input.disabled = submitButton.disabled = false;
+            if (value.mode !== 'blocked') {
+                showMessage(blockEnded ? words.pinTitle : '');
+                // Reuse the already exposed status region for a single readiness announcement.
+                if (blockEnded) message.classList.add('sr-only');
+                if (wasHidden || restoreFocus) input.focus();
+            }
+        }
+        if (value.mode === 'blocked') showBlocked(value.seconds, repeated);
+        else if (previous && previous.result && !value.result) {
+            const key = previous.result.key;
+            if (key === 'pinNetwork' || key === 'pinSending') {
+                showMessage('');
+                submitButton.disabled = false;
+                if (key === 'pinNetwork' && document.activeElement === retryButton) input.focus();
+            }
+        }
+        if (value.result && (!previous || value.result !== previous.result)) result(value.result.key);
+        retryButton.hidden = !value.result || value.result.key !== 'pinNetwork';
+    }
+    function layout(value) {
+        const visible = value || viewportLayout.bounds();
+        panel.style.left = visible.left + visible.width / 2 + 'px';
+        panel.style.top = visible.top + visible.height / 2 + 'px';
+        panel.style.maxWidth = Math.max(0, visible.width - 32) + 'px';
+        panel.style.maxHeight = Math.max(0, visible.height - 32) + 'px';
+        logo.style.width = Math.max(40, visible.height - 264) + 'px';
+        if (!entry.hidden) viewportLayout.keepFocusVisible(panel);
+    }
+    function start() {
+        if (started) return;
+        started = true;
+        document.addEventListener('focusin', event => {
+            if (event.target !== document.body && !entry.contains(event.target)) cancelFocusRestore();
+        });
+        ['mousedown', 'touchstart'].forEach(name => document.addEventListener(name, cancelFocusRestore));
+        document.addEventListener('visibilitychange', () => { if (document.hidden) cancelFocusRestore(); });
+        window.addEventListener('blur', cancelFocusRestore);
+        input.addEventListener('input', () => {
+            const value = input.value, start = input.selectionStart, end = input.selectionEnd;
+            const digits = value.replace(/[^0-9]/g, '').slice(0, 6);
+            if (value !== digits) {
+                input.value = digits;
+                input.setSelectionRange(
+                    Math.min(digits.length, value.slice(0, start).replace(/[^0-9]/g, '').length),
+                    Math.min(digits.length, value.slice(0, end).replace(/[^0-9]/g, '').length));
+            }
+            showFieldError('');
+        });
+        input.addEventListener('paste', event => {
+            if (!event.clipboardData) return;
+            event.preventDefault();
+            const start = input.selectionStart, end = input.selectionEnd;
+            const digits = event.clipboardData.getData('text').replace(/[^0-9]/g, '');
+            const inserted = digits.slice(0, 6 - input.value.length + end - start);
+            if (!inserted) return;
+            input.value = input.value.slice(0, start) + inserted + input.value.slice(end);
+            input.setSelectionRange(start + inserted.length, start + inserted.length);
+            showFieldError('');
+        });
+        byId('pin-form').addEventListener('submit', event => {
+            event.preventDefault();
+            if (current && current.visible && current.mode !== 'blocked' && !submitButton.disabled) callbacks.submit(input.value);
+        });
+        retryButton.addEventListener('click', callbacks.retry);
+        viewportLayout.watch(layout);
+    }
+    return { start, render, resume: () => { cancelFocusRestore(); layout(); } };
+}
+
+function createPresentation(viewportLayout, callbacks) {
+    const shell = byId('shell'), viewport = byId('viewport'), stage = byId('image-stage');
+    const caption = byId('caption'), controls = byId('controls'), menu = byId('menu');
+    const fullscreenButton = byId('fullscreen'), more = byId('more');
+    const topBar = byId('top-bar'), bottomBar = byId('bottom-bar');
+    const statusPanel = byId('status-panel'), stateMessage = byId('state-message'), placeholder = byId('placeholder');
+    const recovery = byId('recovery'), retryButton = byId('recovery-retry'), alternateButton = byId('recovery-alternate');
+    const stateLogo = byId('state-logo'), captionText = byId('caption-text'), tooltip = byId('control-tooltip');
+    const infoConnection = byId('info-connection'), infoImage = byId('info-image'), infoSize = byId('info-size');
+    const infoNotice = byId('info-notice'), infoNoticeLabel = byId('info-notice-label');
+    const methodButtons = ['mjpeg', 'jpeg'].map(method => ({ method, button: byId('method-' + method) }));
+    let tooltipButton = null, hoveredControl = null, touchUntil = 0;
+    let display = null, mode = 'fit', image = null, width = 0, height = 0;
+    let inactivity = null, interacting = false, menuOpen = false;
+    let fullscreenAttempt = null;
+    let selectedMethod = 'mjpeg', started = false, paused = false;
+    const fullRequest = shell.requestFullscreen || shell.webkitRequestFullscreen;
+    const fullExit = document.exitFullscreen || document.webkitExitFullscreen;
+    fullscreenButton.hidden = !fullRequest || !fullExit;
+    const pictureInPicture = createPictureInPicture(byId('pip'), byId('pip-video'), callbacks);
+    function fullscreenElement() {
+        return document.fullscreenElement || document.webkitFullscreenElement;
+    }
+    function showBlocks() {
+        const changed = caption.classList.contains('autohidden') || controls.classList.contains('autohidden');
+        caption.classList.remove('autohidden'); controls.classList.remove('autohidden');
+        if (changed) { shell.classList.remove('hud-hiding'); layout(); }
+    }
+    function hideTooltip() { tooltip.hidden = true; tooltipButton = null; }
+    function positionTooltip() {
+        if (!tooltipButton) return;
+        const visible = viewportLayout.bounds();
+        const bounds = tooltipButton.getBoundingClientRect(), origin = shell.getBoundingClientRect();
+        const left = bounds.left - origin.left + (bounds.width - tooltip.offsetWidth) / 2;
+        tooltip.style.left = Math.max(visible.left + 8, Math.min(visible.right - tooltip.offsetWidth - 8, left)) + 'px';
+        const above = bounds.top - origin.top - tooltip.offsetHeight - 8;
+        const top = above >= visible.top + 8 ? above : bounds.bottom - origin.top + 8;
+        tooltip.style.top = Math.max(visible.top, Math.min(visible.bottom - tooltip.offsetHeight, top)) + 'px';
+    }
+    function showTooltip(button) {
+        if (!button || button.disabled || button.hidden || menuOpen || Date.now() < touchUntil) return;
+        const label = button.getAttribute('data-tooltip');
+        if (!label) return;
+        tooltipButton = button; text(tooltip, label); tooltip.hidden = false; positionTooltip();
+    }
+    function holdsFocus() {
+        return !shell.classList.contains('pointer-input') &&
+            (controls.contains(document.activeElement) || menu.contains(document.activeElement));
+    }
+    function activity() {
+        if (paused) return;
+        showBlocks();
+        clearTimeout(inactivity);
+        inactivity = setTimeout(() => {
+            inactivity = null;
+            if (!display || interacting || menuOpen || hoveredControl || holdsFocus()) return;
+            let changed = false;
+            if (display.titleLayout.presentation === 'overlay' && display.titleLayout.autoHide) {
+                caption.classList.add('autohidden'); changed = true;
+            }
+            if (display.controlsLayout.presentation === 'overlay' && display.controlsLayout.autoHide) {
+                controls.classList.add('autohidden'); hideTooltip(); changed = true;
+            }
+            if (changed) { shell.classList.add('hud-hiding'); layout(); }
+        }, 4000);
+    }
+    function sizeImage() {
+        viewport.classList.toggle('view-fit', mode === 'fit');
+        viewport.classList.toggle('view-width', mode === 'width');
+        // The stage owns only natural extent; CSS follows the final viewport after scrollbars.
+        stage.style.width = image && mode === 'original' ? width + 'px' : '100%';
+        stage.style.height = image && mode === 'original' ? height + 'px' : mode === 'width' ? 'auto' : '100%';
+        if (!image || !width || !height) return;
+        if (mode === 'fit') {
+            // Fit removes scrollbars before measuring, so a previous mode cannot narrow it.
+            const scale = Math.min(viewport.clientWidth / width, viewport.clientHeight / height);
+            image.style.width = Math.max(1, width * scale) + 'px';
+            image.style.height = Math.max(1, height * scale) + 'px';
+            viewport.scrollLeft = viewport.scrollTop = 0;
+        } else if (mode === 'original') {
+            image.style.width = width + 'px'; image.style.height = height + 'px';
+        } else {
+            // Native width/auto-height layout resolves vertical overflow without a JS feedback loop.
+            image.style.width = image.style.height = '';
+        }
+    }
+    function layout(value) {
+        const visible = value || viewportLayout.bounds();
+        const bottom = shell.clientHeight - visible.bottom, center = visible.left + visible.width / 2;
+        const blocks = display ? [{ node: controls, settings: display.controlsLayout }, { node: caption, settings: display.titleLayout }] : [];
+        const reserved = { top: visible.top, bottom };
+        // Measure after applying presentation and width; only bars reserve image space.
+        blocks.forEach(block => {
+            const node = block.node, settings = block.settings;
+            if (node.hidden) return;
+            node.classList.toggle('separate-bar', settings.presentation === 'bar');
+            node.style.left = center + 'px';
+            const inset = node === caption && settings.presentation !== 'bar' ? (visible.width <= 600 ? 16 : visible.width * .05) : 0;
+            node.style.maxWidth = Math.max(0, visible.width - inset) + 'px';
+            block.edge = settings.position === 'top' ? 'top' : 'bottom';
+            block.height = node.offsetHeight;
+            node.classList.toggle('at-top', block.edge === 'top');
+            node.style[block.edge === 'top' ? 'bottom' : 'top'] = '';
+            if (settings.presentation === 'bar') {
+                node.style[block.edge] = reserved[block.edge] + 'px';
+                reserved[block.edge] += block.height;
+            }
+        });
+        const totals = { top: reserved.top, bottom: reserved.bottom };
+        const occupied = { top: reserved.top, bottom: reserved.bottom };
+        // Each group keeps controls outermost. Visible overlays pack inside the bars;
+        // hidden overlays retain their full-stack position while fading out.
+        blocks.forEach(block => {
+            const node = block.node;
+            if (node.hidden || block.settings.presentation === 'bar') return;
+            const edge = block.edge, hidden = node.classList.contains('autohidden');
+            node.style[edge] = (hidden ? totals[edge] : occupied[edge]) + 'px';
+            totals[edge] += block.height;
+            if (!hidden) occupied[edge] += block.height;
+        });
+        topBar.style.height = reserved.top + 'px'; bottomBar.style.height = reserved.bottom + 'px';
+        viewport.style.top = reserved.top + 'px'; viewport.style.bottom = reserved.bottom + 'px';
+        viewport.style.left = visible.left + 'px'; viewport.style.right = shell.clientWidth - visible.right + 'px';
+        menu.style.left = center + 'px'; menu.style.marginLeft = '0';
+        menu.style.transform = 'translateX(-50%)';
+        menu.style.maxWidth = Math.max(0, visible.width - 16) + 'px';
+        if (statusPanel.parentNode === shell) {
+            let statusBottom = occupied.bottom + 8;
+            let statusHeight = Math.max(0, shell.clientHeight - occupied.top - statusBottom - 8);
+            if (statusHeight < (recovery.hidden ? 48 : 96)) {
+                // Recovery stays scrollable above the HUD when the free strip is too short.
+                statusBottom = bottom + 4;
+                statusHeight = Math.max(0, visible.height - 8);
+            }
+            statusPanel.style.bottom = statusBottom + 'px'; statusPanel.style.left = center + 'px';
+            statusPanel.style.maxWidth = Math.max(0, visible.width - 24) + 'px';
+            statusPanel.style.maxHeight = statusHeight + 'px';
+            viewportLayout.keepFocusVisible(statusPanel);
+        }
+        menu.style.top = menu.style.bottom = '';
+        const edge = display && display.controlsLayout.position === 'top' ? 'top' : 'bottom';
+        menu.style[edge] = totals[edge] + 4 + 'px';
+        const menuSpace = shell.clientHeight - totals.top - totals.bottom - 12;
+        if (menuSpace < 48) {
+            // In a very short window the scrollable panel may cover the HUD, but stays reachable.
+            menu.style.bottom = ''; menu.style.top = visible.top + 4 + 'px';
+        }
+        menu.style.maxHeight = Math.max(0, menuSpace < 48 ? visible.height - 8 : menuSpace) + 'px';
+        viewportLayout.keepFocusVisible(menu);
+        const stateTop = totals.top - reserved.top, stateBottom = totals.bottom - reserved.bottom;
+        const stateHeight = Math.max(0, viewport.clientHeight - stateTop - stateBottom);
+        placeholder.style.top = stateTop + stateHeight / 2 + 'px';
+        placeholder.style.maxHeight = Math.max(0, stateHeight - 32) + 'px';
+        stateLogo.style.width = Math.max(40, stateHeight - 264) + 'px';
+        sizeImage(); positionTooltip();
+    }
+    function sameLayout(previous, next) {
+        return previous.position === next.position && previous.presentation === next.presentation &&
+            previous.autoHide === next.autoHide;
+    }
+    function sameDisplay(previous, next) {
+        return !!previous && previous.background === next.background && previous.title === next.title &&
+            previous.titleEnabled === next.titleEnabled &&
+            sameLayout(previous.titleLayout, next.titleLayout) && sameLayout(previous.controlsLayout, next.controlsLayout);
+    }
+    function applyBackground() {
+        const background = display && /^#[0-9a-fA-F]{6}$/.test(display.background) ? display.background : '#101418';
+        shell.style.backgroundColor = shell.classList.contains('empty-screen') || shell.classList.contains('access-screen') ? '' : background;
+        return background;
+    }
+    function setStatus(value) {
+        const focused = recovery.contains(document.activeElement) ? document.activeElement : null;
+        const parent = value.empty ? placeholder : shell;
+        const moved = statusPanel.parentNode !== parent;
+        const changed = moved || stateMessage.textContent !== value.message ||
+            stateLogo.hidden !== !value.logo ||
+            statusPanel.hidden !== (value.access || !value.message) ||
+            retryButton.hidden === value.retry || alternateButton.hidden === value.alternate ||
+            statusPanel.classList.contains('status-failed') !== value.failed;
+        shell.classList.toggle('empty-screen', value.empty);
+        applyBackground();
+        placeholder.style.display = value.access ? 'none' : '';
+        stateLogo.hidden = !value.logo;
+        if (moved) {
+            parent.appendChild(statusPanel);
+            statusPanel.removeAttribute('style');
+        }
+        statusPanel.classList.toggle('status-overlay', !value.empty);
+        statusPanel.classList.toggle('status-compact', !value.retry && !value.alternate);
+        statusPanel.classList.toggle('status-failed', value.failed);
+        if (stateMessage.textContent !== value.message) text(stateMessage, value.message);
+        statusPanel.hidden = value.access || !value.message;
+        retryButton.hidden = !value.retry;
+        alternateButton.hidden = !value.alternate;
+        recovery.hidden = !value.retry && !value.alternate;
+        if (changed) layout();
+        if (focused && !value.access) {
+            if (!focused.hidden && !recovery.hidden && !statusPanel.hidden) {
+                if (document.activeElement !== focused) focused.focus();
+            } else {
+                activity(); (controls.hidden ? viewport : more).focus();
+            }
+        }
+    }
+    function configure(value, force) {
+        // Unchanged snapshots must not reset the viewer's inactivity timer.
+        if (!force && sameDisplay(display, value)) return;
+        display = value;
+        shell.classList.remove('access-screen');
+        const background = applyBackground();
+        const channels = [1, 3, 5].map(offset => {
+            const channel = parseInt(background.substr(offset, 2), 16) / 255;
+            return channel <= .04045 ? channel / 12.92 : Math.pow((channel + .055) / 1.055, 2.4);
+        });
+        const luminance = .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+        // Choose whichever of black or white has stronger contrast against the shared background.
+        shell.classList.toggle('dark-bar-text', (luminance + .05) / .05 > 1.05 / (luminance + .05));
+        text(captionText, value.title);
+        caption.title = value.title;
+        document.title = value.title || words.app;
+        caption.hidden = !value.titleEnabled;
+        controls.hidden = false;
+        activity(); layout();
+    }
+    function setFrame(value, w, h) {
+        image = value;
+        width = w; height = h;
+        pictureInPicture.setImage(value);
+        placeholder.hidden = !!image;
+        sizeImage();
+    }
+    function closeMenu(focus) {
+        menuOpen = false; menu.hidden = true; more.setAttribute('aria-expanded', 'false');
+        shell.classList.remove('menu-open');
+        if (focus) more.focus();
+        hideTooltip(); activity();
+    }
+    function toggleMenu() {
+        hideTooltip();
+        if (menuOpen) { closeMenu(true); return; }
+        menuOpen = true; menu.hidden = false; more.setAttribute('aria-expanded', 'true');
+        shell.classList.add('menu-open');
+        activity(); layout();
+        const method = byId('method-' + selectedMethod);
+        (method.disabled ? menu : method).focus();
+    }
+    function render(value) {
+        selectedMethod = value.method;
+        text(alternateButton, value.method === 'mjpeg' ? words.useJpeg : words.useMjpeg);
+        methodButtons.forEach(choice => {
+            choice.button.setAttribute('aria-pressed', choice.method === value.method ? 'true' : 'false');
+            choice.button.disabled = !value.methodEnabled;
+        });
+        text(infoConnection, words[value.connection] || value.connection);
+        text(infoImage, words[value.image]);
+        text(infoNotice, value.notice ? words[value.notice] : '');
+        infoNoticeLabel.hidden = infoNotice.hidden = !value.notice;
+        infoSize.dir = value.width && value.height ? 'ltr' : locale.dir;
+        text(infoSize, value.width && value.height ? value.width + ' × ' + value.height : words.unknownSize);
+        const status = value.status;
+        setStatus({
+            message: status.key ? words[status.key] || words.connecting : '',
+            retry: status.retry, alternate: status.alternate, failed: status.failed,
+            access: status.access, empty: status.empty, logo: status.logo
+        });
+    }
+    function revokeFrame() { setFrame(null, 0, 0); }
+    function start() {
+        if (started) return;
+        started = true;
+        const labels = document.querySelectorAll('[data-word]');
+        for (let i = 0; i < labels.length; i += 1) text(labels[i], words[labels[i].getAttribute('data-word')]);
+        const controlLabels = document.querySelectorAll('[data-label]');
+        for (let i = 0; i < controlLabels.length; i += 1) labelControl(controlLabels[i], words[controlLabels[i].getAttribute('data-label')]);
+        const accessibleLabels = document.querySelectorAll('[data-a11y]');
+        for (let i = 0; i < accessibleLabels.length; i += 1) accessibleLabels[i].setAttribute('aria-label', words[accessibleLabels[i].getAttribute('data-a11y')]);
+        const directionalSurfaces = document.querySelectorAll('[data-locale-dir]');
+        for (let i = 0; i < directionalSurfaces.length; i += 1) directionalSurfaces[i].dir = locale.dir;
+        stateLogo.src = byId('pin-logo').src;
+        retryButton.addEventListener('click', callbacks.retry);
+        alternateButton.addEventListener('click', callbacks.switchMethod);
+        methodButtons.forEach(choice => choice.button.addEventListener('click', () => callbacks.selectMethod(choice.method)));
+        pictureInPicture.start();
+        fullscreenButton.addEventListener('click', () => {
+            const attempt = { fail: null };
+            fullscreenAttempt = attempt;
+            const failed = () => {
+                if (fullscreenAttempt !== attempt) return;
+                fullscreenAttempt = null;
+                callbacks.notice('fullscreenError');
+            };
+            try {
+                const result = fullscreenElement() ? fullExit.call(document) : fullRequest.call(shell);
+                // Promise APIs also dispatch error events; only legacy void APIs need the event fallback.
+                if (result && result.catch) result.catch(failed);
+                else attempt.fail = failed;
+            } catch (_) { failed(); }
+        });
+        ['fullscreenerror', 'webkitfullscreenerror'].forEach(name => {
+            document.addEventListener(name, () => { if (fullscreenAttempt && fullscreenAttempt.fail) fullscreenAttempt.fail(); });
+        });
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach(name => {
+            document.addEventListener(name, () => {
+                const active = !!fullscreenElement();
+                fullscreenButton.setAttribute('aria-pressed', active ? 'true' : 'false');
+                labelControl(fullscreenButton, active ? words.leaveFullscreen : words.fullscreen);
+                if (tooltipButton === fullscreenButton) showTooltip(fullscreenButton);
+            });
+        });
+        const modes = ['fit', 'original', 'width'];
+        modes.forEach(value => byId('view-' + value).addEventListener('click', () => {
+            mode = value;
+            modes.forEach(name => byId('view-' + name).setAttribute('aria-pressed', name === mode ? 'true' : 'false'));
+            viewport.scrollLeft = viewport.scrollTop = 0;
+            sizeImage(); activity();
+        }));
+        more.addEventListener('click', toggleMenu);
+        document.addEventListener('click', event => {
+            if (menuOpen && !menu.contains(event.target) && !more.contains(event.target)) closeMenu(false);
+        });
+        document.addEventListener('keydown', event => {
+            touchUntil = 0;
+            shell.classList.remove('pointer-input');
+            activity();
+            if (event.key === 'Escape' || event.key === 'BrowserBack') {
+                hideTooltip();
+                if (menuOpen) { event.preventDefault(); closeMenu(true); }
+                return;
+            }
+            if (controls.contains(document.activeElement)) showTooltip(document.activeElement);
+        });
+        document.addEventListener('mousemove', activity);
+        document.addEventListener('touchstart', () => {
+            touchUntil = Date.now() + 1000;
+            shell.classList.add('pointer-input'); hoveredControl = null; hideTooltip(); interacting = true; activity();
+        });
+        ['touchend', 'touchcancel'].forEach(name => document.addEventListener(name, () => {
+            touchUntil = Date.now() + 1000; interacting = false; activity();
+        }));
+        document.addEventListener('mousedown', () => { shell.classList.add('pointer-input'); hideTooltip(); interacting = true; activity(); });
+        document.addEventListener('mouseup', () => { interacting = false; activity(); });
+        const buttons = controls.querySelectorAll('button');
+        for (let i = 0; i < buttons.length; i += 1) {
+            const button = buttons[i];
+            button.addEventListener('mouseenter', () => {
+                if (Date.now() < touchUntil) return;
+                hoveredControl = button; showTooltip(button); activity();
+            });
+            button.addEventListener('mouseleave', () => { hoveredControl = null; hideTooltip(); activity(); });
+            button.addEventListener('focus', () => {
+                activity();
+                if (!shell.classList.contains('pointer-input')) showTooltip(button);
+            });
+            button.addEventListener('blur', () => { hideTooltip(); activity(); });
+        }
+        viewportLayout.watch(layout);
+    }
+    return { start, configure, setFrame, revokeFrame, render, closeMenu, activity,
+        resume: () => { paused = false; activity(); },
+        pause: () => { paused = true; clearTimeout(inactivity); inactivity = null; fullscreenAttempt = null; interacting = false; hoveredControl = null; hideTooltip(); pictureInPicture.stop(); },
+        accessDenied: () => {
+            hoveredControl = null;
+            shell.classList.add('access-screen');
+            shell.style.backgroundColor = '';
+            closeMenu(false); controls.hidden = caption.hidden = true; pictureInPicture.stop(); layout();
+        } };
+}
+
+function isAuthorizedSnapshot(snapshot) {
+    return !!snapshot && (snapshot.access === 'open' || snapshot.access === 'authorized');
+}
+
+function canLoadScreenImage(snapshot) {
+    return isAuthorizedSnapshot(snapshot) && (snapshot.imageKind === 'live' || snapshot.imageKind === 'retained');
+}
+
+function desiredMedia(state) {
+    return {
+        eligible: !state.lifecycle.paused && !state.lifecycle.revalidation && canLoadScreenImage(state.server),
+        imageKind: state.server ? state.server.imageKind : 'none',
+        method: state.method
+    };
+}
+
+function connectionStatus(state) {
+    if (!state.pin.checking) {
+        if (state.pin.visible) return state.pin.mode;
+        if (state.server && !isAuthorizedSnapshot(state.server)) return state.server.access;
+    }
+    return state.transport;
+}
+
+function captureNotice(state) {
+    return connectionStatus(state) === 'connected' && isAuthorizedSnapshot(state.server) ? state.server.notice : null;
+}
+
+function selectPrimary(state) {
+    const result = (key, retry, alternate, failed) => ({ key, retry: !!retry, alternate: !!alternate, failed: !!failed });
+    const connection = connectionStatus(state);
+    if (state.pin.visible || connection === 'pin_required' || connection === 'blocked') return result('');
+    if (connection === 'unsupported') return result('unsupported');
+    if (connection !== 'connected') return result(connection);
+    if (canLoadScreenImage(state.server)) {
+        if (state.media.phase === 'failed') return result('mediaFailed', true, true, true);
+        if (state.media.phase === 'retrying') return result('mediaRetrying');
+    }
+    const notice = captureNotice(state);
+    if (notice) return result(notice, false, false, notice === 'failed');
+    if (!state.media.available && canLoadScreenImage(state.server)) return result('mediaStarting');
+    return null;
+}
+
+function deriveViewModel(state, now) {
+    const primary = selectPrimary(state);
+    const status = primary || { key: state.notice.expiresAt > now ? state.notice.key : '', retry: false, alternate: false, failed: false };
+    status.access = state.pin.visible;
+    status.empty = !state.pin.visible && !state.media.available;
+    const connection = connectionStatus(state);
+    status.logo = !state.pin.visible && (!isAuthorizedSnapshot(state.server) || connection !== 'connected' || state.server.imageKind === 'logo');
+    const imageKeys = { idle: 'unknownSize', starting: 'mediaStarting', retrying: 'mediaRetrying', failed: 'mediaFailed', viewing: 'viewing' };
+    return {
+        status,
+        connection,
+        image: imageKeys[state.media.phase],
+        notice: captureNotice(state),
+        width: state.media.width,
+        height: state.media.height,
+        method: state.method,
+        methodEnabled: canLoadScreenImage(state.server),
+        pin: {
+            visible: state.pin.visible,
+            mode: state.pin.mode,
+            seconds: Math.max(0, Math.ceil((state.pin.retryAt - now) / 1000)),
+            result: state.pin.result
+        }
+    };
+}
+
+function createApplication(ports) {
+    const clock = ports.clock;
+    const state = {
+        lifecycle: { paused: false, hiddenAt: 0, revalidation: true },
+        server: null,
+        transport: 'connecting',
+        method: 'mjpeg',
+        pin: { visible: false, mode: null, retryAt: 0, result: null, checking: true },
+        media: { phase: 'idle', available: false, width: 0, height: 0 },
+        notice: { key: '', expiresAt: 0 }
+    };
+    const pending = [];
+    let processing = false, started = false, noticeTimer = null, blockTimer = null;
+
+    function clearNotice() {
+        clock.clearTimeout(noticeTimer); noticeTimer = null;
+        state.notice = { key: '', expiresAt: 0 };
+    }
+    function render(model) {
+        ports.access.render(model.pin);
+        ports.presentation.render(model);
+    }
+    function dispatch(action) {
+        pending.push(action);
+        if (processing) return;
+        processing = true;
+        try {
+            do {
+                while (pending.length) pending.shift()();
+                if (selectPrimary(state)) clearNotice();
+                render(deriveViewModel(state, clock.now()));
+            } while (pending.length);
+        } finally { processing = false; }
+    }
+    function applyMedia(refresh) { ports.media.apply(desiredMedia(state), !!refresh); }
+    function blockTick() {
+        clock.clearTimeout(blockTimer); blockTimer = null;
+        if (state.lifecycle.paused || !state.pin.visible || state.pin.mode !== 'blocked') return;
+        if (state.pin.retryAt <= clock.now()) {
+            state.pin.mode = 'pin_required';
+            state.pin.retryAt = 0;
+            state.pin.result = null;
+            state.pin.checking = false;
+        } else blockTimer = clock.setTimeout(() => dispatch(blockTick), 1000);
+    }
+    function connect() {
+        state.transport = 'connecting';
+        state.pin.checking = true;
+        ports.connection.retry();
+    }
+    function connectionState(value) {
+        dispatch(() => {
+            if (state.lifecycle.paused) return;
+            state.transport = value;
+            if (value === 'connecting' || value === 'unsupported') state.pin.checking = true;
+        });
+    }
+    function snapshot(value) {
+        dispatch(() => {
+            if (state.lifecycle.paused) return;
+            const firstSnapshot = state.transport !== 'connected';
+            state.server = value;
+            if (!isAuthorizedSnapshot(value)) {
+                const samePanel = state.pin.visible && state.pin.mode === value.access;
+                const previousResult = state.pin.result;
+                state.transport = 'reconnecting';
+                state.lifecycle.revalidation = true;
+                state.pin = {
+                    visible: true,
+                    mode: value.access,
+                    checking: false,
+                    retryAt: value.access === 'blocked' ? clock.now() + Math.max(0, isFinite(value.retryAfterMs) ? value.retryAfterMs : 1000) : 0,
+                    result: samePanel && value.access === 'pin_required' && previousResult && previousResult.key !== 'pinNetwork' ? previousResult : null
+                };
+                ports.presentation.revokeFrame();
+                applyMedia(false);
+                ports.presentation.accessDenied();
+                blockTick();
+            } else {
+                // Reconnect must retry media even when the server snapshot is unchanged.
+                state.transport = 'connected';
+                state.lifecycle.revalidation = false;
+                state.pin = { visible: false, mode: null, retryAt: 0, result: null, checking: false };
+                clock.clearTimeout(blockTimer); blockTimer = null;
+                ports.presentation.configure(value.display, firstSnapshot);
+                if (!canLoadScreenImage(value)) ports.presentation.revokeFrame();
+                applyMedia(firstSnapshot);
+            }
+        });
+    }
+    function pinResult(value) {
+        dispatch(() => {
+            if (state.lifecycle.paused) return;
+            state.pin.result = { key: value };
+            if (value === 'success') {
+                state.pin.visible = false;
+                state.pin.mode = null;
+                state.pin.retryAt = 0;
+                clock.clearTimeout(blockTimer); blockTimer = null;
+            }
+        });
+    }
+    function mediaState(value) { dispatch(() => { state.media.phase = value; }); }
+    function frame(value, width, height) {
+        dispatch(() => {
+            if (value && !desiredMedia(state).eligible) return;
+            state.media.available = !!value && width > 0 && height > 0;
+            state.media.width = width;
+            state.media.height = height;
+            ports.presentation.setFrame(value, width, height);
+        });
+    }
+    function notice(key) {
+        dispatch(() => {
+            if (selectPrimary(state)) { clearNotice(); return; }
+            state.notice = { key, expiresAt: clock.now() + 10000 };
+            clock.clearTimeout(noticeTimer);
+            noticeTimer = clock.setTimeout(() => dispatch(clearNotice), 10000);
+        });
+    }
+    function retry() {
+        dispatch(() => {
+            if (state.lifecycle.paused) return;
+            ports.presentation.closeMenu(false);
+            connect();
+        });
+    }
+    function submitPin(pin) {
+        dispatch(() => {
+            if (!state.lifecycle.paused && state.pin.visible && state.pin.mode !== 'blocked' &&
+                (!state.pin.result || state.pin.result.key !== 'pinSending')) ports.connection.submitPin(pin);
+        });
+    }
+    function selectMethod(value, closeMenu) {
+        dispatch(() => {
+            if (state.lifecycle.paused) return;
+            if ((value === 'mjpeg' || value === 'jpeg') && value !== state.method) {
+                state.method = value;
+                applyMedia(false);
+            }
+            if (closeMenu) ports.presentation.closeMenu(true);
+        });
+    }
+    function pause() {
+        dispatch(() => {
+            if (state.lifecycle.paused) return;
+            state.lifecycle.paused = true;
+            state.lifecycle.revalidation = true;
+            if (state.pin.result && state.pin.result.key === 'pinSending') state.pin.result = null;
+            clock.clearTimeout(blockTimer); blockTimer = null;
+            clearNotice();
+            ports.presentation.revokeFrame();
+            ports.connection.pause();
+            ports.media.pause();
+            ports.presentation.pause();
+        });
+    }
+    function resume() {
+        dispatch(() => {
+            if (!state.lifecycle.paused) return;
+            state.lifecycle.paused = false;
+            connect();
+            ports.presentation.resume();
+            ports.access.resume();
+            dispatch(blockTick);
+        });
+    }
+    function visibility(hidden) {
+        dispatch(() => {
+            if (hidden) { state.lifecycle.hiddenAt = clock.now(); return; }
+            const stale = state.lifecycle.hiddenAt && clock.now() - state.lifecycle.hiddenAt > 30000;
+            state.lifecycle.hiddenAt = 0;
+            if (state.lifecycle.paused) resume();
+            else {
+                if (stale || !ports.connection.healthy()) connect();
+                else ports.media.resume();
+                ports.presentation.activity();
+            }
+        });
+    }
+    function start() {
+        if (started) return;
+        started = true;
+        dispatch(() => {});
+        dispatch(connect);
+    }
+    return { start, connectionState, snapshot, pinResult, mediaState, frame, notice, retry, submitPin,
+        selectMethod, switchMethod: () => selectMethod(state.method === 'mjpeg' ? 'jpeg' : 'mjpeg', true), pause, resume, visibility };
+}
+
+const viewportLayout = createViewportLayout();
+let application;
+const access = createAccessPanel(viewportLayout, {
+    submit: pin => application.submitPin(pin),
+    retry: () => application.retry()
+});
+const presentation = createPresentation(viewportLayout, {
+    notice: key => application.notice(key),
+    retry: () => application.retry(),
+    switchMethod: () => application.switchMethod(),
+    selectMethod: value => application.selectMethod(value)
+});
+const media = createMedia(byId('image-stage'), words.streamImageAlt, {
+    state: value => application.mediaState(value),
+    image: (value, width, height) => application.frame(value, width, height)
+});
+const connection = createConnection({
+    state: value => application.connectionState(value),
+    snapshot: value => application.snapshot(value),
+    pin: value => application.pinResult(value)
+});
+application = createApplication({
+    connection, media, access, presentation,
+    clock: { now: () => Date.now(), setTimeout: (callback, delay) => setTimeout(callback, delay), clearTimeout: timer => clearTimeout(timer) }
+});
+window.addEventListener('pagehide', application.pause);
+window.addEventListener('pageshow', application.resume);
+document.addEventListener('freeze', application.pause);
+document.addEventListener('resume', application.resume);
+document.addEventListener('visibilitychange', () => application.visibility(document.hidden));
+access.start();
+presentation.start();
+viewportLayout.start();
+application.start();
+
+}());</script>
+</body>
+</html>

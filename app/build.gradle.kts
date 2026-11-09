@@ -5,6 +5,8 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.koin.compiler)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
 }
@@ -67,7 +69,6 @@ android {
     productFlavors {
         create("FDroid") {
             dimension = "Default"
-            manifestPlaceholders += mapOf("adMobPubId" to "")
             configure<CrashlyticsExtension> {
                 mappingFileUploadEnabled = false
                 nativeSymbolUploadEnabled = false
@@ -122,16 +123,22 @@ dependencies {
     coreLibraryDesugaring(libs.android.tools.desugar)
 
     implementation(projects.common)
+    implementation(projects.streaming.core)
+
+    implementation(libs.koin.core)
+    implementation(libs.koin.annotations)
 
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.material3.adaptive.layout)
-    implementation(libs.androidx.compose.material3.adaptive.navigation)
+    implementation(libs.androidx.compose.material3.adaptive.navigation3)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
 
-    implementation(projects.mjpeg)
-    implementation(projects.rtsp)
+    implementation(projects.streaming.mjpeg)
+    implementation(projects.streaming.rtsp)
 
-    "PlayStoreImplementation"(projects.webrtc)
+    "PlayStoreImplementation"(projects.streaming.webrtc)
     "PlayStoreImplementation"(libs.play.app.update)
     "PlayStoreImplementation"(libs.play.app.review)
     "PlayStoreImplementation"(libs.ads.mobile.sdk)

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">აღდგენა</string>
+    <string name="rtsp_error_open_settings">პარამეტრების გახსნა</string>
+    <string name="rtsp_error_start_screen_sharing">ეკრანის გაზიარების დაწყება</string>
+    <string name="rtsp_error_start_with_audio">დაწყება აუდიოთი</string>
+    <string name="rtsp_error_allow_microphone">მიკროფონის დაშვება</string>
+    <string name="rtsp_error_local_network_permission_required">ლოკალურ ქსელზე წვდომა საჭიროა, რათა მოწყობილობები თქვენს ნაკადს დაუკავშირდნენ.</string>
+
+    <string name="rtsp_method_title">RTSP: პლეერები და მედიასერვერები</string>
+    <string name="rtsp_method_summary">უყურეთ ვიდეოპლეერში ან გაგზავნეთ სტრიმი მედიასერვერზე.</string>
+    <string name="rtsp_method_conditions">თავსებადი RTSP პროგრამა · არჩევითი აუდიო</string>
+    <string name="rtsp_method_intro">RTSP სტრიმინგის გავრცელებული სტანდარტია, რომელსაც ვიდეოპლეერები და მედიასერვერები იყენებენ. ნაგულისხმევად სტრიმს ეს მოწყობილობა მასპინძლობს. ასევე შეგიძლიათ მისი მედიასერვერზე გაგზავნა.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>უყურეთ ისეთ პლეერებში, როგორიცაა VLC, აპში ნაჩვენები RTSP მისამართის გახსნით.</item>
+        <item>გაგზავნეთ სტრიმი მედიასერვერზე, მათ შორის სერვერებზე, რომლებიც მომხმარებლის სახელსა და პაროლს ითხოვენ.</item>
+        <item>დაამატეთ მიკროფონის აუდიო, მოწყობილობის აუდიო ან ორივე.</item>
+        <item>აირჩიეთ ვიდეო და აუდიო ფორმატები, ზომა და ხარისხი თქვენი პლეერის ან სერვერის შესაბამისად.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>პლეერებს ამ მოწყობილობასთან დაკავშირება უნდა შეეძლოთ, მაგალითად, იმავე Wi-Fi ქსელში. მასპინძლობა ინტერნეტის გარეშე მუშაობს.</item>
+        <item>სერვერზე გაგზავნისას ამ მოწყობილობას მასთან წვდომა უნდა ჰქონდეს. დაშიფრული კავშირისთვის გამოიყენეთ rtsps:// მისამართი და RTSP პროტოკოლად დააყენეთ TCP.</item>
+        <item>თქვენი პლეერი ან სერვერი არჩეულ ვიდეო და აუდიო ფორმატებს უნდა უჭერდეს მხარს.</item>
+    </string-array>
+
+    <string name="rtsp_mode_card_title">აირჩიეთ RTSP რეჟიმი:</string>
+    <string name="rtsp_mode_server">სერვერი</string>
+    <string name="rtsp_mode_server_hint">ეს მოწყობილობა RTSP სერვერად გამოიყენე</string>
+    <string name="rtsp_mode_client">კლიენტი</string>
+    <string name="rtsp_mode_client_hint">დაუკავშირდი დისტანციურ RTSP სერვერს</string>
+
+    <string name="rtsp_interfaces_title">RTSP სერვერის მისამართი</string>
+    <string name="rtsp_interfaces_no_address">მისამართი ვერ მოიძებნა.\nშეამოწმეთ კავშირი ან შეცვალეთ სერვერის პარამეტრები (ინტერფეისის ფილტრი, მისამართის ფილტრი).</string>
+    <string name="rtsp_interfaces_discovering">მისამართების ძიება მიმდინარეობს…</string>
+    <string name="rtsp_interfaces_interface_label">ინტერფეისი:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">დააკოპირეთ მისამართი</string>
+    <string name="rtsp_interfaces_description_share">გააზიარე მისამართი</string>
+    <string name="rtsp_interfaces_description_qr">მისამართის QR კოდის სახით ჩვენება</string>
+    <string name="rtsp_interfaces_qr_content_description">Ქრ კოდი</string>
+    <string name="rtsp_interfaces_copied">მისამართი დაკოპირდა</string>
+    <string name="rtsp_interfaces_share_title">გააზიარე RTSP მისამართი</string>
+    <string name="rtsp_bindings_retry">ხელახლა ცდა</string>
+    <string name="rtsp_bind_error_port_in_use">შეცდომა: პორტი გამოყენებაშია</string>
+    <string name="rtsp_bind_error_address_not_available">შეცდომა: მისამართი მიუწვდომელია</string>
+    <string name="rtsp_bind_error_permission_denied">შეცდომა: წვდომა უარყოფილია</string>
+    <string name="rtsp_bind_error_unknown">შეცდომა: მსმენელი ჩაიშალა</string>
+
+    <string name="rtsp_server_parameters">სერვერის პარამეტრები</string>
+    <string name="rtsp_client_parameters">კლიენტის პარამეტრები</string>
+
+    <string name="rtsp_stream_start">ტრანსლაციის დაწყება</string>
+    <string name="rtsp_stream_stop">ტრანსლაციის შეწყვეტა</string>
+
+    <string name="rtsp_error_notification_permission_required">სტრიმინგის სერვისის დასაწყებად ამ აპს შეტყობინებები ჩართული უნდა ჰქონდეს.\nჩართეთ შეტყობინებები აპის პარამეტრებში.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android-მა დაბლოკა ეკრანის გაზიარების დაწყება. დატოვეთ ScreenStream გახსნილი და დაიწყეთ ხელახლა.</string>
+    <string name="rtsp_error_projection_acquire_rejected">ეკრანის ჩაწერის ნებართვა აღარ არის მოქმედი. ხელახლა დაიწყეთ ეკრანის გაზიარება.</string>
+    <string name="rtsp_error_audio_permission_required">აუდიოთი სტრიმინგის დასაწყებად საჭიროა მიკროფონის ნებართვა.</string>
+    <string name="rtsp_error_audio_start_blocked">Android-მა დაბლოკა აუდიოს გაზიარების დაწყება. დატოვეთ ScreenStream გახსნილი და ხელახლა დაიწყეთ აუდიოთი.</string>
+    <string name="rtsp_error_ip_address_not_found">მისამართი ვერ მოიძებნა. შეამოწმეთ კავშირი ან შეცვალეთ სერვერის პარამეტრები (ინტერფეისის ფილტრი, მისამართის ფილტრი).</string>
+    <string name="rtsp_error_unspecified">რაღაც შეცდომა მოხდა.</string>
+
+    <string name="rtsp_media_server">მედია სერვერი</string>
+    <string name="rtsp_server_address">RTSP სერვერის მისამართი</string>
+    <string name="rtsp_protocol">RTSP პროტოკოლი</string>
+
+    <string name="rtsp_connection_connected">სერვერთან დაკავშირებულია</string>
+    <string name="rtsp_connection_connecting">სერვერთან დაკავშირება…</string>
+    <string name="rtsp_connection_disconnected">სერვერი გათიშულია</string>
+    <string name="rtsp_connection_error">კავშირის შეცდომა</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">საჯარო IPv4</string>
+    <string name="rtsp_label_public_ipv6">საჯარო IPv6</string>
+    <string name="rtsp_label_loopback">Loopback</string>
+
+    <string name="rtsp_video_parameters">ვიდეოს პარამეტრები</string>
+    <string name="rtsp_video_encoder">ვიდეო ენკოდერი:</string>
+    <string name="rtsp_video_encoder_auto">ავტო</string>
+    <string name="rtsp_video_h264_profile">H.264 პროფილი:</string>
+    <string name="rtsp_video_h264_profile_auto">ავტო</string>
+    <string name="rtsp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtsp_video_h264_profile_main">Main</string>
+    <string name="rtsp_video_h264_profile_high">High</string>
+    <string name="rtsp_video_h264_profile_active">აქტიური პროფილი: %1$s</string>
+    <string name="rtsp_video_resize_image">სურათის ზომის შეცვლა: %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">ეკრანის ზომა: %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">ვიდეოს ზომა: %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">კადრის სიხშირე: %1$d კადრი/წმ</string>
+    <string name="rtsp_video_bitrate">ვიდეოს ბიტრეიტი: %1$s/წმ</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f მბიტი</string>
+    <string name="rtsp_video_bitrate_kbit">%d კბიტი</string>
+
+    <string name="rtsp_audio_parameters">აუდიოს პარამეტრები</string>
+    <string name="rtsp_audio_mic">მიკროფონი</string>
+    <string name="rtsp_audio_mic_mute">მიკროფონის დადუმება</string>
+    <string name="rtsp_audio_device">შიდა აუდიო</string>
+    <string name="rtsp_audio_device_mute">შიდა აუდიოს დადუმება</string>
+    <string name="rtsp_audio_encoder">აუდიო ენკოდერი:</string>
+    <string name="rtsp_audio_encoder_auto">ავტო</string>
+    <string name="rtsp_audio_bitrate">აუდიოს ბიტრეიტი: %1$s/წმ</string>
+    <string name="rtsp_audio_capture_issue_detected">გამოვლინდა აუდიოს ჩაწერის პრობლემა</string>
+
+    <string name="rtsp_connection_access_denied">წვდომა უარყოფილია</string>
+    <string name="rtsp_connection_no_credentials">მიუთითეთ მომხმარებლის სახელი და პაროლი</string>
+    <string name="rtsp_connection_invalid_credentials">მომხმარებლის სახელი ან პაროლი არასწორია</string>
+
+    <string name="rtsp_close">დახურვა</string>
+    <string name="rtsp_pref_protocol">RTSP პროტოკოლი</string>
+    <string name="rtsp_pref_protocol_summary">აირჩიეთ RTP პაკეტების ტრანსპორტი</string>
+    <string name="rtsp_pref_interface_filter">ინტერფეისის ფილტრი</string>
+    <string name="rtsp_pref_interface_filter_summary">აირჩიეთ ქსელის ინტერფეისები სერვერისთვის</string>
+    <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtsp_pref_interface_filter_mobile">მობილური</string>
+    <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtsp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtsp_pref_interface_filter_unknown">უცნობი</string>
+    <string name="rtsp_pref_filter_no_restriction">შეზღუდვის გარეშე</string>
+    <string name="rtsp_pref_address_filter">მისამართის ფილტრი</string>
+    <string name="rtsp_pref_address_filter_summary">აირჩიეთ IP მისამართის ტიპები სერვერისთვის</string>
+    <string name="rtsp_pref_address_filter_private">კერძო</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">საჯარო</string>
+    <string name="rtsp_pref_enable_ipv4">IPv4 ჩართვა</string>
+    <string name="rtsp_pref_enable_ipv4_summary">სერვერის გაშვება IPv4 მისამართებზე</string>
+    <string name="rtsp_pref_enable_ipv6">IPv6 ჩართვა</string>
+    <string name="rtsp_pref_enable_ipv6_summary">სერვერის გაშვება IPv6 მისამართებზე</string>
+    <string name="rtsp_pref_server_port">Სერვერის პორტი</string>
+    <string name="rtsp_pref_server_port_summary">დააყენეთ პორტი შემომავალი კავშირებისთვის</string>
+    <string name="rtsp_pref_server_port_text">დააყენეთ სერვერის პორტი შემომავალი კავშირებისთვის.\nღირებულებები: 1025–65535\nნაგულისხმევი: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF აღმოჩენა</string>
+    <string name="rtsp_pref_onvif_discovery_summary">ONVIF კლიენტებმა იპოვონ ეს ნაკადი. მხარდაჭერილია მხოლოდ H.264</string>
+</resources>

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">Recuperar</string>
+    <string name="rtsp_error_open_settings">Abrir ajustes</string>
+    <string name="rtsp_error_start_screen_sharing">Iniciar uso compartido de pantalla</string>
+    <string name="rtsp_error_start_with_audio">Iniciar con audio</string>
+    <string name="rtsp_error_allow_microphone">Permitir micrófono</string>
+    <string name="rtsp_error_local_network_permission_required">Se requiere acceso a la red local para que los dispositivos puedan conectarse a tu transmisión.</string>
+
+    <string name="rtsp_method_title">RTSP: Reproductores y servidores multimedia</string>
+    <string name="rtsp_method_summary">Mira la transmisión en un reproductor de vídeo o envíala a un servidor multimedia.</string>
+    <string name="rtsp_method_conditions">Software RTSP compatible · Audio opcional</string>
+    <string name="rtsp_method_intro">RTSP es un estándar de transmisión habitual que usan reproductores de vídeo y servidores multimedia. De forma predeterminada, este dispositivo aloja la transmisión. También puedes enviarla a un servidor multimedia.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Mírala en reproductores como VLC abriendo la dirección RTSP que se muestra en la app.</item>
+        <item>Envía la transmisión a un servidor multimedia, incluidos servidores que piden usuario y contraseña.</item>
+        <item>Añade audio del micrófono, audio del dispositivo o ambos.</item>
+        <item>Elige formatos de vídeo y audio, tamaño y calidad según tu reproductor o servidor.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Los reproductores deben poder conectarse a este dispositivo, por ejemplo en la misma red Wi-Fi. El alojamiento funciona sin Internet.</item>
+        <item>Al enviar a un servidor, este dispositivo debe poder acceder a él. Para una conexión cifrada, usa una dirección rtsps:// y configura el protocolo RTSP en TCP.</item>
+        <item>Tu reproductor o servidor debe admitir los formatos de vídeo y audio que elijas.</item>
+    </string-array>
+
+    <string name="rtsp_mode_card_title">Seleccionar modo RTSP:</string>
+    <string name="rtsp_mode_server">Servidor</string>
+    <string name="rtsp_mode_server_hint">Alojar este dispositivo como servidor RTSP</string>
+    <string name="rtsp_mode_client">Cliente</string>
+    <string name="rtsp_mode_client_hint">Conectar a un servidor RTSP remoto</string>
+
+    <string name="rtsp_interfaces_title">Dirección del servidor RTSP</string>
+    <string name="rtsp_interfaces_no_address">No se encontró ninguna dirección.\nCompruebe la conexión o modifique los ajustes del servidor (Filtro de interfaz, Filtro de dirección).</string>
+    <string name="rtsp_interfaces_discovering">Buscando direcciones…</string>
+    <string name="rtsp_interfaces_interface_label">Interfaz:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">Copiar dirección</string>
+    <string name="rtsp_interfaces_description_share">Compartir dirección</string>
+    <string name="rtsp_interfaces_description_qr">Mostrar dirección como código QR</string>
+    <string name="rtsp_interfaces_qr_content_description">Código QR</string>
+    <string name="rtsp_interfaces_copied">Dirección copiada</string>
+    <string name="rtsp_interfaces_share_title">Compartir dirección RTSP</string>
+    <string name="rtsp_bindings_retry">Reintentar</string>
+    <string name="rtsp_bind_error_port_in_use">Error: Puerto en uso</string>
+    <string name="rtsp_bind_error_address_not_available">Error: Dirección no disponible</string>
+    <string name="rtsp_bind_error_permission_denied">Error: Permiso denegado</string>
+    <string name="rtsp_bind_error_unknown">Error: fallo al escuchar</string>
+
+    <string name="rtsp_server_parameters">Ajustes del servidor</string>
+    <string name="rtsp_client_parameters">Ajustes del cliente</string>
+
+    <string name="rtsp_stream_start">Iniciar transmisión</string>
+    <string name="rtsp_stream_stop">Detener transmisión</string>
+
+    <string name="rtsp_error_notification_permission_required">Esta app necesita las notificaciones activadas para iniciar el servicio de transmisión.\nActiva las notificaciones en los ajustes de la app.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android bloqueó el inicio del uso compartido de pantalla. Mantén ScreenStream abierto e inténtalo de nuevo.</string>
+    <string name="rtsp_error_projection_acquire_rejected">El permiso de captura de pantalla ya no es válido. Inicia de nuevo el uso compartido de pantalla.</string>
+    <string name="rtsp_error_audio_permission_required">Se requiere permiso de micrófono para iniciar la transmisión con audio.</string>
+    <string name="rtsp_error_audio_start_blocked">Android bloqueó el inicio del uso compartido de audio. Mantén ScreenStream abierto e inicia de nuevo con audio.</string>
+    <string name="rtsp_error_ip_address_not_found">No se encontró ninguna dirección. Comprueba la conexión o modifica los ajustes del servidor (filtro de interfaz, filtro de dirección).</string>
+    <string name="rtsp_error_unspecified">Algo salió mal.</string>
+
+    <string name="rtsp_media_server">Servidor multimedia</string>
+    <string name="rtsp_server_address">Dirección del servidor RTSP</string>
+    <string name="rtsp_protocol">Protocolo RTSP</string>
+
+    <string name="rtsp_connection_connected">Servidor conectado</string>
+    <string name="rtsp_connection_connecting">Conectando al servidor…</string>
+    <string name="rtsp_connection_disconnected">Servidor desconectado</string>
+    <string name="rtsp_connection_error">Error de conexión</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">IPv4 pública</string>
+    <string name="rtsp_label_public_ipv6">IPv6 pública</string>
+    <string name="rtsp_label_loopback">Loopback</string>
+
+    <string name="rtsp_video_parameters">Ajustes de video</string>
+    <string name="rtsp_video_encoder">Codificador de video:</string>
+    <string name="rtsp_video_encoder_auto">Auto</string>
+    <string name="rtsp_video_h264_profile">Perfil H.264:</string>
+    <string name="rtsp_video_h264_profile_auto">Auto</string>
+    <string name="rtsp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtsp_video_h264_profile_main">Main</string>
+    <string name="rtsp_video_h264_profile_high">High</string>
+    <string name="rtsp_video_h264_profile_active">Perfil activo: %1$s</string>
+    <string name="rtsp_video_resize_image">Redimensionar imagen: %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">Tamaño de pantalla: %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">Tamaño del video: %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">Tasa de cuadros: %1$d fps</string>
+    <string name="rtsp_video_bitrate">Tasa de bits de video: %1$s/seg</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtsp_audio_parameters">Ajustes de audio</string>
+    <string name="rtsp_audio_mic">Micrófono</string>
+    <string name="rtsp_audio_mic_mute">Silenciar micrófono</string>
+    <string name="rtsp_audio_device">Audio interno</string>
+    <string name="rtsp_audio_device_mute">Silenciar audio interno</string>
+    <string name="rtsp_audio_encoder">Codificador de audio:</string>
+    <string name="rtsp_audio_encoder_auto">Auto</string>
+    <string name="rtsp_audio_bitrate">Tasa de bits de audio: %1$s/seg</string>
+    <string name="rtsp_audio_capture_issue_detected">Problema de captura de audio detectado</string>
+
+    <string name="rtsp_connection_access_denied">Acceso denegado</string>
+    <string name="rtsp_connection_no_credentials">Especifique usuario y contraseña</string>
+    <string name="rtsp_connection_invalid_credentials">Usuario o contraseña no válidos</string>
+
+    <string name="rtsp_close">Cerrar</string>
+    <string name="rtsp_pref_protocol">Protocolo RTSP</string>
+    <string name="rtsp_pref_protocol_summary">Seleccionar transporte para paquetes RTP</string>
+    <string name="rtsp_pref_interface_filter">Filtro de interfaz</string>
+    <string name="rtsp_pref_interface_filter_summary">Seleccionar interfaces de red para el servidor</string>
+    <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtsp_pref_interface_filter_mobile">Móvil</string>
+    <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtsp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtsp_pref_interface_filter_unknown">desconocido</string>
+    <string name="rtsp_pref_filter_no_restriction">Sin restricción</string>
+    <string name="rtsp_pref_address_filter">Filtro de dirección</string>
+    <string name="rtsp_pref_address_filter_summary">Seleccionar tipos de dirección IP para el servidor</string>
+    <string name="rtsp_pref_address_filter_private">Privada</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">Pública</string>
+    <string name="rtsp_pref_enable_ipv4">Habilitar IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">Ejecutar servidor en direcciones IPv4</string>
+    <string name="rtsp_pref_enable_ipv6">Habilitar IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">Ejecutar servidor en direcciones IPv6</string>
+    <string name="rtsp_pref_server_port">Puerto del Servidor</string>
+    <string name="rtsp_pref_server_port_summary">Puerto para conexiones entrantes</string>
+    <string name="rtsp_pref_server_port_text">Define el puerto del servidor para conexiones entrantes.\nValores: 1025–65535\nPredeterminado: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">Detección ONVIF</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Permitir que clientes ONVIF encuentren esta transmisión. Solo admite H.264</string>
+</resources>

@@ -5,4 +5,7 @@
 
     <string name="common_continue">Doorgaan</string>
     <string name="common_try_again">Opnieuw proberen</string>
+
+    <string name="common_expanded">Uitgevouwen</string>
+    <string name="common_collapsed">Samengevouwen</string>
 </resources>

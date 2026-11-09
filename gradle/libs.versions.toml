@@ -1,43 +1,54 @@
 [versions]
-agp = "9.4.1"
-kotlin = "2.4.20"
+agp = "9.5.0"
+kotlin = "2.4.21"
 android-tools-desugar = "2.1.5"
 
 koin-android = "4.2.2"
+koin-plugin = "1.2.2"
 
 kotlinx-coroutines = "1.11.0"
+kotlinx-serialization = "1.12.0"
+junit = "4.13.2"
+robolectric = "4.17"
+androidx-test-runner = "1.7.0"
+androidx-test-junit = "1.3.0"
+androidx-test-uiautomator = "2.4.1"
+androidx-test-espresso = "3.7.0"
 
-androidx-core-ktx = "1.19.0"
-androidx-annotation = "1.10.0"
+androidx-core-ktx = "1.19.1"
+androidx-annotation = "1.11.0"
 androidx-core-splashscreen = "1.2.0"
 androidx-activity-compose = "1.13.0"
-androidx-fragment = "1.9.0"
+androidx-fragment = "1.9.1"
 androidx-appcompat = "1.8.0"
 androidx-lifecycle = "2.11.0"
 androidx-window = "1.5.1"
-androidx-datastore-preferences = "1.2.1"
-androidx-work = "2.11.2"
+androidx-datastore-preferences = "1.3.0"
+androidx-work = "2.12.0"
+androidx-navigation3 = "1.2.0"
+androidx-adaptive-navigation3 = "1.3.0"
 
 compose-bom = "2026.09.00"
+compose-material3 = "1.5.0-beta02"
 
 xlog = "1.11.1"
 
 #MJPEG
-ktor = "3.6.0"
+ktor = "3.6.1"
 
 #PlayStore-WebRTC
-play-services-base = "18.11.0"
+play-services-base = "18.11.1"
 play-services-tasks = "18.4.1"
 play-integrity = "1.6.0"
 socket = "2.1.2"
 okio = "3.18.2"
-okhttp = "5.5.0"
+okhttp = "5.5.1"
 
 #PlayStore-App
 play-app-update = "2.1.0"
 play-app-review = "2.0.2"
-ads-mobile-sdk = "1.4.0"
-firebase-bom = "34.19.0"
+ads-mobile-sdk = "1.6.0"
+firebase-bom = "35.1.0"
 google-services = "4.5.0"
 crashlytics-gradle = "3.0.8"
 
@@ -46,8 +57,11 @@ android-tools-desugar = { module = "com.android.tools:desugar_jdk_libs", version
 kotlinReflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 
 koin-android-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin-android" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin-android" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin-android" }
 
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core-ktx" }
 androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "androidx-annotation" }
@@ -57,29 +71,41 @@ androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "a
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-window = { module = "androidx.window:window", version.ref = "androidx-window" }
+androidx-window-core = { module = "androidx.window:window-core", version.ref = "androidx-window" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore-preferences" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidx-core-splashscreen" }
 androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "androidx-work" }
 
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
-androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "compose-material3" }
 androidx-compose-material3-window = { module = "androidx.compose.material3:material3-window-size-class" }
 androidx-compose-material3-adaptive-navigation-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite"  }
 androidx-compose-material3-adaptive-layout = { module = "androidx.compose.material3.adaptive:adaptive-layout"  }
-androidx-compose-material3-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation"  }
+androidx-compose-material3-adaptive-navigation3 = { module = "androidx.compose.material3.adaptive:adaptive-navigation3", version.ref = "androidx-adaptive-navigation3" }
+androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "androidx-navigation3" }
+androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "androidx-navigation3" }
 
 xlog = { module = "com.elvishew:xlog", version.ref = "xlog" }
 
 #MJPEG
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 ktor-server-compression = { module = "io.ktor:ktor-server-compression", version.ref = "ktor" }
-ktor-server-caching-headers = { module = "io.ktor:ktor-server-caching-headers", version.ref = "ktor" }
 ktor-server-default-headers = { module = "io.ktor:ktor-server-default-headers", version.ref = "ktor" }
-ktor-server-forwarded-header = { module = "io.ktor:ktor-server-forwarded-header", version.ref = "ktor" }
-ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
-ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+
+#Tests
+junit = { module = "junit:junit", version.ref = "junit" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
+androidx-test-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-test-junit" }
+androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidx-test-uiautomator" }
+androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-test-espresso" }
 
 #RTSP
 ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }
@@ -105,8 +131,9 @@ firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
-kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin-plugin" }
 
 #PlayStore
 googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }

@@ -12,6 +12,7 @@ import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.ktx.AppUpdateResult
 import com.google.android.play.core.ktx.isFlexibleUpdateAllowed
 import com.google.android.play.core.ktx.requestUpdateFlow
+import info.dvkr.screenstream.app.AdMob
 import info.dvkr.screenstream.common.getLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

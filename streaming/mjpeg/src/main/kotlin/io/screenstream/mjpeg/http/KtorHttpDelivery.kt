@@ -1,0 +1,578 @@
+package io.screenstream.mjpeg.http
+
+import android.content.Context
+import android.os.SystemClock
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.response.respond
+import io.screenstream.core.logE
+import io.screenstream.core.logW
+import io.screenstream.core.module.StreamingModule.CaptureAttemptId
+import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
+import io.screenstream.mjpeg.http.HttpDelivery.Info
+import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
+import io.screenstream.mjpeg.http.HttpDelivery.ServerFailure
+import io.screenstream.mjpeg.http.HttpDelivery.ServerInfo
+import io.screenstream.mjpeg.http.HttpDelivery.ServerState
+import io.screenstream.mjpeg.http.media.JpegResponse
+import io.screenstream.mjpeg.http.media.JpegStore
+import io.screenstream.mjpeg.http.web.WebRoutes
+import io.screenstream.mjpeg.http.web.WebRoutes.WebSocketAdmission
+import io.screenstream.mjpeg.http.web.WebState
+import io.screenstream.mjpeg.networkaddress.IpAddressKey
+import io.screenstream.mjpeg.networkaddress.NetworkAddress
+import io.screenstream.mjpeg.settings.AccessSettings
+import io.screenstream.mjpeg.settings.SecretValue
+import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
+import io.screenstream.mjpeg.settings.WebPageSettings
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import org.koin.core.annotation.Factory
+import java.io.IOException
+import java.net.SocketException
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.uuid.Uuid
+
+/** Owns admission and physical lifetimes under one monitor; JPEG writers never acquire it per frame. */
+@Suppress("unused")
+@Factory(binds = [HttpDelivery::class])
+internal class KtorHttpDelivery(
+    context: Context,
+    private val listenerFactory: (Job, String, Int, Application.(HttpListener) -> Unit) -> HttpListener = ::CioHttpListener,
+) : HttpDelivery, WebRoutes.RequestHandler {
+    private val controlMonitor = Any()
+    private val runtimeJob = SupervisorJob()
+    private val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.IO + CoroutineExceptionHandler { _, cause ->
+        fail("Http.work", "HTTP worker failed", cause)
+    })
+    override val info: StateFlow<Info>
+        field = MutableStateFlow(Info())
+    override val webState: StateFlow<WebState?>
+        field = MutableStateFlow(null)
+    private val access = HttpAccess()
+    private val jpegStore = JpegStore()
+    private val webRoutes = WebRoutes(context, this)
+    private val plannedServers = LinkedHashMap<Long, PlannedServer>()
+    private val socketOwners = HashMap<SocketKey, SocketOwner>()
+    private val requests = HttpRequests()
+    private var started = false
+    private var closing = false
+    private var fatalCause: Throwable? = null
+    private var cleanupCause: Throwable? = null
+    private var pageSettings = WebPageSettings()
+    private val sampler = runtimeScope.launch(start = CoroutineStart.LAZY) {
+        while (true) {
+            delay(STATISTICS_INTERVAL)
+            synchronized(controlMonitor) {
+                if (closing) return@launch
+                sampleStatistics()
+            }
+        }
+    }
+    private val cleanup = CoroutineScope(Dispatchers.IO).async(start = CoroutineStart.LAZY) {
+        try {
+            // CIO calls belong to engine children; WebSocket handlers join their detached default sessions.
+            runtimeJob.join()
+            synchronized(controlMonitor) {
+                socketOwners.clear()
+                sampleStatistics()
+            }
+        } catch (cause: Throwable) {
+            this@KtorHttpDelivery.logE("Http.cleanup", "HTTP cleanup failed", cause)
+            throw cause
+        }
+        synchronized(controlMonitor) { cleanupCause }?.let { throw it }
+    }
+
+    override val appliedToken: SecretValue?
+        get() = synchronized(controlMonitor) { access.token }
+
+    override suspend fun start(
+        accessSettings: AccessSettings,
+        postStopImage: PostStopImage,
+        webSettings: WebPageSettings,
+        logoBytes: ByteArray,
+    ): Boolean {
+        currentCoroutineContext().ensureActive()
+        val owners = synchronized(controlMonitor) {
+            if (started || closing) return false
+            jpegStore.installLogo(logoBytes)
+            updateConfigurationLocked(accessSettings, postStopImage, webSettings)
+            started = true
+            publishWebState()
+            addSocketOwners()
+        }
+        launchSocketOwners(owners)
+        sampler.start()
+        return synchronized(controlMonitor) { !closing }
+    }
+
+    override suspend fun configureServers(addresses: List<NetworkAddress>, port: Int) {
+        currentCoroutineContext().ensureActive()
+        val (owners, listeners, jobsToCancel) = synchronized(controlMonitor) {
+            if (closing) return
+            require(port in 1..65535)
+            require(addresses.map { it.id }.toSet().size == addresses.size) { "Duplicate address identities" }
+            require(addresses.map { SocketKey(it.ipKey, port) }.toSet().size == addresses.size) { "Duplicate scoped sockets" }
+            val retiringEntries = plannedServers.toMutableMap()
+            val plannedEntries = addresses.map { address ->
+                val previous = retiringEntries[address.id]
+                if (previous != null && previous.port == port) {
+                    retiringEntries.remove(address.id)
+                    check(previous.key == SocketKey(address.ipKey, port)) { "Address identity changed its scoped IP" }
+                    previous.address = address
+                    previous
+                } else {
+                    PlannedServer(address, port)
+                }
+            }
+            plannedServers.clear()
+            plannedEntries.forEach { plannedServers[it.address.id] = it }
+            val listeners = retiringEntries.values.mapNotNull { it.listener }
+            val jobsToCancel = buildList {
+                for (entry in retiringEntries.values) {
+                    val listener = entry.listener
+                    if (listener != null) addAll(requests.cutoff(listener, entry.id, SystemClock.elapsedRealtime()))
+                }
+            }
+            socketOwners.values.forEach { it.changes.trySend(Unit) }
+            val owners = addSocketOwners()
+            publishControlInfo()
+            Triple(owners, listeners, jobsToCancel)
+        }
+        // Accepted owners start independently of caller cancellation, before fallible cutoff actions.
+        launchSocketOwners(owners)
+        try {
+            listeners.forEach(HttpListener::requestStop)
+            jobsToCancel.forEach(Job::cancel)
+        } catch (cause: Throwable) {
+            recordCleanupFailure("Http.cleanup", "HTTP cutoff failed", cause)
+            requestStop()
+            throw cause
+        }
+    }
+
+    override fun retryServer(id: Uuid) {
+        val retryRequests = synchronized(controlMonitor) {
+            if (!started || closing) return
+            val entry = plannedServers.values.firstOrNull { it.id == id && it.state is ServerState.Failed } ?: return
+            entry.bindAttempts = 0
+            entry.state = ServerState.Pending
+            publishControlInfo()
+            checkNotNull(socketOwners[entry.key]).changes
+        }
+        retryRequests.trySend(Unit)
+    }
+
+    override fun updateConfiguration(accessSettings: AccessSettings, postStopImage: PostStopImage, webSettings: WebPageSettings): Boolean {
+        val webSocketJobsToCancel = synchronized(controlMonitor) {
+            if (!started || closing) return false
+            updateConfigurationLocked(accessSettings, postStopImage, webSettings)
+        }
+        webSocketJobsToCancel.forEach(Job::cancel)
+        return true
+    }
+
+    override fun registerCapture(id: CaptureAttemptId, initialCaptureGeneration: Any): Boolean = synchronized(controlMonitor) {
+        if (!started || closing || !jpegStore.registerCapture(id, initialCaptureGeneration)) return false
+        publishWebState()
+        true
+    }
+
+    override fun updateCaptureStatus(id: CaptureAttemptId, state: Status, captureGeneration: Any?) {
+        try {
+            synchronized(controlMonitor) {
+                jpegStore.updateCaptureStatus(id, state, captureGeneration)
+                publishWebState()
+            }
+        } catch (cause: Throwable) {
+            fail("Http.captureState", "HTTP capture state update failed", cause)
+        }
+    }
+
+    override fun offerJpeg(expectedCaptureGeneration: Any, byteCount: Int, copyTo: (ByteArray) -> Unit) {
+        if (jpegStore.offerJpeg(expectedCaptureGeneration, byteCount, copyTo)) synchronized(controlMonitor) {
+            publishWebState()
+        }
+    }
+
+    private fun fail(tag: String, message: String, cause: Throwable) {
+        try {
+            logE(tag, message, cause)
+            synchronized(controlMonitor) {
+                fatalCause = fatalCause ?: cause
+                publishControlInfo()
+            }
+        } finally {
+            requestStop()
+        }
+    }
+
+    override fun requestStop() {
+        val (listeners, jobs) = synchronized(controlMonitor) {
+            if (closing) return
+            closing = true
+            val jobs = requests.closeAll()
+            jpegStore.dispose()
+            val listeners = plannedServers.values.mapNotNull { it.listener }
+            plannedServers.clear()
+            publishWebState()
+            publishControlInfo()
+            listeners to jobs
+        }
+        fun requestCancellation(action: () -> Unit) {
+            try {
+                action()
+            } catch (cause: Throwable) {
+                recordCleanupFailure("Http.cleanup", "HTTP cancellation failed", cause)
+            }
+        }
+        try {
+            listeners.forEach { listener -> requestCancellation { listener.requestStop() } }
+            jobs.forEach { job -> requestCancellation { job.cancel() } }
+            requestCancellation { runtimeJob.cancel() }
+        } finally {
+            cleanup.start()
+        }
+    }
+
+    override suspend fun stop() {
+        requestStop()
+        cleanup.await()
+    }
+
+    private fun recordCleanupFailure(tag: String, message: String, cause: Throwable) {
+        logE(tag, message, cause)
+        synchronized(controlMonitor) {
+            cleanupCause = cleanupCause ?: cause
+            fatalCause = fatalCause ?: cause
+            publishControlInfo()
+        }
+    }
+
+    override fun isListenerActive(listener: HttpListener): Boolean = synchronized(controlMonitor) { isListenerActiveLocked(listener) }
+
+    override fun exchangeToken(listener: HttpListener, token: String?): SecretValue? = synchronized(controlMonitor) {
+        if (isListenerActiveLocked(listener)) access.exchangeToken(token) else null
+    }
+
+    override fun verifyPin(listener: HttpListener, pin: String?, peerIp: String): HttpAccess.PinResult? = synchronized(controlMonitor) {
+        if (isListenerActiveLocked(listener)) access.verifyPin(pin, peerIp, SystemClock.elapsedRealtime()) else null
+    }
+
+    override suspend fun respondMedia(
+        call: ApplicationCall,
+        listener: HttpListener,
+        format: MediaFormat,
+        token: String?,
+        accessCookie: String?,
+    ) {
+        val job = checkNotNull(call.coroutineContext[Job])
+        val admission = synchronized(controlMonitor) {
+            admitMediaResponseLocked(call, listener, job, format, token, accessCookie)
+        }
+        when (admission) {
+            is MediaAdmission.Rejected -> {
+                if (admission.status == HttpStatusCode.ServiceUnavailable) {
+                    call.response.headers.append(HttpHeaders.RetryAfter, "1")
+                }
+                call.respond(admission.status)
+            }
+
+            is MediaAdmission.Accepted -> {
+                val writer = admission.writer
+                job.invokeOnCompletion {
+                    synchronized(controlMonitor) {
+                        requests.retireMedia(writer, SystemClock.elapsedRealtime(), currentListeners())
+                    }
+                }
+                writer.respond(call)
+            }
+        }
+    }
+
+    private fun admitMediaResponseLocked(
+        call: ApplicationCall,
+        listener: HttpListener,
+        job: Job,
+        format: MediaFormat,
+        token: String?,
+        accessCookie: String?,
+    ): MediaAdmission {
+        val now = SystemClock.elapsedRealtime()
+        if (!access.allowsViewing(token, accessCookie)) return MediaAdmission.Rejected(HttpStatusCode.Forbidden)
+        val server = plannedServers.values.firstOrNull { it.listener === listener }
+        if (closing || server == null || !job.isActive) {
+            return MediaAdmission.Rejected(HttpStatusCode.ServiceUnavailable)
+        }
+        val reader = jpegStore.openReader() ?: return MediaAdmission.Rejected(HttpStatusCode.ServiceUnavailable)
+        val writer = JpegResponse(reader, format)
+        requests.registerMedia(
+            writer = writer,
+            listener = listener,
+            serverId = server.id,
+            ip = call.request.local.remoteAddress,
+            port = call.request.local.remotePort,
+            job = job,
+            now = now,
+        )
+        return MediaAdmission.Accepted(writer)
+    }
+
+    override fun admitWebSocket(listener: HttpListener, accessCookie: String?, peerIp: String, requestJob: Job): WebSocketAdmission {
+        val credentialGeneration = synchronized(controlMonitor) {
+            val now = SystemClock.elapsedRealtime()
+            if (!isListenerActiveLocked(listener) || !requestJob.isActive || !access.allowsViewing(null, accessCookie)) {
+                val retry = access.pinRetryAfterMillis(peerIp, now).takeIf { it > 0 }
+                return WebSocketAdmission.Denied(retry)
+            }
+            requests.registerWebSocket(listener, requestJob)
+            access.credentialGeneration
+        }
+        requestJob.invokeOnCompletion {
+            synchronized(controlMonitor) {
+                requests.removeWebSocket(requestJob)
+            }
+        }
+        return WebSocketAdmission.Accepted(credentialGeneration)
+    }
+
+    override fun isWebSocketCurrent(listener: HttpListener, credentialGeneration: Long): Boolean = synchronized(controlMonitor) {
+        isListenerActiveLocked(listener) && credentialGeneration == access.credentialGeneration
+    }
+
+    /** Read fresh store facts; null marks preactivation and shutdown. */
+    private fun publishWebState() {
+        if (!started || closing) {
+            webState.value = null
+            return
+        }
+        val image = jpegStore.snapshot()
+        webState.value = WebState(
+            credentialGeneration = access.credentialGeneration,
+            accessOpen = !access.pinEnabled,
+            notice = WebState.noticeFor(image.captureStatus),
+            imageKind = image.imageKind,
+            display = pageSettings,
+        )
+    }
+
+    /** Close old readers before admitting new credentials; a writer's acquired JPEG may finish. */
+    private fun updateConfigurationLocked(accessSettings: AccessSettings, postStopImage: PostStopImage, webSettings: WebPageSettings): List<Job> {
+        if (access.requiresCredentialRotation(accessSettings)) requests.closeMediaReaders()
+        val webSocketJobsToCancel = if (access.updateSettings(accessSettings)) {
+            val jobs = requests.clearEndpointsAndGetWebSocketJobs()
+            sampleStatistics()
+            jobs
+        } else emptyList()
+        jpegStore.updateFallbackPolicy(postStopImage)
+        pageSettings = webSettings
+        publishWebState()
+        return webSocketJobsToCancel
+    }
+
+    private fun isServerCurrent(server: PlannedServer): Boolean =
+        !closing && plannedServers[server.address.id] === server
+
+    /** Admission requires the exact current transport, including while binding. */
+    private fun isListenerActiveLocked(listener: HttpListener): Boolean =
+        !closing && plannedServers.values.any { it.listener === listener }
+
+    private fun currentListeners(): Set<HttpListener> =
+        if (closing) emptySet() else plannedServers.values.mapNotNullTo(HashSet()) { it.listener }
+
+    /** Insert under the gate; launch afterwards so dispatch cannot run transport work inside it. */
+    private fun addSocketOwners(): List<SocketOwner> {
+        if (!started || closing || !runtimeJob.isActive) return emptyList()
+        return plannedServers.values.mapNotNull { server ->
+            if (server.key in socketOwners) return@mapNotNull null
+            SocketOwner(server.key).also { socketOwners[it.key] = it }
+        }
+    }
+
+    private fun launchSocketOwners(owners: List<SocketOwner>) {
+        owners.forEach { owner ->
+            runtimeScope.launch { runSocketOwner(owner) }
+        }
+    }
+
+    private suspend fun runSocketOwner(owner: SocketOwner) {
+        while (true) {
+            currentCoroutineContext().ensureActive()
+            val server = synchronized(controlMonitor) {
+                if (closing) return
+                val current = plannedServers.values.firstOrNull { it.key == owner.key }
+                if (current == null) {
+                    if (socketOwners[owner.key] === owner) socketOwners.remove(owner.key)
+                    return
+                }
+                current
+            }
+            val retryDelay: Long
+            val attemptAddress = synchronized(controlMonitor) {
+                retryDelay = (server.retryAtMillis - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+                if (!isServerCurrent(server) || server.bindAttempts >= MAX_BIND_ATTEMPTS || retryDelay > 0L) null else {
+                    server.bindAttempts++
+                    server.state = ServerState.Pending
+                    publishControlInfo()
+                    server.address
+                }
+            }
+            if (attemptAddress == null) {
+                if (retryDelay > 0L) {
+                    withTimeoutOrNull(retryDelay.milliseconds) { owner.changes.receive() }
+                } else {
+                    owner.changes.receive()
+                }
+                continue
+            }
+            runBindAttempt(server, attemptAddress)
+            synchronized(controlMonitor) {
+                server.retryAtMillis = if (isServerCurrent(server) && server.bindAttempts < MAX_BIND_ATTEMPTS) {
+                    SystemClock.elapsedRealtime() + RETRY_DELAY_MILLIS
+                } else 0L
+            }
+        }
+    }
+
+    private suspend fun runBindAttempt(entry: PlannedServer, address: NetworkAddress) {
+        var listener: HttpListener? = null
+        var failure: ServerFailure? = null
+        try {
+            listener = listenerFactory(runtimeJob, checkNotNull(address.ip.hostAddress), entry.port) { physicalListener ->
+                webRoutes.installRoutes(this, physicalListener)
+            }
+            val installed = synchronized(controlMonitor) {
+                if (!isServerCurrent(entry)) false else {
+                    entry.listener = listener
+                    true
+                }
+            }
+            if (!installed) return
+            listener.startListening()
+            val listening = synchronized(controlMonitor) {
+                if (!isServerCurrent(entry) || entry.listener !== listener) false else {
+                    entry.state = ServerState.Listening
+                    publishControlInfo()
+                    true
+                }
+            }
+            if (!listening) return
+            listener.awaitTermination()
+            failure = ServerFailure.IoFailure
+        } catch (cause: Exception) {
+            // A canceled physical engine can fail its await while this persistent owner is active.
+            currentCoroutineContext().ensureActive()
+            if (cause !is CancellationException) {
+                logW("Http.listener", "HTTP listener failed at ${address.ip.hostAddress}:${entry.port}", cause)
+            }
+            failure = when (cause) {
+                is SecurityException -> ServerFailure.PermissionDenied
+                is SocketException -> ServerFailure.AddressUnavailable
+                is IOException -> ServerFailure.IoFailure
+                else -> ServerFailure.Unknown
+            }
+        } finally {
+            val jobsToCancel = synchronized(controlMonitor) {
+                val jobs = if (entry.listener === listener) {
+                    entry.listener = null
+                    listener?.let { requests.cutoff(it, entry.id, SystemClock.elapsedRealtime()) }.orEmpty()
+                } else emptyList()
+                if (isServerCurrent(entry)) {
+                    failure?.let {
+                        entry.state = ServerState.Failed(it, entry.bindAttempts)
+                        publishControlInfo()
+                    }
+                }
+                jobs
+            }
+            withContext(NonCancellable) {
+                try {
+                    try {
+                        jobsToCancel.forEach(Job::cancel)
+                    } finally {
+                        listener?.stopAndAwaitCleanup()
+                    }
+                } catch (cause: Throwable) {
+                    recordCleanupFailure("Http.listenerCleanup", "Listener cleanup failed", cause)
+                    // Do not return to this owner's successor selection after uncertain cleanup.
+                    requestStop()
+                }
+            }
+        }
+    }
+
+    /** Preserve the last statistics sample when listener state or failure changes. */
+    private fun publishControlInfo() {
+        info.value = info.value.copy(
+            servers = if (closing) emptyList() else plannedServers.values.map { it.toServerInfo() },
+            clients = if (closing) emptyList() else info.value.clients,
+            fatalCause = fatalCause,
+        )
+    }
+
+    private fun sampleStatistics() {
+        val now = SystemClock.elapsedRealtime()
+        val sample = requests.sample(now, jpegStore.snapshot().captureGeneration, currentListeners())
+        info.value = Info(
+            servers = if (closing) emptyList() else plannedServers.values.map { it.toServerInfo() },
+            clients = if (closing) emptyList() else sample.clients,
+            completedJpegs = sample.completedJpegs,
+            completedJpegBytes = sample.completedJpegBytes,
+            sampledAtElapsedRealtimeMillis = now,
+            fatalCause = fatalCause,
+        )
+    }
+
+    /** One planned incarnation; metadata edits and physical bind retries preserve its UUID. */
+    private class PlannedServer(var address: NetworkAddress, val port: Int) {
+        val id = Uuid.random()
+        val key = SocketKey(address.ipKey, port)
+        var bindAttempts = 0
+        var retryAtMillis = 0L
+        var state: ServerState = ServerState.Pending
+        var listener: HttpListener? = null
+
+        fun toServerInfo(): ServerInfo = ServerInfo(id, address, port, state)
+    }
+
+    /**
+     * One runtime child serializes attempts for a scoped socket. It finishes physical cleanup
+     * before reading the latest plan; replacement plans do not create waiter jobs.
+     */
+    private class SocketOwner(val key: SocketKey) {
+        val changes = Channel<Unit>(capacity = Channel.CONFLATED)
+    }
+
+    private data class SocketKey(val ip: IpAddressKey, val port: Int)
+
+    private sealed interface MediaAdmission {
+        class Accepted(val writer: JpegResponse) : MediaAdmission
+        class Rejected(val status: HttpStatusCode) : MediaAdmission
+    }
+
+    private companion object {
+        val STATISTICS_INTERVAL = 1.seconds
+        const val RETRY_DELAY_MILLIS = 250L
+        const val MAX_BIND_ATTEMPTS = 3
+    }
+}

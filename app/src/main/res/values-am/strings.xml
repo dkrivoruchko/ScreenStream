@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_error_title">ስህተት</string>
-    <string name="app_error_recover">ማገገም</string>
+    <string name="app_error_recover">ወደነበረበት መልስ</string>
 
-    <string name="app_activity_update_dialog_title">ማዘመን አለ።</string>
-    <string name="app_activity_update_dialog_message">አንድ ዝማኔ አሁን ወርዷል። መተግበሪያ አሁን ዳግም ይጀመር?</string>
+    <string name="app_module_error_title">የሆነ ችግር ተፈጥሯል</string>
+    <string name="app_module_error_restart">ሁነታውን ዳግም አስጀምር</string>
+
+    <string name="app_activity_update_dialog_title">ዝማኔ አለ</string>
+    <string name="app_activity_update_dialog_message">ዝማኔ ዝግጁ ነው። መተግበሪያውን አሁን ዳግም ይጀምሩ?</string>
     <string name="app_activity_update_dialog_restart">እንደገና ጀምር</string>
 
     <string name="app_tab_stream">ዥረት</string>
@@ -13,54 +16,79 @@
     <string name="app_tab_exit">ውጣ</string>
 
     <string name="app_tab_stream_select_mode">የዥረት ሁነታን ይምረጡ፡</string>
+    <string name="app_tab_stream_switching_modules">ሁነታዎችን በመቀየር ላይ…</string>
 
-    <string name="app_permission_required_title">ፍቃድ ያስፈልጋል</string>
-    <string name="app_permission_allow_notifications">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር የማሳወቂያ ፈቃድ ይፈልጋል።\n\nማሳወቂያዎችን ይፍቀዱ።</string>
-    <string name="app_permission_allow_notifications_settings">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር የማሳወቂያ ፈቃድ ይፈልጋል።\n\nበመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
-    <string name="app_permission_notification_settings">ቅንብሮችን ይክፈቱ</string>
-    <string name="app_permission_local_network_title">የአካባቢ አውታረ መረብ መዳረሻ ያስፈልጋል</string>
-    <string name="app_permission_local_network_message">መሣሪያዎች ወደ ስርጭትዎ እንዲገናኙ ScreenStream የአካባቢ አውታረ መረብዎን እንዲጠቀም ይፍቀዱ።</string>
-    <string name="app_permission_local_network_off_title">የአካባቢ አውታረ መረብ መዳረሻ ጠፍቷል</string>
-    <string name="app_permission_local_network_settings_message">ማያዎን ከመሣሪያዎች ጋር ለማጋራት በAndroid ቅንብሮች ውስጥ የአካባቢ አውታረ መረብ መዳረሻን ያንቁ።</string>
+    <string name="app_mode_selected_method">ንቁ የስርጭት ዘዴ</string>
+    <string name="app_mode_choose_method">የስርጭት ዘዴ ይምረጡ</string>
+    <string name="app_mode_choose_another_method">ሌላ ዘዴ ይምረጡ</string>
+    <string name="app_mode_change">ቀይር</string>
+    <string name="app_mode_chooser_title">ማያ ገጽዎን ለማጋራት ዘዴ ይምረጡ</string>
+    <string name="app_mode_close_chooser">ዝጋ</string>
+    <string name="app_mode_details">ዝርዝሮች</string>
+    <string name="app_mode_details_description">የ%1$s ዝርዝሮች</string>
+    <string name="app_mode_benefits">ጥቅሞች</string>
+    <string name="app_mode_things_to_know">ማወቅ ያለብዎት</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="app_permission_not_now">አሁን አይደለም</string>
     <string name="app_permission_open_settings">ቅንብሮችን ይክፈቱ</string>
-    <string name="app_permission_try_again">እንደገና ይሞክሩ</string>
+
+    <string name="app_permission_notifications_title">ማሳወቂያዎችን ይፍቀዱ</string>
+    <string name="app_permission_notifications_message">ማሳወቂያዎች የዥረት ሁኔታን እና የስህተት ማንቂያዎችን ያሳያሉ። ዥረቱን ለማቆም ወይም ScreenStreamን እንደገና ለመክፈት ይጠቀሙባቸው።</string>
+
+    <string name="app_permission_local_network_title">የአካባቢ አውታረ መረብ መዳረሻ</string>
+    <string name="app_permission_local_network_message">በተመሳሳይ አውታረ መረብ ላይ ወዳሉ ሌሎች መሣሪያዎች ለማሰራጨት ScreenStream የአካባቢ አውታረ መረብዎን እንዲጠቀም ይፍቀዱ።\n\nAndroid ይህን ፈቃድ በአቅራቢያ ያሉ መሣሪያዎችን መድረስ ብሎ ይገልጸዋል፣ እና እርስ በርሳቸው ያላቸውን አቀማመጥ መወሰንን ሊጠቅስ ይችላል።</string>
+    <string name="app_permission_local_network_off_title">የአካባቢ አውታረ መረብ መዳረሻ ጠፍቷል</string>
+    <string name="app_permission_local_network_settings_message">በተመሳሳይ የአካባቢ አውታረ መረብ ላይ ወዳሉ መሣሪያዎች ለማሰራጨት፣ በመተግበሪያ ቅንብሮች ውስጥ «ፍቃዶች»ን ይክፈቱና «በአቅራቢያ ያሉ መሣሪያዎች»ን ይፍቀዱ።</string>
+
+    <string name="app_permission_microphone_title">የማይክሮፎን መዳረሻ</string>
+    <string name="app_permission_microphone_message">ከማይክሮፎንዎ የሚመጣውን ድምፅ በስርጭቱ ውስጥ ለማካተት የማይክሮፎን መዳረሻ ይፍቀዱ።\n\nያለዚህ የማይክሮፎን ድምፅ ሊሰራጭ አይችልም።</string>
+    <string name="app_permission_device_audio_title">የመሣሪያ ድምፅ መዳረሻ</string>
+    <string name="app_permission_device_audio_message">የመሣሪያ ድምፅን ለማሰራጨት Android የማይክሮፎን ፈቃድ ይፈልጋል። ይህ ማይክሮፎንዎን አያበራም።\n\nAndroid እና ድምፁን የሚያጫውተው መተግበሪያ እንዲጋራ የፈቀዱት ድምፅ ብቻ ሊሰራጭ ይችላል።</string>
+
+    <string name="app_permission_audio_title">የማይክሮፎን እና የመሣሪያ ድምፅ</string>
+    <string name="app_permission_audio_message">የማይክሮፎን እና የመሣሪያ ድምፅን ለማሰራጨት የማይክሮፎን መዳረሻ ይፍቀዱ።\n\nየመሣሪያ ድምፅ ሊሰራጭ የሚችለው Android እና ድምፁን የሚያጫውተው መተግበሪያ መጋራቱን ሲፈቅዱ ብቻ ነው።</string>
+    <string name="app_permission_audio_settings_message">የማይክሮፎን ወይም የመሣሪያ ድምፅን ለማሰራጨት በመተግበሪያ ቅንብሮች ውስጥ የማይክሮፎን መዳረሻ ይፍቀዱ።\n\nያለዚህ ድምፅ ሊሰራጭ አይችልም።</string>
 
     <string name="app_notification_channel_streaming">የዥረት ማሳወቂያዎች</string>
     <string name="app_notification_channel_error">የስህተት ማሳወቂያዎች</string>
-    <string name="app_notification_streaming_title">በዥረት መልቀቅ…</string>
-    <string name="app_notification_streaming_content">ዥረቱን ለማቆም አቁምን ይንኩ</string>
-    <string name="app_notification_stop">ተወ</string>
+    <string name="app_notification_waiting_content">መተግበሪያውን ለመክፈት ይንኩ</string>
+    <string name="app_notification_streaming_title">በማሰራጨት ላይ…</string>
+    <string name="app_notification_streaming_content">ዥረቱን ለማጠናቀቅ «አቁም»ን ይንኩ</string>
+    <string name="app_notification_stop">አቁም</string>
 
-    <string name="app_tile_start">ጀምር</string>
-    <string name="app_tile_stop">ተወ</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStreamን ክፈት</string>
+    <string name="app_tile_stop">አቁም</string>
 
     <string name="app_pref_back">ተመለስ</string>
     <string name="app_pref_settings">ቅንብሮች</string>
     <string name="app_pref_locale">የመተግበሪያ ቋንቋ</string>
     <string name="app_pref_locale_summary">የመተግበሪያ ቋንቋ ቅንብሮችን ይክፈቱ</string>
-    <string name="app_pref_locale_default">የስርዓት ነባሪ</string>
-    <string name="app_pref_night_mode">ጨለማ ጭብጥ</string>
+    <string name="app_pref_locale_default">የሥርዓት ነባሪ</string>
+    <string name="app_pref_night_mode">ጨለማ ገጽታ</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>ሁልጊዜ</item>
-        <item>በባትሪ ቆጣቢ የተወሰነ</item>
-        <item>በፍጹም</item>
+        <item>በባትሪ ቆጣቢ መሠረት</item>
+        <item>በጭራሽ</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>ሁልጊዜ</item>
-        <item>በራስ-ሰር (ስርዓቱን ይከተላል)</item>
-        <item>በፍጹም</item>
+        <item>ሥርዓቱን ተከተል</item>
+        <item>በጭራሽ</item>
     </string-array>
     <string name="app_pref_dynamic_theme">ተለዋዋጭ ቀለም</string>
-    <string name="app_pref_dynamic_theme_summary">በግድግዳ ወረቀትዎ ቀለሞች ላይ በመመስረት መልክውን ያስተካክሉ</string>
-    <string name="app_pref_notification">የመሣሪያ ማሳወቂያ ቅንብሮች</string>
-    <string name="app_pref_notification_summary">የስርዓት ማሳወቂያ ቅንብሮችን ክፈት</string>
-    <string name="app_pref_tile">የመተግበሪያ ፈጣን ቅንብር ቁልፍ ያክሉ</string>
-    <string name="app_pref_tile_summary">የመተግበሪያ ፈጣን ቅንብር ቁልፍን ወደ ፈጣን ቅንብሮች ያክሉ</string>
+    <string name="app_pref_dynamic_theme_summary">በግድግዳ ወረቀትዎ ቀለሞች ላይ በመመስረት መልኩን ያስተካክሉ</string>
+    <string name="app_pref_notification">የመተግበሪያ ማሳወቂያዎች</string>
+    <string name="app_pref_notification_summary">ማሳወቂያዎችን በሥርዓት ቅንብሮች ውስጥ ያስተዳድሩ</string>
+    <string name="app_pref_tile">የፈጣን ቅንብሮች ንጣፍ ያክሉ</string>
+    <string name="app_pref_tile_summary">ScreenStreamን ወደ ፈጣን ቅንብሮች ያክሉ</string>
 
     <string name="app_tab_about_app_version">ስሪት፡ %1$s</string>
-    <string name="app_tab_about_developer_name">በዲሚትሮ Kryvoruchko የተሰራ</string>
+    <string name="app_tab_about_developer_name">በDmytro Kryvoruchko የተሠራ</string>
     <string name="app_tab_about_rate_app">መተግበሪያ ደረጃ ይስጡ</string>
-    <string name="app_tab_about_app_sources">የመተግበሪያ ምንጮች</string>
+    <string name="app_tab_about_app_sources">ምንጭ ኮድ</string>
     <string name="app_tab_about_terms_conditions">ውሎች እና ሁኔታዎች</string>
     <string name="app_tab_about_privacy_policy">የግላዊነት ፖሊሲ</string>
     <string name="app_tab_about_privacy_options">የግላዊነት አማራጮች</string>

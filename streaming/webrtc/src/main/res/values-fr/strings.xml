@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">Rétablir</string>
+    <string name="webrtc_error_open_settings">Ouvrir les paramètres</string>
+    <string name="webrtc_error_start_screen_sharing">Démarrer le partage d’écran</string>
+    <string name="webrtc_error_start_with_audio">Démarrer avec l’audio</string>
+    <string name="webrtc_error_allow_microphone">Autoriser le micro</string>
+    <string name="webrtc_error_signaling_server_unavailable">Impossible de joindre le serveur. Il se peut que les spectateurs ne puissent pas se connecter.</string>
+
+    <string name="webrtc_method_title">WebRTC : partage dans le monde entier</string>
+    <string name="webrtc_method_summary">Partagez votre écran avec des spectateurs partout grâce à un lien.</string>
+    <string name="webrtc_method_conditions">Lecture dans le navigateur · Son facultatif · Internet requis</string>
+    <string name="webrtc_method_intro">WebRTC envoie la vidéo en direct, et le son si vous le souhaitez, aux navigateurs des spectateurs via Internet. Les spectateurs rejoignent la diffusion avec votre lien de partage, ou avec votre ID de diffusion et votre mot de passe.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Invitez des spectateurs d’autres réseaux sur screenstream.io avec votre ID de diffusion et votre mot de passe.</item>
+        <item>La vidéo et le son sont chiffrés, et chaque diffusion a un mot de passe.</item>
+        <item>Ajoutez le son du microphone, le son de l’appareil, ou les deux.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Cet appareil et chaque spectateur ont besoin d’Internet.</item>
+        <item>Chaque spectateur reçoit un flux distinct, donc plus de spectateurs consomment plus de données en envoi.</item>
+    </string-array>
+
+    <string name="webrtc_stream_network_recovery">Connexion perdue. Reconnexion…</string>
+    <string name="webrtc_stream_server_address">Accéder à la diffusion à l\'adresse :\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Obtention de l\'ID de diffusion…</string>
+    <string name="webrtc_stream_stream_id">ID de diffusion : %1$s</string>
+    <string name="webrtc_stream_stream_password">Mot de passe de diffusion : %1$s</string>
+    <string name="webrtc_stream_description_show_password">Afficher le mot de passe de diffusion</string>
+    <string name="webrtc_stream_description_get_new_id">Obtenir un nouvel ID de diffusion</string>
+    <string name="webrtc_stream_description_create_password">Créer un nouveau mot de passe de diffusion</string>
+    <string name="webrtc_stream_description_open_address">Ouvrir l\'adresse</string>
+    <string name="webrtc_stream_description_copy_address">Copier l\'adresse</string>
+    <string name="webrtc_stream_description_share_address">Partager l\'adresse</string>
+    <string name="webrtc_stream_description_qr_address">Afficher l\'adresse sous forme de code QR</string>
+    <string name="webrtc_stream_description_qr">Code QR</string>
+    <string name="webrtc_stream_copied">Copié</string>
+    <string name="webrtc_stream_audio_parameters">Paramètres audio</string>
+    <string name="webrtc_stream_audio_mic">Microphone</string>
+    <string name="webrtc_stream_audio_mic_summary">Diffuser l\'audio du microphone</string>
+    <string name="webrtc_stream_audio_device">Audio interne</string>
+    <string name="webrtc_stream_audio_device_summary">Diffuser l\'audio multimédia de cet appareil</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Capture audio indisponible</string>
+    <string name="webrtc_stream_connected_clients">Clients connectés : %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">Aucun navigateur web trouvé</string>
+    <string name="webrtc_stream_external_app_error">Erreur dans l\'application externe</string>
+    <string name="webrtc_stream_share_address">Partager l\'adresse de l\'appareil</string>
+    <string name="webrtc_stream_start">Démarrer la diffusion</string>
+    <string name="webrtc_stream_stop">Arrêter la diffusion</string>
+
+    <string name="webrtc_stream_other_parameters">Autres paramètres</string>
+    <string name="webrtc_stream_keep_awake">Maintenir l\'appareil actif</string>
+    <string name="webrtc_stream_keep_awake_summary">Maintenir l\'appareil et l\'écran actifs pendant la diffusion</string>
+    <string name="webrtc_stream_stop_on_sleep">Arrêter en veille</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Arrête la diffusion si l\'écran s\'éteint</string>
+
+    <string name="webrtc_item_client_disconnect">Déconnexion</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">Veuillez mettre à jour Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Veuillez installer ou activer Google Play Store officiel</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Veuillez installer ou activer les Services Google Play</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Veuillez mettre à jour les Services Google Play</string>
+    <string name="webrtc_error_check_network">Vérifiez votre connexion Internet</string>
+    <string name="webrtc_error_incomplete_installation">L\'installation de l\'application est incomplète. Veuillez réinstaller l\'application depuis Google Play.</string>
+    <string name="webrtc_notification_permission_required">Cette application nécessite l\'activation des notifications pour démarrer le service de diffusion.\nActivez les notifications dans les paramètres de l\'application.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android a bloqué le démarrage du partage d’écran. Gardez ScreenStream ouvert et recommencez.</string>
+    <string name="webrtc_error_projection_acquire_rejected">L’autorisation de capture d’écran n’est plus valide. Démarrez à nouveau le partage d’écran.</string>
+    <string name="webrtc_error_audio_permission_required">L’autorisation du micro est requise pour démarrer la diffusion avec l’audio.</string>
+    <string name="webrtc_error_audio_start_blocked">Android a bloqué le démarrage du partage audio. Gardez ScreenStream ouvert et redémarrez avec l’audio.</string>
+    <string name="webrtc_error_unspecified">Une erreur s\'est produite. Veuillez réessayer ultérieurement.</string>
+</resources>

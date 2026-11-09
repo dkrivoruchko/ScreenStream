@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">Herstel</string>
+    <string name="webrtc_error_open_settings">Maak instellings oop</string>
+    <string name="webrtc_error_start_screen_sharing">Begin skermdeling</string>
+    <string name="webrtc_error_start_with_audio">Begin met oudio</string>
+    <string name="webrtc_error_allow_microphone">Laat mikrofoon toe</string>
+    <string name="webrtc_error_signaling_server_unavailable">Kan nie die bediener bereik nie. Kykers kan dalk nie aansluit nie.</string>
+
+    <string name="webrtc_method_title">WebRTC: Wêreldwye deling</string>
+    <string name="webrtc_method_summary">Deel jou skerm met kykers oral met \'n skakel.</string>
+    <string name="webrtc_method_conditions">Kyk in blaaier · Opsionele klank · Internet vereis</string>
+    <string name="webrtc_method_intro">WebRTC stuur regstreekse video, en klank as jy dit kies, oor die internet na kykers se blaaiers. Kykers sluit aan met jou deelskakel, of met jou stroom-ID en wagwoord.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Nooi kykers op ander netwerke na screenstream.io met jou stroom-ID en wagwoord.</item>
+        <item>Video en klank is geënkripteer, en elke stroom het \'n wagwoord.</item>
+        <item>Voeg mikrofoonklank, toestelklank of albei by.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Hierdie toestel en elke kyker het internet nodig.</item>
+        <item>Elke kyker kry \'n afsonderlike stroom, so meer kykers gebruik meer oplaaidata.</item>
+    </string-array>
+
+    <string name="webrtc_stream_network_recovery">Verbinding verloor. Herkoppel tans…</string>
+    <string name="webrtc_stream_server_address">Toegang tot die stroom by:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Kry tans stroom-ID …</string>
+    <string name="webrtc_stream_stream_id">Stroom-ID: %1$s</string>
+    <string name="webrtc_stream_stream_password">Stroomwagwoord: %1$s</string>
+    <string name="webrtc_stream_description_show_password">Wys stroomwagwoord</string>
+    <string name="webrtc_stream_description_get_new_id">Kry nuwe stroom-ID</string>
+    <string name="webrtc_stream_description_create_password">Skep nuwe stroomwagwoord</string>
+    <string name="webrtc_stream_description_open_address">Maak adres oop</string>
+    <string name="webrtc_stream_description_copy_address">Kopieer adres</string>
+    <string name="webrtc_stream_description_share_address">Deel adres</string>
+    <string name="webrtc_stream_description_qr_address">Wys adres as QR-kode</string>
+    <string name="webrtc_stream_description_qr">QR kode</string>
+    <string name="webrtc_stream_copied">Gekopieer</string>
+    <string name="webrtc_stream_audio_parameters">Klankinstellings</string>
+    <string name="webrtc_stream_audio_mic">Mikrofoon</string>
+    <string name="webrtc_stream_audio_mic_summary">Stroom mikrofoonklank</string>
+    <string name="webrtc_stream_audio_device">Interne oudio</string>
+    <string name="webrtc_stream_audio_device_summary">Stroom media-oudio vanaf hierdie toestel</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Oudio-opname nie beskikbaar nie</string>
+    <string name="webrtc_stream_connected_clients">Gekoppelde kliënte: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">Geen webblaaier gevind nie</string>
+    <string name="webrtc_stream_external_app_error">Eksterne toepassingsfout</string>
+    <string name="webrtc_stream_share_address">Deel toesteladres</string>
+    <string name="webrtc_stream_start">Begin stroom</string>
+    <string name="webrtc_stream_stop">Stop stroom</string>
+
+    <string name="webrtc_stream_other_parameters">Ander instellings</string>
+    <string name="webrtc_stream_keep_awake">Hou toestel wakker</string>
+    <string name="webrtc_stream_keep_awake_summary">Hou toestel en skerm wakker terwyl dit stroom</string>
+    <string name="webrtc_stream_stop_on_sleep">Stop stroom op slaap</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Stop stroom as die skerm afskakel</string>
+
+    <string name="webrtc_item_client_disconnect">Ontkoppel</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">Dateer asseblief Google Play Winkel op</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Installeer of aktiveer asseblief amptelike Google Play Winkel</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Installeer of aktiveer asseblief Play Services</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Dateer asseblief Google Play Dienste op</string>
+    <string name="webrtc_error_check_network">Kontroleer jou internetverbinding</string>
+    <string name="webrtc_error_incomplete_installation">Die toepassing is onvolledig geïnstalleer. Herinstalleer asseblief die toepassing vanaf Google Play.</string>
+    <string name="webrtc_notification_permission_required">Hierdie app benodig kennisgewings om die stroomdiens te begin.\nAktiveer kennisgewings in appinstellings.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android het die begin van skermdeling geblokkeer. Hou ScreenStream oop en begin weer.</string>
+    <string name="webrtc_error_projection_acquire_rejected">Skermopnametoestemming is nie meer geldig nie. Begin skermdeling weer.</string>
+    <string name="webrtc_error_audio_permission_required">Mikrofoontoestemming is nodig om met oudio te begin stroom.</string>
+    <string name="webrtc_error_audio_start_blocked">Android het die begin van oudiodeling geblokkeer. Hou ScreenStream oop en begin weer met oudio.</string>
+    <string name="webrtc_error_unspecified">Iets het verkeerd geloop. Probeer asseblief weer later.</string>
+</resources>

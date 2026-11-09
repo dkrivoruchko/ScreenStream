@@ -1,0 +1,90 @@
+package io.screenstream.mjpeg
+
+import android.content.Context
+import android.media.projection.MediaProjection
+import io.screenstream.core.capture.ScreenCaptureAccess
+import io.screenstream.core.module.StreamingModule
+import io.screenstream.mjpeg.http.HttpDelivery
+import io.screenstream.mjpeg.settings.ImageSettings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.shadow.api.Shadow
+import java.util.concurrent.CopyOnWriteArrayList
+
+/** Android, consent and foreground inputs only; each test owns its Engine observations and capabilities. */
+internal class MjpegCaptureSessionInputs(
+    val context: Context = RuntimeEnvironment.getApplication(),
+    val projection: MediaProjection = Shadow.newInstanceOf(MediaProjection::class.java),
+    val grant: ScreenCaptureAccess.Grant = object : ScreenCaptureAccess.Grant {},
+    private val consent: suspend (StreamingModule.CaptureAttemptId) -> ScreenCaptureAccess.Grant? = { grant },
+    private val projectionCreation: (ScreenCaptureAccess.Grant) -> MediaProjection = { projection },
+    private val promotion: () -> Unit = {},
+    private val foregroundRelease: () -> Unit = {},
+    private val guardRelease: (StreamingModule.CaptureAttemptId) -> Unit = {},
+    private val consentReuse: (ScreenCaptureAccess.Grant) -> Unit = {},
+) {
+    val consentRequests: MutableList<StreamingModule.CaptureAttemptId> = CopyOnWriteArrayList()
+    val projectionGrants: MutableList<ScreenCaptureAccess.Grant> = CopyOnWriteArrayList()
+    val projectionCreationFinishes: MutableList<StreamingModule.CaptureAttemptId> = CopyOnWriteArrayList()
+    val savedConsents: MutableList<ScreenCaptureAccess.Grant> = CopyOnWriteArrayList()
+    val foregroundEvents: MutableList<String> = CopyOnWriteArrayList()
+
+    val access: ScreenCaptureAccess = object : ScreenCaptureAccess {
+        override suspend fun requestConsent(
+            attempt: StreamingModule.CaptureAttemptId,
+            attemptJob: Job,
+            prepareForeground: () -> Boolean,
+        ): ScreenCaptureAccess.ConsentResult {
+            consentRequests += attempt
+            val granted = consent(attempt)
+                ?: return ScreenCaptureAccess.ConsentResult.NotGranted(ScreenCaptureAccess.NoGrantReason.Declined)
+            return if (prepareForeground()) {
+                ScreenCaptureAccess.ConsentResult.Granted(granted)
+            } else ScreenCaptureAccess.ConsentResult.NotGranted(ScreenCaptureAccess.NoGrantReason.ForegroundRejected)
+        }
+
+        override fun createProjection(grant: ScreenCaptureAccess.Grant, retryAfterRecentForegroundStart: Boolean): MediaProjection {
+            check(!retryAfterRecentForegroundStart)
+            projectionGrants += grant
+            return projectionCreation(grant)
+        }
+
+        override fun finishProjectionCreation(attempt: StreamingModule.CaptureAttemptId) {
+            projectionCreationFinishes += attempt
+            guardRelease(attempt)
+        }
+
+        override fun saveConsentForReuse(grant: ScreenCaptureAccess.Grant) {
+            savedConsents += grant
+            consentReuse(grant)
+        }
+    }
+
+    fun createSession(
+        scope: CoroutineScope,
+        engineFactory: MjpegEngineFactory,
+        onJpeg: (Int, (ByteArray) -> Unit) -> Unit = { _, _ -> error("No JPEG is expected in this history") },
+        id: StreamingModule.CaptureAttemptId = StreamingModule.CaptureAttemptId(StreamingModule.InstanceId(StreamingModule.Id("MJPEG"))),
+        initialImageSettings: ImageSettings = ImageSettings(),
+        http: HttpDelivery = ControlledHttpDelivery(onJpeg = onJpeg),
+    ): MjpegCaptureSession = MjpegCaptureSession(
+        id = id,
+        initialImageSettings = initialImageSettings,
+        initialCaptureGeneration = Any(),
+        http = http,
+        context = context,
+        controllerScope = scope,
+        captureAccess = access,
+        enterForeground = {
+            foregroundEvents += "enterForeground"
+            promotion()
+            true
+        },
+        leaveForeground = {
+            foregroundEvents += "leaveForeground"
+            foregroundRelease()
+        },
+        engineFactory = engineFactory,
+    )
+}

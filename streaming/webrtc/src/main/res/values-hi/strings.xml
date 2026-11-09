@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">पुनर्प्राप्ति</string>
+    <string name="webrtc_error_open_settings">सेटिंग्स खोलें</string>
+    <string name="webrtc_error_start_screen_sharing">स्क्रीन शेयरिंग शुरू करें</string>
+    <string name="webrtc_error_start_with_audio">ऑडियो के साथ शुरू करें</string>
+    <string name="webrtc_error_allow_microphone">माइक्रोफ़ोन की अनुमति दें</string>
+    <string name="webrtc_error_signaling_server_unavailable">सर्वर तक नहीं पहुंचा जा सकता। दर्शक शायद जुड़ न पाएं।</string>
+
+    <string name="webrtc_method_title">WebRTC: दुनिया भर में शेयरिंग</string>
+    <string name="webrtc_method_summary">लिंक के ज़रिए कहीं भी मौजूद दर्शकों के साथ अपनी स्क्रीन शेयर करें।</string>
+    <string name="webrtc_method_conditions">ब्राउज़र में देखें · ऑडियो वैकल्पिक · इंटरनेट ज़रूरी</string>
+    <string name="webrtc_method_intro">WebRTC इंटरनेट के ज़रिए दर्शकों के ब्राउज़र पर लाइव वीडियो भेजता है, और आप चाहें तो ऑडियो भी। दर्शक आपके शेयर लिंक से, या आपकी स्ट्रीम ID और पासवर्ड से जुड़ते हैं।</string>
+    <string-array name="webrtc_method_benefits">
+        <item>दूसरे नेटवर्क पर मौजूद दर्शकों को अपनी स्ट्रीम ID और पासवर्ड के साथ screenstream.io पर बुलाएं।</item>
+        <item>वीडियो और ऑडियो एन्क्रिप्ट होते हैं, और हर स्ट्रीम का एक पासवर्ड होता है।</item>
+        <item>माइक्रोफ़ोन का ऑडियो, डिवाइस का ऑडियो या दोनों जोड़ें।</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>इस डिवाइस और हर दर्शक को इंटरनेट चाहिए।</item>
+        <item>हर दर्शक को अलग स्ट्रीम मिलती है, इसलिए ज़्यादा दर्शकों से ज़्यादा अपलोड डेटा खर्च होता है।</item>
+    </string-array>
+
+    <string name="webrtc_stream_network_recovery">कनेक्शन खो गया। फिर से जुड़ रहा है…</string>
+    <string name="webrtc_stream_server_address">स्ट्रीम यहाँ खोलें:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">स्ट्रीम आईडी प्राप्त कर रहा है…</string>
+    <string name="webrtc_stream_stream_id">स्ट्रीम आईडी: %1$s</string>
+    <string name="webrtc_stream_stream_password">स्ट्रीम पासवर्ड: %1$s</string>
+    <string name="webrtc_stream_description_show_password">स्ट्रीम पासवर्ड दिखाएं</string>
+    <string name="webrtc_stream_description_get_new_id">नई स्ट्रीम आईडी प्राप्त करें</string>
+    <string name="webrtc_stream_description_create_password">नया स्ट्रीम पासवर्ड बनाएं</string>
+    <string name="webrtc_stream_description_open_address">पता खोलें</string>
+    <string name="webrtc_stream_description_copy_address">पता कॉपी करें</string>
+    <string name="webrtc_stream_description_share_address">पता साझा करें</string>
+    <string name="webrtc_stream_description_qr_address">पता QR-कोड के रूप में दिखाएं</string>
+    <string name="webrtc_stream_description_qr">क्यूआर कोड</string>
+    <string name="webrtc_stream_copied">कॉपी किया गया</string>
+    <string name="webrtc_stream_audio_parameters">ऑडियो सेटिंग्स</string>
+    <string name="webrtc_stream_audio_mic">माइक्रोफ़ोन</string>
+    <string name="webrtc_stream_audio_mic_summary">माइक्रोफ़ोन ऑडियो स्ट्रीम करें</string>
+    <string name="webrtc_stream_audio_device">आंतरिक ऑडियो</string>
+    <string name="webrtc_stream_audio_device_summary">इस डिवाइस का मीडिया ऑडियो स्ट्रीम करें</string>
+    <string name="webrtc_stream_audio_capture_unavailable">ऑडियो कैप्चर उपलब्ध नहीं है</string>
+    <string name="webrtc_stream_connected_clients">कनेक्टेड ग्राहक: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">कोई वेब ब्राउज़र नहीं मिला</string>
+    <string name="webrtc_stream_external_app_error">बाहरी एप्लिकेशन त्रुटि</string>
+    <string name="webrtc_stream_share_address">डिवाइस पता साझा करें</string>
+    <string name="webrtc_stream_start">स्ट्रीम शुरू करें</string>
+    <string name="webrtc_stream_stop">स्ट्रीम बंद करें</string>
+
+    <string name="webrtc_stream_other_parameters">अन्य सेटिंग्स</string>
+    <string name="webrtc_stream_keep_awake">डिवाइस जागरूक रखें</string>
+    <string name="webrtc_stream_keep_awake_summary">स्ट्रीमिंग के दौरान डिवाइस और स्क्रीन को जागरूक रखें</string>
+    <string name="webrtc_stream_stop_on_sleep">नींद पर धारा रोकें</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">यदि स्क्रीन बंद हो जाती है तो स्ट्रीम को रोकें</string>
+
+    <string name="webrtc_item_client_disconnect">डिस्कनेक्ट</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">कृपया Google Play Store को अपडेट करें</string>
+    <string name="webrtc_error_play_integrity_install_play_store">कृपया आधिकृत Google Play Store को स्थापित करें या सक्षम करें</string>
+    <string name="webrtc_error_play_integrity_install_play_service">कृपया Google Play सेवाएं स्थापित करें या सक्षम करें</string>
+    <string name="webrtc_error_play_integrity_update_play_service">कृपया Google Play सेवाएं अपडेट करें</string>
+    <string name="webrtc_error_check_network">अपना इंटरनेट कनेक्शन जांचें</string>
+    <string name="webrtc_error_incomplete_installation">ऐप का इंस्टॉलेशन अधूरा है। कृपया Google Play से ऐप को फिर से इंस्टॉल करें।</string>
+    <string name="webrtc_notification_permission_required">स्ट्रीमिंग सेवा शुरू करने के लिए इस ऐप में सूचनाएँ चालू होनी चाहिए।\nऐप सेटिंग में सूचनाएँ चालू करें।</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android ने स्क्रीन शेयरिंग शुरू होने से रोक दी। ScreenStream खुला रखें और फिर से शुरू करें।</string>
+    <string name="webrtc_error_projection_acquire_rejected">स्क्रीन कैप्चर अनुमति अब मान्य नहीं है। स्क्रीन शेयरिंग फिर से शुरू करें।</string>
+    <string name="webrtc_error_audio_permission_required">ऑडियो के साथ स्ट्रीमिंग शुरू करने के लिए माइक्रोफ़ोन अनुमति आवश्यक है।</string>
+    <string name="webrtc_error_audio_start_blocked">Android ने ऑडियो शेयरिंग शुरू होने से रोक दी। ScreenStream खुला रखें और ऑडियो के साथ फिर से शुरू करें।</string>
+    <string name="webrtc_error_unspecified">कुछ गड़बड़ हो गई है। कृपया बाद में पुनः प्रयास करें।</string>
+</resources>

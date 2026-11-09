@@ -5,4 +5,7 @@
 
     <string name="common_continue">Lanjutake</string>
     <string name="common_try_again">Coba maneh</string>
+
+    <string name="common_expanded">Dibukak</string>
+    <string name="common_collapsed">Ditutup</string>
 </resources>

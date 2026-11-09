@@ -1,0 +1,13 @@
+<!-- Material Symbols Outlined by Google, Apache License 2.0.
+     Source: https://github.com/google/material-design-icons/blob/49d4db35df873165d6bd6ba09b063c7dafbac2f4/symbols/android/check_small/materialsymbolsoutlined/check_small_24px.xml
+     License: https://www.apache.org/licenses/LICENSE-2.0
+     Adapted: theme tint removed. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M400,656L240,496L296,440L400,544L664,280L720,336L400,656Z" />
+</vector>

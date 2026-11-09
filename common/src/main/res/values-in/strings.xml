@@ -5,4 +5,7 @@
 
     <string name="common_continue">Lanjutkan</string>
     <string name="common_try_again">Coba lagi</string>
+
+    <string name="common_expanded">Diperluas</string>
+    <string name="common_collapsed">Diciutkan</string>
 </resources>

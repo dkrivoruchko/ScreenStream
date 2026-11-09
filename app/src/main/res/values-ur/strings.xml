@@ -3,8 +3,11 @@
     <string name="app_error_title">خرابی</string>
     <string name="app_error_recover">بحال کریں</string>
 
+    <string name="app_module_error_title">کچھ غلط ہو گیا</string>
+    <string name="app_module_error_restart">موڈ دوبارہ شروع کریں</string>
+
     <string name="app_activity_update_dialog_title">اپ ڈیٹ دستیاب ہے</string>
-    <string name="app_activity_update_dialog_message">اپ ڈیٹ ڈاؤن لوڈ ہو چکی ہے۔ ایپ دوبارہ شروع کریں؟</string>
+    <string name="app_activity_update_dialog_message">اپ ڈیٹ تیار ہے۔ کیا ابھی ایپ دوبارہ شروع کریں؟</string>
     <string name="app_activity_update_dialog_restart">دوبارہ شروع کریں</string>
 
     <string name="app_tab_stream">اسٹریم</string>
@@ -13,25 +16,49 @@
     <string name="app_tab_exit">خروج</string>
 
     <string name="app_tab_stream_select_mode">اسٹریم موڈ منتخب کریں:</string>
+    <string name="app_tab_stream_switching_modules">موڈ تبدیل ہو رہے ہیں…</string>
 
-    <string name="app_permission_required_title">اجازت درکار ہے</string>
-    <string name="app_permission_allow_notifications">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات کی اجازت درکار ہے۔\n\nاطلاعات کی اجازت دیں۔</string>
-    <string name="app_permission_allow_notifications_settings">اس ایپ کو اسٹریمنگ سروس شروع کرنے کے لیے اطلاعات کی اجازت درکار ہے۔\n\nایپ کی ترتیبات میں اطلاعات فعال کریں۔</string>
-    <string name="app_permission_notification_settings">ترتیبات کھولیں</string>
-    <string name="app_permission_local_network_title">مقامی نیٹ ورک تک رسائی درکار ہے</string>
-    <string name="app_permission_local_network_message">ScreenStream کو اپنا مقامی نیٹ ورک استعمال کرنے کی اجازت دیں تاکہ آلات آپ کی اسٹریم سے منسلک ہو سکیں۔</string>
-    <string name="app_permission_local_network_off_title">مقامی نیٹ ورک تک رسائی بند ہے</string>
-    <string name="app_permission_local_network_settings_message">اپنی اسکرین آلات کے ساتھ شیئر کرنے کے لیے Android ترتیبات میں مقامی نیٹ ورک تک رسائی فعال کریں۔</string>
+    <string name="app_mode_selected_method">اسٹریمنگ کا فعال طریقہ</string>
+    <string name="app_mode_choose_method">اسٹریمنگ کا طریقہ منتخب کریں</string>
+    <string name="app_mode_choose_another_method">کوئی دوسرا طریقہ منتخب کریں</string>
+    <string name="app_mode_change">تبدیل کریں</string>
+    <string name="app_mode_chooser_title">اپنی اسکرین شیئر کرنے کا طریقہ منتخب کریں</string>
+    <string name="app_mode_close_chooser">بند کریں</string>
+    <string name="app_mode_details">تفصیلات</string>
+    <string name="app_mode_details_description">%1$s کی تفصیلات</string>
+    <string name="app_mode_benefits">فوائد</string>
+    <string name="app_mode_things_to_know">جاننے کی باتیں</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="app_permission_not_now">ابھی نہیں</string>
     <string name="app_permission_open_settings">ترتیبات کھولیں</string>
-    <string name="app_permission_try_again">دوبارہ کوشش کریں</string>
 
-    <string name="app_notification_channel_streaming">اسٹریمنگ اطلاعات</string>
-    <string name="app_notification_channel_error">خرابی اطلاعات</string>
+    <string name="app_permission_notifications_title">اطلاعات کی اجازت دیں</string>
+    <string name="app_permission_notifications_message">اطلاعات اسٹریمنگ کی حیثیت اور خرابیوں کے انتباہات دکھاتی ہیں۔ ان سے اسٹریمنگ روکیں یا ScreenStream دوبارہ کھولیں۔</string>
+
+    <string name="app_permission_local_network_title">مقامی نیٹ ورک تک رسائی</string>
+    <string name="app_permission_local_network_message">ScreenStream کو اسی نیٹ ورک کے دوسرے آلات پر اسٹریم کرنے کے لیے اپنا مقامی نیٹ ورک استعمال کرنے کی اجازت دیں۔\n\nAndroid اس اجازت کو قریبی آلات تک رسائی کے طور پر بیان کرتا ہے اور ان کی ایک دوسرے کے لحاظ سے پوزیشن معلوم کرنے کا ذکر کر سکتا ہے۔</string>
+    <string name="app_permission_local_network_off_title">مقامی نیٹ ورک تک رسائی بند ہے</string>
+    <string name="app_permission_local_network_settings_message">اسی مقامی نیٹ ورک کے آلات پر اسٹریم کرنے کے لیے ایپ کی ترتیبات میں اجازتیں کھولیں اور قریبی آلات کی اجازت دیں۔</string>
+
+    <string name="app_permission_microphone_title">مائیکروفون تک رسائی</string>
+    <string name="app_permission_microphone_message">اسٹریم میں اپنے مائیکروفون کی آواز شامل کرنے کے لیے مائیکروفون تک رسائی کی اجازت دیں۔\n\nاس کے بغیر مائیکروفون کی آڈیو اسٹریم نہیں کی جا سکتی۔</string>
+    <string name="app_permission_device_audio_title">آلے کی آڈیو تک رسائی</string>
+    <string name="app_permission_device_audio_message">آلے کی آڈیو اسٹریم کرنے کے لیے Android کو مائیکروفون کی اجازت درکار ہے۔ اس سے آپ کا مائیکروفون آن نہیں ہوتا۔\n\nصرف وہ آڈیو اسٹریم کی جا سکتی ہے جسے شیئر کرنے کی اجازت Android اور آڈیو چلانے والی ایپ دیں۔</string>
+
+    <string name="app_permission_audio_title">مائیکروفون اور آلے کی آڈیو</string>
+    <string name="app_permission_audio_message">مائیکروفون اور آلے کی آڈیو اسٹریم کرنے کے لیے مائیکروفون تک رسائی کی اجازت دیں۔\n\nآلے کی آڈیو صرف اسی وقت اسٹریم کی جا سکتی ہے جب Android اور آڈیو چلانے والی ایپ اسے شیئر کرنے کی اجازت دیں۔</string>
+    <string name="app_permission_audio_settings_message">مائیکروفون یا آلے کی آڈیو اسٹریم کرنے کے لیے ایپ کی ترتیبات میں مائیکروفون تک رسائی کی اجازت دیں۔\n\nاس کے بغیر آڈیو اسٹریم نہیں کی جا سکتی۔</string>
+
+    <string name="app_notification_channel_streaming">اسٹریمنگ کی اطلاعات</string>
+    <string name="app_notification_channel_error">خرابی کی اطلاعات</string>
+    <string name="app_notification_waiting_content">ایپ کھولنے کے لیے ٹیپ کریں</string>
     <string name="app_notification_streaming_title">اسٹریمنگ…</string>
     <string name="app_notification_streaming_content">اسٹریم ختم کرنے کے لیے روکیں پر ٹیپ کریں</string>
     <string name="app_notification_stop">روکیں</string>
 
-    <string name="app_tile_start">شروع کریں</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream کھولیں</string>
     <string name="app_tile_stop">روکیں</string>
 
     <string name="app_pref_back">واپس</string>
@@ -39,7 +66,8 @@
     <string name="app_pref_locale">ایپ کی زبان</string>
     <string name="app_pref_locale_summary">ایپ زبان کی ترتیبات کھولیں</string>
     <string name="app_pref_locale_default">سسٹم ڈیفالٹ</string>
-    <string name="app_pref_night_mode">ڈارک تھیم</string>
+    <string name="app_pref_night_mode">گہری تھیم</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>ہمیشہ</item>
         <item>بیٹری سیور کے مطابق</item>
@@ -47,20 +75,20 @@
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>ہمیشہ</item>
-        <item>خودکار (سسٹم کے مطابق)</item>
+        <item>سسٹم کے مطابق</item>
         <item>کبھی نہیں</item>
     </string-array>
     <string name="app_pref_dynamic_theme">ڈائنامک رنگ</string>
     <string name="app_pref_dynamic_theme_summary">وال پیپر کے رنگوں کے مطابق انداز بدلیں</string>
-    <string name="app_pref_notification">ڈیوائس اطلاعی ترتیبات</string>
-    <string name="app_pref_notification_summary">سسٹم اطلاعی ترتیبات کھولیں</string>
-    <string name="app_pref_tile">ایپ ٹائل شامل کریں</string>
-    <string name="app_pref_tile_summary">کوئک سیٹنگز میں ایپ ٹائل شامل کریں</string>
+    <string name="app_pref_notification">ایپ کی اطلاعات</string>
+    <string name="app_pref_notification_summary">سسٹم کی ترتیبات میں اطلاعات کا نظم کریں</string>
+    <string name="app_pref_tile">فوری ترتیبات کی ٹائل شامل کریں</string>
+    <string name="app_pref_tile_summary">ScreenStream کو فوری ترتیبات میں شامل کریں</string>
 
     <string name="app_tab_about_app_version">ورژن: %1$s</string>
     <string name="app_tab_about_developer_name">تیار کردہ: Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">ایپ ریٹ کریں</string>
-    <string name="app_tab_about_app_sources">ایپ کے ماخذ</string>
+    <string name="app_tab_about_app_sources">سورس کوڈ</string>
     <string name="app_tab_about_terms_conditions">شرائط و ضوابط</string>
     <string name="app_tab_about_privacy_policy">رازداری کی پالیسی</string>
     <string name="app_tab_about_privacy_options">رازداری کے اختیارات</string>

@@ -5,4 +5,7 @@
 
     <string name="common_continue">続行</string>
     <string name="common_try_again">再試行</string>
+
+    <string name="common_expanded">開いています</string>
+    <string name="common_collapsed">閉じています</string>
 </resources>

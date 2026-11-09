@@ -5,4 +5,7 @@
 
     <string name="common_continue">Devam et</string>
     <string name="common_try_again">Yeniden dene</string>
+
+    <string name="common_expanded">Genişletildi</string>
+    <string name="common_collapsed">Daraltıldı</string>
 </resources>

@@ -1,0 +1,421 @@
+package io.screenstream.capture.internal.session.topology
+
+import android.os.Build
+import io.screenstream.capture.CropInsetsPx
+import io.screenstream.capture.Mirror
+import io.screenstream.capture.OutputSize
+import io.screenstream.capture.Rotation
+import io.screenstream.capture.ScreenCaptureParameters
+import io.screenstream.capture.ScreenCaptureProblem
+import io.screenstream.capture.SourceRegion
+import io.screenstream.capture.internal.capture.CaptureTargetMode
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+internal class SessionPlanResolutionGeometryTest {
+    // Verification: SES-04
+    @Test
+    fun earlyDownscaleStartsAtApi32AndRemainsEligibleAboveApi37() {
+        val parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.5))
+
+        val api31 = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = Build.VERSION_CODES.S)
+        assertTarget(api31, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
+
+        listOf(Build.VERSION_CODES.S_V2, Build.VERSION_CODES.CINNAMON_BUN, 38).forEach { platformSdkInt ->
+            val resolved = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = platformSdkInt)
+            assertTarget(resolved, CaptureTargetMode.Downscaled, widthPx = 5, heightPx = 3)
+        }
+    }
+
+    // Verification: SES-04
+    @Test
+    fun provisionalResolutionIsNeutralAndIndependentOfTheRequestedGeometry() {
+        val parameters = ScreenCaptureParameters(
+            sourceRegion = SourceRegion.LeftHalf,
+            crop = CropInsetsPx(left = 2, top = 1, right = 1, bottom = 0),
+            rotation = Rotation.Degrees90,
+            mirror = Mirror.Horizontal,
+            outputSize = OutputSize.TargetSize(64, 32, OutputSize.ContentMode.Stretch),
+        )
+
+        val provisional = resolvePlan(
+            parameters,
+            widthPx = 10,
+            heightPx = 6,
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            sourceDimensionsAreAuthoritative = false,
+        )
+        assertTrue(provisional.isProvisional)
+        assertTarget(provisional, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
+        assertEquals(0, provisional.capturePlan.appliedSourceRect.leftPx)
+        assertEquals(0, provisional.capturePlan.appliedSourceRect.topPx)
+        assertEquals(10, provisional.capturePlan.appliedSourceRect.rightPx)
+        assertEquals(6, provisional.capturePlan.appliedSourceRect.bottomPx)
+        assertSame(Rotation.Degrees0, provisional.capturePlan.rotation)
+        assertSame(Mirror.None, provisional.capturePlan.mirror)
+        assertEquals(1, provisional.capturePlan.rgbaLayout.widthPx)
+        assertEquals(1, provisional.capturePlan.rgbaLayout.heightPx)
+        assertEquals(4, provisional.capturePlan.rgbaLayout.byteCount)
+
+        val authoritative = resolvePlan(
+            parameters,
+            widthPx = 10,
+            heightPx = 6,
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            sourceDimensionsAreAuthoritative = true,
+        )
+        assertFalse(authoritative.isProvisional)
+        assertTarget(authoritative, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
+        assertEquals(parameters, authoritative.outputInfo.parameters)
+        assertEquals(64, authoritative.capturePlan.rgbaLayout.widthPx)
+        assertEquals(32, authoritative.capturePlan.rgbaLayout.heightPx)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun provisionalInvalidRequestIsDeferredUntilAuthoritativeGeometryCanResolveIt() {
+        val parameters = ScreenCaptureParameters(
+            crop = CropInsetsPx(left = 2, top = 0, right = 0, bottom = 0),
+            outputSize = OutputSize.ScaleFactor(1.0),
+        )
+
+        val provisional = SessionPlanResolution.resolve(
+            parameters = parameters,
+            widthPx = 2,
+            heightPx = 2,
+            densityDpi = 320,
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            sourceDimensionsAreAuthoritative = false,
+        )
+        val authoritative = SessionPlanResolution.resolve(
+            parameters = parameters,
+            widthPx = 6,
+            heightPx = 4,
+            densityDpi = 320,
+            platformSdkInt = Build.VERSION_CODES.UPSIDE_DOWN_CAKE,
+            sourceDimensionsAreAuthoritative = true,
+        )
+
+        assertTrue(provisional is SessionPlanResolution.Resolved)
+        assertTrue((provisional as SessionPlanResolution.Resolved).isProvisional)
+        assertTrue(authoritative is SessionPlanResolution.Resolved)
+        authoritative as SessionPlanResolution.Resolved
+        assertFalse(authoritative.isProvisional)
+        assertEquals(2, authoritative.outputInfo.appliedSourceRect.leftPx)
+        assertEquals(6, authoritative.outputInfo.appliedSourceRect.rightPx)
+        assertEquals(4, authoritative.outputInfo.finalImageSize.widthPx)
+        assertEquals(4, authoritative.outputInfo.finalImageSize.heightPx)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun rotatedOddDimensionsUseRotationAwareSourceRequirements() {
+        val resolved = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                rotation = Rotation.Degrees90,
+                outputSize = OutputSize.ScaleFactor(0.5),
+            ),
+            widthPx = 15,
+            heightPx = 9,
+            platformSdkInt = Build.VERSION_CODES.S_V2,
+        )
+
+        assertEquals(5, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(8, resolved.outputInfo.finalImageSize.heightPx)
+        assertTarget(resolved, CaptureTargetMode.Downscaled, widthPx = 10, heightPx = 6)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun scaleRequiringTheFullAspectMultipleUsesFullTarget() {
+        val resolved = resolvePlan(
+            parameters = ScreenCaptureParameters(outputSize = OutputSize.ScaleFactor(0.9)),
+            widthPx = 6,
+            heightPx = 4,
+            platformSdkInt = Build.VERSION_CODES.S_V2,
+        )
+
+        assertTarget(resolved, CaptureTargetMode.Full, widthPx = 6, heightPx = 4)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun regionCropAndTargetSizeEachCloseEarlyDownscaleEligibility() {
+        val ineligibleParameters = listOf(
+            ScreenCaptureParameters(
+                sourceRegion = SourceRegion.LeftHalf,
+                outputSize = OutputSize.ScaleFactor(0.5),
+            ),
+            ScreenCaptureParameters(
+                crop = CropInsetsPx(left = 1, top = 0, right = 0, bottom = 0),
+                outputSize = OutputSize.ScaleFactor(0.5),
+            ),
+            ScreenCaptureParameters(
+                outputSize = OutputSize.TargetSize(5, 3, OutputSize.ContentMode.Stretch),
+            ),
+        )
+
+        ineligibleParameters.forEach { parameters ->
+            val resolved = resolvePlan(parameters, widthPx = 10, heightPx = 6, platformSdkInt = Build.VERSION_CODES.S_V2)
+            assertTarget(resolved, CaptureTargetMode.Full, widthPx = 10, heightPx = 6)
+        }
+    }
+
+    // Verification: SES-04
+    @Test
+    fun oddRightHalfCropRotationAndScaleUseProductRoundingOrder() {
+        val parameters = ScreenCaptureParameters(
+            sourceRegion = SourceRegion.RightHalf,
+            crop = CropInsetsPx(left = 0, top = 1, right = 1, bottom = 0),
+            rotation = Rotation.Degrees90,
+            outputSize = OutputSize.ScaleFactor(1.5),
+        )
+
+        val result = SessionPlanResolution.resolve(
+            parameters = parameters,
+            widthPx = 5,
+            heightPx = 4,
+            densityDpi = 320,
+            platformSdkInt = Build.VERSION_CODES.R,
+            sourceDimensionsAreAuthoritative = true,
+        )
+        assertTrue(result is SessionPlanResolution.Resolved)
+        val resolved = result as SessionPlanResolution.Resolved
+
+        assertEquals(2, resolved.outputInfo.appliedSourceRect.leftPx)
+        assertEquals(1, resolved.outputInfo.appliedSourceRect.topPx)
+        assertEquals(4, resolved.outputInfo.appliedSourceRect.rightPx)
+        assertEquals(4, resolved.outputInfo.appliedSourceRect.bottomPx)
+        assertEquals(5, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(3, resolved.outputInfo.finalImageSize.heightPx)
+        assertSame(CaptureTargetMode.Full, resolved.capturePlan.targetMode)
+        assertEquals(resolved.capturePlan.appliedSourceRect, resolved.outputInfo.appliedSourceRect)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun independentlyResolvedEquivalentPlansHaveTheSameCaptureConfiguration() {
+        val parameters = ScreenCaptureParameters(
+            crop = CropInsetsPx(left = 1, top = 1, right = 2, bottom = 0),
+            outputSize = OutputSize.TargetSize(8, 5, OutputSize.ContentMode.Stretch),
+        )
+        val first = resolvePlan(parameters = parameters, widthPx = 9, heightPx = 6)
+        val second = resolvePlan(parameters = parameters, widthPx = 9, heightPx = 6)
+
+        assertNotSame(first.capturePlan, second.capturePlan)
+        assertNotSame(first.capturePlan.appliedSourceRect, second.capturePlan.appliedSourceRect)
+        assertTrue(first.capturePlan.hasSameCaptureConfigurationAs(second.capturePlan))
+    }
+
+    // Verification: SES-04
+    @Test
+    fun equalResolvedRectFromDifferentRawRequestsHasTheSameCaptureConfiguration() {
+        val fullCropped = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                sourceRegion = SourceRegion.Full,
+                crop = CropInsetsPx(left = 3, top = 0, right = 0, bottom = 0),
+                outputSize = OutputSize.TargetSize(3, 4, OutputSize.ContentMode.Stretch),
+            ),
+        )
+        val rightHalf = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                sourceRegion = SourceRegion.RightHalf,
+                outputSize = OutputSize.TargetSize(3, 4, OutputSize.ContentMode.Stretch),
+            ),
+        )
+
+        assertEquals(fullCropped.capturePlan.appliedSourceRect, rightHalf.capturePlan.appliedSourceRect)
+        assertTrue(fullCropped.capturePlan.hasSameCaptureConfigurationAs(rightHalf.capturePlan))
+    }
+
+    // Verification: SES-04
+    @Test
+    fun captureConfigurationComparisonRejectsRepresentativeFieldAndBoundsChanges() {
+        val outputSize = OutputSize.TargetSize(3, 2, OutputSize.ContentMode.Stretch)
+        val baseline = resolvePlan(parameters = ScreenCaptureParameters(outputSize = outputSize))
+        val mirrored = resolvePlan(parameters = ScreenCaptureParameters(mirror = Mirror.Horizontal, outputSize = outputSize))
+        val differentDensity = resolvePlan(
+            parameters = ScreenCaptureParameters(outputSize = outputSize),
+            densityDpi = 321,
+        )
+        val differentBounds = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                crop = CropInsetsPx(left = 1, top = 0, right = 0, bottom = 0),
+                outputSize = outputSize,
+            ),
+        )
+
+        assertFalse(baseline.capturePlan.hasSameCaptureConfigurationAs(mirrored.capturePlan))
+        assertFalse(baseline.capturePlan.hasSameCaptureConfigurationAs(differentDensity.capturePlan))
+        assertFalse(baseline.capturePlan.hasSameCaptureConfigurationAs(differentBounds.capturePlan))
+    }
+
+    // Verification: SES-04
+    @Test
+    fun aspectFitRoundsWithoutPadding() {
+        val result = SessionPlanResolution.resolve(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.TargetSize(8, 8, OutputSize.ContentMode.AspectFit),
+            ),
+            widthPx = 5,
+            heightPx = 3,
+            densityDpi = 320,
+            platformSdkInt = Build.VERSION_CODES.R,
+            sourceDimensionsAreAuthoritative = true,
+        )
+        assertTrue(result is SessionPlanResolution.Resolved)
+        val size = (result as SessionPlanResolution.Resolved).outputInfo.finalImageSize
+
+        assertEquals(8, size.widthPx)
+        assertEquals(5, size.heightPx)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun aspectFitUsesHeightBoundWithoutPadding() {
+        val resolved = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.TargetSize(8, 2, OutputSize.ContentMode.AspectFit),
+            ),
+            widthPx = 5,
+            heightPx = 3,
+        )
+
+        assertEquals(3, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(2, resolved.outputInfo.finalImageSize.heightPx)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun aspectFitClampsRoundedNonfixedDimensionToOnePixel() {
+        val resolved = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.TargetSize(2, 2, OutputSize.ContentMode.AspectFit),
+            ),
+            widthPx = 5,
+            heightPx = 1,
+        )
+
+        assertEquals(2, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(1, resolved.outputInfo.finalImageSize.heightPx)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun stretchUsesExactTargetDimensions() {
+        val resolved = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.TargetSize(8, 2, OutputSize.ContentMode.Stretch),
+            ),
+            widthPx = 5,
+            heightPx = 3,
+        )
+
+        assertEquals(8, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(2, resolved.outputInfo.finalImageSize.heightPx)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun tinyPositiveScaleClampsFinalImageAndEncoderLayoutToOnePixel() {
+        val resolved = resolvePlan(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.ScaleFactor(Double.MIN_VALUE),
+            ),
+            widthPx = 6,
+            heightPx = 4,
+        )
+
+        assertEquals(1, resolved.outputInfo.finalImageSize.widthPx)
+        assertEquals(1, resolved.outputInfo.finalImageSize.heightPx)
+        assertEquals(1, resolved.encoderPlan.widthPx)
+        assertEquals(1, resolved.encoderPlan.heightPx)
+        assertEquals(4, resolved.encoderPlan.rowByteCount)
+        assertEquals(4, resolved.encoderPlan.byteCount)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun oversizedScaleFactorIsInvalidRequest() {
+        val result = SessionPlanResolution.resolve(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.ScaleFactor(Int.MAX_VALUE.toDouble()),
+            ),
+            widthPx = 2,
+            heightPx = 1,
+            densityDpi = 320,
+            platformSdkInt = Build.VERSION_CODES.R,
+            sourceDimensionsAreAuthoritative = true,
+        )
+
+        assertTrue(result is SessionPlanResolution.Rejected)
+        assertSame(ScreenCaptureProblem.InvalidRequest, (result as SessionPlanResolution.Rejected).problem)
+    }
+
+    // Verification: SES-04
+    @Test
+    fun emptyCropIsInvalidButPositiveUnaddressableCarrierIsResourceExhausted() {
+        val invalid = SessionPlanResolution.resolve(
+            parameters = ScreenCaptureParameters(crop = CropInsetsPx(left = 2, top = 0, right = 1, bottom = 0)),
+            widthPx = 3,
+            heightPx = 2,
+            densityDpi = 320,
+            platformSdkInt = Build.VERSION_CODES.R,
+            sourceDimensionsAreAuthoritative = true,
+        )
+        assertTrue(invalid is SessionPlanResolution.Rejected)
+        assertSame(ScreenCaptureProblem.InvalidRequest, (invalid as SessionPlanResolution.Rejected).problem)
+
+        val exhausted = SessionPlanResolution.resolve(
+            parameters = ScreenCaptureParameters(
+                outputSize = OutputSize.TargetSize(
+                    widthPx = Int.MAX_VALUE,
+                    heightPx = 1,
+                    contentMode = OutputSize.ContentMode.Stretch,
+                ),
+            ),
+            widthPx = 1,
+            heightPx = 1,
+            densityDpi = 320,
+            platformSdkInt = Build.VERSION_CODES.R,
+            sourceDimensionsAreAuthoritative = true,
+        )
+        assertTrue(exhausted is SessionPlanResolution.Rejected)
+        assertSame(ScreenCaptureProblem.ResourceExhausted, (exhausted as SessionPlanResolution.Rejected).problem)
+    }
+
+    private fun resolvePlan(
+        parameters: ScreenCaptureParameters,
+        widthPx: Int = 6,
+        heightPx: Int = 4,
+        densityDpi: Int = 320,
+        platformSdkInt: Int = Build.VERSION_CODES.R,
+        sourceDimensionsAreAuthoritative: Boolean = true,
+    ): SessionPlanResolution.Resolved {
+        val result = SessionPlanResolution.resolve(
+            parameters = parameters,
+            widthPx = widthPx,
+            heightPx = heightPx,
+            densityDpi = densityDpi,
+            platformSdkInt = platformSdkInt,
+            sourceDimensionsAreAuthoritative = sourceDimensionsAreAuthoritative,
+        )
+        assertTrue(result is SessionPlanResolution.Resolved)
+        return result as SessionPlanResolution.Resolved
+    }
+
+    private fun assertTarget(
+        resolved: SessionPlanResolution.Resolved,
+        targetMode: CaptureTargetMode,
+        widthPx: Int,
+        heightPx: Int,
+    ) {
+        assertSame(targetMode, resolved.capturePlan.targetMode)
+        assertEquals(widthPx, resolved.capturePlan.targetWidthPx)
+        assertEquals(heightPx, resolved.capturePlan.targetHeightPx)
+    }
+}

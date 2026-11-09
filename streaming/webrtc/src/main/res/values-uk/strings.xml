@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="webrtc_error_recover">Відновити</string>
+    <string name="webrtc_error_open_settings">Відкрити налаштування</string>
+    <string name="webrtc_error_start_screen_sharing">Почати демонстрацію екрана</string>
+    <string name="webrtc_error_start_with_audio">Запустити зі звуком</string>
+    <string name="webrtc_error_allow_microphone">Дозволити мікрофон</string>
+    <string name="webrtc_error_signaling_server_unavailable">Не вдається підключитися до сервера. Можливо, глядачі не зможуть приєднатися.</string>
+
+    <string name="webrtc_method_title">WebRTC: трансляція на весь світ</string>
+    <string name="webrtc_method_summary">Діліться екраном із глядачами будь-де за посиланням.</string>
+    <string name="webrtc_method_conditions">Перегляд у браузері · Звук за бажанням · Потрібен інтернет</string>
+    <string name="webrtc_method_intro">WebRTC передає відео в реальному часі, а за бажанням і звук, у браузери глядачів через інтернет. Глядачі приєднуються за вашим посиланням або за ID трансляції та паролем.</string>
+    <string-array name="webrtc_method_benefits">
+        <item>Запрошуйте глядачів з інших мереж на screenstream.io за ID трансляції та паролем.</item>
+        <item>Відео й звук шифруються, а кожна трансляція має пароль.</item>
+        <item>Додавайте звук мікрофона, звук пристрою або обидва.</item>
+    </string-array>
+    <string-array name="webrtc_method_things_to_know">
+        <item>Цьому пристрою й кожному глядачеві потрібен інтернет.</item>
+        <item>Кожен глядач отримує окремий потік, тому з більшою кількістю глядачів зростає вихідний трафік.</item>
+    </string-array>
+
+    <string name="webrtc_stream_network_recovery">З\'єднання втрачено. Перепідключення…</string>
+    <string name="webrtc_stream_server_address">Відкрийте трансляцію за адресою:\n%1$s</string>
+    <string name="webrtc_stream_stream_id_getting">Отримання ID трансляції…</string>
+    <string name="webrtc_stream_stream_id">ID трансляції: %1$s</string>
+    <string name="webrtc_stream_stream_password">Пароль трансляції: %1$s</string>
+    <string name="webrtc_stream_description_show_password">Показати пароль трансляції</string>
+    <string name="webrtc_stream_description_get_new_id">Отримати новий ID трансляції</string>
+    <string name="webrtc_stream_description_create_password">Створити новий пароль для трансляції</string>
+    <string name="webrtc_stream_description_open_address">Відкрити адресу</string>
+    <string name="webrtc_stream_description_copy_address">Скопіювати адресу</string>
+    <string name="webrtc_stream_description_share_address">Поділитись адресою</string>
+    <string name="webrtc_stream_description_qr_address">Показати QR-код адреси</string>
+    <string name="webrtc_stream_description_qr">QR-код</string>
+    <string name="webrtc_stream_copied">Скопійовано</string>
+    <string name="webrtc_stream_audio_parameters">Налаштування аудіо</string>
+    <string name="webrtc_stream_audio_mic">Мікрофон</string>
+    <string name="webrtc_stream_audio_mic_summary">Транслювати звук з мікрофона</string>
+    <string name="webrtc_stream_audio_device">Внутрішній звук</string>
+    <string name="webrtc_stream_audio_device_summary">Транслювати медіа-аудіо з цього пристрою</string>
+    <string name="webrtc_stream_audio_capture_unavailable">Захоплення звуку недоступне</string>
+    <string name="webrtc_stream_connected_clients">Підключені клієнти: %1$d</string>
+    <string name="webrtc_stream_no_web_browser_found">Веб-браузер не знайдено</string>
+    <string name="webrtc_stream_external_app_error">Помилка зовнішньої програми</string>
+    <string name="webrtc_stream_share_address">Поділитися адресою пристрою</string>
+    <string name="webrtc_stream_start">Почати трансляцію</string>
+    <string name="webrtc_stream_stop">Зупинити трансляцію</string>
+
+    <string name="webrtc_stream_other_parameters">Інші налаштування</string>
+    <string name="webrtc_stream_keep_awake">Тримати пристрій активним</string>
+    <string name="webrtc_stream_keep_awake_summary">Тримати пристрій та екран активними під час трансляції</string>
+    <string name="webrtc_stream_stop_on_sleep">Зупиняти трансляцію при засинанні пристрою</string>
+    <string name="webrtc_stream_stop_on_sleep_summary">Зупиняти трансляцію при вимкненні екрану</string>
+
+    <string name="webrtc_item_client_disconnect">Відключити</string>
+
+    <string name="webrtc_error_play_integrity_update_play_store">Будь ласка, оновіть Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_store">Будь ласка, встановіть або увімкніть офіційний Google Play Store</string>
+    <string name="webrtc_error_play_integrity_install_play_service">Будь ласка, встановіть або увімкніть Play Services</string>
+    <string name="webrtc_error_play_integrity_update_play_service">Будь ласка, оновіть Google Play Services</string>
+    <string name="webrtc_error_check_network">Перевірте підключення до інтернету</string>
+    <string name="webrtc_error_incomplete_installation">Установку застосунку виконано неповністю. Будь ласка, перевстановіть застосунок із Google Play.</string>
+    <string name="webrtc_notification_permission_required">Цьому додатку потрібні ввімкнені сповіщення, щоб запустити службу трансляції.\nУвімкніть сповіщення в налаштуваннях додатку.</string>
+    <string name="webrtc_error_screen_capture_start_blocked">Android заблокував запуск демонстрації екрана. Залиште ScreenStream відкритим і запустіть знову.</string>
+    <string name="webrtc_error_projection_acquire_rejected">Дозвіл на захоплення екрана більше недійсний. Почніть демонстрацію екрана знову.</string>
+    <string name="webrtc_error_audio_permission_required">Для запуску трансляції зі звуком потрібен дозвіл на мікрофон.</string>
+    <string name="webrtc_error_audio_start_blocked">Android заблокував запуск передавання звуку. Залиште ScreenStream відкритим і запустіть знову зі звуком.</string>
+    <string name="webrtc_error_unspecified">Сталася помилка. Будь ласка, спробуйте ще раз пізніше.</string>
+</resources>

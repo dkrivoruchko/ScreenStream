@@ -5,4 +5,7 @@
 
     <string name="common_continue">Continuar</string>
     <string name="common_try_again">Tentar novamente</string>
+
+    <string name="common_expanded">Aberto</string>
+    <string name="common_collapsed">Fechado</string>
 </resources>

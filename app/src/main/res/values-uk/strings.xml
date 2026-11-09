@@ -3,66 +3,94 @@
     <string name="app_error_title">Помилка</string>
     <string name="app_error_recover">Відновити</string>
 
+    <string name="app_module_error_title">Щось пішло не так</string>
+    <string name="app_module_error_restart">Перезапустити режим</string>
+
     <string name="app_activity_update_dialog_title">Доступне оновлення</string>
-    <string name="app_activity_update_dialog_message">Оновлення завантажено. Перезапустити додаток зараз?</string>
+    <string name="app_activity_update_dialog_message">Оновлення готове. Перезапустити застосунок зараз?</string>
     <string name="app_activity_update_dialog_restart">Перезапустити</string>
 
     <string name="app_tab_stream">Трансляція</string>
     <string name="app_tab_settings">Налаштування</string>
-    <string name="app_tab_about">Про додаток</string>
+    <string name="app_tab_about">Про застосунок</string>
     <string name="app_tab_exit">Вийти</string>
 
     <string name="app_tab_stream_select_mode">Оберіть режим трансляції:</string>
+    <string name="app_tab_stream_switching_modules">Перемикання режимів…</string>
 
-    <string name="app_permission_required_title">Дозвіл обов\'язковий</string>
-    <string name="app_permission_allow_notifications">Цьому додатку потрібен дозвіл на сповіщення, щоб запустити службу трансляції.\n\nДозвольте сповіщення.</string>
-    <string name="app_permission_allow_notifications_settings">Цьому додатку потрібен дозвіл на сповіщення, щоб запустити службу трансляції.\n\nУвімкніть сповіщення в налаштуваннях додатку.</string>
-    <string name="app_permission_notification_settings">Відкрити налаштування</string>
-    <string name="app_permission_local_network_title">Потрібен доступ до локальної мережі</string>
-    <string name="app_permission_local_network_message">Дозвольте ScreenStream використовувати локальну мережу, щоб пристрої могли підключатися до вашої трансляції.</string>
-    <string name="app_permission_local_network_off_title">Доступ до локальної мережі вимкнено</string>
-    <string name="app_permission_local_network_settings_message">Увімкніть доступ до локальної мережі в налаштуваннях Android, щоб ділитися екраном із пристроями.</string>
+    <string name="app_mode_selected_method">Активний спосіб трансляції</string>
+    <string name="app_mode_choose_method">Виберіть спосіб трансляції</string>
+    <string name="app_mode_choose_another_method">Виберіть інший спосіб</string>
+    <string name="app_mode_change">Змінити</string>
+    <string name="app_mode_chooser_title">Виберіть, як поділитися екраном</string>
+    <string name="app_mode_close_chooser">Закрити</string>
+    <string name="app_mode_details">Докладніше</string>
+    <string name="app_mode_details_description">Докладніше: %1$s</string>
+    <string name="app_mode_benefits">Переваги</string>
+    <string name="app_mode_things_to_know">Що варто знати</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="app_permission_not_now">Не зараз</string>
     <string name="app_permission_open_settings">Відкрити налаштування</string>
-    <string name="app_permission_try_again">Спробувати ще раз</string>
+
+    <string name="app_permission_notifications_title">Дозволити сповіщення</string>
+    <string name="app_permission_notifications_message">Сповіщення показують стан трансляції та повідомлення про помилки. Використовуйте їх, щоб зупинити трансляцію або знову відкрити ScreenStream.</string>
+
+    <string name="app_permission_local_network_title">Доступ до локальної мережі</string>
+    <string name="app_permission_local_network_message">Дозвольте ScreenStream використовувати локальну мережу для трансляції на інші пристрої в тій самій мережі.\n\nAndroid описує цей дозвіл як доступ до пристроїв поблизу й може згадувати визначення їхнього взаємного розташування.</string>
+    <string name="app_permission_local_network_off_title">Доступ до локальної мережі вимкнено</string>
+    <string name="app_permission_local_network_settings_message">У налаштуваннях застосунку відкрийте «Дозволи» й надайте доступ до пристроїв поблизу для трансляції на пристрої в тій самій локальній мережі.</string>
+
+    <string name="app_permission_microphone_title">Доступ до мікрофона</string>
+    <string name="app_permission_microphone_message">Дозвольте доступ до мікрофона, щоб додати його звук до трансляції.\n\nБез цього звук із мікрофона не може транслюватися.</string>
+    <string name="app_permission_device_audio_title">Доступ до звуку пристрою</string>
+    <string name="app_permission_device_audio_message">Для трансляції звуку пристрою Android потребує дозволу на доступ до мікрофона. Це не вмикає ваш мікрофон.\n\nМожна транслювати лише звук, яким дозволяють ділитися Android і застосунок, що його відтворює.</string>
+
+    <string name="app_permission_audio_title">Звук мікрофона та пристрою</string>
+    <string name="app_permission_audio_message">Дозвольте доступ до мікрофона для трансляції звуку мікрофона та пристрою.\n\nЗвук пристрою може транслюватися лише тоді, коли Android і застосунок, що його відтворює, дозволяють ділитися ним.</string>
+    <string name="app_permission_audio_settings_message">Надайте доступ до мікрофона в налаштуваннях застосунку, щоб транслювати звук із мікрофона або пристрою.\n\nБез цього дозволу звук не може транслюватися.</string>
 
     <string name="app_notification_channel_streaming">Сповіщення про трансляцію</string>
     <string name="app_notification_channel_error">Сповіщення про помилки</string>
+    <string name="app_notification_waiting_content">Торкніться, щоб відкрити застосунок</string>
     <string name="app_notification_streaming_title">Трансляція…</string>
-    <string name="app_notification_streaming_content">Натисніть Зупинити, щоб завершити трансляцію</string>
-    <string name="app_notification_stop">Стоп</string>
+    <string name="app_notification_streaming_content">Торкніться «Зупинити», щоб завершити трансляцію</string>
+    <string name="app_notification_stop">Зупинити</string>
 
-    <string name="app_tile_start">Старт</string>
-    <string name="app_tile_stop">Стоп</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">Відкрити ScreenStream</string>
+    <string name="app_tile_stop">Зупинити</string>
 
     <string name="app_pref_back">Назад</string>
     <string name="app_pref_settings">Налаштування</string>
-    <string name="app_pref_locale">Мова додадку</string>
-    <string name="app_pref_locale_summary">Перейти до налаштувань мови додатку</string>
-    <string name="app_pref_locale_default">Системні налаштування</string>
-    <string name="app_pref_night_mode">Чорна тема</string>
+    <string name="app_pref_locale">Мова застосунку</string>
+    <string name="app_pref_locale_summary">Відкрити налаштування мови застосунку</string>
+    <string name="app_pref_locale_default">Як у системі</string>
+    <string name="app_pref_night_mode">Темна тема</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Завжди</item>
-        <item>Налаштовано Збереженням Енергії</item>
+        <item>За режимом енергозбереження</item>
         <item>Ніколи</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Завжди</item>
-        <item>Автоматично (так само як в системі)</item>
+        <item>Як у системі</item>
         <item>Ніколи</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Динамічний колір</string>
     <string name="app_pref_dynamic_theme_summary">Налаштувати вигляд на основі кольорів шпалер</string>
-    <string name="app_pref_notification">Налаштування повідомлень пристрою</string>
-    <string name="app_pref_notification_summary">Перейти в системні налаштування повідомлень</string>
-    <string name="app_pref_tile">Додати плитку додатка</string>
-    <string name="app_pref_tile_summary">Додати плитку додатка до Швидких налаштувань</string>
+    <string name="app_pref_notification">Сповіщення застосунку</string>
+    <string name="app_pref_notification_summary">Керувати сповіщеннями в налаштуваннях системи</string>
+    <string name="app_pref_tile">Додати плитку швидких налаштувань</string>
+    <string name="app_pref_tile_summary">Додати ScreenStream до швидких налаштувань</string>
 
     <string name="app_tab_about_app_version">Версія: %1$s</string>
     <string name="app_tab_about_developer_name">Розробник Дмитро Криворучко</string>
-    <string name="app_tab_about_rate_app">Оцінити додаток</string>
-    <string name="app_tab_about_app_sources">Вихідний код додатку</string>
-    <string name="app_tab_about_terms_conditions">Умови та Положення</string>
-    <string name="app_tab_about_privacy_policy">Політика приватності</string>
-    <string name="app_tab_about_privacy_options">Налаштування конфіденційності</string>
+    <string name="app_tab_about_rate_app">Оцінити застосунок</string>
+    <string name="app_tab_about_app_sources">Вихідний код</string>
+    <string name="app_tab_about_terms_conditions">Умови використання</string>
+    <string name="app_tab_about_privacy_policy">Політика конфіденційності</string>
+    <string name="app_tab_about_privacy_options">Параметри конфіденційності</string>
     <string name="app_tab_about_license">Ліцензія</string>
 </resources>

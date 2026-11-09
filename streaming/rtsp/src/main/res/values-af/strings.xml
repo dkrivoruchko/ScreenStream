@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtsp_error_recover">Herstel</string>
+    <string name="rtsp_error_open_settings">Maak instellings oop</string>
+    <string name="rtsp_error_start_screen_sharing">Begin skermdeling</string>
+    <string name="rtsp_error_start_with_audio">Begin met oudio</string>
+    <string name="rtsp_error_allow_microphone">Laat mikrofoon toe</string>
+    <string name="rtsp_error_local_network_permission_required">Toegang tot die plaaslike netwerk is nodig sodat toestelle met jou stroom kan verbind.</string>
+
+    <string name="rtsp_method_title">RTSP: Spelers en mediabedieners</string>
+    <string name="rtsp_method_summary">Kyk in \'n videospeler, of stuur die stroom na \'n mediabediener.</string>
+    <string name="rtsp_method_conditions">Versoenbare RTSP-sagteware · Opsionele klank</string>
+    <string name="rtsp_method_intro">RTSP is \'n algemene stroomstandaard wat deur videospelers en mediabedieners gebruik word. By verstek huisves hierdie toestel die stroom. Jy kan dit ook na \'n mediabediener stuur.</string>
+    <string-array name="rtsp_method_benefits">
+        <item>Kyk in spelers soos VLC deur die RTSP-adres oop te maak wat in die app gewys word.</item>
+        <item>Stuur die stroom na \'n mediabediener, insluitend bedieners wat \'n gebruikersnaam en wagwoord vra.</item>
+        <item>Voeg mikrofoonklank, toestelklank of albei by.</item>
+        <item>Kies video- en klankformate, grootte en gehalte wat by jou speler of bediener pas.</item>
+    </string-array>
+    <string-array name="rtsp_method_things_to_know">
+        <item>Spelers moet aan hierdie toestel kan koppel, byvoorbeeld op dieselfde Wi-Fi. Huisvesting werk sonder internet.</item>
+        <item>Wanneer jy na \'n bediener stuur, moet hierdie toestel dit kan bereik. Vir \'n geënkripteerde verbinding, gebruik \'n rtsps://-adres en stel RTSP-protokol op TCP.</item>
+        <item>Jou speler of bediener moet die video- en klankformate wat jy kies, ondersteun.</item>
+    </string-array>
+
+    <string name="rtsp_mode_card_title">Kies RTSP-modus:</string>
+    <string name="rtsp_mode_server">Server</string>
+    <string name="rtsp_mode_server_hint">Host hierdie toestel as \'n RTSP-server</string>
+    <string name="rtsp_mode_client">Kliënt</string>
+    <string name="rtsp_mode_client_hint">Koppel aan \'n afgeleë RTSP-server</string>
+
+    <string name="rtsp_interfaces_title">RTSP-serveradres</string>
+    <string name="rtsp_interfaces_no_address">Geen adres gevind nie.\nKontroleer die verbinding of pas Serverinstellings aan (Koppelvlakfilter, Adresfilter).</string>
+    <string name="rtsp_interfaces_discovering">Soek tans na adresse…</string>
+    <string name="rtsp_interfaces_interface_label">Koppelvlak:\n%1$s</string>
+    <string name="rtsp_interfaces_description_copy">Kopieer adres</string>
+    <string name="rtsp_interfaces_description_share">Deel adres</string>
+    <string name="rtsp_interfaces_description_qr">Wys adres as QR-kode</string>
+    <string name="rtsp_interfaces_qr_content_description">QR kode</string>
+    <string name="rtsp_interfaces_copied">Adres gekopieer</string>
+    <string name="rtsp_interfaces_share_title">Deel RTSP-adres</string>
+    <string name="rtsp_bindings_retry">Herprobeer</string>
+    <string name="rtsp_bind_error_port_in_use">Fout: Poort in gebruik</string>
+    <string name="rtsp_bind_error_address_not_available">Fout: Adres onbeskikbaar</string>
+    <string name="rtsp_bind_error_permission_denied">Fout: Toestemming geweier</string>
+    <string name="rtsp_bind_error_unknown">Fout: Luisteraar het misluk</string>
+
+    <string name="rtsp_server_parameters">Serverinstellings</string>
+    <string name="rtsp_client_parameters">Kliëntinstellings</string>
+
+    <string name="rtsp_stream_start">Begin stroom</string>
+    <string name="rtsp_stream_stop">Stop stroom</string>
+
+    <string name="rtsp_error_notification_permission_required">Hierdie app benodig kennisgewings om die stroomdiens te begin.\nAktiveer kennisgewings in appinstellings.</string>
+    <string name="rtsp_error_screen_capture_start_blocked">Android het die begin van skermdeling geblokkeer. Hou ScreenStream oop en begin weer.</string>
+    <string name="rtsp_error_projection_acquire_rejected">Skermopnametoestemming is nie meer geldig nie. Begin skermdeling weer.</string>
+    <string name="rtsp_error_audio_permission_required">Mikrofoontoestemming is nodig om met oudio te begin stroom.</string>
+    <string name="rtsp_error_audio_start_blocked">Android het die begin van oudiodeling geblokkeer. Hou ScreenStream oop en begin weer met oudio.</string>
+    <string name="rtsp_error_ip_address_not_found">Geen adres gevind nie. Kontroleer die verbinding of pas Serverinstellings aan (Koppelvlakfilter, Adresfilter).</string>
+    <string name="rtsp_error_unspecified">Iets het verkeerd gegaan.</string>
+
+    <string name="rtsp_media_server">Mediaserver</string>
+    <string name="rtsp_server_address">RTSP-serveradres</string>
+    <string name="rtsp_protocol">RTSP-protokol</string>
+
+    <string name="rtsp_connection_connected">Server gekoppel</string>
+    <string name="rtsp_connection_connecting">Koppel aan server…</string>
+    <string name="rtsp_connection_disconnected">Server ontkoppel</string>
+    <string name="rtsp_connection_error">Verbindingsfout</string>
+
+    <string name="rtsp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtsp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtsp_label_public_ipv4">Publieke IPv4</string>
+    <string name="rtsp_label_public_ipv6">Publieke IPv6</string>
+    <string name="rtsp_label_loopback">Loopback</string>
+
+    <string name="rtsp_video_parameters">Video-instellings</string>
+    <string name="rtsp_video_encoder">Video-enkodeerder:</string>
+    <string name="rtsp_video_encoder_auto">Outo</string>
+    <string name="rtsp_video_h264_profile">H.264-profiel:</string>
+    <string name="rtsp_video_h264_profile_auto">Outo</string>
+    <string name="rtsp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtsp_video_h264_profile_main">Main</string>
+    <string name="rtsp_video_h264_profile_high">High</string>
+    <string name="rtsp_video_h264_profile_active">Aktiewe profiel: %1$s</string>
+    <string name="rtsp_video_resize_image">Verander beeldgrootte: %1$.2f%%</string>
+    <string name="rtsp_video_resize_image_10">10%</string>
+    <string name="rtsp_video_resize_image_100">100%</string>
+    <string name="rtsp_video_screen_size">Skermgrootte: %1$dx%2$d</string>
+    <string name="rtsp_video_video_size">Videogrootte: %1$dx%2$d</string>
+    <string name="rtsp_video_frame_rate">Raamtempo: %1$d rame/sek</string>
+    <string name="rtsp_video_bitrate">Video-bitrate: %1$s/sek</string>
+    <string name="rtsp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtsp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtsp_audio_parameters">Klankinstellings</string>
+    <string name="rtsp_audio_mic">Mikrofoon</string>
+    <string name="rtsp_audio_mic_mute">Demp mikrofoon</string>
+    <string name="rtsp_audio_device">Interne klank</string>
+    <string name="rtsp_audio_device_mute">Demp interne klank</string>
+    <string name="rtsp_audio_encoder">Klank-enkodeerder:</string>
+    <string name="rtsp_audio_encoder_auto">Outo</string>
+    <string name="rtsp_audio_bitrate">Klank-bitrate: %1$s/sek</string>
+    <string name="rtsp_audio_capture_issue_detected">Oudiovasleggingsprobleem bespeur</string>
+
+    <string name="rtsp_connection_access_denied">Toegang geweier</string>
+    <string name="rtsp_connection_no_credentials">Spesifiseer gebruikersnaam en wagwoord</string>
+    <string name="rtsp_connection_invalid_credentials">Gebruikersnaam of wagwoord is ongeldig</string>
+
+    <string name="rtsp_close">Toemaak</string>
+    <string name="rtsp_pref_protocol">RTSP-protokol</string>
+    <string name="rtsp_pref_protocol_summary">Kies vervoer vir RTP-pakkette</string>
+    <string name="rtsp_pref_interface_filter">Koppelvlak filter</string>
+    <string name="rtsp_pref_interface_filter_summary">Kies netwerkkoppelvlakke vir bediener</string>
+    <string name="rtsp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtsp_pref_interface_filter_mobile">Mobiel</string>
+    <string name="rtsp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtsp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtsp_pref_interface_filter_unknown">onbekend</string>
+    <string name="rtsp_pref_filter_no_restriction">Geen beperking</string>
+    <string name="rtsp_pref_address_filter">Adres filter</string>
+    <string name="rtsp_pref_address_filter_summary">Kies IP-adres tipes vir bediener</string>
+    <string name="rtsp_pref_address_filter_private">Privaat</string>
+    <string name="rtsp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtsp_pref_address_filter_public">Publiek</string>
+    <string name="rtsp_pref_enable_ipv4">Aktiveer IPv4</string>
+    <string name="rtsp_pref_enable_ipv4_summary">Laat server op IPv4-adresse loop</string>
+    <string name="rtsp_pref_enable_ipv6">Aktiveer IPv6</string>
+    <string name="rtsp_pref_enable_ipv6_summary">Laat server op IPv6-adresse loop</string>
+    <string name="rtsp_pref_server_port">Bedienerpoort</string>
+    <string name="rtsp_pref_server_port_summary">Stel poort vir inkomende verbindings</string>
+    <string name="rtsp_pref_server_port_text">Stel bedienerpoort vir inkomende verbindings.\nWaardes: 1025–65535\nVerstek: 8554</string>
+    <string name="rtsp_pref_onvif_discovery">ONVIF-opsporing</string>
+    <string name="rtsp_pref_onvif_discovery_summary">Laat ONVIF-kliënte hierdie stroom vind. Ondersteun slegs H.264</string>
+</resources>

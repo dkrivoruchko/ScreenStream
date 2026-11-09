@@ -5,4 +5,7 @@
 
     <string name="common_continue">Davom etish</string>
     <string name="common_try_again">Qayta urinish</string>
+
+    <string name="common_expanded">Yoyilgan</string>
+    <string name="common_collapsed">Yigʻilgan</string>
 </resources>

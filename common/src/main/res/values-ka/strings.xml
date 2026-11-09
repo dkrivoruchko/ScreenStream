@@ -5,4 +5,7 @@
 
     <string name="common_continue">გაგრძელება</string>
     <string name="common_try_again">სცადეთ ხელახლა</string>
+
+    <string name="common_expanded">გაფართოებული</string>
+    <string name="common_collapsed">ჩაკეცილი</string>
 </resources>

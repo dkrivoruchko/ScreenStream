@@ -3,8 +3,11 @@
     <string name="app_error_title">Fehler</string>
     <string name="app_error_recover">Wiederherstellen</string>
 
+    <string name="app_module_error_title">Etwas ist schiefgelaufen</string>
+    <string name="app_module_error_restart">Modus neu starten</string>
+
     <string name="app_activity_update_dialog_title">Update verfügbar</string>
-    <string name="app_activity_update_dialog_message">Ein Update wurde soeben heruntergeladen. App neu starten?</string>
+    <string name="app_activity_update_dialog_message">Ein Update ist bereit. App jetzt neu starten?</string>
     <string name="app_activity_update_dialog_restart">Neu starten</string>
 
     <string name="app_tab_stream">Stream</string>
@@ -13,54 +16,79 @@
     <string name="app_tab_exit">Beenden</string>
 
     <string name="app_tab_stream_select_mode">Stream-Modus auswählen:</string>
+    <string name="app_tab_stream_switching_modules">Modi werden gewechselt…</string>
 
-    <string name="app_permission_required_title">Berechtigung erforderlich</string>
-    <string name="app_permission_allow_notifications">Diese App benötigt die Benachrichtigungsberechtigung, um den Streaming-Dienst zu starten.\n\nBenachrichtigungen erlauben.</string>
-    <string name="app_permission_allow_notifications_settings">Diese App benötigt die Benachrichtigungsberechtigung, um den Streaming-Dienst zu starten.\n\nAktivieren Sie Benachrichtigungen in den App-Einstellungen.</string>
-    <string name="app_permission_notification_settings">Einstellungen öffnen</string>
-    <string name="app_permission_local_network_title">Zugriff auf lokales Netzwerk erforderlich</string>
-    <string name="app_permission_local_network_message">Erlauben Sie ScreenStream, Ihr lokales Netzwerk zu verwenden, damit Geräte eine Verbindung zu Ihrem Stream herstellen können.</string>
-    <string name="app_permission_local_network_off_title">Zugriff auf lokales Netzwerk ist deaktiviert</string>
-    <string name="app_permission_local_network_settings_message">Aktivieren Sie den Zugriff auf das lokale Netzwerk in den Android-Einstellungen, um Ihren Bildschirm mit Geräten zu teilen.</string>
+    <string name="app_mode_selected_method">Aktive Streaming-Methode</string>
+    <string name="app_mode_choose_method">Streaming-Methode auswählen</string>
+    <string name="app_mode_choose_another_method">Andere Methode auswählen</string>
+    <string name="app_mode_change">Ändern</string>
+    <string name="app_mode_chooser_title">Methode zum Teilen des Bildschirms auswählen</string>
+    <string name="app_mode_close_chooser">Schließen</string>
+    <string name="app_mode_details">Details</string>
+    <string name="app_mode_details_description">Details zu %1$s</string>
+    <string name="app_mode_benefits">Vorteile</string>
+    <string name="app_mode_things_to_know">Wissenswertes</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="app_permission_not_now">Nicht jetzt</string>
     <string name="app_permission_open_settings">Einstellungen öffnen</string>
-    <string name="app_permission_try_again">Erneut versuchen</string>
+
+    <string name="app_permission_notifications_title">Benachrichtigungen erlauben</string>
+    <string name="app_permission_notifications_message">Benachrichtigungen zeigen den Streamstatus und Fehlermeldungen an. Darüber können Sie den Stream stoppen oder ScreenStream erneut öffnen.</string>
+
+    <string name="app_permission_local_network_title">Zugriff auf lokales Netzwerk</string>
+    <string name="app_permission_local_network_message">Erlauben Sie ScreenStream, Ihr lokales Netzwerk zu verwenden, um an andere Geräte im selben Netzwerk zu streamen.\n\nAndroid beschreibt diese Berechtigung als Zugriff auf Geräte in der Nähe und erwähnt möglicherweise die Bestimmung ihrer relativen Position.</string>
+    <string name="app_permission_local_network_off_title">Zugriff auf lokales Netzwerk ist deaktiviert</string>
+    <string name="app_permission_local_network_settings_message">Öffnen Sie in den App-Einstellungen Berechtigungen und erteilen Sie die Berechtigung „Geräte in der Nähe“, um an Geräte im selben lokalen Netzwerk zu streamen.</string>
+
+    <string name="app_permission_microphone_title">Mikrofonzugriff</string>
+    <string name="app_permission_microphone_message">Erlauben Sie den Mikrofonzugriff, um Ton von Ihrem Mikrofon in den Stream aufzunehmen.\n\nOhne ihn kann Mikrofonton nicht gestreamt werden.</string>
+    <string name="app_permission_device_audio_title">Zugriff auf Geräteaudio</string>
+    <string name="app_permission_device_audio_message">Android benötigt die Mikrofonberechtigung, um Geräteaudio zu streamen. Dadurch wird Ihr Mikrofon nicht eingeschaltet.\n\nEs kann nur Audio gestreamt werden, dessen Freigabe Android und die wiedergebende App erlauben.</string>
+
+    <string name="app_permission_audio_title">Mikrofon- und Geräteaudio</string>
+    <string name="app_permission_audio_message">Erlauben Sie den Mikrofonzugriff, um Mikrofon- und Geräteaudio zu streamen.\n\nGeräteaudio kann nur gestreamt werden, wenn Android und die wiedergebende App dessen Freigabe erlauben.</string>
+    <string name="app_permission_audio_settings_message">Erlauben Sie den Mikrofonzugriff in den App-Einstellungen, um Mikrofon- oder Geräteaudio zu streamen.\n\nOhne diese Berechtigung kann kein Audio gestreamt werden.</string>
 
     <string name="app_notification_channel_streaming">Streaming-Benachrichtigungen</string>
     <string name="app_notification_channel_error">Fehlerbenachrichtigungen</string>
+    <string name="app_notification_waiting_content">Zum Öffnen der App tippen</string>
     <string name="app_notification_streaming_title">Streaming läuft …</string>
     <string name="app_notification_streaming_content">Tippen Sie auf Stopp, um den Stream zu beenden</string>
     <string name="app_notification_stop">Stopp</string>
 
-    <string name="app_tile_start">Start</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream öffnen</string>
     <string name="app_tile_stop">Stopp</string>
 
     <string name="app_pref_back">Zurück</string>
     <string name="app_pref_settings">Einstellungen</string>
-    <string name="app_pref_locale">Anwendungssprache</string>
-    <string name="app_pref_locale_summary">Anwendungssprache-Einstellungen öffnen</string>
+    <string name="app_pref_locale">App-Sprache</string>
+    <string name="app_pref_locale_summary">App-Spracheinstellungen öffnen</string>
     <string name="app_pref_locale_default">Systemstandard</string>
-    <string name="app_pref_night_mode">Dunkles Farbschema</string>
+    <string name="app_pref_night_mode">Dunkles Design</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Immer</item>
-        <item>Nur Energiesparmodus</item>
+        <item>Je nach Energiesparmodus</item>
         <item>Nie</item>
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Immer</item>
-        <item>Automatisch (Systemeinstellung)</item>
+        <item>Systemeinstellung verwenden</item>
         <item>Nie</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Dynamische Farbe</string>
     <string name="app_pref_dynamic_theme_summary">Darstellung an die Farben des Hintergrundbilds anpassen</string>
-    <string name="app_pref_notification">Einstellungen für Benachrichtigungen</string>
-    <string name="app_pref_notification_summary">Systemeinstellungen für Benachrichtigungen öffnen</string>
-    <string name="app_pref_tile">Anwendungskachel hinzufügen</string>
-    <string name="app_pref_tile_summary">Anwendungskachel zu den Schnelleinstellungen hinzufügen</string>
+    <string name="app_pref_notification">App-Benachrichtigungen</string>
+    <string name="app_pref_notification_summary">Benachrichtigungen in den Systemeinstellungen verwalten</string>
+    <string name="app_pref_tile">Kachel für Schnelleinstellungen hinzufügen</string>
+    <string name="app_pref_tile_summary">ScreenStream zu den Schnelleinstellungen hinzufügen</string>
 
     <string name="app_tab_about_app_version">Version: %1$s</string>
     <string name="app_tab_about_developer_name">Entwickelt von Dmytro Kryvoruchko</string>
     <string name="app_tab_about_rate_app">App bewerten</string>
-    <string name="app_tab_about_app_sources">App-Quelltext</string>
+    <string name="app_tab_about_app_sources">Quellcode</string>
     <string name="app_tab_about_terms_conditions">Nutzungsbedingungen</string>
     <string name="app_tab_about_privacy_policy">Datenschutzrichtlinie</string>
     <string name="app_tab_about_privacy_options">Datenschutzoptionen</string>

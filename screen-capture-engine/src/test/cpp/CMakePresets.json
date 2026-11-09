@@ -1,0 +1,59 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "host-native",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/../../../build/host-native-test",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_MAKE_PROGRAM": {
+          "type": "FILEPATH",
+          "value": "$env{SCE_NINJA}"
+        },
+        "SCE_ENABLE_SANITIZERS": true
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "host-native",
+      "configurePreset": "host-native",
+      "targets": [
+        "native_jpeg_runtime_test",
+        "screen_capture_engine_jni_test"
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "host-native",
+      "configurePreset": "host-native",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "host-native",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "host-native"
+        },
+        {
+          "type": "build",
+          "name": "host-native"
+        },
+        {
+          "type": "test",
+          "name": "host-native"
+        }
+      ]
+    }
+  ]
+}

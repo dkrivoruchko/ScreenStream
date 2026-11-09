@@ -3,8 +3,11 @@
     <string name="app_error_title">Hata</string>
     <string name="app_error_recover">Kurtar</string>
 
+    <string name="app_module_error_title">Bir hata oluştu</string>
+    <string name="app_module_error_restart">Modu yeniden başlat</string>
+
     <string name="app_activity_update_dialog_title">Güncelleme var</string>
-    <string name="app_activity_update_dialog_message">Bir güncelleme indirildi. Uygulama şimdi yeniden başlatılsın mı?</string>
+    <string name="app_activity_update_dialog_message">Güncelleme hazır. Uygulama şimdi yeniden başlatılsın mı?</string>
     <string name="app_activity_update_dialog_restart">Yeniden başlat</string>
 
     <string name="app_tab_stream">Yayın</string>
@@ -13,25 +16,49 @@
     <string name="app_tab_exit">Çıkış</string>
 
     <string name="app_tab_stream_select_mode">Yayın modunu seçin:</string>
+    <string name="app_tab_stream_switching_modules">Modlar değiştiriliyor…</string>
 
-    <string name="app_permission_required_title">İzin gerekli</string>
-    <string name="app_permission_allow_notifications">Bu uygulamanın yayın hizmetini başlatmak için bildirim iznine ihtiyacı var.\n\nBildirimlere izin verin.</string>
-    <string name="app_permission_allow_notifications_settings">Bu uygulamanın yayın hizmetini başlatmak için bildirim iznine ihtiyacı var.\n\nUygulama ayarlarında bildirimleri etkinleştirin.</string>
-    <string name="app_permission_notification_settings">Ayarları aç</string>
-    <string name="app_permission_local_network_title">Yerel ağ erişimi gerekli</string>
-    <string name="app_permission_local_network_message">ScreenStream uygulamasının yerel ağınızı kullanmasına izin verin, böylece cihazlar yayınınıza bağlanabilir.</string>
-    <string name="app_permission_local_network_off_title">Yerel ağ erişimi kapalı</string>
-    <string name="app_permission_local_network_settings_message">Ekranınızı cihazlarla paylaşmak için Android Ayarlarında yerel ağ erişimini açın.</string>
+    <string name="app_mode_selected_method">Aktif yayın yöntemi</string>
+    <string name="app_mode_choose_method">Bir yayın yöntemi seçin</string>
+    <string name="app_mode_choose_another_method">Başka bir yöntem seçin</string>
+    <string name="app_mode_change">Değiştir</string>
+    <string name="app_mode_chooser_title">Ekranınızı paylaşmak için bir yöntem seçin</string>
+    <string name="app_mode_close_chooser">Kapat</string>
+    <string name="app_mode_details">Ayrıntılar</string>
+    <string name="app_mode_details_description">Ayrıntılar: %1$s</string>
+    <string name="app_mode_benefits">Avantajlar</string>
+    <string name="app_mode_things_to_know">Bilinmesi gerekenler</string>
+
+    <!-- Permission explanations distinguish microphone input from device playback audio. -->
+    <string name="app_permission_not_now">Şimdi değil</string>
     <string name="app_permission_open_settings">Ayarları aç</string>
-    <string name="app_permission_try_again">Tekrar dene</string>
+
+    <string name="app_permission_notifications_title">Bildirimlere izin ver</string>
+    <string name="app_permission_notifications_message">Bildirimler yayın durumunu ve hata uyarılarını gösterir. Yayını durdurmak veya ScreenStream’i yeniden açmak için bildirimleri kullanın.</string>
+
+    <string name="app_permission_local_network_title">Yerel ağ erişimi</string>
+    <string name="app_permission_local_network_message">ScreenStream uygulamasının aynı ağdaki diğer cihazlara yayın yapmak için yerel ağınızı kullanmasına izin verin.\n\nAndroid bu izni Yakındaki cihazlara erişim olarak açıklar ve cihazların birbirlerine göre konumlarının belirlenmesinden söz edebilir.</string>
+    <string name="app_permission_local_network_off_title">Yerel ağ erişimi kapalı</string>
+    <string name="app_permission_local_network_settings_message">Aynı yerel ağdaki cihazlara yayın yapmak için uygulama ayarlarında İzinler’i açın ve Yakındaki cihazlar’a izin verin.</string>
+
+    <string name="app_permission_microphone_title">Mikrofon erişimi</string>
+    <string name="app_permission_microphone_message">Mikrofonunuzun sesini yayına eklemek için mikrofon erişimine izin verin.\n\nBu izin olmadan mikrofon sesi yayınlanamaz.</string>
+    <string name="app_permission_device_audio_title">Cihaz sesi erişimi</string>
+    <string name="app_permission_device_audio_message">Android, cihaz sesini yayınlamak için mikrofon izni gerektirir. Bu, mikrofonunuzu açmaz.\n\nYalnızca Android ve sesi çalan uygulamanın paylaşılmasına izin verdiği ses yayınlanabilir.</string>
+
+    <string name="app_permission_audio_title">Mikrofon ve cihaz sesi</string>
+    <string name="app_permission_audio_message">Mikrofon ve cihaz sesini yayınlamak için mikrofon erişimine izin verin.\n\nCihaz sesi yalnızca Android ve sesi çalan uygulama paylaşılmasına izin verdiğinde yayınlanabilir.</string>
+    <string name="app_permission_audio_settings_message">Mikrofon veya cihaz sesini yayınlamak için uygulama ayarlarında mikrofon erişimine izin verin.\n\nBu izin olmadan ses yayınlanamaz.</string>
 
     <string name="app_notification_channel_streaming">Yayın bildirimleri</string>
     <string name="app_notification_channel_error">Hata bildirimleri</string>
+    <string name="app_notification_waiting_content">Uygulamayı açmak için dokunun</string>
     <string name="app_notification_streaming_title">Yayınlanıyor…</string>
     <string name="app_notification_streaming_content">Yayını bitirmek için Durdur\'a dokunun</string>
     <string name="app_notification_stop">Durdur</string>
 
-    <string name="app_tile_start">Başlat</string>
+    <!-- When idle, the tile opens the app; it does not start capture. -->
+    <string name="app_tile_open">ScreenStream’i aç</string>
     <string name="app_tile_stop">Durdur</string>
 
     <string name="app_pref_back">Geri</string>
@@ -40,6 +67,7 @@
     <string name="app_pref_locale_summary">Uygulama dili ayarlarını aç</string>
     <string name="app_pref_locale_default">Sistem varsayılanı</string>
     <string name="app_pref_night_mode">Koyu tema</string>
+    <!-- Keep item order aligned with Always, Battery Saver/Follow system, Never. -->
     <string-array name="app_pref_night_mode_options_api21_28">
         <item>Her zaman</item>
         <item>Pil Tasarrufu ile</item>
@@ -47,20 +75,20 @@
     </string-array>
     <string-array name="app_pref_night_mode_options_api29">
         <item>Her zaman</item>
-        <item>Otomatik (sistemi izle)</item>
+        <item>Sisteme göre</item>
         <item>Asla</item>
     </string-array>
     <string name="app_pref_dynamic_theme">Dinamik renk</string>
     <string name="app_pref_dynamic_theme_summary">Görünümü duvar kağıdınızın renklerine göre ayarla</string>
-    <string name="app_pref_notification">Cihaz bildirim ayarları</string>
-    <string name="app_pref_notification_summary">Sistem bildirim ayarlarını aç</string>
-    <string name="app_pref_tile">Uygulama kutucuğu ekle</string>
-    <string name="app_pref_tile_summary">Uygulama kutucuğunu Hızlı Ayarlar\'a ekle</string>
+    <string name="app_pref_notification">Uygulama bildirimleri</string>
+    <string name="app_pref_notification_summary">Bildirimleri sistem ayarlarında yönet</string>
+    <string name="app_pref_tile">Hızlı Ayarlar kutucuğu ekle</string>
+    <string name="app_pref_tile_summary">ScreenStream’i Hızlı Ayarlar’a ekle</string>
 
     <string name="app_tab_about_app_version">Sürüm: %1$s</string>
     <string name="app_tab_about_developer_name">Dmytro Kryvoruchko tarafından geliştirildi</string>
     <string name="app_tab_about_rate_app">Uygulamayı değerlendir</string>
-    <string name="app_tab_about_app_sources">Uygulama kaynakları</string>
+    <string name="app_tab_about_app_sources">Kaynak kodu</string>
     <string name="app_tab_about_terms_conditions">Şartlar ve Koşullar</string>
     <string name="app_tab_about_privacy_policy">Gizlilik politikası</string>
     <string name="app_tab_about_privacy_options">Gizlilik seçenekleri</string>
