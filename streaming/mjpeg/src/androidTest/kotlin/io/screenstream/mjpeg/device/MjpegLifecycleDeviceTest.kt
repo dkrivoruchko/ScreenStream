@@ -1,6 +1,7 @@
 package io.screenstream.mjpeg.device
 
 import android.app.Activity
+import android.os.Build
 import android.os.SystemClock
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -15,14 +16,16 @@ import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.device.MjpegDeviceTestSupport.MultipartViewer
 import io.screenstream.mjpeg.settings.ImageSettings
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 /** Real Android result dispatch and projection termination, with production MJPEG owners. */
 @RunWith(AndroidJUnit4::class)
@@ -36,9 +39,9 @@ internal class MjpegLifecycleDeviceTest {
             val host = fixture.host
             val logo = context.assets.open("mjpeg/screenstream-logo.jpg").use { it.readBytes() }
             MultipartViewer(host.port).use { stream ->
-                assertArrayEquals(logo, stream.nextFrame())
+                assertContentEquals(logo, stream.nextFrame())
                 val declined = submitCapture(host)
-                assertTrue("First attempt must submit real Android consent", declined.usesSystemConsent)
+                assertTrue(declined.usesSystemConsent, "First attempt must submit real Android consent")
                 awaitConsentDialog()
                 declineSystemConsent()
                 awaitHostCondition(host, "real negative Activity result receipt") {
@@ -50,7 +53,7 @@ internal class MjpegLifecycleDeviceTest {
                 compose.onNodeWithText(context.getString(R.string.mjpeg_stream_start_capture)).assertIsEnabled()
                 assertTrue(serviceIsRunning())
                 assertTrue(canConnect(host.port))
-                assertArrayEquals(logo, requestJpeg(host.port))
+                assertContentEquals(logo, requestJpeg(host.port))
                 stream.awaitFrame("placeholder after denied consent") { it.contentEquals(logo) }
 
                 val accepted = startCapture(host)
@@ -71,7 +74,7 @@ internal class MjpegLifecycleDeviceTest {
             MultipartViewer(host.port).use { stream ->
                 stream.nextFrame()
                 val pending = submitCapture(host)
-                assertTrue("First attempt must submit real Android consent", pending.usesSystemConsent)
+                assertTrue(pending.usesSystemConsent, "First attempt must submit real Android consent")
                 awaitConsentDialog()
                 awaitHostCondition(host, "Android consent launch request code") { host.consentLaunchReceipts.any { it.attempt == pending.attempt } }
                 assertTrue(host.consentResultReceipts.none { it.attempt == pending.attempt })
@@ -89,9 +92,9 @@ internal class MjpegLifecycleDeviceTest {
                 }
                 val observationEnd = SystemClock.elapsedRealtime() + 2_000
                 awaitHostCondition(host, "bounded non-resurrection after actual old result receipt") {
-                    assertTrue("Late result changed the exited module state", host.manager.state.value is StreamingModuleManager.State.Exiting)
-                    assertFalse("Late result restarted the Service", serviceIsRunning())
-                    assertFalse("Late result reopened the listener", canConnect(host.port))
+                    assertIs<StreamingModuleManager.State.Exiting>(host.manager.state.value, "Late result changed the exited module state")
+                    assertFalse(serviceIsRunning(), "Late result restarted the Service")
+                    assertFalse(canConnect(host.port), "Late result reopened the listener")
                     SystemClock.elapsedRealtime() >= observationEnd
                 }
                 assertPortReusable(host.port)
@@ -116,6 +119,7 @@ internal class MjpegLifecycleDeviceTest {
     @Test
     @SdkSuppress(minSdkVersion = 35)
     fun systemProjectionChipStopRestoresIdleHttpAndRestartRequiresFreshConsent() = with(MjpegDeviceTestSupport(compose)) {
+        qualifySystemChipSelector()
         // Isolate OS termination from the independently retained default-50% scaling baseline.
         openHost(imageSettings = ImageSettings(scalePercent = 100.0)).use { fixture ->
             val host = fixture.host
@@ -130,23 +134,37 @@ internal class MjpegLifecycleDeviceTest {
                     runningModule(host)?.status?.let { !it.isStreaming && it.captureAttempt == null } == true
                 }
                 compose.onNodeWithText(context.getString(R.string.mjpeg_stream_start_capture)).assertIsEnabled()
-                assertTrue("System projection stop must preserve the module Service", serviceIsRunning())
-                assertTrue("System projection stop must preserve the HTTP listener", canConnect(host.port))
+                assertTrue(serviceIsRunning(), "System projection stop must preserve the module Service")
+                assertTrue(canConnect(host.port), "System projection stop must preserve the HTTP listener")
                 awaitHostCondition(host, "post-system-stop JPEG placeholder") { requestJpeg(host.port).contentEquals(logo) }
                 stream.awaitFrame("post-system-stop multipart placeholder") { it.contentEquals(logo) }
                 compose.runOnUiThread { host.showGreenTarget.value = true }
-                assertArrayEquals("Post-stop target changes must not become live images", logo, requestJpeg(host.port))
+                assertContentEquals(logo, requestJpeg(host.port), "Post-stop target changes must not become live images")
                 stream.awaitFrame("placeholder after target changed while stopped") { it.contentEquals(logo) }
 
                 val next = startCapture(host)
                 assertNotEquals(first, next)
-                assertEquals("OS-revoked projection cannot offer reusable consent", 2, host.systemConsentAttempts.size)
+                assertEquals(2, host.systemConsentAttempts.size, "OS-revoked projection cannot offer reusable consent")
                 assertTrue(host.reusedConsentAttempts.isEmpty())
                 awaitJpegTarget(host.port, green = true)
                 stream.awaitTarget(green = true)
                 exitAndAssertResourcesReleased(host, stream)
             }
         }
+    }
+
+    private fun qualifySystemChipSelector() {
+        if (Build.VERSION.SDK_INT != 35) return
+        val arguments = InstrumentationRegistry.getArguments()
+        if (!arguments.getString("mjpeg.systemStopChipResource").isNullOrBlank() ||
+            !arguments.getString("mjpeg.systemStopChipDescription").isNullOrBlank()
+        ) return
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val resources = context.packageManager.getResourcesForApplication("com.android.systemui")
+        assumeTrue(
+            "SystemUI chip selector unavailable; this API 35 runtime is unqualified for system-stop coverage",
+            resources.getIdentifier("share_to_app_chip_accessibility_label", "string", "com.android.systemui") != 0,
+        )
     }
 
     private fun stopProjectionUsingSystemChip(support: MjpegDeviceTestSupport) {

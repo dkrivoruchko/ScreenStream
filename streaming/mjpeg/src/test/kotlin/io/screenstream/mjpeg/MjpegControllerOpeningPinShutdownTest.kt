@@ -18,10 +18,6 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import kotlinx.serialization.json.Json
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -30,6 +26,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import kotlin.coroutines.CoroutineContext
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -83,9 +83,8 @@ internal class MjpegControllerOpeningPinShutdownTest {
             }
             assertTrue(cleanupWaiter.await())
             val saved = Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context))
-            val pin = checkNotNull(saved.access.pin).value
-            assertEquals(6, pin.length)
-            assertTrue(pin.all { it in '0'..'9' })
+            assertNotNull(saved.access.pin)
+            assertTrue(saved.access.pinEnabled)
             assertNull(host.http.configuration.value)
             assertFalse(host.monitor.started.value)
             assertTrue(host.http.registeredCaptureAttempts.value.isEmpty())

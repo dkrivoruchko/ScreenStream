@@ -64,6 +64,7 @@ internal class StreamingModuleManagerImpl internal constructor(
 ) : StreamingModuleManager {
     override val modules: List<StreamingModule> = Collections.unmodifiableList(modules.sortedByDescending { it.priority }).also {
         require(it.isNotEmpty()) { "At least one streaming module is required" }
+        require(it.all { module -> module.id.value.isNotBlank() }) { "Streaming module IDs must not be blank" }
     }
 
     private val moduleById: Map<StreamingModule.Id, StreamingModule> = this.modules.associateBy { it.id }.also {

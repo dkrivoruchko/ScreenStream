@@ -23,7 +23,7 @@ import kotlin.uuid.Uuid
 public interface StreamingModuleManager {
     /**
      * Registered modules, ordered by descending [StreamingModule.priority] and fixed for the manager's
-     * lifetime. Construction fails unless the list is nonempty, module IDs are unique, and every
+     * lifetime. Construction fails unless the list is nonempty, module IDs are nonblank and unique, and every
      * [StreamingModule.foregroundSlot] is valid.
      */
     public val modules: List<StreamingModule>

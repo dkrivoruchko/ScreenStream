@@ -16,8 +16,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -31,6 +29,8 @@ import org.robolectric.shadows.ShadowToast
 import java.net.InetAddress
 import java.time.Duration
 import kotlin.coroutines.CoroutineContext
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
@@ -40,6 +40,7 @@ import kotlin.uuid.Uuid
 internal class MjpegControllerSlowViewerWarningTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
+    private val inputs = MjpegControllerTestInputs(temporaryFolder)
 
     @Before
     fun initialize() {
@@ -57,16 +58,13 @@ internal class MjpegControllerSlowViewerWarningTest {
         val gatedMainDispatcher = GatedMainDispatcher(mainDispatcher)
         Dispatchers.setMain(mainDispatcher)
         try {
-            withTimeout(5.seconds) { host.http.configuration.first { it != null } }
-            host.monitor.state.value = observedAddressState(listOf(address))
-            withTimeout(5.seconds) { host.http.plan.first { it?.addresses == listOf(address) } }
-            publishDeliveryCheckpoint(host)
+            inputs.awaitReadyListener(host, address)
             host.controller.requestStreamStart()
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.isStreaming == true } }
             withTimeout(5.seconds) { host.http.captureStatus.first { it?.second == MjpegCaptureSession.State.Status.Active } }
             withTimeout(5.seconds) { host.controller.state.first { it.statistics.engineStats != null } }
-            publishDeliveryCheckpoint(host)
-            publishDeliveryCheckpoint(host)
+            inputs.publishDeliveryCheckpoint(host, address)
+            inputs.publishDeliveryCheckpoint(host, address)
 
             Dispatchers.setMain(gatedMainDispatcher)
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
@@ -85,7 +83,7 @@ internal class MjpegControllerSlowViewerWarningTest {
 
             engine.publish(MjpegEngineState(MjpegEngineState.Phase.Active))
             withTimeout(5.seconds) { host.http.captureStatus.first { it?.second == MjpegCaptureSession.State.Status.Active } }
-            publishDeliveryCheckpoint(host)
+            inputs.publishDeliveryCheckpoint(host, address)
             ShadowSystemClock.advanceBy(Duration.ofSeconds(1))
             val early = publishSlowViewerSample(host)
             withTimeout(5.seconds) { host.controller.state.first { it.addressServers.singleOrNull()?.serverId == early } }
@@ -104,12 +102,6 @@ internal class MjpegControllerSlowViewerWarningTest {
                 mainDispatcher.close()
             }
         }
-    }
-
-    private suspend fun publishDeliveryCheckpoint(host: MjpegServiceTestHost) {
-        val id = Uuid.random()
-        host.http.info.value = host.http.info.value.copy(servers = listOf(HttpDelivery.ServerInfo(id, address, 8080, HttpDelivery.ServerState.Listening)))
-        withTimeout(5.seconds) { host.controller.state.first { it.addressServers.singleOrNull()?.serverId == id } }
     }
 
     private fun publishSlowViewerSample(host: MjpegServiceTestHost): Uuid {

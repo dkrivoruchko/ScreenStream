@@ -1,9 +1,5 @@
 package io.screenstream.mjpeg.networkaddress
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -12,6 +8,10 @@ import java.net.InetAddress
 import java.net.SocketException
 import java.util.Collections
 import java.util.Enumeration
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
@@ -49,13 +49,13 @@ internal class AndroidNetworkAddressSourceTest {
         assertFalse(result.canConfirmAbsence("failed0"))
         native.enumeration = { Collections.enumeration(listOf(nativeInterface("failed0"))) }
         val recovered = source.scan(snapshot)
-        assertEquals(emptyList<InetAddress>(), recovered.interfaces.single().addresses)
+        assertEquals(emptyList(), recovered.interfaces.single().addresses)
         assertTrue(recovered.complete)
         assertTrue(recovered.canConfirmAbsence("failed0"))
         assertEquals(listOf(callbackIp), result.interfaces.single { it.interfaceName == "failed0" }.addresses)
-        assertThrows(UnsupportedOperationException::class.java) { (result.interfaces as MutableList).clear() }
-        assertThrows(UnsupportedOperationException::class.java) { (result.successfulInterfaces as MutableSet).clear() }
-        assertThrows(UnsupportedOperationException::class.java) { (result.failedInterfaces as MutableSet).clear() }
+        assertFailsWith<UnsupportedOperationException> { (result.interfaces as MutableList).clear() }
+        assertFailsWith<UnsupportedOperationException> { (result.successfulInterfaces as MutableSet).clear() }
+        assertFailsWith<UnsupportedOperationException> { (result.failedInterfaces as MutableSet).clear() }
     }
 
     // Cases: MJPEG-NET-06, MJPEG-NET-07
@@ -128,7 +128,7 @@ internal class AndroidNetworkAddressSourceTest {
         assertFalse(uncertain.canConfirmAbsence("partial0"))
         native.lookup = { name -> nativeInterface(name) }
         val recovered = source.scan(snapshot)
-        assertEquals(emptyList<InetAddress>(), recovered.interfaces.single().addresses)
+        assertEquals(emptyList(), recovered.interfaces.single().addresses)
         assertEquals(setOf("partial0"), recovered.successfulInterfaces)
         assertTrue(recovered.failedInterfaces.isEmpty())
         assertTrue(recovered.complete)
@@ -158,7 +158,7 @@ internal class AndroidNetworkAddressSourceTest {
         assertFalse(recovered.enumerationComplete)
         assertFalse(recovered.complete)
         assertEquals(setOf("known0"), recovered.successfulInterfaces)
-        assertEquals(emptyList<InetAddress>(), recovered.interfaces.single().addresses)
+        assertEquals(emptyList(), recovered.interfaces.single().addresses)
         assertTrue(recovered.canConfirmAbsence("known0"))
         assertFalse(recovered.canConfirmAbsence("unknown0"))
     }

@@ -29,19 +29,19 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotSame
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotSame
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
+import kotlin.test.fail
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -61,27 +61,27 @@ internal class MjpegCaptureSessionContractsTest {
             session.start()
             runCurrent()
             engine.deliver(jpeg(1))
-            assertArrayEquals(jpeg(1), delivery.readSelectedJpeg())
+            assertContentEquals(jpeg(1), delivery.readSelectedJpeg())
             assertSame(initialGeneration, delivery.store.snapshot().captureGeneration)
 
             engine.publish(MjpegEngineState(Phase.Reconfiguring))
             runCurrent()
             assertEquals(Status.Reconfiguring, session.state.value.status)
             assertSame(initialGeneration, delivery.store.snapshot().captureGeneration)
-            assertArrayEquals(jpeg(1), delivery.readSelectedJpeg())
+            assertContentEquals(jpeg(1), delivery.readSelectedJpeg())
 
             engine.publish(MjpegEngineState(Phase.Suspended, ScreenCaptureProblem.CaptureUnavailable))
             runCurrent()
             assertNull(delivery.store.snapshot().captureGeneration)
             assertEquals(JpegStore.ImageKind.Logo, delivery.store.snapshot().imageKind)
             engine.deliver(jpeg(2))
-            assertArrayEquals(byteArrayOf(99), delivery.readSelectedJpeg())
+            assertContentEquals(byteArrayOf(99), delivery.readSelectedJpeg())
 
             engine.publish(MjpegEngineState(Phase.Reconfiguring))
             runCurrent()
             assertNull(delivery.store.snapshot().captureGeneration)
             engine.deliver(jpeg(3))
-            assertArrayEquals(byteArrayOf(99), delivery.readSelectedJpeg())
+            assertContentEquals(byteArrayOf(99), delivery.readSelectedJpeg())
 
             engine.publish(MjpegEngineState(Phase.Active))
             runCurrent()
@@ -90,7 +90,7 @@ internal class MjpegCaptureSessionContractsTest {
             assertEquals(JpegStore.ImageKind.Logo, delivery.store.snapshot().imageKind)
             delivery.offerJpeg(initialGeneration, 6) { fail("Old generation entered copier") }
             engine.deliver(jpeg(4))
-            assertArrayEquals(jpeg(4), delivery.readSelectedJpeg())
+            assertContentEquals(jpeg(4), delivery.readSelectedJpeg())
             assertSame(recoveredGeneration, delivery.store.snapshot().captureGeneration)
 
             session.requestStop(MjpegCaptureSession.StopReason.User)
@@ -125,7 +125,7 @@ internal class MjpegCaptureSessionContractsTest {
             engine.publish(MjpegEngineState(Phase.Active), announce = false)
             engine.deliver(jpeg(8))
             val recoveredGeneration = session.state.value.captureGeneration!!
-            assertArrayEquals(jpeg(8), delivery.readSelectedJpeg())
+            assertContentEquals(jpeg(8), delivery.readSelectedJpeg())
             engine.announce(suspended)
             runCurrent()
             assertEquals(Status.Active, session.state.value.status)
@@ -158,7 +158,7 @@ internal class MjpegCaptureSessionContractsTest {
             runCurrent()
             engine.deliver(jpeg(9))
             assertEquals(JpegStore.ImageKind.Logo, delivery.store.snapshot().imageKind)
-            assertArrayEquals(byteArrayOf(99), delivery.readSelectedJpeg())
+            assertContentEquals(byteArrayOf(99), delivery.readSelectedJpeg())
             runCurrent()
             assertTrue(session.awaitCleanup())
             assertNull(session.state.value.captureFailure)
@@ -226,7 +226,7 @@ internal class MjpegCaptureSessionContractsTest {
             submittedCallbackTask.get(5, java.util.concurrent.TimeUnit.SECONDS)
             assertTrue(withTimeout(5.seconds) { cleanupResult.await() })
             assertEquals(JpegStore.ImageKind.Logo, delivery.store.snapshot().imageKind)
-            assertArrayEquals(byteArrayOf(99), delivery.readSelectedJpeg())
+            assertContentEquals(byteArrayOf(99), delivery.readSelectedJpeg())
             assertNull(session.state.value.captureFailure)
             assertNull(session.state.value.cleanupFailure)
         } finally {
@@ -295,7 +295,7 @@ internal class MjpegCaptureSessionContractsTest {
     fun unexpectedSuspensionProblemIsRejectedByStateProjection() {
         for (problem in listOf(null, ScreenCaptureProblem.InternalFailure, ScreenCaptureProblem.UnsupportedColorSpace)) {
             val state = MjpegCaptureSession.State(Any(), engineState = MjpegEngineState(Phase.Suspended, problem))
-            assertThrows(IllegalStateException::class.java) { state.suspensionProblem }
+            assertFailsWith<IllegalStateException> { state.suspensionProblem }
         }
     }
 

@@ -40,7 +40,7 @@ A start delivered after Exit, or after startup admission expired, neither promot
 
 | Identity | Meaning |
 | --- | --- |
-| `StreamingModule.Id` | The registered module, stable across openings. |
+| `StreamingModule.Id` | The registered module, stable across openings. Registered IDs are nonblank and unique. |
 | `StreamingModule.InstanceId` | One opening of that module. Restart and reopening create a new one. |
 | `StreamingModule.CaptureAttemptId` | One accepted Start within an instance. |
 

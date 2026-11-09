@@ -24,15 +24,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.coroutines.CoroutineContext
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -52,13 +54,13 @@ internal class WebSnapshotOutputTest {
                 runCurrent()
                 assertTrue(session.sendEntered.isCompleted)
                 assertEquals(stage == "flush", session.flushEntered.isCompleted)
-                advanceTimeBy(4_999)
+                advanceTimeBy(4_999.milliseconds)
                 runCurrent()
                 assertFalse(writing.isCompleted)
-                advanceTimeBy(1)
+                advanceTimeBy(1.milliseconds)
                 runCurrent()
                 assertTrue(writing.isCompleted)
-                assertTrue(writing.await().exceptionOrNull() is TimeoutCancellationException)
+                assertIs<TimeoutCancellationException>(writing.await().exceptionOrNull())
                 assertTrue(if (stage == "send") session.sendExited.isCompleted else session.flushExited.isCompleted)
                 assertEquals(stage == "flush", session.flushEntered.isCompleted)
             } finally {
@@ -80,18 +82,18 @@ internal class WebSnapshotOutputTest {
         val writing = async { runCatching { with(routes) { session.sendStateSnapshot("{}") } } }
         try {
             runCurrent()
-            advanceTimeBy(3_000)
+            advanceTimeBy(3_000.milliseconds)
             sendGate.complete(Unit)
             runCurrent()
             assertTrue(session.flushEntered.isCompleted)
             assertEquals(1, session.acceptedFrames.size)
-            advanceTimeBy(1_999)
+            advanceTimeBy(1_999.milliseconds)
             runCurrent()
             assertFalse(writing.isCompleted)
-            advanceTimeBy(1)
+            advanceTimeBy(1.milliseconds)
             runCurrent()
             assertTrue(writing.isCompleted)
-            assertTrue(writing.await().exceptionOrNull() is TimeoutCancellationException)
+            assertIs<TimeoutCancellationException>(writing.await().exceptionOrNull())
             assertTrue(session.flushExited.isCompleted)
         } finally {
             writing.cancelAndJoin()
@@ -133,9 +135,9 @@ internal class WebSnapshotOutputTest {
             val json = snapshotWithByteCount(size)
             try {
                 with(routes) { session.sendStateSnapshot(json) }
-                val frame = session.acceptedFrames.single() as Frame.Text
+                val frame = assertIs<Frame.Text>(session.acceptedFrames.single())
                 assertEquals(size, frame.data.size)
-                assertArrayEquals(json.toByteArray(Charsets.UTF_8), frame.data)
+                assertContentEquals(json.toByteArray(Charsets.UTF_8), frame.data)
                 assertEquals(json, frame.readText())
                 assertTrue(session.flushExited.isCompleted)
                 assertTrue(session.sessionJob.isActive)
@@ -154,8 +156,8 @@ internal class WebSnapshotOutputTest {
             val beforeClose = testScheduler.currentTime
             val outcome = runCatching { with(routes) { session.sendStateSnapshot(snapshotWithByteCount(262_145)) } }
             assertEquals(beforeClose, testScheduler.currentTime)
-            assertTrue(outcome.exceptionOrNull() is CancellationException)
-            val close = session.acceptedFrames.single() as Frame.Close
+            assertIs<CancellationException>(outcome.exceptionOrNull())
+            val close = assertIs<Frame.Close>(session.acceptedFrames.single())
             assertEquals(CloseReason(CloseReason.Codes.INTERNAL_ERROR, "Page settings exceed snapshot limit"), close.readReason())
             assertTrue(session.flushExited.isCompleted)
             assertTrue(session.sessionJob.isCompleted)
@@ -172,15 +174,15 @@ internal class WebSnapshotOutputTest {
         val writing = async { runCatching { with(routes) { session.sendStateSnapshot(snapshotWithByteCount(262_145)) } } }
         try {
             runCurrent()
-            assertTrue(session.acceptedFrames.single() is Frame.Close)
+            assertIs<Frame.Close>(session.acceptedFrames.single())
             assertTrue(session.flushExited.isCompleted)
-            advanceTimeBy(4_999)
+            advanceTimeBy(4_999.milliseconds)
             runCurrent()
             assertFalse(writing.isCompleted)
-            advanceTimeBy(1)
+            advanceTimeBy(1.milliseconds)
             runCurrent()
             assertTrue(writing.isCompleted)
-            assertTrue(writing.await().exceptionOrNull() is TimeoutCancellationException)
+            assertIs<TimeoutCancellationException>(writing.await().exceptionOrNull())
             assertTrue(session.sessionJob.isActive)
         } finally {
             writing.cancelAndJoin()
@@ -254,7 +256,7 @@ internal class WebSnapshotOutputTest {
         @OptIn(io.ktor.utils.io.InternalAPI::class)
         override fun start(negotiatedExtensions: List<WebSocketExtension<*>>) = Unit
 
-        @Deprecated("Use cancel() instead.", level = DeprecationLevel.ERROR)
+        @Deprecated("Use cancel() instead.", replaceWith = ReplaceWith("cancel()", "kotlinx.coroutines.cancel"), level = DeprecationLevel.ERROR)
         override fun terminate() {
             sessionJob.cancel()
         }

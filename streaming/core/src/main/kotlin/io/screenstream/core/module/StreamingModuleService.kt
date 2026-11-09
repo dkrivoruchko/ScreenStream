@@ -33,6 +33,9 @@ import org.koin.android.ext.android.inject
  * start arrives while this Service still hosts a previous controller fails. The controller owns module
  * work and cleanup, which can outlive this Service, and ends it through [stopAndAwaitDestruction]. A
  * foreground failure or Android Service timeout reports instance failure and requests controller shutdown.
+ * Capture-foreground ownership covers only this Service's presentation, not media. Destruction ends it
+ * before the controller is notified, so later or reentrant capture-foreground calls do nothing and
+ * [enterCaptureForeground] returns false.
  *
  * Subclasses declare the manifest entry with its foreground types, `specialUse` subtype, and permissions.
  * Binding is unsupported, and starts are not sticky.
@@ -275,6 +278,8 @@ public abstract class StreamingModuleService : Service() {
         val (original, expectedStop) = synchronized(gate) {
             foregroundAdmissionClosed = true
             foregroundNotification = null
+            foregroundAttempt = null
+            showsCaptureStop = false
             val original = controller
             controller = null
             original to (terminalStopRequested && !timedOut)

@@ -29,9 +29,6 @@ import io.screenstream.mjpeg.ui.settings.webpage.StreamNameSearch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -39,6 +36,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -70,7 +70,7 @@ internal class SettingsSearchUiTest {
             query.value = "frames unrelated-missing-term"
         }
         compose.runOnIdle {
-            assertEquals(emptySet<SettingSearchInfo>(), matchingSettings)
+            assertEquals(emptySet(), matchingSettings)
             query.value = " \t\u2013\u2014 "
         }
         compose.runOnIdle { assertNull(matchingSettings) }
@@ -139,7 +139,7 @@ internal class SettingsSearchUiTest {
         scrollTo(text(R.string.mjpeg_pref_search_no_results))
         compose.onNodeWithText(text(R.string.mjpeg_pref_search_no_results)).assertIsDisplayed()
         startCaptureButton().assertIsEnabled().performClick()
-        compose.runOnIdle { assertEquals(listOf(UiController.Command.Start, UiController.Command.Start), controller.commands) }
+        compose.runOnIdle { assertEquals(listOf<UiController.Command>(UiController.Command.Start, UiController.Command.Start), controller.commands) }
 
         scrollToSearch()
         compose.onNodeWithContentDescription(text(R.string.mjpeg_pref_search_clear)).performClick()
@@ -163,7 +163,7 @@ internal class SettingsSearchUiTest {
         val indexForKey = compose.onNode(hasScrollToIndexAction()).fetchSemanticsNode().config[SemanticsProperties.IndexForKey]
         compose.runOnIdle {
             for (key in SETTINGS_GROUP_KEYS) {
-                assertEquals("Group membership for $key", key in expected, indexForKey(key) >= 0)
+                assertEquals(key in expected, indexForKey(key) >= 0, "Group membership for $key")
             }
         }
     }

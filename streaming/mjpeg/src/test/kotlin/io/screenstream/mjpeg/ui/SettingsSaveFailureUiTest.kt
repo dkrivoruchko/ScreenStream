@@ -21,8 +21,6 @@ import io.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -31,6 +29,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -79,7 +79,7 @@ internal class SettingsSaveFailureUiTest {
         compose.onNodeWithText(saveErrorText).assertIsDisplayed()
         val savedSettings = compose.awaitSavedMjpegSettings(settings)
         assertEquals(initial, savedSettings)
-        assertArrayEquals(savedBytes, preferencesFile.readBytes())
+        assertContentEquals(savedBytes, preferencesFile.readBytes())
     }
 
     private fun text(resource: Int): String = compose.activity.getString(resource)

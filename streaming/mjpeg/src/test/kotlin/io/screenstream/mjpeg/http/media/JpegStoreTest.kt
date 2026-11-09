@@ -10,18 +10,18 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotSame
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotSame
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 internal class JpegStoreTest {
@@ -38,15 +38,15 @@ internal class JpegStoreTest {
                 assertEquals(ImageKind.Logo, store.snapshot().imageKind)
                 assertSelected(store, logo)
             }
-            assertThrows(IllegalStateException::class.java) { store.installLogo(byteArrayOf(99)) }
+            assertFailsWith<IllegalStateException> { store.installLogo(byteArrayOf(99)) }
             assertSelected(store, logo)
             store.dispose()
-            assertThrows(IllegalStateException::class.java) { store.installLogo(logo) }
+            assertFailsWith<IllegalStateException> { store.installLogo(logo) }
             assertEquals(ImageKind.None, store.snapshot().imageKind)
         }
         withStore { store ->
             store.registerCapture(attempt(), Any())
-            assertThrows(IllegalStateException::class.java) { store.installLogo(byteArrayOf(1)) }
+            assertFailsWith<IllegalStateException> { store.installLogo(byteArrayOf(1)) }
         }
     }
 
@@ -125,12 +125,12 @@ internal class JpegStoreTest {
         withFrame(store) { _, held ->
             val version = held.publicationVersion
             for (size in listOf(0, -1)) {
-                assertThrows(IllegalArgumentException::class.java) {
+                assertFailsWith<IllegalArgumentException> {
                     store.offerJpeg(generation, size) { throw AssertionError("Invalid copier entered") }
                 }
             }
             var copies = 0
-            assertSame(failure, assertThrows(IllegalStateException::class.java) {
+            assertSame(failure, assertFailsWith<IllegalStateException> {
                 store.offerJpeg(generation, 4) {
                     copies++
                     reserved = it
@@ -287,7 +287,7 @@ internal class JpegStoreTest {
             var original: ByteArray? = null
             store.offerJpeg(generation, 8) { original = it; it.fill(1) }
             publish(store, generation, byteArrayOf(2))
-            assertThrows(IllegalArgumentException::class.java) {
+            assertFailsWith<IllegalArgumentException> {
                 store.offerJpeg(generation, invalid) { throw AssertionError("Invalid copier entered") }
             }
             store.offerJpeg(generation, 4) {
@@ -349,7 +349,7 @@ internal class JpegStoreTest {
                         waiting.await()
                         changeSelection()
                     }
-                    if (change == "publish") assertArrayEquals(byteArrayOf(7, 8), result.await()) else assertNull(result.await())
+                    if (change == "publish") assertContentEquals(byteArrayOf(7, 8), result.await()) else assertNull(result.await())
                 } finally {
                     reader.close()
                     store.dispose()
@@ -373,7 +373,7 @@ internal class JpegStoreTest {
 
     private fun assertPayload(expected: ByteArray, frame: JpegStore.Frame) {
         assertEquals(expected.size, frame.byteCount)
-        assertArrayEquals(expected, frame.bytes.copyOf(frame.byteCount))
+        assertContentEquals(expected, frame.bytes.copyOf(frame.byteCount))
     }
 
     private inline fun withStore(block: (JpegStore) -> Unit) {

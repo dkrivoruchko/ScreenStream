@@ -19,10 +19,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -38,6 +34,11 @@ import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -67,9 +68,9 @@ internal class AndroidNetworkAddressPlatformObservationTest {
                     .build()
             }
             assertEquals(
-                "The complete request must preserve SDK-specific capabilities and require no transport",
                 expected,
                 request,
+                "The complete request must preserve SDK-specific capabilities and require no transport",
             )
             assertEquals(1, connectivityShadow.networkCallbacks.size)
         } finally {
@@ -119,8 +120,8 @@ internal class AndroidNetworkAddressPlatformObservationTest {
             try {
                 report(6, "shared0", NetworkCapabilities.TRANSPORT_VPN, NetworkCapabilities.TRANSPORT_WIFI)
                 assertTrue(
-                    "Native scans must be held before network metadata is lost",
                     scanEntered.await(5, TimeUnit.SECONDS),
+                    "Native scans must be held before network metadata is lost",
                 )
                 val vpn = awaitSelectedAddresses(monitor) { it.single { address -> address.interfaceName == "shared0" }.interfaceType == InterfaceType.Vpn }
                 assertEquals(ids, vpn.associate { it.interfaceName to it.id })
@@ -550,7 +551,7 @@ internal class AndroidNetworkAddressPlatformObservationTest {
     private suspend fun awaitSelectedAddresses(monitor: AndroidNetworkAddressMonitor, matches: (List<NetworkAddress>) -> Boolean): List<NetworkAddress> =
         withTimeout(5.seconds) {
             val state = monitor.state.first { it is NetworkAddressMonitor.State.Observed && matches(it.inventory.select(allAddressesFilter)) }
-            (state as NetworkAddressMonitor.State.Observed).inventory.select(allAddressesFilter)
+            assertIs<NetworkAddressMonitor.State.Observed>(state).inventory.select(allAddressesFilter)
         }
 
     private fun linkProperties(name: String, address: InetAddress? = null): LinkProperties = LinkProperties().apply {

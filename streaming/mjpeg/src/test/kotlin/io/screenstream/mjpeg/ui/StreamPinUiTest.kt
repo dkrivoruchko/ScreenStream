@@ -13,14 +13,14 @@ import androidx.compose.ui.test.performClick
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.ui.main.StreamPinContent
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "en")

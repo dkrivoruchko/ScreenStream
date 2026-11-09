@@ -4,12 +4,11 @@ import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.http.media.JpegStore.ImageKind
 import io.screenstream.mjpeg.settings.WebPageSettings
 import org.json.JSONObject
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.test.assertEquals
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
@@ -42,15 +41,12 @@ internal class WebStateContractTest {
                     assertEquals(notice ?: JSONObject.NULL, wire.get("notice"))
                     assertEquals(hasImage, wire.get("hasImage"))
                     assertEquals(name, wire.get("imageKind"))
-                    assertTrue(wire.get("hasImage") is Boolean)
-                    assertTrue(wire.get("access") is String)
-                    assertTrue(wire.get("imageKind") is String)
+
                     val page = wire.getJSONObject("display")
                     assertEquals(setOf("background", "title", "titleEnabled", "titleLayout", "controlsLayout"), page.keys().asSequence().toSet())
                     assertEquals("Schema contract", page.get("title"))
                     assertEquals("#A1b2C3", page.get("background"))
                     assertEquals(false, page.get("titleEnabled"))
-                    assertTrue(page.get("titleEnabled") is Boolean)
                     assertLayout(page.getJSONObject("titleLayout"), "bottom", "bar", false)
                     assertLayout(page.getJSONObject("controlsLayout"), "top", "overlay", true)
                 }
@@ -68,7 +64,6 @@ internal class WebStateContractTest {
                 val page = wire.getJSONObject("display")
                 assertEquals(title, page.get("title"))
                 assertEquals(enabled, page.get("titleEnabled"))
-                assertTrue(page.get("titleEnabled") is Boolean)
             }
         }
     }
@@ -107,6 +102,5 @@ internal class WebStateContractTest {
         assertEquals(position, encoded.get("position"))
         assertEquals(presentation, encoded.get("presentation"))
         assertEquals(autoHide, encoded.get("autoHide"))
-        assertTrue(encoded.get("autoHide") is Boolean)
     }
 }

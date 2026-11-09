@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
-import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.settings.MjpegSettings
@@ -13,10 +12,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -30,14 +25,18 @@ import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 import org.robolectric.shadows.ShadowContextImpl
 import java.net.InetAddress
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
-import kotlin.uuid.Uuid
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [FallibleScreenOffContextShadow::class])
 internal class MjpegControllerScreenOffFailureTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
+    private val inputs = MjpegControllerTestInputs(temporaryFolder)
 
     @Before
     fun initialize() {
@@ -50,7 +49,7 @@ internal class MjpegControllerScreenOffFailureTest {
     fun registrationFailureAtStartRejectsTheAttemptAndReportsARecoverableGenericError() = runBlocking<Unit> {
         val host = createHost(stopOnScreenOff = true)
         try {
-            prepareReadyListener(host)
+            inputs.awaitReadyListener(host, address)
             FallibleScreenOffContextShadow.registrationFailure = SecurityException("Screen-off registration denied")
             host.controller.requestStreamStart()
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.error != null } }
@@ -73,7 +72,7 @@ internal class MjpegControllerScreenOffFailureTest {
     fun registrationFailureWhileEnablingThePreferenceStopsTheCurrentAttempt() = runBlocking {
         val host = createHost(stopOnScreenOff = false)
         try {
-            prepareReadyListener(host)
+            inputs.awaitReadyListener(host, address)
             host.controller.requestStreamStart()
             val attempt = withTimeout(5.seconds) { host.access.consentRequests.first { it.size == 1 }.single() }
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == attempt } }
@@ -95,18 +94,18 @@ internal class MjpegControllerScreenOffFailureTest {
     fun removalFailureRetainsTheErrorRejectsLaterStartAndMakesModuleCleanupUnsuccessful() = runBlocking {
         val host = createHost(stopOnScreenOff = true)
         try {
-            prepareReadyListener(host)
+            inputs.awaitReadyListener(host, address)
             host.controller.requestStreamStart()
             val attempt = withTimeout(5.seconds) { host.access.consentRequests.first { it.size == 1 }.single() }
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == attempt } }
             FallibleScreenOffContextShadow.removalFailure = IllegalStateException("Receiver removal failed")
-            host.controller.requestStreamStop(attempt, false)
+            host.controller.requestStreamStop(attempt, fromNotification = false)
             withTimeout(5.seconds) { host.managerObservation.status.first { it != null && it.captureAttempt == null && it.error != null } }
             assertNull(host.managerObservation.status.value!!.error!!.message)
             assertFalse(host.http.closed)
             FallibleScreenOffContextShadow.removalFailure = null
             host.controller.requestStreamStart()
-            publishDeliveryCheckpoint(host)
+            inputs.publishDeliveryCheckpoint(host, address)
             assertEquals(listOf(attempt), host.http.registeredCaptureAttempts.value)
             assertEquals(listOf(attempt), host.access.consentRequests.value)
             assertFalse(host.managerObservation.failed.isCompleted)
@@ -122,19 +121,6 @@ internal class MjpegControllerScreenOffFailureTest {
         val data = MjpegSettings.Data(web = WebPageSettings(title = "Screen-off contract"))
         seedSettings(context, Json.encodeToString(data.copy(behavior = data.behavior.copy(stopOnScreenOff = stopOnScreenOff))))
         return MjpegServiceTestHost(MjpegSettings(context))
-    }
-
-    private suspend fun prepareReadyListener(host: MjpegServiceTestHost) {
-        withTimeout(5.seconds) { host.http.configuration.first { it != null } }
-        host.monitor.state.value = observedAddressState(listOf(address))
-        withTimeout(5.seconds) { host.http.plan.first { it?.addresses == listOf(address) } }
-        publishDeliveryCheckpoint(host)
-    }
-
-    private suspend fun publishDeliveryCheckpoint(host: MjpegServiceTestHost) {
-        val id = Uuid.random()
-        host.http.info.value = host.http.info.value.copy(servers = listOf(HttpDelivery.ServerInfo(id, address, 8080, HttpDelivery.ServerState.Listening)))
-        withTimeout(5.seconds) { host.controller.state.first { it.addressServers.singleOrNull()?.serverId == id } }
     }
 
     private val application: Application get() = RuntimeEnvironment.getApplication()

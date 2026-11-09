@@ -26,7 +26,7 @@ All IDs have the `MJPEG-` prefix. The test links are representative entry points
 | [Access](scenarios/06-access.md): ACC-01–10 | [HTTP delivery](../02-delivery/01-http-delivery.md) | [Access](../../src/test/kotlin/io/screenstream/mjpeg/http/HttpAccessTest.kt), [credential rotation](../../src/test/kotlin/io/screenstream/mjpeg/http/HttpDeliveryCredentialRotationTest.kt) |
 | [Media](scenarios/07-media.md): IMG-01–15 | [JPEG delivery](../02-delivery/02-jpeg-delivery.md) | [Store](../../src/test/kotlin/io/screenstream/mjpeg/http/media/JpegStoreTest.kt), [response protocol](../../src/test/kotlin/io/screenstream/mjpeg/http/media/JpegResponseWriterTest.kt) |
 | [Web protocol](scenarios/08-web-protocol.md): WEB-01–17 | [Web client](../02-delivery/03-web-client.md), [HTTP server](../../docs/server.md) | [Routes](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebRoutesProtocolTest.kt), [state JSON](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebStateContractTest.kt), [WebSocket transport](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebSocketTransportTest.kt), [CIO headers](../../src/test/kotlin/io/screenstream/mjpeg/http/web/WebRoutesDuplicateRequestHeadersCioTest.kt) |
-| [Integration](scenarios/09-integration.md): CFG-01–04 | [Module integration](../01-module/01-module-integration.md) | [Generated graph](../../src/test/kotlin/io/screenstream/mjpeg/MjpegKoinGraphTest.kt), [controller/CIO assembly](../../src/test/kotlin/io/screenstream/mjpeg/MjpegControllerCioIntegrationTest.kt) |
+| [Integration](scenarios/09-integration.md): CFG-01–04 | [Module integration](../01-module/01-module-integration.md) | [Generated graph](../../src/test/kotlin/io/screenstream/mjpeg/MjpegKoinGraphTest.kt), [controller/CIO assembly](../../src/test/kotlin/io/screenstream/mjpeg/MjpegControllerCioIntegrationTest.kt) (controller capture output through real CIO and Stop keeps the listener; under protection, the advertised URL keeps its applied credentials through capture and held Stop cleanup after a saved credential edit, then successor credentials work and stale ones are refused) |
 
 ## Cross-layer histories
 
@@ -42,11 +42,10 @@ The decision owner holds the history; related scenarios check their own boundary
 | Capture cleanup and its consequences | [CAP-09](scenarios/03-capture.md#mjpeg-cap-09), [CAP-10](scenarios/03-capture.md#mjpeg-cap-10) (attempt) | Module consequences: [CTL-05](scenarios/02-controller.md#mjpeg-ctl-05), [CTL-13](scenarios/02-controller.md#mjpeg-ctl-13) |
 | Consumer presence in manager reports | [CTL-04](scenarios/02-controller.md#mjpeg-ctl-04) | Presence itself: [OBS-01](scenarios/05-http-runtime.md#mjpeg-obs-01) |
 | Rates, frame rate and history | [CTL-15](scenarios/02-controller.md#mjpeg-ctl-15), [CTL-16](scenarios/02-controller.md#mjpeg-ctl-16) | HTTP sampling: [OBS-08](scenarios/05-http-runtime.md#mjpeg-obs-08) |
-| Credentials across Stop, edits and reopening | [ACC-03](scenarios/06-access.md#mjpeg-acc-03), [OBS-06](scenarios/05-http-runtime.md#mjpeg-obs-06) | On a device: [CFG-04](scenarios/09-integration.md#mjpeg-cfg-04) |
+| Credentials across Stop, edits and reopening | [ACC-03](scenarios/06-access.md#mjpeg-acc-03), [OBS-06](scenarios/05-http-runtime.md#mjpeg-obs-06) | Local credential histories; current device sources use open access |
 
 ## Outside this catalogue
 
 1. Viewer build, Node fixtures/owner tests and browser smoke: [web client tools](../../tools/web-client/README.md).
-2. Core manager/consent: [Core scenarios](../../../core/internal/testing/02-scenarios.md). Other Core and Capture Engine boundaries are listed in [Testing](01-testing.md#what-the-local-suite-covers).
-3. MJPEG analytics and Compose UI histories. The [local UI suite](01-testing.md#what-the-local-suite-covers) is outside this catalogue; SET-10 remains persistence-only.
-4. Device qualification records: keep them with the change or release that produced them.
+2. MJPEG analytics and Compose UI histories ([local UI suite](01-testing.md#what-the-local-suite-covers)); SET-10 remains persistence-only.
+3. Device qualification records: keep them with the change or release that produced them.

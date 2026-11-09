@@ -8,9 +8,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -23,6 +20,10 @@ import org.robolectric.shadows.ShadowSystemClock
 import java.time.Duration
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -74,7 +75,7 @@ internal class MjpegControllerNetworkTest {
     // Cases: MJPEG-LAN-03, MJPEG-CTL-08
     @Test
     @Config(manifest = Config.NONE, sdk = [37])
-    fun processedHeartbeatRechecksGrantAndRevocationAgainstRetainedSelection() = runBlocking {
+    fun processedHeartbeatRechecksGrantAndRevocationAgainstRetainedSelection(): Unit = runBlocking {
         val application: Application = RuntimeEnvironment.getApplication()
         shadowOf(application).denyPermissions(Manifest.permission.ACCESS_LOCAL_NETWORK)
         val settings = inputs.createSettingsWithBroadIpv4Filter()
@@ -96,7 +97,7 @@ internal class MjpegControllerNetworkTest {
             ShadowSystemClock.advanceBy(Duration.ofSeconds(2))
             host.monitor.state.value = observedAddressState(listOf(lan, vpnAddress))
             host.http.plan.awaitControllerValue { it?.addresses == listOf(vpnAddress) }
-            assertEquals(listOf(lan, vpnAddress), (host.monitor.state.value as NetworkAddressMonitor.State.Observed).inventory.select(filter))
+            assertEquals(listOf(lan, vpnAddress), assertIs<NetworkAddressMonitor.State.Observed>(host.monitor.state.value).inventory.select(filter))
         } finally {
             assertTrue(host.close())
         }
@@ -114,7 +115,6 @@ internal class MjpegControllerNetworkTest {
         try {
             host.controller.startModule()
             host.http.configuration.awaitControllerValue { it != null }
-            val filter = host.settings.data.first().network.filter
             val lan = inputs.address()
             val vpnAddress = inputs.address(id = 2, type = InterfaceType.Vpn)
             host.monitor.state.value = observedAddressState(listOf(lan, vpnAddress))
@@ -138,7 +138,7 @@ internal class MjpegControllerNetworkTest {
             inputs.applySettingsCheckpoint(settings, host, "Denied discovery outlasted loss interval")
             inputs.applySettingsCheckpoint(settings, host, "Denied discovery deadline turn completed")
             inputs.assertConsentPending(host, attempt)
-            host.controller.requestStreamStop(attempt, false)
+            host.controller.requestStreamStop(attempt, fromNotification = false)
             host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
             assertFalse(host.http.closed)
         } finally {
@@ -191,7 +191,6 @@ internal class MjpegControllerNetworkTest {
         try {
             host.controller.startModule()
             host.http.configuration.awaitControllerValue { it != null }
-            val filter = host.settings.data.first().network.filter
             val lan = inputs.address()
             val mobile = inputs.address(id = 2, type = InterfaceType.Mobile)
             val vpn = inputs.address(id = 3, type = InterfaceType.Vpn)

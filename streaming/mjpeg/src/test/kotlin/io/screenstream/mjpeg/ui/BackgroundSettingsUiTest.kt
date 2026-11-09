@@ -23,8 +23,6 @@ import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.ui.settings.webpage.BackgroundSearch
 import io.screenstream.mjpeg.ui.settings.webpage.WebPageSettingsGroup
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -32,6 +30,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "en")

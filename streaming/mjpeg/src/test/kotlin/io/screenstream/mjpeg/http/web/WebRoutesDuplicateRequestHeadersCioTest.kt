@@ -20,8 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -33,6 +31,8 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -75,7 +75,7 @@ internal class WebRoutesDuplicateRequestHeadersCioTest {
                         if (sendCookie) headers += "Cookie: screenstream_access=$cookie"
                         val response = request(port, "$path?header=$header$query", headers)
                         assertEquals(listOf(value, value), withTimeout(5.seconds) { observed.receive() })
-                        assertEquals("$path $header cookie=$sendCookie open=$open query=$query", if (open || allowed) 204 else 403, response.status)
+                        assertEquals(if (open || allowed) 204 else 403, response.status, "$path $header cookie=$sendCookie open=$open query=$query")
                         assertEquals("*", response.headers["access-control-allow-origin"])
                         assertNull(response.headers["access-control-allow-credentials"])
                     }

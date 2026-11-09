@@ -6,7 +6,10 @@ import androidx.datastore.preferences.core.PreferencesFileSerializer
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import kotlinx.serialization.json.Json
 import java.io.File
+
+internal val settingsJsonIgnoringUnknownKeys: Json = Json { ignoreUnknownKeys = true }
 
 /** One application files directory per store; a production store is never reopened at the same path. */
 internal class IsolatedSettingsContext(base: Context, private val directory: File) : ContextWrapper(base) {

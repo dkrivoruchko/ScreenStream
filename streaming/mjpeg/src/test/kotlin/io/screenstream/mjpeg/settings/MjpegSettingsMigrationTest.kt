@@ -28,10 +28,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -46,6 +42,12 @@ import java.io.IOException
 import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -104,7 +106,15 @@ internal class MjpegSettingsMigrationTest {
             assertFalse(actual.access.limitWrongPins)
             assertEquals("#123456", actual.web.background)
             assertEquals("Acme Tablet", actual.web.title)
-            assertEquals(StreamBehaviorSettings(true, true, 60, StreamBehaviorSettings.PostStopImage.LastAvailableFrame, false), actual.behavior)
+            assertEquals(
+                StreamBehaviorSettings(
+                    keepScreenAwake = true,
+                    stopOnScreenOff = true,
+                    stopAfterNetworkLossSeconds = 60,
+                    postStopImage = StreamBehaviorSettings.PostStopImage.LastAvailableFrame,
+                    notifySlowViewers = false,
+                ), actual.behavior
+            )
             val saved = Json.parseToJsonElement(readSavedSettingsJson(context)).jsonObject
             assertFalse(saved.getValue("web").jsonObject.containsKey("title"))
             assertFalse(saved.getValue("image").jsonObject.containsKey("scalePercent"))
@@ -399,13 +409,13 @@ internal class MjpegSettingsMigrationTest {
 
     // Cases: MJPEG-SET-12
     @Test
-    fun sourceReadAndDestinationWriteFailuresConsumeSourceAndCannotRetryImport() = runBlocking {
+    fun sourceReadAndDestinationWriteFailuresConsumeSourceAndCannotRetryImport(): Unit = runBlocking {
         withTimeout(10.seconds) {
             val unreadable = newSettingsContext()
             val source = unreadable.preferencesDataStoreFile("MJPEG_settings")
             check(source.mkdirs())
             val settings = MjpegSettings(unreadable)
-            assertThrows(IOException::class.java) { runBlocking { settings.updateData { this } } }
+            assertFailsWith<IOException> { settings.updateData { this } }
             assertFalse(unreadable.preferencesDataStoreFile("mjpeg").exists())
             assertLegacySourceConsumed(unreadable)
             assertEquals(defaults(), settings.data.first())
@@ -417,7 +427,7 @@ internal class MjpegSettingsMigrationTest {
             check(scratch.mkdir())
             val obstacle = File(scratch, "blocker").apply { writeText("Fixture storage fault") }
             val retrying = MjpegSettings(blocked)
-            assertThrows(IOException::class.java) { runBlocking { retrying.updateData { this } } }
+            assertFailsWith<IOException> { retrying.updateData { this } }
             assertFalse(destination.exists())
             assertLegacySourceConsumed(blocked)
             check(obstacle.delete())
@@ -435,14 +445,13 @@ internal class MjpegSettingsMigrationTest {
         check(source.mkdirs())
         val child = File(source, "must-not-delete-recursively").apply { writeText("Fixture storage fault") }
         val settings = MjpegSettings(context)
-        val failure = assertThrows(IOException::class.java) { runBlocking { settings.updateData { this } } }
+        val failure = assertFailsWith<IOException> { runBlocking { settings.updateData { this } } }
         assertTrue(child.isFile)
         // Coroutine stack-trace recovery can copy the exception and retain the original as its cause.
-        val primary = generateSequence<Throwable>(failure) { it.cause }.firstOrNull { cause ->
+        val primary = assertIs<IOException>(generateSequence<Throwable>(failure) { it.cause }.firstOrNull { cause ->
             cause.suppressed.any { it.message == "Failed to delete legacy MJPEG preferences" }
-        }
-        assertTrue("Cleanup failure must remain attached to the primary read failure", primary is IOException)
-        assertFalse(primary!!.message == "Failed to delete legacy MJPEG preferences")
+        }, "Cleanup failure must remain attached to the primary read failure")
+        assertNotEquals("Failed to delete legacy MJPEG preferences", primary.message)
         assertEquals("Failed to delete legacy MJPEG preferences", primary.suppressed.single().message)
         assertFalse(context.preferencesDataStoreFile("mjpeg").exists())
     }
@@ -457,7 +466,7 @@ internal class MjpegSettingsMigrationTest {
                 seedLegacyPreferences(context, preferencesOf(intPreferencesKey("INTERFACE_FILTER") to mask))
                 val expected =
                     if (mask == 0) InterfaceType.entries.toSet() else interfaceBits.filter { (bit, _) -> mask and bit != 0 }.map { it.second }.toSet()
-                assertEquals("Interface mask $mask", expected, MjpegSettings(context).data.first().network.filter.interfaceTypes)
+                assertEquals(expected, MjpegSettings(context).data.first().network.filter.interfaceTypes, "Interface mask $mask")
             }
             val categoryBits = listOf(1 to AddressCategory.Private, 2 to AddressCategory.Loopback, 4 to AddressCategory.NonPrivate)
             for (mask in 0..7) {
@@ -465,7 +474,7 @@ internal class MjpegSettingsMigrationTest {
                 seedLegacyPreferences(context, preferencesOf(intPreferencesKey("ADDRESS_FILTER") to mask))
                 val expected =
                     if (mask == 0) categoryBits.map { it.second }.toSet() else categoryBits.filter { (bit, _) -> mask and bit != 0 }.map { it.second }.toSet()
-                assertEquals("Address mask $mask", expected, MjpegSettings(context).data.first().network.filter.categories)
+                assertEquals(expected, MjpegSettings(context).data.first().network.filter.categories, "Address mask $mask")
             }
             for (invalid in listOf(
                 preferencesOf(intPreferencesKey("INTERFACE_FILTER") to -1),
@@ -568,7 +577,7 @@ internal class MjpegSettingsMigrationTest {
                 )
                 val filter = MjpegSettings(context).data.first().network.filter
                 assertEquals(setOf(InterfaceType.Wifi, InterfaceType.Ethernet), filter.interfaceTypes)
-                assertTrue("Mixed address mask $mask must not add Other interfaces", inventory.select(filter).isEmpty())
+                assertTrue(inventory.select(filter).isEmpty(), "Mixed address mask $mask must not add Other interfaces")
             }
         }
     }
@@ -637,7 +646,7 @@ internal class MjpegSettingsMigrationTest {
 
     // Cases: MJPEG-SET-12
     @Test
-    fun sourceDeletionFailureAfterSuccessfulConversionPropagatesAndPermitsAnotherAttempt() = runBlocking {
+    fun sourceDeletionFailureAfterSuccessfulConversionPropagatesAndPermitsAnotherAttempt(): Unit = runBlocking {
         val context = newSettingsContext()
         seedLegacyPreferences(context, preferencesOf(intPreferencesKey("SERVER_PORT") to 9000))
         val source = context.preferencesDataStoreFile("MJPEG_settings")
@@ -647,7 +656,7 @@ internal class MjpegSettingsMigrationTest {
         val migration = MjpegSettingsMigration(context)
         try {
             Files.setPosixFilePermissions(parent, readOnly)
-            val failure = assertThrows(IOException::class.java) { runBlocking { migration.migrate(emptyPreferences()) } }
+            val failure = assertFailsWith<IOException> { migration.migrate(emptyPreferences()) }
             assertEquals("Failed to delete legacy MJPEG preferences", failure.message)
             assertTrue(failure.suppressed.isEmpty())
             assertTrue(source.isFile)
@@ -681,7 +690,7 @@ internal class MjpegSettingsMigrationTest {
 
     private suspend fun assertLegacySourceConsumed(context: IsolatedSettingsContext) {
         assertFalse(context.preferencesDataStoreFile("MJPEG_settings").exists())
-        assertTrue("Migration adds no completion metadata", savedPreferences(context).asMap().keys.all { it.name == "DATA" })
+        assertTrue(savedPreferences(context).asMap().keys.all { it.name == "DATA" }, "Migration adds no completion metadata")
     }
 
     private fun copySavedPreferencesToNewContext(original: IsolatedSettingsContext): IsolatedSettingsContext {

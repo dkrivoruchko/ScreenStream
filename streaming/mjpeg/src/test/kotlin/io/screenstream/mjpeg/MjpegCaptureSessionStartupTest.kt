@@ -20,12 +20,6 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -39,6 +33,12 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -64,7 +64,7 @@ internal class MjpegCaptureSessionStartupTest {
         assertEquals("Engine.creation", failure.stage)
         assertEquals(MjpegCaptureSession.StopReason.Error, session.state.value.stopReason)
         assertEquals(1, projectionShadow.stopCalls.get())
-        assertEquals(listOf(grant), access.projectionGrants)
+        assertEquals(listOf<ScreenCaptureAccess.Grant>(grant), access.projectionGrants)
         assertEquals(listOf("enterForeground", "leaveForeground"), events)
         assertEquals(listOf(session.id), access.projectionCreationFinishes)
         assertTrue(access.savedConsents.isEmpty())
@@ -130,7 +130,7 @@ internal class MjpegCaptureSessionStartupTest {
         assertEquals(1, projectionShadow.stopCalls.get())
         assertEquals(listOf("enterForeground", "projection.stop", "leaveForeground"), events)
         assertEquals(listOf(session.id, session.id), access.projectionCreationFinishes)
-        assertEquals(listOf(grant), access.projectionGrants)
+        assertEquals(listOf<ScreenCaptureAccess.Grant>(grant), access.projectionGrants)
         assertTrue(access.savedConsents.isEmpty())
     }
 
@@ -214,7 +214,7 @@ internal class MjpegCaptureSessionStartupTest {
         assertNull(session.state.value.captureFailure)
         assertNull(session.state.value.cleanupFailure)
         assertTrue(access.savedConsents.isEmpty())
-        assertThrows(IllegalStateException::class.java) { session.start() }
+        assertFailsWith<IllegalStateException> { session.start() }
     }
 
     // Cases: MJPEG-CAP-02
@@ -346,7 +346,7 @@ internal class MjpegCaptureSessionStartupTest {
         assertTrue(session.awaitCleanup())
         assertFailure(session, "Startup.projection", cause)
         assertEquals(listOf("enterForeground", "createProjection", "leaveForeground"), events)
-        assertEquals(listOf(grant), access.projectionGrants)
+        assertEquals(listOf<ScreenCaptureAccess.Grant>(grant), access.projectionGrants)
         assertEquals(listOf(session.id), access.projectionCreationFinishes)
         assertTrue(access.savedConsents.isEmpty())
     }
@@ -451,7 +451,7 @@ internal class MjpegCaptureSessionStartupTest {
             } finally {
                 ownerJob.cancel()
                 dispatcher.close()
-                assertTrue("Capture adapter executor did not terminate", executor.awaitTermination(5, TimeUnit.SECONDS))
+                assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS), "Capture adapter executor did not terminate")
             }
         }
     }

@@ -14,7 +14,6 @@ import io.screenstream.core.module.StreamingModule
 import io.screenstream.mjpeg.IsolatedSettingsContext
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -22,6 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.test.assertEquals
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "en")
@@ -44,11 +44,11 @@ internal class MjpegContentTest {
         }
 
         compose.onNodeWithText(start).assertIsNotEnabled()
-        compose.runOnIdle { assertEquals(emptyList<UiController.Command>(), controller.commands) }
+        compose.runOnIdle { assertEquals(emptyList(), controller.commands) }
 
         compose.runOnIdle { controller.state.value = controller.state.value.copy(action = UiController.Action.Start(true)) }
         compose.onNodeWithText(start).assertIsEnabled().performClick()
-        compose.runOnIdle { assertEquals(listOf(UiController.Command.Start), controller.commands) }
+        compose.runOnIdle { assertEquals(listOf<UiController.Command>(UiController.Command.Start), controller.commands) }
 
         compose.runOnIdle { controller.state.value = controller.state.value.copy(action = UiController.Action.Busy) }
         val busyIndicator = SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo)
@@ -56,7 +56,7 @@ internal class MjpegContentTest {
         compose.onNode(hasClickAction() and (busyIndicator or hasAnyDescendant(busyIndicator))).assertIsNotEnabled()
         compose.onNodeWithText(start).assertDoesNotExist()
         compose.onNodeWithText(stop).assertDoesNotExist()
-        compose.runOnIdle { assertEquals(listOf(UiController.Command.Start), controller.commands) }
+        compose.runOnIdle { assertEquals(listOf<UiController.Command>(UiController.Command.Start), controller.commands) }
 
         val attempt = StreamingModule.CaptureAttemptId(controller.instanceId)
         compose.runOnIdle { controller.state.value = controller.state.value.copy(action = UiController.Action.Stop(attempt)) }

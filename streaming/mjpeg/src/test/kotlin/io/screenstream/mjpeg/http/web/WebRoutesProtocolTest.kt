@@ -45,17 +45,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.IOException
-import java.lang.management.ManagementFactory
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
@@ -93,9 +95,9 @@ internal class WebRoutesProtocolTest {
                     header("Forwarded", "host=127.0.0.1:8080")
                 }
                 assertEquals(
-                    host,
                     if (host.contains("@") || host.contains("/") || host.contains("?") || host.contains("#")) HttpStatusCode.BadRequest else HttpStatusCode.Forbidden,
-                    response.status
+                    response.status,
+                    host,
                 )
                 assertCommonHeaders(
                     response.headers[HttpHeaders.CacheControl],
@@ -163,7 +165,7 @@ internal class WebRoutesProtocolTest {
             assertTrue(checkNotNull(publicPage.headers[HttpHeaders.ContentType]).startsWith("text/html"))
             assertTrue(publicPage.bodyAsText().contains("<!doctype html>"))
             val packagedHtml = httpTestContext().assets.open("mjpeg/index.html").use { it.readBytes() }
-            assertArrayEquals(packagedHtml, publicPage.body<ByteArray>())
+            assertContentEquals(packagedHtml, publicPage.body<ByteArray>())
             assertNull(publicPage.headers[HttpHeaders.SetCookie])
             handler.webState.value = WebState(
                 credentialGeneration = 0L,
@@ -174,7 +176,7 @@ internal class WebRoutesProtocolTest {
             )
             val configuredPage = client.get("http://localhost/") { header(HttpHeaders.Host, "127.0.0.1:8080") }
             val configuredHtml = configuredPage.body<ByteArray>()
-            assertArrayEquals(packagedHtml, configuredHtml)
+            assertContentEquals(packagedHtml, configuredHtml)
             assertFalse(configuredHtml.decodeToString().contains("Confidential viewer title"))
             assertNull(configuredPage.headers[HttpHeaders.SetCookie])
             val token = checkNotNull(handler.access.token).value
@@ -318,7 +320,7 @@ internal class WebRoutesProtocolTest {
             // The channel remains open: receiving a response did not need EOF or the 258th byte.
             val unread = ByteArray(1)
             assertEquals(1, input.readAvailable(unread))
-            assertArrayEquals(byteArrayOf('z'.code.toByte()), unread)
+            assertContentEquals(byteArrayOf('z'.code.toByte()), unread)
         } finally {
             input.cancel(null)
             owner.close()
@@ -351,11 +353,11 @@ internal class WebRoutesProtocolTest {
         val requestDispatcher = StandardTestDispatcher(scheduler)
 
         fun runSchedulerUntil(condition: () -> Boolean) {
-            val deadline = ManagementFactory.getRuntimeMXBean().uptime + 5_000L
+            val deadline = TimeSource.Monotonic.markNow() + 5.seconds
             while (true) {
                 scheduler.runCurrent()
                 if (condition()) return
-                check(ManagementFactory.getRuntimeMXBean().uptime < deadline) { "PIN request did not reach its external checkpoint" }
+                check(deadline.hasNotPassedNow()) { "PIN request did not reach its external checkpoint" }
                 Thread.yield()
             }
         }
@@ -426,13 +428,13 @@ internal class WebRoutesProtocolTest {
                         runSchedulerUntil { readEntered.isCompleted }
                         val enteredAt = readEntered.await()
                         assertEquals(enteredAt, scheduler.currentTime)
-                        scheduler.advanceTimeBy(4_999)
+                        scheduler.advanceTimeBy(4_999.milliseconds)
                         scheduler.runCurrent()
                         assertEquals(enteredAt + 4_999, scheduler.currentTime)
                         assertFalse(response.isCompleted)
                         assertEquals(1, readFailures.size)
                         assertTrue(handler.verifiedPins.isEmpty())
-                        scheduler.advanceTimeBy(1)
+                        scheduler.advanceTimeBy(1.milliseconds)
                         scheduler.runCurrent()
                         assertEquals(enteredAt + 5_000, scheduler.currentTime)
                         assertEquals(2, readFailures.size)
@@ -480,7 +482,7 @@ internal class WebRoutesProtocolTest {
                         this.method = method
                         header(HttpHeaders.Host, "127.0.0.1:8080")
                     }
-                    assertEquals("$method $path", HttpStatusCode.MethodNotAllowed, response.status)
+                    assertEquals(HttpStatusCode.MethodNotAllowed, response.status, "$method $path")
                     assertEquals(allow, response.headers[HttpHeaders.Allow])
                 }
                 for (suffix in listOf("", "?token=", "?token=secret")) {
@@ -498,7 +500,7 @@ internal class WebRoutesProtocolTest {
                     }
                 }
             }
-            for (path in expected.keys + "/unknown") for (origin in listOf<String?>(null, "null", "https://foreign.example")) {
+            for (path in expected.keys + "/unknown") for (origin in listOf(null, "null", "https://foreign.example")) {
                 val response = client.request("http://localhost$path") {
                     method = HttpMethod.Options
                     header(HttpHeaders.Host, "127.0.0.1:8080")
@@ -543,17 +545,17 @@ internal class WebRoutesProtocolTest {
             assertEquals(HttpStatusCode.OK, html.status)
             assertEquals("gzip", html.headers[HttpHeaders.ContentEncoding])
             val inflated = java.util.zip.GZIPInputStream(html.body<ByteArray>().inputStream()).use { it.readBytes() }
-            assertArrayEquals(httpTestContext().assets.open("mjpeg/index.html").use { it.readBytes() }, inflated)
+            assertContentEquals(httpTestContext().assets.open("mjpeg/index.html").use { it.readBytes() }, inflated)
             for (path in listOf("/?token=", "/favicon.ico", "/jpeg", "/mjpeg", "/unknown")) {
                 val response = client.get("http://localhost$path") {
                     header(HttpHeaders.Host, "127.0.0.1:8080")
                     header(HttpHeaders.AcceptEncoding, "gzip")
                 }
-                assertNull(path, response.headers[HttpHeaders.ContentEncoding])
+                assertNull(response.headers[HttpHeaders.ContentEncoding], path)
                 if (path == "/favicon.ico") {
                     assertEquals(HttpStatusCode.OK, response.status)
                     assertTrue(checkNotNull(response.headers[HttpHeaders.ContentType]).startsWith("image/x-icon"))
-                    assertArrayEquals(httpTestContext().assets.open("mjpeg/favicon.ico").use { it.readBytes() }, response.body<ByteArray>())
+                    assertContentEquals(httpTestContext().assets.open("mjpeg/favicon.ico").use { it.readBytes() }, response.body<ByteArray>())
                     assertNull(response.headers[HttpHeaders.SetCookie])
                 }
             }
@@ -629,9 +631,9 @@ internal class WebRoutesProtocolTest {
                             if (sendCookie) header(HttpHeaders.Cookie, "screenstream_access=$cookie")
                         }
                         assertEquals(
-                            "$path $headers $query cookie=$sendCookie open=$open",
                             if (open || credentialValid) HttpStatusCode.NoContent else HttpStatusCode.Forbidden,
-                            response.status
+                            response.status,
+                            "$path $headers $query cookie=$sendCookie open=$open",
                         )
                         assertEquals("*", response.headers[HttpHeaders.AccessControlAllowOrigin])
                         assertEquals("Content-Length, Content-Range, Retry-After", response.headers[HttpHeaders.AccessControlExposeHeaders])
@@ -655,7 +657,7 @@ internal class WebRoutesProtocolTest {
                 assertEquals(HttpStatusCode.OK, client.get("http://localhost/") { header(HttpHeaders.Host, host) }.status)
             }
             for (host in listOf("[2001:db8::1]:word", "é:8080", "127.0.0.1:8080/path")) {
-                assertEquals(host, HttpStatusCode.BadRequest, client.get("http://localhost/") { header(HttpHeaders.Host, host) }.status)
+                assertEquals(HttpStatusCode.BadRequest, client.get("http://localhost/") { header(HttpHeaders.Host, host) }.status, host)
             }
             assertEquals(HttpStatusCode.Forbidden, client.get("http://localhost/") { header(HttpHeaders.Host, "[2001:db8::1%lo]:8080") }.status)
             val host = "[2001:db8::1]:8080"
@@ -675,7 +677,7 @@ internal class WebRoutesProtocolTest {
                 }
                 assertEquals(expected, response.status)
             }
-            assertEquals(listOf("123456", "123456"), handler.verifiedPins)
+            assertEquals(listOf<String?>("123456", "123456"), handler.verifiedPins)
         } finally {
             owner.close()
         }

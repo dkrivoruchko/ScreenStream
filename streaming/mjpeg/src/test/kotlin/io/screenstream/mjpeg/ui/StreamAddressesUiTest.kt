@@ -23,14 +23,14 @@ import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.ui.main.StreamAddressesContent
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 @RunWith(RobolectricTestRunner::class)
@@ -53,7 +53,15 @@ internal class StreamAddressesUiTest {
         compose.setContent {
             MjpegTestTheme {
                 CompositionLocalProvider(LocalClipboard provides clipboard, LocalContext provides context) {
-                    StreamAddressesContent(listOf(row.value), null, false, true, {}, {}, {})
+                    StreamAddressesContent(
+                        addressServers = listOf(row.value),
+                        appliedPin = null,
+                        hidePinOnCapture = false,
+                        expanded = true,
+                        onExpandedChange = {},
+                        onRetry = {},
+                        onShowMessage = {},
+                    )
                 }
             }
         }
@@ -80,7 +88,15 @@ internal class StreamAddressesUiTest {
         compose.setContent {
             MjpegTestTheme {
                 CompositionLocalProvider(LocalClipboard provides clipboard) {
-                    StreamAddressesContent(listOf(address()), null, false, true, {}, {}, messages::add)
+                    StreamAddressesContent(
+                        addressServers = listOf(address()),
+                        appliedPin = null,
+                        hidePinOnCapture = false,
+                        expanded = true,
+                        onExpandedChange = {},
+                        onRetry = {},
+                        onShowMessage = messages::add,
+                    )
                 }
             }
         }
@@ -88,12 +104,12 @@ internal class StreamAddressesUiTest {
         compose.onNodeWithContentDescription(text(R.string.mjpeg_address_copy_description, ENDPOINT_URL)).performClick()
         assertClipboard(clipboard, ENDPOINT_URL)
         compose.runOnIdle {
-            assertEquals(if (Build.VERSION.SDK_INT < 33) listOf(text(R.string.mjpeg_address_copied)) else emptyList<String>(), messages)
+            assertEquals(if (Build.VERSION.SDK_INT < 33) listOf(text(R.string.mjpeg_address_copied)) else emptyList(), messages)
         }
         copyMenuLink(R.string.mjpeg_address_copy_jpeg)
         assertClipboard(clipboard, "http://192.168.1.10:9000/jpeg")
         compose.runOnIdle {
-            assertEquals(if (Build.VERSION.SDK_INT < 33) List(2) { text(R.string.mjpeg_address_copied) } else emptyList<String>(), messages)
+            assertEquals(if (Build.VERSION.SDK_INT < 33) List(2) { text(R.string.mjpeg_address_copied) } else emptyList(), messages)
         }
     }
 
@@ -108,7 +124,15 @@ internal class StreamAddressesUiTest {
         compose.setContent {
             MjpegTestTheme {
                 CompositionLocalProvider(LocalRuntimePermissions provides permissions) {
-                    StreamAddressesContent(listOf(row.value), null, false, true, {}, retries::add, {})
+                    StreamAddressesContent(
+                        addressServers = listOf(row.value),
+                        appliedPin = null,
+                        hidePinOnCapture = false,
+                        expanded = true,
+                        onExpandedChange = {},
+                        onRetry = retries::add,
+                        onShowMessage = {},
+                    )
                 }
             }
         }

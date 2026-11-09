@@ -14,11 +14,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.rules.TemporaryFolder
 import org.robolectric.RuntimeEnvironment
 import java.net.InetAddress
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
@@ -47,12 +47,22 @@ internal class MjpegControllerTestInputs(private val temporaryFolder: TemporaryF
 
     suspend fun startModuleWithReadyListener(host: MjpegServiceTestHost) {
         host.controller.startModule()
+        awaitReadyListener(host, address())
+    }
+
+    suspend fun awaitReadyListener(host: MjpegServiceTestHost, address: NetworkAddress, port: Int = 8080) {
         host.http.configuration.awaitControllerValue { it != null }
-        val filter = host.settings.data.first().network.filter
-        val address = address()
         host.monitor.state.value = observedAddressState(listOf(address))
         host.http.planApplications.awaitControllerValue { it.lastOrNull()?.addresses == listOf(address) }
-        publishServerState(host, address)
+        publishDeliveryCheckpoint(host, address, port)
+    }
+
+    suspend fun publishDeliveryCheckpoint(host: MjpegServiceTestHost, address: NetworkAddress, port: Int = 8080) {
+        val serverId = Uuid.random()
+        host.http.info.value = host.http.info.value.copy(
+            servers = listOf(HttpDelivery.ServerInfo(serverId, address, port, HttpDelivery.ServerState.Listening)),
+        )
+        host.controller.state.awaitControllerValue { it.addressServers.singleOrNull()?.serverId == serverId }
     }
 
     suspend fun publishDiscovery(host: MjpegServiceTestHost, state: NetworkAddressMonitor.State) {
@@ -60,7 +70,7 @@ internal class MjpegControllerTestInputs(private val temporaryFolder: TemporaryF
         val applicationsBefore = host.http.planApplications.value.size
         host.monitor.state.value = state
         // Every distinct discovery state applies a plan: Loading keeps the last selection, and Observed is reselected with the current filter.
-        // startModuleWithListeningServer() already observed the distinct ready plan; no earlier discovery can trail it.
+        // Ready-listener setup already observed the distinct plan; no earlier discovery can trail it.
         host.http.planApplications.awaitControllerValue { it.size > applicationsBefore }
     }
 

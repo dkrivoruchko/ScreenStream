@@ -6,29 +6,30 @@ import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.StreamBehaviorSettings.PostStopImage
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.net.Inet6Address
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [37])
 internal class HttpDeliveryLifecycleTest {
     // Cases: MJPEG-SRV-01, MJPEG-OBS-06
     @Test
-    fun emptyPlanActivationOpensOneLifetimeAndTerminalStopCannotReopenIt() = runBlocking {
+    fun emptyPlanActivationOpensOneLifetimeAndTerminalStopCannotReopenIt(): Unit = runBlocking {
         val delivery = KtorHttpDelivery(httpTestContext())
         try {
             assertTrue(delivery.start(httpTestProtectedAccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(1, 2, 3)))
             val token = checkNotNull(delivery.appliedToken)
             assertFalse(delivery.start(AccessSettings(), PostStopImage.Placeholder, httpTestPageSettings(), byteArrayOf(4)))
             assertEquals(token, delivery.appliedToken)
-            assertTrue((checkNotNull(delivery.webState.value).imageKind != io.screenstream.mjpeg.http.media.JpegStore.ImageKind.None))
+            assertEquals(io.screenstream.mjpeg.http.media.JpegStore.ImageKind.Logo, assertNotNull(delivery.webState.value).imageKind)
             assertTrue(delivery.info.value.servers.isEmpty())
             delivery.requestStop()
             delivery.requestStop()

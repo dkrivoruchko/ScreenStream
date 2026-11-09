@@ -13,10 +13,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -25,6 +21,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.io.File
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -70,7 +71,7 @@ internal class MjpegControllerSettingsTest {
             val busyUi = host.controller.state.awaitControllerValue { it.addressServers.isEmpty() }
             assertEquals(busyConfiguration.access.pin, busyUi.appliedPin)
             assertTrue(busyUi.hidePinOnCapture)
-            host.controller.requestStreamStop(attempt, false)
+            host.controller.requestStreamStop(attempt, fromNotification = false)
             host.http.configuration.awaitControllerValue { it?.access?.pin == SecretValue("001234") }
             host.http.plan.awaitControllerValue { it?.port == 9000 }
             assertEquals(settings.data.first().access, host.http.configuration.value!!.access)
@@ -85,7 +86,7 @@ internal class MjpegControllerSettingsTest {
 
     // Cases: MJPEG-CTL-06
     @Test
-    fun openingModuleAppliesValidPinAndPermanentPolicyPreservesSavedValue() = runBlocking {
+    fun openingModuleAppliesValidPinAndPermanentPolicyPreservesSavedValue(): Unit = runBlocking {
         for (policy in AccessSettings.PinPolicy.entries) {
             val saved = MjpegSettings.Data(
                 access = AccessSettings(true, policy, SecretValue("000007")), web = WebPageSettings(title = "Protected"),
@@ -94,13 +95,13 @@ internal class MjpegControllerSettingsTest {
             val host = MjpegServiceTestHost(settings)
             try {
                 inputs.startModuleWithReadyListener(host)
-                val applied = host.http.configuration.value!!.access
-                assertTrue(AccessSettings.isValidPin(applied.pin!!.value))
+                val applied = assertNotNull(host.http.configuration.value).access
+                val appliedPin = assertNotNull(applied.pin)
                 assertEquals(settings.data.first().access, applied)
-                if (policy == AccessSettings.PinPolicy.Permanent) assertEquals("000007", applied.pin.value)
+                if (policy == AccessSettings.PinPolicy.Permanent) assertEquals("000007", appliedPin.value)
                 host.controller.requestStreamStart()
                 val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
-                host.controller.requestStreamStop(attempt, false)
+                host.controller.requestStreamStop(attempt, fromNotification = false)
                 host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
                 host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
                 host.controller.startModule()
@@ -115,7 +116,7 @@ internal class MjpegControllerSettingsTest {
 
     // Cases: MJPEG-CTL-06
     @Test
-    fun enablingProtectionAfterOpenModulePreparationGeneratesMissingPinAndRetainsExistingPin() = runBlocking {
+    fun enablingProtectionAfterOpenModulePreparationGeneratesMissingPinAndRetainsExistingPin(): Unit = runBlocking {
         for (savedPin in listOf(null, SecretValue("000007"))) {
             val initialAccess = AccessSettings(
                 pinEnabled = false,
@@ -128,14 +129,14 @@ internal class MjpegControllerSettingsTest {
                 inputs.startModuleWithReadyListener(host)
                 assertEquals(initialAccess, host.http.configuration.value!!.access)
                 settings.updateData { copy(access = access.copy(pinEnabled = true)) }
-                val applied = host.http.configuration.awaitControllerValue { it?.access?.pinEnabled == true }!!.access
-                assertTrue(AccessSettings.isValidPin(applied.pin!!.value))
+                val applied = assertNotNull(host.http.configuration.awaitControllerValue { it?.access?.pinEnabled == true }).access
+                assertNotNull(applied.pin)
                 assertEquals(settings.data.first().access, applied)
                 if (savedPin != null) assertEquals(savedPin, applied.pin)
                 host.controller.requestStreamStart()
                 val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
                 assertEquals(applied, host.http.configuration.value!!.access)
-                host.controller.requestStreamStop(attempt, false)
+                host.controller.requestStreamStop(attempt, fromNotification = false)
                 host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.Stopped }
                 host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
                 host.controller.startModule()

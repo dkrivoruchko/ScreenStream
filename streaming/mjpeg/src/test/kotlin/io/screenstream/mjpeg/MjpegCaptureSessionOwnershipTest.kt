@@ -23,11 +23,6 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -35,6 +30,12 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 import org.robolectric.shadow.api.Shadow
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -332,13 +333,13 @@ internal class MjpegCaptureSessionOwnershipTest {
                 session.requestStop(later)
                 runCurrent()
 
-                assertTrue("First Stop: $first", awaitCleanup(session))
+                assertTrue(awaitCleanup(session), "First Stop: $first")
                 assertCleanlyStopped(session)
                 assertTrue(engine.registrationRetired.isCompleted)
                 if (offersConsent) {
                     assertSame(inputs.grant, inputs.savedConsents.single())
                 } else {
-                    assertTrue("First Stop: $first", inputs.savedConsents.isEmpty())
+                    assertTrue(inputs.savedConsents.isEmpty(), "First Stop: $first")
                 }
             } finally {
                 releaseGatesAndAwaitCleanup(session, engine)
@@ -405,7 +406,7 @@ internal class MjpegCaptureSessionOwnershipTest {
 
     private fun assertStreaming(session: MjpegCaptureSession) {
         val state = session.state.value
-        assertEquals("captureFailure=${state.captureFailure}", MjpegCaptureSession.State.Status.Active, state.status)
+        assertEquals(MjpegCaptureSession.State.Status.Active, state.status, "captureFailure=${state.captureFailure}")
         assertTrue(state.isStreaming)
         assertNull(state.captureFailure)
         assertNull(state.cleanupFailure)
@@ -443,8 +444,7 @@ internal class MjpegCaptureSessionOwnershipTest {
         val failure = withContext(Dispatchers.Default) {
             runCatching { withTimeout(5.seconds) { engine.stop() } }.exceptionOrNull()
         }
-        assertTrue("Expected the public projection-stop failure, got $failure", failure is ScreenCaptureException)
-        val captureException = failure as ScreenCaptureException
+        val captureException = assertIs<ScreenCaptureException>(failure, "Expected the public projection-stop failure, got $failure")
         assertEquals(ScreenCaptureProblem.InternalFailure, captureException.problem)
         return captureException
     }

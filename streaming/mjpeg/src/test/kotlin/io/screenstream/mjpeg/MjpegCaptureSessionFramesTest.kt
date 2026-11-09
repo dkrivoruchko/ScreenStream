@@ -16,16 +16,17 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -59,8 +60,8 @@ internal class MjpegCaptureSessionFramesTest {
             source.fill(0)
 
             assertEquals(listOf(6, 6), offeredByteCounts)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedFrames[0])
-            assertArrayEquals(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39, 0x55, 0x55), copiedFrames[1])
+            assertContentEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedFrames[0])
+            assertContentEquals(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39, 0x55, 0x55), copiedFrames[1])
             assertStreaming(session)
         } finally {
             stopAndAwaitCleanup(session)
@@ -97,7 +98,7 @@ internal class MjpegCaptureSessionFramesTest {
             acceptOffer = true
             engine.deliver(BorrowedJpegInput(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39)))
             assertEquals(6, copiedCount)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39, 0x55, 0x55), copiedJpeg)
+            assertContentEquals(byteArrayOf(-1, -40, 0x33, 0x44, -1, -39, 0x55, 0x55), copiedJpeg)
             assertStreaming(session)
         } finally {
             stopAndAwaitCleanup(session)
@@ -155,7 +156,7 @@ internal class MjpegCaptureSessionFramesTest {
             source.fill(0)
             runCurrent()
 
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
+            assertContentEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
             assertFrameFailure(session, cause)
             assertTrue(engine.mediaStopped.isCompleted)
             assertTrue(unregisterEntered.isCompleted)
@@ -169,7 +170,7 @@ internal class MjpegCaptureSessionFramesTest {
             assertFrameFailure(session, cause)
             assertNull(session.state.value.cleanupFailure)
             assertEquals(true, session.state.value.cleanupSucceeded)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
+            assertContentEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
         } finally {
             allowUnregisterToReturn.complete(Unit)
             stopAndAwaitCleanup(session)
@@ -265,7 +266,7 @@ internal class MjpegCaptureSessionFramesTest {
                 assertNull(copiedJpeg)
                 val failure = checkNotNull(session.state.value.captureFailure)
                 assertEquals("Output.frame", failure.stage)
-                assertTrue(failure.cause is IllegalStateException)
+                assertIs<IllegalStateException>(failure.cause)
                 assertEquals("Incomplete JPEG copy", failure.cause.message)
                 assertFrameFailure(session, failure.cause)
                 runCurrent()
@@ -305,7 +306,7 @@ internal class MjpegCaptureSessionFramesTest {
 
             engine.deliver(BorrowedJpegInput(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39)))
             assertEquals(6, count)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
+            assertContentEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
             assertFalse(session.state.value.isStreaming)
             assertNull(session.state.value.captureFailure)
             assertNull(session.state.value.cleanupSucceeded)
@@ -313,7 +314,7 @@ internal class MjpegCaptureSessionFramesTest {
             allowStartToReturn.complete(Unit)
             runCurrent()
             assertStreaming(session)
-            assertArrayEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
+            assertContentEquals(byteArrayOf(-1, -40, 0x11, 0x22, -1, -39, 0x55, 0x55), copiedJpeg)
         } finally {
             allowStartToReturn.complete(Unit)
             stopAndAwaitCleanup(session)
@@ -347,9 +348,9 @@ internal class MjpegCaptureSessionFramesTest {
     private fun assertActive(session: MjpegCaptureSession) {
         val state = session.state.value
         assertEquals(
-            "captureFailure=${state.captureFailure}; cleanupFailure=${state.cleanupFailure}",
             MjpegCaptureSession.State.Status.Active,
             state.status,
+            "captureFailure=${state.captureFailure}; cleanupFailure=${state.cleanupFailure}",
         )
     }
 

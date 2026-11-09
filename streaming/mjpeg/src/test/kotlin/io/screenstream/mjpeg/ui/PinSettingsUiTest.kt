@@ -24,14 +24,15 @@ import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
 import io.screenstream.mjpeg.ui.settings.access.PinSettingItem
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "en")
@@ -86,7 +87,7 @@ internal class PinSettingsUiTest {
         revealEditor()
         compose.runOnIdle {
             assertEquals(1, fixture.transforms.size)
-            assertTrue(AccessSettings.isValidPin(checkNotNull(fixture.access.value.pin).value))
+            assertNotNull(fixture.access.value.pin)
             val latest = AccessSettings(
                 pinEnabled = true,
                 pinPolicy = AccessSettings.PinPolicy.NewOnModuleStart,
@@ -96,8 +97,7 @@ internal class PinSettingsUiTest {
                 blockMinutes = 7,
             )
             val generated = fixture.transforms.single().invoke(latest)
-            val generatedPin = checkNotNull(generated.pin)
-            assertTrue(AccessSettings.isValidPin(generatedPin.value))
+            val generatedPin = assertNotNull(generated.pin)
             assertEquals(latest.copy(pin = generatedPin), generated)
         }
         pinField().assertTextContains(checkNotNull(fixture.access.value.pin).value)

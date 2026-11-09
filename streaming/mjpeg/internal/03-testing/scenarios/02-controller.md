@@ -2,7 +2,7 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing](../01-testing.md)
 
-These scenarios exercise `MjpegStreamingModuleController`, the single coordinator of one MJPEG module instance: Start and Stop, settings, listener plans, automation and manager reports. [Coordination](../../01-module/03-coordination.md) owns these rules, and [Capture lifecycle](../../01-module/02-module-lifecycle.md) owns module shutdown and cleanup. Core's [module contract](../../../../core/docs/module-contract-and-manager.md) defines the manager side.
+These scenarios exercise `MjpegStreamingModuleController`, the single coordinator of one MJPEG module instance: Start and Stop, settings, listener plans, automation and manager reports. [Coordination](../../01-module/03-coordination.md) owns these rules, and [Capture lifecycle](../../01-module/02-module-lifecycle.md) owns module shutdown and cleanup.
 
 Two facts about the controller shape most of these histories:
 
@@ -111,7 +111,7 @@ Also cancel one `awaitCleanup()` waiter, and hold a piece of controller work.
 - **One result for all.** The receipt is true only if every obligation succeeded. Screen-off cleanup counts as failed if any receiver removal failed earlier in the lifetime.
 - **Waiters don't own cleanup.** Cancelling one waiter neither cancels cleanup nor changes its result.
 - **No replacement work.** A failed obligation gives an unsuccessful receipt. No new work is admitted in that lifetime, because admission is already closed.
-- **No deadline.** Core's manager waits only for a bounded time ([Closing a module instance](../../../../core/docs/module-contract-and-manager.md#closing-a-module-instance)). MJPEG's receipt can stay pending after that wait ends.
+- **No deadline.** MJPEG's cleanup receipt stays pending while its own cleanup owners are held; a separate manager wait does not settle it.
 
 ## Start, Stop and reports
 
@@ -173,7 +173,7 @@ Change one address's fresh interface type from Mobile or VPN to Wi-Fi while the 
 - **`hasConsumer`** follows HTTP's sampled media rows, independently of capture.
 - **`captureAttempt`** names the attempt from admission until its cleanup succeeds.
 - **Heartbeat.** While the loop's turns progress, it reports on a roughly one-second heartbeat, whether or not capture is active. A blocked or delayed turn delays the heartbeat. A status change is reported in the same turn.
-- **Separate facts.** Consumer presence, attempt cleanup and control progress are separate facts. Core's [health model](../../../../core/docs/module-contract-and-manager.md#observable-process-and-instance-health) defines how the manager uses them.
+- **Separate facts.** Consumer presence, attempt cleanup and control progress are separate facts.
 
 ## Settings and access
 

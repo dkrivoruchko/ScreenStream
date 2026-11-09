@@ -22,11 +22,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.io.readByteArray
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -37,6 +32,12 @@ import java.io.IOException
 import java.net.BindException
 import java.net.SocketException
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
@@ -48,7 +49,7 @@ internal class HttpDeliverySocketOwnerTest {
     // Cases: MJPEG-SRV-01, MJPEG-SRV-04
     @Test(timeout = 30_000)
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun directListenerExceptionsMapIndependentlyWhileAnotherAddressKeepsListening() = runBlocking {
+    fun directListenerExceptionsMapIndependentlyWhileAnotherAddressKeepsListening(): Unit = runBlocking {
         val failures = listOf(
             BindException("occupied") to ServerFailure.AddressUnavailable,
             BindException("address not available") to ServerFailure.AddressUnavailable,
@@ -67,7 +68,7 @@ internal class HttpDeliverySocketOwnerTest {
                 val failed = fixture.delivery.awaitHttpInfo {
                     it.servers.first().state is ServerState.Failed && it.servers.last().state == ServerState.Listening
                 }
-                assertEquals(expected, (failed.servers.first().state as ServerState.Failed).reason)
+                assertEquals(expected, assertIs<ServerState.Failed>(failed.servers.first().state).reason)
                 assertNull(failed.fatalCause)
             } finally {
                 fixture.close()
@@ -361,7 +362,7 @@ internal class HttpDeliverySocketOwnerTest {
 
     // Cases: MJPEG-SRV-02, MJPEG-SRV-03
     @Test(timeout = 30_000)
-    fun activePlansValidateWithoutReplacingMembershipAndTerminalPlansAreIgnored() = runBlocking {
+    fun activePlansValidateWithoutReplacingMembershipAndTerminalPlansAreIgnored(): Unit = runBlocking {
         val fixture = Fixture()
         try {
             fixture.start()
@@ -370,7 +371,7 @@ internal class HttpDeliverySocketOwnerTest {
                 val before = fixture.delivery.awaitHttpInfo { it.servers.all { server -> server.state == ServerState.Listening } }.servers
                 for (invalidPort in listOf(0, 65_536)) {
                     val failure = runCatching { fixture.delivery.configureServers(listOf(httpTestAddress()), invalidPort) }.exceptionOrNull()
-                    assertTrue(failure is IllegalArgumentException)
+                    assertIs<IllegalArgumentException>(failure)
                     assertEquals(before.map { it.id }, fixture.delivery.info.value.servers.map { it.id })
                 }
                 for (bad in listOf(
@@ -383,7 +384,7 @@ internal class HttpDeliverySocketOwnerTest {
                 val failure = runCatching {
                     fixture.delivery.configureServers(listOf(httpTestAddress(interfaceName = "earlier metadata"), httpTestAddress(2, "127.0.0.3")), port)
                 }.exceptionOrNull()
-                assertTrue(failure is IllegalStateException)
+                assertIs<IllegalStateException>(failure)
                 assertEquals(before.map { it.id }, fixture.delivery.info.value.servers.map { it.id })
                 assertEquals(before.map { it.address.ip }, fixture.delivery.info.value.servers.map { it.address.ip })
                 fixture.delivery.awaitHttpInfo { it.servers.first().address.interfaceName == "earlier metadata" }
@@ -431,7 +432,7 @@ internal class HttpDeliverySocketOwnerTest {
                         }
                     }
                 }
-                org.junit.Assert.assertArrayEquals(byteArrayOf(1), client.get("/").body<ByteArray>())
+                kotlin.test.assertContentEquals(byteArrayOf(1), client.get("/").body<ByteArray>())
                 withTimeout(5.seconds) { routingCompleted.await() }
             }
             val sample = fixture.delivery.awaitHttpInfo { it.completedJpegs == 1L && it.clients.isNotEmpty() }

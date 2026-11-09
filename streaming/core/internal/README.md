@@ -29,9 +29,9 @@ The manager implementation, the settings store and the error-notification coordi
 ## Verification
 
 - [Testing](testing/01-testing.md) explains the verification scope, how to run Core's local tests, how to control Android clocks and coroutine scheduling, and what counts as evidence.
-- [Verification scenarios](testing/02-scenarios.md) lists the required manager and consent histories with stable `CORE-MGR` and `CORE-CAP` IDs.
+- [Verification scenarios](testing/02-scenarios.md) maps manager, consent, Service, actions, permissions, settings and Compose histories to permanent IDs.
 
-Streaming modules verify their own use of Core. For example, MJPEG's [testing guide](../../mjpeg/internal/03-testing/01-testing.md) treats Core as a neighbor and links back here.
+Streaming modules verify their own use of Core.
 
 ## Keep a change reviewable
 

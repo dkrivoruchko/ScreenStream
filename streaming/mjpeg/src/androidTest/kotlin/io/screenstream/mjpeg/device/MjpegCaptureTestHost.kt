@@ -93,8 +93,9 @@ class MjpegCaptureTestActivity : ComponentActivity() {
     @Deprecated("Test-only receipt preserves the production ActivityResultRegistry dispatch")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        val launch = fixture.consentLaunchReceipts.lastOrNull { it.requestCode == requestCode }
-        checkNotNull(launch) { "Unrecognized Activity result in isolated consent fixture" }
+        val launch = checkNotNull(fixture.consentLaunchReceipts.lastOrNull { it.requestCode == requestCode }) {
+            "Unrecognized Activity result in isolated consent fixture"
+        }
         fixture.consentResultReceipts += MjpegCaptureTestHost.ConsentResultReceipt(
             launch.attempt, requestCode, resultCode, SystemClock.elapsedRealtime(),
         )

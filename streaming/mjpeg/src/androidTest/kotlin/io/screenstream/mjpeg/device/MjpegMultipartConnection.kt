@@ -40,8 +40,10 @@ internal class MjpegMultipartConnection(port: Int, private val socket: Socket = 
             // Guard every socket read, including repeated reads inside BufferedInputStream.read.
             val boundedInput = boundedSocketInput.buffered()
             socket.getOutputStream().apply {
-                write(("GET /mjpeg HTTP/1.1\r\nHost: 127.0.0.1:$port\r\n" +
-                        "Accept-Encoding: identity\r\nConnection: close\r\n\r\n").toByteArray(Charsets.US_ASCII))
+                write(
+                    ("GET /mjpeg HTTP/1.1\r\nHost: 127.0.0.1:$port\r\n" +
+                            "Accept-Encoding: identity\r\nConnection: close\r\n\r\n").toByteArray(Charsets.US_ASCII)
+                )
                 flush()
             }
             val headers = withinReadBudget(15_000) {
@@ -59,6 +61,7 @@ internal class MjpegMultipartConnection(port: Int, private val socket: Socket = 
                     check(transfer.equals("chunked", ignoreCase = true) && "content-length" !in headers) { "Unsupported transfer framing" }
                     ChunkedInput(boundedInput)
                 }
+
                 "content-length" in headers -> FixedLengthInput(boundedInput, checkNotNull(headers["content-length"]?.toLongOrNull()).also { require(it >= 0) })
                 else -> boundedInput
             }

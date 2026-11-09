@@ -27,15 +27,16 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -473,7 +474,7 @@ internal class MjpegCaptureSessionStatesTest {
             assertTrue(withTimeout(5.seconds) { session.awaitCleanup() })
             assertCaptureState(session, Status.Failed, streaming = false)
             assertEquals("Engine.registration", session.state.value.captureFailure?.stage)
-            assertTrue(session.state.value.captureFailure?.cause is IllegalStateException)
+            assertIs<IllegalStateException>(session.state.value.captureFailure?.cause)
             assertFalse(engine.startEntered.isCompleted)
             assertNull(engine.initialParameters)
             assertTrue(engine.stopEntered.isCompleted)
@@ -505,8 +506,8 @@ internal class MjpegCaptureSessionStatesTest {
             assertEquals("Engine.start", retainedFailure.stage)
             // Coroutine stack recovery may copy the throwable while preserving its original cause.
             assertTrue(
-                "Original startup failure must remain in the cause chain",
                 generateSequence(retainedFailure.cause) { it.cause }.any { it === startFailure },
+                "Original startup failure must remain in the cause chain",
             )
             assertNull(session.state.value.cleanupSucceeded)
 
@@ -577,7 +578,7 @@ internal class MjpegCaptureSessionStatesTest {
                 assertCaptureState(session, Status.Failed, streaming = false)
                 val retainedFailure = checkNotNull(session.state.value.captureFailure)
                 assertEquals("Engine.state", retainedFailure.stage)
-                assertTrue(retainedFailure.cause is IllegalStateException)
+                assertIs<IllegalStateException>(retainedFailure.cause)
                 assertNull(session.state.value.cleanupSucceeded)
 
                 engine.releaseStop()
@@ -600,8 +601,8 @@ internal class MjpegCaptureSessionStatesTest {
     ) {
         val snapshot = session.state.value
         if (status != Status.Failed) {
-            assertNull("Capture failed while expecting $status: ${snapshot.captureFailure}", snapshot.captureFailure)
-            assertNull("Cleanup failed while expecting $status: ${snapshot.cleanupFailure}", snapshot.cleanupFailure)
+            assertNull(snapshot.captureFailure, "Capture failed while expecting $status: ${snapshot.captureFailure}")
+            assertNull(snapshot.cleanupFailure, "Cleanup failed while expecting $status: ${snapshot.cleanupFailure}")
         }
         assertEquals(status, snapshot.status)
         assertEquals(streaming, snapshot.isStreaming)

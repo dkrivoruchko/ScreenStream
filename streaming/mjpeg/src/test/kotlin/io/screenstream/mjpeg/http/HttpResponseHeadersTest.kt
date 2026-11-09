@@ -1,13 +1,13 @@
 package io.screenstream.mjpeg.http
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 internal class HttpResponseHeadersTest {
     @Test
     fun rejectsConflictingLiteralLengthsIgnoringHeaderCase() {
-        assertThrows(IllegalStateException::class.java) {
+        assertFailsWith<IllegalStateException> {
             headers("Content-Length: 999", "content-length: 3")
         }
     }
@@ -18,14 +18,14 @@ internal class HttpResponseHeadersTest {
             listOf("Content-Length: 3", "transfer-encoding: chunked"),
             listOf("Transfer-Encoding: chunked", "content-length: 3"),
         )) {
-            assertThrows(IllegalStateException::class.java) { headers(*lines.toTypedArray()) }
+            assertFailsWith<IllegalStateException> { headers(*lines.toTypedArray()) }
         }
     }
 
     @Test
     fun rejectsRepeatedCorsOriginEvenWhenIdentical() {
         for (origin in listOf("*", "https://viewer.example")) {
-            assertThrows(IllegalStateException::class.java) {
+            assertFailsWith<IllegalStateException> {
                 headers("Access-Control-Allow-Origin: $origin", "access-control-allow-origin: $origin")
             }
         }
@@ -47,7 +47,7 @@ internal class HttpResponseHeadersTest {
             Triple("Content-Type", "image/jpeg", "text/plain"),
             Triple("Access-Control-Allow-Origin", "https://foreign.example", "*"),
         )) {
-            assertThrows(IllegalStateException::class.java) { headers("$name: $first", "$name: $second") }
+            assertFailsWith<IllegalStateException> { headers("$name: $first", "$name: $second") }
         }
     }
 

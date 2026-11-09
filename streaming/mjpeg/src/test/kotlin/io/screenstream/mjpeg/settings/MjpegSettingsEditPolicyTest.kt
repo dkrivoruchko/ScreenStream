@@ -12,10 +12,10 @@ import io.screenstream.mjpeg.networkaddress.AddressCategory
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 internal class MjpegSettingsEditPolicyTest {
     // Cases: MJPEG-SET-09

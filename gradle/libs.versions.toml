@@ -99,6 +99,7 @@ ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.re
 
 #Tests
 junit = { module = "junit:junit", version.ref = "junit" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }

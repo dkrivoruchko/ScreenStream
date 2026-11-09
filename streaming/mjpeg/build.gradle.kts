@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.ktor.server.websockets)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.ktor.server.test.host)
@@ -62,6 +63,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.kotlin.test.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.runner)

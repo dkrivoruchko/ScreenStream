@@ -13,9 +13,6 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -26,7 +23,6 @@ import org.robolectric.annotation.LooperMode
 import org.robolectric.shadow.api.Shadow
 import org.robolectric.shadows.ShadowNetwork
 import org.robolectric.shadows.ShadowSystemClock
-import java.lang.management.ManagementFactory
 import java.net.InetAddress
 import java.net.SocketException
 import java.time.Duration
@@ -35,7 +31,11 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -90,7 +90,7 @@ internal class AndroidNetworkAddressCadenceTest {
             val current = fixture.enqueue(enumerationComplete = false)
             fixture.callback.onAvailable(ShadowNetwork.newInstance(902))
             testScheduler.runCurrent()
-            assertFalse("A platform change cannot start another native read while one is held", current.entered.await(100, TimeUnit.MILLISECONDS))
+            assertFalse(current.entered.await(100, TimeUnit.MILLISECONDS), "A platform change cannot start another native read while one is held")
             fixture.releaseAndAwaitObservation(stale)
             fixture.awaitScanEntry(current)
             val staleSelection = fixture.selectedAddresses()
@@ -164,7 +164,7 @@ internal class AndroidNetworkAddressCadenceTest {
 
         fun awaitEntryAfter(delayMillis: Long, step: ScanStep) {
             advanceClocksBy(delayMillis - 1)
-            assertFalse("A native scan entered before its monotonic deadline", step.entered.await(100, TimeUnit.MILLISECONDS))
+            assertFalse(step.entered.await(100, TimeUnit.MILLISECONDS), "A native scan entered before its monotonic deadline")
             assertEquals(1L, step.release.count)
             advanceClocksBy(1)
             awaitScanEntry(step)
@@ -176,15 +176,15 @@ internal class AndroidNetworkAddressCadenceTest {
         }
 
         fun awaitScanEntry(step: ScanStep) {
-            assertTrue("Expected native scan did not enter", step.entered.await(5, TimeUnit.SECONDS))
+            assertTrue(step.entered.await(5, TimeUnit.SECONDS), "Expected native scan did not enter")
             assertEquals(initialUptimeMillis + scheduler.currentTime, step.enteredAtUptimeMillis)
         }
 
         fun releaseAndAwaitObservation(step: ScanStep) {
             step.release.countDown()
-            assertTrue("Supplied native read did not complete", step.readFinished.await(5, TimeUnit.SECONDS))
+            assertTrue(step.readFinished.await(5, TimeUnit.SECONDS), "Supplied native read did not complete")
             runCurrentUntil(scheduler) { selectedAddresses().any { it.ip == step.ip } }
-            assertEquals(initialUptimeMillis + scheduler.currentTime, SystemClock.uptimeMillis())
+            assertEquals(expected = initialUptimeMillis + scheduler.currentTime, actual = SystemClock.uptimeMillis())
         }
 
         fun selectedAddresses(): List<NetworkAddress> = (monitor.state.value as? NetworkAddressMonitor.State.Observed)
@@ -194,7 +194,7 @@ internal class AndroidNetworkAddressCadenceTest {
             ShadowSystemClock.advanceBy(Duration.ofMillis(millis))
             scheduler.advanceTimeBy(millis)
             scheduler.runCurrent()
-            assertEquals(initialUptimeMillis + scheduler.currentTime, SystemClock.uptimeMillis())
+            assertEquals(expected = initialUptimeMillis + scheduler.currentTime, actual = SystemClock.uptimeMillis())
         }
 
         suspend fun close(): Unit = withContext(NonCancellable) {
@@ -242,16 +242,14 @@ internal class AndroidNetworkAddressCadenceTest {
     }
 
     private fun runCurrentUntil(scheduler: TestCoroutineScheduler, condition: () -> Boolean) {
-        val deadline = hostUptimeMillis() + TimeUnit.SECONDS.toMillis(5)
+        val deadline = TimeSource.Monotonic.markNow() + 5.seconds
         while (true) {
             scheduler.runCurrent()
             if (condition()) return
-            check(hostUptimeMillis() < deadline) { "Current-time observation did not reach its external checkpoint" }
+            check(deadline.hasNotPassedNow()) { "Current-time observation did not reach its external checkpoint" }
             Thread.yield()
         }
     }
-
-    private fun hostUptimeMillis(): Long = ManagementFactory.getRuntimeMXBean().uptime
 
     private val allAddressesFilter = NetworkAddressFilter(AddressFamily.entries.toSet(), InterfaceType.entries.toSet(), AddressCategory.entries.toSet())
 }

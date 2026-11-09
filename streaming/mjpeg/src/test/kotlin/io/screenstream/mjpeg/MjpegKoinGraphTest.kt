@@ -20,13 +20,6 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNotSame
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -42,6 +35,13 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ServiceController
 import org.robolectric.annotation.Config
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotSame
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -99,7 +99,7 @@ internal class MjpegKoinGraphTest {
             assertNotSame(monitors[0], monitors[1])
             deliveries.forEach { assertEquals(HttpDelivery.Info(), it.info.value); assertNull(it.appliedToken) }
             monitors.forEach { assertEquals(NetworkAddressMonitor.State.NotStarted, it.state.value) }
-            assertTrue(shadowOf(application).registeredReceivers.filter { it.intentFilter.hasAction(Intent.ACTION_SCREEN_OFF) }.isEmpty())
+            assertTrue(shadowOf(application).registeredReceivers.none { it.intentFilter.hasAction(Intent.ACTION_SCREEN_OFF) })
         } finally {
             try {
                 withContext(NonCancellable) {

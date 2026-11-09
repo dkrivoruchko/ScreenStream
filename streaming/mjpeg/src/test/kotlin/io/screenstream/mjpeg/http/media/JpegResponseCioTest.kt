@@ -17,11 +17,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -29,7 +24,6 @@ import org.robolectric.annotation.Config
 import java.io.ByteArrayOutputStream
 import java.io.EOFException
 import java.io.InputStream
-import java.lang.management.ManagementFactory
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -38,7 +32,15 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 import kotlin.uuid.Uuid
 
 /** Physical CIO handoff and wire termination, independent of deterministic writer interception. */
@@ -73,7 +75,7 @@ internal class JpegResponseCioTest {
             assertEquals(200, response.status)
             assertEquals("image/jpeg", response.headers["content-type"])
             assertEquals(expected.size.toString(), response.headers["content-length"])
-            assertArrayEquals(expected, response.body)
+            assertContentEquals(expected, response.body)
             assertEquals(1L, writer.progress.completedJpegs)
             assertEquals(expected.size.toLong(), writer.progress.completedJpegBytes)
             val active = requests.sample(0, null, setOf(owner.listener))
@@ -92,7 +94,7 @@ internal class JpegResponseCioTest {
             lateWriter = late
             requests.registerMedia(late, owner.listener, server, "192.0.2.1", 8000, secondJob, 300)
             requests.clearEndpointsAndGetWebSocketJobs()
-            assertArrayEquals(latest, receiveFromCio(late, maximumBodyBytes = latest.size).body)
+            assertContentEquals(latest, receiveFromCio(late, maximumBodyBytes = latest.size).body)
             requests.retireMedia(late, 400, setOf(owner.listener))
             requests.retireMedia(late, 500, setOf(owner.listener))
             val detached = requests.sample(500, null, setOf(owner.listener))
@@ -124,7 +126,7 @@ internal class JpegResponseCioTest {
             val response = receiveFromCio(writer, maximumBodyBytes = 0, closeConnection = false)
             assertEquals(200, response.status)
             assertEquals("4", response.headers["content-length"])
-            assertArrayEquals(byteArrayOf(), response.body)
+            assertContentEquals(byteArrayOf(), response.body)
             assertEquals(0L, writer.progress.completedJpegs)
             assertEquals(0L, writer.progress.completedJpegBytes)
         } finally {
@@ -142,7 +144,7 @@ internal class JpegResponseCioTest {
             }
             check(stop.await(5, TimeUnit.SECONDS))
         }) { socket ->
-            assertThrows(IllegalStateException::class.java) { readResponse(socket, maximumBodyBytes = 1) }
+            assertFailsWith<IllegalStateException> { readResponse(socket, maximumBodyBytes = 1) }
         }
     }
 
@@ -166,10 +168,10 @@ internal class JpegResponseCioTest {
                     // The timed-out reader owns and closes this connection.
                 }
             }) { socket ->
-                val started = hostUptimeMillis()
-                assertThrows(SocketTimeoutException::class.java) { readResponse(socket, maximumBodyBytes = 1024, timeoutMillis = 400) }
-                assertTrue("The peer must make progress during the aggregate budget", writes.get() >= 2)
-                assertTrue("Progress extended the reader budget", hostUptimeMillis() - started < 3_000)
+                val started = TimeSource.Monotonic.markNow()
+                assertFailsWith<SocketTimeoutException> { readResponse(socket, maximumBodyBytes = 1024, timeout = 400.milliseconds) }
+                assertTrue(writes.get() >= 2, "The peer must make progress during the aggregate budget")
+                assertTrue(started.elapsedNow() < 3.seconds, "Progress extended the reader budget")
             }
         }
     }
@@ -206,18 +208,18 @@ internal class JpegResponseCioTest {
     }
 
     /** One host-time budget includes status, headers and the EOF needed by the cutoff history. */
-    private fun readResponse(socket: Socket, maximumBodyBytes: Int, timeoutMillis: Long = 15_000): Response {
+    private fun readResponse(socket: Socket, maximumBodyBytes: Int, timeout: Duration = 15.seconds): Response {
         require(maximumBodyBytes in 0 until Int.MAX_VALUE)
-        val deadline = hostUptimeMillis() + timeoutMillis
+        val deadline = TimeSource.Monotonic.markNow() + timeout
         val wireInput = socket.getInputStream().buffered()
         fun beforeRead() {
-            val remaining = deadline - hostUptimeMillis()
-            if (remaining <= 0) throw SocketTimeoutException("Overall CIO response read deadline expired")
-            socket.soTimeout = minOf(15_000L, remaining).toInt()
+            val remaining = -deadline.elapsedNow()
+            if (remaining <= Duration.ZERO) throw SocketTimeoutException("Overall CIO response read deadline expired")
+            socket.soTimeout = minOf(15.seconds, remaining).inWholeMilliseconds.coerceAtLeast(1).toInt()
         }
 
         fun afterRead() {
-            if (hostUptimeMillis() >= deadline) throw SocketTimeoutException("Overall CIO response read deadline expired")
+            if (deadline.hasPassedNow()) throw SocketTimeoutException("Overall CIO response read deadline expired")
         }
 
         val input = object : InputStream() {
@@ -259,13 +261,11 @@ internal class JpegResponseCioTest {
                 } finally {
                     server.close()
                     executor.shutdownNow()
-                    assertTrue("Response peer did not terminate", executor.awaitTermination(5, TimeUnit.SECONDS))
+                    assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS), "Response peer did not terminate")
                 }
             }
         }
     }
-
-    private fun hostUptimeMillis(): Long = ManagementFactory.getRuntimeMXBean().uptime
 
     private fun readLine(input: InputStream): String {
         val bytes = ByteArrayOutputStream()

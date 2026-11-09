@@ -1,14 +1,15 @@
 package io.screenstream.mjpeg.settings
 
+import io.screenstream.mjpeg.settingsJsonIgnoringUnknownKeys
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowBuild
+import kotlin.test.assertEquals
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
@@ -42,7 +43,7 @@ internal class WebPageSettingsDeviceTitleTest {
         assertEquals("", Json.decodeFromString<WebPageSettings>("""{"title":""}""").title)
         assertEquals(
             WebPageSettings(title = "Saved"),
-            Json { ignoreUnknownKeys = true }.decodeFromString<WebPageSettings>("""{"title":"Saved","retainImageOnReconnect":false}""")
+            settingsJsonIgnoringUnknownKeys.decodeFromString<WebPageSettings>("""{"title":"Saved","retainImageOnReconnect":false}""")
         )
     }
 }

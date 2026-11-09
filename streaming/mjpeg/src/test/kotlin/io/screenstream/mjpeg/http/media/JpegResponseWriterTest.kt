@@ -39,12 +39,6 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.io.Buffer
 import kotlinx.io.RawSink
 import kotlinx.io.readByteArray
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -53,6 +47,14 @@ import org.robolectric.shadows.ShadowSystemClock
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
@@ -63,7 +65,7 @@ import kotlin.uuid.Uuid
 internal class JpegResponseWriterTest {
     // Cases: MJPEG-IMG-09
     @Test
-    fun readerCutoffBeforeWriterHandoffCancelsWithoutCompletingPayload() = runBlocking {
+    fun readerCutoffBeforeWriterHandoffCancelsWithoutCompletingPayload(): Unit = runBlocking {
         val store = JpegStore().apply {
             installLogo(byteArrayOf(1, 2, 3, 4))
             updateFallbackPolicy(PostStopImage.Placeholder)
@@ -73,9 +75,9 @@ internal class JpegResponseWriterTest {
         try {
             val output = RecordingSink()
             val failure = writeResponseAndCaptureFailure(writer, output.asByteWriteChannel())
-            assertTrue(failure is CancellationException)
-            assertEquals("JPEG response revoked", failure?.message)
-            assertArrayEquals(byteArrayOf(), output.bytes())
+            assertIs<CancellationException>(failure)
+            assertEquals("JPEG response revoked", failure.message)
+            assertContentEquals(byteArrayOf(), output.bytes())
             assertEquals(0L, writer.progress.completedJpegs)
             assertEquals(0L, writer.progress.completedJpegBytes)
         } finally {
@@ -101,7 +103,7 @@ internal class JpegResponseWriterTest {
                 requests.registerMedia(writer, owner.listener, server, "192.0.2.1", 8000, jobs[index], 0)
                 val output = RecordingSink()
                 assertNull(writeResponseAndCaptureFailure(writer, output.asByteWriteChannel()))
-                assertArrayEquals(byteArrayOf(3, 4, 5), output.bytes())
+                assertContentEquals(byteArrayOf(3, 4, 5), output.bytes())
             }
             fun assertTotals() {
                 val sample = requests.sample(100, null, setOf(owner.listener))
@@ -153,11 +155,11 @@ internal class JpegResponseWriterTest {
                 override val autoFlush: Boolean = true
             }
             try {
-                assertSame(stage, fault, writeResponseAndCaptureFailure(writer, channel))
-                assertTrue(stage, sink.failed)
-                assertArrayEquals(stage, expected, sink.bytes())
-                assertEquals(stage, if (stage == "payload") 0L else 1L, writer.progress.completedJpegs)
-                assertEquals(stage, if (stage == "payload") 0L else payload.size.toLong(), writer.progress.completedJpegBytes)
+                assertSame(fault, writeResponseAndCaptureFailure(writer, channel), stage)
+                assertTrue(sink.failed, stage)
+                assertContentEquals(expected, sink.bytes(), stage)
+                assertEquals(if (stage == "payload") 0L else 1L, writer.progress.completedJpegs, stage)
+                assertEquals(if (stage == "payload") 0L else payload.size.toLong(), writer.progress.completedJpegBytes, stage)
             } finally {
                 channel.cancel(null)
                 writer.close()
@@ -169,7 +171,7 @@ internal class JpegResponseWriterTest {
     // Cases: MJPEG-IMG-14
     @Test
     fun slowThresholdAccumulatesSkippedPublicationsRecoversAndFencesReplacedSource() = runBlocking {
-        var generation: Any = Any()
+        var generation = Any()
         val store = JpegStore()
         val attempt = StreamingModule.CaptureAttemptId(StreamingModule.InstanceId(StreamingModule.Id("MJPEG")))
         store.installLogo(byteArrayOf(0))
@@ -241,7 +243,7 @@ internal class JpegResponseWriterTest {
     // Cases: MJPEG-OBS-07, MJPEG-IMG-14
     @Test
     fun sampledSlowRequiresCurrentSourceAndListenerAndClearsAfterRecoveryOrRetirement() = runBlocking {
-        var generation: Any = Any()
+        var generation = Any()
         val store = JpegStore()
         val attempt = StreamingModule.CaptureAttemptId(StreamingModule.InstanceId(StreamingModule.Id("MJPEG")))
         store.registerCapture(attempt, generation)
@@ -356,7 +358,7 @@ internal class JpegResponseWriterTest {
                     assertEquals(virtualBeforeChange, scheduler.currentTime)
                 }
                 val payloads = if (change == "publication") listOf(byteArrayOf(1, 2), byteArrayOf(3, 4, 5)) else listOf(byteArrayOf(1, 2))
-                assertArrayEquals(multipartBytes(payloads), sink.bytes())
+                assertContentEquals(multipartBytes(payloads), sink.bytes())
                 assertEquals(payloads.size, flushes)
                 assertEquals(payloads.size.toLong(), writer.progress.completedJpegs)
                 assertEquals(if (change == "close") 2L else 5L, writer.progress.completedJpegBytes)
@@ -442,7 +444,7 @@ internal class JpegResponseWriterTest {
         try {
             assertSame(failure, writeResponseAndCaptureFailure(writer, channel))
             assertTrue(sink.failed)
-            assertArrayEquals(expected, sink.bytes())
+            assertContentEquals(expected, sink.bytes())
             assertTrue(writer.progress.isSlow)
             assertSame(generation, writer.progress.observedCaptureGeneration)
             assertEquals(1L, writer.progress.completedJpegs)
@@ -503,7 +505,7 @@ internal class JpegResponseWriterTest {
                 val payloads = if (change.endsWith("publication") || change == "before-next-acquisition") {
                     listOf(byteArrayOf(1), byteArrayOf(7, 8))
                 } else listOf(byteArrayOf(1))
-                assertArrayEquals(multipartBytes(payloads), sink.bytes())
+                assertContentEquals(multipartBytes(payloads), sink.bytes())
                 assertEquals(payloads.size.toLong(), writer.progress.completedJpegs)
             } finally {
                 output.cancel(null)
@@ -556,7 +558,7 @@ internal class JpegResponseWriterTest {
             try {
                 assertNull(writeResponseAndCaptureFailure(writer, output))
                 assertTrue(changed)
-                assertArrayEquals(expected, received.toByteArray())
+                assertContentEquals(expected, received.toByteArray())
                 assertEquals(2L, writer.progress.completedJpegs)
                 assertEquals((pinned.size + newer.size).toLong(), writer.progress.completedJpegBytes)
             } finally {
@@ -588,14 +590,14 @@ internal class JpegResponseWriterTest {
                 scheduler.runCurrent()
                 assertEquals(1, flushes)
                 ShadowSystemClock.advanceBy(999, TimeUnit.MILLISECONDS)
-                scheduler.advanceTimeBy(999)
+                scheduler.advanceTimeBy(999.milliseconds)
                 scheduler.runCurrent()
                 store.updateFallbackPolicy(PostStopImage.LastAvailableFrame)
                 scheduler.runCurrent()
                 assertEquals(1, flushes)
                 assertFalse(writing.isCompleted)
                 ShadowSystemClock.advanceBy(1, TimeUnit.MILLISECONDS)
-                scheduler.advanceTimeBy(1)
+                scheduler.advanceTimeBy(1.milliseconds)
                 scheduler.runCurrent()
                 writing.await()
             }
@@ -604,7 +606,7 @@ internal class JpegResponseWriterTest {
             assertEquals(4L, writer.progress.completedJpegBytes)
             assertFalse(writer.progress.isSlow)
             assertNull(writer.progress.observedCaptureGeneration)
-            assertArrayEquals(multipartBytes(listOf(byteArrayOf(5, 6), byteArrayOf(5, 6))), sink.bytes())
+            assertContentEquals(multipartBytes(listOf(byteArrayOf(5, 6), byteArrayOf(5, 6))), sink.bytes())
         } finally {
             output.cancel(null)
             writer.close()
@@ -666,11 +668,11 @@ internal class JpegResponseWriterTest {
                 assertEquals(4, flushes)
                 assertTrue(writer.progress.isSlow)
                 ShadowSystemClock.advanceBy(1_000, TimeUnit.MILLISECONDS)
-                scheduler.advanceTimeBy(1_000)
+                scheduler.advanceTimeBy(1_000.milliseconds)
                 scheduler.runCurrent()
                 writing.await()
             }
-            assertArrayEquals(multipartBytes(listOf(1, 7, 0, 7, 7, 9).map { byteArrayOf(it.toByte()) }), sink.bytes())
+            assertContentEquals(multipartBytes(listOf(1, 7, 0, 7, 7, 9).map { byteArrayOf(it.toByte()) }), sink.bytes())
             assertEquals(6L, writer.progress.completedJpegs)
             assertEquals(6L, writer.progress.completedJpegBytes)
         } finally {
@@ -869,4 +871,3 @@ internal class JpegResponseWriterTest {
         override fun close() = Unit
     }
 }
-

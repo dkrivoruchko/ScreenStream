@@ -7,14 +7,15 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -22,7 +23,7 @@ import kotlin.time.Duration.Companion.seconds
 internal class HttpDeliveryAccessBoundaryTest {
     // Cases: MJPEG-ACC-04, MJPEG-ACC-05, MJPEG-ACC-10, MJPEG-WEB-09
     @Test(timeout = 30_000)
-    fun allListenersSharePeerBudgetAndFullTableDeniesPinAndSocketButKeepsViewingCredentials() = runBlocking {
+    fun allListenersSharePeerBudgetAndFullTableDeniesPinAndSocketButKeepsViewingCredentials(): Unit = runBlocking {
         val fixture = Fixture()
         try {
             fixture.start(twoListeners = true)
@@ -38,14 +39,15 @@ internal class HttpDeliveryAccessBoundaryTest {
             assertEquals(HttpAccess.PinResult.Blocked(60_000), fixture.delivery.verifyPin(first, "wrong", "peer1"))
             assertEquals(HttpAccess.PinResult.Blocked(60_000), fixture.delivery.verifyPin(second, "123456", "peer1"))
             assertEquals(WebSocketAdmission.Denied(60_000), fixture.delivery.admitWebSocket(second, null, "unknown", fixture.newRequestJob()))
-            val authorized = fixture.delivery.admitWebSocket(second, cookie, "peer1", fixture.newRequestJob())
-            assertTrue(authorized is WebSocketAdmission.Accepted)
+            val authorized = assertIs<WebSocketAdmission.Accepted>(
+                fixture.delivery.admitWebSocket(second, cookie, "peer1", fixture.newRequestJob()),
+            )
             assertTrue(fixture.delivery.info.value.clients.isEmpty())
             val known = fixture.delivery.verifyPin(second, "123456", "peer0")
-            assertTrue(known is HttpAccess.PinResult.Authorized)
-            assertTrue(fixture.delivery.verifyPin(first, "123456", "unknown") is HttpAccess.PinResult.Authorized)
+            assertIs<HttpAccess.PinResult.Authorized>(known)
+            assertIs<HttpAccess.PinResult.Authorized>(fixture.delivery.verifyPin(first, "123456", "unknown"))
             fixture.delivery.updateConfiguration(httpTestProtectedAccessSettings("654321"), PostStopImage.Placeholder, httpTestPageSettings())
-            assertFalse(fixture.delivery.isWebSocketCurrent(second, (authorized as WebSocketAdmission.Accepted).credentialGeneration))
+            assertFalse(fixture.delivery.isWebSocketCurrent(second, authorized.credentialGeneration))
             assertEquals(HttpAccess.PinResult.Blocked(60_000), fixture.delivery.verifyPin(second, "654321", "peer1"))
         } finally {
             fixture.close()

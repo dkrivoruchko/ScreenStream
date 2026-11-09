@@ -1,12 +1,12 @@
 package io.screenstream.mjpeg.device
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.ByteArrayInputStream
 import java.io.EOFException
+import kotlin.test.assertContentEquals
+import kotlin.test.assertFailsWith
 
 @RunWith(AndroidJUnit4::class)
 internal class MjpegMultipartReaderTest {
@@ -16,8 +16,8 @@ internal class MjpegMultipartReaderTest {
         val first = "--fixture\r\nContent-Type: image/jpeg\r\nContent-Length: 5\r\n\r\n".toByteArray() + jpeg + "\r\n".toByteArray()
         val second = "--fixture\r\ncontent-type: image/jpeg\r\ncontent-length: 3\r\n\r\nXYZ\r\n".toByteArray()
         val reader = MjpegMultipartReader(ByteArrayInputStream(first + second), "fixture")
-        assertArrayEquals(jpeg, reader.nextFrame())
-        assertArrayEquals(byteArrayOf(88, 89, 90), reader.nextFrame())
+        assertContentEquals(jpeg, reader.nextFrame())
+        assertContentEquals(byteArrayOf(88, 89, 90), reader.nextFrame())
     }
 
     @Test
@@ -28,7 +28,7 @@ internal class MjpegMultipartReaderTest {
             "--fixture\r\nContent-Type: image/jpeg\nContent-Length: 1\r\n\r\nX\r\n",
             "--other\r\nContent-Type: image/jpeg\r\nContent-Length: 1\r\n\r\nX\r\n",
         )
-        for (wire in wires) assertThrows(IllegalStateException::class.java) { reader(wire).nextFrame() }
+        for (wire in wires) assertFailsWith<IllegalStateException> { reader(wire).nextFrame() }
     }
 
     @Test
@@ -37,7 +37,7 @@ internal class MjpegMultipartReaderTest {
             "--fixture\r\nContent-Type: image/jpeg\r\nContent-Length: 1\r\ncontent-length: 1\r\n\r\nX\r\n",
             "--fixture\r\nContent-Type: image/jpeg\r\ncontent-type: image/jpeg\r\nContent-Length: 1\r\n\r\nX\r\n",
         )
-        for (wire in wires) assertThrows(IllegalStateException::class.java) { reader(wire).nextFrame() }
+        for (wire in wires) assertFailsWith<IllegalStateException> { reader(wire).nextFrame() }
     }
 
     @Test
@@ -50,10 +50,10 @@ internal class MjpegMultipartReaderTest {
             "Content-Type: image/jpeg\r\nContent-Length: 2147483648\r\n",
         )
         for (headers in invalidHeaders) {
-            assertThrows(IllegalStateException::class.java) { reader("--fixture\r\n$headers\r\nX\r\n").nextFrame() }
+            assertFailsWith<IllegalStateException> { reader("--fixture\r\n$headers\r\nX\r\n").nextFrame() }
         }
         for (length in listOf(0, 33_554_433)) {
-            assertThrows(IllegalArgumentException::class.java) {
+            assertFailsWith<IllegalArgumentException> {
                 reader("--fixture\r\nContent-Type: image/jpeg\r\nContent-Length: $length\r\n\r\nX\r\n").nextFrame()
             }
         }
@@ -62,19 +62,19 @@ internal class MjpegMultipartReaderTest {
     @Test
     fun boundsIndividualLinesAndTheAggregateHeaderBlock() {
         val longLine = "--fixture\r\nX-Long: " + "x".repeat(8192) + "\r\n\r\n"
-        assertThrows(IllegalStateException::class.java) { reader(longLine).nextFrame() }
+        assertFailsWith<IllegalStateException> { reader(longLine).nextFrame() }
         val manyHeaders = "--fixture\r\n" + (1..3).joinToString("") { "X-$it: ${"x".repeat(6000)}\r\n" } + "\r\n"
-        assertThrows(IllegalStateException::class.java) { reader(manyHeaders).nextFrame() }
+        assertFailsWith<IllegalStateException> { reader(manyHeaders).nextFrame() }
     }
 
     @Test
     fun rejectsTruncatedPayloadAndMissingPayloadCrlf() {
-        assertThrows(EOFException::class.java) {
+        assertFailsWith<EOFException> {
             reader("--fixture\r\nContent-Type: image/jpeg\r\nContent-Length: 5\r\n\r\nXY").nextFrame()
         }
         val prefix = "--fixture\r\nContent-Type: image/jpeg\r\nContent-Length: 1\r\n\r\nX"
         for (terminator in listOf("", "\n", "\rX", "--fixture\r\n")) {
-            assertThrows(IllegalStateException::class.java) { reader(prefix + terminator).nextFrame() }
+            assertFailsWith<IllegalStateException> { reader(prefix + terminator).nextFrame() }
         }
     }
 
@@ -83,11 +83,11 @@ internal class MjpegMultipartReaderTest {
         val input = object : ByteArrayInputStream(byteArrayOf(1, 2, 3, 4)) {
             override fun read(bytes: ByteArray, offset: Int, length: Int): Int = super.read(bytes, offset, minOf(1, length))
         }
-        assertArrayEquals(byteArrayOf(1, 2, 3), readJpegPayload(input, 3))
-        assertArrayEquals(byteArrayOf(4), readJpegPayload(input, 1))
-        assertThrows(EOFException::class.java) { readJpegPayload(ByteArrayInputStream(byteArrayOf(1)), 2) }
-        assertThrows(IllegalArgumentException::class.java) { readJpegPayload(ByteArrayInputStream(byteArrayOf()), 0) }
-        assertThrows(IllegalArgumentException::class.java) { readJpegPayload(ByteArrayInputStream(byteArrayOf()), 33_554_433) }
+        assertContentEquals(byteArrayOf(1, 2, 3), readJpegPayload(input, 3))
+        assertContentEquals(byteArrayOf(4), readJpegPayload(input, 1))
+        assertFailsWith<EOFException> { readJpegPayload(ByteArrayInputStream(byteArrayOf(1)), 2) }
+        assertFailsWith<IllegalArgumentException> { readJpegPayload(ByteArrayInputStream(byteArrayOf()), 0) }
+        assertFailsWith<IllegalArgumentException> { readJpegPayload(ByteArrayInputStream(byteArrayOf()), 33_554_433) }
     }
 
     private fun reader(wire: String): MjpegMultipartReader = MjpegMultipartReader(

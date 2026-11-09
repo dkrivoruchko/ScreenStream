@@ -18,11 +18,12 @@ import java.io.InputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
-internal fun httpTestContext(): Context {
-    return RuntimeEnvironment.getApplication()
-}
+internal fun httpTestContext(): Context = RuntimeEnvironment.getApplication()
 
 internal fun httpTestPageSettings(title: String = "Viewing contract"): WebPageSettings = WebPageSettings(title = title)
 
@@ -57,14 +58,15 @@ internal suspend fun HttpDelivery.stopHttpTestDelivery() {
 }
 
 internal fun assertHttpFailure(expected: Throwable, actual: Throwable?) {
-    org.junit.Assert.assertEquals(expected::class.java, actual?.javaClass)
-    org.junit.Assert.assertTrue(
+    val propagated = assertNotNull(actual)
+    assertEquals(expected::class, propagated::class)
+    assertTrue(
+        generateSequence(propagated) { it.cause }.any { it === expected },
         "Expected original ${expected::class.java.name} in propagated cause chain",
-        actual != null && generateSequence(actual) { it.cause }.any { it === expected },
     )
 }
 
-internal data class HttpJpegResponse(val status: Int, val headers: HttpResponseHeaders, val bytes: ByteArray)
+internal class HttpJpegResponse(val status: Int, val headers: HttpResponseHeaders, val bytes: ByteArray)
 
 internal fun requestHttpJpeg(port: Int, path: String = "/jpeg"): HttpJpegResponse = Socket().use { socket ->
     socket.soTimeout = 5_000

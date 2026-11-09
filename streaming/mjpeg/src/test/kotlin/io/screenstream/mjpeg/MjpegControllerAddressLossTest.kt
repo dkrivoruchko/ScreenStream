@@ -4,13 +4,8 @@ import android.os.SystemClock
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.NetworkAddressMonitor
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -22,6 +17,10 @@ import org.robolectric.shadows.ShadowSystemClock
 import java.time.Duration
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -43,7 +42,6 @@ internal class MjpegControllerAddressLossTest {
             host.controller.requestStreamStart()
             val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
             host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.WaitingForPermission }
-            val filter = host.settings.data.first().network.filter
             val selectedAddress = inputs.address()
             inputs.publishServerState(host, selectedAddress, state = HttpDelivery.ServerState.Failed(HttpDelivery.ServerFailure.AddressUnavailable, 3))
             inputs.applySettingsCheckpoint(settings, host, "Failed bind has nonempty discovery")
@@ -130,7 +128,6 @@ internal class MjpegControllerAddressLossTest {
             host.controller.requestStreamStart()
             val attempt = host.access.consentRequests.awaitControllerValue { it.size == 1 }.single()
             host.http.captureStatus.awaitControllerValue { it?.first == attempt && it.second == MjpegCaptureSession.State.Status.WaitingForPermission }
-            val filter = host.settings.data.first().network.filter
             inputs.publishDiscovery(host, NetworkAddressMonitor.State.Loading)
             inputs.applySettingsCheckpoint(settings, host, "Loading has no loss fact")
             ShadowSystemClock.advanceBy(Duration.ofSeconds(30))
@@ -145,7 +142,7 @@ internal class MjpegControllerAddressLossTest {
             ShadowSystemClock.simulateDeepSleep(Duration.ofSeconds(10))
             assertEquals(uptimeBeforeSleep, SystemClock.uptimeMillis())
             val expectedElapsedAfterSleepMillis = elapsedBeforeSleep + 10_000
-            assertEquals(expectedElapsedAfterSleepMillis, SystemClock.elapsedRealtime())
+            assertEquals(expected = expectedElapsedAfterSleepMillis, actual = SystemClock.elapsedRealtime())
             settings.updateData {
                 copy(behavior = behavior.copy(stopAfterNetworkLossSeconds = 10), web = web.copy(title = "Shortened loss deadline"))
             }
@@ -259,7 +256,7 @@ internal class MjpegControllerAddressLossTest {
             inputs.publishDiscovery(host, observedAddressState(emptyList()))
             inputs.applySettingsCheckpoint(settings, host, "First attempt loss onset")
             ShadowSystemClock.advanceBy(Duration.ofSeconds(8))
-            host.controller.requestStreamStop(first, false)
+            host.controller.requestStreamStop(first, fromNotification = false)
             host.managerObservation.status.awaitControllerValue { it?.captureAttempt == null }
             inputs.publishDiscovery(host, observedAddressState(listOf(inputs.address())))
             inputs.publishServerState(host, inputs.address())

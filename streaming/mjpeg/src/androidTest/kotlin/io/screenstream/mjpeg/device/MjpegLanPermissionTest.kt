@@ -17,10 +17,6 @@ import io.screenstream.mjpeg.networkaddress.AddressCategory
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,7 +26,11 @@ import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
-import java.util.Collections
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /** Denied/granted UI and external reachability; no independent kernel-blocking or live-capture claim. */
 @RunWith(AndroidJUnit4::class)
@@ -47,15 +47,15 @@ internal class MjpegLanPermissionTest {
         val context = support.context
         assertEquals(37, context.applicationInfo.targetSdkVersion)
         assertEquals(
-            "Prepare a denied LAN grant before starting instrumentation; revocation may kill the process",
             PackageManager.PERMISSION_DENIED,
             context.checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK),
+            "Prepare a denied LAN grant before starting instrumentation; revocation may kill the process",
         )
         val interfaceName = checkNotNull(arguments.getString("lanInterface"))
         val nativeInterface = checkNotNull(NetworkInterface.getByName(interfaceName)) { "Requested native interface is absent" }
-        assertTrue("Requested native interface must be up", nativeInterface.isUp)
-        assertFalse("Requested interface must not be loopback", nativeInterface.isLoopback)
-        val address = Collections.list(nativeInterface.inetAddresses).filterIsInstance<Inet4Address>()
+        assertTrue(nativeInterface.isUp, "Requested native interface must be up")
+        assertFalse(nativeInterface.isLoopback, "Requested interface must not be loopback")
+        val address = nativeInterface.inetAddresses.asSequence().filterIsInstance<Inet4Address>()
             .single { it.isSiteLocalAddress && !it.isLoopbackAddress && !it.isLinkLocalAddress }
         val deviceAddress = checkNotNull(address.hostAddress)
         val addressFilter = NetworkAddressFilter(
@@ -78,7 +78,7 @@ internal class MjpegLanPermissionTest {
                                 compose.onAllNodesWithText(permissionRequestText).fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty() &&
                                 compose.onAllNodesWithContentDescription(retryDescription).fetchSemanticsNodes(atLeastOneRootRequired = false).isEmpty()
                     }
-                    assertArrayEquals(logo, loopback.nextFrame())
+                    assertContentEquals(logo, loopback.nextFrame())
                     val delivery = host.httpDeliveries.single()
                     var originalLoopbackServer: HttpDelivery.ServerInfo? = null
                     var originalLoopbackClient: HttpDelivery.ClientInfo? = null
@@ -97,11 +97,11 @@ internal class MjpegLanPermissionTest {
                             true
                         } else false
                     }
-                    val loopbackServerId = checkNotNull(originalLoopbackServer).id
-                    val client = checkNotNull(originalLoopbackClient)
-                    assertArrayEquals(logo, support.requestJpeg(host.port))
+                    val loopbackServerId = assertNotNull(originalLoopbackServer).id
+                    val client = assertNotNull(originalLoopbackClient)
+                    assertContentEquals(logo, support.requestJpeg(host.port))
                     peer.exchange("denied", host.port, logo)
-                    assertArrayEquals("The denied-phase peer probe must not disrupt loopback", logo, support.requestJpeg(host.port))
+                    assertContentEquals(logo, support.requestJpeg(host.port), "The denied-phase peer probe must not disrupt loopback")
 
                     support.instrumentation.uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.ACCESS_LOCAL_NETWORK)
                     support.awaitHostCondition(host, "fresh grant and native listener admission") {
@@ -127,11 +127,12 @@ internal class MjpegLanPermissionTest {
                         }
                     }
 
-                    val baselineSample = checkNotNull(postGrantSample)
-                    val baselineClientBytes = checkNotNull(findOriginalLoopbackClient(baselineSample)) {
-                        "Original loopback response did not survive grant"
-                    }.completedJpegBytes
-                    assertArrayEquals(logo, loopback.nextFrame())
+                    val baselineSample = assertNotNull(postGrantSample)
+                    val baselineClientBytes = assertNotNull(
+                        findOriginalLoopbackClient(baselineSample),
+                        "Original loopback response did not survive grant",
+                    ).completedJpegBytes
+                    assertContentEquals(logo, loopback.nextFrame())
                     // A retired response can finish at most its one acquired payload. More than
                     // one logo after this fresh sample requires further admission on this client.
                     support.awaitHostCondition(host, "fresh same-client progress after grant") {
@@ -141,12 +142,12 @@ internal class MjpegLanPermissionTest {
                     }
                     // This same-device connection is readiness only; the peer receipt establishes external traffic.
                     peer.exchange("granted", host.port, logo)
-                    assertArrayEquals(logo, support.requestJpeg(host.port))
-                    assertArrayEquals(logo, loopback.nextFrame())
+                    assertContentEquals(logo, support.requestJpeg(host.port))
+                    assertContentEquals(logo, loopback.nextFrame())
                     support.exitAndAssertResourcesReleased(host, loopback)
                     assertTrue(
-                        "Native teardown must be checked while LAN permission remains granted",
                         RuntimePermission.LocalNetwork.isGranted(context),
+                        "Native teardown must be checked while LAN permission remains granted",
                     )
                     support.awaitHostCondition(host, "native listener closure after Exit") { !canConnectToDeviceAddress(deviceAddress, host.port) }
                     ServerSocket().use { socket ->

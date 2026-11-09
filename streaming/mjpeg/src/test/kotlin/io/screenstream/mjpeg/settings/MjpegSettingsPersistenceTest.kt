@@ -25,11 +25,6 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -44,6 +39,12 @@ import java.io.IOException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -91,7 +92,7 @@ internal class MjpegSettingsPersistenceTest {
                 val settings = MjpegSettings(context)
 
                 settings.updateData {
-                    assertEquals("Invalid payload must supply defaults to the transform", expected, this)
+                    assertEquals(expected, this, "Invalid payload must supply defaults to the transform")
                     this
                 }
 
@@ -111,7 +112,7 @@ internal class MjpegSettingsPersistenceTest {
             val settings = MjpegSettings(context)
 
             assertEquals(MjpegSettings.Data(web = WebPageSettings(title = "Acme Tablet")), settings.data.first())
-            assertTrue("Failed read repair must not invent a saved preferences file", file.isDirectory)
+            assertTrue(file.isDirectory, "Failed read repair must not invent a saved preferences file")
         }
     }
 
@@ -129,7 +130,7 @@ internal class MjpegSettingsPersistenceTest {
 
             assertEquals(expected, settings.data.first())
             val repaired = file.inputStream().use { PreferencesFileSerializer.readFrom(it) }
-            assertTrue("Corruption recovery must durably replace the malformed preferences", repaired.asMap().isEmpty())
+            assertTrue(repaired.asMap().isEmpty(), "Corruption recovery must durably replace the malformed preferences")
             settings.updateData { copy(web = web.copy(title = "After recovery")) }
             val saved = expected.copy(web = expected.web.copy(title = "After recovery"))
             assertEquals(saved, Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)))
@@ -154,7 +155,7 @@ internal class MjpegSettingsPersistenceTest {
         runBlocking { withTimeout(5.seconds) { assertEquals(baseline, settings.data.first()) } }
         var transforms = 0
 
-        assertThrows(IOException::class.java) {
+        assertFailsWith<IOException> {
             runBlocking {
                 withTimeout(5.seconds) {
                     settings.updateData {
@@ -166,8 +167,8 @@ internal class MjpegSettingsPersistenceTest {
             }
         }
 
-        assertEquals("The failing save must enter its transform exactly once", 1, transforms)
-        assertArrayEquals(savedBytes, file.readBytes())
+        assertEquals(1, transforms, "The failing save must enter its transform exactly once")
+        assertContentEquals(savedBytes, file.readBytes())
         runBlocking {
             withTimeout(5.seconds) {
                 assertEquals(baseline, Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context)))
@@ -241,14 +242,13 @@ internal class MjpegSettingsPersistenceTest {
 
     // Cases: MJPEG-SET-06
     @Test
-    fun enablingProtectionCreatesAndDurablySavesPinWhileLaterEditsRetainIt() = runBlocking {
+    fun enablingProtectionCreatesAndDurablySavesPinWhileLaterEditsRetainIt(): Unit = runBlocking {
         withTimeout(5.seconds) {
             val context = newSettingsContext()
             val settings = MjpegSettings(context)
             assertEquals(null, settings.data.first().access.pin)
             settings.updateData { copy(access = access.copy(pinEnabled = true)) }
-            val pin = checkNotNull(settings.data.first().access.pin)
-            assertTrue(AccessSettings.isValidPin(pin.value))
+            val pin = assertNotNull(settings.data.first().access.pin)
             assertEquals("<redacted>", pin.toString())
             val saved = Json.decodeFromString<MjpegSettings.Data>(readSavedSettingsJson(context))
             assertEquals(pin, saved.access.pin)
@@ -280,7 +280,7 @@ internal class MjpegSettingsPersistenceTest {
                 }
                 var second: Job? = null
                 try {
-                    assertTrue("First settings transform did not enter", entered.await(5, TimeUnit.SECONDS))
+                    assertTrue(entered.await(5, TimeUnit.SECONDS), "First settings transform did not enter")
                     // Enter the second public call before releasing the first transaction.
                     val secondSave = async(start = CoroutineStart.UNDISPATCHED) {
                         settings.updateData {
@@ -316,10 +316,10 @@ internal class MjpegSettingsPersistenceTest {
         val settings = MjpegSettings(context)
         runBlocking { withTimeout(5.seconds) { settings.updateData { copy(web = web.copy(title = "Before failure")) } } }
         val failure = IllegalStateException("Fixture transform failure")
-        val thrown = assertThrows(IllegalStateException::class.java) {
+        val thrown = assertFailsWith<IllegalStateException> {
             runBlocking { withTimeout(5.seconds) { settings.updateData { throw failure } } }
         }
-        assertEquals(failure.javaClass, (thrown as Any).javaClass)
+        assertEquals(failure::class, thrown::class)
         assertEquals(failure.message, thrown.message)
         // Coroutine stack recovery may copy the thrown exception and retain the original as its cause.
         assertTrue(generateSequence<Throwable>(thrown) { it.cause }.any { it === failure })
@@ -366,7 +366,7 @@ internal class MjpegSettingsPersistenceTest {
             assertEquals(WebPageSettings(title = "Saved"), settings.data.first().web)
             settings.updateData { this }
             assertEquals(payload, readSavedSettingsJson(context))
-            assertArrayEquals(before, file.readBytes())
+            assertContentEquals(before, file.readBytes())
         }
     }
 

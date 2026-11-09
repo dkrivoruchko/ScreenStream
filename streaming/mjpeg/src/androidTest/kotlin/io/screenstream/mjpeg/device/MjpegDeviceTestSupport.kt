@@ -2,6 +2,7 @@ package io.screenstream.mjpeg.device
 
 import android.Manifest
 import android.app.ActivityManager
+import android.app.Instrumentation
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -25,8 +26,6 @@ import io.screenstream.mjpeg.MjpegStreamingModuleService
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
 import io.screenstream.mjpeg.settings.ImageSettings
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import java.io.Closeable
 import java.io.File
 import java.net.HttpURLConnection
@@ -35,10 +34,14 @@ import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.URL
 import java.util.UUID
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /** Small test-only fixture around the production module graph and real Android capture host. */
 internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
-    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    val instrumentation: Instrumentation = InstrumentationRegistry.getInstrumentation()
     val context: Context = instrumentation.targetContext
     val device: UiDevice = UiDevice.getInstance(instrumentation)
     private var consentObservationCount = 0
@@ -52,7 +55,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         networkFilter: NetworkAddressFilter = MjpegCaptureTestHost.loopbackFilter(),
         imageSettings: ImageSettings = ImageSettings(),
     ): CaptureHostFixture {
-        assertEquals("The fixture must exercise modern target-SDK behavior", 37, context.applicationInfo.targetSdkVersion)
+        assertEquals(37, context.applicationInfo.targetSdkVersion, "The fixture must exercise modern target-SDK behavior")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             instrumentation.uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.POST_NOTIFICATIONS)
         }
@@ -65,7 +68,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
             scenario.onActivity { host.manager.selectModule(StreamingModule.Id("MJPEG")) }
             awaitHostCondition(host, "module startup") { runningModule(host) != null }
             awaitHostCondition(host, "inactive HTTP listener") { canConnect(port) }
-            assertTrue("The production Service must be running", serviceIsRunning())
+            assertTrue(serviceIsRunning(), "The production Service must be running")
             return CaptureHostFixture(host, scenario)
         } catch (failure: Throwable) {
             try {
@@ -124,7 +127,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         }
         val submitted = host.systemConsentAttempts.size > submissionsBefore
         val attempt = if (submitted) host.systemConsentAttempts.last() else host.reusedConsentAttempts.last()
-        return ConsentAdmission(attempt, submitted)
+        return ConsentAdmission(attempt, usesSystemConsent = submitted)
     }
 
     fun startCapture(host: MjpegCaptureTestHost): StreamingModule.CaptureAttemptId {
@@ -202,8 +205,8 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         stream?.assertClosedByServer()
         awaitHostCondition(host, "listener closure") { !canConnect(host.port) }
         assertPortReusable(host.port)
-        assertTrue(host.manager.state.value is StreamingModuleManager.State.Exiting)
-        assertTrue("Unexpected module errors: ${host.notificationErrors}", host.notificationErrors.isEmpty())
+        assertIs<StreamingModuleManager.State.Exiting>(host.manager.state.value)
+        assertTrue(host.notificationErrors.isEmpty(), "Unexpected module errors: ${host.notificationErrors}")
     }
 
     fun assertPortReusable(port: Int) {
@@ -279,7 +282,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         port = port,
         evidenceName = if (green) "target-green" else "target-red",
         description = "expectedGreen=$green",
-        matches = { matchesTarget(it, green) },
+        matches = { matchesTarget(it, green = green) },
     )
 
     fun awaitJpeg(
@@ -329,7 +332,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
             record { saveUiEvidence("$name-window") }
             throw failure
         }
-        return checkNotNull(result)
+        return assertNotNull(result)
     }
 
     private fun describeJpeg(bytes: ByteArray?): String {
@@ -351,7 +354,7 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         fun nextFrame(): ByteArray = connection.nextFrame()
 
         fun awaitTarget(green: Boolean) = awaitFrame(if (green) "green captured target" else "red captured target") {
-            matchesTarget(it, green)
+            matchesTarget(it, green = green)
         }
 
         fun awaitFrame(description: String, matches: (ByteArray) -> Boolean): Unit = connection.awaitFrame(description, matches = matches)

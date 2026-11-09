@@ -26,7 +26,7 @@ public interface StreamingModule {
     @Serializable
     public data class Id(public val value: String)
 
-    /** This module's identity; unique among registered modules. */
+    /** This module's identity; nonblank and unique among registered modules. */
     public val id: Id
 
     /** Selection order; modules with higher values appear first. */

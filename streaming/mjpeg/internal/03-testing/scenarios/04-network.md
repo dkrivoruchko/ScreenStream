@@ -12,7 +12,7 @@ The scenarios build on these owners:
 | One listener per permitted address, and when Start is available | [Architecture: Addresses, listeners and readiness](../../../docs/architecture.md#addresses-listeners-and-readiness) |
 | Evidence, classification, address identity, refresh and close | [Network addresses](../../01-module/05-network-addresses.md) |
 | Selection with the effective filter, grant checks, Start readiness and address-loss Stop | [Coordination](../../01-module/03-coordination.md) |
-| Grant checks and the permission request UI | Core [Runtime Permissions](../../../../core/docs/runtime-permissions.md) |
+| Permission-dependent planning and address actions | Controller and UI tests with supplied grant state |
 | Platform enforcement of local-network traffic | Android's [local network permission guide](https://developer.android.com/privacy-and-security/local-network-permission) |
 
 Some neighboring histories belong to other pages. The controller scenarios cover Start readiness ([mjpeg-ctl-02](02-controller.md#mjpeg-ctl-02)), plans kept during Loading ([mjpeg-ctl-08](02-controller.md#mjpeg-ctl-08)), and the address-loss episode and its deadline ([mjpeg-ctl-09](02-controller.md#mjpeg-ctl-09), [mjpeg-ctl-10](02-controller.md#mjpeg-ctl-10)). Server incarnations belong to [mjpeg-srv-03](05-http-runtime.md#mjpeg-srv-03).
@@ -289,7 +289,7 @@ Then deliver late callbacks and call `start()` again. Cancel one close waiter wh
 
 ## Local-network permission
 
-The controller reads the grant through Core's `RuntimePermission.LocalNetwork` check. It refreshes the result on each heartbeat and filters the listener plan and Start readiness with it. The app's permission host owns request UI and its hints ([Runtime Permissions](../../../../core/docs/runtime-permissions.md#current-authorization-versus-ui-state)).
+The controller reads the grant through Core's `RuntimePermission.LocalNetwork` check. It refreshes the result on each heartbeat and filters the listener plan and Start readiness with it. The supplied permission-state fixtures do not establish the app's permission request UI.
 
 <a id="mjpeg-lan-01"></a>
 

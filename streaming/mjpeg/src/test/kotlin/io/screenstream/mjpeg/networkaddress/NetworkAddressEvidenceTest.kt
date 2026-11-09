@@ -1,9 +1,9 @@
 package io.screenstream.mjpeg.networkaddress
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 internal class NetworkAddressEvidenceTest {
     // Cases: MJPEG-NET-03
@@ -19,7 +19,7 @@ internal class NetworkAddressEvidenceTest {
             "ap" to InterfaceType.Other, "ap2_extra" to InterfaceType.Other, "usb0" to InterfaceType.Other,
             "v4-rmnet_data0" to InterfaceType.Other, "v4-wlan0" to InterfaceType.Other, "unknown0" to InterfaceType.Other,
         )
-        for ((name, expected) in expectedTypesByName) assertEquals(name, expected, inferInterfaceType(name))
+        for ((name, expected) in expectedTypesByName) assertEquals(expected, inferInterfaceType(name), name)
     }
 
     // Cases: MJPEG-NET-06

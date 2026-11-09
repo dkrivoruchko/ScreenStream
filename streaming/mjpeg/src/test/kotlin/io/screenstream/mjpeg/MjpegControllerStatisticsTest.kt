@@ -9,11 +9,6 @@ import io.screenstream.mjpeg.ui.UiController
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -23,6 +18,12 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.shadows.ShadowSystemClock
 import java.net.InetAddress
 import java.time.Duration
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
 
@@ -45,13 +46,13 @@ internal class MjpegControllerStatisticsTest {
             assertNull(repeatedFirst.outgoingBytesPerSecond)
             assertTrue(repeatedFirst.clientBytesPerSecond.isEmpty())
             val second = publishHttpSampleAndAwaitStatistics(host, 2000, 500, listOf(client.copy(completedJpegBytes = 240)))
-            assertEquals(200.0, second.outgoingBytesPerSecond!!, 0.0)
+            assertEquals(200.0, assertNotNull(second.outgoingBytesPerSecond), 0.0)
             assertEquals(mapOf(1L to 140.0), second.clientBytesPerSecond)
             val repeated = publishHttpSampleAndAwaitStatistics(host, 2000, 999, listOf(client.copy(completedJpegBytes = 999)))
-            assertEquals(200.0, repeated.outgoingBytesPerSecond!!, 0.0)
+            assertEquals(200.0, assertNotNull(repeated.outgoingBytesPerSecond), 0.0)
             assertEquals(mapOf(1L to 140.0), repeated.clientBytesPerSecond)
             val newClient = publishHttpSampleAndAwaitStatistics(host, 3000, 950, listOf(client.copy(completedJpegBytes = 300), client(2, 50)))
-            assertEquals(450.0, newClient.outgoingBytesPerSecond!!, 0.0)
+            assertEquals(450.0, assertNotNull(newClient.outgoingBytesPerSecond), 0.0)
             assertEquals(mapOf(1L to 60.0), newClient.clientBytesPerSecond)
             val reversedTime = publishHttpSampleAndAwaitStatistics(host, 2500, 980, listOf(client.copy(completedJpegBytes = 305)))
             assertNull(reversedTime.outgoingBytesPerSecond)
@@ -60,7 +61,7 @@ internal class MjpegControllerStatisticsTest {
             assertNull(decreased.outgoingBytesPerSecond)
             assertTrue(decreased.clientBytesPerSecond.isEmpty())
             val unchanged = publishHttpSampleAndAwaitStatistics(host, 4500, 900, listOf(client.copy(completedJpegBytes = 1)))
-            assertEquals(0.0, unchanged.outgoingBytesPerSecond!!, 0.0)
+            assertEquals(0.0, assertNotNull(unchanged.outgoingBytesPerSecond), 0.0)
             assertEquals(mapOf(1L to 0.0), unchanged.clientBytesPerSecond)
         } finally {
             assertTrue(host.close())
@@ -83,13 +84,13 @@ internal class MjpegControllerStatisticsTest {
             val beforeStop = host.controller.state.value.statistics
             val earlierPoints = beforeStop.history.filter { it.atElapsedRealtimeMillis / 1000L < SystemClock.elapsedRealtime() / 1000L }
             assertTrue(earlierPoints.isNotEmpty())
-            host.controller.requestStreamStop(first, false)
+            host.controller.requestStreamStop(first, fromNotification = false)
             withTimeout(5.seconds) { host.managerObservation.status.first { it?.captureAttempt == null } }
             host.controller.requestStreamStart()
             val second = withTimeout(5.seconds) { host.access.consentRequests.first { it.size == 2 }.last() }
             assertNotEquals(first, second)
             val after = publishHttpSampleAndAwaitStatistics(host, 3000, 700, listOf(client(1, 340)))
-            assertEquals(400.0, after.outgoingBytesPerSecond!!, 0.0)
+            assertEquals(400.0, assertNotNull(after.outgoingBytesPerSecond), 0.0)
             assertEquals(mapOf(1L to 200.0), after.clientBytesPerSecond)
             assertTrue(after.history.isNotEmpty())
             assertTrue(after.history.containsAll(earlierPoints))
@@ -125,8 +126,8 @@ internal class MjpegControllerStatisticsTest {
             val slot = SystemClock.elapsedRealtime() / 1000L
             assertEquals(1, first.history.count { it.atElapsedRealtimeMillis / 1000L == slot })
             val changed = publishHttpSampleAndAwaitStatistics(host, 3000, 600)
-            val latest = changed.history.filter { it.atElapsedRealtimeMillis / 1000L == slot }.single()
-            assertEquals(400.0, latest.outgoingBytesPerSecond!!, 0.0)
+            val latest = changed.history.single { it.atElapsedRealtimeMillis / 1000L == slot }
+            assertEquals(400.0, assertNotNull(latest.outgoingBytesPerSecond), 0.0)
             assertNull(latest.fps)
 
             val previousSize = changed.history.size

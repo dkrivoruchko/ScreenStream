@@ -9,12 +9,6 @@ import android.os.PowerManager
 import androidx.core.content.ContextCompat
 import io.screenstream.mjpeg.screenoff.AndroidScreenOffObserver
 import io.screenstream.mjpeg.screenoff.AndroidScreenOffObserver.RegistrationResult
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -26,6 +20,12 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
+import kotlin.test.fail
 import kotlin.uuid.Uuid
 
 @RunWith(RobolectricTestRunner::class)
@@ -77,7 +77,7 @@ internal class AndroidScreenOffObserverTest {
             assertEquals(0, notifications)
             shadowOf(Looper.getMainLooper()).idle()
             assertEquals(1, notifications)
-            assertThrows(IllegalStateException::class.java) { observer.register(Uuid.random()) {} }
+            assertFailsWith<IllegalStateException> { observer.register(Uuid.random()) {} }
             observer.unregister(id)
             observer.unregister(id)
             assertTrue(context.installed.isEmpty())
@@ -151,7 +151,7 @@ internal class AndroidScreenOffObserverTest {
             assertTrue(entered.await(10, TimeUnit.SECONDS))
             val cleanup = executor.submit<Boolean> { closing.countDown(); observer.close() }
             assertTrue(closing.await(10, TimeUnit.SECONDS))
-            assertThrows(TimeoutException::class.java) { cleanup.get(100, TimeUnit.MILLISECONDS) }
+            assertFailsWith<TimeoutException> { cleanup.get(100, TimeUnit.MILLISECONDS) }
             assertEquals(1, context.installed.size)
             assertFalse(registration.isDone)
             release.countDown()

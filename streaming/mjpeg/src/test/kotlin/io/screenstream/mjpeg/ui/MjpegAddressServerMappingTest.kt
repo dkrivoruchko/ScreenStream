@@ -5,16 +5,16 @@ import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.settings.SecretValue
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.net.Inet6Address
 import java.net.InetAddress
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 @RunWith(RobolectricTestRunner::class)
@@ -115,7 +115,7 @@ internal class MjpegAddressServerMappingTest {
                 appliedToken = SecretValue("current"),
             )
 
-            assertNull("state=$state accessApplied=$accessApplied", row.accessUrl)
+            assertNull(row.accessUrl, "state=$state accessApplied=$accessApplied")
             assertEquals(expectedStatus, row.status)
             assertEquals(if (state == null) null else serverId, row.serverId)
         }
@@ -166,7 +166,7 @@ internal class MjpegAddressServerMappingTest {
                 appliedToken = SecretValue("current"),
             )
 
-            assertNull("address=${address.ip.hostAddress} port=$port", row.accessUrl)
+            assertNull(row.accessUrl, "address=${address.ip.hostAddress} port=$port")
             assertEquals(UiController.ServerStatus.Listening, row.status)
             assertEquals(serverId, row.serverId)
         }

@@ -1,12 +1,13 @@
 package io.screenstream.mjpeg.networkaddress
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.net.Inet6Address
 import java.net.InetAddress
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 internal class NetworkAddressPolicyTest {
     // Cases: MJPEG-NET-01
@@ -22,9 +23,9 @@ internal class NetworkAddressPolicyTest {
         assertEquals(setOf(AddressFamily.Ipv4), filter.families)
         assertEquals(setOf(InterfaceType.Wifi), filter.interfaceTypes)
         assertEquals(setOf(AddressCategory.Private), filter.categories)
-        assertThrows(UnsupportedOperationException::class.java) { (filter.families as MutableSet).clear() }
-        assertThrows(UnsupportedOperationException::class.java) { (filter.interfaceTypes as MutableSet).clear() }
-        assertThrows(UnsupportedOperationException::class.java) { (filter.categories as MutableSet).clear() }
+        assertFailsWith<UnsupportedOperationException> { (filter.families as MutableSet).clear() }
+        assertFailsWith<UnsupportedOperationException> { (filter.interfaceTypes as MutableSet).clear() }
+        assertFailsWith<UnsupportedOperationException> { (filter.categories as MutableSet).clear() }
     }
 
     // Cases: MJPEG-LAN-02
@@ -59,7 +60,7 @@ internal class NetworkAddressPolicyTest {
         val wifiFilter = NetworkAddressFilter(setOf(AddressFamily.Ipv4), setOf(InterfaceType.Wifi), setOf(AddressCategory.Private))
         val selected = inventory.select(wifiFilter)
         assertEquals(listOf(otherWifiAddress, wifiAlternative), selected)
-        assertThrows(UnsupportedOperationException::class.java) { (selected as MutableList).clear() }
+        assertFailsWith<UnsupportedOperationException> { (selected as MutableList).clear() }
         for (emptyGroupFilter in listOf(
             NetworkAddressFilter(emptySet(), allAddressesFilter.interfaceTypes, allAddressesFilter.categories),
             NetworkAddressFilter(allAddressesFilter.families, emptySet(), allAddressesFilter.categories),
@@ -94,7 +95,7 @@ internal class NetworkAddressPolicyTest {
                 )
             )
         )
-        assertFalse(scope1.ipKey == scope2.ipKey)
+        assertNotEquals(scope1.ipKey, scope2.ipKey)
         assertEquals(scope1.ipKey, NetworkAddress(99, scope1.ip, "changed0", InterfaceType.Vpn).ipKey)
     }
 

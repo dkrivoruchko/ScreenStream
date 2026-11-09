@@ -2,12 +2,14 @@ package io.screenstream.mjpeg.http
 
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.SecretValue
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 internal class HttpAccessTest {
     // Cases: MJPEG-ACC-01
@@ -18,7 +20,7 @@ internal class HttpAccessTest {
         assertTrue(access.allowsViewing(null, null))
         assertEquals(HttpAccess.PinResult.Authorized(null), access.verifyPin(null, "peer", 0))
         assertNull(access.exchangeToken("irrelevant"))
-        assertThrows(IllegalArgumentException::class.java) {
+        assertFailsWith<IllegalArgumentException> {
             access.updateSettings(AccessSettings(pinEnabled = true))
         }
         assertTrue(access.allowsViewing(null, null))
@@ -309,8 +311,7 @@ internal class HttpAccessTest {
 
     private fun authorizedCookie(access: HttpAccess, pin: String, peer: String = "peer", nowMillis: Long = 0): SecretValue {
         val result = access.verifyPin(pin, peer, nowMillis)
-        assertTrue(result is HttpAccess.PinResult.Authorized)
-        return checkNotNull((result as HttpAccess.PinResult.Authorized).cookie)
+        return assertNotNull(assertIs<HttpAccess.PinResult.Authorized>(result).cookie)
     }
 
     private fun wrongAttempts(access: HttpAccess, count: Int, nowMillis: Long = 0) {

@@ -12,18 +12,22 @@ import io.screenstream.mjpeg.networkaddress.AddressCategory
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
 import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
+import io.screenstream.mjpeg.settingsJsonIgnoringUnknownKeys
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
+private val json: Json = Json { encodeDefaults = true }
+
 internal class MjpegSettingsModelsTest {
-    private val json = Json { encodeDefaults = true }
 
     // Cases: MJPEG-SET-01
     @Test
@@ -73,15 +77,15 @@ internal class MjpegSettingsModelsTest {
     @Test
     fun settingsRejectInvalidInputsAndAcceptBoundaryValues() {
         for (scale in listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, 0.0, -1.0, Double.MIN_VALUE)) {
-            assertThrows(IllegalArgumentException::class.java) { ImageSettings(scalePercent = scale) }
+            assertFailsWith<IllegalArgumentException> { ImageSettings(scalePercent = scale) }
         }
         assertEquals(250.0, ImageSettings(scalePercent = 250.0).scalePercent, 0.0)
         assertEquals(Double.MAX_VALUE, ImageSettings(scalePercent = Double.MAX_VALUE).scalePercent, 0.0)
         assertEquals(OutputSize.TargetSize(8193, 9000), ImageSettings(targetSize = OutputSize.TargetSize(8193, 9000)).targetSize)
         assertEquals(65, WebPageSettings(title = "x".repeat(65)).title.length)
-        for (quality in listOf(-1, 101)) assertThrows(IllegalArgumentException::class.java) { ImageSettings(jpegQuality = quality) }
+        for (quality in listOf(-1, 101)) assertFailsWith<IllegalArgumentException> { ImageSettings(jpegQuality = quality) }
         for (quality in listOf(0, 100)) assertEquals(quality, ImageSettings(jpegQuality = quality).jpegQuality)
-        assertThrows(IllegalArgumentException::class.java) { ImageSettings(outputSelection = ImageSettings.OutputSelection.TargetSize) }
+        assertFailsWith<IllegalArgumentException> { ImageSettings(outputSelection = ImageSettings.OutputSelection.TargetSize) }
         val target = OutputSize.TargetSize(640, 480)
         assertEquals(target, ImageSettings(outputSelection = ImageSettings.OutputSelection.TargetSize, targetSize = target).targetSize)
         val defaultFilter = NetworkSettings().filter
@@ -89,22 +93,22 @@ internal class MjpegSettingsModelsTest {
             NetworkAddressFilter(emptySet(), defaultFilter.interfaceTypes, defaultFilter.categories),
             NetworkAddressFilter(defaultFilter.families, emptySet(), defaultFilter.categories),
             NetworkAddressFilter(defaultFilter.families, defaultFilter.interfaceTypes, emptySet()),
-        )) assertThrows(IllegalArgumentException::class.java) { NetworkSettings(filter = filter) }
-        for (port in listOf(1023, 65536)) assertThrows(IllegalArgumentException::class.java) { NetworkSettings(httpPort = port) }
+        )) assertFailsWith<IllegalArgumentException> { NetworkSettings(filter = filter) }
+        for (port in listOf(1023, 65536)) assertFailsWith<IllegalArgumentException> { NetworkSettings(httpPort = port) }
         for (port in listOf(1024, 65535)) assertEquals(port, NetworkSettings(httpPort = port).httpPort)
         for (pin in listOf("12345", "1234567", "12 456", "１２３４５６", "abcdef")) {
             assertFalse(AccessSettings.isValidPin(pin))
-            assertThrows(IllegalArgumentException::class.java) { AccessSettings(pin = SecretValue(pin)) }
+            assertFailsWith<IllegalArgumentException> { AccessSettings(pin = SecretValue(pin)) }
         }
         assertTrue(AccessSettings.isValidPin("000007"))
-        assertThrows(IllegalArgumentException::class.java) { AccessSettings(blockMinutes = 0) }
+        assertFailsWith<IllegalArgumentException> { AccessSettings(blockMinutes = 0) }
         assertEquals(1, AccessSettings(blockMinutes = 1).blockMinutes)
         assertEquals(Int.MAX_VALUE, AccessSettings(blockMinutes = Int.MAX_VALUE).blockMinutes)
         for (color in listOf("101418", "#123", "#12345678", "#12345g", " #101418")) {
-            assertThrows(IllegalArgumentException::class.java) { WebPageSettings(title = "", background = color) }
+            assertFailsWith<IllegalArgumentException> { WebPageSettings(title = "", background = color) }
         }
         assertEquals("#aAbBcC", WebPageSettings(title = "", background = "#aAbBcC").background)
-        for (timeout in listOf(9, 1801)) assertThrows(IllegalArgumentException::class.java) { StreamBehaviorSettings(stopAfterNetworkLossSeconds = timeout) }
+        for (timeout in listOf(9, 1801)) assertFailsWith<IllegalArgumentException> { StreamBehaviorSettings(stopAfterNetworkLossSeconds = timeout) }
         for (timeout in listOf(10, 1800)) assertEquals(timeout, StreamBehaviorSettings(stopAfterNetworkLossSeconds = timeout).stopAfterNetworkLossSeconds)
     }
 
@@ -150,7 +154,7 @@ internal class MjpegSettingsModelsTest {
             """{"frameRate":{"type":"SamplingInterval","interval":"PT0.999S"}}""",
             """{"frameRate":{"type":"SamplingInterval","interval":"PT3600.001S"}}""",
             """{"frameRate":{"type":"SamplingInterval","interval":"not-duration"}}""",
-        )) assertThrows(IllegalArgumentException::class.java) { json.decodeFromString<ImageSettings>(invalid) }
+        )) assertFailsWith<IllegalArgumentException> { json.decodeFromString<ImageSettings>(invalid) }
     }
 
     // Cases: MJPEG-SET-01, MJPEG-SET-02
@@ -167,7 +171,7 @@ internal class MjpegSettingsModelsTest {
             assertEquals(expected, decoded.frameRate)
             assertEquals(expected, Json.decodeFromString<ImageSettings>(Json.encodeToString(decoded)).frameRate)
         }
-        assertEquals(ImageSettings(), Json.decodeFromString<ImageSettings>("{}"))
+        assertEquals(expected = ImageSettings(), actual = Json.decodeFromString<ImageSettings>("{}"))
         assertEquals(30, ImageSettings.UI_DEFAULT_MANUAL_FPS)
         assertEquals(1.seconds, ImageSettings.UI_DEFAULT_SAMPLING_INTERVAL)
         assertEquals(OutputSize.ContentMode.AspectFit, ImageSettings.UI_DEFAULT_TARGET_CONTENT_MODE)
@@ -190,17 +194,17 @@ internal class MjpegSettingsModelsTest {
             """"access":{"pinPolicy":"Unknown"}""",
         )
         for (member in fixtures) {
-            assertThrows(IllegalArgumentException::class.java) {
+            assertFailsWith<IllegalArgumentException> {
                 Json.decodeFromString<MjpegSettings.Data>("""{"web":{"title":"Keep only when valid"},$member}""")
             }
         }
         for (background in listOf("#123", "#12345678")) {
-            assertThrows(IllegalArgumentException::class.java) {
+            assertFailsWith<IllegalArgumentException> {
                 Json.decodeFromString<MjpegSettings.Data>("""{"web":{"title":"Saved","background":"$background"}}""")
             }
         }
         assertEquals(SecretValue("001234"), SecretValue("001234"))
-        assertFalse(SecretValue("001234") == SecretValue("001235"))
+        assertNotEquals(SecretValue("001234"), SecretValue("001235"))
         assertFalse(SecretValue("001234").equals("001234"))
     }
 
@@ -217,7 +221,15 @@ internal class MjpegSettingsModelsTest {
                 controlsLayout = WebPageSettings.BlockLayout(WebPageSettings.Edge.Top, WebPageSettings.Presentation.Overlay, false),
             ), decoded.web
         )
-        assertEquals(StreamBehaviorSettings(true, true, 10, StreamBehaviorSettings.PostStopImage.LastAvailableFrame, false), decoded.behavior)
+        assertEquals(
+            StreamBehaviorSettings(
+                keepScreenAwake = true,
+                stopOnScreenOff = true,
+                stopAfterNetworkLossSeconds = 10,
+                postStopImage = StreamBehaviorSettings.PostStopImage.LastAvailableFrame,
+                notifySlowViewers = false,
+            ), decoded.behavior
+        )
         assertEquals(Json.parseToJsonElement(fixture), Json.parseToJsonElement(Json.encodeToString(decoded)))
     }
 
@@ -230,8 +242,9 @@ internal class MjpegSettingsModelsTest {
                 hidePinOnCaptureStart = false, limitWrongPins = false, blockMinutes = 7,
             )
             val fromNull = withoutPin.withGeneratedPin()
-            val createdPin = checkNotNull(fromNull.pin)
-            assertTrue(AccessSettings.isValidPin(createdPin.value))
+            val createdPin = assertNotNull(fromNull.pin)
+            assertEquals(6, createdPin.value.length)
+            assertTrue(createdPin.value.all { it in '0'..'9' })
             assertEquals(withoutPin.copy(pin = createdPin), fromNull)
             val original = AccessSettings(
                 pinEnabled = true,
@@ -242,8 +255,9 @@ internal class MjpegSettingsModelsTest {
                 blockMinutes = 7
             )
             val generated = original.withGeneratedPin()
-            val pin = checkNotNull(generated.pin)
-            assertTrue(AccessSettings.isValidPin(pin.value))
+            val pin = assertNotNull(generated.pin)
+            assertEquals(6, pin.value.length)
+            assertTrue(pin.value.all { it in '0'..'9' })
             assertEquals(original.copy(pin = pin), generated)
             assertFalse(generated.toString().contains(pin.value))
         }
@@ -254,7 +268,7 @@ internal class MjpegSettingsModelsTest {
     fun networkAccessAndDormantChoicesKeepTheirSavedSchemaAndRedactDisplayText() {
         val fixture =
             """{"image":{},"network":{"filter":{"families":["Ipv4","Ipv6"],"interfaceTypes":["Mobile","Vpn"],"categories":["NonPrivate","Loopback"]},"httpPort":9000},"access":{"pinEnabled":true,"pinPolicy":"Permanent","pin":{"value":"001234"},"hidePinOnCaptureStart":false,"limitWrongPins":false,"blockMinutes":7},"web":{"title":"","retainImageOnReconnect":false},"behavior":{"keepScreenAwake":true,"stopOnScreenOff":true,"notifySlowViewers":false}}"""
-        val settings = Json { ignoreUnknownKeys = true }.decodeFromString<MjpegSettings.Data>(fixture)
+        val settings = settingsJsonIgnoringUnknownKeys.decodeFromString<MjpegSettings.Data>(fixture)
         assertEquals(
             NetworkSettings(
                 NetworkAddressFilter(
@@ -279,20 +293,20 @@ internal class MjpegSettingsModelsTest {
         assertEquals(settings, Json.decodeFromString<MjpegSettings.Data>(json.encodeToString(settings)))
         val expectedSchema = Json.parseToJsonElement(fixture).jsonObject
         val savedSchema = Json.parseToJsonElement(Json.encodeToString(settings)).jsonObject
-        assertEquals("Saved access schema", expectedSchema.getValue("access"), savedSchema.getValue("access"))
+        assertEquals(expectedSchema.getValue("access"), savedSchema.getValue("access"), "Saved access schema")
         val expectedNetwork = expectedSchema.getValue("network").jsonObject
         val savedNetwork = savedSchema.getValue("network").jsonObject
-        assertEquals("Saved network keys", expectedNetwork.keys, savedNetwork.keys)
-        assertEquals("Saved HTTP port", expectedNetwork.getValue("httpPort"), savedNetwork.getValue("httpPort"))
+        assertEquals(expectedNetwork.keys, savedNetwork.keys, "Saved network keys")
+        assertEquals(expectedNetwork.getValue("httpPort"), savedNetwork.getValue("httpPort"), "Saved HTTP port")
         val expectedFilter = expectedNetwork.getValue("filter").jsonObject
         val savedFilter = savedNetwork.getValue("filter").jsonObject
-        assertEquals("Saved filter keys", expectedFilter.keys, savedFilter.keys)
+        assertEquals(expectedFilter.keys, savedFilter.keys, "Saved filter keys")
         for (group in expectedFilter.keys) {
             // Filter groups are sets; sorted lists preserve duplicate detection without imposing order.
             assertEquals(
-                "Saved $group values",
                 expectedFilter.getValue(group).jsonArray.sortedBy { it.toString() },
                 savedFilter.getValue(group).jsonArray.sortedBy { it.toString() },
+                "Saved $group values",
             )
         }
         assertEquals("<redacted>", settings.access.pin.toString())

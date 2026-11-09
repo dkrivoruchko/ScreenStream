@@ -2,11 +2,6 @@ package io.screenstream.mjpeg.device
 
 import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.EOFException
@@ -22,6 +17,12 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /** Actual Android loopback IO; these fixtures do not start capture, the module or production CIO. */
 @RunWith(AndroidJUnit4::class)
@@ -36,7 +37,7 @@ internal class MjpegMultipartConnectionTest {
             peer.awaitClientClose(socket) // Decoded EOF must not require this physical socket to close.
         }) { port, _ ->
             MjpegMultipartConnection(port).use { connection ->
-                assertArrayEquals("ABC".toByteArray(), connection.nextFrame())
+                assertContentEquals("ABC".toByteArray(), connection.nextFrame())
                 connection.awaitFrame("second literal frame") { it.contentEquals("XYZ".toByteArray()) }
                 connection.assertClosedByServer()
             }
@@ -53,7 +54,7 @@ internal class MjpegMultipartConnectionTest {
                 if (fixedLength) peer.awaitClientClose(socket)
             }) { port, _ ->
                 MjpegMultipartConnection(port).use { connection ->
-                    assertArrayEquals("frame".toByteArray(), connection.nextFrame())
+                    assertContentEquals("frame".toByteArray(), connection.nextFrame())
                     connection.assertClosedByServer()
                 }
             }
@@ -68,9 +69,9 @@ internal class MjpegMultipartConnectionTest {
         }) { port, peer ->
             MjpegMultipartConnection(port).use { connection ->
                 val started = SystemClock.elapsedRealtime()
-                assertThrows(SocketTimeoutException::class.java) { connection.awaitFrame("stalled frame", 300) { true } }
-                assertTrue("A stalled read exceeded its aggregate budget", SystemClock.elapsedRealtime() - started < 3_000)
-                assertTrue("Timeout must close the exact client socket", peer.clientClosed.await(2, TimeUnit.SECONDS))
+                assertFailsWith<SocketTimeoutException> { connection.awaitFrame("stalled frame", 300) { true } }
+                assertTrue(SystemClock.elapsedRealtime() - started < 3_000, "A stalled read exceeded its aggregate budget")
+                assertTrue(peer.clientClosed.await(2, TimeUnit.SECONDS), "Timeout must close the exact client socket")
             }
         }
     }
@@ -94,9 +95,9 @@ internal class MjpegMultipartConnectionTest {
         }) { port, _ ->
             MjpegMultipartConnection(port).use { connection ->
                 val started = SystemClock.elapsedRealtime()
-                assertThrows(SocketTimeoutException::class.java) { connection.awaitFrame("progressing frame", 400) { true } }
-                assertTrue("The peer must continue sending while parsing is pending", writes.get() >= 2)
-                assertTrue("Payload progress extended the aggregate budget", SystemClock.elapsedRealtime() - started < 3_000)
+                assertFailsWith<SocketTimeoutException> { connection.awaitFrame("progressing frame", 400) { true } }
+                assertTrue(writes.get() >= 2, "The peer must continue sending while parsing is pending")
+                assertTrue(SystemClock.elapsedRealtime() - started < 3_000, "Payload progress extended the aggregate budget")
             }
         }
     }
@@ -107,15 +108,16 @@ internal class MjpegMultipartConnectionTest {
         withPeer({ socket, peer ->
             socket.getOutputStream().apply { write(headers() + part("x".repeat(8192))); flush() }
             sent.countDown()
-            peer.awaitClientClose(socket)
-        }) { port, _ ->
+            peer.awaitClientClose(socket, allowTransportError = true)
+        }) { port, peer ->
             val socket = ShortReadSocket()
             MjpegMultipartConnection(port, socket).use { connection ->
                 assertTrue(sent.await(2, TimeUnit.SECONDS))
-                assertTrue("The bulk read must start with many bytes available", socket.availableBytes() > 8_000)
+                assertTrue(socket.availableBytes() > 8_000, "The bulk read must start with many bytes available")
                 socket.delayReads.set(true)
-                assertThrows(SocketTimeoutException::class.java) { connection.awaitFrame("buffered bulk payload", 200) { true } }
-                assertTrue("The buffer consumed beyond the socket-read deadline", socket.delayedReads.get() < 20)
+                assertFailsWith<SocketTimeoutException> { connection.awaitFrame("buffered bulk payload", 200) { true } }
+                assertTrue(socket.delayedReads.get() < 20, "The buffer consumed beyond the socket-read deadline")
+                assertTrue(peer.clientClosed.await(2, TimeUnit.SECONDS), "The peer must observe client termination before cleanup")
             }
         }
     }
@@ -128,7 +130,7 @@ internal class MjpegMultipartConnectionTest {
         }) { port, peer ->
             MjpegMultipartConnection(port).use { connection ->
                 val matcherEntered = AtomicBoolean()
-                assertThrows(SocketTimeoutException::class.java) {
+                assertFailsWith<SocketTimeoutException> {
                     connection.awaitFrame("late decoded match", 300) {
                         matcherEntered.set(true)
                         SystemClock.sleep(600)
@@ -148,8 +150,8 @@ internal class MjpegMultipartConnectionTest {
             peer.stop.await(600, TimeUnit.MILLISECONDS) // EOF after the budget would previously have passed.
         }) { port, _ ->
             MjpegMultipartConnection(port).use { connection ->
-                val failure = assertThrows(AssertionError::class.java) { connection.assertClosedByServer(150) }
-                assertTrue(failure.cause is SocketTimeoutException)
+                val failure = assertFailsWith<AssertionError> { connection.assertClosedByServer(150) }
+                assertIs<SocketTimeoutException>(failure.cause)
             }
         }
     }
@@ -188,15 +190,15 @@ internal class MjpegMultipartConnectionTest {
                 socket.observe.set(true)
                 val reading = executor.submit<Throwable?> { runCatching { connection.assertClosedByServer() }.exceptionOrNull() }
                 try {
-                    assertTrue("The worker must enter the actual socket input", socket.readEntered.await(2, TimeUnit.SECONDS))
-                    assertFalse("The peer supplies no response body", socket.readExited.await(100, TimeUnit.MILLISECONDS))
+                    assertTrue(socket.readEntered.await(2, TimeUnit.SECONDS), "The worker must enter the actual socket input")
+                    assertFalse(socket.readExited.await(100, TimeUnit.MILLISECONDS), "The peer supplies no response body")
                     connection.close()
-                    assertTrue(reading.get(2, TimeUnit.SECONDS) is SocketException)
+                    assertIs<SocketException>(reading.get(2, TimeUnit.SECONDS))
                     assertTrue(socket.readExited.await(2, TimeUnit.SECONDS))
                 } finally {
                     connection.close()
                     executor.shutdownNow()
-                    assertTrue("Reader worker did not terminate", executor.awaitTermination(2, TimeUnit.SECONDS))
+                    assertTrue(executor.awaitTermination(2, TimeUnit.SECONDS), "Reader worker did not terminate")
                 }
             }
         }
@@ -231,14 +233,14 @@ internal class MjpegMultipartConnectionTest {
         for (response in responses) withPeer({ socket, _ ->
             socket.getOutputStream().apply { write(response); flush() }
         }) { port, _ ->
-            assertThrows(IllegalStateException::class.java) { MjpegMultipartConnection(port).close() }
+            assertFailsWith<IllegalStateException> { MjpegMultipartConnection(port).close() }
         }
         for (body in listOf("-1\r\n", "1\r\nXoops\r\n", "0\r\nX-Long: ${"x".repeat(8192)}\r\n\r\n")) {
             withPeer({ socket, _ ->
                 socket.getOutputStream().apply { write(headers("Transfer-Encoding: chunked\r\n") + body.toByteArray()); flush() }
             }) { port, _ ->
                 MjpegMultipartConnection(port).use { connection ->
-                    assertThrows(IllegalStateException::class.java) { connection.assertClosedByServer() }
+                    assertFailsWith<IllegalStateException> { connection.assertClosedByServer() }
                 }
             }
         }
@@ -256,8 +258,12 @@ internal class MjpegMultipartConnectionTest {
         val stop = CountDownLatch(1)
         val clientClosed = CountDownLatch(1)
 
-        fun awaitClientClose(socket: Socket) {
-            assertEquals(-1, socket.getInputStream().read())
+        fun awaitClientClose(socket: Socket, allowTransportError: Boolean = false) {
+            try {
+                assertEquals(-1, socket.getInputStream().read())
+            } catch (failure: SocketException) {
+                if (!allowTransportError || socket.isClosed || stop.count == 0L) throw failure
+            }
             clientClosed.countDown()
         }
     }
@@ -296,7 +302,7 @@ internal class MjpegMultipartConnectionTest {
                     worker.get(5, TimeUnit.SECONDS)
                 } finally {
                     executor.shutdownNow()
-                    assertTrue("Peer worker did not terminate", executor.awaitTermination(2, TimeUnit.SECONDS))
+                    assertTrue(executor.awaitTermination(2, TimeUnit.SECONDS), "Peer worker did not terminate")
                 }
             }
         }

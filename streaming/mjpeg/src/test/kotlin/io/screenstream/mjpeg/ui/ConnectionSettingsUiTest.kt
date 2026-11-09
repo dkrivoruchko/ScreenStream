@@ -31,8 +31,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -43,6 +41,8 @@ import org.robolectric.annotation.GraphicsMode
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -144,7 +144,7 @@ internal class ConnectionSettingsUiTest {
                 }
             }
             try {
-                assertTrue("Settings transaction did not enter", saveEntered.await(5, TimeUnit.SECONDS))
+                assertTrue(saveEntered.await(5, TimeUnit.SECONDS), "Settings transaction did not enter")
                 // Dismiss under All: the editor must emit the save before its execution policy is set.
                 closeEditor()
                 portField().assertDoesNotExist()

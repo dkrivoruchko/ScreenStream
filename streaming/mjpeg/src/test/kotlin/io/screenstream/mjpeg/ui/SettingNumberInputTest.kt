@@ -3,14 +3,14 @@ package io.screenstream.mjpeg.ui
 import io.screenstream.mjpeg.ui.settings.acceptsSettingNumberInput
 import io.screenstream.mjpeg.ui.settings.parseSettingDecimal
 import io.screenstream.mjpeg.ui.settings.parseSettingInteger
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 internal class SettingNumberInputTest {
     @Test
@@ -23,7 +23,7 @@ internal class SettingNumberInputTest {
             "12suffix" to null,
             "" to null,
         )) {
-            assertEquals("Integer input: $text", expected, parseSettingInteger(text, format))
+            assertEquals(expected, parseSettingInteger(text, format), "Integer input: $text")
         }
         assertTrue(acceptsSettingNumberInput("2147483647", format))
         assertFalse(acceptsSettingNumberInput("2147483648", format))
@@ -44,9 +44,9 @@ internal class SettingNumberInputTest {
             "3600,0000000000000001" to false,
         )) {
             assertEquals(
-                "Decimal draft: $text",
                 accepted,
                 acceptsSettingNumberInput(text, format, allowDecimal = true, maximumValue = 3600),
+                "Decimal draft: $text",
             )
         }
         assertNull(parseSettingDecimal("", format))

@@ -2,7 +2,7 @@
 
 [Scenario index](../02-verification-contracts.md) · [Testing](../01-testing.md)
 
-`MjpegCaptureSession` runs one capture attempt: it obtains consent and a projection through Core, hands the projection to a Capture Engine session, copies borrowed JPEGs into HTTP delivery and cleans up everything it acquired. These scenarios exercise that attempt from admission to its cleanup receipt. [Capture lifecycle](../../01-module/02-module-lifecycle.md) owns the rules, extending the public [startup flow](../../../docs/architecture.md#starting-capture) and [Stop behavior](../../../docs/architecture.md#stop); the [Capture Engine usage guide](../../../../../screen-capture-engine/docs/usage.md) and Core's [Screen Capture Access](../../../../core/docs/screen-capture.md) own the external contracts.
+`MjpegCaptureSession` runs one capture attempt: it obtains consent and a projection through Core, hands the projection to a Capture Engine session, copies borrowed JPEGs into HTTP delivery and cleans up everything it acquired. These scenarios exercise that attempt from admission to its cleanup receipt. [Capture lifecycle](../../01-module/02-module-lifecycle.md) owns the rules, extending the public [startup flow](../../../docs/architecture.md#starting-capture) and [Stop behavior](../../../docs/architecture.md#stop).
 
 ## Test boundary
 
@@ -14,7 +14,7 @@ Use L1 with a real session. A test controls these inputs:
 - **Foreground.** The two foreground callbacks.
 - **Scope.** The scope that hosts the attempt.
 
-Real projection, revocation and foreground admission need [platform qualification](09-integration.md#mjpeg-cfg-04).
+The [device sources](09-integration.md#mjpeg-cfg-04) exercise real projection and lifecycle behavior; local fixtures alone do not establish Android admission or revocation.
 
 The session keeps its first capture failure and its first cleanup failure as diagnostic stages, which tests assert at the session boundary. The manager only sees a generic error.
 
@@ -86,7 +86,7 @@ The session keeps its first capture failure and its first cleanup failure as dia
 - **Failure after preparation began.** If the consent request throws after preparation started, the attempt records `Startup.foreground`.
 - **Refusal result.** If Core returns a not-granted result, the attempt follows the refusal path without an error, whatever stage ended it.
 - **Rollback.** Foreground rollback is attempted during cleanup.
-- **Cancellation after promotion.** The attempt still owns the foreground rollback, as [Core's request ownership](../../../../core/docs/screen-capture.md#host-and-request-ownership) describes.
+- **Cancellation after promotion.** The attempt still owns foreground rollback.
 
 <a id="mjpeg-cap-04"></a>
 
@@ -177,7 +177,7 @@ Then race Stop against each of them.
 - **Suspended problems.** Suspended reports `InvalidRequest`, `CaptureUnavailable` and `ResourceExhausted` as separate problems.
 - **Engine failure.** An Engine Failed records `Engine.state`. Later successful cleanup keeps the status Failed.
 - **Confirmed startup.** Streaming requires a returned Engine start and no accepted Stop. An Active state seen before start returned isn't enough, and a confirmed session stays streaming while Suspended.
-- **First image is separate.** Confirmed startup can come before the first JPEG, so check image availability separately ([Engine startup](../../../../../screen-capture-engine/docs/usage.md#startup-details)).
+- **First image is separate.** Confirmed startup can come before the first JPEG, so check image availability separately.
 
 ## Borrowed output
 
@@ -203,7 +203,7 @@ Then race Stop against each of them.
 - **Exact bytes.** Copied bytes are exactly six bytes with the fixture's payload, and any spare capacity in a reused buffer stays outside that prefix.
 - **Pairing.** The copied JPEG stays paired with the generation that admitted it.
 - **Stale offers.** No offer is made without a generation. A stale offer never invokes the copier and can't revive output.
-- **Callback lifetime.** All access to the borrowed frame happens on the callback's thread, within that callback ([Engine frame rules](../../../../../screen-capture-engine/docs/usage.md#handle-jpeg-frames)).
+- **Callback lifetime.** All access to the borrowed frame happens on the callback's thread, within that callback.
 - **Copy failure.** Inject an exception after the copier is entered with sufficient destination capacity. No owned output is published. The session retains the exact cause at `Output.frame`, requests an Error Stop and still cleans up successfully; cleanup does not replace the capture failure. The Engine owns destination-size validation.
 
 **Defensive inputs.** A conforming Engine and HTTP store never produce these, so label them as defensive:
@@ -245,8 +245,8 @@ Cleanup runs without cancellation once it has started. In these scenarios, **for
 
 - **Both receipts.** Cleanup waits for both receipts. Foreground release waits for the consumer and depends on the media result.
 - **No substitutes.** A cancelled waiter or a terminal Engine state can't stand in for consumer completion.
-- **Unregister waits.** An ordinary unregister is a wait, not a step that normally fails ([consumer removal](../../../../../screen-capture-engine/docs/usage.md#replace-or-remove-the-consumer)).
-- **Logical completion only.** Media stop confirms logical completion and the projection stop. Physical release follows the [Engine's stop contract](../../../../../screen-capture-engine/docs/usage.md#stop-a-capture-run).
+- **Unregister waits.** An ordinary unregister is a wait, not a step that normally fails.
+- **Logical completion only.** Supplied Engine stop and registration receipts establish the adapter's cleanup ordering, not physical release.
 
 <a id="mjpeg-cap-11"></a>
 
@@ -278,7 +278,7 @@ Cleanup runs without cancellation once it has started. In these scenarios, **for
 - **When consent is offered.** MJPEG offers consent back to Core only if all of these hold: startup succeeded, there is no capture or cleanup failure, the Stop reason is User or Shutdown, and the Engine ended in `Stopped(Requested)`. Android ending the projection gives `ProjectionStopped` and isn't eligible.
 - **Failed offer.** A failed offer records `Cleanup.consentReuse` and makes cleanup unsuccessful.
 - **Foreground after the offer.** Foreground release comes after the offer, so a later foreground failure can fail cleanup after consent was already saved.
-- **Core decides reuse.** Whether consent is actually reused, and on which Android versions, belongs to Core's [legacy reuse model](../../../../core/docs/screen-capture.md#legacy-reuse-and-cleanup).
+- **Evidence boundary.** Supplied capture-access fixtures establish when MJPEG offers consent for reuse, not whether Android later reuses it.
 
 ## Service host and defensive inputs
 
@@ -286,27 +286,15 @@ Cleanup runs without cancellation once it has started. In these scenarios, **for
 
 ### MJPEG-CAP-13: Real MJPEG Service adapter
 
-**History.** Run an attempt through a real `MjpegStreamingModuleService`, which inherits Core's `StreamingModuleService`. Simulate these cases:
+**History.** The [Service adapter suite](../../../src/test/kotlin/io/screenstream/mjpeg/MjpegStreamingModuleServiceTest.kt) checks descriptor metadata and runs a real controller through `MjpegStreamingModuleService` with supplied HTTP and address-monitor owners:
 
-- promotion that succeeds, is rejected or throws
-- Service destruction during the attempt
-- leaving capture foreground after media cleanup, once with the instance still admitted and once after shutdown has closed foreground admission
-- a platform failure while restoring waiting foreground
-- terminal Service stop after module shutdown
+1. Capture foreground promotion throws.
+2. Waiting-foreground restoration throws.
+3. The Service is destroyed unexpectedly.
 
-Run on SDK levels before 29, from 29 to 33, and 34 or later.
+**Expected.** Both foreground faults preserve their supplied cause and start cleanup of the original HTTP delivery and address monitor. Unexpected destruction reports module failure, starts those same cleanup owners and makes the module cleanup receipt false. Descriptor assertions retain the MJPEG ID, priority, Service class, notification slot and title resource.
 
-**Expected.**
-
-- **Promotion request.** MJPEG requests capture foreground for its exact attempt, without the microphone type, inside Core's consent callback.
-- **No false success.** A rejected or failed promotion never counts as success, and startup ends as Core reports it ([CAP-03](#mjpeg-cap-03)).
-- **Notification Stop.** Confirmed startup updates the notification so that Stop targets that exact attempt. Before confirmation, the notification offers Exit.
-- **Leaving capture foreground.** `leaveCaptureForeground` targets the same attempt and follows media cleanup when [CAP-11](#mjpeg-cap-11) allows it. It doesn't remove foreground: for a surviving admitted instance, Core restores waiting foreground with Exit. When shutdown has closed foreground admission and the Service still exists, restoration is skipped without a failure. Core clears the attempt's foreground ownership in both cases.
-- **Restoration failure.** When the platform promotion call throws, Core closes foreground admission, reports failure to the manager and requests module shutdown, then rethrows. The session then records `Cleanup.foreground`, and cleanup is unsuccessful.
-- **Terminal Service stop.** Removing foreground isn't a capture cleanup step. After the attempt's cleanup settles, module cleanup calls `stopAndAwaitDestruction()`, and Android removes foreground and the notification when the Service stops ([Core's foreground lifecycle](../../../../core/docs/notifications.md#foreground-presentation)). A failed stop request or an Android timeout fails module cleanup and doesn't change the attempt's recorded stages.
-- **Service destruction.** Destroying the Service reports module failure and starts shutdown ([CTL-11](02-controller.md#mjpeg-ctl-11)).
-
-**Evidence boundary.** Core's Service base class implements the promotion calls for each SDK level; a Robolectric run through the MJPEG subclass shows only how MJPEG uses them. Actual system admission, foreground-service restrictions and visible notifications need L2.
+**Evidence boundary.** These local histories establish MJPEG controller cleanup through its real Service adapter. They do not establish capture-session cleanup stages, physical release, Android admission or notification visibility.
 
 <a id="mjpeg-cap-14"></a>
 
@@ -318,6 +306,6 @@ Run on SDK levels before 29, from 29 to 33, and 34 or later.
 
 - **State observation failure.** It records `Engine.stateObservation`, ends capture with an Error stop and cleans up.
 - **Statistics observation failure.** It is only logged. No values are invented, and capture success is unchanged.
-- **Undocumented Suspended problem.** The Engine allows only three Suspended problems ([lifecycle states](../../../../../screen-capture-engine/docs/usage.md#lifecycle-states)). Any other value makes the session's suspension problem throw when the controller reads it, which fails the module rather than one attempt.
+- **Undocumented Suspended problem.** The Engine allows only three Suspended problems. Any other value makes the session's suspension problem throw when the controller reads it, which fails the module rather than one attempt.
 
 **Evidence boundary.** These are defensive inputs ([evidence rule 6](../01-testing.md#evidence-rules)).

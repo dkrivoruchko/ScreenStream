@@ -21,14 +21,14 @@ import io.screenstream.mjpeg.device.MjpegDeviceTestSupport.Companion.matchesTarg
 import io.screenstream.mjpeg.device.MjpegDeviceTestSupport.MultipartViewer
 import io.screenstream.mjpeg.settings.ImageSettings
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNotSame
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.lang.ref.WeakReference
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotSame
+import kotlin.test.assertTrue
 
 @RunWith(AndroidJUnit4::class)
 internal class MjpegReconfigurationDeviceTest {
@@ -61,7 +61,7 @@ internal class MjpegReconfigurationDeviceTest {
                 compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(suspension))
                 compose.onNodeWithText(suspension).assertIsDisplayed()
                 assertEquals(attempt, runningModule(host)?.status?.captureAttempt)
-                assertTrue("Confirmed capture remains streaming while its Engine is suspended", runningModule(host)?.status?.isStreaming == true)
+                assertEquals(true, runningModule(host)?.status?.isStreaming, "Confirmed capture remains streaming while its Engine is suspended")
                 assertTrue(serviceIsRunning())
                 assertTrue(canConnect(host.port))
 
@@ -88,7 +88,7 @@ internal class MjpegReconfigurationDeviceTest {
                 }
                 saveJpegEvidence("crop-recovered-320x192", recoveredJpeg)
                 assertEquals(attempt, runningModule(host)?.status?.captureAttempt)
-                assertTrue(runningModule(host)?.status?.isStreaming == true)
+                assertEquals(true, runningModule(host)?.status?.isStreaming)
                 assertEquals(submissions, host.systemConsentAttempts.toList())
                 assertEquals(reuses, host.reusedConsentAttempts.toList())
                 exitAndAssertResourcesReleased(host, stream)
@@ -126,7 +126,7 @@ internal class MjpegReconfigurationDeviceTest {
                         dimensions(it) == (initialDisplay.width to initialDisplay.height) && matchesTarget(it, green = false)
                     }
                     val nextRotation = (initialDisplay.rotation + 1) % 4
-                    assertTrue("Android rejected the real display rotation", instrumentation.uiAutomation.setRotation(nextRotation))
+                    assertTrue(instrumentation.uiAutomation.setRotation(nextRotation), "Android rejected the real display rotation")
                     awaitHostCondition(host, "actual platform display geometry change (ignored rotation is not coverage)") {
                         val actual = displayGeometry(this)
                         actual.rotation == nextRotation && actual.width == initialDisplay.height && actual.height == initialDisplay.width &&
@@ -145,13 +145,13 @@ internal class MjpegReconfigurationDeviceTest {
                     }
                     saveJpegEvidence("rotation-changed", rotatedJpeg)
                     fixture.scenario.onActivity {
-                        assertNotSame("Actual display rotation must recreate the test Activity", initialActivity.get(), it)
+                        assertNotSame(initialActivity.get(), it, "Actual display rotation must recreate the test Activity")
                     }
                     saveTextEvidence("rotation-activity-recreation", "ActivityScenario observed a new Activity instance after actual display rotation.\n")
                     assertEquals(attempt, runningModule(host)?.status?.captureAttempt)
                     assertTrue(
+                        instrumentation.uiAutomation.setRotation(initialDisplay.rotation),
                         "Android rejected restoration to the initial display rotation",
-                        instrumentation.uiAutomation.setRotation(initialDisplay.rotation)
                     )
                     awaitHostCondition(host, "platform geometry restored") {
                         displayGeometry(this).let { it.width == initialDisplay.width && it.height == initialDisplay.height && it.rotation == initialDisplay.rotation }
@@ -180,8 +180,7 @@ internal class MjpegReconfigurationDeviceTest {
             try {
                 restoreRotationPolicy(this, originalAutoRotate, originalUserRotation, originalDisplay)
             } catch (restorationFailure: Throwable) {
-                val failure = primaryFailure
-                if (failure == null) throw restorationFailure
+                val failure = primaryFailure ?: throw restorationFailure
                 failure.addSuppressed(restorationFailure)
             }
         }

@@ -4,10 +4,6 @@ import android.content.res.AssetManager
 import io.screenstream.mjpeg.settings.MjpegSettings
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -23,6 +19,10 @@ import org.robolectric.shadows.ShadowArscAssetManager14
 import org.robolectric.util.ReflectionHelpers.ClassParameter
 import java.io.FileNotFoundException
 import java.io.InputStream
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)

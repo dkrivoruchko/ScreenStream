@@ -30,10 +30,6 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.io.Buffer
 import kotlinx.io.RawSink
 import kotlinx.io.readByteArray
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -43,6 +39,11 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
@@ -128,9 +129,10 @@ internal class HttpDeliveryCredentialRotationTest {
                     WebRoutes(httpTestContext(), delivery).installRoutes(this, listener)
                 }
                 socketJob.invokeOnCompletion { completed.getValue("socket").complete(Unit) }
-                val socketAdmission = delivery.admitWebSocket(listener, cookie, "127.0.0.1", socketJob)
-                assertTrue(socketAdmission is WebRoutes.WebSocketAdmission.Accepted)
-                val admittedGeneration = (socketAdmission as WebRoutes.WebSocketAdmission.Accepted).credentialGeneration
+                val socketAdmission = assertIs<WebRoutes.WebSocketAdmission.Accepted>(
+                    delivery.admitWebSocket(listener, cookie, "127.0.0.1", socketJob),
+                )
+                val admittedGeneration = socketAdmission.credentialGeneration
                 assertTrue(delivery.isWebSocketCurrent(listener, admittedGeneration))
                 coroutineScope {
                     val acquiredCall = async(Dispatchers.IO) {
@@ -163,17 +165,17 @@ internal class HttpDeliveryCredentialRotationTest {
                         waitingCall.await()
                         for (key in listOf("acquired", "initial", "waiting")) completed.getValue(key).await()
                     }
-                    assertArrayEquals(byteArrayOf(), initialOutput.bytes())
+                    assertContentEquals(byteArrayOf(), initialOutput.bytes())
                     assertEquals("JPEG response revoked", withTimeout(5.seconds) { initialWriteFailure.await() }.message)
-                    assertArrayEquals(multipartBytes(image), acquiredOutput.bytes())
-                    assertArrayEquals(multipartBytes(image), waitingOutput.bytes())
+                    assertContentEquals(multipartBytes(image), acquiredOutput.bytes())
+                    assertContentEquals(multipartBytes(image), waitingOutput.bytes())
                     val settled = delivery.awaitHttpInfo { it.completedJpegs == 2L }
                     assertEquals(image.size * 2L, settled.completedJpegBytes)
                     assertTrue(settled.clients.isEmpty())
                     val query = if (openAfterRotation) "" else "&token=${checkNotNull(delivery.appliedToken).value}"
                     client.get("http://127.0.0.1:8080/jpeg?case=fresh$query") { header(HttpHeaders.Host, "127.0.0.1:8080") }
                     withTimeout(5.seconds) { completed.getValue("fresh").await() }
-                    assertArrayEquals(image, freshOutput.bytes())
+                    assertContentEquals(image, freshOutput.bytes())
                     delivery.stopHttpTestDelivery()
                     withTimeout(5.seconds) {
                         for (key in listOf("acquired", "initial", "waiting", "fresh")) completed.getValue(key).await()
