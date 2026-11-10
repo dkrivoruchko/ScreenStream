@@ -29,7 +29,9 @@ public enum class StreamMode(public val analyticsValue: String) {
     MJPEG("mjpeg"),
     RTSP_SERVER("rtsp_server"),
     RTSP_CLIENT("rtsp_client"),
-    WEBRTC("webrtc")
+    WEBRTC("webrtc"),
+    VNC_SERVER("vnc_server"),
+    VNC_CLIENT("vnc_client")
 }
 
 public enum class EntryPoint(public val analyticsValue: String) {
