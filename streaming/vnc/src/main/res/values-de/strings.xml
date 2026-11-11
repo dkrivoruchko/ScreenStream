@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vnc_method_title">VNC: Fernanzeige</string>
+    <string name="vnc_method_summary">Den Bildschirm in einem VNC-Viewer im Netzwerk ansehen.</string>
+    <string name="vnc_method_conditions">Kompatible VNC-Software · Nur Ansicht</string>
+    <string name="vnc_method_intro">VNC (RFB) ist ein weit verbreitetes Protokoll für die Fernanzeige, das von vielen Clients unterstützt wird. Standardmäßig stellt dieses Gerät den Stream auf Port 5900 bereit. Sie können sich auch mit einem VNC-Viewer verbinden, der auf eingehende Verbindungen wartet.</string>
+    <string-array name="vnc_method_benefits">
+        <item>Funktioniert mit den meisten VNC-Clients und Viewern.</item>
+        <item>Nur Ansicht: Clients sehen den Bildschirm, können das Gerät aber nicht steuern.</item>
+        <item>Stellt den Stream in Ihrem lokalen Netzwerk bereit, kein Internet erforderlich.</item>
+        <item>Der Reverse-Connect-Modus versorgt einen Viewer, der auf eingehende Verbindungen wartet.</item>
+        <item>Einstellbare Auflösungsskalierung, Bildrate, Komprimierung, Schnittstellen und Port.</item>
+    </string-array>
+    <string-array name="vnc_method_things_to_know">
+        <item>Viewer müssen dieses Gerät erreichen können, z. B. über dasselbe WLAN. Die Bereitstellung funktioniert ohne Internet.</item>
+        <item>Nur Video. Es wird kein Audio übertragen.</item>
+        <item>Die Bildschirmfreigabe erfordert auf neueren Android-Versionen bei jedem Start des Streams die Berechtigung für die Android-Medienprojektion.</item>
+    </string-array>
+
+    <string name="vnc_error_recover">Wiederherstellen</string>
+    <string name="vnc_error_open_settings">Einstellungen öffnen</string>
+    <string name="vnc_error_start_screen_sharing">Bildschirmfreigabe starten</string>
+    <string name="vnc_close">Schließen</string>
+    <string name="vnc_error_local_network_permission_required">Zugriff auf das lokale Netzwerk ist erforderlich, damit Geräte eine Verbindung zu Ihrem Stream herstellen können.</string>
+
+    <string name="vnc_mode_card_title">VNC-Modus auswählen:</string>
+    <string name="vnc_mode_server">Server</string>
+    <string name="vnc_mode_server_hint">Dieses Gerät als VNC-Server betreiben</string>
+    <string name="vnc_mode_client">Client</string>
+    <string name="vnc_mode_client_hint">Mit einem entfernten VNC-Viewer verbinden</string>
+
+    <string name="vnc_server_parameters">Server-Einstellungen</string>
+    <string name="vnc_client_parameters">Client-Einstellungen</string>
+    <string name="vnc_encoding_parameters">Kodierungs-Einstellungen</string>
+
+    <string name="vnc_stream_start">Stream starten</string>
+    <string name="vnc_stream_stop">Stream stoppen</string>
+
+    <string name="vnc_mode_server_addresses">Geräte-Adressen:</string>
+    <string name="vnc_stream_no_address">Keine Adresse gefunden</string>
+    <string name="vnc_stream_interface">Schnittstelle:\n%1$s</string>
+    <string name="vnc_clients_connected">Clients: %1$d</string>
+    <string name="vnc_reverse_status_idle">Nicht verbunden</string>
+    <string name="vnc_reverse_status_connecting">Verbinde …</string>
+    <string name="vnc_reverse_status_active">Verbunden</string>
+    <string name="vnc_reverse_status_reconnecting">Erneute Verbindung …</string>
+    <string name="vnc_reverse_status_error">Verbindungsfehler</string>
+
+    <string name="vnc_label_interface">%1$s · %2$s</string>
+    <string name="vnc_label_loopback">Loopback</string>
+    <string name="vnc_label_ipv6_ula">IPv6 ULA</string>
+    <string name="vnc_label_ipv4_lan">IPv4 LAN</string>
+    <string name="vnc_label_public_ipv6">Öffentliches IPv6</string>
+    <string name="vnc_label_public_ipv4">Öffentliches IPv4</string>
+    <string name="vnc_pref_filter_wifi">WLAN</string>
+    <string name="vnc_pref_filter_mobile">Mobilfunk</string>
+    <string name="vnc_pref_filter_ethernet">Ethernet</string>
+    <string name="vnc_pref_filter_vpn">VPN</string>
+    <string name="vnc_pref_filter_unknown">Unbekannt</string>
+
+    <string name="vnc_pref_server_port">Serverport</string>
+    <string name="vnc_pref_server_port_summary">Port für eingehende Verbindungen</string>
+    <string name="vnc_pref_server_port_text">Serverport für eingehende Verbindungen festlegen.\nWerte: 1025–65535\nStandard: 5900</string>
+
+    <string name="vnc_pref_interface_filter">Schnittstellenfilter</string>
+    <string name="vnc_pref_interface_filter_summary">Schnittstellen für den Server auswählen</string>
+    <string name="vnc_pref_address_filter">Adressfilter</string>
+    <string name="vnc_pref_address_filter_summary">Adresstypen für den Server auswählen</string>
+    <string name="vnc_pref_filter_no_restriction">Keine Einschränkung</string>
+    <string name="vnc_pref_address_filter_private">Private Adresse</string>
+    <string name="vnc_pref_address_filter_localhost">Localhost</string>
+    <string name="vnc_pref_address_filter_public">Öffentliche Adresse</string>
+
+    <string name="vnc_pref_enable_ipv4">IPv4-Unterstützung aktivieren</string>
+    <string name="vnc_pref_enable_ipv4_summary">Server auf IPv4-Adressen betreiben</string>
+    <string name="vnc_pref_enable_ipv6">IPv6-Unterstützung aktivieren</string>
+    <string name="vnc_pref_enable_ipv6_summary">Server auf IPv6-Adressen betreiben</string>
+
+    <string name="vnc_pref_reverse_host">Viewer-Adresse</string>
+    <string name="vnc_pref_reverse_host_summary">Adresse des VNC-Viewers, mit dem verbunden werden soll</string>
+    <string name="vnc_pref_reverse_host_text">Die Viewer-Adresse im Modus „Reverse Connect“ festlegen.\nDie IP-Adresse oder den Hostnamen des Geräts verwenden, auf dem der VNC-Viewer auf eingehende Verbindungen wartet.</string>
+    <string name="vnc_pref_reverse_port">Viewer-Port</string>
+    <string name="vnc_pref_reverse_port_summary">Port des VNC-Viewers, mit dem verbunden werden soll</string>
+    <string name="vnc_pref_reverse_port_text">Viewer-Port für ausgehende Verbindungen festlegen.\nWerte: 1–65535\nStandard: 5900</string>
+    <string name="vnc_pref_reconnect_delay">Verbindungswiederherstellungs-Verzögerung</string>
+    <string name="vnc_pref_reconnect_delay_summary">Verzögerung vor der erneuten Verbindung zum Viewer</string>
+    <string name="vnc_pref_reconnect_delay_text">Die Verzögerung in Sekunden vor dem erneuten Verbindungsversuch festlegen.\nWerte: 1–120\nStandard: 5</string>
+
+    <string name="vnc_pref_max_fps">Maximale Bildrate</string>
+    <string name="vnc_pref_max_fps_summary">Framebuffer-Aktualisierungen pro Sekunde begrenzen</string>
+    <string name="vnc_pref_max_fps_text">Die maximale Bildrate für Framebuffer-Aktualisierungen festlegen.\nWerte: 1–60\nStandard: 15</string>
+    <string name="vnc_pref_zlib">Zlib-Kodierung verwenden</string>
+    <string name="vnc_pref_zlib_summary">Framebuffer-Aktualisierungen komprimieren, wenn möglich</string>
+
+    <string name="vnc_pref_scale">Skalierung</string>
+    <string name="vnc_pref_scale_summary">Framebuffer vor dem Senden skalieren</string>
+
+    <string name="vnc_error_ip_address_not_found">IP-Adresse nicht gefunden</string>
+    <string name="vnc_error_port_in_use">Port wird bereits verwendet</string>
+    <string name="vnc_error_invalid_media_projection">Starten der Bildschirmfreigabe fehlgeschlagen</string>
+    <string name="vnc_error_screen_capture_start_blocked">Start der Bildschirmaufnahme ist blockiert</string>
+    <string name="vnc_error_projection_acquire_rejected">Anfrage zur Bildschirmfreigabe wurde abgelehnt</string>
+    <string name="vnc_error_unspecified">VNC-Stream-Fehler</string>
+    <string name="vnc_error_notification_permission_required">Berechtigung für Benachrichtigungen ist für das Streaming erforderlich</string>
+</resources>
