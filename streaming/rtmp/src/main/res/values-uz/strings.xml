@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">Tiklash</string>
+    <string name="rtmp_error_open_settings">Sozlamalarni ochish</string>
+    <string name="rtmp_error_start_screen_sharing">Ekran ulashishni boshlash</string>
+    <string name="rtmp_error_start_with_audio">Audio bilan boshlash</string>
+    <string name="rtmp_error_allow_microphone">Mikrofonga ruxsat berish</string>
+    <string name="rtmp_error_local_network_permission_required">Qurilmalar translatsiyangizga ulanishi uchun mahalliy tarmoqqa kirish kerak.</string>
+
+    <string name="rtmp_method_title">RTMP: Pleyerlar va media serverlar</string>
+    <string name="rtmp_method_summary">Video pleyerda koʻring yoki translatsiyani media serverga yuboring.</string>
+    <string name="rtmp_method_conditions">Mos RTMP dasturi · Ixtiyoriy audio</string>
+    <string name="rtmp_method_intro">RTMP video pleyerlar va media serverlar ishlatadigan keng tarqalgan translatsiya standarti. Birlamchi holatda shu qurilma translatsiya serveri boʻlib ishlaydi. Translatsiyani media serverga ham yuborishingiz mumkin.</string>
+    <string-array name="rtmp_method_benefits">
+        <item>Ilovada koʻrsatilgan RTMP manzilini ochib, VLC kabi pleyerlarda koʻring.</item>
+        <item>Translatsiyani media serverga yuboring, jumladan foydalanuvchi nomi va parol soʻraydigan serverlarga ham.</item>
+        <item>Mikrofon audiosi, qurilma audiosi yoki ikkalasini qoʻshing.</item>
+        <item>Pleyer yoki serveringizga mos video va audio formatlari, oʻlcham va sifatni tanlang.</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>Pleyerlar shu qurilmaga ulana olishi kerak, masalan, bir xil Wi-Fi tarmogʻida. Qurilmaning oʻzi server boʻlganda internet kerak emas.</item>
+        <item>Serverga yuborishda shu qurilma unga ulana olishi kerak. Shifrlangan ulanish uchun rtmps:// manzilidan foydalaning. Format: rtmp://host/app/streamKey.</item>
+        <item>Pleyer yoki serveringiz siz tanlagan formatlarni qoʻllab-quvvatlashi kerak. AAC bilan H.264 hamma joyda ishlaydi; H.265 uchun Enhanced RTMP qoʻllab-quvvatlashi kerak.</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">RTMP rejimini tanlang:</string>
+    <string name="rtmp_mode_server">Server</string>
+    <string name="rtmp_mode_server_hint">Ushbu qurilmani RTMP server sifatida ishga tushiring</string>
+    <string name="rtmp_mode_client">Mijoz</string>
+    <string name="rtmp_mode_client_hint">Masofadagi RTMP serverga ulang</string>
+
+    <string name="rtmp_interfaces_title">RTMP server manzili</string>
+    <string name="rtmp_interfaces_no_address">Manzil topilmadi.\nUlanishni tekshiring yoki server sozlamalarini o‘zgartiring (Interfeys filtri, Manzil filtri).</string>
+    <string name="rtmp_interfaces_discovering">Manzillar qidirilmoqda…</string>
+    <string name="rtmp_interfaces_interface_label">Interfeys:\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">Manzilni nusxalash</string>
+    <string name="rtmp_interfaces_description_share">Manzilni ulashish</string>
+    <string name="rtmp_interfaces_description_qr">Manzilni QR-kod sifatida ko\'rsatish</string>
+    <string name="rtmp_interfaces_qr_content_description">QR-kod</string>
+    <string name="rtmp_interfaces_copied">Manzil nusxalandi</string>
+    <string name="rtmp_interfaces_share_title">RTMP manzilini ulashish</string>
+    <string name="rtmp_bindings_retry">Qayta urinish</string>
+    <string name="rtmp_bind_error_port_in_use">Xato: Port band</string>
+    <string name="rtmp_bind_error_address_not_available">Xato: Manzil mavjud emas</string>
+    <string name="rtmp_bind_error_permission_denied">Xato: Ruxsat rad etildi</string>
+    <string name="rtmp_bind_error_unknown">Xato: Tinglovchi xatosi</string>
+
+    <string name="rtmp_server_parameters">Server sozlamalari</string>
+    <string name="rtmp_client_parameters">Mijoz sozlamalari</string>
+
+    <string name="rtmp_stream_start">Translyatsiyani boshlash</string>
+    <string name="rtmp_stream_stop">Translyatsiyani to\'xtatish</string>
+
+    <string name="rtmp_error_notification_permission_required">Bu ilovaga translatsiya xizmatini boshlash uchun bildirishnomalar yoqilgan bo\'lishi kerak.\nIlova sozlamalarida bildirishnomalarni yoqing.</string>
+    <string name="rtmp_error_screen_capture_start_blocked">Android ekran ulashishni boshlashni blokladi. ScreenStream ochiq tursin va qayta boshlang.</string>
+    <string name="rtmp_error_projection_acquire_rejected">Ekranni yozib olish ruxsati endi yaroqli emas. Ekran ulashishni qayta boshlang.</string>
+    <string name="rtmp_error_audio_permission_required">Audio bilan translatsiyani boshlash uchun mikrofon ruxsati kerak.</string>
+    <string name="rtmp_error_audio_start_blocked">Android audio ulashishni boshlashni blokladi. ScreenStream ochiq tursin va audio bilan qayta boshlang.</string>
+    <string name="rtmp_error_ip_address_not_found">Manzil topilmadi. Ulanishni tekshiring yoki server sozlamalarini o‘zgartiring (Interfeys filtri, Manzil filtri).</string>
+    <string name="rtmp_error_unspecified">Xatolik yuz berdi.</string>
+
+    <string name="rtmp_media_server">Media serveri</string>
+    <string name="rtmp_server_address">RTMP server manzili</string>
+
+    <string name="rtmp_connection_connected">Server ulandi</string>
+    <string name="rtmp_connection_connecting">Serverga ulanmoqda…</string>
+    <string name="rtmp_connection_disconnected">Server uzildi</string>
+    <string name="rtmp_connection_error">Ulanish xatosi</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">Ommaviy IPv4</string>
+    <string name="rtmp_label_public_ipv6">Ommaviy IPv6</string>
+    <string name="rtmp_label_loopback">Loopback</string>
+
+    <string name="rtmp_video_parameters">Video sozlamalari</string>
+    <string name="rtmp_video_encoder">Video kodlovchi:</string>
+    <string name="rtmp_video_encoder_auto">Avto</string>
+    <string name="rtmp_video_h264_profile">H.264 profili:</string>
+    <string name="rtmp_video_h264_profile_auto">Avto</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">Faol profil: %1$s</string>
+    <string name="rtmp_video_resize_image">Tasvir o\'lchami: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">Ekran o\'lchami: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">Video o\'lchami: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">Kadr tezligi: %1$d kadr/sek</string>
+    <string name="rtmp_video_bitrate">Video bitreyt: %1$s/sek</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtmp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtmp_audio_parameters">Audio sozlamalari</string>
+    <string name="rtmp_audio_mic">Mikrofon</string>
+    <string name="rtmp_audio_mic_mute">Mikrofonni o\'chirish</string>
+    <string name="rtmp_audio_device">Ichki audio</string>
+    <string name="rtmp_audio_device_mute">Ichki audioni o\'chirish</string>
+    <string name="rtmp_audio_encoder">Audio kodlovchi:</string>
+    <string name="rtmp_audio_encoder_auto">Avto</string>
+    <string name="rtmp_audio_bitrate">Audio bitreyt: %1$s/sek</string>
+    <string name="rtmp_audio_capture_issue_detected">Audio yozib olish muammosi aniqlandi</string>
+
+    <string name="rtmp_connection_access_denied">Kirish rad etildi</string>
+    <string name="rtmp_connection_no_credentials">Foydalanuvchi nomi va parolni kiriting</string>
+    <string name="rtmp_connection_invalid_credentials">Foydalanuvchi nomi yoki parol noto\'g\'ri</string>
+
+    <string name="rtmp_close">Yopish</string>
+    <string name="rtmp_pref_interface_filter">Interfeys filtri</string>
+    <string name="rtmp_pref_interface_filter_summary">Server uchun tarmoq interfeyslarini tanlang</string>
+    <string name="rtmp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtmp_pref_interface_filter_mobile">Mobil</string>
+    <string name="rtmp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtmp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtmp_pref_interface_filter_unknown">noma\'lum</string>
+    <string name="rtmp_pref_filter_no_restriction">Cheklovsiz</string>
+    <string name="rtmp_pref_address_filter">Manzil filtri</string>
+    <string name="rtmp_pref_address_filter_summary">Server uchun IP manzil turlarini tanlang</string>
+    <string name="rtmp_pref_address_filter_private">Shaxsiy</string>
+    <string name="rtmp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtmp_pref_address_filter_public">Ommaviy</string>
+    <string name="rtmp_pref_enable_ipv4">IPv4 yoqish</string>
+    <string name="rtmp_pref_enable_ipv4_summary">Serverni IPv4 manzillarda ishga tushiring</string>
+    <string name="rtmp_pref_enable_ipv6">IPv6 yoqish</string>
+    <string name="rtmp_pref_enable_ipv6_summary">Serverni IPv6 manzillarda ishga tushiring</string>
+    <string name="rtmp_pref_server_port">Server porti</string>
+    <string name="rtmp_pref_server_port_summary">Kiruvchi ulanishlar uchun portni o\'rnating</string>
+    <string name="rtmp_pref_server_port_text">Kiruvchi ulanishlar uchun server portini o\'rnating.\nQiymatlar: 1025–65535\nStandart: 8554</string>
+</resources>

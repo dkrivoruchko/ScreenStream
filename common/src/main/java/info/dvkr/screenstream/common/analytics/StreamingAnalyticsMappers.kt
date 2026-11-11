@@ -38,6 +38,7 @@ public object StreamingAnalyticsMappers {
             normalized.contains("configurationchange") -> StopReasonGroup.SYSTEM
             normalized.contains("modechanged") -> StopReasonGroup.SYSTEM
             normalized.contains("rtspclientdisconnect") -> StopReasonGroup.SYSTEM
+            normalized.contains("rtmpclientdisconnect") -> StopReasonGroup.SYSTEM
             normalized.contains("destroy") -> StopReasonGroup.SYSTEM
             normalized.contains("capturefatal") -> StopReasonGroup.ERROR
             normalized.contains("socketsignalingerror") -> StopReasonGroup.ERROR

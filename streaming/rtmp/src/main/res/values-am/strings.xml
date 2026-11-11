@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">ማገገም</string>
+    <string name="rtmp_error_open_settings">ቅንብሮችን ክፈት</string>
+    <string name="rtmp_error_start_screen_sharing">የማያ ገጽ ማጋራትን ይጀምሩ</string>
+    <string name="rtmp_error_start_with_audio">ከድምጽ ጋር ይጀምሩ</string>
+    <string name="rtmp_error_allow_microphone">ማይክሮፎንን ይፍቀዱ</string>
+    <string name="rtmp_error_local_network_permission_required">መሣሪያዎች ወደ ስርጭትዎ እንዲገናኙ የአካባቢ አውታረ መረብ መዳረሻ ያስፈልጋል።</string>
+
+    <string name="rtmp_method_title">RTMP፦ ማጫወቻዎች እና የሚዲያ አገልጋዮች</string>
+    <string name="rtmp_method_summary">በቪዲዮ ማጫወቻ ይመልከቱ፣ ወይም ስርጭቱን ወደ ሚዲያ አገልጋይ ይላኩ።</string>
+    <string name="rtmp_method_conditions">ተኳሃኝ የRTMP ሶፍትዌር · አማራጭ ድምፅ</string>
+    <string name="rtmp_method_intro">RTMP በቪዲዮ ማጫወቻዎች እና በሚዲያ አገልጋዮች የሚጠቀሙበት የተለመደ የስርጭት መስፈርት ነው። በነባሪ፣ ይህ መሣሪያ ስርጭቱን ያስተናግዳል። ወደ ሚዲያ አገልጋይም መላክ ይችላሉ።</string>
+    <string-array name="rtmp_method_benefits">
+        <item>በመተግበሪያው ውስጥ የሚታየውን የRTMP አድራሻ በመክፈት እንደ VLC ባሉ ማጫወቻዎች ይመልከቱ።</item>
+        <item>የተጠቃሚ ስም እና የይለፍ ቃል የሚጠይቁ አገልጋዮችን ጨምሮ ስርጭቱን ወደ ሚዲያ አገልጋይ ይላኩ።</item>
+        <item>የማይክሮፎን ድምፅ፣ የመሣሪያ ድምፅ ወይም ሁለቱንም ያክሉ።</item>
+        <item>ለማጫወቻዎ ወይም ለአገልጋይዎ የሚስማሙ የቪዲዮ እና የድምፅ ቅርጸቶችን፣ መጠንን እና ጥራትን ይምረጡ።</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>ማጫወቻዎች ከዚህ መሣሪያ ጋር መገናኘት መቻል አለባቸው፣ ለምሳሌ በተመሳሳይ Wi-Fi። ማስተናገድ ያለ በይነመረብ ይሰራል።</item>
+        <item>ወደ አገልጋይ ሲልኩ ይህ መሣሪያ አገልጋዩን መድረስ መቻል አለበት። ለተመሰጠረ ግንኙነት rtmps:// አድራሻ ይጠቀሙ። ቅርጸቱ rtmp://host/app/streamKey ነው።</item>
+        <item>ማጫወቻዎ ወይም አገልጋይዎ የሚመርጧቸውን ቅርጸቶች መደገፍ አለበት። H.264 ከ AAC ጋር በሁሉም ቦታ ይሰራል፤ H.265 ግን የ Enhanced RTMP ድጋፍ ይፈልጋል።</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">የRTMP ሁነታ ይምረጡ፡</string>
+    <string name="rtmp_mode_server">አገልጋይ</string>
+    <string name="rtmp_mode_server_hint">ይህን መሳሪያ እንደ RTMP አገልጋይ አስተናግድ</string>
+    <string name="rtmp_mode_client">ደንበኛ</string>
+    <string name="rtmp_mode_client_hint">ወደ ሩቅ RTMP አገልጋይ ተገናኝ</string>
+
+    <string name="rtmp_interfaces_title">RTMP አገልጋይ አድራሻ</string>
+    <string name="rtmp_interfaces_no_address">አድራሻ አልተገኘም።\nግንኙነቱን ያረጋግጡ ወይም የአገልጋይ ቅንብሮችን ያስተካክሉ (መገናኛ ማጣሪያ፣ አድራሻ ማጣሪያ)።</string>
+    <string name="rtmp_interfaces_discovering">አድራሻዎችን በመፈለግ ላይ…</string>
+    <string name="rtmp_interfaces_interface_label">በይነገጽ፡\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">አድራሻ ቅዳ</string>
+    <string name="rtmp_interfaces_description_share">አድራሻ አጋራ</string>
+    <string name="rtmp_interfaces_description_qr">አድራሻ እንደ QR ኮድ አሳይ</string>
+    <string name="rtmp_interfaces_qr_content_description">QR ኮድ</string>
+    <string name="rtmp_interfaces_copied">አድራሻ ተገልብጧል</string>
+    <string name="rtmp_interfaces_share_title">RTMP አድራሻ አጋራ</string>
+    <string name="rtmp_bindings_retry">እንደገና ይሞክሩ</string>
+    <string name="rtmp_bind_error_port_in_use">ስህተት: ፖርት ተጠቃሚ ነው</string>
+    <string name="rtmp_bind_error_address_not_available">ስህተት: አድራሻ አይገኝም</string>
+    <string name="rtmp_bind_error_permission_denied">ስህተት: ፍቃድ ተከልክሏል</string>
+    <string name="rtmp_bind_error_unknown">ስህተት: አዳሚ አልተሳካም</string>
+
+    <string name="rtmp_server_parameters">የአገልጋይ ቅንብሮች</string>
+    <string name="rtmp_client_parameters">የደንበኛ ቅንብሮች</string>
+
+    <string name="rtmp_stream_start">ዥረት ጀምር</string>
+    <string name="rtmp_stream_stop">ዥረት አቁም</string>
+
+    <string name="rtmp_error_notification_permission_required">ይህ መተግበሪያ የዥረት አገልግሎቱን ለመጀመር ማሳወቂያዎች እንዲነቁ ይፈልጋል።\nበመተግበሪያ ቅንብሮች ውስጥ ማሳወቂያዎችን ያንቁ።</string>
+    <string name="rtmp_error_screen_capture_start_blocked">Android የማያ ገጽ ማጋራት መጀመርን አግዷል። ScreenStream ክፍት ይቆይ እና እንደገና ይጀምሩ።</string>
+    <string name="rtmp_error_projection_acquire_rejected">የማያ ገጽ መቅረጽ ፈቃድ ከእንግዲህ ትክክለኛ አይደለም። የማያ ገጽ ማጋራትን እንደገና ይጀምሩ።</string>
+    <string name="rtmp_error_audio_permission_required">ከድምጽ ጋር ማሰራጨት ለመጀመር የማይክሮፎን ፍቃድ ያስፈልጋል።</string>
+    <string name="rtmp_error_audio_start_blocked">Android የድምጽ ማጋራት መጀመርን አግዷል። ScreenStream ክፍት ይቆይ እና ከድምጽ ጋር እንደገና ይጀምሩ።</string>
+    <string name="rtmp_error_ip_address_not_found">አድራሻ አልተገኘም። ግንኙነቱን ያረጋግጡ ወይም የአገልጋይ ቅንብሮችን ያስተካክሉ (መገናኛ ማጣሪያ፣ አድራሻ ማጣሪያ)።</string>
+    <string name="rtmp_error_unspecified">አንድ ችግር ተፈጥሯል።</string>
+
+    <string name="rtmp_media_server">ሚዲያ አገልጋይ</string>
+    <string name="rtmp_server_address">RTMP አገልጋይ አድራሻ</string>
+
+    <string name="rtmp_connection_connected">አገልጋይ ተገናኝቷል</string>
+    <string name="rtmp_connection_connecting">ከአገልጋይ ጋር በመገናኘት ላይ…</string>
+    <string name="rtmp_connection_disconnected">አገልጋይ ተቋርጧል</string>
+    <string name="rtmp_connection_error">የግንኙነት ስህተት</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">ህዝባዊ IPv4</string>
+    <string name="rtmp_label_public_ipv6">ህዝባዊ IPv6</string>
+    <string name="rtmp_label_loopback">Loopback</string>
+
+    <string name="rtmp_video_parameters">የቪዲዮ ቅንብሮች</string>
+    <string name="rtmp_video_encoder">የቪዲዮ አርቃቂ:</string>
+    <string name="rtmp_video_encoder_auto">ራስሰር</string>
+    <string name="rtmp_video_h264_profile">የH.264 ፕሮፋይል፡</string>
+    <string name="rtmp_video_h264_profile_auto">ራስሰር</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">ንቁ ፕሮፋይል፡ %1$s</string>
+    <string name="rtmp_video_resize_image">ምስል መጠን መቀየር: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">የማያ ገጽ መጠን: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">የቪዲዮ መጠን: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">የፍሬም መጠን: %1$d ፍሬም/ሰከንድ</string>
+    <string name="rtmp_video_bitrate">የቪዲዮ ቢትሬት: %1$s/ሰከንድ</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f ሜቢት</string>
+    <string name="rtmp_video_bitrate_kbit">%d ኪቢት</string>
+
+    <string name="rtmp_audio_parameters">የድምጽ ቅንብሮች</string>
+    <string name="rtmp_audio_mic">ማይክሮፎን</string>
+    <string name="rtmp_audio_mic_mute">ማይክሮፎን አጥፋ</string>
+    <string name="rtmp_audio_device">ውስጣዊ ድምፅ</string>
+    <string name="rtmp_audio_device_mute">ውስጣዊ ድምፅ አጥፋ</string>
+    <string name="rtmp_audio_encoder">የድምጽ አርቃቂ:</string>
+    <string name="rtmp_audio_encoder_auto">ራስሰር</string>
+    <string name="rtmp_audio_bitrate">የድምጽ ቢትሬት: %1$s/ሰከንድ</string>
+    <string name="rtmp_audio_capture_issue_detected">የድምጽ መቅረጽ ችግር ተገኘ</string>
+
+    <string name="rtmp_connection_access_denied">መዳረሻ ተከልክሏል</string>
+    <string name="rtmp_connection_no_credentials">የተጠቃሚ ስምና የይለፍ ቃል ይግለጹ</string>
+    <string name="rtmp_connection_invalid_credentials">የተጠቃሚ ስም ወይም የይለፍ ቃል ዋጋ የለውም</string>
+
+    <string name="rtmp_close">ዝጋ</string>
+    <string name="rtmp_pref_interface_filter">መገናኛ ማጣሪያ</string>
+    <string name="rtmp_pref_interface_filter_summary">ለአገልጋዩ የአውታረ መረብ መገናኛዎችን ይምረጡ</string>
+    <string name="rtmp_pref_interface_filter_wifi">ዋይ-ፋይ</string>
+    <string name="rtmp_pref_interface_filter_mobile">ሞባይል</string>
+    <string name="rtmp_pref_interface_filter_ethernet">ኢተርኔት</string>
+    <string name="rtmp_pref_interface_filter_vpn">ቪፒኤን</string>
+    <string name="rtmp_pref_interface_filter_unknown">ያልታወቀ</string>
+    <string name="rtmp_pref_filter_no_restriction">ገደብ የለም</string>
+    <string name="rtmp_pref_address_filter">አድራሻ ማጣሪያ</string>
+    <string name="rtmp_pref_address_filter_summary">ለአገልጋዩ የአይፒ አድራሻ አይነቶችን ይምረጡ</string>
+    <string name="rtmp_pref_address_filter_private">የግል</string>
+    <string name="rtmp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtmp_pref_address_filter_public">ህዝባዊ</string>
+    <string name="rtmp_pref_enable_ipv4">IPv4 አክቲቭ አድርግ</string>
+    <string name="rtmp_pref_enable_ipv4_summary">አገልጋዩን በIPv4 አድራሻዎች ላይ አስኬድ</string>
+    <string name="rtmp_pref_enable_ipv6">IPv6 አክቲቭ አድርግ</string>
+    <string name="rtmp_pref_enable_ipv6_summary">አገልጋዩን በIPv6 አድራሻዎች ላይ አስኬድ</string>
+    <string name="rtmp_pref_server_port">የአገልጋይ ወደብ</string>
+    <string name="rtmp_pref_server_port_summary">ለገቢ ግንኙነቶች ወደብ ያዘጋጁ</string>
+    <string name="rtmp_pref_server_port_text">ለመጪ ግንኙነቶች የአገልጋይ ወደብ ያዘጋጁ።\nዋጋ፡ 1025–65535\nነባሪ፡ 8554</string>
+</resources>

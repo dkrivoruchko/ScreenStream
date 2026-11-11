@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rtmp_error_recover">Berreskuratu</string>
+    <string name="rtmp_error_open_settings">Ezarpenak ireki</string>
+    <string name="rtmp_error_start_screen_sharing">Hasi pantaila partekatzen</string>
+    <string name="rtmp_error_start_with_audio">Hasi audioarekin</string>
+    <string name="rtmp_error_allow_microphone">Baimendu mikrofonoa</string>
+    <string name="rtmp_error_local_network_permission_required">Tokiko sarerako sarbidea behar da, gailuak zure transmisiora konektatu ahal izateko.</string>
+
+    <string name="rtmp_method_title">RTMP: Erreproduzigailuak eta multimedia-zerbitzariak</string>
+    <string name="rtmp_method_summary">Ikusi bideo-erreproduzigailu batean, edo bidali transmisioa multimedia-zerbitzari batera.</string>
+    <string name="rtmp_method_conditions">RTMP software bateragarria · Aukerako audioa</string>
+    <string name="rtmp_method_intro">RTMP bideo-erreproduzigailuek eta multimedia-zerbitzariek erabiltzen duten transmisio-estandar ohikoa da. Modu lehenetsian, gailu honek ostatatzen du transmisioa. Multimedia-zerbitzari batera ere bidal dezakezu.</string>
+    <string-array name="rtmp_method_benefits">
+        <item>Ikusi VLC bezalako erreproduzigailuetan, aplikazioan ageri den RTMP helbidea irekita.</item>
+        <item>Bidali transmisioa multimedia-zerbitzari batera, baita erabiltzaile-izena eta pasahitza eskatzen dituzten zerbitzarietara ere.</item>
+        <item>Gehitu mikrofonoaren audioa, gailuaren audioa edo biak.</item>
+        <item>Aukeratu bideo- eta audio-formatuak, tamaina eta kalitatea zure erreproduzigailuaren edo zerbitzariaren arabera.</item>
+    </string-array>
+    <string-array name="rtmp_method_things_to_know">
+        <item>Erreproduzigailuek gailu honetara konektatu ahal izan behar dute, adibidez Wi-Fi sare beretik. Ostatatzeak Internetik gabe funtzionatzen du.</item>
+        <item>Zerbitzari batera bidaltzean, gailu honek hara iristeko aukera izan behar du. Konexio zifratu baterako, erabili rtmps:// helbide bat. Formatua rtmp://host/app/streamKey da.</item>
+        <item>Zure erreproduzigailuak edo zerbitzariak aukeratzen dituzun formatuak onartu behar ditu. AAC duen H.264 edonon funtzionatzen du; H.265-ek Enhanced RTMP euskarria behar du.</item>
+    </string-array>
+
+    <string name="rtmp_mode_card_title">Hautatu RTMP modua:</string>
+    <string name="rtmp_mode_server">Zerbitzaria</string>
+    <string name="rtmp_mode_server_hint">Gailu hau RTMP zerbitzari gisa ostatatu</string>
+    <string name="rtmp_mode_client">Bezeroa</string>
+    <string name="rtmp_mode_client_hint">Konektatu urruneko RTMP zerbitzari batera</string>
+
+    <string name="rtmp_interfaces_title">RTMP zerbitzariaren helbidea</string>
+    <string name="rtmp_interfaces_no_address">Ez da helbiderik aurkitu.\nEgiaztatu konexioa edo doitu zerbitzariaren ezarpenak (Interfaze-iragazkia, Helbide-iragazkia).</string>
+    <string name="rtmp_interfaces_discovering">Helbideak bilatzen…</string>
+    <string name="rtmp_interfaces_interface_label">Interfazea:\n%1$s</string>
+    <string name="rtmp_interfaces_description_copy">Kopiatu helbidea</string>
+    <string name="rtmp_interfaces_description_share">Partekatu helbidea</string>
+    <string name="rtmp_interfaces_description_qr">Erakutsi helbidea QR kode gisa</string>
+    <string name="rtmp_interfaces_qr_content_description">QR kodea</string>
+    <string name="rtmp_interfaces_copied">Helbidea kopiatuta</string>
+    <string name="rtmp_interfaces_share_title">Partekatu RTMP helbidea</string>
+    <string name="rtmp_bindings_retry">Berriz saiatu</string>
+    <string name="rtmp_bind_error_port_in_use">Errorea: portua erabiltzen ari da</string>
+    <string name="rtmp_bind_error_address_not_available">Errorea: Helbidea ez dago erabilgarri</string>
+    <string name="rtmp_bind_error_permission_denied">Errorea: Baimena ukatuta</string>
+    <string name="rtmp_bind_error_unknown">Errorea: Entzuleak huts egin du</string>
+
+    <string name="rtmp_server_parameters">Zerbitzariaren ezarpenak</string>
+    <string name="rtmp_client_parameters">Bezeroaren ezarpenak</string>
+
+    <string name="rtmp_stream_start">Transmisioa hasi</string>
+    <string name="rtmp_stream_stop">Transmisioa gelditu</string>
+
+    <string name="rtmp_error_notification_permission_required">Aplikazio honek jakinarazpenak gaituta behar ditu transmisio-zerbitzua hasteko.\nGaitu jakinarazpenak aplikazioaren ezarpenetan.</string>
+    <string name="rtmp_error_screen_capture_start_blocked">Android-ek pantaila partekatzearen hasiera blokeatu du. Mantendu ScreenStream irekita eta hasi berriro.</string>
+    <string name="rtmp_error_projection_acquire_rejected">Pantaila kapturatzeko baimena ez da baliozkoa dagoeneko. Hasi berriro pantaila partekatzen.</string>
+    <string name="rtmp_error_audio_permission_required">Mikrofono-baimena behar da audioarekin transmititzen hasteko.</string>
+    <string name="rtmp_error_audio_start_blocked">Android-ek audioa partekatzearen hasiera blokeatu du. Mantendu ScreenStream irekita eta hasi berriro audioarekin.</string>
+    <string name="rtmp_error_ip_address_not_found">Ez da helbiderik aurkitu. Egiaztatu konexioa edo doitu zerbitzariaren ezarpenak (Interfaze-iragazkia, Helbide-iragazkia).</string>
+    <string name="rtmp_error_unspecified">Zerbait oker joan da.</string>
+
+    <string name="rtmp_media_server">Multimedia zerbitzaria</string>
+    <string name="rtmp_server_address">RTMP zerbitzariaren helbidea</string>
+
+    <string name="rtmp_connection_connected">Zerbitzarira konektatuta</string>
+    <string name="rtmp_connection_connecting">Zerbitzarira konektatzen…</string>
+    <string name="rtmp_connection_disconnected">Zerbitzaritik deskonektatuta</string>
+    <string name="rtmp_connection_error">Konexio errorea</string>
+
+    <string name="rtmp_label_ipv4_lan">IPv4 LAN</string>
+    <string name="rtmp_label_ipv6_ula">IPv6 ULA</string>
+    <string name="rtmp_label_public_ipv4">IPv4 publikoa</string>
+    <string name="rtmp_label_public_ipv6">IPv6 publikoa</string>
+    <string name="rtmp_label_loopback">Loopback</string>
+
+    <string name="rtmp_video_parameters">Bideo-ezarpenak</string>
+    <string name="rtmp_video_encoder">Bideo kodetzailea:</string>
+    <string name="rtmp_video_encoder_auto">Auto</string>
+    <string name="rtmp_video_h264_profile">H.264 profila:</string>
+    <string name="rtmp_video_h264_profile_auto">Auto</string>
+    <string name="rtmp_video_h264_profile_baseline">Baseline</string>
+    <string name="rtmp_video_h264_profile_main">Main</string>
+    <string name="rtmp_video_h264_profile_high">High</string>
+    <string name="rtmp_video_h264_profile_active">Profil aktiboa: %1$s</string>
+    <string name="rtmp_video_resize_image">Irudia birneurritu: %1$.2f%%</string>
+    <string name="rtmp_video_resize_image_10">10%</string>
+    <string name="rtmp_video_resize_image_100">100%</string>
+    <string name="rtmp_video_screen_size">Pantailaren tamaina: %1$dx%2$d</string>
+    <string name="rtmp_video_video_size">Bideoaren tamaina: %1$dx%2$d</string>
+    <string name="rtmp_video_frame_rate">Fotograma-abiadura: %1$d frame/seg</string>
+    <string name="rtmp_video_bitrate">Bideo bit-emaria: %1$s/seg</string>
+    <string name="rtmp_video_bitrate_mbit">%.2f Mbit</string>
+    <string name="rtmp_video_bitrate_kbit">%d Kbit</string>
+
+    <string name="rtmp_audio_parameters">Audio-ezarpenak</string>
+    <string name="rtmp_audio_mic">Mikrofonoa</string>
+    <string name="rtmp_audio_mic_mute">Mututu mikrofonoa</string>
+    <string name="rtmp_audio_device">Barneko audioa</string>
+    <string name="rtmp_audio_device_mute">Mututu barneko audioa</string>
+    <string name="rtmp_audio_encoder">Audio kodetzailea:</string>
+    <string name="rtmp_audio_encoder_auto">Auto</string>
+    <string name="rtmp_audio_bitrate">Audio bit-emaria: %1$s/seg</string>
+    <string name="rtmp_audio_capture_issue_detected">Audioa atzemateko arazoa hauteman da</string>
+
+    <string name="rtmp_connection_access_denied">Sarbidea ukatua</string>
+    <string name="rtmp_connection_no_credentials">Zehaztu erabiltzaile-izena eta pasahitza</string>
+    <string name="rtmp_connection_invalid_credentials">Erabiltzaile-izena edo pasahitza baliogabea da</string>
+
+    <string name="rtmp_close">Itxi</string>
+    <string name="rtmp_pref_interface_filter">Interfaze iragazkia</string>
+    <string name="rtmp_pref_interface_filter_summary">Hautatu sare interfazeak zerbitzarirako</string>
+    <string name="rtmp_pref_interface_filter_wifi">Wi-Fi</string>
+    <string name="rtmp_pref_interface_filter_mobile">Mugikorra</string>
+    <string name="rtmp_pref_interface_filter_ethernet">Ethernet</string>
+    <string name="rtmp_pref_interface_filter_vpn">VPN</string>
+    <string name="rtmp_pref_interface_filter_unknown">ezezaguna</string>
+    <string name="rtmp_pref_filter_no_restriction">Mugarik gabe</string>
+    <string name="rtmp_pref_address_filter">Helbide iragazkia</string>
+    <string name="rtmp_pref_address_filter_summary">Hautatu IP helbide motak zerbitzarirako</string>
+    <string name="rtmp_pref_address_filter_private">Pribatua</string>
+    <string name="rtmp_pref_address_filter_localhost">Localhost</string>
+    <string name="rtmp_pref_address_filter_public">Publikoa</string>
+    <string name="rtmp_pref_enable_ipv4">Gaitu IPv4</string>
+    <string name="rtmp_pref_enable_ipv4_summary">Exekutatu zerbitzaria IPv4 helbideetan</string>
+    <string name="rtmp_pref_enable_ipv6">Gaitu IPv6</string>
+    <string name="rtmp_pref_enable_ipv6_summary">Exekutatu zerbitzaria IPv6 helbideetan</string>
+    <string name="rtmp_pref_server_port">Zerbitzariaren ataka</string>
+    <string name="rtmp_pref_server_port_summary">Sarrerako konexioetarako ataka</string>
+    <string name="rtmp_pref_server_port_text">Sarrerako konexioetarako ataka.\nBalioak: 1025–65535\nLehenetsia: 8554</string>
+</resources>
