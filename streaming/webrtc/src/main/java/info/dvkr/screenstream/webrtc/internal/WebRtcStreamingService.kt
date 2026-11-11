@@ -699,7 +699,7 @@ internal class WebRtcStreamingService(
             return@runBlocking true
         }
         try {
-            XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Event [$event] Current state: [${getStateString()}]"))
+            XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Event [${event.javaClass.simpleName}] Current state: [${getStateString()}]"))
             processEvent(event)
         } catch (cause: Throwable) {
             if (event is InternalEvent.Destroy) shutdownSucceeded = false
@@ -711,7 +711,7 @@ internal class WebRtcStreamingService(
 
             if (cause is WebRtcError) currentError.set(cause) else currentError.set(WebRtcError.UnknownError(cause))
         } finally {
-            XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Done [$event] New state: [${getStateString()}]"))
+            XLog.d(this@WebRtcStreamingService.getLog("handleMessage", "Done [${event.javaClass.simpleName}] New state: [${getStateString()}]"))
             if (event is InternalEvent.Destroy) event.destroyJob.complete()
             captureAnalytics?.consumersChanged(currentActiveConsumersCount(), SystemClock.elapsedRealtime())
             publishState()

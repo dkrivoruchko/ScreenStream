@@ -177,7 +177,7 @@ internal class WebRtcClient(
                         XLog.i(this@WebRtcClient.getLog("start", "createOffer.onFailure for stale client. Ignoring: $id"))
                         return
                     }
-                    eventListener.onError(negotiationKey(startNegotiationAttemptId), IllegalStateException("Client: $id. createHostOffer.onFailure: $s"))
+                    eventListener.onError(negotiationKey(startNegotiationAttemptId), IllegalStateException("Client: $id. createHostOffer.onFailure"))
                 }
 
                 override fun onSetSuccess() = Unit
@@ -284,9 +284,9 @@ internal class WebRtcClient(
             }
             onFailure {
                 if (!isCurrentPeerAttempt(currentPeerConnection, offerAttemptId) || state.get() == State.CREATED || isBenignSdpStateError(it.message)) {
-                    XLog.i(this@WebRtcClient.getLog("setHostOffer.onFailure", "Ignoring stale/benign failure for client $id: ${it.message}"))
+                    XLog.i(this@WebRtcClient.getLog("setHostOffer.onFailure", "Ignoring stale/benign failure for client $id"))
                 } else {
-                    eventListener.onError(negotiationKey(offerAttemptId), IllegalStateException("Client: $id. setHostOffer.onFailure: ${it.message}"))
+                    eventListener.onError(negotiationKey(offerAttemptId), IllegalStateException("Client: $id. setHostOffer.onFailure"))
                 }
             }
         }, sessionDescription)
@@ -378,9 +378,9 @@ internal class WebRtcClient(
             onFailure {
                 synchronized(queuedClientDataLock) { remoteAnswerReceived = false }
                 if (peerConnection !== currentPeerConnection || state.get() == State.CREATED || isBenignSdpStateError(it.message)) {
-                    XLog.i(this@WebRtcClient.getLog("setClientAnswer.onFailure", "Ignoring stale/benign failure for client $id: ${it.message}"))
+                    XLog.i(this@WebRtcClient.getLog("setClientAnswer.onFailure", "Ignoring stale/benign failure for client $id"))
                 } else {
-                    eventListener.onError(negotiationKey(attemptId), IllegalStateException("Client: $id. setClientAnswer.onFailure: ${it.message}"))
+                    eventListener.onError(negotiationKey(attemptId), IllegalStateException("Client: $id. setClientAnswer.onFailure"))
                 }
             }
         }, answer.asSessionDescription())
@@ -455,6 +455,7 @@ internal class WebRtcClient(
         val queued = synchronized(queuedClientDataLock) {
             if (!remoteAnswerApplied) {
                 XLog.i(getLog("setClientCandidate", "Client $id remote answer not applied. Queueing candidate."))
+                if (queuedCandidates.size >= MAX_QUEUED_CANDIDATES) queuedCandidates.removeAt(0)
                 queuedCandidates.add(candidate)
                 true
             } else {
@@ -645,6 +646,8 @@ internal class WebRtcClient(
     override fun hashCode(): Int = clientId.hashCode()
 
     private companion object {
+        private const val MAX_QUEUED_CANDIDATES = 128
+
         @JvmStatic
         private val defaultIceServers
             get() = sequenceOf(

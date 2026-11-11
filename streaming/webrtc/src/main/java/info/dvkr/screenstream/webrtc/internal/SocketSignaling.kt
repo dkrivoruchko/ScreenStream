@@ -36,19 +36,19 @@ internal class SocketSignaling(
                     if (message == error) return null // Not this error
 
                     return when { // Must be identical to server values
-                        error.startsWith("NO_TOKEN_FOUND") -> SocketAuthError(message)
-                        error.startsWith("EMPTY_PAYLOAD") -> SocketAuthError(message)
-                        error.startsWith("EMPTY_REQUEST_DETAILS") -> SocketAuthError(message)
-                        error.startsWith("REQUEST_DETAILS_WRONG_PACKAGE_NAME") -> SocketAuthError(message)
-                        error.startsWith("INVALID_NONCE") -> SocketAuthError(message, true)
-                        error.startsWith("TOKEN_EXPIRED") -> SocketAuthError(message, true)
-                        error.startsWith("EMPTY_APP_INTEGRITY") -> SocketAuthError(message)
-                        error.startsWith("WRONG_APP_VERDICT") -> SocketAuthError(message)
-                        error.startsWith("APP_INTEGRITY_WRONG_PACKAGE_NAME") -> SocketAuthError(message)
-                        error.startsWith("APP_INTEGRITY_WRONG_DIGEST") -> SocketAuthError(message)
-                        error.startsWith("EMPTY_DEVICE_INTEGRITY") -> SocketAuthError(message)
-                        error.startsWith("FAIL_DEVICE_INTEGRITY") -> SocketAuthError(message)
-                        else -> SocketAuthError(message, true)
+                        error.startsWith("NO_TOKEN_FOUND") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:NO_TOKEN_FOUND")
+                        error.startsWith("EMPTY_PAYLOAD") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:EMPTY_PAYLOAD")
+                        error.startsWith("EMPTY_REQUEST_DETAILS") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:EMPTY_REQUEST_DETAILS")
+                        error.startsWith("REQUEST_DETAILS_WRONG_PACKAGE_NAME") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:REQUEST_DETAILS_WRONG_PACKAGE_NAME")
+                        error.startsWith("INVALID_NONCE") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:INVALID_NONCE", true)
+                        error.startsWith("TOKEN_EXPIRED") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED", true)
+                        error.startsWith("EMPTY_APP_INTEGRITY") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:EMPTY_APP_INTEGRITY")
+                        error.startsWith("WRONG_APP_VERDICT") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:WRONG_APP_VERDICT")
+                        error.startsWith("APP_INTEGRITY_WRONG_PACKAGE_NAME") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:APP_INTEGRITY_WRONG_PACKAGE_NAME")
+                        error.startsWith("APP_INTEGRITY_WRONG_DIGEST") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:APP_INTEGRITY_WRONG_DIGEST")
+                        error.startsWith("EMPTY_DEVICE_INTEGRITY") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:EMPTY_DEVICE_INTEGRITY")
+                        error.startsWith("FAIL_DEVICE_INTEGRITY") -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:FAIL_DEVICE_INTEGRITY")
+                        else -> SocketAuthError("$ERROR_TOKEN_VERIFICATION_FAILED:UNKNOWN_ERROR", true)
                     }
                 }
             }
@@ -165,7 +165,6 @@ internal class SocketSignaling(
                 if (isStaleSocketCallback(currentSocket, logTag)) return
 
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
-                XLog.v(this@SocketSignaling.getLog(logTag, "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(
                         this@SocketSignaling.getLog(
@@ -240,26 +239,37 @@ internal class SocketSignaling(
             }
             on(Socket.EVENT_DISCONNECT) { args -> // Auto reconnect
                 if (isStaleSocketCallback(currentSocket, "openSocket.${Socket.EVENT_DISCONNECT}[${currentSocket.id()}]", false)) return@on
-                XLog.d(this@SocketSignaling.getLog(Socket.EVENT_DISCONNECT, args.contentToString()))
-                eventListener.onSocketDisconnected(args.contentToString())
+                val reason = when (val value = args.firstOrNull() as? String) {
+                    "io server disconnect", "io client disconnect", "transport close", "transport error",
+                    "ping timeout", "parse error", "forced close" -> value
+                    else -> "Socket disconnected"
+                }
+                XLog.d(this@SocketSignaling.getLog(Socket.EVENT_DISCONNECT, reason))
+                eventListener.onSocketDisconnected(reason)
             }
             on(Socket.EVENT_CONNECT_ERROR) { args -> // Auto or User reconnect
                 if (isStaleSocketCallback(currentSocket, "openSocket.${Socket.EVENT_CONNECT_ERROR}[${currentSocket.id()}]", false)) return@on
-                XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR, args.contentToString()))
+                XLog.e(this@SocketSignaling.getLog(Socket.EVENT_CONNECT_ERROR, "Socket connection failed"))
                 val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.MESSAGE) ?: ""
                 if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:TOKEN_EXPIRED")) {
                     XLog.d(this@SocketSignaling.getLog("openSocket", "TOKEN_EXPIRED"))
                     eventListener.onTokenExpired()
                 } else if (message.startsWith("$ERROR_TOKEN_VERIFICATION_FAILED:WRONG_APP_VERDICT")) {
                     XLog.d(this@SocketSignaling.getLog("openSocket", "WRONG_APP_VERDICT"), IllegalStateException("WRONG_APP_VERDICT"))
-                    eventListener.onError(Error.SocketAuthError.fromMessage(message) ?: Error.SocketConnectError(message))
+                    eventListener.onError(Error.SocketAuthError.fromMessage(message) ?: Error.SocketConnectError("Socket connection failed"))
                 } else
-                    eventListener.onError(Error.SocketAuthError.fromMessage(message) ?: Error.SocketConnectError(message))
+                    eventListener.onError(Error.SocketAuthError.fromMessage(message) ?: Error.SocketConnectError("Socket connection failed"))
             }
             on(Event.SOCKET_ERROR) { args -> // Server always disconnects socket on this event. User reconnect
                 if (isStaleSocketCallback(currentSocket, "openSocket.${Event.SOCKET_ERROR}[${currentSocket.id()}]", false)) return@on
-                XLog.e(this@SocketSignaling.getLog(Event.SOCKET_ERROR + "[${socketId()}]", args.contentToString()))
-                val message = (args?.firstOrNull() as? JSONObject)?.optString(Payload.STATUS) ?: ""
+                val message = when (val status = (args?.firstOrNull() as? JSONObject)?.optString(Payload.STATUS)) {
+                    "SOCKET_CHECK_ERROR:PAYLOAD_TOO_LARGE", "SOCKET_CHECK_ERROR:UNVERIFIED_SOCKET",
+                    "SOCKET_CHECK_ERROR:INVALID_SOCKET_STATE", "SOCKET_CHECK_ERROR:NO_CLIENT_ID",
+                    "SOCKET_CHECK_ERROR:UNKNOWN_CLIENT_EVENT", "SOCKET_CHECK_ERROR:ERROR_LIMIT_REACHED",
+                    "SOCKET_CHECK_ERROR:UNKNOWN_HOST_EVENT", "SOCKET_CHECK_ERROR:ACK_CALLBACK_REQUIRED" -> status
+                    else -> "SOCKET_CHECK_ERROR:UNKNOWN_ERROR"
+                }
+                XLog.e(this@SocketSignaling.getLog(Event.SOCKET_ERROR + "[${socketId()}]", message))
                 eventListener.onError(Error.SocketCheckError(message))
                 SocketPayload.fromPayload(args).sendOkAck()
             }
@@ -291,9 +301,7 @@ internal class SocketSignaling(
                 val logTag = "sendStreamCreate[${socketId()}]"
                 if (isStaleSocketCallback(currentSocket, logTag)) return
 
-                val msgV = "[${Event.STREAM_CREATE}] Response: ${args.contentToString()}"
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
-                XLog.v(this@SocketSignaling.getLog(logTag, msgV))
                 val ack = SocketAck.fromAck(args)
                 when {
                     ack.status != Payload.OK -> {
@@ -423,8 +431,6 @@ internal class SocketSignaling(
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 if (isStaleSocketCallback(currentSocket, "sendStreamRemove[${socketId()}]")) return
 
-                val msg = "[${Event.STREAM_REMOVE}] Response: ${args.contentToString()}"
-                XLog.v(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", msg))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> {
                         XLog.d(this@SocketSignaling.getLog("sendStreamRemove[${socketId()}]", "OK, elapsed_ms=${SystemClock.elapsedRealtime() - startedAt}"))
@@ -475,7 +481,6 @@ internal class SocketSignaling(
                 if (isStaleSocketCallback(currentSocket, logTag)) return
 
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
-                XLog.v(this@SocketSignaling.getLog(logTag, "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog(logTag, "OK, clientId=${clientKey?.clientId ?: "ALL"}, elapsed_ms=$elapsed"))
 
@@ -516,7 +521,6 @@ internal class SocketSignaling(
                 val logTag = "sendStreamStop[${socketId()}]"
                 if (isStaleSocketCallback(currentSocket, logTag)) return
 
-                XLog.v(this@SocketSignaling.getLog(logTag, "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog(logTag, "OK"))
                     else -> XLog.w(this@SocketSignaling.getLog(logTag, status), IllegalArgumentException("sendStreamStop => $status"))
@@ -583,7 +587,6 @@ internal class SocketSignaling(
             override fun onSuccess(args: Array<Any?>?) { // Callback may never be called
                 if (isStaleSocketCallback(currentSocket, "sendRemoveClients[${socketId()}]")) return
 
-                XLog.v(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "Response: ${args.contentToString()}"))
                 when (val status = SocketAck.fromAck(args).status) {
                     Payload.OK -> XLog.d(this@SocketSignaling.getLog("sendRemoveClients[${socketId()}]", "OK"))
                     else -> XLog.w(
@@ -614,7 +617,12 @@ internal class SocketSignaling(
             fun fromAck(response: Array<Any?>?): SocketAck = SocketAck(response?.firstOrNull() as? JSONObject)
         }
 
-        val status: String = json?.optString(Payload.STATUS) ?: ""
+        val status: String = when (val value = json?.optString(Payload.STATUS)) {
+            Payload.OK, Payload.ERROR_EMPTY_OR_BAD_DATA, Payload.ERROR_NO_CLIENT_FOUND, Payload.ERROR_TIMEOUT_OR_NO_RESPONSE,
+            "ERROR:HANDSHAKE_IN_PROGRESS", "ERROR:JWT_VERIFICATION_FILED", "ERROR:NO_STREAM_ID_SET", "ERROR:STREAM_ID_ALREADY_SET",
+            "ERROR:NO_CLIENT_ID_SET", "ERROR:NO_JWT_SET", "ERROR:BAD_PROTOCOL_VERSION", "ERROR:ROUTE_FAILED" -> value
+            else -> "ERROR:UNEXPECTED_ACK_STATUS"
+        }
 
         val streamId: StreamId = json?.optString(Payload.STREAM_ID)?.let { StreamId(it) } ?: StreamId.EMPTY
     }
@@ -668,7 +676,7 @@ internal class SocketSignaling(
                 if (candidateEnd) null
                 else json?.getJSONObject(Payload.CANDIDATE)?.toIceCandidate()
             }
-                .onFailure { XLog.e(getLog("SocketPayload", "[${Event.CLIENT_CANDIDATE}] Json error: ${it.message}"), it) }
+                .onFailure { XLog.e(getLog("SocketPayload", "[${Event.CLIENT_CANDIDATE}] Invalid candidate payload")) }
                 .getOrDefault(null)
         }
 

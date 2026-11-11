@@ -6,6 +6,7 @@ import org.webrtc.AudioTrack
 import org.webrtc.SessionDescription
 import org.webrtc.VideoTrack
 import java.security.MessageDigest
+import java.security.SecureRandom
 import kotlin.uuid.Uuid
 
 internal open class WebRtcEvent(val priority: Int) {
@@ -28,7 +29,7 @@ internal open class WebRtcEvent(val priority: Int) {
 
 @JvmInline
 internal value class PlayIntegrityToken(val value: String) {
-    override fun toString(): String = value.take(96)
+    override fun toString(): String = "*"
 }
 
 @JvmInline
@@ -64,8 +65,10 @@ internal value class StreamId(val value: String) {
 internal value class StreamPassword private constructor(val value: String) {
     internal companion object {
         internal val EMPTY: StreamPassword = StreamPassword("")
+        private val random = SecureRandom()
+        private const val SYMBOLS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-        internal fun generateNew(): StreamPassword = StreamPassword(randomString(6, true))
+        internal fun generateNew(): StreamPassword = StreamPassword(String(CharArray(6) { SYMBOLS[random.nextInt(SYMBOLS.length)] }))
     }
 
     internal fun isEmpty(): Boolean = value.isBlank()
@@ -73,7 +76,7 @@ internal value class StreamPassword private constructor(val value: String) {
     internal fun isValid(clientId: ClientId, streamId: StreamId, passwordHash: String): Boolean =
         (clientId.value + streamId.value + value).encodeToByteArray().toSHA384Bytes().toBase64UrlSafe() == passwordHash
 
-    override fun toString(): String = value
+    override fun toString(): String = "*"
 
     private fun ByteArray.toSHA384Bytes(): ByteArray = MessageDigest.getInstance("SHA-384").digest(this)
     private fun ByteArray.toBase64UrlSafe(): String = Base64.encodeToString(this, Base64.NO_WRAP or Base64.URL_SAFE)
