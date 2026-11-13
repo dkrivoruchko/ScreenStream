@@ -24,11 +24,11 @@ For direct on-chain transfers:
 
 ## Stream modes
 
-ScreenStream offers three stream modes: **Global mode (WebRTC)** (available only in the [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version), **Local mode (MJPEG)**, and **RTSP mode**. All modes stream the Android device screen, but they function differently. Audio support is available in **Global mode (WebRTC)** and **RTSP mode** only. The modes are independent of each other and have different capabilities, restrictions, and customization options.
+ScreenStream offers three stream modes: **Global mode (WebRTC)** (available only in the [Google Play Store](https://play.google.com/store/apps/details?id=info.dvkr.screenstream) version), **Local mode (MJPEG)**, and **RTSP mode**. The app's mode chooser lists them as **WebRTC: Worldwide sharing**, **MJPEG: Direct browser viewing**, and **RTSP: Players and media servers**. All modes stream the Android device screen, but they function differently. Audio support is available in **Global mode (WebRTC)** and **RTSP mode** only. In these modes, microphone and internal device audio are optional. Internal device audio requires Android 10 or higher and is captured only when Android and the source app allow it. The modes are independent of each other and have different capabilities, restrictions, and customization options.
 
 | Mode                     | Delivery                     | Video                     | Audio                 | Internet required              | Connection model                                                       | Security                                     |
 |--------------------------|------------------------------|---------------------------|--------------------|--------------------------------|------------------------------------------------------------------------|----------------------------------------------|
-| **Local mode (MJPEG)**   | MJPEG over HTTP              | JPEG images               | No                 | No                             | Built-in HTTP server                                                   | Optional 4–6 digit PIN                       |
+| **Local mode (MJPEG)**   | MJPEG over HTTP              | JPEG images               | No                 | No                             | Built-in HTTP server                                                   | Optional 6-digit PIN                         |
 | **Global mode (WebRTC)** | WebRTC                       | WebRTC video              | Microphone / internal audio | Yes                            | Public signaling service at [screenstream.io](https://screenstream.io) | End-to-end encryption + password             |
 | **RTSP mode**            | RTSP/RTP over TCP or UDP     | H.264 / H.265             | OPUS / AAC / G.711 | No (server) / Depends (client) | Built-in server (server mode) / External server (client mode)          | Client mode supports RTSP auth + RTSPS (TLS) |
 
@@ -71,22 +71,6 @@ The Local mode offers the following functionality:
 >
 > - Some Wi-Fi networks, particularly public or guest networks, isolate connected devices from each other. In this case, a phone and a client device on the same Wi-Fi network may still be unable to connect directly.
 
-**Screenshots**
-
-<p>
-  <img src="docs/images/mjpeg-1.png" alt="Local mode main screen" width="270" />&nbsp;
-  <img src="docs/images/mjpeg-7.png" alt="Local mode activity and connected clients" width="270" />&nbsp;
-  <img src="docs/images/mjpeg-2.png" alt="Local mode information dialog" width="270" />
-</p>
-<p>
-  <img src="docs/images/mjpeg-3.png" alt="Local mode general settings" width="270" />&nbsp;
-  <img src="docs/images/mjpeg-4.png" alt="Local mode image settings" width="270" />&nbsp;
-  <img src="docs/images/mjpeg-5.png" alt="Local mode security settings" width="270" />
-</p>
-<p align="center">
-  <img src="docs/images/mjpeg-6.png" alt="Local mode advanced settings" width="290" />
-</p>
-
 ### Global mode (WebRTC)
 
 Global mode uses WebRTC and the public ScreenStream signaling service to connect the streaming host (the app) with viewers using the ScreenStream [Web Client](https://screenstream.io).
@@ -106,14 +90,6 @@ Global mode offers the following functionality:
 > [!NOTE]
 > Global mode (WebRTC) is available only in the Google Play version.
 
-**Screenshots**
-
-<p>
-  <img src="docs/images/webrtc-1.png" alt="Global mode main screen" width="270" />&nbsp;
-  <img src="docs/images/webrtc-2.png" alt="Global mode information dialog" width="270" />&nbsp;
-  <img src="docs/images/webrtc-3.png" alt="Global mode audio settings" width="270" />
-</p>
-
 ### RTSP mode
 
 RTSP mode supports two sub-modes. Server mode (default) hosts the Android device as an RTSP server so compatible players can connect directly. Client mode publishes the stream to an external RTSP media server, such as MediaMTX.
@@ -132,16 +108,19 @@ For optimal performance, a fast and stable network connection is recommended due
 > [!NOTE]
 > Client mode requires an RTSP‑capable media server (e.g., [MediaMTX](https://github.com/bluenviron/mediamtx)).
 
-**Screenshots**
+## Screenshots
 
 <p>
-  <img src="docs/images/rtsp-1.png" alt="RTSP mode main screen" width="270" />&nbsp;
-  <img src="docs/images/rtsp-2.png" alt="RTSP mode information dialog" width="270" />&nbsp;
-  <img src="docs/images/rtsp-3.png" alt="RTSP mode server settings" width="270" />
+  <img src="docs/images/streaming-modes.png" alt="Streaming method chooser" width="270" />&nbsp;
+  <img src="docs/images/mjpeg-1.png" alt="MJPEG stream addresses and statistics" width="270" />
 </p>
-<p align="center">
-  <img src="docs/images/rtsp-4.png" alt="RTSP mode video settings" width="290" />&nbsp;
-  <img src="docs/images/rtsp-5.png" alt="RTSP mode audio settings" width="290" />
+<p>
+  <img src="docs/images/mjpeg-4.png" alt="MJPEG image settings" width="270" />&nbsp;
+  <img src="docs/images/mjpeg-5.png" alt="MJPEG access settings" width="270" />
+</p>
+<p>
+  <img src="docs/images/webrtc-1.png" alt="WebRTC streaming and audio controls" width="270" />&nbsp;
+  <img src="docs/images/rtsp-1.png" alt="RTSP server mode" width="270" />
 </p>
 
 ## Contribution
