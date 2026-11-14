@@ -1,43 +1,32 @@
 # Repository Guidelines
 
-## Purpose & Modes
-ScreenStream streams Android screen + audio. Modes: Local (MJPEG), Global (WebRTC), and RTSP. RTSP has two sub‑modes: server (default) hosts this device; client connects to an external RTSP media server. F‑Droid builds are ad‑free and exclude WebRTC; PlayStore builds include ads + WebRTC.
+## Project Map
+ScreenStream has Local (MJPEG, video only), Global (WebRTC), and RTSP modes. RTSP server mode hosts the device; client mode publishes to an external media server. `FDroid` excludes ads and WebRTC; `PlayStore` includes both.
 
-## Project Structure & Modules
-- `app`: Compose UI shell, DI wiring, and flavors (`app/src/PlayStore` adds ads/WebRTC; `app/src/FDroid` strips them).
-- `common`: shared UI, preferences helpers, logging, utilities.
-- `streaming/mjpeg`: embedded Ktor HTTP server for local MJPEG streaming.
-- `streaming/rtsp`: RTSP server/client implementation and settings.
-- `streaming/webrtc`: WebRTC streaming (PlayStore flavor only).
-- `screen-capture-engine`: embeddable Android screen-to-JPEG capture library.
+- `app`: Compose shell, DI, and flavor integration; `common`: shared UI and utilities.
+- `streaming/core`: module lifecycle, capture consent, permissions, and notifications.
+- `streaming/mjpeg`, `streaming/rtsp`, `streaming/webrtc`: mode implementations.
+- `streaming/webrtc-runtime`: vendored Java/JNI runtime; follow its [README](streaming/webrtc-runtime/README.md) before modifying it.
+- `screen-capture-engine`: standalone screen-to-JPEG SDK with its own `AGENTS.md`.
 
-## Build & SDK Baseline
-- Kotlin `explicitApi()` with JVM toolchain 17.
-- SDKs: min 24, target/compile 37; build tools 37.0.0; NDK 29.0.14206865.
-- `./gradlew :app:assembleFDroidDebug` — build the F-Droid debug APK.
-- `./gradlew :app:assemblePlayStoreDebug` — build the Play Store debug APK.
-- Build types: release enables minify/shrink + Crashlytics mapping upload.
-- Flavors: `FDroid`, `PlayStore`. PlayStore reads ads from `local.properties` (`ad.pubId`, `ad.unitIds`).
+## Sources & Verification
 
-## Coding Style & Naming Conventions
-Kotlin follows the official style (`kotlin.code.style=official`) and uses explicit API mode in the app module; keep public APIs explicit and well-typed.
-Prefer 4-space indentation and Android Studio formatting.
-Product flavors are PascalCase (`FDroid`, `PlayStore`), and module names are lowercase (`common`, `mjpeg`, `rtsp`, `webrtc`, `screen-capture-engine`).
+- Read relevant module documentation before changing behavior: [Core](streaming/core/internal/README.md), [MJPEG](streaming/mjpeg/internal/README.md), [Capture Engine](screen-capture-engine/internal/README.md). Update the owning documentation when behavior changes; investigate conflicts rather than silently rewriting a promised contract.
+- Build files own SDK, dependency, and toolchain versions: root/module `build.gradle.kts`, `gradle/libs.versions.toml`, and `gradle/gradle-daemon-jvm.properties`. Do not confuse the Gradle/test JVM with the Kotlin compilation toolchain.
+- Build from the repository root: `./gradlew :app:assembleFDroidDebug` or `./gradlew :app:assemblePlayStoreDebug`.
+- Run focused checks using the affected module's testing guide. Distinguish compilation, executed tests, and device verification; report skipped or blocked checks.
+- Follow official Kotlin style and existing formatting; keep public Kotlin APIs explicit and well typed.
+- MJPEG's viewer asset is generated: edit and verify its [web-client sources](streaming/mjpeg/tools/web-client/README.md), then regenerate and commit the asset with them.
 
-## Localization Rules (Strings)
-- English `values/strings.xml` is the source of truth for **key order and blank lines**.
-- Every locale file must mirror English key order **and** blank-line placement between `<string>` tags exactly.
-- Strings live in module `res/values` (app, streaming/mjpeg, streaming/rtsp, streaming/webrtc). Avoid hardcoded literals.
-- Use compact AOSP‑style UI terms; prefer “stream”/“device”. Use loanwords when standard, otherwise localize.
+## Localization
 
+- Android strings live in `app`, `common`, and the three mode modules. Avoid hardcoded UI text.
+- Each locale must preserve its module's English `values/strings.xml` key order, blank-line placement, and formatting placeholders (such as `%1$s`).
+- Use compact AOSP-style UI terms; prefer “stream”/“device”. Use standard loanwords where appropriate.
 
-## Security & Configuration Tips
-`local.properties` is read for Play Store ad identifiers; keep it uncommitted.
-The debug keystore is checked in for convenience; do not use it for release builds.
-Keep WebRTC signaling endpoints configurable; never hardcode credentials.
+## Configuration & Tools
 
-When debugging crashes/ANRs, always use the Firebase Crashlytics MCP tools to fetch the latest issues and details before proposing code changes.
-
-Prefer Android CLI for Android-specific tasks, use Android Studio MCP/Agent tooling when IDE integration helps, and fall back to raw terminal or Gradle commands only for unsupported operations, verification, or debugging.
-
-Use a connected physical Android device for app run/test when available. If none is connected, ask before launching an emulator.
+- Keep `local.properties` uncommitted. Never hardcode credentials or use `debug-key.jks` for release signing.
+- For crashes/ANRs, fetch relevant Firebase Crashlytics issues and details when its MCP tools are available. Otherwise state the limitation and use available stack traces, logs, or reproduction evidence.
+- Prefer Android CLI for Android tasks, Android Studio MCP for IDE integration, and terminal/Gradle for unsupported operations, verification, or debugging.
+- Use a connected physical Android device when available. Ask before launching an emulator unless already authorized.
