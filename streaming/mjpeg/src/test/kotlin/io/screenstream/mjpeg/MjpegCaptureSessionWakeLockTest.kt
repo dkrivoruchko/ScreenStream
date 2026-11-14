@@ -6,6 +6,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -23,6 +24,9 @@ import kotlin.test.assertTrue
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [InertMjpegProjectionShadow::class, FallibleWakeLockShadow::class])
 internal class MjpegCaptureSessionWakeLockTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     @Before
     fun initialize() {
         ShadowPowerManager.clearWakeLocks()

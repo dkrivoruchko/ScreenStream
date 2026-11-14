@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
 import info.dvkr.screenstream.common.settings.JsonPreferencesStore
-import io.screenstream.core.logE
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -18,6 +18,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 
 /**
  * Process-wide streaming settings in `streaming_settings.preferences_pb`, created when Koin starts.
@@ -27,7 +30,9 @@ import org.koin.core.annotation.Singleton
 internal class StreamingSettingsStore(
     context: Context,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
-) {
+) : KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     @Immutable
     @Serializable
     internal data class Data(
@@ -39,7 +44,7 @@ internal class StreamingSettingsStore(
         serializer = Data.serializer(),
         defaultValue = Data(),
         produceFile = { context.preferencesDataStoreFile("streaming_settings") },
-        failureReporter = { stage, message, cause -> logE(stage, message, cause) },
+        failureReporter = { stage, message, cause -> log.e(stage, message, cause) },
     )
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
 

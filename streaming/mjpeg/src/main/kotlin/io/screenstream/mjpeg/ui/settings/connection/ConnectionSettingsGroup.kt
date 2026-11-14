@@ -5,20 +5,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import io.screenstream.core.logE
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.NetworkSettings
 import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingsGroupCard
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.launch
+import io.screenstream.mjpeg.ui.settings.rememberMjpegSettingsSave
 
 internal val connectionSettingSearchEntries: List<SettingSearchInfo> = listOf(
     NetworkFilterSearch.info,
@@ -37,22 +33,11 @@ internal fun ConnectionSettingsGroup(
 ) {
     val saveErrorText = stringResource(R.string.mjpeg_pref_connection_save_error)
     val currentEditPolicy by rememberUpdatedState(editPolicy)
-    val coroutineScope = rememberCoroutineScope()
+    val save = rememberMjpegSettingsSave(mjpegSettings, "Connection.save", "Could not save connection settings") { onSaveError(saveErrorText) }
 
-    fun updateNetwork(transform: NetworkSettings.() -> NetworkSettings) {
-        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            try {
-                mjpegSettings.updateData {
-                    val proposed = copy(network = network.transform())
-                    if (currentEditPolicy.allows(this, proposed)) proposed else this
-                }
-            } catch (failure: CancellationException) {
-                throw failure
-            } catch (failure: Exception) {
-                mjpegSettings.logE("Connection.save", "Could not save connection settings", failure)
-                onSaveError(saveErrorText)
-            }
-        }
+    fun updateNetwork(transform: NetworkSettings.() -> NetworkSettings) = save {
+        val proposed = copy(network = network.transform())
+        if (currentEditPolicy.allows(this, proposed)) proposed else this
     }
 
     SettingsGroupCard(

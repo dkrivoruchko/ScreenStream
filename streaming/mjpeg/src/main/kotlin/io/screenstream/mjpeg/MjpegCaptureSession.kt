@@ -15,10 +15,8 @@ import io.screenstream.capture.ScreenCaptureProblem
 import io.screenstream.capture.ScreenCaptureStats
 import io.screenstream.capture.ScreenCaptureStopReason
 import io.screenstream.core.capture.ScreenCaptureAccess
-import io.screenstream.core.logD
-import io.screenstream.core.logE
-import io.screenstream.core.logV
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Failure
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.MjpegEngineState.Phase
@@ -43,6 +41,9 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 
@@ -72,7 +73,9 @@ internal class MjpegCaptureSession(
     private val onStatisticsChanged: () -> Unit = {},
     private val engineFactory: MjpegEngineFactory = DefaultMjpegEngineFactory,
     private val analytics: MjpegSessionAnalytics? = null,
-) {
+) : KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     class EngineStatistics(val engineStats: ScreenCaptureStats, val currentFps: Double?)
 
     /** Written by the statistics collector, then by cleanup after that collector has finished. */
@@ -261,7 +264,7 @@ internal class MjpegCaptureSession(
                         }
                     if (!wakeLock.isHeld) wakeLock.acquire()
                 } catch (failure: Exception) {
-                    logE("ScreenAwake.acquire", "Could not keep the screen awake", failure)
+                    log.e("ScreenAwake.acquire", "Could not keep the screen awake", failure)
                 }
             } else {
                 releaseScreenAwakeLocked()
@@ -273,7 +276,7 @@ internal class MjpegCaptureSession(
         try {
             screenWakeLock?.let { if (it.isHeld) it.release() }
         } catch (failure: Exception) {
-            logE("ScreenAwake.release", "Could not release the screen wake lock", failure)
+            log.e("ScreenAwake.release", "Could not release the screen wake lock", failure)
         }
     }
 
@@ -466,7 +469,7 @@ internal class MjpegCaptureSession(
         // Parameter submission must not backpressure terminal-state handling.
         engineSession.states.onEach {
             val engineState = synchronized(stateGate) { refreshEngineStateLocked(engineSession) }
-            this@MjpegCaptureSession.logV("Engine.state", "state=${engineState.phase.name}")
+            log.v("Engine.state", "state=${engineState.phase.name}")
             val isTerminal = engineState.phase == Phase.Failed || engineState.phase == Phase.Stopped
             if (isTerminal) {
                 this@coroutineScope.cancel()
@@ -487,7 +490,7 @@ internal class MjpegCaptureSession(
                 engineSession.updateParameters(parameters)
                 submittedParameters = parameters
             } catch (_: IllegalStateException) {
-                this@MjpegCaptureSession.logD("Engine.imageUpdate", "Parameter update admission closed")
+                log.d("Engine.imageUpdate", "Parameter update admission closed")
             }
         }.launchIn(this)
 
@@ -500,9 +503,9 @@ internal class MjpegCaptureSession(
             previousProducedFrameCount = stats.producedFrameCount
             previousReceivedAtMillis = receivedAtMillis
             publishEngineStatistics(stats, fps)
-            this@MjpegCaptureSession.logV("Engine.stats", "frames=${stats.producedFrameCount}, fps=${stats.averageProducedFps}")
+            log.v("Engine.stats", "frames=${stats.producedFrameCount}, fps=${stats.averageProducedFps}")
         }.catch { cause ->
-            this@MjpegCaptureSession.logE("Engine.statsObservation", "Statistics observation failed", cause)
+            log.e("Engine.statsObservation", "Statistics observation failed", cause)
         }.launchIn(this)
 
         engineSession.start(initialParameters)

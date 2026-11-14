@@ -64,6 +64,7 @@ internal class MjpegKoinGraphTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         try {
             val koinApplication = startKoin {
+                modules(silentMjpegLoggerModule)
                 isKoinStarted = true
                 modules(MjpegKoinModule::class)
                 modules(module {

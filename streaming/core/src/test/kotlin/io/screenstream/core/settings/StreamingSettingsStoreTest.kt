@@ -1,6 +1,7 @@
 package io.screenstream.core.settings
 
 import androidx.datastore.preferences.preferencesDataStoreFile
+import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -33,6 +34,9 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
 internal class StreamingSettingsStoreTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = CoreKoinTestRule()
+
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 

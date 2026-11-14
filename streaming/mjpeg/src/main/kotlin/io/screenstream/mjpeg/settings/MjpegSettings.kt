@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.preferencesDataStoreFile
 import info.dvkr.screenstream.common.settings.JsonPreferencesStore
-import io.screenstream.core.logE
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -14,6 +14,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 
 /**
  * Saved preferences in `mjpeg.preferences_pb`; saving does not confirm application to the stream.
@@ -23,7 +26,9 @@ import org.koin.core.annotation.Singleton
 internal class MjpegSettings(
     context: Context,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
-) {
+) : KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     /**
      * Groups update atomically; URL tokens, viewing cookies, applied state, discovery and statistics are runtime-only.
      * [web] is required so the initial device title is saved rather than recalculated on later launches.
@@ -69,7 +74,7 @@ internal class MjpegSettings(
         defaultValue = Data(web = WebPageSettings()),
         produceFile = { context.preferencesDataStoreFile("mjpeg") },
         migrations = listOf(MjpegSettingsMigration(context)),
-        failureReporter = { stage, message, cause -> logE(stage, message, cause) },
+        failureReporter = { stage, message, cause -> log.e(stage, message, cause) },
     )
 
     internal val data: Flow<Data> = storage.data

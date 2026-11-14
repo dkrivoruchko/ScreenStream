@@ -10,11 +10,13 @@ Use the [scenario index](02-verification-contracts.md) to find the histories aff
 
 The local suite is in `src/test/kotlin` and uses JUnit4 runners and rules with Kotlin test assertions. A scenario or `// Cases:` marker identifies intended behavior, not a passed check. Record commands, environments, results and scenario IDs with the change or release.
 
+Fixtures supply a no-op Foundation `Logger` in their test-owned Koin container. Start it before constructing affected owners and stop it after owner cleanup; fixtures with an existing graph add the binding there.
+
 Keep markers such as `// Cases: MJPEG-CAP-13`. Use existing constructor seams, module-internal access and observable outputs. Do not reflect on private members or widen production APIs for tests. Testability changes are separate design changes requiring explicit approval.
 
 ## What the local suite covers
 
-The suite exercises settings and edit policy, controller admission and reconciliation, the capture adapter, discovery, HTTP/access, JPEG storage and wire output, the web protocol and focused Compose behavior. Analytics observations are excluded. App assembly and web-client checks do not compile or run the Kotlin suite.
+The suite exercises settings and edit policy, controller admission and reconciliation, the capture adapter, discovery, HTTP/access, JPEG storage and wire output, the web protocol and focused Compose behavior. Analytics and log output are excluded. App assembly and web-client checks do not compile or run the Kotlin suite.
 
 Local [UI tests](../../src/test/kotlin/io/screenstream/mjpeg/ui) cover capture commands, address actions (exact open/share/copy payloads, plain-URL fallback, retry and permission callbacks), PIN-row masking, reveal reset and sensitive copying, and the settings editors: port validation, setup locks and queued port saves rechecked when they execute, PIN drafts and regeneration, Size mode drafts, Frame-rate mode drafts and decimal-comma intervals, Background HEX/slider/palette synchronization, Placement merges into newer saved layouts and search. [Frame-rate tests](../../src/test/kotlin/io/screenstream/mjpeg/ui/FrameRateSettingsUiTest.kt) also check that an invalid selected Interval preserves the saved rate while an invalid dormant draft permits an Auto save. The port, Size, Frame-rate, Background and Placement tests run against real settings groups and an isolated production store; the PIN editor uses supplied state and recorded transforms. The [save-failure test](../../src/test/kotlin/io/screenstream/mjpeg/ui/SettingsSaveFailureUiTest.kt) drives a real write fault through `MjpegContent` and checks the rendered snackbar and unchanged stored data. Callbacks, intents, clipboard and permission objects are supplied, so these tests do not establish actual grants, browser/share-sheet handling, system clipboard presentation or QR rendering. [Address-row mapping tests](../../src/test/kotlin/io/screenstream/mjpeg/ui/MjpegAddressServerMappingTest.kt) check ready-link mapping from supplied server, permission and token inputs, not the controller's token source.
 
@@ -70,9 +72,9 @@ The pipeline uses `ImageSettings()` defaults. These sources exercise MJPEG setti
 
 ### Device evidence
 
-Each run writes evidence under the test APK's `cache/mjpeg-device-evidence/<UUID>/`: matching JPEG samples and, on a JPEG-wait failure, the latest received bytes, decoded dimensions/sample colours, state/result receipts and native window XML/PNG; rotation also records Activity recreation and expected/actual platform geometry. Network-frame assertions decide the media result; screenshots only diagnose, and diagnostic failures are attached to the original failure. Logcat tag `MjpegDeviceTest` records canonical paths. Files exist only for observations the test reached.
+Each run writes evidence under the test APK's `cache/mjpeg-device-evidence/<UUID>/`: matching JPEG samples and, on a JPEG-wait failure, the latest received bytes, decoded dimensions/sample colours, state/result receipts and native window XML/PNG; rotation also records Activity recreation and expected/actual platform geometry. Network-frame assertions decide the media result; screenshots only diagnose, and diagnostic failures are attached to the original failure. Files exist only for observations the test reached.
 
-Completed artifacts are also registered with UIAutomator's [ResultsReporter](https://developer.android.com/reference/androidx/test/uiautomator/ResultsReporter) as `additionalTestOutputFile_*` instrumentation entries; verify that the host actually retained them. Private cache does not survive uninstall, so for a direct run archive the originals first into a new host directory, separately from Gradle's XML results:
+Completed artifacts are registered with UIAutomator's [ResultsReporter](https://developer.android.com/reference/androidx/test/uiautomator/ResultsReporter) as `additionalTestOutputFile_*` instrumentation entries; verify that the host actually retained them. Private cache does not survive uninstall, so for a direct run archive the originals first into a new host directory, separately from Gradle's XML results:
 
 ```shell
 mjpeg_evidence_dir="$(mktemp -d /private/tmp/mjpeg-evidence.XXXXXX)"

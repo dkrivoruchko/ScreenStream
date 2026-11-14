@@ -79,6 +79,7 @@ internal class MjpegServiceTestHost(
                 }
             }
             val app = startKoin {
+                modules(silentMjpegLoggerModule)
                 koinRegistered = true
                 modules(StreamingKoinModule::class)
                 modules(module {

@@ -9,9 +9,8 @@ import android.os.Build
 import android.os.SystemClock
 import androidx.activity.result.ActivityResult
 import androidx.annotation.MainThread
-import io.screenstream.core.logE
-import io.screenstream.core.logW
 import io.screenstream.core.module.StreamingModule
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +22,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
 
 /** Owns pending consent correlation and the guard around synchronous Android projection creation. */
@@ -30,7 +32,9 @@ import kotlin.uuid.Uuid
 internal class ScreenCaptureAccessImpl(
     context: Context,
     private val requestObserver: ConsentRequestObserver,
-) : ScreenCaptureAccess {
+) : ScreenCaptureAccess, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     internal class Request(val key: String, val intent: Intent?) {
         val submitted: Boolean get() = intent == null
     }
@@ -258,7 +262,7 @@ internal class ScreenCaptureAccessImpl(
             removePending()
         } ?: return
         completeWithoutGrant(abandoned, ScreenCaptureAccess.NoGrantReason.HostUnavailable)
-        logW("ScreenCaptureAccess", "Submitted consent abandoned because its Activity is finishing")
+        log.w("ScreenCaptureAccess", "Submitted consent abandoned because its Activity is finishing")
     }
 
     /** Successful results immediately prepare the original foreground Service, including while paused. */
@@ -338,7 +342,7 @@ internal class ScreenCaptureAccessImpl(
         try {
             callback()
         } catch (cause: Throwable) {
-            logE("ScreenCaptureAccess", "Consent observer failed", cause)
+            log.e("ScreenCaptureAccess", "Consent observer failed", cause)
         }
     }
 

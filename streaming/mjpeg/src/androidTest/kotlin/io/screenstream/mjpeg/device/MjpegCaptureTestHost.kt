@@ -45,12 +45,12 @@ import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.capture.ConsentRequestObserver
 import io.screenstream.core.compose.LocalRuntimePermissions
 import io.screenstream.core.compose.ScreenCaptureConsentHost
-import io.screenstream.core.configureLogWriter
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.core.permission.PermissionState
 import io.screenstream.core.permission.RuntimePermission
 import io.screenstream.core.permission.RuntimePermissions
+import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.MjpegKoinModule
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.http.KtorHttpDelivery
@@ -201,7 +201,6 @@ internal class MjpegCaptureTestHost(
 
     fun start() {
         check(current == null)
-        configureLogWriter { _, _, _, _ -> }
         val seed = MjpegSettings.Data(
             image = imageSettings,
             network = NetworkSettings(
@@ -240,6 +239,7 @@ internal class MjpegCaptureTestHost(
             modules(StreamingKoinModule::class)
             modules(MjpegKoinModule::class)
             modules(module {
+                factory<Logger> { SilentDeviceLogger }
                 factory<HttpDelivery> { KtorHttpDelivery(get()).also { httpDeliveries.add(it) } }
                 single<StreamingModuleNotifications> { RecordingDeviceNotifications(applicationContext, notificationErrors, foregroundActions) }
                 single<StreamingSessionAnalyticsFactory> { DiscardingSessionAnalyticsFactory }
@@ -309,4 +309,8 @@ internal class MjpegCaptureTestHost(
 
         override fun preflightFailed(streamMode: StreamMode, entryPoint: EntryPoint, startFailGroup: StartFailGroup) = Unit
     }
+}
+
+private object SilentDeviceLogger : Logger {
+    override fun log(level: Logger.Level, tag: String, msg: String, cause: Throwable?) = Unit
 }

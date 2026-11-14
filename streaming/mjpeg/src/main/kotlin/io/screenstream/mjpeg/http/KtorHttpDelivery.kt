@@ -7,9 +7,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
-import io.screenstream.core.logE
-import io.screenstream.core.logW
 import io.screenstream.core.module.StreamingModule.CaptureAttemptId
+import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.MjpegCaptureSession.State.Status
 import io.screenstream.mjpeg.http.HttpDelivery.Info
 import io.screenstream.mjpeg.http.HttpDelivery.MediaFormat
@@ -46,6 +45,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.annotation.Factory
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.io.IOException
 import java.net.SocketException
 import kotlin.time.Duration.Companion.milliseconds
@@ -58,7 +60,9 @@ import kotlin.uuid.Uuid
 internal class KtorHttpDelivery(
     context: Context,
     private val listenerFactory: (Job, String, Int, Application.(HttpListener) -> Unit) -> HttpListener = ::CioHttpListener,
-) : HttpDelivery, WebRoutes.RequestHandler {
+) : HttpDelivery, WebRoutes.RequestHandler, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     private val controlMonitor = Any()
     private val runtimeJob = SupervisorJob()
     private val runtimeScope = CoroutineScope(runtimeJob + Dispatchers.IO + CoroutineExceptionHandler { _, cause ->
@@ -97,7 +101,7 @@ internal class KtorHttpDelivery(
                 sampleStatistics()
             }
         } catch (cause: Throwable) {
-            this@KtorHttpDelivery.logE("Http.cleanup", "HTTP cleanup failed", cause)
+            log.e("Http.cleanup", "HTTP cleanup failed", cause)
             throw cause
         }
         synchronized(controlMonitor) { cleanupCause }?.let { throw it }
@@ -217,7 +221,7 @@ internal class KtorHttpDelivery(
 
     private fun fail(tag: String, message: String, cause: Throwable) {
         try {
-            logE(tag, message, cause)
+            log.e(tag, message, cause)
             synchronized(controlMonitor) {
                 fatalCause = fatalCause ?: cause
                 publishControlInfo()
@@ -261,7 +265,7 @@ internal class KtorHttpDelivery(
     }
 
     private fun recordCleanupFailure(tag: String, message: String, cause: Throwable) {
-        logE(tag, message, cause)
+        log.e(tag, message, cause)
         synchronized(controlMonitor) {
             cleanupCause = cleanupCause ?: cause
             fatalCause = fatalCause ?: cause
@@ -483,7 +487,7 @@ internal class KtorHttpDelivery(
             // A canceled physical engine can fail its await while this persistent owner is active.
             currentCoroutineContext().ensureActive()
             if (cause !is CancellationException) {
-                logW("Http.listener", "HTTP listener failed at ${address.ip.hostAddress}:${entry.port}", cause)
+                log.w("Http.listener", "HTTP listener failed at ${address.ip.hostAddress}:${entry.port}", cause)
             }
             failure = when (cause) {
                 is SecurityException -> ServerFailure.PermissionDenied

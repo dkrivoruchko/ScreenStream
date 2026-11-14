@@ -8,9 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsFactory
 import io.screenstream.core.capture.ScreenCaptureAccess
-import io.screenstream.core.logE
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.permission.RuntimePermission
+import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.http.HttpDelivery
 import io.screenstream.mjpeg.networkaddress.NetworkAddress
 import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
@@ -48,6 +48,9 @@ import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.InjectedParam
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
@@ -67,7 +70,9 @@ internal class MjpegStreamingModuleController(
     private val http: HttpDelivery,
     private val analyticsFactory: StreamingSessionAnalyticsFactory,
     private val engineFactory: MjpegEngineFactory = DefaultMjpegEngineFactory,
-) : StreamingModule.Controller {
+) : StreamingModule.Controller, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     override val instanceId: StreamingModule.InstanceId = managerHandle.instanceId
 
     private val controllerJob = SupervisorJob()
@@ -401,7 +406,7 @@ internal class MjpegStreamingModuleController(
         current: MjpegCaptureSession.State.Failure?,
     ) {
         if (current == null || current === previous) return
-        logE(current.stage, "Capture failed: $attempt", current.cause)
+        log.e(current.stage, "Capture failed: $attempt", current.cause)
         lastFailure = current
     }
 
@@ -497,7 +502,7 @@ internal class MjpegStreamingModuleController(
     }
 
     private fun reportScreenOffFailure(failure: Exception) {
-        logE("ScreenOff", "Could not manage the screen-off receiver", failure)
+        log.e("ScreenOff", "Could not manage the screen-off receiver", failure)
         lastFailure = MjpegCaptureSession.State.Failure("ScreenOff", failure)
     }
 
@@ -610,7 +615,7 @@ internal class MjpegStreamingModuleController(
             } catch (failure: CancellationException) {
                 throw failure
             } catch (failure: Exception) {
-                this@MjpegStreamingModuleController.logE("SlowViewer.toast", "Could not show slow viewer warning", failure)
+                log.e("SlowViewer.toast", "Could not show slow viewer warning", failure)
             }
         }
         lastSlowToastAttemptMillis = SystemClock.elapsedRealtime()
@@ -734,7 +739,7 @@ internal class MjpegStreamingModuleController(
                 addressMonitor.close()
                 true
             } catch (failure: Throwable) {
-                this@MjpegStreamingModuleController.logE("Cleanup.addressMonitor", "NetworkAddress monitor cleanup failed", failure)
+                log.e("Cleanup.addressMonitor", "NetworkAddress monitor cleanup failed", failure)
                 false
             }
         }
@@ -745,14 +750,14 @@ internal class MjpegStreamingModuleController(
                 val session = synchronized(captureAdmissionGate) { captureAttempt?.session }
                 session?.awaitCleanup() ?: true
             } catch (failure: Throwable) {
-                this@MjpegStreamingModuleController.logE("Cleanup.capture", "Capture cleanup failed", failure)
+                log.e("Cleanup.capture", "Capture cleanup failed", failure)
                 false
             }
 
             val serviceSucceeded = try {
                 service.stopAndAwaitDestruction()
             } catch (failure: Throwable) {
-                this@MjpegStreamingModuleController.logE("Cleanup.service", "Service cleanup failed", failure)
+                log.e("Cleanup.service", "Service cleanup failed", failure)
                 false
             }
 
@@ -769,7 +774,7 @@ internal class MjpegStreamingModuleController(
 
     private fun fail(source: FailureSource, cause: Throwable) {
         if (shutdownRequested.isCompleted) return
-        if (cause !== http.info.value.fatalCause) logE("fail", "Controller failed: $source", cause)
+        if (cause !== http.info.value.fatalCause) log.e("fail", "Controller failed: $source", cause)
         try {
             managerHandle.reportFailed()
         } finally {

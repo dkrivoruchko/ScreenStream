@@ -26,14 +26,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import info.dvkr.screenstream.common.R
 import io.screenstream.core.capture.ScreenCaptureAccessImpl
-import io.screenstream.core.logE
-import io.screenstream.core.logW
 import io.screenstream.core.settings.StreamingSettingsStore
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 /**
  * Hosts capture education and the Android consent launcher for `ScreenCaptureAccess`. Mount once at the
@@ -49,6 +49,7 @@ import org.koin.compose.koinInject
 @Composable
 public fun ScreenCaptureConsentHost() {
     val access: ScreenCaptureAccessImpl = koinInject()
+    val log: Logger = koinInject(parametersHolder = remember(access) { parametersOf(access) })
     val request by access.currentRequest.collectAsStateWithLifecycle()
     val token = remember { Any() }
     val activity = LocalActivity.current
@@ -58,7 +59,7 @@ public fun ScreenCaptureConsentHost() {
     }
     LaunchedEffect(access, activity, registry) {
         if (resultActivity == null) {
-            access.logW(
+            log.w(
                 "ScreenCaptureConsentHost",
                 "Terminal consent settlement unavailable: Activity and result registry do not match",
             )
@@ -101,6 +102,7 @@ private fun ConsentRequestLauncher(
     }
 
     val settings: StreamingSettingsStore = koinInject()
+    val log: Logger = koinInject(parametersHolder = remember(settings) { parametersOf(settings) })
     val persistenceScope = rememberCoroutineScope()
     var educationGate: Boolean? by remember(requestKey) { mutableStateOf(null) }
     var educationAccepted by remember(requestKey) { mutableStateOf(false) }
@@ -127,7 +129,7 @@ private fun ConsentRequestLauncher(
                                 settings.markEducationCompleted()
                             } catch (cause: Exception) {
                                 if (cause is CancellationException) throw cause
-                                settings.logE("ScreenCaptureConsentHost", "Failed to save screen capture education", cause)
+                                log.e("ScreenCaptureConsentHost", "Failed to save screen capture education", cause)
                             }
                         }
                     }

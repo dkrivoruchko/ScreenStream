@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import io.screenstream.capture.FrameRate
 import io.screenstream.mjpeg.IsolatedSettingsContext
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.ui.settings.images.FrameRateSearch
@@ -39,6 +40,9 @@ import kotlin.time.Duration.Companion.seconds
 @Config(sdk = [34], qualifiers = "de-rDE")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 internal class FrameRateSettingsUiTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = MjpegKoinTestRule()
+
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 

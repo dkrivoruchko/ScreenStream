@@ -10,17 +10,17 @@ import com.elvishew.xlog.XLog
 import com.elvishew.xlog.printer.AndroidPrinter
 import com.elvishew.xlog.printer.Printer
 import io.screenstream.core.StreamingModuleManager
-import io.screenstream.core.logV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
 import org.koin.core.annotation.KoinApplication
+import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
-import org.koin.core.logger.Logger
-import org.koin.plugin.module.dsl.startKoin
+import org.koin.plugin.module.dsl.withConfiguration
 
 @KoinApplication
 public abstract class BaseApp : Application() {
@@ -65,10 +65,12 @@ public abstract class BaseApp : Application() {
 
         initLogger(isDebuggable)
 
-        startKoin<BaseApp> {
-            if (isDebuggable) logger(KoinLogger)
-            allowOverride(false)
+        startKoin {
+            if (isDebuggable) androidLogger(Level.DEBUG)
             androidContext(this@BaseApp)
+            // Module descriptors share the StreamingModule binding during initial registration.
+            withConfiguration<BaseApp>()
+            allowOverride(false)
         }
 
         observeAppExit()
@@ -101,11 +103,5 @@ public abstract class BaseApp : Application() {
         val printers = if (isDebuggable) arrayOf<Printer>(AndroidPrinter()) else emptyArray()
 
         XLog.init(logConfiguration, *printers)
-    }
-
-    private object KoinLogger : Logger(Level.DEBUG) {
-        override fun display(level: Level, msg: String) {
-            logV(tag = "display", msg = "Koin [$level] $msg")
-        }
     }
 }

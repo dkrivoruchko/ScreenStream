@@ -10,7 +10,6 @@ android {
 
     defaultConfig {
         minSdk = rootProject.extra["minSdkVersion"] as Int
-        consumerProguardFiles("consumer-rules.pro")
     }
 }
 

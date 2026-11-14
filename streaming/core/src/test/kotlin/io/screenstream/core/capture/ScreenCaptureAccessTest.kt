@@ -8,6 +8,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Looper
 import android.os.SystemClock
 import androidx.activity.result.ActivityResult
+import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.module.StreamingModule
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +26,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -51,6 +53,9 @@ import kotlin.test.assertTrue
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [ScreenCaptureAccessTest.ProjectionManagerShadow::class])
 internal class ScreenCaptureAccessTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = CoreKoinTestRule()
+
     private val scheduler = TestCoroutineScheduler()
     private val dispatcher = StandardTestDispatcher(scheduler)
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)

@@ -3,10 +3,13 @@ package io.screenstream.core.manager
 import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import io.screenstream.core.StreamingModuleManager
-import io.screenstream.core.logE
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.flow.StateFlow
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 
 /**
  * Manager policy for the generic problem notification of the current instance; [notifications] builds and
@@ -14,7 +17,9 @@ import kotlinx.coroutines.flow.StateFlow
  * with one delivery attempt; detail changes and re-enabled delivery do not repost it. Terminal failure
  * replaces the warning, and every other state cancels the notification.
  */
-internal class ModuleErrorNotificationCoordinator(private val notifications: StreamingModuleNotifications) {
+internal class ModuleErrorNotificationCoordinator(private val notifications: StreamingModuleNotifications) : KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     private var lastAttempt: Problem? = null
     private var hasAttemptedUpdate: Boolean = false
     private var isReconciling: Boolean = false
@@ -46,7 +51,7 @@ internal class ModuleErrorNotificationCoordinator(private val notifications: Str
                     } else {
                         "Failed to show error notification for problem=$target"
                     }
-                    logE("ErrorNotification", message, failure)
+                    log.e("ErrorNotification", message, failure)
                 }
             }
         } finally {

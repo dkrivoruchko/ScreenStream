@@ -4,19 +4,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import io.screenstream.core.logE
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.settings.WebPageSettings
 import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingsGroupCard
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.launch
+import io.screenstream.mjpeg.ui.settings.rememberMjpegSettingsSave
 
 internal val webPageSettingSearchEntries: List<SettingSearchInfo> = listOf(
     BackgroundSearch.info,
@@ -35,20 +31,9 @@ internal fun WebPageSettingsGroup(
     onExpandedChange: (Boolean) -> Unit,
 ) {
     val saveErrorText = stringResource(R.string.mjpeg_pref_web_save_error)
-    val coroutineScope = rememberCoroutineScope()
+    val save = rememberMjpegSettingsSave(mjpegSettings, "WebPage.save", "Could not save web page settings") { onSaveError(saveErrorText) }
 
-    fun updateWebPage(transform: WebPageSettings.() -> WebPageSettings) {
-        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            try {
-                mjpegSettings.updateData { copy(web = web.transform()) }
-            } catch (failure: CancellationException) {
-                throw failure
-            } catch (failure: Exception) {
-                mjpegSettings.logE("WebPage.save", "Could not save web page settings", failure)
-                onSaveError(saveErrorText)
-            }
-        }
-    }
+    fun updateWebPage(transform: WebPageSettings.() -> WebPageSettings) = save { copy(web = web.transform()) }
 
     SettingsGroupCard(
         expanded = expanded,

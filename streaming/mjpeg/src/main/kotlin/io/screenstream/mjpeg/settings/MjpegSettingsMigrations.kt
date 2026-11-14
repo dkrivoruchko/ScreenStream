@@ -14,7 +14,7 @@ import io.screenstream.capture.Mirror
 import io.screenstream.capture.OutputSize
 import io.screenstream.capture.Rotation
 import io.screenstream.capture.SourceRegion
-import io.screenstream.core.logW
+import io.screenstream.foundation.logging.Logger
 import io.screenstream.mjpeg.networkaddress.AddressCategory
 import io.screenstream.mjpeg.networkaddress.AddressFamily
 import io.screenstream.mjpeg.networkaddress.InterfaceType
@@ -22,13 +22,18 @@ import io.screenstream.mjpeg.networkaddress.NetworkAddressFilter
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.io.File
 import java.io.IOException
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.seconds
 
 /** Imports legacy preferences; file identities are independent of the Gradle module's name. */
-internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferences> {
+internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferences>, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     private val sourceFile: File = context.preferencesDataStoreFile("MJPEG_settings")
     private val defaults: MjpegSettings.Data = MjpegSettings.Data(web = WebPageSettings())
 
@@ -42,7 +47,7 @@ internal class MjpegSettingsMigration(context: Context) : DataMigration<Preferen
             val source = try {
                 sourceFile.inputStream().use { PreferencesFileSerializer.readFrom(it) }
             } catch (_: CorruptionException) {
-                logW(msg = "Legacy MJPEG preferences are corrupt; import skipped")
+                log.w(msg = "Legacy MJPEG preferences are corrupt; import skipped")
                 null
             }
             if (source == null) return currentData

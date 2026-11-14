@@ -1,13 +1,18 @@
 package io.screenstream.mjpeg.networkaddress
 
-import io.screenstream.core.logW
+import io.screenstream.foundation.logging.Logger
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.net.InetAddress
 import java.util.Collections
 
 /** Reads native interface evidence on IO; observer resources and lifecycle belong to the monitor. */
 internal class AndroidNetworkAddressSource(
     private val nativeInterfaces: NativeInterfaceAccess = SystemNativeInterfaceAccess,
-) {
+) : KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     /** At most one scan may run at a time. Failed reads leave earlier addresses uncertain. */
     fun scan(platformSnapshot: Snapshot): ScanResult {
         val found = mutableListOf<InterfaceAddresses>()
@@ -23,7 +28,7 @@ internal class AndroidNetworkAddressSource(
                 failedInterfaces.remove(name)
             } catch (error: Exception) {
                 if (failedInterfaces.add(name)) {
-                    logW("readInterface", "Interface address read failed; interface=$name", error)
+                    log.w("readInterface", "Interface address read failed; interface=$name", error)
                 }
             }
         }
@@ -36,7 +41,7 @@ internal class AndroidNetworkAddressSource(
                 }
             }
         } catch (error: Exception) {
-            logW("scan", "Interface enumeration failed; using known interfaces and callback addresses", error)
+            log.w("scan", "Interface enumeration failed; using known interfaces and callback addresses", error)
             // Pre-31 Android can throw NPE for virtual interfaces without a parent (also OEM bugs).
             enumerationComplete = false
         }
@@ -53,7 +58,7 @@ internal class AndroidNetworkAddressSource(
                 nativeInterfaces.getByName(name)?.let(::readInterface)
             } catch (error: Exception) {
                 if (failedInterfaces.add(name)) {
-                    logW("scan", "Interface lookup failed on retry; interface=$name", error)
+                    log.w("scan", "Interface lookup failed on retry; interface=$name", error)
                 }
             }
         }

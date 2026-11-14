@@ -9,6 +9,7 @@ import android.os.PowerManager
 import androidx.core.content.ContextCompat
 import io.screenstream.mjpeg.screenoff.AndroidScreenOffObserver
 import io.screenstream.mjpeg.screenoff.AndroidScreenOffObserver.RegistrationResult
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -32,6 +33,9 @@ import kotlin.uuid.Uuid
 @Config(manifest = Config.NONE, sdk = [34])
 @LooperMode(LooperMode.Mode.PAUSED)
 internal class AndroidScreenOffObserverTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-CTL-14
     @Test
     fun bothInteractivityChecksRejectSleepingDisplayAndRetireTheInstalledReceiver() {

@@ -12,11 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import io.screenstream.core.StreamingModuleManager
-import io.screenstream.core.logE
-import io.screenstream.core.logW
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
 import io.screenstream.core.settings.StreamingSettingsStore
+import io.screenstream.foundation.logging.Logger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +33,9 @@ import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Singleton
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.util.Collections
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
@@ -61,7 +63,9 @@ internal class StreamingModuleManagerImpl internal constructor(
     private val streamingSettings: StreamingSettingsStore,
     notifications: StreamingModuleNotifications,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Main,
-) : StreamingModuleManager {
+) : StreamingModuleManager, KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     override val modules: List<StreamingModule> = Collections.unmodifiableList(modules.sortedByDescending { it.priority }).also {
         require(it.isNotEmpty()) { "At least one streaming module is required" }
         require(it.all { module -> module.id.value.isNotBlank() }) { "Streaming module IDs must not be blank" }
@@ -100,7 +104,7 @@ internal class StreamingModuleManagerImpl internal constructor(
     override fun selectModule(moduleId: StreamingModule.Id?) {
         if (transitionJob != null) return
         if (moduleId != null && moduleId !in moduleById) {
-            logW("Select", "Unknown streaming module ID=$moduleId")
+            log.w("Select", "Unknown streaming module ID=$moduleId")
             return
         }
         if (selectedModuleId != null && currentInstance?.instanceId?.moduleId == (moduleId ?: selectedModuleId)) return
@@ -163,7 +167,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 if (!started) failInstance(instance)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                this@StreamingModuleManagerImpl.logE("Initialize", "Failed to open streaming module", error)
+                log.e("Initialize", "Failed to open streaming module", error)
                 throw error
             } finally {
                 if (transitionJob === opening) {
@@ -244,7 +248,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             try {
                 instance.controllerForCommands()?.requestStreamStart()
             } catch (error: Exception) {
-                this@StreamingModuleManagerImpl.logE("ExternalStart", "Failed to dispatch Start for instanceId=$instanceId", error)
+                log.e("ExternalStart", "Failed to dispatch Start for instanceId=$instanceId", error)
             }
         }
     }
@@ -256,7 +260,7 @@ internal class StreamingModuleManagerImpl internal constructor(
         try {
             instance.controllerForCommands()?.requestStreamStop(attempt, fromNotification)
         } catch (error: Exception) {
-            logE("ExternalStop", "Failed to dispatch Stop for attempt=$attempt", error)
+            log.e("ExternalStop", "Failed to dispatch Stop for attempt=$attempt", error)
         }
     }
 
@@ -268,7 +272,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             try {
                 instance.controllerForCommands()?.requestRecovery(errorToken)
             } catch (error: Exception) {
-                this@StreamingModuleManagerImpl.logE("Recovery", "Failed to dispatch recovery for instanceId=$instanceId", error)
+                log.e("Recovery", "Failed to dispatch recovery for instanceId=$instanceId", error)
             }
         }
     }
@@ -287,7 +291,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             }
             androidContext.startService(startup)
         } catch (error: Throwable) {
-            logE("Startup", "Android module startup failed", error)
+            log.e("Startup", "Android module startup failed", error)
             instance.reportFailure(null)
         } finally {
             instance.dispatchDone.complete(Unit)
@@ -392,7 +396,7 @@ internal class StreamingModuleManagerImpl internal constructor(
             return
         }
         if (existingController != null) {
-            logW("Startup", "Service=${instance.serviceClass.name} still hosts an existing controller; rejecting instanceId=$instanceId")
+            log.w("Startup", "Service=${instance.serviceClass.name} still hosts an existing controller; rejecting instanceId=$instanceId")
             instance.reportFailure(null)
             return
         }
@@ -407,7 +411,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 streamingSettings.updateData(transform)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                this@StreamingModuleManagerImpl.logE("SettingsWrite", "Failed to save streaming settings", error)
+                log.e("SettingsWrite", "Failed to save streaming settings", error)
             }
         }
     }
@@ -481,7 +485,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 controllerState.value = created
                 if (isAdmitted()) created.startModule() else requestControllerShutdown(created)
             } catch (error: Throwable) {
-                this@StreamingModuleManagerImpl.logE("Startup", "Module controller startup failed", error)
+                log.e("Startup", "Module controller startup failed", error)
                 reportFailure(null)
             } finally {
                 setup.complete(Unit)
@@ -508,7 +512,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 current.requestModuleShutdown()
             } catch (error: Throwable) {
                 synchronized(gate) { cleanupFailed = true }
-                this@StreamingModuleManagerImpl.logE("Shutdown", "Module shutdown failed", error)
+                log.e("Shutdown", "Module shutdown failed", error)
             }
         }
 
@@ -538,7 +542,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 val succeeded = ownedController == null || try {
                     ownedController.awaitCleanup()
                 } catch (error: Throwable) {
-                    this@StreamingModuleManagerImpl.logE("Cleanup", "Module cleanup failed", error)
+                    log.e("Cleanup", "Module cleanup failed", error)
                     false
                 }
                 synchronized(gate) { pendingFinished = Report.Finished(succeeded && !cleanupFailed) }
@@ -577,7 +581,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                             is Report.Finished -> handleFinishedReport(this@LaunchRecord, report.cleanupCompleted)
                         }
                     } catch (error: Exception) {
-                        this@StreamingModuleManagerImpl.logE("Report", "Failed to apply module report", error)
+                        log.e("Report", "Failed to apply module report", error)
                     } finally {
                         if (report is Report.Finished) {
                             synchronized(gate) { controller = null }
@@ -652,7 +656,7 @@ internal class StreamingModuleManagerImpl internal constructor(
                 else -> LaunchState.Failed()
             }
             if (!cleanupCompleted) {
-                this@StreamingModuleManagerImpl.logW("Finished", "Cleanup failed or unconfirmed for instance=$instanceId")
+                log.w("Finished", "Cleanup failed or unconfirmed for instance=$instanceId")
             }
             return true
         }

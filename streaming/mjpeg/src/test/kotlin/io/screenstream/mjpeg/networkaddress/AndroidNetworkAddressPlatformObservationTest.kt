@@ -11,6 +11,7 @@ import android.net.NetworkRequest
 import android.net.TetheringInterface
 import android.net.TetheringManager
 import android.os.Build
+import io.screenstream.mjpeg.MjpegKoinTestRule
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -44,6 +46,9 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34], shadows = [CallbackLinkAddressShadow::class, ObservationConnectivityShadow::class])
 internal class AndroidNetworkAddressPlatformObservationTest {
+    @get:Rule
+    val koin = MjpegKoinTestRule()
+
     // Cases: MJPEG-NET-09
     @Test
     @Config(sdk = [24, 25, 26, 29, 30, 35])

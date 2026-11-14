@@ -11,6 +11,7 @@ import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.window.core.layout.WindowSizeClass
+import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.StreamingModuleManager
 import io.screenstream.core.module.StreamingModule
 import io.screenstream.core.module.StreamingModuleNotifications
@@ -41,8 +42,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
+import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
@@ -71,6 +71,9 @@ import kotlin.uuid.Uuid
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [28])
 internal class StreamingModuleManagerTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = CoreKoinTestRule()
+
     @get:Rule
     val temporaryFolder = TemporaryFolder()
     private val scheduler = TestCoroutineScheduler()
@@ -97,12 +100,10 @@ internal class StreamingModuleManagerTest {
         })
         runBlocking { withTimeout(5.seconds) { settings.initialize() } }
         manager = newManager(listOf(first, second))
-        startKoin {
-            modules(module {
-                single { manager }
-                single<StreamingModuleNotifications> { notifications }
-            })
-        }
+        loadKoinModules(module {
+            single { manager }
+            single<StreamingModuleNotifications> { notifications }
+        })
         ManagerHost.factory = { handle -> FakeController(handle).also { controllers.add(it) } }
     }
 
@@ -116,7 +117,6 @@ internal class StreamingModuleManagerTest {
         scheduler.runCurrent()
         services.reversed().forEach { it.destroy() }
         scheduler.runCurrent()
-        stopKoin()
         ManagerHost.factory = { error("No test factory installed") }
     }
 

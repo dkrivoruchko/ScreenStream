@@ -12,7 +12,9 @@ kotlin {
 
 android {
     namespace = "io.screenstream.mjpeg"
-    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    compileSdk {
+        version = release(rootProject.extra["compileSdkVersion"] as Int)
+    }
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 
     defaultConfig {
@@ -40,6 +42,7 @@ android {
 }
 
 dependencies {
+    implementation(projects.foundation)
     implementation(projects.common)
     implementation(projects.streaming.core)
     implementation(projects.screenCaptureEngine)

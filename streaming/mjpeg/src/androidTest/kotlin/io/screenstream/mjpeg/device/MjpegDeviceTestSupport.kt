@@ -7,7 +7,6 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Build
-import android.util.Log
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.ComposeTestRule
@@ -234,7 +233,6 @@ internal class MjpegDeviceTestSupport(val compose: ComposeTestRule) {
         require(name.matches(Regex("[a-z0-9-]+")))
         val file = File(evidenceDirectory, "$name.$extension")
         write(file)
-        Log.i("MjpegDeviceTest", "Evidence: ${file.absolutePath}")
         val reportedEvidence = resultsReporter.addNewFile("$evidenceRunId-$name-$extension.$extension", name)
         check(reportedEvidence.parentFile!!.mkdirs() || reportedEvidence.parentFile!!.isDirectory)
         file.copyTo(reportedEvidence, overwrite = true)

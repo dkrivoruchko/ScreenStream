@@ -19,6 +19,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
 import info.dvkr.screenstream.common.R
+import io.screenstream.core.CoreKoinTestRule
 import io.screenstream.core.capture.ConsentLaunchException
 import io.screenstream.core.capture.ConsentRequestObserver
 import io.screenstream.core.capture.ScreenCaptureAccess
@@ -47,8 +48,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
+import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -69,6 +69,9 @@ import kotlin.time.Duration.Companion.seconds
 @Config(sdk = [34], qualifiers = "en")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 internal class ScreenCaptureConsentHostTest {
+    @get:Rule(order = Int.MIN_VALUE)
+    val koin = CoreKoinTestRule()
+
     @get:Rule
     val compose = createEmptyComposeRule()
 
@@ -83,7 +86,6 @@ internal class ScreenCaptureConsentHostTest {
     private lateinit var settings: StreamingSettingsStore
     private lateinit var settingsContext: CoreSettingsTestContext
     private var scenario: ActivityScenario<CoreComposeTestActivity>? = null
-    private var koinStarted = false
     private val continueText: String get() = application.getString(R.string.common_continue)
     private val educationTitle: String get() = application.getString(R.string.common_screen_capture_permission_required_title)
 
@@ -101,7 +103,6 @@ internal class ScreenCaptureConsentHostTest {
         scope.cancel()
         scenario?.close()
         CoreComposeTestActivity.content = null
-        if (koinStarted) stopKoin()
     }
 
     // Cases: CORE-UI-01
@@ -406,13 +407,10 @@ internal class ScreenCaptureConsentHostTest {
     }
 
     private fun launchHost(registry: RecordingConsentRegistry? = null) {
-        startKoin {
-            modules(module {
-                single { access }
-                single { settings }
-            })
-        }
-        koinStarted = true
+        loadKoinModules(module {
+            single { access }
+            single { settings }
+        })
         scenario = launchCoreComposeHost {
             if (mounted.value) {
                 if (registry == null) ScreenCaptureConsentHost()

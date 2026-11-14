@@ -37,8 +37,8 @@ android {
         applicationId = "info.dvkr.screenstream"
         minSdk = rootProject.extra["minSdkVersion"] as Int
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
-        versionCode = 45000
-        versionName = "4.5.0"
+        versionCode = 46000
+        versionName = "4.6.0-beta1"
 
         ndk.abiFilters.addAll(listOf("armeabi-v7a", "x86", "arm64-v8a", "x86_64"))
     }
@@ -60,7 +60,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
 //            baselineProfile.automaticGenerationDuringBuild = true
         }
     }
@@ -123,10 +123,12 @@ dependencies {
     coreLibraryDesugaring(libs.android.tools.desugar)
 
     implementation(projects.common)
+    implementation(projects.foundation)
     implementation(projects.streaming.core)
 
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)
+    implementation(libs.kermit)
 
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
@@ -147,4 +149,5 @@ dependencies {
     "PlayStoreImplementation"(libs.firebase.analytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics.ndk)
+    "PlayStoreImplementation"(libs.kermit.crashlytics)
 }

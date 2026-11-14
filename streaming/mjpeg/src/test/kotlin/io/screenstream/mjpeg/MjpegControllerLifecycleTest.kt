@@ -81,44 +81,46 @@ internal class MjpegControllerLifecycleTest {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun staleStartAndShutdownBeforeStartCloseAdmissionWithoutOrdinaryWork() = runBlocking {
-        kotlinx.coroutines.Dispatchers.setMain(kotlinx.coroutines.test.UnconfinedTestDispatcher())
-        try {
-            for (stale in listOf(false, true)) {
-                val handle = RecordingManagerHandle().also { it.current = !stale }
-                val serviceController = org.robolectric.Robolectric.buildService(MjpegStreamingModuleService::class.java).create()
-                val http = ControlledHttpDelivery()
-                val monitor = ControlledAddressMonitor()
-                val controller = MjpegStreamingModuleController(
-                    handle,
-                    serviceController.get(),
-                    lazyOf(inputs.createSettings()),
-                    monitor,
-                    ControlledCaptureAccess(),
-                    http,
-                    DiscardingSessionAnalyticsFactory
-                )
-                try {
-                    assertFalse(monitor.started.value)
-                    assertNull(http.configuration.value)
-                    if (!stale) controller.requestModuleShutdown()
-                    controller.startModule()
-                    controller.startModule()
-                    controller.requestStreamStart()
-                    withTimeout(5.seconds) { http.stopEntered.await(); monitor.closeEntered.await() }
-                    assertTrue(http.closed)
-                    assertFalse(monitor.started.value)
-                    assertTrue(http.registeredCaptureAttempts.value.isEmpty())
-                } finally {
-                    controller.requestModuleShutdown()
-                    withTimeout(5.seconds) {
-                        while (!shadowOf(serviceController.get()).isStoppedBySelf) kotlinx.coroutines.yield()
+        withMjpegTestKoin {
+            kotlinx.coroutines.Dispatchers.setMain(kotlinx.coroutines.test.UnconfinedTestDispatcher())
+            try {
+                for (stale in listOf(false, true)) {
+                    val handle = RecordingManagerHandle().also { it.current = !stale }
+                    val serviceController = org.robolectric.Robolectric.buildService(MjpegStreamingModuleService::class.java).create()
+                    val http = ControlledHttpDelivery()
+                    val monitor = ControlledAddressMonitor()
+                    val controller = MjpegStreamingModuleController(
+                        handle,
+                        serviceController.get(),
+                        lazyOf(inputs.createSettings()),
+                        monitor,
+                        ControlledCaptureAccess(),
+                        http,
+                        DiscardingSessionAnalyticsFactory
+                    )
+                    try {
+                        assertFalse(monitor.started.value)
+                        assertNull(http.configuration.value)
+                        if (!stale) controller.requestModuleShutdown()
+                        controller.startModule()
+                        controller.startModule()
+                        controller.requestStreamStart()
+                        withTimeout(5.seconds) { http.stopEntered.await(); monitor.closeEntered.await() }
+                        assertTrue(http.closed)
+                        assertFalse(monitor.started.value)
+                        assertTrue(http.registeredCaptureAttempts.value.isEmpty())
+                    } finally {
+                        controller.requestModuleShutdown()
+                        withTimeout(5.seconds) {
+                            while (!shadowOf(serviceController.get()).isStoppedBySelf) kotlinx.coroutines.yield()
+                        }
+                        serviceController.destroy()
+                        assertTrue(withTimeout(5.seconds) { controller.awaitCleanup() })
                     }
-                    serviceController.destroy()
-                    assertTrue(withTimeout(5.seconds) { controller.awaitCleanup() })
                 }
+            } finally {
+                kotlinx.coroutines.Dispatchers.resetMain()
             }
-        } finally {
-            kotlinx.coroutines.Dispatchers.resetMain()
         }
     }
 
@@ -126,60 +128,62 @@ internal class MjpegControllerLifecycleTest {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun idleLoopReportsProcessedUptimeHeartbeatsAndStaleHandleRetiresWithoutFailure() = runBlocking {
-        kotlinx.coroutines.Dispatchers.setMain(kotlinx.coroutines.test.UnconfinedTestDispatcher())
-        val service = org.robolectric.Robolectric.buildService(MjpegStreamingModuleService::class.java).create()
-        val handle = RecordingManagerHandle()
-        val http = ControlledHttpDelivery()
-        val monitor = ControlledAddressMonitor()
-        val controller =
-            MjpegStreamingModuleController(
-                handle,
-                service.get(),
-                lazyOf(inputs.createSettings()),
-                monitor,
-                ControlledCaptureAccess(),
-                http,
-                DiscardingSessionAnalyticsFactory
-            )
-        var destroyed = false
-        try {
-            assertTrue(handle.reports.isEmpty())
-            assertTrue(controller.state.value.statistics.history.isEmpty())
-            controller.startModule()
-            http.configuration.awaitControllerValue { it != null }
-            withTimeout(5.seconds) { while (handle.reports.isEmpty()) kotlinx.coroutines.yield() }
-            val before = handle.reports.size
-            val previousUptime = handle.reports.last().second
-            ShadowSystemClock.advanceBy(Duration.ofMillis(1500))
-            http.info.value =
-                HttpDelivery.Info(servers = listOf(HttpDelivery.ServerInfo(Uuid.random(), inputs.address(), 8080, HttpDelivery.ServerState.Listening)))
-            withTimeout(5.seconds) { while (handle.reports.size <= before) kotlinx.coroutines.yield() }
-            val heartbeat = handle.reports.last()
-            assertEquals(SystemClock.uptimeMillis(), heartbeat.second)
-            assertTrue(heartbeat.second - previousUptime >= 1500L)
-            assertFalse(heartbeat.first.isStreaming)
-            assertFalse(heartbeat.first.hasConsumer)
-            assertNull(heartbeat.first.captureAttempt)
-            handle.current = false
-            http.info.value = http.info.value.copy(servers = emptyList())
-            withTimeout(5.seconds) { http.stopEntered.await(); monitor.closeEntered.await() }
-            assertFalse(handle.failed.isCompleted)
-            controller.requestStreamStart()
-            assertTrue(http.registeredCaptureAttempts.value.isEmpty())
-            withTimeout(5.seconds) { while (!shadowOf(service.get()).isStoppedBySelf) kotlinx.coroutines.yield() }
-            service.destroy()
-            destroyed = true
-            assertTrue(withTimeout(5.seconds) { controller.awaitCleanup() })
-        } finally {
+        withMjpegTestKoin {
+            kotlinx.coroutines.Dispatchers.setMain(kotlinx.coroutines.test.UnconfinedTestDispatcher())
+            val service = org.robolectric.Robolectric.buildService(MjpegStreamingModuleService::class.java).create()
+            val handle = RecordingManagerHandle()
+            val http = ControlledHttpDelivery()
+            val monitor = ControlledAddressMonitor()
+            val controller =
+                MjpegStreamingModuleController(
+                    handle,
+                    service.get(),
+                    lazyOf(inputs.createSettings()),
+                    monitor,
+                    ControlledCaptureAccess(),
+                    http,
+                    DiscardingSessionAnalyticsFactory
+                )
+            var destroyed = false
             try {
-                controller.requestModuleShutdown()
-                if (!destroyed) {
-                    withTimeout(5.seconds) { while (!shadowOf(service.get()).isStoppedBySelf) kotlinx.coroutines.yield() }
-                    service.destroy()
-                }
+                assertTrue(handle.reports.isEmpty())
+                assertTrue(controller.state.value.statistics.history.isEmpty())
+                controller.startModule()
+                http.configuration.awaitControllerValue { it != null }
+                withTimeout(5.seconds) { while (handle.reports.isEmpty()) kotlinx.coroutines.yield() }
+                val before = handle.reports.size
+                val previousUptime = handle.reports.last().second
+                ShadowSystemClock.advanceBy(Duration.ofMillis(1500))
+                http.info.value =
+                    HttpDelivery.Info(servers = listOf(HttpDelivery.ServerInfo(Uuid.random(), inputs.address(), 8080, HttpDelivery.ServerState.Listening)))
+                withTimeout(5.seconds) { while (handle.reports.size <= before) kotlinx.coroutines.yield() }
+                val heartbeat = handle.reports.last()
+                assertEquals(SystemClock.uptimeMillis(), heartbeat.second)
+                assertTrue(heartbeat.second - previousUptime >= 1500L)
+                assertFalse(heartbeat.first.isStreaming)
+                assertFalse(heartbeat.first.hasConsumer)
+                assertNull(heartbeat.first.captureAttempt)
+                handle.current = false
+                http.info.value = http.info.value.copy(servers = emptyList())
+                withTimeout(5.seconds) { http.stopEntered.await(); monitor.closeEntered.await() }
+                assertFalse(handle.failed.isCompleted)
+                controller.requestStreamStart()
+                assertTrue(http.registeredCaptureAttempts.value.isEmpty())
+                withTimeout(5.seconds) { while (!shadowOf(service.get()).isStoppedBySelf) kotlinx.coroutines.yield() }
+                service.destroy()
+                destroyed = true
                 assertTrue(withTimeout(5.seconds) { controller.awaitCleanup() })
             } finally {
-                kotlinx.coroutines.Dispatchers.resetMain()
+                try {
+                    controller.requestModuleShutdown()
+                    if (!destroyed) {
+                        withTimeout(5.seconds) { while (!shadowOf(service.get()).isStoppedBySelf) kotlinx.coroutines.yield() }
+                        service.destroy()
+                    }
+                    assertTrue(withTimeout(5.seconds) { controller.awaitCleanup() })
+                } finally {
+                    kotlinx.coroutines.Dispatchers.resetMain()
+                }
             }
         }
     }

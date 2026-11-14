@@ -5,20 +5,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import io.screenstream.core.logE
 import io.screenstream.mjpeg.R
 import io.screenstream.mjpeg.settings.AccessSettings
 import io.screenstream.mjpeg.settings.MjpegSettings
 import io.screenstream.mjpeg.ui.settings.SettingSearchGroup
 import io.screenstream.mjpeg.ui.settings.SettingSearchInfo
 import io.screenstream.mjpeg.ui.settings.SettingsGroupCard
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.launch
+import io.screenstream.mjpeg.ui.settings.rememberMjpegSettingsSave
 
 internal val accessSettingSearchEntries: List<SettingSearchInfo> = listOf(
     PinProtectionSearch.info,
@@ -39,22 +35,11 @@ internal fun AccessSettingsGroup(
 ) {
     val saveErrorText = stringResource(R.string.mjpeg_pref_access_save_error)
     val currentEditPolicy by rememberUpdatedState(editPolicy)
-    val coroutineScope = rememberCoroutineScope()
+    val save = rememberMjpegSettingsSave(mjpegSettings, "Access.save", "Could not save access settings") { onSaveError(saveErrorText) }
 
-    fun updateAccess(transform: AccessSettings.() -> AccessSettings) {
-        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            try {
-                mjpegSettings.updateData {
-                    val proposed = copy(access = access.transform())
-                    if (currentEditPolicy.allows(this, proposed)) proposed else this
-                }
-            } catch (failure: CancellationException) {
-                throw failure
-            } catch (failure: Exception) {
-                mjpegSettings.logE("Access.save", "Could not save access settings", failure)
-                onSaveError(saveErrorText)
-            }
-        }
+    fun updateAccess(transform: AccessSettings.() -> AccessSettings) = save {
+        val proposed = copy(access = access.transform())
+        if (currentEditPolicy.allows(this, proposed)) proposed else this
     }
 
     SettingsGroupCard(

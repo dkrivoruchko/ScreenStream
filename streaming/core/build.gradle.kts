@@ -12,7 +12,9 @@ kotlin {
 
 android {
     namespace = "io.screenstream.core"
-    compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    compileSdk {
+        version = release(rootProject.extra["compileSdkVersion"] as Int)
+    }
     buildToolsVersion = rootProject.extra["buildToolsVersion"] as String
 
     defaultConfig {
@@ -39,9 +41,10 @@ dependencies {
     api(projects.common)
     api(libs.androidx.window.core)
 
+    implementation(projects.foundation)
+
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)
-    implementation(libs.xlog)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)

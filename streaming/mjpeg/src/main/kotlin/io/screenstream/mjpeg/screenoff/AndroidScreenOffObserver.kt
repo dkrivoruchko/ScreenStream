@@ -6,11 +6,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.PowerManager
-import io.screenstream.core.logE
+import io.screenstream.foundation.logging.Logger
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import kotlin.uuid.Uuid
 
 /** Owns a conditional Android screen-off subscription and its synchronous cleanup. */
-internal class AndroidScreenOffObserver(private val context: Context) {
+internal class AndroidScreenOffObserver(private val context: Context) : KoinComponent {
+    private val log: Logger by inject { parametersOf(this) }
+
     private val gate = Any()
     private var admissionClosed = false
     private var registration: Registration? = null
@@ -64,7 +69,7 @@ internal class AndroidScreenOffObserver(private val context: Context) {
             try {
                 unregisterLocked(current.id)
             } catch (failure: Exception) {
-                logE("Cleanup.screenOff", "Screen-off receiver cleanup failed", failure)
+                log.e("Cleanup.screenOff", "Screen-off receiver cleanup failed", failure)
             }
         }
         cleanupFailure == null

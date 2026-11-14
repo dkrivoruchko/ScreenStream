@@ -22,7 +22,6 @@ Each row names the authoritative source for one concept. Link to it rather than 
 | Saved module choice and education acceptance | [Selection and restart](../docs/module-contract-and-manager.md#selection-and-restart), [Host and request ownership](../docs/screen-capture.md#host-and-request-ownership) | [StreamingSettingsStore](../src/main/kotlin/io/screenstream/core/settings/StreamingSettingsStore.kt) |
 | Runtime permission checks and the Activity permission host | [Runtime Permissions](../docs/runtime-permissions.md) | [RuntimePermissions](../src/main/kotlin/io/screenstream/core/permission/RuntimePermissions.kt), [LocalRuntimePermissions](../src/main/kotlin/io/screenstream/core/compose/LocalRuntimePermissions.kt) |
 | Dependency wiring | [Host app integration](../README.md#host-app-integration) | [StreamingKoinModule](../src/main/kotlin/io/screenstream/core/StreamingKoinModule.kt) |
-| Log output | [Host app integration](../README.md#host-app-integration) | [Logging](../src/main/kotlin/io/screenstream/core/Logging.kt) |
 
 The manager implementation, the settings store and the error-notification coordinator are internal declarations. Their KDoc binds Core maintainers; modules and host apps rely only on the public guides and public KDoc.
 
